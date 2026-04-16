@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -201,6 +202,23 @@ class RuntimePokemonSpeciesLoader {
               'speciesId=$expectedSpeciesId, file=$filePath, typing.types contains an empty or duplicate entry',
         );
       }
+
+      // Source de vérité volontairement unique :
+      // - BE5 a placé la liste canonique des types battle supportés dans
+      //   `BattleTypeChart.supportedTypes` ;
+      // - ce loader runtime ne doit ni recopier cette liste, ni inventer sa
+      //   propre validation divergente ;
+      // - on réutilise donc directement le contrat battle pour échouer tôt,
+      //   avant qu'un `StateError` tardif n'émerge pendant le calcul des
+      //   dégâts.
+      if (!BattleTypeChart.supportedTypes.contains(normalizedType)) {
+        throw RuntimeBattleSetupException(
+          'Les données d’espèce Pokémon locales sont invalides; combat impossible.',
+          debugDetails:
+              'speciesId=$expectedSpeciesId, file=$filePath, unsupported typing.types entry=$normalizedType',
+        );
+      }
+
       normalizedTypes.add(normalizedType);
     }
 

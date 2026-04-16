@@ -177,6 +177,81 @@ void main() {
       expect(species.typing, equals(const <String>['water', 'dragon']));
     });
 
+    test('fails explicitly when a mono-typing uses an unsupported battle type',
+        () async {
+      await _writeSpeciesFile(
+        tempProjectRoot,
+        relativePath: 'custom/pokemon/species/unsupported-mono.json',
+        json: _speciesJson(
+          id: 'sparkitten',
+          baseHp: 39,
+          primaryAbilityId: 'static',
+          learnsetRef: 'sparkitten',
+          typing: const <String>['electrik'],
+        ),
+      );
+
+      await expectLater(
+        () => loader.loadById(
+          projectRootDirectory: tempProjectRoot.path,
+          pokemonConfig: _pokemonConfig(),
+          speciesId: 'sparkitten',
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>()
+              .having(
+                (error) => error.message,
+                'message',
+                contains('données d’espèce Pokémon locales sont invalides'),
+              )
+              .having(
+                (error) => error.debugDetails,
+                'debugDetails',
+                allOf(
+                  contains('speciesId=sparkitten'),
+                  contains('unsupported typing.types entry=electrik'),
+                  contains('unsupported-mono.json'),
+                ),
+              ),
+        ),
+      );
+    });
+
+    test(
+        'fails explicitly when a dual-typing contains an unsupported battle type',
+        () async {
+      await _writeSpeciesFile(
+        tempProjectRoot,
+        relativePath: 'custom/pokemon/species/unsupported-dual.json',
+        json: _speciesJson(
+          id: 'tidalwyrm',
+          baseHp: 79,
+          primaryAbilityId: 'torrent',
+          learnsetRef: 'tidalwyrm',
+          typing: const <String>['water', 'cosmic'],
+        ),
+      );
+
+      await expectLater(
+        () => loader.loadById(
+          projectRootDirectory: tempProjectRoot.path,
+          pokemonConfig: _pokemonConfig(),
+          speciesId: 'tidalwyrm',
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.debugDetails,
+            'debugDetails',
+            allOf(
+              contains('speciesId=tidalwyrm'),
+              contains('unsupported typing.types entry=cosmic'),
+              contains('unsupported-dual.json'),
+            ),
+          ),
+        ),
+      );
+    });
+
     test('fails explicitly when runtime-required species fields are broken',
         () async {
       await _writeSpeciesFile(

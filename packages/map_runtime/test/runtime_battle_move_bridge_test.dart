@@ -285,6 +285,43 @@ void main() {
     });
 
     test(
+        'rejects a move whose type is not actually supported by the current battle type chart',
+        () {
+      const move = PokemonMove(
+        id: 'typo_bolt',
+        name: 'Typo Bolt',
+        names: <String, String>{'en': 'Typo Bolt'},
+        generation: 1,
+        source: 'test',
+        type: 'electrik',
+        category: PokemonMoveCategory.special,
+        target: PokemonMoveTarget.normal,
+        basePower: 80,
+        accuracy: PokemonMoveAccuracy.percent(value: 100),
+        pp: 15,
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      expect(
+        () => bridge.toBattleMoveData(
+          move: move,
+          combatantLabel: 'Le Pokémon actif du joueur',
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.debugDetails,
+            'debugDetails',
+            allOf(
+              contains('moveId=typo_bolt'),
+              contains('moveName=Typo Bolt'),
+              contains('bridgeLimit=unsupported_type:electrik'),
+            ),
+          ),
+        ),
+      );
+    });
+
+    test(
         'rejects a move whose non-neutral crit ratio would still be lost by the current battle engine',
         () {
       const move = PokemonMove(

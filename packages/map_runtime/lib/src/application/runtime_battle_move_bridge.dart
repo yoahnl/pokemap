@@ -291,15 +291,32 @@ class RuntimeBattleMoveBridge {
     required PokemonMove move,
     required String combatantLabel,
   }) {
-    final type = move.type.trim();
-    if (type.isEmpty) {
+    final normalizedType = move.type.trim().toLowerCase();
+    if (normalizedType.isEmpty) {
       _rejectMove(
         move: move,
         combatantLabel: combatantLabel,
         bridgeLimit: 'invalid_type:empty',
       );
     }
-    return type;
+
+    // Même règle qu'au chargement des espèces :
+    // - la liste des types réellement supportés ne doit vivre qu'à un seul
+    //   endroit ;
+    // - le bridge réutilise donc `BattleTypeChart.supportedTypes` au lieu de
+    //   maintenir une seconde liste locale ;
+    // - cela permet de rejeter le move au bon seam runtime -> battle, avec
+    //   une erreur actionnable, plutôt que de laisser `map_battle` exploser
+    //   plus tard par `StateError`.
+    if (!BattleTypeChart.supportedTypes.contains(normalizedType)) {
+      _rejectMove(
+        move: move,
+        combatantLabel: combatantLabel,
+        bridgeLimit: 'unsupported_type:$normalizedType',
+      );
+    }
+
+    return normalizedType;
   }
 
   BattleMoveCategory _translateCategory(PokemonMoveCategory category) {
