@@ -537,6 +537,40 @@ void main() {
     });
 
     test(
+        'maps a trainer with explicit mixed moves by keeping only the bridgeable subset',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[
+          ProjectTrainerEntry(
+            id: 'trainer_ace',
+            name: 'Ace Jules',
+            trainerClass: 'Ace Trainer',
+            team: <ProjectTrainerPokemonEntry>[
+              ProjectTrainerPokemonEntry(
+                speciesId: 'aquafi',
+                level: 18,
+                moves: <String>['teleport', 'water_gun'],
+              ),
+            ],
+          ),
+        ],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+
+      final setup = await mapper.map(
+        bundle: bundle,
+        gameState: _playerStateForTests(),
+        request: _trainerRequest(),
+      );
+
+      expect(
+        setup.enemyPokemon.moves.map((move) => move.id).toList(growable: false),
+        equals(<String>['water_gun']),
+      );
+    });
+
+    test(
         'mapped trainer multi-mon battle auto-replaces the enemy instead of ending on the first KO',
         () async {
       final manifest = await _writeAndLoadProjectManifest(
@@ -685,19 +719,60 @@ void main() {
     });
 
     test(
-        'rejects an explicitly known move when its runtime support level is only partial',
+        'keeps a battle setup honest when explicit known moves mix unsupported and supported entries',
         () async {
       final manifest = await _writeAndLoadProjectManifest(
         tempProjectRoot,
         trainers: const <ProjectTrainerEntry>[],
       );
-      await _rewriteMoveCatalogEntrySupport(
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+
+      final setup = await mapper.map(
+        bundle: bundle,
+        gameState: const GameState(
+          saveId: 'save-known-move-filtering',
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              PlayerPokemon(
+                speciesId: 'sproutle',
+                natureId: 'bold',
+                abilityId: 'overgrow',
+                level: 12,
+                knownMoveIds: <String>['teleport', 'vine_whip'],
+                currentHp: 20,
+              ),
+            ],
+          ),
+        ),
+        request: _wildRequest(
+          speciesId: 'sparkitten',
+          level: 10,
+        ),
+      );
+
+      expect(
+        setup.playerPokemon.moves
+            .map((move) => move.id)
+            .toList(growable: false),
+        equals(<String>['vine_whip']),
+      );
+
+      final session = createBattleSession(setup).applyChoice(
+        const PlayerBattleChoiceFight(0),
+      );
+      final execution = session.state.currentTurn!.executions.firstWhere(
+        (execution) => execution.attacker == 'player',
+      );
+
+      expect(execution.move.id, equals('vine_whip'));
+    });
+
+    test(
+        'fails explicitly when explicit known moves leave no bridgeable move after filtering',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
         tempProjectRoot,
-        moveId: 'growl',
-        supportLevel: PokemonMoveEngineSupportLevel.structuredPartial,
-        unsupportedReasons: const <String>[
-          'unsupported_mechanic:stat_drop_bridge',
-        ],
+        trainers: const <ProjectTrainerEntry>[],
       );
       final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
 
@@ -705,7 +780,7 @@ void main() {
         () => mapper.map(
           bundle: bundle,
           gameState: const GameState(
-            saveId: 'save-unsupported-known-move',
+            saveId: 'save-no-bridgeable-known-move',
             party: PlayerParty(
               members: <PlayerPokemon>[
                 PlayerPokemon(
@@ -713,7 +788,7 @@ void main() {
                   natureId: 'bold',
                   abilityId: 'overgrow',
                   level: 12,
-                  knownMoveIds: <String>['growl', 'vine_whip'],
+                  knownMoveIds: <String>['teleport'],
                   currentHp: 20,
                 ),
               ],
@@ -729,19 +804,18 @@ void main() {
               .having(
                 (error) => error.message,
                 'message',
-                contains('ne sait pas projeter honnêtement'),
+                contains('aucun move bridgeable restant après filtrage'),
               )
               .having(
                 (error) => error.debugDetails,
                 'debugDetails',
                 allOf(
                   contains('combatant=Le Pokémon actif du joueur'),
-                  contains('moveId=growl'),
-                  contains('moveName=Growl'),
-                  contains('engineSupportLevel=structuredPartial'),
-                  contains(
-                    'unsupportedReasons=[unsupported_mechanic:stat_drop_bridge]',
-                  ),
+                  contains('candidateMoveIds=[teleport]'),
+                  contains('rejectedMoveIds=[teleport]'),
+                  contains('moveId=teleport'),
+                  contains('moveName=Teleport'),
+                  contains('unsupportedReasons=[unsupported_mechanic:zMove]'),
                 ),
               ),
         ),
@@ -749,7 +823,7 @@ void main() {
     });
 
     test(
-        'rejects a learnset-derived move when its runtime support level is catalog only',
+        'filters learnset-derived moves and keeps the bridgeable subset when at least one move remains',
         () async {
       final manifest = await _writeAndLoadProjectManifest(
         tempProjectRoot,
@@ -765,11 +839,74 @@ void main() {
       );
       final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
 
+      final setup = await mapper.map(
+        bundle: bundle,
+        gameState: const GameState(
+          saveId: 'save-derived-filtered-move',
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              PlayerPokemon(
+                speciesId: 'sproutle',
+                natureId: 'bold',
+                abilityId: 'overgrow',
+                level: 12,
+                currentHp: 20,
+              ),
+            ],
+          ),
+        ),
+        request: _wildRequest(
+          speciesId: 'sparkitten',
+          level: 10,
+        ),
+      );
+
+      expect(
+        setup.playerPokemon.moves
+            .map((move) => move.id)
+            .toList(growable: false),
+        equals(<String>['growl', 'vine_whip']),
+      );
+    });
+
+    test(
+        'fails explicitly when a learnset-derived move list has no bridgeable move after filtering',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      await _rewriteMoveCatalogEntrySupport(
+        tempProjectRoot,
+        moveId: 'tackle',
+        supportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+        unsupportedReasons: const <String>[
+          'unsupported_mechanic:legacy_damage_bridge',
+        ],
+      );
+      await _rewriteMoveCatalogEntrySupport(
+        tempProjectRoot,
+        moveId: 'growl',
+        supportLevel: PokemonMoveEngineSupportLevel.structuredPartial,
+        unsupportedReasons: const <String>[
+          'unsupported_mechanic:stat_drop_bridge',
+        ],
+      );
+      await _rewriteMoveCatalogEntrySupport(
+        tempProjectRoot,
+        moveId: 'vine_whip',
+        supportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+        unsupportedReasons: const <String>[
+          'unsupported_mechanic:legacy_damage_bridge',
+        ],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+
       await expectLater(
         () => mapper.map(
           bundle: bundle,
           gameState: const GameState(
-            saveId: 'save-derived-unsupported-move',
+            saveId: 'save-derived-no-bridgeable-move',
             party: PlayerParty(
               members: <PlayerPokemon>[
                 PlayerPokemon(
@@ -788,19 +925,23 @@ void main() {
           ),
         ),
         throwsA(
-          isA<RuntimeBattleSetupException>().having(
-            (error) => error.debugDetails,
-            'debugDetails',
-            allOf(
-              contains('combatant=Le Pokémon actif du joueur'),
-              contains('moveId=tackle'),
-              contains('moveName=Tackle'),
-              contains('engineSupportLevel=catalogOnly'),
-              contains(
-                'unsupportedReasons=[unsupported_mechanic:legacy_damage_bridge]',
+          isA<RuntimeBattleSetupException>()
+              .having(
+                (error) => error.message,
+                'message',
+                contains('aucun move bridgeable restant après filtrage'),
+              )
+              .having(
+                (error) => error.debugDetails,
+                'debugDetails',
+                allOf(
+                  contains('candidateMoveIds=[tackle, growl, vine_whip]'),
+                  contains('rejectedMoveIds=[tackle, growl, vine_whip]'),
+                  contains('moveId=tackle'),
+                  contains('moveId=growl'),
+                  contains('moveId=vine_whip'),
+                ),
               ),
-            ),
-          ),
         ),
       );
     });
@@ -1410,6 +1551,15 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
       },
       'entries': <Map<String, Object?>>[
         _moveEntry('tackle', 'Tackle', 40),
+        _moveEntry(
+          'teleport',
+          'Teleport',
+          0,
+          target: PokemonMoveTarget.self,
+          pp: 20,
+          engineSupportLevel: PokemonMoveEngineSupportLevel.structuredPartial,
+          unsupportedReasons: const <String>['unsupported_mechanic:zMove'],
+        ),
         _moveEntry('growl', 'Growl', 0),
         _moveEntry('vine_whip', 'Vine Whip', 45, type: 'grass'),
         _moveEntry('razor_leaf', 'Razor Leaf', 55, type: 'grass', critRatio: 2),

@@ -8,6 +8,7 @@ import 'runtime_pokedex_loader.dart';
 // surface de sauvegarde déjà existante dans le host runtime.
 enum InGameMenuSection {
   pokedex,
+  party,
   bag,
   trainer,
   save,
@@ -91,6 +92,15 @@ class _InGameMenuPageState extends State<InGameMenuPage> {
                     ),
                   ),
                   _MenuTile(
+                    key: const Key('menu-party-tile'),
+                    label: 'Équipe',
+                    icon: Icons.pets,
+                    selected: _selectedSection == InGameMenuSection.party,
+                    onTap: () => setState(
+                      () => _selectedSection = InGameMenuSection.party,
+                    ),
+                  ),
+                  _MenuTile(
                     key: const Key('menu-bag-tile'),
                     label: 'Sac',
                     icon: Icons.backpack,
@@ -134,6 +144,10 @@ class _InGameMenuPageState extends State<InGameMenuPage> {
               padding: const EdgeInsets.all(24),
               child: switch (_selectedSection) {
                 InGameMenuSection.pokedex => _buildPokedexSection(context),
+                InGameMenuSection.party => _buildPartySection(
+                    context,
+                    gameState,
+                  ),
                 InGameMenuSection.bag => _BagSection(gameState: gameState),
                 InGameMenuSection.trainer =>
                   _TrainerSection(gameState: gameState),
@@ -228,6 +242,24 @@ class _InGameMenuPageState extends State<InGameMenuPage> {
         final first = entries.first;
         _selectedSpeciesId = first.id;
         return first;
+      },
+    );
+  }
+
+  // L'équipe réutilise le snapshot runtime et enrichit l'affichage avec les
+  // noms du Pokédex quand ils sont déjà disponibles.
+  Widget _buildPartySection(BuildContext context, GameState gameState) {
+    return FutureBuilder<List<RuntimePokedexEntry>>(
+      future: _pokedexEntriesFuture,
+      builder: (context, snapshot) {
+        final speciesNamesById = {
+          for (final entry in snapshot.data ?? const <RuntimePokedexEntry>[])
+            entry.id: entry.primaryName,
+        };
+        return _PartySection(
+          gameState: gameState,
+          speciesNamesById: speciesNamesById,
+        );
       },
     );
   }
@@ -448,6 +480,149 @@ class _BagSection extends StatelessWidget {
         ],
       ],
     );
+  }
+}
+
+// Écran Équipe lecture seule.
+// On expose l'ordre d'équipe et les infos persistées déjà présentes en save.
+class _PartySection extends StatelessWidget {
+  const _PartySection({
+    required this.gameState,
+    required this.speciesNamesById,
+  });
+
+  final GameState gameState;
+  final Map<String, String> speciesNamesById;
+
+  @override
+  Widget build(BuildContext context) {
+    final members = gameState.party.members;
+    if (members.isEmpty) {
+      return const _SectionMessageCard(
+        title: 'Équipe',
+        message: "L'équipe du joueur est vide.",
+      );
+    }
+
+    return ListView(
+      key: const Key('in-game-party-section'),
+      children: [
+        Text(
+          'Équipe',
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
+        const SizedBox(height: 16),
+        for (var index = 0; index < members.length; index++) ...[
+          _PartyPokemonCard(
+            key: Key('party-entry-$index'),
+            pokemon: members[index],
+            slotIndex: index,
+            speciesName: speciesNamesById[members[index].speciesId],
+          ),
+          if (index < members.length - 1) const SizedBox(height: 16),
+        ],
+      ],
+    );
+  }
+}
+
+class _PartyPokemonCard extends StatelessWidget {
+  const _PartyPokemonCard({
+    super.key,
+    required this.pokemon,
+    required this.slotIndex,
+    required this.speciesName,
+  });
+
+  final PlayerPokemon pokemon;
+  final int slotIndex;
+  final String? speciesName;
+
+  @override
+  Widget build(BuildContext context) {
+    final displayName = speciesName?.trim().isNotEmpty == true
+        ? speciesName!.trim()
+        : pokemon.speciesId;
+    final statusLabel = pokemon.statusId.isEmpty ? 'Aucun' : pokemon.statusId;
+    final heldItemLabel =
+        pokemon.heldItemId.isEmpty ? 'Aucun' : pokemon.heldItemId;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: CircleAvatar(
+                child: Text('${slotIndex + 1}'),
+              ),
+              title: Text(
+                displayName,
+                key: Key('party-entry-name-$slotIndex'),
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              subtitle: Text('Niv. ${pokemon.level} · ${pokemon.speciesId}'),
+              trailing: Chip(
+                key: Key('party-entry-state-$slotIndex'),
+                label: Text(pokemon.isFainted ? 'KO' : 'Actif'),
+              ),
+            ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _PokemonInfoChip(
+                    label: 'PV actuels', value: '${pokemon.currentHp}'),
+                _PokemonInfoChip(label: 'Talent', value: pokemon.abilityId),
+                _PokemonInfoChip(label: 'Nature', value: pokemon.natureId),
+                _PokemonInfoChip(label: 'Statut', value: statusLabel),
+                _PokemonInfoChip(label: 'Objet', value: heldItemLabel),
+                if (pokemon.isShiny)
+                  const _PokemonInfoChip(label: 'Shiny', value: 'Oui'),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Attaques',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 8),
+            if (pokemon.knownMoveIds.isEmpty)
+              const Text('Aucune attaque connue.')
+            else
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: pokemon.knownMoveIds
+                    .map(
+                      (moveId) => Chip(
+                        key: Key('party-move-$moveId-$slotIndex'),
+                        label: Text(moveId),
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PokemonInfoChip extends StatelessWidget {
+  const _PokemonInfoChip({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(label: Text('$label : $value'));
   }
 }
 

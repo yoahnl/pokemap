@@ -49,10 +49,35 @@ void main() {
         equals(<String>['tackle', 'growl', 'vine_whip']),
       );
     });
+
+    test('prefers Squirtle over Abra when both are available', () async {
+      await _writeProjectFixture(
+        root,
+        includeAbra: true,
+        includeSquirtle: true,
+      );
+
+      final seed = await buildRuntimeHostLaunchDemoPartySeed(
+        seedDemoPokemon: true,
+        projectFilePath: '${root.path}/project.json',
+      );
+
+      expect(seed, isNotNull);
+      expect(seed!.speciesId, equals('squirtle'));
+      expect(seed.abilityId, equals('torrent'));
+      expect(
+        seed.knownMoveIds,
+        equals(<String>['tackle', 'tail_whip', 'bubble']),
+      );
+    });
   });
 }
 
-Future<void> _writeProjectFixture(Directory root) async {
+Future<void> _writeProjectFixture(
+  Directory root, {
+  bool includeAbra = false,
+  bool includeSquirtle = false,
+}) async {
   await File('${root.path}/project.json').writeAsString(
     jsonEncode(<String, dynamic>{
       'name': 'Runtime Host Seed Test',
@@ -115,6 +140,85 @@ Future<void> _writeProjectFixture(Directory root) async {
       ],
     },
   );
+
+  if (includeAbra) {
+    await _writeJson(
+      root,
+      'data/pokemon/species/0063-abra.json',
+      <String, dynamic>{
+        'id': 'abra',
+        'nationalDex': 63,
+        'names': <String, String>{'en': 'Abra'},
+        'typing': <String, Object>{
+          'types': <String>['psychic'],
+        },
+        'abilities': <String, String>{'primary': 'synchronize'},
+        'refs': <String, String>{
+          'learnset': 'abra',
+          'evolution': 'abra',
+          'media': 'abra',
+        },
+        'classification': <String, bool>{'isEnabledInProject': true},
+      },
+    );
+
+    await _writeJson(
+      root,
+      'data/pokemon/learnsets/abra.json',
+      <String, dynamic>{
+        'speciesId': 'abra',
+        'startingMoves': <String>['teleport'],
+        'relearnMoves': <String>['kinesis'],
+        'levelUp': const <Map<String, Object>>[],
+      },
+    );
+  }
+
+  if (includeSquirtle) {
+    await _writeJson(
+      root,
+      'data/pokemon/species/0007-squirtle.json',
+      <String, dynamic>{
+        'id': 'squirtle',
+        'nationalDex': 7,
+        'names': <String, String>{'en': 'Squirtle'},
+        'typing': <String, Object>{
+          'types': <String>['water'],
+        },
+        'abilities': <String, String>{'primary': 'torrent'},
+        'refs': <String, String>{
+          'learnset': 'squirtle',
+          'evolution': 'squirtle',
+          'media': 'squirtle',
+        },
+        'classification': <String, bool>{'isEnabledInProject': true},
+      },
+    );
+
+    await _writeJson(
+      root,
+      'data/pokemon/learnsets/squirtle.json',
+      <String, dynamic>{
+        'speciesId': 'squirtle',
+        'startingMoves': <String>['tackle'],
+        'relearnMoves': <String>['tail_whip'],
+        'levelUp': <Map<String, Object>>[
+          <String, Object>{
+            'moveId': 'bubble',
+            'level': 4,
+            'source': 'level_up',
+            'versionGroup': 'demo',
+          },
+          <String, Object>{
+            'moveId': 'water_gun',
+            'level': 7,
+            'source': 'level_up',
+            'versionGroup': 'demo',
+          },
+        ],
+      },
+    );
+  }
 }
 
 Future<void> _writeJson(

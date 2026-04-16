@@ -4,6 +4,13 @@ import 'dart:io';
 const kRuntimeDemoSeedLevel = 5;
 const kRuntimeDemoSeedCurrentHp = 12;
 const kRuntimeDemoSeedSaveId = 'runtime-host-demo-save';
+const _preferredRuntimeDemoSpeciesIds = <String>[
+  'squirtle',
+  'carapuce',
+];
+const _avoidRuntimeDemoSpeciesIds = <String>{
+  'abra',
+};
 
 class RuntimeDemoPartySeed {
   const RuntimeDemoPartySeed({
@@ -45,10 +52,7 @@ Future<RuntimeDemoPartySeed?> buildRuntimeHostLaunchDemoPartySeed({
     );
   }
 
-  final selectedSpecies = speciesJsonEntries.firstWhere(
-    (entry) => entry.isEnabledInProject,
-    orElse: () => speciesJsonEntries.first,
-  );
+  final selectedSpecies = _selectDemoSpeciesEntry(speciesJsonEntries);
   final speciesJson = selectedSpecies.json;
   final learnsetId = _readLearnsetId(speciesJson, selectedSpecies.id);
   final learnsetJson = await _readJsonMap(
@@ -74,6 +78,39 @@ Future<RuntimeDemoPartySeed?> buildRuntimeHostLaunchDemoPartySeed({
     currentHp: kRuntimeDemoSeedCurrentHp,
     knownMoveIds: knownMoveIds,
   );
+}
+
+_RuntimeHostSpeciesJsonEntry _selectDemoSpeciesEntry(
+  List<_RuntimeHostSpeciesJsonEntry> entries,
+) {
+  for (final preferredId in _preferredRuntimeDemoSpeciesIds) {
+    for (final entry in entries) {
+      if (!entry.isEnabledInProject) {
+        continue;
+      }
+      if (entry.id.toLowerCase() == preferredId) {
+        return entry;
+      }
+    }
+  }
+
+  for (final entry in entries) {
+    if (!entry.isEnabledInProject) {
+      continue;
+    }
+    if (_avoidRuntimeDemoSpeciesIds.contains(entry.id.toLowerCase())) {
+      continue;
+    }
+    return entry;
+  }
+
+  for (final entry in entries) {
+    if (entry.isEnabledInProject) {
+      return entry;
+    }
+  }
+
+  return entries.first;
 }
 
 class _RuntimeHostPokemonConfig {

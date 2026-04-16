@@ -66,15 +66,23 @@ class RuntimeBattleSetupMapper {
       pokemonConfig: bundle.manifest.pokemon,
       movesCatalog: movesCatalog,
       playerPokemon: playerPokemon,
+      combatantLabel: 'Le Pokémon actif du joueur',
     );
     final playerReserveSeeds = <RuntimeBattleCombatantSeed>[];
     for (final reserveIndex in playerSelection.reserveIndices) {
+      final reservePokemon = gameState.party.members[reserveIndex];
       playerReserveSeeds.add(
         await combatantSeedBuilder.buildPlayerCombatantSeed(
           projectRootDirectory: bundle.projectRootDirectory,
           pokemonConfig: bundle.manifest.pokemon,
           movesCatalog: movesCatalog,
-          playerPokemon: gameState.party.members[reserveIndex],
+          playerPokemon: reservePokemon,
+          // BE10 a ouvert de vraies réserves battle.
+          // Si une réserve joueur ne peut pas être bridgeée honnêtement, le
+          // handoff doit le dire explicitement au lieu de prétendre que
+          // l'actif seul est en cause.
+          combatantLabel:
+              'Le Pokémon de réserve du joueur (${reservePokemon.speciesId})',
         ),
       );
     }

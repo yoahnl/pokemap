@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/runtime_battle_combatant_seed_builder.dart';
+import 'package:map_runtime/src/application/runtime_battle_move_bridge.dart';
 import 'package:map_runtime/src/application/runtime_battle_setup_exception.dart';
 import 'package:map_runtime/src/application/runtime_move_catalog_loader.dart';
 import 'package:path/path.dart' as p;
@@ -314,17 +315,38 @@ void main() {
     });
 
     test(
-        'preserves the M5-bis gate and rejects a partially supported move during seed assembly',
+        'filters an explicit known move that is not bridgeable when another known move remains usable',
         () async {
       await _writePokemonFixtures(tempProjectRoot);
-      await _rewriteMoveCatalogEntrySupport(
-        tempProjectRoot,
-        moveId: 'growl',
-        supportLevel: PokemonMoveEngineSupportLevel.structuredPartial,
-        unsupportedReasons: const <String>[
-          'unsupported_mechanic:stat_drop_bridge',
-        ],
+      final movesCatalog = await moveCatalogLoader.load(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
       );
+
+      final seed = await builder.buildPlayerCombatantSeed(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        movesCatalog: movesCatalog,
+        playerPokemon: const PlayerPokemon(
+          speciesId: 'sproutle',
+          natureId: 'bold',
+          abilityId: 'overgrow',
+          level: 12,
+          knownMoveIds: <String>['teleport', 'vine_whip'],
+          currentHp: 23,
+        ),
+      );
+
+      expect(
+        seed.moves.map((move) => move.id).toList(growable: false),
+        equals(<String>['vine_whip']),
+      );
+    });
+
+    test(
+        'fails explicitly when explicit known moves leave no bridgeable move after filtering',
+        () async {
+      await _writePokemonFixtures(tempProjectRoot);
       final movesCatalog = await moveCatalogLoader.load(
         projectRootDirectory: tempProjectRoot.path,
         pokemonConfig: _pokemonConfig(),
@@ -340,7 +362,71 @@ void main() {
             natureId: 'bold',
             abilityId: 'overgrow',
             level: 12,
-            knownMoveIds: <String>['growl', 'vine_whip'],
+            knownMoveIds: <String>['teleport'],
+            currentHp: 23,
+          ),
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>()
+              .having(
+                (error) => error.message,
+                'message',
+                contains('aucun move bridgeable restant après filtrage'),
+              )
+              .having(
+                (error) => error.debugDetails,
+                'debugDetails',
+                allOf(
+                  contains('combatant=Le Pokémon actif du joueur'),
+                  contains('candidateMoveIds=[teleport]'),
+                  contains('rejectedMoveIds=[teleport]'),
+                  contains('moveId=teleport'),
+                  contains('moveName=Teleport'),
+                  contains('engineSupportLevel=structuredPartial'),
+                  allOf(
+                    contains(
+                      'unsupportedReasons=[unsupported_mechanic:zMove]',
+                    ),
+                    contains(
+                      'filterResult=no_bridgeable_moves_remaining_after_filtering',
+                    ),
+                  ),
+                ),
+              ),
+        ),
+      );
+    });
+
+    test(
+        'does not silently filter malformed move data just because another move is bridgeable',
+        () async {
+      await _writePokemonFixtures(tempProjectRoot);
+      const builderWithRejectingBridge = RuntimeBattleCombatantSeedBuilder(
+        battleMoveBridge: _RejectingRuntimeBattleMoveBridge(
+          rejectedMoveId: 'thunder_wave',
+          rejection: RuntimeBattleSetupException(
+            'Le combat ne peut pas démarrer car "Le Pokémon actif du joueur" utilise une attaque que le bridge battle actuel ne sait pas projeter honnêtement.',
+            debugDetails:
+                'combatant=Le Pokémon actif du joueur, moveId=thunder_wave, moveName=Thunder Wave, bridgeLimit=invalid_apply_status_scope:self',
+          ),
+        ),
+      );
+      final movesCatalog = await moveCatalogLoader.load(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+      );
+
+      await expectLater(
+        () => builderWithRejectingBridge.buildPlayerCombatantSeed(
+          projectRootDirectory: tempProjectRoot.path,
+          pokemonConfig: _pokemonConfig(),
+          movesCatalog: movesCatalog,
+          playerPokemon: const PlayerPokemon(
+            speciesId: 'sproutle',
+            natureId: 'bold',
+            abilityId: 'overgrow',
+            level: 12,
+            knownMoveIds: <String>['thunder_wave', 'vine_whip'],
             currentHp: 23,
           ),
         ),
@@ -348,14 +434,7 @@ void main() {
           isA<RuntimeBattleSetupException>().having(
             (error) => error.debugDetails,
             'debugDetails',
-            allOf(
-              contains('combatant=Le Pokémon actif du joueur'),
-              contains('moveId=growl'),
-              contains('engineSupportLevel=structuredPartial'),
-              contains(
-                'unsupportedReasons=[unsupported_mechanic:stat_drop_bridge]',
-              ),
-            ),
+            contains('bridgeLimit=invalid_apply_status_scope:self'),
           ),
         ),
       );
@@ -389,6 +468,77 @@ void main() {
             'message',
             contains('ne contient pas "move_that_does_not_exist"'),
           ),
+        ),
+      );
+    });
+
+    test(
+        'fails explicitly when a learnset-derived move list has no bridgeable moves left after filtering',
+        () async {
+      await _writePokemonFixtures(tempProjectRoot);
+      await _rewriteMoveCatalogEntrySupport(
+        tempProjectRoot,
+        moveId: 'tackle',
+        supportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+        unsupportedReasons: const <String>[
+          'unsupported_mechanic:legacy_damage_bridge',
+        ],
+      );
+      await _rewriteMoveCatalogEntrySupport(
+        tempProjectRoot,
+        moveId: 'growl',
+        supportLevel: PokemonMoveEngineSupportLevel.structuredPartial,
+        unsupportedReasons: const <String>[
+          'unsupported_mechanic:stat_drop_bridge',
+        ],
+      );
+      await _rewriteMoveCatalogEntrySupport(
+        tempProjectRoot,
+        moveId: 'vine_whip',
+        supportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+        unsupportedReasons: const <String>[
+          'unsupported_mechanic:legacy_damage_bridge',
+        ],
+      );
+      final movesCatalog = await moveCatalogLoader.load(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+      );
+
+      await expectLater(
+        () => builder.buildPlayerCombatantSeed(
+          projectRootDirectory: tempProjectRoot.path,
+          pokemonConfig: _pokemonConfig(),
+          movesCatalog: movesCatalog,
+          playerPokemon: const PlayerPokemon(
+            speciesId: 'sproutle',
+            natureId: 'bold',
+            abilityId: 'overgrow',
+            level: 12,
+            currentHp: 23,
+          ),
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>()
+              .having(
+                (error) => error.message,
+                'message',
+                contains('aucun move bridgeable restant après filtrage'),
+              )
+              .having(
+                (error) => error.debugDetails,
+                'debugDetails',
+                allOf(
+                  contains('candidateMoveIds=[tackle, growl, vine_whip]'),
+                  contains('rejectedMoveIds=[tackle, growl, vine_whip]'),
+                  contains('moveId=tackle'),
+                  contains('moveId=growl'),
+                  contains('moveId=vine_whip'),
+                  contains(
+                    'filterResult=no_bridgeable_moves_remaining_after_filtering',
+                  ),
+                ),
+              ),
         ),
       );
     });
@@ -663,6 +813,15 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
       },
       'entries': <Map<String, Object?>>[
         _moveEntry('tackle', 'Tackle', 40),
+        _moveEntry(
+          'teleport',
+          'Teleport',
+          0,
+          target: PokemonMoveTarget.self,
+          pp: 20,
+          engineSupportLevel: PokemonMoveEngineSupportLevel.structuredPartial,
+          unsupportedReasons: const <String>['unsupported_mechanic:zMove'],
+        ),
         _moveEntry('growl', 'Growl', 0),
         _moveEntry('vine_whip', 'Vine Whip', 45, type: 'grass'),
         _moveEntry('leer', 'Leer', 0),
@@ -919,4 +1078,33 @@ Future<void> _writeProjectRelativeJson(
   final file = File(absolutePath);
   await file.parent.create(recursive: true);
   await file.writeAsString(const JsonEncoder.withIndent('  ').convert(json));
+}
+
+final class _RejectingRuntimeBattleMoveBridge extends RuntimeBattleMoveBridge {
+  const _RejectingRuntimeBattleMoveBridge({
+    required this.rejectedMoveId,
+    required this.rejection,
+  });
+
+  final String rejectedMoveId;
+  final RuntimeBattleSetupException rejection;
+
+  @override
+  BattleMoveData toBattleMoveData({
+    required PokemonMove move,
+    required String combatantLabel,
+  }) {
+    // Ce faux bridge cible exactement la policy du builder :
+    // - le catalogue reste canonique et chargeable ;
+    // - l'échec est injecté au seam runtime -> battle réellement concerné ;
+    // - le test prouve donc que le builder ne masque pas un rejet
+    //   explicitement non filtrable sous prétexte qu'un autre move passerait.
+    if (move.id == rejectedMoveId) {
+      throw rejection;
+    }
+    return super.toBattleMoveData(
+      move: move,
+      combatantLabel: combatantLabel,
+    );
+  }
 }

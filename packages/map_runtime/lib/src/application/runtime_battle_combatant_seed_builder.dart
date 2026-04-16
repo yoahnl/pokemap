@@ -41,6 +41,7 @@ class RuntimeBattleCombatantSeedBuilder {
     required ProjectPokemonConfig pokemonConfig,
     required RuntimeMoveCatalog movesCatalog,
     required PlayerPokemon playerPokemon,
+    String combatantLabel = 'Le Pokémon actif du joueur',
   }) async {
     final species = await speciesLoader.loadById(
       projectRootDirectory: projectRootDirectory,
@@ -59,7 +60,7 @@ class RuntimeBattleCombatantSeedBuilder {
     final moves = _resolveBattleMoves(
       movesCatalog: movesCatalog,
       moveIds: moveIds,
-      combatantLabel: 'Le Pokémon actif du joueur',
+      combatantLabel: combatantLabel,
     );
 
     final maxHp = _calculateMaxHp(
@@ -216,15 +217,35 @@ class RuntimeBattleCombatantSeedBuilder {
     required List<String> moveIds,
     required String combatantLabel,
   }) {
-    final normalizedMoveIds = _normalizeUniqueIdsPreserveOrder(moveIds);
-    if (normalizedMoveIds.isEmpty) {
+    final candidateMoveIds = List<String>.unmodifiable(
+      _normalizeUniqueIdsPreserveOrder(moveIds).take(4).toList(growable: false),
+    );
+
+    if (candidateMoveIds.isEmpty) {
       throw RuntimeBattleSetupException(
         '$combatantLabel n’a aucune attaque exploitable pour démarrer le combat.',
       );
     }
 
     final moves = <BattleMoveData>[];
-    for (final moveId in normalizedMoveIds.take(4)) {
+    final rejectedMoves = <_RejectedBridgeMove>[];
+
+    // Fix local volontaire :
+    // - le bridge continue à décider ce qui est réellement exécutable ;
+    // - le builder, lui, cesse d'annuler tout le handoff dès le premier move
+    //   non bridgeable ;
+    // - on filtre donc uniquement les refus de projection bridge -> battle,
+    //   sans jamais inventer de move de remplacement ;
+    // - la liste candidate reste strictement celle déjà décidée en amont :
+    //   ordre métier existant, unicité existante, limite actuelle à 4.
+    //
+    // Conséquence métier importante :
+    // - si `knownMoveIds` est explicite, on ne backfill jamais avec un learnset ;
+    // - si le move set vient d'un learnset, on ne va pas chercher un cinquième
+    //   move "plus loin" pour compenser un rejet ;
+    // - on accepte simplement le sous-ensemble bridgeable de la liste déjà
+    //   retenue, puis on échoue seulement s'il ne reste plus rien.
+    for (final moveId in candidateMoveIds) {
       final move = movesCatalog.lookup(moveId);
       if (move == null) {
         throw RuntimeBattleSetupException(
@@ -232,19 +253,54 @@ class RuntimeBattleCombatantSeedBuilder {
           debugDetails: 'combatant=$combatantLabel',
         );
       }
-      // M8 sort enfin la policy de projection du builder brut :
-      // - le builder assemble des seeds de combattants ;
-      // - le bridge décide ce qui est réellement exécutable par `map_battle` ;
-      // - cela rend le refus plus honnête que l'ancien simple gate
-      //   `engineSupportLevel == structuredSupported`.
-      moves.add(
-        battleMoveBridge.toBattleMoveData(
+
+      try {
+        // M8 sort enfin la policy de projection du builder brut :
+        // - le builder assemble des seeds de combattants ;
+        // - le bridge décide ce qui est réellement exécutable par `map_battle` ;
+        // - BE10A-bis garde cette frontière intacte et se contente ici de
+        //   filtrer localement les refus bridgeables au lieu d'élargir le
+        //   bridge de manière risquée.
+        moves.add(
+          battleMoveBridge.toBattleMoveData(
+            move: move,
+            combatantLabel: combatantLabel,
+          ),
+        );
+      } on RuntimeBattleSetupException catch (error) {
+        final rejectedMove = _RejectedBridgeMove.fromBridgeRejection(
           move: move,
-          combatantLabel: combatantLabel,
-        ),
-      );
+          debugDetails: error.debugDetails,
+        );
+
+        // Le filtrage BE10A-bis doit rester borné :
+        // - on accepte de retirer les moves honnêtement non bridgeables du
+        //   sous-ensemble courant ;
+        // - on ne doit surtout pas masquer une donnée runtime/canonique
+        //   corrompue comme si c'était un simple manque de support moteur ;
+        // - les `bridgeLimit=invalid_*` et assimilés restent donc des hard
+        //   failures explicites, même si un autre move du combattant serait
+        //   par ailleurs exécutable.
+        if (!rejectedMove.isFilterableDuringSeedAssembly) {
+          rethrow;
+        }
+
+        rejectedMoves.add(rejectedMove);
+      }
     }
-    return List<BattleMoveData>.unmodifiable(moves);
+
+    if (moves.isNotEmpty) {
+      return List<BattleMoveData>.unmodifiable(moves);
+    }
+
+    throw RuntimeBattleSetupException(
+      'Le combat ne peut pas démarrer car "$combatantLabel" n’a aucun move bridgeable restant après filtrage.',
+      debugDetails: 'combatant=$combatantLabel, '
+          'candidateMoveIds=${_formatDebugList(candidateMoveIds)}, '
+          'rejectedMoveIds=${_formatDebugList(rejectedMoves.map((move) => move.moveId).toList(growable: false))}, '
+          'rejectedMoves=[${rejectedMoves.map((move) => move.toDebugDetails()).join('; ')}], '
+          'filterResult=no_bridgeable_moves_remaining_after_filtering',
+    );
   }
 
   List<String> _normalizeUniqueIdsPreserveOrder(List<String> rawIds) {
@@ -377,6 +433,84 @@ class RuntimeBattleCombatantSeedBuilder {
       return max;
     }
     return value;
+  }
+
+  String _formatDebugList(List<String> values) {
+    if (values.isEmpty) {
+      return '[]';
+    }
+    return '[${values.join(', ')}]';
+  }
+}
+
+/// Snapshot local d'un move candidat rejeté par le bridge runtime -> battle.
+///
+/// Ce type reste volontairement petit et local au builder :
+/// - il évite d'ouvrir un nouveau contrat public juste pour un message
+///   d'erreur de handoff ;
+/// - il garde tout le contexte nécessaire pour expliquer pourquoi aucun move
+///   bridgeable n'est finalement resté après filtrage ;
+/// - il permet d'améliorer le message final sans élargir le bridge lui-même.
+final class _RejectedBridgeMove {
+  const _RejectedBridgeMove({
+    required this.moveId,
+    required this.moveName,
+    required this.engineSupportLevel,
+    required this.unsupportedReasons,
+    this.bridgeLimit,
+  });
+
+  factory _RejectedBridgeMove.fromBridgeRejection({
+    required PokemonMove move,
+    required String? debugDetails,
+  }) {
+    return _RejectedBridgeMove(
+      moveId: move.id,
+      moveName: move.name,
+      engineSupportLevel: move.engineSupportLevel.name,
+      unsupportedReasons: List<String>.unmodifiable(move.unsupportedReasons),
+      bridgeLimit: _extractBridgeLimit(debugDetails),
+    );
+  }
+
+  final String moveId;
+  final String moveName;
+  final String engineSupportLevel;
+  final List<String> unsupportedReasons;
+  final String? bridgeLimit;
+
+  bool get isFilterableDuringSeedAssembly {
+    final limit = bridgeLimit;
+    if (limit == null) {
+      return false;
+    }
+    if (limit.startsWith('invalid_')) {
+      return false;
+    }
+    if (limit == 'empty_modify_stats_not_supported') {
+      return false;
+    }
+    return true;
+  }
+
+  String toDebugDetails() {
+    final reasons = unsupportedReasons.isEmpty
+        ? '[]'
+        : '[${unsupportedReasons.join(', ')}]';
+    final limit = bridgeLimit == null ? '' : ', bridgeLimit=$bridgeLimit';
+    return 'moveId=$moveId, '
+        'moveName=$moveName, '
+        'engineSupportLevel=$engineSupportLevel, '
+        'unsupportedReasons=$reasons$limit';
+  }
+
+  static String? _extractBridgeLimit(String? debugDetails) {
+    if (debugDetails == null || debugDetails.trim().isEmpty) {
+      return null;
+    }
+    final match =
+        RegExp(r'bridgeLimit=([^,]+)$').firstMatch(debugDetails.trim());
+    return match?.group(1);
   }
 }
 

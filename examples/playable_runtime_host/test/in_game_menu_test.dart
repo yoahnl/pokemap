@@ -7,7 +7,7 @@ import 'package:playable_runtime_host/src/runtime_pokedex_loader.dart';
 void main() {
   // Ce test couvre le coeur des lots 48 à 51 :
   // navigation latérale et lecture correcte des données du snapshot runtime.
-  testWidgets('navigates across Pokédex, Sac and Dresseur sections',
+  testWidgets('navigates across Pokédex, Équipe, Sac and Dresseur sections',
       (tester) async {
     var closeRequested = false;
     await tester.binding.setSurfaceSize(const Size(1280, 900));
@@ -56,6 +56,15 @@ void main() {
 
     expect(find.byKey(const Key('pokedex-detail-ivysaur')), findsOneWidget);
     expect(find.textContaining('Désactivée'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('menu-party-tile')));
+    await tester.pump();
+
+    expect(find.byKey(const Key('in-game-party-section')), findsOneWidget);
+    expect(find.byKey(const Key('party-entry-0')), findsOneWidget);
+    expect(find.byKey(const Key('party-entry-name-0')), findsOneWidget);
+    expect(find.textContaining('Niv. 12'), findsOneWidget);
+    expect(find.byKey(const Key('party-move-vine-whip-0')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('menu-bag-tile')));
     await tester.pump();
@@ -132,6 +141,19 @@ void main() {
 GameState _buildGameState() {
   return const GameState(
     saveId: 'save-1',
+    party: PlayerParty(
+      members: [
+        PlayerPokemon(
+          speciesId: 'bulbasaur',
+          natureId: 'bold',
+          abilityId: 'overgrow',
+          level: 12,
+          knownMoveIds: ['tackle', 'vine-whip'],
+          currentHp: 31,
+          heldItemId: 'miracle-seed',
+        ),
+      ],
+    ),
     trainerProfile: TrainerProfile(
       name: 'Leaf',
       badgeIds: ['cascade', 'thunder'],
