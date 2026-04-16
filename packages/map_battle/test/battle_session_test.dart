@@ -184,85 +184,40 @@ void main() {
       );
     });
 
-    test(
-        'a malformed battle move setup that bypasses constructor guards is rejected before session creation',
-        () {
-      // Mini-fix BE6 :
-      // - `BattleMoveData` reste `const` pour ne pas casser les anciens call
-      //   sites battle directs ;
-      // - l'assertion de constructeur couvre donc surtout les builds debug ;
-      // - ce test force volontairement un objet setup malformé via override
-      //   pour prouver que `createBattleSession()` refuse encore explicitement
-      //   l'état incohérent dès qu'il consomme `critRatio`.
-      final setup = BattleSetup(
-        playerPokemon: BattleCombatantData(
-          speciesId: 'pikachu',
-          level: 5,
-          maxHp: 20,
-          stats: _neutralBattleStats,
-          moves: const [
-            _MalformedCritBattleMoveData(),
-          ],
-        ),
-        enemyPokemon: BattleCombatantData(
-          speciesId: 'lapras',
-          level: 5,
-          maxHp: 25,
-          stats: _neutralBattleStats,
-          moves: const [
-            BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
-          ],
-        ),
-        isTrainerBattle: false,
-        trainerId: null,
+    test('BattleMoveData keeps a valid crit ratio unchanged', () {
+      // Mini-fix BE6-2 :
+      // - on supprime les faux tests qui contournaient le contrat par héritage ;
+      // - le vrai contrat public doit maintenant être évalué tel qu'il est
+      //   réellement exposé aux call sites : un DTO final, `const`, typé ;
+      // - ce test vérifie simplement qu'une valeur valide reste stable.
+      const move = BattleMoveData(
+        id: 'slash',
+        name: 'Slash',
+        power: 50,
+        critRatio: 2,
       );
 
-      expect(
-        () => createBattleSession(setup),
-        // En debug/test, la session tombe encore plus tôt sur l'assertion du
-        // constructeur `BattleMove` quand elle tente de matérialiser le move
-        // setup malformé. Hors assertions, le getter validé de
-        // `BattleMoveData` puis la garde moteur prennent le relais.
-        throwsA(
-          anyOf(
-            isA<AssertionError>(),
-            isA<StateError>().having(
-              (error) => error.message,
-              'message',
-              contains('BattleMoveData critRatio must be >= 1'),
-            ),
-          ),
-        ),
-      );
+      expect(move.critRatio, equals(2));
     });
 
-    test(
-        'a malformed battle move that bypasses constructor guards is still rejected before crit resolution',
-        () {
-      final session = createBattleSession(
-        createTestSetup(),
-        rng: const BattleScriptedRng(<int>[2, 2]),
+    test('BattleMove.withConsumedPp preserves a valid crit ratio', () {
+      // Ce test remplace honnêtement l'ancien scénario artificiel :
+      // - on ne forge plus un move malformé via override ;
+      // - on vérifie que le vrai contrat public battle conserve `critRatio`
+      //   pendant une transition d'état normale du moteur.
+      const move = BattleMove(
+        id: 'slash',
+        name: 'Slash',
+        power: 50,
+        pp: 10,
+        currentPp: 3,
+        critRatio: 3,
       );
 
-      // Mini-fix BE6 :
-      // - les constructeurs publics `const` ne peuvent pas lancer un vrai
-      //   `throw` runtime sans casser inutilement le contrat battle existant ;
-      // - on garde donc une assertion locale au constructeur ;
-      // - et ce test force volontairement un objet malformé via override pour
-      //   prouver que le moteur refuse encore explicitement l'état incohérent
-      //   au moment où il consomme réellement le crit.
-      session.state.player.moves[0] = _MalformedCritBattleMove();
+      final consumed = move.withConsumedPp();
 
-      expect(
-        () => session.applyChoice(const PlayerBattleChoiceFight(0)),
-        throwsA(
-          isA<StateError>().having(
-            (error) => error.message,
-            'message',
-            contains('critical ratio must be >= 1'),
-          ),
-        ),
-      );
+      expect(consumed.critRatio, equals(3));
+      expect(consumed.currentPp, equals(2));
     });
 
     test('getAvailableChoices hides fight choices whose currentPp is zero', () {
@@ -602,34 +557,4 @@ void main() {
       expect(session.state.outcome!.isVictory, isTrue);
     });
   });
-}
-
-class _MalformedCritBattleMove extends BattleMove {
-  _MalformedCritBattleMove()
-      : super(
-          id: 'slash',
-          name: 'Slash',
-          power: 50,
-          category: BattleMoveCategory.physical,
-          critRatio: 1,
-        );
-
-  @override
-  int get critRatio => 0;
-
-  @override
-  BattleMove withConsumedPp() => this;
-}
-
-class _MalformedCritBattleMoveData extends BattleMoveData {
-  const _MalformedCritBattleMoveData()
-      : super(
-          id: 'slash',
-          name: 'Slash',
-          power: 50,
-          critRatio: 1,
-        );
-
-  @override
-  int get critRatio => 0;
 }

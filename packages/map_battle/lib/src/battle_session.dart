@@ -966,11 +966,13 @@ class BattleSession {
     // - on ne prétend pas ouvrir Focus Energy, Lucky Chant ou d'autres
     //   modificateurs indirects.
     //
-    // Mini-fix BE6 :
+    // Mini-fix BE6 puis BE6-mini-fix-2 :
     // - la première version neutralisait silencieusement `critRatio <= 0`
     //   dans la branche "ratio neutre" ;
-    // - cela laissait une donnée battle invalide devenir "à peu près valide"
-    //   au lieu d'échouer franchement ;
+    // - cela laissait une donnée battle invalide devenir "à peu près valide" ;
+    // - le contrat public est désormais mieux verrouillé en amont, donc cette
+    //   garde sert surtout de défense en profondeur pour un état incohérent
+    //   qui réapparaîtrait à l'intérieur même de `map_battle` ;
     // - on préfère maintenant un `StateError` explicite, parce qu'à ce stade
     //   il s'agit d'un état battle incohérent, pas d'une simple option métier.
     if (critRatio < 1) {

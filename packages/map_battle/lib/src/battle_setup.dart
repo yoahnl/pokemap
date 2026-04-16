@@ -138,7 +138,16 @@ class BattleCombatantData {
 ///
 /// Ce modèle est utilisé uniquement pour la configuration initiale.
 /// Une fois le combat démarré, [BattleMove] est utilisé à la place.
-class BattleMoveData {
+///
+/// Mini-fix BE6-2 :
+/// - ce contrat de setup devient lui aussi `final` ;
+/// - il doit rester un petit DTO battle, pas une surface extensible ;
+/// - verrouiller aussi le setup évite de fermer `BattleMove` tout en laissant
+///   encore entrer des valeurs malformées par héritage avant la création de
+///   session ;
+/// - on garde `const`, les assertions locales, puis les gardes runtime comme
+///   défense en profondeur, mais le bypass trivial par override disparaît.
+final class BattleMoveData {
   /// Crée les données d'une attaque.
   ///
   /// [id] - L'identifiant canonique de l'attaque.
@@ -288,10 +297,13 @@ class BattleMoveData {
   /// - comme pour `BattleMove`, ce contrat de setup reste `const` pour ne pas
   ///   casser inutilement les anciens call sites battle directs ;
   /// - l’assertion arrête donc tôt les usages invalides en debug/test ;
-  /// - on garde en plus un getter validé, car un objet battle malformé peut
-  ///   encore contourner les assertions hors debug ;
+  /// - BE6-mini-fix-2 verrouille maintenant aussi la classe au niveau langage,
+  ///   donc le contournement trivial par sous-classe externe disparaît ;
+  /// - on garde en plus un getter validé, car un objet battle incohérent peut
+  ///   encore apparaître via un futur mauvais refactor interne ;
   /// - le moteur garde enfin sa propre validation défensive au moment exact où
-  ///   il consomme le ratio critique.
+  ///   il consomme le ratio critique ; cette dernière garde reste une défense
+  ///   en profondeur, pas la preuve principale du contrat public.
   final int _critRatio;
 
   int get critRatio {

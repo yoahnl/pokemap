@@ -118,7 +118,15 @@ class BattleStatStageChange {
 /// Ce modèle représente une attaque disponible pour un combattant.
 /// Il est utilisé pendant le combat, contrairement à [BattleMoveData]
 /// qui est utilisé uniquement pour la configuration initiale.
-class BattleMove {
+///
+/// Mini-fix BE6-2 :
+/// - cette classe devient volontairement `final` ;
+/// - ce n'est pas un point d'extension du moteur, mais un contrat de donnée ;
+/// - le mini-fix précédent avait amélioré la robustesse locale, tout en
+///   laissant un bypass trivial par héritage/override dans les tests ;
+/// - on ferme donc ce trou au niveau langage au lieu de continuer à écrire
+///   des preuves artificielles basées sur des sous-classes malformées.
+final class BattleMove {
   /// Crée une attaque.
   ///
   /// [id] - L'identifiant canonique de l'attaque.
@@ -266,10 +274,14 @@ class BattleMove {
   /// Garde-fou de mini-fix BE6 :
   /// - ce contrat public reste `const`, donc le garde-fou local le plus petit
   ///   et le plus cohérent ici reste une assertion ;
+  /// - BE6-mini-fix-2 verrouille maintenant aussi la classe au niveau langage,
+  ///   donc le bypass trivial par override externe disparaît ;
   /// - on ajoute quand même aussi une validation runtime au getter, parce
-  ///   qu'un objet battle malformé peut encore contourner les assertions hors
-  ///   debug ;
-  /// - le moteur garde enfin une dernière validation défensive plus loin.
+  ///   qu'un objet battle incohérent peut encore émerger d'un futur mauvais
+  ///   refactor interne ou d'un état construit dans cette même librairie ;
+  /// - le moteur garde enfin une dernière validation défensive plus loin :
+  ///   cette garde n'est plus la preuve principale du contrat public, mais
+  ///   une défense en profondeur.
   final int _critRatio;
 
   int get critRatio {
