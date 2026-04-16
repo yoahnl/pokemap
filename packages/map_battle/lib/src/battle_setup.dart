@@ -26,7 +26,9 @@ class BattleSetup {
   ///   sous une météo ou un pseudoWeather déjà actifs.
   const BattleSetup({
     required this.playerPokemon,
+    this.playerReservePokemon = const <BattleCombatantData>[],
     required this.enemyPokemon,
+    this.enemyReservePokemon = const <BattleCombatantData>[],
     required this.isTrainerBattle,
     required this.trainerId,
     this.allowCapture = false,
@@ -36,8 +38,22 @@ class BattleSetup {
   /// Le Pokémon du joueur qui combat.
   final BattleCombatantData playerPokemon;
 
+  /// Réserve battle locale du joueur.
+  ///
+  /// BE10 reste volontairement simple :
+  /// - un seul actif joueur ;
+  /// - zéro ou plusieurs membres de réserve ;
+  /// - aucun système de side/slot riche.
+  final List<BattleCombatantData> playerReservePokemon;
+
   /// Le Pokémon adverse qui combat.
   final BattleCombatantData enemyPokemon;
+
+  /// Réserve battle locale de l'adversaire.
+  ///
+  /// Le lot l'ouvre surtout pour rendre honnêtes les trainer battles à
+  /// plusieurs Pokémon, sans ouvrir de multi-battle.
+  final List<BattleCombatantData> enemyReservePokemon;
 
   /// true si c'est un combat contre un dresseur.
   ///
@@ -100,6 +116,7 @@ class BattleCombatantData {
     required this.level,
     required this.maxHp,
     required this.stats,
+    this.lineupIndex = 0,
     this.typing,
     this.majorStatus,
     this.volatileState = const BattleVolatileState(),
@@ -110,6 +127,22 @@ class BattleCombatantData {
 
   /// L'identifiant de l'espèce (ex: "pikachu", "lapras").
   final String speciesId;
+
+  /// Identité stable du combattant dans la lineup battle de son camp.
+  ///
+  /// BE10 ajoute ce petit identifiant pour une raison très concrète :
+  /// - pendant le combat, actif et réserve peuvent s'échanger plusieurs fois ;
+  /// - le runtime doit malgré tout réécrire les bons slots de party après le
+  ///   combat sans deviner l'historique des switches ;
+  /// - on transporte donc un index local stable, purement battle/runtime,
+  ///   qui n'ouvre ni grid de slots, ni modèle de party parallèle.
+  ///
+  /// Important :
+  /// - ce n'est pas un slot de doubles ;
+  /// - ce n'est pas un index UI ;
+  /// - c'est uniquement une identité stable dans la lineup initiale de ce
+  ///   camp pour le write-back et la cohérence des remplacements.
+  final int lineupIndex;
 
   /// Le niveau du combattant.
   final int level;

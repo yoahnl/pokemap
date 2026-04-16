@@ -65,6 +65,20 @@ final class BattleMajorStatusState {
       toxicCounter: toxicCounter + 1,
     );
   }
+
+  /// Réinitialise l'état local qui ne doit pas survivre à un switch-out.
+  ///
+  /// BE10 garde une politique très étroite :
+  /// - `par`, `brn`, `psn` restent inchangés ;
+  /// - `tox` reste bien `tox` ;
+  /// - mais sa progression locale repart à `1` quand le Pokémon quitte puis
+  ///   revient sur le terrain.
+  BattleMajorStatusState resetOnSwitchOut() {
+    if (!isToxic) {
+      return this;
+    }
+    return const BattleMajorStatusState.tox();
+  }
 }
 
 /// Effet battle minimal pour `applyStatus`.

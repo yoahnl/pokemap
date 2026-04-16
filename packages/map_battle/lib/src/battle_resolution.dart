@@ -3,6 +3,7 @@ import 'battle_field.dart';
 import 'battle_move.dart';
 import 'battle_state.dart';
 import 'battle_status.dart';
+import 'battle_switch.dart';
 import 'battle_volatile.dart';
 
 /// Résultat d'un tour de combat.
@@ -25,6 +26,7 @@ class BattleTurnResult {
     this.statusEvents = const <BattleStatusEvent>[],
     this.volatileEvents = const <BattleVolatileEvent>[],
     this.fieldEvents = const <BattleFieldEvent>[],
+    this.switchEvents = const <BattleSwitchEvent>[],
   });
 
   /// L'action jouée par le joueur.
@@ -68,6 +70,17 @@ class BattleTurnResult {
   /// - une petite troisième liste suffit à garder le champ observable sans
   ///   ouvrir un journal universel.
   final List<BattleFieldEvent> fieldEvents;
+
+  /// Les événements de switch / remplacement visibles pendant ce tour.
+  ///
+  /// BE10 les sépare volontairement du reste :
+  /// - un switch n'est ni un statut majeur, ni un volatile BE8, ni un
+  ///   événement de champ ;
+  /// - le runtime/UI a besoin de distinguer un remplacement forcé d'une simple
+  ///   exécution de move ;
+  /// - cette petite liste sœur suffit à garder l'état observable sans ouvrir
+  ///   de journal universel.
+  final List<BattleSwitchEvent> switchEvents;
 }
 
 /// Exécution d'une attaque.

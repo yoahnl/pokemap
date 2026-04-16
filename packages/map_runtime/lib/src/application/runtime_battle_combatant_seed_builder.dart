@@ -408,9 +408,17 @@ class RuntimeBattleCombatantSeed {
   final String abilityId;
   final List<BattleMoveData> moves;
 
-  BattleCombatantData toBattleCombatantData() {
+  BattleCombatantData toBattleCombatantData({
+    int lineupIndex = 0,
+  }) {
+    // BE10 garde la frontière propre :
+    // - le seed builder ne connaît toujours pas la vraie party runtime ;
+    // - mais le mapper peut maintenant lui demander de projeter ce seed vers
+    //   un `BattleCombatantData` portant une identité de lineup stable ;
+    // - cela évite de dupliquer à la main tout le DTO battle dans le mapper.
     return BattleCombatantData(
       speciesId: speciesId,
+      lineupIndex: lineupIndex,
       level: level,
       maxHp: maxHp,
       stats: stats,

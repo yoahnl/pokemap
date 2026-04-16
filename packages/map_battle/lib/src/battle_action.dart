@@ -23,6 +23,22 @@ class PlayerBattleChoiceFight extends PlayerBattleChoice {
   final int moveIndex;
 }
 
+/// Changer volontairement de Pokémon actif.
+///
+/// BE10 ouvre enfin un vrai seam de switch singles minimal :
+/// - ce choix vise un index de réserve battle courant ;
+/// - il ne cible ni une party globale, ni une grille de slots ;
+/// - il sert à la fois au switch volontaire et au remplacement forcé, selon
+///   l'état courant de la session.
+class PlayerBattleChoiceSwitch extends PlayerBattleChoice {
+  /// Crée un choix de switch vers un membre de réserve.
+  ///
+  /// [reserveIndex] pointe dans la réserve battle courante du joueur.
+  const PlayerBattleChoiceSwitch(this.reserveIndex);
+
+  final int reserveIndex;
+}
+
 /// Fuir le combat.
 ///
 /// Le joueur choisit de tenter de fuir.
@@ -115,4 +131,30 @@ class BattleActionRun extends BattleAction {
 class BattleActionRecharge extends BattleAction {
   /// Crée une action de recharge forcée.
   const BattleActionRecharge();
+}
+
+/// Changer le Pokémon actif pour un membre de réserve.
+///
+/// Le moteur BE10 garde ce contrat volontairement petit :
+/// - `reserveIndex` référence la réserve battle courante ;
+/// - le switch lui-même est résolu par `BattleSession` ;
+/// - il ne transporte ni targeting riche, ni selfSwitch/forceSwitch de move.
+class BattleActionSwitch extends BattleAction {
+  const BattleActionSwitch({
+    required this.reserveIndex,
+  });
+
+  final int reserveIndex;
+}
+
+/// Aucune action adverse pendant une étape inter-tour locale.
+///
+/// BE10 l'utilise uniquement pour garder une trace honnête quand le joueur
+/// remplace un Pokémon K.O. entre deux tours :
+/// - ce n'est pas une "attaque vide" ;
+/// - ce n'est pas un nouveau système de queue ;
+/// - c'est juste un marqueur explicite disant qu'aucune action adverse n'a été
+///   résolue pendant cette étape de remplacement.
+class BattleActionNone extends BattleAction {
+  const BattleActionNone();
 }

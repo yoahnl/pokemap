@@ -118,6 +118,21 @@ final class BattleVolatileState {
       pendingCharge: pendingCharge,
     );
   }
+
+  /// Nettoie intégralement les volatiles qui ne survivent pas à un switch-out.
+  ///
+  /// BE10 choisit ici une règle franche plutôt qu'une taxonomie progressive :
+  /// - `Protect` n'a plus aucun sens une fois sur le banc ;
+  /// - `mustRecharge` ne doit jamais forcer un Pokémon qui a quitté le terrain ;
+  /// - `pendingCharge` ne doit jamais survivre à un switch ;
+  /// - on revient donc à l'état vide, sans ouvrir un système générique de
+  ///   "volatiles persistants".
+  BattleVolatileState clearedOnSwitchOut() {
+    if (!hasAny) {
+      return this;
+    }
+    return const BattleVolatileState();
+  }
 }
 
 /// Taxonomie minimale des événements volatiles visibles dans un tour.

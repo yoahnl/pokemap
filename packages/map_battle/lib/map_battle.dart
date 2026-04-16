@@ -63,6 +63,7 @@ export 'src/battle_state.dart';
 export 'src/battle_field.dart';
 export 'src/battle_status.dart';
 export 'src/battle_volatile.dart';
+export 'src/battle_switch.dart';
 export 'src/battle_stats.dart';
 export 'src/battle_typing.dart';
 export 'src/battle_type_chart.dart';

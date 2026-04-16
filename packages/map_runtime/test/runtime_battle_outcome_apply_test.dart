@@ -65,6 +65,99 @@ void main() {
       expect(updatedState.party.members[2].currentHp, equals(18));
     });
 
+    test(
+        'writes back every engaged player lineup member to its exact runtime party slot after switches',
+        () {
+      const initialState = GameState(
+        saveId: 'save-switch-lineup',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'slot_zero_bench',
+              natureId: 'hardy',
+              abilityId: 'pressure',
+              level: 18,
+              knownMoveIds: <String>['a'],
+              currentHp: 44,
+            ),
+            PlayerPokemon(
+              speciesId: 'slot_one_initial_active',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+              level: 20,
+              knownMoveIds: <String>['b'],
+              currentHp: 35,
+            ),
+            PlayerPokemon(
+              speciesId: 'slot_two_unused',
+              natureId: 'calm',
+              abilityId: 'torrent',
+              level: 22,
+              knownMoveIds: <String>['c'],
+              currentHp: 18,
+            ),
+          ],
+        ),
+      );
+
+      const outcome = BattleOutcome(
+        type: BattleOutcomeType.victory,
+        finalState: BattleState(
+          phase: BattlePhase.finished,
+          player: BattleCombatant(
+            speciesId: 'slot_zero_bench',
+            lineupIndex: 1,
+            level: 18,
+            currentHp: 9,
+            maxHp: 44,
+            stats: _outcomeTestStats,
+            moves: <BattleMove>[
+              BattleMove(id: 'a', name: 'a', power: 10),
+            ],
+          ),
+          playerReserve: <BattleCombatant>[
+            BattleCombatant(
+              speciesId: 'slot_one_initial_active',
+              lineupIndex: 0,
+              level: 20,
+              currentHp: 3,
+              maxHp: 35,
+              stats: _outcomeTestStats,
+              moves: <BattleMove>[
+                BattleMove(id: 'b', name: 'b', power: 10),
+              ],
+            ),
+          ],
+          enemy: BattleCombatant(
+            speciesId: 'enemy',
+            level: 20,
+            currentHp: 0,
+            maxHp: 30,
+            stats: _outcomeTestStats,
+            moves: <BattleMove>[
+              BattleMove(id: 'x', name: 'x', power: 10),
+            ],
+          ),
+          currentTurn: null,
+          outcome: null,
+        ),
+      );
+
+      final updatedState = applyRuntimeBattleOutcomeToGameState(
+        gameState: initialState,
+        context: RuntimeActiveBattleContext(
+          request: _wildRequest(),
+          playerPartyIndex: 1,
+          playerPartySlotIndicesByLineupIndex: const <int>[1, 0],
+        ),
+        outcome: outcome,
+      );
+
+      expect(updatedState.party.members[0].currentHp, equals(9));
+      expect(updatedState.party.members[1].currentHp, equals(3));
+      expect(updatedState.party.members[2].currentHp, equals(18));
+    });
+
     test('trainer victory writes player hp and marks trainer as defeated', () {
       final updatedState = applyRuntimeBattleOutcomeToGameState(
         gameState: _baseState(),
@@ -359,6 +452,53 @@ void main() {
       final recoveredState = applyRuntimeDefeatRecoveryToGameState(
         gameState: defeatedState,
         playerPartyIndex: 1,
+      );
+
+      expect(recoveredState.party.members[0].currentHp, equals(0));
+      expect(recoveredState.party.members[1].currentHp, equals(1));
+      expect(recoveredState.party.members[2].currentHp, equals(0));
+    });
+
+    test(
+        'revives the switched-in active slot instead of the original handoff slot after BE10 switches',
+        () {
+      const defeatedState = GameState(
+        saveId: 'whiteout-lite-switched-active',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'initial_active_slot',
+              natureId: 'hardy',
+              abilityId: 'pressure',
+              level: 12,
+              knownMoveIds: <String>['growl'],
+              currentHp: 0,
+            ),
+            PlayerPokemon(
+              speciesId: 'switched_in_active_slot',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+              level: 18,
+              knownMoveIds: <String>['vine_whip'],
+              currentHp: 0,
+            ),
+            PlayerPokemon(
+              speciesId: 'unused_slot',
+              natureId: 'calm',
+              abilityId: 'torrent',
+              level: 17,
+              knownMoveIds: <String>['water_gun'],
+              currentHp: 0,
+            ),
+          ],
+        ),
+      );
+
+      final recoveredState = applyRuntimeDefeatRecoveryToGameState(
+        gameState: defeatedState,
+        playerPartyIndex: 0,
+        activePlayerLineupIndex: 1,
+        playerPartySlotIndicesByLineupIndex: const <int>[0, 1],
       );
 
       expect(recoveredState.party.members[0].currentHp, equals(0));

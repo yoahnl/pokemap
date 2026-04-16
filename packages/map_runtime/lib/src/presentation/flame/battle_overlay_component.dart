@@ -264,8 +264,25 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
       lines.add(_formatVolatileEvent(event));
     }
 
+    // Garder un ordre d'affichage causal minimal :
+    // - les résolutions de move d'abord ;
+    // - ensuite les événements volatiles/statuts/field de fin de tour ;
+    // - puis seulement les switches/remplacements qu'ils ont éventuellement
+    //   déclenchés.
+    //
+    // Sans cet ordre, un auto-remplacement après résiduel pouvait apparaître
+    // avant la ligne de dégâts qui l'avait provoqué, ce qui faisait mentir la
+    // surface runtime alors même que le moteur battle restait correct.
+    for (final event in turnResult.statusEvents) {
+      lines.add(_formatStatusEvent(event));
+    }
+
     for (final event in turnResult.fieldEvents) {
       lines.add(_formatFieldEvent(event));
+    }
+
+    for (final event in turnResult.switchEvents) {
+      lines.add(_formatSwitchEvent(event));
     }
 
     if (lines.isEmpty) {
@@ -375,6 +392,12 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
       // Lit les moves depuis _session.state.player.moves — toujours à jour
       final move = _session.state.player.moves[choice.moveIndex];
       return '⚔ ${move.name} (Puissance: ${move.power})';
+    } else if (choice is PlayerBattleChoiceSwitch) {
+      final reserve = _session.state.playerReserve[choice.reserveIndex];
+      final isForcedReplacement = _session.state.player.isFainted;
+      final actionLabel = isForcedReplacement ? 'Remplacer par' : 'Switch vers';
+      return '↔ $actionLabel ${reserve.speciesId} '
+          '(${reserve.currentHp}/${reserve.maxHp} PV)';
     } else if (choice is PlayerBattleChoiceContinue) {
       // BE8 ajoute des tours forcés honnêtes (recharge / libération d'un move
       // déjà chargé). Afficher `???` ici mentirait sur la surface joueur :
@@ -394,6 +417,35 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
       return '🏃 Fuir';
     }
     return '???';
+  }
+
+  String _formatSwitchEvent(BattleSwitchEvent event) {
+    final actor = _combatantLabel(event.actor);
+    return switch (event.kind) {
+      BattleSwitchEventKind.switched => event.wasForced
+          ? '$actor remplace ${event.fromSpeciesId} par ${event.toSpeciesId}'
+          : '$actor switch de ${event.fromSpeciesId} vers ${event.toSpeciesId}',
+      BattleSwitchEventKind.replacementRequired =>
+        '$actor doit remplacer ${event.fromSpeciesId} K.O.',
+    };
+  }
+
+  String _formatStatusEvent(BattleStatusEvent event) {
+    final actor = _combatantLabel(event.target);
+    final status = event.status.name.toUpperCase();
+    return switch (event.kind) {
+      BattleStatusEventKind.applied =>
+        '$actor reçoit le statut $status (${event.sourceMoveId})',
+      BattleStatusEventKind.blockedExistingMajorStatus =>
+        '$actor garde déjà ${event.existingStatus!.name.toUpperCase()} '
+            'et ignore $status',
+      BattleStatusEventKind.preventedAction =>
+        '$actor ne peut pas agir à cause de $status',
+      BattleStatusEventKind.residualDamage =>
+        '$actor subit ${event.damage} dégâts résiduels ($status'
+            '${event.toxicCounter == null ? '' : ', compteur ${event.toxicCounter}'}'
+            ')',
+    };
   }
 
   String _formatVolatileEvent(BattleVolatileEvent event) {
@@ -465,14 +517,16 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
   ///
   /// Lit [_session] qui est toujours à jour grâce à updateState().
   String _getPlayerHpText() {
-    return 'Joueur: ${_session.state.player.currentHp}/${_session.state.player.maxHp} PV';
+    return 'Joueur (${_session.state.player.speciesId}): '
+        '${_session.state.player.currentHp}/${_session.state.player.maxHp} PV';
   }
 
   /// Retourne le texte des PV de l'ennemi.
   ///
   /// Lit [_session] qui est toujours à jour grâce à updateState().
   String _getEnemyHpText() {
-    return 'Ennemi: ${_session.state.enemy.currentHp}/${_session.state.enemy.maxHp} PV';
+    return 'Ennemi (${_session.state.enemy.speciesId}): '
+        '${_session.state.enemy.currentHp}/${_session.state.enemy.maxHp} PV';
   }
 
   /// Déplace la sélection vers le haut (choix précédent).

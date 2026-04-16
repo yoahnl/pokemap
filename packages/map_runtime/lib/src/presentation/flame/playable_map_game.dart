@@ -3044,24 +3044,27 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
     try {
-      // Le lot 10 introduit un invariant critique : on mémorise le slot exact
-      // de party utilisé pour le handoff avant d'ouvrir le combat.
+      // BE10 recadré élargit légèrement cet invariant runtime :
+      // - on mémorise toujours le slot actif exact utilisé au handoff ;
+      // - mais on mémorise aussi l'ordre actif + réserves réellement injecté
+      //   dans le combat ;
+      // - cela permet ensuite un write-back honnête si le joueur switch.
       //
       // Pourquoi ici :
       // - la sélection se fait sur le vrai GameState runtime, juste avant le
       //   mapping vers BattleSetup ;
-      // - on réutilise ensuite ce même index au moment du write-back ;
+      // - on réutilise ensuite ce mapping stable au moment du write-back ;
       // - on évite ainsi le bug classique "recalculer le premier Pokémon
-      //   jouable après le combat", qui casserait la cohérence si le
-      //   combattant actif finit K.O.
-      final playerPartyIndex =
-          _battleSetupMapper.selectUsablePartyMemberIndex(_gameState.party);
+      //   jouable après le combat", qui casserait la cohérence dès qu'un
+      //   switch a déplacé l'actif.
+      final playerLineup =
+          _battleSetupMapper.selectPlayerBattleLineup(_gameState.party);
 
       // Le lot 9 remplace enfin le setup placeholder par un mapping réel
       // depuis la save runtime et les données projet.
       final setup = await _toBattleSetup(
         request,
-        playerPartyIndex: playerPartyIndex,
+        playerPartyIndex: playerLineup.activeIndex,
       );
 
       // Lot 12 pose le premier write runtime honnête du "seen" :
@@ -3082,7 +3085,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _battleSession = createBattleSession(setup);
       _activeBattleContext = RuntimeActiveBattleContext(
         request: request,
-        playerPartyIndex: playerPartyIndex,
+        playerPartyIndex: playerLineup.activeIndex,
+        playerPartySlotIndicesByLineupIndex: playerLineup.lineupPartyIndices,
       );
 
       // Afficher l'overlay de combat avec la session
@@ -3206,7 +3210,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     debugPrint('[battle] battle finished outcome=${outcome.type.name}');
 
     // Le lot 10 normalise ici tout le write-back post-combat :
-    // - PV du Pokémon joueur écrits sur le slot exact mémorisé ;
+    // - PV du lineup joueur écrits sur les slots exacts mémorisés ;
     // - flag trainer_defeated uniquement sur une vraie victoire trainer ;
     // - aucune tentative de recalcul du Pokémon actif après la fin du combat.
     final activeBattleContext = _activeBattleContext;
@@ -3220,7 +3224,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
 
       if (outcome.isDefeat) {
-        _applyWhiteoutLiteAfterPlayerDefeat(activeBattleContext);
+        _applyWhiteoutLiteAfterPlayerDefeat(
+          activeBattleContext,
+          activePlayerLineupIndex: outcome.finalState.player.lineupIndex,
+        );
       }
 
       if (outcome.isVictory &&
@@ -3271,10 +3278,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _applyWhiteoutLiteAfterPlayerDefeat(
-    RuntimeActiveBattleContext activeBattleContext,
-  ) {
-    // Le moteur battle MVP produit "defeat" dès que le Pokémon actif tombe K.O.
-    // Il n'existe pas encore de vraie gestion de switch / team complète.
+    RuntimeActiveBattleContext activeBattleContext, {
+    required int activePlayerLineupIndex,
+  }) {
+    // Le whiteout-lite reste volontairement plus petit que BE10 :
+    // - le moteur battle sait maintenant switcher et porter une vraie réserve ;
+    // - mais cette reprise overworld ne cherche toujours pas à ouvrir un vrai
+    //   centre Pokémon, ni une politique riche de défaite ;
+    // - on garde donc un simple filet de sécurité post-combat.
     //
     // Le lot 15 reste donc volontairement borné :
     // 1. on garde le write-back lot 10 fidèle aux PV réellement sortis du combat ;
@@ -3283,6 +3294,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _gameState = applyRuntimeDefeatRecoveryToGameState(
       gameState: _gameState,
       playerPartyIndex: activeBattleContext.playerPartyIndex,
+      activePlayerLineupIndex: activePlayerLineupIndex,
+      playerPartySlotIndicesByLineupIndex:
+          activeBattleContext.playerPartySlotIndicesByLineupIndex,
     );
 
     final respawn = _resolveWhiteoutLiteRespawn(activeBattleContext);

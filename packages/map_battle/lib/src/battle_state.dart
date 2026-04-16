@@ -52,7 +52,9 @@ class BattleState {
   const BattleState({
     required this.phase,
     required this.player,
+    this.playerReserve = const <BattleCombatant>[],
     required this.enemy,
+    this.enemyReserve = const <BattleCombatant>[],
     this.field = const BattleFieldState(),
     this.currentTurn,
     this.outcome,
@@ -64,8 +66,20 @@ class BattleState {
   /// Le combattant joueur.
   final BattleCombatant player;
 
+  /// Réserve battle locale du joueur.
+  ///
+  /// BE10 garde ici un modèle très petit :
+  /// - un seul actif ;
+  /// - zéro ou plusieurs réserves ;
+  /// - chaque membre reste un vrai `BattleCombatant`, donc avec ses PV,
+  ///   moves/PP, statut majeur et typing déjà résolus.
+  final List<BattleCombatant> playerReserve;
+
   /// Le combattant adverse.
   final BattleCombatant enemy;
+
+  /// Réserve battle locale de l'adversaire.
+  final List<BattleCombatant> enemyReserve;
 
   /// État de champ observable du combat.
   ///
@@ -117,6 +131,7 @@ class BattleCombatant {
   /// [moves] - La liste des attaques disponibles.
   const BattleCombatant({
     required this.speciesId,
+    this.lineupIndex = 0,
     required this.level,
     required this.currentHp,
     required this.maxHp,
@@ -131,6 +146,15 @@ class BattleCombatant {
 
   /// L'identifiant de l'espèce.
   final String speciesId;
+
+  /// Identité stable de lineup pour ce combattant.
+  ///
+  /// Voir `BattleCombatantData.lineupIndex` :
+  /// - elle ne sert pas au gameplay direct ;
+  /// - elle sert à préserver une identité stable malgré les switches ;
+  /// - le runtime peut ensuite écrire les bons slots de party sans reconstruire
+  ///   l'historique du combat.
+  final int lineupIndex;
 
   /// Le niveau.
   final int level;
@@ -222,6 +246,7 @@ class BattleCombatant {
   BattleCombatant withDamage(int damage) {
     return BattleCombatant(
       speciesId: speciesId,
+      lineupIndex: lineupIndex,
       level: level,
       currentHp: (currentHp - damage).clamp(0, maxHp),
       maxHp: maxHp,
@@ -244,6 +269,7 @@ class BattleCombatant {
   BattleCombatant withHeal(int healAmount) {
     return BattleCombatant(
       speciesId: speciesId,
+      lineupIndex: lineupIndex,
       level: level,
       currentHp: (currentHp + healAmount).clamp(0, maxHp),
       maxHp: maxHp,
@@ -270,6 +296,7 @@ class BattleCombatant {
     }
     return BattleCombatant(
       speciesId: speciesId,
+      lineupIndex: lineupIndex,
       level: level,
       currentHp: currentHp,
       maxHp: maxHp,
@@ -298,6 +325,7 @@ class BattleCombatant {
     updatedMoves[index] = updatedMove;
     return BattleCombatant(
       speciesId: speciesId,
+      lineupIndex: lineupIndex,
       level: level,
       currentHp: currentHp,
       maxHp: maxHp,
@@ -321,6 +349,7 @@ class BattleCombatant {
   BattleCombatant withMajorStatus(BattleMajorStatusState? updatedStatus) {
     return BattleCombatant(
       speciesId: speciesId,
+      lineupIndex: lineupIndex,
       level: level,
       currentHp: currentHp,
       maxHp: maxHp,
@@ -344,6 +373,7 @@ class BattleCombatant {
   BattleCombatant withVolatileState(BattleVolatileState updatedVolatileState) {
     return BattleCombatant(
       speciesId: speciesId,
+      lineupIndex: lineupIndex,
       level: level,
       currentHp: currentHp,
       maxHp: maxHp,
@@ -354,6 +384,33 @@ class BattleCombatant {
       abilityId: abilityId,
       moves: moves,
       statStages: statStages,
+    );
+  }
+
+  /// Prépare ce combattant à retourner en réserve après un switch.
+  ///
+  /// Politique BE10 explicitement bornée :
+  /// - on conserve les PV courants ;
+  /// - on conserve les PP courants ;
+  /// - on conserve le statut majeur ;
+  /// - mais on nettoie tout ce qui n'a de sens que "sur le terrain" :
+  ///   stages, protect, recharge, charge en attente ;
+  /// - `tox` garde le statut majeur, mais son compteur local repart à `1`
+  ///   pour éviter que le switch rende BE7 mensonger.
+  BattleCombatant resetForReserveOnSwitchOut() {
+    return BattleCombatant(
+      speciesId: speciesId,
+      lineupIndex: lineupIndex,
+      level: level,
+      currentHp: currentHp,
+      maxHp: maxHp,
+      stats: stats,
+      typing: typing,
+      majorStatus: majorStatus?.resetOnSwitchOut(),
+      volatileState: volatileState.clearedOnSwitchOut(),
+      abilityId: abilityId,
+      moves: moves,
+      statStages: const BattleStatStages(),
     );
   }
 }

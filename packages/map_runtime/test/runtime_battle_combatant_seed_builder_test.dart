@@ -90,6 +90,35 @@ void main() {
       expect(seed.moves[1].power, equals(45));
     });
 
+    test(
+        'toBattleCombatantData can stamp a stable lineupIndex for BE10 write-back',
+        () {
+      const seed = RuntimeBattleCombatantSeed(
+        speciesId: 'sproutle',
+        level: 12,
+        maxHp: 36,
+        stats: BattleStatsSnapshot(
+          attack: 20,
+          defense: 16,
+          specialAttack: 23,
+          specialDefense: 20,
+          speed: 17,
+        ),
+        typing: BattleTypingSnapshot(primaryType: 'grass'),
+        abilityId: 'overgrow',
+        currentHp: 23,
+        moves: <BattleMoveData>[
+          BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+        ],
+      );
+
+      final battleData = seed.toBattleCombatantData(lineupIndex: 2);
+
+      expect(battleData.lineupIndex, equals(2));
+      expect(battleData.speciesId, equals('sproutle'));
+      expect(battleData.currentHp, equals(23));
+    });
+
     test('preserves the BE8 move subset through the combatant seed contract',
         () async {
       await _writePokemonFixtures(tempProjectRoot);

@@ -132,6 +132,59 @@ void main() {
       );
     });
 
+    test(
+        'maps player reserves from the real party and excludes bench members already KO',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+      final setup = await mapper.map(
+        bundle: bundle,
+        gameState: const GameState(
+          saveId: 'save-player-reserve',
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              PlayerPokemon(
+                speciesId: 'sproutle',
+                natureId: 'bold',
+                abilityId: 'overgrow',
+                level: 12,
+                knownMoveIds: <String>['growl'],
+                currentHp: 23,
+              ),
+              PlayerPokemon(
+                speciesId: 'aquafi',
+                natureId: 'calm',
+                abilityId: 'torrent',
+                level: 18,
+                knownMoveIds: <String>['water_gun'],
+                currentHp: 17,
+              ),
+              PlayerPokemon(
+                speciesId: 'sparkitten',
+                natureId: 'rash',
+                abilityId: 'blaze',
+                level: 16,
+                knownMoveIds: <String>['ember'],
+                currentHp: 0,
+              ),
+            ],
+          ),
+        ),
+        request: _wildRequest(
+          speciesId: 'sparkitten',
+          level: 10,
+        ),
+      );
+
+      expect(setup.playerPokemon.speciesId, equals('sproutle'));
+      expect(setup.playerReservePokemon, hasLength(1));
+      expect(setup.playerReservePokemon.single.speciesId, equals('aquafi'));
+      expect(setup.playerReservePokemon.single.lineupIndex, equals(1));
+    });
+
     test('maps a wild encounter from real project species and learnset data',
         () async {
       final manifest = await _writeAndLoadProjectManifest(
@@ -443,6 +496,103 @@ void main() {
         equals(<String>['water_gun', 'tail_whip']),
       );
       expect(setup.enemyPokemon.speciesId, isNot(equals('lapras')));
+      expect(setup.enemyReservePokemon, isEmpty);
+    });
+
+    test('maps trainer reserves instead of stopping at trainer.team.first',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[
+          ProjectTrainerEntry(
+            id: 'trainer_ace',
+            name: 'Ace Jules',
+            trainerClass: 'Ace Trainer',
+            team: <ProjectTrainerPokemonEntry>[
+              ProjectTrainerPokemonEntry(
+                speciesId: 'aquafi',
+                level: 18,
+                moves: <String>['water_gun'],
+              ),
+              ProjectTrainerPokemonEntry(
+                speciesId: 'sparkitten',
+                level: 17,
+                moves: <String>['ember'],
+              ),
+            ],
+          ),
+        ],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+      final setup = await mapper.map(
+        bundle: bundle,
+        gameState: _playerStateForTests(),
+        request: _trainerRequest(),
+      );
+
+      expect(setup.enemyPokemon.speciesId, equals('aquafi'));
+      expect(setup.enemyReservePokemon, hasLength(1));
+      expect(setup.enemyReservePokemon.single.speciesId, equals('sparkitten'));
+      expect(setup.enemyReservePokemon.single.lineupIndex, equals(1));
+    });
+
+    test(
+        'mapped trainer multi-mon battle auto-replaces the enemy instead of ending on the first KO',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[
+          ProjectTrainerEntry(
+            id: 'trainer_ace',
+            name: 'Ace Jules',
+            trainerClass: 'Ace Trainer',
+            team: <ProjectTrainerPokemonEntry>[
+              ProjectTrainerPokemonEntry(
+                speciesId: 'aquafi',
+                level: 18,
+                moves: <String>['growl'],
+              ),
+              ProjectTrainerPokemonEntry(
+                speciesId: 'sparkitten',
+                level: 17,
+                moves: <String>['ember'],
+              ),
+            ],
+          ),
+        ],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+      final setup = await mapper.map(
+        bundle: bundle,
+        gameState: const GameState(
+          saveId: 'save-trainer-reserve',
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              PlayerPokemon(
+                speciesId: 'sproutle',
+                natureId: 'bold',
+                abilityId: 'overgrow',
+                level: 40,
+                knownMoveIds: <String>['hyper_beam'],
+                currentHp: 99,
+              ),
+            ],
+          ),
+        ),
+        request: _trainerRequest(),
+      );
+
+      final afterTurn = createBattleSession(setup).applyChoice(
+        const PlayerBattleChoiceFight(0),
+      );
+
+      expect(afterTurn.state.isFinished, isFalse);
+      expect(afterTurn.state.enemy.speciesId, equals('sparkitten'));
+      expect(
+        afterTurn.state.currentTurn!.switchEvents
+            .where((event) => event.actor == 'enemy'),
+        hasLength(1),
+      );
     });
 
     test('disables capture in wild battles when the party is already full',

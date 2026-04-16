@@ -281,6 +281,67 @@ void main() {
       );
     });
 
+    test('createBattleSession preserves reserves and stable lineup identities',
+        () {
+      final setup = BattleSetup(
+        playerPokemon: BattleCombatantData(
+          speciesId: 'lead_player',
+          lineupIndex: 0,
+          level: 5,
+          maxHp: 20,
+          stats: _neutralBattleStats,
+          moves: const [
+            BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
+          ],
+        ),
+        playerReservePokemon: const <BattleCombatantData>[
+          BattleCombatantData(
+            speciesId: 'bench_player',
+            lineupIndex: 1,
+            level: 5,
+            maxHp: 22,
+            currentHp: 18,
+            stats: _neutralBattleStats,
+            moves: <BattleMoveData>[
+              BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+        ],
+        enemyPokemon: BattleCombatantData(
+          speciesId: 'lead_enemy',
+          lineupIndex: 0,
+          level: 5,
+          maxHp: 25,
+          stats: _neutralBattleStats,
+          moves: const [
+            BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
+          ],
+        ),
+        enemyReservePokemon: const <BattleCombatantData>[
+          BattleCombatantData(
+            speciesId: 'bench_enemy',
+            lineupIndex: 1,
+            level: 5,
+            maxHp: 24,
+            stats: _neutralBattleStats,
+            moves: <BattleMoveData>[
+              BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+        ],
+        isTrainerBattle: true,
+        trainerId: 'trainer-reserve',
+      );
+
+      final session = createBattleSession(setup);
+
+      expect(session.state.player.lineupIndex, equals(0));
+      expect(session.state.playerReserve.single.lineupIndex, equals(1));
+      expect(session.state.playerReserve.single.currentHp, equals(18));
+      expect(session.state.enemy.lineupIndex, equals(0));
+      expect(session.state.enemyReserve.single.lineupIndex, equals(1));
+    });
+
     test('BattleMoveData rejects an invalid crit ratio in debug builds', () {
       expect(
         () => BattleMoveData(

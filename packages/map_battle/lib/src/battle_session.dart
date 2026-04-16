@@ -6,6 +6,7 @@ import 'battle_move.dart';
 import 'battle_rng.dart';
 import 'battle_resolution.dart';
 import 'battle_status.dart';
+import 'battle_switch.dart';
 import 'battle_volatile.dart';
 import 'battle_stats.dart';
 import 'battle_type_chart.dart';
@@ -30,107 +31,22 @@ BattleSession createBattleSession(
   BattleSetup setup, {
   BattleRng rng = const BattleSeededRng(),
 }) {
-  // Le runtime peut maintenant fournir les PV courants réels du Pokémon actif.
-  // On garde néanmoins un fallback explicite sur les PV max pour préserver les
-  // anciens call sites/tests qui n'avaient pas besoin de cet état.
-  final playerCurrentHp = _clampHp(
-    currentHp: setup.playerPokemon.currentHp,
-    maxHp: setup.playerPokemon.maxHp,
-  );
-  final enemyCurrentHp = _clampHp(
-    currentHp: setup.enemyPokemon.currentHp,
-    maxHp: setup.enemyPokemon.maxHp,
-  );
-
-  // Convertir les données de setup en combattants
-  final player = BattleCombatant(
-    speciesId: setup.playerPokemon.speciesId,
-    level: setup.playerPokemon.level,
-    currentHp: playerCurrentHp,
-    maxHp: setup.playerPokemon.maxHp,
-    stats: setup.playerPokemon.stats,
-    typing: setup.playerPokemon.typing,
-    majorStatus: setup.playerPokemon.majorStatus,
-    volatileState: setup.playerPokemon.volatileState,
-    abilityId: setup.playerPokemon.abilityId,
-    // Le contrat battle enrichi doit survivre jusqu'à l'état de session :
-    // - `type` et `target` restent surtout descriptifs à ce stade ;
-    // - `priority` est déjà consommée depuis BE3 ;
-    // - `accuracy` et `currentPp` deviennent réellement actives en BE4.
-    // - `critRatio` devient réellement consommé en BE6.
-    moves: setup.playerPokemon.moves
-        .map(
-          (m) => BattleMove(
-            id: m.id,
-            name: m.name,
-            power: m.power,
-            type: m.type,
-            category: m.category,
-            target: m.target,
-            accuracy: m.accuracy,
-            pp: m.pp,
-            currentPp: m.currentPp,
-            priority: m.priority,
-            critRatio: m.critRatio,
-            majorStatusEffect: m.majorStatusEffect,
-            selfVolatileStatus: m.selfVolatileStatus,
-            weatherEffect: m.weatherEffect,
-            pseudoWeatherEffect: m.pseudoWeatherEffect,
-            breaksProtect: m.breaksProtect,
-            requiresRecharge: m.requiresRecharge,
-            chargeThenStrikeEffect: m.chargeThenStrikeEffect,
-            selfStatStageChanges: m.selfStatStageChanges,
-            targetStatStageChanges: m.targetStatStageChanges,
-          ),
-        )
-        .toList(),
-  );
-
-  final enemy = BattleCombatant(
-    speciesId: setup.enemyPokemon.speciesId,
-    level: setup.enemyPokemon.level,
-    currentHp: enemyCurrentHp,
-    maxHp: setup.enemyPokemon.maxHp,
-    stats: setup.enemyPokemon.stats,
-    typing: setup.enemyPokemon.typing,
-    majorStatus: setup.enemyPokemon.majorStatus,
-    volatileState: setup.enemyPokemon.volatileState,
-    abilityId: setup.enemyPokemon.abilityId,
-    // Même règle pour l'adversaire : on ne reperd aucune dimension déjà jugée
-    // honnête dans le contrat battle minimal.
-    moves: setup.enemyPokemon.moves
-        .map(
-          (m) => BattleMove(
-            id: m.id,
-            name: m.name,
-            power: m.power,
-            type: m.type,
-            category: m.category,
-            target: m.target,
-            accuracy: m.accuracy,
-            pp: m.pp,
-            currentPp: m.currentPp,
-            priority: m.priority,
-            critRatio: m.critRatio,
-            majorStatusEffect: m.majorStatusEffect,
-            selfVolatileStatus: m.selfVolatileStatus,
-            weatherEffect: m.weatherEffect,
-            pseudoWeatherEffect: m.pseudoWeatherEffect,
-            breaksProtect: m.breaksProtect,
-            requiresRecharge: m.requiresRecharge,
-            chargeThenStrikeEffect: m.chargeThenStrikeEffect,
-            selfStatStageChanges: m.selfStatStageChanges,
-            targetStatStageChanges: m.targetStatStageChanges,
-          ),
-        )
-        .toList(),
-  );
+  final player = _buildBattleCombatantFromData(setup.playerPokemon);
+  final enemy = _buildBattleCombatantFromData(setup.enemyPokemon);
+  final playerReserve = setup.playerReservePokemon
+      .map(_buildBattleCombatantFromData)
+      .toList(growable: false);
+  final enemyReserve = setup.enemyReservePokemon
+      .map(_buildBattleCombatantFromData)
+      .toList(growable: false);
 
   // Créer l'état initial
   final initialState = BattleState(
     phase: BattlePhase.playerChoice,
     player: player,
+    playerReserve: playerReserve,
     enemy: enemy,
+    enemyReserve: enemyReserve,
     field: setup.fieldState,
     currentTurn: null,
     outcome: null,
@@ -155,6 +71,55 @@ int _clampHp({
     return maxHp;
   }
   return value;
+}
+
+BattleCombatant _buildBattleCombatantFromData(
+  BattleCombatantData data,
+) {
+  // On convertit tout le petit contrat battle d'un même bloc pour garantir
+  // qu'aucune dimension déjà jugée honnête n'est reperdue lors du passage
+  // setup -> state, y compris maintenant l'identité de lineup BE10.
+  return BattleCombatant(
+    speciesId: data.speciesId,
+    lineupIndex: data.lineupIndex,
+    level: data.level,
+    currentHp: _clampHp(
+      currentHp: data.currentHp,
+      maxHp: data.maxHp,
+    ),
+    maxHp: data.maxHp,
+    stats: data.stats,
+    typing: data.typing,
+    majorStatus: data.majorStatus,
+    volatileState: data.volatileState,
+    abilityId: data.abilityId,
+    moves: data.moves
+        .map(
+          (m) => BattleMove(
+            id: m.id,
+            name: m.name,
+            power: m.power,
+            type: m.type,
+            category: m.category,
+            target: m.target,
+            accuracy: m.accuracy,
+            pp: m.pp,
+            currentPp: m.currentPp,
+            priority: m.priority,
+            critRatio: m.critRatio,
+            majorStatusEffect: m.majorStatusEffect,
+            selfVolatileStatus: m.selfVolatileStatus,
+            weatherEffect: m.weatherEffect,
+            pseudoWeatherEffect: m.pseudoWeatherEffect,
+            breaksProtect: m.breaksProtect,
+            requiresRecharge: m.requiresRecharge,
+            chargeThenStrikeEffect: m.chargeThenStrikeEffect,
+            selfStatStageChanges: m.selfStatStageChanges,
+            targetStatStageChanges: m.targetStatStageChanges,
+          ),
+        )
+        .toList(growable: false),
+  );
 }
 
 /// Session de combat.
@@ -200,6 +165,8 @@ class BattleSession {
   ///
   /// Retourne une liste de choix :
   /// - [PlayerBattleChoiceFight] pour chaque attaque disponible (0-3)
+  /// - [PlayerBattleChoiceSwitch] pour chaque réserve encore vivante quand un
+  ///   switch volontaire ou un remplacement forcé est honnêtement possible
   /// - [PlayerBattleChoiceCapture] pour capturer, uniquement en sauvage quand
   ///   le runtime a explicitement autorisé cette issue
   /// - [PlayerBattleChoiceRun] pour fuir, uniquement en combat sauvage
@@ -211,6 +178,11 @@ class BattleSession {
   /// // trainer: [Fight(0), Fight(1), Fight(2), Fight(3)]
   /// ```
   List<PlayerBattleChoice> getAvailableChoices() {
+    final replacementChoices = _availableForcedReplacementChoices();
+    if (replacementChoices.isNotEmpty) {
+      return replacementChoices;
+    }
+
     final forcedChoice = _forcedPlayerChoice();
     if (forcedChoice != null) {
       return <PlayerBattleChoice>[forcedChoice];
@@ -228,6 +200,14 @@ class BattleSession {
         fightChoices.add(PlayerBattleChoiceFight(i));
       }
     }
+
+    // BE10 ajoute un seam de switch volontaire minimal sans ouvrir de système
+    // de party complet :
+    // - le joueur peut dépenser son tour pour envoyer un membre de réserve ;
+    // - seuls les membres de réserve encore vivants sont proposés ;
+    // - les membres K.O. restent éventuellement stockés pour le write-back,
+    //   mais ne doivent jamais apparaître comme choix jouable.
+    fightChoices.addAll(_availableVoluntarySwitchChoices());
 
     // Invariants métier lots 11 + 13 :
     // - la fuite est autorisée en sauvage pour garder une vraie boucle jouable ;
@@ -249,6 +229,10 @@ class BattleSession {
   }
 
   PlayerBattleChoice? _forcedPlayerChoice() {
+    if (state.player.isFainted) {
+      return null;
+    }
+
     final volatileState = state.player.volatileState;
     if (!volatileState.mustRecharge && volatileState.pendingCharge == null) {
       return null;
@@ -262,10 +246,44 @@ class BattleSession {
     return const PlayerBattleChoiceContinue();
   }
 
+  List<PlayerBattleChoiceSwitch> _availableForcedReplacementChoices() {
+    if (!state.player.isFainted) {
+      return const <PlayerBattleChoiceSwitch>[];
+    }
+
+    return _selectableReserveIndices(state.playerReserve)
+        .map(PlayerBattleChoiceSwitch.new)
+        .toList(growable: false);
+  }
+
+  List<PlayerBattleChoiceSwitch> _availableVoluntarySwitchChoices() {
+    if (state.player.isFainted) {
+      return const <PlayerBattleChoiceSwitch>[];
+    }
+
+    return _selectableReserveIndices(state.playerReserve)
+        .map(PlayerBattleChoiceSwitch.new)
+        .toList(growable: false);
+  }
+
+  List<int> _selectableReserveIndices(List<BattleCombatant> reserve) {
+    final indices = <int>[];
+    for (var i = 0; i < reserve.length; i++) {
+      if (!reserve[i].isFainted) {
+        indices.add(i);
+      }
+    }
+    return List<int>.unmodifiable(indices);
+  }
+
   BattleAction? _resolveForcedAction({
     required String combatantLabel,
     required BattleCombatant combatant,
   }) {
+    if (combatant.isFainted) {
+      return null;
+    }
+
     final volatileState = combatant.volatileState;
     final pendingCharge = volatileState.pendingCharge;
     if (pendingCharge != null) {
@@ -326,6 +344,16 @@ class BattleSession {
   /// }
   /// ```
   BattleSession applyChoice(PlayerBattleChoice choice) {
+    final forcedReplacementChoices = _availableForcedReplacementChoices();
+    if (forcedReplacementChoices.isNotEmpty) {
+      if (choice is! PlayerBattleChoiceSwitch) {
+        throw StateError(
+          'Le joueur doit d’abord remplacer son Pokémon K.O. avec un choix de switch valide.',
+        );
+      }
+      return _applyForcedPlayerReplacement(choice);
+    }
+
     final forcedPlayerAction = _resolveForcedAction(
       combatantLabel: 'player',
       combatant: state.player,
@@ -387,7 +415,9 @@ class BattleSession {
       final finalState = BattleState(
         phase: BattlePhase.finished,
         player: state.player,
+        playerReserve: state.playerReserve,
         enemy: state.enemy,
+        enemyReserve: state.enemyReserve,
         field: state.field,
         currentTurn: null,
         outcome: null,
@@ -396,7 +426,9 @@ class BattleSession {
         state: BattleState(
           phase: BattlePhase.finished,
           player: finalState.player,
+          playerReserve: finalState.playerReserve,
           enemy: finalState.enemy,
+          enemyReserve: finalState.enemyReserve,
           field: finalState.field,
           currentTurn: null,
           outcome: BattleOutcome(
@@ -421,7 +453,9 @@ class BattleSession {
       final finalState = BattleState(
         phase: BattlePhase.finished,
         player: state.player,
+        playerReserve: state.playerReserve,
         enemy: state.enemy,
+        enemyReserve: state.enemyReserve,
         field: state.field,
         currentTurn: null,
         outcome: null,
@@ -430,7 +464,9 @@ class BattleSession {
         state: BattleState(
           phase: BattlePhase.finished,
           player: finalState.player,
+          playerReserve: finalState.playerReserve,
           enemy: finalState.enemy,
+          enemyReserve: finalState.enemyReserve,
           field: finalState.field,
           currentTurn: null,
           outcome: BattleOutcome(
@@ -464,7 +500,9 @@ class BattleSession {
     // Frontière volontairement stricte :
     // - pas de queue générique façon Showdown ;
     // - pas de PRNG ;
-    // - pas de système de switch ni de before-turn hooks ;
+    // - pas de système générique de switch / hooks / réserves façon Showdown ;
+    // - BE10 ajoute seulement le plus petit switch singles nécessaire :
+    //   actif + réserve, switch volontaire joueur, remplacement après K.O. ;
     // - BE7 ajoute seulement un résiduel de fin de tour local pour les
     //   statuts majeurs supportés ;
     // - juste le plus petit mécanisme honnête pour les deux actions de ce
@@ -473,20 +511,45 @@ class BattleSession {
 
     // Phase 4: Récupérer l'état résultant après dégâts + éventuels boosts.
     final newPlayer = resolvedTurn.player;
+    final newPlayerReserve = resolvedTurn.playerReserve;
     final newEnemy = resolvedTurn.enemy;
+    final newEnemyReserve = resolvedTurn.enemyReserve;
+    final postTurnSwitches = _resolvePostTurnSwitchState(
+      player: newPlayer,
+      playerReserve: newPlayerReserve,
+      enemy: newEnemy,
+      enemyReserve: newEnemyReserve,
+    );
+    final switchEvents = <BattleSwitchEvent>[
+      ...resolvedTurn.turnResult.switchEvents,
+      ...postTurnSwitches.switchEvents,
+    ];
+    final turnResult = BattleTurnResult(
+      playerAction: resolvedTurn.turnResult.playerAction,
+      enemyAction: resolvedTurn.turnResult.enemyAction,
+      executions: resolvedTurn.turnResult.executions,
+      statusEvents: resolvedTurn.turnResult.statusEvents,
+      volatileEvents: resolvedTurn.turnResult.volatileEvents,
+      fieldEvents: resolvedTurn.turnResult.fieldEvents,
+      switchEvents: List<BattleSwitchEvent>.unmodifiable(switchEvents),
+    );
 
     // Phase 5: Vérifier si le combat est fini
     final outcome = _determineOutcome(
-      newPlayer,
-      newEnemy,
+      postTurnSwitches.player,
+      postTurnSwitches.playerReserve,
+      postTurnSwitches.enemy,
+      postTurnSwitches.enemyReserve,
       resolvedTurn.field,
     );
 
     // Phase 6: Créer le nouvel état
     final newState = BattleState(
       phase: outcome != null ? BattlePhase.finished : BattlePhase.playerChoice,
-      player: newPlayer,
-      enemy: newEnemy,
+      player: postTurnSwitches.player,
+      playerReserve: postTurnSwitches.playerReserve,
+      enemy: postTurnSwitches.enemy,
+      enemyReserve: postTurnSwitches.enemyReserve,
       field: resolvedTurn.field,
       // On conserve maintenant la trace du dernier tour même s'il termine le
       // combat :
@@ -494,7 +557,7 @@ class BattleSession {
       //   application de statut terminale redeviendraient invisibles ;
       // - `Run` et `Capture` gardent toujours `currentTurn == null`, car ils ne
       //   passent pas par `_resolveTurn`.
-      currentTurn: resolvedTurn.turnResult,
+      currentTurn: turnResult,
       outcome: outcome,
     );
 
@@ -503,6 +566,129 @@ class BattleSession {
       setup: setup,
       rng: resolvedTurn.rng,
     );
+  }
+
+  BattleSession _applyForcedPlayerReplacement(PlayerBattleChoiceSwitch choice) {
+    final replacement = _resolveSwitchAction(
+      actor: 'player',
+      active: state.player,
+      reserve: state.playerReserve,
+      reserveIndex: choice.reserveIndex,
+      wasForced: true,
+    );
+
+    return BattleSession._(
+      state: BattleState(
+        phase: BattlePhase.playerChoice,
+        player: replacement.active,
+        playerReserve: replacement.reserve,
+        enemy: state.enemy,
+        enemyReserve: state.enemyReserve,
+        field: state.field,
+        currentTurn: BattleTurnResult(
+          playerAction: BattleActionSwitch(reserveIndex: choice.reserveIndex),
+          enemyAction: const BattleActionNone(),
+          executions: const <BattleMoveExecution>[],
+          switchEvents: <BattleSwitchEvent>[replacement.event],
+        ),
+        outcome: null,
+      ),
+      setup: setup,
+      rng: rng,
+    );
+  }
+
+  _ResolvedSwitchAction _resolveSwitchAction({
+    required String actor,
+    required BattleCombatant active,
+    required List<BattleCombatant> reserve,
+    required int reserveIndex,
+    required bool wasForced,
+  }) {
+    if (reserveIndex < 0 || reserveIndex >= reserve.length) {
+      throw RangeError.index(reserveIndex, reserve, 'reserveIndex');
+    }
+
+    final incoming = reserve[reserveIndex];
+    if (incoming.isFainted) {
+      throw StateError(
+        'Le switch demandé vise un Pokémon de réserve déjà K.O.',
+      );
+    }
+
+    // BE10 choisit de conserver une réserve de taille stable :
+    // - le membre entrant quitte la réserve ;
+    // - l'actif sortant y retourne au même emplacement après reset ;
+    // - chaque participant battle reste donc présent exactement une fois,
+    //   ce qui simplifie le write-back runtime final.
+    final updatedReserve = List<BattleCombatant>.of(reserve);
+    updatedReserve[reserveIndex] = active.resetForReserveOnSwitchOut();
+
+    return _ResolvedSwitchAction(
+      active: incoming,
+      reserve: List<BattleCombatant>.unmodifiable(updatedReserve),
+      event: BattleSwitchEvent.switched(
+        actor: actor,
+        fromSpeciesId: active.speciesId,
+        toSpeciesId: incoming.speciesId,
+        wasForced: wasForced,
+      ),
+    );
+  }
+
+  _ResolvedPostTurnSwitchState _resolvePostTurnSwitchState({
+    required BattleCombatant player,
+    required List<BattleCombatant> playerReserve,
+    required BattleCombatant enemy,
+    required List<BattleCombatant> enemyReserve,
+  }) {
+    var updatedPlayer = player;
+    var updatedPlayerReserve = playerReserve;
+    var updatedEnemy = enemy;
+    var updatedEnemyReserve = enemyReserve;
+    final switchEvents = <BattleSwitchEvent>[];
+
+    final enemyReplacementIndex = _firstUsableReserveIndex(updatedEnemyReserve);
+    if (updatedEnemy.isFainted && enemyReplacementIndex != null) {
+      final replacement = _resolveSwitchAction(
+        actor: 'enemy',
+        active: updatedEnemy,
+        reserve: updatedEnemyReserve,
+        reserveIndex: enemyReplacementIndex,
+        wasForced: true,
+      );
+      updatedEnemy = replacement.active;
+      updatedEnemyReserve = replacement.reserve;
+      switchEvents.add(replacement.event);
+    }
+
+    if (updatedPlayer.isFainted &&
+        !updatedEnemy.isFainted &&
+        _firstUsableReserveIndex(updatedPlayerReserve) != null) {
+      switchEvents.add(
+        BattleSwitchEvent.replacementRequired(
+          actor: 'player',
+          fromSpeciesId: updatedPlayer.speciesId,
+        ),
+      );
+    }
+
+    return _ResolvedPostTurnSwitchState(
+      player: updatedPlayer,
+      playerReserve: updatedPlayerReserve,
+      enemy: updatedEnemy,
+      enemyReserve: updatedEnemyReserve,
+      switchEvents: List<BattleSwitchEvent>.unmodifiable(switchEvents),
+    );
+  }
+
+  int? _firstUsableReserveIndex(List<BattleCombatant> reserve) {
+    for (var i = 0; i < reserve.length; i++) {
+      if (!reserve[i].isFainted) {
+        return i;
+      }
+    }
+    return null;
   }
 
   /// Convertit un [PlayerBattleChoice] en [BattleAction].
@@ -534,6 +720,21 @@ class BattleSession {
       return BattleActionFight(
         fallbackMove,
         moveIndex: 0,
+      );
+    } else if (choice is PlayerBattleChoiceSwitch) {
+      if (choice.reserveIndex < 0 ||
+          choice.reserveIndex >= state.playerReserve.length) {
+        throw StateError(
+          'Le switch demandé vise un index de réserve invalide (${choice.reserveIndex}).',
+        );
+      }
+      if (state.playerReserve[choice.reserveIndex].isFainted) {
+        throw StateError(
+          'Le switch demandé vise un Pokémon de réserve déjà K.O.',
+        );
+      }
+      return BattleActionSwitch(
+        reserveIndex: choice.reserveIndex,
       );
     } else if (choice is PlayerBattleChoiceRun) {
       return const BattleActionRun();
@@ -616,8 +817,11 @@ class BattleSession {
     final statusEvents = <BattleStatusEvent>[];
     final volatileEvents = <BattleVolatileEvent>[];
     final fieldEvents = <BattleFieldEvent>[];
+    final switchEvents = <BattleSwitchEvent>[];
     var player = state.player;
+    var playerReserve = state.playerReserve;
     var enemy = state.enemy;
+    var enemyReserve = state.enemyReserve;
     var field = state.field;
     var turnRng = rng;
     final orderedActions = _resolveTurnOrder(
@@ -656,6 +860,18 @@ class BattleSession {
             statusEvents.addAll(resolution.statusEvents);
             volatileEvents.addAll(resolution.volatileEvents);
             fieldEvents.addAll(resolution.fieldEvents);
+          } else if (orderedAction.action
+              case BattleActionSwitch(:final reserveIndex)) {
+            final resolution = _resolveSwitchAction(
+              actor: 'player',
+              active: player,
+              reserve: playerReserve,
+              reserveIndex: reserveIndex,
+              wasForced: false,
+            );
+            player = resolution.active;
+            playerReserve = resolution.reserve;
+            switchEvents.add(resolution.event);
           } else if (orderedAction.action is BattleActionRecharge) {
             if (player.isFainted || enemy.isFainted) {
               continue;
@@ -693,6 +909,18 @@ class BattleSession {
             statusEvents.addAll(resolution.statusEvents);
             volatileEvents.addAll(resolution.volatileEvents);
             fieldEvents.addAll(resolution.fieldEvents);
+          } else if (orderedAction.action
+              case BattleActionSwitch(:final reserveIndex)) {
+            final resolution = _resolveSwitchAction(
+              actor: 'enemy',
+              active: enemy,
+              reserve: enemyReserve,
+              reserveIndex: reserveIndex,
+              wasForced: false,
+            );
+            enemy = resolution.active;
+            enemyReserve = resolution.reserve;
+            switchEvents.add(resolution.event);
           } else if (orderedAction.action is BattleActionRecharge) {
             if (enemy.isFainted || player.isFainted) {
               continue;
@@ -726,7 +954,9 @@ class BattleSession {
 
     return _ResolvedBattleTurn(
       player: player,
+      playerReserve: playerReserve,
       enemy: enemy,
+      enemyReserve: enemyReserve,
       field: field,
       rng: turnRng,
       turnResult: BattleTurnResult(
@@ -736,6 +966,7 @@ class BattleSession {
         statusEvents: statusEvents,
         volatileEvents: volatileEvents,
         fieldEvents: fieldEvents,
+        switchEvents: switchEvents,
       ),
     );
   }
@@ -846,11 +1077,19 @@ class BattleSession {
   }
 
   bool _supportsOrderedResolution(BattleAction action) {
-    return action is BattleActionFight || action is BattleActionRecharge;
+    return action is BattleActionFight ||
+        action is BattleActionRecharge ||
+        action is BattleActionSwitch;
   }
 
   int _priorityForResolvedAction(BattleAction action) {
     return switch (action) {
+      // Politique BE10 explicitement simplifiée :
+      // - un switch volontaire singles résout avant un `Fight` standard ;
+      // - on n'ouvre pas pour autant une vraie taxonomie Showdown de priorités
+      //   de switch, selfSwitch, forceSwitch, etc. ;
+      // - cette constante locale suffit au sous-ensemble honnête du lot.
+      BattleActionSwitch() => 6,
       BattleActionFight(:final move) => move.priority,
       BattleActionRecharge() => 0,
       _ => 0,
@@ -2007,15 +2246,25 @@ class BattleSession {
   ///
   /// Retourne null si le combat continue, ou un [BattleOutcome] si fini.
   ///
-  /// Règles :
-  /// - Si enemy.isFainted → victoire
-  /// - Si player.isFainted → défaite
-  /// - Sinon → combat continue (null)
+  /// Politique BE10, volontairement petite et explicite :
+  /// - les remplacements automatiques honnêtes ont déjà été tentés avant
+  ///   d'entrer ici ;
+  /// - si l'ennemi actif est encore K.O. à ce stade, il n'a plus de réserve
+  ///   valide et le joueur gagne ;
+  /// - sinon, si le joueur actif est encore K.O. mais qu'une réserve valide
+  ///   existe encore, le combat continue pour laisser place au switch forcé ;
+  /// - sinon, si le joueur actif est encore K.O., il n'a plus de réserve
+  ///   valide et le joueur perd ;
+  /// - sinon le combat continue ;
+  /// - en cas de double K.O. sans réserve des deux côtés, on conserve donc la
+  ///   politique historique "enemy d'abord", ce qui produit une victoire.
   ///
   /// Cette méthode est interne au moteur de combat.
   BattleOutcome? _determineOutcome(
     BattleCombatant player,
+    List<BattleCombatant> playerReserve,
     BattleCombatant enemy,
+    List<BattleCombatant> enemyReserve,
     BattleFieldState field,
   ) {
     // Vérifier la victoire (ennemi K.O.)
@@ -2023,7 +2272,9 @@ class BattleSession {
       final finalState = BattleState(
         phase: BattlePhase.finished,
         player: player,
+        playerReserve: playerReserve,
         enemy: enemy,
+        enemyReserve: enemyReserve,
         field: field,
         currentTurn: null,
         outcome: null, // Sera set dans le BattleOutcome
@@ -2036,10 +2287,15 @@ class BattleSession {
 
     // Vérifier la défaite (joueur K.O.)
     if (player.isFainted) {
+      if (_firstUsableReserveIndex(playerReserve) != null) {
+        return null;
+      }
       final finalState = BattleState(
         phase: BattlePhase.finished,
         player: player,
+        playerReserve: playerReserve,
         enemy: enemy,
+        enemyReserve: enemyReserve,
         field: field,
         currentTurn: null,
         outcome: null,
@@ -2073,17 +2329,49 @@ class _OrderedBattleAction {
 class _ResolvedBattleTurn {
   const _ResolvedBattleTurn({
     required this.player,
+    required this.playerReserve,
     required this.enemy,
+    required this.enemyReserve,
     required this.field,
     required this.rng,
     required this.turnResult,
   });
 
   final BattleCombatant player;
+  final List<BattleCombatant> playerReserve;
   final BattleCombatant enemy;
+  final List<BattleCombatant> enemyReserve;
   final BattleFieldState field;
   final BattleRng rng;
   final BattleTurnResult turnResult;
+}
+
+class _ResolvedSwitchAction {
+  const _ResolvedSwitchAction({
+    required this.active,
+    required this.reserve,
+    required this.event,
+  });
+
+  final BattleCombatant active;
+  final List<BattleCombatant> reserve;
+  final BattleSwitchEvent event;
+}
+
+class _ResolvedPostTurnSwitchState {
+  const _ResolvedPostTurnSwitchState({
+    required this.player,
+    required this.playerReserve,
+    required this.enemy,
+    required this.enemyReserve,
+    required this.switchEvents,
+  });
+
+  final BattleCombatant player;
+  final List<BattleCombatant> playerReserve;
+  final BattleCombatant enemy;
+  final List<BattleCombatant> enemyReserve;
+  final List<BattleSwitchEvent> switchEvents;
 }
 
 class _ResolvedMoveExecution {

@@ -55,10 +55,11 @@ class RuntimeBattleSetupMapper {
       projectRootDirectory: bundle.projectRootDirectory,
       pokemonConfig: bundle.manifest.pokemon,
     );
-    final playerPokemon = _selectPlayerPartyMember(
+    final playerSelection = selectPlayerBattleLineup(
       gameState.party,
       playerPartyIndex: playerPartyIndex,
     );
+    final playerPokemon = gameState.party.members[playerSelection.activeIndex];
 
     final playerSeed = await combatantSeedBuilder.buildPlayerCombatantSeed(
       projectRootDirectory: bundle.projectRootDirectory,
@@ -66,14 +67,32 @@ class RuntimeBattleSetupMapper {
       movesCatalog: movesCatalog,
       playerPokemon: playerPokemon,
     );
-
-    final enemySeed = await switch (request) {
-      WildBattleStartRequest() => combatantSeedBuilder.buildWildCombatantSeed(
+    final playerReserveSeeds = <RuntimeBattleCombatantSeed>[];
+    for (final reserveIndex in playerSelection.reserveIndices) {
+      playerReserveSeeds.add(
+        await combatantSeedBuilder.buildPlayerCombatantSeed(
           projectRootDirectory: bundle.projectRootDirectory,
           pokemonConfig: bundle.manifest.pokemon,
           movesCatalog: movesCatalog,
-          request: request,
+          playerPokemon: gameState.party.members[reserveIndex],
         ),
+      );
+    }
+
+    final enemyLineup = await switch (request) {
+      WildBattleStartRequest() => combatantSeedBuilder
+          .buildWildCombatantSeed(
+            projectRootDirectory: bundle.projectRootDirectory,
+            pokemonConfig: bundle.manifest.pokemon,
+            movesCatalog: movesCatalog,
+            request: request,
+          )
+          .then(
+            (seed) => _RuntimeBattleEnemyLineup(
+              active: seed,
+              reserve: const <RuntimeBattleCombatantSeed>[],
+            ),
+          ),
       TrainerBattleStartRequest() => () async {
           final trainer = _findTrainer(bundle.manifest, request.trainerId);
           if (trainer.team.isEmpty) {
@@ -83,22 +102,51 @@ class RuntimeBattleSetupMapper {
             );
           }
 
-          // Le moteur battle MVP reste mono-combattant : le mapper garde ce
-          // choix précis de haut niveau, puis délègue l’assemblage du seed du
-          // membre retenu au seam M7.
-          return combatantSeedBuilder.buildTrainerCombatantSeed(
+          final activeSeed =
+              await combatantSeedBuilder.buildTrainerCombatantSeed(
             projectRootDirectory: bundle.projectRootDirectory,
             pokemonConfig: bundle.manifest.pokemon,
             movesCatalog: movesCatalog,
             teamMember: trainer.team.first,
             trainerName: trainer.name,
           );
+          final reserveSeeds = <RuntimeBattleCombatantSeed>[];
+          for (final teamMember in trainer.team.skip(1)) {
+            reserveSeeds.add(
+              await combatantSeedBuilder.buildTrainerCombatantSeed(
+                projectRootDirectory: bundle.projectRootDirectory,
+                pokemonConfig: bundle.manifest.pokemon,
+                movesCatalog: movesCatalog,
+                teamMember: teamMember,
+                trainerName: trainer.name,
+              ),
+            );
+          }
+          return _RuntimeBattleEnemyLineup(
+            active: activeSeed,
+            reserve:
+                List<RuntimeBattleCombatantSeed>.unmodifiable(reserveSeeds),
+          );
         }(),
     };
 
     return BattleSetup(
-      playerPokemon: playerSeed.toBattleCombatantData(),
-      enemyPokemon: enemySeed.toBattleCombatantData(),
+      playerPokemon: playerSeed.toBattleCombatantData(lineupIndex: 0),
+      playerReservePokemon: List<BattleCombatantData>.unmodifiable(
+        playerReserveSeeds.asMap().entries.map(
+              (entry) => entry.value.toBattleCombatantData(
+                lineupIndex: entry.key + 1,
+              ),
+            ),
+      ),
+      enemyPokemon: enemyLineup.active.toBattleCombatantData(lineupIndex: 0),
+      enemyReservePokemon: List<BattleCombatantData>.unmodifiable(
+        enemyLineup.reserve.asMap().entries.map(
+              (entry) => entry.value.toBattleCombatantData(
+                lineupIndex: entry.key + 1,
+              ),
+            ),
+      ),
       isTrainerBattle: request is TrainerBattleStartRequest,
       trainerId:
           request is TrainerBattleStartRequest ? request.trainerId : null,
@@ -113,6 +161,52 @@ class RuntimeBattleSetupMapper {
       allowCapture: request is WildBattleStartRequest &&
           gameState.party.members.length < 6 &&
           _playerHasAtLeastOnePokeBall(gameState.bag),
+    );
+  }
+
+  /// Sélectionne la lineup battle minimale du joueur : actif + réserves.
+  ///
+  /// Politique BE10 volontairement bornée :
+  /// - l'actif reste soit l'index explicitement demandé, soit le premier
+  ///   membre jouable ;
+  /// - la réserve ne contient que les autres membres encore vivants ;
+  /// - les membres déjà K.O. restent dans la save runtime, mais ne sont pas
+  ///   injectés dans la lineup battle puisqu'ils ne seraient jamais
+  ///   switchables honnêtement ;
+  /// - l'ordre de réserve suit l'ordre de party réel, de façon stable.
+  RuntimePlayerBattleLineupSelection selectPlayerBattleLineup(
+    PlayerParty party, {
+    int? playerPartyIndex,
+  }) {
+    final activeIndex = playerPartyIndex ?? selectUsablePartyMemberIndex(party);
+    if (activeIndex < 0 || activeIndex >= party.members.length) {
+      throw RuntimeBattleSetupException(
+        'Le slot de party joueur demandé pour le combat est invalide.',
+        debugDetails:
+            'playerPartyIndex=$activeIndex, partyLength=${party.members.length}',
+      );
+    }
+
+    final activeMember = party.members[activeIndex];
+    if (activeMember.isFainted) {
+      throw RuntimeBattleSetupException(
+        'Le slot de party joueur demandé pour le combat est déjà K.O.',
+        debugDetails:
+            'playerPartyIndex=$activeIndex, speciesId=${activeMember.speciesId}',
+      );
+    }
+
+    final reserveIndices = <int>[];
+    for (var i = 0; i < party.members.length; i++) {
+      if (i == activeIndex || party.members[i].isFainted) {
+        continue;
+      }
+      reserveIndices.add(i);
+    }
+
+    return RuntimePlayerBattleLineupSelection(
+      activeIndex: activeIndex,
+      reserveIndices: List<int>.unmodifiable(reserveIndices),
     );
   }
 
@@ -146,41 +240,6 @@ class RuntimeBattleSetupMapper {
     );
   }
 
-  /// Retourne le Pokémon joueur qui doit être injecté dans [BattleSetup].
-  ///
-  /// Deux cas :
-  /// - lot 9 seul : on prend le premier membre jouable ;
-  /// - lot 10 : le runtime fournit [playerPartyIndex] pour garantir que le
-  ///   combat et le write-back visent exactement le même slot.
-  ///
-  /// On refuse explicitement un index invalide ou un slot déjà K.O. pour éviter
-  /// tout glissement silencieux vers un autre membre de la party.
-  PlayerPokemon _selectPlayerPartyMember(
-    PlayerParty party, {
-    int? playerPartyIndex,
-  }) {
-    final resolvedIndex =
-        playerPartyIndex ?? selectUsablePartyMemberIndex(party);
-    if (resolvedIndex < 0 || resolvedIndex >= party.members.length) {
-      throw RuntimeBattleSetupException(
-        'Le slot de party joueur demandé pour le combat est invalide.',
-        debugDetails:
-            'playerPartyIndex=$resolvedIndex, partyLength=${party.members.length}',
-      );
-    }
-
-    final member = party.members[resolvedIndex];
-    if (member.isFainted) {
-      throw RuntimeBattleSetupException(
-        'Le slot de party joueur demandé pour le combat est déjà K.O.',
-        debugDetails:
-            'playerPartyIndex=$resolvedIndex, speciesId=${member.speciesId}',
-      );
-    }
-
-    return member;
-  }
-
   ProjectTrainerEntry _findTrainer(ProjectManifest manifest, String trainerId) {
     final normalizedTrainerId = trainerId.trim();
     for (final trainer in manifest.trainers) {
@@ -194,6 +253,36 @@ class RuntimeBattleSetupMapper {
       debugDetails: 'trainerId=$trainerId',
     );
   }
+}
+
+/// Sélection runtime de lineup battle du joueur.
+///
+/// Ce petit type évite de faire circuler des tuples implicites :
+/// - `activeIndex` identifie le slot réellement actif au handoff ;
+/// - `reserveIndices` garde l'ordre stable des réserves injectées dans
+///   `BattleSetup` ;
+/// - le runtime peut ensuite réutiliser exactement cette projection pour le
+///   write-back post-combat.
+final class RuntimePlayerBattleLineupSelection {
+  const RuntimePlayerBattleLineupSelection({
+    required this.activeIndex,
+    required this.reserveIndices,
+  });
+
+  final int activeIndex;
+  final List<int> reserveIndices;
+
+  List<int> get lineupPartyIndices => <int>[activeIndex, ...reserveIndices];
+}
+
+final class _RuntimeBattleEnemyLineup {
+  const _RuntimeBattleEnemyLineup({
+    required this.active,
+    required this.reserve,
+  });
+
+  final RuntimeBattleCombatantSeed active;
+  final List<RuntimeBattleCombatantSeed> reserve;
 }
 
 /// Retourne `true` si le bag runtime contient au moins une Poké Ball exploitable.
