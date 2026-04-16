@@ -1,6 +1,8 @@
+import 'battle_field.dart';
 import 'battle_move.dart';
 import 'battle_resolution.dart';
 import 'battle_status.dart';
+import 'battle_volatile.dart';
 import 'battle_stats.dart';
 import 'battle_typing.dart';
 
@@ -44,12 +46,14 @@ class BattleState {
   /// [phase] - La phase actuelle du combat.
   /// [player] - Le combattant joueur.
   /// [enemy] - Le combattant adverse.
+  /// [field] - L'état de champ observable (weather / pseudoWeather).
   /// [currentTurn] - Le résultat du tour en cours (null si aucun tour en cours).
   /// [outcome] - Le résultat final du combat (null si combat en cours).
   const BattleState({
     required this.phase,
     required this.player,
     required this.enemy,
+    this.field = const BattleFieldState(),
     this.currentTurn,
     this.outcome,
   });
@@ -62,6 +66,16 @@ class BattleState {
 
   /// Le combattant adverse.
   final BattleCombatant enemy;
+
+  /// État de champ observable du combat.
+  ///
+  /// BE9 le porte directement dans `BattleState` pour éviter un nouveau
+  /// mensonge :
+  /// - la météo et Trick Room modifient maintenant réellement le moteur ;
+  /// - ils ne doivent donc pas vivre comme un détail caché de résolution ;
+  /// - le runtime et les tests peuvent relire cet état sans introspection
+  ///   privée de `BattleSession`.
+  final BattleFieldState field;
 
   /// Le résultat du tour en cours.
   ///
@@ -97,6 +111,8 @@ class BattleCombatant {
   /// [stats] - Snapshot résolu des stats non-HP.
   /// [typing] - Typing battle minimal si connu.
   /// [majorStatus] - Statut majeur actuellement porté si le combattant en a un.
+  /// [volatileState] - Sous-état volatile local BE8 (`protect`, recharge,
+  ///   charge en attente).
   /// [abilityId] - L'ability réellement résolue si le runtime la connaît.
   /// [moves] - La liste des attaques disponibles.
   const BattleCombatant({
@@ -107,6 +123,7 @@ class BattleCombatant {
     required this.stats,
     this.typing,
     this.majorStatus,
+    this.volatileState = const BattleVolatileState(),
     this.abilityId = 'unknown',
     required this.moves,
     this.statStages = const BattleStatStages(),
@@ -156,6 +173,14 @@ class BattleCombatant {
   /// - il n'y a toujours ni volatiles génériques, ni `slp`, ni `frz`.
   final BattleMajorStatusState? majorStatus;
 
+  /// Sous-état volatile local strictement borné à BE8.
+  ///
+  /// On évite volontairement un conteneur générique :
+  /// - `protectActive` pour la fenêtre de protection du tour courant ;
+  /// - `mustRecharge` pour le tour perdu suivant certains moves ;
+  /// - `pendingCharge` pour la deuxième moitié d'un move à charge.
+  final BattleVolatileState volatileState;
+
   /// L'ability réellement résolue pour ce combattant.
   ///
   /// Le moteur lot 13 n'en tire toujours aucun calcul de combat. On la transporte
@@ -203,6 +228,7 @@ class BattleCombatant {
       stats: stats,
       typing: typing,
       majorStatus: majorStatus,
+      volatileState: volatileState,
       abilityId: abilityId,
       moves: moves,
       statStages: statStages,
@@ -224,6 +250,7 @@ class BattleCombatant {
       stats: stats,
       typing: typing,
       majorStatus: majorStatus,
+      volatileState: volatileState,
       abilityId: abilityId,
       moves: moves,
       statStages: statStages,
@@ -249,6 +276,7 @@ class BattleCombatant {
       stats: stats,
       typing: typing,
       majorStatus: majorStatus,
+      volatileState: volatileState,
       abilityId: abilityId,
       moves: moves,
       statStages: statStages.apply(changes),
@@ -276,6 +304,7 @@ class BattleCombatant {
       stats: stats,
       typing: typing,
       majorStatus: majorStatus,
+      volatileState: volatileState,
       abilityId: abilityId,
       moves: List<BattleMove>.unmodifiable(updatedMoves),
       statStages: statStages,
@@ -298,6 +327,30 @@ class BattleCombatant {
       stats: stats,
       typing: typing,
       majorStatus: updatedStatus,
+      volatileState: volatileState,
+      abilityId: abilityId,
+      moves: moves,
+      statStages: statStages,
+    );
+  }
+
+  /// Crée une copie avec un sous-état volatile mis à jour.
+  ///
+  /// BE8 garde cette transition locale et lisible :
+  /// - pas de mutation silencieuse ;
+  /// - pas de builder parallèle ;
+  /// - juste le plus petit helper immutable utile pour `Protect`, la recharge
+  ///   et les moves à charge.
+  BattleCombatant withVolatileState(BattleVolatileState updatedVolatileState) {
+    return BattleCombatant(
+      speciesId: speciesId,
+      level: level,
+      currentHp: currentHp,
+      maxHp: maxHp,
+      stats: stats,
+      typing: typing,
+      majorStatus: majorStatus,
+      volatileState: updatedVolatileState,
       abilityId: abilityId,
       moves: moves,
       statStages: statStages,

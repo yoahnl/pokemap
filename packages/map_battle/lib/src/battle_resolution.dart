@@ -1,7 +1,9 @@
 import 'battle_action.dart';
+import 'battle_field.dart';
 import 'battle_move.dart';
 import 'battle_state.dart';
 import 'battle_status.dart';
+import 'battle_volatile.dart';
 
 /// Résultat d'un tour de combat.
 ///
@@ -14,11 +16,15 @@ class BattleTurnResult {
   /// [enemyAction] - L'action jouée par l'ennemi.
   /// [executions] - La liste des exécutions d'attaques (dans l'ordre).
   /// [statusEvents] - Les événements de statut/résiduel visibles du tour.
+  /// [volatileEvents] - Les événements volatiles BE8 visibles du tour.
+  /// [fieldEvents] - Les événements de champ BE9 visibles du tour.
   const BattleTurnResult({
     required this.playerAction,
     required this.enemyAction,
     required this.executions,
     this.statusEvents = const <BattleStatusEvent>[],
+    this.volatileEvents = const <BattleVolatileEvent>[],
+    this.fieldEvents = const <BattleFieldEvent>[],
   });
 
   /// L'action jouée par le joueur.
@@ -42,6 +48,26 @@ class BattleTurnResult {
   /// - l'application d'un statut majeur ne doit pas être une mutation muette ;
   /// - les résiduels de fin de tour ne doivent pas retirer des PV sans trace.
   final List<BattleStatusEvent> statusEvents;
+
+  /// Les événements volatiles visibles pendant ce tour.
+  ///
+  /// BE8 les sépare volontairement de `statusEvents` :
+  /// - `Protect`, la recharge et la charge sur deux tours n'ont pas la même
+  ///   sémantique que les statuts majeurs ;
+  /// - les entasser dans `BattleMoveExecution` ferait grossir ce contrat avec
+  ///   des booléens croisés peu lisibles ;
+  /// - une petite liste sœur garde la trace honnête sans créer un event bus.
+  final List<BattleVolatileEvent> volatileEvents;
+
+  /// Les événements de champ visibles pendant ce tour.
+  ///
+  /// BE9 les sépare volontairement du reste :
+  /// - la météo et Trick Room sont désormais de vrais états moteur ;
+  /// - les entasser dans `statusEvents` ou `volatileEvents` brouillerait les
+  ///   invariants métier de chaque couche ;
+  /// - une petite troisième liste suffit à garder le champ observable sans
+  ///   ouvrir un journal universel.
+  final List<BattleFieldEvent> fieldEvents;
 }
 
 /// Exécution d'une attaque.
@@ -81,7 +107,8 @@ class BattleMoveExecution {
 
   /// L'identifiant de la cible.
   ///
-  /// Valeurs possibles : "player" ou "enemy".
+  /// Valeurs possibles : "player", "enemy" ou "field" pour un move qui agit
+  /// sur le champ plutôt que sur un combattant.
   final String target;
 
   /// Les dégâts infligés.

@@ -706,6 +706,202 @@ void main() {
         equals('thunder_wave'),
       );
     });
+
+    test(
+        'maps a supported requireRecharge move and keeps the forced follow-up honest in battle',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+
+      final setup = await mapper.map(
+        bundle: bundle,
+        gameState: const GameState(
+          saveId: 'save-supported-recharge',
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              PlayerPokemon(
+                speciesId: 'sparkitten',
+                natureId: 'bold',
+                abilityId: 'blaze',
+                level: 80,
+                knownMoveIds: <String>['hyper_beam'],
+                currentHp: 120,
+              ),
+            ],
+          ),
+        ),
+        request: _wildRequest(
+          speciesId: 'aquafi',
+          level: 80,
+        ),
+      );
+
+      expect(setup.playerPokemon.moves.single.requiresRecharge, isTrue);
+
+      final afterAttack = createBattleSession(
+        setup,
+        rng: const BattleScriptedRng(<int>[1, 24, 24, 24]),
+      ).applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(afterAttack.state.player.volatileState.mustRecharge, isTrue);
+      expect(afterAttack.getAvailableChoices().single,
+          isA<PlayerBattleChoiceContinue>());
+
+      final afterRecharge =
+          afterAttack.applyChoice(const PlayerBattleChoiceContinue());
+
+      expect(afterRecharge.state.player.volatileState.mustRecharge, isFalse);
+      expect(
+        afterRecharge.state.currentTurn?.volatileEvents
+            .where((event) =>
+                event.kind == BattleVolatileEventKind.rechargeTurnSpent)
+            .single
+            .actor,
+        equals('player'),
+      );
+    });
+
+    test('maps a supported weather move and lets battle consume rain honestly',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+
+      final rainySetup = await mapper.map(
+        bundle: bundle,
+        gameState: const GameState(
+          saveId: 'save-rain-dance',
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              PlayerPokemon(
+                speciesId: 'aquafi',
+                natureId: 'calm',
+                abilityId: 'torrent',
+                level: 18,
+                knownMoveIds: <String>['rain_dance', 'water_gun'],
+                currentHp: 42,
+              ),
+            ],
+          ),
+        ),
+        request: _wildRequest(
+          speciesId: 'sparkitten',
+          level: 10,
+        ),
+      );
+
+      expect(
+        rainySetup.playerPokemon.moves.first.weatherEffect,
+        equals(BattleWeatherId.rain),
+      );
+
+      final rainySession = createBattleSession(rainySetup);
+      final afterRain =
+          rainySession.applyChoice(const PlayerBattleChoiceFight(0));
+      final rainyAttack =
+          afterRain.applyChoice(const PlayerBattleChoiceFight(1));
+      final rainyDamage = rainyAttack.state.currentTurn!.executions
+          .firstWhere((execution) => execution.attacker == 'player')
+          .damage;
+
+      final neutralSetup = await mapper.map(
+        bundle: bundle,
+        gameState: const GameState(
+          saveId: 'save-rain-neutral',
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              PlayerPokemon(
+                speciesId: 'aquafi',
+                natureId: 'calm',
+                abilityId: 'torrent',
+                level: 18,
+                knownMoveIds: <String>['water_gun'],
+                currentHp: 42,
+              ),
+            ],
+          ),
+        ),
+        request: _wildRequest(
+          speciesId: 'sparkitten',
+          level: 10,
+        ),
+      );
+
+      final neutralDamage = createBattleSession(neutralSetup)
+          .applyChoice(const PlayerBattleChoiceFight(0))
+          .state
+          .currentTurn!
+          .executions
+          .firstWhere((execution) => execution.attacker == 'player')
+          .damage;
+
+      expect(afterRain.state.field.weather?.id, equals(BattleWeatherId.rain));
+      expect(
+        afterRain.state.currentTurn!.fieldEvents
+            .where((event) => event.kind == BattleFieldEventKind.weatherSet)
+            .single
+            .weather,
+        equals(BattleWeatherId.rain),
+      );
+      expect(rainyDamage, greaterThan(neutralDamage));
+    });
+
+    test('maps a supported Trick Room move and lets battle consume it honestly',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+
+      final setup = await mapper.map(
+        bundle: bundle,
+        gameState: const GameState(
+          saveId: 'save-trick-room',
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              PlayerPokemon(
+                speciesId: 'sproutle',
+                natureId: 'bold',
+                abilityId: 'overgrow',
+                level: 12,
+                knownMoveIds: <String>['trick_room', 'tackle'],
+                currentHp: 23,
+              ),
+            ],
+          ),
+        ),
+        request: _wildRequest(
+          speciesId: 'sparkitten',
+          level: 10,
+        ),
+      );
+
+      expect(
+        setup.playerPokemon.moves.first.pseudoWeatherEffect,
+        equals(BattlePseudoWeatherId.trickRoom),
+      );
+      expect(setup.playerPokemon.moves.first.priority, equals(-7));
+
+      final session = createBattleSession(setup);
+      final afterRoom = session.applyChoice(const PlayerBattleChoiceFight(0));
+      final afterAttack =
+          afterRoom.applyChoice(const PlayerBattleChoiceFight(1));
+
+      expect(
+        afterRoom.state.field.pseudoWeather?.id,
+        equals(BattlePseudoWeatherId.trickRoom),
+      );
+      expect(
+        afterAttack.state.currentTurn!.executions.first.attacker,
+        equals('player'),
+      );
+    });
   });
 }
 
@@ -1074,6 +1270,47 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
         _moveEntry('flame_wheel', 'Flame Wheel', 60, type: 'fire'),
         _moveEntry('water_gun', 'Water Gun', 40, type: 'water'),
         _moveEntry('thunder_wave', 'Thunder Wave', 0, type: 'electric'),
+        _moveEntry(
+          'protect',
+          'Protect',
+          0,
+          target: PokemonMoveTarget.self,
+          pp: 10,
+        ),
+        _moveEntry('feint', 'Feint', 30, pp: 10),
+        _moveEntry('hyper_beam', 'Hyper Beam', 150, pp: 5, accuracy: 90),
+        _moveEntry('solar_beam', 'Solar Beam', 120, type: 'grass', pp: 10),
+        _moveEntry(
+          'rain_dance',
+          'Rain Dance',
+          0,
+          type: 'water',
+          target: PokemonMoveTarget.all,
+          pp: 5,
+        ),
+        _moveEntry(
+          'sandstorm',
+          'Sandstorm',
+          0,
+          type: 'rock',
+          target: PokemonMoveTarget.all,
+          pp: 10,
+        ),
+        _moveEntry(
+          'trick_room',
+          'Trick Room',
+          0,
+          type: 'psychic',
+          target: PokemonMoveTarget.all,
+          pp: 5,
+          priority: -7,
+          engineSupportLevel: PokemonMoveEngineSupportLevel.structuredPartial,
+          unsupportedReasons: const <String>[
+            'unsupported_mechanic:turn_order_inversion',
+            'showdown_callback:condition.durationCallback',
+            'showdown_callback:condition.onFieldEnd',
+          ],
+        ),
       ],
     },
   );
@@ -1084,7 +1321,10 @@ Map<String, Object?> _moveEntry(
   String name,
   int power, {
   String type = 'normal',
+  PokemonMoveTarget target = PokemonMoveTarget.normal,
+  int pp = 35,
   int accuracy = 100,
+  int priority = 0,
   int critRatio = 1,
   PokemonMoveEngineSupportLevel engineSupportLevel =
       PokemonMoveEngineSupportLevel.structuredSupported,
@@ -1100,12 +1340,13 @@ Map<String, Object?> _moveEntry(
     type: type,
     category:
         power == 0 ? PokemonMoveCategory.status : PokemonMoveCategory.special,
-    target: PokemonMoveTarget.normal,
+    target: target,
     basePower: power,
     accuracy: power == 0
         ? const PokemonMoveAccuracy.alwaysHits()
         : PokemonMoveAccuracy.percent(value: accuracy),
-    pp: 35,
+    pp: pp,
+    priority: priority,
     critRatio: critRatio,
     effects: effects,
     engineSupportLevel: engineSupportLevel,
@@ -1114,6 +1355,11 @@ Map<String, Object?> _moveEntry(
 }
 
 List<PokemonMoveEffect> _defaultEffectsForMove(String moveId) {
+  // Ces fixtures de mapper restent volontairement petites et canoniques :
+  // - on encode seulement les effets déjà réellement consommés par le moteur ;
+  // - BE9 ajoute ici juste assez de champ pour pluie / tempête de sable /
+  //   Trick Room ;
+  // - on ne crée pas un faux mini-catalogue parallèle plus riche que le repo.
   return switch (moveId) {
     'growl' => const <PokemonMoveEffect>[
         PokemonMoveEffect.modifyStats(
@@ -1141,6 +1387,41 @@ List<PokemonMoveEffect> _defaultEffectsForMove(String moveId) {
         PokemonMoveEffect.applyStatus(
           targetScope: PokemonMoveEffectTargetScope.target,
           statusId: 'par',
+        ),
+      ],
+    'protect' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.applyVolatileStatus(
+          targetScope: PokemonMoveEffectTargetScope.self,
+          volatileStatusId: 'protect',
+        ),
+      ],
+    'feint' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.breakProtect(),
+      ],
+    'hyper_beam' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.requireRecharge(),
+      ],
+    'solar_beam' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.chargeThenStrike(
+          chargeStateId: 'solar_charge',
+        ),
+      ],
+    'rain_dance' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.setWeather(
+          targetScope: PokemonMoveEffectTargetScope.field,
+          weatherId: 'raindance',
+        ),
+      ],
+    'sandstorm' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.setWeather(
+          targetScope: PokemonMoveEffectTargetScope.field,
+          weatherId: 'sandstorm',
+        ),
+      ],
+    'trick_room' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.setPseudoWeather(
+          targetScope: PokemonMoveEffectTargetScope.field,
+          pseudoWeatherId: 'trickroom',
         ),
       ],
     _ => const <PokemonMoveEffect>[],

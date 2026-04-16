@@ -459,6 +459,168 @@ void main() {
     });
 
     test(
+        'supports the exact protect volatile subset instead of reopening all applyVolatileStatus',
+        () {
+      const move = PokemonMove(
+        id: 'protect',
+        name: 'Protect',
+        names: <String, String>{'en': 'Protect'},
+        generation: 1,
+        source: 'test',
+        type: 'normal',
+        category: PokemonMoveCategory.status,
+        target: PokemonMoveTarget.self,
+        basePower: 0,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+        pp: 10,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.applyVolatileStatus(
+            targetScope: PokemonMoveEffectTargetScope.self,
+            volatileStatusId: 'protect',
+          ),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      final battleMove = bridge.toBattleMoveData(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(battleMove.target, equals(BattleMoveTarget.self));
+      expect(
+        battleMove.selfVolatileStatus,
+        equals(BattleVolatileStatusId.protect),
+      );
+    });
+
+    test('supports a breakProtect damage move in the BE8 subset', () {
+      const move = PokemonMove(
+        id: 'feint',
+        name: 'Feint',
+        names: <String, String>{'en': 'Feint'},
+        generation: 4,
+        source: 'test',
+        type: 'normal',
+        category: PokemonMoveCategory.physical,
+        target: PokemonMoveTarget.normal,
+        basePower: 30,
+        accuracy: PokemonMoveAccuracy.percent(value: 100),
+        pp: 10,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.breakProtect(),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      final battleMove = bridge.toBattleMoveData(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(battleMove.breaksProtect, isTrue);
+      expect(battleMove.target, equals(BattleMoveTarget.opponent));
+    });
+
+    test('supports a requireRecharge damage move in the BE8 subset', () {
+      const move = PokemonMove(
+        id: 'hyper_beam',
+        name: 'Hyper Beam',
+        names: <String, String>{'en': 'Hyper Beam'},
+        generation: 1,
+        source: 'test',
+        type: 'normal',
+        category: PokemonMoveCategory.special,
+        target: PokemonMoveTarget.normal,
+        basePower: 150,
+        accuracy: PokemonMoveAccuracy.percent(value: 90),
+        pp: 5,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.requireRecharge(),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      final battleMove = bridge.toBattleMoveData(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(battleMove.requiresRecharge, isTrue);
+      expect(battleMove.power, equals(150));
+    });
+
+    test('supports a chargeThenStrike damage move in the BE8 subset', () {
+      const move = PokemonMove(
+        id: 'solar_beam',
+        name: 'Solar Beam',
+        names: <String, String>{'en': 'Solar Beam'},
+        generation: 1,
+        source: 'test',
+        type: 'grass',
+        category: PokemonMoveCategory.special,
+        target: PokemonMoveTarget.normal,
+        basePower: 120,
+        accuracy: PokemonMoveAccuracy.percent(value: 100),
+        pp: 10,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.chargeThenStrike(chargeStateId: 'solar_charge'),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      final battleMove = bridge.toBattleMoveData(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(
+        battleMove.chargeThenStrikeEffect?.chargeStateId,
+        equals('solar_charge'),
+      );
+      expect(battleMove.target, equals(BattleMoveTarget.opponent));
+    });
+
+    test(
+        'still rejects a noncanonical move that combines chargeThenStrike and requireRecharge',
+        () {
+      const move = PokemonMove(
+        id: 'bad_combo_beam',
+        name: 'Bad Combo Beam',
+        names: <String, String>{'en': 'Bad Combo Beam'},
+        generation: 9,
+        source: 'test',
+        type: 'normal',
+        category: PokemonMoveCategory.special,
+        target: PokemonMoveTarget.normal,
+        basePower: 120,
+        accuracy: PokemonMoveAccuracy.percent(value: 100),
+        pp: 5,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.requireRecharge(),
+          PokemonMoveEffect.chargeThenStrike(),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      expect(
+        () => bridge.toBattleMoveData(
+          move: move,
+          combatantLabel: 'Le Pokémon actif du joueur',
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.debugDetails,
+            'debugDetails',
+            contains(
+              'bridgeLimit=unsupported_combined_charge_then_recharge',
+            ),
+          ),
+        ),
+      );
+    });
+
+    test(
         'still rejects unsupported major statuses even when applyStatus is now partially bridgeable',
         () {
       const move = PokemonMove(
@@ -497,7 +659,9 @@ void main() {
       );
     });
 
-    test('still rejects applyVolatileStatus explicitly', () {
+    test(
+        'still rejects unsupported applyVolatileStatus outside the protect subset',
+        () {
       const move = PokemonMove(
         id: 'confuse_ray',
         name: 'Confuse Ray',
@@ -529,7 +693,353 @@ void main() {
             (error) => error.debugDetails,
             'debugDetails',
             contains(
-                'bridgeLimit=unsupported_effect_kind:apply_volatile_status'),
+              'bridgeLimit=unsupported_apply_volatile_status_scope:target',
+            ),
+          ),
+        ),
+      );
+    });
+
+    test('supports the exact Rain Dance weather subset in BE9', () {
+      const move = PokemonMove(
+        id: 'rain_dance',
+        name: 'Rain Dance',
+        names: <String, String>{'en': 'Rain Dance'},
+        generation: 2,
+        source: 'test',
+        type: 'water',
+        category: PokemonMoveCategory.status,
+        target: PokemonMoveTarget.all,
+        basePower: 0,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+        pp: 5,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.setWeather(
+            targetScope: PokemonMoveEffectTargetScope.field,
+            weatherId: 'raindance',
+          ),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      final battleMove = bridge.toBattleMoveData(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(battleMove.target, equals(BattleMoveTarget.field));
+      expect(battleMove.weatherEffect, equals(BattleWeatherId.rain));
+      expect(battleMove.pseudoWeatherEffect, isNull);
+    });
+
+    test(
+        'rejects a malformed self-target field move instead of widening the BE9 field contract',
+        () {
+      const move = PokemonMove(
+        id: 'bad_self_rain',
+        name: 'Bad Self Rain',
+        names: <String, String>{'en': 'Bad Self Rain'},
+        generation: 9,
+        source: 'test',
+        type: 'water',
+        category: PokemonMoveCategory.status,
+        target: PokemonMoveTarget.self,
+        basePower: 0,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+        pp: 5,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.setWeather(
+            targetScope: PokemonMoveEffectTargetScope.field,
+            weatherId: 'raindance',
+          ),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      expect(
+        () => bridge.toBattleMoveData(
+          move: move,
+          combatantLabel: 'Le Pokémon actif du joueur',
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.debugDetails,
+            'debugDetails',
+            contains('bridgeLimit=unsupported_field_target:self'),
+          ),
+        ),
+      );
+    });
+
+    test('supports the exact Sandstorm weather subset in BE9', () {
+      const move = PokemonMove(
+        id: 'sandstorm',
+        name: 'Sandstorm',
+        names: <String, String>{'en': 'Sandstorm'},
+        generation: 2,
+        source: 'test',
+        type: 'rock',
+        category: PokemonMoveCategory.status,
+        target: PokemonMoveTarget.all,
+        basePower: 0,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+        pp: 10,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.setWeather(
+            targetScope: PokemonMoveEffectTargetScope.field,
+            weatherId: 'sandstorm',
+          ),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      final battleMove = bridge.toBattleMoveData(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(battleMove.target, equals(BattleMoveTarget.field));
+      expect(battleMove.weatherEffect, equals(BattleWeatherId.sandstorm));
+    });
+
+    test(
+        'supports the exact Trick Room pseudoWeather subset without reopening all structuredPartial moves',
+        () {
+      const move = PokemonMove(
+        id: 'trick_room',
+        name: 'Trick Room',
+        names: <String, String>{'en': 'Trick Room'},
+        generation: 4,
+        source: 'test',
+        type: 'psychic',
+        category: PokemonMoveCategory.status,
+        target: PokemonMoveTarget.all,
+        basePower: 0,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+        pp: 5,
+        priority: -7,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.setPseudoWeather(
+            targetScope: PokemonMoveEffectTargetScope.field,
+            pseudoWeatherId: 'trickroom',
+          ),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredPartial,
+        unsupportedReasons: <String>[
+          'unsupported_mechanic:turn_order_inversion',
+          'showdown_callback:condition.durationCallback',
+          'showdown_callback:condition.onFieldEnd',
+        ],
+      );
+
+      final battleMove = bridge.toBattleMoveData(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(battleMove.target, equals(BattleMoveTarget.field));
+      expect(
+        battleMove.pseudoWeatherEffect,
+        equals(BattlePseudoWeatherId.trickRoom),
+      );
+      expect(battleMove.priority, equals(-7));
+    });
+
+    test('still rejects unsupported weather ids outside the BE9 subset', () {
+      const move = PokemonMove(
+        id: 'sunny_day',
+        name: 'Sunny Day',
+        names: <String, String>{'en': 'Sunny Day'},
+        generation: 2,
+        source: 'test',
+        type: 'fire',
+        category: PokemonMoveCategory.status,
+        target: PokemonMoveTarget.all,
+        basePower: 0,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+        pp: 5,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.setWeather(
+            targetScope: PokemonMoveEffectTargetScope.field,
+            weatherId: 'sunnyday',
+          ),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      expect(
+        () => bridge.toBattleMoveData(
+          move: move,
+          combatantLabel: 'Le Pokémon actif du joueur',
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.debugDetails,
+            'debugDetails',
+            contains('bridgeLimit=unsupported_weather:sunnyday'),
+          ),
+        ),
+      );
+    });
+
+    test('still rejects unsupported pseudoWeather ids outside the BE9 subset',
+        () {
+      const move = PokemonMove(
+        id: 'magic_room',
+        name: 'Magic Room',
+        names: <String, String>{'en': 'Magic Room'},
+        generation: 5,
+        source: 'test',
+        type: 'psychic',
+        category: PokemonMoveCategory.status,
+        target: PokemonMoveTarget.all,
+        basePower: 0,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+        pp: 10,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.setPseudoWeather(
+            targetScope: PokemonMoveEffectTargetScope.field,
+            pseudoWeatherId: 'magicroom',
+          ),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      expect(
+        () => bridge.toBattleMoveData(
+          move: move,
+          combatantLabel: 'Le Pokémon actif du joueur',
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.debugDetails,
+            'debugDetails',
+            contains('bridgeLimit=unsupported_pseudo_weather:magicroom'),
+          ),
+        ),
+      );
+    });
+
+    test('still rejects setTerrain because BE9 does not open terrains', () {
+      const move = PokemonMove(
+        id: 'electric_terrain',
+        name: 'Electric Terrain',
+        names: <String, String>{'en': 'Electric Terrain'},
+        generation: 6,
+        source: 'test',
+        type: 'electric',
+        category: PokemonMoveCategory.status,
+        target: PokemonMoveTarget.all,
+        basePower: 0,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+        pp: 10,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.setTerrain(
+            targetScope: PokemonMoveEffectTargetScope.field,
+            terrainId: 'electricterrain',
+          ),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      expect(
+        () => bridge.toBattleMoveData(
+          move: move,
+          combatantLabel: 'Le Pokémon actif du joueur',
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.debugDetails,
+            'debugDetails',
+            anyOf(
+              contains('bridgeLimit=unsupported_target:all'),
+              contains('bridgeLimit=unsupported_effect_kind:set_terrain'),
+            ),
+          ),
+        ),
+      );
+    });
+
+    test('still rejects setSideCondition because BE9 does not open side state',
+        () {
+      const move = PokemonMove(
+        id: 'stealth_rock',
+        name: 'Stealth Rock',
+        names: <String, String>{'en': 'Stealth Rock'},
+        generation: 4,
+        source: 'test',
+        type: 'rock',
+        category: PokemonMoveCategory.status,
+        target: PokemonMoveTarget.foeSide,
+        basePower: 0,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+        pp: 20,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.setSideCondition(
+            targetScope: PokemonMoveEffectTargetScope.foeSide,
+            conditionId: 'stealthrock',
+          ),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      expect(
+        () => bridge.toBattleMoveData(
+          move: move,
+          combatantLabel: 'Le Pokémon actif du joueur',
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.debugDetails,
+            'debugDetails',
+            anyOf(
+              contains('bridgeLimit=unsupported_target:foeSide'),
+              contains(
+                  'bridgeLimit=unsupported_effect_kind:set_side_condition'),
+            ),
+          ),
+        ),
+      );
+    });
+
+    test('still rejects setSlotCondition because BE9 does not open slot state',
+        () {
+      const move = PokemonMove(
+        id: 'healing_wish',
+        name: 'Healing Wish',
+        names: <String, String>{'en': 'Healing Wish'},
+        generation: 4,
+        source: 'test',
+        type: 'psychic',
+        category: PokemonMoveCategory.status,
+        target: PokemonMoveTarget.self,
+        basePower: 0,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+        pp: 10,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.setSlotCondition(
+            targetScope: PokemonMoveEffectTargetScope.slot,
+            conditionId: 'healingwish',
+          ),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      expect(
+        () => bridge.toBattleMoveData(
+          move: move,
+          combatantLabel: 'Le Pokémon actif du joueur',
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.debugDetails,
+            'debugDetails',
+            anyOf(
+              contains('bridgeLimit=unsupported_target:self'),
+              contains(
+                  'bridgeLimit=unsupported_effect_kind:set_slot_condition'),
+              contains('bridgeLimit=unsupported_target:slot'),
+            ),
           ),
         ),
       );

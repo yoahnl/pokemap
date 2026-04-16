@@ -44,6 +44,21 @@ class PlayerBattleChoiceCapture extends PlayerBattleChoice {
   const PlayerBattleChoiceCapture();
 }
 
+/// Continuer un tour forcé sans sélectionner un nouveau move.
+///
+/// BE8 l'ajoute pour éviter un nouveau mensonge de surface :
+/// - un Pokémon en recharge ou avec un move chargé en attente n'a pas
+///   réellement un "choix de move" libre au tour suivant ;
+/// - réutiliser artificiellement `Fight(0)` ou laisser tous les boutons de
+///   move actifs ferait croire à l'UI et aux tests qu'une vraie sélection est
+///   encore possible ;
+/// - ce petit choix explicite sert uniquement d'acquittement UI pour avancer
+///   le tour forcé, sans ouvrir une taxonomie complète de commandes.
+class PlayerBattleChoiceContinue extends PlayerBattleChoice {
+  /// Crée un choix de continuation de tour forcé.
+  const PlayerBattleChoiceContinue();
+}
+
 /// Action résolue (interne au moteur de combat).
 ///
 /// Contrairement à [PlayerBattleChoice] qui est un choix UI,
@@ -87,4 +102,17 @@ class BattleActionFight extends BattleAction {
 class BattleActionRun extends BattleAction {
   /// Crée une action de fuite.
   const BattleActionRun();
+}
+
+/// Perdre honnêtement son tour à cause d'une recharge forcée.
+///
+/// BE8 préfère une action explicite plutôt que de tordre `BattleActionFight`
+/// ou d'introduire un "tour vide" silencieux :
+/// - cette action ne dépense pas de PP ;
+/// - elle n'exécute aucun hit check ;
+/// - elle rend visible le fait que le combattant a bien perdu ce tour pour
+///   cause de recharge, puis nettoie l'état local.
+class BattleActionRecharge extends BattleAction {
+  /// Crée une action de recharge forcée.
+  const BattleActionRecharge();
 }

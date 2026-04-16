@@ -255,9 +255,17 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
     // Construire le texte du résultat du tour
     final lines = <String>[];
     for (final execution in turnResult.executions) {
-      final attacker = execution.attacker == 'player' ? 'Joueur' : 'Ennemi';
+      final attacker = _combatantLabel(execution.attacker);
       lines.add(
           '$attacker utilise ${execution.move.name} → ${execution.damage} dégâts');
+    }
+
+    for (final event in turnResult.volatileEvents) {
+      lines.add(_formatVolatileEvent(event));
+    }
+
+    for (final event in turnResult.fieldEvents) {
+      lines.add(_formatFieldEvent(event));
     }
 
     if (lines.isEmpty) {
@@ -367,12 +375,80 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
       // Lit les moves depuis _session.state.player.moves — toujours à jour
       final move = _session.state.player.moves[choice.moveIndex];
       return '⚔ ${move.name} (Puissance: ${move.power})';
+    } else if (choice is PlayerBattleChoiceContinue) {
+      // BE8 ajoute des tours forcés honnêtes (recharge / libération d'un move
+      // déjà chargé). Afficher `???` ici mentirait sur la surface joueur :
+      // il ne choisit pas un nouveau move, il valide simplement la poursuite
+      // de ce tour contraint par le moteur battle.
+      final volatileState = _session.state.player.volatileState;
+      if (volatileState.pendingCharge != null) {
+        return 'Continuer (libérer la charge)';
+      }
+      if (volatileState.mustRecharge) {
+        return 'Continuer (recharge)';
+      }
+      return 'Continuer';
     } else if (choice is PlayerBattleChoiceCapture) {
       return 'Capturer';
     } else if (choice is PlayerBattleChoiceRun) {
       return '🏃 Fuir';
     }
     return '???';
+  }
+
+  String _formatVolatileEvent(BattleVolatileEvent event) {
+    final actor = _combatantLabel(event.actor);
+    final target = event.target == null ? null : _combatantLabel(event.target!);
+
+    return switch (event.kind) {
+      BattleVolatileEventKind.protectActivated => '$actor active Protect',
+      BattleVolatileEventKind.protectBlocked =>
+        '${target ?? 'La cible'} bloque l’attaque avec Protect',
+      BattleVolatileEventKind.protectBroken =>
+        '$actor perce Protect sur ${target ?? 'la cible'}',
+      BattleVolatileEventKind.rechargeRequired =>
+        '$actor doit recharger au tour suivant',
+      BattleVolatileEventKind.rechargeTurnSpent =>
+        '$actor passe son tour pour recharger',
+      BattleVolatileEventKind.chargeStarted =>
+        '$actor commence à charger ${event.sourceMoveId ?? 'son attaque'}',
+      BattleVolatileEventKind.chargeReleased =>
+        '$actor libère ${event.sourceMoveId ?? 'son attaque chargée'}',
+    };
+  }
+
+  String _formatFieldEvent(BattleFieldEvent event) {
+    return switch (event.kind) {
+      BattleFieldEventKind.weatherSet =>
+        'Le champ passe à ${_weatherLabel(event.weather!)}',
+      BattleFieldEventKind.weatherResidualDamage =>
+        '${_combatantLabel(event.target!)} subit ${event.damage} dégâts de ${_weatherLabel(event.weather!)}',
+      BattleFieldEventKind.weatherExpired =>
+        '${_weatherLabel(event.weather!)} prend fin',
+      BattleFieldEventKind.pseudoWeatherSet =>
+        '${_pseudoWeatherLabel(event.pseudoWeather!)} devient actif',
+      BattleFieldEventKind.pseudoWeatherCleared =>
+        '${_pseudoWeatherLabel(event.pseudoWeather!)} est dissipé',
+      BattleFieldEventKind.pseudoWeatherExpired =>
+        '${_pseudoWeatherLabel(event.pseudoWeather!)} prend fin',
+    };
+  }
+
+  String _combatantLabel(String combatantId) {
+    return combatantId == 'player' ? 'Joueur' : 'Ennemi';
+  }
+
+  String _weatherLabel(BattleWeatherId weather) {
+    return switch (weather) {
+      BattleWeatherId.rain => 'la pluie',
+      BattleWeatherId.sandstorm => 'la tempête de sable',
+    };
+  }
+
+  String _pseudoWeatherLabel(BattlePseudoWeatherId pseudoWeather) {
+    return switch (pseudoWeather) {
+      BattlePseudoWeatherId.trickRoom => 'Trick Room',
+    };
   }
 
   /// Retourne le titre pour la session.

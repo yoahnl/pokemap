@@ -98,7 +98,7 @@ void main() {
     });
 
     test(
-        'createBattleSession preserves the additional honest battle contract fields transported by BE1, BE3, BE4, BE5 and BE6',
+        'createBattleSession preserves the additional honest battle contract fields transported by BE1 through BE9',
         () {
       final setup = BattleSetup(
         playerPokemon: BattleCombatantData(
@@ -107,19 +107,56 @@ void main() {
           maxHp: 20,
           stats: _neutralBattleStats,
           typing: const BattleTypingSnapshot(primaryType: 'electric'),
+          volatileState: const BattleVolatileState(
+            mustRecharge: true,
+          ),
           moves: const [
             BattleMoveData(
-              id: 'vine_whip',
-              name: 'Vine Whip',
-              power: 45,
-              type: 'grass',
-              category: BattleMoveCategory.physical,
-              target: BattleMoveTarget.opponent,
-              accuracy: BattleMoveAccuracy.percent(value: 95),
-              pp: 25,
+              id: 'protect',
+              name: 'Protect',
+              power: 0,
+              type: 'normal',
+              category: BattleMoveCategory.status,
+              target: BattleMoveTarget.self,
+              accuracy: BattleMoveAccuracy.alwaysHits(),
+              pp: 10,
               currentPp: 7,
               priority: 1,
               critRatio: 2,
+              selfVolatileStatus: BattleVolatileStatusId.protect,
+            ),
+            BattleMoveData(
+              id: 'hyper_beam',
+              name: 'Hyper Beam',
+              power: 150,
+              type: 'normal',
+              category: BattleMoveCategory.special,
+              target: BattleMoveTarget.opponent,
+              pp: 5,
+              currentPp: 3,
+              requiresRecharge: true,
+            ),
+            BattleMoveData(
+              id: 'solar_beam',
+              name: 'Solar Beam',
+              power: 120,
+              type: 'grass',
+              category: BattleMoveCategory.special,
+              target: BattleMoveTarget.opponent,
+              pp: 10,
+              currentPp: 9,
+              chargeThenStrikeEffect: BattleChargeThenStrikeEffect(
+                chargeStateId: 'solar_charge',
+              ),
+            ),
+            BattleMoveData(
+              id: 'feint',
+              name: 'Feint',
+              power: 30,
+              type: 'normal',
+              category: BattleMoveCategory.physical,
+              target: BattleMoveTarget.opponent,
+              breaksProtect: true,
             ),
           ],
         ),
@@ -132,32 +169,71 @@ void main() {
             primaryType: 'water',
             secondaryType: 'ice',
           ),
+          volatileState: const BattleVolatileState(
+            pendingCharge: BattlePendingChargeState(
+              moveIndex: 0,
+              moveId: 'tackle',
+              chargeStateId: 'stored_charge',
+            ),
+          ),
           moves: const [
             BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
           ],
         ),
         isTrainerBattle: false,
         trainerId: null,
+        fieldState: const BattleFieldState(
+          weather: BattleWeatherState(
+            id: BattleWeatherId.rain,
+            remainingTurns: 3,
+          ),
+          pseudoWeather: BattlePseudoWeatherState(
+            id: BattlePseudoWeatherId.trickRoom,
+            remainingTurns: 2,
+          ),
+        ),
       );
 
       final session = createBattleSession(setup);
-      final move = session.state.player.moves.single;
+      final protect = session.state.player.moves[0];
+      final hyperBeam = session.state.player.moves[1];
+      final solarBeam = session.state.player.moves[2];
+      final feint = session.state.player.moves[3];
       final playerTyping = session.state.player.typing!;
       final enemyTyping = session.state.enemy.typing!;
 
-      expect(move.type, equals('grass'));
-      expect(move.category, equals(BattleMoveCategory.physical));
-      expect(move.target, equals(BattleMoveTarget.opponent));
-      expect(move.accuracy.kind, equals(BattleMoveAccuracyKind.percent));
-      expect(move.accuracy.value, equals(95));
-      expect(move.pp, equals(25));
-      expect(move.currentPp, equals(7));
-      expect(move.priority, equals(1));
-      expect(move.critRatio, equals(2));
+      expect(protect.type, equals('normal'));
+      expect(protect.category, equals(BattleMoveCategory.status));
+      expect(protect.target, equals(BattleMoveTarget.self));
+      expect(protect.accuracy.kind, equals(BattleMoveAccuracyKind.alwaysHits));
+      expect(protect.pp, equals(10));
+      expect(protect.currentPp, equals(7));
+      expect(protect.priority, equals(1));
+      expect(protect.critRatio, equals(2));
+      expect(
+        protect.selfVolatileStatus,
+        equals(BattleVolatileStatusId.protect),
+      );
+      expect(hyperBeam.requiresRecharge, isTrue);
+      expect(solarBeam.chargeThenStrikeEffect?.chargeStateId,
+          equals('solar_charge'));
+      expect(feint.breaksProtect, isTrue);
       expect(playerTyping.primaryType, equals('electric'));
       expect(playerTyping.secondaryType, isNull);
       expect(enemyTyping.primaryType, equals('water'));
       expect(enemyTyping.secondaryType, equals('ice'));
+      expect(session.state.player.volatileState.mustRecharge, isTrue);
+      expect(
+        session.state.enemy.volatileState.pendingCharge?.moveId,
+        equals('tackle'),
+      );
+      expect(session.state.field.weather?.id, equals(BattleWeatherId.rain));
+      expect(session.state.field.weather?.remainingTurns, equals(3));
+      expect(
+        session.state.field.pseudoWeather?.id,
+        equals(BattlePseudoWeatherId.trickRoom),
+      );
+      expect(session.state.field.pseudoWeather?.remainingTurns, equals(2));
     });
 
     test(
@@ -406,6 +482,46 @@ void main() {
       final choices = session.getAvailableChoices();
 
       expect(choices.whereType<PlayerBattleChoiceCapture>(), isEmpty);
+    });
+
+    test('getAvailableChoices exposes Continue for a forced recharge turn', () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'pikachu',
+            level: 5,
+            maxHp: 20,
+            stats: _neutralBattleStats,
+            volatileState: const BattleVolatileState(
+              mustRecharge: true,
+            ),
+            moves: const [
+              BattleMoveData(
+                id: 'hyper_beam',
+                name: 'Hyper Beam',
+                power: 150,
+                requiresRecharge: true,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'lapras',
+            level: 5,
+            maxHp: 25,
+            stats: _neutralBattleStats,
+            moves: const [
+              BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+      );
+
+      final choices = session.getAvailableChoices();
+
+      expect(choices, hasLength(1));
+      expect(choices.single, isA<PlayerBattleChoiceContinue>());
     });
 
     test('applyChoice with fight resolves turn and damages enemy', () {

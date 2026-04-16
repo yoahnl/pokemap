@@ -32,6 +32,10 @@ import 'runtime_battle_setup_exception.dart';
 /// - puis BE6 ouvre enfin un crit minimal honnête via `critRatio` ;
 /// - puis BE7 ouvre un petit sous-ensemble `applyStatus` pour les statuts
 ///   majeurs `par`, `brn`, `psn`, `tox` ;
+/// - puis BE8 ouvre seulement quelques volatiles utiles strictement bornés :
+///   `protect`, `breakProtect`, `requireRecharge`, `chargeThenStrike` ;
+/// - puis BE9 ouvre seulement un petit sous-ensemble field réellement
+///   consommé : `raindance`, `sandstorm`, `trickroom` ;
 /// - le reste reste explicitement hors scope et donc refusé.
 class RuntimeBattleMoveBridge {
   const RuntimeBattleMoveBridge();
@@ -63,6 +67,12 @@ class RuntimeBattleMoveBridge {
     final selfChanges = <BattleStatStageChange>[];
     final targetChanges = <BattleStatStageChange>[];
     BattleMoveMajorStatusEffect? majorStatusEffect;
+    BattleVolatileStatusId? selfVolatileStatus;
+    BattleWeatherId? weatherEffect;
+    BattlePseudoWeatherId? pseudoWeatherEffect;
+    var breaksProtect = false;
+    var requiresRecharge = false;
+    BattleChargeThenStrikeEffect? chargeThenStrikeEffect;
 
     for (final effect in move.effects) {
       effect.map(
@@ -120,11 +130,50 @@ class RuntimeBattleMoveBridge {
             chancePercent: effect.chance,
           );
         },
-        applyVolatileStatus: (_) => _rejectMove(
-          move: move,
-          combatantLabel: combatantLabel,
-          bridgeLimit: 'unsupported_effect_kind:apply_volatile_status',
-        ),
+        applyVolatileStatus: (effect) {
+          // BE8 n'ouvre surtout pas tout `applyVolatileStatus`.
+          // Le bridge accepte uniquement le plus petit seam devenu exécutable :
+          // - `protect` auto-appliqué au lanceur ;
+          // - déterministe ;
+          // - aucune autre taxonomie de volatile.
+          if (selfVolatileStatus != null) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit:
+                  'multiple_apply_volatile_status_effects_not_supported',
+            );
+          }
+          if (effect.targetScope != PokemonMoveEffectTargetScope.self) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit:
+                  'unsupported_apply_volatile_status_scope:${effect.targetScope.name}',
+            );
+          }
+          if (target != BattleMoveTarget.self) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit:
+                  'unsupported_apply_volatile_status_target:${target.name}',
+            );
+          }
+          if (effect.chance != null) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit: 'probabilistic_apply_volatile_status_not_supported',
+            );
+          }
+
+          selfVolatileStatus = _translateSupportedSelfVolatileStatus(
+            move: move,
+            combatantLabel: combatantLabel,
+            volatileStatusId: effect.volatileStatusId,
+          );
+        },
         modifyStats: (effect) {
           if (effect.chance != null) {
             _rejectMove(
@@ -183,21 +232,98 @@ class RuntimeBattleMoveBridge {
           combatantLabel: combatantLabel,
           bridgeLimit: 'unsupported_effect_kind:recoil',
         ),
-        setWeather: (_) => _rejectMove(
-          move: move,
-          combatantLabel: combatantLabel,
-          bridgeLimit: 'unsupported_effect_kind:set_weather',
-        ),
+        setWeather: (effect) {
+          if (weatherEffect != null) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit: 'multiple_set_weather_effects_not_supported',
+            );
+          }
+          if (effect.targetScope != PokemonMoveEffectTargetScope.field) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit:
+                  'unsupported_set_weather_scope:${effect.targetScope.name}',
+            );
+          }
+          if (target != BattleMoveTarget.field) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit: 'unsupported_set_weather_target:${target.name}',
+            );
+          }
+          if (effect.chance != null) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit: 'probabilistic_set_weather_not_supported',
+            );
+          }
+          if (move.usesStandardDamageFlow) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit: 'unsupported_set_weather_move_shape',
+            );
+          }
+          weatherEffect = _translateSupportedWeather(
+            move: move,
+            combatantLabel: combatantLabel,
+            weatherId: effect.weatherId,
+          );
+        },
         setTerrain: (_) => _rejectMove(
           move: move,
           combatantLabel: combatantLabel,
           bridgeLimit: 'unsupported_effect_kind:set_terrain',
         ),
-        setPseudoWeather: (_) => _rejectMove(
-          move: move,
-          combatantLabel: combatantLabel,
-          bridgeLimit: 'unsupported_effect_kind:set_pseudo_weather',
-        ),
+        setPseudoWeather: (effect) {
+          if (pseudoWeatherEffect != null) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit: 'multiple_set_pseudo_weather_effects_not_supported',
+            );
+          }
+          if (effect.targetScope != PokemonMoveEffectTargetScope.field) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit:
+                  'unsupported_set_pseudo_weather_scope:${effect.targetScope.name}',
+            );
+          }
+          if (target != BattleMoveTarget.field) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit:
+                  'unsupported_set_pseudo_weather_target:${target.name}',
+            );
+          }
+          if (effect.chance != null) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit: 'probabilistic_set_pseudo_weather_not_supported',
+            );
+          }
+          if (move.usesStandardDamageFlow) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit: 'unsupported_set_pseudo_weather_move_shape',
+            );
+          }
+          pseudoWeatherEffect = _translateSupportedPseudoWeather(
+            move: move,
+            combatantLabel: combatantLabel,
+            pseudoWeatherId: effect.pseudoWeatherId,
+          );
+        },
         selfSwitch: (_) => _rejectMove(
           move: move,
           combatantLabel: combatantLabel,
@@ -208,21 +334,106 @@ class RuntimeBattleMoveBridge {
           combatantLabel: combatantLabel,
           bridgeLimit: 'unsupported_effect_kind:force_switch',
         ),
-        breakProtect: (_) => _rejectMove(
-          move: move,
-          combatantLabel: combatantLabel,
-          bridgeLimit: 'unsupported_effect_kind:break_protect',
-        ),
-        requireRecharge: (_) => _rejectMove(
-          move: move,
-          combatantLabel: combatantLabel,
-          bridgeLimit: 'unsupported_effect_kind:require_recharge',
-        ),
-        chargeThenStrike: (_) => _rejectMove(
-          move: move,
-          combatantLabel: combatantLabel,
-          bridgeLimit: 'unsupported_effect_kind:charge_then_strike',
-        ),
+        breakProtect: (effect) {
+          if (breaksProtect) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit: 'multiple_break_protect_effects_not_supported',
+            );
+          }
+          if (effect.targetScope != PokemonMoveEffectTargetScope.target) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit:
+                  'unsupported_break_protect_scope:${effect.targetScope.name}',
+            );
+          }
+          if (target != BattleMoveTarget.opponent) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit: 'unsupported_break_protect_target:${target.name}',
+            );
+          }
+          if (effect.chance != null) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit: 'probabilistic_break_protect_not_supported',
+            );
+          }
+          breaksProtect = true;
+        },
+        requireRecharge: (effect) {
+          if (requiresRecharge) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit: 'multiple_require_recharge_effects_not_supported',
+            );
+          }
+          if (effect.targetScope != PokemonMoveEffectTargetScope.self) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit:
+                  'unsupported_require_recharge_scope:${effect.targetScope.name}',
+            );
+          }
+          if (effect.chance != null) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit: 'probabilistic_require_recharge_not_supported',
+            );
+          }
+          if (!move.usesStandardDamageFlow ||
+              target != BattleMoveTarget.opponent) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit: 'unsupported_require_recharge_move_shape',
+            );
+          }
+          requiresRecharge = true;
+        },
+        chargeThenStrike: (effect) {
+          if (chargeThenStrikeEffect != null) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit: 'multiple_charge_then_strike_effects_not_supported',
+            );
+          }
+          if (effect.targetScope != PokemonMoveEffectTargetScope.self) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit:
+                  'unsupported_charge_then_strike_scope:${effect.targetScope.name}',
+            );
+          }
+          if (effect.chance != null) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit: 'probabilistic_charge_then_strike_not_supported',
+            );
+          }
+          if (!move.usesStandardDamageFlow ||
+              target != BattleMoveTarget.opponent) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit: 'unsupported_charge_then_strike_move_shape',
+            );
+          }
+          chargeThenStrikeEffect = BattleChargeThenStrikeEffect(
+            chargeStateId: _normalizeOptionalId(effect.chargeStateId),
+          );
+        },
         setSideCondition: (_) => _rejectMove(
           move: move,
           combatantLabel: combatantLabel,
@@ -236,16 +447,54 @@ class RuntimeBattleMoveBridge {
       );
     }
 
+    // BE8 revendique un sous-ensemble exact, pas une "approximation large".
+    // On refuse donc explicitement les combinaisons d'effets qui ne font pas
+    // partie du petit contrat local ouvert par ce lot, même si chaque brique
+    // isolée serait supportée séparément.
+    if (requiresRecharge && chargeThenStrikeEffect != null) {
+      _rejectMove(
+        move: move,
+        combatantLabel: combatantLabel,
+        bridgeLimit: 'unsupported_combined_charge_then_recharge',
+      );
+    }
+    if ((weatherEffect != null || pseudoWeatherEffect != null) &&
+        (majorStatusEffect != null ||
+            selfVolatileStatus != null ||
+            breaksProtect ||
+            requiresRecharge ||
+            chargeThenStrikeEffect != null ||
+            selfChanges.isNotEmpty ||
+            targetChanges.isNotEmpty)) {
+      _rejectMove(
+        move: move,
+        combatantLabel: combatantLabel,
+        bridgeLimit: 'unsupported_combined_field_effect_move',
+      );
+    }
+    if (weatherEffect != null && pseudoWeatherEffect != null) {
+      _rejectMove(
+        move: move,
+        combatantLabel: combatantLabel,
+        bridgeLimit: 'multiple_field_effect_kinds_not_supported',
+      );
+    }
+
     // Un move battle exécutable doit avoir au moins un chemin d'exécution
     // réel pour le moteur actuel :
     // - soit des dégâts standards ;
     // - soit des changements d'étages de stats déterministes ;
     // - soit un effet `applyStatus` BE7 réellement supporté ;
-    // - soit une combinaison de ces chemins-là.
+    // - soit une pose de champ réellement consommée en BE9 ;
+    // - soit une combinaison de ces chemins-là quand elle est explicitement
+    //   autorisée plus haut.
     if (!move.usesStandardDamageFlow &&
         selfChanges.isEmpty &&
         targetChanges.isEmpty &&
-        majorStatusEffect == null) {
+        majorStatusEffect == null &&
+        selfVolatileStatus == null &&
+        weatherEffect == null &&
+        pseudoWeatherEffect == null) {
       _rejectMove(
         move: move,
         combatantLabel: combatantLabel,
@@ -283,6 +532,12 @@ class RuntimeBattleMoveBridge {
       priority: move.priority,
       critRatio: move.critRatio,
       majorStatusEffect: majorStatusEffect,
+      selfVolatileStatus: selfVolatileStatus,
+      weatherEffect: weatherEffect,
+      pseudoWeatherEffect: pseudoWeatherEffect,
+      breaksProtect: breaksProtect,
+      requiresRecharge: requiresRecharge,
+      chargeThenStrikeEffect: chargeThenStrikeEffect,
       selfStatStageChanges:
           List<BattleStatStageChange>.unmodifiable(selfChanges),
       targetStatStageChanges:
@@ -295,7 +550,8 @@ class RuntimeBattleMoveBridge {
     required String combatantLabel,
   }) {
     if (move.engineSupportLevel ==
-        PokemonMoveEngineSupportLevel.structuredSupported) {
+            PokemonMoveEngineSupportLevel.structuredSupported ||
+        _allowsStructuredPartialFieldMove(move)) {
       return;
     }
     _rejectMove(
@@ -365,6 +621,24 @@ class RuntimeBattleMoveBridge {
     //
     // Les autres formes (`all`, `allySide`, `foeSide`, etc.) exigent une
     // sémantique de terrain/sides/slots ou de multibattle absente aujourd'hui.
+    if (_isPureFieldMoveCandidate(move)) {
+      return switch (move.target) {
+        // Recadrage BE9 après review :
+        // - le sous-ensemble honnête réellement seedé dans ce repo pose la
+        //   météo / Trick Room avec `target: all` ;
+        // - accepter aussi `self` élargissait inutilement le contrat et
+        //   laissait passer un faux field move malformé ;
+        // - on garde donc un bridge strict au lieu d'une tolérance qui ne
+        //   sert aucun cas réel confirmé par l'audit.
+        PokemonMoveTarget.all => BattleMoveTarget.field,
+        _ => _rejectMove(
+            move: move,
+            combatantLabel: combatantLabel,
+            bridgeLimit: 'unsupported_field_target:${move.target.name}',
+          ),
+      };
+    }
+
     return switch (move.target) {
       PokemonMoveTarget.self => BattleMoveTarget.self,
       PokemonMoveTarget.normal ||
@@ -431,6 +705,119 @@ class RuntimeBattleMoveBridge {
           bridgeLimit: 'unsupported_major_status:$normalizedStatusId',
         ),
     };
+  }
+
+  BattleVolatileStatusId _translateSupportedSelfVolatileStatus({
+    required PokemonMove move,
+    required String combatantLabel,
+    required String volatileStatusId,
+  }) {
+    final normalizedStatusId = volatileStatusId.trim().toLowerCase();
+    return switch (normalizedStatusId) {
+      'protect' => BattleVolatileStatusId.protect,
+      _ => _rejectMove(
+          move: move,
+          combatantLabel: combatantLabel,
+          bridgeLimit: 'unsupported_volatile_status:$normalizedStatusId',
+        ),
+    };
+  }
+
+  BattleWeatherId _translateSupportedWeather({
+    required PokemonMove move,
+    required String combatantLabel,
+    required String weatherId,
+  }) {
+    final normalizedWeatherId = weatherId.trim().toLowerCase();
+    return switch (normalizedWeatherId) {
+      'raindance' => BattleWeatherId.rain,
+      'sandstorm' => BattleWeatherId.sandstorm,
+      _ => _rejectMove(
+          move: move,
+          combatantLabel: combatantLabel,
+          bridgeLimit: 'unsupported_weather:$normalizedWeatherId',
+        ),
+    };
+  }
+
+  BattlePseudoWeatherId _translateSupportedPseudoWeather({
+    required PokemonMove move,
+    required String combatantLabel,
+    required String pseudoWeatherId,
+  }) {
+    final normalizedPseudoWeatherId = pseudoWeatherId.trim().toLowerCase();
+    return switch (normalizedPseudoWeatherId) {
+      'trickroom' => BattlePseudoWeatherId.trickRoom,
+      _ => _rejectMove(
+          move: move,
+          combatantLabel: combatantLabel,
+          bridgeLimit: 'unsupported_pseudo_weather:$normalizedPseudoWeatherId',
+        ),
+    };
+  }
+
+  bool _isPureFieldMoveCandidate(PokemonMove move) {
+    if (move.usesStandardDamageFlow) {
+      return false;
+    }
+    if (move.effects.isEmpty) {
+      return false;
+    }
+    return move.effects.every(
+      (effect) => effect.map(
+        fixedDamage: (_) => false,
+        multiHit: (_) => false,
+        applyStatus: (_) => false,
+        applyVolatileStatus: (_) => false,
+        modifyStats: (_) => false,
+        heal: (_) => false,
+        drain: (_) => false,
+        recoil: (_) => false,
+        setWeather: (_) => true,
+        setTerrain: (_) => false,
+        setPseudoWeather: (_) => true,
+        selfSwitch: (_) => false,
+        forceSwitch: (_) => false,
+        breakProtect: (_) => false,
+        requireRecharge: (_) => false,
+        chargeThenStrike: (_) => false,
+        setSideCondition: (_) => false,
+        setSlotCondition: (_) => false,
+      ),
+    );
+  }
+
+  bool _allowsStructuredPartialFieldMove(PokemonMove move) {
+    if (move.engineSupportLevel !=
+        PokemonMoveEngineSupportLevel.structuredPartial) {
+      return false;
+    }
+    if (!_isPureFieldMoveCandidate(move)) {
+      return false;
+    }
+
+    // Recadrage BE9 :
+    // - on n'ouvre pas globalement tous les moves `structuredPartial` ;
+    // - on autorise uniquement les vieux catalogues qui marquaient encore
+    //   `Trick Room` comme partiel faute de couche de champ/durée ;
+    // - tout autre motif de partial support reste refusé par défaut.
+    const allowedReasons = <String>{
+      'unsupported_mechanic:turn_order_inversion',
+      'unsupported_mechanic:condition',
+      'showdown_callback:condition.durationCallback',
+      'showdown_callback:condition.onFieldEnd',
+      'showdown_callback:condition.onFieldRestart',
+      'showdown_callback:condition.onFieldStart',
+    };
+    return move.unsupportedReasons.every(allowedReasons.contains);
+  }
+
+  String? _normalizeOptionalId(String? value) {
+    if (value == null) {
+      return null;
+    }
+    final normalizedValue = value.trim();
+    return normalizedValue.isEmpty ? null : normalizedValue;
   }
 
   Never _rejectUnsupportedStat({

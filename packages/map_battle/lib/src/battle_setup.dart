@@ -1,5 +1,7 @@
+import 'battle_field.dart';
 import 'battle_move.dart';
 import 'battle_status.dart';
+import 'battle_volatile.dart';
 import 'battle_stats.dart';
 import 'battle_typing.dart';
 
@@ -20,12 +22,15 @@ class BattleSetup {
   /// [allowCapture] - true si le runtime autorise explicitement la capture
   ///   pour ce combat. Le lot 13 l'utilise uniquement pour les rencontres
   ///   sauvages quand la party a encore de la place.
+  /// [fieldState] - État de champ initial si le setup battle veut démarrer
+  ///   sous une météo ou un pseudoWeather déjà actifs.
   const BattleSetup({
     required this.playerPokemon,
     required this.enemyPokemon,
     required this.isTrainerBattle,
     required this.trainerId,
     this.allowCapture = false,
+    this.fieldState = const BattleFieldState(),
   });
 
   /// Le Pokémon du joueur qui combat.
@@ -53,6 +58,16 @@ class BattleSetup {
   ///   proprement dans l'état joueur ;
   /// - on évite ainsi toute promesse mensongère quand la party est pleine.
   final bool allowCapture;
+
+  /// État de champ initial du combat.
+  ///
+  /// BE9 le porte dès le setup pour garder le champ observable :
+  /// - le runtime principal démarre encore avec un champ vide ;
+  /// - mais les tests et call sites directs peuvent injecter une pluie,
+  ///   une tempête de sable ou un Trick Room déjà actifs ;
+  /// - cela évite des mutations post-création qui mentiraient sur l'état
+  ///   initial réellement résolu.
+  final BattleFieldState fieldState;
 }
 
 /// Données minimales d'un combattant pour initialiser un combat.
@@ -71,6 +86,9 @@ class BattleCombatantData {
   /// [typing] - Typing défensif/offensif minimal du combattant si connu.
   /// [majorStatus] - Statut majeur initial si un call site battle direct veut
   ///   démarrer depuis un état déjà entamé.
+  /// [volatileState] - Sous-état volatile local BE8 si un setup battle direct
+  ///   veut démarrer depuis une protection, une recharge ou une charge déjà
+  ///   en cours.
   /// [abilityId] - L'ability réellement résolue si le runtime la connaît.
   ///
   /// Le lot 9 du runtime -> battle handoff doit partir de la vraie party du
@@ -84,6 +102,7 @@ class BattleCombatantData {
     required this.stats,
     this.typing,
     this.majorStatus,
+    this.volatileState = const BattleVolatileState(),
     this.currentHp,
     this.abilityId = 'unknown',
     required this.moves,
@@ -129,6 +148,15 @@ class BattleCombatantData {
   /// - garder ce champ optionnel évite aussi d'inventer des helpers de test
   ///   parallèles juste pour démarrer un combat déjà brûlé / paralysé / etc.
   final BattleMajorStatusState? majorStatus;
+
+  /// Sous-état volatile local du combattant au démarrage.
+  ///
+  /// Le chemin runtime principal le laisse vide dans BE8 :
+  /// - il n'existe pas encore de persistance hors combat de `Protect`,
+  ///   `mustRecharge` ou des moves chargés ;
+  /// - mais garder ce champ directement sur le setup battle permet des tests
+  ///   honnêtes sans mutation post-création de session.
+  final BattleVolatileState volatileState;
 
   /// Les points de vie courants si le handoff runtime les fournit déjà.
   ///
@@ -181,6 +209,16 @@ final class BattleMoveData {
   /// [majorStatusEffect] - Effet `applyStatus` battle minimal supporté par
   ///   BE7 pour le petit sous-ensemble de statuts majeurs réellement
   ///   exécutable.
+  /// [selfVolatileStatus] - Volatile auto-appliqué par le move dans le
+  ///   sous-ensemble strict BE8 (`protect` uniquement).
+  /// [weatherEffect] - Effet météo battle minimal réellement consommé par BE9.
+  /// [pseudoWeatherEffect] - Effet pseudoWeather battle minimal réellement
+  ///   consommé par BE9.
+  /// [breaksProtect] - Le move peut bypasser une protection active BE8.
+  /// [requiresRecharge] - Le move impose ensuite un tour de recharge au
+  ///   lanceur.
+  /// [chargeThenStrikeEffect] - Le move charge un tour puis frappe le tour
+  ///   suivant sans repayer les PP.
   /// [selfStatStageChanges] - Boosts / baisses appliqués au lanceur.
   /// [targetStatStageChanges] - Boosts / baisses appliqués à la cible.
   ///
@@ -194,6 +232,11 @@ final class BattleMoveData {
   /// - puis BE6 ouvre enfin un crit minimal honnête via `critRatio` ;
   /// - puis BE7 ouvre un unique effet `applyStatus` battle minimal pour
   ///   `par`, `brn`, `psn`, `tox` ;
+  /// - puis BE8 ajoute quelques volatiles utiles explicitement bornés aux
+  ///   besoins de `Protect`, `breakProtect`, `requireRecharge` et
+  ///   `chargeThenStrike` ;
+  /// - puis BE9 ajoute uniquement la météo et le pseudoWeather réellement
+  ///   consommés par le moteur (`rain`, `sandstorm`, `trickRoom`) ;
   /// - le reste reste explicitement hors scope.
   const BattleMoveData({
     required this.id,
@@ -208,6 +251,12 @@ final class BattleMoveData {
     this.priority = 0,
     int critRatio = 1,
     this.majorStatusEffect,
+    this.selfVolatileStatus,
+    this.weatherEffect,
+    this.pseudoWeatherEffect,
+    this.breaksProtect = false,
+    this.requiresRecharge = false,
+    this.chargeThenStrikeEffect,
     this.selfStatStageChanges = const <BattleStatStageChange>[],
     this.targetStatStageChanges = const <BattleStatStageChange>[],
   })  : assert(
@@ -256,6 +305,9 @@ final class BattleMoveData {
   /// Le moteur n'en tire pas encore une logique complète de targeting, mais le
   /// handoff ne doit plus jeter cette information quand elle reste simple et
   /// honnête dans le cadre 1v1 actuel.
+  ///
+  /// BE9 ajoute aussi `BattleMoveTarget.field` pour les moves qui posent une
+  /// météo ou un pseudoWeather réellement consommés par le moteur.
   final BattleMoveTarget target;
 
   /// Contrat minimal de précision battle.
@@ -343,6 +395,24 @@ final class BattleMoveData {
   /// - pas de payload de scope, car le bridge BE7 ne laisse passer que
   ///   `targetScope: target`.
   final BattleMoveMajorStatusEffect? majorStatusEffect;
+
+  /// Volatile auto-appliqué par le move dans le sous-ensemble BE8.
+  final BattleVolatileStatusId? selfVolatileStatus;
+
+  /// Météo de champ posée par ce move dans le sous-ensemble BE9.
+  final BattleWeatherId? weatherEffect;
+
+  /// PseudoWeather de champ posé par ce move dans le sous-ensemble BE9.
+  final BattlePseudoWeatherId? pseudoWeatherEffect;
+
+  /// true si ce move peut percer une protection active BE8.
+  final bool breaksProtect;
+
+  /// true si ce move demande ensuite un tour de recharge.
+  final bool requiresRecharge;
+
+  /// Payload battle minimal d'un move à charge sur deux tours.
+  final BattleChargeThenStrikeEffect? chargeThenStrikeEffect;
 
   /// Changements d'étages de stats appliqués au lanceur.
   final List<BattleStatStageChange> selfStatStageChanges;

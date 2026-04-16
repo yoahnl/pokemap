@@ -1,4 +1,6 @@
+import 'battle_field.dart';
 import 'battle_status.dart';
+import 'battle_volatile.dart';
 
 /// Catégorie battle minimale d'une attaque.
 ///
@@ -22,6 +24,7 @@ enum BattleMoveCategory {
 /// On transporte seulement ce qui est déjà honnête dans le moteur actuel :
 /// - `self` pour les moves explicitement auto-ciblés ;
 /// - `opponent` pour les moves qui, en 1v1 simple actif, ciblent l'adversaire ;
+/// - `field` pour les moves BE9 qui posent une météo ou un pseudoWeather ;
 /// - `unspecified` comme compatibilité pour les anciens call sites/tests qui
 ///   construisaient encore des `BattleMoveData` pauvres à la main.
 ///
@@ -34,6 +37,7 @@ enum BattleMoveTarget {
   unspecified,
   opponent,
   self,
+  field,
 }
 
 /// Contrat minimal de précision réellement exécutable par `map_battle`.
@@ -146,6 +150,16 @@ final class BattleMove {
   /// [critRatio] - Ratio critique minimal désormais consommé par BE6.
   /// [majorStatusEffect] - Effet `applyStatus` battle minimal réellement
   ///   supporté par BE7 pour `par`, `brn`, `psn`, `tox`.
+  /// [selfVolatileStatus] - Volatile auto-appliqué dans le petit sous-ensemble
+  ///   BE8 (`protect` uniquement).
+  /// [weatherEffect] - Effet météo battle minimal réellement consommé par BE9.
+  /// [pseudoWeatherEffect] - Effet pseudoWeather battle minimal réellement
+  ///   consommé par BE9.
+  /// [breaksProtect] - Permet au move de bypasser une protection active BE8.
+  /// [requiresRecharge] - Demande un tour de recharge honnête au lanceur après
+  ///   une exécution réussie.
+  /// [chargeThenStrikeEffect] - Porte le petit contrat local d'un move qui
+  ///   charge un tour puis frappe le tour suivant sans repayer les PP.
   /// [selfStatStageChanges] - Boosts / baisses appliqués au lanceur.
   /// [targetStatStageChanges] - Boosts / baisses appliqués à la cible.
   ///
@@ -161,6 +175,10 @@ final class BattleMove {
   /// - puis, en BE6, un crit minimal honnête via `critRatio` ;
   /// - puis, en BE7, un petit sous-ensemble `applyStatus` réellement
   ///   exécutable sans ouvrir un système générique de statuts ;
+  /// - puis, en BE8, quelques volatiles utiles strictement bornés à
+  ///   `Protect`, `requireRecharge`, `chargeThenStrike` et `breakProtect` ;
+  /// - puis, en BE9, un tout petit seam de champ pour `rain`, `sandstorm`
+  ///   et `trickRoom`, sans ouvrir side/slot/terrain ;
   /// - toujours aucun status non volatil, aucun scheduler générique.
   const BattleMove({
     required this.id,
@@ -175,6 +193,12 @@ final class BattleMove {
     this.priority = 0,
     int critRatio = 1,
     this.majorStatusEffect,
+    this.selfVolatileStatus,
+    this.weatherEffect,
+    this.pseudoWeatherEffect,
+    this.breaksProtect = false,
+    this.requiresRecharge = false,
+    this.chargeThenStrikeEffect,
     this.selfStatStageChanges = const <BattleStatStageChange>[],
     this.targetStatStageChanges = const <BattleStatStageChange>[],
   })  : assert(
@@ -223,6 +247,12 @@ final class BattleMove {
   /// - mais BE1 arrête au moins de perdre cette information au handoff ;
   /// - les targets incompatibles avec ce petit contrat sont refusés plus tôt
   ///   par le bridge runtime.
+  ///
+  /// BE9 ajoute `field` pour les moves qui posent une météo ou `Trick Room` :
+  /// - ces moves ne visent ni réellement `self`, ni réellement `opponent` ;
+  /// - les marquer `unspecified` reperdrait une intention désormais consommée
+  ///   par le moteur ;
+  /// - on garde malgré tout un targeting battle très petit.
   final BattleMoveTarget target;
 
   /// Précision réellement consommée par le moteur battle.
@@ -308,6 +338,55 @@ final class BattleMove {
   ///   scope `target` honnêtement exécutable aujourd'hui.
   final BattleMoveMajorStatusEffect? majorStatusEffect;
 
+  /// Volatile auto-appliqué par ce move dans le sous-ensemble BE8.
+  ///
+  /// Ce champ reste volontairement étroit :
+  /// - `protect` seulement ;
+  /// - pas de confusion, pas de semi-invulnérabilité, pas de framework
+  ///   générique de volatiles.
+  final BattleVolatileStatusId? selfVolatileStatus;
+
+  /// Météo de champ posée par ce move dans le sous-ensemble BE9.
+  ///
+  /// Le move porte seulement l'intention de pose :
+  /// - la durée et l'état actif vivent dans `BattleFieldState` ;
+  /// - `rain` et `sandstorm` sont les seuls IDs réellement supportés ;
+  /// - pas de météo avancée, pas d'abilities, pas d'items.
+  final BattleWeatherId? weatherEffect;
+
+  /// PseudoWeather de champ posé par ce move dans le sous-ensemble BE9.
+  ///
+  /// Même frontière que pour [weatherEffect] :
+  /// - `trickRoom` seulement ;
+  /// - aucun système générique de rooms ;
+  /// - la durée et l'expiration vivent dans `BattleFieldState`.
+  final BattlePseudoWeatherId? pseudoWeatherEffect;
+
+  /// true si ce move peut percer une protection active BE8.
+  ///
+  /// Le booléen reste plus honnête qu'une abstraction générique :
+  /// - il documente un unique besoin réel du lot ;
+  /// - il évite d'ouvrir une taxonomie entière de "modificateurs de défense"
+  ///   alors que seul `breakProtect` est réellement exécutable ici.
+  final bool breaksProtect;
+
+  /// true si ce move impose ensuite un tour de recharge au lanceur.
+  ///
+  /// BE8 garde une sémantique locale explicite :
+  /// - le move réussi ;
+  /// - le combattant marque ensuite un état `mustRecharge` ;
+  /// - le tour suivant est perdu honnêtement, puis l'état est nettoyé.
+  final bool requiresRecharge;
+
+  /// Petit payload d'un move à charge sur deux tours.
+  ///
+  /// Si non-null :
+  /// - le premier tour ne fait que charger ;
+  /// - le second réutilise ce move sans redépenser les PP ;
+  /// - le moteur n'ouvre ni raccourci météo, ni Power Herb, ni autres cas
+  ///   spéciaux hors scope.
+  final BattleChargeThenStrikeEffect? chargeThenStrikeEffect;
+
   /// Changements d'étages de stats appliqués au lanceur.
   final List<BattleStatStageChange> selfStatStageChanges;
 
@@ -356,6 +435,12 @@ final class BattleMove {
       priority: priority,
       critRatio: critRatio,
       majorStatusEffect: majorStatusEffect,
+      selfVolatileStatus: selfVolatileStatus,
+      weatherEffect: weatherEffect,
+      pseudoWeatherEffect: pseudoWeatherEffect,
+      breaksProtect: breaksProtect,
+      requiresRecharge: requiresRecharge,
+      chargeThenStrikeEffect: chargeThenStrikeEffect,
       selfStatStageChanges: selfStatStageChanges,
       targetStatStageChanges: targetStatStageChanges,
     );

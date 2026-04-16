@@ -90,6 +90,88 @@ void main() {
       expect(seed.moves[1].power, equals(45));
     });
 
+    test('preserves the BE8 move subset through the combatant seed contract',
+        () async {
+      await _writePokemonFixtures(tempProjectRoot);
+      final movesCatalog = await moveCatalogLoader.load(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+      );
+
+      final seed = await builder.buildPlayerCombatantSeed(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        movesCatalog: movesCatalog,
+        playerPokemon: const PlayerPokemon(
+          speciesId: 'sproutle',
+          natureId: 'bold',
+          abilityId: 'overgrow',
+          level: 12,
+          knownMoveIds: <String>[
+            'protect',
+            'hyper_beam',
+            'solar_beam',
+            'feint',
+          ],
+          currentHp: 23,
+        ),
+      );
+
+      expect(
+        seed.moves.map((move) => move.id).toList(growable: false),
+        equals(<String>['protect', 'hyper_beam', 'solar_beam', 'feint']),
+      );
+      expect(
+        seed.moves[0].selfVolatileStatus,
+        equals(BattleVolatileStatusId.protect),
+      );
+      expect(seed.moves[1].requiresRecharge, isTrue);
+      expect(
+        seed.moves[2].chargeThenStrikeEffect?.chargeStateId,
+        equals('solar_charge'),
+      );
+      expect(seed.moves[3].breaksProtect, isTrue);
+    });
+
+    test(
+        'preserves the BE9 field move subset through the combatant seed contract',
+        () async {
+      await _writePokemonFixtures(tempProjectRoot);
+      final movesCatalog = await moveCatalogLoader.load(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+      );
+
+      final seed = await builder.buildPlayerCombatantSeed(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        movesCatalog: movesCatalog,
+        playerPokemon: const PlayerPokemon(
+          speciesId: 'sproutle',
+          natureId: 'bold',
+          abilityId: 'overgrow',
+          level: 12,
+          knownMoveIds: <String>['rain_dance', 'sandstorm', 'trick_room'],
+          currentHp: 23,
+        ),
+      );
+
+      expect(
+        seed.moves.map((move) => move.id).toList(growable: false),
+        equals(<String>['rain_dance', 'sandstorm', 'trick_room']),
+      );
+      expect(seed.moves[0].target, equals(BattleMoveTarget.field));
+      expect(seed.moves[0].weatherEffect, equals(BattleWeatherId.rain));
+      expect(seed.moves[1].target, equals(BattleMoveTarget.field));
+      expect(seed.moves[1].weatherEffect, equals(BattleWeatherId.sandstorm));
+      expect(seed.moves[2].target, equals(BattleMoveTarget.field));
+      expect(
+        seed.moves[2].pseudoWeatherEffect,
+        equals(BattlePseudoWeatherId.trickRoom),
+      );
+      expect(seed.moves[2].priority, equals(-7));
+    });
+
     test(
         'derives player moves from the learnset, falls back to species id and keeps the last four unique moves',
         () async {
@@ -564,6 +646,47 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
         _moveEntry('flame_wheel', 'Flame Wheel', 60, type: 'fire'),
         _moveEntry('water_gun', 'Water Gun', 40, type: 'water'),
         _moveEntry('thunder_wave', 'Thunder Wave', 0, type: 'electric'),
+        _moveEntry(
+          'protect',
+          'Protect',
+          0,
+          target: PokemonMoveTarget.self,
+          pp: 10,
+        ),
+        _moveEntry('feint', 'Feint', 30, pp: 10),
+        _moveEntry('hyper_beam', 'Hyper Beam', 150, pp: 5, accuracy: 90),
+        _moveEntry('solar_beam', 'Solar Beam', 120, type: 'grass', pp: 10),
+        _moveEntry(
+          'rain_dance',
+          'Rain Dance',
+          0,
+          type: 'water',
+          target: PokemonMoveTarget.all,
+          pp: 5,
+        ),
+        _moveEntry(
+          'sandstorm',
+          'Sandstorm',
+          0,
+          type: 'rock',
+          target: PokemonMoveTarget.all,
+          pp: 10,
+        ),
+        _moveEntry(
+          'trick_room',
+          'Trick Room',
+          0,
+          type: 'psychic',
+          target: PokemonMoveTarget.all,
+          pp: 5,
+          priority: -7,
+          engineSupportLevel: PokemonMoveEngineSupportLevel.structuredPartial,
+          unsupportedReasons: const <String>[
+            'unsupported_mechanic:turn_order_inversion',
+            'showdown_callback:condition.durationCallback',
+            'showdown_callback:condition.onFieldEnd',
+          ],
+        ),
       ],
     },
   );
@@ -612,6 +735,8 @@ List<PokemonMoveEffect> _defaultEffectsForMove(String moveId) {
   // - `growl` / `tail_whip` / `leer` portent de vrais effets structurés ;
   // - `thunder_wave` sert maintenant de move de statut majeur réellement
   //   supporté par le petit sous-ensemble BE7 ;
+  // - `rain_dance` / `sandstorm` / `trick_room` servent à prouver que le
+  //   builder ne reperd pas les nouveaux champs BE9 pendant la projection ;
   // - les autres moves restent de simples attaques standard pour garder les
   //   happy paths lisibles.
   return switch (moveId) {
@@ -641,6 +766,41 @@ List<PokemonMoveEffect> _defaultEffectsForMove(String moveId) {
         PokemonMoveEffect.applyStatus(
           targetScope: PokemonMoveEffectTargetScope.target,
           statusId: 'par',
+        ),
+      ],
+    'protect' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.applyVolatileStatus(
+          targetScope: PokemonMoveEffectTargetScope.self,
+          volatileStatusId: 'protect',
+        ),
+      ],
+    'feint' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.breakProtect(),
+      ],
+    'hyper_beam' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.requireRecharge(),
+      ],
+    'solar_beam' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.chargeThenStrike(
+          chargeStateId: 'solar_charge',
+        ),
+      ],
+    'rain_dance' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.setWeather(
+          targetScope: PokemonMoveEffectTargetScope.field,
+          weatherId: 'raindance',
+        ),
+      ],
+    'sandstorm' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.setWeather(
+          targetScope: PokemonMoveEffectTargetScope.field,
+          weatherId: 'sandstorm',
+        ),
+      ],
+    'trick_room' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.setPseudoWeather(
+          targetScope: PokemonMoveEffectTargetScope.field,
+          pseudoWeatherId: 'trickroom',
         ),
       ],
     _ => const <PokemonMoveEffect>[],
