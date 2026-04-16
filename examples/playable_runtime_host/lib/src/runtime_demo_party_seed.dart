@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
-const kRuntimeDemoSeedLevel = 5;
-const kRuntimeDemoSeedCurrentHp = 12;
+const kRuntimeDemoSeedLevel = 7;
+const kRuntimeDemoSeedCurrentHp = 19;
 const kRuntimeDemoSeedSaveId = 'runtime-host-demo-save';
 const _preferredRuntimeDemoSpeciesIds = <String>[
   'squirtle',
