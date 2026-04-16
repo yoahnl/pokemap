@@ -45,12 +45,16 @@ class BattleMoveExecution {
   /// [target] - L'identifiant de la cible ("player" ou "enemy").
   /// [damage] - Les dégâts infligés.
   /// [didHit] - true si le move a réellement touché.
+  /// [stabMultiplier] - Multiplicateur STAB réellement consommé pour ce hit.
+  /// [typeEffectivenessMultiplier] - Multiplicateur de type réellement appliqué.
   const BattleMoveExecution({
     required this.attacker,
     required this.move,
     required this.target,
     required this.damage,
     required this.didHit,
+    this.stabMultiplier = 1.0,
+    this.typeEffectivenessMultiplier = 1.0,
   });
 
   /// L'identifiant de l'attaquant.
@@ -74,6 +78,7 @@ class BattleMoveExecution {
   /// - un move de dégâts standards part toujours de `move.power` ;
   /// - des multiplicateurs simples issus des étages de stats peuvent modifier
   ///   ce montant ;
+  /// - BE5 y ajoute STAB et efficacité de type ;
   /// - on reste néanmoins très loin d'une formule Pokémon complète.
   final int damage;
 
@@ -85,6 +90,28 @@ class BattleMoveExecution {
   /// - on évite ainsi de forcer l'UI/runtime à deviner l'issue depuis un
   ///   contrat trop pauvre.
   final bool didHit;
+
+  /// Multiplicateur STAB réellement appliqué à ce move.
+  ///
+  /// Valeurs attendues dans BE5 :
+  /// - `1.5` si l'attaquant partage le type du move ;
+  /// - `1.0` sinon ;
+  /// - `1.0` aussi sur les vieux call sites battle qui n'ont pas de typing.
+  final double stabMultiplier;
+
+  /// Multiplicateur d'efficacité de type réellement appliqué.
+  ///
+  /// Valeurs typiques BE5 :
+  /// - `2.0`, `4.0` pour les faiblesses ;
+  /// - `0.5`, `0.25` pour les résistances ;
+  /// - `0.0` pour une immunité ;
+  /// - `1.0` pour un cas neutre ou pour un vieux setup battle sans typing.
+  ///
+  /// Important :
+  /// - `didHit == true` et `typeEffectivenessMultiplier == 0.0` signifient
+  ///   "le move a bien passé le hit check, mais la cible y est immunisée" ;
+  /// - cela évite de confondre immunité, miss et move de statut.
+  final double typeEffectivenessMultiplier;
 }
 
 /// Type de résultat final d'un combat.

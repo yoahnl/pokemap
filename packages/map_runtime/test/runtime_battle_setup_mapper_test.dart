@@ -72,6 +72,9 @@ void main() {
       expect(setup.playerPokemon.speciesId, equals('sproutle'));
       expect(setup.playerPokemon.level, equals(12));
       expect(setup.playerPokemon.currentHp, equals(23));
+      expect(setup.playerPokemon.typing, isNotNull);
+      expect(setup.playerPokemon.typing!.primaryType, equals('grass'));
+      expect(setup.playerPokemon.typing!.secondaryType, isNull);
       expect(setup.playerPokemon.stats.attack, equals(16));
       expect(setup.playerPokemon.stats.specialAttack, equals(20));
       expect(setup.playerPokemon.stats.speed, equals(15));
@@ -150,6 +153,9 @@ void main() {
       expect(setup.enemyPokemon.speciesId, equals('sparkitten'));
       expect(setup.enemyPokemon.level, equals(10));
       expect(setup.enemyPokemon.abilityId, equals('blaze'));
+      expect(setup.enemyPokemon.typing, isNotNull);
+      expect(setup.enemyPokemon.typing!.primaryType, equals('fire'));
+      expect(setup.enemyPokemon.typing!.secondaryType, isNull);
       expect(setup.enemyPokemon.stats.attack, equals(15));
       expect(setup.enemyPokemon.stats.specialAttack, equals(17));
       expect(setup.enemyPokemon.stats.speed, equals(18));
@@ -182,6 +188,53 @@ void main() {
         isNot(contains('flame_wheel')),
       );
       expect(setup.enemyPokemon.speciesId, isNot(equals('mew')));
+    });
+
+    test(
+        'preserves typing through to battle so STAB and effectiveness are really consumed',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+      final setup = await mapper.map(
+        bundle: bundle,
+        gameState: const GameState(
+          saveId: 'save-type-bridge',
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              PlayerPokemon(
+                speciesId: 'sparkitten',
+                natureId: 'bold',
+                abilityId: 'blaze',
+                level: 12,
+                knownMoveIds: <String>['ember'],
+                currentHp: 23,
+              ),
+            ],
+          ),
+        ),
+        request: _wildRequest(
+          speciesId: 'sproutle',
+          level: 10,
+        ),
+      );
+
+      final session = createBattleSession(setup).applyChoice(
+        const PlayerBattleChoiceFight(0),
+      );
+      final execution = session.state.currentTurn!.executions.firstWhere(
+        (execution) => execution.attacker == 'player',
+      );
+
+      expect(setup.playerPokemon.typing, isNotNull);
+      expect(setup.enemyPokemon.typing, isNotNull);
+      expect(execution.move.id, equals('ember'));
+      expect(execution.didHit, isTrue);
+      expect(execution.stabMultiplier, equals(1.5));
+      expect(execution.typeEffectivenessMultiplier, equals(2.0));
+      expect(execution.damage, greaterThan(0));
     });
 
     test(
@@ -332,6 +385,9 @@ void main() {
       expect(setup.enemyPokemon.speciesId, equals('aquafi'));
       expect(setup.enemyPokemon.level, equals(18));
       expect(setup.enemyPokemon.abilityId, equals('torrent'));
+      expect(setup.enemyPokemon.typing, isNotNull);
+      expect(setup.enemyPokemon.typing!.primaryType, equals('water'));
+      expect(setup.enemyPokemon.typing!.secondaryType, equals('fairy'));
       expect(
         setup.enemyPokemon.moves.map((move) => move.id).toList(),
         equals(<String>['water_gun', 'tail_whip']),
@@ -838,7 +894,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
       'speciesName': <String, String>{'en': 'Tadpole'},
       'genIntroduced': 1,
       'typing': <String, Object>{
-        'types': <String>['water'],
+        'types': <String>['water', 'fairy'],
       },
       'baseStats': <String, int>{
         'hp': 44,
@@ -954,15 +1010,15 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
       'entries': <Map<String, Object?>>[
         _moveEntry('tackle', 'Tackle', 40),
         _moveEntry('growl', 'Growl', 0),
-        _moveEntry('vine_whip', 'Vine Whip', 45),
-        _moveEntry('razor_leaf', 'Razor Leaf', 55),
+        _moveEntry('vine_whip', 'Vine Whip', 45, type: 'grass'),
+        _moveEntry('razor_leaf', 'Razor Leaf', 55, type: 'grass'),
         _moveEntry('scratch', 'Scratch', 40),
-        _moveEntry('mud_slap', 'Mud-Slap', 20, accuracy: 85),
+        _moveEntry('mud_slap', 'Mud-Slap', 20, type: 'ground', accuracy: 85),
         _moveEntry('tail_whip', 'Tail Whip', 0),
-        _moveEntry('ember', 'Ember', 40),
-        _moveEntry('flame_wheel', 'Flame Wheel', 60),
-        _moveEntry('water_gun', 'Water Gun', 40),
-        _moveEntry('thunder_wave', 'Thunder Wave', 0),
+        _moveEntry('ember', 'Ember', 40, type: 'fire'),
+        _moveEntry('flame_wheel', 'Flame Wheel', 60, type: 'fire'),
+        _moveEntry('water_gun', 'Water Gun', 40, type: 'water'),
+        _moveEntry('thunder_wave', 'Thunder Wave', 0, type: 'electric'),
       ],
     },
   );
@@ -972,6 +1028,7 @@ Map<String, Object?> _moveEntry(
   String id,
   String name,
   int power, {
+  String type = 'normal',
   int accuracy = 100,
   PokemonMoveEngineSupportLevel engineSupportLevel =
       PokemonMoveEngineSupportLevel.structuredSupported,
@@ -984,7 +1041,7 @@ Map<String, Object?> _moveEntry(
     names: <String, String>{'en': name},
     generation: 1,
     source: 'test_runtime_fixture',
-    type: 'normal',
+    type: type,
     category:
         power == 0 ? PokemonMoveCategory.status : PokemonMoveCategory.special,
     target: PokemonMoveTarget.normal,
@@ -1094,6 +1151,9 @@ Future<void> _rewriteSpeciesWithoutLearnsetRef(
     'custom/pokemon/species/$speciesFileName',
     <String, dynamic>{
       'id': speciesId,
+      'typing': <String, Object>{
+        'types': <String>['grass'],
+      },
       'baseStats': <String, int>{
         'hp': baseHp,
         'atk': 49,

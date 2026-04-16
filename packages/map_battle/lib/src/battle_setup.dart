@@ -1,5 +1,6 @@
 import 'battle_move.dart';
 import 'battle_stats.dart';
+import 'battle_typing.dart';
 
 /// Configuration initiale d'un combat.
 ///
@@ -66,6 +67,7 @@ class BattleCombatantData {
   /// [currentHp] - Les PV courants si le runtime les connaît déjà.
   /// [stats] - Snapshot résolu des stats non-HP réellement exploitées par le
   /// moteur battle.
+  /// [typing] - Typing défensif/offensif minimal du combattant si connu.
   /// [abilityId] - L'ability réellement résolue si le runtime la connaît.
   ///
   /// Le lot 9 du runtime -> battle handoff doit partir de la vraie party du
@@ -77,6 +79,7 @@ class BattleCombatantData {
     required this.level,
     required this.maxHp,
     required this.stats,
+    this.typing,
     this.currentHp,
     this.abilityId = 'unknown',
     required this.moves,
@@ -102,6 +105,16 @@ class BattleCombatantData {
   /// `speed` est déjà transportée pour arrêter sa perte silencieuse, même si
   /// elle est maintenant consommée pour l'ordre d'action honnête minimal.
   final BattleStatsSnapshot stats;
+
+  /// Typing minimal du combattant si le handoff le connaît déjà.
+  ///
+  /// BE5 choisit ici une compatibilité volontairement bornée :
+  /// - le vrai chemin runtime -> battle doit fournir cette donnée ;
+  /// - les anciens call sites directs de `map_battle` peuvent encore l'omettre
+  ///   pour éviter une migration parasite de tout le package ;
+  /// - en l'absence de typing, le moteur reste neutre sur STAB/effectiveness
+  ///   au lieu d'inventer un type mensonger.
+  final BattleTypingSnapshot? typing;
 
   /// Les points de vie courants si le handoff runtime les fournit déjà.
   ///
@@ -131,7 +144,8 @@ class BattleMoveData {
   /// [id] - L'identifiant canonique de l'attaque.
   /// [name] - Le nom affiché de l'attaque.
   /// [power] - La puissance de l'attaque (dégâts de base).
-  /// [type] - Le type canonique transporté sans encore être consommé.
+  /// [type] - Le type canonique transporté puis consommé pour la couche type
+  ///   minimale ouverte en BE5.
   /// [category] - La catégorie battle minimale déjà résolue par le runtime.
   /// [target] - La cible battle minimale résolue par le bridge runtime.
   /// [accuracy] - La précision battle minimale réellement consommée par BE4.
@@ -184,7 +198,15 @@ class BattleMoveData {
   /// Type canonique du move.
   ///
   /// Donnée transportée dès BE1 pour éviter sa perte silencieuse au handoff.
-  /// `map_battle` ne la consomme pas encore.
+  ///
+  /// BE5 commence enfin à la consommer réellement pour :
+  /// - le STAB ;
+  /// - l'efficacité de type ;
+  /// - les immunités.
+  ///
+  /// Les anciens call sites directs peuvent encore garder la valeur par défaut
+  /// `"unknown"` : dans ce cas, le moteur reste neutre au lieu de prétendre
+  /// connaître un type qu'il n'a pas.
   final String type;
 
   /// Catégorie battle explicitement résolue par le bridge runtime.

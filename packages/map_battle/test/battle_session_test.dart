@@ -106,6 +106,7 @@ void main() {
           level: 5,
           maxHp: 20,
           stats: _neutralBattleStats,
+          typing: const BattleTypingSnapshot(primaryType: 'electric'),
           moves: const [
             BattleMoveData(
               id: 'vine_whip',
@@ -126,6 +127,10 @@ void main() {
           level: 5,
           maxHp: 25,
           stats: _neutralBattleStats,
+          typing: const BattleTypingSnapshot(
+            primaryType: 'water',
+            secondaryType: 'ice',
+          ),
           moves: const [
             BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
           ],
@@ -136,6 +141,8 @@ void main() {
 
       final session = createBattleSession(setup);
       final move = session.state.player.moves.single;
+      final playerTyping = session.state.player.typing!;
+      final enemyTyping = session.state.enemy.typing!;
 
       expect(move.type, equals('grass'));
       expect(move.category, equals(BattleMoveCategory.physical));
@@ -145,6 +152,10 @@ void main() {
       expect(move.pp, equals(25));
       expect(move.currentPp, equals(7));
       expect(move.priority, equals(1));
+      expect(playerTyping.primaryType, equals('electric'));
+      expect(playerTyping.secondaryType, isNull);
+      expect(enemyTyping.primaryType, equals('water'));
+      expect(enemyTyping.secondaryType, equals('ice'));
     });
 
     test('getAvailableChoices hides fight choices whose currentPp is zero', () {

@@ -1,6 +1,7 @@
 import 'battle_move.dart';
 import 'battle_resolution.dart';
 import 'battle_stats.dart';
+import 'battle_typing.dart';
 
 /// Phase du combat.
 ///
@@ -93,6 +94,7 @@ class BattleCombatant {
   /// [currentHp] - Les PV courants.
   /// [maxHp] - Les PV maximum.
   /// [stats] - Snapshot résolu des stats non-HP.
+  /// [typing] - Typing battle minimal si connu.
   /// [abilityId] - L'ability réellement résolue si le runtime la connaît.
   /// [moves] - La liste des attaques disponibles.
   const BattleCombatant({
@@ -101,6 +103,7 @@ class BattleCombatant {
     required this.currentHp,
     required this.maxHp,
     required this.stats,
+    this.typing,
     this.abilityId = 'unknown',
     required this.moves,
     this.statStages = const BattleStatStages(),
@@ -129,6 +132,18 @@ class BattleCombatant {
   /// sans pour autant ouvrir toute une queue générique ni un système de
   /// précision / critique / résiduels.
   final BattleStatsSnapshot stats;
+
+  /// Typing minimal du combattant si le setup le fournit.
+  ///
+  /// BE5 en a besoin pour fermer le trou où `type` était encore décoratif :
+  /// - STAB dépend du typing de l'attaquant ;
+  /// - résistances/faiblesses/immunités dépendent du typing du défenseur.
+  ///
+  /// Compatibilité résiduelle assumée :
+  /// - un vieux setup direct `map_battle` peut encore laisser ce champ absent ;
+  /// - dans ce cas, le moteur reste neutre sur la couche type au lieu de
+  ///   fabriquer un typing par défaut qui mentirait davantage.
+  final BattleTypingSnapshot? typing;
 
   /// L'ability réellement résolue pour ce combattant.
   ///
@@ -175,6 +190,7 @@ class BattleCombatant {
       currentHp: (currentHp - damage).clamp(0, maxHp),
       maxHp: maxHp,
       stats: stats,
+      typing: typing,
       abilityId: abilityId,
       moves: moves,
       statStages: statStages,
@@ -194,6 +210,7 @@ class BattleCombatant {
       currentHp: (currentHp + healAmount).clamp(0, maxHp),
       maxHp: maxHp,
       stats: stats,
+      typing: typing,
       abilityId: abilityId,
       moves: moves,
       statStages: statStages,
@@ -217,6 +234,7 @@ class BattleCombatant {
       currentHp: currentHp,
       maxHp: maxHp,
       stats: stats,
+      typing: typing,
       abilityId: abilityId,
       moves: moves,
       statStages: statStages.apply(changes),
@@ -242,6 +260,7 @@ class BattleCombatant {
       currentHp: currentHp,
       maxHp: maxHp,
       stats: stats,
+      typing: typing,
       abilityId: abilityId,
       moves: List<BattleMove>.unmodifiable(updatedMoves),
       statStages: statStages,

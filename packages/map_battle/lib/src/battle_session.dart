@@ -5,6 +5,7 @@ import 'battle_move.dart';
 import 'battle_rng.dart';
 import 'battle_resolution.dart';
 import 'battle_stats.dart';
+import 'battle_type_chart.dart';
 
 /// Crée une nouvelle session de combat.
 ///
@@ -36,6 +37,7 @@ BattleSession createBattleSession(
     currentHp: playerCurrentHp,
     maxHp: setup.playerPokemon.maxHp,
     stats: setup.playerPokemon.stats,
+    typing: setup.playerPokemon.typing,
     abilityId: setup.playerPokemon.abilityId,
     // Le contrat battle enrichi doit survivre jusqu'à l'état de session :
     // - `type` et `target` restent surtout descriptifs à ce stade ;
@@ -67,6 +69,7 @@ BattleSession createBattleSession(
     currentHp: enemyCurrentHp,
     maxHp: setup.enemyPokemon.maxHp,
     stats: setup.enemyPokemon.stats,
+    typing: setup.enemyPokemon.typing,
     abilityId: setup.enemyPokemon.abilityId,
     // Même règle pour l'adversaire : on ne reperd aucune dimension déjà jugée
     // honnête dans le contrat battle minimal.
@@ -700,17 +703,26 @@ class BattleSession {
       );
     }
 
-    final damage = _computeMoveDamage(
+    final damageResult = _computeMoveDamage(
       move: move,
       attacker: attackerAfterPpUse,
       defender: defender,
     );
 
-    final updatedAttacker =
-        attackerAfterPpUse.withAppliedStageChanges(move.selfStatStageChanges);
-    final updatedDefender = defender
-        .withDamage(damage)
-        .withAppliedStageChanges(move.targetStatStageChanges);
+    // BE5 donne à l'immunité une sémantique simple et honnête pour le petit
+    // sous-ensemble moteur actuellement supporté :
+    // - le move a bien été tenté et a passé le hit check ;
+    // - mais il n'a "aucun effet" sur la cible si le typing annule le hit ;
+    // - on n'applique donc ni dégâts ni stage changes à partir d'un hit
+    //   immunisé, ce qui évite des demi-effets mensongers.
+    final updatedAttacker = damageResult.wasImmune
+        ? attackerAfterPpUse
+        : attackerAfterPpUse.withAppliedStageChanges(move.selfStatStageChanges);
+    final updatedDefender = damageResult.wasImmune
+        ? defender
+        : defender
+            .withDamage(damageResult.damage)
+            .withAppliedStageChanges(move.targetStatStageChanges);
 
     return _ResolvedMoveExecution(
       attacker: updatedAttacker,
@@ -730,8 +742,10 @@ class BattleSession {
           attackerLabel: attackerLabel,
           opponentLabel: targetLabel,
         ),
-        damage: damage,
+        damage: damageResult.damage,
         didHit: true,
+        stabMultiplier: damageResult.stabMultiplier,
+        typeEffectivenessMultiplier: damageResult.typeEffectivenessMultiplier,
       ),
     );
   }
@@ -786,17 +800,20 @@ class BattleSession {
   ///   rôle direct dans les dégâts.
   ///
   /// Frontière explicitement conservée :
-  /// - pas de type chart ;
   /// - pas de critiques ;
   /// - pas d'accuracy/evasion stages ;
   /// - le hit check BE4 vit en amont, avant d'entrer dans cette formule.
-  int _computeMoveDamage({
+  _ResolvedDamage _computeMoveDamage({
     required BattleMove move,
     required BattleCombatant attacker,
     required BattleCombatant defender,
   }) {
     if (move.resolvedCategory == BattleMoveCategory.status || move.power <= 0) {
-      return 0;
+      return const _ResolvedDamage(
+        damage: 0,
+        stabMultiplier: 1.0,
+        typeEffectivenessMultiplier: 1.0,
+      );
     }
 
     final offensiveStatId = switch (move.resolvedCategory) {
@@ -826,12 +843,53 @@ class BattleSession {
     );
     final safePower = move.power < 0 ? 0 : move.power;
     final levelFactor = ((2 * attacker.level) ~/ 5) + 2;
-    final scaledDamage =
+    final baseDamage =
         ((((levelFactor * safePower * effectiveAttack) ~/ effectiveDefense) ~/
                     50) +
                 2)
             .toInt();
-    return scaledDamage < 1 ? 1 : scaledDamage;
+
+    // BE5 ajoute ici la plus petite consommation honnête du type :
+    // - STAB simple à 1.5 ;
+    // - type chart standard ;
+    // - immunité à 0 ;
+    // - double type multiplicatif ;
+    // - toujours aucune abilities, aucun item, aucun weather, aucune Tera.
+    final stabMultiplier = BattleTypeChart.resolveStabMultiplier(
+      moveType: move.type,
+      attackerTyping: attacker.typing,
+    );
+    final typeEffectivenessMultiplier =
+        BattleTypeChart.resolveEffectivenessMultiplier(
+      moveType: move.type,
+      defenderTyping: defender.typing,
+    );
+
+    if (typeEffectivenessMultiplier == 0.0) {
+      return _ResolvedDamage(
+        damage: 0,
+        stabMultiplier: stabMultiplier,
+        typeEffectivenessMultiplier: typeEffectivenessMultiplier,
+      );
+    }
+
+    // Ordre de multiplication BE5 :
+    // 1. baseDamage déterministe BE2 ;
+    // 2. STAB ;
+    // 3. effectiveness / résistance ;
+    // 4. clamp minimum 1 si le move a touché et n'est pas immunisé.
+    //
+    // On reste volontairement dans un modèle simple à base de doubles +
+    // `floor` plutôt que de singer tous les paliers internes de Showdown.
+    final scaledDamage =
+        (baseDamage * stabMultiplier * typeEffectivenessMultiplier).floor();
+    final finalDamage = scaledDamage < 1 ? 1 : scaledDamage;
+
+    return _ResolvedDamage(
+      damage: finalDamage,
+      stabMultiplier: stabMultiplier,
+      typeEffectivenessMultiplier: typeEffectivenessMultiplier,
+    );
   }
 
   int _statValueFor(BattleStatsSnapshot snapshot, BattleStatId stat) {
@@ -970,4 +1028,18 @@ class _ResolvedHitCheck {
 
   final bool didHit;
   final BattleRng nextRng;
+}
+
+class _ResolvedDamage {
+  const _ResolvedDamage({
+    required this.damage,
+    required this.stabMultiplier,
+    required this.typeEffectivenessMultiplier,
+  });
+
+  final int damage;
+  final double stabMultiplier;
+  final double typeEffectivenessMultiplier;
+
+  bool get wasImmune => typeEffectivenessMultiplier == 0.0;
 }

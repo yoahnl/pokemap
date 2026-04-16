@@ -573,21 +573,26 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
         'description': 'Wild battle flow test move catalog',
       },
       'entries': <Map<String, Object?>>[
-        _moveEntry('vine_whip', 'Vine Whip', 12),
+        _moveEntry('vine_whip', 'Vine Whip', 12, type: 'grass'),
         _moveEntry('scratch', 'Scratch', 5),
       ],
     },
   );
 }
 
-Map<String, Object?> _moveEntry(String id, String name, int power) {
+Map<String, Object?> _moveEntry(
+  String id,
+  String name,
+  int power, {
+  String type = 'normal',
+}) {
   return PokemonMove(
     id: id,
     name: name,
     names: <String, String>{'en': name},
     generation: 1,
     source: 'test_runtime_fixture',
-    type: 'normal',
+    type: type,
     category:
         power == 0 ? PokemonMoveCategory.status : PokemonMoveCategory.physical,
     target: PokemonMoveTarget.normal,

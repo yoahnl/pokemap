@@ -145,9 +145,15 @@ class RuntimePokemonSpeciesLoader {
         };
     final abilities = (rawJson['abilities'] as Map?)?.cast<String, dynamic>() ??
         const <String, dynamic>{};
+    final typing = _readRequiredTyping(
+      rawJson,
+      expectedSpeciesId: expectedSpeciesId,
+      filePath: filePath,
+    );
 
     return RuntimePokemonSpecies(
       id: expectedSpeciesId,
+      typing: typing,
       baseHp: baseHp,
       baseAttack: baseAttack,
       baseDefense: baseDefense,
@@ -159,6 +165,46 @@ class RuntimePokemonSpeciesLoader {
       // fallback historique vers l'id de l'espèce.
       learnsetRef: (refs['learnset'] as String?)?.trim() ?? '',
     );
+  }
+
+  List<String> _readRequiredTyping(
+    Map<String, dynamic> rawJson, {
+    required String expectedSpeciesId,
+    required String filePath,
+  }) {
+    // BE5 ouvre enfin la consommation réelle du type dans `map_battle`.
+    //
+    // Le runtime doit donc arrêter de traiter le typing espèce comme une
+    // donnée "nice to have" :
+    // - le vrai chemin runtime -> battle a besoin d'un typing explicite ;
+    // - l'absence ou la corruption de ce champ doit donc faire échouer le
+    //   handoff tôt, avec une erreur actionnable ;
+    // - on garde cette validation ici, côté lecture projet, et non dans le
+    //   moteur battle qui ne doit jamais relire le JSON brut.
+    final rawTyping = (rawJson['typing'] as Map?)?.cast<String, dynamic>();
+    final rawTypes = (rawTyping?['types'] as List?)?.cast<Object?>();
+    if (rawTypes == null || rawTypes.isEmpty || rawTypes.length > 2) {
+      throw RuntimeBattleSetupException(
+        'Les données d’espèce Pokémon locales sont invalides; combat impossible.',
+        debugDetails:
+            'speciesId=$expectedSpeciesId, file=$filePath, typing.types must contain 1 or 2 entries',
+      );
+    }
+
+    final normalizedTypes = <String>[];
+    for (final rawType in rawTypes) {
+      final normalizedType = (rawType as String?)?.trim().toLowerCase() ?? '';
+      if (normalizedType.isEmpty || normalizedTypes.contains(normalizedType)) {
+        throw RuntimeBattleSetupException(
+          'Les données d’espèce Pokémon locales sont invalides; combat impossible.',
+          debugDetails:
+              'speciesId=$expectedSpeciesId, file=$filePath, typing.types contains an empty or duplicate entry',
+        );
+      }
+      normalizedTypes.add(normalizedType);
+    }
+
+    return List<String>.unmodifiable(normalizedTypes);
   }
 
   int _readRequiredBaseStat(
@@ -237,6 +283,7 @@ class RuntimePokemonSpeciesLoader {
 class RuntimePokemonSpecies {
   const RuntimePokemonSpecies({
     required this.id,
+    required this.typing,
     required this.baseHp,
     required this.baseAttack,
     required this.baseDefense,
@@ -248,6 +295,14 @@ class RuntimePokemonSpecies {
   });
 
   final String id;
+
+  /// Typing défensif minimal réellement nécessaire à partir de BE5.
+  ///
+  /// Le loader le garde encore côté runtime, pas côté battle :
+  /// - il fait partie de la donnée projet résolue par l'application ;
+  /// - le seed builder décidera ensuite du contrat battle précis à produire ;
+  /// - `map_battle` reste ainsi libre de sa propre représentation locale.
+  final List<String> typing;
   final int baseHp;
   final int baseAttack;
   final int baseDefense;

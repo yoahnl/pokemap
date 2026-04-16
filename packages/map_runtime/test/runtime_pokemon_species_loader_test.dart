@@ -45,6 +45,7 @@ void main() {
       );
 
       expect(species.id, equals('sproutle'));
+      expect(species.typing, equals(const <String>['grass']));
       expect(species.baseHp, equals(45));
       expect(species.baseAttack, equals(49));
       expect(species.baseDefense, equals(49));
@@ -154,6 +155,28 @@ void main() {
       );
     });
 
+    test('loads a dual-typed species honestly', () async {
+      await _writeSpeciesFile(
+        tempProjectRoot,
+        relativePath: 'custom/pokemon/species/dual.json',
+        json: _speciesJson(
+          id: 'aquadrake',
+          baseHp: 79,
+          primaryAbilityId: 'torrent',
+          learnsetRef: 'aquadrake',
+          typing: const <String>['water', 'dragon'],
+        ),
+      );
+
+      final species = await loader.loadById(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        speciesId: 'aquadrake',
+      );
+
+      expect(species.typing, equals(const <String>['water', 'dragon']));
+    });
+
     test('fails explicitly when runtime-required species fields are broken',
         () async {
       await _writeSpeciesFile(
@@ -178,6 +201,44 @@ void main() {
             (error) => error.debugDetails,
             'debugDetails',
             contains('missing or invalid baseStats.hp'),
+          ),
+        ),
+      );
+    });
+
+    test('fails explicitly when typing is missing or invalid', () async {
+      await _writeSpeciesFile(
+        tempProjectRoot,
+        relativePath: 'custom/pokemon/species/broken-typing.json',
+        json: <String, dynamic>{
+          'id': 'sproutle',
+          'typing': <String, Object>{
+            'types': <String>['grass', 'grass'],
+          },
+          'baseStats': <String, int>{
+            'hp': 45,
+            'atk': 49,
+            'def': 49,
+            'spa': 65,
+            'spd': 65,
+            'spe': 45,
+          },
+          'abilities': <String, String>{'primary': 'overgrow'},
+          'refs': <String, String>{'learnset': 'sproutle'},
+        },
+      );
+
+      await expectLater(
+        () => loader.loadById(
+          projectRootDirectory: tempProjectRoot.path,
+          pokemonConfig: _pokemonConfig(),
+          speciesId: 'sproutle',
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.debugDetails,
+            'debugDetails',
+            contains('typing.types contains an empty or duplicate entry'),
           ),
         ),
       );
@@ -208,9 +269,13 @@ Map<String, dynamic> _speciesJson({
   int baseSpecialAttack = 65,
   int baseSpecialDefense = 65,
   int baseSpeed = 45,
+  List<String> typing = const <String>['grass'],
 }) {
   return <String, dynamic>{
     'id': id,
+    'typing': <String, Object>{
+      'types': typing,
+    },
     'baseStats': <String, int>{
       'hp': baseHp,
       'atk': baseAttack,

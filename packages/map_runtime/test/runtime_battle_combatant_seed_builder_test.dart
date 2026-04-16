@@ -68,6 +68,8 @@ void main() {
       expect(seed.maxHp, equals(36));
       expect(seed.currentHp, equals(23));
       expect(seed.abilityId, equals('overgrow'));
+      expect(seed.typing.primaryType, equals('grass'));
+      expect(seed.typing.secondaryType, isNull);
       expect(seed.stats.attack, equals(20));
       expect(seed.stats.defense, equals(16));
       expect(seed.stats.specialAttack, equals(23));
@@ -149,6 +151,8 @@ void main() {
       expect(seed.level, equals(10));
       expect(seed.currentHp, isNull);
       expect(seed.abilityId, equals('blaze'));
+      expect(seed.typing.primaryType, equals('fire'));
+      expect(seed.typing.secondaryType, isNull);
       expect(seed.maxHp, equals(27));
       expect(seed.stats.attack, equals(15));
       expect(seed.stats.defense, equals(13));
@@ -185,6 +189,8 @@ void main() {
       expect(seed.speciesId, equals('aquafi'));
       expect(seed.level, equals(18));
       expect(seed.abilityId, equals('torrent'));
+      expect(seed.typing.primaryType, equals('water'));
+      expect(seed.typing.secondaryType, equals('fairy'));
       expect(seed.stats.attack, equals(22));
       expect(seed.stats.defense, equals(28));
       expect(seed.stats.specialAttack, equals(23));
@@ -416,6 +422,9 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     'custom/pokemon/species/001-sproutle.json',
     <String, dynamic>{
       'id': 'sproutle',
+      'typing': <String, Object>{
+        'types': <String>['grass'],
+      },
       'baseStats': <String, int>{
         'hp': 45,
         'atk': 49,
@@ -433,6 +442,9 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     'custom/pokemon/species/004-sparkitten.json',
     <String, dynamic>{
       'id': 'sparkitten',
+      'typing': <String, Object>{
+        'types': <String>['fire'],
+      },
       'baseStats': <String, int>{
         'hp': 39,
         'atk': 52,
@@ -450,6 +462,9 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
     'custom/pokemon/species/007-aquafi.json',
     <String, dynamic>{
       'id': 'aquafi',
+      'typing': <String, Object>{
+        'types': <String>['water', 'fairy'],
+      },
       'baseStats': <String, int>{
         'hp': 44,
         'atk': 48,
@@ -516,17 +531,17 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
       'entries': <Map<String, Object?>>[
         _moveEntry('tackle', 'Tackle', 40),
         _moveEntry('growl', 'Growl', 0),
-        _moveEntry('vine_whip', 'Vine Whip', 45),
+        _moveEntry('vine_whip', 'Vine Whip', 45, type: 'grass'),
         _moveEntry('leer', 'Leer', 0),
-        _moveEntry('razor_leaf', 'Razor Leaf', 55),
+        _moveEntry('razor_leaf', 'Razor Leaf', 55, type: 'grass'),
         _moveEntry('scratch', 'Scratch', 40),
         _moveEntry('quick_attack', 'Quick Attack', 40, priority: 1),
-        _moveEntry('mud_slap', 'Mud-Slap', 20, accuracy: 85),
+        _moveEntry('mud_slap', 'Mud-Slap', 20, type: 'ground', accuracy: 85),
         _moveEntry('tail_whip', 'Tail Whip', 0),
-        _moveEntry('ember', 'Ember', 40),
-        _moveEntry('flame_wheel', 'Flame Wheel', 60),
-        _moveEntry('water_gun', 'Water Gun', 40),
-        _moveEntry('thunder_wave', 'Thunder Wave', 0),
+        _moveEntry('ember', 'Ember', 40, type: 'fire'),
+        _moveEntry('flame_wheel', 'Flame Wheel', 60, type: 'fire'),
+        _moveEntry('water_gun', 'Water Gun', 40, type: 'water'),
+        _moveEntry('thunder_wave', 'Thunder Wave', 0, type: 'electric'),
       ],
     },
   );
@@ -665,6 +680,9 @@ Future<void> _rewriteSpeciesWithoutLearnsetRef(
     'custom/pokemon/species/$speciesFileName',
     <String, dynamic>{
       'id': speciesId,
+      'typing': <String, Object>{
+        'types': <String>['grass'],
+      },
       'baseStats': <String, int>{
         'hp': baseHp,
         'atk': 49,

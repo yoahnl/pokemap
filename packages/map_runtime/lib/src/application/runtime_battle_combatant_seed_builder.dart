@@ -80,6 +80,7 @@ class RuntimeBattleCombatantSeedBuilder {
       level: playerPokemon.level,
       maxHp: maxHp,
       stats: stats,
+      typing: _buildBattleTypingSnapshot(species),
       currentHp: _clampInt(playerPokemon.currentHp, min: 0, max: maxHp),
       abilityId: playerPokemon.abilityId.trim().isEmpty
           ? 'unknown'
@@ -122,6 +123,7 @@ class RuntimeBattleCombatantSeedBuilder {
         species: species,
         level: request.level,
       ),
+      typing: _buildBattleTypingSnapshot(species),
       abilityId: species.primaryAbilityId.isEmpty
           ? 'unknown'
           : species.primaryAbilityId,
@@ -168,6 +170,7 @@ class RuntimeBattleCombatantSeedBuilder {
         species: species,
         level: teamMember.level,
       ),
+      typing: _buildBattleTypingSnapshot(species),
       abilityId: species.primaryAbilityId.isEmpty
           ? 'unknown'
           : species.primaryAbilityId,
@@ -327,6 +330,20 @@ class RuntimeBattleCombatantSeedBuilder {
     );
   }
 
+  BattleTypingSnapshot _buildBattleTypingSnapshot(
+    RuntimePokemonSpecies species,
+  ) {
+    // BE5 garde la frontière propre :
+    // - le loader species lit et valide le typing projet ;
+    // - le builder l'adapte vers le petit contrat battle ;
+    // - `map_battle` reçoit ensuite une donnée déjà prête à consommer sans
+    //   jamais relire le JSON projet brut.
+    return BattleTypingSnapshot(
+      primaryType: species.typing.first,
+      secondaryType: species.typing.length > 1 ? species.typing[1] : null,
+    );
+  }
+
   int _calculateResolvedNonHpStat({
     required int baseStat,
     required int level,
@@ -376,6 +393,7 @@ class RuntimeBattleCombatantSeed {
     required this.level,
     required this.maxHp,
     required this.stats,
+    required this.typing,
     required this.abilityId,
     required this.moves,
     this.currentHp,
@@ -385,6 +403,7 @@ class RuntimeBattleCombatantSeed {
   final int level;
   final int maxHp;
   final BattleStatsSnapshot stats;
+  final BattleTypingSnapshot typing;
   final int? currentHp;
   final String abilityId;
   final List<BattleMoveData> moves;
@@ -395,6 +414,7 @@ class RuntimeBattleCombatantSeed {
       level: level,
       maxHp: maxHp,
       stats: stats,
+      typing: typing,
       currentHp: currentHp,
       abilityId: abilityId,
       moves: moves,

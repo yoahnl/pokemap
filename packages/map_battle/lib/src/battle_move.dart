@@ -1,7 +1,7 @@
 /// Catégorie battle minimale d'une attaque.
 ///
-/// M8 n'ouvre pas un vrai système de typing complet, mais le bridge runtime ->
-/// battle doit au moins distinguer :
+/// M8 puis BE5 n'ouvrent toujours pas un système de typing complet, mais le
+/// bridge runtime -> battle doit au moins distinguer :
 /// - les attaques physiques ;
 /// - les attaques spéciales ;
 /// - les attaques de statut.
@@ -124,7 +124,8 @@ class BattleMove {
   /// [id] - L'identifiant canonique de l'attaque.
   /// [name] - Le nom affiché de l'attaque.
   /// [power] - La puissance de l'attaque (dégâts de base).
-  /// [type] - Le type canonique transporté sans être encore consommé.
+  /// [type] - Le type canonique transporté et désormais consommé pour STAB /
+  ///   type chart dans le petit sous-ensemble honnête BE5.
   /// [category] - La catégorie battle minimale déjà résolue par le runtime.
   /// [target] - La cible battle minimale résolue par le bridge runtime.
   /// [accuracy] - La précision minimale réellement consommée par BE4.
@@ -176,12 +177,12 @@ class BattleMove {
 
   /// Type canonique transporté jusqu'au moteur battle.
   ///
-  /// BE1 choisit de le préserver même s'il n'est pas encore consommé :
-  /// - sa perte silencieuse au bridge était gratuite ;
-  /// - c'est une dimension battle fondamentale ;
-  /// - le prochain lot fondation en aura besoin immédiatement.
-  ///
-  /// En revanche, BE1 n'ouvre toujours ni type chart, ni STAB, ni immunités.
+  /// Historique utile :
+  /// - BE1 arrête d'abord sa perte silencieuse au bridge ;
+  /// - BE5 commence ensuite à le consommer réellement pour STAB,
+  ///   effectiveness et immunités ;
+  /// - on reste malgré tout très loin d'un système de type Pokémon complet
+  ///   (pas d'abilities, pas de Tera, pas d'effets spéciaux de move).
   final String type;
 
   /// Catégorie battle explicitement résolue par le bridge runtime.
