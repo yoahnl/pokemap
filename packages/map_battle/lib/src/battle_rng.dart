@@ -96,9 +96,17 @@ class BattleSeededRng extends BattleRng {
     required int numerator,
     required int denominator,
   }) {
-    assert(numerator >= 0);
-    assert(denominator >= 1);
-    assert(numerator <= denominator);
+    // Mini-fix BE6 :
+    // - `BattleScriptedRng` protégeait déjà ce contrat à l'exécution ;
+    // - `BattleSeededRng` n'avait que des `assert`, donc un appel invalide
+    //   pouvait survivre en dehors des builds debug ;
+    // - on aligne donc explicitement les gardes runtime ici pour arrêter un
+    //   bug de robustesse, sans créer une nouvelle couche RNG abstraite.
+    if (denominator < 1 || numerator < 0 || numerator > denominator) {
+      throw StateError(
+        'BattleSeededRng received an invalid chance contract ($numerator/$denominator).',
+      );
+    }
 
     final nextState = (1664525 * state + 1013904223) & 0xFFFFFFFF;
     final value = (nextState % denominator) + 1;

@@ -159,10 +159,15 @@ class BattleMove {
     this.pp = 35,
     int? currentPp,
     this.priority = 0,
-    this.critRatio = 1,
+    int critRatio = 1,
     this.selfStatStageChanges = const <BattleStatStageChange>[],
     this.targetStatStageChanges = const <BattleStatStageChange>[],
-  }) : currentPp = currentPp ?? pp;
+  })  : assert(
+          critRatio >= 1,
+          'BattleMove critRatio must be >= 1.',
+        ),
+        _critRatio = critRatio,
+        currentPp = currentPp ?? pp;
 
   /// L'identifiant canonique de l'attaque.
   final String id;
@@ -257,7 +262,22 @@ class BattleMove {
   ///
   /// Valeur neutre :
   /// - `1` signifie le ratio critique standard.
-  final int critRatio;
+  ///
+  /// Garde-fou de mini-fix BE6 :
+  /// - ce contrat public reste `const`, donc le garde-fou local le plus petit
+  ///   et le plus cohérent ici reste une assertion ;
+  /// - on ajoute quand même aussi une validation runtime au getter, parce
+  ///   qu'un objet battle malformé peut encore contourner les assertions hors
+  ///   debug ;
+  /// - le moteur garde enfin une dernière validation défensive plus loin.
+  final int _critRatio;
+
+  int get critRatio {
+    if (_critRatio < 1) {
+      throw StateError('BattleMove critRatio must be >= 1; got $_critRatio.');
+    }
+    return _critRatio;
+  }
 
   /// Changements d'étages de stats appliqués au lanceur.
   final List<BattleStatStageChange> selfStatStageChanges;

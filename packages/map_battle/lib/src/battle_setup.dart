@@ -178,10 +178,14 @@ class BattleMoveData {
     this.pp = 35,
     this.currentPp,
     this.priority = 0,
-    this.critRatio = 1,
+    int critRatio = 1,
     this.selfStatStageChanges = const <BattleStatStageChange>[],
     this.targetStatStageChanges = const <BattleStatStageChange>[],
-  });
+  })  : assert(
+          critRatio >= 1,
+          'BattleMoveData critRatio must be >= 1.',
+        ),
+        _critRatio = critRatio;
 
   /// L'identifiant canonique de l'attaque.
   final String id;
@@ -279,7 +283,25 @@ class BattleMoveData {
   ///
   /// Valeur neutre :
   /// - `1` correspond au ratio critique standard.
-  final int critRatio;
+  ///
+  /// Garde-fou de mini-fix BE6 :
+  /// - comme pour `BattleMove`, ce contrat de setup reste `const` pour ne pas
+  ///   casser inutilement les anciens call sites battle directs ;
+  /// - l’assertion arrête donc tôt les usages invalides en debug/test ;
+  /// - on garde en plus un getter validé, car un objet battle malformé peut
+  ///   encore contourner les assertions hors debug ;
+  /// - le moteur garde enfin sa propre validation défensive au moment exact où
+  ///   il consomme le ratio critique.
+  final int _critRatio;
+
+  int get critRatio {
+    if (_critRatio < 1) {
+      throw StateError(
+        'BattleMoveData critRatio must be >= 1; got $_critRatio.',
+      );
+    }
+    return _critRatio;
+  }
 
   /// Changements d'étages de stats appliqués au lanceur.
   final List<BattleStatStageChange> selfStatStageChanges;

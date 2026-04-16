@@ -965,8 +965,21 @@ class BattleSession {
     // - `1` reste le ratio neutre du canonique projet ;
     // - on ne prétend pas ouvrir Focus Energy, Lucky Chant ou d'autres
     //   modificateurs indirects.
+    //
+    // Mini-fix BE6 :
+    // - la première version neutralisait silencieusement `critRatio <= 0`
+    //   dans la branche "ratio neutre" ;
+    // - cela laissait une donnée battle invalide devenir "à peu près valide"
+    //   au lieu d'échouer franchement ;
+    // - on préfère maintenant un `StateError` explicite, parce qu'à ce stade
+    //   il s'agit d'un état battle incohérent, pas d'une simple option métier.
+    if (critRatio < 1) {
+      throw StateError(
+        'Battle critical ratio must be >= 1; got $critRatio.',
+      );
+    }
     return switch (critRatio) {
-      <= 1 => const _CritChance(numerator: 1, denominator: 24),
+      1 => const _CritChance(numerator: 1, denominator: 24),
       2 => const _CritChance(numerator: 1, denominator: 8),
       3 => const _CritChance(numerator: 1, denominator: 2),
       _ => const _CritChance.always(),
