@@ -322,7 +322,7 @@ void main() {
     });
 
     test(
-        'rejects a move whose non-neutral crit ratio would still be lost by the current battle engine',
+        'accepts a move whose non-neutral crit ratio is now transported honestly to battle',
         () {
       const move = PokemonMove(
         id: 'razor_leaf',
@@ -340,22 +340,13 @@ void main() {
         engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
       );
 
-      expect(
-        () => bridge.toBattleMoveData(
-          move: move,
-          combatantLabel: 'Le Pokémon actif du joueur',
-        ),
-        throwsA(
-          isA<RuntimeBattleSetupException>().having(
-            (error) => error.debugDetails,
-            'debugDetails',
-            allOf(
-              contains('moveId=razor_leaf'),
-              contains('bridgeLimit=unsupported_crit_ratio:2'),
-            ),
-          ),
-        ),
+      final battleMove = bridge.toBattleMoveData(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
       );
+
+      expect(battleMove.id, equals('razor_leaf'));
+      expect(battleMove.critRatio, equals(2));
     });
 
     test(

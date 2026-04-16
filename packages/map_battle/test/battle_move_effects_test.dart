@@ -36,7 +36,7 @@ BattleTypingSnapshot _typing(
 }
 
 void main() {
-  group('BattleSession BE2/BE3/BE4 combat contract', () {
+  group('BattleSession BE2/BE3/BE4/BE5/BE6 combat contract', () {
     test('createBattleSession preserves the resolved stats snapshot', () {
       final session = createBattleSession(
         BattleSetup(
@@ -844,7 +844,7 @@ void main() {
           isTrainerBattle: false,
           trainerId: null,
         ),
-        rng: const BattleScriptedRng(<int>[100]),
+        rng: const BattleScriptedRng(<int>[2]),
       );
 
       final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
@@ -946,7 +946,7 @@ void main() {
           isTrainerBattle: false,
           trainerId: null,
         ),
-        rng: const BattleScriptedRng(<int>[1]),
+        rng: const BattleScriptedRng(<int>[1, 2]),
       );
 
       final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
@@ -1380,6 +1380,326 @@ void main() {
 
       expect(execution.typeEffectivenessMultiplier, equals(0.25));
       expect(execution.damage, equals(1));
+    });
+
+    test('neutral crit ratio can still resolve to no crit', () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'sproutle',
+            level: 25,
+            maxHp: 80,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'slash',
+                name: 'Slash',
+                power: 60,
+                category: BattleMoveCategory.physical,
+                critRatio: 1,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'dummy',
+            level: 25,
+            maxHp: 80,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+        rng: const BattleScriptedRng(<int>[2]),
+      );
+
+      final execution = session
+          .applyChoice(const PlayerBattleChoiceFight(0))
+          .state
+          .currentTurn!
+          .executions
+          .first;
+
+      expect(execution.didHit, isTrue);
+      expect(execution.didCrit, isFalse);
+      expect(execution.criticalMultiplier, equals(1.0));
+    });
+
+    test('high crit ratio can trigger a real critical hit', () {
+      final baseline = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'sproutle',
+            level: 25,
+            maxHp: 80,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'razor_leaf',
+                name: 'Razor Leaf',
+                power: 55,
+                type: 'grass',
+                category: BattleMoveCategory.physical,
+                critRatio: 2,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'dummy',
+            level: 25,
+            maxHp: 80,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+        rng: const BattleScriptedRng(<int>[2]),
+      );
+
+      final critical = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'sproutle',
+            level: 25,
+            maxHp: 80,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'razor_leaf',
+                name: 'Razor Leaf',
+                power: 55,
+                type: 'grass',
+                category: BattleMoveCategory.physical,
+                critRatio: 2,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'dummy',
+            level: 25,
+            maxHp: 80,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+        rng: const BattleScriptedRng(<int>[1]),
+      );
+
+      final baselineExecution = baseline
+          .applyChoice(const PlayerBattleChoiceFight(0))
+          .state
+          .currentTurn!
+          .executions
+          .first;
+      final criticalExecution = critical
+          .applyChoice(const PlayerBattleChoiceFight(0))
+          .state
+          .currentTurn!
+          .executions
+          .first;
+
+      expect(baselineExecution.didCrit, isFalse);
+      expect(criticalExecution.didCrit, isTrue);
+      expect(criticalExecution.criticalMultiplier, equals(1.5));
+      expect(criticalExecution.damage, greaterThan(baselineExecution.damage));
+    });
+
+    test('a miss never resolves a critical hit but still spends PP', () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'sproutle',
+            level: 20,
+            maxHp: 60,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'mud_slap',
+                name: 'Mud-Slap',
+                power: 20,
+                type: 'ground',
+                category: BattleMoveCategory.special,
+                accuracy: BattleMoveAccuracy.percent(value: 50),
+                pp: 10,
+                critRatio: 4,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'dummy',
+            level: 20,
+            maxHp: 80,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+        rng: const BattleScriptedRng(<int>[100]),
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+      final execution = afterTurn.state.currentTurn!.executions.first;
+
+      expect(execution.didHit, isFalse);
+      expect(execution.didCrit, isFalse);
+      expect(execution.criticalMultiplier, equals(1.0));
+      expect(execution.damage, equals(0));
+      expect(afterTurn.state.player.moves.single.currentPp, equals(9));
+    });
+
+    test('an immune hit never resolves a critical hit', () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'sparkitten',
+            level: 25,
+            maxHp: 70,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'thunderbolt',
+                name: 'Thunderbolt',
+                power: 40,
+                type: 'electric',
+                category: BattleMoveCategory.special,
+                accuracy: BattleMoveAccuracy.alwaysHits(),
+                critRatio: 4,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'ground_target',
+            level: 25,
+            maxHp: 80,
+            stats: _balancedStats,
+            typing: _typing('ground'),
+            moves: const <BattleMoveData>[
+              BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+        rng: const BattleScriptedRng(<int>[]),
+      );
+
+      final execution = session
+          .applyChoice(const PlayerBattleChoiceFight(0))
+          .state
+          .currentTurn!
+          .executions
+          .first;
+
+      expect(execution.didHit, isTrue);
+      expect(execution.didCrit, isFalse);
+      expect(execution.criticalMultiplier, equals(1.0));
+      expect(execution.damage, equals(0));
+      expect(execution.typeEffectivenessMultiplier, equals(0.0));
+    });
+
+    test('a status move never resolves a critical hit', () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'sproutle',
+            level: 20,
+            maxHp: 60,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'growl',
+                name: 'Growl',
+                power: 0,
+                category: BattleMoveCategory.status,
+                critRatio: 4,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'dummy',
+            level: 20,
+            maxHp: 80,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+        rng: const BattleScriptedRng(<int>[]),
+      );
+
+      final execution = session
+          .applyChoice(const PlayerBattleChoiceFight(0))
+          .state
+          .currentTurn!
+          .executions
+          .first;
+
+      expect(execution.didHit, isTrue);
+      expect(execution.didCrit, isFalse);
+      expect(execution.criticalMultiplier, equals(1.0));
+      expect(execution.damage, equals(0));
+    });
+
+    test('crit ratio >= 4 guarantees a critical hit without consuming RNG', () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'sproutle',
+            level: 20,
+            maxHp: 60,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'leaf_blade',
+                name: 'Leaf Blade',
+                power: 50,
+                type: 'grass',
+                category: BattleMoveCategory.physical,
+                critRatio: 4,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'dummy',
+            level: 20,
+            maxHp: 80,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+        rng: const BattleScriptedRng(<int>[]),
+      );
+
+      final execution = session
+          .applyChoice(const PlayerBattleChoiceFight(0))
+          .state
+          .currentTurn!
+          .executions
+          .first;
+
+      expect(execution.didHit, isTrue);
+      expect(execution.didCrit, isTrue);
+      expect(execution.criticalMultiplier, equals(1.5));
+      expect(execution.damage, greaterThan(0));
     });
   });
 }

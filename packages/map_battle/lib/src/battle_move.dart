@@ -133,6 +133,7 @@ class BattleMove {
   /// [currentPp] - Le PP courant dans l'état battle.
   /// [priority] - Priorité canonique réellement consommée par BE3 pour
   ///   l'ordre d'action 1v1 minimal.
+  /// [critRatio] - Ratio critique minimal désormais consommé par BE6.
   /// [selfStatStageChanges] - Boosts / baisses appliqués au lanceur.
   /// [targetStatStageChanges] - Boosts / baisses appliqués à la cible.
   ///
@@ -145,7 +146,8 @@ class BattleMove {
   /// - puis, en BE3, transport et consommation réelle de `priority` pour
   ///   sortir du mensonge "joueur puis ennemi" ;
   /// - puis, en BE4, un vrai hit pipeline minimal avec précision et PP ;
-  /// - toujours aucun crit, aucun status non volatil, aucun scheduler générique.
+  /// - puis, en BE6, un crit minimal honnête via `critRatio` ;
+  /// - toujours aucun status non volatil, aucun scheduler générique.
   const BattleMove({
     required this.id,
     required this.name,
@@ -157,6 +159,7 @@ class BattleMove {
     this.pp = 35,
     int? currentPp,
     this.priority = 0,
+    this.critRatio = 1,
     this.selfStatStageChanges = const <BattleStatStageChange>[],
     this.targetStatStageChanges = const <BattleStatStageChange>[],
   }) : currentPp = currentPp ?? pp;
@@ -244,6 +247,18 @@ class BattleMove {
   /// construisent encore des moves battle pauvres à la main.
   final int priority;
 
+  /// Ratio critique minimal transporté jusqu'au moteur battle.
+  ///
+  /// BE6 choisit ici le plus petit contrat utile :
+  /// - on transporte l'entier canonique déjà présent côté runtime ;
+  /// - le moteur l'interprète via une table explicite de chances ;
+  /// - on n'ouvre pas pour autant les règles Pokémon avancées liées aux crits
+  ///   (abilities, items, Focus Energy, Lucky Chant, ignore stages, etc.).
+  ///
+  /// Valeur neutre :
+  /// - `1` signifie le ratio critique standard.
+  final int critRatio;
+
   /// Changements d'étages de stats appliqués au lanceur.
   final List<BattleStatStageChange> selfStatStageChanges;
 
@@ -290,6 +305,7 @@ class BattleMove {
       pp: pp,
       currentPp: currentPp > 0 ? currentPp - 1 : 0,
       priority: priority,
+      critRatio: critRatio,
       selfStatStageChanges: selfStatStageChanges,
       targetStatStageChanges: targetStatStageChanges,
     );

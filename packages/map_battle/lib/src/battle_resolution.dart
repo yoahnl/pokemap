@@ -45,6 +45,8 @@ class BattleMoveExecution {
   /// [target] - L'identifiant de la cible ("player" ou "enemy").
   /// [damage] - Les dégâts infligés.
   /// [didHit] - true si le move a réellement touché.
+  /// [didCrit] - true si le move a réellement déclenché un critique.
+  /// [criticalMultiplier] - Multiplicateur critique réellement appliqué.
   /// [stabMultiplier] - Multiplicateur STAB réellement consommé pour ce hit.
   /// [typeEffectivenessMultiplier] - Multiplicateur de type réellement appliqué.
   const BattleMoveExecution({
@@ -53,6 +55,8 @@ class BattleMoveExecution {
     required this.target,
     required this.damage,
     required this.didHit,
+    this.didCrit = false,
+    this.criticalMultiplier = 1.0,
     this.stabMultiplier = 1.0,
     this.typeEffectivenessMultiplier = 1.0,
   });
@@ -90,6 +94,25 @@ class BattleMoveExecution {
   /// - on évite ainsi de forcer l'UI/runtime à deviner l'issue depuis un
   ///   contrat trop pauvre.
   final bool didHit;
+
+  /// true si le move a réellement déclenché un critique.
+  ///
+  /// BE6 ajoute ce flag pour éviter une nouvelle perte de vérité :
+  /// - un critique ne doit pas être deviné indirectement depuis les dégâts ;
+  /// - le runtime/UI doit pouvoir distinguer un simple hit d'un vrai crit ;
+  /// - un miss, une immunité ou un move de statut gardent toujours `false`.
+  final bool didCrit;
+
+  /// Multiplicateur critique réellement appliqué à ce move.
+  ///
+  /// Valeurs attendues dans BE6 :
+  /// - `1.5` sur un critique déclenché ;
+  /// - `1.0` sinon.
+  ///
+  /// Ce champ reste volontairement petit :
+  /// - il documente l'effet réellement appliqué ;
+  /// - il n'ouvre pas un système complet de règles avancées de critique.
+  final double criticalMultiplier;
 
   /// Multiplicateur STAB réellement appliqué à ce move.
   ///

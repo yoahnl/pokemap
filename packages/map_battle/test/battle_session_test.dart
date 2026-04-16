@@ -98,7 +98,7 @@ void main() {
     });
 
     test(
-        'createBattleSession preserves the additional honest battle contract fields transported by BE1, BE3 and BE4',
+        'createBattleSession preserves the additional honest battle contract fields transported by BE1, BE3, BE4, BE5 and BE6',
         () {
       final setup = BattleSetup(
         playerPokemon: BattleCombatantData(
@@ -119,6 +119,7 @@ void main() {
               pp: 25,
               currentPp: 7,
               priority: 1,
+              critRatio: 2,
             ),
           ],
         ),
@@ -152,6 +153,7 @@ void main() {
       expect(move.pp, equals(25));
       expect(move.currentPp, equals(7));
       expect(move.priority, equals(1));
+      expect(move.critRatio, equals(2));
       expect(playerTyping.primaryType, equals('electric'));
       expect(playerTyping.secondaryType, isNull);
       expect(enemyTyping.primaryType, equals('water'));
@@ -303,7 +305,10 @@ void main() {
 
     test('applyChoice with fight resolves turn and damages enemy', () {
       final setup = createTestSetup();
-      final session = createBattleSession(setup);
+      final session = createBattleSession(
+        setup,
+        rng: const BattleScriptedRng(<int>[2, 2]),
+      );
 
       // Joueur utilise la première attaque (power=5)
       final newSession = session.applyChoice(const PlayerBattleChoiceFight(0));
@@ -317,7 +322,10 @@ void main() {
 
     test('applyChoice with fight resolves turn and damages player', () {
       final setup = createTestSetup();
-      final session = createBattleSession(setup);
+      final session = createBattleSession(
+        setup,
+        rng: const BattleScriptedRng(<int>[2, 2]),
+      );
 
       // Joueur utilise la première attaque
       final newSession = session.applyChoice(const PlayerBattleChoiceFight(0));
@@ -465,7 +473,10 @@ void main() {
         isTrainerBattle: false,
         trainerId: null,
       );
-      var session = createBattleSession(setup);
+      var session = createBattleSession(
+        setup,
+        rng: BattleScriptedRng(List<int>.filled(6, 2)),
+      );
 
       // Tour 1
       session = session.applyChoice(const PlayerBattleChoiceFight(0));

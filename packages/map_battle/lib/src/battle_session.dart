@@ -7,6 +7,8 @@ import 'battle_resolution.dart';
 import 'battle_stats.dart';
 import 'battle_type_chart.dart';
 
+const double _criticalHitMultiplier = 1.5;
+
 /// Crée une nouvelle session de combat.
 ///
 /// [setup] - La configuration initiale du combat.
@@ -43,6 +45,7 @@ BattleSession createBattleSession(
     // - `type` et `target` restent surtout descriptifs à ce stade ;
     // - `priority` est déjà consommée depuis BE3 ;
     // - `accuracy` et `currentPp` deviennent réellement actives en BE4.
+    // - `critRatio` devient réellement consommé en BE6.
     moves: setup.playerPokemon.moves
         .map(
           (m) => BattleMove(
@@ -56,6 +59,7 @@ BattleSession createBattleSession(
             pp: m.pp,
             currentPp: m.currentPp,
             priority: m.priority,
+            critRatio: m.critRatio,
             selfStatStageChanges: m.selfStatStageChanges,
             targetStatStageChanges: m.targetStatStageChanges,
           ),
@@ -86,6 +90,7 @@ BattleSession createBattleSession(
             pp: m.pp,
             currentPp: m.currentPp,
             priority: m.priority,
+            critRatio: m.critRatio,
             selfStatStageChanges: m.selfStatStageChanges,
             targetStatStageChanges: m.targetStatStageChanges,
           ),
@@ -647,6 +652,7 @@ class BattleSession {
   /// - influence de `modifyStats` uniquement sur atk/def/spa/spd ;
   /// - moves de statut => dégâts 0 ;
   /// - hit check minimal et PP réels ;
+  /// - BE6 ajoute un crit minimal réel pour les hits offensifs non immunisés ;
   /// - les changements de stats sont appliqués immédiatement après un hit.
   ///
   /// Cette application immédiate reste importante :
@@ -699,6 +705,8 @@ class BattleSession {
           ),
           damage: 0,
           didHit: false,
+          didCrit: false,
+          criticalMultiplier: 1.0,
         ),
       );
     }
@@ -707,6 +715,7 @@ class BattleSession {
       move: move,
       attacker: attackerAfterPpUse,
       defender: defender,
+      rng: hitCheck.nextRng,
     );
 
     // BE5 donne à l'immunité une sémantique simple et honnête pour le petit
@@ -727,7 +736,7 @@ class BattleSession {
     return _ResolvedMoveExecution(
       attacker: updatedAttacker,
       defender: updatedDefender,
-      rng: hitCheck.nextRng,
+      rng: damageResult.nextRng,
       execution: BattleMoveExecution(
         attacker: attackerLabel,
         move: updatedAttacker.moves[moveIndex],
@@ -744,6 +753,8 @@ class BattleSession {
         ),
         damage: damageResult.damage,
         didHit: true,
+        didCrit: damageResult.didCrit,
+        criticalMultiplier: damageResult.criticalMultiplier,
         stabMultiplier: damageResult.stabMultiplier,
         typeEffectivenessMultiplier: damageResult.typeEffectivenessMultiplier,
       ),
@@ -800,19 +811,27 @@ class BattleSession {
   ///   rôle direct dans les dégâts.
   ///
   /// Frontière explicitement conservée :
-  /// - pas de critiques ;
   /// - pas d'accuracy/evasion stages ;
-  /// - le hit check BE4 vit en amont, avant d'entrer dans cette formule.
+  /// - pas de règles Pokémon avancées de critique ;
+  /// - le hit check BE4 vit en amont, avant d'entrer dans cette formule ;
+  /// - BE6 ajoute seulement :
+  ///   - une vraie chance de critique minimale ;
+  ///   - un multiplicateur critique fixe ;
+  ///   - aucune interaction avancée avec stages / items / abilities.
   _ResolvedDamage _computeMoveDamage({
     required BattleMove move,
     required BattleCombatant attacker,
     required BattleCombatant defender,
+    required BattleRng rng,
   }) {
     if (move.resolvedCategory == BattleMoveCategory.status || move.power <= 0) {
-      return const _ResolvedDamage(
+      return _ResolvedDamage(
         damage: 0,
+        didCrit: false,
+        criticalMultiplier: 1.0,
         stabMultiplier: 1.0,
         typeEffectivenessMultiplier: 1.0,
+        nextRng: rng,
       );
     }
 
@@ -868,28 +887,90 @@ class BattleSession {
     if (typeEffectivenessMultiplier == 0.0) {
       return _ResolvedDamage(
         damage: 0,
+        didCrit: false,
+        criticalMultiplier: 1.0,
         stabMultiplier: stabMultiplier,
         typeEffectivenessMultiplier: typeEffectivenessMultiplier,
+        nextRng: rng,
       );
     }
 
-    // Ordre de multiplication BE5 :
+    // BE6 garde ici un ordre de résolution petit mais honnête :
+    // 1. le hit check a déjà eu lieu en amont ;
+    // 2. on vérifie ensuite l'immunité via le type chart ;
+    // 3. seulement pour un hit offensif non immunisé, on résout un crit ;
+    // 4. puis on applique STAB / efficacité de type et le clamp final.
+    //
+    // Ce choix évite de "dépenser" un tirage de crit sur un move qui n'aurait
+    // de toute façon aucun effet. Pour le sous-ensemble actuel, c'est plus
+    // honnête et reste mathématiquement neutre sur le résultat observable.
+    final criticalHit = _resolveCriticalHit(
+      move: move,
+      rng: rng,
+    );
+
+    // Ordre de multiplication BE6 :
     // 1. baseDamage déterministe BE2 ;
-    // 2. STAB ;
-    // 3. effectiveness / résistance ;
-    // 4. clamp minimum 1 si le move a touché et n'est pas immunisé.
+    // 2. critique minimal BE6 ;
+    // 3. STAB ;
+    // 4. effectiveness / résistance ;
+    // 5. clamp minimum 1 si le move a touché et n'est pas immunisé.
     //
     // On reste volontairement dans un modèle simple à base de doubles +
     // `floor` plutôt que de singer tous les paliers internes de Showdown.
-    final scaledDamage =
-        (baseDamage * stabMultiplier * typeEffectivenessMultiplier).floor();
+    final scaledDamage = (baseDamage *
+            criticalHit.multiplier *
+            stabMultiplier *
+            typeEffectivenessMultiplier)
+        .floor();
     final finalDamage = scaledDamage < 1 ? 1 : scaledDamage;
 
     return _ResolvedDamage(
       damage: finalDamage,
+      didCrit: criticalHit.didCrit,
+      criticalMultiplier: criticalHit.multiplier,
       stabMultiplier: stabMultiplier,
       typeEffectivenessMultiplier: typeEffectivenessMultiplier,
+      nextRng: criticalHit.nextRng,
     );
+  }
+
+  _ResolvedCriticalHit _resolveCriticalHit({
+    required BattleMove move,
+    required BattleRng rng,
+  }) {
+    final chance = _critChanceForRatio(move.critRatio);
+    if (chance.didOccurWithoutRng) {
+      return _ResolvedCriticalHit(
+        didCrit: true,
+        multiplier: _criticalHitMultiplier,
+        nextRng: rng,
+      );
+    }
+
+    final roll = rng.nextChance(
+      numerator: chance.numerator,
+      denominator: chance.denominator,
+    );
+    return _ResolvedCriticalHit(
+      didCrit: roll.didOccur,
+      multiplier: roll.didOccur ? _criticalHitMultiplier : 1.0,
+      nextRng: roll.next,
+    );
+  }
+
+  _CritChance _critChanceForRatio(int critRatio) {
+    // Table BE6 volontairement explicite :
+    // - on suit une lecture moderne Pokémon-like des stages de crit ;
+    // - `1` reste le ratio neutre du canonique projet ;
+    // - on ne prétend pas ouvrir Focus Energy, Lucky Chant ou d'autres
+    //   modificateurs indirects.
+    return switch (critRatio) {
+      <= 1 => const _CritChance(numerator: 1, denominator: 24),
+      2 => const _CritChance(numerator: 1, denominator: 8),
+      3 => const _CritChance(numerator: 1, denominator: 2),
+      _ => const _CritChance.always(),
+    };
   }
 
   int _statValueFor(BattleStatsSnapshot snapshot, BattleStatId stat) {
@@ -1033,13 +1114,47 @@ class _ResolvedHitCheck {
 class _ResolvedDamage {
   const _ResolvedDamage({
     required this.damage,
+    required this.didCrit,
+    required this.criticalMultiplier,
     required this.stabMultiplier,
     required this.typeEffectivenessMultiplier,
+    required this.nextRng,
   });
 
   final int damage;
+  final bool didCrit;
+  final double criticalMultiplier;
   final double stabMultiplier;
   final double typeEffectivenessMultiplier;
+  final BattleRng nextRng;
 
   bool get wasImmune => typeEffectivenessMultiplier == 0.0;
+}
+
+class _ResolvedCriticalHit {
+  const _ResolvedCriticalHit({
+    required this.didCrit,
+    required this.multiplier,
+    required this.nextRng,
+  });
+
+  final bool didCrit;
+  final double multiplier;
+  final BattleRng nextRng;
+}
+
+class _CritChance {
+  const _CritChance({
+    required this.numerator,
+    required this.denominator,
+  }) : didOccurWithoutRng = false;
+
+  const _CritChance.always()
+      : numerator = 1,
+        denominator = 1,
+        didOccurWithoutRng = true;
+
+  final int numerator;
+  final int denominator;
+  final bool didOccurWithoutRng;
 }

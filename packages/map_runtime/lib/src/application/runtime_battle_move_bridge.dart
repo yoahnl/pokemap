@@ -21,15 +21,16 @@ import 'runtime_battle_setup_exception.dart';
 /// - on transporte maintenant le petit supplément de contrat battle qui évite
 ///   cette perte (`type`, `target`, `pp`) ;
 /// - et on refuse explicitement les dimensions non neutres qui resteraient
-///   encore mensongères sans nouvelle couche moteur (`priority`, `critRatio`,
-///   cibles hors 1v1 simple honnête).
+///   encore mensongères sans nouvelle couche moteur (`priority`, cibles hors
+///   1v1 simple honnête).
 ///
 /// BE3 recadre ensuite ce point :
 /// - `priority` n'est plus refusée, parce que `map_battle` sait enfin
 ///   ordonner honnêtement deux actions `Fight` ;
 /// - `speed` stage devient également supportée pour ce même besoin ;
 /// - puis BE4 ouvre enfin l'accuracy battle minimale et les PP réels ;
-/// - `critRatio` et le reste restent hors scope et donc refusés.
+/// - puis BE6 ouvre enfin un crit minimal honnête via `critRatio` ;
+/// - le reste reste explicitement hors scope et donc refusé.
 class RuntimeBattleMoveBridge {
   const RuntimeBattleMoveBridge();
 
@@ -44,10 +45,6 @@ class RuntimeBattleMoveBridge {
     required String combatantLabel,
   }) {
     _ensureEngineSupportLevelAllowsBridge(
-      move: move,
-      combatantLabel: combatantLabel,
-    );
-    _ensureCritRatioIsNeutralEnoughForBattle(
       move: move,
       combatantLabel: combatantLabel,
     );
@@ -240,6 +237,7 @@ class RuntimeBattleMoveBridge {
       accuracy: accuracy,
       pp: move.pp,
       priority: move.priority,
+      critRatio: move.critRatio,
       selfStatStageChanges:
           List<BattleStatStageChange>.unmodifiable(selfChanges),
       targetStatStageChanges:
@@ -266,24 +264,6 @@ class RuntimeBattleMoveBridge {
     return accuracy.map(
       percent: (accuracy) => BattleMoveAccuracy.percent(value: accuracy.value),
       alwaysHits: (_) => const BattleMoveAccuracy.alwaysHits(),
-    );
-  }
-
-  void _ensureCritRatioIsNeutralEnoughForBattle({
-    required PokemonMove move,
-    required String combatantLabel,
-  }) {
-    // Même logique pour le critique :
-    // - tant que le moteur n'a aucun crit réel ;
-    // - un crit ratio non neutre serait perdu silencieusement ;
-    // - on refuse donc le move au bridge au lieu de prétendre le supporter.
-    if (move.critRatio == 1) {
-      return;
-    }
-    _rejectMove(
-      move: move,
-      combatantLabel: combatantLabel,
-      bridgeLimit: 'unsupported_crit_ratio:${move.critRatio}',
     );
   }
 

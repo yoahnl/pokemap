@@ -154,6 +154,7 @@ class BattleMoveData {
   ///   forcer un état de combat déjà entamé.
   /// [priority] - Priorité canonique transportée et consommée par BE3 pour
   ///   l'ordre d'action minimal honnête.
+  /// [critRatio] - Ratio critique minimal transporté et consommé par BE6.
   /// [selfStatStageChanges] - Boosts / baisses appliqués au lanceur.
   /// [targetStatStageChanges] - Boosts / baisses appliqués à la cible.
   ///
@@ -164,6 +165,7 @@ class BattleMoveData {
   ///   (`type`, `target`, `pp`) pour arrêter leur perte silencieuse ;
   /// - puis BE3 et BE4 commencent à consommer réellement `priority`,
   ///   `speed`, `accuracy` et les PP ;
+  /// - puis BE6 ouvre enfin un crit minimal honnête via `critRatio` ;
   /// - le reste reste explicitement hors scope.
   const BattleMoveData({
     required this.id,
@@ -176,6 +178,7 @@ class BattleMoveData {
     this.pp = 35,
     this.currentPp,
     this.priority = 0,
+    this.critRatio = 1,
     this.selfStatStageChanges = const <BattleStatStageChange>[],
     this.targetStatStageChanges = const <BattleStatStageChange>[],
   });
@@ -266,6 +269,17 @@ class BattleMoveData {
   /// - il est consommé ensuite par `BattleSession` pour l'ordre du tour ;
   /// - mais il ne crée pas pour autant une vraie queue générique.
   final int priority;
+
+  /// Ratio critique minimal transporté jusqu'au moteur battle.
+  ///
+  /// BE6 reste volontairement petit :
+  /// - on transporte seulement l'entier canonique déjà présent côté runtime ;
+  /// - le moteur battle l'interprète via une table locale explicite ;
+  /// - on n'ouvre pas les règles avancées de critique du jeu complet.
+  ///
+  /// Valeur neutre :
+  /// - `1` correspond au ratio critique standard.
+  final int critRatio;
 
   /// Changements d'étages de stats appliqués au lanceur.
   final List<BattleStatStageChange> selfStatStageChanges;

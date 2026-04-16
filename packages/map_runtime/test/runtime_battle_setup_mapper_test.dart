@@ -277,7 +277,7 @@ void main() {
 
       final session = createBattleSession(
         setup,
-        rng: const BattleScriptedRng(<int>[100]),
+        rng: const BattleScriptedRng(<int>[2, 100]),
       ).applyChoice(const PlayerBattleChoiceFight(0));
 
       final execution = session.state.currentTurn!.executions.firstWhere(
@@ -286,6 +286,56 @@ void main() {
       expect(execution.move.id, equals('mud_slap'));
       expect(execution.didHit, isFalse);
       expect(session.state.enemy.currentHp, equals(setup.enemyPokemon.maxHp));
+    });
+
+    test(
+        'maps a non-neutral crit ratio honestly through to battle, where it can crit deterministically',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+      final setup = await mapper.map(
+        bundle: bundle,
+        gameState: const GameState(
+          saveId: 'save-crits',
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              PlayerPokemon(
+                speciesId: 'sproutle',
+                natureId: 'bold',
+                abilityId: 'overgrow',
+                level: 12,
+                knownMoveIds: <String>['razor_leaf'],
+                currentHp: 23,
+              ),
+            ],
+          ),
+        ),
+        request: _wildRequest(
+          speciesId: 'sparkitten',
+          level: 10,
+        ),
+      );
+
+      expect(setup.playerPokemon.moves, hasLength(1));
+      expect(setup.playerPokemon.moves.single.id, equals('razor_leaf'));
+      expect(setup.playerPokemon.moves.single.critRatio, equals(2));
+
+      final session = createBattleSession(
+        setup,
+        rng: const BattleScriptedRng(<int>[2, 1]),
+      ).applyChoice(const PlayerBattleChoiceFight(0));
+
+      final execution = session.state.currentTurn!.executions.firstWhere(
+        (execution) => execution.attacker == 'player',
+      );
+      expect(execution.move.id, equals('razor_leaf'));
+      expect(execution.didHit, isTrue);
+      expect(execution.didCrit, isTrue);
+      expect(execution.criticalMultiplier, equals(1.5));
+      expect(execution.damage, greaterThan(0));
     });
 
     test('falls back to the species id when the species has no learnset ref',
@@ -1011,7 +1061,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
         _moveEntry('tackle', 'Tackle', 40),
         _moveEntry('growl', 'Growl', 0),
         _moveEntry('vine_whip', 'Vine Whip', 45, type: 'grass'),
-        _moveEntry('razor_leaf', 'Razor Leaf', 55, type: 'grass'),
+        _moveEntry('razor_leaf', 'Razor Leaf', 55, type: 'grass', critRatio: 2),
         _moveEntry('scratch', 'Scratch', 40),
         _moveEntry('mud_slap', 'Mud-Slap', 20, type: 'ground', accuracy: 85),
         _moveEntry('tail_whip', 'Tail Whip', 0),
@@ -1030,6 +1080,7 @@ Map<String, Object?> _moveEntry(
   int power, {
   String type = 'normal',
   int accuracy = 100,
+  int critRatio = 1,
   PokemonMoveEngineSupportLevel engineSupportLevel =
       PokemonMoveEngineSupportLevel.structuredSupported,
   List<String> unsupportedReasons = const <String>[],
@@ -1050,6 +1101,7 @@ Map<String, Object?> _moveEntry(
         ? const PokemonMoveAccuracy.alwaysHits()
         : PokemonMoveAccuracy.percent(value: accuracy),
     pp: 35,
+    critRatio: critRatio,
     effects: effects,
     engineSupportLevel: engineSupportLevel,
     unsupportedReasons: unsupportedReasons,

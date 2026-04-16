@@ -375,6 +375,34 @@ void main() {
           equals(BattleMoveAccuracyKind.percent));
       expect(seed.moves.single.accuracy.value, equals(85));
     });
+
+    test(
+        'keeps a non-neutral crit ratio once battle owns minimal critical hits',
+        () async {
+      await _writePokemonFixtures(tempProjectRoot);
+      final movesCatalog = await moveCatalogLoader.load(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+      );
+
+      final seed = await builder.buildPlayerCombatantSeed(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        movesCatalog: movesCatalog,
+        playerPokemon: const PlayerPokemon(
+          speciesId: 'sproutle',
+          natureId: 'bold',
+          abilityId: 'overgrow',
+          level: 12,
+          knownMoveIds: <String>['razor_leaf'],
+          currentHp: 23,
+        ),
+      );
+
+      expect(seed.moves, hasLength(1));
+      expect(seed.moves.single.id, equals('razor_leaf'));
+      expect(seed.moves.single.critRatio, equals(2));
+    });
   });
 }
 
@@ -533,7 +561,7 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
         _moveEntry('growl', 'Growl', 0),
         _moveEntry('vine_whip', 'Vine Whip', 45, type: 'grass'),
         _moveEntry('leer', 'Leer', 0),
-        _moveEntry('razor_leaf', 'Razor Leaf', 55, type: 'grass'),
+        _moveEntry('razor_leaf', 'Razor Leaf', 55, type: 'grass', critRatio: 2),
         _moveEntry('scratch', 'Scratch', 40),
         _moveEntry('quick_attack', 'Quick Attack', 40, priority: 1),
         _moveEntry('mud_slap', 'Mud-Slap', 20, type: 'ground', accuracy: 85),
