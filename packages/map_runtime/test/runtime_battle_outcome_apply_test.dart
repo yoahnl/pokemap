@@ -158,6 +158,95 @@ void main() {
       expect(updatedState.party.members[2].currentHp, equals(18));
     });
 
+    test(
+        'rejects the legacy mono-slot fallback when the final player lineup actually contains BE10 reserves',
+        () {
+      const initialState = GameState(
+        saveId: 'save-switch-lineup-missing-mapping',
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'slot_zero_bench',
+              natureId: 'hardy',
+              abilityId: 'pressure',
+              level: 18,
+              knownMoveIds: <String>['a'],
+              currentHp: 44,
+            ),
+            PlayerPokemon(
+              speciesId: 'slot_one_initial_active',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+              level: 20,
+              knownMoveIds: <String>['b'],
+              currentHp: 35,
+            ),
+          ],
+        ),
+      );
+
+      const outcome = BattleOutcome(
+        type: BattleOutcomeType.victory,
+        finalState: BattleState(
+          phase: BattlePhase.finished,
+          player: BattleCombatant(
+            speciesId: 'slot_zero_bench',
+            lineupIndex: 1,
+            level: 18,
+            currentHp: 9,
+            maxHp: 44,
+            stats: _outcomeTestStats,
+            moves: <BattleMove>[
+              BattleMove(id: 'a', name: 'a', power: 10),
+            ],
+          ),
+          playerReserve: <BattleCombatant>[
+            BattleCombatant(
+              speciesId: 'slot_one_initial_active',
+              lineupIndex: 0,
+              level: 20,
+              currentHp: 3,
+              maxHp: 35,
+              stats: _outcomeTestStats,
+              moves: <BattleMove>[
+                BattleMove(id: 'b', name: 'b', power: 10),
+              ],
+            ),
+          ],
+          enemy: BattleCombatant(
+            speciesId: 'enemy',
+            level: 20,
+            currentHp: 0,
+            maxHp: 30,
+            stats: _outcomeTestStats,
+            moves: <BattleMove>[
+              BattleMove(id: 'x', name: 'x', power: 10),
+            ],
+          ),
+          currentTurn: null,
+          outcome: null,
+        ),
+      );
+
+      expect(
+        () => applyRuntimeBattleOutcomeToGameState(
+          gameState: initialState,
+          context: RuntimeActiveBattleContext(
+            request: _wildRequest(),
+            playerPartyIndex: 1,
+          ),
+          outcome: outcome,
+        ),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.toString(),
+            'message',
+            contains('playerPartySlotIndicesByLineupIndex'),
+          ),
+        ),
+      );
+    });
+
     test('trainer victory writes player hp and marks trainer as defeated', () {
       final updatedState = applyRuntimeBattleOutcomeToGameState(
         gameState: _baseState(),

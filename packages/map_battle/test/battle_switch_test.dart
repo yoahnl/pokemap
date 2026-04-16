@@ -70,6 +70,8 @@ BattleSession _session({
   required BattleCombatantData enemy,
   List<BattleCombatantData> enemyReserve = const <BattleCombatantData>[],
   bool isTrainerBattle = false,
+  bool allowCapture = false,
+  BattleFieldState fieldState = const BattleFieldState(),
   BattleRng rng = const BattleSeededRng(),
 }) {
   return createBattleSession(
@@ -80,6 +82,8 @@ BattleSession _session({
       enemyReservePokemon: enemyReserve,
       isTrainerBattle: isTrainerBattle,
       trainerId: isTrainerBattle ? 'trainer' : null,
+      allowCapture: allowCapture,
+      fieldState: fieldState,
     ),
     rng: rng,
   );
@@ -194,6 +198,40 @@ void main() {
       );
     });
 
+    test(
+        'forced replacement choices expose only valid switches even when wild capture and run would normally be allowed',
+        () {
+      final session = _session(
+        allowCapture: true,
+        player: _combatant(
+          speciesId: 'fainted_player',
+          lineupIndex: 0,
+          currentHp: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+        playerReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'bench_player',
+            lineupIndex: 1,
+            moves: <BattleMoveData>[_waitingMove()],
+          ),
+        ],
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+
+      final choices = session.getAvailableChoices();
+
+      expect(choices.whereType<PlayerBattleChoiceSwitch>(), hasLength(1));
+      expect(choices.whereType<PlayerBattleChoiceFight>(), isEmpty);
+      expect(choices.whereType<PlayerBattleChoiceContinue>(), isEmpty);
+      expect(choices.whereType<PlayerBattleChoiceRun>(), isEmpty);
+      expect(choices.whereType<PlayerBattleChoiceCapture>(), isEmpty);
+    });
+
     test('voluntary switch resolves before an opposing attack and redirects it',
         () {
       final session = _session(
@@ -237,6 +275,55 @@ void main() {
       expect(
         afterTurn.state.currentTurn!.switchEvents.single.wasForced,
         isFalse,
+      );
+    });
+
+    test('field state survives a voluntary switch turn', () {
+      final session = _session(
+        fieldState: const BattleFieldState(
+          weather: BattleWeatherState(
+            id: BattleWeatherId.rain,
+            remainingTurns: 3,
+          ),
+          pseudoWeather: BattlePseudoWeatherState(
+            id: BattlePseudoWeatherId.trickRoom,
+            remainingTurns: 3,
+          ),
+        ),
+        player: _combatant(
+          speciesId: 'lead_player',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+        playerReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'bench_player',
+            lineupIndex: 1,
+            moves: <BattleMoveData>[_waitingMove()],
+          ),
+        ],
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceSwitch(0));
+
+      expect(afterTurn.state.player.speciesId, equals('bench_player'));
+      expect(afterTurn.state.field.weather?.id, equals(BattleWeatherId.rain));
+      expect(
+        afterTurn.state.field.weather?.remainingTurns,
+        equals(2),
+      );
+      expect(
+        afterTurn.state.field.pseudoWeather?.id,
+        equals(BattlePseudoWeatherId.trickRoom),
+      );
+      expect(
+        afterTurn.state.field.pseudoWeather?.remainingTurns,
+        equals(2),
       );
     });
 

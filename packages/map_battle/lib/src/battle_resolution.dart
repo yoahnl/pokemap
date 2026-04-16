@@ -19,6 +19,7 @@ class BattleTurnResult {
   /// [statusEvents] - Les événements de statut/résiduel visibles du tour.
   /// [volatileEvents] - Les événements volatiles BE8 visibles du tour.
   /// [fieldEvents] - Les événements de champ BE9 visibles du tour.
+  /// [timeline] - La chronologie ordonnée réellement produite par le moteur.
   const BattleTurnResult({
     required this.playerAction,
     required this.enemyAction,
@@ -27,6 +28,7 @@ class BattleTurnResult {
     this.volatileEvents = const <BattleVolatileEvent>[],
     this.fieldEvents = const <BattleFieldEvent>[],
     this.switchEvents = const <BattleSwitchEvent>[],
+    this.timeline = const <BattleTurnEvent>[],
   });
 
   /// L'action jouée par le joueur.
@@ -81,6 +83,64 @@ class BattleTurnResult {
   /// - cette petite liste sœur suffit à garder l'état observable sans ouvrir
   ///   de journal universel.
   final List<BattleSwitchEvent> switchEvents;
+
+  /// Chronologie ordonnée du tour telle que réellement résolue par le moteur.
+  ///
+  /// BE10A ajoute cette source de vérité pour arrêter un nouveau mensonge :
+  /// - les buckets `executions` / `statusEvents` / `volatileEvents` /
+  ///   `fieldEvents` / `switchEvents` restent utiles pour les tests ciblés
+  ///   et la compatibilité locale ;
+  /// - mais ils ne peuvent pas, à eux seuls, exprimer l'ordre croisé entre
+  ///   un switch, une exécution d'attaque, un résiduel puis un remplacement ;
+  /// - le runtime/overlay ne doit donc plus reconstruire la chronologie avec
+  ///   un tri heuristique de buckets.
+  ///
+  /// Frontière volontaire :
+  /// - ce n'est pas un event bus générique ;
+  /// - on transporte uniquement les cinq familles déjà réellement supportées ;
+  /// - l'ordre est celui construit pendant la résolution réelle du tour.
+  final List<BattleTurnEvent> timeline;
+}
+
+/// Entrée de chronologie ordonnée d'un tour.
+///
+/// Ce contrat reste strictement local à la restitution du tour :
+/// - il ne remplace pas les buckets historiques ;
+/// - il ne devient pas un journal universel du moteur ;
+/// - il sert uniquement à conserver un ordre causal honnête entre les familles
+///   d'événements déjà réellement supportées.
+sealed class BattleTurnEvent {
+  const BattleTurnEvent();
+}
+
+final class BattleTurnExecutionEvent extends BattleTurnEvent {
+  const BattleTurnExecutionEvent(this.execution);
+
+  final BattleMoveExecution execution;
+}
+
+final class BattleTurnStatusEvent extends BattleTurnEvent {
+  const BattleTurnStatusEvent(this.event);
+
+  final BattleStatusEvent event;
+}
+
+final class BattleTurnVolatileEvent extends BattleTurnEvent {
+  const BattleTurnVolatileEvent(this.event);
+
+  final BattleVolatileEvent event;
+}
+
+final class BattleTurnFieldEvent extends BattleTurnEvent {
+  const BattleTurnFieldEvent(this.event);
+
+  final BattleFieldEvent event;
+}
+
+final class BattleTurnSwitchEvent extends BattleTurnEvent {
+  const BattleTurnSwitchEvent(this.event);
+
+  final BattleSwitchEvent event;
 }
 
 /// Exécution d'une attaque.

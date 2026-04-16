@@ -4,6 +4,137 @@ import 'package:flame/text.dart';
 import 'package:flutter/material.dart';
 import 'package:map_battle/map_battle.dart';
 
+/// Construit les lignes de restitution d'un tour pour l'overlay runtime.
+///
+/// BE10A centralise ici la restitution textuelle pour une raison précise :
+/// - l'overlay ne doit plus réinventer l'ordre du tour en triant des buckets ;
+/// - la vraie source de vérité est désormais `BattleTurnResult.timeline` ;
+/// - cette fonction garde donc la surface runtime alignée sur la chronologie
+///   réellement produite par le moteur battle.
+///
+/// Garde-fou volontaire :
+/// - si un `BattleTurnResult` porte encore des buckets non vides sans
+///   chronologie ordonnée, on échoue explicitement ;
+/// - mieux vaut un seam bruyant qu'une UI qui raconte un ordre faux.
+List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
+  if (turnResult.timeline.isEmpty &&
+      (turnResult.executions.isNotEmpty ||
+          turnResult.statusEvents.isNotEmpty ||
+          turnResult.volatileEvents.isNotEmpty ||
+          turnResult.fieldEvents.isNotEmpty ||
+          turnResult.switchEvents.isNotEmpty)) {
+    throw StateError(
+      'BattleTurnResult.timeline est requis pour afficher honnêtement la chronologie du tour dans l’overlay runtime.',
+    );
+  }
+
+  final lines = <String>[];
+  for (final event in turnResult.timeline) {
+    switch (event) {
+      case BattleTurnExecutionEvent(:final execution):
+        final attacker = _overlayCombatantLabel(execution.attacker);
+        lines.add(
+          '$attacker utilise ${execution.move.name} → ${execution.damage} dégâts',
+        );
+      case BattleTurnStatusEvent(:final event):
+        lines.add(_formatOverlayStatusEvent(event));
+      case BattleTurnVolatileEvent(:final event):
+        lines.add(_formatOverlayVolatileEvent(event));
+      case BattleTurnFieldEvent(:final event):
+        lines.add(_formatOverlayFieldEvent(event));
+      case BattleTurnSwitchEvent(:final event):
+        lines.add(_formatOverlaySwitchEvent(event));
+    }
+  }
+
+  return List<String>.unmodifiable(lines);
+}
+
+String _formatOverlaySwitchEvent(BattleSwitchEvent event) {
+  final actor = _overlayCombatantLabel(event.actor);
+  return switch (event.kind) {
+    BattleSwitchEventKind.switched => event.wasForced
+        ? '$actor remplace ${event.fromSpeciesId} par ${event.toSpeciesId}'
+        : '$actor switch de ${event.fromSpeciesId} vers ${event.toSpeciesId}',
+    BattleSwitchEventKind.replacementRequired =>
+      '$actor doit remplacer ${event.fromSpeciesId} K.O.',
+  };
+}
+
+String _formatOverlayStatusEvent(BattleStatusEvent event) {
+  final actor = _overlayCombatantLabel(event.target);
+  final status = event.status.name.toUpperCase();
+  return switch (event.kind) {
+    BattleStatusEventKind.applied =>
+      '$actor reçoit le statut $status (${event.sourceMoveId})',
+    BattleStatusEventKind.blockedExistingMajorStatus =>
+      '$actor garde déjà ${event.existingStatus!.name.toUpperCase()} '
+          'et ignore $status',
+    BattleStatusEventKind.preventedAction =>
+      '$actor ne peut pas agir à cause de $status',
+    BattleStatusEventKind.residualDamage =>
+      '$actor subit ${event.damage} dégâts résiduels ($status'
+          '${event.toxicCounter == null ? '' : ', compteur ${event.toxicCounter}'}'
+          ')',
+  };
+}
+
+String _formatOverlayVolatileEvent(BattleVolatileEvent event) {
+  final actor = _overlayCombatantLabel(event.actor);
+  final target =
+      event.target == null ? null : _overlayCombatantLabel(event.target!);
+
+  return switch (event.kind) {
+    BattleVolatileEventKind.protectActivated => '$actor active Protect',
+    BattleVolatileEventKind.protectBlocked =>
+      '${target ?? 'La cible'} bloque l’attaque avec Protect',
+    BattleVolatileEventKind.protectBroken =>
+      '$actor perce Protect sur ${target ?? 'la cible'}',
+    BattleVolatileEventKind.rechargeRequired =>
+      '$actor doit recharger au tour suivant',
+    BattleVolatileEventKind.rechargeTurnSpent =>
+      '$actor passe son tour pour recharger',
+    BattleVolatileEventKind.chargeStarted =>
+      '$actor commence à charger ${event.sourceMoveId ?? 'son attaque'}',
+    BattleVolatileEventKind.chargeReleased =>
+      '$actor libère ${event.sourceMoveId ?? 'son attaque chargée'}',
+  };
+}
+
+String _formatOverlayFieldEvent(BattleFieldEvent event) {
+  return switch (event.kind) {
+    BattleFieldEventKind.weatherSet =>
+      'Le champ passe à ${_overlayWeatherLabel(event.weather!)}',
+    BattleFieldEventKind.weatherResidualDamage =>
+      '${_overlayCombatantLabel(event.target!)} subit ${event.damage} dégâts de ${_overlayWeatherLabel(event.weather!)}',
+    BattleFieldEventKind.weatherExpired =>
+      '${_overlayWeatherLabel(event.weather!)} prend fin',
+    BattleFieldEventKind.pseudoWeatherSet =>
+      '${_overlayPseudoWeatherLabel(event.pseudoWeather!)} devient actif',
+    BattleFieldEventKind.pseudoWeatherCleared =>
+      '${_overlayPseudoWeatherLabel(event.pseudoWeather!)} est dissipé',
+    BattleFieldEventKind.pseudoWeatherExpired =>
+      '${_overlayPseudoWeatherLabel(event.pseudoWeather!)} prend fin',
+  };
+}
+
+String _overlayCombatantLabel(String combatantId) {
+  return combatantId == 'player' ? 'Joueur' : 'Ennemi';
+}
+
+String _overlayWeatherLabel(BattleWeatherId weather) {
+  return switch (weather) {
+    BattleWeatherId.rain => 'la pluie',
+    BattleWeatherId.sandstorm => 'la tempête de sable',
+  };
+}
+
+String _overlayPseudoWeatherLabel(BattlePseudoWeatherId pseudoWeather) {
+  return switch (pseudoWeather) {
+    BattlePseudoWeatherId.trickRoom => 'Trick Room',
+  };
+}
+
 /// Composant UI d'overlay de combat.
 ///
 /// Affiche l'état courant du combat et permet au joueur de choisir une action.
@@ -252,38 +383,7 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
       return;
     }
 
-    // Construire le texte du résultat du tour
-    final lines = <String>[];
-    for (final execution in turnResult.executions) {
-      final attacker = _combatantLabel(execution.attacker);
-      lines.add(
-          '$attacker utilise ${execution.move.name} → ${execution.damage} dégâts');
-    }
-
-    for (final event in turnResult.volatileEvents) {
-      lines.add(_formatVolatileEvent(event));
-    }
-
-    // Garder un ordre d'affichage causal minimal :
-    // - les résolutions de move d'abord ;
-    // - ensuite les événements volatiles/statuts/field de fin de tour ;
-    // - puis seulement les switches/remplacements qu'ils ont éventuellement
-    //   déclenchés.
-    //
-    // Sans cet ordre, un auto-remplacement après résiduel pouvait apparaître
-    // avant la ligne de dégâts qui l'avait provoqué, ce qui faisait mentir la
-    // surface runtime alors même que le moteur battle restait correct.
-    for (final event in turnResult.statusEvents) {
-      lines.add(_formatStatusEvent(event));
-    }
-
-    for (final event in turnResult.fieldEvents) {
-      lines.add(_formatFieldEvent(event));
-    }
-
-    for (final event in turnResult.switchEvents) {
-      lines.add(_formatSwitchEvent(event));
-    }
+    final lines = buildBattleTurnLinesForOverlay(turnResult);
 
     if (lines.isEmpty) {
       return;
@@ -417,90 +517,6 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
       return '🏃 Fuir';
     }
     return '???';
-  }
-
-  String _formatSwitchEvent(BattleSwitchEvent event) {
-    final actor = _combatantLabel(event.actor);
-    return switch (event.kind) {
-      BattleSwitchEventKind.switched => event.wasForced
-          ? '$actor remplace ${event.fromSpeciesId} par ${event.toSpeciesId}'
-          : '$actor switch de ${event.fromSpeciesId} vers ${event.toSpeciesId}',
-      BattleSwitchEventKind.replacementRequired =>
-        '$actor doit remplacer ${event.fromSpeciesId} K.O.',
-    };
-  }
-
-  String _formatStatusEvent(BattleStatusEvent event) {
-    final actor = _combatantLabel(event.target);
-    final status = event.status.name.toUpperCase();
-    return switch (event.kind) {
-      BattleStatusEventKind.applied =>
-        '$actor reçoit le statut $status (${event.sourceMoveId})',
-      BattleStatusEventKind.blockedExistingMajorStatus =>
-        '$actor garde déjà ${event.existingStatus!.name.toUpperCase()} '
-            'et ignore $status',
-      BattleStatusEventKind.preventedAction =>
-        '$actor ne peut pas agir à cause de $status',
-      BattleStatusEventKind.residualDamage =>
-        '$actor subit ${event.damage} dégâts résiduels ($status'
-            '${event.toxicCounter == null ? '' : ', compteur ${event.toxicCounter}'}'
-            ')',
-    };
-  }
-
-  String _formatVolatileEvent(BattleVolatileEvent event) {
-    final actor = _combatantLabel(event.actor);
-    final target = event.target == null ? null : _combatantLabel(event.target!);
-
-    return switch (event.kind) {
-      BattleVolatileEventKind.protectActivated => '$actor active Protect',
-      BattleVolatileEventKind.protectBlocked =>
-        '${target ?? 'La cible'} bloque l’attaque avec Protect',
-      BattleVolatileEventKind.protectBroken =>
-        '$actor perce Protect sur ${target ?? 'la cible'}',
-      BattleVolatileEventKind.rechargeRequired =>
-        '$actor doit recharger au tour suivant',
-      BattleVolatileEventKind.rechargeTurnSpent =>
-        '$actor passe son tour pour recharger',
-      BattleVolatileEventKind.chargeStarted =>
-        '$actor commence à charger ${event.sourceMoveId ?? 'son attaque'}',
-      BattleVolatileEventKind.chargeReleased =>
-        '$actor libère ${event.sourceMoveId ?? 'son attaque chargée'}',
-    };
-  }
-
-  String _formatFieldEvent(BattleFieldEvent event) {
-    return switch (event.kind) {
-      BattleFieldEventKind.weatherSet =>
-        'Le champ passe à ${_weatherLabel(event.weather!)}',
-      BattleFieldEventKind.weatherResidualDamage =>
-        '${_combatantLabel(event.target!)} subit ${event.damage} dégâts de ${_weatherLabel(event.weather!)}',
-      BattleFieldEventKind.weatherExpired =>
-        '${_weatherLabel(event.weather!)} prend fin',
-      BattleFieldEventKind.pseudoWeatherSet =>
-        '${_pseudoWeatherLabel(event.pseudoWeather!)} devient actif',
-      BattleFieldEventKind.pseudoWeatherCleared =>
-        '${_pseudoWeatherLabel(event.pseudoWeather!)} est dissipé',
-      BattleFieldEventKind.pseudoWeatherExpired =>
-        '${_pseudoWeatherLabel(event.pseudoWeather!)} prend fin',
-    };
-  }
-
-  String _combatantLabel(String combatantId) {
-    return combatantId == 'player' ? 'Joueur' : 'Ennemi';
-  }
-
-  String _weatherLabel(BattleWeatherId weather) {
-    return switch (weather) {
-      BattleWeatherId.rain => 'la pluie',
-      BattleWeatherId.sandstorm => 'la tempête de sable',
-    };
-  }
-
-  String _pseudoWeatherLabel(BattlePseudoWeatherId pseudoWeather) {
-    return switch (pseudoWeather) {
-      BattlePseudoWeatherId.trickRoom => 'Trick Room',
-    };
   }
 
   /// Retourne le titre pour la session.

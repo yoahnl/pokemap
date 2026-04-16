@@ -46,8 +46,11 @@ class RuntimeActiveBattleContext {
   ///
   /// Compatibilité volontaire :
   /// - l'ancien chemin mono-slot peut laisser cette liste vide ;
-  /// - dans ce cas, le write-back retombe honnêtement sur le seul
-  ///   `playerPartyIndex`.
+  /// - mais ce fallback n'est honnête que tant que le combat n'a réellement
+  ///   engagé qu'un seul membre joueur ;
+  /// - dès qu'un `BattleOutcome.finalState` BE10 transporte une vraie réserve
+  ///   joueur, ce mapping devient obligatoire pour éviter d'écrire les PV sur
+  ///   un slot runtime arbitraire.
   final List<int> playerPartySlotIndicesByLineupIndex;
 }
 
@@ -332,13 +335,36 @@ GameState _writePlayerBattleLineupBackToPartySlots({
   required RuntimeActiveBattleContext context,
   required BattleState finalState,
 }) {
-  final lineupToParty = context.playerPartySlotIndicesByLineupIndex.isEmpty
-      ? <int>[context.playerPartyIndex]
-      : context.playerPartySlotIndicesByLineupIndex;
   final playerLineup = <BattleCombatant>[
     finalState.player,
     ...finalState.playerReserve,
   ];
+  final hasExplicitLineupMapping =
+      context.playerPartySlotIndicesByLineupIndex.isNotEmpty;
+
+  // BE10A durcit ici un seam devenu ambigu après l'ouverture du switch
+  // pipeline :
+  // - le vieux fallback mono-slot sur `playerPartyIndex` reste acceptable pour
+  //   les combats historiques où un seul membre joueur a réellement été engagé ;
+  // - en revanche, dès que `finalState` porte une vraie réserve BE10, ce
+  //   fallback n'est plus honnête : on ne sait plus quel slot runtime doit
+  //   recevoir quel combattant battle ;
+  // - on préfère donc un échec explicite et testable à une écriture silencieuse
+  //   sur le mauvais membre de la party.
+  if (!hasExplicitLineupMapping &&
+      (playerLineup.length > 1 || finalState.player.lineupIndex != 0)) {
+    throw StateError(
+      'Le write-back runtime BE10 exige RuntimeActiveBattleContext.'
+      'playerPartySlotIndicesByLineupIndex quand BattleOutcome.finalState '
+      'porte une lineup joueur multi-membre ou non triviale '
+      '(lineupLength=${playerLineup.length}, '
+      'activeLineupIndex=${finalState.player.lineupIndex}).',
+    );
+  }
+
+  final lineupToParty = hasExplicitLineupMapping
+      ? context.playerPartySlotIndicesByLineupIndex
+      : <int>[context.playerPartyIndex];
 
   if (playerLineup.length != lineupToParty.length) {
     throw StateError(

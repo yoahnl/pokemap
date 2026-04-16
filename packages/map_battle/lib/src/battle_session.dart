@@ -524,6 +524,10 @@ class BattleSession {
       ...resolvedTurn.turnResult.switchEvents,
       ...postTurnSwitches.switchEvents,
     ];
+    final timeline = <BattleTurnEvent>[
+      ...resolvedTurn.turnResult.timeline,
+      ...postTurnSwitches.timeline,
+    ];
     final turnResult = BattleTurnResult(
       playerAction: resolvedTurn.turnResult.playerAction,
       enemyAction: resolvedTurn.turnResult.enemyAction,
@@ -532,6 +536,7 @@ class BattleSession {
       volatileEvents: resolvedTurn.turnResult.volatileEvents,
       fieldEvents: resolvedTurn.turnResult.fieldEvents,
       switchEvents: List<BattleSwitchEvent>.unmodifiable(switchEvents),
+      timeline: List<BattleTurnEvent>.unmodifiable(timeline),
     );
 
     // Phase 5: Vérifier si le combat est fini
@@ -590,6 +595,9 @@ class BattleSession {
           enemyAction: const BattleActionNone(),
           executions: const <BattleMoveExecution>[],
           switchEvents: <BattleSwitchEvent>[replacement.event],
+          timeline: <BattleTurnEvent>[
+            BattleTurnSwitchEvent(replacement.event),
+          ],
         ),
         outcome: null,
       ),
@@ -647,6 +655,7 @@ class BattleSession {
     var updatedEnemy = enemy;
     var updatedEnemyReserve = enemyReserve;
     final switchEvents = <BattleSwitchEvent>[];
+    final timeline = <BattleTurnEvent>[];
 
     final enemyReplacementIndex = _firstUsableReserveIndex(updatedEnemyReserve);
     if (updatedEnemy.isFainted && enemyReplacementIndex != null) {
@@ -660,17 +669,18 @@ class BattleSession {
       updatedEnemy = replacement.active;
       updatedEnemyReserve = replacement.reserve;
       switchEvents.add(replacement.event);
+      timeline.add(BattleTurnSwitchEvent(replacement.event));
     }
 
     if (updatedPlayer.isFainted &&
         !updatedEnemy.isFainted &&
         _firstUsableReserveIndex(updatedPlayerReserve) != null) {
-      switchEvents.add(
-        BattleSwitchEvent.replacementRequired(
-          actor: 'player',
-          fromSpeciesId: updatedPlayer.speciesId,
-        ),
+      final replacementRequiredEvent = BattleSwitchEvent.replacementRequired(
+        actor: 'player',
+        fromSpeciesId: updatedPlayer.speciesId,
       );
+      switchEvents.add(replacementRequiredEvent);
+      timeline.add(BattleTurnSwitchEvent(replacementRequiredEvent));
     }
 
     return _ResolvedPostTurnSwitchState(
@@ -679,6 +689,7 @@ class BattleSession {
       enemy: updatedEnemy,
       enemyReserve: updatedEnemyReserve,
       switchEvents: List<BattleSwitchEvent>.unmodifiable(switchEvents),
+      timeline: List<BattleTurnEvent>.unmodifiable(timeline),
     );
   }
 
@@ -818,6 +829,7 @@ class BattleSession {
     final volatileEvents = <BattleVolatileEvent>[];
     final fieldEvents = <BattleFieldEvent>[];
     final switchEvents = <BattleSwitchEvent>[];
+    final timeline = <BattleTurnEvent>[];
     var player = state.player;
     var playerReserve = state.playerReserve;
     var enemy = state.enemy;
@@ -860,6 +872,7 @@ class BattleSession {
             statusEvents.addAll(resolution.statusEvents);
             volatileEvents.addAll(resolution.volatileEvents);
             fieldEvents.addAll(resolution.fieldEvents);
+            timeline.addAll(resolution.timeline);
           } else if (orderedAction.action
               case BattleActionSwitch(:final reserveIndex)) {
             final resolution = _resolveSwitchAction(
@@ -872,6 +885,7 @@ class BattleSession {
             player = resolution.active;
             playerReserve = resolution.reserve;
             switchEvents.add(resolution.event);
+            timeline.add(BattleTurnSwitchEvent(resolution.event));
           } else if (orderedAction.action is BattleActionRecharge) {
             if (player.isFainted || enemy.isFainted) {
               continue;
@@ -882,6 +896,7 @@ class BattleSession {
             );
             player = resolution.combatant;
             volatileEvents.addAll(resolution.volatileEvents);
+            timeline.addAll(resolution.timeline);
           }
         case _BattleActor.enemy:
           if (orderedAction.action
@@ -909,6 +924,7 @@ class BattleSession {
             statusEvents.addAll(resolution.statusEvents);
             volatileEvents.addAll(resolution.volatileEvents);
             fieldEvents.addAll(resolution.fieldEvents);
+            timeline.addAll(resolution.timeline);
           } else if (orderedAction.action
               case BattleActionSwitch(:final reserveIndex)) {
             final resolution = _resolveSwitchAction(
@@ -921,6 +937,7 @@ class BattleSession {
             enemy = resolution.active;
             enemyReserve = resolution.reserve;
             switchEvents.add(resolution.event);
+            timeline.add(BattleTurnSwitchEvent(resolution.event));
           } else if (orderedAction.action is BattleActionRecharge) {
             if (enemy.isFainted || player.isFainted) {
               continue;
@@ -931,6 +948,7 @@ class BattleSession {
             );
             enemy = resolution.combatant;
             volatileEvents.addAll(resolution.volatileEvents);
+            timeline.addAll(resolution.timeline);
           }
       }
     }
@@ -945,6 +963,7 @@ class BattleSession {
     field = residualResolution.field;
     statusEvents.addAll(residualResolution.statusEvents);
     fieldEvents.addAll(residualResolution.fieldEvents);
+    timeline.addAll(residualResolution.timeline);
     player = player.withVolatileState(
       player.volatileState.clearedEndOfTurnFlags(),
     );
@@ -967,6 +986,7 @@ class BattleSession {
         volatileEvents: volatileEvents,
         fieldEvents: fieldEvents,
         switchEvents: switchEvents,
+        timeline: timeline,
       ),
     );
   }
@@ -1174,6 +1194,7 @@ class BattleSession {
         statusEvents: actionGate.statusEvents,
         volatileEvents: const <BattleVolatileEvent>[],
         fieldEvents: const <BattleFieldEvent>[],
+        timeline: _turnEventsFromStatus(actionGate.statusEvents),
       );
     }
 
@@ -1203,6 +1224,15 @@ class BattleSession {
           ),
         ],
         fieldEvents: const <BattleFieldEvent>[],
+        timeline: _turnEventsFromVolatile(
+          <BattleVolatileEvent>[
+            BattleVolatileEvent.chargeStarted(
+              actor: attackerLabel,
+              sourceMoveId: move.id,
+              chargeStateId: move.chargeThenStrikeEffect!.chargeStateId,
+            ),
+          ],
+        ),
       );
     }
 
@@ -1221,27 +1251,32 @@ class BattleSession {
     );
 
     if (!hitCheck.didHit) {
+      final missExecution = BattleMoveExecution(
+        attacker: attackerLabel,
+        move: attackerAfterPpUse.moves[moveIndex],
+        target: _resolveExecutionTargetLabel(
+          move: move,
+          attackerLabel: attackerLabel,
+          opponentLabel: targetLabel,
+        ),
+        damage: 0,
+        didHit: false,
+        didCrit: false,
+        criticalMultiplier: 1.0,
+      );
       return _ResolvedMoveExecution(
         attacker: attackerAfterPpUse,
         defender: defender,
         field: field,
         rng: hitCheck.nextRng,
-        execution: BattleMoveExecution(
-          attacker: attackerLabel,
-          move: attackerAfterPpUse.moves[moveIndex],
-          target: _resolveExecutionTargetLabel(
-            move: move,
-            attackerLabel: attackerLabel,
-            opponentLabel: targetLabel,
-          ),
-          damage: 0,
-          didHit: false,
-          didCrit: false,
-          criticalMultiplier: 1.0,
-        ),
+        execution: missExecution,
         statusEvents: const <BattleStatusEvent>[],
         volatileEvents: List<BattleVolatileEvent>.unmodifiable(volatileEvents),
         fieldEvents: const <BattleFieldEvent>[],
+        timeline: _buildMoveTimeline(
+          preExecutionVolatileEvents: volatileEvents,
+          execution: missExecution,
+        ),
       );
     }
 
@@ -1255,27 +1290,32 @@ class BattleSession {
     volatileEvents.addAll(protectResolution.volatileEvents);
 
     if (protectResolution.blockedByProtect) {
+      final blockedExecution = BattleMoveExecution(
+        attacker: attackerLabel,
+        move: protectResolution.attacker.moves[moveIndex],
+        target: _resolveExecutionTargetLabel(
+          move: move,
+          attackerLabel: attackerLabel,
+          opponentLabel: targetLabel,
+        ),
+        damage: 0,
+        didHit: true,
+        didCrit: false,
+        criticalMultiplier: 1.0,
+      );
       return _ResolvedMoveExecution(
         attacker: protectResolution.attacker,
         defender: protectResolution.defender,
         field: field,
         rng: hitCheck.nextRng,
-        execution: BattleMoveExecution(
-          attacker: attackerLabel,
-          move: protectResolution.attacker.moves[moveIndex],
-          target: _resolveExecutionTargetLabel(
-            move: move,
-            attackerLabel: attackerLabel,
-            opponentLabel: targetLabel,
-          ),
-          damage: 0,
-          didHit: true,
-          didCrit: false,
-          criticalMultiplier: 1.0,
-        ),
+        execution: blockedExecution,
         statusEvents: const <BattleStatusEvent>[],
         volatileEvents: List<BattleVolatileEvent>.unmodifiable(volatileEvents),
         fieldEvents: const <BattleFieldEvent>[],
+        timeline: _buildMoveTimeline(
+          preExecutionVolatileEvents: volatileEvents,
+          execution: blockedExecution,
+        ),
       );
     }
 
@@ -1313,6 +1353,8 @@ class BattleSession {
       move: move,
       field: field,
     );
+    final preExecutionVolatileEvents =
+        List<BattleVolatileEvent>.unmodifiable(volatileEvents);
     final rechargeFollowUp = _resolveRechargeFollowUp(
       move: move,
       attackerLabel: attackerLabel,
@@ -1321,35 +1363,44 @@ class BattleSession {
     );
     volatileEvents.addAll(rechargeFollowUp.volatileEvents);
 
+    final resolvedExecution = BattleMoveExecution(
+      attacker: attackerLabel,
+      move: rechargeFollowUp.attacker.moves[moveIndex],
+      // BE1 ne laisse plus `target` se reperdre au moment de la trace
+      // d'exécution :
+      // - un move `self` doit apparaître comme ciblant le lanceur ;
+      // - un move `opponent` garde la cible adverse résolue du tour ;
+      // - `unspecified` reste le fallback de compatibilité des anciens call
+      //   sites qui construisaient des moves battle pauvres à la main.
+      target: _resolveExecutionTargetLabel(
+        move: move,
+        attackerLabel: attackerLabel,
+        opponentLabel: targetLabel,
+      ),
+      damage: damageResult.damage,
+      didHit: true,
+      didCrit: damageResult.didCrit,
+      criticalMultiplier: damageResult.criticalMultiplier,
+      stabMultiplier: damageResult.stabMultiplier,
+      typeEffectivenessMultiplier: damageResult.typeEffectivenessMultiplier,
+    );
+
     return _ResolvedMoveExecution(
       attacker: rechargeFollowUp.attacker,
       defender: statusApplication.defender,
       field: fieldApplication.field,
       rng: statusApplication.nextRng,
-      execution: BattleMoveExecution(
-        attacker: attackerLabel,
-        move: rechargeFollowUp.attacker.moves[moveIndex],
-        // BE1 ne laisse plus `target` se reperdre au moment de la trace
-        // d'exécution :
-        // - un move `self` doit apparaître comme ciblant le lanceur ;
-        // - un move `opponent` garde la cible adverse résolue du tour ;
-        // - `unspecified` reste le fallback de compatibilité des anciens call
-        //   sites qui construisaient des moves battle pauvres à la main.
-        target: _resolveExecutionTargetLabel(
-          move: move,
-          attackerLabel: attackerLabel,
-          opponentLabel: targetLabel,
-        ),
-        damage: damageResult.damage,
-        didHit: true,
-        didCrit: damageResult.didCrit,
-        criticalMultiplier: damageResult.criticalMultiplier,
-        stabMultiplier: damageResult.stabMultiplier,
-        typeEffectivenessMultiplier: damageResult.typeEffectivenessMultiplier,
-      ),
+      execution: resolvedExecution,
       statusEvents: statusApplication.statusEvents,
       volatileEvents: List<BattleVolatileEvent>.unmodifiable(volatileEvents),
       fieldEvents: fieldApplication.fieldEvents,
+      timeline: _buildMoveTimeline(
+        preExecutionVolatileEvents: preExecutionVolatileEvents,
+        execution: resolvedExecution,
+        statusEvents: statusApplication.statusEvents,
+        fieldEvents: fieldApplication.fieldEvents,
+        postExecutionVolatileEvents: rechargeFollowUp.volatileEvents,
+      ),
     );
   }
 
@@ -1462,18 +1513,22 @@ class BattleSession {
       return _ResolvedRechargeAction(
         combatant: combatant,
         volatileEvents: const <BattleVolatileEvent>[],
+        timeline: const <BattleTurnEvent>[],
       );
     }
+
+    final rechargeEvents = <BattleVolatileEvent>[
+      BattleVolatileEvent.rechargeTurnSpent(
+        actor: combatantLabel,
+      ),
+    ];
 
     return _ResolvedRechargeAction(
       combatant: combatant.withVolatileState(
         combatant.volatileState.withMustRecharge(false),
       ),
-      volatileEvents: <BattleVolatileEvent>[
-        BattleVolatileEvent.rechargeTurnSpent(
-          actor: combatantLabel,
-        ),
-      ],
+      volatileEvents: rechargeEvents,
+      timeline: _turnEventsFromVolatile(rechargeEvents),
     );
   }
 
@@ -1704,6 +1759,11 @@ class BattleSession {
       fieldEvents: <BattleFieldEvent>[
         ...weatherResidual.fieldEvents,
         ...fieldProgression.fieldEvents,
+      ],
+      timeline: <BattleTurnEvent>[
+        ..._turnEventsFromStatus(statusResidual.statusEvents),
+        ..._turnEventsFromField(weatherResidual.fieldEvents),
+        ..._turnEventsFromField(fieldProgression.fieldEvents),
       ],
     );
   }
@@ -2309,6 +2369,55 @@ class BattleSession {
     // Combat continue
     return null;
   }
+
+  List<BattleTurnEvent> _buildMoveTimeline({
+    List<BattleVolatileEvent> preExecutionVolatileEvents =
+        const <BattleVolatileEvent>[],
+    BattleMoveExecution? execution,
+    List<BattleStatusEvent> statusEvents = const <BattleStatusEvent>[],
+    List<BattleFieldEvent> fieldEvents = const <BattleFieldEvent>[],
+    List<BattleVolatileEvent> postExecutionVolatileEvents =
+        const <BattleVolatileEvent>[],
+  }) {
+    // BE10A garde une granularité volontairement petite :
+    // - on ne reconstruit plus l'ordre en UI ;
+    // - on fabrique ici une chronologie ordonnée au moment où le moteur
+    //   connaît réellement l'enchaînement causal ;
+    // - on ne descend toutefois pas dans une micro-chronologie Showdown-like
+    //   de chaque sous-étape interne.
+    final timeline = <BattleTurnEvent>[
+      ..._turnEventsFromVolatile(preExecutionVolatileEvents),
+      if (execution != null) BattleTurnExecutionEvent(execution),
+      ..._turnEventsFromStatus(statusEvents),
+      ..._turnEventsFromField(fieldEvents),
+      ..._turnEventsFromVolatile(postExecutionVolatileEvents),
+    ];
+    return List<BattleTurnEvent>.unmodifiable(timeline);
+  }
+
+  List<BattleTurnEvent> _turnEventsFromStatus(
+    Iterable<BattleStatusEvent> events,
+  ) {
+    return List<BattleTurnEvent>.unmodifiable(
+      events.map(BattleTurnStatusEvent.new),
+    );
+  }
+
+  List<BattleTurnEvent> _turnEventsFromVolatile(
+    Iterable<BattleVolatileEvent> events,
+  ) {
+    return List<BattleTurnEvent>.unmodifiable(
+      events.map(BattleTurnVolatileEvent.new),
+    );
+  }
+
+  List<BattleTurnEvent> _turnEventsFromField(
+    Iterable<BattleFieldEvent> events,
+  ) {
+    return List<BattleTurnEvent>.unmodifiable(
+      events.map(BattleTurnFieldEvent.new),
+    );
+  }
 }
 
 enum _BattleActor {
@@ -2365,6 +2474,7 @@ class _ResolvedPostTurnSwitchState {
     required this.enemy,
     required this.enemyReserve,
     required this.switchEvents,
+    required this.timeline,
   });
 
   final BattleCombatant player;
@@ -2372,6 +2482,7 @@ class _ResolvedPostTurnSwitchState {
   final BattleCombatant enemy;
   final List<BattleCombatant> enemyReserve;
   final List<BattleSwitchEvent> switchEvents;
+  final List<BattleTurnEvent> timeline;
 }
 
 class _ResolvedMoveExecution {
@@ -2384,6 +2495,7 @@ class _ResolvedMoveExecution {
     required this.statusEvents,
     required this.volatileEvents,
     required this.fieldEvents,
+    required this.timeline,
   });
 
   final BattleCombatant attacker;
@@ -2394,6 +2506,7 @@ class _ResolvedMoveExecution {
   final List<BattleStatusEvent> statusEvents;
   final List<BattleVolatileEvent> volatileEvents;
   final List<BattleFieldEvent> fieldEvents;
+  final List<BattleTurnEvent> timeline;
 }
 
 class _ResolvedHitCheck {
@@ -2490,10 +2603,12 @@ class _ResolvedRechargeAction {
   const _ResolvedRechargeAction({
     required this.combatant,
     required this.volatileEvents,
+    required this.timeline,
   });
 
   final BattleCombatant combatant;
   final List<BattleVolatileEvent> volatileEvents;
+  final List<BattleTurnEvent> timeline;
 }
 
 class _ResolvedResidualPhase {
@@ -2503,6 +2618,7 @@ class _ResolvedResidualPhase {
     required this.field,
     required this.statusEvents,
     required this.fieldEvents,
+    required this.timeline,
   });
 
   final BattleCombatant player;
@@ -2510,6 +2626,7 @@ class _ResolvedResidualPhase {
   final BattleFieldState field;
   final List<BattleStatusEvent> statusEvents;
   final List<BattleFieldEvent> fieldEvents;
+  final List<BattleTurnEvent> timeline;
 }
 
 class _ResolvedMajorStatusResiduals {
