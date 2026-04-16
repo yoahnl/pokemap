@@ -1,5 +1,6 @@
 import 'battle_move.dart';
 import 'battle_resolution.dart';
+import 'battle_status.dart';
 import 'battle_stats.dart';
 import 'battle_typing.dart';
 
@@ -95,6 +96,7 @@ class BattleCombatant {
   /// [maxHp] - Les PV maximum.
   /// [stats] - Snapshot résolu des stats non-HP.
   /// [typing] - Typing battle minimal si connu.
+  /// [majorStatus] - Statut majeur actuellement porté si le combattant en a un.
   /// [abilityId] - L'ability réellement résolue si le runtime la connaît.
   /// [moves] - La liste des attaques disponibles.
   const BattleCombatant({
@@ -104,6 +106,7 @@ class BattleCombatant {
     required this.maxHp,
     required this.stats,
     this.typing,
+    this.majorStatus,
     this.abilityId = 'unknown',
     required this.moves,
     this.statStages = const BattleStatStages(),
@@ -144,6 +147,14 @@ class BattleCombatant {
   /// - dans ce cas, le moteur reste neutre sur la couche type au lieu de
   ///   fabriquer un typing par défaut qui mentirait davantage.
   final BattleTypingSnapshot? typing;
+
+  /// Statut majeur actuellement porté par ce combattant.
+  ///
+  /// BE7 garde cet état volontairement étroit :
+  /// - `null` signifie "aucun statut majeur" ;
+  /// - sinon on porte uniquement `par`, `brn`, `psn` ou `tox` ;
+  /// - il n'y a toujours ni volatiles génériques, ni `slp`, ni `frz`.
+  final BattleMajorStatusState? majorStatus;
 
   /// L'ability réellement résolue pour ce combattant.
   ///
@@ -191,6 +202,7 @@ class BattleCombatant {
       maxHp: maxHp,
       stats: stats,
       typing: typing,
+      majorStatus: majorStatus,
       abilityId: abilityId,
       moves: moves,
       statStages: statStages,
@@ -211,6 +223,7 @@ class BattleCombatant {
       maxHp: maxHp,
       stats: stats,
       typing: typing,
+      majorStatus: majorStatus,
       abilityId: abilityId,
       moves: moves,
       statStages: statStages,
@@ -235,6 +248,7 @@ class BattleCombatant {
       maxHp: maxHp,
       stats: stats,
       typing: typing,
+      majorStatus: majorStatus,
       abilityId: abilityId,
       moves: moves,
       statStages: statStages.apply(changes),
@@ -261,8 +275,31 @@ class BattleCombatant {
       maxHp: maxHp,
       stats: stats,
       typing: typing,
+      majorStatus: majorStatus,
       abilityId: abilityId,
       moves: List<BattleMove>.unmodifiable(updatedMoves),
+      statStages: statStages,
+    );
+  }
+
+  /// Crée une copie avec un statut majeur mis à jour.
+  ///
+  /// Ce helper garde la transition d'état locale et lisible :
+  /// - pas de builder parallèle de combattant ;
+  /// - pas de mutation silencieuse d'un objet immutable ;
+  /// - juste la plus petite brique utile pour `applyStatus`, la paralysie et
+  ///   les résiduels de fin de tour.
+  BattleCombatant withMajorStatus(BattleMajorStatusState? updatedStatus) {
+    return BattleCombatant(
+      speciesId: speciesId,
+      level: level,
+      currentHp: currentHp,
+      maxHp: maxHp,
+      stats: stats,
+      typing: typing,
+      majorStatus: updatedStatus,
+      abilityId: abilityId,
+      moves: moves,
       statStages: statStages,
     );
   }

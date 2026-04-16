@@ -1,4 +1,5 @@
 import 'battle_move.dart';
+import 'battle_status.dart';
 import 'battle_stats.dart';
 import 'battle_typing.dart';
 
@@ -68,6 +69,8 @@ class BattleCombatantData {
   /// [stats] - Snapshot résolu des stats non-HP réellement exploitées par le
   /// moteur battle.
   /// [typing] - Typing défensif/offensif minimal du combattant si connu.
+  /// [majorStatus] - Statut majeur initial si un call site battle direct veut
+  ///   démarrer depuis un état déjà entamé.
   /// [abilityId] - L'ability réellement résolue si le runtime la connaît.
   ///
   /// Le lot 9 du runtime -> battle handoff doit partir de la vraie party du
@@ -80,6 +83,7 @@ class BattleCombatantData {
     required this.maxHp,
     required this.stats,
     this.typing,
+    this.majorStatus,
     this.currentHp,
     this.abilityId = 'unknown',
     required this.moves,
@@ -115,6 +119,16 @@ class BattleCombatantData {
   /// - en l'absence de typing, le moteur reste neutre sur STAB/effectiveness
   ///   au lieu d'inventer un type mensonger.
   final BattleTypingSnapshot? typing;
+
+  /// Statut majeur initial du combattant si le setup battle le connaît déjà.
+  ///
+  /// Le chemin runtime principal le laisse à `null` dans BE7 :
+  /// - la persistance hors combat des statuts n'existe pas encore ;
+  /// - mais le moteur battle a maintenant besoin d'un vrai état local de
+  ///   statut majeur ;
+  /// - garder ce champ optionnel évite aussi d'inventer des helpers de test
+  ///   parallèles juste pour démarrer un combat déjà brûlé / paralysé / etc.
+  final BattleMajorStatusState? majorStatus;
 
   /// Les points de vie courants si le handoff runtime les fournit déjà.
   ///
@@ -164,6 +178,9 @@ final class BattleMoveData {
   /// [priority] - Priorité canonique transportée et consommée par BE3 pour
   ///   l'ordre d'action minimal honnête.
   /// [critRatio] - Ratio critique minimal transporté et consommé par BE6.
+  /// [majorStatusEffect] - Effet `applyStatus` battle minimal supporté par
+  ///   BE7 pour le petit sous-ensemble de statuts majeurs réellement
+  ///   exécutable.
   /// [selfStatStageChanges] - Boosts / baisses appliqués au lanceur.
   /// [targetStatStageChanges] - Boosts / baisses appliqués à la cible.
   ///
@@ -175,6 +192,8 @@ final class BattleMoveData {
   /// - puis BE3 et BE4 commencent à consommer réellement `priority`,
   ///   `speed`, `accuracy` et les PP ;
   /// - puis BE6 ouvre enfin un crit minimal honnête via `critRatio` ;
+  /// - puis BE7 ouvre un unique effet `applyStatus` battle minimal pour
+  ///   `par`, `brn`, `psn`, `tox` ;
   /// - le reste reste explicitement hors scope.
   const BattleMoveData({
     required this.id,
@@ -188,6 +207,7 @@ final class BattleMoveData {
     this.currentPp,
     this.priority = 0,
     int critRatio = 1,
+    this.majorStatusEffect,
     this.selfStatStageChanges = const <BattleStatStageChange>[],
     this.targetStatStageChanges = const <BattleStatStageChange>[],
   })  : assert(
@@ -314,6 +334,15 @@ final class BattleMoveData {
     }
     return _critRatio;
   }
+
+  /// Effet battle minimal de statut majeur si le bridge runtime l'a autorisé.
+  ///
+  /// Ce champ reste volontairement simple :
+  /// - pas de liste générique d'effets battle ;
+  /// - pas de volatile status ;
+  /// - pas de payload de scope, car le bridge BE7 ne laisse passer que
+  ///   `targetScope: target`.
+  final BattleMoveMajorStatusEffect? majorStatusEffect;
 
   /// Changements d'étages de stats appliqués au lanceur.
   final List<BattleStatStageChange> selfStatStageChanges;

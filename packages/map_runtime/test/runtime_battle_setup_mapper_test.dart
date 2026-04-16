@@ -656,7 +656,7 @@ void main() {
     });
 
     test(
-        'rejects a structured supported move when the battle bridge cannot execute its effect family',
+        'maps a supported major status move and lets battle consume it honestly',
         () async {
       final manifest = await _writeAndLoadProjectManifest(
         tempProjectRoot,
@@ -664,41 +664,46 @@ void main() {
       );
       final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
 
-      await expectLater(
-        () => mapper.map(
-          bundle: bundle,
-          gameState: const GameState(
-            saveId: 'save-unsupported-battle-bridge',
-            party: PlayerParty(
-              members: <PlayerPokemon>[
-                PlayerPokemon(
-                  speciesId: 'sproutle',
-                  natureId: 'bold',
-                  abilityId: 'overgrow',
-                  level: 12,
-                  knownMoveIds: <String>['thunder_wave'],
-                  currentHp: 20,
-                ),
-              ],
-            ),
-          ),
-          request: _wildRequest(
-            speciesId: 'sparkitten',
-            level: 10,
+      final setup = await mapper.map(
+        bundle: bundle,
+        gameState: const GameState(
+          saveId: 'save-supported-major-status',
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              PlayerPokemon(
+                speciesId: 'sproutle',
+                natureId: 'bold',
+                abilityId: 'overgrow',
+                level: 12,
+                knownMoveIds: <String>['thunder_wave'],
+                currentHp: 20,
+              ),
+            ],
           ),
         ),
-        throwsA(
-          isA<RuntimeBattleSetupException>().having(
-            (error) => error.debugDetails,
-            'debugDetails',
-            allOf(
-              contains('combatant=Le Pokémon actif du joueur'),
-              contains('moveId=thunder_wave'),
-              contains('engineSupportLevel=structuredSupported'),
-              contains('bridgeLimit=unsupported_effect_kind:apply_status'),
-            ),
-          ),
+        request: _wildRequest(
+          speciesId: 'sparkitten',
+          level: 10,
         ),
+      );
+
+      expect(setup.playerPokemon.moves.single.id, equals('thunder_wave'));
+      expect(
+        setup.playerPokemon.moves.single.majorStatusEffect?.status,
+        equals(BattleMajorStatusId.par),
+      );
+
+      final session = createBattleSession(setup);
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(afterTurn.state.enemy.majorStatus?.id,
+          equals(BattleMajorStatusId.par));
+      expect(
+        afterTurn.state.currentTurn?.statusEvents
+            .where((event) => event.kind == BattleStatusEventKind.applied)
+            .single
+            .sourceMoveId,
+        equals('thunder_wave'),
       );
     });
   });

@@ -385,7 +385,7 @@ void main() {
       );
     });
 
-    test('rejects a status move that needs a real battle status system', () {
+    test('supports a deterministic major status move in the BE7 subset', () {
       const move = PokemonMove(
         id: 'thunder_wave',
         name: 'Thunder Wave',
@@ -407,26 +407,21 @@ void main() {
         engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
       );
 
-      expect(
-        () => bridge.toBattleMoveData(
-          move: move,
-          combatantLabel: 'Le Pokémon actif du joueur',
-        ),
-        throwsA(
-          isA<RuntimeBattleSetupException>().having(
-            (error) => error.debugDetails,
-            'debugDetails',
-            allOf(
-              contains('moveId=thunder_wave'),
-              contains('engineSupportLevel=structuredSupported'),
-              contains('bridgeLimit=unsupported_effect_kind:apply_status'),
-            ),
-          ),
-        ),
+      final battleMove = bridge.toBattleMoveData(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
       );
+
+      expect(battleMove.power, equals(0));
+      expect(
+        battleMove.majorStatusEffect?.status,
+        equals(BattleMajorStatusId.par),
+      );
+      expect(battleMove.majorStatusEffect?.chancePercent, isNull);
     });
 
-    test('rejects a probabilistic secondary effect that would lie without RNG',
+    test(
+        'supports a probabilistic major status effect once battle owns the RNG',
         () {
       const move = PokemonMove(
         id: 'thunderbolt',
@@ -450,26 +445,21 @@ void main() {
         engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
       );
 
-      expect(
-        () => bridge.toBattleMoveData(
-          move: move,
-          combatantLabel: 'Le Pokémon actif du joueur',
-        ),
-        throwsA(
-          isA<RuntimeBattleSetupException>().having(
-            (error) => error.debugDetails,
-            'debugDetails',
-            allOf(
-              contains('moveId=thunderbolt'),
-              contains('bridgeLimit=unsupported_effect_kind:apply_status'),
-            ),
-          ),
-        ),
+      final battleMove = bridge.toBattleMoveData(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
       );
+
+      expect(battleMove.power, equals(90));
+      expect(
+        battleMove.majorStatusEffect?.status,
+        equals(BattleMajorStatusId.par),
+      );
+      expect(battleMove.majorStatusEffect?.chancePercent, equals(10));
     });
 
     test(
-        'still rejects unsupported effect families even when accuracy is now bridgeable',
+        'still rejects unsupported major statuses even when applyStatus is now partially bridgeable',
         () {
       const move = PokemonMove(
         id: 'sleep_powder',
@@ -501,7 +491,45 @@ void main() {
           isA<RuntimeBattleSetupException>().having(
             (error) => error.debugDetails,
             'debugDetails',
-            contains('bridgeLimit=unsupported_effect_kind:apply_status'),
+            contains('bridgeLimit=unsupported_major_status:slp'),
+          ),
+        ),
+      );
+    });
+
+    test('still rejects applyVolatileStatus explicitly', () {
+      const move = PokemonMove(
+        id: 'confuse_ray',
+        name: 'Confuse Ray',
+        names: <String, String>{'en': 'Confuse Ray'},
+        generation: 1,
+        source: 'test',
+        type: 'ghost',
+        category: PokemonMoveCategory.status,
+        target: PokemonMoveTarget.normal,
+        basePower: 0,
+        accuracy: PokemonMoveAccuracy.percent(value: 100),
+        pp: 10,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.applyVolatileStatus(
+            targetScope: PokemonMoveEffectTargetScope.target,
+            volatileStatusId: 'confusion',
+          ),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      expect(
+        () => bridge.toBattleMoveData(
+          move: move,
+          combatantLabel: 'Le Pokémon actif du joueur',
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.debugDetails,
+            'debugDetails',
+            contains(
+                'bridgeLimit=unsupported_effect_kind:apply_volatile_status'),
           ),
         ),
       );

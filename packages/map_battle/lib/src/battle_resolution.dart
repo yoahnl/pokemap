@@ -1,6 +1,7 @@
 import 'battle_action.dart';
 import 'battle_move.dart';
 import 'battle_state.dart';
+import 'battle_status.dart';
 
 /// Résultat d'un tour de combat.
 ///
@@ -12,10 +13,12 @@ class BattleTurnResult {
   /// [playerAction] - L'action jouée par le joueur.
   /// [enemyAction] - L'action jouée par l'ennemi.
   /// [executions] - La liste des exécutions d'attaques (dans l'ordre).
+  /// [statusEvents] - Les événements de statut/résiduel visibles du tour.
   const BattleTurnResult({
     required this.playerAction,
     required this.enemyAction,
     required this.executions,
+    this.statusEvents = const <BattleStatusEvent>[],
   });
 
   /// L'action jouée par le joueur.
@@ -32,6 +35,13 @@ class BattleTurnResult {
   /// - puis vitesse effective décroissante ;
   /// - puis tie-break déterministe explicite.
   final List<BattleMoveExecution> executions;
+
+  /// Les événements de statut visibles pendant ce tour.
+  ///
+  /// BE7 ajoute cette trace minimale pour ne plus mentir sur deux axes :
+  /// - l'application d'un statut majeur ne doit pas être une mutation muette ;
+  /// - les résiduels de fin de tour ne doivent pas retirer des PV sans trace.
+  final List<BattleStatusEvent> statusEvents;
 }
 
 /// Exécution d'une attaque.

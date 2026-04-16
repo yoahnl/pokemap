@@ -30,6 +30,8 @@ import 'runtime_battle_setup_exception.dart';
 /// - `speed` stage devient également supportée pour ce même besoin ;
 /// - puis BE4 ouvre enfin l'accuracy battle minimale et les PP réels ;
 /// - puis BE6 ouvre enfin un crit minimal honnête via `critRatio` ;
+/// - puis BE7 ouvre un petit sous-ensemble `applyStatus` pour les statuts
+///   majeurs `par`, `brn`, `psn`, `tox` ;
 /// - le reste reste explicitement hors scope et donc refusé.
 class RuntimeBattleMoveBridge {
   const RuntimeBattleMoveBridge();
@@ -60,6 +62,7 @@ class RuntimeBattleMoveBridge {
 
     final selfChanges = <BattleStatStageChange>[];
     final targetChanges = <BattleStatStageChange>[];
+    BattleMoveMajorStatusEffect? majorStatusEffect;
 
     for (final effect in move.effects) {
       effect.map(
@@ -73,11 +76,50 @@ class RuntimeBattleMoveBridge {
           combatantLabel: combatantLabel,
           bridgeLimit: 'unsupported_effect_kind:multi_hit',
         ),
-        applyStatus: (_) => _rejectMove(
-          move: move,
-          combatantLabel: combatantLabel,
-          bridgeLimit: 'unsupported_effect_kind:apply_status',
-        ),
+        applyStatus: (effect) {
+          if (majorStatusEffect != null) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit: 'multiple_apply_status_effects_not_supported',
+            );
+          }
+
+          if (effect.targetScope != PokemonMoveEffectTargetScope.target) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit:
+                  'unsupported_apply_status_scope:${effect.targetScope.name}',
+            );
+          }
+          if (target != BattleMoveTarget.opponent) {
+            _rejectMove(
+              move: move,
+              combatantLabel: combatantLabel,
+              bridgeLimit: 'unsupported_apply_status_target:${target.name}',
+            );
+          }
+
+          if (effect.chance case final chance?) {
+            if (chance < 1 || chance > 100) {
+              _rejectMove(
+                move: move,
+                combatantLabel: combatantLabel,
+                bridgeLimit: 'invalid_apply_status_chance:$chance',
+              );
+            }
+          }
+
+          majorStatusEffect = BattleMoveMajorStatusEffect(
+            status: _translateSupportedMajorStatus(
+              move: move,
+              combatantLabel: combatantLabel,
+              statusId: effect.statusId,
+            ),
+            chancePercent: effect.chance,
+          );
+        },
         applyVolatileStatus: (_) => _rejectMove(
           move: move,
           combatantLabel: combatantLabel,
@@ -198,10 +240,12 @@ class RuntimeBattleMoveBridge {
     // réel pour le moteur actuel :
     // - soit des dégâts standards ;
     // - soit des changements d'étages de stats déterministes ;
-    // - soit les deux.
+    // - soit un effet `applyStatus` BE7 réellement supporté ;
+    // - soit une combinaison de ces chemins-là.
     if (!move.usesStandardDamageFlow &&
         selfChanges.isEmpty &&
-        targetChanges.isEmpty) {
+        targetChanges.isEmpty &&
+        majorStatusEffect == null) {
       _rejectMove(
         move: move,
         combatantLabel: combatantLabel,
@@ -238,6 +282,7 @@ class RuntimeBattleMoveBridge {
       pp: move.pp,
       priority: move.priority,
       critRatio: move.critRatio,
+      majorStatusEffect: majorStatusEffect,
       selfStatStageChanges:
           List<BattleStatStageChange>.unmodifiable(selfChanges),
       targetStatStageChanges:
@@ -367,6 +412,25 @@ class RuntimeBattleMoveBridge {
       stat: stat,
       stages: change.stages,
     );
+  }
+
+  BattleMajorStatusId _translateSupportedMajorStatus({
+    required PokemonMove move,
+    required String combatantLabel,
+    required String statusId,
+  }) {
+    final normalizedStatusId = statusId.trim().toLowerCase();
+    return switch (normalizedStatusId) {
+      'par' => BattleMajorStatusId.par,
+      'brn' => BattleMajorStatusId.brn,
+      'psn' => BattleMajorStatusId.psn,
+      'tox' => BattleMajorStatusId.tox,
+      _ => _rejectMove(
+          move: move,
+          combatantLabel: combatantLabel,
+          bridgeLimit: 'unsupported_major_status:$normalizedStatusId',
+        ),
+    };
   }
 
   Never _rejectUnsupportedStat({

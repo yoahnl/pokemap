@@ -283,7 +283,7 @@ void main() {
     });
 
     test(
-        'rejects a structured supported move when the battle bridge cannot execute it honestly',
+        'keeps a structured supported major status move once BE7 opens applyStatus honestly',
         () async {
       await _writePokemonFixtures(tempProjectRoot);
       final movesCatalog = await moveCatalogLoader.load(
@@ -291,31 +291,25 @@ void main() {
         pokemonConfig: _pokemonConfig(),
       );
 
-      await expectLater(
-        () => builder.buildPlayerCombatantSeed(
-          projectRootDirectory: tempProjectRoot.path,
-          pokemonConfig: _pokemonConfig(),
-          movesCatalog: movesCatalog,
-          playerPokemon: const PlayerPokemon(
-            speciesId: 'sproutle',
-            natureId: 'bold',
-            abilityId: 'overgrow',
-            level: 12,
-            knownMoveIds: <String>['thunder_wave'],
-            currentHp: 23,
-          ),
+      final seed = await builder.buildPlayerCombatantSeed(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        movesCatalog: movesCatalog,
+        playerPokemon: const PlayerPokemon(
+          speciesId: 'sproutle',
+          natureId: 'bold',
+          abilityId: 'overgrow',
+          level: 12,
+          knownMoveIds: <String>['thunder_wave'],
+          currentHp: 23,
         ),
-        throwsA(
-          isA<RuntimeBattleSetupException>().having(
-            (error) => error.debugDetails,
-            'debugDetails',
-            allOf(
-              contains('moveId=thunder_wave'),
-              contains('engineSupportLevel=structuredSupported'),
-              contains('bridgeLimit=unsupported_effect_kind:apply_status'),
-            ),
-          ),
-        ),
+      );
+
+      expect(seed.moves, hasLength(1));
+      expect(seed.moves.single.id, equals('thunder_wave'));
+      expect(
+        seed.moves.single.majorStatusEffect?.status,
+        equals(BattleMajorStatusId.par),
       );
     });
 
@@ -616,7 +610,8 @@ Map<String, Object?> _moveEntry(
 List<PokemonMoveEffect> _defaultEffectsForMove(String moveId) {
   // Ces fixtures runtime doivent rester canoniques :
   // - `growl` / `tail_whip` / `leer` portent de vrais effets structurés ;
-  // - `thunder_wave` sert explicitement de move chargé mais refusé par M8 ;
+  // - `thunder_wave` sert maintenant de move de statut majeur réellement
+  //   supporté par le petit sous-ensemble BE7 ;
   // - les autres moves restent de simples attaques standard pour garder les
   //   happy paths lisibles.
   return switch (moveId) {

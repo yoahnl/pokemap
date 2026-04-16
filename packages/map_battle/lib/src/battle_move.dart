@@ -1,3 +1,5 @@
+import 'battle_status.dart';
+
 /// Catégorie battle minimale d'une attaque.
 ///
 /// M8 puis BE5 n'ouvrent toujours pas un système de typing complet, mais le
@@ -142,6 +144,8 @@ final class BattleMove {
   /// [priority] - Priorité canonique réellement consommée par BE3 pour
   ///   l'ordre d'action 1v1 minimal.
   /// [critRatio] - Ratio critique minimal désormais consommé par BE6.
+  /// [majorStatusEffect] - Effet `applyStatus` battle minimal réellement
+  ///   supporté par BE7 pour `par`, `brn`, `psn`, `tox`.
   /// [selfStatStageChanges] - Boosts / baisses appliqués au lanceur.
   /// [targetStatStageChanges] - Boosts / baisses appliqués à la cible.
   ///
@@ -155,6 +159,8 @@ final class BattleMove {
   ///   sortir du mensonge "joueur puis ennemi" ;
   /// - puis, en BE4, un vrai hit pipeline minimal avec précision et PP ;
   /// - puis, en BE6, un crit minimal honnête via `critRatio` ;
+  /// - puis, en BE7, un petit sous-ensemble `applyStatus` réellement
+  ///   exécutable sans ouvrir un système générique de statuts ;
   /// - toujours aucun status non volatil, aucun scheduler générique.
   const BattleMove({
     required this.id,
@@ -168,6 +174,7 @@ final class BattleMove {
     int? currentPp,
     this.priority = 0,
     int critRatio = 1,
+    this.majorStatusEffect,
     this.selfStatStageChanges = const <BattleStatStageChange>[],
     this.targetStatStageChanges = const <BattleStatStageChange>[],
   })  : assert(
@@ -291,6 +298,16 @@ final class BattleMove {
     return _critRatio;
   }
 
+  /// Effet battle minimal de statut majeur transporté par le bridge runtime.
+  ///
+  /// BE7 garde ce contrat volontairement petit :
+  /// - un seul effet de statut majeur par move ;
+  /// - pas de payload canonique complet ;
+  /// - pas de support des volatiles ;
+  /// - pas de targeting générique, car le bridge ne laisse déjà passer que le
+  ///   scope `target` honnêtement exécutable aujourd'hui.
+  final BattleMoveMajorStatusEffect? majorStatusEffect;
+
   /// Changements d'étages de stats appliqués au lanceur.
   final List<BattleStatStageChange> selfStatStageChanges;
 
@@ -338,6 +355,7 @@ final class BattleMove {
       currentPp: currentPp > 0 ? currentPp - 1 : 0,
       priority: priority,
       critRatio: critRatio,
+      majorStatusEffect: majorStatusEffect,
       selfStatStageChanges: selfStatStageChanges,
       targetStatStageChanges: targetStatStageChanges,
     );

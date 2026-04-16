@@ -1702,4 +1702,560 @@ void main() {
       expect(execution.damage, greaterThan(0));
     });
   });
+
+  group('BattleSession BE7 major statuses', () {
+    test('par applies successfully and changes order on the next turn only',
+        () {
+      var session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'sproutle',
+            level: 20,
+            maxHp: 60,
+            stats: _stats(speed: 60),
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'thunder_wave',
+                name: 'Thunder Wave',
+                power: 0,
+                type: 'electric',
+                category: BattleMoveCategory.status,
+                target: BattleMoveTarget.opponent,
+                majorStatusEffect: BattleMoveMajorStatusEffect(
+                  status: BattleMajorStatusId.par,
+                ),
+              ),
+              BattleMoveData(
+                id: 'tackle',
+                name: 'Tackle',
+                power: 40,
+                category: BattleMoveCategory.physical,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'aquafi',
+            level: 20,
+            maxHp: 80,
+            stats: _stats(speed: 100),
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'growl',
+                name: 'Growl',
+                power: 0,
+                category: BattleMoveCategory.status,
+              ),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+        rng: const BattleScriptedRng(<int>[24, 4]),
+      );
+
+      final afterParalysis =
+          session.applyChoice(const PlayerBattleChoiceFight(0));
+      expect(afterParalysis.state.enemy.majorStatus?.id,
+          equals(BattleMajorStatusId.par));
+      expect(
+        afterParalysis.state.currentTurn?.statusEvents
+            .where((event) => event.kind == BattleStatusEventKind.applied)
+            .single
+            .status,
+        equals(BattleMajorStatusId.par),
+      );
+
+      session = afterParalysis.applyChoice(const PlayerBattleChoiceFight(1));
+
+      expect(session.state.currentTurn?.executions.first.attacker,
+          equals('player'));
+    });
+
+    test('par can block an action and still consumes PP on the attempted move',
+        () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'sproutle',
+            level: 20,
+            maxHp: 60,
+            stats: _stats(speed: 80),
+            majorStatus: const BattleMajorStatusState.par(),
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'tackle',
+                name: 'Tackle',
+                power: 40,
+                category: BattleMoveCategory.physical,
+                pp: 10,
+                currentPp: 10,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'dummy',
+            level: 20,
+            maxHp: 80,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'growl',
+                name: 'Growl',
+                power: 0,
+                category: BattleMoveCategory.status,
+              ),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+        rng: const BattleScriptedRng(<int>[1]),
+      ).applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(session.state.player.moves.single.currentPp, equals(9));
+      expect(
+        session.state.currentTurn?.statusEvents
+            .where(
+                (event) => event.kind == BattleStatusEventKind.preventedAction)
+            .single
+            .status,
+        equals(BattleMajorStatusId.par),
+      );
+      expect(session.state.currentTurn?.executions.single.attacker,
+          equals('enemy'));
+    });
+
+    test(
+        'a target that already has a major status keeps it and blocks a new one',
+        () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'sproutle',
+            level: 20,
+            maxHp: 60,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'poison_powder',
+                name: 'Poison Powder',
+                power: 0,
+                category: BattleMoveCategory.status,
+                majorStatusEffect: BattleMoveMajorStatusEffect(
+                  status: BattleMajorStatusId.psn,
+                ),
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'dummy',
+            level: 20,
+            maxHp: 80,
+            stats: _balancedStats,
+            majorStatus: const BattleMajorStatusState.brn(),
+            moves: const <BattleMoveData>[
+              BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+      ).applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(
+          session.state.enemy.majorStatus?.id, equals(BattleMajorStatusId.brn));
+      final blockedEvent = session.state.currentTurn?.statusEvents
+          .where((event) =>
+              event.kind == BattleStatusEventKind.blockedExistingMajorStatus)
+          .single;
+      expect(blockedEvent?.status, equals(BattleMajorStatusId.psn));
+      expect(blockedEvent?.existingStatus, equals(BattleMajorStatusId.brn));
+    });
+
+    test('brn applies, leaves a residual trace, and deals end-of-turn damage',
+        () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'sparkitten',
+            level: 20,
+            maxHp: 60,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'will_o_wisp',
+                name: 'Will-O-Wisp',
+                power: 0,
+                type: 'fire',
+                category: BattleMoveCategory.status,
+                majorStatusEffect: BattleMoveMajorStatusEffect(
+                  status: BattleMajorStatusId.brn,
+                ),
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'dummy',
+            level: 20,
+            maxHp: 80,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+      ).applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(
+          session.state.enemy.majorStatus?.id, equals(BattleMajorStatusId.brn));
+      expect(session.state.enemy.currentHp, equals(75));
+
+      final residualEvent = session.state.currentTurn?.statusEvents
+          .where((event) => event.kind == BattleStatusEventKind.residualDamage)
+          .single;
+      expect(residualEvent?.status, equals(BattleMajorStatusId.brn));
+      expect(residualEvent?.damage, equals(5));
+    });
+
+    test('burn halves physical damage but leaves special damage unchanged', () {
+      final neutralPhysical = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'sparkitten',
+            level: 20,
+            maxHp: 60,
+            stats: _stats(attack: 100, specialAttack: 100),
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'slash',
+                name: 'Slash',
+                power: 50,
+                category: BattleMoveCategory.physical,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'dummy',
+            level: 20,
+            maxHp: 80,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+        rng: const BattleScriptedRng(<int>[24]),
+      ).applyChoice(const PlayerBattleChoiceFight(0));
+
+      final burnedPhysical = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'sparkitten',
+            level: 20,
+            maxHp: 60,
+            stats: _stats(attack: 100, specialAttack: 100),
+            majorStatus: const BattleMajorStatusState.brn(),
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'slash',
+                name: 'Slash',
+                power: 50,
+                category: BattleMoveCategory.physical,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'dummy',
+            level: 20,
+            maxHp: 80,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+        rng: const BattleScriptedRng(<int>[24]),
+      ).applyChoice(const PlayerBattleChoiceFight(0));
+
+      final neutralSpecial = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'sparkitten',
+            level: 20,
+            maxHp: 60,
+            stats: _stats(attack: 100, specialAttack: 100),
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'ember',
+                name: 'Ember',
+                power: 40,
+                category: BattleMoveCategory.special,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'dummy',
+            level: 20,
+            maxHp: 80,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+        rng: const BattleScriptedRng(<int>[24]),
+      ).applyChoice(const PlayerBattleChoiceFight(0));
+
+      final burnedSpecial = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'sparkitten',
+            level: 20,
+            maxHp: 60,
+            stats: _stats(attack: 100, specialAttack: 100),
+            majorStatus: const BattleMajorStatusState.brn(),
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'ember',
+                name: 'Ember',
+                power: 40,
+                category: BattleMoveCategory.special,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'dummy',
+            level: 20,
+            maxHp: 80,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+        rng: const BattleScriptedRng(<int>[24]),
+      ).applyChoice(const PlayerBattleChoiceFight(0));
+
+      final neutralPhysicalDamage = 80 - neutralPhysical.state.enemy.currentHp;
+      final burnedPhysicalDamage = 80 - burnedPhysical.state.enemy.currentHp;
+      final neutralSpecialDamage = 80 - neutralSpecial.state.enemy.currentHp;
+      final burnedSpecialDamage = 80 - burnedSpecial.state.enemy.currentHp;
+
+      expect(burnedPhysicalDamage, lessThan(neutralPhysicalDamage));
+      expect(burnedSpecialDamage, equals(neutralSpecialDamage));
+    });
+
+    test('psn applies successfully and deals end-of-turn residual damage', () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'sproutle',
+            level: 20,
+            maxHp: 60,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'poison_powder',
+                name: 'Poison Powder',
+                power: 0,
+                category: BattleMoveCategory.status,
+                majorStatusEffect: BattleMoveMajorStatusEffect(
+                  status: BattleMajorStatusId.psn,
+                ),
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'dummy',
+            level: 20,
+            maxHp: 80,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+      ).applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(
+          session.state.enemy.majorStatus?.id, equals(BattleMajorStatusId.psn));
+      expect(session.state.enemy.currentHp, equals(70));
+    });
+
+    test('tox residual grows turn after turn with a local toxic counter', () {
+      var session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'sproutle',
+            level: 20,
+            maxHp: 60,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'toxic',
+                name: 'Toxic',
+                power: 0,
+                category: BattleMoveCategory.status,
+                majorStatusEffect: BattleMoveMajorStatusEffect(
+                  status: BattleMajorStatusId.tox,
+                ),
+              ),
+              BattleMoveData(
+                id: 'growl',
+                name: 'Growl',
+                power: 0,
+                category: BattleMoveCategory.status,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'dummy',
+            level: 20,
+            maxHp: 80,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+      );
+
+      session = session.applyChoice(const PlayerBattleChoiceFight(0));
+      expect(session.state.enemy.currentHp, equals(75));
+      expect(
+          session.state.enemy.majorStatus?.id, equals(BattleMajorStatusId.tox));
+      expect(session.state.enemy.majorStatus?.toxicCounter, equals(2));
+      expect(
+        session.state.currentTurn?.statusEvents
+            .where(
+                (event) => event.kind == BattleStatusEventKind.residualDamage)
+            .single
+            .toxicCounter,
+        equals(1),
+      );
+
+      session = session.applyChoice(const PlayerBattleChoiceFight(1));
+      expect(session.state.enemy.currentHp, equals(65));
+      expect(session.state.enemy.majorStatus?.toxicCounter, equals(3));
+      expect(
+        session.state.currentTurn?.statusEvents
+            .where(
+                (event) => event.kind == BattleStatusEventKind.residualDamage)
+            .single
+            .damage,
+        equals(10),
+      );
+    });
+
+    test('probabilistic applyStatus can succeed on a supported damaging move',
+        () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'sparkitten',
+            level: 20,
+            maxHp: 60,
+            stats: _stats(specialAttack: 90),
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'ember',
+                name: 'Ember',
+                power: 40,
+                type: 'fire',
+                category: BattleMoveCategory.special,
+                majorStatusEffect: BattleMoveMajorStatusEffect(
+                  status: BattleMajorStatusId.brn,
+                  chancePercent: 30,
+                ),
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'dummy',
+            level: 20,
+            maxHp: 80,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+        rng: const BattleScriptedRng(<int>[24, 30]),
+      ).applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(
+          session.state.enemy.majorStatus?.id, equals(BattleMajorStatusId.brn));
+      expect(
+        session.state.currentTurn?.statusEvents
+            .where((event) => event.kind == BattleStatusEventKind.applied)
+            .single
+            .sourceMoveId,
+        equals('ember'),
+      );
+    });
+
+    test(
+        'terminal residuals stay visible in currentTurn when they end the battle',
+        () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'sproutle',
+            level: 20,
+            maxHp: 60,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'growl',
+                name: 'Growl',
+                power: 0,
+                category: BattleMoveCategory.status,
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'dummy',
+            level: 20,
+            maxHp: 8,
+            currentHp: 1,
+            stats: _balancedStats,
+            majorStatus: const BattleMajorStatusState.psn(),
+            moves: const <BattleMoveData>[
+              BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+      ).applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(session.state.isFinished, isTrue);
+      expect(session.state.currentTurn, isNotNull);
+      expect(session.state.enemy.isFainted, isTrue);
+      expect(
+        session.state.currentTurn?.statusEvents
+            .where(
+                (event) => event.kind == BattleStatusEventKind.residualDamage)
+            .single
+            .status,
+        equals(BattleMajorStatusId.psn),
+      );
+    });
+  });
 }

@@ -160,6 +160,51 @@ void main() {
       expect(enemyTyping.secondaryType, equals('ice'));
     });
 
+    test(
+        'createBattleSession preserves an explicit major status seed and move status effect',
+        () {
+      final setup = BattleSetup(
+        playerPokemon: BattleCombatantData(
+          speciesId: 'pikachu',
+          level: 5,
+          maxHp: 20,
+          stats: _neutralBattleStats,
+          majorStatus: const BattleMajorStatusState.brn(),
+          moves: const [
+            BattleMoveData(
+              id: 'thunder_wave',
+              name: 'Thunder Wave',
+              power: 0,
+              category: BattleMoveCategory.status,
+              majorStatusEffect: BattleMoveMajorStatusEffect(
+                status: BattleMajorStatusId.par,
+              ),
+            ),
+          ],
+        ),
+        enemyPokemon: BattleCombatantData(
+          speciesId: 'lapras',
+          level: 5,
+          maxHp: 25,
+          stats: _neutralBattleStats,
+          moves: const [
+            BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
+          ],
+        ),
+        isTrainerBattle: false,
+        trainerId: null,
+      );
+
+      final session = createBattleSession(setup);
+
+      expect(session.state.player.majorStatus?.id,
+          equals(BattleMajorStatusId.brn));
+      expect(
+        session.state.player.moves.single.majorStatusEffect?.status,
+        equals(BattleMajorStatusId.par),
+      );
+    });
+
     test('BattleMoveData rejects an invalid crit ratio in debug builds', () {
       expect(
         () => BattleMoveData(

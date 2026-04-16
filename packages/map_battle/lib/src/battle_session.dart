@@ -4,6 +4,7 @@ import 'battle_action.dart';
 import 'battle_move.dart';
 import 'battle_rng.dart';
 import 'battle_resolution.dart';
+import 'battle_status.dart';
 import 'battle_stats.dart';
 import 'battle_type_chart.dart';
 
@@ -40,6 +41,7 @@ BattleSession createBattleSession(
     maxHp: setup.playerPokemon.maxHp,
     stats: setup.playerPokemon.stats,
     typing: setup.playerPokemon.typing,
+    majorStatus: setup.playerPokemon.majorStatus,
     abilityId: setup.playerPokemon.abilityId,
     // Le contrat battle enrichi doit survivre jusqu'à l'état de session :
     // - `type` et `target` restent surtout descriptifs à ce stade ;
@@ -60,6 +62,7 @@ BattleSession createBattleSession(
             currentPp: m.currentPp,
             priority: m.priority,
             critRatio: m.critRatio,
+            majorStatusEffect: m.majorStatusEffect,
             selfStatStageChanges: m.selfStatStageChanges,
             targetStatStageChanges: m.targetStatStageChanges,
           ),
@@ -74,6 +77,7 @@ BattleSession createBattleSession(
     maxHp: setup.enemyPokemon.maxHp,
     stats: setup.enemyPokemon.stats,
     typing: setup.enemyPokemon.typing,
+    majorStatus: setup.enemyPokemon.majorStatus,
     abilityId: setup.enemyPokemon.abilityId,
     // Même règle pour l'adversaire : on ne reperd aucune dimension déjà jugée
     // honnête dans le contrat battle minimal.
@@ -91,6 +95,7 @@ BattleSession createBattleSession(
             currentPp: m.currentPp,
             priority: m.priority,
             critRatio: m.critRatio,
+            majorStatusEffect: m.majorStatusEffect,
             selfStatStageChanges: m.selfStatStageChanges,
             targetStatStageChanges: m.targetStatStageChanges,
           ),
@@ -352,8 +357,11 @@ class BattleSession {
     // Frontière volontairement stricte :
     // - pas de queue générique façon Showdown ;
     // - pas de PRNG ;
-    // - pas de système de switch / residual / before-turn hooks ;
-    // - juste le plus petit mécanisme honnête pour les deux actions de ce tour.
+    // - pas de système de switch ni de before-turn hooks ;
+    // - BE7 ajoute seulement un résiduel de fin de tour local pour les
+    //   statuts majeurs supportés ;
+    // - juste le plus petit mécanisme honnête pour les deux actions de ce
+    //   tour et leur clôture immédiate.
     final resolvedTurn = _resolveTurn(playerAction, enemyAction);
 
     // Phase 4: Récupérer l'état résultant après dégâts + éventuels boosts.
@@ -368,7 +376,13 @@ class BattleSession {
       phase: outcome != null ? BattlePhase.finished : BattlePhase.playerChoice,
       player: newPlayer,
       enemy: newEnemy,
-      currentTurn: outcome == null ? resolvedTurn.turnResult : null,
+      // On conserve maintenant la trace du dernier tour même s'il termine le
+      // combat :
+      // - sinon un K.O. au résiduel, une paralysie bloquante ou une
+      //   application de statut terminale redeviendraient invisibles ;
+      // - `Run` et `Capture` gardent toujours `currentTurn == null`, car ils ne
+      //   passent pas par `_resolveTurn`.
+      currentTurn: resolvedTurn.turnResult,
       outcome: outcome,
     );
 
@@ -474,12 +488,16 @@ class BattleSession {
   ///    - tie-break déterministe explicite : joueur avant ennemi ;
   /// 3. une action de vitesse du premier acteur n'altère donc jamais
   ///    rétroactivement l'ordre du même tour ;
-  /// 4. `Run`/`Capture` restent hors pseudo-queue générique.
+  /// 4. `Run`/`Capture` restent hors pseudo-queue générique ;
+  /// 5. BE7 ajoute ensuite seulement une petite phase de résiduel de fin de
+  ///    tour pour les statuts majeurs supportés, sans ouvrir un système de
+  ///    hooks générique.
   ///
   /// Cette méthode est interne au moteur de combat.
   _ResolvedBattleTurn _resolveTurn(
       BattleAction playerAction, BattleAction enemyAction) {
     final executions = <BattleMoveExecution>[];
+    final statusEvents = <BattleStatusEvent>[];
     var player = state.player;
     var enemy = state.enemy;
     var turnRng = rng;
@@ -510,7 +528,10 @@ class BattleSession {
             player = resolution.attacker;
             enemy = resolution.defender;
             turnRng = resolution.rng;
-            executions.add(resolution.execution);
+            if (resolution.execution != null) {
+              executions.add(resolution.execution!);
+            }
+            statusEvents.addAll(resolution.statusEvents);
           }
         case _BattleActor.enemy:
           if (orderedAction.action
@@ -530,10 +551,21 @@ class BattleSession {
             enemy = resolution.attacker;
             player = resolution.defender;
             turnRng = resolution.rng;
-            executions.add(resolution.execution);
+            if (resolution.execution != null) {
+              executions.add(resolution.execution!);
+            }
+            statusEvents.addAll(resolution.statusEvents);
           }
       }
     }
+
+    final residualResolution = _applyEndOfTurnMajorStatusResiduals(
+      player: player,
+      enemy: enemy,
+    );
+    player = residualResolution.player;
+    enemy = residualResolution.enemy;
+    statusEvents.addAll(residualResolution.statusEvents);
 
     return _ResolvedBattleTurn(
       player: player,
@@ -543,6 +575,7 @@ class BattleSession {
         playerAction: playerAction,
         enemyAction: enemyAction,
         executions: executions,
+        statusEvents: statusEvents,
       ),
     );
   }
@@ -653,7 +686,9 @@ class BattleSession {
   /// - moves de statut => dégâts 0 ;
   /// - hit check minimal et PP réels ;
   /// - BE6 ajoute un crit minimal réel pour les hits offensifs non immunisés ;
-  /// - les changements de stats sont appliqués immédiatement après un hit.
+  /// - les changements de stats sont appliqués immédiatement après un hit ;
+  /// - BE7 ajoute ensuite un petit sous-ensemble `applyStatus` et un blocage
+  ///   d'action par paralysie, sans ouvrir un système de statuts complet.
   ///
   /// Cette application immédiate reste importante :
   /// - un `growl` du joueur peut déjà réduire une contre-attaque physique
@@ -678,16 +713,34 @@ class BattleSession {
     // BE4 introduit ici le plus petit hit pipeline honnête :
     // 1. on valide que le move est encore utilisable ;
     // 2. on consomme 1 PP immédiatement sur la tentative ;
-    // 3. on résout ensuite le hit check ;
-    // 4. un miss n'applique ni dégâts ni stage changes ;
-    // 5. un hit suit le chemin déjà supporté.
+    // 3. BE7 laisse ensuite un éventuel blocage d'action par paralysie ;
+    // 4. on résout ensuite le hit check ;
+    // 5. un miss n'applique ni dégâts, ni stage changes, ni statut ;
+    // 6. un hit suit le chemin déjà supporté ;
+    // 7. BE7 peut enfin appliquer un statut majeur si le move le porte.
     final attackerAfterPpUse = attacker.withUpdatedMoveAt(
       moveIndex,
       move.withConsumedPp(),
     );
+    final actionGate = _resolveMajorStatusActionGate(
+      combatantLabel: attackerLabel,
+      combatant: attackerAfterPpUse,
+      rng: rng,
+    );
+
+    if (!actionGate.canAct) {
+      return _ResolvedMoveExecution(
+        attacker: attackerAfterPpUse,
+        defender: defender,
+        rng: actionGate.nextRng,
+        execution: null,
+        statusEvents: actionGate.statusEvents,
+      );
+    }
+
     final hitCheck = _resolveHitCheck(
       move: move,
-      rng: rng,
+      rng: actionGate.nextRng,
     );
 
     if (!hitCheck.didHit) {
@@ -708,6 +761,7 @@ class BattleSession {
           didCrit: false,
           criticalMultiplier: 1.0,
         ),
+        statusEvents: const <BattleStatusEvent>[],
       );
     }
 
@@ -727,16 +781,23 @@ class BattleSession {
     final updatedAttacker = damageResult.wasImmune
         ? attackerAfterPpUse
         : attackerAfterPpUse.withAppliedStageChanges(move.selfStatStageChanges);
-    final updatedDefender = damageResult.wasImmune
+    final defenderAfterHit = damageResult.wasImmune
         ? defender
         : defender
             .withDamage(damageResult.damage)
             .withAppliedStageChanges(move.targetStatStageChanges);
+    final statusApplication = _resolveMajorStatusApplication(
+      move: move,
+      targetLabel: targetLabel,
+      defender: defenderAfterHit,
+      damageResult: damageResult,
+      rng: damageResult.nextRng,
+    );
 
     return _ResolvedMoveExecution(
       attacker: updatedAttacker,
-      defender: updatedDefender,
-      rng: damageResult.nextRng,
+      defender: statusApplication.defender,
+      rng: statusApplication.nextRng,
       execution: BattleMoveExecution(
         attacker: attackerLabel,
         move: updatedAttacker.moves[moveIndex],
@@ -758,6 +819,228 @@ class BattleSession {
         stabMultiplier: damageResult.stabMultiplier,
         typeEffectivenessMultiplier: damageResult.typeEffectivenessMultiplier,
       ),
+      statusEvents: statusApplication.statusEvents,
+    );
+  }
+
+  _ResolvedActionGate _resolveMajorStatusActionGate({
+    required String combatantLabel,
+    required BattleCombatant combatant,
+    required BattleRng rng,
+  }) {
+    final status = combatant.majorStatus;
+    if (status?.id != BattleMajorStatusId.par) {
+      return _ResolvedActionGate(
+        canAct: true,
+        nextRng: rng,
+        statusEvents: const <BattleStatusEvent>[],
+      );
+    }
+
+    // BE7 ouvre ici la plus petite sémantique honnête de paralysie :
+    // - le move a déjà consommé 1 PP, car la tentative a bien eu lieu ;
+    // - on bloque ensuite l'action avec une chance fixe de 25% ;
+    // - on ne touche ni à l'ordre BE3 déjà figé, ni au hit check BE4.
+    final roll = rng.nextChance(
+      numerator: 1,
+      denominator: 4,
+    );
+    if (!roll.didOccur) {
+      return _ResolvedActionGate(
+        canAct: true,
+        nextRng: roll.next,
+        statusEvents: const <BattleStatusEvent>[],
+      );
+    }
+
+    return _ResolvedActionGate(
+      canAct: false,
+      nextRng: roll.next,
+      statusEvents: <BattleStatusEvent>[
+        BattleStatusEvent.preventedAction(
+          target: combatantLabel,
+          status: BattleMajorStatusId.par,
+        ),
+      ],
+    );
+  }
+
+  _ResolvedStatusApplication _resolveMajorStatusApplication({
+    required BattleMove move,
+    required String targetLabel,
+    required BattleCombatant defender,
+    required _ResolvedDamage damageResult,
+    required BattleRng rng,
+  }) {
+    final effect = move.majorStatusEffect;
+    if (effect == null) {
+      return _ResolvedStatusApplication(
+        defender: defender,
+        nextRng: rng,
+        statusEvents: const <BattleStatusEvent>[],
+      );
+    }
+
+    // BE7 ne crée pas encore de couche complète d'immunité de statut.
+    // En revanche, pour un move qui inflige aussi des dégâts, on refuse
+    // d'appliquer un statut si le hit a été entièrement annulé par une
+    // immunité de type déjà supportée par BE5.
+    if (damageResult.wasImmune &&
+        move.resolvedCategory != BattleMoveCategory.status) {
+      return _ResolvedStatusApplication(
+        defender: defender,
+        nextRng: rng,
+        statusEvents: const <BattleStatusEvent>[],
+      );
+    }
+
+    if (defender.majorStatus != null) {
+      return _ResolvedStatusApplication(
+        defender: defender,
+        nextRng: rng,
+        statusEvents: <BattleStatusEvent>[
+          BattleStatusEvent.blockedExistingMajorStatus(
+            target: targetLabel,
+            status: effect.status,
+            existingStatus: defender.majorStatus!.id,
+            sourceMoveId: move.id,
+          ),
+        ],
+      );
+    }
+
+    if (effect.chancePercent case final chance?) {
+      final chanceRoll = rng.nextChance(
+        numerator: chance,
+        denominator: 100,
+      );
+      if (!chanceRoll.didOccur) {
+        return _ResolvedStatusApplication(
+          defender: defender,
+          nextRng: chanceRoll.next,
+          statusEvents: const <BattleStatusEvent>[],
+        );
+      }
+
+      return _ResolvedStatusApplication(
+        defender: defender.withMajorStatus(_majorStatusStateFor(effect.status)),
+        nextRng: chanceRoll.next,
+        statusEvents: <BattleStatusEvent>[
+          BattleStatusEvent.applied(
+            target: targetLabel,
+            status: effect.status,
+            sourceMoveId: move.id,
+          ),
+        ],
+      );
+    }
+
+    return _ResolvedStatusApplication(
+      defender: defender.withMajorStatus(_majorStatusStateFor(effect.status)),
+      nextRng: rng,
+      statusEvents: <BattleStatusEvent>[
+        BattleStatusEvent.applied(
+          target: targetLabel,
+          status: effect.status,
+          sourceMoveId: move.id,
+        ),
+      ],
+    );
+  }
+
+  _ResolvedResidualPhase _applyEndOfTurnMajorStatusResiduals({
+    required BattleCombatant player,
+    required BattleCombatant enemy,
+  }) {
+    // BE7 reste volontairement local :
+    // - pas de "hook system" de fin de tour ;
+    // - pas de queue de résiduels générique ;
+    // - juste la plus petite phase explicite pour les statuts majeurs
+    //   supportés, après les actions et avant l'outcome final.
+    final playerResidual = !player.isFainted
+        ? _applyEndOfTurnResidualForCombatant(
+            combatant: player,
+            combatantLabel: 'player',
+          )
+        : const _ResolvedSingleResidual(
+            combatant: null,
+            statusEvents: <BattleStatusEvent>[],
+          );
+    final enemyResidual = !enemy.isFainted
+        ? _applyEndOfTurnResidualForCombatant(
+            combatant: enemy,
+            combatantLabel: 'enemy',
+          )
+        : const _ResolvedSingleResidual(
+            combatant: null,
+            statusEvents: <BattleStatusEvent>[],
+          );
+
+    return _ResolvedResidualPhase(
+      player: playerResidual.combatant ?? player,
+      enemy: enemyResidual.combatant ?? enemy,
+      statusEvents: <BattleStatusEvent>[
+        ...playerResidual.statusEvents,
+        ...enemyResidual.statusEvents,
+      ],
+    );
+  }
+
+  _ResolvedSingleResidual _applyEndOfTurnResidualForCombatant({
+    required BattleCombatant combatant,
+    required String combatantLabel,
+  }) {
+    final status = combatant.majorStatus;
+    if (status == null || combatant.isFainted) {
+      return _ResolvedSingleResidual(
+        combatant: combatant,
+        statusEvents: const <BattleStatusEvent>[],
+      );
+    }
+
+    final residualDamage = switch (status.id) {
+      BattleMajorStatusId.par => 0,
+      BattleMajorStatusId.brn => _fractionalResidual(
+          maxHp: combatant.maxHp,
+          numerator: 1,
+          denominator: 16,
+        ),
+      BattleMajorStatusId.psn => _fractionalResidual(
+          maxHp: combatant.maxHp,
+          numerator: 1,
+          denominator: 8,
+        ),
+      BattleMajorStatusId.tox => _fractionalResidual(
+          maxHp: combatant.maxHp,
+          numerator: status.toxicCounter,
+          denominator: 16,
+        ),
+    };
+
+    if (residualDamage <= 0) {
+      return _ResolvedSingleResidual(
+        combatant: combatant,
+        statusEvents: const <BattleStatusEvent>[],
+      );
+    }
+
+    final damagedCombatant = combatant.withDamage(residualDamage);
+    final nextCombatant =
+        status.id == BattleMajorStatusId.tox && !damagedCombatant.isFainted
+            ? damagedCombatant.withMajorStatus(status.incrementToxicCounter())
+            : damagedCombatant;
+
+    return _ResolvedSingleResidual(
+      combatant: nextCombatant,
+      statusEvents: <BattleStatusEvent>[
+        BattleStatusEvent.residualDamage(
+          target: combatantLabel,
+          status: status.id,
+          damage: residualDamage,
+          toxicCounter:
+              status.id == BattleMajorStatusId.tox ? status.toxicCounter : null,
+        ),
+      ],
     );
   }
 
@@ -912,14 +1195,21 @@ class BattleSession {
     // Ordre de multiplication BE6 :
     // 1. baseDamage déterministe BE2 ;
     // 2. critique minimal BE6 ;
-    // 3. STAB ;
-    // 4. effectiveness / résistance ;
-    // 5. clamp minimum 1 si le move a touché et n'est pas immunisé.
+    // 3. malus de brûlure sur les moves physiques dans BE7 ;
+    // 4. STAB ;
+    // 5. effectiveness / résistance ;
+    // 6. clamp minimum 1 si le move a touché et n'est pas immunisé.
     //
     // On reste volontairement dans un modèle simple à base de doubles +
     // `floor` plutôt que de singer tous les paliers internes de Showdown.
+    final burnMultiplier =
+        attacker.majorStatus?.id == BattleMajorStatusId.brn &&
+                move.resolvedCategory == BattleMoveCategory.physical
+            ? 0.5
+            : 1.0;
     final scaledDamage = (baseDamage *
             criticalHit.multiplier *
+            burnMultiplier *
             stabMultiplier *
             typeEffectivenessMultiplier)
         .floor();
@@ -1002,11 +1292,36 @@ class BattleSession {
     // L'ordre BE3 repose sur une vitesse effective déterministe :
     // - snapshot de speed résolu par le runtime ;
     // - multiplicateur de stages battle déjà présent ;
+    // - BE7 y ajoute ensuite le malus simple de paralysie ;
     // - aucun RNG, aucune nature, aucun weather, aucun trick room.
-    return _resolveEffectiveStat(
+    final stagedSpeed = _resolveEffectiveStat(
       baseStat: combatant.stats.speed,
       multiplier: combatant.statStages.multiplierFor(BattleStatId.speed),
     );
+    if (combatant.majorStatus?.id != BattleMajorStatusId.par) {
+      return stagedSpeed;
+    }
+
+    final slowedSpeed = (stagedSpeed * 0.5).floor();
+    return slowedSpeed < 1 ? 1 : slowedSpeed;
+  }
+
+  BattleMajorStatusState _majorStatusStateFor(BattleMajorStatusId status) {
+    return switch (status) {
+      BattleMajorStatusId.par => const BattleMajorStatusState.par(),
+      BattleMajorStatusId.brn => const BattleMajorStatusState.brn(),
+      BattleMajorStatusId.psn => const BattleMajorStatusState.psn(),
+      BattleMajorStatusId.tox => const BattleMajorStatusState.tox(),
+    };
+  }
+
+  int _fractionalResidual({
+    required int maxHp,
+    required int numerator,
+    required int denominator,
+  }) {
+    final raw = (maxHp * numerator) ~/ denominator;
+    return raw < 1 ? 1 : raw;
   }
 
   int _resolveEffectiveStat({
@@ -1108,12 +1423,14 @@ class _ResolvedMoveExecution {
     required this.defender,
     required this.rng,
     required this.execution,
+    required this.statusEvents,
   });
 
   final BattleCombatant attacker;
   final BattleCombatant defender;
   final BattleRng rng;
-  final BattleMoveExecution execution;
+  final BattleMoveExecution? execution;
+  final List<BattleStatusEvent> statusEvents;
 }
 
 class _ResolvedHitCheck {
@@ -1124,6 +1441,18 @@ class _ResolvedHitCheck {
 
   final bool didHit;
   final BattleRng nextRng;
+}
+
+class _ResolvedActionGate {
+  const _ResolvedActionGate({
+    required this.canAct,
+    required this.nextRng,
+    required this.statusEvents,
+  });
+
+  final bool canAct;
+  final BattleRng nextRng;
+  final List<BattleStatusEvent> statusEvents;
 }
 
 class _ResolvedDamage {
@@ -1156,6 +1485,40 @@ class _ResolvedCriticalHit {
   final bool didCrit;
   final double multiplier;
   final BattleRng nextRng;
+}
+
+class _ResolvedStatusApplication {
+  const _ResolvedStatusApplication({
+    required this.defender,
+    required this.nextRng,
+    required this.statusEvents,
+  });
+
+  final BattleCombatant defender;
+  final BattleRng nextRng;
+  final List<BattleStatusEvent> statusEvents;
+}
+
+class _ResolvedResidualPhase {
+  const _ResolvedResidualPhase({
+    required this.player,
+    required this.enemy,
+    required this.statusEvents,
+  });
+
+  final BattleCombatant player;
+  final BattleCombatant enemy;
+  final List<BattleStatusEvent> statusEvents;
+}
+
+class _ResolvedSingleResidual {
+  const _ResolvedSingleResidual({
+    required this.combatant,
+    required this.statusEvents,
+  });
+
+  final BattleCombatant? combatant;
+  final List<BattleStatusEvent> statusEvents;
 }
 
 class _CritChance {

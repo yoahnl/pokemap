@@ -60,6 +60,7 @@ library map_battle;
 export 'src/battle_setup.dart';
 export 'src/battle_session.dart';
 export 'src/battle_state.dart';
+export 'src/battle_status.dart';
 export 'src/battle_stats.dart';
 export 'src/battle_typing.dart';
 export 'src/battle_type_chart.dart';
