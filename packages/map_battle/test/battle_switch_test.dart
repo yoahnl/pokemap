@@ -125,6 +125,11 @@ void main() {
       expect(
           afterTurn.state.enemyReserve.single.speciesId, equals('lead_enemy'));
       final switchEvent = afterTurn.state.currentTurn!.switchEvents.single;
+      expect(switchEvent.side, equals(BattleSideId.enemy));
+      expect(
+        switchEvent.slot,
+        equals(const BattleSlotRef.active(BattleSideId.enemy)),
+      );
       expect(switchEvent.actor, equals('enemy'));
       expect(switchEvent.kind, equals(BattleSwitchEventKind.switched));
       expect(switchEvent.wasForced, isTrue);
@@ -195,6 +200,10 @@ void main() {
       expect(
         afterReplacement.state.currentTurn!.switchEvents.single.wasForced,
         isTrue,
+      );
+      expect(
+        afterReplacement.state.currentTurn!.switchEvents.single.side,
+        equals(BattleSideId.player),
       );
     });
 

@@ -100,11 +100,11 @@ void main() {
         ),
       );
 
-      const outcome = BattleOutcome(
+      final outcome = BattleOutcome(
         type: BattleOutcomeType.victory,
         finalState: BattleState(
           phase: BattlePhase.finished,
-          player: BattleCombatant(
+          player: const BattleCombatant(
             speciesId: 'slot_zero_bench',
             lineupIndex: 1,
             level: 18,
@@ -115,7 +115,7 @@ void main() {
               BattleMove(id: 'a', name: 'a', power: 10),
             ],
           ),
-          playerReserve: <BattleCombatant>[
+          playerReserve: const <BattleCombatant>[
             BattleCombatant(
               speciesId: 'slot_one_initial_active',
               lineupIndex: 0,
@@ -128,7 +128,7 @@ void main() {
               ],
             ),
           ],
-          enemy: BattleCombatant(
+          enemy: const BattleCombatant(
             speciesId: 'enemy',
             level: 20,
             currentHp: 0,
@@ -185,11 +185,11 @@ void main() {
         ),
       );
 
-      const outcome = BattleOutcome(
+      final outcome = BattleOutcome(
         type: BattleOutcomeType.victory,
         finalState: BattleState(
           phase: BattlePhase.finished,
-          player: BattleCombatant(
+          player: const BattleCombatant(
             speciesId: 'slot_zero_bench',
             lineupIndex: 1,
             level: 18,
@@ -200,7 +200,7 @@ void main() {
               BattleMove(id: 'a', name: 'a', power: 10),
             ],
           ),
-          playerReserve: <BattleCombatant>[
+          playerReserve: const <BattleCombatant>[
             BattleCombatant(
               speciesId: 'slot_one_initial_active',
               lineupIndex: 0,
@@ -213,7 +213,7 @@ void main() {
               ],
             ),
           ],
-          enemy: BattleCombatant(
+          enemy: const BattleCombatant(
             speciesId: 'enemy',
             level: 20,
             currentHp: 0,

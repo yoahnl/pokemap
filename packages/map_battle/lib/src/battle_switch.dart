@@ -1,3 +1,5 @@
+import 'battle_topology.dart';
+
 /// Petite taxonomie des événements de switch/réserve visibles dans un tour.
 ///
 /// BE10 reste volontairement très borné :
@@ -21,21 +23,21 @@ enum BattleSwitchEventKind {
 /// en sac de booléens croisés.
 final class BattleSwitchEvent {
   const BattleSwitchEvent.switched({
-    required this.actor,
+    required this.side,
     required this.fromSpeciesId,
     required this.toSpeciesId,
     required this.wasForced,
   }) : kind = BattleSwitchEventKind.switched;
 
   const BattleSwitchEvent.replacementRequired({
-    required this.actor,
+    required this.side,
     required this.fromSpeciesId,
   })  : kind = BattleSwitchEventKind.replacementRequired,
         toSpeciesId = null,
         wasForced = true;
 
-  /// Combattant concerné (`player` ou `enemy`).
-  final String actor;
+  /// Side concerné par le switch ou la demande de remplacement.
+  final BattleSideId side;
 
   final BattleSwitchEventKind kind;
 
@@ -51,4 +53,17 @@ final class BattleSwitchEvent {
   /// `true` pour un remplacement contraint par un K.O., `false` pour un
   /// switch volontaire du joueur.
   final bool wasForced;
+
+  /// Compatibilité locale pour les surfaces encore stringly-typed.
+  ///
+  /// Phase D fait migrer l'événement vers un vrai side, mais certaines traces
+  /// runtime/tests lisent encore `"player"` / `"enemy"`.
+  String get actor => side.actorId;
+
+  /// Slot concerné par l'événement.
+  ///
+  /// En singles, tous les switches/remplacements portent encore sur le slot
+  /// actif `0` du side concerné. Exposer explicitement cette référence rend la
+  /// topologie réelle sans ouvrir de système multi-slot.
+  BattleSlotRef get slot => BattleSlotRef.active(side);
 }

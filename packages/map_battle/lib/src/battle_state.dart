@@ -2,6 +2,7 @@ import 'battle_field.dart';
 import 'battle_move.dart';
 import 'battle_resolution.dart';
 import 'battle_status.dart';
+import 'battle_topology.dart';
 import 'battle_volatile.dart';
 import 'battle_stats.dart';
 import 'battle_typing.dart';
@@ -42,48 +43,69 @@ enum BattlePhase {
 /// Invariants :
 /// - Si [phase] == [BattlePhase.finished], alors [outcome] est non-null.
 /// - Si [phase] != [BattlePhase.finished], alors [outcome] est null.
-/// - [player.currentHp] est toujours entre 0 et [player.maxHp].
-/// - [enemy.currentHp] est toujours entre 0 et [enemy.maxHp].
+/// - [playerSide.active.currentHp] est toujours entre 0 et
+///   [playerSide.active.maxHp].
+/// - [enemySide.active.currentHp] est toujours entre 0 et
+///   [enemySide.active.maxHp].
 class BattleState {
   /// Crée un état de combat.
   ///
   /// [phase] - La phase actuelle du combat.
-  /// [player] - Le combattant joueur.
-  /// [enemy] - Le combattant adverse.
+  ///
+  /// Phase D introduit ici le vrai progrès topologique du moteur :
+  /// - la forme canonique du state devient `playerSide` / `enemySide` ;
+  /// - chaque side porte un slot actif et une réserve ;
+  /// - on cesse donc de considérer le moteur comme un simple sac de quatre
+  ///   champs plats `player / playerReserve / enemy / enemyReserve`.
+  ///
+  /// Compatibilité bornée conservée :
+  /// - beaucoup de call sites runtime/tests lisent encore `player`, `enemy`,
+  ///   `playerReserve` et `enemyReserve` ;
+  /// - cette surface de lecture reste donc disponible comme façade projetée ;
+  /// - mais le stockage canonique du state vit désormais dans les deux sides.
+  ///
+  /// Contrat d'entrée :
+  /// - fournir soit `playerSide`/`enemySide` ;
+  /// - soit le vieux chemin plat `player`/`playerReserve`/`enemy`/
+  ///   `enemyReserve` ;
+  /// - ne pas mélanger les deux pour un même côté.
   /// [field] - L'état de champ observable (weather / pseudoWeather).
   /// [currentTurn] - Le résultat du tour en cours (null si aucun tour en cours).
   /// [outcome] - Le résultat final du combat (null si combat en cours).
-  const BattleState({
+  BattleState({
     required this.phase,
-    required this.player,
-    this.playerReserve = const <BattleCombatant>[],
-    required this.enemy,
-    this.enemyReserve = const <BattleCombatant>[],
+    BattleSideState? playerSide,
+    BattleCombatant? player,
+    List<BattleCombatant> playerReserve = const <BattleCombatant>[],
+    BattleSideState? enemySide,
+    BattleCombatant? enemy,
+    List<BattleCombatant> enemyReserve = const <BattleCombatant>[],
     this.field = const BattleFieldState(),
     this.currentTurn,
     this.outcome,
-  });
+  })  : playerSide = _resolveBattleStateSide(
+          expectedId: BattleSideId.player,
+          providedSide: playerSide,
+          legacyActive: player,
+          legacyReserve: playerReserve,
+          sideLabel: 'player',
+        ),
+        enemySide = _resolveBattleStateSide(
+          expectedId: BattleSideId.enemy,
+          providedSide: enemySide,
+          legacyActive: enemy,
+          legacyReserve: enemyReserve,
+          sideLabel: 'enemy',
+        );
 
   /// La phase actuelle du combat.
   final BattlePhase phase;
 
-  /// Le combattant joueur.
-  final BattleCombatant player;
+  /// Side joueur canonique du combat.
+  final BattleSideState playerSide;
 
-  /// Réserve battle locale du joueur.
-  ///
-  /// BE10 garde ici un modèle très petit :
-  /// - un seul actif ;
-  /// - zéro ou plusieurs réserves ;
-  /// - chaque membre reste un vrai `BattleCombatant`, donc avec ses PV,
-  ///   moves/PP, statut majeur et typing déjà résolus.
-  final List<BattleCombatant> playerReserve;
-
-  /// Le combattant adverse.
-  final BattleCombatant enemy;
-
-  /// Réserve battle locale de l'adversaire.
-  final List<BattleCombatant> enemyReserve;
+  /// Side adverse canonique du combat.
+  final BattleSideState enemySide;
 
   /// État de champ observable du combat.
   ///
@@ -109,6 +131,29 @@ class BattleState {
   ///
   /// Raccourci pour `phase == BattlePhase.finished`.
   bool get isFinished => phase == BattlePhase.finished;
+
+  /// Compatibilité locale : actif joueur projeté depuis [playerSide].
+  ///
+  /// Ce getter reste volontairement public pour éviter qu'une migration de
+  /// topologie Phase D force en douce une refonte runtime plus large.
+  BattleCombatant get player => playerSide.active;
+
+  /// Compatibilité locale : réserve joueur projetée depuis [playerSide].
+  List<BattleCombatant> get playerReserve => playerSide.reserve;
+
+  /// Compatibilité locale : actif adverse projeté depuis [enemySide].
+  BattleCombatant get enemy => enemySide.active;
+
+  /// Compatibilité locale : réserve adverse projetée depuis [enemySide].
+  List<BattleCombatant> get enemyReserve => enemySide.reserve;
+
+  /// Retourne le side demandé sans réintroduire un protocole plat.
+  BattleSideState side(BattleSideId sideId) {
+    return switch (sideId) {
+      BattleSideId.player => playerSide,
+      BattleSideId.enemy => enemySide,
+    };
+  }
 }
 
 /// Combattant en combat.
@@ -417,6 +462,195 @@ class BattleCombatant {
       statStages: const BattleStatStages(),
     );
   }
+}
+
+/// Slot battle local réellement utilisé par le moteur singles.
+///
+/// Phase D refuse ici le faux type décoratif :
+/// - ce slot n'est pas un placeholder vide ;
+/// - il porte réellement le combattant actif du side ;
+/// - les requests et événements peuvent donc enfin se rattacher à un slot
+///   concret sans ouvrir une topologie multi-actifs ou doubles.
+final class BattleSlotState {
+  BattleSlotState({
+    required this.side,
+    required this.slotIndex,
+    required this.combatant,
+  });
+
+  BattleSlotState.active({
+    required BattleSideId side,
+    required BattleCombatant combatant,
+  }) : this(
+          side: side,
+          slotIndex: 0,
+          combatant: combatant,
+        );
+
+  final BattleSideId side;
+  final int slotIndex;
+  final BattleCombatant combatant;
+
+  /// Référence stable vers ce slot pour les requests et traces topologiques.
+  BattleSlotRef get ref => BattleSlotRef(
+        side: side,
+        slotIndex: slotIndex,
+      );
+
+  /// Retourne une copie du slot avec un autre combattant.
+  ///
+  /// Le slot reste le même :
+  /// - même side ;
+  /// - même index ;
+  /// - seule l'occupation change lors d'un switch ou d'une résolution de tour.
+  BattleSlotState withCombatant(BattleCombatant updatedCombatant) {
+    return BattleSlotState(
+      side: side,
+      slotIndex: slotIndex,
+      combatant: updatedCombatant,
+    );
+  }
+}
+
+/// État local d'un side singles.
+///
+/// Ce type est volontairement petit mais réel :
+/// - un side a maintenant une identité explicite ;
+/// - il porte un vrai slot actif ;
+/// - il porte une réserve ordonnée ;
+/// - il devient le lieu honnête des futures responsabilités side-level, sans
+///   ouvrir dès maintenant side conditions/hazards/doubles.
+final class BattleSideState {
+  BattleSideState({
+    required this.id,
+    required this.activeSlot,
+    this.reserve = const <BattleCombatant>[],
+  })  : assert(
+          activeSlot.side == id,
+          'BattleSideState.activeSlot must belong to the same side.',
+        ),
+        assert(
+          activeSlot.slotIndex == 0,
+          'Phase D remains singles-only and only supports active slot 0.',
+        );
+
+  BattleSideState.player({
+    required BattleCombatant active,
+    List<BattleCombatant> reserve = const <BattleCombatant>[],
+  }) : this(
+          id: BattleSideId.player,
+          activeSlot: BattleSlotState.active(
+            side: BattleSideId.player,
+            combatant: active,
+          ),
+          reserve: reserve,
+        );
+
+  BattleSideState.enemy({
+    required BattleCombatant active,
+    List<BattleCombatant> reserve = const <BattleCombatant>[],
+  }) : this(
+          id: BattleSideId.enemy,
+          activeSlot: BattleSlotState.active(
+            side: BattleSideId.enemy,
+            combatant: active,
+          ),
+          reserve: reserve,
+        );
+
+  final BattleSideId id;
+  final BattleSlotState activeSlot;
+
+  /// Réserve ordonnée locale de ce side.
+  ///
+  /// Invariant métier conservé :
+  /// - chaque membre engagé dans le combat reste présent exactement une fois ;
+  /// - le slot actif ne vit pas aussi dans la réserve ;
+  /// - l'ordre de réserve reste stable tant qu'un switch ne l'altère pas.
+  final List<BattleCombatant> reserve;
+
+  /// Combattant actif de ce side.
+  BattleCombatant get active => activeSlot.combatant;
+
+  /// Référence canonique du slot actif.
+  BattleSlotRef get activeSlotRef => activeSlot.ref;
+
+  BattleSideState withActive(BattleCombatant updatedActive) {
+    return BattleSideState(
+      id: id,
+      activeSlot: activeSlot.withCombatant(updatedActive),
+      reserve: reserve,
+    );
+  }
+
+  BattleSideState withReserve(List<BattleCombatant> updatedReserve) {
+    return BattleSideState(
+      id: id,
+      activeSlot: activeSlot,
+      reserve: updatedReserve,
+    );
+  }
+
+  BattleSideState withActiveAndReserve({
+    required BattleCombatant active,
+    required List<BattleCombatant> reserve,
+  }) {
+    return BattleSideState(
+      id: id,
+      activeSlot: activeSlot.withCombatant(active),
+      reserve: reserve,
+    );
+  }
+}
+
+BattleSideState _resolveBattleStateSide({
+  required BattleSideId expectedId,
+  required BattleSideState? providedSide,
+  required BattleCombatant? legacyActive,
+  required List<BattleCombatant> legacyReserve,
+  required String sideLabel,
+}) {
+  // Phase D choisit ici un garde-fou runtime, pas seulement un assert debug :
+  // - la migration introduit deux façons de construire `BattleState` ;
+  // - mélanger la nouvelle forme side-based et l'ancien chemin plat serait
+  //   sinon silencieusement ambigu en release ;
+  // - on préfère donc échouer explicitement plutôt que de "deviner" quelle
+  //   représentation l'appelant voulait vraiment utiliser.
+  if (providedSide != null &&
+      (legacyActive != null || legacyReserve.isNotEmpty)) {
+    throw ArgumentError(
+      'BattleState.$sideLabel must be built either from $sideLabel'
+      'Side or from the legacy $sideLabel/$sideLabel'
+      'Reserve inputs, not both.',
+    );
+  }
+
+  if (providedSide != null) {
+    if (providedSide.id != expectedId) {
+      throw ArgumentError(
+        'BattleState.$sideLabel must carry BattleSideId.${expectedId.name}.',
+      );
+    }
+    return providedSide;
+  }
+
+  if (legacyActive == null) {
+    throw ArgumentError(
+      'BattleState.$sideLabel requires either ${sideLabel}Side or '
+      '$sideLabel.',
+    );
+  }
+
+  return switch (expectedId) {
+    BattleSideId.player => BattleSideState.player(
+        active: legacyActive,
+        reserve: legacyReserve,
+      ),
+    BattleSideId.enemy => BattleSideState.enemy(
+        active: legacyActive,
+        reserve: legacyReserve,
+      ),
+  };
 }
 
 /// Étages de stats utilisables par le moteur battle MVP enrichi.

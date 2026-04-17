@@ -1,12 +1,15 @@
 import 'battle_action.dart';
+import 'battle_topology.dart';
 
-/// Acteur concerné par une requête de décision.
+/// Compatibilité locale avec le contrat Phase C.
 ///
-/// Phase C reste volontairement strictement singles :
-/// - seul le joueur humain reçoit aujourd'hui une vraie requête de décision ;
-/// - l'ennemi reste piloté localement par le moteur ;
-/// - introduire cet enum maintenant garde toutefois le contrat explicite
-///   sans ouvrir de vraie topologie `Side`/`slot`.
+/// Phase D rattache désormais chaque request à un vrai side et à un vrai slot,
+/// mais le paquet exportait déjà un petit `actor` public. On garde donc ce
+/// seam pour éviter une rupture API plus large que le lot :
+/// - il reste strictement limité au joueur humain ;
+/// - il ne remplace pas `side`, qui devient la vraie donnée topologique ;
+/// - il pourra être supprimé explicitement plus tard si une migration publique
+///   complète est décidée.
 enum BattleDecisionActor {
   player,
 }
@@ -65,13 +68,53 @@ enum BattleWaitReason {
 ///   de vérité pour savoir quel genre de décision est attendu ;
 /// - il n'ouvre pas encore un vrai request model Showdown-like multi-side.
 sealed class BattleDecisionRequest {
-  const BattleDecisionRequest({
-    required this.actor,
+  BattleDecisionRequest({
+    this.actor = BattleDecisionActor.player,
+    required this.side,
+    required this.slot,
     required this.kind,
-  });
+  }) {
+    if (actor != BattleDecisionActor.player) {
+      throw ArgumentError(
+        'Phase D only exposes player-facing decision requests.',
+      );
+    }
+    if (side != BattleSideId.player) {
+      throw ArgumentError(
+        'Phase D only exposes player-facing decision requests.',
+      );
+    }
+    if (slot.side != side) {
+      throw ArgumentError(
+        'BattleDecisionRequest.slot must belong to the same side.',
+      );
+    }
+    if (slot.slotIndex != 0) {
+      throw ArgumentError(
+        'Phase D remains singles-only and only supports slot 0 requests.',
+      );
+    }
+  }
 
-  /// L'acteur qui doit répondre à cette requête.
+  /// Compatibilité publique Phase C conservée.
   final BattleDecisionActor actor;
+
+  /// Le side qui doit répondre à cette requête.
+  ///
+  /// Phase D cesse ici de faire comme si la requête appartenait seulement à un
+  /// acteur stringly-typed ou implicite :
+  /// - la décision est désormais rattachée à un vrai côté du combat ;
+  /// - on reste strictement en singles, donc seul le joueur répond encore ;
+  /// - mais le contrat arrête d'être topologiquement plat.
+  final BattleSideId side;
+
+  /// Le slot concerné par cette requête.
+  ///
+  /// Frontière volontaire :
+  /// - Phase D n'ouvre pas une grille riche de slots ;
+  /// - mais la requête s'attache désormais explicitement au slot actif qui
+  ///   attend une réponse, au lieu de laisser le runtime le deviner.
+  final BattleSlotRef slot;
 
   /// Le type métier de la requête courante.
   final BattleDecisionRequestKind kind;
@@ -121,7 +164,9 @@ sealed class BattleDecisionRequest {
 /// - le type explicite ici est donc "tour libre", avec ses familles de choix.
 final class BattleTurnChoiceRequest extends BattleDecisionRequest {
   BattleTurnChoiceRequest({
-    required super.actor,
+    super.actor = BattleDecisionActor.player,
+    required super.side,
+    required super.slot,
     required List<PlayerBattleChoiceFight> moveChoices,
     List<PlayerBattleChoiceSwitch> switchChoices =
         const <PlayerBattleChoiceSwitch>[],
@@ -164,7 +209,9 @@ final class BattleTurnChoiceRequest extends BattleDecisionRequest {
 /// - le moteur peut aussi expliquer pourquoi ce remplacement est requis.
 final class BattleForcedReplacementRequest extends BattleDecisionRequest {
   BattleForcedReplacementRequest({
-    required super.actor,
+    super.actor = BattleDecisionActor.player,
+    required super.side,
+    required super.slot,
     required List<PlayerBattleChoiceSwitch> switchChoices,
     required this.reason,
     required this.faintedSpeciesId,
@@ -194,8 +241,10 @@ final class BattleForcedReplacementRequest extends BattleDecisionRequest {
 ///   attaque déjà chargée ;
 /// - le runtime n'a plus besoin d'inférer ce sens depuis l'état volatile brut.
 final class BattleContinueRequest extends BattleDecisionRequest {
-  const BattleContinueRequest({
-    required super.actor,
+  BattleContinueRequest({
+    super.actor = BattleDecisionActor.player,
+    required super.side,
+    required super.slot,
     required this.reason,
   }) : super(kind: BattleDecisionRequestKind.forcedContinue);
 
@@ -214,8 +263,10 @@ final class BattleContinueRequest extends BattleDecisionRequest {
 /// - cela évite que le runtime/overlay invente un menu vide ou un faux type
 ///   de tour à partir d'une simple absence de choix.
 final class BattleWaitRequest extends BattleDecisionRequest {
-  const BattleWaitRequest({
-    required super.actor,
+  BattleWaitRequest({
+    super.actor = BattleDecisionActor.player,
+    required super.side,
+    required super.slot,
     required this.reason,
   }) : super(kind: BattleDecisionRequestKind.wait);
 

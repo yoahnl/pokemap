@@ -106,6 +106,11 @@ void main() {
       expect(request, isA<BattleTurnChoiceRequest>());
       final turnChoiceRequest = request as BattleTurnChoiceRequest;
       expect(turnChoiceRequest.actor, equals(BattleDecisionActor.player));
+      expect(turnChoiceRequest.side, equals(BattleSideId.player));
+      expect(
+        turnChoiceRequest.slot,
+        equals(const BattleSlotRef.active(BattleSideId.player)),
+      );
       expect(turnChoiceRequest.moveChoices, hasLength(1));
       expect(turnChoiceRequest.switchChoices, hasLength(1));
       expect(turnChoiceRequest.captureChoice, isA<PlayerBattleChoiceCapture>());
@@ -140,6 +145,11 @@ void main() {
       expect(request, isA<BattleForcedReplacementRequest>());
       final forcedReplacementRequest =
           request as BattleForcedReplacementRequest;
+      expect(forcedReplacementRequest.side, equals(BattleSideId.player));
+      expect(
+        forcedReplacementRequest.slot,
+        equals(const BattleSlotRef.active(BattleSideId.player)),
+      );
       expect(
         forcedReplacementRequest.reason,
         equals(BattleForcedReplacementReason.activeFainted),
@@ -180,6 +190,11 @@ void main() {
 
       expect(request, isA<BattleContinueRequest>());
       final continueRequest = request as BattleContinueRequest;
+      expect(continueRequest.side, equals(BattleSideId.player));
+      expect(
+        continueRequest.slot,
+        equals(const BattleSlotRef.active(BattleSideId.player)),
+      );
       expect(
         continueRequest.reason,
         equals(BattleContinueReason.mustRecharge),
@@ -187,6 +202,32 @@ void main() {
       expect(continueRequest.allowedChoices, hasLength(1));
       expect(continueRequest.allowedChoices.single,
           isA<PlayerBattleChoiceContinue>());
+    });
+
+    test('request constructors reject mismatched side and slot attachments',
+        () {
+      expect(
+        () => BattleContinueRequest(
+          actor: BattleDecisionActor.player,
+          side: BattleSideId.player,
+          slot: const BattleSlotRef.active(BattleSideId.enemy),
+          reason: BattleContinueReason.mustRecharge,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+
+      expect(
+        () => BattleWaitRequest(
+          actor: BattleDecisionActor.player,
+          side: BattleSideId.player,
+          slot: const BattleSlotRef(
+            side: BattleSideId.player,
+            slotIndex: 1,
+          ),
+          reason: BattleWaitReason.noLegalChoice,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
     });
 
     test('an illegal choice for the current request kind is rejected cleanly',

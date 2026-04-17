@@ -62,6 +62,7 @@ export 'src/battle_setup.dart';
 export 'src/battle_decision.dart';
 export 'src/battle_session.dart';
 export 'src/battle_state.dart';
+export 'src/battle_topology.dart';
 export 'src/battle_field.dart';
 export 'src/battle_status.dart';
 export 'src/battle_volatile.dart';
