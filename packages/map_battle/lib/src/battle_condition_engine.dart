@@ -3,6 +3,7 @@ import 'battle_move.dart';
 import 'battle_rng.dart';
 import 'battle_state.dart';
 import 'battle_status.dart';
+import 'battle_topology.dart';
 import 'battle_volatile.dart';
 
 const Set<String> _sandstormResidualImmuneTypes = <String>{
@@ -48,21 +49,26 @@ final class BattleConditionEngine {
   /// 2. gate de statut majeur (`par`) ;
   /// 3. éventuelle entrée en charge pour un move sur deux tours ;
   /// 4. émission des événements visibles associés.
+  ///
+  /// Phase G ajoute ici un point de vérité topologique utile :
+  /// - l'engine ne reçoit plus seulement `"player"` / `"enemy"` ;
+  /// - il reçoit le slot réellement concerné ;
+  /// - les événements observables émis par l'engine cessent donc d'aplatir la
+  ///   topologie déjà introduite par les lots C/D/F.
   BattleActionAttemptResult runActionAttempt({
-    required String attackerLabel,
+    required BattleSlotRef attackerSlot,
     required BattleMove move,
     required int moveIndex,
     required BattleCombatant attacker,
     required BattleRng rng,
   }) {
     final preparation = _volatileRules.prepareActionAttempt(
-      attackerLabel: attackerLabel,
       move: move,
       moveIndex: moveIndex,
       attacker: attacker,
     );
     final actionGate = _statusRules.runActionAttemptGate(
-      combatantLabel: attackerLabel,
+      combatantSlot: attackerSlot,
       combatant: preparation.attacker,
       rng: rng,
     );
@@ -78,7 +84,7 @@ final class BattleConditionEngine {
     }
 
     final continuation = _volatileRules.finalizeActionAttempt(
-      attackerLabel: attackerLabel,
+      attackerSlot: attackerSlot,
       move: move,
       moveIndex: moveIndex,
       preparedAttacker: preparation.attacker,
@@ -112,15 +118,15 @@ final class BattleConditionEngine {
   /// - aucune autre interception, semi-invulnérabilité ou callback générique.
   BattleHitInterceptionResult runHitInterception({
     required BattleMove move,
-    required String attackerLabel,
-    required String targetLabel,
+    required BattleSlotRef attackerSlot,
+    required BattleSlotRef targetSlot,
     required BattleCombatant attacker,
     required BattleCombatant defender,
   }) {
     return _volatileRules.runHitInterception(
       move: move,
-      attackerLabel: attackerLabel,
-      targetLabel: targetLabel,
+      attackerSlot: attackerSlot,
+      targetSlot: targetSlot,
       attacker: attacker,
       defender: defender,
     );
@@ -132,10 +138,14 @@ final class BattleConditionEngine {
   /// - application de statut majeur par move ;
   /// - pose / retrait de weather ou pseudoWeather ;
   /// - pose d'une recharge obligatoire.
+  ///
+  /// Frontière volontaire Phase G :
+  /// - on enrichit seulement les références topologiques de sortie ;
+  /// - on n'ouvre aucune nouvelle famille d'effet de move ici.
   BattleMoveResolvedConditionResult runMoveResolved({
     required BattleMove move,
-    required String attackerLabel,
-    required String targetLabel,
+    required BattleSlotRef attackerSlot,
+    required BattleSlotRef targetSlot,
     required BattleCombatant attacker,
     required BattleCombatant defender,
     required BattleFieldState field,
@@ -144,7 +154,7 @@ final class BattleConditionEngine {
   }) {
     final statusApplication = _statusRules.runMoveResolved(
       move: move,
-      targetLabel: targetLabel,
+      targetSlot: targetSlot,
       defender: defender,
       wasImmune: wasImmune,
       rng: rng,
@@ -155,7 +165,7 @@ final class BattleConditionEngine {
     );
     final volatileFollowUp = _volatileRules.runMoveResolved(
       move: move,
-      attackerLabel: attackerLabel,
+      attackerSlot: attackerSlot,
       attacker: attacker,
       wasImmune: wasImmune,
     );
@@ -175,12 +185,16 @@ final class BattleConditionEngine {
   ///
   /// Phase E n'ouvre ici qu'un seul cas réellement vivant :
   /// - le tour perdu par recharge.
+  ///
+  /// Phase G garde ce seam minuscule :
+  /// - un slot explicite pour rattacher honnêtement l'événement produit ;
+  /// - aucun système plus riche de verrous ou de commandes forcées.
   BattleForcedContinueTurnResult runForcedContinueTurn({
-    required String combatantLabel,
+    required BattleSlotRef combatantSlot,
     required BattleCombatant combatant,
   }) {
     return _volatileRules.runForcedContinueTurn(
-      combatantLabel: combatantLabel,
+      combatantSlot: combatantSlot,
       combatant: combatant,
     );
   }
@@ -358,7 +372,7 @@ final class _BattleStatusRules {
   const _BattleStatusRules();
 
   _StatusActionGateResult runActionAttemptGate({
-    required String combatantLabel,
+    required BattleSlotRef combatantSlot,
     required BattleCombatant combatant,
     required BattleRng rng,
   }) {
@@ -388,7 +402,7 @@ final class _BattleStatusRules {
       nextRng: roll.next,
       statusEvents: <BattleStatusEvent>[
         BattleStatusEvent.preventedAction(
-          target: combatantLabel,
+          targetSlot: combatantSlot,
           status: BattleMajorStatusId.par,
         ),
       ],
@@ -397,7 +411,7 @@ final class _BattleStatusRules {
 
   _StatusMoveResolvedResult runMoveResolved({
     required BattleMove move,
-    required String targetLabel,
+    required BattleSlotRef targetSlot,
     required BattleCombatant defender,
     required bool wasImmune,
     required BattleRng rng,
@@ -425,7 +439,7 @@ final class _BattleStatusRules {
         nextRng: rng,
         statusEvents: <BattleStatusEvent>[
           BattleStatusEvent.blockedExistingMajorStatus(
-            target: targetLabel,
+            targetSlot: targetSlot,
             status: effect.status,
             existingStatus: defender.majorStatus!.id,
             sourceMoveId: move.id,
@@ -452,7 +466,7 @@ final class _BattleStatusRules {
         nextRng: chanceRoll.next,
         statusEvents: <BattleStatusEvent>[
           BattleStatusEvent.applied(
-            target: targetLabel,
+            targetSlot: targetSlot,
             status: effect.status,
             sourceMoveId: move.id,
           ),
@@ -465,7 +479,7 @@ final class _BattleStatusRules {
       nextRng: rng,
       statusEvents: <BattleStatusEvent>[
         BattleStatusEvent.applied(
-          target: targetLabel,
+          targetSlot: targetSlot,
           status: effect.status,
           sourceMoveId: move.id,
         ),
@@ -480,7 +494,7 @@ final class _BattleStatusRules {
     final playerResidual = !player.isFainted
         ? _applyResidualForCombatant(
             combatant: player,
-            combatantLabel: 'player',
+            combatantSlot: const BattleSlotRef.active(BattleSideId.player),
           )
         : _SingleStatusResidual(
             combatant: player,
@@ -489,7 +503,7 @@ final class _BattleStatusRules {
     final enemyResidual = !enemy.isFainted
         ? _applyResidualForCombatant(
             combatant: enemy,
-            combatantLabel: 'enemy',
+            combatantSlot: const BattleSlotRef.active(BattleSideId.enemy),
           )
         : _SingleStatusResidual(
             combatant: enemy,
@@ -508,7 +522,7 @@ final class _BattleStatusRules {
 
   _SingleStatusResidual _applyResidualForCombatant({
     required BattleCombatant combatant,
-    required String combatantLabel,
+    required BattleSlotRef combatantSlot,
   }) {
     final status = combatant.majorStatus;
     if (status == null || combatant.isFainted) {
@@ -554,7 +568,7 @@ final class _BattleStatusRules {
       combatant: nextCombatant,
       statusEvents: <BattleStatusEvent>[
         BattleStatusEvent.residualDamage(
-          target: combatantLabel,
+          targetSlot: combatantSlot,
           status: status.id,
           damage: residualDamage,
           toxicCounter:
@@ -618,7 +632,6 @@ final class _BattleVolatileRules {
   /// - cette nuance évite de créer un faux `pendingCharge` sur un tour où le
   ///   move n'a jamais vraiment commencé.
   _VolatileActionPreparation prepareActionAttempt({
-    required String attackerLabel,
     required BattleMove move,
     required int moveIndex,
     required BattleCombatant attacker,
@@ -660,7 +673,7 @@ final class _BattleVolatileRules {
   }
 
   _VolatileActionContinuation finalizeActionAttempt({
-    required String attackerLabel,
+    required BattleSlotRef attackerSlot,
     required BattleMove move,
     required int moveIndex,
     required BattleCombatant preparedAttacker,
@@ -683,7 +696,7 @@ final class _BattleVolatileRules {
         attacker: chargingAttacker,
         volatileEvents: <BattleVolatileEvent>[
           BattleVolatileEvent.chargeStarted(
-            actor: attackerLabel,
+            actorSlot: attackerSlot,
             sourceMoveId: move.id,
             chargeStateId: chargeStateId,
           ),
@@ -697,7 +710,7 @@ final class _BattleVolatileRules {
       volatileEvents: <BattleVolatileEvent>[
         if (preparedChargeRelease case final release?)
           BattleVolatileEvent.chargeReleased(
-            actor: attackerLabel,
+            actorSlot: attackerSlot,
             sourceMoveId: release.moveId,
             chargeStateId: release.chargeStateId,
           ),
@@ -707,8 +720,8 @@ final class _BattleVolatileRules {
 
   BattleHitInterceptionResult runHitInterception({
     required BattleMove move,
-    required String attackerLabel,
-    required String targetLabel,
+    required BattleSlotRef attackerSlot,
+    required BattleSlotRef targetSlot,
     required BattleCombatant attacker,
     required BattleCombatant defender,
   }) {
@@ -722,7 +735,7 @@ final class _BattleVolatileRules {
       );
       volatileEvents.add(
         BattleVolatileEvent.protectActivated(
-          actor: attackerLabel,
+          actorSlot: attackerSlot,
           sourceMoveId: move.id,
         ),
       );
@@ -744,8 +757,8 @@ final class _BattleVolatileRules {
       );
       volatileEvents.add(
         BattleVolatileEvent.protectBroken(
-          actor: attackerLabel,
-          target: targetLabel,
+          actorSlot: attackerSlot,
+          targetSlot: targetSlot,
           sourceMoveId: move.id,
         ),
       );
@@ -759,8 +772,8 @@ final class _BattleVolatileRules {
 
     volatileEvents.add(
       BattleVolatileEvent.protectBlocked(
-        actor: attackerLabel,
-        target: targetLabel,
+        actorSlot: attackerSlot,
+        targetSlot: targetSlot,
         sourceMoveId: move.id,
       ),
     );
@@ -774,7 +787,7 @@ final class _BattleVolatileRules {
 
   _VolatileMoveResolvedResult runMoveResolved({
     required BattleMove move,
-    required String attackerLabel,
+    required BattleSlotRef attackerSlot,
     required BattleCombatant attacker,
     required bool wasImmune,
   }) {
@@ -793,7 +806,7 @@ final class _BattleVolatileRules {
       ),
       volatileEvents: <BattleVolatileEvent>[
         BattleVolatileEvent.rechargeRequired(
-          actor: attackerLabel,
+          actorSlot: attackerSlot,
           sourceMoveId: move.id,
         ),
       ],
@@ -801,7 +814,7 @@ final class _BattleVolatileRules {
   }
 
   BattleForcedContinueTurnResult runForcedContinueTurn({
-    required String combatantLabel,
+    required BattleSlotRef combatantSlot,
     required BattleCombatant combatant,
   }) {
     if (!combatant.volatileState.mustRecharge) {
@@ -817,7 +830,7 @@ final class _BattleVolatileRules {
       ),
       volatileEvents: <BattleVolatileEvent>[
         BattleVolatileEvent.rechargeTurnSpent(
-          actor: combatantLabel,
+          actorSlot: combatantSlot,
         ),
       ],
     );
@@ -955,11 +968,11 @@ final class _BattleFieldRules {
 
     final playerResidual = _applySandstormResidual(
       combatant: player,
-      combatantLabel: 'player',
+      combatantSlot: const BattleSlotRef.active(BattleSideId.player),
     );
     final enemyResidual = _applySandstormResidual(
       combatant: enemy,
-      combatantLabel: 'enemy',
+      combatantSlot: const BattleSlotRef.active(BattleSideId.enemy),
     );
 
     return _WeatherResidualResult(
@@ -975,7 +988,7 @@ final class _BattleFieldRules {
 
   _SandstormResidualResult _applySandstormResidual({
     required BattleCombatant combatant,
-    required String combatantLabel,
+    required BattleSlotRef combatantSlot,
   }) {
     if (combatant.isFainted || _isImmuneToSandstormResidual(combatant)) {
       return _SandstormResidualResult(
@@ -995,7 +1008,7 @@ final class _BattleFieldRules {
       fieldEvents: <BattleFieldEvent>[
         BattleFieldEvent.weatherResidualDamage(
           weather: BattleWeatherId.sandstorm,
-          target: combatantLabel,
+          targetSlot: combatantSlot,
           damage: damage,
         ),
       ],

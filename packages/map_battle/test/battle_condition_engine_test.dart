@@ -95,7 +95,7 @@ void main() {
       );
 
       final result = engine.runActionAttempt(
-        attackerLabel: 'player',
+        attackerSlot: const BattleSlotRef.active(BattleSideId.player),
         move: attacker.moves.single,
         moveIndex: 0,
         attacker: attacker,
@@ -110,6 +110,10 @@ void main() {
       expect(
         result.statusEvents.single.kind,
         equals(BattleStatusEventKind.preventedAction),
+      );
+      expect(
+        result.statusEvents.single.targetSlot,
+        equals(const BattleSlotRef.active(BattleSideId.player)),
       );
       expect(result.volatileEvents, isEmpty);
     });
@@ -132,7 +136,7 @@ void main() {
       );
 
       final result = engine.runActionAttempt(
-        attackerLabel: 'player',
+        attackerSlot: const BattleSlotRef.active(BattleSideId.player),
         move: attacker.moves.single,
         moveIndex: 0,
         attacker: attacker,
@@ -148,6 +152,10 @@ void main() {
       expect(
         result.volatileEvents.single.kind,
         equals(BattleVolatileEventKind.chargeStarted),
+      );
+      expect(
+        result.volatileEvents.single.actorSlot,
+        equals(const BattleSlotRef.active(BattleSideId.player)),
       );
     });
 
@@ -166,8 +174,8 @@ void main() {
 
       final result = engine.runHitInterception(
         move: attacker.moves.single,
-        attackerLabel: 'enemy',
-        targetLabel: 'player',
+        attackerSlot: const BattleSlotRef.active(BattleSideId.enemy),
+        targetSlot: const BattleSlotRef.active(BattleSideId.player),
         attacker: attacker,
         defender: defender,
       );
@@ -176,6 +184,14 @@ void main() {
       expect(
         result.volatileEvents.single.kind,
         equals(BattleVolatileEventKind.protectBlocked),
+      );
+      expect(
+        result.volatileEvents.single.actorSlot,
+        equals(const BattleSlotRef.active(BattleSideId.enemy)),
+      );
+      expect(
+        result.volatileEvents.single.targetSlot,
+        equals(const BattleSlotRef.active(BattleSideId.player)),
       );
     });
 
@@ -199,8 +215,8 @@ void main() {
 
       final result = engine.runHitInterception(
         move: attacker.moves.single,
-        attackerLabel: 'enemy',
-        targetLabel: 'player',
+        attackerSlot: const BattleSlotRef.active(BattleSideId.enemy),
+        targetSlot: const BattleSlotRef.active(BattleSideId.player),
         attacker: attacker,
         defender: defender,
       );
@@ -210,6 +226,10 @@ void main() {
       expect(
         result.volatileEvents.single.kind,
         equals(BattleVolatileEventKind.protectBroken),
+      );
+      expect(
+        result.volatileEvents.single.targetSlot,
+        equals(const BattleSlotRef.active(BattleSideId.player)),
       );
     });
 
@@ -234,8 +254,8 @@ void main() {
 
       final result = engine.runMoveResolved(
         move: attacker.moves.single,
-        attackerLabel: 'player',
-        targetLabel: 'enemy',
+        attackerSlot: const BattleSlotRef.active(BattleSideId.player),
+        targetSlot: const BattleSlotRef.active(BattleSideId.enemy),
         attacker: attacker,
         defender: defender,
         field: const BattleFieldState(),
@@ -247,6 +267,10 @@ void main() {
       expect(
         result.statusEvents.single.kind,
         equals(BattleStatusEventKind.applied),
+      );
+      expect(
+        result.statusEvents.single.targetSlot,
+        equals(const BattleSlotRef.active(BattleSideId.enemy)),
       );
     });
 
@@ -270,8 +294,8 @@ void main() {
 
       final result = engine.runMoveResolved(
         move: attacker.moves.single,
-        attackerLabel: 'player',
-        targetLabel: 'enemy',
+        attackerSlot: const BattleSlotRef.active(BattleSideId.player),
+        targetSlot: const BattleSlotRef.active(BattleSideId.enemy),
         attacker: attacker,
         defender: defender,
         field: const BattleFieldState(),
@@ -283,6 +307,10 @@ void main() {
       expect(
         result.volatileEvents.single.kind,
         equals(BattleVolatileEventKind.rechargeRequired),
+      );
+      expect(
+        result.volatileEvents.single.actorSlot,
+        equals(const BattleSlotRef.active(BattleSideId.player)),
       );
     });
 
@@ -309,8 +337,8 @@ void main() {
 
       final result = engine.runMoveResolved(
         move: attacker.moves.single,
-        attackerLabel: 'player',
-        targetLabel: 'field',
+        attackerSlot: const BattleSlotRef.active(BattleSideId.player),
+        targetSlot: const BattleSlotRef.active(BattleSideId.enemy),
         attacker: attacker,
         defender: defender,
         field: const BattleFieldState(),
@@ -324,6 +352,7 @@ void main() {
         result.fieldEvents.single.kind,
         equals(BattleFieldEventKind.weatherSet),
       );
+      expect(result.fieldEvents.single.targetSlot, isNull);
     });
 
     test('runForcedContinueTurn spends the recharge turn and clears it', () {
@@ -336,7 +365,7 @@ void main() {
       );
 
       final result = engine.runForcedContinueTurn(
-        combatantLabel: 'player',
+        combatantSlot: const BattleSlotRef.active(BattleSideId.player),
         combatant: combatant,
       );
 
@@ -344,6 +373,10 @@ void main() {
       expect(
         result.volatileEvents.single.kind,
         equals(BattleVolatileEventKind.rechargeTurnSpent),
+      );
+      expect(
+        result.volatileEvents.single.actorSlot,
+        equals(const BattleSlotRef.active(BattleSideId.player)),
       );
     });
 
@@ -392,12 +425,29 @@ void main() {
         equals(BattleStatusEventKind.residualDamage),
       );
       expect(
+        result.statusEvents.single.targetSlot,
+        equals(const BattleSlotRef.active(BattleSideId.player)),
+      );
+      expect(
         result.fieldEvents.map((event) => event.kind).toList(growable: false),
         equals(<BattleFieldEventKind>[
           BattleFieldEventKind.weatherResidualDamage,
           BattleFieldEventKind.weatherResidualDamage,
           BattleFieldEventKind.weatherExpired,
           BattleFieldEventKind.pseudoWeatherExpired,
+        ]),
+      );
+      expect(
+        result.fieldEvents
+            .where(
+              (event) =>
+                  event.kind == BattleFieldEventKind.weatherResidualDamage,
+            )
+            .map((event) => event.targetSlot)
+            .toList(growable: false),
+        equals(<BattleSlotRef?>[
+          const BattleSlotRef.active(BattleSideId.player),
+          const BattleSlotRef.active(BattleSideId.enemy),
         ]),
       );
     });

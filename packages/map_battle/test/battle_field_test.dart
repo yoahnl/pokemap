@@ -266,12 +266,32 @@ void main() {
       expect(afterTurn.state.player.currentHp, equals(100));
       expect(afterTurn.state.enemy.currentHp, equals(94));
       expect(residualEvent.target, equals('enemy'));
+      expect(
+        residualEvent.targetSlot,
+        equals(const BattleSlotRef.active(BattleSideId.enemy)),
+      );
       expect(residualEvent.damage, equals(6));
       final timeline = afterTurn.state.currentTurn!.timeline;
       final enemyActionIndex = timeline.lastIndexWhere(
         (event) =>
             event is BattleTurnExecutionEvent &&
             event.execution.attacker == 'enemy',
+      );
+      final enemyExecution =
+          afterTurn.state.currentTurn!.executions.singleWhere(
+        (execution) => execution.attacker == 'enemy',
+      );
+      expect(
+        enemyExecution.attackerSlot,
+        equals(const BattleSlotRef.active(BattleSideId.enemy)),
+      );
+      expect(
+        enemyExecution.targetSlot,
+        equals(const BattleSlotRef.active(BattleSideId.player)),
+      );
+      expect(
+        enemyExecution.targetKind,
+        equals(BattleMoveExecutionTargetKind.combatant),
       );
       final residualIndex = timeline.lastIndexWhere(
         (event) =>

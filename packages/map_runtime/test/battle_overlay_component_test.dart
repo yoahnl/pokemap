@@ -219,9 +219,10 @@ void main() {
         enemyAction: BattleActionNone(),
         executions: <BattleMoveExecution>[
           BattleMoveExecution(
-            attacker: 'enemy',
+            attackerSlot: BattleSlotRef.active(BattleSideId.enemy),
             move: BattleMove(id: 'tackle', name: 'Tackle', power: 40),
-            target: 'player',
+            targetKind: BattleMoveExecutionTargetKind.combatant,
+            targetSlot: BattleSlotRef.active(BattleSideId.player),
             damage: 12,
             didHit: true,
           ),

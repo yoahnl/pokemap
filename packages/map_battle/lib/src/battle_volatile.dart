@@ -1,3 +1,5 @@
+import 'battle_topology.dart';
+
 /// Identifiant minimal de volatile réellement supporté par BE8.
 ///
 /// On n'ouvre volontairement pas une taxonomie générique de volatiles :
@@ -161,59 +163,70 @@ enum BattleVolatileEventKind {
 ///   fait ou empêché.
 final class BattleVolatileEvent {
   const BattleVolatileEvent.protectActivated({
-    required this.actor,
+    required this.actorSlot,
     required this.sourceMoveId,
   })  : kind = BattleVolatileEventKind.protectActivated,
-        target = null,
+        targetSlot = null,
         chargeStateId = null;
 
   const BattleVolatileEvent.protectBlocked({
-    required this.actor,
-    required this.target,
+    required this.actorSlot,
+    required this.targetSlot,
     required this.sourceMoveId,
   })  : kind = BattleVolatileEventKind.protectBlocked,
         chargeStateId = null;
 
   const BattleVolatileEvent.protectBroken({
-    required this.actor,
-    required this.target,
+    required this.actorSlot,
+    required this.targetSlot,
     required this.sourceMoveId,
   })  : kind = BattleVolatileEventKind.protectBroken,
         chargeStateId = null;
 
   const BattleVolatileEvent.rechargeRequired({
-    required this.actor,
+    required this.actorSlot,
     required this.sourceMoveId,
   })  : kind = BattleVolatileEventKind.rechargeRequired,
-        target = null,
+        targetSlot = null,
         chargeStateId = null;
 
   const BattleVolatileEvent.rechargeTurnSpent({
-    required this.actor,
+    required this.actorSlot,
   })  : kind = BattleVolatileEventKind.rechargeTurnSpent,
-        target = null,
+        targetSlot = null,
         sourceMoveId = null,
         chargeStateId = null;
 
   const BattleVolatileEvent.chargeStarted({
-    required this.actor,
+    required this.actorSlot,
     required this.sourceMoveId,
     this.chargeStateId,
   })  : kind = BattleVolatileEventKind.chargeStarted,
-        target = null;
+        targetSlot = null;
 
   const BattleVolatileEvent.chargeReleased({
-    required this.actor,
+    required this.actorSlot,
     required this.sourceMoveId,
     this.chargeStateId,
   })  : kind = BattleVolatileEventKind.chargeReleased,
-        target = null;
+        targetSlot = null;
 
-  /// Combattant qui a provoqué l'événement (`player` ou `enemy`).
-  final String actor;
+  /// Slot qui a provoqué l'événement.
+  ///
+  /// Phase G garde ce contrat volontairement petit :
+  /// - on ne crée pas une taxonomie générique de sources ;
+  /// - on exprime seulement le slot actif singles réellement impliqué.
+  final BattleSlotRef actorSlot;
 
   /// Cible explicite quand l'événement a une cible distincte.
-  final String? target;
+  final BattleSlotRef? targetSlot;
+
+  BattleSideId get actorSide => actorSlot.side;
+  BattleSideId? get targetSide => targetSlot?.side;
+
+  /// Compatibilité locale pour les surfaces encore stringly-typed.
+  String get actor => actorSide.actorId;
+  String? get target => targetSide?.actorId;
 
   final BattleVolatileEventKind kind;
   final String? sourceMoveId;

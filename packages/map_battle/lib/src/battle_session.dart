@@ -960,13 +960,13 @@ class BattleSession {
       }
 
       final resolution = _resolveMoveExecution(
-        attackerLabel: step.side.actorId,
+        attackerSlot: actingSide.activeSlotRef,
         move: move,
         moveIndex: moveIndex,
         attacker: actingSide.active,
         defender: opposingSide.active,
         field: turn.field,
-        targetLabel: _opposingSideId(step.side).actorId,
+        targetSlot: opposingSide.activeSlotRef,
         rng: turn.rng,
       );
       turn.updateActive(step.side, resolution.attacker);
@@ -1001,7 +1001,7 @@ class BattleSession {
       }
 
       final resolution = _conditionEngine.runForcedContinueTurn(
-        combatantLabel: step.side.actorId,
+        combatantSlot: actingSide.activeSlotRef,
         combatant: actingSide.active,
       );
       turn.updateActive(step.side, resolution.combatant);
@@ -1223,17 +1223,17 @@ class BattleSession {
   /// - mais un changement de `speed` ne réordonne jamais rétroactivement un
   ///   tour déjà ordonné au début de `_resolveTurn`.
   _ResolvedMoveExecution _resolveMoveExecution({
-    required String attackerLabel,
+    required BattleSlotRef attackerSlot,
     required BattleMove move,
     required int moveIndex,
     required BattleCombatant attacker,
     required BattleCombatant defender,
     required BattleFieldState field,
-    required String targetLabel,
+    required BattleSlotRef targetSlot,
     required BattleRng rng,
   }) {
     final actionAttempt = _conditionEngine.runActionAttempt(
-      attackerLabel: attackerLabel,
+      attackerSlot: attackerSlot,
       move: move,
       moveIndex: moveIndex,
       attacker: attacker,
@@ -1277,12 +1277,13 @@ class BattleSession {
 
     if (!hitCheck.didHit) {
       final missExecution = BattleMoveExecution(
-        attacker: attackerLabel,
+        attackerSlot: attackerSlot,
         move: actionAttempt.attacker.moves[moveIndex],
-        target: _resolveExecutionTargetLabel(
+        targetKind: _resolveExecutionTargetKind(move),
+        targetSlot: _resolveExecutionTargetSlot(
           move: move,
-          attackerLabel: attackerLabel,
-          opponentLabel: targetLabel,
+          attackerSlot: attackerSlot,
+          opponentSlot: targetSlot,
         ),
         damage: 0,
         didHit: false,
@@ -1309,8 +1310,8 @@ class BattleSession {
 
     final hitInterception = _conditionEngine.runHitInterception(
       move: move,
-      attackerLabel: attackerLabel,
-      targetLabel: targetLabel,
+      attackerSlot: attackerSlot,
+      targetSlot: targetSlot,
       attacker: actionAttempt.attacker,
       defender: defender,
     );
@@ -1318,12 +1319,13 @@ class BattleSession {
 
     if (hitInterception.blockedByProtect) {
       final blockedExecution = BattleMoveExecution(
-        attacker: attackerLabel,
+        attackerSlot: attackerSlot,
         move: hitInterception.attacker.moves[moveIndex],
-        target: _resolveExecutionTargetLabel(
+        targetKind: _resolveExecutionTargetKind(move),
+        targetSlot: _resolveExecutionTargetSlot(
           move: move,
-          attackerLabel: attackerLabel,
-          opponentLabel: targetLabel,
+          attackerSlot: attackerSlot,
+          opponentSlot: targetSlot,
         ),
         damage: 0,
         didHit: true,
@@ -1367,8 +1369,8 @@ class BattleSession {
             .withAppliedStageChanges(move.targetStatStageChanges);
     final postMoveConditions = _conditionEngine.runMoveResolved(
       move: move,
-      attackerLabel: attackerLabel,
-      targetLabel: targetLabel,
+      attackerSlot: attackerSlot,
+      targetSlot: targetSlot,
       attacker: updatedAttacker,
       defender: defenderAfterHit,
       field: field,
@@ -1383,12 +1385,13 @@ class BattleSession {
     ];
 
     final resolvedExecution = BattleMoveExecution(
-      attacker: attackerLabel,
+      attackerSlot: attackerSlot,
       move: postMoveConditions.attacker.moves[moveIndex],
-      target: _resolveExecutionTargetLabel(
+      targetKind: _resolveExecutionTargetKind(move),
+      targetSlot: _resolveExecutionTargetSlot(
         move: move,
-        attackerLabel: attackerLabel,
-        opponentLabel: targetLabel,
+        attackerSlot: attackerSlot,
+        opponentSlot: targetSlot,
       ),
       damage: damageResult.damage,
       didHit: true,
@@ -1442,17 +1445,39 @@ class BattleSession {
     );
   }
 
-  String _resolveExecutionTargetLabel({
-    required BattleMove move,
-    required String attackerLabel,
-    required String opponentLabel,
-  }) {
+  /// Résout la famille de cible observable d'une exécution.
+  ///
+  /// Phase G garde cette aide volontairement locale à la session :
+  /// - elle évite de re-disperser la logique "combatant vs field" ;
+  /// - elle ne transforme pas `BattleMoveTarget` en système de targeting riche ;
+  /// - elle sert uniquement à produire un contrat d'exécution plus honnête.
+  BattleMoveExecutionTargetKind _resolveExecutionTargetKind(
+    BattleMove move,
+  ) {
     return switch (move.target) {
-      BattleMoveTarget.self => attackerLabel,
-      BattleMoveTarget.field => 'field',
+      BattleMoveTarget.field => BattleMoveExecutionTargetKind.field,
+      BattleMoveTarget.self ||
       BattleMoveTarget.opponent ||
       BattleMoveTarget.unspecified =>
-        opponentLabel,
+        BattleMoveExecutionTargetKind.combatant,
+    };
+  }
+
+  /// Résout le slot cible observable quand l'exécution vise un combattant.
+  ///
+  /// Frontière volontaire :
+  /// - en singles, `self` et `opponent` suffisent encore ;
+  /// - `field` garde explicitement l'absence de slot ;
+  /// - on n'anticipe ni doubles, ni targeting multiple, ni side targeting.
+  BattleSlotRef? _resolveExecutionTargetSlot({
+    required BattleMove move,
+    required BattleSlotRef attackerSlot,
+    required BattleSlotRef opponentSlot,
+  }) {
+    return switch (move.target) {
+      BattleMoveTarget.self => attackerSlot,
+      BattleMoveTarget.field => null,
+      BattleMoveTarget.opponent || BattleMoveTarget.unspecified => opponentSlot,
     };
   }
 

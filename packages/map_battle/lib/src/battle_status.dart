@@ -1,3 +1,5 @@
+import 'battle_topology.dart';
+
 /// Identifiant minimal de statut majeur réellement supporté par le moteur.
 ///
 /// BE7 ouvre volontairement un seul sous-ensemble :
@@ -125,7 +127,7 @@ enum BattleStatusEventKind {
 ///   générique du moteur.
 final class BattleStatusEvent {
   const BattleStatusEvent.applied({
-    required this.target,
+    required this.targetSlot,
     required this.status,
     required this.sourceMoveId,
   })  : kind = BattleStatusEventKind.applied,
@@ -134,7 +136,7 @@ final class BattleStatusEvent {
         existingStatus = null;
 
   const BattleStatusEvent.blockedExistingMajorStatus({
-    required this.target,
+    required this.targetSlot,
     required this.status,
     required this.existingStatus,
     required this.sourceMoveId,
@@ -143,7 +145,7 @@ final class BattleStatusEvent {
         toxicCounter = null;
 
   const BattleStatusEvent.preventedAction({
-    required this.target,
+    required this.targetSlot,
     required this.status,
   })  : kind = BattleStatusEventKind.preventedAction,
         sourceMoveId = null,
@@ -152,7 +154,7 @@ final class BattleStatusEvent {
         existingStatus = null;
 
   const BattleStatusEvent.residualDamage({
-    required this.target,
+    required this.targetSlot,
     required this.status,
     required this.damage,
     this.toxicCounter,
@@ -160,8 +162,19 @@ final class BattleStatusEvent {
         sourceMoveId = null,
         existingStatus = null;
 
-  /// Combattant ciblé par l'événement (`player` ou `enemy`).
-  final String target;
+  /// Slot ciblé par l'événement.
+  ///
+  /// Phase G élargit volontairement le contrat ici :
+  /// - les statuts majeurs ciblent encore toujours un combattant actif ;
+  /// - mais ils cessent d'être attachés à une simple chaîne `"player"` /
+  ///   `"enemy"` alors que le moteur porte déjà une vraie topologie.
+  final BattleSlotRef targetSlot;
+
+  /// Side ciblé par l'événement.
+  BattleSideId get targetSide => targetSlot.side;
+
+  /// Compatibilité locale pour les surfaces encore stringly-typed.
+  String get target => targetSide.actorId;
 
   final BattleStatusEventKind kind;
   final BattleMajorStatusId status;

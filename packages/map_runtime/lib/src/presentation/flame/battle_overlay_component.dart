@@ -56,7 +56,7 @@ List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
   for (final event in turnResult.timeline) {
     switch (event) {
       case BattleTurnExecutionEvent(:final execution):
-        final attacker = _overlayCombatantLabel(execution.attacker);
+        final attacker = _overlayCombatantLabelForSide(execution.attackerSide);
         lines.add(
           '$attacker utilise ${execution.move.name} → ${execution.damage} dégâts',
         );
@@ -75,7 +75,7 @@ List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
 }
 
 String _formatOverlaySwitchEvent(BattleSwitchEvent event) {
-  final actor = _overlayCombatantLabel(event.actor);
+  final actor = _overlayCombatantLabelForSide(event.side);
   return switch (event.kind) {
     BattleSwitchEventKind.switched => event.wasForced
         ? '$actor remplace ${event.fromSpeciesId} par ${event.toSpeciesId}'
@@ -86,7 +86,7 @@ String _formatOverlaySwitchEvent(BattleSwitchEvent event) {
 }
 
 String _formatOverlayStatusEvent(BattleStatusEvent event) {
-  final actor = _overlayCombatantLabel(event.target);
+  final actor = _overlayCombatantLabelForSide(event.targetSide);
   final status = event.status.name.toUpperCase();
   return switch (event.kind) {
     BattleStatusEventKind.applied =>
@@ -104,9 +104,10 @@ String _formatOverlayStatusEvent(BattleStatusEvent event) {
 }
 
 String _formatOverlayVolatileEvent(BattleVolatileEvent event) {
-  final actor = _overlayCombatantLabel(event.actor);
-  final target =
-      event.target == null ? null : _overlayCombatantLabel(event.target!);
+  final actor = _overlayCombatantLabelForSide(event.actorSide);
+  final target = event.targetSide == null
+      ? null
+      : _overlayCombatantLabelForSide(event.targetSide!);
 
   return switch (event.kind) {
     BattleVolatileEventKind.protectActivated => '$actor active Protect',
@@ -130,7 +131,7 @@ String _formatOverlayFieldEvent(BattleFieldEvent event) {
     BattleFieldEventKind.weatherSet =>
       'Le champ passe à ${_overlayWeatherLabel(event.weather!)}',
     BattleFieldEventKind.weatherResidualDamage =>
-      '${_overlayCombatantLabel(event.target!)} subit ${event.damage} dégâts de ${_overlayWeatherLabel(event.weather!)}',
+      '${_overlayCombatantLabelForSide(event.targetSide!)} subit ${event.damage} dégâts de ${_overlayWeatherLabel(event.weather!)}',
     BattleFieldEventKind.weatherExpired =>
       '${_overlayWeatherLabel(event.weather!)} prend fin',
     BattleFieldEventKind.pseudoWeatherSet =>
@@ -142,8 +143,8 @@ String _formatOverlayFieldEvent(BattleFieldEvent event) {
   };
 }
 
-String _overlayCombatantLabel(String combatantId) {
-  return combatantId == 'player' ? 'Joueur' : 'Ennemi';
+String _overlayCombatantLabelForSide(BattleSideId side) {
+  return side == BattleSideId.player ? 'Joueur' : 'Ennemi';
 }
 
 String _overlayWeatherLabel(BattleWeatherId weather) {

@@ -1,3 +1,5 @@
+import 'battle_topology.dart';
+
 /// Identifiant de météo réellement supporté par le moteur battle BE9.
 ///
 /// Ce type reste volontairement étroit :
@@ -161,12 +163,12 @@ final class BattleFieldEvent {
     required this.sourceMoveId,
   })  : kind = BattleFieldEventKind.weatherSet,
         pseudoWeather = null,
-        target = null,
+        targetSlot = null,
         damage = null;
 
   const BattleFieldEvent.weatherResidualDamage({
     required this.weather,
-    required this.target,
+    required this.targetSlot,
     required this.damage,
   })  : kind = BattleFieldEventKind.weatherResidualDamage,
         pseudoWeather = null,
@@ -177,7 +179,7 @@ final class BattleFieldEvent {
   })  : kind = BattleFieldEventKind.weatherExpired,
         pseudoWeather = null,
         sourceMoveId = null,
-        target = null,
+        targetSlot = null,
         damage = null;
 
   const BattleFieldEvent.pseudoWeatherSet({
@@ -185,7 +187,7 @@ final class BattleFieldEvent {
     required this.sourceMoveId,
   })  : kind = BattleFieldEventKind.pseudoWeatherSet,
         weather = null,
-        target = null,
+        targetSlot = null,
         damage = null;
 
   const BattleFieldEvent.pseudoWeatherCleared({
@@ -193,7 +195,7 @@ final class BattleFieldEvent {
     required this.sourceMoveId,
   })  : kind = BattleFieldEventKind.pseudoWeatherCleared,
         weather = null,
-        target = null,
+        targetSlot = null,
         damage = null;
 
   const BattleFieldEvent.pseudoWeatherExpired({
@@ -201,13 +203,25 @@ final class BattleFieldEvent {
   })  : kind = BattleFieldEventKind.pseudoWeatherExpired,
         weather = null,
         sourceMoveId = null,
-        target = null,
+        targetSlot = null,
         damage = null;
 
   final BattleFieldEventKind kind;
   final BattleWeatherId? weather;
   final BattlePseudoWeatherId? pseudoWeather;
   final String? sourceMoveId;
-  final String? target;
+
+  /// Slot explicitement affecté quand l'événement de champ touche un combattant.
+  ///
+  /// Phase G évite ici un faux contrat générique :
+  /// - aujourd'hui seul le résiduel météo cible un combattant ;
+  /// - les autres événements de champ restent globaux et gardent `null`.
+  final BattleSlotRef? targetSlot;
+
+  BattleSideId? get targetSide => targetSlot?.side;
+
+  /// Compatibilité locale pour les surfaces encore stringly-typed.
+  String? get target => targetSide?.actorId;
+
   final int? damage;
 }

@@ -3,6 +3,7 @@ import 'battle_field.dart';
 import 'battle_move.dart';
 import 'battle_state.dart';
 import 'battle_status.dart';
+import 'battle_topology.dart';
 import 'battle_switch.dart';
 import 'battle_volatile.dart';
 
@@ -146,12 +147,30 @@ final class BattleTurnSwitchEvent extends BattleTurnEvent {
 /// Exécution d'une attaque.
 ///
 /// Représente une attaque qui a été exécutée avec ses effets.
+///
+/// Phase G élargit volontairement ce contrat sur un point précis :
+/// - l'exécution ne doit plus être seulement observable via des chaînes
+///   `"player"` / `"enemy"` / `"field"` ;
+/// - le moteur a désormais une vraie topologie singles (`side` / `slot`) ;
+/// - la trace de résolution doit donc porter cette topologie elle aussi.
+///
+/// Garde-fou de scope :
+/// - on n'ouvre pas un système de targeting riche ;
+/// - on ne porte toujours que le sous-ensemble réellement supporté :
+///   cible combattant active ou cible field ;
+/// - les getters stringly-typed restent comme seam de compatibilité local.
+enum BattleMoveExecutionTargetKind {
+  combatant,
+  field,
+}
+
 class BattleMoveExecution {
   /// Crée une exécution d'attaque.
   ///
-  /// [attacker] - L'identifiant de l'attaquant ("player" ou "enemy").
+  /// [attackerSlot] - Le slot qui a réellement exécuté l'attaque.
   /// [move] - L'attaque utilisée.
-  /// [target] - L'identifiant de la cible ("player" ou "enemy").
+  /// [targetKind] - La famille de cible réellement résolue.
+  /// [targetSlot] - Le slot ciblé quand [targetKind] vaut `combatant`.
   /// [damage] - Les dégâts infligés.
   /// [didHit] - true si le move a réellement touché.
   /// [didCrit] - true si le move a réellement déclenché un critique.
@@ -159,30 +178,65 @@ class BattleMoveExecution {
   /// [stabMultiplier] - Multiplicateur STAB réellement consommé pour ce hit.
   /// [typeEffectivenessMultiplier] - Multiplicateur de type réellement appliqué.
   const BattleMoveExecution({
-    required this.attacker,
+    required this.attackerSlot,
     required this.move,
-    required this.target,
+    required this.targetKind,
+    this.targetSlot,
     required this.damage,
     required this.didHit,
     this.didCrit = false,
     this.criticalMultiplier = 1.0,
     this.stabMultiplier = 1.0,
     this.typeEffectivenessMultiplier = 1.0,
-  });
+  }) : assert(
+          (targetKind == BattleMoveExecutionTargetKind.combatant &&
+                  targetSlot != null) ||
+              (targetKind == BattleMoveExecutionTargetKind.field &&
+                  targetSlot == null),
+          'BattleMoveExecution targetKind/targetSlot must describe either a combatant slot or the field.',
+        );
 
-  /// L'identifiant de l'attaquant.
+  /// Slot attaquant réellement résolu par le moteur.
   ///
-  /// Valeurs possibles : "player" ou "enemy".
-  final String attacker;
+  /// En singles Phase D/F :
+  /// - il s'agit encore toujours du slot actif `0` d'un side ;
+  /// - mais l'exécution arrête de mentir en faisant comme si la topologie
+  ///   n'existait pas.
+  final BattleSlotRef attackerSlot;
+
+  /// Side de l'attaquant.
+  BattleSideId get attackerSide => attackerSlot.side;
+
+  /// Compatibilité locale pour les surfaces encore stringly-typed.
+  ///
+  /// Ce getter n'est plus la source de vérité ; il dérive désormais du slot.
+  String get attacker => attackerSide.actorId;
 
   /// L'attaque utilisée.
   final BattleMove move;
 
-  /// L'identifiant de la cible.
+  /// Famille de cible réellement consommée par cette exécution.
+  final BattleMoveExecutionTargetKind targetKind;
+
+  /// Slot ciblé quand l'exécution vise un combattant.
   ///
-  /// Valeurs possibles : "player", "enemy" ou "field" pour un move qui agit
-  /// sur le champ plutôt que sur un combattant.
-  final String target;
+  /// Frontière volontaire :
+  /// - `null` signifie uniquement "le move vise le field" ;
+  /// - on ne crée ni targeting riche, ni tableau de cibles multiples.
+  final BattleSlotRef? targetSlot;
+
+  /// Side ciblé quand l'exécution vise un combattant.
+  BattleSideId? get targetSide => targetSlot?.side;
+
+  /// Compatibilité locale pour les surfaces encore stringly-typed.
+  ///
+  /// Valeurs dérivées :
+  /// - `"player"` / `"enemy"` pour une cible combattant ;
+  /// - `"field"` pour une cible field.
+  String get target => switch (targetKind) {
+        BattleMoveExecutionTargetKind.combatant => targetSlot!.side.actorId,
+        BattleMoveExecutionTargetKind.field => 'field',
+      };
 
   /// Les dégâts infligés.
   ///
