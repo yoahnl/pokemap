@@ -20,6 +20,8 @@ BattleStatsSnapshot _stats({
 BattleSession _session({
   required BattleMoveData playerMove,
   required BattleMoveData enemyMove,
+  BattleMajorStatusState? playerMajorStatus,
+  BattleMajorStatusState? enemyMajorStatus,
   BattleVolatileState playerVolatileState = const BattleVolatileState(),
   BattleVolatileState enemyVolatileState = const BattleVolatileState(),
   BattleRng rng = const BattleSeededRng(),
@@ -35,6 +37,7 @@ BattleSession _session({
         level: 30,
         maxHp: playerHp,
         stats: _stats(speed: playerSpeed),
+        majorStatus: playerMajorStatus,
         volatileState: playerVolatileState,
         moves: <BattleMoveData>[playerMove],
       ),
@@ -43,6 +46,7 @@ BattleSession _session({
         level: 30,
         maxHp: enemyHp,
         stats: _stats(speed: enemySpeed),
+        majorStatus: enemyMajorStatus,
         volatileState: enemyVolatileState,
         moves: <BattleMoveData>[enemyMove],
       ),
@@ -323,6 +327,62 @@ void main() {
             .single
             .sourceMoveId,
         equals('solar_beam'),
+      );
+    });
+
+    test(
+        'paralysis on the first charge turn spends PP but does not arm a fake pending charge',
+        () {
+      final session = _session(
+        playerMove: const BattleMoveData(
+          id: 'solar_beam',
+          name: 'Solar Beam',
+          power: 120,
+          type: 'grass',
+          category: BattleMoveCategory.special,
+          target: BattleMoveTarget.opponent,
+          pp: 10,
+          chargeThenStrikeEffect: BattleChargeThenStrikeEffect(
+            chargeStateId: 'solar_charge',
+          ),
+        ),
+        enemyMove: const BattleMoveData(
+          id: 'growl',
+          name: 'Growl',
+          power: 0,
+          type: 'normal',
+          category: BattleMoveCategory.status,
+          target: BattleMoveTarget.opponent,
+        ),
+        playerMajorStatus: const BattleMajorStatusState.par(),
+        rng: const BattleScriptedRng(<int>[1]),
+        playerSpeed: 80,
+        enemySpeed: 40,
+      );
+
+      final afterBlocked =
+          session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(afterBlocked.state.player.moves.single.currentPp, equals(9));
+      expect(afterBlocked.state.player.volatileState.pendingCharge, isNull);
+      expect(
+        afterBlocked.state.currentTurn!.statusEvents
+            .where(
+              (event) => event.kind == BattleStatusEventKind.preventedAction,
+            )
+            .single
+            .status,
+        equals(BattleMajorStatusId.par),
+      );
+      expect(
+        afterBlocked.state.currentTurn!.volatileEvents.where(
+          (event) => event.kind == BattleVolatileEventKind.chargeStarted,
+        ),
+        isEmpty,
+      );
+      expect(
+        afterBlocked.decisionRequest,
+        isA<BattleTurnChoiceRequest>(),
       );
     });
   });

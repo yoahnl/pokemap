@@ -1,5 +1,6 @@
 import 'battle_setup.dart';
 import 'battle_decision.dart';
+import 'battle_condition_engine.dart';
 import 'battle_state.dart';
 import 'battle_action.dart';
 import 'battle_field.dart';
@@ -14,13 +15,7 @@ import 'battle_stats.dart';
 import 'battle_type_chart.dart';
 
 const double _criticalHitMultiplier = 1.5;
-const int _supportedWeatherDurationTurns = 5;
-const int _supportedPseudoWeatherDurationTurns = 5;
-const Set<String> _sandstormResidualImmuneTypes = <String>{
-  'ground',
-  'rock',
-  'steel',
-};
+const BattleConditionEngine _conditionEngine = BattleConditionEngine();
 
 /// Crée une nouvelle session de combat.
 ///
@@ -936,13 +931,13 @@ class BattleSession {
             if (player.isFainted || enemy.isFainted) {
               continue;
             }
-            final resolution = _resolveRechargeAction(
+            final resolution = _conditionEngine.runForcedContinueTurn(
               combatantLabel: 'player',
               combatant: player,
             );
             player = resolution.combatant;
             volatileEvents.addAll(resolution.volatileEvents);
-            timeline.addAll(resolution.timeline);
+            timeline.addAll(_turnEventsFromVolatile(resolution.volatileEvents));
           }
         case _BattleActor.enemy:
           if (orderedAction.action
@@ -989,18 +984,18 @@ class BattleSession {
             if (enemy.isFainted || player.isFainted) {
               continue;
             }
-            final resolution = _resolveRechargeAction(
+            final resolution = _conditionEngine.runForcedContinueTurn(
               combatantLabel: 'enemy',
               combatant: enemy,
             );
             enemy = resolution.combatant;
             volatileEvents.addAll(resolution.volatileEvents);
-            timeline.addAll(resolution.timeline);
+            timeline.addAll(_turnEventsFromVolatile(resolution.volatileEvents));
           }
       }
     }
 
-    final residualResolution = _resolveEndOfTurnPhase(
+    final residualResolution = _conditionEngine.runEndOfTurn(
       player: player,
       enemy: enemy,
       field: field,
@@ -1010,13 +1005,8 @@ class BattleSession {
     field = residualResolution.field;
     statusEvents.addAll(residualResolution.statusEvents);
     fieldEvents.addAll(residualResolution.fieldEvents);
-    timeline.addAll(residualResolution.timeline);
-    player = player.withVolatileState(
-      player.volatileState.clearedEndOfTurnFlags(),
-    );
-    enemy = enemy.withVolatileState(
-      enemy.volatileState.clearedEndOfTurnFlags(),
-    );
+    timeline.addAll(_turnEventsFromStatus(residualResolution.statusEvents));
+    timeline.addAll(_turnEventsFromField(residualResolution.fieldEvents));
 
     return _ResolvedBattleTurn(
       playerSide: BattleSideState.player(
@@ -1098,8 +1088,7 @@ class BattleSession {
 
     final playerSpeed = _resolveEffectiveSpeed(player);
     final enemySpeed = _resolveEffectiveSpeed(enemy);
-    final trickRoomActive =
-        field.isPseudoWeatherActive(BattlePseudoWeatherId.trickRoom);
+    final trickRoomActive = _conditionEngine.doesFieldInvertSpeedOrder(field);
     if (playerSpeed != enemySpeed) {
       final playerActsFirst =
           trickRoomActive ? playerSpeed < enemySpeed : playerSpeed > enemySpeed;
@@ -1194,117 +1183,53 @@ class BattleSession {
     required String targetLabel,
     required BattleRng rng,
   }) {
-    final pendingCharge = attacker.volatileState.pendingCharge;
-    final isChargeRelease = pendingCharge != null &&
-        pendingCharge.moveIndex == moveIndex &&
-        pendingCharge.moveId == move.id;
-
-    if (!isChargeRelease && !move.hasUsablePp) {
-      throw StateError(
-        'Le move "${move.name}" n’a plus de PP et ne peut pas être résolu honnêtement.',
-      );
-    }
-
-    // Ordre de résolution BE8, volontairement borné et documenté :
-    // 1. si le move est la libération d'une charge déjà stockée, on réutilise
-    //    ce move sans repayer les PP et on nettoie immédiatement l'état de
-    //    charge ;
-    // 2. sinon, on suit BE4 : tentative => consommation de PP ;
-    // 3. blocage d'action par paralysie si applicable ;
-    // 4. si le move est un chargeThenStrike en premier tour, on entre en
-    //    charge et on s'arrête là ;
-    // 5. hit check ;
-    // 6. application éventuelle de `protect` sur le lanceur, puis interception
-    //    par une protection adverse déjà active ;
-    // 7. dégâts / statuts / BE5 / BE6 / BE7 ;
-    // 8. éventuelle recharge forcée si le move le demande.
-    final attackerAfterChargeClear = isChargeRelease
-        ? attacker.withVolatileState(
-            attacker.volatileState.withPendingCharge(null),
-          )
-        : attacker;
-    final attackerAfterPpUse = isChargeRelease
-        ? attackerAfterChargeClear
-        : attackerAfterChargeClear.withUpdatedMoveAt(
-            moveIndex,
-            move.withConsumedPp(),
-          );
-    final actionGate = _resolveMajorStatusActionGate(
-      combatantLabel: attackerLabel,
-      combatant: attackerAfterPpUse,
+    final actionAttempt = _conditionEngine.runActionAttempt(
+      attackerLabel: attackerLabel,
+      move: move,
+      moveIndex: moveIndex,
+      attacker: attacker,
       rng: rng,
     );
 
-    if (!actionGate.canAct) {
+    if (actionAttempt.outcome == BattleActionAttemptOutcome.preventedAction) {
       return _ResolvedMoveExecution(
-        attacker: attackerAfterPpUse,
+        attacker: actionAttempt.attacker,
         defender: defender,
         field: field,
-        rng: actionGate.nextRng,
+        rng: actionAttempt.rng,
         execution: null,
-        statusEvents: actionGate.statusEvents,
+        statusEvents: actionAttempt.statusEvents,
         volatileEvents: const <BattleVolatileEvent>[],
         fieldEvents: const <BattleFieldEvent>[],
-        timeline: _turnEventsFromStatus(actionGate.statusEvents),
+        timeline: _turnEventsFromStatus(actionAttempt.statusEvents),
       );
     }
 
-    if (!isChargeRelease && move.chargeThenStrikeEffect != null) {
-      final chargingAttacker = attackerAfterPpUse.withVolatileState(
-        attackerAfterPpUse.volatileState.withPendingCharge(
-          BattlePendingChargeState(
-            moveIndex: moveIndex,
-            moveId: move.id,
-            chargeStateId: move.chargeThenStrikeEffect!.chargeStateId,
-          ),
-        ),
-      );
-
+    if (actionAttempt.outcome == BattleActionAttemptOutcome.chargeStarted) {
       return _ResolvedMoveExecution(
-        attacker: chargingAttacker,
+        attacker: actionAttempt.attacker,
         defender: defender,
         field: field,
-        rng: actionGate.nextRng,
+        rng: actionAttempt.rng,
         execution: null,
         statusEvents: const <BattleStatusEvent>[],
-        volatileEvents: <BattleVolatileEvent>[
-          BattleVolatileEvent.chargeStarted(
-            actor: attackerLabel,
-            sourceMoveId: move.id,
-            chargeStateId: move.chargeThenStrikeEffect!.chargeStateId,
-          ),
-        ],
+        volatileEvents: actionAttempt.volatileEvents,
         fieldEvents: const <BattleFieldEvent>[],
-        timeline: _turnEventsFromVolatile(
-          <BattleVolatileEvent>[
-            BattleVolatileEvent.chargeStarted(
-              actor: attackerLabel,
-              sourceMoveId: move.id,
-              chargeStateId: move.chargeThenStrikeEffect!.chargeStateId,
-            ),
-          ],
-        ),
+        timeline: _turnEventsFromVolatile(actionAttempt.volatileEvents),
       );
     }
 
-    final volatileEvents = <BattleVolatileEvent>[
-      if (isChargeRelease)
-        BattleVolatileEvent.chargeReleased(
-          actor: attackerLabel,
-          sourceMoveId: move.id,
-          chargeStateId: pendingCharge.chargeStateId,
-        ),
-    ];
-
+    final preHitVolatileEvents =
+        List<BattleVolatileEvent>.of(actionAttempt.volatileEvents);
     final hitCheck = _resolveHitCheck(
       move: move,
-      rng: actionGate.nextRng,
+      rng: actionAttempt.rng,
     );
 
     if (!hitCheck.didHit) {
       final missExecution = BattleMoveExecution(
         attacker: attackerLabel,
-        move: attackerAfterPpUse.moves[moveIndex],
+        move: actionAttempt.attacker.moves[moveIndex],
         target: _resolveExecutionTargetLabel(
           move: move,
           attackerLabel: attackerLabel,
@@ -1316,34 +1241,36 @@ class BattleSession {
         criticalMultiplier: 1.0,
       );
       return _ResolvedMoveExecution(
-        attacker: attackerAfterPpUse,
+        attacker: actionAttempt.attacker,
         defender: defender,
         field: field,
         rng: hitCheck.nextRng,
         execution: missExecution,
         statusEvents: const <BattleStatusEvent>[],
-        volatileEvents: List<BattleVolatileEvent>.unmodifiable(volatileEvents),
+        volatileEvents: List<BattleVolatileEvent>.unmodifiable(
+          preHitVolatileEvents,
+        ),
         fieldEvents: const <BattleFieldEvent>[],
         timeline: _buildMoveTimeline(
-          preExecutionVolatileEvents: volatileEvents,
+          preExecutionVolatileEvents: preHitVolatileEvents,
           execution: missExecution,
         ),
       );
     }
 
-    final protectResolution = _resolveProtectInteractions(
+    final hitInterception = _conditionEngine.runHitInterception(
       move: move,
       attackerLabel: attackerLabel,
       targetLabel: targetLabel,
-      attacker: attackerAfterPpUse,
+      attacker: actionAttempt.attacker,
       defender: defender,
     );
-    volatileEvents.addAll(protectResolution.volatileEvents);
+    preHitVolatileEvents.addAll(hitInterception.volatileEvents);
 
-    if (protectResolution.blockedByProtect) {
+    if (hitInterception.blockedByProtect) {
       final blockedExecution = BattleMoveExecution(
         attacker: attackerLabel,
-        move: protectResolution.attacker.moves[moveIndex],
+        move: hitInterception.attacker.moves[moveIndex],
         target: _resolveExecutionTargetLabel(
           move: move,
           attackerLabel: attackerLabel,
@@ -1355,16 +1282,18 @@ class BattleSession {
         criticalMultiplier: 1.0,
       );
       return _ResolvedMoveExecution(
-        attacker: protectResolution.attacker,
-        defender: protectResolution.defender,
+        attacker: hitInterception.attacker,
+        defender: hitInterception.defender,
         field: field,
         rng: hitCheck.nextRng,
         execution: blockedExecution,
         statusEvents: const <BattleStatusEvent>[],
-        volatileEvents: List<BattleVolatileEvent>.unmodifiable(volatileEvents),
+        volatileEvents: List<BattleVolatileEvent>.unmodifiable(
+          preHitVolatileEvents,
+        ),
         fieldEvents: const <BattleFieldEvent>[],
         timeline: _buildMoveTimeline(
-          preExecutionVolatileEvents: volatileEvents,
+          preExecutionVolatileEvents: preHitVolatileEvents,
           execution: blockedExecution,
         ),
       );
@@ -1372,57 +1301,41 @@ class BattleSession {
 
     final damageResult = _computeMoveDamage(
       move: move,
-      attacker: protectResolution.attacker,
-      defender: protectResolution.defender,
+      attacker: hitInterception.attacker,
+      defender: hitInterception.defender,
       field: field,
       rng: hitCheck.nextRng,
     );
 
-    // BE5 donne à l'immunité une sémantique simple et honnête pour le petit
-    // sous-ensemble moteur actuellement supporté :
-    // - le move a bien été tenté et a passé le hit check ;
-    // - mais il n'a "aucun effet" sur la cible si le typing annule le hit ;
-    // - on n'applique donc ni dégâts ni stage changes à partir d'un hit
-    //   immunisé, ce qui évite des demi-effets mensongers.
     final updatedAttacker = damageResult.wasImmune
-        ? protectResolution.attacker
-        : protectResolution.attacker
+        ? hitInterception.attacker
+        : hitInterception.attacker
             .withAppliedStageChanges(move.selfStatStageChanges);
     final defenderAfterHit = damageResult.wasImmune
-        ? protectResolution.defender
-        : protectResolution.defender
+        ? hitInterception.defender
+        : hitInterception.defender
             .withDamage(damageResult.damage)
             .withAppliedStageChanges(move.targetStatStageChanges);
-    final statusApplication = _resolveMajorStatusApplication(
-      move: move,
-      targetLabel: targetLabel,
-      defender: defenderAfterHit,
-      damageResult: damageResult,
-      rng: damageResult.nextRng,
-    );
-    final fieldApplication = _resolveFieldApplication(
-      move: move,
-      field: field,
-    );
-    final preExecutionVolatileEvents =
-        List<BattleVolatileEvent>.unmodifiable(volatileEvents);
-    final rechargeFollowUp = _resolveRechargeFollowUp(
+    final postMoveConditions = _conditionEngine.runMoveResolved(
       move: move,
       attackerLabel: attackerLabel,
+      targetLabel: targetLabel,
       attacker: updatedAttacker,
-      damageResult: damageResult,
+      defender: defenderAfterHit,
+      field: field,
+      wasImmune: damageResult.wasImmune,
+      rng: damageResult.nextRng,
     );
-    volatileEvents.addAll(rechargeFollowUp.volatileEvents);
+    final preExecutionVolatileEvents =
+        List<BattleVolatileEvent>.unmodifiable(preHitVolatileEvents);
+    final allVolatileEvents = <BattleVolatileEvent>[
+      ...preHitVolatileEvents,
+      ...postMoveConditions.volatileEvents,
+    ];
 
     final resolvedExecution = BattleMoveExecution(
       attacker: attackerLabel,
-      move: rechargeFollowUp.attacker.moves[moveIndex],
-      // BE1 ne laisse plus `target` se reperdre au moment de la trace
-      // d'exécution :
-      // - un move `self` doit apparaître comme ciblant le lanceur ;
-      // - un move `opponent` garde la cible adverse résolue du tour ;
-      // - `unspecified` reste le fallback de compatibilité des anciens call
-      //   sites qui construisaient des moves battle pauvres à la main.
+      move: postMoveConditions.attacker.moves[moveIndex],
       target: _resolveExecutionTargetLabel(
         move: move,
         attackerLabel: attackerLabel,
@@ -1437,594 +1350,21 @@ class BattleSession {
     );
 
     return _ResolvedMoveExecution(
-      attacker: rechargeFollowUp.attacker,
-      defender: statusApplication.defender,
-      field: fieldApplication.field,
-      rng: statusApplication.nextRng,
+      attacker: postMoveConditions.attacker,
+      defender: postMoveConditions.defender,
+      field: postMoveConditions.field,
+      rng: postMoveConditions.rng,
       execution: resolvedExecution,
-      statusEvents: statusApplication.statusEvents,
-      volatileEvents: List<BattleVolatileEvent>.unmodifiable(volatileEvents),
-      fieldEvents: fieldApplication.fieldEvents,
+      statusEvents: postMoveConditions.statusEvents,
+      volatileEvents: List<BattleVolatileEvent>.unmodifiable(allVolatileEvents),
+      fieldEvents: postMoveConditions.fieldEvents,
       timeline: _buildMoveTimeline(
         preExecutionVolatileEvents: preExecutionVolatileEvents,
         execution: resolvedExecution,
-        statusEvents: statusApplication.statusEvents,
-        fieldEvents: fieldApplication.fieldEvents,
-        postExecutionVolatileEvents: rechargeFollowUp.volatileEvents,
+        statusEvents: postMoveConditions.statusEvents,
+        fieldEvents: postMoveConditions.fieldEvents,
+        postExecutionVolatileEvents: postMoveConditions.volatileEvents,
       ),
-    );
-  }
-
-  _ResolvedProtectInteractions _resolveProtectInteractions({
-    required BattleMove move,
-    required String attackerLabel,
-    required String targetLabel,
-    required BattleCombatant attacker,
-    required BattleCombatant defender,
-  }) {
-    var updatedAttacker = attacker;
-    var updatedDefender = defender;
-    final volatileEvents = <BattleVolatileEvent>[];
-
-    if (move.selfVolatileStatus == BattleVolatileStatusId.protect) {
-      updatedAttacker = updatedAttacker.withVolatileState(
-        updatedAttacker.volatileState.withProtectActive(true),
-      );
-      volatileEvents.add(
-        BattleVolatileEvent.protectActivated(
-          actor: attackerLabel,
-          sourceMoveId: move.id,
-        ),
-      );
-    }
-
-    if (move.target != BattleMoveTarget.opponent ||
-        !updatedDefender.volatileState.protectActive) {
-      return _ResolvedProtectInteractions(
-        attacker: updatedAttacker,
-        defender: updatedDefender,
-        blockedByProtect: false,
-        volatileEvents: volatileEvents,
-      );
-    }
-
-    if (move.breaksProtect) {
-      updatedDefender = updatedDefender.withVolatileState(
-        updatedDefender.volatileState.withProtectActive(false),
-      );
-      volatileEvents.add(
-        BattleVolatileEvent.protectBroken(
-          actor: attackerLabel,
-          target: targetLabel,
-          sourceMoveId: move.id,
-        ),
-      );
-      return _ResolvedProtectInteractions(
-        attacker: updatedAttacker,
-        defender: updatedDefender,
-        blockedByProtect: false,
-        volatileEvents: volatileEvents,
-      );
-    }
-
-    volatileEvents.add(
-      BattleVolatileEvent.protectBlocked(
-        actor: attackerLabel,
-        target: targetLabel,
-        sourceMoveId: move.id,
-      ),
-    );
-    return _ResolvedProtectInteractions(
-      attacker: updatedAttacker,
-      defender: updatedDefender,
-      blockedByProtect: true,
-      volatileEvents: volatileEvents,
-    );
-  }
-
-  _ResolvedRechargeFollowUp _resolveRechargeFollowUp({
-    required BattleMove move,
-    required String attackerLabel,
-    required BattleCombatant attacker,
-    required _ResolvedDamage damageResult,
-  }) {
-    // BE8 borne `requireRecharge` au sous-ensemble local réellement défendable :
-    // - le move doit avoir atteint la phase "dégâts calculés" ;
-    // - un miss ou un blocage par Protect sort déjà plus haut ;
-    // - une immunité complète ne déclenche pas ce verrou, car aucun effet
-    //   offensif réel n'a finalement été produit ;
-    // - on ne prétend toujours pas reproduire tous les cas spéciaux Pokémon.
-    if (!move.requiresRecharge ||
-        move.resolvedCategory == BattleMoveCategory.status ||
-        damageResult.wasImmune) {
-      return _ResolvedRechargeFollowUp(
-        attacker: attacker,
-        volatileEvents: const <BattleVolatileEvent>[],
-      );
-    }
-
-    return _ResolvedRechargeFollowUp(
-      attacker: attacker.withVolatileState(
-        attacker.volatileState.withMustRecharge(true),
-      ),
-      volatileEvents: <BattleVolatileEvent>[
-        BattleVolatileEvent.rechargeRequired(
-          actor: attackerLabel,
-          sourceMoveId: move.id,
-        ),
-      ],
-    );
-  }
-
-  _ResolvedRechargeAction _resolveRechargeAction({
-    required String combatantLabel,
-    required BattleCombatant combatant,
-  }) {
-    if (!combatant.volatileState.mustRecharge) {
-      return _ResolvedRechargeAction(
-        combatant: combatant,
-        volatileEvents: const <BattleVolatileEvent>[],
-        timeline: const <BattleTurnEvent>[],
-      );
-    }
-
-    final rechargeEvents = <BattleVolatileEvent>[
-      BattleVolatileEvent.rechargeTurnSpent(
-        actor: combatantLabel,
-      ),
-    ];
-
-    return _ResolvedRechargeAction(
-      combatant: combatant.withVolatileState(
-        combatant.volatileState.withMustRecharge(false),
-      ),
-      volatileEvents: rechargeEvents,
-      timeline: _turnEventsFromVolatile(rechargeEvents),
-    );
-  }
-
-  _ResolvedFieldApplication _resolveFieldApplication({
-    required BattleMove move,
-    required BattleFieldState field,
-  }) {
-    // BE9 garde un contrat de champ petit et explicite :
-    // - un move ne pose au maximum qu'une météo OU un pseudoWeather ;
-    // - aucune pile générique d'effets de champ ;
-    // - aucune side/slot condition cachée derrière ce helper.
-    if (move.weatherEffect == null && move.pseudoWeatherEffect == null) {
-      return _ResolvedFieldApplication(
-        field: field,
-        fieldEvents: const <BattleFieldEvent>[],
-      );
-    }
-
-    var updatedField = field;
-    final fieldEvents = <BattleFieldEvent>[];
-
-    if (move.weatherEffect case final weather?) {
-      updatedField = updatedField.withWeather(
-        BattleWeatherState(
-          id: weather,
-          remainingTurns: _supportedWeatherDurationTurns,
-        ),
-      );
-      fieldEvents.add(
-        BattleFieldEvent.weatherSet(
-          weather: weather,
-          sourceMoveId: move.id,
-        ),
-      );
-    }
-
-    if (move.pseudoWeatherEffect case final pseudoWeather?) {
-      // Recadrage volontaire :
-      // - BE9 ne crée pas un "room system" générique ;
-      // - mais Trick Room réutilisé pendant qu'il est déjà actif doit rester
-      //   honnête pour le sous-ensemble local ;
-      // - on choisit donc un toggle simple : pose si absent, retrait si déjà
-      //   actif, sans rouvrir d'autre mécanique de restart.
-      if (updatedField.pseudoWeather?.id == pseudoWeather) {
-        updatedField = updatedField.withPseudoWeather(null);
-        fieldEvents.add(
-          BattleFieldEvent.pseudoWeatherCleared(
-            pseudoWeather: pseudoWeather,
-            sourceMoveId: move.id,
-          ),
-        );
-      } else {
-        updatedField = updatedField.withPseudoWeather(
-          BattlePseudoWeatherState(
-            id: pseudoWeather,
-            remainingTurns: _supportedPseudoWeatherDurationTurns,
-          ),
-        );
-        fieldEvents.add(
-          BattleFieldEvent.pseudoWeatherSet(
-            pseudoWeather: pseudoWeather,
-            sourceMoveId: move.id,
-          ),
-        );
-      }
-    }
-
-    return _ResolvedFieldApplication(
-      field: updatedField,
-      fieldEvents: List<BattleFieldEvent>.unmodifiable(fieldEvents),
-    );
-  }
-
-  _ResolvedActionGate _resolveMajorStatusActionGate({
-    required String combatantLabel,
-    required BattleCombatant combatant,
-    required BattleRng rng,
-  }) {
-    final status = combatant.majorStatus;
-    if (status?.id != BattleMajorStatusId.par) {
-      return _ResolvedActionGate(
-        canAct: true,
-        nextRng: rng,
-        statusEvents: const <BattleStatusEvent>[],
-      );
-    }
-
-    // BE7 ouvre ici la plus petite sémantique honnête de paralysie :
-    // - le move a déjà consommé 1 PP, car la tentative a bien eu lieu ;
-    // - on bloque ensuite l'action avec une chance fixe de 25% ;
-    // - on ne touche ni à l'ordre BE3 déjà figé, ni au hit check BE4.
-    final roll = rng.nextChance(
-      numerator: 1,
-      denominator: 4,
-    );
-    if (!roll.didOccur) {
-      return _ResolvedActionGate(
-        canAct: true,
-        nextRng: roll.next,
-        statusEvents: const <BattleStatusEvent>[],
-      );
-    }
-
-    return _ResolvedActionGate(
-      canAct: false,
-      nextRng: roll.next,
-      statusEvents: <BattleStatusEvent>[
-        BattleStatusEvent.preventedAction(
-          target: combatantLabel,
-          status: BattleMajorStatusId.par,
-        ),
-      ],
-    );
-  }
-
-  _ResolvedStatusApplication _resolveMajorStatusApplication({
-    required BattleMove move,
-    required String targetLabel,
-    required BattleCombatant defender,
-    required _ResolvedDamage damageResult,
-    required BattleRng rng,
-  }) {
-    final effect = move.majorStatusEffect;
-    if (effect == null) {
-      return _ResolvedStatusApplication(
-        defender: defender,
-        nextRng: rng,
-        statusEvents: const <BattleStatusEvent>[],
-      );
-    }
-
-    // BE7 ne crée pas encore de couche complète d'immunité de statut.
-    // En revanche, pour un move qui inflige aussi des dégâts, on refuse
-    // d'appliquer un statut si le hit a été entièrement annulé par une
-    // immunité de type déjà supportée par BE5.
-    if (damageResult.wasImmune &&
-        move.resolvedCategory != BattleMoveCategory.status) {
-      return _ResolvedStatusApplication(
-        defender: defender,
-        nextRng: rng,
-        statusEvents: const <BattleStatusEvent>[],
-      );
-    }
-
-    if (defender.majorStatus != null) {
-      return _ResolvedStatusApplication(
-        defender: defender,
-        nextRng: rng,
-        statusEvents: <BattleStatusEvent>[
-          BattleStatusEvent.blockedExistingMajorStatus(
-            target: targetLabel,
-            status: effect.status,
-            existingStatus: defender.majorStatus!.id,
-            sourceMoveId: move.id,
-          ),
-        ],
-      );
-    }
-
-    if (effect.chancePercent case final chance?) {
-      final chanceRoll = rng.nextChance(
-        numerator: chance,
-        denominator: 100,
-      );
-      if (!chanceRoll.didOccur) {
-        return _ResolvedStatusApplication(
-          defender: defender,
-          nextRng: chanceRoll.next,
-          statusEvents: const <BattleStatusEvent>[],
-        );
-      }
-
-      return _ResolvedStatusApplication(
-        defender: defender.withMajorStatus(_majorStatusStateFor(effect.status)),
-        nextRng: chanceRoll.next,
-        statusEvents: <BattleStatusEvent>[
-          BattleStatusEvent.applied(
-            target: targetLabel,
-            status: effect.status,
-            sourceMoveId: move.id,
-          ),
-        ],
-      );
-    }
-
-    return _ResolvedStatusApplication(
-      defender: defender.withMajorStatus(_majorStatusStateFor(effect.status)),
-      nextRng: rng,
-      statusEvents: <BattleStatusEvent>[
-        BattleStatusEvent.applied(
-          target: targetLabel,
-          status: effect.status,
-          sourceMoveId: move.id,
-        ),
-      ],
-    );
-  }
-
-  _ResolvedResidualPhase _resolveEndOfTurnPhase({
-    required BattleCombatant player,
-    required BattleCombatant enemy,
-    required BattleFieldState field,
-  }) {
-    // BE9 restructure explicitement la fin de tour, sans créer un système
-    // général de hooks :
-    // 1. résiduels de statuts majeurs déjà ouverts en BE7 ;
-    // 2. résiduels météo supportés en BE9 ;
-    // 3. décrémentation puis expiration du champ ;
-    // 4. l'outcome final est ensuite déterminé plus haut, à partir de l'état
-    //    réellement obtenu après ces effets.
-    final statusResidual = _applyEndOfTurnMajorStatusResiduals(
-      player: player,
-      enemy: enemy,
-    );
-    final weatherResidual = _applyEndOfTurnWeatherResiduals(
-      player: statusResidual.player,
-      enemy: statusResidual.enemy,
-      field: field,
-    );
-    final fieldProgression =
-        _advanceFieldStateAtEndOfTurn(weatherResidual.field);
-
-    return _ResolvedResidualPhase(
-      player: weatherResidual.player,
-      enemy: weatherResidual.enemy,
-      field: fieldProgression.field,
-      statusEvents: statusResidual.statusEvents,
-      fieldEvents: <BattleFieldEvent>[
-        ...weatherResidual.fieldEvents,
-        ...fieldProgression.fieldEvents,
-      ],
-      timeline: <BattleTurnEvent>[
-        ..._turnEventsFromStatus(statusResidual.statusEvents),
-        ..._turnEventsFromField(weatherResidual.fieldEvents),
-        ..._turnEventsFromField(fieldProgression.fieldEvents),
-      ],
-    );
-  }
-
-  _ResolvedMajorStatusResiduals _applyEndOfTurnMajorStatusResiduals({
-    required BattleCombatant player,
-    required BattleCombatant enemy,
-  }) {
-    // BE7 reste volontairement local :
-    // - pas de "hook system" de fin de tour ;
-    // - pas de queue de résiduels générique ;
-    // - juste la plus petite phase explicite pour les statuts majeurs
-    //   supportés, après les actions et avant l'outcome final.
-    final playerResidual = !player.isFainted
-        ? _applyEndOfTurnResidualForCombatant(
-            combatant: player,
-            combatantLabel: 'player',
-          )
-        : const _ResolvedSingleResidual(
-            combatant: null,
-            statusEvents: <BattleStatusEvent>[],
-          );
-    final enemyResidual = !enemy.isFainted
-        ? _applyEndOfTurnResidualForCombatant(
-            combatant: enemy,
-            combatantLabel: 'enemy',
-          )
-        : const _ResolvedSingleResidual(
-            combatant: null,
-            statusEvents: <BattleStatusEvent>[],
-          );
-
-    return _ResolvedMajorStatusResiduals(
-      player: playerResidual.combatant ?? player,
-      enemy: enemyResidual.combatant ?? enemy,
-      statusEvents: <BattleStatusEvent>[
-        ...playerResidual.statusEvents,
-        ...enemyResidual.statusEvents,
-      ],
-    );
-  }
-
-  _ResolvedSingleResidual _applyEndOfTurnResidualForCombatant({
-    required BattleCombatant combatant,
-    required String combatantLabel,
-  }) {
-    final status = combatant.majorStatus;
-    if (status == null || combatant.isFainted) {
-      return _ResolvedSingleResidual(
-        combatant: combatant,
-        statusEvents: const <BattleStatusEvent>[],
-      );
-    }
-
-    final residualDamage = switch (status.id) {
-      BattleMajorStatusId.par => 0,
-      BattleMajorStatusId.brn => _fractionalResidual(
-          maxHp: combatant.maxHp,
-          numerator: 1,
-          denominator: 16,
-        ),
-      BattleMajorStatusId.psn => _fractionalResidual(
-          maxHp: combatant.maxHp,
-          numerator: 1,
-          denominator: 8,
-        ),
-      BattleMajorStatusId.tox => _fractionalResidual(
-          maxHp: combatant.maxHp,
-          numerator: status.toxicCounter,
-          denominator: 16,
-        ),
-    };
-
-    if (residualDamage <= 0) {
-      return _ResolvedSingleResidual(
-        combatant: combatant,
-        statusEvents: const <BattleStatusEvent>[],
-      );
-    }
-
-    final damagedCombatant = combatant.withDamage(residualDamage);
-    final nextCombatant =
-        status.id == BattleMajorStatusId.tox && !damagedCombatant.isFainted
-            ? damagedCombatant.withMajorStatus(status.incrementToxicCounter())
-            : damagedCombatant;
-
-    return _ResolvedSingleResidual(
-      combatant: nextCombatant,
-      statusEvents: <BattleStatusEvent>[
-        BattleStatusEvent.residualDamage(
-          target: combatantLabel,
-          status: status.id,
-          damage: residualDamage,
-          toxicCounter:
-              status.id == BattleMajorStatusId.tox ? status.toxicCounter : null,
-        ),
-      ],
-    );
-  }
-
-  _ResolvedWeatherResiduals _applyEndOfTurnWeatherResiduals({
-    required BattleCombatant player,
-    required BattleCombatant enemy,
-    required BattleFieldState field,
-  }) {
-    final weather = field.weather;
-    if (weather == null || weather.id != BattleWeatherId.sandstorm) {
-      return _ResolvedWeatherResiduals(
-        player: player,
-        enemy: enemy,
-        field: field,
-        fieldEvents: const <BattleFieldEvent>[],
-      );
-    }
-
-    final playerResidual = _applySandstormResidual(
-      combatant: player,
-      combatantLabel: 'player',
-    );
-    final enemyResidual = _applySandstormResidual(
-      combatant: enemy,
-      combatantLabel: 'enemy',
-    );
-
-    return _ResolvedWeatherResiduals(
-      player: playerResidual.combatant,
-      enemy: enemyResidual.combatant,
-      field: field,
-      fieldEvents: <BattleFieldEvent>[
-        ...playerResidual.fieldEvents,
-        ...enemyResidual.fieldEvents,
-      ],
-    );
-  }
-
-  _ResolvedSandstormResidual _applySandstormResidual({
-    required BattleCombatant combatant,
-    required String combatantLabel,
-  }) {
-    if (combatant.isFainted || _isImmuneToSandstormResidual(combatant)) {
-      return _ResolvedSandstormResidual(
-        combatant: combatant,
-        fieldEvents: const <BattleFieldEvent>[],
-      );
-    }
-
-    final damage = _fractionalResidual(
-      maxHp: combatant.maxHp,
-      numerator: 1,
-      denominator: 16,
-    );
-    final damagedCombatant = combatant.withDamage(damage);
-
-    return _ResolvedSandstormResidual(
-      combatant: damagedCombatant,
-      fieldEvents: <BattleFieldEvent>[
-        BattleFieldEvent.weatherResidualDamage(
-          weather: BattleWeatherId.sandstorm,
-          target: combatantLabel,
-          damage: damage,
-        ),
-      ],
-    );
-  }
-
-  bool _isImmuneToSandstormResidual(BattleCombatant combatant) {
-    final typing = combatant.typing;
-    if (typing == null) {
-      return false;
-    }
-    return _sandstormResidualImmuneTypes.contains(typing.primaryType) ||
-        (typing.secondaryType != null &&
-            _sandstormResidualImmuneTypes.contains(typing.secondaryType));
-  }
-
-  _ResolvedFieldProgression _advanceFieldStateAtEndOfTurn(
-      BattleFieldState field) {
-    var updatedField = field;
-    final fieldEvents = <BattleFieldEvent>[];
-
-    if (field.weather case final weather?) {
-      if (weather.remainingTurns <= 1) {
-        updatedField = updatedField.withWeather(null);
-        fieldEvents.add(
-          BattleFieldEvent.weatherExpired(
-            weather: weather.id,
-          ),
-        );
-      } else {
-        updatedField = updatedField.withWeather(weather.decrement());
-      }
-    }
-
-    if (field.pseudoWeather case final pseudoWeather?) {
-      if (pseudoWeather.remainingTurns <= 1) {
-        updatedField = updatedField.withPseudoWeather(null);
-        fieldEvents.add(
-          BattleFieldEvent.pseudoWeatherExpired(
-            pseudoWeather: pseudoWeather.id,
-          ),
-        );
-      } else {
-        updatedField =
-            updatedField.withPseudoWeather(pseudoWeather.decrement());
-      }
-    }
-
-    return _ResolvedFieldProgression(
-      field: updatedField,
-      fieldEvents: List<BattleFieldEvent>.unmodifiable(fieldEvents),
     );
   }
 
@@ -2191,12 +1531,11 @@ class BattleSession {
     //
     // On reste volontairement dans un modèle simple à base de doubles +
     // `floor` plutôt que de singer tous les paliers internes de Showdown.
-    final burnMultiplier =
-        attacker.majorStatus?.id == BattleMajorStatusId.brn &&
-                move.resolvedCategory == BattleMoveCategory.physical
-            ? 0.5
-            : 1.0;
-    final weatherMultiplier = _resolveWeatherDamageMultiplier(
+    final burnMultiplier = _conditionEngine.resolveStatusDamageMultiplier(
+      move: move,
+      attacker: attacker,
+    );
+    final weatherMultiplier = _conditionEngine.resolveFieldDamageMultiplier(
       move: move,
       field: field,
     );
@@ -2217,22 +1556,6 @@ class BattleSession {
       typeEffectivenessMultiplier: typeEffectivenessMultiplier,
       nextRng: criticalHit.nextRng,
     );
-  }
-
-  double _resolveWeatherDamageMultiplier({
-    required BattleMove move,
-    required BattleFieldState field,
-  }) {
-    final weather = field.weather;
-    if (weather == null || weather.id != BattleWeatherId.rain) {
-      return 1.0;
-    }
-
-    return switch (move.type) {
-      'water' => 1.5,
-      'fire' => 0.5,
-      _ => 1.0,
-    };
   }
 
   _ResolvedCriticalHit _resolveCriticalHit({
@@ -2302,7 +1625,8 @@ class BattleSession {
     // L'ordre BE3 repose sur une vitesse effective déterministe :
     // - snapshot de speed résolu par le runtime ;
     // - multiplicateur de stages battle déjà présent ;
-    // - BE7 y ajoute ensuite le malus simple de paralysie ;
+    // - Phase E délègue ensuite à l'engine conditionnel le malus simple de
+    //   paralysie, pour arrêter de disperser cette règle métier ;
     // - aucun RNG, aucune nature, aucun weather ;
     // - Trick Room BE9 n'altère pas cette valeur : il inverse ensuite la
     //   comparaison des deux vitesses au niveau du scheduler.
@@ -2310,30 +1634,10 @@ class BattleSession {
       baseStat: combatant.stats.speed,
       multiplier: combatant.statStages.multiplierFor(BattleStatId.speed),
     );
-    if (combatant.majorStatus?.id != BattleMajorStatusId.par) {
-      return stagedSpeed;
-    }
-
-    final slowedSpeed = (stagedSpeed * 0.5).floor();
-    return slowedSpeed < 1 ? 1 : slowedSpeed;
-  }
-
-  BattleMajorStatusState _majorStatusStateFor(BattleMajorStatusId status) {
-    return switch (status) {
-      BattleMajorStatusId.par => const BattleMajorStatusState.par(),
-      BattleMajorStatusId.brn => const BattleMajorStatusState.brn(),
-      BattleMajorStatusId.psn => const BattleMajorStatusState.psn(),
-      BattleMajorStatusId.tox => const BattleMajorStatusState.tox(),
-    };
-  }
-
-  int _fractionalResidual({
-    required int maxHp,
-    required int numerator,
-    required int denominator,
-  }) {
-    final raw = (maxHp * numerator) ~/ denominator;
-    return raw < 1 ? 1 : raw;
+    return _conditionEngine.resolveStatusAdjustedSpeed(
+      combatant: combatant,
+      stagedSpeed: stagedSpeed,
+    );
   }
 
   int _resolveEffectiveStat({
@@ -2554,18 +1858,6 @@ class _ResolvedHitCheck {
   final BattleRng nextRng;
 }
 
-class _ResolvedActionGate {
-  const _ResolvedActionGate({
-    required this.canAct,
-    required this.nextRng,
-    required this.statusEvents,
-  });
-
-  final bool canAct;
-  final BattleRng nextRng;
-  final List<BattleStatusEvent> statusEvents;
-}
-
 class _ResolvedDamage {
   const _ResolvedDamage({
     required this.damage,
@@ -2596,138 +1888,6 @@ class _ResolvedCriticalHit {
   final bool didCrit;
   final double multiplier;
   final BattleRng nextRng;
-}
-
-class _ResolvedStatusApplication {
-  const _ResolvedStatusApplication({
-    required this.defender,
-    required this.nextRng,
-    required this.statusEvents,
-  });
-
-  final BattleCombatant defender;
-  final BattleRng nextRng;
-  final List<BattleStatusEvent> statusEvents;
-}
-
-class _ResolvedProtectInteractions {
-  const _ResolvedProtectInteractions({
-    required this.attacker,
-    required this.defender,
-    required this.blockedByProtect,
-    required this.volatileEvents,
-  });
-
-  final BattleCombatant attacker;
-  final BattleCombatant defender;
-  final bool blockedByProtect;
-  final List<BattleVolatileEvent> volatileEvents;
-}
-
-class _ResolvedRechargeFollowUp {
-  const _ResolvedRechargeFollowUp({
-    required this.attacker,
-    required this.volatileEvents,
-  });
-
-  final BattleCombatant attacker;
-  final List<BattleVolatileEvent> volatileEvents;
-}
-
-class _ResolvedRechargeAction {
-  const _ResolvedRechargeAction({
-    required this.combatant,
-    required this.volatileEvents,
-    required this.timeline,
-  });
-
-  final BattleCombatant combatant;
-  final List<BattleVolatileEvent> volatileEvents;
-  final List<BattleTurnEvent> timeline;
-}
-
-class _ResolvedResidualPhase {
-  const _ResolvedResidualPhase({
-    required this.player,
-    required this.enemy,
-    required this.field,
-    required this.statusEvents,
-    required this.fieldEvents,
-    required this.timeline,
-  });
-
-  final BattleCombatant player;
-  final BattleCombatant enemy;
-  final BattleFieldState field;
-  final List<BattleStatusEvent> statusEvents;
-  final List<BattleFieldEvent> fieldEvents;
-  final List<BattleTurnEvent> timeline;
-}
-
-class _ResolvedMajorStatusResiduals {
-  const _ResolvedMajorStatusResiduals({
-    required this.player,
-    required this.enemy,
-    required this.statusEvents,
-  });
-
-  final BattleCombatant player;
-  final BattleCombatant enemy;
-  final List<BattleStatusEvent> statusEvents;
-}
-
-class _ResolvedWeatherResiduals {
-  const _ResolvedWeatherResiduals({
-    required this.player,
-    required this.enemy,
-    required this.field,
-    required this.fieldEvents,
-  });
-
-  final BattleCombatant player;
-  final BattleCombatant enemy;
-  final BattleFieldState field;
-  final List<BattleFieldEvent> fieldEvents;
-}
-
-class _ResolvedSandstormResidual {
-  const _ResolvedSandstormResidual({
-    required this.combatant,
-    required this.fieldEvents,
-  });
-
-  final BattleCombatant combatant;
-  final List<BattleFieldEvent> fieldEvents;
-}
-
-class _ResolvedFieldProgression {
-  const _ResolvedFieldProgression({
-    required this.field,
-    required this.fieldEvents,
-  });
-
-  final BattleFieldState field;
-  final List<BattleFieldEvent> fieldEvents;
-}
-
-class _ResolvedFieldApplication {
-  const _ResolvedFieldApplication({
-    required this.field,
-    required this.fieldEvents,
-  });
-
-  final BattleFieldState field;
-  final List<BattleFieldEvent> fieldEvents;
-}
-
-class _ResolvedSingleResidual {
-  const _ResolvedSingleResidual({
-    required this.combatant,
-    required this.statusEvents,
-  });
-
-  final BattleCombatant? combatant;
-  final List<BattleStatusEvent> statusEvents;
 }
 
 class _CritChance {
