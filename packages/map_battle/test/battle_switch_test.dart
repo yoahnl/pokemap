@@ -133,6 +133,11 @@ void main() {
       expect(switchEvent.actor, equals('enemy'));
       expect(switchEvent.kind, equals(BattleSwitchEventKind.switched));
       expect(switchEvent.wasForced, isTrue);
+      expect(
+        afterTurn.state.currentTurn!.timeline
+            .whereType<BattleTurnSwitchEvent>(),
+        hasLength(1),
+      );
     });
 
     test(
@@ -205,6 +210,14 @@ void main() {
         afterReplacement.state.currentTurn!.switchEvents.single.side,
         equals(BattleSideId.player),
       );
+      expect(
+        afterReplacement.state.currentTurn!.timeline
+            .whereType<BattleTurnSwitchEvent>(),
+        hasLength(1),
+      );
+      expect(afterReplacement.state.currentTurn!.executions, isEmpty);
+      expect(afterReplacement.state.currentTurn!.statusEvents, isEmpty);
+      expect(afterReplacement.state.currentTurn!.fieldEvents, isEmpty);
     });
 
     test(
@@ -284,6 +297,17 @@ void main() {
       expect(
         afterTurn.state.currentTurn!.switchEvents.single.wasForced,
         isFalse,
+      );
+      final timeline = afterTurn.state.currentTurn!.timeline;
+      final firstSwitchEvent =
+          timeline.whereType<BattleTurnSwitchEvent>().first;
+      final enemyExecution =
+          timeline.whereType<BattleTurnExecutionEvent>().single;
+      expect(firstSwitchEvent.event.side, equals(BattleSideId.player));
+      expect(enemyExecution.execution.attacker, equals('enemy'));
+      expect(
+        timeline.indexOf(firstSwitchEvent),
+        lessThan(timeline.indexOf(enemyExecution)),
       );
     });
 
@@ -469,6 +493,16 @@ void main() {
       expect(
         afterTurn.getAvailableChoices().whereType<PlayerBattleChoiceSwitch>(),
         hasLength(1),
+      );
+      final switchTimeline = afterTurn.state.currentTurn!.timeline
+          .whereType<BattleTurnSwitchEvent>()
+          .toList(growable: false);
+      expect(
+        switchTimeline.map((event) => event.event.kind).toList(growable: false),
+        equals(<BattleSwitchEventKind>[
+          BattleSwitchEventKind.switched,
+          BattleSwitchEventKind.replacementRequired,
+        ]),
       );
     });
 

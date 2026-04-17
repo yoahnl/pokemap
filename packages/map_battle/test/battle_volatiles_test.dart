@@ -261,6 +261,19 @@ void main() {
             .actor,
         equals('player'),
       );
+      final timeline = afterRecharge.state.currentTurn!.timeline;
+      final rechargeIndex = timeline.indexWhere(
+        (event) =>
+            event is BattleTurnVolatileEvent &&
+            event.event.kind == BattleVolatileEventKind.rechargeTurnSpent,
+      );
+      final enemyExecutionIndex = timeline.indexWhere(
+        (event) =>
+            event is BattleTurnExecutionEvent &&
+            event.execution.attacker == 'enemy',
+      );
+      expect(rechargeIndex, isNonNegative);
+      expect(enemyExecutionIndex, greaterThan(rechargeIndex));
     });
 
     test(

@@ -267,6 +267,18 @@ void main() {
       expect(afterTurn.state.enemy.currentHp, equals(94));
       expect(residualEvent.target, equals('enemy'));
       expect(residualEvent.damage, equals(6));
+      final timeline = afterTurn.state.currentTurn!.timeline;
+      final enemyActionIndex = timeline.lastIndexWhere(
+        (event) =>
+            event is BattleTurnExecutionEvent &&
+            event.execution.attacker == 'enemy',
+      );
+      final residualIndex = timeline.lastIndexWhere(
+        (event) =>
+            event is BattleTurnFieldEvent &&
+            event.event.kind == BattleFieldEventKind.weatherResidualDamage,
+      );
+      expect(residualIndex, greaterThan(enemyActionIndex));
     });
 
     test('Trick Room inverts speed order at equal priority only', () {
