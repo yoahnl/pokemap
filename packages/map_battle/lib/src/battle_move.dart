@@ -38,6 +38,7 @@ enum BattleMoveTarget {
   opponent,
   self,
   field,
+  opponentSide,
 }
 
 /// Contrat minimal de précision réellement exécutable par `map_battle`.
@@ -155,6 +156,8 @@ final class BattleMove {
   /// [weatherEffect] - Effet météo battle minimal réellement consommé par BE9.
   /// [pseudoWeatherEffect] - Effet pseudoWeather battle minimal réellement
   ///   consommé par BE9.
+  /// [setsStealthRock] - H1 ouvre exactement Stealth Rock, et rien de plus,
+  ///   comme premier hazard side-level honnête.
   /// [breaksProtect] - Permet au move de bypasser une protection active BE8.
   /// [requiresRecharge] - Demande un tour de recharge honnête au lanceur après
   ///   une exécution réussie.
@@ -196,6 +199,7 @@ final class BattleMove {
     this.selfVolatileStatus,
     this.weatherEffect,
     this.pseudoWeatherEffect,
+    this.setsStealthRock = false,
     this.breaksProtect = false,
     this.requiresRecharge = false,
     this.chargeThenStrikeEffect,
@@ -362,6 +366,15 @@ final class BattleMove {
   /// - la durée et l'expiration vivent dans `BattleFieldState`.
   final BattlePseudoWeatherId? pseudoWeatherEffect;
 
+  /// H1 ouvre uniquement Stealth Rock comme side condition vivante.
+  ///
+  /// On choisit volontairement un booléen dédié plutôt qu'un faux framework :
+  /// - le lot ne supporte qu'une seule mécanique side-level ;
+  /// - aucun autre hazard n'entre ici ;
+  /// - si de futurs lots H ouvrent autre chose, ils devront le justifier à
+  ///   nouveau au lieu de profiter d'un conteneur mort.
+  final bool setsStealthRock;
+
   /// true si ce move peut percer une protection active BE8.
   ///
   /// Le booléen reste plus honnête qu'une abstraction générique :
@@ -438,6 +451,7 @@ final class BattleMove {
       selfVolatileStatus: selfVolatileStatus,
       weatherEffect: weatherEffect,
       pseudoWeatherEffect: pseudoWeatherEffect,
+      setsStealthRock: setsStealthRock,
       breaksProtect: breaksProtect,
       requiresRecharge: requiresRecharge,
       chargeThenStrikeEffect: chargeThenStrikeEffect,

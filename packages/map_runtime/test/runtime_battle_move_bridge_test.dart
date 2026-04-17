@@ -960,7 +960,7 @@ void main() {
       );
     });
 
-    test('still rejects setSideCondition because BE9 does not open side state',
+    test('supports Stealth Rock as the first honest side-level hazard slice',
         () {
       const move = PokemonMove(
         id: 'stealth_rock',
@@ -983,6 +983,37 @@ void main() {
         engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
       );
 
+      final battleMove = bridge.toBattleMoveData(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(battleMove.target, equals(BattleMoveTarget.opponentSide));
+      expect(battleMove.setsStealthRock, isTrue);
+    });
+
+    test('still rejects non-Stealth-Rock side conditions during H1', () {
+      const move = PokemonMove(
+        id: 'spikes',
+        name: 'Spikes',
+        names: <String, String>{'en': 'Spikes'},
+        generation: 2,
+        source: 'test',
+        type: 'ground',
+        category: PokemonMoveCategory.status,
+        target: PokemonMoveTarget.foeSide,
+        basePower: 0,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+        pp: 20,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.setSideCondition(
+            targetScope: PokemonMoveEffectTargetScope.foeSide,
+            conditionId: 'spikes',
+          ),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
       expect(
         () => bridge.toBattleMoveData(
           move: move,
@@ -994,8 +1025,7 @@ void main() {
             'debugDetails',
             anyOf(
               contains('bridgeLimit=unsupported_target:foeSide'),
-              contains(
-                  'bridgeLimit=unsupported_effect_kind:set_side_condition'),
+              contains('bridgeLimit=unsupported_side_condition:spikes'),
             ),
           ),
         ),

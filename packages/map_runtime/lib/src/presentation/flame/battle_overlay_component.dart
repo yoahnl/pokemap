@@ -46,6 +46,7 @@ List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
           turnResult.statusEvents.isNotEmpty ||
           turnResult.volatileEvents.isNotEmpty ||
           turnResult.fieldEvents.isNotEmpty ||
+          turnResult.stealthRockEvents.isNotEmpty ||
           turnResult.switchEvents.isNotEmpty)) {
     throw StateError(
       'BattleTurnResult.timeline est requis pour afficher honnêtement la chronologie du tour dans l’overlay runtime.',
@@ -66,6 +67,8 @@ List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
         lines.add(_formatOverlayVolatileEvent(event));
       case BattleTurnFieldEvent(:final event):
         lines.add(_formatOverlayFieldEvent(event));
+      case BattleTurnStealthRockEvent(:final event):
+        lines.add(_formatOverlayStealthRockEvent(event));
       case BattleTurnSwitchEvent(:final event):
         lines.add(_formatOverlaySwitchEvent(event));
     }
@@ -140,6 +143,17 @@ String _formatOverlayFieldEvent(BattleFieldEvent event) {
       '${_overlayPseudoWeatherLabel(event.pseudoWeather!)} est dissipé',
     BattleFieldEventKind.pseudoWeatherExpired =>
       '${_overlayPseudoWeatherLabel(event.pseudoWeather!)} prend fin',
+  };
+}
+
+String _formatOverlayStealthRockEvent(BattleStealthRockEvent event) {
+  final actor = _overlayCombatantLabelForSide(event.side);
+  return switch (event.kind) {
+    BattleStealthRockEventKind.set => 'Stealth Rock est posé du côté $actor',
+    BattleStealthRockEventKind.alreadyPresent =>
+      'Stealth Rock est déjà posé du côté $actor',
+    BattleStealthRockEventKind.damagedOnEntry =>
+      '$actor subit ${event.damage} dégâts de Stealth Rock à l’entrée',
   };
 }
 

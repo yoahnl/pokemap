@@ -288,5 +288,91 @@ void main() {
       expect(enemyReplacementIndex, greaterThan(residualIndex));
       expect(playerReplacementIndex, greaterThan(enemyReplacementIndex));
     });
+
+    test('renders Stealth Rock set and switch-in damage from timeline events',
+        () {
+      const turn = BattleTurnResult(
+        playerAction: BattleActionFight(
+          BattleMove(
+            id: 'stealth_rock',
+            name: 'Stealth Rock',
+            power: 0,
+            target: BattleMoveTarget.opponentSide,
+            setsStealthRock: true,
+          ),
+          moveIndex: 0,
+        ),
+        enemyAction: BattleActionNone(),
+        executions: <BattleMoveExecution>[
+          BattleMoveExecution(
+            attackerSlot: BattleSlotRef.active(BattleSideId.player),
+            move: BattleMove(
+              id: 'stealth_rock',
+              name: 'Stealth Rock',
+              power: 0,
+              target: BattleMoveTarget.opponentSide,
+              setsStealthRock: true,
+            ),
+            targetKind: BattleMoveExecutionTargetKind.side,
+            targetSideRef: BattleSideId.enemy,
+            damage: 0,
+            didHit: true,
+          ),
+        ],
+        stealthRockEvents: <BattleStealthRockEvent>[
+          BattleStealthRockEvent.set(
+            side: BattleSideId.enemy,
+            sourceMoveId: 'stealth_rock',
+          ),
+          BattleStealthRockEvent.damagedOnEntry(
+            side: BattleSideId.enemy,
+            targetSlot: BattleSlotRef.active(BattleSideId.enemy),
+            damage: 10,
+          ),
+        ],
+        timeline: <BattleTurnEvent>[
+          BattleTurnExecutionEvent(
+            BattleMoveExecution(
+              attackerSlot: BattleSlotRef.active(BattleSideId.player),
+              move: BattleMove(
+                id: 'stealth_rock',
+                name: 'Stealth Rock',
+                power: 0,
+                target: BattleMoveTarget.opponentSide,
+                setsStealthRock: true,
+              ),
+              targetKind: BattleMoveExecutionTargetKind.side,
+              targetSideRef: BattleSideId.enemy,
+              damage: 0,
+              didHit: true,
+            ),
+          ),
+          BattleTurnStealthRockEvent(
+            BattleStealthRockEvent.set(
+              side: BattleSideId.enemy,
+              sourceMoveId: 'stealth_rock',
+            ),
+          ),
+          BattleTurnStealthRockEvent(
+            BattleStealthRockEvent.damagedOnEntry(
+              side: BattleSideId.enemy,
+              targetSlot: BattleSlotRef.active(BattleSideId.enemy),
+              damage: 10,
+            ),
+          ),
+        ],
+      );
+
+      final lines = buildBattleTurnLinesForOverlay(turn);
+
+      expect(
+        lines,
+        contains('Stealth Rock est posé du côté Ennemi'),
+      );
+      expect(
+        lines,
+        contains('Ennemi subit 10 dégâts de Stealth Rock à l’entrée'),
+      );
+    });
   });
 }

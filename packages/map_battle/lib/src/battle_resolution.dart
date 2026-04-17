@@ -1,6 +1,7 @@
 import 'battle_action.dart';
 import 'battle_field.dart';
 import 'battle_move.dart';
+import 'battle_stealth_rock.dart';
 import 'battle_state.dart';
 import 'battle_status.dart';
 import 'battle_topology.dart';
@@ -20,6 +21,7 @@ class BattleTurnResult {
   /// [statusEvents] - Les événements de statut/résiduel visibles du tour.
   /// [volatileEvents] - Les événements volatiles BE8 visibles du tour.
   /// [fieldEvents] - Les événements de champ BE9 visibles du tour.
+  /// [stealthRockEvents] - Les événements Stealth Rock visibles du tour.
   /// [timeline] - La chronologie ordonnée réellement produite par le moteur.
   const BattleTurnResult({
     required this.playerAction,
@@ -28,6 +30,7 @@ class BattleTurnResult {
     this.statusEvents = const <BattleStatusEvent>[],
     this.volatileEvents = const <BattleVolatileEvent>[],
     this.fieldEvents = const <BattleFieldEvent>[],
+    this.stealthRockEvents = const <BattleStealthRockEvent>[],
     this.switchEvents = const <BattleSwitchEvent>[],
     this.timeline = const <BattleTurnEvent>[],
   });
@@ -73,6 +76,14 @@ class BattleTurnResult {
   /// - une petite troisième liste suffit à garder le champ observable sans
   ///   ouvrir un journal universel.
   final List<BattleFieldEvent> fieldEvents;
+
+  /// Les événements Stealth Rock visibles pendant ce tour.
+  ///
+  /// H1 ouvre volontairement une petite liste sœur dédiée :
+  /// - Stealth Rock n'est ni un statut, ni un volatile, ni un field event ;
+  /// - on refuse pourtant d'ouvrir un journal universel des side conditions ;
+  /// - ce lot garde donc un contrat dédié et vivant pour une seule mécanique.
+  final List<BattleStealthRockEvent> stealthRockEvents;
 
   /// Les événements de switch / remplacement visibles pendant ce tour.
   ///
@@ -138,6 +149,12 @@ final class BattleTurnFieldEvent extends BattleTurnEvent {
   final BattleFieldEvent event;
 }
 
+final class BattleTurnStealthRockEvent extends BattleTurnEvent {
+  const BattleTurnStealthRockEvent(this.event);
+
+  final BattleStealthRockEvent event;
+}
+
 final class BattleTurnSwitchEvent extends BattleTurnEvent {
   const BattleTurnSwitchEvent(this.event);
 
@@ -162,6 +179,7 @@ final class BattleTurnSwitchEvent extends BattleTurnEvent {
 enum BattleMoveExecutionTargetKind {
   combatant,
   field,
+  side,
 }
 
 class BattleMoveExecution {
@@ -182,6 +200,7 @@ class BattleMoveExecution {
     required this.move,
     required this.targetKind,
     this.targetSlot,
+    this.targetSideRef,
     required this.damage,
     required this.didHit,
     this.didCrit = false,
@@ -190,10 +209,15 @@ class BattleMoveExecution {
     this.typeEffectivenessMultiplier = 1.0,
   }) : assert(
           (targetKind == BattleMoveExecutionTargetKind.combatant &&
-                  targetSlot != null) ||
+                  targetSlot != null &&
+                  targetSideRef == null) ||
               (targetKind == BattleMoveExecutionTargetKind.field &&
-                  targetSlot == null),
-          'BattleMoveExecution targetKind/targetSlot must describe either a combatant slot or the field.',
+                  targetSlot == null &&
+                  targetSideRef == null) ||
+              (targetKind == BattleMoveExecutionTargetKind.side &&
+                  targetSlot == null &&
+                  targetSideRef != null),
+          'BattleMoveExecution target payload must describe exactly one of: combatant slot, field, or side.',
         );
 
   /// Slot attaquant réellement résolu par le moteur.
@@ -222,11 +246,25 @@ class BattleMoveExecution {
   ///
   /// Frontière volontaire :
   /// - `null` signifie uniquement "le move vise le field" ;
+  /// - `null` signifie aussi "le move vise un side" ;
   /// - on ne crée ni targeting riche, ni tableau de cibles multiples.
   final BattleSlotRef? targetSlot;
 
+  /// Side ciblé quand l'exécution vise un side plutôt qu'un combattant.
+  ///
+  /// H1 ouvre ce seam pour une raison précise :
+  /// - Stealth Rock vise le side adverse, pas le combattant adverse ;
+  /// - le move execution ne doit donc plus mentir en se faisant passer pour
+  ///   un target combatant ou field ;
+  /// - on n'ouvre pour autant aucun targeting riche supplémentaire.
+  final BattleSideId? targetSideRef;
+
   /// Side ciblé quand l'exécution vise un combattant.
-  BattleSideId? get targetSide => targetSlot?.side;
+  BattleSideId? get targetSide => switch (targetKind) {
+        BattleMoveExecutionTargetKind.combatant => targetSlot?.side,
+        BattleMoveExecutionTargetKind.side => targetSideRef,
+        BattleMoveExecutionTargetKind.field => null,
+      };
 
   /// Compatibilité locale pour les surfaces encore stringly-typed.
   ///
@@ -235,6 +273,7 @@ class BattleMoveExecution {
   /// - `"field"` pour une cible field.
   String get target => switch (targetKind) {
         BattleMoveExecutionTargetKind.combatant => targetSlot!.side.actorId,
+        BattleMoveExecutionTargetKind.side => targetSideRef!.actorId,
         BattleMoveExecutionTargetKind.field => 'field',
       };
 

@@ -41,6 +41,21 @@ final class BattleTurnQueue {
   void pushBackAll(Iterable<BattleQueueStep> steps) {
     _steps.addAll(steps);
   }
+
+  /// Retire et retourne les étapes encore en attente.
+  ///
+  /// H1 Stealth Rock en a besoin pour un cas très précis :
+  /// - un switch volontaire peut faire entrer un Pokémon qui meurt aussitôt sur
+  ///   Piège de Roc ;
+  /// - le moteur doit alors suspendre honnêtement le tour, demander un vrai
+  ///   remplacement joueur, puis reprendre les étapes restantes ;
+  /// - on expose donc un drainage explicite de la queue au lieu d'introduire
+  ///   un scheduler caché ou un deuxième conteneur parallèle.
+  List<BattleQueueStep> drainRemainingSteps() {
+    final remaining = List<BattleQueueStep>.of(_steps);
+    _steps.clear();
+    return remaining;
+  }
 }
 
 /// Taxonomie volontairement petite des étapes que la queue peut transporter.

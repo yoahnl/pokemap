@@ -1,6 +1,7 @@
 import 'battle_setup.dart';
 import 'battle_decision.dart';
 import 'battle_condition_engine.dart';
+import 'battle_stealth_rock.dart';
 import 'battle_state.dart';
 import 'battle_action.dart';
 import 'battle_queue.dart';
@@ -58,6 +59,7 @@ BattleSession createBattleSession(
     state: initialState,
     setup: setup,
     rng: rng,
+    pendingTurn: null,
   );
 }
 
@@ -113,6 +115,7 @@ BattleCombatant _buildBattleCombatantFromData(
             selfVolatileStatus: m.selfVolatileStatus,
             weatherEffect: m.weatherEffect,
             pseudoWeatherEffect: m.pseudoWeatherEffect,
+            setsStealthRock: m.setsStealthRock,
             breaksProtect: m.breaksProtect,
             requiresRecharge: m.requiresRecharge,
             chargeThenStrikeEffect: m.chargeThenStrikeEffect,
@@ -151,6 +154,7 @@ class BattleSession {
     required this.state,
     required this.setup,
     required this.rng,
+    required this.pendingTurn,
   });
 
   /// L'état actuel du combat.
@@ -168,6 +172,17 @@ class BattleSession {
   /// - le RNG reste un détail de résolution, pas une donnée UI/runtime ;
   /// - mais il reste explicitement injectable et immutable.
   final BattleRng rng;
+
+  /// Continuation locale d'un tour déjà commencé mais suspendu pour demander
+  /// un remplacement joueur en plein scheduling.
+  ///
+  /// Frontière H1 volontairement étroite :
+  /// - ce seam n'ouvre pas un moteur général de tours interrompus ;
+  /// - il sert uniquement à ne pas mentir quand un switch-in meurt aussitôt sur
+  ///   Piège de Roc alors qu'une action adverse reste déjà en file ;
+  /// - dès que le joueur choisit le remplacement, la queue reprend là où elle
+  ///   s'était arrêtée.
+  final _PendingTurnContinuation? pendingTurn;
 
   /// Requête de décision joueur explicitement exposée par le moteur.
   ///
@@ -396,6 +411,11 @@ class BattleSession {
       throw _illegalChoiceStateError(request, choice);
     }
     if (request case BattleForcedReplacementRequest()) {
+      if (pendingTurn != null) {
+        return _resumePendingTurnWithReplacement(
+          choice as PlayerBattleChoiceSwitch,
+        );
+      }
       return _applyForcedPlayerReplacement(choice as PlayerBattleChoiceSwitch);
     }
 
@@ -477,6 +497,7 @@ class BattleSession {
         ),
         setup: setup,
         rng: rng,
+        pendingTurn: null,
       );
     }
 
@@ -512,6 +533,7 @@ class BattleSession {
         ),
         setup: setup,
         rng: rng,
+        pendingTurn: null,
       );
     }
 
@@ -554,11 +576,13 @@ class BattleSession {
     final turnResult = resolvedTurn.turnResult;
 
     // Phase 5: Vérifier si le combat est fini
-    final outcome = _determineOutcome(
-      resolvedTurn.playerSide,
-      resolvedTurn.enemySide,
-      resolvedTurn.field,
-    );
+    final outcome = resolvedTurn.pendingTurn != null
+        ? null
+        : _determineOutcome(
+            resolvedTurn.playerSide,
+            resolvedTurn.enemySide,
+            resolvedTurn.field,
+          );
 
     // Phase 6: Créer le nouvel état
     final newState = BattleState(
@@ -580,6 +604,7 @@ class BattleSession {
       state: newState,
       setup: setup,
       rng: resolvedTurn.rng,
+      pendingTurn: resolvedTurn.pendingTurn,
     );
   }
 
@@ -595,6 +620,9 @@ class BattleSession {
       enemySide: state.enemySide,
       field: state.field,
       rng: rng,
+      originalPlayerAction:
+          BattleActionSwitch(reserveIndex: choice.reserveIndex),
+      originalEnemyAction: const BattleActionNone(),
     );
     final queue = BattleTurnQueue(
       <BattleQueueStep>[
@@ -615,9 +643,27 @@ class BattleSession {
       );
     }
 
+    final followUpReplacementIndex =
+        _firstUsableReserveIndex(turn.playerSide.reserve);
+    if (turn.playerSide.active.isFainted && followUpReplacementIndex != null) {
+      final replacementRequiredEvent = BattleSwitchEvent.replacementRequired(
+        side: BattleSideId.player,
+        fromSpeciesId: turn.playerSide.active.speciesId,
+      );
+      turn.switchEvents.add(replacementRequiredEvent);
+      turn.timeline.add(BattleTurnSwitchEvent(replacementRequiredEvent));
+    }
+
+    final outcome = _determineOutcome(
+      turn.playerSide,
+      turn.enemySide,
+      turn.field,
+    );
+
     return BattleSession._(
       state: BattleState(
-        phase: BattlePhase.playerChoice,
+        phase:
+            outcome != null ? BattlePhase.finished : BattlePhase.playerChoice,
         playerSide: turn.playerSide,
         enemySide: turn.enemySide,
         field: turn.field,
@@ -625,13 +671,81 @@ class BattleSession {
           playerAction: BattleActionSwitch(reserveIndex: choice.reserveIndex),
           enemyAction: const BattleActionNone(),
           executions: const <BattleMoveExecution>[],
+          stealthRockEvents:
+              List<BattleStealthRockEvent>.unmodifiable(turn.stealthRockEvents),
           switchEvents: List<BattleSwitchEvent>.unmodifiable(turn.switchEvents),
           timeline: List<BattleTurnEvent>.unmodifiable(turn.timeline),
         ),
-        outcome: null,
+        outcome: outcome,
       ),
       setup: setup,
       rng: turn.rng,
+      pendingTurn: null,
+    );
+  }
+
+  BattleSession _resumePendingTurnWithReplacement(
+      PlayerBattleChoiceSwitch choice) {
+    final pending = pendingTurn;
+    if (pending == null) {
+      throw StateError(
+        'Aucune continuation de tour n’est disponible pour reprendre un remplacement joueur.',
+      );
+    }
+
+    final turn = _QueuedTurnContext.resume(pending);
+    final queue = BattleTurnQueue(
+      <BattleQueueStep>[
+        BattleQueueActionStep(
+          side: BattleSideId.player,
+          slot: const BattleSlotRef.active(BattleSideId.player),
+          action: BattleActionSwitch(reserveIndex: choice.reserveIndex),
+          wasForced: true,
+        ),
+        ...pending.remainingSteps,
+      ],
+    );
+
+    while (!queue.isEmpty) {
+      _executeQueueStep(
+        queue: queue,
+        turn: turn,
+        step: queue.takeNext(),
+      );
+      if (turn.pendingTurn != null) {
+        break;
+      }
+      _appendTurnTailWhenActionPhaseDrains(
+        queue: queue,
+        turn: turn,
+      );
+    }
+
+    final outcome = turn.pendingTurn != null
+        ? null
+        : _determineOutcome(
+            turn.playerSide,
+            turn.enemySide,
+            turn.field,
+          );
+
+    return BattleSession._(
+      state: BattleState(
+        phase:
+            outcome != null ? BattlePhase.finished : BattlePhase.playerChoice,
+        playerSide: turn.playerSide,
+        enemySide: turn.enemySide,
+        field: turn.field,
+        currentTurn: _buildTurnResultFromContext(
+          turn: turn,
+          playerAction: pending.playerAction,
+          enemyAction: pending.enemyAction,
+        ),
+        outcome: outcome,
+      ),
+      setup: setup,
+      rng: turn.rng,
+      pendingTurn: turn.pendingTurn,
     );
   }
 
@@ -836,6 +950,8 @@ class BattleSession {
       enemySide: state.enemySide,
       field: state.field,
       rng: rng,
+      originalPlayerAction: playerAction,
+      originalEnemyAction: enemyAction,
     );
     final queue = BattleTurnQueue(
       _buildInitialTurnQueue(
@@ -854,6 +970,9 @@ class BattleSession {
         turn: turn,
         step: step,
       );
+      if (turn.pendingTurn != null) {
+        break;
+      }
       _appendTurnTailWhenActionPhaseDrains(
         queue: queue,
         turn: turn,
@@ -865,17 +984,32 @@ class BattleSession {
       enemySide: turn.enemySide,
       field: turn.field,
       rng: turn.rng,
-      turnResult: BattleTurnResult(
+      turnResult: _buildTurnResultFromContext(
+        turn: turn,
         playerAction: playerAction,
         enemyAction: enemyAction,
-        executions: List<BattleMoveExecution>.unmodifiable(turn.executions),
-        statusEvents: List<BattleStatusEvent>.unmodifiable(turn.statusEvents),
-        volatileEvents:
-            List<BattleVolatileEvent>.unmodifiable(turn.volatileEvents),
-        fieldEvents: List<BattleFieldEvent>.unmodifiable(turn.fieldEvents),
-        switchEvents: List<BattleSwitchEvent>.unmodifiable(turn.switchEvents),
-        timeline: List<BattleTurnEvent>.unmodifiable(turn.timeline),
       ),
+      pendingTurn: turn.pendingTurn,
+    );
+  }
+
+  BattleTurnResult _buildTurnResultFromContext({
+    required _QueuedTurnContext turn,
+    required BattleAction playerAction,
+    required BattleAction enemyAction,
+  }) {
+    return BattleTurnResult(
+      playerAction: playerAction,
+      enemyAction: enemyAction,
+      executions: List<BattleMoveExecution>.unmodifiable(turn.executions),
+      statusEvents: List<BattleStatusEvent>.unmodifiable(turn.statusEvents),
+      volatileEvents:
+          List<BattleVolatileEvent>.unmodifiable(turn.volatileEvents),
+      fieldEvents: List<BattleFieldEvent>.unmodifiable(turn.fieldEvents),
+      stealthRockEvents:
+          List<BattleStealthRockEvent>.unmodifiable(turn.stealthRockEvents),
+      switchEvents: List<BattleSwitchEvent>.unmodifiable(turn.switchEvents),
+      timeline: List<BattleTurnEvent>.unmodifiable(turn.timeline),
     );
   }
 
@@ -932,7 +1066,11 @@ class BattleSession {
   }) {
     switch (step) {
       case BattleQueueActionStep():
-        _executeActionQueueStep(turn: turn, step: step);
+        _executeActionQueueStep(
+          queue: queue,
+          turn: turn,
+          step: step,
+        );
       case BattleQueueEndOfTurnStep():
         _executeEndOfTurnQueueStep(turn);
       case BattleQueuePostTurnChecksStep():
@@ -941,13 +1079,18 @@ class BattleSession {
           turn: turn,
         );
       case BattleQueueAutoSwitchStep():
-        _executeAutoSwitchQueueStep(turn: turn, step: step);
+        _executeAutoSwitchQueueStep(
+          queue: queue,
+          turn: turn,
+          step: step,
+        );
       case BattleQueueReplacementRequiredStep():
         _executeReplacementRequiredQueueStep(turn: turn, step: step);
     }
   }
 
   void _executeActionQueueStep({
+    required BattleTurnQueue queue,
     required _QueuedTurnContext turn,
     required BattleQueueActionStep step,
   }) {
@@ -980,6 +1123,20 @@ class BattleSession {
       turn.volatileEvents.addAll(resolution.volatileEvents);
       turn.fieldEvents.addAll(resolution.fieldEvents);
       turn.timeline.addAll(resolution.timeline);
+      final stealthRockResolution = _resolveStealthRockMoveEffect(
+        move: move,
+        didResolveHit: resolution.execution?.didHit == true,
+        targetSide: turn.side(_opposingSideId(step.side)),
+      );
+      if (stealthRockResolution != null) {
+        turn.updateSide(
+          _opposingSideId(step.side),
+          stealthRockResolution.side,
+        );
+        turn.stealthRockEvents.addAll(stealthRockResolution.events);
+        turn.timeline
+            .addAll(_turnEventsFromStealthRock(stealthRockResolution.events));
+      }
       return;
     }
 
@@ -992,6 +1149,24 @@ class BattleSession {
       turn.updateSide(step.side, resolution.side);
       turn.switchEvents.add(resolution.event);
       turn.timeline.add(BattleTurnSwitchEvent(resolution.event));
+      final stealthRockResolution = _resolveStealthRockEntry(
+        side: turn.side(step.side),
+      );
+      turn.updateSide(step.side, stealthRockResolution.side);
+      turn.stealthRockEvents.addAll(stealthRockResolution.events);
+      turn.timeline
+          .addAll(_turnEventsFromStealthRock(stealthRockResolution.events));
+
+      final sideAfterEntry = turn.side(step.side);
+      if (sideAfterEntry.active.isFainted &&
+          step.side == BattleSideId.player &&
+          _firstUsableReserveIndex(sideAfterEntry.reserve) != null &&
+          !queue.isEmpty) {
+        _suspendTurnForImmediatePlayerReplacement(
+          queue: queue,
+          turn: turn,
+        );
+      }
       return;
     }
 
@@ -1043,14 +1218,14 @@ class BattleSession {
     }
 
     if (turn.playerSide.active.isFainted &&
-        (!turn.enemySide.active.isFainted || enemyReplacementIndex != null) &&
+        !turn.enemySide.active.isFainted &&
         _firstUsableReserveIndex(turn.playerSide.reserve) != null) {
-      // Le replacement joueur dépend ici du prochain état jouable du board,
-      // pas seulement de l'état exact avant consommation du switch ennemi :
-      // - en double K.O. avec réserve des deux côtés, l'ennemi auto-switchera ;
-      // - le joueur doit donc bien recevoir une request de remplacement ;
-      // - on l'insère après l'auto-switch ennemi pour conserver l'ordre
-      //   historique déjà jugé honnête par les lots précédents.
+      // Tant qu'une chaîne d'auto-switch ennemi reste possible, on refuse
+      // d'annoncer le remplacement joueur trop tôt :
+      // - sinon la timeline raconterait "le joueur doit remplacer" avant que
+      //   l'ennemi ait fini d'entrer réellement ;
+      // - en H1 Stealth Rock, un premier remplaçant ennemi peut même mourir
+      //   en entrant, ce qui doit rester visible avant la request joueur.
       queue.pushBack(
         BattleQueueReplacementRequiredStep(
           side: BattleSideId.player,
@@ -1062,6 +1237,7 @@ class BattleSession {
   }
 
   void _executeAutoSwitchQueueStep({
+    required BattleTurnQueue queue,
     required _QueuedTurnContext turn,
     required BattleQueueAutoSwitchStep step,
   }) {
@@ -1073,6 +1249,41 @@ class BattleSession {
     turn.updateSide(step.side, resolution.side);
     turn.switchEvents.add(resolution.event);
     turn.timeline.add(BattleTurnSwitchEvent(resolution.event));
+    final stealthRockResolution = _resolveStealthRockEntry(
+      side: turn.side(step.side),
+    );
+    turn.updateSide(step.side, stealthRockResolution.side);
+    turn.stealthRockEvents.addAll(stealthRockResolution.events);
+    turn.timeline
+        .addAll(_turnEventsFromStealthRock(stealthRockResolution.events));
+
+    if (turn.side(step.side).active.isFainted) {
+      final nextReserveIndex =
+          _firstUsableReserveIndex(turn.side(step.side).reserve);
+      if (nextReserveIndex != null) {
+        queue.pushBack(
+          BattleQueueAutoSwitchStep(
+            side: step.side,
+            slot: step.slot,
+            reserveIndex: nextReserveIndex,
+          ),
+        );
+        return;
+      }
+    }
+
+    if (step.side == BattleSideId.enemy &&
+        turn.playerSide.active.isFainted &&
+        !turn.enemySide.active.isFainted &&
+        _firstUsableReserveIndex(turn.playerSide.reserve) != null) {
+      queue.pushBack(
+        BattleQueueReplacementRequiredStep(
+          side: BattleSideId.player,
+          slot: const BattleSlotRef.active(BattleSideId.player),
+          faintedSpeciesId: turn.playerSide.active.speciesId,
+        ),
+      );
+    }
   }
 
   void _executeReplacementRequiredQueueStep({
@@ -1085,6 +1296,30 @@ class BattleSession {
     );
     turn.switchEvents.add(replacementRequiredEvent);
     turn.timeline.add(BattleTurnSwitchEvent(replacementRequiredEvent));
+  }
+
+  void _suspendTurnForImmediatePlayerReplacement({
+    required BattleTurnQueue queue,
+    required _QueuedTurnContext turn,
+  }) {
+    // H1 Stealth Rock ouvre ici le plus petit vrai seam d'interruption :
+    // - uniquement pour un remplacement joueur devenu obligatoire en plein tour
+    //   parce qu'un switch-in vient de mourir sur Piège de Roc ;
+    // - on ne transforme pas cela en scheduler général ni en bus d'interruption ;
+    // - on capture juste assez d'état pour reprendre honnêtement les étapes déjà
+    //   en file après le futur choix de remplacement.
+    final replacementRequiredEvent = BattleSwitchEvent.replacementRequired(
+      side: BattleSideId.player,
+      fromSpeciesId: turn.playerSide.active.speciesId,
+    );
+    turn.switchEvents.add(replacementRequiredEvent);
+    turn.timeline.add(BattleTurnSwitchEvent(replacementRequiredEvent));
+    turn.pendingTurn = _PendingTurnContinuation.capture(
+      turn: turn,
+      remainingSteps: queue.drainRemainingSteps(),
+      playerAction: turn.originalPlayerAction ?? const BattleActionNone(),
+      enemyAction: turn.originalEnemyAction ?? const BattleActionNone(),
+    );
   }
 
   List<_OrderedBattleAction> _resolveTurnOrder({
@@ -1285,6 +1520,10 @@ class BattleSession {
           attackerSlot: attackerSlot,
           opponentSlot: targetSlot,
         ),
+        targetSideRef: _resolveExecutionTargetSide(
+          move: move,
+          opponentSlot: targetSlot,
+        ),
         damage: 0,
         didHit: false,
         didCrit: false,
@@ -1325,6 +1564,10 @@ class BattleSession {
         targetSlot: _resolveExecutionTargetSlot(
           move: move,
           attackerSlot: attackerSlot,
+          opponentSlot: targetSlot,
+        ),
+        targetSideRef: _resolveExecutionTargetSide(
+          move: move,
           opponentSlot: targetSlot,
         ),
         damage: 0,
@@ -1393,6 +1636,10 @@ class BattleSession {
         attackerSlot: attackerSlot,
         opponentSlot: targetSlot,
       ),
+      targetSideRef: _resolveExecutionTargetSide(
+        move: move,
+        opponentSlot: targetSlot,
+      ),
       damage: damageResult.damage,
       didHit: true,
       didCrit: damageResult.didCrit,
@@ -1456,6 +1703,7 @@ class BattleSession {
   ) {
     return switch (move.target) {
       BattleMoveTarget.field => BattleMoveExecutionTargetKind.field,
+      BattleMoveTarget.opponentSide => BattleMoveExecutionTargetKind.side,
       BattleMoveTarget.self ||
       BattleMoveTarget.opponent ||
       BattleMoveTarget.unspecified =>
@@ -1476,8 +1724,22 @@ class BattleSession {
   }) {
     return switch (move.target) {
       BattleMoveTarget.self => attackerSlot,
-      BattleMoveTarget.field => null,
+      BattleMoveTarget.field || BattleMoveTarget.opponentSide => null,
       BattleMoveTarget.opponent || BattleMoveTarget.unspecified => opponentSlot,
+    };
+  }
+
+  BattleSideId? _resolveExecutionTargetSide({
+    required BattleMove move,
+    required BattleSlotRef opponentSlot,
+  }) {
+    return switch (move.target) {
+      BattleMoveTarget.opponentSide => opponentSlot.side,
+      BattleMoveTarget.self ||
+      BattleMoveTarget.field ||
+      BattleMoveTarget.opponent ||
+      BattleMoveTarget.unspecified =>
+        null,
     };
   }
 
@@ -1841,6 +2103,81 @@ class BattleSession {
       events.map(BattleTurnFieldEvent.new),
     );
   }
+
+  List<BattleTurnEvent> _turnEventsFromStealthRock(
+    Iterable<BattleStealthRockEvent> events,
+  ) {
+    return List<BattleTurnEvent>.unmodifiable(
+      events.map(BattleTurnStealthRockEvent.new),
+    );
+  }
+
+  _ResolvedStealthRockMoveEffect? _resolveStealthRockMoveEffect({
+    required BattleMove move,
+    required bool didResolveHit,
+    required BattleSideState targetSide,
+  }) {
+    if (!move.setsStealthRock || !didResolveHit) {
+      return null;
+    }
+
+    if (targetSide.hasStealthRock) {
+      return _ResolvedStealthRockMoveEffect(
+        side: targetSide,
+        events: <BattleStealthRockEvent>[
+          BattleStealthRockEvent.alreadyPresent(
+            side: targetSide.id,
+            sourceMoveId: move.id,
+          ),
+        ],
+      );
+    }
+
+    return _ResolvedStealthRockMoveEffect(
+      side: targetSide.withStealthRock(true),
+      events: <BattleStealthRockEvent>[
+        BattleStealthRockEvent.set(
+          side: targetSide.id,
+          sourceMoveId: move.id,
+        ),
+      ],
+    );
+  }
+
+  _ResolvedStealthRockEntry _resolveStealthRockEntry({
+    required BattleSideState side,
+  }) {
+    if (!side.hasStealthRock) {
+      return _ResolvedStealthRockEntry(
+        side: side,
+        events: const <BattleStealthRockEvent>[],
+      );
+    }
+
+    final intendedDamage = resolveStealthRockEntryDamage(side.active);
+    if (intendedDamage <= 0) {
+      return _ResolvedStealthRockEntry(
+        side: side,
+        events: const <BattleStealthRockEvent>[],
+      );
+    }
+
+    final actualDamage = intendedDamage > side.active.currentHp
+        ? side.active.currentHp
+        : intendedDamage;
+    final damagedActive = side.active.withDamage(actualDamage);
+
+    return _ResolvedStealthRockEntry(
+      side: side.withActive(damagedActive),
+      events: <BattleStealthRockEvent>[
+        BattleStealthRockEvent.damagedOnEntry(
+          side: side.id,
+          targetSlot: side.activeSlotRef,
+          damage: actualDamage,
+        ),
+      ],
+    );
+  }
 }
 
 class _OrderedBattleAction {
@@ -1860,6 +2197,7 @@ class _ResolvedBattleTurn {
     required this.field,
     required this.rng,
     required this.turnResult,
+    required this.pendingTurn,
   });
 
   final BattleSideState playerSide;
@@ -1867,6 +2205,70 @@ class _ResolvedBattleTurn {
   final BattleFieldState field;
   final BattleRng rng;
   final BattleTurnResult turnResult;
+  final _PendingTurnContinuation? pendingTurn;
+}
+
+final class _PendingTurnContinuation {
+  const _PendingTurnContinuation({
+    required this.playerSide,
+    required this.enemySide,
+    required this.field,
+    required this.rng,
+    required this.playerAction,
+    required this.enemyAction,
+    required this.turnTailScheduled,
+    required this.remainingSteps,
+    required this.executions,
+    required this.statusEvents,
+    required this.volatileEvents,
+    required this.fieldEvents,
+    required this.stealthRockEvents,
+    required this.switchEvents,
+    required this.timeline,
+  });
+
+  factory _PendingTurnContinuation.capture({
+    required _QueuedTurnContext turn,
+    required List<BattleQueueStep> remainingSteps,
+    required BattleAction playerAction,
+    required BattleAction enemyAction,
+  }) {
+    return _PendingTurnContinuation(
+      playerSide: turn.playerSide,
+      enemySide: turn.enemySide,
+      field: turn.field,
+      rng: turn.rng,
+      playerAction: playerAction,
+      enemyAction: enemyAction,
+      turnTailScheduled: turn.turnTailScheduled,
+      remainingSteps: List<BattleQueueStep>.unmodifiable(remainingSteps),
+      executions: List<BattleMoveExecution>.unmodifiable(turn.executions),
+      statusEvents: List<BattleStatusEvent>.unmodifiable(turn.statusEvents),
+      volatileEvents:
+          List<BattleVolatileEvent>.unmodifiable(turn.volatileEvents),
+      fieldEvents: List<BattleFieldEvent>.unmodifiable(turn.fieldEvents),
+      stealthRockEvents:
+          List<BattleStealthRockEvent>.unmodifiable(turn.stealthRockEvents),
+      switchEvents: List<BattleSwitchEvent>.unmodifiable(turn.switchEvents),
+      timeline: List<BattleTurnEvent>.unmodifiable(turn.timeline),
+    );
+  }
+
+  final BattleSideState playerSide;
+  final BattleSideState enemySide;
+  final BattleFieldState field;
+  final BattleRng rng;
+  final BattleAction playerAction;
+  final BattleAction enemyAction;
+  final bool turnTailScheduled;
+  final List<BattleQueueStep> remainingSteps;
+  final List<BattleMoveExecution> executions;
+  final List<BattleStatusEvent> statusEvents;
+  final List<BattleVolatileEvent> volatileEvents;
+  final List<BattleFieldEvent> fieldEvents;
+  final List<BattleStealthRockEvent> stealthRockEvents;
+  final List<BattleSwitchEvent> switchEvents;
+  final List<BattleTurnEvent> timeline;
 }
 
 class _ResolvedSwitchAction {
@@ -1901,6 +2303,26 @@ class _ResolvedMoveExecution {
   final List<BattleVolatileEvent> volatileEvents;
   final List<BattleFieldEvent> fieldEvents;
   final List<BattleTurnEvent> timeline;
+}
+
+class _ResolvedStealthRockMoveEffect {
+  const _ResolvedStealthRockMoveEffect({
+    required this.side,
+    required this.events,
+  });
+
+  final BattleSideState side;
+  final List<BattleStealthRockEvent> events;
+}
+
+class _ResolvedStealthRockEntry {
+  const _ResolvedStealthRockEntry({
+    required this.side,
+    required this.events,
+  });
+
+  final BattleSideState side;
+  final List<BattleStealthRockEvent> events;
 }
 
 class _ResolvedHitCheck {
@@ -1974,18 +2396,44 @@ final class _QueuedTurnContext {
     required this.enemySide,
     required this.field,
     required this.rng,
+    this.originalPlayerAction,
+    this.originalEnemyAction,
   });
+
+  factory _QueuedTurnContext.resume(_PendingTurnContinuation pending) {
+    return _QueuedTurnContext(
+      playerSide: pending.playerSide,
+      enemySide: pending.enemySide,
+      field: pending.field,
+      rng: pending.rng,
+      originalPlayerAction: pending.playerAction,
+      originalEnemyAction: pending.enemyAction,
+    )
+      ..turnTailScheduled = pending.turnTailScheduled
+      ..executions.addAll(pending.executions)
+      ..statusEvents.addAll(pending.statusEvents)
+      ..volatileEvents.addAll(pending.volatileEvents)
+      ..fieldEvents.addAll(pending.fieldEvents)
+      ..stealthRockEvents.addAll(pending.stealthRockEvents)
+      ..switchEvents.addAll(pending.switchEvents)
+      ..timeline.addAll(pending.timeline);
+  }
 
   BattleSideState playerSide;
   BattleSideState enemySide;
   BattleFieldState field;
   BattleRng rng;
+  BattleAction? originalPlayerAction;
+  BattleAction? originalEnemyAction;
   bool turnTailScheduled = false;
+  _PendingTurnContinuation? pendingTurn;
 
   final List<BattleMoveExecution> executions = <BattleMoveExecution>[];
   final List<BattleStatusEvent> statusEvents = <BattleStatusEvent>[];
   final List<BattleVolatileEvent> volatileEvents = <BattleVolatileEvent>[];
   final List<BattleFieldEvent> fieldEvents = <BattleFieldEvent>[];
+  final List<BattleStealthRockEvent> stealthRockEvents =
+      <BattleStealthRockEvent>[];
   final List<BattleSwitchEvent> switchEvents = <BattleSwitchEvent>[];
   final List<BattleTurnEvent> timeline = <BattleTurnEvent>[];
 

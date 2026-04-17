@@ -525,6 +525,7 @@ final class BattleSideState {
     required this.id,
     required this.activeSlot,
     this.reserve = const <BattleCombatant>[],
+    this.hasStealthRock = false,
   })  : assert(
           activeSlot.side == id,
           'BattleSideState.activeSlot must belong to the same side.',
@@ -569,6 +570,15 @@ final class BattleSideState {
   /// - l'ordre de réserve reste stable tant qu'un switch ne l'altère pas.
   final List<BattleCombatant> reserve;
 
+  /// H1 ouvre le plus petit vrai état side-level vivant : Stealth Rock.
+  ///
+  /// Garde-fou de périmètre :
+  /// - pas de conteneur générique de hazards ;
+  /// - pas de liste de side conditions ;
+  /// - pas de "pour plus tard" ;
+  /// - juste la vérité minimale nécessaire à cette mécanique.
+  final bool hasStealthRock;
+
   /// Combattant actif de ce side.
   BattleCombatant get active => activeSlot.combatant;
 
@@ -580,6 +590,7 @@ final class BattleSideState {
       id: id,
       activeSlot: activeSlot.withCombatant(updatedActive),
       reserve: reserve,
+      hasStealthRock: hasStealthRock,
     );
   }
 
@@ -588,6 +599,7 @@ final class BattleSideState {
       id: id,
       activeSlot: activeSlot,
       reserve: updatedReserve,
+      hasStealthRock: hasStealthRock,
     );
   }
 
@@ -599,6 +611,16 @@ final class BattleSideState {
       id: id,
       activeSlot: activeSlot.withCombatant(active),
       reserve: reserve,
+      hasStealthRock: hasStealthRock,
+    );
+  }
+
+  BattleSideState withStealthRock(bool value) {
+    return BattleSideState(
+      id: id,
+      activeSlot: activeSlot,
+      reserve: reserve,
+      hasStealthRock: value,
     );
   }
 }

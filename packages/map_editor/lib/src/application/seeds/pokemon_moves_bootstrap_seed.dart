@@ -605,6 +605,10 @@ final List<PokemonMove> _structuredSupportedSeedMoves = <PokemonMove>[
 /// d'attaques triviales, tout en exposant honnêtement les limites structurelles
 /// actuelles via `catalog_only` et `unsupportedReasons`.
 final List<PokemonMove> _catalogOnlySeedMoves = <PokemonMove>[
+  // H1 supporte désormais Stealth Rock de bout en bout.
+  //
+  // On laisse volontairement l'entrée à sa place pour éviter un grand remaniement
+  // du seed, mais son niveau de support ne doit plus mentir.
   _showdownSeedMove(
     id: 'stealth_rock',
     showdownMoveId: 'stealthrock',
@@ -633,12 +637,6 @@ final List<PokemonMove> _catalogOnlySeedMoves = <PokemonMove>[
         'removed from the opposing side if any Pokemon uses Tidy Up, or if '
         'any opposing Pokemon uses Mortal Spin, Rapid Spin, or Defog '
         'successfully, or is hit by Defog.',
-    engineSupportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
-    unsupportedReasons: <String>[
-      'showdown_callback:condition.onSideStart',
-      'showdown_callback:condition.onSwitchIn',
-      'unsupported_mechanic:condition',
-    ],
     showdownHooksPresent: <String>[
       'condition.onSideStart',
       'condition.onSwitchIn',

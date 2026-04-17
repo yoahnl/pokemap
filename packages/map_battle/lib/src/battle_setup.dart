@@ -247,6 +247,8 @@ final class BattleMoveData {
   /// [weatherEffect] - Effet météo battle minimal réellement consommé par BE9.
   /// [pseudoWeatherEffect] - Effet pseudoWeather battle minimal réellement
   ///   consommé par BE9.
+  /// [setsStealthRock] - H1 ouvre exactement Stealth Rock, et rien de plus,
+  ///   côté hazard side-level.
   /// [breaksProtect] - Le move peut bypasser une protection active BE8.
   /// [requiresRecharge] - Le move impose ensuite un tour de recharge au
   ///   lanceur.
@@ -287,6 +289,7 @@ final class BattleMoveData {
     this.selfVolatileStatus,
     this.weatherEffect,
     this.pseudoWeatherEffect,
+    this.setsStealthRock = false,
     this.breaksProtect = false,
     this.requiresRecharge = false,
     this.chargeThenStrikeEffect,
@@ -437,6 +440,14 @@ final class BattleMoveData {
 
   /// PseudoWeather de champ posé par ce move dans le sous-ensemble BE9.
   final BattlePseudoWeatherId? pseudoWeatherEffect;
+
+  /// H1 ouvre uniquement Stealth Rock comme premier hazard honnête.
+  ///
+  /// On garde ici le même design volontairement borné que dans `BattleMove` :
+  /// - pas d'identifiant générique de side condition ;
+  /// - pas de liste d'effets ;
+  /// - juste le plus petit bit de vérité requis pour ce lot précis.
+  final bool setsStealthRock;
 
   /// true si ce move peut percer une protection active BE8.
   final bool breaksProtect;
