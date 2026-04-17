@@ -10,6 +10,7 @@ import 'package:map_runtime/map_runtime.dart';
 
 import 'src/in_game_menu.dart';
 import 'src/runtime_demo_party_seed.dart';
+import 'src/runtime_launch_save.dart';
 import 'src/runtime_launch_options.dart';
 import 'src/runtime_pokedex_loader.dart';
 
@@ -243,33 +244,40 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         projectFilePath: projectFilePath,
         mapId: mapId,
       );
+      // Phase A privilégie un vrai état joueur versionné quand le projet en
+      // fournit un. Le seed de démo historique reste un fallback pratique pour
+      // les projets génériques qui n'ont pas encore de save de lancement.
+      final launchSaveData = await loadRuntimeHostLaunchSaveData(
+        projectFilePath: projectFilePath,
+      );
       final launchDemoSeed = await buildRuntimeHostLaunchDemoPartySeed(
-        seedDemoPokemon: _seedDemoPokemon,
+        seedDemoPokemon: launchSaveData == null && _seedDemoPokemon,
         projectFilePath: projectFilePath,
       );
       if (!mounted) return;
       final nextGame = PlayableMapGame(
         bundle: bundle,
         projectFilePath: projectFilePath,
-        saveData: launchDemoSeed == null
-            ? null
-            : SaveData(
-                saveId: kRuntimeDemoSeedSaveId,
-                currentMapId: mapId,
-                party: PlayerParty(
-                  members: <PlayerPokemon>[
-                    PlayerPokemon(
-                      speciesId: launchDemoSeed.speciesId,
-                      natureId: 'hardy',
-                      abilityId: launchDemoSeed.abilityId,
-                      level: launchDemoSeed.level,
-                      knownMoveIds: launchDemoSeed.knownMoveIds,
-                      currentHp: launchDemoSeed.currentHp,
+        saveData: launchSaveData ??
+            (launchDemoSeed == null
+                ? null
+                : SaveData(
+                    saveId: kRuntimeDemoSeedSaveId,
+                    currentMapId: mapId,
+                    party: PlayerParty(
+                      members: <PlayerPokemon>[
+                        PlayerPokemon(
+                          speciesId: launchDemoSeed.speciesId,
+                          natureId: 'hardy',
+                          abilityId: launchDemoSeed.abilityId,
+                          level: launchDemoSeed.level,
+                          knownMoveIds: launchDemoSeed.knownMoveIds,
+                          currentHp: launchDemoSeed.currentHp,
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                trainerProfile: const TrainerProfile(name: 'Demo'),
-              ),
+                    trainerProfile: const TrainerProfile(name: 'Demo'),
+                  )),
       );
       setState(() {
         _game = nextGame;

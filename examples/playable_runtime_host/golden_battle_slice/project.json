@@ -1,0 +1,57 @@
+{
+  "name": "Phase A Golden Battle Slice",
+  "version": "v1",
+  "maps": [
+    {
+      "id": "golden_field",
+      "name": "Golden Field",
+      "relativePath": "maps/golden_field.json",
+      "role": "exterior",
+      "sortOrder": 0
+    }
+  ],
+  "tilesets": [],
+  "encounterTables": [
+    {
+      "id": "golden_grass",
+      "name": "Golden Grass",
+      "encounterKind": "walk",
+      "entries": [
+        {
+          "speciesId": "sparkitten",
+          "minLevel": 6,
+          "maxLevel": 6,
+          "weight": 1
+        }
+      ]
+    }
+  ],
+  "trainers": [
+    {
+      "id": "trainer_rookie",
+      "name": "Mira",
+      "trainerClass": "Rookie",
+      "team": [
+        {
+          "speciesId": "sparkitten",
+          "level": 6,
+          "moves": [
+            "tackle",
+            "growl"
+          ]
+        }
+      ]
+    }
+  ],
+  "pokemon": {
+    "enabled": true,
+    "dataRoot": "data/pokemon",
+    "speciesDir": "data/pokemon/species",
+    "learnsetsDir": "data/pokemon/learnsets",
+    "evolutionsDir": "data/pokemon/evolutions",
+    "mediaDir": "data/pokemon/media",
+    "catalogFiles": {
+      "moves": "data/pokemon/catalogs/moves.json"
+    }
+  }
+}

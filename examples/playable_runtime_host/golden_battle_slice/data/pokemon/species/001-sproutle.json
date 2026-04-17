@@ -1,0 +1,65 @@
+{
+  "id": "sproutle",
+  "slug": "sproutle",
+  "nationalDex": 1,
+  "names": {
+    "en": "Sproutle"
+  },
+  "speciesName": {
+    "en": "Seedling"
+  },
+  "genIntroduced": 1,
+  "typing": {
+    "types": [
+      "grass"
+    ]
+  },
+  "baseStats": {
+    "hp": 45,
+    "atk": 49,
+    "def": 49,
+    "spa": 65,
+    "spd": 65,
+    "spe": 45,
+    "bst": 318
+  },
+  "abilities": {
+    "primary": "overgrow"
+  },
+  "breeding": {
+    "genderRatio": {
+      "male": 0.875,
+      "female": 0.125
+    },
+    "eggGroups": [
+      "monster",
+      "grass"
+    ],
+    "hatchCycles": 20
+  },
+  "progression": {
+    "growthRateId": "medium_slow",
+    "baseExp": 64,
+    "catchRate": 45,
+    "baseFriendship": 50
+  },
+  "refs": {
+    "learnset": "sproutle",
+    "evolution": "sproutle",
+    "media": "sproutle"
+  },
+  "dexContent": {
+    "heightM": 0.7,
+    "weightKg": 6.9
+  },
+  "classification": {
+    "isEnabledInProject": true
+  },
+  "gameplayFlags": {
+    "starterEligible": true
+  },
+  "sourceMeta": {
+    "seededBy": "phase_a_golden_slice",
+    "seedVersion": 1
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "saveId": "phase-a-golden-slice",
+  "currentMapId": "golden_field",
+  "playerPosition": {
+    "x": 1,
+    "y": 1
+  },
+  "playerFacing": "east",
+  "party": {
+    "members": [
+      {
+        "speciesId": "sproutle",
+        "natureId": "bold",
+        "abilityId": "overgrow",
+        "level": 7,
+        "knownMoveIds": [
+          "tackle",
+          "growl",
+          "vine_whip"
+        ],
+        "currentHp": 25
+      },
+      {
+        "speciesId": "sparkitten",
+        "natureId": "hardy",
+        "abilityId": "blaze",
+        "level": 6,
+        "knownMoveIds": [
+          "tackle",
+          "growl"
+        ],
+        "currentHp": 22
+      }
+    ]
+  },
+  "trainerProfile": {
+    "name": "Phase A Hero"
+  },
+  "bag": {
+    "entries": [
+      {
+        "itemId": "poke-ball",
+        "categoryId": "items",
+        "quantity": 2
+      }
+    ]
+  }
+}

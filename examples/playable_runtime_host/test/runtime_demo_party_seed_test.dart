@@ -67,7 +67,7 @@ void main() {
       expect(seed.abilityId, equals('torrent'));
       expect(
         seed.knownMoveIds,
-        equals(<String>['tackle', 'tail_whip', 'bubble']),
+        equals(<String>['tackle', 'tail_whip', 'bubble', 'water_gun']),
       );
     });
   });

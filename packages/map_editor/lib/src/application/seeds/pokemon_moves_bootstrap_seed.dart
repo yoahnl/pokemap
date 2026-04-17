@@ -98,6 +98,10 @@ final List<PokemonMove> _structuredSupportedSeedMoves = <PokemonMove>[
         'The user recovers 1/2 the HP lost by the target, rounded half up. '
         'If Big Root is held by the user, the HP recovered is 1.3x normal, '
         'rounded half down.',
+    engineSupportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+    unsupportedReasons: <String>[
+      'unsupported_effect_kind:drain',
+    ],
   ),
   _showdownSeedMove(
     id: 'double_slap',
@@ -125,6 +129,10 @@ final List<PokemonMove> _structuredSupportedSeedMoves = <PokemonMove>[
         'breaks the target\'s substitute, it will take damage for the '
         'remaining hits. If the user has the Skill Link Ability, this move '
         'will always hit five times.',
+    engineSupportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+    unsupportedReasons: <String>[
+      'unsupported_effect_kind:multi_hit',
+    ],
   ),
   _showdownSeedMove(
     id: 'feint',
@@ -418,6 +426,10 @@ final List<PokemonMove> _structuredSupportedSeedMoves = <PokemonMove>[
         'unfainted party members, or if the target switched out using an '
         'Eject Button or through the effect of the Emergency Exit or Wimp Out '
         'Abilities.',
+    engineSupportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+    unsupportedReasons: <String>[
+      'unsupported_effect_kind:self_switch',
+    ],
   ),
   _showdownSeedMove(
     id: 'vine_whip',
@@ -467,6 +479,10 @@ final List<PokemonMove> _structuredSupportedSeedMoves = <PokemonMove>[
         'unfainted ally. Fails if the target is the last unfainted Pokemon in '
         'its party, or if the target used Ingrain previously or has the '
         'Suction Cups Ability.',
+    engineSupportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+    unsupportedReasons: <String>[
+      'unsupported_effect_kind:force_switch',
+    ],
   ),
 ];
 
@@ -621,6 +637,9 @@ final List<PokemonMove> _catalogOnlySeedMoves = <PokemonMove>[
       PokemonMoveFlag.noSleepTalk,
       PokemonMoveFlag.protect,
     ],
+    effects: const <PokemonMoveEffect>[
+      PokemonMoveEffect.chargeThenStrike(chargeStateId: 'solar_charge'),
+    ],
     shortDescription: 'Charges turn 1. Hits turn 2. No charge in sunlight.',
     description:
         'This attack charges on the first turn and executes on the second. '
@@ -634,7 +653,7 @@ final List<PokemonMove> _catalogOnlySeedMoves = <PokemonMove>[
     unsupportedReasons: <String>[
       'showdown_callback:onBasePower',
       'showdown_callback:onTryMove',
-      'unsupported_mechanic:charge_then_strike',
+      'unsupported_mechanic:weather_charge_shortcuts',
     ],
     showdownHooksPresent: <String>[
       'onBasePower',
@@ -666,8 +685,9 @@ final List<PokemonMove> _catalogOnlySeedMoves = <PokemonMove>[
         'Pokemon\'s Speed is considered to be (10000 - its normal Speed), and '
         'if this value is greater than 8191, 8192 is subtracted from it. If '
         'this move is used during the effect, the effect ends.',
-    engineSupportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+    engineSupportLevel: PokemonMoveEngineSupportLevel.structuredPartial,
     unsupportedReasons: <String>[
+      'unsupported_mechanic:turn_order_inversion',
       'showdown_callback:condition.durationCallback',
       'showdown_callback:condition.onFieldEnd',
       'showdown_callback:condition.onFieldRestart',
