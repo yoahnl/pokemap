@@ -4,6 +4,30 @@ import 'package:flame/text.dart';
 import 'package:flutter/material.dart';
 import 'package:map_battle/map_battle.dart';
 
+/// Retourne le prompt de décision à afficher pour la requête courante.
+///
+/// Phase C utilise cette petite fonction pure pour une raison concrète :
+/// - l'overlay doit désormais afficher le *type* de requête demandé par le
+///   moteur, pas déduire ce type depuis une liste plate de choix ;
+/// - garder ce formatage dans un helper pur permet aussi de le verrouiller en
+///   test sans devoir piloter tout le composant Flame ;
+/// - on reste très loin d'un système de présentation générique.
+String buildBattleDecisionPromptForOverlay(BattleDecisionRequest request) {
+  return switch (request) {
+    BattleTurnChoiceRequest() => 'Que doit faire le joueur ?',
+    BattleForcedReplacementRequest() =>
+      'Le joueur doit remplacer son Pokémon K.O.',
+    BattleContinueRequest() => 'Le joueur doit continuer un tour forcé',
+    BattleWaitRequest(:final reason) => switch (reason) {
+        BattleWaitReason.battleFinished => 'Combat terminé',
+        BattleWaitReason.resolvingTurn => 'Résolution du tour en cours',
+        BattleWaitReason.activeFaintedWithoutReplacement =>
+          'Aucun remplaçant disponible',
+        BattleWaitReason.noLegalChoice => 'Aucune décision légale disponible',
+      },
+  };
+}
+
 /// Construit les lignes de restitution d'un tour pour l'overlay runtime.
 ///
 /// BE10A centralise ici la restitution textuelle pour une raison précise :
@@ -188,6 +212,7 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
   /// Composants de texte pour les PV (pour mise à jour dynamique).
   TextComponent? _playerHpText;
   TextComponent? _enemyHpText;
+  TextComponent? _choicesTitleText;
 
   /// Composant de texte pour afficher le résultat du tour en cours.
   ///
@@ -295,8 +320,8 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
     _panel!.add(_enemyHpText!);
 
     // Titre des choix
-    final choicesTitle = TextComponent(
-      text: 'Que doit faire le joueur ?',
+    _choicesTitleText = TextComponent(
+      text: buildBattleDecisionPromptForOverlay(_session.decisionRequest),
       anchor: Anchor.topLeft,
       position: Vector2(22, 150),
       textRenderer: TextPaint(
@@ -308,7 +333,7 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
       ),
       priority: 3,
     );
-    _panel!.add(choicesTitle);
+    _panel!.add(_choicesTitleText!);
 
     // Choix disponibles
     _renderChoices();
@@ -348,6 +373,8 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
     // Mettre à jour les PV
     _playerHpText?.text = _getPlayerHpText();
     _enemyHpText?.text = _getEnemyHpText();
+    _choicesTitleText?.text =
+        buildBattleDecisionPromptForOverlay(newSession.decisionRequest);
 
     // Afficher le résultat du tour si disponible
     _updateTurnResult();
@@ -358,7 +385,7 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
     } else {
       // Combat toujours en cours — maintenir la sélection cohérente
       // Clamper l'index si le nombre de choix a changé
-      final choices = newSession.getAvailableChoices();
+      final choices = newSession.decisionRequest.allowedChoices;
       if (_selectedIndex >= choices.length) {
         _selectedIndex = choices.length - 1;
       }
@@ -442,7 +469,8 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
   /// 4. Met à jour [_selectionHighlight] pour le rendu visuel
   void _renderChoices() {
     // Lit [_session] qui est toujours à jour grâce à updateState()
-    final choices = _session.getAvailableChoices();
+    final request = _session.decisionRequest;
+    final choices = request.allowedChoices;
     var y = 190.0;
 
     // Nettoyer les anciens composants de choix
@@ -457,7 +485,7 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
 
     for (var i = 0; i < choices.length; i++) {
       final choice = choices[i];
-      final text = _getChoiceText(choice);
+      final text = _getChoiceText(request, choice);
       final choiceComponent = _ChoiceComponent(
         choice: choice,
         text: text,
@@ -487,28 +515,30 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
   /// Retourne le texte à afficher pour un choix.
   ///
   /// Lit [_session] qui est toujours à jour grâce à updateState().
-  String _getChoiceText(PlayerBattleChoice choice) {
+  String _getChoiceText(
+    BattleDecisionRequest request,
+    PlayerBattleChoice choice,
+  ) {
     if (choice is PlayerBattleChoiceFight) {
       // Lit les moves depuis _session.state.player.moves — toujours à jour
       final move = _session.state.player.moves[choice.moveIndex];
       return '⚔ ${move.name} (Puissance: ${move.power})';
     } else if (choice is PlayerBattleChoiceSwitch) {
       final reserve = _session.state.playerReserve[choice.reserveIndex];
-      final isForcedReplacement = _session.state.player.isFainted;
+      final isForcedReplacement = request is BattleForcedReplacementRequest;
       final actionLabel = isForcedReplacement ? 'Remplacer par' : 'Switch vers';
       return '↔ $actionLabel ${reserve.speciesId} '
           '(${reserve.currentHp}/${reserve.maxHp} PV)';
     } else if (choice is PlayerBattleChoiceContinue) {
-      // BE8 ajoute des tours forcés honnêtes (recharge / libération d'un move
-      // déjà chargé). Afficher `???` ici mentirait sur la surface joueur :
-      // il ne choisit pas un nouveau move, il valide simplement la poursuite
-      // de ce tour contraint par le moteur battle.
-      final volatileState = _session.state.player.volatileState;
-      if (volatileState.pendingCharge != null) {
-        return 'Continuer (libérer la charge)';
-      }
-      if (volatileState.mustRecharge) {
-        return 'Continuer (recharge)';
+      // Phase C cesse ici d'inférer le sens du tour forcé depuis l'état
+      // volatile brut : la vraie source de vérité est désormais la requête.
+      if (request case BattleContinueRequest(:final reason)) {
+        if (reason == BattleContinueReason.pendingChargeRelease) {
+          return 'Continuer (libérer la charge)';
+        }
+        if (reason == BattleContinueReason.mustRecharge) {
+          return 'Continuer (recharge)';
+        }
       }
       return 'Continuer';
     } else if (choice is PlayerBattleChoiceCapture) {

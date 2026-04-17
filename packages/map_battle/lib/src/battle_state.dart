@@ -13,8 +13,12 @@ enum BattlePhase {
   /// En attente du choix du joueur.
   ///
   /// C'est la phase normale entre les tours.
-  /// Le runtime doit appeler [BattleSession.getAvailableChoices()] pour
-  /// afficher les options au joueur.
+  /// Le runtime doit appeler [BattleSession.decisionRequest] pour connaître
+  /// explicitement le type de décision attendu.
+  ///
+  /// Compatibilité locale conservée :
+  /// - [BattleSession.getAvailableChoices()] reste disponible ;
+  /// - mais il devient un simple adaptateur dérivé de la vraie requête.
   playerChoice,
 
   /// Résolution en cours.

@@ -41,8 +41,9 @@
 /// // 2. Create session
 /// final session = createBattleSession(setup);
 ///
-/// // 3. Get available choices
-/// final choices = session.getAvailableChoices();
+/// // 3. Read the explicit decision request
+/// final request = session.decisionRequest;
+/// final choices = request.allowedChoices; // compatibility helper
 ///
 /// // 4. Apply choice
 /// final newSession = session.applyChoice(PlayerBattleChoiceFight(0));
@@ -58,6 +59,7 @@
 library map_battle;
 
 export 'src/battle_setup.dart';
+export 'src/battle_decision.dart';
 export 'src/battle_session.dart';
 export 'src/battle_state.dart';
 export 'src/battle_field.dart';

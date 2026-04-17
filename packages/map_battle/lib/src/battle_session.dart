@@ -1,4 +1,5 @@
 import 'battle_setup.dart';
+import 'battle_decision.dart';
 import 'battle_state.dart';
 import 'battle_action.dart';
 import 'battle_field.dart';
@@ -129,10 +130,11 @@ BattleCombatant _buildBattleCombatantFromData(
 ///
 /// Cycle de vie :
 /// 1. [createBattleSession] crée la session
-/// 2. [getAvailableChoices] récupère les choix disponibles
-/// 3. [applyChoice] applique un choix et retourne une nouvelle session
-/// 4. Répéter 2-3 jusqu'à ce que [state.isFinished] soit true
-/// 5. Récupérer [state.outcome] pour le résultat final
+/// 2. [decisionRequest] expose la vraie requête de décision joueur
+/// 3. [getAvailableChoices] reste disponible comme adaptateur de compatibilité
+/// 4. [applyChoice] applique un choix et retourne une nouvelle session
+/// 5. Répéter 2-4 jusqu'à ce que [state.isFinished] soit true
+/// 6. Récupérer [state.outcome] pour le résultat final
 class BattleSession {
   /// Crée une session de combat.
   ///
@@ -159,91 +161,112 @@ class BattleSession {
   /// - mais il reste explicitement injectable et immutable.
   final BattleRng rng;
 
+  /// Requête de décision joueur explicitement exposée par le moteur.
+  ///
+  /// Phase C choisit ici le plus petit vrai progrès de fondation :
+  /// - le moteur ne publie plus seulement une "liste plate de choix" ;
+  /// - il expose désormais le type de demande courante :
+  ///   tour libre, remplacement forcé, continuation forcée ou attente ;
+  /// - runtime/UI peuvent donc consommer un contrat fort sans deviner le
+  ///   sens du tour depuis les choix présents, le KO actif ou les volatiles.
+  BattleDecisionRequest get decisionRequest => _buildDecisionRequest();
+
   /// Récupère les choix disponibles pour le joueur.
   ///
-  /// À appeler quand [state.phase] == [BattlePhase.playerChoice].
+  /// Compatibilité locale Phase C :
+  /// - cette méthode reste volontairement publique pour limiter le blast
+  ///   radius immédiat ;
+  /// - mais elle n'est plus la source principale de vérité ;
+  /// - elle dérive désormais directement de [decisionRequest].
   ///
-  /// Retourne une liste de choix :
-  /// - [PlayerBattleChoiceFight] pour chaque attaque disponible (0-3)
-  /// - [PlayerBattleChoiceSwitch] pour chaque réserve encore vivante quand un
-  ///   switch volontaire ou un remplacement forcé est honnêtement possible
-  /// - [PlayerBattleChoiceCapture] pour capturer, uniquement en sauvage quand
-  ///   le runtime a explicitement autorisé cette issue
-  /// - [PlayerBattleChoiceRun] pour fuir, uniquement en combat sauvage
-  ///
-  /// Exemple d'usage :
-  /// ```dart
-  /// final choices = session.getAvailableChoices();
-  /// // wild: [Fight(0), Fight(1), Fight(2), Fight(3), Capture(), Run()]
-  /// // trainer: [Fight(0), Fight(1), Fight(2), Fight(3)]
-  /// ```
   List<PlayerBattleChoice> getAvailableChoices() {
-    final replacementChoices = _availableForcedReplacementChoices();
-    if (replacementChoices.isNotEmpty) {
-      return replacementChoices;
-    }
-
-    final forcedChoice = _forcedPlayerChoice();
-    if (forcedChoice != null) {
-      return <PlayerBattleChoice>[forcedChoice];
-    }
-
-    // BE4 arrête ici un autre mensonge discret :
-    // - un move à 0 PP ne doit plus apparaître comme un choix valide ;
-    // - on conserve néanmoins l'index réel du slot pour que l'UI/runtime
-    //   continue à référencer le vrai move dans la liste du combattant ;
-    // - on n'ouvre toujours pas Struggle, donc un Pokémon peut n'avoir aucun
-    //   choix `Fight` restant.
-    final fightChoices = <PlayerBattleChoice>[];
-    for (var i = 0; i < state.player.moves.length; i++) {
-      if (state.player.moves[i].hasUsablePp) {
-        fightChoices.add(PlayerBattleChoiceFight(i));
-      }
-    }
-
-    // BE10 ajoute un seam de switch volontaire minimal sans ouvrir de système
-    // de party complet :
-    // - le joueur peut dépenser son tour pour envoyer un membre de réserve ;
-    // - seuls les membres de réserve encore vivants sont proposés ;
-    // - les membres K.O. restent éventuellement stockés pour le write-back,
-    //   mais ne doivent jamais apparaître comme choix jouable.
-    fightChoices.addAll(_availableVoluntarySwitchChoices());
-
-    // Invariants métier lots 11 + 13 :
-    // - la fuite est autorisée en sauvage pour garder une vraie boucle jouable ;
-    // - la capture n'est autorisée qu'en sauvage ;
-    // - la capture n'est proposée que si le runtime a validé qu'elle pourra
-    //   être écrite honnêtement (party avec place, pas de trainer battle) ;
-    // - trainer battle : ni Run ni Capture ne doivent apparaître.
-    if (!setup.isTrainerBattle && setup.allowCapture) {
-      fightChoices.add(const PlayerBattleChoiceCapture());
-    }
-
-    // On filtre donc Run ici pour que l'UI/runtime n'ait pas de bouton
-    // de fuite à afficher en trainer battle.
-    if (!setup.isTrainerBattle) {
-      fightChoices.add(const PlayerBattleChoiceRun());
-    }
-
-    return fightChoices;
+    return decisionRequest.allowedChoices;
   }
 
-  PlayerBattleChoice? _forcedPlayerChoice() {
+  BattleDecisionRequest _buildDecisionRequest() {
+    if (state.phase == BattlePhase.finished) {
+      return const BattleWaitRequest(
+        actor: BattleDecisionActor.player,
+        reason: BattleWaitReason.battleFinished,
+      );
+    }
+
+    if (state.phase != BattlePhase.playerChoice) {
+      return const BattleWaitRequest(
+        actor: BattleDecisionActor.player,
+        reason: BattleWaitReason.resolvingTurn,
+      );
+    }
+
+    final replacementChoices = _availableForcedReplacementChoices();
+    if (replacementChoices.isNotEmpty) {
+      return BattleForcedReplacementRequest(
+        actor: BattleDecisionActor.player,
+        switchChoices: replacementChoices,
+        reason: BattleForcedReplacementReason.activeFainted,
+        faintedSpeciesId: state.player.speciesId,
+      );
+    }
+
+    // Cas explicitement borné mais important :
+    // - si l'actif est K.O. sans remplaçant valide et que la session n'est pas
+    //   déjà terminée, on refuse d'inventer un faux tour libre ;
+    // - le runtime voit alors un état "wait" bruyant au lieu d'un menu trompeur.
     if (state.player.isFainted) {
-      return null;
+      return const BattleWaitRequest(
+        actor: BattleDecisionActor.player,
+        reason: BattleWaitReason.activeFaintedWithoutReplacement,
+      );
     }
 
     final volatileState = state.player.volatileState;
-    if (!volatileState.mustRecharge && volatileState.pendingCharge == null) {
-      return null;
+    if (volatileState.pendingCharge != null) {
+      return const BattleContinueRequest(
+        actor: BattleDecisionActor.player,
+        reason: BattleContinueReason.pendingChargeRelease,
+      );
+    }
+    if (volatileState.mustRecharge) {
+      return const BattleContinueRequest(
+        actor: BattleDecisionActor.player,
+        reason: BattleContinueReason.mustRecharge,
+      );
     }
 
-    // BE8 choisit ici la plus petite surface publique honnête :
-    // - le joueur ne re-sélectionne pas un move librement pendant une
-    //   recharge ou la libération d'un move déjà chargé ;
-    // - on expose donc un simple "continuer" au lieu de maquiller ce tour
-    //   forcé avec un faux bouton de move.
-    return const PlayerBattleChoiceContinue();
+    // On construit maintenant explicitement le vrai tour libre :
+    // - moves encore jouables ;
+    // - switches volontaires valides ;
+    // - issues sauvages éventuellement autorisées.
+    final moveChoices = <PlayerBattleChoiceFight>[];
+    for (var i = 0; i < state.player.moves.length; i++) {
+      if (state.player.moves[i].hasUsablePp) {
+        moveChoices.add(PlayerBattleChoiceFight(i));
+      }
+    }
+    final switchChoices = _availableVoluntarySwitchChoices();
+    final captureChoice = !setup.isTrainerBattle && setup.allowCapture
+        ? const PlayerBattleChoiceCapture()
+        : null;
+    final runChoice =
+        !setup.isTrainerBattle ? const PlayerBattleChoiceRun() : null;
+
+    if (moveChoices.isEmpty &&
+        switchChoices.isEmpty &&
+        captureChoice == null &&
+        runChoice == null) {
+      return const BattleWaitRequest(
+        actor: BattleDecisionActor.player,
+        reason: BattleWaitReason.noLegalChoice,
+      );
+    }
+
+    return BattleTurnChoiceRequest(
+      actor: BattleDecisionActor.player,
+      moveChoices: moveChoices,
+      switchChoices: switchChoices,
+      captureChoice: captureChoice,
+      runChoice: runChoice,
+    );
   }
 
   List<PlayerBattleChoiceSwitch> _availableForcedReplacementChoices() {
@@ -344,28 +367,29 @@ class BattleSession {
   /// }
   /// ```
   BattleSession applyChoice(PlayerBattleChoice choice) {
-    final forcedReplacementChoices = _availableForcedReplacementChoices();
-    if (forcedReplacementChoices.isNotEmpty) {
-      if (choice is! PlayerBattleChoiceSwitch) {
-        throw StateError(
-          'Le joueur doit d’abord remplacer son Pokémon K.O. avec un choix de switch valide.',
-        );
-      }
-      return _applyForcedPlayerReplacement(choice);
-    }
-
-    final forcedPlayerAction = _resolveForcedAction(
-      combatantLabel: 'player',
-      combatant: state.player,
-    );
-    if (forcedPlayerAction != null && choice is! PlayerBattleChoiceContinue) {
+    final request = decisionRequest;
+    if (request is BattleWaitRequest) {
       throw StateError(
-        'Ce tour joueur est forcé; il faut l’acquitter avec PlayerBattleChoiceContinue.',
+        'Aucune décision joueur n’est attendue actuellement (${request.reason.name}).',
       );
     }
-    if (forcedPlayerAction == null && choice is PlayerBattleChoiceContinue) {
+    if (!request.allows(choice)) {
+      throw _illegalChoiceStateError(request, choice);
+    }
+    if (request case BattleForcedReplacementRequest()) {
+      return _applyForcedPlayerReplacement(choice as PlayerBattleChoiceSwitch);
+    }
+
+    final forcedPlayerAction = switch (request) {
+      BattleContinueRequest() => _resolveForcedAction(
+          combatantLabel: 'player',
+          combatant: state.player,
+        ),
+      _ => null,
+    };
+    if (request is BattleContinueRequest && forcedPlayerAction == null) {
       throw StateError(
-        'PlayerBattleChoiceContinue est réservé aux tours forcés BE8.',
+        'La request ${request.kind.name} ne correspond plus à un vrai tour forcé côté moteur.',
       );
     }
 
@@ -375,21 +399,21 @@ class BattleSession {
     //
     // On rejette explicitement ce cas illégal au niveau du moteur, ce qui
     // évite de dépendre d'un filtre UI seulement.
-    if (forcedPlayerAction == null &&
+    if (request is! BattleContinueRequest &&
         choice is PlayerBattleChoiceRun &&
         setup.isTrainerBattle) {
       throw StateError(
         'PlayerBattleChoiceRun est interdit pendant un trainer battle.',
       );
     }
-    if (forcedPlayerAction == null &&
+    if (request is! BattleContinueRequest &&
         choice is PlayerBattleChoiceCapture &&
         setup.isTrainerBattle) {
       throw StateError(
         'PlayerBattleChoiceCapture est interdit pendant un trainer battle.',
       );
     }
-    if (forcedPlayerAction == null &&
+    if (request is! BattleContinueRequest &&
         choice is PlayerBattleChoiceCapture &&
         !setup.allowCapture) {
       throw StateError(
@@ -411,7 +435,7 @@ class BattleSession {
     // - aucun système lot 14+ (récompenses, sac, switch, XP, etc.) n'est ouvert ;
     // - le runtime lot 10 peut réutiliser directement cet outcome pour son
     //   write-back et son retour overworld.
-    if (forcedPlayerAction == null && choice is PlayerBattleChoiceRun) {
+    if (request is! BattleContinueRequest && choice is PlayerBattleChoiceRun) {
       final finalState = BattleState(
         phase: BattlePhase.finished,
         player: state.player,
@@ -449,7 +473,8 @@ class BattleSession {
     //
     // On garde l'ennemi inchangé dans le finalState : il représente le Pokémon
     // effectivement capturé, avec ses moves/niveau/ability réellement engagés.
-    if (forcedPlayerAction == null && choice is PlayerBattleChoiceCapture) {
+    if (request is! BattleContinueRequest &&
+        choice is PlayerBattleChoiceCapture) {
       final finalState = BattleState(
         phase: BattlePhase.finished,
         player: state.player,
@@ -721,16 +746,8 @@ class BattleSession {
           moveIndex: choice.moveIndex,
         );
       }
-      // Fallback: première attaque si index invalide
-      final fallbackMove = state.player.moves.first;
-      if (!fallbackMove.hasUsablePp) {
-        throw StateError(
-          'Aucun fallback honnête possible : le move par défaut n’a plus de PP.',
-        );
-      }
-      return BattleActionFight(
-        fallbackMove,
-        moveIndex: 0,
+      throw StateError(
+        'Le choix Fight(${choice.moveIndex}) vise un slot move invalide.',
       );
     } else if (choice is PlayerBattleChoiceSwitch) {
       if (choice.reserveIndex < 0 ||
@@ -754,16 +771,57 @@ class BattleSession {
         'PlayerBattleChoiceContinue ne doit jamais atteindre _choiceToAction sans action forcée résolue en amont.',
       );
     }
-    // Fallback: première attaque
-    final fallbackMove = state.player.moves.first;
-    if (!fallbackMove.hasUsablePp) {
-      throw StateError(
-        'Aucun fallback honnête possible : le move par défaut n’a plus de PP.',
-      );
+    throw StateError(
+      'Type de choix joueur non supporté par _choiceToAction: ${choice.runtimeType}.',
+    );
+  }
+
+  String _describePlayerChoice(PlayerBattleChoice choice) {
+    return switch (choice) {
+      PlayerBattleChoiceFight(:final moveIndex) => 'Fight($moveIndex)',
+      PlayerBattleChoiceSwitch(:final reserveIndex) => 'Switch($reserveIndex)',
+      PlayerBattleChoiceRun() => 'Run()',
+      PlayerBattleChoiceCapture() => 'Capture()',
+      PlayerBattleChoiceContinue() => 'Continue()',
+    };
+  }
+
+  StateError _illegalChoiceStateError(
+    BattleDecisionRequest request,
+    PlayerBattleChoice choice,
+  ) {
+    // On garde ici quelques diagnostics métier précis pour ne pas perdre en
+    // lisibilité par rapport à l'ancien monde "liste plate" :
+    // - un move à 0 PP doit rester identifiable comme tel ;
+    // - un switch invalide ou vers une réserve K.O. mérite aussi un message
+    //   ciblé ;
+    // - tout le reste peut retomber sur le message générique request/kind.
+    if (choice case PlayerBattleChoiceFight(:final moveIndex)) {
+      if (moveIndex >= 0 && moveIndex < state.player.moves.length) {
+        final move = state.player.moves[moveIndex];
+        if (!move.hasUsablePp) {
+          return StateError(
+            'Le move "${move.name}" n’a plus de PP et ne peut pas être utilisé.',
+          );
+        }
+      }
     }
-    return BattleActionFight(
-      fallbackMove,
-      moveIndex: 0,
+
+    if (choice case PlayerBattleChoiceSwitch(:final reserveIndex)) {
+      if (reserveIndex < 0 || reserveIndex >= state.playerReserve.length) {
+        return StateError(
+          'Le switch demandé vise un index de réserve invalide ($reserveIndex).',
+        );
+      }
+      if (state.playerReserve[reserveIndex].isFainted) {
+        return StateError(
+          'Le switch demandé vise un Pokémon de réserve déjà K.O.',
+        );
+      }
+    }
+
+    return StateError(
+      'Le choix ${_describePlayerChoice(choice)} est illégal pour la request courante ${request.kind.name}.',
     );
   }
 

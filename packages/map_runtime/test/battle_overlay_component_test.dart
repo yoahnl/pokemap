@@ -49,6 +49,7 @@ BattleCombatantData _combatant({
   int? currentHp,
   BattleStatsSnapshot? stats,
   BattleMajorStatusState? majorStatus,
+  BattleVolatileState volatileState = const BattleVolatileState(),
   required List<BattleMoveData> moves,
 }) {
   return BattleCombatantData(
@@ -59,6 +60,7 @@ BattleCombatantData _combatant({
     currentHp: currentHp,
     stats: stats ?? _stats(),
     majorStatus: majorStatus,
+    volatileState: volatileState,
     moves: moves,
   );
 }
@@ -83,6 +85,91 @@ BattleSession _session({
 }
 
 void main() {
+  group('BattleOverlayComponent Phase C decision prompts', () {
+    test('uses the request type instead of a flat choice list heuristic', () {
+      final freeTurnSession = _session(
+        player: _combatant(
+          speciesId: 'lead_player',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+        playerReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'bench_player',
+            lineupIndex: 1,
+            moves: <BattleMoveData>[_waitingMove()],
+          ),
+        ],
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+
+      expect(
+        buildBattleDecisionPromptForOverlay(freeTurnSession.decisionRequest),
+        equals('Que doit faire le joueur ?'),
+      );
+
+      final forcedReplacementSession = _session(
+        player: _combatant(
+          speciesId: 'fainted_player',
+          lineupIndex: 0,
+          currentHp: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+        playerReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'bench_player',
+            lineupIndex: 1,
+            moves: <BattleMoveData>[_waitingMove()],
+          ),
+        ],
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+
+      expect(
+        buildBattleDecisionPromptForOverlay(
+          forcedReplacementSession.decisionRequest,
+        ),
+        equals('Le joueur doit remplacer son Pokémon K.O.'),
+      );
+
+      final continueSession = _session(
+        player: _combatant(
+          speciesId: 'locked_player',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            const BattleMoveData(
+              id: 'hyper_beam',
+              name: 'Hyper Beam',
+              power: 150,
+              requiresRecharge: true,
+            ),
+          ],
+          volatileState: const BattleVolatileState(
+            mustRecharge: true,
+          ),
+        ),
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+
+      expect(
+        buildBattleDecisionPromptForOverlay(continueSession.decisionRequest),
+        equals('Le joueur doit continuer un tour forcé'),
+      );
+    });
+  });
+
   group('BattleOverlayComponent BE10A chronology', () {
     test('renders a voluntary switch before the later enemy attack', () {
       final session = _session(
