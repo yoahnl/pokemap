@@ -45,5 +45,82 @@ void main() {
         equals(PokemonMoveEngineSupportLevel.structuredPartial),
       );
     });
+
+    test(
+        'adds only simple early-game moves that are already honestly supported by the bridge and battle engine',
+        () {
+      expect(
+        movesById['scratch']!.engineSupportLevel,
+        equals(PokemonMoveEngineSupportLevel.structuredSupported),
+      );
+      expect(
+        movesById['tail_whip']!.engineSupportLevel,
+        equals(PokemonMoveEngineSupportLevel.structuredSupported),
+      );
+      expect(
+        movesById['ember']!.engineSupportLevel,
+        equals(PokemonMoveEngineSupportLevel.structuredSupported),
+      );
+      expect(
+        movesById['water_gun']!.engineSupportLevel,
+        equals(PokemonMoveEngineSupportLevel.structuredSupported),
+      );
+      expect(
+        movesById['quick_attack']!.engineSupportLevel,
+        equals(PokemonMoveEngineSupportLevel.structuredSupported),
+      );
+
+      // On verrouille quelques détails métier pour éviter un faux lift :
+      // - `quick_attack` doit rester un vrai move de priorité ;
+      // - `tail_whip` doit rester une vraie baisse déterministe de Défense ;
+      // - `ember` ne doit pas perdre sa petite chance de brûlure.
+      expect(movesById['quick_attack']!.priority, equals(1));
+      expect(
+        movesById['tail_whip']!.effects.single.map(
+              fixedDamage: (_) => null,
+              multiHit: (_) => null,
+              applyStatus: (_) => null,
+              applyVolatileStatus: (_) => null,
+              modifyStats: (effect) => effect.stageChanges.single.stages,
+              heal: (_) => null,
+              drain: (_) => null,
+              recoil: (_) => null,
+              requireRecharge: (_) => null,
+              chargeThenStrike: (_) => null,
+              breakProtect: (_) => null,
+              setWeather: (_) => null,
+              setTerrain: (_) => null,
+              setSideCondition: (_) => null,
+              setSlotCondition: (_) => null,
+              setPseudoWeather: (_) => null,
+              forceSwitch: (_) => null,
+              selfSwitch: (_) => null,
+            ),
+        equals(-1),
+      );
+      expect(
+        movesById['ember']!.effects.single.map(
+              fixedDamage: (_) => null,
+              multiHit: (_) => null,
+              applyStatus: (effect) => effect.chance,
+              applyVolatileStatus: (_) => null,
+              modifyStats: (_) => null,
+              heal: (_) => null,
+              drain: (_) => null,
+              recoil: (_) => null,
+              requireRecharge: (_) => null,
+              chargeThenStrike: (_) => null,
+              breakProtect: (_) => null,
+              setWeather: (_) => null,
+              setTerrain: (_) => null,
+              setSideCondition: (_) => null,
+              setSlotCondition: (_) => null,
+              setPseudoWeather: (_) => null,
+              forceSwitch: (_) => null,
+              selfSwitch: (_) => null,
+            ),
+        equals(10),
+      );
+    });
   });
 }

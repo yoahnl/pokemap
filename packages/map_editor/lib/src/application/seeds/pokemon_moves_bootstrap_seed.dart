@@ -134,6 +134,32 @@ final List<PokemonMove> _structuredSupportedSeedMoves = <PokemonMove>[
       'unsupported_effect_kind:multi_hit',
     ],
   ),
+  // Phase B ajoute ici un seul lift bootstrap borné :
+  // - des moves très fréquents en début de jeu ;
+  // - déjà absorbés honnêtement par le bridge et le moteur ;
+  // - choisis pour améliorer la battleability d'un scaffold frais sans ouvrir
+  //   de nouvelle mécanique ni reclassifier artificiellement un seam limite.
+  _showdownSeedMove(
+    id: 'ember',
+    showdownMoveId: 'ember',
+    name: 'Ember',
+    generation: 1,
+    type: 'fire',
+    category: PokemonMoveCategory.special,
+    basePower: 40,
+    accuracy: const PokemonMoveAccuracy.percent(value: 100),
+    pp: 25,
+    flags: <PokemonMoveFlag>[
+      PokemonMoveFlag.metronome,
+      PokemonMoveFlag.mirror,
+      PokemonMoveFlag.protect,
+    ],
+    effects: const <PokemonMoveEffect>[
+      PokemonMoveEffect.applyStatus(chance: 10, statusId: 'brn'),
+    ],
+    shortDescription: '10% chance to burn the target.',
+    description: 'Has a 10% chance to burn the target.',
+  ),
   _showdownSeedMove(
     id: 'feint',
     showdownMoveId: 'feint',
@@ -246,6 +272,27 @@ final List<PokemonMove> _structuredSupportedSeedMoves = <PokemonMove>[
     description: 'Lowers the target\'s Defense by 1 stage.',
   ),
   _showdownSeedMove(
+    id: 'quick_attack',
+    showdownMoveId: 'quickattack',
+    name: 'Quick Attack',
+    generation: 1,
+    type: 'normal',
+    category: PokemonMoveCategory.physical,
+    basePower: 40,
+    accuracy: const PokemonMoveAccuracy.percent(value: 100),
+    pp: 30,
+    priority: 1,
+    flags: <PokemonMoveFlag>[
+      PokemonMoveFlag.contact,
+      PokemonMoveFlag.metronome,
+      PokemonMoveFlag.mirror,
+      PokemonMoveFlag.protect,
+    ],
+    shortDescription: 'Usually goes first.',
+    description:
+        'Nearly always goes first. No additional effect in the local subset.',
+  ),
+  _showdownSeedMove(
     id: 'rain_dance',
     showdownMoveId: 'raindance',
     name: 'Rain Dance',
@@ -288,6 +335,25 @@ final List<PokemonMove> _structuredSupportedSeedMoves = <PokemonMove>[
     ],
     shortDescription: 'High critical hit ratio. Hits adjacent foes.',
     description: 'Has a higher chance for a critical hit.',
+  ),
+  _showdownSeedMove(
+    id: 'scratch',
+    showdownMoveId: 'scratch',
+    name: 'Scratch',
+    generation: 1,
+    type: 'normal',
+    category: PokemonMoveCategory.physical,
+    basePower: 40,
+    accuracy: const PokemonMoveAccuracy.percent(value: 100),
+    pp: 35,
+    flags: <PokemonMoveFlag>[
+      PokemonMoveFlag.contact,
+      PokemonMoveFlag.metronome,
+      PokemonMoveFlag.mirror,
+      PokemonMoveFlag.protect,
+    ],
+    shortDescription: 'No additional effect.',
+    description: 'No additional effect.',
   ),
   _showdownSeedMove(
     id: 'swords_dance',
@@ -355,6 +421,35 @@ final List<PokemonMove> _structuredSupportedSeedMoves = <PokemonMove>[
     ],
     shortDescription: 'No additional effect.',
     description: 'No additional effect.',
+  ),
+  _showdownSeedMove(
+    id: 'tail_whip',
+    showdownMoveId: 'tailwhip',
+    name: 'Tail Whip',
+    generation: 1,
+    type: 'normal',
+    category: PokemonMoveCategory.status,
+    target: PokemonMoveTarget.allAdjacentFoes,
+    accuracy: const PokemonMoveAccuracy.percent(value: 100),
+    pp: 30,
+    flags: <PokemonMoveFlag>[
+      PokemonMoveFlag.metronome,
+      PokemonMoveFlag.mirror,
+      PokemonMoveFlag.protect,
+      PokemonMoveFlag.reflectable,
+    ],
+    effects: const <PokemonMoveEffect>[
+      PokemonMoveEffect.modifyStats(
+        stageChanges: <PokemonMoveStatStageChange>[
+          PokemonMoveStatStageChange(
+            stat: PokemonMoveStatId.defense,
+            stages: -1,
+          ),
+        ],
+      ),
+    ],
+    shortDescription: 'Lowers the foe(s) Defense by 1.',
+    description: 'Lowers the target\'s Defense by 1 stage.',
   ),
   _showdownSeedMove(
     id: 'thunder_wave',
@@ -443,6 +538,24 @@ final List<PokemonMove> _structuredSupportedSeedMoves = <PokemonMove>[
     pp: 25,
     flags: <PokemonMoveFlag>[
       PokemonMoveFlag.contact,
+      PokemonMoveFlag.metronome,
+      PokemonMoveFlag.mirror,
+      PokemonMoveFlag.protect,
+    ],
+    shortDescription: 'No additional effect.',
+    description: 'No additional effect.',
+  ),
+  _showdownSeedMove(
+    id: 'water_gun',
+    showdownMoveId: 'watergun',
+    name: 'Water Gun',
+    generation: 1,
+    type: 'water',
+    category: PokemonMoveCategory.special,
+    basePower: 40,
+    accuracy: const PokemonMoveAccuracy.percent(value: 100),
+    pp: 25,
+    flags: <PokemonMoveFlag>[
       PokemonMoveFlag.metronome,
       PokemonMoveFlag.mirror,
       PokemonMoveFlag.protect,

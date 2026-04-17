@@ -8,6 +8,143 @@ import 'runtime_move_catalog_loader.dart';
 import 'runtime_pokemon_learnset_loader.dart';
 import 'runtime_pokemon_species_loader.dart';
 
+/// Politique partagée de sélection des moves dérivés d'un learnset.
+///
+/// Cette extraction reste volontairement petite :
+/// - elle ne crée pas un nouveau service ;
+/// - elle ne change aucune règle métier ;
+/// - elle évite simplement qu'un outil d'audit recopie silencieusement la
+///   même logique et dérive ensuite du vrai runtime.
+///
+/// Règle conservée telle quelle :
+/// - startingMoves
+/// - relearnMoves
+/// - levelUp <= niveau courant
+/// - unicité préservant l'ordre
+/// - 4 derniers moves maximum
+List<String> deriveBattleCandidateMoveIdsFromLearnset({
+  required RuntimePokemonLearnset learnset,
+  required int level,
+}) {
+  final ordered = <String>[
+    ...learnset.startingMoves,
+    ...learnset.relearnMoves,
+    ...learnset.levelUp
+        .where((entry) => entry.level <= level)
+        .map((entry) => entry.moveId),
+  ];
+
+  final unique = <String>[];
+  final seen = <String>{};
+  for (final rawId in ordered) {
+    final normalizedId = rawId.trim();
+    if (normalizedId.isEmpty || !seen.add(normalizedId)) {
+      continue;
+    }
+    unique.add(normalizedId);
+  }
+
+  if (unique.length <= 4) {
+    return List<String>.unmodifiable(unique);
+  }
+  return List<String>.unmodifiable(unique.sublist(unique.length - 4));
+}
+
+/// Politique partagée de résolution runtime des moves candidats vers battle.
+///
+/// Cette helper donne à la fois :
+/// - le comportement réel de filtrage des moves non bridgeables ;
+/// - les hard failures sur moves absents du catalogue ;
+/// - les hard failures sur refus bridge non filtrables.
+///
+/// Elle permet donc à un outil d'audit de mesurer le seam runtime avec la
+/// même sévérité que la production, au lieu d'inventer une lecture plus
+/// permissive.
+List<BattleMoveData> resolveBattleMovesForSeed({
+  required List<String> moveIds,
+  required String combatantLabel,
+  required PokemonMove? Function(String moveId) lookupMove,
+  RuntimeBattleMoveBridge battleMoveBridge = const RuntimeBattleMoveBridge(),
+}) {
+  final candidateMoveIds = List<String>.unmodifiable(
+    _normalizeUniqueMoveIdsPreserveOrder(moveIds)
+        .take(4)
+        .toList(growable: false),
+  );
+
+  if (candidateMoveIds.isEmpty) {
+    throw RuntimeBattleSetupException(
+      '$combatantLabel n’a aucune attaque exploitable pour démarrer le combat.',
+    );
+  }
+
+  final moves = <BattleMoveData>[];
+  final rejectedMoves = <_RejectedBridgeMove>[];
+
+  for (final moveId in candidateMoveIds) {
+    final move = lookupMove(moveId);
+    if (move == null) {
+      throw RuntimeBattleSetupException(
+        'Le catalogue local des attaques ne contient pas "$moveId".',
+        debugDetails: 'combatant=$combatantLabel',
+      );
+    }
+
+    try {
+      moves.add(
+        battleMoveBridge.toBattleMoveData(
+          move: move,
+          combatantLabel: combatantLabel,
+        ),
+      );
+    } on RuntimeBattleSetupException catch (error) {
+      final rejectedMove = _RejectedBridgeMove.fromBridgeRejection(
+        move: move,
+        debugDetails: error.debugDetails,
+      );
+
+      if (!rejectedMove.isFilterableDuringSeedAssembly) {
+        rethrow;
+      }
+
+      rejectedMoves.add(rejectedMove);
+    }
+  }
+
+  if (moves.isNotEmpty) {
+    return List<BattleMoveData>.unmodifiable(moves);
+  }
+
+  throw RuntimeBattleSetupException(
+    'Le combat ne peut pas démarrer car "$combatantLabel" n’a aucun move bridgeable restant après filtrage.',
+    debugDetails: 'combatant=$combatantLabel, '
+        'candidateMoveIds=${_formatDebugStringList(candidateMoveIds)}, '
+        'rejectedMoveIds=${_formatDebugStringList(rejectedMoves.map((move) => move.moveId).toList(growable: false))}, '
+        'rejectedMoves=[${rejectedMoves.map((move) => move.toDebugDetails()).join('; ')}], '
+        'filterResult=no_bridgeable_moves_remaining_after_filtering',
+  );
+}
+
+List<String> _normalizeUniqueMoveIdsPreserveOrder(List<String> rawIds) {
+  final out = <String>[];
+  final seen = <String>{};
+  for (final rawId in rawIds) {
+    final normalizedId = rawId.trim();
+    if (normalizedId.isEmpty || !seen.add(normalizedId)) {
+      continue;
+    }
+    out.add(normalizedId);
+  }
+  return List<String>.unmodifiable(out);
+}
+
+String _formatDebugStringList(List<String> values) {
+  if (values.isEmpty) {
+    return '[]';
+  }
+  return '[${values.join(', ')}]';
+}
+
 /// Builder runtime spécialisé des seeds de combattants injectés dans
 /// `BattleSetup`.
 ///
@@ -192,24 +329,10 @@ class RuntimeBattleCombatantSeedBuilder {
       fallbackSpeciesId: species.id,
     );
 
-    // On conserve strictement la policy M6 :
-    // - startingMoves
-    // - relearnMoves
-    // - levelUp <= niveau courant
-    // - unicité préservant l'ordre
-    // - 4 derniers moves maximum
-    final ordered = <String>[
-      ...learnset.startingMoves,
-      ...learnset.relearnMoves,
-      ...learnset.levelUp
-          .where((entry) => entry.level <= level)
-          .map((entry) => entry.moveId),
-    ];
-    final unique = _normalizeUniqueIdsPreserveOrder(ordered);
-    if (unique.length <= 4) {
-      return unique;
-    }
-    return unique.sublist(unique.length - 4);
+    return deriveBattleCandidateMoveIdsFromLearnset(
+      learnset: learnset,
+      level: level,
+    );
   }
 
   List<BattleMoveData> _resolveBattleMoves({
@@ -217,103 +340,15 @@ class RuntimeBattleCombatantSeedBuilder {
     required List<String> moveIds,
     required String combatantLabel,
   }) {
-    final candidateMoveIds = List<String>.unmodifiable(
-      _normalizeUniqueIdsPreserveOrder(moveIds).take(4).toList(growable: false),
+    // Le builder garde désormais sa vraie policy de résolution dans une helper
+    // partagée, afin que l'outillage Phase B puisse mesurer le même seam sans
+    // reconstruire une variante plus permissive.
+    return resolveBattleMovesForSeed(
+      moveIds: moveIds,
+      combatantLabel: combatantLabel,
+      lookupMove: movesCatalog.lookup,
+      battleMoveBridge: battleMoveBridge,
     );
-
-    if (candidateMoveIds.isEmpty) {
-      throw RuntimeBattleSetupException(
-        '$combatantLabel n’a aucune attaque exploitable pour démarrer le combat.',
-      );
-    }
-
-    final moves = <BattleMoveData>[];
-    final rejectedMoves = <_RejectedBridgeMove>[];
-
-    // Fix local volontaire :
-    // - le bridge continue à décider ce qui est réellement exécutable ;
-    // - le builder, lui, cesse d'annuler tout le handoff dès le premier move
-    //   non bridgeable ;
-    // - on filtre donc uniquement les refus de projection bridge -> battle,
-    //   sans jamais inventer de move de remplacement ;
-    // - la liste candidate reste strictement celle déjà décidée en amont :
-    //   ordre métier existant, unicité existante, limite actuelle à 4.
-    //
-    // Conséquence métier importante :
-    // - si `knownMoveIds` est explicite, on ne backfill jamais avec un learnset ;
-    // - si le move set vient d'un learnset, on ne va pas chercher un cinquième
-    //   move "plus loin" pour compenser un rejet ;
-    // - on accepte simplement le sous-ensemble bridgeable de la liste déjà
-    //   retenue, puis on échoue seulement s'il ne reste plus rien.
-    for (final moveId in candidateMoveIds) {
-      final move = movesCatalog.lookup(moveId);
-      if (move == null) {
-        throw RuntimeBattleSetupException(
-          'Le catalogue local des attaques ne contient pas "$moveId".',
-          debugDetails: 'combatant=$combatantLabel',
-        );
-      }
-
-      try {
-        // M8 sort enfin la policy de projection du builder brut :
-        // - le builder assemble des seeds de combattants ;
-        // - le bridge décide ce qui est réellement exécutable par `map_battle` ;
-        // - BE10A-bis garde cette frontière intacte et se contente ici de
-        //   filtrer localement les refus bridgeables au lieu d'élargir le
-        //   bridge de manière risquée.
-        moves.add(
-          battleMoveBridge.toBattleMoveData(
-            move: move,
-            combatantLabel: combatantLabel,
-          ),
-        );
-      } on RuntimeBattleSetupException catch (error) {
-        final rejectedMove = _RejectedBridgeMove.fromBridgeRejection(
-          move: move,
-          debugDetails: error.debugDetails,
-        );
-
-        // Le filtrage BE10A-bis doit rester borné :
-        // - on accepte de retirer les moves honnêtement non bridgeables du
-        //   sous-ensemble courant ;
-        // - on ne doit surtout pas masquer une donnée runtime/canonique
-        //   corrompue comme si c'était un simple manque de support moteur ;
-        // - les `bridgeLimit=invalid_*` et assimilés restent donc des hard
-        //   failures explicites, même si un autre move du combattant serait
-        //   par ailleurs exécutable.
-        if (!rejectedMove.isFilterableDuringSeedAssembly) {
-          rethrow;
-        }
-
-        rejectedMoves.add(rejectedMove);
-      }
-    }
-
-    if (moves.isNotEmpty) {
-      return List<BattleMoveData>.unmodifiable(moves);
-    }
-
-    throw RuntimeBattleSetupException(
-      'Le combat ne peut pas démarrer car "$combatantLabel" n’a aucun move bridgeable restant après filtrage.',
-      debugDetails: 'combatant=$combatantLabel, '
-          'candidateMoveIds=${_formatDebugList(candidateMoveIds)}, '
-          'rejectedMoveIds=${_formatDebugList(rejectedMoves.map((move) => move.moveId).toList(growable: false))}, '
-          'rejectedMoves=[${rejectedMoves.map((move) => move.toDebugDetails()).join('; ')}], '
-          'filterResult=no_bridgeable_moves_remaining_after_filtering',
-    );
-  }
-
-  List<String> _normalizeUniqueIdsPreserveOrder(List<String> rawIds) {
-    final out = <String>[];
-    final seen = <String>{};
-    for (final rawId in rawIds) {
-      final normalizedId = rawId.trim();
-      if (normalizedId.isEmpty || !seen.add(normalizedId)) {
-        continue;
-      }
-      out.add(normalizedId);
-    }
-    return List<String>.unmodifiable(out);
   }
 
   int _calculateMaxHp({
@@ -433,13 +468,6 @@ class RuntimeBattleCombatantSeedBuilder {
       return max;
     }
     return value;
-  }
-
-  String _formatDebugList(List<String> values) {
-    if (values.isEmpty) {
-      return '[]';
-    }
-    return '[${values.join(', ')}]';
   }
 }
 
