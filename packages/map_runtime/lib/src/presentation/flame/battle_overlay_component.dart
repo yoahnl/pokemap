@@ -47,6 +47,7 @@ List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
           turnResult.volatileEvents.isNotEmpty ||
           turnResult.fieldEvents.isNotEmpty ||
           turnResult.stealthRockEvents.isNotEmpty ||
+          turnResult.spikesEvents.isNotEmpty ||
           turnResult.switchEvents.isNotEmpty)) {
     throw StateError(
       'BattleTurnResult.timeline est requis pour afficher honnêtement la chronologie du tour dans l’overlay runtime.',
@@ -69,6 +70,8 @@ List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
         lines.add(_formatOverlayFieldEvent(event));
       case BattleTurnStealthRockEvent(:final event):
         lines.add(_formatOverlayStealthRockEvent(event));
+      case BattleTurnSpikesEvent(:final event):
+        lines.add(_formatOverlaySpikesEvent(event));
       case BattleTurnSwitchEvent(:final event):
         lines.add(_formatOverlaySwitchEvent(event));
     }
@@ -154,6 +157,20 @@ String _formatOverlayStealthRockEvent(BattleStealthRockEvent event) {
       'Stealth Rock est déjà posé du côté $actor',
     BattleStealthRockEventKind.damagedOnEntry =>
       '$actor subit ${event.damage} dégâts de Stealth Rock à l’entrée',
+  };
+}
+
+String _formatOverlaySpikesEvent(BattleSpikesEvent event) {
+  final actor = event.targetSlot == null
+      ? _overlayCombatantLabelForSide(event.side)
+      : _overlayCombatantLabelForSide(event.targetSlot!.side);
+  return switch (event.kind) {
+    BattleSpikesEventKind.setLayer =>
+      'Spikes monte à ${event.layers} couche(s) du côté $actor',
+    BattleSpikesEventKind.alreadyAtMaxLayers =>
+      'Spikes est déjà à ${event.layers} couche(s) du côté $actor',
+    BattleSpikesEventKind.damagedOnEntry =>
+      '$actor subit ${event.damage} dégâts de Spikes à l’entrée (${event.layers} couche(s))',
   };
 }
 

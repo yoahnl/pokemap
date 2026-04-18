@@ -526,6 +526,7 @@ final class BattleSideState {
     required this.activeSlot,
     this.reserve = const <BattleCombatant>[],
     this.hasStealthRock = false,
+    this.spikesLayers = 0,
   })  : assert(
           activeSlot.side == id,
           'BattleSideState.activeSlot must belong to the same side.',
@@ -533,6 +534,10 @@ final class BattleSideState {
         assert(
           activeSlot.slotIndex == 0,
           'Phase D remains singles-only and only supports active slot 0.',
+        ),
+        assert(
+          spikesLayers >= 0 && spikesLayers <= 3,
+          'H2 Spikes remains a strict 0..3 layered slice.',
         );
 
   BattleSideState.player({
@@ -579,6 +584,16 @@ final class BattleSideState {
   /// - juste la vérité minimale nécessaire à cette mécanique.
   final bool hasStealthRock;
 
+  /// H2 ouvre exactement un second état side-level vivant : `Spikes`.
+  ///
+  /// Garde-fous de portée :
+  /// - pas de conteneur générique de side conditions ;
+  /// - pas de map d'hazards ;
+  /// - pas de framework de couches arbitraires ;
+  /// - seulement un compteur borné 0..3, parce que c'est la vérité métier
+  ///   immédiatement consommée par ce lot et rien d'autre.
+  final int spikesLayers;
+
   /// Combattant actif de ce side.
   BattleCombatant get active => activeSlot.combatant;
 
@@ -591,6 +606,7 @@ final class BattleSideState {
       activeSlot: activeSlot.withCombatant(updatedActive),
       reserve: reserve,
       hasStealthRock: hasStealthRock,
+      spikesLayers: spikesLayers,
     );
   }
 
@@ -600,6 +616,7 @@ final class BattleSideState {
       activeSlot: activeSlot,
       reserve: updatedReserve,
       hasStealthRock: hasStealthRock,
+      spikesLayers: spikesLayers,
     );
   }
 
@@ -612,6 +629,7 @@ final class BattleSideState {
       activeSlot: activeSlot.withCombatant(active),
       reserve: reserve,
       hasStealthRock: hasStealthRock,
+      spikesLayers: spikesLayers,
     );
   }
 
@@ -621,6 +639,17 @@ final class BattleSideState {
       activeSlot: activeSlot,
       reserve: reserve,
       hasStealthRock: value,
+      spikesLayers: spikesLayers,
+    );
+  }
+
+  BattleSideState withSpikesLayers(int value) {
+    return BattleSideState(
+      id: id,
+      activeSlot: activeSlot,
+      reserve: reserve,
+      hasStealthRock: hasStealthRock,
+      spikesLayers: value,
     );
   }
 }

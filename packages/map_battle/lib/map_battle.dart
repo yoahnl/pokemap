@@ -64,6 +64,7 @@ export 'src/battle_session.dart';
 export 'src/battle_state.dart';
 export 'src/battle_topology.dart';
 export 'src/battle_field.dart';
+export 'src/battle_spikes.dart';
 export 'src/battle_stealth_rock.dart';
 export 'src/battle_status.dart';
 export 'src/battle_volatile.dart';

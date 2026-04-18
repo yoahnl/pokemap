@@ -158,6 +158,8 @@ final class BattleMove {
   ///   consommé par BE9.
   /// [setsStealthRock] - H1 ouvre exactement Stealth Rock, et rien de plus,
   ///   comme premier hazard side-level honnête.
+  /// [setsSpikes] - H2 ouvre exactement Spikes, et rien de plus, comme second
+  ///   slice hazard side-level honnête.
   /// [breaksProtect] - Permet au move de bypasser une protection active BE8.
   /// [requiresRecharge] - Demande un tour de recharge honnête au lanceur après
   ///   une exécution réussie.
@@ -200,6 +202,7 @@ final class BattleMove {
     this.weatherEffect,
     this.pseudoWeatherEffect,
     this.setsStealthRock = false,
+    this.setsSpikes = false,
     this.breaksProtect = false,
     this.requiresRecharge = false,
     this.chargeThenStrikeEffect,
@@ -375,6 +378,16 @@ final class BattleMove {
   ///   nouveau au lieu de profiter d'un conteneur mort.
   final bool setsStealthRock;
 
+  /// H2 ouvre uniquement `Spikes` comme second slice side-level vivant.
+  ///
+  /// Même garde-fou que pour H1 :
+  /// - ce booléen existe parce qu'il est immédiatement consommé ;
+  /// - il ne devient pas un système générique de hazards ;
+  /// - si d'autres mécaniques H arrivent, elles devront être justifiées à
+  ///   nouveau au lieu de s'installer silencieusement dans une abstraction
+  ///   morte.
+  final bool setsSpikes;
+
   /// true si ce move peut percer une protection active BE8.
   ///
   /// Le booléen reste plus honnête qu'une abstraction générique :
@@ -452,6 +465,7 @@ final class BattleMove {
       weatherEffect: weatherEffect,
       pseudoWeatherEffect: pseudoWeatherEffect,
       setsStealthRock: setsStealthRock,
+      setsSpikes: setsSpikes,
       breaksProtect: breaksProtect,
       requiresRecharge: requiresRecharge,
       chargeThenStrikeEffect: chargeThenStrikeEffect,

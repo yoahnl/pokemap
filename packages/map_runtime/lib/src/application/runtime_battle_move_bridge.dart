@@ -71,6 +71,7 @@ class RuntimeBattleMoveBridge {
     BattleWeatherId? weatherEffect;
     BattlePseudoWeatherId? pseudoWeatherEffect;
     var setsStealthRock = false;
+    var setsSpikes = false;
     var breaksProtect = false;
     var requiresRecharge = false;
     BattleChargeThenStrikeEffect? chargeThenStrikeEffect;
@@ -436,7 +437,7 @@ class RuntimeBattleMoveBridge {
           );
         },
         setSideCondition: (effect) {
-          if (setsStealthRock) {
+          if (setsStealthRock || setsSpikes) {
             _rejectMove(
               move: move,
               combatantLabel: combatantLabel,
@@ -474,14 +475,19 @@ class RuntimeBattleMoveBridge {
             );
           }
           final normalizedConditionId = effect.conditionId.trim().toLowerCase();
-          if (normalizedConditionId != 'stealthrock') {
-            _rejectMove(
-              move: move,
-              combatantLabel: combatantLabel,
-              bridgeLimit: 'unsupported_side_condition:$normalizedConditionId',
-            );
+          switch (normalizedConditionId) {
+            case 'stealthrock':
+              setsStealthRock = true;
+            case 'spikes':
+              setsSpikes = true;
+            default:
+              _rejectMove(
+                move: move,
+                combatantLabel: combatantLabel,
+                bridgeLimit:
+                    'unsupported_side_condition:$normalizedConditionId',
+              );
           }
-          setsStealthRock = true;
         },
         setSlotCondition: (_) => _rejectMove(
           move: move,
@@ -523,7 +529,7 @@ class RuntimeBattleMoveBridge {
         bridgeLimit: 'multiple_field_effect_kinds_not_supported',
       );
     }
-    if (setsStealthRock &&
+    if ((setsStealthRock || setsSpikes) &&
         (majorStatusEffect != null ||
             selfVolatileStatus != null ||
             weatherEffect != null ||
@@ -536,7 +542,7 @@ class RuntimeBattleMoveBridge {
       _rejectMove(
         move: move,
         combatantLabel: combatantLabel,
-        bridgeLimit: 'unsupported_combined_stealth_rock_move',
+        bridgeLimit: 'unsupported_combined_side_condition_move',
       );
     }
 
@@ -555,7 +561,8 @@ class RuntimeBattleMoveBridge {
         selfVolatileStatus == null &&
         weatherEffect == null &&
         pseudoWeatherEffect == null &&
-        !setsStealthRock) {
+        !setsStealthRock &&
+        !setsSpikes) {
       _rejectMove(
         move: move,
         combatantLabel: combatantLabel,
@@ -597,6 +604,7 @@ class RuntimeBattleMoveBridge {
       weatherEffect: weatherEffect,
       pseudoWeatherEffect: pseudoWeatherEffect,
       setsStealthRock: setsStealthRock,
+      setsSpikes: setsSpikes,
       breaksProtect: breaksProtect,
       requiresRecharge: requiresRecharge,
       chargeThenStrikeEffect: chargeThenStrikeEffect,
@@ -708,7 +716,8 @@ class RuntimeBattleMoveBridge {
       PokemonMoveTarget.allAdjacentFoes ||
       PokemonMoveTarget.randomNormal =>
         BattleMoveTarget.opponent,
-      PokemonMoveTarget.foeSide when _isPureStealthRockMoveCandidate(move) =>
+      PokemonMoveTarget.foeSide
+          when _isPureFoeSideConditionMoveCandidate(move) =>
         BattleMoveTarget.opponentSide,
       _ => _rejectMove(
           move: move,
@@ -876,7 +885,7 @@ class RuntimeBattleMoveBridge {
     return move.unsupportedReasons.every(allowedReasons.contains);
   }
 
-  bool _isPureStealthRockMoveCandidate(PokemonMove move) {
+  bool _isPureFoeSideConditionMoveCandidate(PokemonMove move) {
     if (move.usesStandardDamageFlow || move.effects.isEmpty) {
       return false;
     }
@@ -901,8 +910,7 @@ class RuntimeBattleMoveBridge {
         chargeThenStrike: (_) => false,
         setSideCondition: (effect) =>
             effect.targetScope == PokemonMoveEffectTargetScope.foeSide &&
-            effect.chance == null &&
-            effect.conditionId.trim().toLowerCase() == 'stealthrock',
+            effect.chance == null,
         setSlotCondition: (_) => false,
       ),
     );

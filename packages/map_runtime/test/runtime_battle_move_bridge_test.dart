@@ -992,7 +992,7 @@ void main() {
       expect(battleMove.setsStealthRock, isTrue);
     });
 
-    test('still rejects non-Stealth-Rock side conditions during H1', () {
+    test('supports Spikes as the second honest side-level hazard slice', () {
       const move = PokemonMove(
         id: 'spikes',
         name: 'Spikes',
@@ -1014,6 +1014,39 @@ void main() {
         engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
       );
 
+      final battleMove = bridge.toBattleMoveData(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(battleMove.target, equals(BattleMoveTarget.opponentSide));
+      expect(battleMove.setsSpikes, isTrue);
+    });
+
+    test(
+        'still rejects unsupported side conditions beyond Stealth Rock and Spikes',
+        () {
+      const move = PokemonMove(
+        id: 'toxic_spikes',
+        name: 'Toxic Spikes',
+        names: <String, String>{'en': 'Toxic Spikes'},
+        generation: 4,
+        source: 'test',
+        type: 'poison',
+        category: PokemonMoveCategory.status,
+        target: PokemonMoveTarget.foeSide,
+        basePower: 0,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+        pp: 20,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.setSideCondition(
+            targetScope: PokemonMoveEffectTargetScope.foeSide,
+            conditionId: 'toxicspikes',
+          ),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
       expect(
         () => bridge.toBattleMoveData(
           move: move,
@@ -1023,10 +1056,7 @@ void main() {
           isA<RuntimeBattleSetupException>().having(
             (error) => error.debugDetails,
             'debugDetails',
-            anyOf(
-              contains('bridgeLimit=unsupported_target:foeSide'),
-              contains('bridgeLimit=unsupported_side_condition:spikes'),
-            ),
+            contains('bridgeLimit=unsupported_side_condition:toxicspikes'),
           ),
         ),
       );

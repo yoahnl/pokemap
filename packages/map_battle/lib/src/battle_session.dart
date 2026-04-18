@@ -1,6 +1,7 @@
 import 'battle_setup.dart';
 import 'battle_decision.dart';
 import 'battle_condition_engine.dart';
+import 'battle_spikes.dart';
 import 'battle_stealth_rock.dart';
 import 'battle_state.dart';
 import 'battle_action.dart';
@@ -116,6 +117,7 @@ BattleCombatant _buildBattleCombatantFromData(
             weatherEffect: m.weatherEffect,
             pseudoWeatherEffect: m.pseudoWeatherEffect,
             setsStealthRock: m.setsStealthRock,
+            setsSpikes: m.setsSpikes,
             breaksProtect: m.breaksProtect,
             requiresRecharge: m.requiresRecharge,
             chargeThenStrikeEffect: m.chargeThenStrikeEffect,
@@ -673,6 +675,7 @@ class BattleSession {
           executions: const <BattleMoveExecution>[],
           stealthRockEvents:
               List<BattleStealthRockEvent>.unmodifiable(turn.stealthRockEvents),
+          spikesEvents: List<BattleSpikesEvent>.unmodifiable(turn.spikesEvents),
           switchEvents: List<BattleSwitchEvent>.unmodifiable(turn.switchEvents),
           timeline: List<BattleTurnEvent>.unmodifiable(turn.timeline),
         ),
@@ -1008,6 +1011,7 @@ class BattleSession {
       fieldEvents: List<BattleFieldEvent>.unmodifiable(turn.fieldEvents),
       stealthRockEvents:
           List<BattleStealthRockEvent>.unmodifiable(turn.stealthRockEvents),
+      spikesEvents: List<BattleSpikesEvent>.unmodifiable(turn.spikesEvents),
       switchEvents: List<BattleSwitchEvent>.unmodifiable(turn.switchEvents),
       timeline: List<BattleTurnEvent>.unmodifiable(turn.timeline),
     );
@@ -1137,6 +1141,19 @@ class BattleSession {
         turn.timeline
             .addAll(_turnEventsFromStealthRock(stealthRockResolution.events));
       }
+      final spikesResolution = _resolveSpikesMoveEffect(
+        move: move,
+        didResolveHit: resolution.execution?.didHit == true,
+        targetSide: turn.side(_opposingSideId(step.side)),
+      );
+      if (spikesResolution != null) {
+        turn.updateSide(
+          _opposingSideId(step.side),
+          spikesResolution.side,
+        );
+        turn.spikesEvents.addAll(spikesResolution.events);
+        turn.timeline.addAll(_turnEventsFromSpikes(spikesResolution.events));
+      }
       return;
     }
 
@@ -1149,13 +1166,15 @@ class BattleSession {
       turn.updateSide(step.side, resolution.side);
       turn.switchEvents.add(resolution.event);
       turn.timeline.add(BattleTurnSwitchEvent(resolution.event));
-      final stealthRockResolution = _resolveStealthRockEntry(
+      final entryHazards = _resolveEntryHazards(
         side: turn.side(step.side),
       );
-      turn.updateSide(step.side, stealthRockResolution.side);
-      turn.stealthRockEvents.addAll(stealthRockResolution.events);
+      turn.updateSide(step.side, entryHazards.side);
+      turn.stealthRockEvents.addAll(entryHazards.stealthRockEvents);
       turn.timeline
-          .addAll(_turnEventsFromStealthRock(stealthRockResolution.events));
+          .addAll(_turnEventsFromStealthRock(entryHazards.stealthRockEvents));
+      turn.spikesEvents.addAll(entryHazards.spikesEvents);
+      turn.timeline.addAll(_turnEventsFromSpikes(entryHazards.spikesEvents));
 
       final sideAfterEntry = turn.side(step.side);
       if (sideAfterEntry.active.isFainted &&
@@ -1249,13 +1268,15 @@ class BattleSession {
     turn.updateSide(step.side, resolution.side);
     turn.switchEvents.add(resolution.event);
     turn.timeline.add(BattleTurnSwitchEvent(resolution.event));
-    final stealthRockResolution = _resolveStealthRockEntry(
+    final entryHazards = _resolveEntryHazards(
       side: turn.side(step.side),
     );
-    turn.updateSide(step.side, stealthRockResolution.side);
-    turn.stealthRockEvents.addAll(stealthRockResolution.events);
+    turn.updateSide(step.side, entryHazards.side);
+    turn.stealthRockEvents.addAll(entryHazards.stealthRockEvents);
     turn.timeline
-        .addAll(_turnEventsFromStealthRock(stealthRockResolution.events));
+        .addAll(_turnEventsFromStealthRock(entryHazards.stealthRockEvents));
+    turn.spikesEvents.addAll(entryHazards.spikesEvents);
+    turn.timeline.addAll(_turnEventsFromSpikes(entryHazards.spikesEvents));
 
     if (turn.side(step.side).active.isFainted) {
       final nextReserveIndex =
@@ -1302,9 +1323,10 @@ class BattleSession {
     required BattleTurnQueue queue,
     required _QueuedTurnContext turn,
   }) {
-    // H1 Stealth Rock ouvre ici le plus petit vrai seam d'interruption :
+    // H1/H2 ouvrent ici le plus petit vrai seam d'interruption :
     // - uniquement pour un remplacement joueur devenu obligatoire en plein tour
-    //   parce qu'un switch-in vient de mourir sur Piège de Roc ;
+    //   parce qu'un switch-in vient de mourir sur un hazard d'entrée déjà
+    //   réellement supporté ;
     // - on ne transforme pas cela en scheduler général ni en bus d'interruption ;
     // - on capture juste assez d'état pour reprendre honnêtement les étapes déjà
     //   en file après le futur choix de remplacement.
@@ -2112,6 +2134,14 @@ class BattleSession {
     );
   }
 
+  List<BattleTurnEvent> _turnEventsFromSpikes(
+    Iterable<BattleSpikesEvent> events,
+  ) {
+    return List<BattleTurnEvent>.unmodifiable(
+      events.map(BattleTurnSpikesEvent.new),
+    );
+  }
+
   _ResolvedStealthRockMoveEffect? _resolveStealthRockMoveEffect({
     required BattleMove move,
     required bool didResolveHit,
@@ -2178,6 +2208,104 @@ class BattleSession {
       ],
     );
   }
+
+  _ResolvedSpikesMoveEffect? _resolveSpikesMoveEffect({
+    required BattleMove move,
+    required bool didResolveHit,
+    required BattleSideState targetSide,
+  }) {
+    if (!move.setsSpikes || !didResolveHit) {
+      return null;
+    }
+
+    if (targetSide.spikesLayers >= 3) {
+      return _ResolvedSpikesMoveEffect(
+        side: targetSide,
+        events: <BattleSpikesEvent>[
+          BattleSpikesEvent.alreadyAtMaxLayers(
+            side: targetSide.id,
+            layers: targetSide.spikesLayers,
+          ),
+        ],
+      );
+    }
+
+    final nextLayers = targetSide.spikesLayers + 1;
+    return _ResolvedSpikesMoveEffect(
+      side: targetSide.withSpikesLayers(nextLayers),
+      events: <BattleSpikesEvent>[
+        BattleSpikesEvent.setLayer(
+          side: targetSide.id,
+          layers: nextLayers,
+        ),
+      ],
+    );
+  }
+
+  _ResolvedSpikesEntry _resolveSpikesEntry({
+    required BattleSideState side,
+  }) {
+    if (side.spikesLayers <= 0) {
+      return _ResolvedSpikesEntry(
+        side: side,
+        events: const <BattleSpikesEvent>[],
+      );
+    }
+
+    final intendedDamage = resolveSpikesEntryDamage(
+      combatant: side.active,
+      layers: side.spikesLayers,
+    );
+    if (intendedDamage <= 0) {
+      return _ResolvedSpikesEntry(
+        side: side,
+        events: const <BattleSpikesEvent>[],
+      );
+    }
+
+    final actualDamage = intendedDamage > side.active.currentHp
+        ? side.active.currentHp
+        : intendedDamage;
+    final damagedActive = side.active.withDamage(actualDamage);
+
+    return _ResolvedSpikesEntry(
+      side: side.withActive(damagedActive),
+      events: <BattleSpikesEvent>[
+        BattleSpikesEvent.damagedOnEntry(
+          side: side.id,
+          targetSlot: side.activeSlotRef,
+          damage: actualDamage,
+          layers: side.spikesLayers,
+        ),
+      ],
+    );
+  }
+
+  _ResolvedEntryHazards _resolveEntryHazards({
+    required BattleSideState side,
+  }) {
+    // H2 choisit ici la plus petite composition honnête :
+    // - on ne crée pas de framework de hazards ;
+    // - on compose seulement les deux mécaniques réellement supportées ;
+    // - l'ordre est imposé et documenté : Stealth Rock puis Spikes ;
+    // - si Stealth Rock met K.O. l'entrant, Spikes ne s'applique pas.
+    final stealthRockResolution = _resolveStealthRockEntry(side: side);
+    final sideAfterStealthRock = stealthRockResolution.side;
+    if (sideAfterStealthRock.active.isFainted) {
+      return _ResolvedEntryHazards(
+        side: sideAfterStealthRock,
+        stealthRockEvents: stealthRockResolution.events,
+        spikesEvents: const <BattleSpikesEvent>[],
+      );
+    }
+
+    final spikesResolution = _resolveSpikesEntry(side: sideAfterStealthRock);
+    return _ResolvedEntryHazards(
+      side: spikesResolution.side,
+      stealthRockEvents: stealthRockResolution.events,
+      spikesEvents: spikesResolution.events,
+    );
+  }
 }
 
 class _OrderedBattleAction {
@@ -2223,6 +2351,7 @@ final class _PendingTurnContinuation {
     required this.volatileEvents,
     required this.fieldEvents,
     required this.stealthRockEvents,
+    required this.spikesEvents,
     required this.switchEvents,
     required this.timeline,
   });
@@ -2249,6 +2378,7 @@ final class _PendingTurnContinuation {
       fieldEvents: List<BattleFieldEvent>.unmodifiable(turn.fieldEvents),
       stealthRockEvents:
           List<BattleStealthRockEvent>.unmodifiable(turn.stealthRockEvents),
+      spikesEvents: List<BattleSpikesEvent>.unmodifiable(turn.spikesEvents),
       switchEvents: List<BattleSwitchEvent>.unmodifiable(turn.switchEvents),
       timeline: List<BattleTurnEvent>.unmodifiable(turn.timeline),
     );
@@ -2267,6 +2397,7 @@ final class _PendingTurnContinuation {
   final List<BattleVolatileEvent> volatileEvents;
   final List<BattleFieldEvent> fieldEvents;
   final List<BattleStealthRockEvent> stealthRockEvents;
+  final List<BattleSpikesEvent> spikesEvents;
   final List<BattleSwitchEvent> switchEvents;
   final List<BattleTurnEvent> timeline;
 }
@@ -2323,6 +2454,38 @@ class _ResolvedStealthRockEntry {
 
   final BattleSideState side;
   final List<BattleStealthRockEvent> events;
+}
+
+class _ResolvedSpikesMoveEffect {
+  const _ResolvedSpikesMoveEffect({
+    required this.side,
+    required this.events,
+  });
+
+  final BattleSideState side;
+  final List<BattleSpikesEvent> events;
+}
+
+class _ResolvedSpikesEntry {
+  const _ResolvedSpikesEntry({
+    required this.side,
+    required this.events,
+  });
+
+  final BattleSideState side;
+  final List<BattleSpikesEvent> events;
+}
+
+class _ResolvedEntryHazards {
+  const _ResolvedEntryHazards({
+    required this.side,
+    required this.stealthRockEvents,
+    required this.spikesEvents,
+  });
+
+  final BattleSideState side;
+  final List<BattleStealthRockEvent> stealthRockEvents;
+  final List<BattleSpikesEvent> spikesEvents;
 }
 
 class _ResolvedHitCheck {
@@ -2415,6 +2578,7 @@ final class _QueuedTurnContext {
       ..volatileEvents.addAll(pending.volatileEvents)
       ..fieldEvents.addAll(pending.fieldEvents)
       ..stealthRockEvents.addAll(pending.stealthRockEvents)
+      ..spikesEvents.addAll(pending.spikesEvents)
       ..switchEvents.addAll(pending.switchEvents)
       ..timeline.addAll(pending.timeline);
   }
@@ -2434,6 +2598,7 @@ final class _QueuedTurnContext {
   final List<BattleFieldEvent> fieldEvents = <BattleFieldEvent>[];
   final List<BattleStealthRockEvent> stealthRockEvents =
       <BattleStealthRockEvent>[];
+  final List<BattleSpikesEvent> spikesEvents = <BattleSpikesEvent>[];
   final List<BattleSwitchEvent> switchEvents = <BattleSwitchEvent>[];
   final List<BattleTurnEvent> timeline = <BattleTurnEvent>[];
 

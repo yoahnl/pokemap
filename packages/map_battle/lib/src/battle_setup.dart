@@ -249,6 +249,7 @@ final class BattleMoveData {
   ///   consommé par BE9.
   /// [setsStealthRock] - H1 ouvre exactement Stealth Rock, et rien de plus,
   ///   côté hazard side-level.
+  /// [setsSpikes] - H2 ouvre exactement Spikes, et rien de plus.
   /// [breaksProtect] - Le move peut bypasser une protection active BE8.
   /// [requiresRecharge] - Le move impose ensuite un tour de recharge au
   ///   lanceur.
@@ -290,6 +291,7 @@ final class BattleMoveData {
     this.weatherEffect,
     this.pseudoWeatherEffect,
     this.setsStealthRock = false,
+    this.setsSpikes = false,
     this.breaksProtect = false,
     this.requiresRecharge = false,
     this.chargeThenStrikeEffect,
@@ -448,6 +450,14 @@ final class BattleMoveData {
   /// - pas de liste d'effets ;
   /// - juste le plus petit bit de vérité requis pour ce lot précis.
   final bool setsStealthRock;
+
+  /// H2 ouvre uniquement Spikes comme second slice hazard side-level.
+  ///
+  /// On garde volontairement un booléen dédié :
+  /// - parce que ce lot ne supporte qu'une seule nouvelle mécanique ;
+  /// - parce qu'un conteneur générique de side conditions serait encore mort ;
+  /// - parce qu'il faut que la frontière de phase reste lisible dans le code.
+  final bool setsSpikes;
 
   /// true si ce move peut percer une protection active BE8.
   final bool breaksProtect;

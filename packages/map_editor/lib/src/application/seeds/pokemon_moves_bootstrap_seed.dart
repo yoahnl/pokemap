@@ -605,10 +605,10 @@ final List<PokemonMove> _structuredSupportedSeedMoves = <PokemonMove>[
 /// d'attaques triviales, tout en exposant honnêtement les limites structurelles
 /// actuelles via `catalog_only` et `unsupportedReasons`.
 final List<PokemonMove> _catalogOnlySeedMoves = <PokemonMove>[
-  // H1 supporte désormais Stealth Rock de bout en bout.
+  // H1/H2 supportent désormais Stealth Rock et Spikes de bout en bout.
   //
-  // On laisse volontairement l'entrée à sa place pour éviter un grand remaniement
-  // du seed, mais son niveau de support ne doit plus mentir.
+  // On laisse volontairement ces entrées à leur place pour éviter un grand
+  // remaniement du seed, mais leur niveau de support ne doit plus mentir.
   _showdownSeedMove(
     id: 'stealth_rock',
     showdownMoveId: 'stealthrock',
@@ -637,6 +637,35 @@ final List<PokemonMove> _catalogOnlySeedMoves = <PokemonMove>[
         'removed from the opposing side if any Pokemon uses Tidy Up, or if '
         'any opposing Pokemon uses Mortal Spin, Rapid Spin, or Defog '
         'successfully, or is hit by Defog.',
+    showdownHooksPresent: <String>[
+      'condition.onSideStart',
+      'condition.onSwitchIn',
+    ],
+  ),
+  _showdownSeedMove(
+    id: 'spikes',
+    showdownMoveId: 'spikes',
+    name: 'Spikes',
+    generation: 2,
+    type: 'ground',
+    category: PokemonMoveCategory.status,
+    target: PokemonMoveTarget.foeSide,
+    accuracy: const PokemonMoveAccuracy.alwaysHits(),
+    pp: 20,
+    flags: <PokemonMoveFlag>[
+      PokemonMoveFlag.metronome,
+      PokemonMoveFlag.reflectable,
+    ],
+    effects: const <PokemonMoveEffect>[
+      PokemonMoveEffect.setSideCondition(conditionId: 'spikes'),
+    ],
+    shortDescription: 'Adds a layer of grounded entry hazard on the foe side.',
+    description:
+        'Sets Spikes on the opposing side. Up to three layers can be active. '
+        'Grounded foes that switch in lose 1/8, 1/6, or 1/4 of their maximum '
+        'HP depending on whether one, two, or three layers are present. Does '
+        'nothing if three layers are already active. Additional immunities and '
+        'hazard removal remain outside the local subset.',
     showdownHooksPresent: <String>[
       'condition.onSideStart',
       'condition.onSwitchIn',

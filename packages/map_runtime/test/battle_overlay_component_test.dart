@@ -374,5 +374,94 @@ void main() {
         contains('Ennemi subit 10 dégâts de Stealth Rock à l’entrée'),
       );
     });
+
+    test(
+        'renders Spikes layer growth and switch-in damage from timeline events',
+        () {
+      const turn = BattleTurnResult(
+        playerAction: BattleActionFight(
+          BattleMove(
+            id: 'spikes',
+            name: 'Spikes',
+            power: 0,
+            target: BattleMoveTarget.opponentSide,
+            setsSpikes: true,
+          ),
+          moveIndex: 0,
+        ),
+        enemyAction: BattleActionNone(),
+        executions: <BattleMoveExecution>[
+          BattleMoveExecution(
+            attackerSlot: BattleSlotRef.active(BattleSideId.player),
+            move: BattleMove(
+              id: 'spikes',
+              name: 'Spikes',
+              power: 0,
+              target: BattleMoveTarget.opponentSide,
+              setsSpikes: true,
+            ),
+            targetKind: BattleMoveExecutionTargetKind.side,
+            targetSideRef: BattleSideId.enemy,
+            damage: 0,
+            didHit: true,
+          ),
+        ],
+        spikesEvents: <BattleSpikesEvent>[
+          BattleSpikesEvent.setLayer(
+            side: BattleSideId.enemy,
+            layers: 2,
+          ),
+          BattleSpikesEvent.damagedOnEntry(
+            side: BattleSideId.enemy,
+            targetSlot: BattleSlotRef.active(BattleSideId.enemy),
+            damage: 13,
+            layers: 2,
+          ),
+        ],
+        timeline: <BattleTurnEvent>[
+          BattleTurnExecutionEvent(
+            BattleMoveExecution(
+              attackerSlot: BattleSlotRef.active(BattleSideId.player),
+              move: BattleMove(
+                id: 'spikes',
+                name: 'Spikes',
+                power: 0,
+                target: BattleMoveTarget.opponentSide,
+                setsSpikes: true,
+              ),
+              targetKind: BattleMoveExecutionTargetKind.side,
+              targetSideRef: BattleSideId.enemy,
+              damage: 0,
+              didHit: true,
+            ),
+          ),
+          BattleTurnSpikesEvent(
+            BattleSpikesEvent.setLayer(
+              side: BattleSideId.enemy,
+              layers: 2,
+            ),
+          ),
+          BattleTurnSpikesEvent(
+            BattleSpikesEvent.damagedOnEntry(
+              side: BattleSideId.enemy,
+              targetSlot: BattleSlotRef.active(BattleSideId.enemy),
+              damage: 13,
+              layers: 2,
+            ),
+          ),
+        ],
+      );
+
+      final lines = buildBattleTurnLinesForOverlay(turn);
+
+      expect(
+        lines,
+        contains('Spikes monte à 2 couche(s) du côté Ennemi'),
+      );
+      expect(
+        lines,
+        contains('Ennemi subit 13 dégâts de Spikes à l’entrée (2 couche(s))'),
+      );
+    });
   });
 }

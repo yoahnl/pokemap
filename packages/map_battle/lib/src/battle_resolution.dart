@@ -1,6 +1,7 @@
 import 'battle_action.dart';
 import 'battle_field.dart';
 import 'battle_move.dart';
+import 'battle_spikes.dart';
 import 'battle_stealth_rock.dart';
 import 'battle_state.dart';
 import 'battle_status.dart';
@@ -22,6 +23,7 @@ class BattleTurnResult {
   /// [volatileEvents] - Les événements volatiles BE8 visibles du tour.
   /// [fieldEvents] - Les événements de champ BE9 visibles du tour.
   /// [stealthRockEvents] - Les événements Stealth Rock visibles du tour.
+  /// [spikesEvents] - Les événements Spikes visibles du tour.
   /// [timeline] - La chronologie ordonnée réellement produite par le moteur.
   const BattleTurnResult({
     required this.playerAction,
@@ -31,6 +33,7 @@ class BattleTurnResult {
     this.volatileEvents = const <BattleVolatileEvent>[],
     this.fieldEvents = const <BattleFieldEvent>[],
     this.stealthRockEvents = const <BattleStealthRockEvent>[],
+    this.spikesEvents = const <BattleSpikesEvent>[],
     this.switchEvents = const <BattleSwitchEvent>[],
     this.timeline = const <BattleTurnEvent>[],
   });
@@ -85,6 +88,14 @@ class BattleTurnResult {
   /// - ce lot garde donc un contrat dédié et vivant pour une seule mécanique.
   final List<BattleStealthRockEvent> stealthRockEvents;
 
+  /// Les événements Spikes visibles pendant ce tour.
+  ///
+  /// H2 suit exactement la même philosophie que H1 :
+  /// - `Spikes` n'est ni un statut, ni un volatile, ni un field event ;
+  /// - on refuse pourtant un journal universel de side conditions ;
+  /// - ce lot porte donc son propre contrat dédié, vivant et testable.
+  final List<BattleSpikesEvent> spikesEvents;
+
   /// Les événements de switch / remplacement visibles pendant ce tour.
   ///
   /// BE10 les sépare volontairement du reste :
@@ -109,7 +120,7 @@ class BattleTurnResult {
   ///
   /// Frontière volontaire :
   /// - ce n'est pas un event bus générique ;
-  /// - on transporte uniquement les cinq familles déjà réellement supportées ;
+  /// - on transporte uniquement les six familles déjà réellement supportées ;
   /// - l'ordre est celui construit pendant la résolution réelle du tour.
   final List<BattleTurnEvent> timeline;
 }
@@ -153,6 +164,12 @@ final class BattleTurnStealthRockEvent extends BattleTurnEvent {
   const BattleTurnStealthRockEvent(this.event);
 
   final BattleStealthRockEvent event;
+}
+
+final class BattleTurnSpikesEvent extends BattleTurnEvent {
+  const BattleTurnSpikesEvent(this.event);
+
+  final BattleSpikesEvent event;
 }
 
 final class BattleTurnSwitchEvent extends BattleTurnEvent {

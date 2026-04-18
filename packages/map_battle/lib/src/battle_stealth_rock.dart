@@ -7,7 +7,8 @@ import 'battle_type_chart.dart';
 /// Frontière H1 volontairement dure :
 /// - ce fichier n'ouvre pas un système générique de side conditions ;
 /// - il ne sert qu'à rendre Stealth Rock visible et testable ;
-/// - il refuse d'anticiper Spikes, Toxic Spikes, Boots, Defog, etc.
+/// - H2 ajoute Spikes dans son propre fichier parallèle ;
+/// - on refuse toujours d'anticiper Toxic Spikes, Boots, Defog, etc.
 enum BattleStealthRockEventKind {
   set,
   alreadyPresent,

@@ -44,9 +44,9 @@ final class BattleTurnQueue {
 
   /// Retire et retourne les étapes encore en attente.
   ///
-  /// H1 Stealth Rock en a besoin pour un cas très précis :
+  /// H1/H2 entry hazards en ont besoin pour un cas très précis :
   /// - un switch volontaire peut faire entrer un Pokémon qui meurt aussitôt sur
-  ///   Piège de Roc ;
+  ///   un hazard d'entrée déjà supporté ;
   /// - le moteur doit alors suspendre honnêtement le tour, demander un vrai
   ///   remplacement joueur, puis reprendre les étapes restantes ;
   /// - on expose donc un drainage explicite de la queue au lieu d'introduire

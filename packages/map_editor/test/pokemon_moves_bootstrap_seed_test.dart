@@ -47,7 +47,7 @@ void main() {
     });
 
     test(
-        'adds only simple early-game moves that are already honestly supported by the bridge and battle engine',
+        'adds only bootstrap entries that are already honestly supported by the bridge and battle engine',
         () {
       expect(
         movesById['scratch']!.engineSupportLevel,
@@ -67,6 +67,10 @@ void main() {
       );
       expect(
         movesById['quick_attack']!.engineSupportLevel,
+        equals(PokemonMoveEngineSupportLevel.structuredSupported),
+      );
+      expect(
+        movesById['spikes']!.engineSupportLevel,
         equals(PokemonMoveEngineSupportLevel.structuredSupported),
       );
 
@@ -120,6 +124,29 @@ void main() {
               selfSwitch: (_) => null,
             ),
         equals(10),
+      );
+      expect(
+        movesById['spikes']!.effects.single.map(
+              fixedDamage: (_) => null,
+              multiHit: (_) => null,
+              applyStatus: (_) => null,
+              applyVolatileStatus: (_) => null,
+              modifyStats: (_) => null,
+              heal: (_) => null,
+              drain: (_) => null,
+              recoil: (_) => null,
+              requireRecharge: (_) => null,
+              chargeThenStrike: (_) => null,
+              breakProtect: (_) => null,
+              setWeather: (_) => null,
+              setTerrain: (_) => null,
+              setSideCondition: (effect) => effect.conditionId,
+              setSlotCondition: (_) => null,
+              setPseudoWeather: (_) => null,
+              forceSwitch: (_) => null,
+              selfSwitch: (_) => null,
+            ),
+        equals('spikes'),
       );
     });
   });
