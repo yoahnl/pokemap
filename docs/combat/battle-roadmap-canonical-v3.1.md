@@ -1,6 +1,6 @@
 # Battle Roadmap Canonical v3.1
 
-Statut: roadmap battle canonique du dépôt après `R1 — Battleable Slice Hardening`
+Statut: roadmap battle canonique du dépôt après `R2 — Scheduler Consolidation`
 
 ## But
 
@@ -194,8 +194,17 @@ Elle vit sur une piste parallèle:
 - le maintien explicite du fail runtime `no bridgeable move` sans faux support
 - le réalignement seed/support truth sur `trick_room`, `stealth_rock`, `spikes`
 
-## Prochaine étape officielle
+## Statut officiel après R2
 
-La prochaine étape officielle après R1 est:
+`R2` est rempli par:
 
-- `R2 — Scheduler Consolidation`
+- la consolidation du seam scheduler déjà existant
+- la séparation explicite entre action rapportée, plan de queue, consommation de queue et reprise locale
+- la réduction de densité scheduler dans `battle_session.dart` sans widening de contrats ni ouverture de nouvelle mécanique
+
+## Suite officielle après R2
+
+Après `R2`, la suite officielle devient conditionnelle selon la prochaine mécanique visée:
+
+- `R4` d'abord si le besoin suivant est `switch / replacement / targeting`-centric
+- `R3` d'abord si le besoin suivant est `condition`-centric

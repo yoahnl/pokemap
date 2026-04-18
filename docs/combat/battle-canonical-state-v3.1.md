@@ -1,6 +1,6 @@
 # Battle Canonical State v3.1
 
-Statut: canon battle actuel du dépôt après `R1 — Battleable Slice Hardening`
+Statut: canon battle actuel du dépôt après `R2 — Scheduler Consolidation`
 
 Date de réalignement: 2026-04-18
 
@@ -53,9 +53,9 @@ Le dépôt supporte déjà un vrai slice `singles-only` avec:
 Le moteur n'est pas proche de Pokémon Showdown au sens structurel large.
 L'écart dominant n'est plus l'absence de slice battleable. L'écart dominant est:
 
-- la centralisation dans `packages/map_battle/lib/src/battle_session.dart`
+- la centralisation résiduelle autour de `packages/map_battle/lib/src/battle_session.dart`
 - l'étroitesse des contracts requests / targeting / replacement
-- la petitesse du scheduler local existant
+- la petitesse d'un scheduler local désormais consolidé mais encore borné
 - l'asymétrie entre conditions moteur et side conditions/hazards
 
 La vérité produit actuelle est la suivante:
@@ -64,9 +64,11 @@ La vérité produit actuelle est la suivante:
 - un **host lançable** existe réellement
 - un **bootstrap projet frais générique** existe réellement, mais il n'est pas équivalent à un projet battle-ready générique
 
-Décision canonique après R1:
+Décision canonique après R2:
 
-- la prochaine vraie étape officielle est `R2 — Scheduler Consolidation`
+- la suite officielle n'est plus unique
+- si la prochaine mécanique visée est `switch/replacement/targeting`-centric, la branche officielle est `R4`
+- si la prochaine mécanique visée est `condition`-centric, la branche officielle est `R3`
 
 ## État réel du moteur battle
 
@@ -114,11 +116,19 @@ Le moteur a déjà une vraie queue locale:
 
 `Run` et `Capture` restent volontairement hors queue.
 
+Après `R2`, ce seam est plus explicite:
+
+- action choisie et action rapportée au tour restent distinctes du plan de queue
+- la planification locale du tour est séparée de la consommation de queue
+- la suspension / reprise locale n'est plus noyée dans la session principale
+- l'assemblage de `BattleTurnResult` est explicitement séparé de l'exécution
+
 Ce seam existe déjà. Il ne faut plus le raconter comme “à créer”.
 
-Fichier pivot:
+Fichiers pivots:
 
 - `packages/map_battle/lib/src/battle_queue.dart`
+- `packages/map_battle/lib/src/battle_session_scheduler.dart`
 
 #### Condition engine local
 
@@ -175,7 +185,7 @@ Fichier pivot:
 - `singles-only`
 - un slot actif par side
 - targeting local minimal `self/opponent/field/opponentSide/unspecified`
-- scheduler local réel mais borné
+- scheduler local réel, consolidé, et encore borné
 - condition engine réel mais borné
 - side-level mechanics ouvertes sur deux slices dédiées, pas un framework générique
 - write-back runtime réel mais étroit
@@ -335,7 +345,7 @@ Il faut désormais distinguer explicitement:
 | request model | réel mais joueur-only / slot-0 | faible structurellement, honnête localement | seam vivant, non générique |
 | side / slot | réel, singles-borné avec réserves | honnête localement, loin du modèle Showdown large | vraie topologie locale |
 | targeting | minimal et étroit | faible | pas de moteur de ciblage riche |
-| queue / scheduling | réel mais petit | faible structurellement, honnête localement | ne pas le raconter comme absent |
+| queue / scheduling | réel, consolidé, mais encore borné | faible structurellement, honnête localement | seam clarifié, pas généralisé |
 | statuses | réels pour `par/brn/psn/tox` | faible | slice honnête |
 | volatiles | réels pour `protect/recharge/chargeThenStrike` | faible | slice honnête |
 | field / pseudoWeather | réel pour `rain/sandstorm/trickRoom` | faible structurellement, honnête localement | slice honnête |
@@ -351,8 +361,8 @@ Il faut désormais distinguer explicitement:
 
 Écarts structurants dominants:
 
-1. `battle_session.dart` reste trop central
-2. le scheduler local existe mais reste trop petit pour des flows plus riches
+1. `battle_session.dart` reste encore trop chargé hors scheduler pur
+2. le scheduler local est désormais plus clair, mais reste trop petit pour des flows plus riches
 3. les contracts requests / targeting / replacement restent trop serrés
 4. les conditions moteur et les side conditions restent asymétriques
 5. le runtime bridge est honnête, mais calibré pour un sous-ensemble strict
@@ -370,11 +380,11 @@ Il faut désormais distinguer explicitement:
 
 ### Architecture
 
-- centralisation excessive dans `battle_session.dart`
+- centralisation encore réelle dans `battle_session.dart`, même si le scheduler local n'y vit plus entièrement
 
 ### Scheduling
 
-- queue locale réelle mais pas encore assez expressive pour des flows plus riches
+- queue locale réelle et mieux séparée, mais pas encore assez expressive pour des flows plus riches
 
 ### Contracts
 

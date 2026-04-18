@@ -635,6 +635,25 @@ void main() {
         );
 
         expect(resumedTurn.state.player.speciesId, equals('follow_up_switch'));
+        expect(
+          resumedTurn.state.currentTurn!.playerAction,
+          isA<BattleActionSwitch>(),
+        );
+        expect(
+          (resumedTurn.state.currentTurn!.playerAction as BattleActionSwitch)
+              .reserveIndex,
+          equals(0),
+        );
+        expect(
+          resumedTurn.state.currentTurn!.enemyAction,
+          isA<BattleActionFight>(),
+        );
+        expect(
+          (resumedTurn.state.currentTurn!.enemyAction as BattleActionFight)
+              .move
+              .id,
+          equals('tackle'),
+        );
         expect(replacementSwitchIndex, greaterThan(damageIndex));
         expect(attackIndex, greaterThan(replacementSwitchIndex));
       },

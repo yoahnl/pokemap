@@ -17,6 +17,8 @@ import 'battle_volatile.dart';
 import 'battle_stats.dart';
 import 'battle_type_chart.dart';
 
+part 'battle_session_scheduler.dart';
+
 const double _criticalHitMultiplier = 1.5;
 const BattleConditionEngine _conditionEngine = BattleConditionEngine();
 
@@ -424,10 +426,14 @@ class BattleSession {
     if (request case BattleForcedReplacementRequest()) {
       if (pendingTurn != null) {
         return _resumePendingTurnWithReplacement(
-          choice as PlayerBattleChoiceSwitch,
+          session: this,
+          choice: choice as PlayerBattleChoiceSwitch,
         );
       }
-      return _applyForcedPlayerReplacement(choice as PlayerBattleChoiceSwitch);
+      return _applyForcedPlayerReplacement(
+        session: this,
+        choice: choice as PlayerBattleChoiceSwitch,
+      );
     }
 
     final forcedPlayerAction = switch (request) {
@@ -558,49 +564,55 @@ class BattleSession {
         ) ??
         _chooseEnemyAction();
 
-    // Phase 3: Résoudre le tour.
-    //
-    // BE3 corrige ici une ancienne approximation mensongère :
-    // - on ne résout plus "joueur puis ennemi quoi qu'il arrive" ;
-    // - on calcule un ordre minimal honnête une seule fois au début du tour ;
-    // - priorité d'abord, puis vitesse effective, puis tie-break déterministe ;
-    // - aucun recalcul rétroactif si un move modifie la vitesse pendant ce tour.
-    //
-    // Frontière volontairement stricte :
-    // - pas de queue générique façon Showdown ;
-    // - pas de PRNG ;
-    // - pas de système générique de switch / hooks / réserves façon Showdown ;
-    // - BE10 ajoute seulement le plus petit switch singles nécessaire :
-    //   actif + réserve, switch volontaire joueur, remplacement après K.O. ;
-    // - BE7 ajoute seulement un résiduel de fin de tour local pour les
-    //   statuts majeurs supportés ;
-    // - juste le plus petit mécanisme honnête pour les deux actions de ce
-    //   tour et leur clôture immédiate.
-    final resolvedTurn = _resolveTurn(playerAction, enemyAction);
-
-    // Phase F déplace ici la source de vérité du séquencement :
-    // - `_resolveTurn` ne renvoie plus seulement "les deux actions puis un
-    //   append post-traité" ;
-    // - il consomme désormais une vraie queue locale incluant fin de tour et
-    //   checks post-résolution ;
-    // - le résultat qu'il renvoie est donc déjà le tour complet canonique.
-    final turnResult = resolvedTurn.turnResult;
+    // R2 consolide ici le seam scheduler déjà vivant sans élargir le slice :
+    // - `applyChoice` reste responsable de la frontière request -> action ;
+    // - la planification locale du tour devient explicite via `_BattleTurnPlan` ;
+    // - la consommation de queue et la reprise vivent désormais dans le
+    //   scheduler dédié plutôt que d'être entassées dans cette méthode ;
+    // - la résolution métier des moves, hazards et conditions reste, elle,
+    //   dans `BattleSession`.
+    final turnPlan = _planInitialTurn(
+      session: this,
+      playerAction: playerAction,
+      enemyAction: enemyAction,
+      player: state.player,
+      enemy: state.enemy,
+      field: state.field,
+    );
+    final turn = _QueuedTurnContext(
+      playerSide: state.playerSide,
+      enemySide: state.enemySide,
+      field: state.field,
+      rng: rng,
+      originalPlayerAction: turnPlan.reportedPlayerAction,
+      originalEnemyAction: turnPlan.reportedEnemyAction,
+    );
+    _consumeTurnPlan(
+      session: this,
+      plan: turnPlan,
+      turn: turn,
+    );
+    final turnResult = _buildTurnResultFromContext(
+      turn: turn,
+      playerAction: turnPlan.reportedPlayerAction,
+      enemyAction: turnPlan.reportedEnemyAction,
+    );
 
     // Phase 5: Vérifier si le combat est fini
-    final outcome = resolvedTurn.pendingTurn != null
+    final outcome = turn.pendingTurn != null
         ? null
         : _determineOutcome(
-            resolvedTurn.playerSide,
-            resolvedTurn.enemySide,
-            resolvedTurn.field,
+            turn.playerSide,
+            turn.enemySide,
+            turn.field,
           );
 
     // Phase 6: Créer le nouvel état
     final newState = BattleState(
       phase: outcome != null ? BattlePhase.finished : BattlePhase.playerChoice,
-      playerSide: resolvedTurn.playerSide,
-      enemySide: resolvedTurn.enemySide,
-      field: resolvedTurn.field,
+      playerSide: turn.playerSide,
+      enemySide: turn.enemySide,
+      field: turn.field,
       // On conserve maintenant la trace du dernier tour même s'il termine le
       // combat :
       // - sinon un K.O. au résiduel, une paralysie bloquante ou une
@@ -613,148 +625,6 @@ class BattleSession {
 
     return BattleSession._(
       state: newState,
-      setup: setup,
-      rng: resolvedTurn.rng,
-      pendingTurn: resolvedTurn.pendingTurn,
-    );
-  }
-
-  BattleSession _applyForcedPlayerReplacement(PlayerBattleChoiceSwitch choice) {
-    // Review Phase F:
-    // - le remplacement joueur inter-tour était encore sur un chemin manuel ;
-    // - cela laissait une portion déjà supportée du flow hors scheduler
-    //   canonique ;
-    // - on le fait donc aussi passer par la queue, mais sans lui inventer
-    //   une fausse fin de tour ni des checks post-résolution.
-    final turn = _QueuedTurnContext(
-      playerSide: state.playerSide,
-      enemySide: state.enemySide,
-      field: state.field,
-      rng: rng,
-      originalPlayerAction:
-          BattleActionSwitch(reserveIndex: choice.reserveIndex),
-      originalEnemyAction: const BattleActionNone(),
-    );
-    final queue = BattleTurnQueue(
-      <BattleQueueStep>[
-        BattleQueueActionStep(
-          side: BattleSideId.player,
-          slot: const BattleSlotRef.active(BattleSideId.player),
-          action: BattleActionSwitch(reserveIndex: choice.reserveIndex),
-          wasForced: true,
-        ),
-      ],
-    );
-
-    while (!queue.isEmpty) {
-      _executeQueueStep(
-        queue: queue,
-        turn: turn,
-        step: queue.takeNext(),
-      );
-    }
-
-    final followUpReplacementIndex =
-        _firstUsableReserveIndex(turn.playerSide.reserve);
-    if (turn.playerSide.active.isFainted && followUpReplacementIndex != null) {
-      final replacementRequiredEvent = BattleSwitchEvent.replacementRequired(
-        side: BattleSideId.player,
-        fromSpeciesId: turn.playerSide.active.speciesId,
-      );
-      turn.switchEvents.add(replacementRequiredEvent);
-      turn.timeline.add(BattleTurnSwitchEvent(replacementRequiredEvent));
-    }
-
-    final outcome = _determineOutcome(
-      turn.playerSide,
-      turn.enemySide,
-      turn.field,
-    );
-
-    return BattleSession._(
-      state: BattleState(
-        phase:
-            outcome != null ? BattlePhase.finished : BattlePhase.playerChoice,
-        playerSide: turn.playerSide,
-        enemySide: turn.enemySide,
-        field: turn.field,
-        currentTurn: BattleTurnResult(
-          playerAction: BattleActionSwitch(reserveIndex: choice.reserveIndex),
-          enemyAction: const BattleActionNone(),
-          executions: const <BattleMoveExecution>[],
-          stealthRockEvents:
-              List<BattleStealthRockEvent>.unmodifiable(turn.stealthRockEvents),
-          spikesEvents: List<BattleSpikesEvent>.unmodifiable(turn.spikesEvents),
-          switchEvents: List<BattleSwitchEvent>.unmodifiable(turn.switchEvents),
-          timeline: List<BattleTurnEvent>.unmodifiable(turn.timeline),
-        ),
-        outcome: outcome,
-      ),
-      setup: setup,
-      rng: turn.rng,
-      pendingTurn: null,
-    );
-  }
-
-  BattleSession _resumePendingTurnWithReplacement(
-      PlayerBattleChoiceSwitch choice) {
-    final pending = pendingTurn;
-    if (pending == null) {
-      throw StateError(
-        'Aucune continuation de tour n’est disponible pour reprendre un remplacement joueur.',
-      );
-    }
-
-    final turn = _QueuedTurnContext.resume(pending);
-    final queue = BattleTurnQueue(
-      <BattleQueueStep>[
-        BattleQueueActionStep(
-          side: BattleSideId.player,
-          slot: const BattleSlotRef.active(BattleSideId.player),
-          action: BattleActionSwitch(reserveIndex: choice.reserveIndex),
-          wasForced: true,
-        ),
-        ...pending.remainingSteps,
-      ],
-    );
-
-    while (!queue.isEmpty) {
-      _executeQueueStep(
-        queue: queue,
-        turn: turn,
-        step: queue.takeNext(),
-      );
-      if (turn.pendingTurn != null) {
-        break;
-      }
-      _appendTurnTailWhenActionPhaseDrains(
-        queue: queue,
-        turn: turn,
-      );
-    }
-
-    final outcome = turn.pendingTurn != null
-        ? null
-        : _determineOutcome(
-            turn.playerSide,
-            turn.enemySide,
-            turn.field,
-          );
-
-    return BattleSession._(
-      state: BattleState(
-        phase:
-            outcome != null ? BattlePhase.finished : BattlePhase.playerChoice,
-        playerSide: turn.playerSide,
-        enemySide: turn.enemySide,
-        field: turn.field,
-        currentTurn: _buildTurnResultFromContext(
-          turn: turn,
-          playerAction: pending.playerAction,
-          enemyAction: pending.enemyAction,
-        ),
-        outcome: outcome,
-      ),
       setup: setup,
       rng: turn.rng,
       pendingTurn: turn.pendingTurn,
@@ -942,539 +812,6 @@ class BattleSession {
     throw StateError(
       'Le combattant adverse n’a plus aucun move utilisable et Struggle est hors scope.',
     );
-  }
-
-  /// Résout un tour de combat.
-  ///
-  /// [playerAction] - L'action du joueur.
-  /// [enemyAction] - L'action de l'ennemi.
-  ///
-  /// Retourne l'état résolu du tour :
-  /// - les exécutions à afficher ;
-  /// - l'état joueur après dégâts / boosts ;
-  /// - l'état ennemi après dégâts / boosts.
-  ///
-  /// Phase F remplace ici l'ancien pipeline figé par une vraie queue locale :
-  /// - l'ordre initial reste calculé honnêtement une seule fois au début ;
-  /// - mais les étapes du tour passent ensuite par une file consommée ;
-  /// - la fin de tour et les checks post-résolution sont insérés explicitement ;
-  /// - les remplacements déjà supportés ne sont plus appendés "à côté" du tour.
-  _ResolvedBattleTurn _resolveTurn(
-    BattleAction playerAction,
-    BattleAction enemyAction,
-  ) {
-    final turn = _QueuedTurnContext(
-      playerSide: state.playerSide,
-      enemySide: state.enemySide,
-      field: state.field,
-      rng: rng,
-      originalPlayerAction: playerAction,
-      originalEnemyAction: enemyAction,
-    );
-    final queue = BattleTurnQueue(
-      _buildInitialTurnQueue(
-        playerAction: playerAction,
-        enemyAction: enemyAction,
-        player: turn.playerSide.active,
-        enemy: turn.enemySide.active,
-        field: turn.field,
-      ),
-    );
-
-    while (!queue.isEmpty) {
-      final step = queue.takeNext();
-      _executeQueueStep(
-        queue: queue,
-        turn: turn,
-        step: step,
-      );
-      if (turn.pendingTurn != null) {
-        break;
-      }
-      _appendTurnTailWhenActionPhaseDrains(
-        queue: queue,
-        turn: turn,
-      );
-    }
-
-    return _ResolvedBattleTurn(
-      playerSide: turn.playerSide,
-      enemySide: turn.enemySide,
-      field: turn.field,
-      rng: turn.rng,
-      turnResult: _buildTurnResultFromContext(
-        turn: turn,
-        playerAction: playerAction,
-        enemyAction: enemyAction,
-      ),
-      pendingTurn: turn.pendingTurn,
-    );
-  }
-
-  BattleTurnResult _buildTurnResultFromContext({
-    required _QueuedTurnContext turn,
-    required BattleAction playerAction,
-    required BattleAction enemyAction,
-  }) {
-    return BattleTurnResult(
-      playerAction: playerAction,
-      enemyAction: enemyAction,
-      executions: List<BattleMoveExecution>.unmodifiable(turn.executions),
-      statusEvents: List<BattleStatusEvent>.unmodifiable(turn.statusEvents),
-      volatileEvents:
-          List<BattleVolatileEvent>.unmodifiable(turn.volatileEvents),
-      fieldEvents: List<BattleFieldEvent>.unmodifiable(turn.fieldEvents),
-      stealthRockEvents:
-          List<BattleStealthRockEvent>.unmodifiable(turn.stealthRockEvents),
-      spikesEvents: List<BattleSpikesEvent>.unmodifiable(turn.spikesEvents),
-      switchEvents: List<BattleSwitchEvent>.unmodifiable(turn.switchEvents),
-      timeline: List<BattleTurnEvent>.unmodifiable(turn.timeline),
-    );
-  }
-
-  Iterable<BattleQueueStep> _buildInitialTurnQueue({
-    required BattleAction playerAction,
-    required BattleAction enemyAction,
-    required BattleCombatant player,
-    required BattleCombatant enemy,
-    required BattleFieldState field,
-  }) sync* {
-    final orderedActions = _resolveTurnOrder(
-      playerAction: playerAction,
-      enemyAction: enemyAction,
-      player: player,
-      enemy: enemy,
-      field: field,
-    );
-
-    for (final orderedAction in orderedActions) {
-      if (!isBattleQueueManagedAction(orderedAction.action)) {
-        continue;
-      }
-
-      yield BattleQueueActionStep(
-        side: orderedAction.side,
-        slot: BattleSlotRef.active(orderedAction.side),
-        action: orderedAction.action,
-        wasForced: false,
-      );
-    }
-  }
-
-  void _appendTurnTailWhenActionPhaseDrains({
-    required BattleTurnQueue queue,
-    required _QueuedTurnContext turn,
-  }) {
-    if (turn.turnTailScheduled || !queue.isEmpty) {
-      return;
-    }
-
-    // La queue n'insère la fin de tour qu'une seule fois, exactement quand les
-    // actions ordonnées du tour ont été consommées. C'est ce point d'insertion
-    // explicite qui remplace l'ancien "et maintenant on fait la fin de tour"
-    // codé en dur en bas de `_resolveTurn`.
-    queue.pushBack(const BattleQueueEndOfTurnStep());
-    queue.pushBack(const BattleQueuePostTurnChecksStep());
-    turn.turnTailScheduled = true;
-  }
-
-  void _executeQueueStep({
-    required BattleTurnQueue queue,
-    required _QueuedTurnContext turn,
-    required BattleQueueStep step,
-  }) {
-    switch (step) {
-      case BattleQueueActionStep():
-        _executeActionQueueStep(
-          queue: queue,
-          turn: turn,
-          step: step,
-        );
-      case BattleQueueEndOfTurnStep():
-        _executeEndOfTurnQueueStep(turn);
-      case BattleQueuePostTurnChecksStep():
-        _executePostTurnChecksQueueStep(
-          queue: queue,
-          turn: turn,
-        );
-      case BattleQueueAutoSwitchStep():
-        _executeAutoSwitchQueueStep(
-          queue: queue,
-          turn: turn,
-          step: step,
-        );
-      case BattleQueueReplacementRequiredStep():
-        _executeReplacementRequiredQueueStep(turn: turn, step: step);
-    }
-  }
-
-  void _executeActionQueueStep({
-    required BattleTurnQueue queue,
-    required _QueuedTurnContext turn,
-    required BattleQueueActionStep step,
-  }) {
-    final actingSide = turn.side(step.side);
-    final opposingSide = turn.side(_opposingSideId(step.side));
-
-    if (step.action case BattleActionFight(:final move, :final moveIndex)) {
-      if (actingSide.active.isFainted || opposingSide.active.isFainted) {
-        return;
-      }
-
-      final resolution = _resolveMoveExecution(
-        attackerSlot: actingSide.activeSlotRef,
-        move: move,
-        moveIndex: moveIndex,
-        attacker: actingSide.active,
-        defender: opposingSide.active,
-        field: turn.field,
-        targetSlot: opposingSide.activeSlotRef,
-        rng: turn.rng,
-      );
-      turn.updateActive(step.side, resolution.attacker);
-      turn.updateActive(_opposingSideId(step.side), resolution.defender);
-      turn.field = resolution.field;
-      turn.rng = resolution.rng;
-      if (resolution.execution != null) {
-        turn.executions.add(resolution.execution!);
-      }
-      turn.statusEvents.addAll(resolution.statusEvents);
-      turn.volatileEvents.addAll(resolution.volatileEvents);
-      turn.fieldEvents.addAll(resolution.fieldEvents);
-      turn.timeline.addAll(resolution.timeline);
-      final stealthRockResolution = _resolveStealthRockMoveEffect(
-        move: move,
-        didResolveHit: resolution.execution?.didHit == true,
-        targetSide: turn.side(_opposingSideId(step.side)),
-      );
-      if (stealthRockResolution != null) {
-        turn.updateSide(
-          _opposingSideId(step.side),
-          stealthRockResolution.side,
-        );
-        turn.stealthRockEvents.addAll(stealthRockResolution.events);
-        turn.timeline
-            .addAll(_turnEventsFromStealthRock(stealthRockResolution.events));
-      }
-      final spikesResolution = _resolveSpikesMoveEffect(
-        move: move,
-        didResolveHit: resolution.execution?.didHit == true,
-        targetSide: turn.side(_opposingSideId(step.side)),
-      );
-      if (spikesResolution != null) {
-        turn.updateSide(
-          _opposingSideId(step.side),
-          spikesResolution.side,
-        );
-        turn.spikesEvents.addAll(spikesResolution.events);
-        turn.timeline.addAll(_turnEventsFromSpikes(spikesResolution.events));
-      }
-      return;
-    }
-
-    if (step.action case BattleActionSwitch(:final reserveIndex)) {
-      final resolution = _resolveSwitchAction(
-        side: actingSide,
-        reserveIndex: reserveIndex,
-        wasForced: step.wasForced,
-      );
-      turn.updateSide(step.side, resolution.side);
-      turn.switchEvents.add(resolution.event);
-      turn.timeline.add(BattleTurnSwitchEvent(resolution.event));
-      final entryHazards = _resolveEntryHazards(
-        side: turn.side(step.side),
-      );
-      turn.updateSide(step.side, entryHazards.side);
-      turn.stealthRockEvents.addAll(entryHazards.stealthRockEvents);
-      turn.timeline
-          .addAll(_turnEventsFromStealthRock(entryHazards.stealthRockEvents));
-      turn.spikesEvents.addAll(entryHazards.spikesEvents);
-      turn.timeline.addAll(_turnEventsFromSpikes(entryHazards.spikesEvents));
-
-      final sideAfterEntry = turn.side(step.side);
-      if (sideAfterEntry.active.isFainted &&
-          step.side == BattleSideId.player &&
-          _firstUsableReserveIndex(sideAfterEntry.reserve) != null &&
-          !queue.isEmpty) {
-        _suspendTurnForImmediatePlayerReplacement(
-          queue: queue,
-          turn: turn,
-        );
-      }
-      return;
-    }
-
-    if (step.action is BattleActionRecharge) {
-      if (actingSide.active.isFainted || opposingSide.active.isFainted) {
-        return;
-      }
-
-      final resolution = _conditionEngine.runForcedContinueTurn(
-        combatantSlot: actingSide.activeSlotRef,
-        combatant: actingSide.active,
-      );
-      turn.updateActive(step.side, resolution.combatant);
-      turn.volatileEvents.addAll(resolution.volatileEvents);
-      turn.timeline.addAll(_turnEventsFromVolatile(resolution.volatileEvents));
-    }
-  }
-
-  void _executeEndOfTurnQueueStep(_QueuedTurnContext turn) {
-    final residualResolution = _conditionEngine.runEndOfTurn(
-      player: turn.playerSide.active,
-      enemy: turn.enemySide.active,
-      field: turn.field,
-    );
-    turn.updateActive(BattleSideId.player, residualResolution.player);
-    turn.updateActive(BattleSideId.enemy, residualResolution.enemy);
-    turn.field = residualResolution.field;
-    turn.statusEvents.addAll(residualResolution.statusEvents);
-    turn.fieldEvents.addAll(residualResolution.fieldEvents);
-    turn.timeline
-        .addAll(_turnEventsFromStatus(residualResolution.statusEvents));
-    turn.timeline.addAll(_turnEventsFromField(residualResolution.fieldEvents));
-  }
-
-  void _executePostTurnChecksQueueStep({
-    required BattleTurnQueue queue,
-    required _QueuedTurnContext turn,
-  }) {
-    final enemyReplacementIndex =
-        _firstUsableReserveIndex(turn.enemySide.reserve);
-    if (turn.enemySide.active.isFainted && enemyReplacementIndex != null) {
-      queue.pushBack(
-        BattleQueueAutoSwitchStep(
-          side: BattleSideId.enemy,
-          slot: const BattleSlotRef.active(BattleSideId.enemy),
-          reserveIndex: enemyReplacementIndex,
-        ),
-      );
-    }
-
-    if (turn.playerSide.active.isFainted &&
-        !turn.enemySide.active.isFainted &&
-        _firstUsableReserveIndex(turn.playerSide.reserve) != null) {
-      // Tant qu'une chaîne d'auto-switch ennemi reste possible, on refuse
-      // d'annoncer le remplacement joueur trop tôt :
-      // - sinon la timeline raconterait "le joueur doit remplacer" avant que
-      //   l'ennemi ait fini d'entrer réellement ;
-      // - en H1 Stealth Rock, un premier remplaçant ennemi peut même mourir
-      //   en entrant, ce qui doit rester visible avant la request joueur.
-      queue.pushBack(
-        BattleQueueReplacementRequiredStep(
-          side: BattleSideId.player,
-          slot: const BattleSlotRef.active(BattleSideId.player),
-          faintedSpeciesId: turn.playerSide.active.speciesId,
-        ),
-      );
-    }
-  }
-
-  void _executeAutoSwitchQueueStep({
-    required BattleTurnQueue queue,
-    required _QueuedTurnContext turn,
-    required BattleQueueAutoSwitchStep step,
-  }) {
-    final resolution = _resolveSwitchAction(
-      side: turn.side(step.side),
-      reserveIndex: step.reserveIndex,
-      wasForced: true,
-    );
-    turn.updateSide(step.side, resolution.side);
-    turn.switchEvents.add(resolution.event);
-    turn.timeline.add(BattleTurnSwitchEvent(resolution.event));
-    final entryHazards = _resolveEntryHazards(
-      side: turn.side(step.side),
-    );
-    turn.updateSide(step.side, entryHazards.side);
-    turn.stealthRockEvents.addAll(entryHazards.stealthRockEvents);
-    turn.timeline
-        .addAll(_turnEventsFromStealthRock(entryHazards.stealthRockEvents));
-    turn.spikesEvents.addAll(entryHazards.spikesEvents);
-    turn.timeline.addAll(_turnEventsFromSpikes(entryHazards.spikesEvents));
-
-    if (turn.side(step.side).active.isFainted) {
-      final nextReserveIndex =
-          _firstUsableReserveIndex(turn.side(step.side).reserve);
-      if (nextReserveIndex != null) {
-        queue.pushBack(
-          BattleQueueAutoSwitchStep(
-            side: step.side,
-            slot: step.slot,
-            reserveIndex: nextReserveIndex,
-          ),
-        );
-        return;
-      }
-    }
-
-    if (step.side == BattleSideId.enemy &&
-        turn.playerSide.active.isFainted &&
-        !turn.enemySide.active.isFainted &&
-        _firstUsableReserveIndex(turn.playerSide.reserve) != null) {
-      queue.pushBack(
-        BattleQueueReplacementRequiredStep(
-          side: BattleSideId.player,
-          slot: const BattleSlotRef.active(BattleSideId.player),
-          faintedSpeciesId: turn.playerSide.active.speciesId,
-        ),
-      );
-    }
-  }
-
-  void _executeReplacementRequiredQueueStep({
-    required _QueuedTurnContext turn,
-    required BattleQueueReplacementRequiredStep step,
-  }) {
-    final replacementRequiredEvent = BattleSwitchEvent.replacementRequired(
-      side: step.side,
-      fromSpeciesId: step.faintedSpeciesId,
-    );
-    turn.switchEvents.add(replacementRequiredEvent);
-    turn.timeline.add(BattleTurnSwitchEvent(replacementRequiredEvent));
-  }
-
-  void _suspendTurnForImmediatePlayerReplacement({
-    required BattleTurnQueue queue,
-    required _QueuedTurnContext turn,
-  }) {
-    // H1/H2 ouvrent ici le plus petit vrai seam d'interruption :
-    // - uniquement pour un remplacement joueur devenu obligatoire en plein tour
-    //   parce qu'un switch-in vient de mourir sur un hazard d'entrée déjà
-    //   réellement supporté ;
-    // - on ne transforme pas cela en scheduler général ni en bus d'interruption ;
-    // - on capture juste assez d'état pour reprendre honnêtement les étapes déjà
-    //   en file après le futur choix de remplacement.
-    final replacementRequiredEvent = BattleSwitchEvent.replacementRequired(
-      side: BattleSideId.player,
-      fromSpeciesId: turn.playerSide.active.speciesId,
-    );
-    turn.switchEvents.add(replacementRequiredEvent);
-    turn.timeline.add(BattleTurnSwitchEvent(replacementRequiredEvent));
-    turn.pendingTurn = _PendingTurnContinuation.capture(
-      turn: turn,
-      remainingSteps: queue.drainRemainingSteps(),
-      playerAction: turn.originalPlayerAction ?? const BattleActionNone(),
-      enemyAction: turn.originalEnemyAction ?? const BattleActionNone(),
-    );
-  }
-
-  List<_OrderedBattleAction> _resolveTurnOrder({
-    required BattleAction playerAction,
-    required BattleAction enemyAction,
-    required BattleCombatant player,
-    required BattleCombatant enemy,
-    required BattleFieldState field,
-  }) {
-    // BE3 refuse d'introduire une fausse queue générique.
-    //
-    // Le moteur actuel n'a besoin que d'un ordre honnête pour deux actions :
-    // - si ce sont deux `Fight`, on compare priorité puis vitesse effective ;
-    // - sinon, on conserve l'ordre historique minimal, car les autres actions
-    //   restent déjà gérées explicitement ailleurs (`Run`/`Capture`) ou ne
-    //   sont pas de vrais chemins gameplay du moteur MVP.
-    if (!isBattleQueueManagedAction(playerAction) ||
-        !isBattleQueueManagedAction(enemyAction)) {
-      return <_OrderedBattleAction>[
-        _OrderedBattleAction(
-          side: BattleSideId.player,
-          action: playerAction,
-        ),
-        _OrderedBattleAction(
-          side: BattleSideId.enemy,
-          action: enemyAction,
-        ),
-      ];
-    }
-
-    final playerPriority = _priorityForResolvedAction(playerAction);
-    final enemyPriority = _priorityForResolvedAction(enemyAction);
-    if (playerPriority != enemyPriority) {
-      return playerPriority > enemyPriority
-          ? <_OrderedBattleAction>[
-              _OrderedBattleAction(
-                side: BattleSideId.player,
-                action: playerAction,
-              ),
-              _OrderedBattleAction(
-                side: BattleSideId.enemy,
-                action: enemyAction,
-              ),
-            ]
-          : <_OrderedBattleAction>[
-              _OrderedBattleAction(
-                side: BattleSideId.enemy,
-                action: enemyAction,
-              ),
-              _OrderedBattleAction(
-                side: BattleSideId.player,
-                action: playerAction,
-              ),
-            ];
-    }
-
-    final playerSpeed = _resolveEffectiveSpeed(player);
-    final enemySpeed = _resolveEffectiveSpeed(enemy);
-    final trickRoomActive = _conditionEngine.doesFieldInvertSpeedOrder(field);
-    if (playerSpeed != enemySpeed) {
-      final playerActsFirst =
-          trickRoomActive ? playerSpeed < enemySpeed : playerSpeed > enemySpeed;
-      return playerActsFirst
-          ? <_OrderedBattleAction>[
-              _OrderedBattleAction(
-                side: BattleSideId.player,
-                action: playerAction,
-              ),
-              _OrderedBattleAction(
-                side: BattleSideId.enemy,
-                action: enemyAction,
-              ),
-            ]
-          : <_OrderedBattleAction>[
-              _OrderedBattleAction(
-                side: BattleSideId.enemy,
-                action: enemyAction,
-              ),
-              _OrderedBattleAction(
-                side: BattleSideId.player,
-                action: playerAction,
-              ),
-            ];
-    }
-
-    // Tie-break volontairement déterministe et documenté :
-    // - pas de PRNG pour résoudre les égalités d'ordre ;
-    // - BE4 introduit bien un seam RNG pour le hit pipeline, mais pas pour ce
-    //   tie-break ;
-    // - pas de Fischer-Yates façon Showdown ;
-    // - Trick Room n'inverse pas ce tie-break : seul l'ordre de vitesse est
-    //   renversé ;
-    // - on choisit "joueur avant ennemi" parce que c'est stable, testable,
-    //   et cohérent avec l'historique du moteur jusqu'ici.
-    return <_OrderedBattleAction>[
-      _OrderedBattleAction(
-        side: BattleSideId.player,
-        action: playerAction,
-      ),
-      _OrderedBattleAction(
-        side: BattleSideId.enemy,
-        action: enemyAction,
-      ),
-    ];
-  }
-
-  int _priorityForResolvedAction(BattleAction action) {
-    return switch (action) {
-      // Politique BE10 explicitement simplifiée :
-      // - un switch volontaire singles résout avant un `Fight` standard ;
-      // - on n'ouvre pas pour autant une vraie taxonomie Showdown de priorités
-      //   de switch, selfSwitch, forceSwitch, etc. ;
-      // - cette constante locale suffit au sous-ensemble honnête du lot.
-      BattleActionSwitch() => 6,
-      BattleActionFight(:final move) => move.priority,
-      BattleActionRecharge() => 0,
-      _ => 0,
-    };
   }
 
   /// Résout une exécution unique de move.
@@ -2323,100 +1660,6 @@ class BattleSession {
   }
 }
 
-class _OrderedBattleAction {
-  const _OrderedBattleAction({
-    required this.side,
-    required this.action,
-  });
-
-  final BattleSideId side;
-  final BattleAction action;
-}
-
-class _ResolvedBattleTurn {
-  const _ResolvedBattleTurn({
-    required this.playerSide,
-    required this.enemySide,
-    required this.field,
-    required this.rng,
-    required this.turnResult,
-    required this.pendingTurn,
-  });
-
-  final BattleSideState playerSide;
-  final BattleSideState enemySide;
-  final BattleFieldState field;
-  final BattleRng rng;
-  final BattleTurnResult turnResult;
-  final _PendingTurnContinuation? pendingTurn;
-}
-
-final class _PendingTurnContinuation {
-  const _PendingTurnContinuation({
-    required this.playerSide,
-    required this.enemySide,
-    required this.field,
-    required this.rng,
-    required this.playerAction,
-    required this.enemyAction,
-    required this.turnTailScheduled,
-    required this.remainingSteps,
-    required this.executions,
-    required this.statusEvents,
-    required this.volatileEvents,
-    required this.fieldEvents,
-    required this.stealthRockEvents,
-    required this.spikesEvents,
-    required this.switchEvents,
-    required this.timeline,
-  });
-
-  factory _PendingTurnContinuation.capture({
-    required _QueuedTurnContext turn,
-    required List<BattleQueueStep> remainingSteps,
-    required BattleAction playerAction,
-    required BattleAction enemyAction,
-  }) {
-    return _PendingTurnContinuation(
-      playerSide: turn.playerSide,
-      enemySide: turn.enemySide,
-      field: turn.field,
-      rng: turn.rng,
-      playerAction: playerAction,
-      enemyAction: enemyAction,
-      turnTailScheduled: turn.turnTailScheduled,
-      remainingSteps: List<BattleQueueStep>.unmodifiable(remainingSteps),
-      executions: List<BattleMoveExecution>.unmodifiable(turn.executions),
-      statusEvents: List<BattleStatusEvent>.unmodifiable(turn.statusEvents),
-      volatileEvents:
-          List<BattleVolatileEvent>.unmodifiable(turn.volatileEvents),
-      fieldEvents: List<BattleFieldEvent>.unmodifiable(turn.fieldEvents),
-      stealthRockEvents:
-          List<BattleStealthRockEvent>.unmodifiable(turn.stealthRockEvents),
-      spikesEvents: List<BattleSpikesEvent>.unmodifiable(turn.spikesEvents),
-      switchEvents: List<BattleSwitchEvent>.unmodifiable(turn.switchEvents),
-      timeline: List<BattleTurnEvent>.unmodifiable(turn.timeline),
-    );
-  }
-
-  final BattleSideState playerSide;
-  final BattleSideState enemySide;
-  final BattleFieldState field;
-  final BattleRng rng;
-  final BattleAction playerAction;
-  final BattleAction enemyAction;
-  final bool turnTailScheduled;
-  final List<BattleQueueStep> remainingSteps;
-  final List<BattleMoveExecution> executions;
-  final List<BattleStatusEvent> statusEvents;
-  final List<BattleVolatileEvent> volatileEvents;
-  final List<BattleFieldEvent> fieldEvents;
-  final List<BattleStealthRockEvent> stealthRockEvents;
-  final List<BattleSpikesEvent> spikesEvents;
-  final List<BattleSwitchEvent> switchEvents;
-  final List<BattleTurnEvent> timeline;
-}
-
 class _ResolvedSwitchAction {
   const _ResolvedSwitchAction({
     required this.side,
@@ -2559,88 +1802,4 @@ class _CritChance {
   final int numerator;
   final int denominator;
   final bool didOccurWithoutRng;
-}
-
-/// Contexte mutable strictement local à la consommation d'une queue de tour.
-///
-/// Phase F ne déplace pas la mutabilité vers `BattleState` :
-/// - la session publique reste immutable ;
-/// - ce contexte vit uniquement pendant `_resolveTurn` ;
-/// - il sert à éviter de recopier manuellement le même faisceau de variables
-///   `player/enemy/reserve/field/rng/events` dans chaque branche de queue.
-final class _QueuedTurnContext {
-  _QueuedTurnContext({
-    required this.playerSide,
-    required this.enemySide,
-    required this.field,
-    required this.rng,
-    this.originalPlayerAction,
-    this.originalEnemyAction,
-  });
-
-  factory _QueuedTurnContext.resume(_PendingTurnContinuation pending) {
-    return _QueuedTurnContext(
-      playerSide: pending.playerSide,
-      enemySide: pending.enemySide,
-      field: pending.field,
-      rng: pending.rng,
-      originalPlayerAction: pending.playerAction,
-      originalEnemyAction: pending.enemyAction,
-    )
-      ..turnTailScheduled = pending.turnTailScheduled
-      ..executions.addAll(pending.executions)
-      ..statusEvents.addAll(pending.statusEvents)
-      ..volatileEvents.addAll(pending.volatileEvents)
-      ..fieldEvents.addAll(pending.fieldEvents)
-      ..stealthRockEvents.addAll(pending.stealthRockEvents)
-      ..spikesEvents.addAll(pending.spikesEvents)
-      ..switchEvents.addAll(pending.switchEvents)
-      ..timeline.addAll(pending.timeline);
-  }
-
-  BattleSideState playerSide;
-  BattleSideState enemySide;
-  BattleFieldState field;
-  BattleRng rng;
-  BattleAction? originalPlayerAction;
-  BattleAction? originalEnemyAction;
-  bool turnTailScheduled = false;
-  _PendingTurnContinuation? pendingTurn;
-
-  final List<BattleMoveExecution> executions = <BattleMoveExecution>[];
-  final List<BattleStatusEvent> statusEvents = <BattleStatusEvent>[];
-  final List<BattleVolatileEvent> volatileEvents = <BattleVolatileEvent>[];
-  final List<BattleFieldEvent> fieldEvents = <BattleFieldEvent>[];
-  final List<BattleStealthRockEvent> stealthRockEvents =
-      <BattleStealthRockEvent>[];
-  final List<BattleSpikesEvent> spikesEvents = <BattleSpikesEvent>[];
-  final List<BattleSwitchEvent> switchEvents = <BattleSwitchEvent>[];
-  final List<BattleTurnEvent> timeline = <BattleTurnEvent>[];
-
-  BattleSideState side(BattleSideId sideId) {
-    return switch (sideId) {
-      BattleSideId.player => playerSide,
-      BattleSideId.enemy => enemySide,
-    };
-  }
-
-  void updateSide(BattleSideId sideId, BattleSideState sideState) {
-    switch (sideId) {
-      case BattleSideId.player:
-        playerSide = sideState;
-      case BattleSideId.enemy:
-        enemySide = sideState;
-    }
-  }
-
-  void updateActive(BattleSideId sideId, BattleCombatant active) {
-    final existingSide = side(sideId);
-    updateSide(
-      sideId,
-      existingSide.withActiveAndReserve(
-        active: active,
-        reserve: existingSide.reserve,
-      ),
-    );
-  }
 }
