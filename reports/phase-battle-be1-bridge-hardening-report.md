@@ -1,5 +1,16 @@
 # BE1 — Hardening explicite du bridge battle + contrat battle minimal honnête
 
+> Note R0 — Truth Alignment (2026-04-18)
+>
+> Ce report reste utile comme trace historique de l'état BE1, mais il n'est plus canonique comme photographie du bridge battle actuel.
+>
+> En particulier, les claims BE1 sur le refus explicite de `priority != 0` et `critRatio != 1` sont dépassés par le bridge/runtime et le moteur actuels.
+>
+> Sources canoniques actuelles:
+>
+> - `docs/combat/battle-canonical-state-v3.1.md`
+> - `reports/battle-state-vs-showdown-audit.md`
+
 ## 1. Résumé exécutif honnête
 
 BE1 ferme un vrai trou post-M8, mais il le ferme **sans** ouvrir un faux gros lot.

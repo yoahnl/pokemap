@@ -1,5 +1,18 @@
 # Plan du moteur de combat et lecture complète du fonctionnement actuel
 
+> Note R0 — Truth Alignment (2026-04-18)
+>
+> Ce document est conservé comme lecture historique de l'architecture battle, mais il n'est plus canonique comme photographie du repo actuel.
+>
+> En particulier, les passages qui décrivent encore le handoff runtime -> battle comme un placeholder simplifié, ou qui racontent une battleabilité encore purement future, sont dépassés par l'état réel du dépôt.
+>
+> Sources canoniques actuelles:
+>
+> - `docs/combat/battle-canonical-state-v3.1.md`
+> - `docs/combat/battle-roadmap-canonical-v3.1.md`
+>
+> Si le corps de ce plan contredit ces documents sur l'état battle/runtime actuel, il faut considérer le corps comme historique et non comme vérité canonique.
+
 ## 1. Résumé exécutif
 
 Ton projet a déjà une base très saine pour faire un vrai moteur de combat Pokémon-like.

@@ -1,5 +1,16 @@
 # Audit de parité Pokémon Showdown vs moteur battle PokeMap
 
+> Note R0 — Truth Alignment (2026-04-18)
+>
+> Ce report reste utile comme audit historique intermédiaire, mais il n'est plus la source canonique de l'état battle actuel.
+>
+> Il sous-estime désormais certains seams réellement vivants dans le dépôt actuel, notamment les hazards H1/H2, le golden slice battleable versionné, et la vérité produit/runtime plus aboutie qu'au moment de sa rédaction.
+>
+> Sources canoniques actuelles:
+>
+> - `docs/combat/battle-canonical-state-v3.1.md`
+> - `reports/battle-state-vs-showdown-audit.md`
+
 ## 1. Résumé exécutif honnête
 
 ### Verdict global

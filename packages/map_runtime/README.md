@@ -2,7 +2,7 @@
 
 A Flame-based runtime for maps produced with the RPG Map Editor format.
 
-This package loads a `project.json` file, resolves tileset assets, and renders the map — tile layers, terrain layers, path layers, entity sprites and collision overlays — inside a Flame scene. It also provides `PlayableMapGame`, a playable game loop with keyboard-driven player movement, collision detection, warp transitions, and entity interaction.
+This package loads a `project.json` file, resolves tileset assets, and renders the map — tile layers, terrain layers, path layers, entity sprites and collision overlays — inside a Flame scene. It also provides `PlayableMapGame`, a playable game loop with keyboard-driven player movement, collision detection, warp transitions, entity interaction, wild encounter triggering, trainer battle start requests, battle overlay handoff, and narrow battle outcome write-back.
 
 ---
 
@@ -14,12 +14,20 @@ This package loads a `project.json` file, resolves tileset assets, and renders t
 - Resolves all required tileset images
 - Renders inside Flame: tile, terrain (with stable variant seeding), path (autotile), entity sprites (animated, aspect-ratio preserving), collision overlays
 - Animates entity frames using `ProjectElementEntry.frames`
+- Provides a real runtime battle handoff to `map_battle` for the currently supported singles slice
+- Triggers real wild encounters and trainer battles in `PlayableMapGame`
+- Applies narrow runtime write-back for the supported battle slice:
+  - party HP updates
+  - trainer defeated flags
+  - minimal wild capture
+  - whiteout-lite
 
 ## What it does NOT do
 
 - Dialogue execution (text is shown as a 2-second overlay, not a full dialogue system)
-- Wild encounter triggering
-- Inventory, progression, combat, saves
+- Full standalone RPG systems outside the currently supported slice
+- Full inventory/progression UX or broad combat persistence beyond the narrow battle write-back above
+- Full Showdown-like battle mechanics, requests, targeting, or persistence
 
 ## Requirements
 
@@ -66,7 +74,7 @@ void main() async {
 
 `loadRuntimeMapBundle` validates the project and map and resolves all required tileset paths.
 `RuntimeMapGame` loads the tileset images and renders the map as a read-only viewer.
-`PlayableMapGame` adds keyboard movement, collision, warps, and entity interaction.
+`PlayableMapGame` adds keyboard movement, collision, warps, entity interaction, battle triggering, battle overlay handoff, and narrow outcome write-back for the currently supported battle slice.
 
 ## Public API
 
@@ -75,7 +83,7 @@ void main() async {
 | `loadRuntimeMapBundle({projectFilePath, mapId})` | Loads and validates a project + map from disk. Returns a `RuntimeMapBundle`. |
 | `RuntimeMapBundle` | Holds the resolved `ProjectManifest`, `MapData`, and tileset paths. |
 | `RuntimeMapGame` | A `FlameGame` that renders the map (read-only). |
-| `PlayableMapGame` | A `FlameGame` with player movement (arrows/WASD), collision, warp transitions, and entity interaction (E/Space). |
+| `PlayableMapGame` | A `FlameGame` with player movement (arrows/WASD), collision, warp transitions, entity interaction (E/Space), battle triggering, and narrow battle outcome write-back for the supported slice. |
 
 All other types and functions in this package are internal.
 
@@ -96,6 +104,7 @@ Thrown by `loadRuntimeMapBundle`, from `map_core`:
 - **Local filesystem only.** Uses `dart:io`; Flutter Web is not supported.
 - **`map_core` is a local path dependency.** Before this package can be published to pub.dev, `map_core` must be published independently, and the `path:` dependency replaced with a version constraint.
 - The camera fits the entire map in the available viewport. Camera controls (pan, zoom) are not provided.
+- Battle support in this package is intentionally bounded to the currently supported `map_battle` slice; unsupported move or mechanic families still fail or are filtered explicitly rather than being simulated loosely.
 
 ## Project structure
 

@@ -1,5 +1,16 @@
 # Audit post-M8 — battle engine / runtime battle bridge / moves canoniques
 
+> Note R0 — Truth Alignment (2026-04-18)
+>
+> Ce report reste utile comme audit historique intermédiaire, mais il n'est plus canonique comme photographie du moteur battle et du runtime battle actuels.
+>
+> Il précède plusieurs seams désormais réellement vivants dans le dépôt actuel, notamment le request model live, la queue locale, le condition engine, les réserves multi-Pokémon, les hazards H1/H2 et la vérité produit du golden slice versionné.
+>
+> Sources canoniques actuelles:
+>
+> - `docs/combat/battle-canonical-state-v3.1.md`
+> - `docs/combat/battle-roadmap-canonical-v3.1.md`
+
 ## 1. Résumé exécutif honnête
 
 Le repo a objectivement franchi un cap utile entre M1 et M8 :

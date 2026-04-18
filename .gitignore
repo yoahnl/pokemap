@@ -3,6 +3,12 @@
 /docs/path-library-regression-fix-report.md
 /.qwen/settings.json.orig
 /docs/
+!/docs/
+/docs/*
+!/docs/combat/
+/docs/combat/*
+!/docs/combat/battle-canonical-state-v3.1.md
+!/docs/combat/battle-roadmap-canonical-v3.1.md
 /project_overview.txt
 /review_bundle.sh
 /review_last_code.sh
@@ -23,4 +29,3 @@ pubspec.lock
 /packages/project_overview.txt
 
 /pokemon-showdown-master/
-

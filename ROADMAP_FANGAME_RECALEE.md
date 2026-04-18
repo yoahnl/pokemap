@@ -1,5 +1,25 @@
 # Roadmap Maître Recalée — pokemonProject
 
+> Note R0 — Truth Alignment (2026-04-18)
+>
+> Ce document reste utile comme roadmap maître historique et produit large, mais il n'est plus la source canonique de l'état battle/runtime actuel.
+>
+> Les claims qui présentent encore comme futurs:
+>
+> - le handoff runtime -> battle réel
+> - le combat sauvage réel
+> - la capture minimale
+> - le whiteout-lite
+>
+> sont désormais partiellement ou totalement dépassés par le code, les tests et le host versionné.
+>
+> Source canonique battle actuelle:
+>
+> - `docs/combat/battle-canonical-state-v3.1.md`
+> - `docs/combat/battle-roadmap-canonical-v3.1.md`
+>
+> Pour la battle loop et le runtime battle actuels, le corps de ce document doit désormais être lu comme historique si une section contredit les deux documents canoniques ci-dessus.
+
 ## 1. But du document
 
 Ce document sert de **roadmap maître recalée** pour la suite du projet.
