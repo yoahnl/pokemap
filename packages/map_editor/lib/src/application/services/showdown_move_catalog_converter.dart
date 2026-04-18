@@ -414,6 +414,19 @@ class ShowdownMoveCatalogConverter {
     if (stageChanges.isEmpty) {
       return;
     }
+    // Mini-lot starter coverage :
+    // - le modèle canonique sait déjà décrire un rider probabiliste de baisse /
+    //   hausse de stats ;
+    // - mais le slice runtime -> battle actuel ne sait toujours pas le projeter
+    //   honnêtement, car `map_battle` ne consomme pour l'instant que des
+    //   changements d'étages déterministes ;
+    // - on garde donc la donnée structurée, utile pour le catalogue et les
+    //   audits, tout en marquant explicitement la limite de support ;
+    // - cela évite le faux positif où `bubble` / `bubble_beam` paraîtraient
+    //   déjà bridgeables alors que le moteur local n'a pas encore ce contrat.
+    if (chance != null) {
+      addUnsupportedReason('unsupported_mechanic:probabilistic_modify_stats');
+    }
     addEffect(
       PokemonMoveEffect.modifyStats(
         targetScope: targetScope,
@@ -1305,4 +1318,13 @@ const Set<String> _handledTopLevelFields = <String>{
 const Set<String> _ignoredTopLevelMetadataFields = <String>{
   'num',
   'contestType',
+  // Mini-lot starter coverage :
+  // - `zMove` décrit uniquement le comportement Z-Move historique du move ;
+  // - cette métadonnée n'altère pas l'exécution du move de base dans le slice
+  //   singles local actuellement supporté ;
+  // - la conserver comme "unsupported reason" déclassait à tort des moves déjà
+  //   honnêtement portables comme `tailwhip` ou `withdraw` ;
+  // - on l'ignore donc ici comme métadonnée de catalogue, au même titre que
+  //   `num` et `contestType`, sans prétendre ouvrir le moindre support Z-Move.
+  'zMove',
 };

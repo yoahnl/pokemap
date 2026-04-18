@@ -311,6 +311,163 @@ void main() {
     );
   });
 
+  test(
+      'keeps Tail Whip and Withdraw fully supported when Showdown only adds zMove metadata',
+      () {
+    final catalog = converter.convert(<String, dynamic>{
+      'tailwhip': <String, dynamic>{
+        'name': 'Tail Whip',
+        'type': 'Normal',
+        'category': 'Status',
+        'basePower': 0,
+        'accuracy': 100,
+        'pp': 30,
+        'priority': 0,
+        'target': 'allAdjacentFoes',
+        'boosts': <String, int>{'def': -1},
+        'zMove': <String, Object>{
+          'boost': <String, int>{'atk': 1},
+        },
+        'shortDesc': 'Lowers the foe(s) Defense by 1.',
+        'desc': 'Lowers the target Defense by 1 stage.',
+        'gen': 1,
+      },
+      'withdraw': <String, dynamic>{
+        'name': 'Withdraw',
+        'type': 'Water',
+        'category': 'Status',
+        'basePower': 0,
+        'accuracy': true,
+        'pp': 40,
+        'priority': 0,
+        'target': 'self',
+        'boosts': <String, int>{'def': 1},
+        'zMove': <String, Object>{
+          'boost': <String, int>{'def': 1},
+        },
+        'shortDesc': 'Raises the user Defense by 1.',
+        'desc': 'The user withdraws into its shell to raise Defense by 1.',
+        'gen': 1,
+      },
+    });
+
+    final tailWhip = _move(catalog, 'tail_whip');
+    expect(
+      tailWhip.effects,
+      contains(
+        const PokemonMoveEffect.modifyStats(
+          stageChanges: <PokemonMoveStatStageChange>[
+            PokemonMoveStatStageChange(
+              stat: PokemonMoveStatId.defense,
+              stages: -1,
+            ),
+          ],
+        ),
+      ),
+    );
+    expect(
+      tailWhip.engineSupportLevel,
+      equals(PokemonMoveEngineSupportLevel.structuredSupported),
+    );
+    expect(tailWhip.unsupportedReasons, isEmpty);
+
+    final withdraw = _move(catalog, 'withdraw');
+    expect(
+      withdraw.effects,
+      contains(
+        const PokemonMoveEffect.modifyStats(
+          targetScope: PokemonMoveEffectTargetScope.self,
+          stageChanges: <PokemonMoveStatStageChange>[
+            PokemonMoveStatStageChange(
+              stat: PokemonMoveStatId.defense,
+              stages: 1,
+            ),
+          ],
+        ),
+      ),
+    );
+    expect(
+      withdraw.engineSupportLevel,
+      equals(PokemonMoveEngineSupportLevel.structuredSupported),
+    );
+    expect(withdraw.unsupportedReasons, isEmpty);
+  });
+
+  test(
+      'marks probabilistic stat stage riders as partial instead of pretending they already bridge to battle',
+      () {
+    final catalog = converter.convert(<String, dynamic>{
+      'bubble': <String, dynamic>{
+        'name': 'Bubble',
+        'type': 'Water',
+        'category': 'Special',
+        'basePower': 40,
+        'accuracy': 100,
+        'pp': 30,
+        'priority': 0,
+        'target': 'allAdjacentFoes',
+        'secondary': <String, dynamic>{
+          'chance': 10,
+          'boosts': <String, int>{'spe': -1},
+        },
+        'shortDesc': '10% chance to lower the target Speed by 1.',
+        'desc': 'A spray of bubbles may lower the target Speed by 1 stage.',
+        'gen': 1,
+      },
+      'bubblebeam': <String, dynamic>{
+        'name': 'Bubble Beam',
+        'type': 'Water',
+        'category': 'Special',
+        'basePower': 65,
+        'accuracy': 100,
+        'pp': 20,
+        'priority': 0,
+        'target': 'normal',
+        'secondary': <String, dynamic>{
+          'chance': 10,
+          'boosts': <String, int>{'spe': -1},
+        },
+        'shortDesc': '10% chance to lower the target Speed by 1.',
+        'desc': 'A spray of bubbles may lower the target Speed by 1 stage.',
+        'gen': 1,
+      },
+    });
+
+    final bubble = _move(catalog, 'bubble');
+    expect(
+      bubble.effects,
+      contains(
+        const PokemonMoveEffect.modifyStats(
+          chance: 10,
+          stageChanges: <PokemonMoveStatStageChange>[
+            PokemonMoveStatStageChange(
+              stat: PokemonMoveStatId.speed,
+              stages: -1,
+            ),
+          ],
+        ),
+      ),
+    );
+    expect(
+      bubble.engineSupportLevel,
+      equals(PokemonMoveEngineSupportLevel.structuredPartial),
+    );
+    expect(
+      bubble.unsupportedReasons,
+      contains('unsupported_mechanic:probabilistic_modify_stats'),
+    );
+
+    final bubbleBeam = _move(catalog, 'bubble_beam');
+    expect(
+      bubbleBeam.engineSupportLevel,
+      equals(PokemonMoveEngineSupportLevel.structuredPartial),
+    );
+    expect(
+      bubbleBeam.unsupportedReasons,
+      contains('unsupported_mechanic:probabilistic_modify_stats'),
+    );
+  });
+
   test('tracks callbacks and downgrades support level honestly', () {
     final catalog = converter.convert(<String, dynamic>{
       'thunder': <String, dynamic>{

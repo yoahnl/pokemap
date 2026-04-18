@@ -768,6 +768,70 @@ void main() {
     });
 
     test(
+        'keeps Squirtle starter coverage honest by exposing only the starter moves the current battle slice can really execute',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      await _writeSquirtleStarterCoverageFixture(tempProjectRoot);
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+
+      final setup = await mapper.map(
+        bundle: bundle,
+        gameState: const GameState(
+          saveId: 'save-squirtle-starter-coverage',
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              PlayerPokemon(
+                speciesId: 'squirtle',
+                natureId: 'bold',
+                abilityId: 'torrent',
+                level: 12,
+                knownMoveIds: <String>[
+                  'tail_whip',
+                  'water_gun',
+                  'withdraw',
+                  'bubble',
+                ],
+                currentHp: 23,
+              ),
+            ],
+          ),
+        ),
+        request: _wildRequest(
+          speciesId: 'sparkitten',
+          level: 10,
+        ),
+      );
+
+      // Ce test verrouille le résultat produit attendu de ce mini-lot :
+      // - `tail_whip`, `water_gun` et `withdraw` ne doivent plus disparaître
+      //   à cause d'un truth/filtering décalé ;
+      // - `bubble` reste volontairement absent tant que le moteur/bridge ne
+      //   savent pas porter honnêtement son rider probabiliste de baisse de
+      //   vitesse ;
+      // - on améliore donc la vérité des choix de combat sans rouvrir R3.
+      expect(
+        setup.playerPokemon.moves
+            .map((move) => move.id)
+            .toList(growable: false),
+        equals(<String>['tail_whip', 'water_gun', 'withdraw']),
+      );
+
+      final request = createBattleSession(setup).decisionRequest;
+      expect(request, isA<BattleTurnChoiceRequest>());
+      final moveChoices = (request as BattleTurnChoiceRequest)
+          .moveChoices
+          .map((choice) => setup.playerPokemon.moves[choice.moveIndex].id)
+          .toList(growable: false);
+
+      expect(
+          moveChoices, equals(<String>['tail_whip', 'water_gun', 'withdraw']));
+      expect(moveChoices, isNot(contains('bubble')));
+    });
+
+    test(
         'fails explicitly when explicit known moves leave no bridgeable move after filtering',
         () async {
       final manifest = await _writeAndLoadProjectManifest(
@@ -1572,6 +1636,33 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
         _moveEntry('scratch', 'Scratch', 40),
         _moveEntry('mud_slap', 'Mud-Slap', 20, type: 'ground', accuracy: 85),
         _moveEntry('tail_whip', 'Tail Whip', 0),
+        // Mini-lot starter coverage :
+        // - `withdraw` reste bridgeable malgré un vieux partial `zMove` ;
+        // - `bubble` reste visible dans le catalogue de test, mais marqué
+        //   partiel pour que le runtime le filtre honnêtement tant que le
+        //   rider probabiliste de baisse de vitesse n'est pas supporté.
+        _moveEntry(
+          'withdraw',
+          'Withdraw',
+          0,
+          type: 'water',
+          target: PokemonMoveTarget.self,
+          pp: 40,
+          engineSupportLevel: PokemonMoveEngineSupportLevel.structuredPartial,
+          unsupportedReasons: const <String>['unsupported_mechanic:zMove'],
+        ),
+        _moveEntry(
+          'bubble',
+          'Bubble',
+          40,
+          type: 'water',
+          target: PokemonMoveTarget.allAdjacentFoes,
+          pp: 30,
+          engineSupportLevel: PokemonMoveEngineSupportLevel.structuredPartial,
+          unsupportedReasons: const <String>[
+            'unsupported_mechanic:probabilistic_modify_stats',
+          ],
+        ),
         _moveEntry('ember', 'Ember', 40, type: 'fire'),
         _moveEntry('flame_wheel', 'Flame Wheel', 60, type: 'fire'),
         _moveEntry('water_gun', 'Water Gun', 40, type: 'water'),
@@ -1689,6 +1780,29 @@ List<PokemonMoveEffect> _defaultEffectsForMove(String moveId) {
           ],
         ),
       ],
+    'withdraw' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.modifyStats(
+          targetScope: PokemonMoveEffectTargetScope.self,
+          stageChanges: <PokemonMoveStatStageChange>[
+            PokemonMoveStatStageChange(
+              stat: PokemonMoveStatId.defense,
+              stages: 1,
+            ),
+          ],
+        ),
+      ],
+    'bubble' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.modifyStats(
+          targetScope: PokemonMoveEffectTargetScope.target,
+          chance: 10,
+          stageChanges: <PokemonMoveStatStageChange>[
+            PokemonMoveStatStageChange(
+              stat: PokemonMoveStatId.speed,
+              stages: -1,
+            ),
+          ],
+        ),
+      ],
     'thunder_wave' => const <PokemonMoveEffect>[
         PokemonMoveEffect.applyStatus(
           targetScope: PokemonMoveEffectTargetScope.target,
@@ -1732,6 +1846,91 @@ List<PokemonMoveEffect> _defaultEffectsForMove(String moveId) {
       ],
     _ => const <PokemonMoveEffect>[],
   };
+}
+
+Future<void> _writeSquirtleStarterCoverageFixture(Directory projectRoot) async {
+  // Cette fixture locale sert uniquement à verrouiller le symptôme produit
+  // visé par ce mini-lot :
+  // - un Squirtle avec quatre moves connus côté menu ;
+  // - trois moves réellement bridgeables aujourd'hui ;
+  // - `bubble` toujours visible dans les données connues, mais filtré avant
+  //   le combat tant que son rider probabiliste n'est pas porté honnêtement.
+  //
+  // On reste volontairement loin d'un chantier R3 :
+  // - pas de nouvelle famille de conditions ;
+  // - pas de widening de contrat ;
+  // - juste un cas lisible qui prouve la cohérence menu -> runtime -> battle.
+  await _writeProjectRelativeJson(
+    projectRoot,
+    'custom/pokemon/species/999-squirtle.json',
+    <String, dynamic>{
+      'id': 'squirtle',
+      'slug': 'squirtle',
+      'nationalDex': 7,
+      'names': <String, String>{'en': 'Squirtle'},
+      'speciesName': <String, String>{'en': 'Tiny Turtle'},
+      'genIntroduced': 1,
+      'typing': <String, Object>{
+        'types': <String>['water'],
+      },
+      'baseStats': <String, int>{
+        'hp': 44,
+        'atk': 48,
+        'def': 65,
+        'spa': 50,
+        'spd': 64,
+        'spe': 43,
+        'bst': 314,
+      },
+      'abilities': <String, String>{'primary': 'torrent'},
+      'breeding': <String, Object>{
+        'genderRatio': <String, double>{'male': 0.875, 'female': 0.125},
+        'eggGroups': <String>['monster', 'water_1'],
+        'hatchCycles': 20,
+      },
+      'progression': <String, Object>{
+        'growthRateId': 'medium_slow',
+        'baseExp': 63,
+        'catchRate': 45,
+        'baseFriendship': 50,
+      },
+      'refs': <String, String>{
+        'learnset': 'squirtle',
+        'evolution': 'squirtle',
+        'media': 'squirtle',
+      },
+      'dexContent': <String, Object>{
+        'heightM': 0.5,
+        'weightKg': 9.0,
+      },
+      'gameplayFlags': <String, bool>{'starterEligible': true},
+      'sourceMeta': <String, Object>{'seededBy': 'test', 'seedVersion': 1},
+    },
+  );
+
+  await _writeProjectRelativeJson(
+    projectRoot,
+    'custom/pokemon/learnsets/squirtle.json',
+    <String, dynamic>{
+      'speciesId': 'squirtle',
+      'startingMoves': <String>['tail_whip'],
+      'relearnMoves': <String>['water_gun'],
+      'levelUp': <Map<String, Object>>[
+        <String, Object>{
+          'moveId': 'bubble',
+          'level': 8,
+          'source': 'level_up',
+          'versionGroup': 'project',
+        },
+        <String, Object>{
+          'moveId': 'withdraw',
+          'level': 10,
+          'source': 'level_up',
+          'versionGroup': 'project',
+        },
+      ],
+    },
+  );
 }
 
 Future<void> _rewriteMoveCatalogEntrySupport(

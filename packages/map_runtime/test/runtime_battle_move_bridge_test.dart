@@ -142,6 +142,114 @@ void main() {
     });
 
     test(
+        'accepts a zMove-only partial label when the underlying move is just a deterministic self stat boost already supported by battle',
+        () {
+      const move = PokemonMove(
+        id: 'withdraw',
+        name: 'Withdraw',
+        names: <String, String>{'en': 'Withdraw'},
+        generation: 1,
+        source: 'test',
+        type: 'water',
+        category: PokemonMoveCategory.status,
+        target: PokemonMoveTarget.self,
+        basePower: 0,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+        pp: 40,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.modifyStats(
+            targetScope: PokemonMoveEffectTargetScope.self,
+            stageChanges: <PokemonMoveStatStageChange>[
+              PokemonMoveStatStageChange(
+                stat: PokemonMoveStatId.defense,
+                stages: 1,
+              ),
+            ],
+          ),
+        ],
+        // Mini-lot starter coverage :
+        // - certains catalogues déjà convertis portent encore ce partial à
+        //   cause de la seule métadonnée Showdown `zMove` ;
+        // - on veut prouver ici que le bridge ne rouvre pas "les partials"
+        //   en général, mais seulement ce cas legacy déjà exécutable.
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredPartial,
+        unsupportedReasons: <String>['unsupported_mechanic:zMove'],
+      );
+
+      final battleMove = bridge.toBattleMoveData(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(battleMove.id, equals('withdraw'));
+      expect(battleMove.target, equals(BattleMoveTarget.self));
+      expect(battleMove.selfStatStageChanges, hasLength(1));
+      expect(
+        battleMove.selfStatStageChanges.single.stat,
+        equals(BattleStatId.defense),
+      );
+      expect(
+        battleMove.selfStatStageChanges.single.stages,
+        equals(1),
+      );
+    });
+
+    test(
+        'still rejects Bubble honestly because a probabilistic speed drop rider is not part of the current bridge contract',
+        () {
+      const move = PokemonMove(
+        id: 'bubble',
+        name: 'Bubble',
+        names: <String, String>{'en': 'Bubble'},
+        generation: 1,
+        source: 'test',
+        type: 'water',
+        category: PokemonMoveCategory.special,
+        target: PokemonMoveTarget.allAdjacentFoes,
+        basePower: 40,
+        accuracy: PokemonMoveAccuracy.percent(value: 100),
+        pp: 30,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.modifyStats(
+            targetScope: PokemonMoveEffectTargetScope.target,
+            chance: 10,
+            stageChanges: <PokemonMoveStatStageChange>[
+              PokemonMoveStatStageChange(
+                stat: PokemonMoveStatId.speed,
+                stages: -1,
+              ),
+            ],
+          ),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredPartial,
+        unsupportedReasons: <String>[
+          'unsupported_mechanic:probabilistic_modify_stats',
+        ],
+      );
+
+      expect(
+        () => bridge.toBattleMoveData(
+          move: move,
+          combatantLabel: 'Le Pokémon actif du joueur',
+        ),
+        throwsA(
+          isA<RuntimeBattleSetupException>().having(
+            (error) => error.debugDetails,
+            'debugDetails',
+            allOf(
+              contains('moveId=bubble'),
+              contains('engineSupportLevel=structuredPartial'),
+              contains(
+                'unsupportedReasons=[unsupported_mechanic:probabilistic_modify_stats]',
+              ),
+              contains('bridgeLimit=engine_support_level_not_bridgeable'),
+            ),
+          ),
+        ),
+      );
+    });
+
+    test(
         'rejects a self-target damage move that map_battle would still resolve against the opponent',
         () {
       const move = PokemonMove(

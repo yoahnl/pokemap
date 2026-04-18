@@ -621,7 +621,7 @@ class RuntimeBattleMoveBridge {
   }) {
     if (move.engineSupportLevel ==
             PokemonMoveEngineSupportLevel.structuredSupported ||
-        _allowsStructuredPartialFieldMove(move)) {
+        _allowsBridgeableStructuredPartialMove(move)) {
       return;
     }
     _rejectMove(
@@ -860,6 +860,24 @@ class RuntimeBattleMoveBridge {
     );
   }
 
+  bool _allowsBridgeableStructuredPartialMove(PokemonMove move) {
+    if (move.engineSupportLevel !=
+        PokemonMoveEngineSupportLevel.structuredPartial) {
+      return false;
+    }
+
+    // Ce seam reste volontairement très fermé :
+    // - R2 puis ce mini-lot n'ouvrent pas un bridge "un peu permissif" pour
+    //   tous les moves partiels ;
+    // - on autorise seulement deux sous-cas explicitement prouvés par le repo :
+    //   1. les vieux field moves type `Trick Room` déjà réellement exécutables ;
+    //   2. les catalogues locaux plus anciens qui ont déclassé à tort un move
+    //      simple uniquement à cause de la métadonnée Showdown `zMove`.
+    // - tout autre `structuredPartial` continue à être refusé par défaut.
+    return _allowsStructuredPartialFieldMove(move) ||
+        _allowsStructuredPartialMetadataOnlyMove(move);
+  }
+
   bool _allowsStructuredPartialFieldMove(PokemonMove move) {
     if (move.engineSupportLevel !=
         PokemonMoveEngineSupportLevel.structuredPartial) {
@@ -883,6 +901,72 @@ class RuntimeBattleMoveBridge {
       'showdown_callback:condition.onFieldStart',
     };
     return move.unsupportedReasons.every(allowedReasons.contains);
+  }
+
+  bool _allowsStructuredPartialMetadataOnlyMove(PokemonMove move) {
+    if (move.engineSupportLevel !=
+        PokemonMoveEngineSupportLevel.structuredPartial) {
+      return false;
+    }
+
+    // Mini-lot starter coverage :
+    // - certains catalogues locaux déjà convertis portent encore
+    //   `unsupported_mechanic:zMove` sur des moves de base pourtant déjà
+    //   totalement compatibles avec le bridge (`tail_whip`, `withdraw`, etc.) ;
+    // - cette raison n'exprime pas une limite du move de base dans le slice
+    //   singles local, mais seulement l'absence volontaire de support Z-Move ;
+    // - autoriser ce cas précis répare donc une sous-déclaration de support
+    //   sans élargir la famille de mécaniques réellement exécutées.
+    const allowedReasons = <String>{
+      'unsupported_mechanic:zMove',
+    };
+    if (move.unsupportedReasons.isEmpty ||
+        !move.unsupportedReasons.every(allowedReasons.contains)) {
+      return false;
+    }
+
+    // Garde-fou de périmètre :
+    // - on ne rouvre surtout pas "tous les partials zMove-only" ;
+    // - certains vieux labels locaux peuvent aussi toucher des status moves
+    //   vides ou non-op comme `teleport`, qui ne deviendraient pas honnêtes
+    //   juste parce que la cause du partial est une métadonnée Showdown ;
+    // - ce mini-lot starter coverage n'autorise donc que le sous-ensemble
+    //   déjà réellement exécutable aujourd'hui : un `modifyStats`
+    //   déterministe sur `self` ou `target`.
+    return _isPureDeterministicStatMoveCandidate(move);
+  }
+
+  bool _isPureDeterministicStatMoveCandidate(PokemonMove move) {
+    if (move.usesStandardDamageFlow || move.effects.isEmpty) {
+      return false;
+    }
+
+    return move.effects.every(
+      (effect) => effect.map(
+        fixedDamage: (_) => false,
+        multiHit: (_) => false,
+        applyStatus: (_) => false,
+        applyVolatileStatus: (_) => false,
+        modifyStats: (effect) =>
+            effect.chance == null &&
+            effect.stageChanges.isNotEmpty &&
+            (effect.targetScope == PokemonMoveEffectTargetScope.self ||
+                effect.targetScope == PokemonMoveEffectTargetScope.target),
+        heal: (_) => false,
+        drain: (_) => false,
+        recoil: (_) => false,
+        setWeather: (_) => false,
+        setTerrain: (_) => false,
+        setPseudoWeather: (_) => false,
+        selfSwitch: (_) => false,
+        forceSwitch: (_) => false,
+        breakProtect: (_) => false,
+        requireRecharge: (_) => false,
+        chargeThenStrike: (_) => false,
+        setSideCondition: (_) => false,
+        setSlotCondition: (_) => false,
+      ),
+    );
   }
 
   bool _isPureFoeSideConditionMoveCandidate(PokemonMove move) {
