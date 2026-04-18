@@ -1,10 +1,14 @@
 import 'battle_field.dart';
 import 'battle_move.dart';
 import 'battle_rng.dart';
+import 'battle_spikes.dart';
 import 'battle_state.dart';
 import 'battle_status.dart';
+import 'battle_stealth_rock.dart';
 import 'battle_topology.dart';
 import 'battle_volatile.dart';
+
+part 'battle_condition_side_conditions.dart';
 
 const Set<String> _sandstormResidualImmuneTypes = <String>{
   'ground',
@@ -25,12 +29,15 @@ const Set<String> _sandstormResidualImmuneTypes = <String>{
 /// - statuts majeurs (`par`, `brn`, `psn`, `tox`) ;
 /// - volatiles BE8 (`protect`, recharge, charge then strike) ;
 /// - field BE9 (`rain`, `sandstorm`, `trickRoom`).
+/// - side conditions déjà réellement ouvertes (`Stealth Rock`, `Spikes`).
 ///
 /// Les event points exposés sont explicites et bornés :
 /// - [runActionAttempt]
 /// - [runHitInterception]
 /// - [runMoveResolved]
+/// - [runSideConditionMoveResolved]
 /// - [runForcedContinueTurn]
+/// - [runEntryHazards]
 /// - [runEndOfTurn]
 ///
 /// `BattleSession` reste l'orchestrateur du tour. Cet engine ne pilote ni les
@@ -41,6 +48,7 @@ final class BattleConditionEngine {
   static const _statusRules = _BattleStatusRules();
   static const _volatileRules = _BattleVolatileRules();
   static const _fieldRules = _BattleFieldRules();
+  static const _sideConditionRules = _BattleSideConditionRules();
 
   /// Résout les conditions qui s'appliquent à une tentative d'action.
   ///
@@ -181,6 +189,26 @@ final class BattleConditionEngine {
     );
   }
 
+  /// Résout les side conditions déclenchées par un move déjà exécuté.
+  ///
+  /// Frontière R3 volontairement stricte :
+  /// - ce seam ne généralise pas les side conditions ;
+  /// - il centralise seulement les deux hazards déjà réellement supportées ;
+  /// - le scheduler reste propriétaire du moment où cette étape est appelée ;
+  /// - l'engine résout uniquement le "comment" local de `Stealth Rock` et
+  ///   `Spikes` après un move qui a déjà produit son exécution.
+  BattleSideConditionResolution runSideConditionMoveResolved({
+    required BattleMove move,
+    required bool didResolveHit,
+    required BattleSideState targetSide,
+  }) {
+    return _sideConditionRules.runMoveResolved(
+      move: move,
+      didResolveHit: didResolveHit,
+      targetSide: targetSide,
+    );
+  }
+
   /// Résout un tour forcé de continuation.
   ///
   /// Phase E n'ouvre ici qu'un seul cas réellement vivant :
@@ -197,6 +225,20 @@ final class BattleConditionEngine {
       combatantSlot: combatantSlot,
       combatant: combatant,
     );
+  }
+
+  /// Résout les hazards d'entrée déjà réellement supportées.
+  ///
+  /// Frontière R3 explicitement assumée :
+  /// - le scheduler décide quand une entrée réelle se produit ;
+  /// - cet engine décide comment les hazards déjà ouvertes se consomment ;
+  /// - l'ordre local reste celui du dépôt actuel : `Stealth Rock` puis
+  ///   `Spikes`, avec arrêt si `Stealth Rock` met K.O. l'entrant ;
+  /// - ce seam n'ouvre ni Boots, ni Toxic Spikes, ni framework universel.
+  BattleSideConditionResolution runEntryHazards({
+    required BattleSideState side,
+  }) {
+    return _sideConditionRules.runEntryHazards(side: side);
   }
 
   /// Résout la phase de fin de tour des conditions déjà supportées.

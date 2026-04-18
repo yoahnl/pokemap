@@ -1,6 +1,6 @@
 # Battle Roadmap Canonical v3.1
 
-Statut: roadmap battle canonique du dépôt après `R2 — Scheduler Consolidation`
+Statut: roadmap battle canonique du dépôt après `R3 — Condition Lifecycle Consolidation`
 
 ## But
 
@@ -208,3 +208,18 @@ Après `R2`, la suite officielle devient conditionnelle selon la prochaine méca
 
 - `R4` d'abord si le besoin suivant est `switch / replacement / targeting`-centric
 - `R3` d'abord si le besoin suivant est `condition`-centric
+
+## Statut officiel après R3
+
+`R3` est rempli par:
+
+- la consolidation du lifecycle des conditions déjà réellement supportées
+- l'intégration bornée des hazards déjà ouvertes dans un vrai seam lifecycle
+- la réduction de causalité conditionnelle ad hoc dans `battle_session.dart` sans framework générique
+
+## Suite officielle après R3
+
+Après `R3`, la suite officielle redevient conditionnelle:
+
+- `H3` si la trajectoire reste `condition`-centric et vise un micro-slice mécanique unique
+- `R4` si la trajectoire pivote vers `switch / replacement / targeting`

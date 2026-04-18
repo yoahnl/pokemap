@@ -396,36 +396,16 @@ void _executeActionQueueStep({
     turn.fieldEvents.addAll(resolution.fieldEvents);
     turn.timeline.addAll(resolution.timeline);
 
-    final stealthRockResolution = session._resolveStealthRockMoveEffect(
+    final sideConditionResolution = _conditionEngine.runSideConditionMoveResolved(
       move: move,
       didResolveHit: resolution.execution?.didHit == true,
       targetSide: turn.side(_opposingSideId(step.side)),
     );
-    if (stealthRockResolution != null) {
-      turn.updateSide(
-        _opposingSideId(step.side),
-        stealthRockResolution.side,
-      );
-      turn.stealthRockEvents.addAll(stealthRockResolution.events);
-      turn.timeline.addAll(
-        session._turnEventsFromStealthRock(stealthRockResolution.events),
-      );
-    }
-
-    final spikesResolution = session._resolveSpikesMoveEffect(
-      move: move,
-      didResolveHit: resolution.execution?.didHit == true,
-      targetSide: turn.side(_opposingSideId(step.side)),
+    _recordSideConditionResolution(
+      turn: turn,
+      sideId: _opposingSideId(step.side),
+      resolution: sideConditionResolution,
     );
-    if (spikesResolution != null) {
-      turn.updateSide(
-        _opposingSideId(step.side),
-        spikesResolution.side,
-      );
-      turn.spikesEvents.addAll(spikesResolution.events);
-      turn.timeline
-          .addAll(session._turnEventsFromSpikes(spikesResolution.events));
-    }
     return;
   }
 
@@ -435,23 +415,20 @@ void _executeActionQueueStep({
       reserveIndex: reserveIndex,
       wasForced: step.wasForced,
     );
-    turn.updateSide(step.side, resolution.side);
-    turn.switchEvents.add(resolution.event);
-    turn.timeline.add(BattleTurnSwitchEvent(resolution.event));
+  turn.updateSide(step.side, resolution.side);
+  turn.switchEvents.add(resolution.event);
+  turn.timeline.add(BattleTurnSwitchEvent(resolution.event));
 
-    final entryHazards = session._resolveEntryHazards(
-      side: turn.side(step.side),
-    );
-    turn.updateSide(step.side, entryHazards.side);
-    turn.stealthRockEvents.addAll(entryHazards.stealthRockEvents);
-    turn.timeline.addAll(
-      session._turnEventsFromStealthRock(entryHazards.stealthRockEvents),
-    );
-    turn.spikesEvents.addAll(entryHazards.spikesEvents);
-    turn.timeline
-        .addAll(session._turnEventsFromSpikes(entryHazards.spikesEvents));
+  final entryHazards = _conditionEngine.runEntryHazards(
+    side: turn.side(step.side),
+  );
+  _recordSideConditionResolution(
+    turn: turn,
+    sideId: step.side,
+    resolution: entryHazards,
+  );
 
-    final sideAfterEntry = turn.side(step.side);
+  final sideAfterEntry = turn.side(step.side);
     if (sideAfterEntry.active.isFainted &&
         step.side == BattleSideId.player &&
         session._firstUsableReserveIndex(sideAfterEntry.reserve) != null &&
@@ -551,17 +528,14 @@ void _executeAutoSwitchQueueStep({
   turn.switchEvents.add(resolution.event);
   turn.timeline.add(BattleTurnSwitchEvent(resolution.event));
 
-  final entryHazards = session._resolveEntryHazards(
+  final entryHazards = _conditionEngine.runEntryHazards(
     side: turn.side(step.side),
   );
-  turn.updateSide(step.side, entryHazards.side);
-  turn.stealthRockEvents.addAll(entryHazards.stealthRockEvents);
-  turn.timeline.addAll(
-    session._turnEventsFromStealthRock(entryHazards.stealthRockEvents),
+  _recordSideConditionResolution(
+    turn: turn,
+    sideId: step.side,
+    resolution: entryHazards,
   );
-  turn.spikesEvents.addAll(entryHazards.spikesEvents);
-  turn.timeline
-      .addAll(session._turnEventsFromSpikes(entryHazards.spikesEvents));
 
   if (turn.side(step.side).active.isFainted) {
     final nextReserveIndex =
@@ -602,6 +576,28 @@ void _executeReplacementRequiredQueueStep({
   );
   turn.switchEvents.add(replacementRequiredEvent);
   turn.timeline.add(BattleTurnSwitchEvent(replacementRequiredEvent));
+}
+
+void _recordSideConditionResolution({
+  required _QueuedTurnContext turn,
+  required BattleSideId sideId,
+  required BattleSideConditionResolution resolution,
+}) {
+  // Frontière R3 volontairement nette :
+  // - l'engine conditionnel résout le "comment" des side conditions ;
+  // - le scheduler garde l'ordre observable dans lequel ces effets entrent
+  //   réellement dans la timeline du tour ;
+  // - ce helper ne ré-invente donc aucune mécanique, il enregistre seulement
+  //   la sortie déjà résolue par l'engine au bon endroit de la queue.
+  turn.updateSide(sideId, resolution.side);
+  turn.stealthRockEvents.addAll(resolution.stealthRockEvents);
+  turn.timeline.addAll(
+    resolution.stealthRockEvents.map(BattleTurnStealthRockEvent.new),
+  );
+  turn.spikesEvents.addAll(resolution.spikesEvents);
+  turn.timeline.addAll(
+    resolution.spikesEvents.map(BattleTurnSpikesEvent.new),
+  );
 }
 
 void _recordFollowUpPlayerReplacementIfNeeded({

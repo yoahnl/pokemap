@@ -148,6 +148,36 @@ void main() {
           afterTurn.state.currentTurn!.spikesEvents.single.layers, equals(1));
     });
 
+    test('records Spikes layer growth after the move execution in timeline order',
+        () {
+      final session = _session(
+        player: _combatantData(
+          speciesId: 'lead_player',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_spikes()],
+        ),
+        enemy: _combatantData(
+          speciesId: 'lead_enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+      final timeline = afterTurn.state.currentTurn!.timeline;
+      final executionIndex = timeline.indexWhere(
+        (event) => event is BattleTurnExecutionEvent,
+      );
+      final spikesIndex = timeline.indexWhere(
+        (event) =>
+            event is BattleTurnSpikesEvent &&
+            event.event.kind == BattleSpikesEventKind.setLayer,
+      );
+
+      expect(executionIndex, greaterThanOrEqualTo(0));
+      expect(spikesIndex, greaterThan(executionIndex));
+    });
+
     test('raises Spikes from one layer to two layers', () {
       final session = _session(
         player: _combatantData(

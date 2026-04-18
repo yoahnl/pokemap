@@ -32,6 +32,8 @@ BattleMove _move({
   BattleVolatileStatusId? selfVolatileStatus,
   bool breaksProtect = false,
   bool requiresRecharge = false,
+  bool setsStealthRock = false,
+  bool setsSpikes = false,
   BattleChargeThenStrikeEffect? chargeThenStrikeEffect,
   BattleWeatherId? weatherEffect,
   BattlePseudoWeatherId? pseudoWeatherEffect,
@@ -50,6 +52,8 @@ BattleMove _move({
     selfVolatileStatus: selfVolatileStatus,
     breaksProtect: breaksProtect,
     requiresRecharge: requiresRecharge,
+    setsStealthRock: setsStealthRock,
+    setsSpikes: setsSpikes,
     chargeThenStrikeEffect: chargeThenStrikeEffect,
     weatherEffect: weatherEffect,
     pseudoWeatherEffect: pseudoWeatherEffect,
@@ -353,6 +357,104 @@ void main() {
         equals(BattleFieldEventKind.weatherSet),
       );
       expect(result.fieldEvents.single.targetSlot, isNull);
+    });
+
+    test('runSideConditionMoveResolved sets Stealth Rock on hit', () {
+      final targetSide = BattleSideState.enemy(
+        active: _combatant(
+          speciesId: 'lead_enemy',
+          moves: <BattleMove>[_move(id: 'growl', power: 0)],
+        ),
+        reserve: const <BattleCombatant>[],
+      );
+
+      final result = engine.runSideConditionMoveResolved(
+        move: _move(
+          id: 'stealth_rock',
+          power: 0,
+          type: 'rock',
+          category: BattleMoveCategory.status,
+          target: BattleMoveTarget.opponentSide,
+          accuracy: const BattleMoveAccuracy.alwaysHits(),
+          pp: 20,
+          currentPp: 20,
+          setsStealthRock: true,
+        ),
+        didResolveHit: true,
+        targetSide: targetSide,
+      );
+
+      expect(result.side.hasStealthRock, isTrue);
+      expect(result.stealthRockEvents, hasLength(1));
+      expect(
+        result.stealthRockEvents.single.kind,
+        equals(BattleStealthRockEventKind.set),
+      );
+      expect(result.spikesEvents, isEmpty);
+    });
+
+    test('runSideConditionMoveResolved grows Spikes layers on hit', () {
+      final targetSide = BattleSideState.enemy(
+        active: _combatant(
+          speciesId: 'lead_enemy',
+          moves: <BattleMove>[_move(id: 'growl', power: 0)],
+        ),
+        reserve: const <BattleCombatant>[],
+      );
+
+      final result = engine.runSideConditionMoveResolved(
+        move: _move(
+          id: 'spikes',
+          power: 0,
+          type: 'ground',
+          category: BattleMoveCategory.status,
+          target: BattleMoveTarget.opponentSide,
+          accuracy: const BattleMoveAccuracy.alwaysHits(),
+          pp: 20,
+          currentPp: 20,
+          setsSpikes: true,
+        ),
+        didResolveHit: true,
+        targetSide: targetSide,
+      );
+
+      expect(result.side.spikesLayers, equals(1));
+      expect(result.stealthRockEvents, isEmpty);
+      expect(result.spikesEvents, hasLength(1));
+      expect(
+        result.spikesEvents.single.kind,
+        equals(BattleSpikesEventKind.setLayer),
+      );
+      expect(result.spikesEvents.single.layers, equals(1));
+    });
+
+    test('runEntryHazards applies Stealth Rock before Spikes and stops on KO', () {
+      final side = BattleSideState.player(
+        active: _combatant(
+          speciesId: 'fragile_switch',
+          currentHp: 5,
+          maxHp: 10,
+          typing: const BattleTypingSnapshot(
+            primaryType: 'fire',
+            secondaryType: 'flying',
+          ),
+          moves: <BattleMove>[_move(id: 'growl', power: 0)],
+        ),
+        reserve: const <BattleCombatant>[],
+      ).withStealthRock(true).withSpikesLayers(3);
+
+      final result = engine.runEntryHazards(side: side);
+
+      expect(result.side.active.isFainted, isTrue);
+      expect(
+        result.stealthRockEvents
+            .map((event) => event.kind)
+            .toList(growable: false),
+        equals(<BattleStealthRockEventKind>[
+          BattleStealthRockEventKind.damagedOnEntry,
+        ]),
+      );
+      expect(result.spikesEvents, isEmpty);
     });
 
     test('runForcedContinueTurn spends the recharge turn and clears it', () {

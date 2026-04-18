@@ -1,8 +1,8 @@
 # Battle Canonical State v3.1
 
-Statut: canon battle actuel du dépôt après `R2 — Scheduler Consolidation`
+Statut: canon battle actuel du dépôt après `R3 — Condition Lifecycle Consolidation`
 
-Date de réalignement: 2026-04-18
+Date de réalignement: 2026-04-19
 
 ## But du document
 
@@ -56,7 +56,7 @@ L'écart dominant n'est plus l'absence de slice battleable. L'écart dominant es
 - la centralisation résiduelle autour de `packages/map_battle/lib/src/battle_session.dart`
 - l'étroitesse des contracts requests / targeting / replacement
 - la petitesse d'un scheduler local désormais consolidé mais encore borné
-- l'asymétrie entre conditions moteur et side conditions/hazards
+- l'absence de lifecycle side-level plus large que les hazards déjà ouvertes
 
 La vérité produit actuelle est la suivante:
 
@@ -64,11 +64,11 @@ La vérité produit actuelle est la suivante:
 - un **host lançable** existe réellement
 - un **bootstrap projet frais générique** existe réellement, mais il n'est pas équivalent à un projet battle-ready générique
 
-Décision canonique après R2:
+Décision canonique après R3:
 
-- la suite officielle n'est plus unique
-- si la prochaine mécanique visée est `switch/replacement/targeting`-centric, la branche officielle est `R4`
-- si la prochaine mécanique visée est `condition`-centric, la branche officielle est `R3`
+- la branche condition-centric minimale est désormais consolidée pour les mécaniques déjà ouvertes
+- si la trajectoire reste `condition`-centric, la prochaine étape officielle devient `H3`
+- si la trajectoire pivote vers `switch/replacement/targeting`, la prochaine étape officielle redevient `R4`
 
 ## État réel du moteur battle
 
@@ -134,15 +134,29 @@ Fichiers pivots:
 
 Le moteur a déjà un vrai `BattleConditionEngine` local.
 
-Il sait déjà piloter:
+Après `R3`, il sait piloter:
 
 - `runActionAttempt`
 - `runHitInterception`
 - `runMoveResolved`
+- `runSideConditionMoveResolved`
 - `runForcedContinueTurn`
+- `runEntryHazards`
 - `runEndOfTurn`
 
 Ce seam est réel, consommé, et testé.
+
+Il porte désormais aussi le lifecycle borné des side conditions déjà ouvertes:
+
+- pose de `Stealth Rock`
+- pose / progression de `Spikes`
+- résolution des entry hazards
+
+Cette consolidation n'ouvre toujours pas:
+
+- de système générique de side conditions
+- de registre générique d'effets
+- de nouvelle famille de hazards
 
 Fichier pivot:
 
@@ -186,8 +200,8 @@ Fichier pivot:
 - un slot actif par side
 - targeting local minimal `self/opponent/field/opponentSide/unspecified`
 - scheduler local réel, consolidé, et encore borné
-- condition engine réel mais borné
-- side-level mechanics ouvertes sur deux slices dédiées, pas un framework générique
+- condition engine réel, consolidé, et encore borné
+- side-level mechanics ouvertes avec un lifecycle explicite, sans framework générique
 - write-back runtime réel mais étroit
 
 ### Ce qui est fragile
@@ -349,7 +363,7 @@ Il faut désormais distinguer explicitement:
 | statuses | réels pour `par/brn/psn/tox` | faible | slice honnête |
 | volatiles | réels pour `protect/recharge/chargeThenStrike` | faible | slice honnête |
 | field / pseudoWeather | réel pour `rain/sandstorm/trickRoom` | faible structurellement, honnête localement | slice honnête |
-| hazards / side conditions | réelles pour `Stealth Rock` et `Spikes` | faible | pas de framework générique |
+| hazards / side conditions | réelles pour `Stealth Rock` et `Spikes` | faible | lifecycle consolidé, pas de framework générique |
 | switch / replacement | réels | honnête localement, loin du modèle Showdown large | vrai pipeline local |
 | PP / accuracy / crit / damage | réels et bornés | honnête localement, loin de la richesse Showdown | loin de la richesse Showdown |
 | runtime bridge | réel et strict | n/a produit | très bon niveau de vérité |
@@ -361,10 +375,10 @@ Il faut désormais distinguer explicitement:
 
 Écarts structurants dominants:
 
-1. `battle_session.dart` reste encore trop chargé hors scheduler pur
+1. `battle_session.dart` reste encore trop chargé sur la résolution de move et l'outcome
 2. le scheduler local est désormais plus clair, mais reste trop petit pour des flows plus riches
 3. les contracts requests / targeting / replacement restent trop serrés
-4. les conditions moteur et les side conditions restent asymétriques
+4. les side conditions riches restent hors du lifecycle consolidé actuel
 5. le runtime bridge est honnête, mais calibré pour un sous-ensemble strict
 
 Écarts mécaniques dominants:
@@ -380,7 +394,7 @@ Il faut désormais distinguer explicitement:
 
 ### Architecture
 
-- centralisation encore réelle dans `battle_session.dart`, même si le scheduler local n'y vit plus entièrement
+- centralisation encore réelle dans `battle_session.dart`, même si scheduler et lifecycle conditionnel y vivent moins qu'avant
 
 ### Scheduling
 
@@ -404,3 +418,10 @@ Il faut désormais distinguer explicitement:
 - ancien plan battle engine
 - ancien README runtime
 - certains reports historiques
+
+## Suite officielle après R3
+
+Après `R3`, la suite officielle redevient conditionnelle selon la trajectoire choisie:
+
+- `H3` si la trajectoire reste `condition`-centric et vise un micro-slice mécanique unique
+- `R4` si la trajectoire pivote vers `switch / replacement / targeting`

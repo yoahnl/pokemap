@@ -151,6 +151,36 @@ void main() {
       );
     });
 
+    test('records Stealth Rock set after the move execution in timeline order',
+        () {
+      final session = _session(
+        player: _combatantData(
+          speciesId: 'lead_player',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_stealthRock()],
+        ),
+        enemy: _combatantData(
+          speciesId: 'lead_enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+      final timeline = afterTurn.state.currentTurn!.timeline;
+      final executionIndex = timeline.indexWhere(
+        (event) => event is BattleTurnExecutionEvent,
+      );
+      final hazardIndex = timeline.indexWhere(
+        (event) =>
+            event is BattleTurnStealthRockEvent &&
+            event.event.kind == BattleStealthRockEventKind.set,
+      );
+
+      expect(executionIndex, greaterThanOrEqualTo(0));
+      expect(hazardIndex, greaterThan(executionIndex));
+    });
+
     test('does not stack Stealth Rock when it is already present', () {
       final session = _session(
         player: _combatantData(
