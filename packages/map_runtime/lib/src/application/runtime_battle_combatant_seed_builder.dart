@@ -115,13 +115,21 @@ List<BattleMoveData> resolveBattleMovesForSeed({
     return List<BattleMoveData>.unmodifiable(moves);
   }
 
+  // R1 garde ici un hard-fail volontaire :
+  // - on ne réinjecte pas de move "par défaut" qui n'appartient pas au Pokémon ;
+  // - on ne maquille pas non plus le trou avec un faux support Struggle runtime ;
+  // - on préfère échouer tôt, avec un diagnostic produit/actionnable, tant que
+  //   le bridge battle actuel ne sait pas projeter honnêtement aucune attaque
+  //   du set candidat.
   throw RuntimeBattleSetupException(
-    'Le combat ne peut pas démarrer car "$combatantLabel" n’a aucun move bridgeable restant après filtrage.',
+    'Le combat ne peut pas démarrer car "$combatantLabel" n’a aucun move bridgeable restant après filtrage. '
+    'Attribuez-lui au moins une attaque réellement supportée par le bridge battle actuel.',
     debugDetails: 'combatant=$combatantLabel, '
         'candidateMoveIds=${_formatDebugStringList(candidateMoveIds)}, '
         'rejectedMoveIds=${_formatDebugStringList(rejectedMoves.map((move) => move.moveId).toList(growable: false))}, '
         'rejectedMoves=[${rejectedMoves.map((move) => move.toDebugDetails()).join('; ')}], '
-        'filterResult=no_bridgeable_moves_remaining_after_filtering',
+        'filterResult=no_bridgeable_moves_remaining_after_filtering, '
+        'resolutionHint=assign_at_least_one_bridgeable_move',
   );
 }
 

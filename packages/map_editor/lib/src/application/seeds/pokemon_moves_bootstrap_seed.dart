@@ -563,52 +563,12 @@ final List<PokemonMove> _structuredSupportedSeedMoves = <PokemonMove>[
     shortDescription: 'No additional effect.',
     description: 'No additional effect.',
   ),
-  _showdownSeedMove(
-    id: 'whirlwind',
-    showdownMoveId: 'whirlwind',
-    name: 'Whirlwind',
-    generation: 1,
-    type: 'normal',
-    category: PokemonMoveCategory.status,
-    accuracy: const PokemonMoveAccuracy.alwaysHits(),
-    pp: 20,
-    priority: -6,
-    flags: <PokemonMoveFlag>[
-      PokemonMoveFlag.allyAnim,
-      PokemonMoveFlag.bypassSubstitute,
-      PokemonMoveFlag.failCopycat,
-      PokemonMoveFlag.metronome,
-      PokemonMoveFlag.mirror,
-      PokemonMoveFlag.noAssist,
-      PokemonMoveFlag.reflectable,
-      PokemonMoveFlag.wind,
-    ],
-    effects: const <PokemonMoveEffect>[
-      PokemonMoveEffect.forceSwitch(),
-    ],
-    shortDescription: 'Forces the target to switch to a random ally.',
-    description:
-        'The target is forced to switch out and be replaced with a random '
-        'unfainted ally. Fails if the target is the last unfainted Pokemon in '
-        'its party, or if the target used Ingrain previously or has the '
-        'Suction Cups Ability.',
-    engineSupportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
-    unsupportedReasons: <String>[
-      'unsupported_effect_kind:force_switch',
-    ],
-  ),
-];
-
-/// Moves volontairement gardés dans le seed malgré un support encore limité.
-///
-/// On les garde parce qu'ils rendent le seed plus utile qu'une simple liste
-/// d'attaques triviales, tout en exposant honnêtement les limites structurelles
-/// actuelles via `catalog_only` et `unsupportedReasons`.
-final List<PokemonMove> _catalogOnlySeedMoves = <PokemonMove>[
-  // H1/H2 supportent désormais Stealth Rock et Spikes de bout en bout.
-  //
-  // On laisse volontairement ces entrées à leur place pour éviter un grand
-  // remaniement du seed, mais leur niveau de support ne doit plus mentir.
+  // R1 réaligne ici trois entrées que le dépôt supporte déjà honnêtement :
+  // - `stealth_rock` et `spikes` sont supportés de bout en bout depuis H1/H2 ;
+  // - `trick_room` est réellement consommé par le moteur local sur le sous-
+  //   ensemble seed/bridge/runtime actuellement ouvert ;
+  // - on les remonte donc dans la section structurée au lieu de les laisser
+  //   dans un regroupement historique devenu trompeur.
   _showdownSeedMove(
     id: 'stealth_rock',
     showdownMoveId: 'stealthrock',
@@ -671,6 +631,80 @@ final List<PokemonMove> _catalogOnlySeedMoves = <PokemonMove>[
       'condition.onSwitchIn',
     ],
   ),
+  _showdownSeedMove(
+    id: 'trick_room',
+    showdownMoveId: 'trickroom',
+    name: 'Trick Room',
+    generation: 4,
+    type: 'psychic',
+    category: PokemonMoveCategory.status,
+    target: PokemonMoveTarget.all,
+    accuracy: const PokemonMoveAccuracy.alwaysHits(),
+    pp: 5,
+    priority: -7,
+    flags: <PokemonMoveFlag>[
+      PokemonMoveFlag.metronome,
+      PokemonMoveFlag.mirror,
+    ],
+    effects: const <PokemonMoveEffect>[
+      PokemonMoveEffect.setPseudoWeather(pseudoWeatherId: 'trickroom'),
+    ],
+    shortDescription: 'Goes last. For 5 turns, turn order is reversed.',
+    description:
+        'For 5 turns, the Speed of every Pokemon is recalculated for the '
+        'purposes of determining turn order. During the effect, each '
+        'Pokemon\'s Speed is considered to be (10000 - its normal Speed), and '
+        'if this value is greater than 8191, 8192 is subtracted from it. If '
+        'this move is used during the effect, the effect ends.',
+    showdownHooksPresent: <String>[
+      'condition.durationCallback',
+      'condition.onFieldEnd',
+      'condition.onFieldRestart',
+      'condition.onFieldStart',
+    ],
+  ),
+  _showdownSeedMove(
+    id: 'whirlwind',
+    showdownMoveId: 'whirlwind',
+    name: 'Whirlwind',
+    generation: 1,
+    type: 'normal',
+    category: PokemonMoveCategory.status,
+    accuracy: const PokemonMoveAccuracy.alwaysHits(),
+    pp: 20,
+    priority: -6,
+    flags: <PokemonMoveFlag>[
+      PokemonMoveFlag.allyAnim,
+      PokemonMoveFlag.bypassSubstitute,
+      PokemonMoveFlag.failCopycat,
+      PokemonMoveFlag.metronome,
+      PokemonMoveFlag.mirror,
+      PokemonMoveFlag.noAssist,
+      PokemonMoveFlag.reflectable,
+      PokemonMoveFlag.wind,
+    ],
+    effects: const <PokemonMoveEffect>[
+      PokemonMoveEffect.forceSwitch(),
+    ],
+    shortDescription: 'Forces the target to switch to a random ally.',
+    description:
+        'The target is forced to switch out and be replaced with a random '
+        'unfainted ally. Fails if the target is the last unfainted Pokemon in '
+        'its party, or if the target used Ingrain previously or has the '
+        'Suction Cups Ability.',
+    engineSupportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+    unsupportedReasons: <String>[
+      'unsupported_effect_kind:force_switch',
+    ],
+  ),
+];
+
+/// Moves volontairement gardés dans le seed malgré un support encore limité.
+///
+/// On les garde parce qu'ils rendent le seed plus utile qu'une simple liste
+/// d'attaques triviales, tout en exposant honnêtement les limites structurelles
+/// actuelles via `catalog_only` et `unsupportedReasons`.
+final List<PokemonMove> _catalogOnlySeedMoves = <PokemonMove>[
   _showdownSeedMove(
     id: 'electric_terrain',
     showdownMoveId: 'electricterrain',
@@ -798,47 +832,6 @@ final List<PokemonMove> _catalogOnlySeedMoves = <PokemonMove>[
     showdownHooksPresent: <String>[
       'onBasePower',
       'onTryMove',
-    ],
-  ),
-  _showdownSeedMove(
-    id: 'trick_room',
-    showdownMoveId: 'trickroom',
-    name: 'Trick Room',
-    generation: 4,
-    type: 'psychic',
-    category: PokemonMoveCategory.status,
-    target: PokemonMoveTarget.all,
-    accuracy: const PokemonMoveAccuracy.alwaysHits(),
-    pp: 5,
-    priority: -7,
-    flags: <PokemonMoveFlag>[
-      PokemonMoveFlag.metronome,
-      PokemonMoveFlag.mirror,
-    ],
-    effects: const <PokemonMoveEffect>[
-      PokemonMoveEffect.setPseudoWeather(pseudoWeatherId: 'trickroom'),
-    ],
-    shortDescription: 'Goes last. For 5 turns, turn order is reversed.',
-    description:
-        'For 5 turns, the Speed of every Pokemon is recalculated for the '
-        'purposes of determining turn order. During the effect, each '
-        'Pokemon\'s Speed is considered to be (10000 - its normal Speed), and '
-        'if this value is greater than 8191, 8192 is subtracted from it. If '
-        'this move is used during the effect, the effect ends.',
-    engineSupportLevel: PokemonMoveEngineSupportLevel.structuredPartial,
-    unsupportedReasons: <String>[
-      'unsupported_mechanic:turn_order_inversion',
-      'showdown_callback:condition.durationCallback',
-      'showdown_callback:condition.onFieldEnd',
-      'showdown_callback:condition.onFieldRestart',
-      'showdown_callback:condition.onFieldStart',
-      'unsupported_mechanic:condition',
-    ],
-    showdownHooksPresent: <String>[
-      'condition.durationCallback',
-      'condition.onFieldEnd',
-      'condition.onFieldRestart',
-      'condition.onFieldStart',
     ],
   ),
 ];

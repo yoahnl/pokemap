@@ -816,6 +816,9 @@ void main() {
                   contains('moveId=teleport'),
                   contains('moveName=Teleport'),
                   contains('unsupportedReasons=[unsupported_mechanic:zMove]'),
+                  contains(
+                    'resolutionHint=assign_at_least_one_bridgeable_move',
+                  ),
                 ),
               ),
         ),
@@ -940,6 +943,9 @@ void main() {
                   contains('moveId=tackle'),
                   contains('moveId=growl'),
                   contains('moveId=vine_whip'),
+                  contains(
+                    'resolutionHint=assign_at_least_one_bridgeable_move',
+                  ),
                 ),
               ),
         ),

@@ -204,6 +204,96 @@ void main() {
           isA<PlayerBattleChoiceContinue>());
     });
 
+    test(
+        'a battler with no usable move and no other legal choice exposes an explicit dead-end wait request',
+        () {
+      final session = _session(
+        isTrainerBattle: true,
+        player: _combatant(
+          speciesId: 'locked_player',
+          lineupIndex: 0,
+          moves: const <BattleMoveData>[
+            BattleMoveData(
+              id: 'tackle',
+              name: 'Tackle',
+              power: 40,
+              pp: 10,
+              currentPp: 0,
+            ),
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+
+      final request = session.decisionRequest;
+
+      expect(request, isA<BattleWaitRequest>());
+      final waitRequest = request as BattleWaitRequest;
+      expect(waitRequest.side, equals(BattleSideId.player));
+      expect(
+        waitRequest.slot,
+        equals(const BattleSlotRef.active(BattleSideId.player)),
+      );
+      expect(waitRequest.reason, equals(BattleWaitReason.noLegalChoice));
+      expect(waitRequest.expectsInput, isFalse);
+      expect(waitRequest.allowedChoices, isEmpty);
+    });
+
+    test('a noLegalChoice wait request rejects arbitrary player input', () {
+      final session = _session(
+        isTrainerBattle: true,
+        player: _combatant(
+          speciesId: 'locked_player',
+          lineupIndex: 0,
+          moves: const <BattleMoveData>[
+            BattleMoveData(
+              id: 'tackle',
+              name: 'Tackle',
+              power: 40,
+              pp: 10,
+              currentPp: 0,
+            ),
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+
+      expect(
+        session.decisionRequest,
+        isA<BattleWaitRequest>().having(
+          (request) => request.reason,
+          'reason',
+          BattleWaitReason.noLegalChoice,
+        ),
+      );
+
+      // R1 ferme ce cas comme dead-end explicite :
+      // - aucun input joueur n'est attendu ;
+      // - on ne doit donc pas pouvoir "forcer" un move arbitraire pour sortir
+      //   du wait tant que `Struggle` n'est pas réellement supporté.
+      expect(
+        () => session.applyChoice(const PlayerBattleChoiceFight(0)),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            allOf(
+              contains('Aucune décision joueur n’est attendue actuellement'),
+              contains('noLegalChoice'),
+            ),
+          ),
+        ),
+      );
+    });
+
     test('request constructors reject mismatched side and slot attachments',
         () {
       expect(

@@ -390,6 +390,9 @@ void main() {
                     contains(
                       'filterResult=no_bridgeable_moves_remaining_after_filtering',
                     ),
+                    contains(
+                      'resolutionHint=assign_at_least_one_bridgeable_move',
+                    ),
                   ),
                 ),
               ),
@@ -536,6 +539,9 @@ void main() {
                   contains('moveId=vine_whip'),
                   contains(
                     'filterResult=no_bridgeable_moves_remaining_after_filtering',
+                  ),
+                  contains(
+                    'resolutionHint=assign_at_least_one_bridgeable_move',
                   ),
                 ),
               ),

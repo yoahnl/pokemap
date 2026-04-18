@@ -1,6 +1,6 @@
 # Battle Canonical State v3.1
 
-Statut: canon battle actuel du dépôt après `R0 — Truth Alignment`
+Statut: canon battle actuel du dépôt après `R1 — Battleable Slice Hardening`
 
 Date de réalignement: 2026-04-18
 
@@ -64,9 +64,9 @@ La vérité produit actuelle est la suivante:
 - un **host lançable** existe réellement
 - un **bootstrap projet frais générique** existe réellement, mais il n'est pas équivalent à un projet battle-ready générique
 
-Décision canonique après R0:
+Décision canonique après R1:
 
-- la prochaine vraie étape officielle est `R1 — Battleable Slice Hardening`
+- la prochaine vraie étape officielle est `R2 — Scheduler Consolidation`
 
 ## État réel du moteur battle
 
@@ -182,11 +182,13 @@ Fichier pivot:
 
 ### Ce qui est fragile
 
-- `Struggle` absent
-- fallback IA adverse actuellement trivial
+- `Struggle` reste absent et volontairement hors scope R1
+- côté joueur, `BattleWaitReason.noLegalChoice` est un dead-end explicite et unsupported ; ce n'est ni un flow gameplay acceptable, ni un support implicite de `Struggle`
+- côté ennemi, l'absence totale d'action légale reste un `StateError` explicite ; cette asymétrie est assumée en R1 et ne vaut pas support complet du cas “no move left”
+- l'ennemi sans action légale échoue désormais explicitement au lieu de produire un faux `Run`
 - tie-break vitesse égale déterministe joueur d'abord
 - priorité de switch localement hardcodée
-- politique de double KO locale
+- politique de double KO locale, maintenue explicitement en R1
 - ordre d'entrée hazards local `Stealth Rock` puis `Spikes`
 - compatibilités legacy dans `BattleMove` et `BattleTypeChart`
 
@@ -285,10 +287,10 @@ Le dépôt distingue maintenant clairement:
 - le seed de données de démo
 - le golden slice battleable versionné
 
-### Zones encore légèrement décalées
+### R1 a réaligné les points de vérité bootstrap les plus trompeurs
 
-- `trick_room` reste sous-déclaré dans le seed par rapport au sous-ensemble réellement consommé
-- `stealth_rock` et `spikes` restent groupés dans un classement de seed historiquement trompeur si on le lit trop littéralement
+- `trick_room` n'est plus sous-déclaré dans le seed par rapport au sous-ensemble réellement consommé
+- `stealth_rock` et `spikes` ne vivent plus dans un regroupement historiquement trompeur
 
 ## Vérité produit réelle
 
@@ -380,11 +382,11 @@ Il faut désormais distinguer explicitement:
 
 ### Runtime
 
-- hard-fail “no bridgeable move left” honnête mais dur
+- hard-fail “no bridgeable move left” honnête, plus explicite, et toujours volontairement bloquant
 
 ### Bootstrap
 
-- quelques labels/support claims encore légèrement décalés
+- les labels/support claims les plus trompeurs ont été réalignés en R1
 
 ### Documentation
 
@@ -392,27 +394,3 @@ Il faut désormais distinguer explicitement:
 - ancien plan battle engine
 - ancien README runtime
 - certains reports historiques
-
-## Décision officielle après R0
-
-R0 ne change pas le moteur.
-R0 ne rajoute aucune mécanique.
-R0 ne prétend pas “refonder” le canon.
-
-R0 produit:
-
-- une source canonique d'état battle réel
-- une roadmap canonique battle v3.1 propre
-- des notes de supersession ciblées sur les documents trompeurs
-
-### Prochaine vraie étape officielle
-
-La prochaine vraie étape officielle après R0 est:
-
-- `R1 — Battleable Slice Hardening`
-
-Raison:
-
-- le slice battle/runtime/host existe déjà
-- la prochaine dette dominante n'est pas un manque de vérité documentaire
-- la prochaine dette dominante est le durcissement des fragilités déjà connues, sans élargir encore le moteur

@@ -1,6 +1,6 @@
 # Battle Roadmap Canonical v3.1
 
-Statut: roadmap battle canonique du dépôt après `R0 — Truth Alignment`
+Statut: roadmap battle canonique du dépôt après `R1 — Battleable Slice Hardening`
 
 ## But
 
@@ -186,8 +186,16 @@ Elle vit sur une piste parallèle:
 - le présent document
 - les notes de supersession/document truth ajoutées pendant R0
 
+## Statut officiel après R1
+
+`R1` est rempli par:
+
+- le durcissement des edge-cases les plus honteux du slice battleable
+- le maintien explicite du fail runtime `no bridgeable move` sans faux support
+- le réalignement seed/support truth sur `trick_room`, `stealth_rock`, `spikes`
+
 ## Prochaine étape officielle
 
-La prochaine étape officielle après R0 est:
+La prochaine étape officielle après R1 est:
 
-- `R1 — Battleable Slice Hardening`
+- `R2 — Scheduler Consolidation`

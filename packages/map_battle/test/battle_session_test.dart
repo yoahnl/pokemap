@@ -491,6 +491,100 @@ void main() {
       );
     });
 
+    test(
+        'enemy with no configured move fails explicitly instead of masquerading as a run action',
+        () {
+      final setup = BattleSetup(
+        playerPokemon: BattleCombatantData(
+          speciesId: 'pikachu',
+          level: 5,
+          maxHp: 20,
+          stats: _neutralBattleStats,
+          moves: const [
+            BattleMoveData(
+              id: 'growl',
+              name: 'Growl',
+              power: 0,
+              category: BattleMoveCategory.status,
+              target: BattleMoveTarget.opponent,
+            ),
+          ],
+        ),
+        enemyPokemon: BattleCombatantData(
+          speciesId: 'lapras',
+          level: 5,
+          maxHp: 25,
+          stats: _neutralBattleStats,
+          moves: const [],
+        ),
+        isTrainerBattle: false,
+        trainerId: null,
+      );
+      final session = createBattleSession(setup);
+
+      expect(
+        () => session.applyChoice(const PlayerBattleChoiceFight(0)),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            contains('aucun move configuré'),
+          ),
+        ),
+      );
+    });
+
+    test(
+        'enemy with only zero-PP moves fails explicitly while Struggle stays out of scope',
+        () {
+      final setup = BattleSetup(
+        playerPokemon: BattleCombatantData(
+          speciesId: 'pikachu',
+          level: 5,
+          maxHp: 20,
+          stats: _neutralBattleStats,
+          moves: const [
+            BattleMoveData(
+              id: 'growl',
+              name: 'Growl',
+              power: 0,
+              category: BattleMoveCategory.status,
+              target: BattleMoveTarget.opponent,
+            ),
+          ],
+        ),
+        enemyPokemon: BattleCombatantData(
+          speciesId: 'lapras',
+          level: 5,
+          maxHp: 25,
+          stats: _neutralBattleStats,
+          moves: const [
+            BattleMoveData(
+              id: 'tackle',
+              name: 'Charge',
+              power: 5,
+              pp: 10,
+              currentPp: 0,
+            ),
+          ],
+        ),
+        isTrainerBattle: false,
+        trainerId: null,
+      );
+      final session = createBattleSession(setup);
+
+      expect(
+        () => session.applyChoice(const PlayerBattleChoiceFight(0)),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            contains('Struggle est hors scope'),
+          ),
+        ),
+      );
+    });
+
     test('getAvailableChoices returns fight choices + run in wild battle', () {
       final setup = createTestSetup();
       final session = createBattleSession(setup);

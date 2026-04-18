@@ -1,3 +1,1038 @@
+# R1 Closure Polish Report
+
+## 1. Résumé exécutif honnête
+
+Ce passage de fermeture n'est pas un rerun de `R1`.
+C'est un mini passage de cohérence et de verrouillage, exécuté sur un worktree déjà dirty par le passage `R1` précédent, sans aucun reset.
+
+Constat principal:
+
+- une vraie incohérence canonique résiduelle existait dans `docs/combat/battle-canonical-state-v3.1.md` : le document se présentait bien comme le canon battle après `R1`, mais conservait plus bas une ancienne section historique `Décision officielle après R0` annonçant encore `R1` comme prochaine étape officielle ;
+- `BattleWaitReason.noLegalChoice` était déjà honnête dans son comportement, mais pas encore cadré assez explicitement, noir sur blanc, comme **dead-end unsupported** et non comme flow gameplay acceptable.
+
+Décision retenue:
+
+- corriger maintenant l'incohérence canonique réelle dans `docs/combat/battle-canonical-state-v3.1.md` ;
+- ne pas toucher `docs/combat/battle-roadmap-canonical-v3.1.md`, qui est cohérent sur les surfaces relues ;
+- ne pas implémenter `Struggle` ;
+- ne pas symétriser artificiellement joueur/ennemi ;
+- clarifier localement le sens de `noLegalChoice` dans `packages/map_battle/lib/src/battle_session.dart` ;
+- verrouiller ce sens par test dans `packages/map_battle/test/battle_decision_request_test.dart`.
+
+Résultat net:
+
+- la contradiction canonique après `R1` a été supprimée ;
+- `BattleWaitReason.noLegalChoice` est maintenant explicitement cadré comme état unsupported/dead-end côté joueur ;
+- l'asymétrie actuelle joueur `BattleWaitRequest(noLegalChoice)` / ennemi `StateError` est assumée explicitement comme borne de `R1`, sans faux support nouveau ;
+- aucune dérive vers `R2`, `R3`, `R4`, `H3` ou `Struggle` n'a été introduite.
+
+## 2. Pré-gates réellement exécutés + résultats
+
+Commandes exécutées exactement au début:
+
+```bash
+git status --short --untracked-files=all
+git diff --stat
+git ls-files --others --exclude-standard
+```
+
+Résultats réellement observés:
+
+### `git status --short --untracked-files=all`
+
+```text
+ M docs/combat/battle-canonical-state-v3.1.md
+ M docs/combat/battle-roadmap-canonical-v3.1.md
+ M packages/map_battle/lib/src/battle_session.dart
+ M packages/map_battle/test/battle_decision_request_test.dart
+ M packages/map_battle/test/battle_session_test.dart
+ M packages/map_editor/lib/src/application/seeds/pokemon_moves_bootstrap_seed.dart
+ M packages/map_editor/test/pokemon_moves_bootstrap_seed_test.dart
+ M packages/map_runtime/lib/src/application/runtime_battle_combatant_seed_builder.dart
+ M packages/map_runtime/test/runtime_battle_combatant_seed_builder_test.dart
+ M packages/map_runtime/test/runtime_battle_setup_mapper_test.dart
+?? reports/r1-battleable-slice-hardening-report.md
+```
+
+### `git diff --stat`
+
+```text
+ docs/combat/battle-canonical-state-v3.1.md         |  22 +--
+ docs/combat/battle-roadmap-canonical-v3.1.md       |  14 +-
+ packages/map_battle/lib/src/battle_session.dart    |  42 +++---
+ .../test/battle_decision_request_test.dart         |  38 +++++
+ packages/map_battle/test/battle_session_test.dart  |  94 ++++++++++++
+ .../seeds/pokemon_moves_bootstrap_seed.dart        | 167 ++++++++++-----------
+ .../test/pokemon_moves_bootstrap_seed_test.dart    |   9 +-
+ .../runtime_battle_combatant_seed_builder.dart     |  12 +-
+ ...runtime_battle_combatant_seed_builder_test.dart |   6 +
+ .../test/runtime_battle_setup_mapper_test.dart     |   6 +
+ 10 files changed, 287 insertions(+), 123 deletions(-)
+```
+
+### `git ls-files --others --exclude-standard`
+
+```text
+reports/r1-battleable-slice-hardening-report.md
+```
+
+## 3. État git initial exact et interprétation
+
+Le repo était déjà **dirty** au début de ce passage.
+
+Ce bruit n'était pas un incident du présent travail.
+C'était la baseline du passage `R1` précédent.
+
+Interprétation retenue:
+
+- aucun reset ne devait être tenté ;
+- aucun discard ne devait être tenté ;
+- le présent passage devait être jugé uniquement sur les retouches supplémentaires strictement nécessaires pour fermer proprement `R1` ;
+- il fallait distinguer clairement :
+  - l'état dirty hérité de `R1` ;
+  - les trois fichiers réellement retouchés dans ce passage de fermeture.
+
+## 4. Méthode réellement suivie
+
+Séquence réelle:
+
+1. exécution des pré-gates obligatoires ;
+2. relecture ciblée des docs canoniques `R0/R1` et des surfaces battle liées à `noLegalChoice` ;
+3. classification explicite des sujets avant patch ;
+4. audit parallèle demandé au battle-core semantics et à la cohérence canonique documentaire ;
+5. constat d'une vraie contradiction résiduelle dans `battle-canonical-state-v3.1.md` par lecture directe locale ;
+6. patch minimal sur trois fichiers ;
+7. `dart analyze` + `dart test` sur `packages/map_battle` ;
+8. correction d'un matcher de test trop générique après premier échec ;
+9. rerun complet `dart analyze` + `dart test` sur `packages/map_battle` ;
+10. review séparée finale ciblée sur les dérives de périmètre et la sémantique `noLegalChoice`.
+
+## 5. Périmètre inclus / exclu
+
+### Inclus
+
+- `docs/combat/battle-canonical-state-v3.1.md`
+- `docs/combat/battle-roadmap-canonical-v3.1.md` en lecture seulement
+- `packages/map_battle/lib/src/battle_session.dart`
+- `packages/map_battle/test/battle_decision_request_test.dart`
+- `packages/map_battle/test/battle_session_test.dart` en lecture seulement
+- `reports/r1-battleable-slice-hardening-report.md` en lecture seulement
+- `reports/r0-truth-alignment-report.md` en lecture seulement
+- le présent report final
+
+### Exclus volontairement
+
+- tout `packages/map_runtime/**`
+- tout `packages/map_editor/**`
+- host files
+- seed files
+- toute doc historique hors canon direct
+- tout refactor structurel type `R2`
+- toute ouverture `Struggle`
+- toute symétrisation artificielle du cas joueur/ennemi
+- tout widening de request / targeting / queue
+
+## 6. Classification initiale des sujets
+
+| Sujet | Classification | Décision initiale |
+|---|---|---|
+| incohérence canonique éventuelle dans `battle-canonical-state-v3.1.md` | `fix_now_small` | vérifier si un reliquat “après R0 -> prochaine étape R1” survit réellement ; corriger seulement si vrai |
+| éventuelle incohérence canonique dans `battle-roadmap-canonical-v3.1.md` | `already_ok_do_not_touch` | relire, mais ne toucher que s'il reste une vraie contradiction |
+| clarification de `BattleWaitReason.noLegalChoice` | `fix_now_small` | rendre la sémantique explicitement dead-end / unsupported |
+| asymétrie joueur/ennemi sur “no legal move” | `document_now_only` | assumer explicitement l'asymétrie en `R1`, sans la corriger structurellement |
+| toute autre modif | `defer_not_this_pass` | hors périmètre |
+
+## 7. Fichiers lus
+
+Docs canoniques et reports:
+
+- `docs/combat/battle-canonical-state-v3.1.md`
+- `docs/combat/battle-roadmap-canonical-v3.1.md`
+- `reports/r1-battleable-slice-hardening-report.md`
+- `reports/r0-truth-alignment-report.md`
+
+Battle code/tests:
+
+- `packages/map_battle/lib/src/battle_session.dart`
+- `packages/map_battle/lib/src/battle_decision.dart`
+- `packages/map_battle/test/battle_decision_request_test.dart`
+- `packages/map_battle/test/battle_session_test.dart`
+
+Référence Showdown locale: non relue en profondeur dans ce passage, parce que les deux sujets ciblés étaient déjà bornés par la vérité canonique et le comportement local existant. Ce resserrement est volontaire et conforme au périmètre demandé.
+
+## 8. Constats réels
+
+### 8.1. Incohérence canonique réelle dans `battle-canonical-state-v3.1.md`
+
+Constat:
+
+- le document s'ouvre correctement comme canon battle après `R1` ;
+- il annonce correctement en tête que la prochaine vraie étape officielle est `R2` ;
+- mais plus bas, une ancienne section historique `Décision officielle après R0` survivait encore et réannonçait `R1` comme prochaine vraie étape officielle.
+
+Ce n'était pas un simple détail de style.
+C'était une contradiction interne réelle dans une source censée être canonique après `R1`.
+
+### 8.2. `battle-roadmap-canonical-v3.1.md` n'avait pas besoin d'être retouché
+
+Constat:
+
+- la roadmap se présente explicitement comme la roadmap canonique du dépôt après `R1` ;
+- elle conserve une section `Statut officiel après R0`, mais sous forme de traçabilité de phase, pas comme statut final du document ;
+- elle annonce bien `R2` comme prochaine étape officielle après `R1`.
+
+Conclusion:
+
+- pas de contradiction canonique suffisamment forte pour justifier un patch dans ce passage.
+
+### 8.3. `noLegalChoice` était déjà honnête en comportement, mais pas encore assez explicite en cadrage
+
+Constat côté code:
+
+- le moteur renvoyait déjà `BattleWaitRequest(reason: BattleWaitReason.noLegalChoice)` quand le joueur n'avait ni move, ni switch, ni capture, ni fuite honnêtes ;
+- `applyChoice()` rejetait déjà toute tentative de forcer un input dans un `BattleWaitRequest` avec un message dédié mentionnant le reason ;
+- l'ennemi sans move légal échouait déjà explicitement par `StateError`.
+
+Constat côté vérité canonique:
+
+- le document canonique mentionnait `Struggle` absent ;
+- mais il ne disait pas encore assez explicitement que `BattleWaitReason.noLegalChoice` est un **dead-end unsupported** et non un flow acceptable.
+
+### 8.4. L'asymétrie joueur/ennemi ne devait pas être “corrigée” ici
+
+Constat:
+
+- côté joueur, le moteur expose une surface publique `decisionRequest`, donc un `wait` explicite est la forme honnête la plus petite ;
+- côté ennemi, le moteur n'expose pas de request publique et reste sur une garde interne `_chooseEnemyAction()` ;
+- tenter de symétriser maintenant aurait demandé soit une nouvelle sémantique de forced action, soit un widening contractuel, soit un changement plus structurel.
+
+Conclusion:
+
+- cette asymétrie appartient encore à `R1` comme garde-fou de vérité, pas à un mini-fix structurel.
+
+## 9. Décisions retenues / rejetées sujet par sujet
+
+### 9.1. Incohérence canonique dans `battle-canonical-state-v3.1.md`
+
+Décision retenue:
+
+- **corriger maintenant**
+
+Pourquoi:
+
+- contradiction réelle dans une source canonique ;
+- correction petite ;
+- correction purement documentaire ;
+- aucun risque de dérive de phase.
+
+Décision rejetée:
+
+- conserver la section historique “par traçabilité” dans ce document précis.
+
+Pourquoi rejetée:
+
+- dans le document d'état canonique après `R1`, cette section historique n'était plus neutre ;
+- elle contredisait explicitement la temporalité affichée plus haut.
+
+### 9.2. Incohérence éventuelle dans `battle-roadmap-canonical-v3.1.md`
+
+Décision retenue:
+
+- **ne pas toucher**
+
+Pourquoi:
+
+- aucune contradiction canonique forte détectée ;
+- la section `Statut officiel après R0` reste lisible comme traçabilité de phase, pas comme statut final concurrent.
+
+Décision rejetée:
+
+- réécriture cosmétique pour harmoniser avec le canon d'état.
+
+Pourquoi rejetée:
+
+- ce serait une dérive documentaire sans gain de vérité suffisant pour ce passage.
+
+### 9.3. Clarification de `BattleWaitReason.noLegalChoice`
+
+Décision retenue:
+
+- **clarifier maintenant** par commentaire moteur + doc canonique + test explicite
+
+Pourquoi:
+
+- le comportement était déjà globalement honnête ;
+- le manque portait surtout sur la netteté du cadrage ;
+- c'était exactement le type de fermeture `R1` demandé.
+
+Décision rejetée:
+
+- implémenter `Struggle`
+- inventer un fallback joueur
+- inventer un fallback ennemi
+- ouvrir une nouvelle forme de request
+
+Pourquoi rejetée:
+
+- hors périmètre ;
+- dérive vers une autre phase ;
+- risque de faux support.
+
+### 9.4. Asymétrie joueur/ennemi sur “no legal move”
+
+Décision retenue:
+
+- **assumer explicitement l'asymétrie**
+
+Pourquoi:
+
+- l'asymétrie reflète les seams réels du repo aujourd'hui ;
+- la rendre visible est encore un travail `R1` ;
+- la supprimer honnêtement demanderait plus qu'un mini passage de fermeture.
+
+Décision rejetée:
+
+- symétriser immédiatement les deux branches.
+
+Pourquoi rejetée:
+
+- ce serait un faux petit fix ;
+- en pratique, cela déborderait vers du contrat ou du scheduling.
+
+## 10. Justification précise des fichiers modifiés
+
+### `docs/combat/battle-canonical-state-v3.1.md`
+
+Touché pour deux raisons strictes:
+
+1. supprimer la contradiction temporelle résiduelle `après R0 -> prochaine étape R1` dans un document qui se présente comme canon après `R1` ;
+2. expliciter que `BattleWaitReason.noLegalChoice` côté joueur est un dead-end unsupported, pas un flow acceptable.
+
+### `packages/map_battle/lib/src/battle_session.dart`
+
+Touché uniquement pour ajouter un commentaire local utile sur la branche existante `noLegalChoice`.
+
+Pourquoi ce commentaire appartenait encore à `R1`:
+
+- il n'ouvre aucune mécanique ;
+- il n'ouvre aucun seam nouveau ;
+- il verrouille la vérité de périmètre ;
+- il explique pourquoi l'asymétrie actuelle n'est pas un oubli silencieux mais une borne assumée de `R1`.
+
+### `packages/map_battle/test/battle_decision_request_test.dart`
+
+Touché pour verrouiller deux choses:
+
+1. `noLegalChoice` n'attend aucun input ;
+2. un input arbitraire reste rejeté explicitement dans cet état.
+
+C'est un vrai verrou de sémantique, pas un test décoratif.
+
+## 11. Justification des fichiers volontairement non touchés
+
+### `docs/combat/battle-roadmap-canonical-v3.1.md`
+
+Volontairement non touché.
+
+Raison:
+
+- relu ;
+- aucune contradiction canonique suffisante ;
+- pas de patch imaginaire.
+
+### `packages/map_battle/test/battle_session_test.dart`
+
+Volontairement non touché.
+
+Raison:
+
+- les tests de sémantique `noLegalChoice` étaient plus naturellement localisés dans `battle_decision_request_test.dart` ;
+- dupliquer le verrou ailleurs n'apportait pas de vérité supplémentaire.
+
+### `packages/map_runtime/**`, `packages/map_editor/**`, host files
+
+Volontairement non touchés.
+
+Raison:
+
+- aucun des deux sujets ciblés ne l'exigeait ;
+- toucher ces surfaces aurait été une dérive de périmètre.
+
+## 12. Validations réellement relancées
+
+Comme des fichiers `packages/map_battle/**` ont été touchés, les validations proportionnées demandées ont été relancées.
+
+Commandes exécutées:
+
+```bash
+cd /Users/karim/Project/pokemonProject/packages/map_battle && dart analyze
+cd /Users/karim/Project/pokemonProject/packages/map_battle && dart test
+cd /Users/karim/Project/pokemonProject/packages/map_battle && dart analyze
+cd /Users/karim/Project/pokemonProject/packages/map_battle && dart test
+```
+
+Pourquoi deux passages:
+
+- premier passage après le patch initial ;
+- `dart test` a échoué une fois sur un matcher de test trop générique ;
+- le test a été resserré sur le message réel du moteur ;
+- second passage complet pour reverdir proprement.
+
+Validations volontairement non lancées:
+
+- `packages/map_runtime/**`
+- `packages/map_editor/**`
+- host tests
+
+Raison:
+
+- aucun fichier de ces zones n'a été modifié dans ce passage ;
+- les relancer ici aurait été du bruit, pas une vraie vérification proportionnée.
+
+## 13. Résultats réellement obtenus
+
+### Premier passage
+
+#### `dart analyze`
+
+```text
+Analyzing map_battle...
+No issues found!
+```
+
+#### `dart test`
+
+Résultat:
+
+- échec unique sur le nouveau test `a noLegalChoice wait request rejects arbitrary player input`
+
+Cause réelle:
+
+- le moteur renvoyait déjà un message plus précis que le matcher écrit ;
+- le test attendait un message contenant `illégal` et `wait` ;
+- le moteur renvoyait en réalité : `Aucune décision joueur n’est attendue actuellement (noLegalChoice).`
+
+Interprétation:
+
+- ce n'était pas un bug moteur ;
+- c'était un test mal cadré sur le vrai signal existant.
+
+### Second passage
+
+#### `dart analyze`
+
+```text
+Analyzing map_battle...
+No issues found!
+```
+
+#### `dart test`
+
+```text
+00:00 +164: All tests passed!
+```
+
+## 14. Incidents rencontrés
+
+### Incident 1 — faux négatif du sub-agent documentation
+
+Le sub-agent documentation a conclu trop vite qu'aucune incohérence canonique ne subsistait.
+
+Constat du rollout principal:
+
+- c'était faux ;
+- une vraie section contradictoire `après R0 -> prochaine étape R1` survivait plus bas dans `battle-canonical-state-v3.1.md`.
+
+Décision:
+
+- conserver la lecture directe locale comme source de vérité ;
+- signaler dans ce report que le sub-agent a raté ce point.
+
+### Incident 2 — premier matcher de test trop générique
+
+Le premier matcher de test cherchait un message “choix illégal / wait”.
+Le moteur exposait déjà un message plus spécifique, meilleur, mentionnant directement `noLegalChoice`.
+
+Décision:
+
+- ne pas dégrader le moteur pour coller au test ;
+- resserrer le test sur le message réel.
+
+## 15. Retour des sub-agents
+
+### Sub-agent battle-core / semantics
+
+Apport:
+
+- a confirmé que le comportement de base autour de `noLegalChoice` était déjà honnête ;
+- a jugé acceptable l'asymétrie joueur `wait` / ennemi `StateError` en fermeture `R1`.
+
+Ce que je retiens:
+
+- pas de correction comportementale lourde nécessaire ;
+- pas de symétrisation artificielle.
+
+Ce que je ne retiens pas tel quel:
+
+- sa conclusion “ne rien toucher” était trop stricte pour la fermeture demandée ;
+- le cadrage explicite restait malgré tout insuffisant dans le code et le canon battle.
+
+### Sub-agent documentation / canon consistency
+
+Apport:
+
+- a relu les docs canoniques ciblées ;
+- a confirmé que la roadmap canonique était cohérente sur son axe principal.
+
+Ce que je retiens:
+
+- `docs/combat/battle-roadmap-canonical-v3.1.md` n'avait pas besoin d'être touché.
+
+Ce que je rejette:
+
+- sa conclusion “aucune incohérence canonique résiduelle” sur `battle-canonical-state-v3.1.md`.
+
+Pourquoi rejeté:
+
+- la lecture directe du fichier a montré l'ancienne section `Décision officielle après R0` encore présente plus bas, avec `R1` comme prochaine étape officielle.
+
+## 16. Retour du reviewer séparé
+
+Reviewer utilisé:
+
+- `Huygens`
+
+Conclusion du reviewer:
+
+- aucun finding bloquant
+
+Points challengés par le reviewer:
+
+- dérive hors périmètre ;
+- contradiction canonique restante ;
+- risque de sur-vendre `noLegalChoice` comme flow acceptable ;
+- risque de glisser vers `R2`.
+
+Ce que le reviewer a confirmé:
+
+- pas de dérive hors périmètre ;
+- plus de contradiction canonique sur les surfaces relues après patch ;
+- `noLegalChoice` n'est pas sur-vendu comme flow acceptable ;
+- le commentaire ajouté reste un cadrage local `R1`, pas un redesign.
+
+Doute résiduel du reviewer:
+
+- un simple angle de lecture: le report `R1` existant reste plus affirmatif que le commentaire code sur `noLegalChoice`, mais pas au point de créer une contradiction factuelle bloquante.
+
+## 17. Critique explicite du prompt lui-même
+
+### Ce qui était utile
+
+- exiger un passage ciblé et non un rerun complet de `R1` ;
+- imposer la baseline dirty comme donnée de départ ;
+- interdire explicitement `Struggle` et les faux supports ;
+- demander une classification avant patch ;
+- autoriser de ne pas toucher un document si l'incohérence n'existe pas réellement.
+
+### Ce qui était discutable
+
+- la suspicion initiale sur l'incohérence documentaire était formulée comme possibilité ; c'était bien, mais il restait indispensable de vérifier tout le document, pas seulement son haut ;
+- l'idée que beaucoup de commentaires seraient forcément nécessaires sur tout code touché peut être excessive sur un mini passage ; ici elle reste acceptable parce que le commentaire ajouté porte une vraie frontière de périmètre.
+
+### Ce qui était trop rigide
+
+- exiger absolument des sub-agents sur un passage aussi petit n'est pas toujours le meilleur coût/bénéfice ;
+- ce tour en donne une preuve concrète : le sub-agent documentation a raté l'incohérence réelle, donc la lecture directe locale restait décisive.
+
+### Ce que j'ai volontairement resserré
+
+- je n'ai pas relu Showdown en profondeur ; cela aurait été du bruit hors périmètre ;
+- je n'ai pas touché `battle-roadmap-canonical-v3.1.md` malgré son inclusion possible, car aucun patch réel n'y était justifié ;
+- je n'ai pas tenté de “corriger” l'asymétrie joueur/ennemi, parce que ce serait déjà une autre phase.
+
+## 18. Autocritique finale
+
+Ce qui reste potentiellement discutable dans mon propre jugement:
+
+- on peut défendre une lecture encore plus minimaliste où seule la doc canonique aurait dû être touchée ;
+- j'ai quand même choisi d'ajouter un commentaire code et un test, car l'utilisateur demandait une clarification explicite et visible dans le repo, pas seulement dans un report.
+
+Ce que je n'ai pas fait:
+
+- je n'ai pas comparé à nouveau Showdown sur ce passage ;
+- je n'ai pas relancé runtime/editor/host, volontairement.
+
+Pourquoi je considère ce resserrement correct:
+
+- le problème n'était ni un écart mécanique Showdown, ni un bug runtime ;
+- c'était une contradiction canonique locale et une ambiguïté de vérité sur un dead-end déjà existant.
+
+## 19. État git final utile
+
+Après ce passage de fermeture:
+
+- le worktree reste dirty, comme au départ ;
+- aucune écriture Git n'a été faite ;
+- trois fichiers existants ont été retouchés dans ce passage :
+  - `docs/combat/battle-canonical-state-v3.1.md`
+  - `packages/map_battle/lib/src/battle_session.dart`
+  - `packages/map_battle/test/battle_decision_request_test.dart`
+- un nouveau report a été créé :
+  - `reports/r1-closure-polish-report.md`
+
+Diff stat spécifique à ce passage sur les trois fichiers retouchés:
+
+```text
+ docs/combat/battle-canonical-state-v3.1.md         | 48 ++++--------
+ packages/map_battle/lib/src/battle_session.dart    | 51 +++++++-----
+ .../test/battle_decision_request_test.dart         | 90 ++++++++++++++++++++++
+ 3 files changed, 136 insertions(+), 53 deletions(-)
+```
+
+## 20. Checklist finale
+
+- ai-je évité de rerun R1 au lieu de faire un passage ciblé ? oui
+- ai-je gardé le périmètre strictement en fermeture R1 ? oui
+- ai-je évité toute dérive vers R2/R3/R4/H3 ? oui
+- ai-je corrigé une vraie incohérence canonique si elle existait réellement ? oui
+- ai-je évité de forcer un patch documentaire imaginaire ? oui
+- ai-je clarifié honnêtement `BattleWaitReason.noLegalChoice` ? oui
+- ai-je évité d’implémenter `Struggle` ? oui
+- ai-je évité d’ouvrir un nouveau flow gameplay ? oui
+- ai-je relancé seulement les validations utiles ? oui
+- ai-je utilisé des sub-agents ? oui
+- ai-je tenté une review séparée ? oui
+- ai-je inclus le contenu complet de tous les fichiers touchés ? oui, sauf le report lui-même pour éviter une récursion absurde explicitement signalée
+- ai-je évité toute écriture Git interdite ? oui
+
+## 21. Décision finale nette
+
+### Ce passage de fermeture est-il réussi ?
+
+- oui
+
+### R1 peut-il être considéré proprement clos après ce passage ?
+
+- oui
+
+Raison principale:
+
+- la dernière contradiction canonique réelle sur le document d'état après `R1` a été supprimée ;
+- `noLegalChoice` est désormais encadré explicitement comme dead-end unsupported et non comme flow acceptable ;
+- aucun faux support nouveau n'a été introduit ;
+- aucune dérive de phase n'a été ouverte.
+
+## 22. Contenu complet de tous les fichiers touchés
+
+Note importante:
+
+- le présent report n'est pas recopié dans lui-même, pour éviter une récursion absurde ;
+- tous les autres fichiers touchés dans ce passage sont reproduits intégralement ci-dessous.
+
+### 22.1. `docs/combat/battle-canonical-state-v3.1.md`
+
+````md
+# Battle Canonical State v3.1
+
+Statut: canon battle actuel du dépôt après `R1 — Battleable Slice Hardening`
+
+Date de réalignement: 2026-04-18
+
+## But du document
+
+Ce document est la photographie canonique de l'état battle réel de PokeMap.
+
+Il ne décrit ni une intention, ni une vieille phase, ni une promesse.
+Il décrit ce que le dépôt sait réellement faire aujourd'hui, sur la base:
+
+1. du code réel
+2. des validations réellement relancées
+3. du runtime réellement branché
+4. du host et du golden slice réellement versionnés
+5. du bootstrap réellement présent
+6. de la comparaison locale ciblée avec Pokémon Showdown
+
+Ce document remplace comme source de vérité battle actuelle les anciennes formulations qui racontent encore:
+
+- un handoff runtime -> battle à construire
+- une battleabilité encore purement future
+- un moteur encore “pré-fondations”
+
+## Résumé exécutif honnête
+
+Le moteur battle PokeMap est déjà réel.
+
+Le dépôt supporte déjà un vrai slice `singles-only` avec:
+
+- une vraie battle loop locale
+- un vrai handoff runtime -> battle
+- une vraie overlay pilotée par une timeline observable
+- de vraies battles wild et trainer
+- de vraies réserves côté joueur et côté trainer
+- une vraie fuite sauvage
+- une vraie capture minimale
+- un vrai write-back runtime minimal
+- un vrai ordre local priorité / vitesse / Trick Room
+- PP / accuracy / crit minimaux réels
+- dégâts simples + STAB + effectiveness + immunités
+- statuts majeurs `par`, `brn`, `psn`, `tox`
+- volatiles bornés `protect`, `recharge`, `chargeThenStrike`
+- `rain`, `sandstorm`, `trickRoom`
+- switch volontaire
+- forced replacement joueur
+- auto-switch ennemi
+- `Stealth Rock`
+- `Spikes`
+
+Le moteur n'est pas proche de Pokémon Showdown au sens structurel large.
+L'écart dominant n'est plus l'absence de slice battleable. L'écart dominant est:
+
+- la centralisation dans `packages/map_battle/lib/src/battle_session.dart`
+- l'étroitesse des contracts requests / targeting / replacement
+- la petitesse du scheduler local existant
+- l'asymétrie entre conditions moteur et side conditions/hazards
+
+La vérité produit actuelle est la suivante:
+
+- un **golden slice battleable versionné** existe réellement
+- un **host lançable** existe réellement
+- un **bootstrap projet frais générique** existe réellement, mais il n'est pas équivalent à un projet battle-ready générique
+
+Décision canonique après R1:
+
+- la prochaine vraie étape officielle est `R2 — Scheduler Consolidation`
+
+## État réel du moteur battle
+
+### Ce qui existe déjà réellement
+
+#### Topologie et état
+
+Le moteur a déjà une vraie topologie singles-bornée:
+
+- `BattleSideId`
+- `BattleSlotRef`
+- un seul slot actif par side
+- réserves réelles des deux côtés
+
+Fichiers pivots:
+
+- `packages/map_battle/lib/src/battle_topology.dart`
+- `packages/map_battle/lib/src/battle_state.dart`
+- `packages/map_battle/lib/src/battle_setup.dart`
+
+#### Requests et décisions
+
+Le moteur expose déjà un vrai request model local via `BattleDecisionRequest`:
+
+- `turnChoice`
+- `forcedReplacement`
+- `continue`
+- `wait`
+
+Ce n'est pas le request model riche de Showdown, mais ce n'est plus un placeholder.
+
+Fichier pivot:
+
+- `packages/map_battle/lib/src/battle_decision.dart`
+
+#### Queue / scheduling local
+
+Le moteur a déjà une vraie queue locale:
+
+- `action`
+- `endOfTurn`
+- `postTurnChecks`
+- `autoSwitch`
+- `replacementRequired`
+
+`Run` et `Capture` restent volontairement hors queue.
+
+Ce seam existe déjà. Il ne faut plus le raconter comme “à créer”.
+
+Fichier pivot:
+
+- `packages/map_battle/lib/src/battle_queue.dart`
+
+#### Condition engine local
+
+Le moteur a déjà un vrai `BattleConditionEngine` local.
+
+Il sait déjà piloter:
+
+- `runActionAttempt`
+- `runHitInterception`
+- `runMoveResolved`
+- `runForcedContinueTurn`
+- `runEndOfTurn`
+
+Ce seam est réel, consommé, et testé.
+
+Fichier pivot:
+
+- `packages/map_battle/lib/src/battle_condition_engine.dart`
+
+#### Résolution de tour
+
+Le moteur résout déjà réellement:
+
+- ordre priorité / vitesse / Trick Room
+- accuracy locale
+- consommation de PP
+- crit minimal
+- dégâts simples
+- STAB
+- effectiveness
+- immunités
+- statuts majeurs supportés
+- volatiles supportés
+- field supporté
+- switch / replacement / auto-switch
+- hazards supportées
+
+Fichier pivot:
+
+- `packages/map_battle/lib/src/battle_session.dart`
+
+#### Restitution observable
+
+Le moteur a déjà une vraie chronologie de tour exploitable via:
+
+- `BattleTurnResult.timeline`
+
+Fichier pivot:
+
+- `packages/map_battle/lib/src/battle_resolution.dart`
+
+### Ce qui est réellement supporté mais borné
+
+- `singles-only`
+- un slot actif par side
+- targeting local minimal `self/opponent/field/opponentSide/unspecified`
+- scheduler local réel mais borné
+- condition engine réel mais borné
+- side-level mechanics ouvertes sur deux slices dédiées, pas un framework générique
+- write-back runtime réel mais étroit
+
+### Ce qui est fragile
+
+- `Struggle` reste absent et volontairement hors scope R1
+- côté joueur, `BattleWaitReason.noLegalChoice` est un dead-end explicite et unsupported ; ce n'est ni un flow gameplay acceptable, ni un support implicite de `Struggle`
+- côté ennemi, l'absence totale d'action légale reste un `StateError` explicite ; cette asymétrie est assumée en R1 et ne vaut pas support complet du cas “no move left”
+- l'ennemi sans action légale échoue désormais explicitement au lieu de produire un faux `Run`
+- tie-break vitesse égale déterministe joueur d'abord
+- priorité de switch localement hardcodée
+- politique de double KO locale, maintenue explicitement en R1
+- ordre d'entrée hazards local `Stealth Rock` puis `Spikes`
+- compatibilités legacy dans `BattleMove` et `BattleTypeChart`
+
+### Ce qui n'est pas supporté honnêtement aujourd'hui
+
+- doubles
+- targeting riche Showdown
+- `selfSwitch` générique
+- `forceSwitch` / phazing générique
+- terrains
+- `Toxic Spikes`
+- `Sticky Web`
+- abilities
+- items
+- système générique de side conditions
+- event engine Showdown-like
+
+## État réel du runtime battle
+
+### Handoff runtime -> battle
+
+Le handoff runtime -> battle est réel.
+
+Le runtime sait aujourd'hui:
+
+- construire une `WildBattleStartRequest`
+- construire une `TrainerBattleStartRequest`
+- mapper ces requests vers un `BattleSetup` réel
+- résoudre une lineup joueur active + réserves
+- construire des seeds combatants réels à partir des données runtime/projet
+
+Fichiers pivots:
+
+- `packages/map_runtime/lib/src/application/battle_start_request.dart`
+- `packages/map_runtime/lib/src/application/runtime_battle_setup_mapper.dart`
+- `packages/map_runtime/lib/src/application/runtime_battle_combatant_seed_builder.dart`
+
+### Bridge moves
+
+Le bridge runtime moves -> battle est réel et volontairement strict.
+
+Il transporte honnêtement le sous-ensemble supporté et refuse explicitement le hors-scope.
+
+Fichier pivot:
+
+- `packages/map_runtime/lib/src/application/runtime_battle_move_bridge.dart`
+
+### Overlay battle
+
+L'overlay est branchée sur la vérité moteur actuelle:
+
+- requests
+- timeline
+- refresh de session
+
+Fichier pivot:
+
+- `packages/map_runtime/lib/src/presentation/flame/battle_overlay_component.dart`
+
+### Write-back
+
+Le write-back runtime est réel, mais étroit.
+
+Ce qu'il sait réellement faire:
+
+- write-back des PV sur la party engagée
+- marquage trainer defeated
+- capture minimale
+- whiteout-lite
+
+Fichier pivot:
+
+- `packages/map_runtime/lib/src/application/runtime_battle_outcome_apply.dart`
+
+## État réel du bootstrap / seed
+
+### Ce qui existe réellement
+
+- un seed moves embarqué et versionné
+- un bootstrap projet frais générique
+- un seed de démo explicite et séparé
+
+Fichiers pivots:
+
+- `packages/map_editor/lib/src/application/seeds/pokemon_moves_bootstrap_seed.dart`
+- `packages/map_editor/lib/src/application/use_cases/initialize_pokemon_project_storage_use_case.dart`
+- `packages/map_editor/lib/src/application/use_cases/seed_pokemon_demo_data_use_case.dart`
+
+### Vérité bootstrap honnête
+
+Le bootstrap projet frais générique ne doit pas être lu comme “projet battle-ready générique”.
+
+Le dépôt distingue maintenant clairement:
+
+- l'initialisation de structure projet
+- le seed de données de démo
+- le golden slice battleable versionné
+
+### R1 a réaligné les points de vérité bootstrap les plus trompeurs
+
+- `trick_room` n'est plus sous-déclaré dans le seed par rapport au sous-ensemble réellement consommé
+- `stealth_rock` et `spikes` ne vivent plus dans un regroupement historiquement trompeur
+
+## Vérité produit réelle
+
+### Golden slice battleable versionné
+
+Le dépôt versionne une vérité produit battleable réelle:
+
+- slice golden battleable
+- save de lancement adjacente
+- host Flutter lançable
+- smoke tests wild et trainer
+
+Fichiers pivots:
+
+- `examples/playable_runtime_host/README.md`
+- `examples/playable_runtime_host/golden_battle_slice/README.md`
+- `examples/playable_runtime_host/lib/src/runtime_launch_save.dart`
+- `examples/playable_runtime_host/test/phase_a_golden_slice_launch_test.dart`
+- `packages/map_runtime/test/phase_a_golden_battle_slice_smoke_test.dart`
+
+### Bootstrap projet frais générique
+
+Un projet fraîchement initialisé n'est pas, à lui seul, la vérité produit battleable.
+
+Le bootstrap générique:
+
+- structure le projet
+- seed le minimum nécessaire
+- ne garantit pas une battleabilité générique équivalente au golden slice
+
+### Distinction canonique à retenir
+
+Il faut désormais distinguer explicitement:
+
+- **golden slice battleable versionné**: preuve produit actuelle
+- **bootstrap projet frais générique**: fondation projet, pas promesse battle complète
+
+## Matrice de support par famille
+
+| Famille | État réel PokeMap | Niveau de proximité Showdown | Notes canoniques |
+|---|---|---|---|
+| request model | réel mais joueur-only / slot-0 | faible structurellement, honnête localement | seam vivant, non générique |
+| side / slot | réel, singles-borné avec réserves | honnête localement, loin du modèle Showdown large | vraie topologie locale |
+| targeting | minimal et étroit | faible | pas de moteur de ciblage riche |
+| queue / scheduling | réel mais petit | faible structurellement, honnête localement | ne pas le raconter comme absent |
+| statuses | réels pour `par/brn/psn/tox` | faible | slice honnête |
+| volatiles | réels pour `protect/recharge/chargeThenStrike` | faible | slice honnête |
+| field / pseudoWeather | réel pour `rain/sandstorm/trickRoom` | faible structurellement, honnête localement | slice honnête |
+| hazards / side conditions | réelles pour `Stealth Rock` et `Spikes` | faible | pas de framework générique |
+| switch / replacement | réels | honnête localement, loin du modèle Showdown large | vrai pipeline local |
+| PP / accuracy / crit / damage | réels et bornés | honnête localement, loin de la richesse Showdown | loin de la richesse Showdown |
+| runtime bridge | réel et strict | n/a produit | très bon niveau de vérité |
+| runtime write-back | réel mais étroit | n/a produit | ne pas sur-vendre |
+| bootstrap truth | honnête mais curaté | n/a produit | bien distinguer bootstrap et golden slice |
+| host / product truth | réel | n/a produit | golden slice = vérité battleable actuelle |
+
+## Écarts structurels principaux vs Showdown
+
+Écarts structurants dominants:
+
+1. `battle_session.dart` reste trop central
+2. le scheduler local existe mais reste trop petit pour des flows plus riches
+3. les contracts requests / targeting / replacement restent trop serrés
+4. les conditions moteur et les side conditions restent asymétriques
+5. le runtime bridge est honnête, mais calibré pour un sous-ensemble strict
+
+Écarts mécaniques dominants:
+
+1. pas d'abilities
+2. pas d'items
+3. pas de targeting riche
+4. pas de `forceSwitch` / `selfSwitch` génériques
+5. pas de side conditions larges
+6. pas de doubles
+
+## Blockers classés
+
+### Architecture
+
+- centralisation excessive dans `battle_session.dart`
+
+### Scheduling
+
+- queue locale réelle mais pas encore assez expressive pour des flows plus riches
+
+### Contracts
+
+- requests / targeting / replacement trop serrés pour certaines mécaniques Showdown-like
+
+### Runtime
+
+- hard-fail “no bridgeable move left” honnête, plus explicite, et toujours volontairement bloquant
+
+### Bootstrap
+
+- les labels/support claims les plus trompeurs ont été réalignés en R1
+
+### Documentation
+
+- roadmap maître historique
+- ancien plan battle engine
+- ancien README runtime
+- certains reports historiques
+````
+
+### 22.2. `packages/map_battle/lib/src/battle_session.dart`
+
+````dart
 import 'battle_setup.dart';
 import 'battle_decision.dart';
 import 'battle_condition_engine.dart';
@@ -2644,3 +3679,433 @@ final class _QueuedTurnContext {
     );
   }
 }
+````
+
+### 22.3. `packages/map_battle/test/battle_decision_request_test.dart`
+
+````dart
+import 'package:map_battle/map_battle.dart';
+import 'package:test/test.dart';
+
+BattleStatsSnapshot _stats({
+  int attack = 60,
+  int defense = 60,
+  int specialAttack = 60,
+  int specialDefense = 60,
+  int speed = 50,
+}) {
+  return BattleStatsSnapshot(
+    attack: attack,
+    defense: defense,
+    specialAttack: specialAttack,
+    specialDefense: specialDefense,
+    speed: speed,
+  );
+}
+
+BattleMoveData _waitingMove() {
+  return const BattleMoveData(
+    id: 'wait',
+    name: 'Wait',
+    power: 0,
+    category: BattleMoveCategory.status,
+    target: BattleMoveTarget.self,
+    accuracy: BattleMoveAccuracy.alwaysHits(),
+  );
+}
+
+BattleCombatantData _combatant({
+  required String speciesId,
+  required int lineupIndex,
+  int maxHp = 40,
+  int? currentHp,
+  BattleStatsSnapshot? stats,
+  BattleVolatileState volatileState = const BattleVolatileState(),
+  required List<BattleMoveData> moves,
+}) {
+  return BattleCombatantData(
+    speciesId: speciesId,
+    lineupIndex: lineupIndex,
+    level: 30,
+    maxHp: maxHp,
+    currentHp: currentHp,
+    stats: stats ?? _stats(),
+    volatileState: volatileState,
+    moves: moves,
+  );
+}
+
+BattleSession _session({
+  required BattleCombatantData player,
+  List<BattleCombatantData> playerReserve = const <BattleCombatantData>[],
+  required BattleCombatantData enemy,
+  List<BattleCombatantData> enemyReserve = const <BattleCombatantData>[],
+  bool isTrainerBattle = false,
+  bool allowCapture = false,
+}) {
+  return createBattleSession(
+    BattleSetup(
+      playerPokemon: player,
+      playerReservePokemon: playerReserve,
+      enemyPokemon: enemy,
+      enemyReservePokemon: enemyReserve,
+      isTrainerBattle: isTrainerBattle,
+      trainerId: isTrainerBattle ? 'trainer' : null,
+      allowCapture: allowCapture,
+    ),
+  );
+}
+
+void main() {
+  group('BattleSession Phase C decision requests', () {
+    test('a free turn exposes a turn choice request with moves and switches',
+        () {
+      final session = _session(
+        allowCapture: true,
+        player: _combatant(
+          speciesId: 'lead_player',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            const BattleMoveData(
+              id: 'tackle',
+              name: 'Tackle',
+              power: 40,
+            ),
+          ],
+        ),
+        playerReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'bench_player',
+            lineupIndex: 1,
+            moves: <BattleMoveData>[_waitingMove()],
+          ),
+        ],
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+
+      final request = session.decisionRequest;
+
+      expect(request, isA<BattleTurnChoiceRequest>());
+      final turnChoiceRequest = request as BattleTurnChoiceRequest;
+      expect(turnChoiceRequest.actor, equals(BattleDecisionActor.player));
+      expect(turnChoiceRequest.side, equals(BattleSideId.player));
+      expect(
+        turnChoiceRequest.slot,
+        equals(const BattleSlotRef.active(BattleSideId.player)),
+      );
+      expect(turnChoiceRequest.moveChoices, hasLength(1));
+      expect(turnChoiceRequest.switchChoices, hasLength(1));
+      expect(turnChoiceRequest.captureChoice, isA<PlayerBattleChoiceCapture>());
+      expect(turnChoiceRequest.runChoice, isA<PlayerBattleChoiceRun>());
+    });
+
+    test('a fainted active with a reserve exposes a forced replacement request',
+        () {
+      final session = _session(
+        player: _combatant(
+          speciesId: 'fainted_player',
+          lineupIndex: 0,
+          currentHp: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+        playerReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'bench_player',
+            lineupIndex: 1,
+            moves: <BattleMoveData>[_waitingMove()],
+          ),
+        ],
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+
+      final request = session.decisionRequest;
+
+      expect(request, isA<BattleForcedReplacementRequest>());
+      final forcedReplacementRequest =
+          request as BattleForcedReplacementRequest;
+      expect(forcedReplacementRequest.side, equals(BattleSideId.player));
+      expect(
+        forcedReplacementRequest.slot,
+        equals(const BattleSlotRef.active(BattleSideId.player)),
+      );
+      expect(
+        forcedReplacementRequest.reason,
+        equals(BattleForcedReplacementReason.activeFainted),
+      );
+      expect(forcedReplacementRequest.switchChoices, hasLength(1));
+      expect(
+        forcedReplacementRequest.allowedChoices.single,
+        isA<PlayerBattleChoiceSwitch>(),
+      );
+    });
+
+    test('a forced recharge exposes a continue request with an explicit reason',
+        () {
+      final session = _session(
+        player: _combatant(
+          speciesId: 'locked_player',
+          lineupIndex: 0,
+          volatileState: const BattleVolatileState(
+            mustRecharge: true,
+          ),
+          moves: <BattleMoveData>[
+            const BattleMoveData(
+              id: 'hyper_beam',
+              name: 'Hyper Beam',
+              power: 150,
+              requiresRecharge: true,
+            ),
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+
+      final request = session.decisionRequest;
+
+      expect(request, isA<BattleContinueRequest>());
+      final continueRequest = request as BattleContinueRequest;
+      expect(continueRequest.side, equals(BattleSideId.player));
+      expect(
+        continueRequest.slot,
+        equals(const BattleSlotRef.active(BattleSideId.player)),
+      );
+      expect(
+        continueRequest.reason,
+        equals(BattleContinueReason.mustRecharge),
+      );
+      expect(continueRequest.allowedChoices, hasLength(1));
+      expect(continueRequest.allowedChoices.single,
+          isA<PlayerBattleChoiceContinue>());
+    });
+
+    test(
+        'a battler with no usable move and no other legal choice exposes an explicit dead-end wait request',
+        () {
+      final session = _session(
+        isTrainerBattle: true,
+        player: _combatant(
+          speciesId: 'locked_player',
+          lineupIndex: 0,
+          moves: const <BattleMoveData>[
+            BattleMoveData(
+              id: 'tackle',
+              name: 'Tackle',
+              power: 40,
+              pp: 10,
+              currentPp: 0,
+            ),
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+
+      final request = session.decisionRequest;
+
+      expect(request, isA<BattleWaitRequest>());
+      final waitRequest = request as BattleWaitRequest;
+      expect(waitRequest.side, equals(BattleSideId.player));
+      expect(
+        waitRequest.slot,
+        equals(const BattleSlotRef.active(BattleSideId.player)),
+      );
+      expect(waitRequest.reason, equals(BattleWaitReason.noLegalChoice));
+      expect(waitRequest.expectsInput, isFalse);
+      expect(waitRequest.allowedChoices, isEmpty);
+    });
+
+    test('a noLegalChoice wait request rejects arbitrary player input', () {
+      final session = _session(
+        isTrainerBattle: true,
+        player: _combatant(
+          speciesId: 'locked_player',
+          lineupIndex: 0,
+          moves: const <BattleMoveData>[
+            BattleMoveData(
+              id: 'tackle',
+              name: 'Tackle',
+              power: 40,
+              pp: 10,
+              currentPp: 0,
+            ),
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+
+      expect(
+        session.decisionRequest,
+        isA<BattleWaitRequest>().having(
+          (request) => request.reason,
+          'reason',
+          BattleWaitReason.noLegalChoice,
+        ),
+      );
+
+      // R1 ferme ce cas comme dead-end explicite :
+      // - aucun input joueur n'est attendu ;
+      // - on ne doit donc pas pouvoir "forcer" un move arbitraire pour sortir
+      //   du wait tant que `Struggle` n'est pas réellement supporté.
+      expect(
+        () => session.applyChoice(const PlayerBattleChoiceFight(0)),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            allOf(
+              contains('Aucune décision joueur n’est attendue actuellement'),
+              contains('noLegalChoice'),
+            ),
+          ),
+        ),
+      );
+    });
+
+    test('request constructors reject mismatched side and slot attachments',
+        () {
+      expect(
+        () => BattleContinueRequest(
+          actor: BattleDecisionActor.player,
+          side: BattleSideId.player,
+          slot: const BattleSlotRef.active(BattleSideId.enemy),
+          reason: BattleContinueReason.mustRecharge,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+
+      expect(
+        () => BattleWaitRequest(
+          actor: BattleDecisionActor.player,
+          side: BattleSideId.player,
+          slot: const BattleSlotRef(
+            side: BattleSideId.player,
+            slotIndex: 1,
+          ),
+          reason: BattleWaitReason.noLegalChoice,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('an illegal choice for the current request kind is rejected cleanly',
+        () {
+      final session = _session(
+        player: _combatant(
+          speciesId: 'fainted_player',
+          lineupIndex: 0,
+          currentHp: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+        playerReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'bench_player',
+            lineupIndex: 1,
+            moves: <BattleMoveData>[_waitingMove()],
+          ),
+        ],
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+
+      expect(
+        () => session.applyChoice(const PlayerBattleChoiceFight(0)),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            contains('forcedReplacement'),
+          ),
+        ),
+      );
+    });
+
+    test('request transitions remain coherent across a forced continue turn',
+        () {
+      final session = _session(
+        player: _combatant(
+          speciesId: 'locked_player',
+          lineupIndex: 0,
+          volatileState: const BattleVolatileState(
+            mustRecharge: true,
+          ),
+          moves: <BattleMoveData>[
+            const BattleMoveData(
+              id: 'hyper_beam',
+              name: 'Hyper Beam',
+              power: 150,
+              requiresRecharge: true,
+            ),
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+
+      expect(session.decisionRequest, isA<BattleContinueRequest>());
+
+      final afterContinue =
+          session.applyChoice(const PlayerBattleChoiceContinue());
+
+      expect(afterContinue.decisionRequest, isA<BattleTurnChoiceRequest>());
+    });
+
+    test('a finished battle exposes an explicit wait request', () {
+      final session = _session(
+        player: _combatant(
+          speciesId: 'player',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            const BattleMoveData(
+              id: 'tackle',
+              name: 'Tackle',
+              power: 200,
+            ),
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          maxHp: 1,
+          currentHp: 1,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+
+      final finishedSession =
+          session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(finishedSession.state.isFinished, isTrue);
+      expect(finishedSession.decisionRequest, isA<BattleWaitRequest>());
+      expect(
+        (finishedSession.decisionRequest as BattleWaitRequest).reason,
+        equals(BattleWaitReason.battleFinished),
+      );
+    });
+  });
+}
+````
