@@ -1,6 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flame/components.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_debug_panel_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_scene_backdrop_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_scene_combatant_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_scene_hud_component.dart';
 
 BattleStatsSnapshot _stats({
   int attack = 60,
@@ -462,6 +467,134 @@ void main() {
         lines,
         contains('Ennemi subit 13 dégâts de Spikes à l’entrée (2 couche(s))'),
       );
+    });
+  });
+
+  group('BattleOverlayComponent lot 1 scene composition', () {
+    test(
+        'mounts a structured battle scene with backdrop, battler zones, huds, command box and narration box by default',
+        () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          enemy: _combatant(
+            speciesId: 'sparkitten',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      expect(
+        overlay.children.whereType<BattleSceneBackdropComponent>(),
+        hasLength(1),
+      );
+      expect(
+        overlay.children.whereType<BattleSceneCombatantComponent>(),
+        hasLength(2),
+      );
+      expect(
+        overlay.children.whereType<BattleSceneHudComponent>(),
+        hasLength(2),
+      );
+      expect(overlay.commandPanelMounted, isTrue);
+      expect(overlay.narrationPanelMounted, isTrue);
+      expect(overlay.children.whereType<BattleDebugPanelComponent>(), isEmpty);
+      expect(overlay.debugPanelMounted, isFalse);
+    });
+
+    test('keeps the debug panel opt-in and separate from the normal battle UI',
+        () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          enemy: _combatant(
+            speciesId: 'sparkitten',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        showDebugPanel: true,
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      expect(
+        overlay.children.whereType<BattleDebugPanelComponent>(),
+        hasLength(1),
+      );
+      expect(overlay.debugPanelMounted, isTrue);
+      expect(overlay.commandPanelMounted, isTrue);
+      expect(overlay.narrationPanelMounted, isTrue);
+    });
+
+    test('updateState refreshes the visible prompt and selected choice source',
+        () async {
+      final initialSession = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+        enemy: _combatant(
+          speciesId: 'sparkitten',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+      );
+      final overlay = BattleOverlayComponent(
+        session: initialSession,
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      expect(overlay.currentPromptText, equals('Que doit faire le joueur ?'));
+      expect(overlay.getSelectedChoice(), isA<PlayerBattleChoiceFight>());
+
+      final forcedReplacementSession = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          currentHp: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+        playerReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'benchmate',
+            lineupIndex: 1,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ],
+        enemy: _combatant(
+          speciesId: 'sparkitten',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+      );
+
+      overlay.updateState(forcedReplacementSession);
+
+      expect(
+        overlay.currentPromptText,
+        equals('Le joueur doit remplacer son Pokémon K.O.'),
+      );
+      expect(overlay.getSelectedChoice(), isA<PlayerBattleChoiceSwitch>());
     });
   });
 }

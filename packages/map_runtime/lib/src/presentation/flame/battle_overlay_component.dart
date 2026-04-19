@@ -1,17 +1,20 @@
 import 'package:flame/components.dart';
-import 'package:flame/events.dart';
 import 'package:flame/text.dart';
 import 'package:flutter/material.dart';
 import 'package:map_battle/map_battle.dart';
 
+import 'battle_command_panel_component.dart';
+import 'battle_debug_panel_component.dart';
+import 'battle_scene_backdrop_component.dart';
+import 'battle_scene_combatant_component.dart';
+import 'battle_scene_hud_component.dart';
+
 /// Retourne le prompt de décision à afficher pour la requête courante.
 ///
-/// Phase C utilise cette petite fonction pure pour une raison concrète :
-/// - l'overlay doit désormais afficher le *type* de requête demandé par le
-///   moteur, pas déduire ce type depuis une liste plate de choix ;
-/// - garder ce formatage dans un helper pur permet aussi de le verrouiller en
-///   test sans devoir piloter tout le composant Flame ;
-/// - on reste très loin d'un système de présentation générique.
+/// Ce helper reste volontairement pur parce que le lot 1 ne doit surtout pas
+/// recréer une logique de commande parallèle dans la présentation :
+/// - la vérité de ce qu'on attend du joueur reste `BattleDecisionRequest` ;
+/// - l'UI ne fait que reformuler cette vérité de manière plus lisible.
 String buildBattleDecisionPromptForOverlay(BattleDecisionRequest request) {
   return switch (request) {
     BattleTurnChoiceRequest() => 'Que doit faire le joueur ?',
@@ -30,16 +33,8 @@ String buildBattleDecisionPromptForOverlay(BattleDecisionRequest request) {
 
 /// Construit les lignes de restitution d'un tour pour l'overlay runtime.
 ///
-/// BE10A centralise ici la restitution textuelle pour une raison précise :
-/// - l'overlay ne doit plus réinventer l'ordre du tour en triant des buckets ;
-/// - la vraie source de vérité est désormais `BattleTurnResult.timeline` ;
-/// - cette fonction garde donc la surface runtime alignée sur la chronologie
-///   réellement produite par le moteur battle.
-///
-/// Garde-fou volontaire :
-/// - si un `BattleTurnResult` porte encore des buckets non vides sans
-///   chronologie ordonnée, on échoue explicitement ;
-/// - mieux vaut un seam bruyant qu'une UI qui raconte un ordre faux.
+/// La vraie source de vérité de narration reste `BattleTurnResult.timeline`.
+/// Le lot 1 améliore uniquement la composition visuelle de cette narration.
 List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
   if (turnResult.timeline.isEmpty &&
       (turnResult.executions.isNotEmpty ||
@@ -78,6 +73,52 @@ List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
   }
 
   return List<String>.unmodifiable(lines);
+}
+
+/// Construit les lignes de narration visibles dans la command box.
+///
+/// Invariant important du lot 1 :
+/// - on reste adossé à la timeline observable du moteur ;
+/// - quand aucun tour n'est disponible, on retombe sur la requête courante ;
+/// - on n'invente pas de narration "UI-only".
+List<String> buildBattleNarrationLinesForOverlay(BattleSession session) {
+  final currentTurn = session.state.currentTurn;
+  if (currentTurn != null) {
+    final lines = buildBattleTurnLinesForOverlay(currentTurn);
+    if (lines.isNotEmpty) {
+      final startIndex = lines.length > 4 ? lines.length - 4 : 0;
+      return List<String>.unmodifiable(lines.sublist(startIndex));
+    }
+  }
+
+  if (session.state.isFinished && session.state.outcome != null) {
+    return List<String>.unmodifiable(<String>[
+      _buildOutcomeHeadline(session.state.outcome!),
+    ]);
+  }
+
+  return List<String>.unmodifiable(<String>[
+    buildBattleDecisionPromptForOverlay(session.decisionRequest),
+  ]);
+}
+
+/// Construit les lignes du panneau debug optionnel.
+///
+/// Ce panneau ne sert qu'au diagnostic local. Il doit rester :
+/// - explicitement dérivé de la vérité battle/runtime déjà existante ;
+/// - explicitement séparé de l'UI de combat normale.
+List<String> buildBattleDebugLinesForOverlay(
+  BattleSession session, {
+  required int selectedIndex,
+}) {
+  return List<String>.unmodifiable(<String>[
+    'phase: ${session.state.phase.name}',
+    'request: ${session.decisionRequest.runtimeType}',
+    'choix: ${session.decisionRequest.allowedChoices.length}',
+    'selection: $selectedIndex',
+    'joueur: ${session.state.player.speciesId} ${session.state.player.currentHp}/${session.state.player.maxHp}',
+    'ennemi: ${session.state.enemy.speciesId} ${session.state.enemy.currentHp}/${session.state.enemy.maxHp}',
+  ]);
 }
 
 String _formatOverlaySwitchEvent(BattleSwitchEvent event) {
@@ -191,34 +232,33 @@ String _overlayPseudoWeatherLabel(BattlePseudoWeatherId pseudoWeather) {
   };
 }
 
-/// Composant UI d'overlay de combat.
+String _buildOutcomeHeadline(BattleOutcome outcome) {
+  return switch (outcome.type) {
+    BattleOutcomeType.victory => 'Victoire !',
+    BattleOutcomeType.defeat => 'Défaite...',
+    BattleOutcomeType.runaway => 'Fuite réussie !',
+    BattleOutcomeType.captured => 'Capture réussie !',
+  };
+}
+
+/// Overlay de combat lot 1.
 ///
-/// Affiche l'état courant du combat et permet au joueur de choisir une action.
-/// Ne contient AUCUNE logique métier de combat — pure UI.
+/// Responsabilité :
+/// - garder le runtime battle branché sur les mêmes vérités métier ;
+/// - composer une scène de combat lisible ;
+/// - déléguer le rendu concret aux composants de présentation du runtime.
 ///
-/// La logique métier est dans `map_battle` (BattleSession).
-/// Ce composant se contente de :
-/// - Afficher les PV des combattants
-/// - Afficher les choix disponibles
-/// - Notifier le runtime du choix du joueur via [onPlayerChoice]
-///
-/// **Interaction** : L'utilisateur peut cliquer sur un choix pour le sélectionner.
-/// Le clic appelle [onPlayerChoice] avec le choix correspondant.
-///
-/// **IMPORTANT** : Ce composant stocke une référence mutable vers la session
-/// courante. Quand le runtime appelle [updateState()], la session interne
-/// est mise à jour pour refléter le nouvel état. Toutes les méthodes d'affichage
-/// lisent [session] qui est donc toujours à jour.
-class BattleOverlayComponent extends PositionComponent with TapCallbacks {
-  /// Crée un overlay de combat.
-  ///
-  /// [session] - La session de combat courante (état + API).
-  /// [viewportSize] - La taille de la viewport pour centrer le panneau.
-  /// [onPlayerChoice] - Callback appelé quand le joueur fait un choix.
+/// Garde-fous :
+/// - aucune logique battle n'entre ici ;
+/// - aucune logique parallèle aux requests ou à la timeline n'est créée ;
+/// - aucun resolver de background contextuel n'est introduit ici ;
+/// - aucun seam IA n'est introduit ici.
+class BattleOverlayComponent extends PositionComponent {
   BattleOverlayComponent({
     required BattleSession session,
     required Vector2 viewportSize,
     required this.onPlayerChoice,
+    this.showDebugPanel = false,
   })  : _session = session,
         super(
           size: viewportSize,
@@ -226,510 +266,329 @@ class BattleOverlayComponent extends PositionComponent with TapCallbacks {
           priority: 97,
         );
 
-  /// La session de combat courante.
-  ///
-  /// **Mutable** : mise à jour par [updateState()] pour refléter le nouvel état.
-  /// Toutes les méthodes d'affichage lisent cette propriété, donc l'UI est
-  /// toujours synchronisée avec l'état réel du combat.
   BattleSession _session;
 
-  /// Callback appelé quand le joueur fait un choix.
-  ///
-  /// Le runtime doit appeler `session.applyChoice(choice)` pour appliquer le choix.
   final void Function(PlayerBattleChoice choice) onPlayerChoice;
 
-  /// Référence vers le panneau principal (pour mise à jour dynamique).
-  PositionComponent? _panel;
-
-  /// Composants de texte pour les PV (pour mise à jour dynamique).
-  TextComponent? _playerHpText;
-  TextComponent? _enemyHpText;
-  TextComponent? _choicesTitleText;
-
-  /// Composant de texte pour afficher le résultat du tour en cours.
+  /// Le debug reste volontairement opt-in.
   ///
-  /// Affiche les attaques du joueur et de l'ennemi, ainsi que les dégâts.
-  TextComponent? _turnResultText;
+  /// Le lot 1 doit sortir l'UI normale du mode "debug panel". On garde donc un
+  /// interrupteur explicite au lieu de laisser le debug redéfinir l'apparence
+  /// par défaut du combat.
+  final bool showDebugPanel;
 
-  /// Composants de choix (pour mise à jour dynamique).
-  /// Chaque composant est associé à un index de choix.
-  final List<_ChoiceComponent> _choiceComponents = [];
+  BattleSceneBackdropComponent? _backdrop;
+  BattleSceneCombatantComponent? _enemyCombatant;
+  BattleSceneCombatantComponent? _playerCombatant;
+  BattleSceneHudComponent? _enemyHud;
+  BattleSceneHudComponent? _playerHud;
+  BattleCommandPanelComponent? _commandPanel;
+  BattleDebugPanelComponent? _debugPanel;
+  TextComponent? _outcomeBanner;
 
-  /// Index du choix actuellement sélectionné.
-  ///
-  /// Utilisé pour la navigation clavier (↑/↓) et pour afficher visuellement
-  /// le choix sélectionné avec un style différent.
-  ///
-  /// Invariant : `_selectedIndex` est toujours entre 0 et `_choiceComponents.length - 1`.
   int _selectedIndex = 0;
 
-  /// Composant de surbrillance pour le choix sélectionné.
-  ///
-  /// Affiché derrière le choix sélectionné pour le mettre en évidence visuellement.
-  RectangleComponent? _selectionHighlight;
+  @visibleForTesting
+  bool get commandPanelMounted => _commandPanel != null;
+
+  @visibleForTesting
+  bool get narrationPanelMounted => _commandPanel != null;
+
+  @visibleForTesting
+  bool get debugPanelMounted => _debugPanel != null;
+
+  @visibleForTesting
+  String get currentPromptText =>
+      buildBattleDecisionPromptForOverlay(_session.decisionRequest);
+
+  @visibleForTesting
+  String get currentNarrationText =>
+      buildBattleNarrationLinesForOverlay(_session).join('\n');
 
   @override
   Future<void> onLoad() async {
-    // Fond sombre
-    final bg = RectangleComponent(
-      size: size.clone(),
-      anchor: Anchor.topLeft,
-      paint: Paint()..color = const Color(0xF20B1020),
-      priority: 0,
-    );
-    add(bg);
+    // Le layout du lot 1 reste volontairement local et concret :
+    // - on assume une scène plein écran ;
+    // - on place des zones stables joueur/ennemi ;
+    // - on garde un seul panneau bas pour narration + commandes ;
+    // - on évite volontairement un système de layout générique.
+    const padding = 28.0;
+    final commandPanelHeight = (size.y * 0.31).clamp(188.0, 232.0).toDouble();
+    final commandPanelY = size.y - commandPanelHeight - padding;
 
-    // Panneau principal
-    final panelWidth = (size.x - 80).clamp(240.0, 760.0);
-    final panelHeight = (size.y - 120).clamp(220.0, 520.0);
-    _panel = RectangleComponent(
-      size: Vector2(panelWidth, panelHeight),
-      position: Vector2((size.x - panelWidth) / 2, (size.y - panelHeight) / 2),
-      anchor: Anchor.topLeft,
-      paint: Paint()..color = const Color(0xE81A223B),
-      priority: 1,
+    final enemyHudSize = Vector2(
+      (size.x * 0.31).clamp(240.0, 320.0).toDouble(),
+      98,
     );
-    add(_panel!);
-
-    // Bordure du panneau
-    final panelBorder = RectangleComponent(
-      size: _panel!.size.clone(),
-      anchor: Anchor.topLeft,
-      paint: Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2
-        ..color = const Color(0x66FFFFFF),
-      priority: 2,
+    final playerHudSize = Vector2(
+      (size.x * 0.34).clamp(250.0, 340.0).toDouble(),
+      106,
     );
-    _panel!.add(panelBorder);
 
-    // Titre
-    final title = TextComponent(
-      text: _getTitleForSession(),
-      anchor: Anchor.topLeft,
-      position: Vector2(22, 20),
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0xFFF5F5F5),
-          fontSize: 26,
-          fontWeight: FontWeight.w700,
-        ),
+    final enemyCombatantSize = Vector2(
+      (size.x * 0.27).clamp(220.0, 320.0).toDouble(),
+      (size.y * 0.28).clamp(140.0, 190.0).toDouble(),
+    );
+    final playerCombatantSize = Vector2(
+      (size.x * 0.31).clamp(250.0, 360.0).toDouble(),
+      (size.y * 0.32).clamp(170.0, 230.0).toDouble(),
+    );
+
+    _backdrop = BattleSceneBackdropComponent(size: size.clone());
+    await add(_backdrop!);
+
+    _enemyCombatant = BattleSceneCombatantComponent(
+      position: Vector2(size.x - enemyCombatantSize.x - 88, 82),
+      size: enemyCombatantSize,
+      isPlayerSide: false,
+      speciesLabel: _session.state.enemy.speciesId,
+    );
+    await add(_enemyCombatant!);
+
+    _playerCombatant = BattleSceneCombatantComponent(
+      position: Vector2(72, commandPanelY - playerCombatantSize.y - 26),
+      size: playerCombatantSize,
+      isPlayerSide: true,
+      speciesLabel: _session.state.player.speciesId,
+    );
+    await add(_playerCombatant!);
+
+    _enemyHud = BattleSceneHudComponent(
+      position: Vector2(padding, padding),
+      size: enemyHudSize,
+      ownerLabel: 'ENNEMI',
+      combatant: _session.state.enemy,
+      isPlayerSide: false,
+    );
+    await add(_enemyHud!);
+
+    _playerHud = BattleSceneHudComponent(
+      position: Vector2(
+        size.x - playerHudSize.x - padding,
+        commandPanelY - playerHudSize.y - 18,
       ),
-      priority: 3,
+      size: playerHudSize,
+      ownerLabel: 'JOUEUR',
+      combatant: _session.state.player,
+      isPlayerSide: true,
     );
-    _panel!.add(title);
+    await add(_playerHud!);
 
-    // PV du joueur
-    _playerHpText = TextComponent(
-      text: _getPlayerHpText(),
-      anchor: Anchor.topLeft,
-      position: Vector2(22, 72),
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0xFFE5E9F2),
-          fontSize: 18,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      priority: 3,
+    _commandPanel = BattleCommandPanelComponent(
+      position: Vector2(padding, commandPanelY),
+      size: Vector2(size.x - (padding * 2), commandPanelHeight),
+      onChoiceSelected: onPlayerChoice,
     );
-    _panel!.add(_playerHpText!);
+    await add(_commandPanel!);
 
-    // PV de l'ennemi
-    _enemyHpText = TextComponent(
-      text: _getEnemyHpText(),
-      anchor: Anchor.topLeft,
-      position: Vector2(22, 100),
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0xFFE5E9F2),
-          fontSize: 18,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      priority: 3,
-    );
-    _panel!.add(_enemyHpText!);
-
-    // Titre des choix
-    _choicesTitleText = TextComponent(
-      text: buildBattleDecisionPromptForOverlay(_session.decisionRequest),
-      anchor: Anchor.topLeft,
-      position: Vector2(22, 150),
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0xFFC4CCDA),
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      priority: 3,
-    );
-    _panel!.add(_choicesTitleText!);
-
-    // Choix disponibles
-    _renderChoices();
-
-    // Astuce
-    final hint = TextComponent(
-      text: 'Utilisez les flèches ↑/↓ et E pour choisir',
-      anchor: Anchor.bottomLeft,
-      position: Vector2(22, panelHeight - 18),
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0xFFC4CCDA),
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      priority: 3,
-    );
-    _panel!.add(hint);
-  }
-
-  /// Met à jour l'affichage avec un nouvel état de session.
-  ///
-  /// [newSession] - La nouvelle session avec l'état mis à jour.
-  ///
-  /// **IMPORTANT** : Cette méthode met à jour [_session] pour que toutes les
-  /// méthodes d'affichage (_getChoiceText, etc.) lisent le bon état.
-  ///
-  /// Cette méthode gère aussi la cohérence de la sélection :
-  /// - Si le combat est fini, la sélection est désactivée
-  /// - Si la sélection est hors bornes (moins de choix), elle est clampée
-  /// - Si un tour est en cours, affiche le résultat du tour (attaques + dégâts)
-  void updateState(BattleSession newSession) {
-    // Mettre à jour la session interne — CRITIQUE pour la cohérence
-    _session = newSession;
-
-    // Mettre à jour les PV
-    _playerHpText?.text = _getPlayerHpText();
-    _enemyHpText?.text = _getEnemyHpText();
-    _choicesTitleText?.text =
-        buildBattleDecisionPromptForOverlay(newSession.decisionRequest);
-
-    // Afficher le résultat du tour si disponible
-    _updateTurnResult();
-
-    // Si le combat est fini, afficher le résultat
-    if (newSession.state.isFinished) {
-      _showOutcome(newSession.state.outcome!);
-    } else {
-      // Combat toujours en cours — maintenir la sélection cohérente
-      // Clamper l'index si le nombre de choix a changé
-      final choices = newSession.decisionRequest.allowedChoices;
-      if (_selectedIndex >= choices.length) {
-        _selectedIndex = choices.length - 1;
-      }
-      if (_selectedIndex < 0) {
-        _selectedIndex = 0;
-      }
-      // Re-render pour mettre à jour les choix et la surbrillance
-      _renderChoices();
-    }
-  }
-
-  /// Met à jour l'affichage du résultat du tour en cours.
-  ///
-  /// Affiche les attaques du joueur et de l'ennemi, ainsi que les dégâts infligés.
-  void _updateTurnResult() {
-    // Supprimer l'ancien texte de résultat du tour
-    _turnResultText?.removeFromParent();
-    _turnResultText = null;
-
-    final turnResult = _session.state.currentTurn;
-    if (turnResult == null) {
-      return;
-    }
-
-    final lines = buildBattleTurnLinesForOverlay(turnResult);
-
-    if (lines.isEmpty) {
-      return;
-    }
-
-    // Afficher le résultat du tour
-    _turnResultText = TextComponent(
-      text: lines.join('\n'),
-      anchor: Anchor.topCenter,
-      position: Vector2(_panel!.size.x / 2, 130),
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0xFFE5E9F2),
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      priority: 3,
-    );
-    _panel!.add(_turnResultText!);
-  }
-
-  /// Affiche le résultat final du combat.
-  void _showOutcome(BattleOutcome outcome) {
-    final outcomeText = switch (outcome.type) {
-      BattleOutcomeType.victory => 'Victoire !',
-      BattleOutcomeType.defeat => 'Défaite...',
-      BattleOutcomeType.runaway => 'Fuite réussie !',
-      BattleOutcomeType.captured => 'Capture réussie !',
-    };
-
-    final outcomeComponent = TextComponent(
-      text: outcomeText,
-      anchor: Anchor.topCenter,
-      position: Vector2(_panel!.size.x / 2, _panel!.size.y / 2 + 50),
-      textRenderer: TextPaint(
-        style: TextStyle(
-          color: outcome.isVictory || outcome.isCaptured
-              ? const Color(0xFF4CAF50)
-              : const Color(0xFFF44336),
-          fontSize: 32,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-      priority: 10,
-    );
-    _panel!.add(outcomeComponent);
-  }
-
-  /// Affiche les choix disponibles.
-  ///
-  /// Cette méthode :
-  /// 1. Récupère les choix disponibles depuis [_session]
-  /// 2. Crée un composant visuel pour chaque choix
-  /// 3. Ajoute un composant de surbrillance pour le choix sélectionné
-  /// 4. Met à jour [_selectionHighlight] pour le rendu visuel
-  void _renderChoices() {
-    // Lit [_session] qui est toujours à jour grâce à updateState()
-    final request = _session.decisionRequest;
-    final choices = request.allowedChoices;
-    var y = 190.0;
-
-    // Nettoyer les anciens composants de choix
-    for (final component in _choiceComponents) {
-      component.removeFromParent();
-    }
-    _choiceComponents.clear();
-
-    // Nettoyer l'ancienne surbrillance
-    _selectionHighlight?.removeFromParent();
-    _selectionHighlight = null;
-
-    for (var i = 0; i < choices.length; i++) {
-      final choice = choices[i];
-      final text = _getChoiceText(request, choice);
-      final choiceComponent = _ChoiceComponent(
-        choice: choice,
-        text: text,
-        position: Vector2(22, y),
+    if (showDebugPanel) {
+      _debugPanel = BattleDebugPanelComponent(
+        position: Vector2(size.x - 248, 32),
+        size: Vector2(216, 148),
       );
-      _choiceComponents.add(choiceComponent);
-      _panel!.add(choiceComponent);
-
-      // Créer la surbrillance pour le choix sélectionné
-      if (i == _selectedIndex) {
-        _selectionHighlight = RectangleComponent(
-          size: Vector2(280, 28),
-          position: Vector2(24, y + 2),
-          anchor: Anchor.topLeft,
-          paint: Paint()
-            ..color = const Color(0x40FFFFFF) // Blanc semi-transparent
-            ..style = PaintingStyle.fill,
-          priority: 2,
-        );
-        _panel!.add(_selectionHighlight!);
-      }
-
-      y += 32;
+      await add(_debugPanel!);
     }
+
+    _syncVisualState();
   }
 
-  /// Retourne le texte à afficher pour un choix.
+  /// Met à jour l'overlay avec une nouvelle session immutable.
   ///
-  /// Lit [_session] qui est toujours à jour grâce à updateState().
-  String _getChoiceText(
+  /// Invariants runtime préservés :
+  /// - `BattleSession` reste la seule source de vérité d'état ;
+  /// - `BattleDecisionRequest` reste la seule source de vérité des commandes ;
+  /// - `BattleTurnResult.timeline` reste la seule source de vérité narrative.
+  void updateState(BattleSession newSession) {
+    _session = newSession;
+    _clampSelectionToCurrentChoices();
+    _syncVisualState();
+  }
+
+  bool moveSelectionUp() {
+    if (_selectedIndex > 0) {
+      _selectedIndex--;
+      _syncPanelsOnly();
+      return true;
+    }
+    return false;
+  }
+
+  bool moveSelectionDown() {
+    final choices = _session.decisionRequest.allowedChoices;
+    if (_selectedIndex < choices.length - 1) {
+      _selectedIndex++;
+      _syncPanelsOnly();
+      return true;
+    }
+    return false;
+  }
+
+  PlayerBattleChoice? getSelectedChoice() {
+    final choices = _session.decisionRequest.allowedChoices;
+    if (choices.isEmpty) {
+      return null;
+    }
+    if (_selectedIndex < 0 || _selectedIndex >= choices.length) {
+      return null;
+    }
+    return choices[_selectedIndex];
+  }
+
+  bool validateSelectedChoice() {
+    final selectedChoice = getSelectedChoice();
+    if (selectedChoice == null) {
+      return false;
+    }
+    onPlayerChoice(selectedChoice);
+    return true;
+  }
+
+  void _syncVisualState() {
+    _enemyCombatant?.sync(speciesLabel: _session.state.enemy.speciesId);
+    _playerCombatant?.sync(speciesLabel: _session.state.player.speciesId);
+    _enemyHud?.sync(combatant: _session.state.enemy);
+    _playerHud?.sync(combatant: _session.state.player);
+    _syncPanelsOnly();
+    _syncOutcomeBanner();
+  }
+
+  void _syncPanelsOnly() {
+    _clampSelectionToCurrentChoices();
+
+    _commandPanel?.sync(
+      battleLabel: _titleForSession(),
+      prompt: buildBattleDecisionPromptForOverlay(_session.decisionRequest),
+      narrationLines: buildBattleNarrationLinesForOverlay(_session),
+      choices: _buildChoiceEntries(_session.decisionRequest),
+      selectedIndex: _selectedIndex,
+    );
+
+    _debugPanel?.sync(
+      lines: buildBattleDebugLinesForOverlay(
+        _session,
+        selectedIndex: _selectedIndex,
+      ),
+    );
+  }
+
+  void _syncOutcomeBanner() {
+    if (!_session.state.isFinished || _session.state.outcome == null) {
+      _outcomeBanner?.removeFromParent();
+      _outcomeBanner = null;
+      return;
+    }
+
+    final outcome = _session.state.outcome!;
+    final bannerText = _buildOutcomeHeadline(outcome);
+    final bannerColor = outcome.isVictory || outcome.isCaptured
+        ? const Color(0xFF8AE36A)
+        : const Color(0xFFFF8E75);
+
+    if (_outcomeBanner == null) {
+      _outcomeBanner = TextComponent(
+        text: bannerText,
+        position: Vector2(size.x / 2, size.y * 0.17),
+        anchor: Anchor.center,
+        textRenderer: TextPaint(
+          style: TextStyle(
+            color: bannerColor,
+            fontSize: 32,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        priority: 45,
+      );
+      add(_outcomeBanner!);
+      return;
+    }
+
+    _outcomeBanner!.text = bannerText;
+    _outcomeBanner!.textRenderer = TextPaint(
+      style: TextStyle(
+        color: bannerColor,
+        fontSize: 32,
+        fontWeight: FontWeight.w800,
+      ),
+    );
+  }
+
+  List<BattleCommandChoiceEntry> _buildChoiceEntries(
+    BattleDecisionRequest request,
+  ) {
+    return List<BattleCommandChoiceEntry>.unmodifiable(
+      request.allowedChoices.map(
+        (choice) => BattleCommandChoiceEntry(
+          choice: choice,
+          label: _labelForChoice(request, choice),
+        ),
+      ),
+    );
+  }
+
+  String _labelForChoice(
     BattleDecisionRequest request,
     PlayerBattleChoice choice,
   ) {
     if (choice is PlayerBattleChoiceFight) {
-      // Lit les moves depuis _session.state.player.moves — toujours à jour
       final move = _session.state.player.moves[choice.moveIndex];
-      return '⚔ ${move.name} (Puissance: ${move.power})';
-    } else if (choice is PlayerBattleChoiceSwitch) {
+      final moveKind = switch (move.category) {
+        BattleMoveCategory.physical => 'Physique',
+        BattleMoveCategory.special => 'Speciale',
+        BattleMoveCategory.status => 'Statut',
+        null => 'Technique',
+      };
+      final powerLabel = move.power > 0 ? ' · Puissance ${move.power}' : '';
+      return '${move.name} · $moveKind$powerLabel';
+    }
+
+    if (choice is PlayerBattleChoiceSwitch) {
       final reserve = _session.state.playerReserve[choice.reserveIndex];
       final isForcedReplacement = request is BattleForcedReplacementRequest;
-      final actionLabel = isForcedReplacement ? 'Remplacer par' : 'Switch vers';
-      return '↔ $actionLabel ${reserve.speciesId} '
-          '(${reserve.currentHp}/${reserve.maxHp} PV)';
-    } else if (choice is PlayerBattleChoiceContinue) {
-      // Phase C cesse ici d'inférer le sens du tour forcé depuis l'état
-      // volatile brut : la vraie source de vérité est désormais la requête.
+      final verb = isForcedReplacement ? 'Remplacer par' : 'Switch vers';
+      return '$verb ${reserve.speciesId} · ${reserve.currentHp}/${reserve.maxHp} PV';
+    }
+
+    if (choice is PlayerBattleChoiceContinue) {
       if (request case BattleContinueRequest(:final reason)) {
         if (reason == BattleContinueReason.pendingChargeRelease) {
-          return 'Continuer (libérer la charge)';
+          return 'Continuer · liberer la charge';
         }
         if (reason == BattleContinueReason.mustRecharge) {
-          return 'Continuer (recharge)';
+          return 'Continuer · tour de recharge';
         }
       }
       return 'Continuer';
-    } else if (choice is PlayerBattleChoiceCapture) {
+    }
+
+    if (choice is PlayerBattleChoiceCapture) {
       return 'Capturer';
-    } else if (choice is PlayerBattleChoiceRun) {
-      return '🏃 Fuir';
     }
-    return '???';
+
+    if (choice is PlayerBattleChoiceRun) {
+      return 'Fuir';
+    }
+
+    return 'Action inconnue';
   }
 
-  /// Retourne le titre pour la session.
-  ///
-  /// Lit [_session] qui est toujours à jour grâce à updateState().
-  String _getTitleForSession() {
+  void _clampSelectionToCurrentChoices() {
+    final choices = _session.decisionRequest.allowedChoices;
+    if (choices.isEmpty) {
+      _selectedIndex = 0;
+      return;
+    }
+    if (_selectedIndex >= choices.length) {
+      _selectedIndex = choices.length - 1;
+    }
+    if (_selectedIndex < 0) {
+      _selectedIndex = 0;
+    }
+  }
+
+  String _titleForSession() {
     if (_session.setup.isTrainerBattle) {
-      return 'Combat Dresseur';
+      return 'Combat dresseur';
     }
-    return 'Combat Sauvage';
-  }
-
-  /// Retourne le texte des PV du joueur.
-  ///
-  /// Lit [_session] qui est toujours à jour grâce à updateState().
-  String _getPlayerHpText() {
-    return 'Joueur (${_session.state.player.speciesId}): '
-        '${_session.state.player.currentHp}/${_session.state.player.maxHp} PV';
-  }
-
-  /// Retourne le texte des PV de l'ennemi.
-  ///
-  /// Lit [_session] qui est toujours à jour grâce à updateState().
-  String _getEnemyHpText() {
-    return 'Ennemi (${_session.state.enemy.speciesId}): '
-        '${_session.state.enemy.currentHp}/${_session.state.enemy.maxHp} PV';
-  }
-
-  /// Déplace la sélection vers le haut (choix précédent).
-  ///
-  /// Si la sélection est déjà au premier choix, reste au premier choix (pas de wrap).
-  /// Met à jour visuellement la surbrillance.
-  ///
-  /// Retourne true si la sélection a changé, false sinon.
-  bool moveSelectionUp() {
-    if (_selectedIndex > 0) {
-      _selectedIndex--;
-      debugPrint('[battle-overlay] moveSelectionUp: new index=$_selectedIndex');
-      _renderChoices(); // Re-render pour mettre à jour la surbrillance
-      return true;
-    }
-    debugPrint(
-        '[battle-overlay] moveSelectionUp: already at first choice (index=$_selectedIndex)');
-    return false;
-  }
-
-  /// Déplace la sélection vers le bas (choix suivant).
-  ///
-  /// Si la sélection est déjà au dernier choix, reste au dernier choix (pas de wrap).
-  /// Met à jour visuellement la surbrillance.
-  ///
-  /// Retourne true si la sélection a changé, false sinon.
-  bool moveSelectionDown() {
-    if (_selectedIndex < _choiceComponents.length - 1) {
-      _selectedIndex++;
-      debugPrint(
-          '[battle-overlay] moveSelectionDown: new index=$_selectedIndex');
-      _renderChoices(); // Re-render pour mettre à jour la surbrillance
-      return true;
-    }
-    debugPrint(
-        '[battle-overlay] moveSelectionDown: already at last choice (index=$_selectedIndex, max=${_choiceComponents.length - 1})');
-    return false;
-  }
-
-  /// Retourne le choix actuellement sélectionné.
-  ///
-  /// Retourne null si aucun choix n'est disponible.
-  PlayerBattleChoice? getSelectedChoice() {
-    if (_choiceComponents.isEmpty ||
-        _selectedIndex < 0 ||
-        _selectedIndex >= _choiceComponents.length) {
-      return null;
-    }
-    return _choiceComponents[_selectedIndex].choice;
-  }
-
-  /// Valide le choix actuellement sélectionné.
-  ///
-  /// Appelle [onPlayerChoice] avec le choix sélectionné.
-  ///
-  /// Retourne true si un choix a été validé, false si aucun choix n'est disponible.
-  bool validateSelectedChoice() {
-    final selectedChoice = getSelectedChoice();
-    if (selectedChoice != null) {
-      debugPrint(
-          '[battle-overlay] validateSelectedChoice: choice=$selectedChoice');
-      onPlayerChoice(selectedChoice);
-      return true;
-    }
-    debugPrint('[battle-overlay] validateSelectedChoice: no choice selected');
-    return false;
-  }
-
-  @override
-  void onTapDown(TapDownEvent event) {
-    // Vérifier si un choix a été cliqué
-    final tapPos = event.localPosition;
-    for (var i = 0; i < _choiceComponents.length; i++) {
-      final choiceComponent = _choiceComponents[i];
-      if (choiceComponent.containsPoint(tapPos)) {
-        // Mettre à jour la sélection visuelle
-        _selectedIndex = i;
-        _renderChoices();
-
-        // Choix cliqué — notifier le runtime
-        onPlayerChoice(choiceComponent.choice);
-        return;
-      }
-    }
-  }
-}
-
-/// Composant de choix avec référence au choix associé.
-///
-/// Permet de détecter les clics sur un choix spécifique et de notifier
-/// le runtime via [onPlayerChoice].
-class _ChoiceComponent extends PositionComponent {
-  _ChoiceComponent({
-    required this.choice,
-    required String text,
-    required Vector2 position,
-  }) : super(
-          size: Vector2(300, 32),
-          position: position,
-          anchor: Anchor.topLeft,
-        ) {
-    // Ajouter le texte du choix
-    add(TextComponent(
-      text: text,
-      anchor: Anchor.topLeft,
-      position: Vector2.zero(),
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0xFFE5E9F2),
-          fontSize: 18,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    ));
-  }
-
-  /// Le choix associé à ce composant.
-  final PlayerBattleChoice choice;
-
-  /// Vérifie si un point est dans les bounds de ce composant.
-  @override
-  bool containsPoint(Vector2 point) {
-    return point.x >= position.x &&
-        point.x <= position.x + size.x &&
-        point.y >= position.y &&
-        point.y <= position.y + size.y;
+    return 'Combat sauvage';
   }
 }
