@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:map_battle/map_battle.dart';
 
 import 'battle_command_panel_component.dart';
+import 'battle_background_resolver.dart';
 import 'battle_debug_panel_component.dart';
 import 'battle_scene_backdrop_component.dart';
 import 'battle_scene_combatant_component.dart';
@@ -258,6 +259,7 @@ class BattleOverlayComponent extends PositionComponent {
     required BattleSession session,
     required Vector2 viewportSize,
     required this.onPlayerChoice,
+    this.backgroundSpec = const BattleBackgroundSpec.fallbackField(),
     this.showDebugPanel = false,
   })  : _session = session,
         super(
@@ -269,6 +271,7 @@ class BattleOverlayComponent extends PositionComponent {
   BattleSession _session;
 
   final void Function(PlayerBattleChoice choice) onPlayerChoice;
+  final BattleBackgroundSpec backgroundSpec;
 
   /// Le debug reste volontairement opt-in.
   ///
@@ -296,6 +299,9 @@ class BattleOverlayComponent extends PositionComponent {
 
   @visibleForTesting
   bool get debugPanelMounted => _debugPanel != null;
+
+  @visibleForTesting
+  BattleBackgroundKey get currentBackgroundKey => backgroundSpec.key;
 
   @visibleForTesting
   String get currentPromptText =>
@@ -334,7 +340,10 @@ class BattleOverlayComponent extends PositionComponent {
       (size.y * 0.32).clamp(170.0, 230.0).toDouble(),
     );
 
-    _backdrop = BattleSceneBackdropComponent(size: size.clone());
+    _backdrop = BattleSceneBackdropComponent(
+      size: size.clone(),
+      backgroundSpec: backgroundSpec,
+    );
     await add(_backdrop!);
 
     _enemyCombatant = BattleSceneCombatantComponent(
@@ -398,6 +407,12 @@ class BattleOverlayComponent extends PositionComponent {
   /// - `BattleSession` reste la seule source de vérité d'état ;
   /// - `BattleDecisionRequest` reste la seule source de vérité des commandes ;
   /// - `BattleTurnResult.timeline` reste la seule source de vérité narrative.
+  ///
+  /// Le fond n'est volontairement pas recalculé ici :
+  /// - le lot 2 le résout à l'ouverture du combat à partir du contexte runtime ;
+  /// - l'évolution du tour ne doit pas recréer une logique parallèle de décor ;
+  /// - un vrai resolver contextuel plus riche restera un sujet futur côté
+  ///   runtime, pas un effet secondaire de `BattleSession`.
   void updateState(BattleSession newSession) {
     _session = newSession;
     _clampSelectionToCurrentChoices();

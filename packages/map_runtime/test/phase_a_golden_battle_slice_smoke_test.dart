@@ -10,6 +10,7 @@ import 'package:map_runtime/src/application/encounter_to_battle_request.dart';
 import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
 import 'package:map_runtime/src/application/runtime_battle_setup_mapper.dart';
 import 'package:map_runtime/src/application/trainer_battle_request.dart';
+import 'package:map_runtime/src/presentation/flame/battle_background_resolver.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
@@ -17,6 +18,7 @@ void main() {
 
   group('Phase A golden battle-ready slice smoke', () {
     const mapper = RuntimeBattleSetupMapper();
+    const backgroundResolver = BattleBackgroundResolver();
 
     test('the versioned golden slice starts a real wild battle', () async {
       final projectFilePath = _goldenProjectFilePath();
@@ -105,6 +107,64 @@ void main() {
       expect(session.state.isFinished, isFalse);
       expect(session.state.player.speciesId, equals('sproutle'));
       expect(session.state.enemy.speciesId, equals('sparkitten'));
+    });
+
+    test(
+        'the versioned golden slice resolves distinct wild and trainer backgrounds',
+        () async {
+      final projectFilePath = _goldenProjectFilePath();
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'golden_field',
+      );
+      final save = await _loadGoldenSave(projectFilePath);
+      final gameState = gameStateFromSaveData(save);
+
+      final world = GameplayWorldState.initial(
+        map: bundle.map,
+        playerPos: gameState.playerPosition,
+        playerFacing: Direction.east,
+        project: bundle.manifest,
+      );
+
+      final movedWorld = stepGameplayWorld(
+        world,
+        const MoveIntent(Direction.north),
+      ).world;
+      final encounter = checkEncounterAtPlayerPosition(
+        world: movedWorld,
+        project: bundle.manifest,
+        encounterKind: EncounterKind.walk,
+        random: _FixedEncounterRandom(
+          nextDoubleValues: const <double>[0.0],
+          nextIntValues: const <int>[0, 0],
+        ),
+        policy: const GameplayEncounterPolicy(chancePerStep: 1),
+      ).encounter!;
+      final wildRequest = buildBattleStartRequestFromEncounter(
+        encounter: encounter,
+        world: movedWorld,
+        createdAtEpochMs: 1,
+      );
+
+      final trainer = bundle.map.entities.firstWhere(
+        (entity) => entity.id == 'npc_trainer_rookie',
+      );
+      final trainerRequest = buildTrainerBattleRequestFromNpc(
+        entity: trainer,
+        manifest: bundle.manifest,
+        world: world,
+        createdAtEpochMs: 1,
+      )!;
+
+      expect(
+        backgroundResolver.resolve(request: wildRequest, bundle: bundle).key,
+        equals(BattleBackgroundKey.wildOutdoor),
+      );
+      expect(
+        backgroundResolver.resolve(request: trainerRequest, bundle: bundle).key,
+        equals(BattleBackgroundKey.trainerOutdoor),
+      );
     });
   });
 }

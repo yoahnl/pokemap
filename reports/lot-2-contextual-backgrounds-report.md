@@ -1,3 +1,1704 @@
+# Lot 2 — Contextual Backgrounds Report
+
+## 1. Résumé exécutif honnête
+
+Le lot 2 est **réussi**.
+
+Le combat ne repose plus sur un seul fond statique : la scène runtime choisit désormais une famille de fond à partir du **contexte runtime réel**, sans toucher au battle-core, sans créer d’asset, et sans ouvrir la moindre logique IA.
+
+Implémentation retenue :
+
+- un seam runtime minimal `BattleBackgroundResolver`
+- une spec minimale `BattleBackgroundSpec` pilotée par une seule clé `BattleBackgroundKey`
+- une injection locale dans `PlayableMapGame` au moment où l’overlay s’ouvre
+- un `BattleSceneBackdropComponent` qui consomme cette spec et peint plusieurs familles visuelles réellement distinctes
+
+Décision nette :
+
+- pas de modification de `BattleStartRequest`
+- pas de modification de `runtime_battle_setup_mapper.dart`
+- pas de modification de `map_battle`
+- pas d’asset battle background réutilisable, parce qu’aucun asset pertinent n’existe réellement dans le repo
+- pas de faux framework de theming
+
+Variation réellement introduite :
+
+- `fallbackField`
+- `wildOutdoor`
+- `trainerOutdoor`
+- `indoor`
+
+Le lot 1 n’a pas été re-détruit : la scène reste la même, seul le layer de fond devient piloté par une petite résolution de contexte côté runtime.
+
+## 2. Pré-gates réellement exécutés + résultats
+
+Commandes exécutées exactement au début du lot :
+
+```bash
+git status --short --untracked-files=all
+git diff --stat
+git ls-files --others --exclude-standard
+```
+
+Résultats réellement observés au début du lot :
+
+- `git status --short --untracked-files=all`
+  - aucune sortie
+- `git diff --stat`
+  - aucune sortie
+- `git ls-files --others --exclude-standard`
+  - aucune sortie
+
+Interprétation :
+
+- le repo était propre au début du lot 2 ;
+- le travail a bien été exécuté sur une baseline propre ;
+- aucun reset ni discard n’a été tenté.
+
+## 3. Méthode réellement suivie
+
+Méthode suivie :
+
+1. pré-gates read-only exacts
+2. relecture des docs canoniques et des reports UI/IA déjà produits
+3. audit ciblé du seam de scène lot 1, du point d’ouverture de l’overlay dans `PlayableMapGame`, et du contexte runtime réellement disponible (`BattleStartRequest`, `RuntimeMapBundle`, `MapMetadata`, `ProjectMapEntry`, `ProjectTrainerEntry`)
+4. recherche repo sur d’éventuels assets battle backgrounds existants et audit des champs tentants mais peu fiables
+5. classification explicite des sujets du lot 2
+6. TDD ciblée : tests rouges sur le resolver, sur l’injection du fond dans l’overlay, et sur le golden slice wild/trainer
+7. implémentation minimale strictement côté runtime
+8. relance des validations demandées
+9. tentative de review séparée finale
+10. rédaction du report final complet
+
+Skills/plugins réellement utilisés :
+
+- `superpowers:brainstorming`
+- `superpowers:test-driven-development`
+- `superpowers:requesting-code-review`
+- `game-studio:game-ui-frontend`
+
+Adaptation explicite :
+
+- `brainstorming` impose normalement une étape d’aller-retour design plus formelle ;
+- ici j’ai resserré cette étape en design interne documenté, parce que ton prompt demandait d’exécuter sans pause de confort ;
+- j’ai gardé l’esprit du skill : audit du contexte, choix d’un seul design, puis TDD avant implémentation.
+
+## 4. Périmètre inclus / exclu
+
+### Inclus
+
+- runtime présentation sous `packages/map_runtime/lib/src/presentation/flame/`
+- un seam minimal de résolution de fond battle
+- la peinture du backdrop runtime
+- le point d’injection local qui ouvre l’overlay battle
+- des tests runtime ciblés sur la résolution et le golden slice
+
+### Exclus
+
+- tout `packages/map_battle/lib/src/**`
+- toute logique IA, difficulté ou `BattleOpponentPolicy`
+- tout asset nouveau
+- tout resolver contextuel large de biome universel
+- tout élargissement de `BattleStartRequest`
+- toute modification des mappers runtime application battle
+- tout changement du host source
+
+## 5. Classification initiale des sujets du lot 2
+
+- seam `BattleBackgroundResolver` ou équivalent : `required_now`
+- `BattleBackgroundSpec` ou équivalent : `required_now`
+- contexte map/metadata : `required_now`
+- contexte wild/trainer : `required_now`
+- fallback chain : `required_now`
+- fond statique par défaut : `fix_now_small`
+- nombre minimal de familles visuelles : `required_now`
+- éventuel usage d’assets existants : `document_now_only`
+- éventuelle modification de `BattleStartRequest` : `defer_not_lot2`
+- éventuelle modification de `PlayableMapGame` : `fix_now_small`
+- éventuelle modification de `battle_overlay_component.dart` : `fix_now_small`
+- éventuelle modification du lot 1 backdrop component : `required_now`
+- éventuelles modifications runtime application hors présentation : `defer_not_lot2`
+
+## 6. Fichiers lus
+
+Docs / reports :
+
+- `/Users/karim/Project/pokemonProject/docs/combat/battle-canonical-state-v3.1.md`
+- `/Users/karim/Project/pokemonProject/docs/combat/battle-roadmap-canonical-v3.1.md`
+- `/Users/karim/Project/pokemonProject/reports/combat-ui-ai-audit-and-roadmap.md`
+- `/Users/karim/Project/pokemonProject/reports/combat-ui-ai-implementation-roadmap.md`
+- `/Users/karim/Project/pokemonProject/reports/lot-1-battle-scene-ui-pass-report.md`
+
+Runtime / présentation :
+
+- `/Users/karim/Project/pokemonProject/packages/map_runtime/lib/src/presentation/flame/battle_overlay_component.dart`
+- `/Users/karim/Project/pokemonProject/packages/map_runtime/lib/src/presentation/flame/battle_scene_backdrop_component.dart`
+- `/Users/karim/Project/pokemonProject/packages/map_runtime/lib/src/presentation/flame/battle_scene_combatant_component.dart`
+- `/Users/karim/Project/pokemonProject/packages/map_runtime/lib/src/presentation/flame/battle_scene_hud_component.dart`
+- `/Users/karim/Project/pokemonProject/packages/map_runtime/lib/src/presentation/flame/battle_command_panel_component.dart`
+- `/Users/karim/Project/pokemonProject/packages/map_runtime/lib/src/presentation/flame/battle_debug_panel_component.dart`
+- `/Users/karim/Project/pokemonProject/packages/map_runtime/lib/src/presentation/flame/battle_transition_overlay_component.dart`
+- `/Users/karim/Project/pokemonProject/packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart`
+
+Runtime / application / contexte :
+
+- `/Users/karim/Project/pokemonProject/packages/map_runtime/lib/src/application/battle_start_request.dart`
+- `/Users/karim/Project/pokemonProject/packages/map_runtime/lib/src/application/trainer_battle_request.dart`
+- `/Users/karim/Project/pokemonProject/packages/map_runtime/lib/src/application/encounter_to_battle_request.dart`
+- `/Users/karim/Project/pokemonProject/packages/map_runtime/lib/src/application/runtime_map_bundle.dart`
+- `/Users/karim/Project/pokemonProject/packages/map_runtime/lib/src/application/load_runtime_map_bundle.dart`
+- `/Users/karim/Project/pokemonProject/packages/map_runtime/lib/src/application/runtime_battle_setup_mapper.dart`
+
+Modèles / données :
+
+- `/Users/karim/Project/pokemonProject/packages/map_core/lib/src/models/project_manifest.dart`
+- `/Users/karim/Project/pokemonProject/packages/map_core/lib/src/models/project_trainer.dart`
+- `/Users/karim/Project/pokemonProject/packages/map_core/lib/src/models/map_metadata.dart`
+- `/Users/karim/Project/pokemonProject/packages/map_core/lib/src/models/map_entity_payloads.dart`
+- `/Users/karim/Project/pokemonProject/packages/map_gameplay/lib/src/gameplay_encounter.dart`
+- `/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/project.json`
+- `/Users/karim/Project/pokemonProject/examples/playable_runtime_host/golden_battle_slice/maps/golden_field.json`
+
+Tests vérité produit :
+
+- `/Users/karim/Project/pokemonProject/packages/map_runtime/test/battle_overlay_component_test.dart`
+- `/Users/karim/Project/pokemonProject/packages/map_runtime/test/wild_battle_end_to_end_flow_test.dart`
+- `/Users/karim/Project/pokemonProject/packages/map_runtime/test/phase_a_golden_battle_slice_smoke_test.dart`
+- `/Users/karim/Project/pokemonProject/examples/playable_runtime_host/test/project_loader_page_test.dart`
+- `/Users/karim/Project/pokemonProject/examples/playable_runtime_host/test/runtime_launch_save_test.dart`
+- `/Users/karim/Project/pokemonProject/examples/playable_runtime_host/test/runtime_demo_party_seed_test.dart`
+- `/Users/karim/Project/pokemonProject/examples/playable_runtime_host/test/phase_a_golden_slice_launch_test.dart`
+
+Recherches repo ciblées :
+
+- recherche d’assets battle backgrounds ou textures réutilisables
+- recherche de `battleThemeId`, `portraitElementId`, `mapType`, `isIndoor`, `tags`, `trainerClass`
+- recherche du point exact d’ouverture de `BattleOverlayComponent`
+
+## 7. Validations réellement relancées
+
+Commandes réellement relancées :
+
+```bash
+cd /Users/karim/Project/pokemonProject/packages/map_runtime && flutter analyze --no-pub \
+  lib/src/presentation/flame/battle_overlay_component.dart \
+  lib/src/presentation/flame/battle_scene_backdrop_component.dart \
+  lib/src/presentation/flame/battle_transition_overlay_component.dart \
+  lib/src/presentation/flame/playable_map_game.dart \
+  test/battle_overlay_component_test.dart \
+  test/wild_battle_end_to_end_flow_test.dart \
+  test/phase_a_golden_battle_slice_smoke_test.dart
+
+cd /Users/karim/Project/pokemonProject/packages/map_runtime && flutter test \
+  test/battle_overlay_component_test.dart \
+  test/wild_battle_end_to_end_flow_test.dart \
+  test/phase_a_golden_battle_slice_smoke_test.dart
+
+cd /Users/karim/Project/pokemonProject/examples/playable_runtime_host && flutter test \
+  test/project_loader_page_test.dart \
+  test/runtime_launch_save_test.dart \
+  test/runtime_demo_party_seed_test.dart \
+  test/phase_a_golden_slice_launch_test.dart
+```
+
+Commandes volontairement non relancées :
+
+- `dart analyze` / `dart test` dans `packages/map_battle`
+
+Justification :
+
+- aucun fichier `map_battle` n’a été touché ;
+- le lot 2 est resté strictement côté runtime.
+
+## 8. Résultats réellement obtenus
+
+Résultats observés :
+
+- `flutter analyze --no-pub ...`
+  - `No issues found!`
+- `flutter test ...` dans `packages/map_runtime`
+  - `All tests passed!`
+- `flutter test ...` dans `examples/playable_runtime_host`
+  - `All tests passed!`
+
+Résultat TDD intermédiaire réellement observé :
+
+- premier rouge : import du resolver introuvable, clé/spec inexistantes, injection overlay absente
+- deuxième rouge : même absence côté golden slice smoke
+- puis retour au vert complet après implémentation minimale
+
+## 9. Décisions retenues / rejetées sujet par sujet
+
+### 9.1 Seam de résolution
+
+Décision retenue :
+
+- créer `BattleBackgroundResolver` dans `map_runtime` présentation/runtime
+- lui faire retourner une `BattleBackgroundSpec` minimale
+
+Décision rejetée :
+
+- pousser la logique dans `map_battle`
+- créer un framework de theming générique
+- élargir `BattleStartRequest`
+
+### 9.2 Spec de fond
+
+Décision retenue :
+
+- une spec réduite à `BattleBackgroundKey`
+- clés réellement utiles : `fallbackField`, `wildOutdoor`, `trainerOutdoor`, `indoor`
+
+Décision rejetée :
+
+- catalogue de 20 backgrounds
+- objet de thème riche rempli de knobs “pour plus tard”
+
+### 9.3 Contexte utilisé
+
+Décision retenue :
+
+- indoor explicite via `MapMetadata.isIndoor`
+- indoor implicite via `MapMetadata.mapType`
+- indoor implicite via `ProjectMapEntry.role`
+- wild vs trainer via `BattleStartRequest`
+
+Décision rejetée :
+
+- `MapMetadata.tags`
+- `ProjectTrainerEntry.trainerClass`
+- `ProjectTrainerEntry.battleThemeId`
+- `ProjectEncounterTable.tags`
+
+Justification :
+
+- ces champs sont tentants mais trop sémantiques, trop libres ou trop liés à un futur pipeline d’assets qui n’existe pas encore.
+
+### 9.4 Point d’injection
+
+Décision retenue :
+
+- résoudre la spec dans `PlayableMapGame` juste avant la construction de l’overlay
+
+Décision rejetée :
+
+- modifier les mappers runtime battle
+- faire résoudre le fond par le backdrop lui-même à partir de la session
+
+Justification :
+
+- `PlayableMapGame` est déjà le point où le runtime possède simultanément la requête de combat et la map active ;
+- c’est le plus petit point d’injection repo-réel ;
+- cela n’élargit aucun contrat battle.
+
+### 9.5 Variation visuelle
+
+Décision retenue :
+
+- peindre quatre familles réellement distinctes en pur Flutter/Flame
+- garder le layout lot 1 intact
+
+Décision rejetée :
+
+- simple recolorisation quasi invisible du fond lot 1
+- refonte large des HUD/command panels pour “harmoniser” le décor
+
+## 10. Justification des fichiers modifiés
+
+- `/Users/karim/Project/pokemonProject/packages/map_runtime/lib/src/presentation/flame/battle_background_resolver.dart`
+  - nouveau seam minimal du lot 2
+- `/Users/karim/Project/pokemonProject/packages/map_runtime/lib/src/presentation/flame/battle_scene_backdrop_component.dart`
+  - vrai rendu différencié des familles visuelles
+- `/Users/karim/Project/pokemonProject/packages/map_runtime/lib/src/presentation/flame/battle_overlay_component.dart`
+  - consommation explicite d’une spec de fond et fallback stable de lot 1
+- `/Users/karim/Project/pokemonProject/packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart`
+  - unique point d’injection runtime où la requête et la map active coexistent déjà
+- `/Users/karim/Project/pokemonProject/packages/map_runtime/test/battle_overlay_component_test.dart`
+  - verrouille la résolution de contexte et le plumbing overlay/backdrop
+- `/Users/karim/Project/pokemonProject/packages/map_runtime/test/phase_a_golden_battle_slice_smoke_test.dart`
+  - verrouille la vérité produit du golden slice wild vs trainer
+
+## 11. Justification des fichiers volontairement non touchés
+
+- `packages/map_battle/lib/src/**`
+  - hors périmètre strict ; aucune nécessité battle-core n’a été trouvée
+- `packages/map_runtime/lib/src/application/runtime_battle_setup_mapper.dart`
+  - le mapper n’a pas à porter de logique de décor
+- `packages/map_runtime/lib/src/application/runtime_battle_move_bridge.dart`
+  - sans rapport avec le fond
+- `packages/map_runtime/lib/src/application/runtime_battle_combatant_seed_builder.dart`
+  - sans rapport avec le fond
+- `packages/map_runtime/lib/src/application/runtime_battle_outcome_apply.dart`
+  - sans rapport avec le fond
+- `examples/playable_runtime_host/lib/**`
+  - le host n’est pas le bon lieu pour résoudre le décor battle
+- `battle_transition_overlay_component.dart`
+  - la transition battle n’avait pas besoin de variation contextuelle pour ce lot
+
+## 12. Description précise du seam de résolution retenu
+
+Seam retenu :
+
+- `BattleBackgroundResolver.resolve({required BattleStartRequest request, required RuntimeMapBundle bundle}) -> BattleBackgroundSpec`
+
+Propriétés importantes :
+
+- vit uniquement côté runtime
+- consomme uniquement du contexte runtime déjà existant
+- ne dépend pas du battle-core
+- renvoie une spec minimale immédiatement consommable par le backdrop
+- ne promet pas de système de theming plus vaste que ce lot
+
+Spec retenue :
+
+- `BattleBackgroundSpec`
+- un seul champ structurant : `BattleBackgroundKey key`
+
+Ce choix est volontaire :
+
+- assez petit pour rester honnête
+- assez riche pour produire une vraie variation visible
+- pas assez large pour devenir un framework mort
+
+## 13. Description précise du fallback chain retenu
+
+Fallback chain réelle retenue :
+
+1. `MapMetadata.isIndoor`
+2. `MapMetadata.mapType` indoor-like (`building`, `interior`, `cave`, `facility`)
+3. `ProjectMapEntry.role` indoor-like (`interior`, `basement`, `upper_floor`, `gate`, `room`, `connector`)
+4. si la map n’est pas indoor-like :
+   - `TrainerBattleStartRequest` -> `trainerOutdoor`
+   - `WildBattleStartRequest` -> `wildOutdoor`
+5. si l’overlay est construit sans contexte runtime injecté : `fallbackField`
+
+Pourquoi cette chaîne est défendable :
+
+- elle part d’abord du lieu réel ;
+- elle n’utilise la nature du combat qu’après avoir déterminé si le lieu doit être indoor ;
+- elle garde un fallback stable et lisible ;
+- elle évite les champs sémantiques trop libres.
+
+## 14. Nombre de familles visuelles réellement introduites
+
+Nombre réellement introduit : **4**.
+
+Familles :
+
+- `fallbackField`
+- `wildOutdoor`
+- `trainerOutdoor`
+- `indoor`
+
+Différenciation réellement introduite :
+
+- palettes différentes
+- glow/horizon différents
+- midground différent selon la famille
+- composition différente pour `wildOutdoor`, `trainerOutdoor` et `indoor`
+
+## 15. Ce qui reste volontairement pour le lot 3
+
+Tout ce qui touche à l’IA reste hors lot :
+
+- `BattleOpponentPolicy`
+- difficulté
+- choix ennemi
+- profils `1..10`
+- scripts trainer/boss
+
+Ce qui reste aussi hors lot 2, même si ce n’est pas le lot 3 :
+
+- un resolver contextuel plus riche basé sur tags sémantiques ou pipeline d’assets battle
+- toute taxonomie plus fine type forêt/cité/plage/etc.
+- toute personnalisation trainer basée sur `battleThemeId`
+
+## 16. Incidents rencontrés
+
+- les pré-gates Git ont donné un silence complet au début ; contrôle confirmé : repo propre
+- exécution parallèle de deux commandes `flutter test` : lock de démarrage Flutter ; correction : retour à une exécution séquentielle pour les suites utiles
+- les reviewers séparés sollicités n’ont pas répondu dans le délai imparti
+
+## 17. Retour des sub-agents
+
+### Sub-agent runtime/presentation
+
+Retour utile :
+
+- le bon seam reste un variant de backdrop piloté par l’overlay/runtime
+- il faut éviter de toucher HUD, command panel et layout lot 1
+
+### Sub-agent data/context resolution
+
+Retour utile :
+
+- aucun asset battle background pertinent n’existe dans le repo
+- les champs fiables sont surtout `BattleStartRequest`, `MapMetadata`, `ProjectMapEntry.role`
+- `trainerClass`, `battleThemeId`, `tags` sont tentants mais mauvais pour ce lot
+
+### Sub-agent product/readability
+
+Retour utile :
+
+- il faut au moins quelques familles très contrastées
+- simple changement de teinte = gain trop faible
+- il faut éviter un faux framework de theming
+
+## 18. Retour du reviewer séparé
+
+Review séparée réellement tentée :
+
+- `Huygens` sollicité comme reviewer principal
+- `Carson` sollicité en secours
+
+Retours réellement obtenus :
+
+- `Huygens`
+  - aucun finding prioritaire
+  - confirme que le seam reste borné, que la dérive vers le lot 3 n’existe pas, et que `PlayableMapGame` est bien le point d’injection runtime le plus honnête pour ce lot
+- `Carson`
+  - remonte deux critiques
+  - critique 1 : l’ambiguïté ancienne autour de `narrationPanelMounted` / `commandPanelMounted` dans `BattleOverlayComponent`
+  - critique 2 : soupçon que le seam `BattleBackgroundResolver` pourrait être plus gros que sa valeur livrée
+
+Disposition retenue :
+
+- critique 1 : **retenue comme remarque de vérité locale, mais non traitée dans ce lot**
+  - ce point préexiste au lot 2 ;
+  - il vient surtout du fait que les tests montent l’overlay hors cycle Flame complet ;
+  - corriger honnêtement ce point demanderait soit un ajustement du harness de test du lot 1, soit une refonte plus nette des surfaces de test de la command box ;
+  - j’ai donc choisi de ne pas rouvrir un mini-chantier lot 1 déguisé dans ce lot 2
+- critique 2 : **rejetée**
+  - le seam reste petit ;
+  - il ne transporte qu’une clé de fond ;
+  - il répond directement à l’objectif visible du lot ;
+  - il évite précisément la magie implicite dans `BattleSceneBackdropComponent` ou un widening de contrat runtime
+
+Conclusion reviewer :
+
+- aucune correction bloquante restante sur le périmètre lot 2 lui-même
+- une réserve documentée persiste sur un getter de test lot 1, non aggravé par ce lot
+
+## 19. Critique explicite du prompt lui-même
+
+### Parties utiles
+
+- frontière très claire runtime vs battle-core
+- interdiction nette du lot 3
+- exigence d’un fallback chain explicite
+- exigence d’auditer d’abord les vrais champs de contexte disponibles
+- exigence de variation visible et pas seulement symbolique
+
+### Parties discutables
+
+- l’exigence “fichiers à éviter sauf nécessité stricte” sur `PlayableMapGame` est un peu trop rigide : c’est précisément le point d’injection repo-réel le plus propre pour ce lot
+- le libellé “`BattleBackgroundResolver` ou équivalent” est bon, mais le prompt aurait pu dire plus explicitement qu’un seam de présentation lisant du contexte runtime est encore conforme au périmètre
+
+### Parties trop rigides
+
+- exiger le contenu complet de tous les fichiers touchés, y compris un gros fichier comme `playable_map_game.dart`, améliore l’exhaustivité mais alourdit énormément le report
+- la contrainte “1 à 4 nouveaux fichiers” est utile contre la dérive, mais un peu arbitraire ; ici elle n’a pas bloqué le bon design
+
+### Parties que j’ai volontairement resserrées
+
+- je n’ai pas exploité `trainerClass`, `battleThemeId` ou `tags` malgré leur disponibilité, parce que ce serait déjà sur-vendre le contexte
+- j’ai limité la taxonomie à 4 familles, alors que le repo contient plus de signaux possibles (`mapType`, rôles, tags)
+
+Pourquoi :
+
+- le lot 2 doit rester petit, honnête et visible ;
+- le bon risque à éviter ici est un resolver “magique” qui prétend connaître le monde mieux que le repo ne le permet réellement.
+
+## 20. Autocritique finale
+
+Points forts réels :
+
+- le seam est petit et défendable ;
+- la variation de fond est visible ;
+- le lot 1 reste intact structurellement ;
+- la vérité produit golden slice est verrouillée par test ;
+- aucune dérive IA ou battle-core n’a été ouverte.
+
+Limites réelles :
+
+- `PlayableMapGame` a bien été touché, même si le blast radius reste petit ;
+- la variation ne repose que sur des formes/gradients, pas sur de vrais assets battle ;
+- la famille `indoor` est testée synthétiquement, pas encore sur un exemple indoor versionné du golden slice ;
+- une ambiguïté de surface de test héritée du lot 1 reste en place sur les getters de montage du panneau bas ; elle n’est pas aggravée ici, mais elle ne doit pas être survendue comme une séparation plus riche qu’elle ne l’est réellement
+
+## 21. État git final utile
+
+Commandes réellement relancées en fin de lot :
+
+```bash
+git status --short --untracked-files=all
+git diff --stat
+git ls-files --others --exclude-standard
+```
+
+Résultats réellement observés en fin de lot :
+
+### git status --short --untracked-files=all
+
+```text
+ M packages/map_runtime/lib/src/presentation/flame/battle_overlay_component.dart
+ M packages/map_runtime/lib/src/presentation/flame/battle_scene_backdrop_component.dart
+ M packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+ M packages/map_runtime/test/battle_overlay_component_test.dart
+ M packages/map_runtime/test/phase_a_golden_battle_slice_smoke_test.dart
+?? packages/map_runtime/lib/src/presentation/flame/battle_background_resolver.dart
+?? reports/lot-2-contextual-backgrounds-report.md
+```
+
+### git diff --stat
+
+```text
+ .../flame/battle_overlay_component.dart            |  17 +-
+ .../flame/battle_scene_backdrop_component.dart     | 293 +++++++++++++++++++--
+ .../src/presentation/flame/playable_map_game.dart  |  14 +
+ .../test/battle_overlay_component_test.dart        | 173 ++++++++++++
+ .../phase_a_golden_battle_slice_smoke_test.dart    |  60 +++++
+ 5 files changed, 529 insertions(+), 28 deletions(-)
+```
+
+### git ls-files --others --exclude-standard
+
+```text
+packages/map_runtime/lib/src/presentation/flame/battle_background_resolver.dart
+reports/lot-2-contextual-backgrounds-report.md
+```
+
+## 22. Checklist finale
+
+- [x] ai-je gardé le périmètre dans le lot 2 et pas au-delà ?
+- [x] ai-je réellement introduit une variation de fond visible ?
+- [x] ai-je gardé la responsabilité côté runtime ?
+- [x] ai-je évité d’introduire le lot 3 ?
+- [x] ai-je évité de toucher `map_battle` sans nécessité ?
+- [x] ai-je choisi un fallback chain lisible et défendable ?
+- [x] ai-je évité un faux framework de theming ?
+- [x] ai-je relancé les validations utiles ?
+- [x] ai-je utilisé des sub-agents ?
+- [x] ai-je fait une review séparée ?
+- [x] ai-je inclus le contenu complet de tous les fichiers touchés ?
+- [x] ai-je évité toute écriture Git interdite ?
+
+## 23. Décision finale nette
+
+- lot 2 réussi : **oui**
+- variation de fond réellement visible : **oui**
+- préparation saine du lot 3 : **oui**, parce que le seam reste strictement décor/runtime et n’ouvre ni IA ni battle-core
+
+## 24. Contenu complet des fichiers touchés
+
+Ce report exclut volontairement sa propre recopie intégrale, pour éviter une récursion absurde.
+
+### /Users/karim/Project/pokemonProject/packages/map_runtime/lib/src/presentation/flame/battle_background_resolver.dart
+
+```dart
+import 'package:map_core/map_core.dart';
+
+import '../../application/battle_start_request.dart';
+import '../../application/runtime_map_bundle.dart';
+
+/// Clé minimale de fond de combat pour le lot 2.
+///
+/// Garde-fous de périmètre :
+/// - on ne construit pas un système générique de theming ;
+/// - on ne transporte que des familles visuelles immédiatement utiles ;
+/// - on garde la vraie logique de peinture dans le backdrop runtime, pas dans
+///   le battle-core ni dans un registre global de palettes.
+enum BattleBackgroundKey {
+  fallbackField,
+  wildOutdoor,
+  trainerOutdoor,
+  indoor,
+}
+
+/// Spec minimale de fond de combat consommée par la scène runtime.
+///
+/// Le contrat reste volontairement petit :
+/// - une seule clé résolue ;
+/// - pas de taxonomie de biome large ;
+/// - pas de dépendance à des assets non présents ;
+/// - pas de promesse de personnalisation future plus large que ce lot.
+final class BattleBackgroundSpec {
+  const BattleBackgroundSpec({
+    required this.key,
+  });
+
+  const BattleBackgroundSpec.fallbackField()
+      : key = BattleBackgroundKey.fallbackField;
+
+  final BattleBackgroundKey key;
+
+  String get debugLabel => switch (key) {
+        BattleBackgroundKey.fallbackField => 'fallback_field',
+        BattleBackgroundKey.wildOutdoor => 'wild_outdoor',
+        BattleBackgroundKey.trainerOutdoor => 'trainer_outdoor',
+        BattleBackgroundKey.indoor => 'indoor',
+      };
+}
+
+/// Résout le fond de combat à partir du contexte runtime déjà disponible.
+///
+/// Frontière volontairement stricte :
+/// - ce seam vit dans `map_runtime` parce qu'il traduit un contexte overworld
+///   vers une ambiance de scène ;
+/// - il ne dépend pas du moteur battle ;
+/// - il ne modifie aucun contrat battle-core ;
+/// - il n'essaie pas de devenir un moteur universel de biome ou de thème.
+///
+/// Chaîne de résolution retenue pour le lot 2 :
+/// 1. vérité indoor explicite de la map actuelle ;
+/// 2. type indoor-like de la map actuelle ;
+/// 3. rôle indoor-like dans le manifeste projet ;
+/// 4. nature trainer vs wild de la requête ;
+/// 5. fallback stable côté overlay si aucun contexte n'est injecté.
+///
+/// Champs volontairement NON utilisés maintenant :
+/// - `MapMetadata.tags` : trop libres, pas assez canoniques pour un lot borné ;
+/// - `ProjectTrainerEntry.trainerClass` : utile produit plus tard, mais trop
+///   instable pour piloter honnêtement le décor maintenant ;
+/// - `ProjectTrainerEntry.battleThemeId` : tentant, mais ce repo n'a pas
+///   encore de pipeline d'assets battle dédiée à respecter ici ;
+/// - `ProjectEncounterTable.tags` : décrivent les rencontres, pas forcément la
+///   scène de combat.
+final class BattleBackgroundResolver {
+  const BattleBackgroundResolver();
+
+  BattleBackgroundSpec resolve({
+    required BattleStartRequest request,
+    required RuntimeMapBundle bundle,
+  }) {
+    if (_isIndoorMap(bundle)) {
+      return const BattleBackgroundSpec(
+        key: BattleBackgroundKey.indoor,
+      );
+    }
+
+    return switch (request) {
+      TrainerBattleStartRequest() => const BattleBackgroundSpec(
+          key: BattleBackgroundKey.trainerOutdoor,
+        ),
+      WildBattleStartRequest() => const BattleBackgroundSpec(
+          key: BattleBackgroundKey.wildOutdoor,
+        ),
+    };
+  }
+
+  bool _isIndoorMap(RuntimeMapBundle bundle) {
+    final metadata = bundle.map.mapMetadata;
+    if (metadata.isIndoor) {
+      return true;
+    }
+    if (_isIndoorMapType(metadata.mapType)) {
+      return true;
+    }
+
+    final mapEntry = _findMapEntry(
+      manifest: bundle.manifest,
+      mapId: bundle.map.id,
+    );
+    if (mapEntry == null) {
+      return false;
+    }
+    return _isIndoorMapRole(mapEntry.role);
+  }
+
+  ProjectMapEntry? _findMapEntry({
+    required ProjectManifest manifest,
+    required String mapId,
+  }) {
+    for (final entry in manifest.maps) {
+      if (entry.id == mapId) {
+        return entry;
+      }
+    }
+    return null;
+  }
+
+  bool _isIndoorMapType(MapType mapType) {
+    return switch (mapType) {
+      MapType.building ||
+      MapType.interior ||
+      MapType.cave ||
+      MapType.facility =>
+        true,
+      _ => false,
+    };
+  }
+
+  bool _isIndoorMapRole(MapRole role) {
+    return switch (role) {
+      MapRole.interior ||
+      MapRole.basement ||
+      MapRole.upper_floor ||
+      MapRole.gate ||
+      MapRole.room ||
+      MapRole.connector =>
+        true,
+      _ => false,
+    };
+  }
+}
+
+```
+
+### /Users/karim/Project/pokemonProject/packages/map_runtime/lib/src/presentation/flame/battle_scene_backdrop_component.dart
+
+```dart
+import 'dart:ui' as ui;
+
+import 'package:flame/components.dart';
+import 'package:flutter/material.dart';
+
+import 'battle_background_resolver.dart';
+
+/// Fond de scène par défaut pour le lot 1.
+///
+/// Garde-fous de périmètre :
+/// - ce composant vit côté `map_runtime` parce qu'il ne transporte aucune
+///   vérité métier battle ; il ne fait que peindre une ambiance de scène ;
+/// - après le lot 2, il reste volontairement borné à la consommation d'une
+///   petite spec déjà résolue ;
+/// - il ne résout lui-même ni biome, ni map, ni trainer, ni encounter ;
+/// - ce vrai seam de résolution appartient explicitement au runtime amont.
+class BattleSceneBackdropComponent extends PositionComponent {
+  BattleSceneBackdropComponent({
+    required Vector2 size,
+    BattleBackgroundSpec backgroundSpec =
+        const BattleBackgroundSpec.fallbackField(),
+  })  : _backgroundSpec = backgroundSpec,
+        super(
+          size: size,
+          anchor: Anchor.topLeft,
+          priority: 0,
+        );
+
+  BattleBackgroundSpec _backgroundSpec;
+
+  @visibleForTesting
+  BattleBackgroundKey get currentBackgroundKey => _backgroundSpec.key;
+
+  /// Le backdrop reste un consommateur passif de spec.
+  ///
+  /// Pourquoi ce setter existe déjà :
+  /// - il garde le composant localement testable ;
+  /// - il laisse le lot 2 injecter une variation de contexte visible ;
+  /// - il ne promet pas pour autant un système de theming plus large.
+  void sync({
+    required BattleBackgroundSpec backgroundSpec,
+  }) {
+    _backgroundSpec = backgroundSpec;
+  }
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+
+    final rect = Offset.zero & Size(size.x, size.y);
+    final palette = _paletteFor(_backgroundSpec.key);
+
+    final skyPaint = Paint()
+      ..shader = ui.Gradient.linear(
+        const Offset(0, 0),
+        Offset(0, size.y),
+        palette.skyColors,
+        const <double>[0.0, 0.36, 0.72, 1.0],
+      );
+    canvas.drawRect(rect, skyPaint);
+
+    final horizonGlowPaint = Paint()
+      ..shader = ui.Gradient.radial(
+        Offset(size.x * palette.glowCenterDx, size.y * palette.glowCenterDy),
+        size.x * palette.glowRadiusScale,
+        <Color>[
+          palette.glowColor,
+          palette.glowColor.withValues(alpha: 0.08),
+          const Color(0x00000000),
+        ],
+        const <double>[0.0, 0.45, 1.0],
+      );
+    canvas.drawRect(rect, horizonGlowPaint);
+
+    _renderMidground(canvas, palette);
+    _renderFloor(canvas, palette);
+    _renderForegroundAccent(canvas, palette);
+  }
+
+  void _renderMidground(Canvas canvas, _BattleBackdropPalette palette) {
+    switch (_backgroundSpec.key) {
+      case BattleBackgroundKey.fallbackField:
+        _renderFallbackBands(canvas, palette);
+      case BattleBackgroundKey.wildOutdoor:
+        _renderWildHills(canvas, palette);
+      case BattleBackgroundKey.trainerOutdoor:
+        _renderTrainerBanners(canvas, palette);
+      case BattleBackgroundKey.indoor:
+        _renderIndoorPanels(canvas, palette);
+    }
+  }
+
+  void _renderFallbackBands(Canvas canvas, _BattleBackdropPalette palette) {
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(size.x * 0.08, size.y * 0.18, size.x * 0.62, 22),
+        const Radius.circular(14),
+      ),
+      Paint()..color = palette.bandColor,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(size.x * 0.28, size.y * 0.28, size.x * 0.52, 18),
+        const Radius.circular(12),
+      ),
+      Paint()..color = palette.softBandColor,
+    );
+  }
+
+  void _renderWildHills(Canvas canvas, _BattleBackdropPalette palette) {
+    final hillPaint = Paint()..color = palette.bandColor;
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(size.x * 0.22, size.y * 0.55),
+        width: size.x * 0.48,
+        height: size.y * 0.22,
+      ),
+      hillPaint,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(size.x * 0.66, size.y * 0.5),
+        width: size.x * 0.66,
+        height: size.y * 0.28,
+      ),
+      Paint()..color = palette.softBandColor,
+    );
+  }
+
+  void _renderTrainerBanners(Canvas canvas, _BattleBackdropPalette palette) {
+    final leftPath = Path()
+      ..moveTo(0, size.y * 0.16)
+      ..lineTo(size.x * 0.2, size.y * 0.12)
+      ..lineTo(size.x * 0.34, size.y * 0.46)
+      ..lineTo(0, size.y * 0.42)
+      ..close();
+    canvas.drawPath(leftPath, Paint()..color = palette.bandColor);
+
+    final rightPath = Path()
+      ..moveTo(size.x, size.y * 0.12)
+      ..lineTo(size.x * 0.78, size.y * 0.08)
+      ..lineTo(size.x * 0.6, size.y * 0.42)
+      ..lineTo(size.x, size.y * 0.38)
+      ..close();
+    canvas.drawPath(rightPath, Paint()..color = palette.softBandColor);
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(size.x * 0.28, size.y * 0.22, size.x * 0.44, 14),
+        const Radius.circular(10),
+      ),
+      Paint()..color = palette.ribbonColor,
+    );
+  }
+
+  void _renderIndoorPanels(Canvas canvas, _BattleBackdropPalette palette) {
+    final wallRect = Rect.fromLTWH(
+        size.x * 0.08, size.y * 0.14, size.x * 0.84, size.y * 0.34);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(wallRect, const Radius.circular(26)),
+      Paint()..color = palette.bandColor,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        wallRect.deflate(12),
+        const Radius.circular(18),
+      ),
+      Paint()..color = palette.softBandColor,
+    );
+
+    final spotlightPaint = Paint()
+      ..shader = ui.Gradient.radial(
+        Offset(size.x * 0.5, size.y * 0.62),
+        size.x * 0.24,
+        <Color>[
+          palette.ribbonColor,
+          palette.ribbonColor.withValues(alpha: 0.0),
+        ],
+      );
+    canvas.drawRect(Offset.zero & Size(size.x, size.y), spotlightPaint);
+  }
+
+  void _renderFloor(Canvas canvas, _BattleBackdropPalette palette) {
+    final floorPaint = Paint()
+      ..shader = ui.Gradient.linear(
+        Offset(0, size.y * 0.58),
+        Offset(0, size.y),
+        palette.floorColors,
+        const <double>[0.0, 0.34, 1.0],
+      );
+    canvas.drawRect(
+      Rect.fromLTWH(0, size.y * 0.58, size.x, size.y * 0.42),
+      floorPaint,
+    );
+  }
+
+  void _renderForegroundAccent(Canvas canvas, _BattleBackdropPalette palette) {
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(size.x * 0.24, size.y * 0.73),
+        width: size.x * 0.24,
+        height: size.y * 0.06,
+      ),
+      Paint()..color = palette.floorAccentColor,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(size.x * 0.74, size.y * 0.41),
+        width: size.x * 0.18,
+        height: size.y * 0.05,
+      ),
+      Paint()..color = palette.softBandColor.withValues(alpha: 0.45),
+    );
+  }
+
+  _BattleBackdropPalette _paletteFor(BattleBackgroundKey key) {
+    return switch (key) {
+      BattleBackgroundKey.fallbackField => const _BattleBackdropPalette(
+          skyColors: <Color>[
+            Color(0xFF16243B),
+            Color(0xFF263B5D),
+            Color(0xFF4F7A79),
+            Color(0xFF99A56E),
+          ],
+          floorColors: <Color>[
+            Color(0x14000000),
+            Color(0x4411161E),
+            Color(0xCC0B0E14),
+          ],
+          glowColor: Color(0x55FFF7C8),
+          bandColor: Color(0x12FFFFFF),
+          softBandColor: Color(0x10FFFFFF),
+          ribbonColor: Color(0x16FFFFFF),
+          floorAccentColor: Color(0x24000000),
+          glowCenterDx: 0.52,
+          glowCenterDy: 0.42,
+          glowRadiusScale: 0.42,
+        ),
+      BattleBackgroundKey.wildOutdoor => const _BattleBackdropPalette(
+          skyColors: <Color>[
+            Color(0xFF10304D),
+            Color(0xFF215F6B),
+            Color(0xFF5A9A6F),
+            Color(0xFFB9C97A),
+          ],
+          floorColors: <Color>[
+            Color(0x18050C08),
+            Color(0x66151F12),
+            Color(0xD012140F),
+          ],
+          glowColor: Color(0x6BFFF2B4),
+          bandColor: Color(0x4C3E6F58),
+          softBandColor: Color(0x384FA172),
+          ribbonColor: Color(0x26E6FFD0),
+          floorAccentColor: Color(0x38456A35),
+          glowCenterDx: 0.44,
+          glowCenterDy: 0.38,
+          glowRadiusScale: 0.34,
+        ),
+      BattleBackgroundKey.trainerOutdoor => const _BattleBackdropPalette(
+          skyColors: <Color>[
+            Color(0xFF2A163C),
+            Color(0xFF6D3151),
+            Color(0xFFB75A45),
+            Color(0xFFE0AE61),
+          ],
+          floorColors: <Color>[
+            Color(0x180B0608),
+            Color(0x6B2D1517),
+            Color(0xD0140D12),
+          ],
+          glowColor: Color(0x75FFD4A4),
+          bandColor: Color(0x523E1B43),
+          softBandColor: Color(0x4FA33E57),
+          ribbonColor: Color(0x40FFE2A0),
+          floorAccentColor: Color(0x42321A25),
+          glowCenterDx: 0.5,
+          glowCenterDy: 0.32,
+          glowRadiusScale: 0.3,
+        ),
+      BattleBackgroundKey.indoor => const _BattleBackdropPalette(
+          skyColors: <Color>[
+            Color(0xFF141729),
+            Color(0xFF232742),
+            Color(0xFF394063),
+            Color(0xFF6B6A78),
+          ],
+          floorColors: <Color>[
+            Color(0x1A020305),
+            Color(0x8036374A),
+            Color(0xD0111219),
+          ],
+          glowColor: Color(0x4CC9D9FF),
+          bandColor: Color(0x5B252A3B),
+          softBandColor: Color(0x643C435D),
+          ribbonColor: Color(0x3838F0FF),
+          floorAccentColor: Color(0x3B727A95),
+          glowCenterDx: 0.5,
+          glowCenterDy: 0.24,
+          glowRadiusScale: 0.24,
+        ),
+    };
+  }
+}
+
+final class _BattleBackdropPalette {
+  const _BattleBackdropPalette({
+    required this.skyColors,
+    required this.floorColors,
+    required this.glowColor,
+    required this.bandColor,
+    required this.softBandColor,
+    required this.ribbonColor,
+    required this.floorAccentColor,
+    required this.glowCenterDx,
+    required this.glowCenterDy,
+    required this.glowRadiusScale,
+  });
+
+  final List<Color> skyColors;
+  final List<Color> floorColors;
+  final Color glowColor;
+  final Color bandColor;
+  final Color softBandColor;
+  final Color ribbonColor;
+  final Color floorAccentColor;
+  final double glowCenterDx;
+  final double glowCenterDy;
+  final double glowRadiusScale;
+}
+
+```
+
+### /Users/karim/Project/pokemonProject/packages/map_runtime/lib/src/presentation/flame/battle_overlay_component.dart
+
+```dart
+import 'package:flame/components.dart';
+import 'package:flame/text.dart';
+import 'package:flutter/material.dart';
+import 'package:map_battle/map_battle.dart';
+
+import 'battle_command_panel_component.dart';
+import 'battle_background_resolver.dart';
+import 'battle_debug_panel_component.dart';
+import 'battle_scene_backdrop_component.dart';
+import 'battle_scene_combatant_component.dart';
+import 'battle_scene_hud_component.dart';
+
+/// Retourne le prompt de décision à afficher pour la requête courante.
+///
+/// Ce helper reste volontairement pur parce que le lot 1 ne doit surtout pas
+/// recréer une logique de commande parallèle dans la présentation :
+/// - la vérité de ce qu'on attend du joueur reste `BattleDecisionRequest` ;
+/// - l'UI ne fait que reformuler cette vérité de manière plus lisible.
+String buildBattleDecisionPromptForOverlay(BattleDecisionRequest request) {
+  return switch (request) {
+    BattleTurnChoiceRequest() => 'Que doit faire le joueur ?',
+    BattleForcedReplacementRequest() =>
+      'Le joueur doit remplacer son Pokémon K.O.',
+    BattleContinueRequest() => 'Le joueur doit continuer un tour forcé',
+    BattleWaitRequest(:final reason) => switch (reason) {
+        BattleWaitReason.battleFinished => 'Combat terminé',
+        BattleWaitReason.resolvingTurn => 'Résolution du tour en cours',
+        BattleWaitReason.activeFaintedWithoutReplacement =>
+          'Aucun remplaçant disponible',
+        BattleWaitReason.noLegalChoice => 'Aucune décision légale disponible',
+      },
+  };
+}
+
+/// Construit les lignes de restitution d'un tour pour l'overlay runtime.
+///
+/// La vraie source de vérité de narration reste `BattleTurnResult.timeline`.
+/// Le lot 1 améliore uniquement la composition visuelle de cette narration.
+List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
+  if (turnResult.timeline.isEmpty &&
+      (turnResult.executions.isNotEmpty ||
+          turnResult.statusEvents.isNotEmpty ||
+          turnResult.volatileEvents.isNotEmpty ||
+          turnResult.fieldEvents.isNotEmpty ||
+          turnResult.stealthRockEvents.isNotEmpty ||
+          turnResult.spikesEvents.isNotEmpty ||
+          turnResult.switchEvents.isNotEmpty)) {
+    throw StateError(
+      'BattleTurnResult.timeline est requis pour afficher honnêtement la chronologie du tour dans l’overlay runtime.',
+    );
+  }
+
+  final lines = <String>[];
+  for (final event in turnResult.timeline) {
+    switch (event) {
+      case BattleTurnExecutionEvent(:final execution):
+        final attacker = _overlayCombatantLabelForSide(execution.attackerSide);
+        lines.add(
+          '$attacker utilise ${execution.move.name} → ${execution.damage} dégâts',
+        );
+      case BattleTurnStatusEvent(:final event):
+        lines.add(_formatOverlayStatusEvent(event));
+      case BattleTurnVolatileEvent(:final event):
+        lines.add(_formatOverlayVolatileEvent(event));
+      case BattleTurnFieldEvent(:final event):
+        lines.add(_formatOverlayFieldEvent(event));
+      case BattleTurnStealthRockEvent(:final event):
+        lines.add(_formatOverlayStealthRockEvent(event));
+      case BattleTurnSpikesEvent(:final event):
+        lines.add(_formatOverlaySpikesEvent(event));
+      case BattleTurnSwitchEvent(:final event):
+        lines.add(_formatOverlaySwitchEvent(event));
+    }
+  }
+
+  return List<String>.unmodifiable(lines);
+}
+
+/// Construit les lignes de narration visibles dans la command box.
+///
+/// Invariant important du lot 1 :
+/// - on reste adossé à la timeline observable du moteur ;
+/// - quand aucun tour n'est disponible, on retombe sur la requête courante ;
+/// - on n'invente pas de narration "UI-only".
+List<String> buildBattleNarrationLinesForOverlay(BattleSession session) {
+  final currentTurn = session.state.currentTurn;
+  if (currentTurn != null) {
+    final lines = buildBattleTurnLinesForOverlay(currentTurn);
+    if (lines.isNotEmpty) {
+      final startIndex = lines.length > 4 ? lines.length - 4 : 0;
+      return List<String>.unmodifiable(lines.sublist(startIndex));
+    }
+  }
+
+  if (session.state.isFinished && session.state.outcome != null) {
+    return List<String>.unmodifiable(<String>[
+      _buildOutcomeHeadline(session.state.outcome!),
+    ]);
+  }
+
+  return List<String>.unmodifiable(<String>[
+    buildBattleDecisionPromptForOverlay(session.decisionRequest),
+  ]);
+}
+
+/// Construit les lignes du panneau debug optionnel.
+///
+/// Ce panneau ne sert qu'au diagnostic local. Il doit rester :
+/// - explicitement dérivé de la vérité battle/runtime déjà existante ;
+/// - explicitement séparé de l'UI de combat normale.
+List<String> buildBattleDebugLinesForOverlay(
+  BattleSession session, {
+  required int selectedIndex,
+}) {
+  return List<String>.unmodifiable(<String>[
+    'phase: ${session.state.phase.name}',
+    'request: ${session.decisionRequest.runtimeType}',
+    'choix: ${session.decisionRequest.allowedChoices.length}',
+    'selection: $selectedIndex',
+    'joueur: ${session.state.player.speciesId} ${session.state.player.currentHp}/${session.state.player.maxHp}',
+    'ennemi: ${session.state.enemy.speciesId} ${session.state.enemy.currentHp}/${session.state.enemy.maxHp}',
+  ]);
+}
+
+String _formatOverlaySwitchEvent(BattleSwitchEvent event) {
+  final actor = _overlayCombatantLabelForSide(event.side);
+  return switch (event.kind) {
+    BattleSwitchEventKind.switched => event.wasForced
+        ? '$actor remplace ${event.fromSpeciesId} par ${event.toSpeciesId}'
+        : '$actor switch de ${event.fromSpeciesId} vers ${event.toSpeciesId}',
+    BattleSwitchEventKind.replacementRequired =>
+      '$actor doit remplacer ${event.fromSpeciesId} K.O.',
+  };
+}
+
+String _formatOverlayStatusEvent(BattleStatusEvent event) {
+  final actor = _overlayCombatantLabelForSide(event.targetSide);
+  final status = event.status.name.toUpperCase();
+  return switch (event.kind) {
+    BattleStatusEventKind.applied =>
+      '$actor reçoit le statut $status (${event.sourceMoveId})',
+    BattleStatusEventKind.blockedExistingMajorStatus =>
+      '$actor garde déjà ${event.existingStatus!.name.toUpperCase()} '
+          'et ignore $status',
+    BattleStatusEventKind.preventedAction =>
+      '$actor ne peut pas agir à cause de $status',
+    BattleStatusEventKind.residualDamage =>
+      '$actor subit ${event.damage} dégâts résiduels ($status'
+          '${event.toxicCounter == null ? '' : ', compteur ${event.toxicCounter}'}'
+          ')',
+  };
+}
+
+String _formatOverlayVolatileEvent(BattleVolatileEvent event) {
+  final actor = _overlayCombatantLabelForSide(event.actorSide);
+  final target = event.targetSide == null
+      ? null
+      : _overlayCombatantLabelForSide(event.targetSide!);
+
+  return switch (event.kind) {
+    BattleVolatileEventKind.protectActivated => '$actor active Protect',
+    BattleVolatileEventKind.protectBlocked =>
+      '${target ?? 'La cible'} bloque l’attaque avec Protect',
+    BattleVolatileEventKind.protectBroken =>
+      '$actor perce Protect sur ${target ?? 'la cible'}',
+    BattleVolatileEventKind.rechargeRequired =>
+      '$actor doit recharger au tour suivant',
+    BattleVolatileEventKind.rechargeTurnSpent =>
+      '$actor passe son tour pour recharger',
+    BattleVolatileEventKind.chargeStarted =>
+      '$actor commence à charger ${event.sourceMoveId ?? 'son attaque'}',
+    BattleVolatileEventKind.chargeReleased =>
+      '$actor libère ${event.sourceMoveId ?? 'son attaque chargée'}',
+  };
+}
+
+String _formatOverlayFieldEvent(BattleFieldEvent event) {
+  return switch (event.kind) {
+    BattleFieldEventKind.weatherSet =>
+      'Le champ passe à ${_overlayWeatherLabel(event.weather!)}',
+    BattleFieldEventKind.weatherResidualDamage =>
+      '${_overlayCombatantLabelForSide(event.targetSide!)} subit ${event.damage} dégâts de ${_overlayWeatherLabel(event.weather!)}',
+    BattleFieldEventKind.weatherExpired =>
+      '${_overlayWeatherLabel(event.weather!)} prend fin',
+    BattleFieldEventKind.pseudoWeatherSet =>
+      '${_overlayPseudoWeatherLabel(event.pseudoWeather!)} devient actif',
+    BattleFieldEventKind.pseudoWeatherCleared =>
+      '${_overlayPseudoWeatherLabel(event.pseudoWeather!)} est dissipé',
+    BattleFieldEventKind.pseudoWeatherExpired =>
+      '${_overlayPseudoWeatherLabel(event.pseudoWeather!)} prend fin',
+  };
+}
+
+String _formatOverlayStealthRockEvent(BattleStealthRockEvent event) {
+  final actor = _overlayCombatantLabelForSide(event.side);
+  return switch (event.kind) {
+    BattleStealthRockEventKind.set => 'Stealth Rock est posé du côté $actor',
+    BattleStealthRockEventKind.alreadyPresent =>
+      'Stealth Rock est déjà posé du côté $actor',
+    BattleStealthRockEventKind.damagedOnEntry =>
+      '$actor subit ${event.damage} dégâts de Stealth Rock à l’entrée',
+  };
+}
+
+String _formatOverlaySpikesEvent(BattleSpikesEvent event) {
+  final actor = event.targetSlot == null
+      ? _overlayCombatantLabelForSide(event.side)
+      : _overlayCombatantLabelForSide(event.targetSlot!.side);
+  return switch (event.kind) {
+    BattleSpikesEventKind.setLayer =>
+      'Spikes monte à ${event.layers} couche(s) du côté $actor',
+    BattleSpikesEventKind.alreadyAtMaxLayers =>
+      'Spikes est déjà à ${event.layers} couche(s) du côté $actor',
+    BattleSpikesEventKind.damagedOnEntry =>
+      '$actor subit ${event.damage} dégâts de Spikes à l’entrée (${event.layers} couche(s))',
+  };
+}
+
+String _overlayCombatantLabelForSide(BattleSideId side) {
+  return side == BattleSideId.player ? 'Joueur' : 'Ennemi';
+}
+
+String _overlayWeatherLabel(BattleWeatherId weather) {
+  return switch (weather) {
+    BattleWeatherId.rain => 'la pluie',
+    BattleWeatherId.sandstorm => 'la tempête de sable',
+  };
+}
+
+String _overlayPseudoWeatherLabel(BattlePseudoWeatherId pseudoWeather) {
+  return switch (pseudoWeather) {
+    BattlePseudoWeatherId.trickRoom => 'Trick Room',
+  };
+}
+
+String _buildOutcomeHeadline(BattleOutcome outcome) {
+  return switch (outcome.type) {
+    BattleOutcomeType.victory => 'Victoire !',
+    BattleOutcomeType.defeat => 'Défaite...',
+    BattleOutcomeType.runaway => 'Fuite réussie !',
+    BattleOutcomeType.captured => 'Capture réussie !',
+  };
+}
+
+/// Overlay de combat lot 1.
+///
+/// Responsabilité :
+/// - garder le runtime battle branché sur les mêmes vérités métier ;
+/// - composer une scène de combat lisible ;
+/// - déléguer le rendu concret aux composants de présentation du runtime.
+///
+/// Garde-fous :
+/// - aucune logique battle n'entre ici ;
+/// - aucune logique parallèle aux requests ou à la timeline n'est créée ;
+/// - aucun resolver de background contextuel n'est introduit ici ;
+/// - aucun seam IA n'est introduit ici.
+class BattleOverlayComponent extends PositionComponent {
+  BattleOverlayComponent({
+    required BattleSession session,
+    required Vector2 viewportSize,
+    required this.onPlayerChoice,
+    this.backgroundSpec = const BattleBackgroundSpec.fallbackField(),
+    this.showDebugPanel = false,
+  })  : _session = session,
+        super(
+          size: viewportSize,
+          anchor: Anchor.topLeft,
+          priority: 97,
+        );
+
+  BattleSession _session;
+
+  final void Function(PlayerBattleChoice choice) onPlayerChoice;
+  final BattleBackgroundSpec backgroundSpec;
+
+  /// Le debug reste volontairement opt-in.
+  ///
+  /// Le lot 1 doit sortir l'UI normale du mode "debug panel". On garde donc un
+  /// interrupteur explicite au lieu de laisser le debug redéfinir l'apparence
+  /// par défaut du combat.
+  final bool showDebugPanel;
+
+  BattleSceneBackdropComponent? _backdrop;
+  BattleSceneCombatantComponent? _enemyCombatant;
+  BattleSceneCombatantComponent? _playerCombatant;
+  BattleSceneHudComponent? _enemyHud;
+  BattleSceneHudComponent? _playerHud;
+  BattleCommandPanelComponent? _commandPanel;
+  BattleDebugPanelComponent? _debugPanel;
+  TextComponent? _outcomeBanner;
+
+  int _selectedIndex = 0;
+
+  @visibleForTesting
+  bool get commandPanelMounted => _commandPanel != null;
+
+  @visibleForTesting
+  bool get narrationPanelMounted => _commandPanel != null;
+
+  @visibleForTesting
+  bool get debugPanelMounted => _debugPanel != null;
+
+  @visibleForTesting
+  BattleBackgroundKey get currentBackgroundKey => backgroundSpec.key;
+
+  @visibleForTesting
+  String get currentPromptText =>
+      buildBattleDecisionPromptForOverlay(_session.decisionRequest);
+
+  @visibleForTesting
+  String get currentNarrationText =>
+      buildBattleNarrationLinesForOverlay(_session).join('\n');
+
+  @override
+  Future<void> onLoad() async {
+    // Le layout du lot 1 reste volontairement local et concret :
+    // - on assume une scène plein écran ;
+    // - on place des zones stables joueur/ennemi ;
+    // - on garde un seul panneau bas pour narration + commandes ;
+    // - on évite volontairement un système de layout générique.
+    const padding = 28.0;
+    final commandPanelHeight = (size.y * 0.31).clamp(188.0, 232.0).toDouble();
+    final commandPanelY = size.y - commandPanelHeight - padding;
+
+    final enemyHudSize = Vector2(
+      (size.x * 0.31).clamp(240.0, 320.0).toDouble(),
+      98,
+    );
+    final playerHudSize = Vector2(
+      (size.x * 0.34).clamp(250.0, 340.0).toDouble(),
+      106,
+    );
+
+    final enemyCombatantSize = Vector2(
+      (size.x * 0.27).clamp(220.0, 320.0).toDouble(),
+      (size.y * 0.28).clamp(140.0, 190.0).toDouble(),
+    );
+    final playerCombatantSize = Vector2(
+      (size.x * 0.31).clamp(250.0, 360.0).toDouble(),
+      (size.y * 0.32).clamp(170.0, 230.0).toDouble(),
+    );
+
+    _backdrop = BattleSceneBackdropComponent(
+      size: size.clone(),
+      backgroundSpec: backgroundSpec,
+    );
+    await add(_backdrop!);
+
+    _enemyCombatant = BattleSceneCombatantComponent(
+      position: Vector2(size.x - enemyCombatantSize.x - 88, 82),
+      size: enemyCombatantSize,
+      isPlayerSide: false,
+      speciesLabel: _session.state.enemy.speciesId,
+    );
+    await add(_enemyCombatant!);
+
+    _playerCombatant = BattleSceneCombatantComponent(
+      position: Vector2(72, commandPanelY - playerCombatantSize.y - 26),
+      size: playerCombatantSize,
+      isPlayerSide: true,
+      speciesLabel: _session.state.player.speciesId,
+    );
+    await add(_playerCombatant!);
+
+    _enemyHud = BattleSceneHudComponent(
+      position: Vector2(padding, padding),
+      size: enemyHudSize,
+      ownerLabel: 'ENNEMI',
+      combatant: _session.state.enemy,
+      isPlayerSide: false,
+    );
+    await add(_enemyHud!);
+
+    _playerHud = BattleSceneHudComponent(
+      position: Vector2(
+        size.x - playerHudSize.x - padding,
+        commandPanelY - playerHudSize.y - 18,
+      ),
+      size: playerHudSize,
+      ownerLabel: 'JOUEUR',
+      combatant: _session.state.player,
+      isPlayerSide: true,
+    );
+    await add(_playerHud!);
+
+    _commandPanel = BattleCommandPanelComponent(
+      position: Vector2(padding, commandPanelY),
+      size: Vector2(size.x - (padding * 2), commandPanelHeight),
+      onChoiceSelected: onPlayerChoice,
+    );
+    await add(_commandPanel!);
+
+    if (showDebugPanel) {
+      _debugPanel = BattleDebugPanelComponent(
+        position: Vector2(size.x - 248, 32),
+        size: Vector2(216, 148),
+      );
+      await add(_debugPanel!);
+    }
+
+    _syncVisualState();
+  }
+
+  /// Met à jour l'overlay avec une nouvelle session immutable.
+  ///
+  /// Invariants runtime préservés :
+  /// - `BattleSession` reste la seule source de vérité d'état ;
+  /// - `BattleDecisionRequest` reste la seule source de vérité des commandes ;
+  /// - `BattleTurnResult.timeline` reste la seule source de vérité narrative.
+  ///
+  /// Le fond n'est volontairement pas recalculé ici :
+  /// - le lot 2 le résout à l'ouverture du combat à partir du contexte runtime ;
+  /// - l'évolution du tour ne doit pas recréer une logique parallèle de décor ;
+  /// - un vrai resolver contextuel plus riche restera un sujet futur côté
+  ///   runtime, pas un effet secondaire de `BattleSession`.
+  void updateState(BattleSession newSession) {
+    _session = newSession;
+    _clampSelectionToCurrentChoices();
+    _syncVisualState();
+  }
+
+  bool moveSelectionUp() {
+    if (_selectedIndex > 0) {
+      _selectedIndex--;
+      _syncPanelsOnly();
+      return true;
+    }
+    return false;
+  }
+
+  bool moveSelectionDown() {
+    final choices = _session.decisionRequest.allowedChoices;
+    if (_selectedIndex < choices.length - 1) {
+      _selectedIndex++;
+      _syncPanelsOnly();
+      return true;
+    }
+    return false;
+  }
+
+  PlayerBattleChoice? getSelectedChoice() {
+    final choices = _session.decisionRequest.allowedChoices;
+    if (choices.isEmpty) {
+      return null;
+    }
+    if (_selectedIndex < 0 || _selectedIndex >= choices.length) {
+      return null;
+    }
+    return choices[_selectedIndex];
+  }
+
+  bool validateSelectedChoice() {
+    final selectedChoice = getSelectedChoice();
+    if (selectedChoice == null) {
+      return false;
+    }
+    onPlayerChoice(selectedChoice);
+    return true;
+  }
+
+  void _syncVisualState() {
+    _enemyCombatant?.sync(speciesLabel: _session.state.enemy.speciesId);
+    _playerCombatant?.sync(speciesLabel: _session.state.player.speciesId);
+    _enemyHud?.sync(combatant: _session.state.enemy);
+    _playerHud?.sync(combatant: _session.state.player);
+    _syncPanelsOnly();
+    _syncOutcomeBanner();
+  }
+
+  void _syncPanelsOnly() {
+    _clampSelectionToCurrentChoices();
+
+    _commandPanel?.sync(
+      battleLabel: _titleForSession(),
+      prompt: buildBattleDecisionPromptForOverlay(_session.decisionRequest),
+      narrationLines: buildBattleNarrationLinesForOverlay(_session),
+      choices: _buildChoiceEntries(_session.decisionRequest),
+      selectedIndex: _selectedIndex,
+    );
+
+    _debugPanel?.sync(
+      lines: buildBattleDebugLinesForOverlay(
+        _session,
+        selectedIndex: _selectedIndex,
+      ),
+    );
+  }
+
+  void _syncOutcomeBanner() {
+    if (!_session.state.isFinished || _session.state.outcome == null) {
+      _outcomeBanner?.removeFromParent();
+      _outcomeBanner = null;
+      return;
+    }
+
+    final outcome = _session.state.outcome!;
+    final bannerText = _buildOutcomeHeadline(outcome);
+    final bannerColor = outcome.isVictory || outcome.isCaptured
+        ? const Color(0xFF8AE36A)
+        : const Color(0xFFFF8E75);
+
+    if (_outcomeBanner == null) {
+      _outcomeBanner = TextComponent(
+        text: bannerText,
+        position: Vector2(size.x / 2, size.y * 0.17),
+        anchor: Anchor.center,
+        textRenderer: TextPaint(
+          style: TextStyle(
+            color: bannerColor,
+            fontSize: 32,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        priority: 45,
+      );
+      add(_outcomeBanner!);
+      return;
+    }
+
+    _outcomeBanner!.text = bannerText;
+    _outcomeBanner!.textRenderer = TextPaint(
+      style: TextStyle(
+        color: bannerColor,
+        fontSize: 32,
+        fontWeight: FontWeight.w800,
+      ),
+    );
+  }
+
+  List<BattleCommandChoiceEntry> _buildChoiceEntries(
+    BattleDecisionRequest request,
+  ) {
+    return List<BattleCommandChoiceEntry>.unmodifiable(
+      request.allowedChoices.map(
+        (choice) => BattleCommandChoiceEntry(
+          choice: choice,
+          label: _labelForChoice(request, choice),
+        ),
+      ),
+    );
+  }
+
+  String _labelForChoice(
+    BattleDecisionRequest request,
+    PlayerBattleChoice choice,
+  ) {
+    if (choice is PlayerBattleChoiceFight) {
+      final move = _session.state.player.moves[choice.moveIndex];
+      final moveKind = switch (move.category) {
+        BattleMoveCategory.physical => 'Physique',
+        BattleMoveCategory.special => 'Speciale',
+        BattleMoveCategory.status => 'Statut',
+        null => 'Technique',
+      };
+      final powerLabel = move.power > 0 ? ' · Puissance ${move.power}' : '';
+      return '${move.name} · $moveKind$powerLabel';
+    }
+
+    if (choice is PlayerBattleChoiceSwitch) {
+      final reserve = _session.state.playerReserve[choice.reserveIndex];
+      final isForcedReplacement = request is BattleForcedReplacementRequest;
+      final verb = isForcedReplacement ? 'Remplacer par' : 'Switch vers';
+      return '$verb ${reserve.speciesId} · ${reserve.currentHp}/${reserve.maxHp} PV';
+    }
+
+    if (choice is PlayerBattleChoiceContinue) {
+      if (request case BattleContinueRequest(:final reason)) {
+        if (reason == BattleContinueReason.pendingChargeRelease) {
+          return 'Continuer · liberer la charge';
+        }
+        if (reason == BattleContinueReason.mustRecharge) {
+          return 'Continuer · tour de recharge';
+        }
+      }
+      return 'Continuer';
+    }
+
+    if (choice is PlayerBattleChoiceCapture) {
+      return 'Capturer';
+    }
+
+    if (choice is PlayerBattleChoiceRun) {
+      return 'Fuir';
+    }
+
+    return 'Action inconnue';
+  }
+
+  void _clampSelectionToCurrentChoices() {
+    final choices = _session.decisionRequest.allowedChoices;
+    if (choices.isEmpty) {
+      _selectedIndex = 0;
+      return;
+    }
+    if (_selectedIndex >= choices.length) {
+      _selectedIndex = choices.length - 1;
+    }
+    if (_selectedIndex < 0) {
+      _selectedIndex = 0;
+    }
+  }
+
+  String _titleForSession() {
+    if (_session.setup.isTrainerBattle) {
+      return 'Combat dresseur';
+    }
+    return 'Combat sauvage';
+  }
+}
+
+```
+
+### /Users/karim/Project/pokemonProject/packages/map_runtime/lib/src/presentation/flame/playable_map_game.dart
+
+```dart
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
@@ -6120,3 +7821,1017 @@ class _WarpTransitionSpec {
   final Duration fadeOut;
   final Duration fadeIn;
 }
+
+```
+
+### /Users/karim/Project/pokemonProject/packages/map_runtime/test/battle_overlay_component_test.dart
+
+```dart
+import 'package:flutter_test/flutter_test.dart';
+import 'package:flame/components.dart';
+import 'package:map_battle/map_battle.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_runtime/src/application/battle_start_request.dart';
+import 'package:map_runtime/src/application/runtime_map_bundle.dart';
+import 'package:map_runtime/src/presentation/flame/battle_background_resolver.dart';
+import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_debug_panel_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_scene_backdrop_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_scene_combatant_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_scene_hud_component.dart';
+
+BattleStatsSnapshot _stats({
+  int attack = 60,
+  int defense = 60,
+  int specialAttack = 60,
+  int specialDefense = 60,
+  int speed = 50,
+}) {
+  return BattleStatsSnapshot(
+    attack: attack,
+    defense: defense,
+    specialAttack: specialAttack,
+    specialDefense: specialDefense,
+    speed: speed,
+  );
+}
+
+BattleMoveData _waitingMove() {
+  return const BattleMoveData(
+    id: 'wait',
+    name: 'Wait',
+    power: 0,
+    category: BattleMoveCategory.status,
+    target: BattleMoveTarget.self,
+    accuracy: BattleMoveAccuracy.alwaysHits(),
+  );
+}
+
+BattleMoveData _tackle({
+  int power = 40,
+}) {
+  return BattleMoveData(
+    id: 'tackle',
+    name: 'Tackle',
+    power: power,
+    type: 'normal',
+    category: BattleMoveCategory.physical,
+    target: BattleMoveTarget.opponent,
+  );
+}
+
+BattleCombatantData _combatant({
+  required String speciesId,
+  required int lineupIndex,
+  int maxHp = 40,
+  int? currentHp,
+  BattleStatsSnapshot? stats,
+  BattleMajorStatusState? majorStatus,
+  BattleVolatileState volatileState = const BattleVolatileState(),
+  required List<BattleMoveData> moves,
+}) {
+  return BattleCombatantData(
+    speciesId: speciesId,
+    lineupIndex: lineupIndex,
+    level: 30,
+    maxHp: maxHp,
+    currentHp: currentHp,
+    stats: stats ?? _stats(),
+    majorStatus: majorStatus,
+    volatileState: volatileState,
+    moves: moves,
+  );
+}
+
+BattleSession _session({
+  required BattleCombatantData player,
+  List<BattleCombatantData> playerReserve = const <BattleCombatantData>[],
+  required BattleCombatantData enemy,
+  List<BattleCombatantData> enemyReserve = const <BattleCombatantData>[],
+  bool isTrainerBattle = false,
+}) {
+  return createBattleSession(
+    BattleSetup(
+      playerPokemon: player,
+      playerReservePokemon: playerReserve,
+      enemyPokemon: enemy,
+      enemyReservePokemon: enemyReserve,
+      isTrainerBattle: isTrainerBattle,
+      trainerId: isTrainerBattle ? 'trainer' : null,
+    ),
+  );
+}
+
+RuntimeMapBundle _runtimeBundle({
+  MapMetadata mapMetadata = const MapMetadata(),
+  MapRole mapRole = MapRole.exterior,
+}) {
+  return RuntimeMapBundle(
+    manifest: ProjectManifest(
+      name: 'Lot 2 Battle Background Tests',
+      maps: <ProjectMapEntry>[
+        ProjectMapEntry(
+          id: 'field_map',
+          name: 'Field Map',
+          relativePath: 'maps/field_map.json',
+          role: mapRole,
+        ),
+      ],
+      tilesets: const <ProjectTilesetEntry>[],
+    ),
+    map: MapData(
+      id: 'field_map',
+      name: 'Field Map',
+      size: const GridSize(width: 4, height: 3),
+      mapMetadata: mapMetadata,
+    ),
+    projectRootDirectory: '/tmp/lot2_battle_backgrounds',
+    tilesetAbsolutePathsById: const <String, String>{},
+  );
+}
+
+WildBattleStartRequest _wildRequest() {
+  return const WildBattleStartRequest(
+    requestId: 'wild-request',
+    createdAtEpochMs: 1,
+    returnContext: OverworldReturnContext(
+      mapId: 'field_map',
+      playerPos: GridPos(x: 1, y: 1),
+      playerFacing: Direction.north,
+    ),
+    mapId: 'field_map',
+    zoneId: 'grass_zone',
+    tableId: 'field_grass',
+    encounterKind: EncounterKind.walk,
+    speciesId: 'sparkitten',
+    level: 6,
+    minLevel: 6,
+    maxLevel: 6,
+    weight: 1,
+    playerPos: GridPos(x: 1, y: 1),
+  );
+}
+
+TrainerBattleStartRequest _trainerRequest() {
+  return const TrainerBattleStartRequest(
+    requestId: 'trainer-request',
+    createdAtEpochMs: 1,
+    returnContext: OverworldReturnContext(
+      mapId: 'field_map',
+      playerPos: GridPos(x: 1, y: 1),
+      playerFacing: Direction.north,
+    ),
+    trainerId: 'trainer_rookie',
+    npcEntityId: 'npc_rookie',
+    mapId: 'field_map',
+    playerPos: GridPos(x: 1, y: 1),
+  );
+}
+
+void main() {
+  group('BattleBackgroundResolver lot 2 context resolution', () {
+    const resolver = BattleBackgroundResolver();
+
+    test('resolves an outdoor wild family from a real wild request', () {
+      final spec = resolver.resolve(
+        request: _wildRequest(),
+        bundle: _runtimeBundle(),
+      );
+
+      expect(spec.key, equals(BattleBackgroundKey.wildOutdoor));
+    });
+
+    test('resolves an outdoor trainer family from a real trainer request', () {
+      final spec = resolver.resolve(
+        request: _trainerRequest(),
+        bundle: _runtimeBundle(),
+      );
+
+      expect(spec.key, equals(BattleBackgroundKey.trainerOutdoor));
+    });
+
+    test('prioritizes indoor map truth over the battle kind when needed', () {
+      final spec = resolver.resolve(
+        request: _trainerRequest(),
+        bundle: _runtimeBundle(
+          mapMetadata: const MapMetadata(
+            isIndoor: true,
+            mapType: MapType.interior,
+          ),
+          mapRole: MapRole.interior,
+        ),
+      );
+
+      expect(spec.key, equals(BattleBackgroundKey.indoor));
+    });
+  });
+
+  group('BattleOverlayComponent Phase C decision prompts', () {
+    test('uses the request type instead of a flat choice list heuristic', () {
+      final freeTurnSession = _session(
+        player: _combatant(
+          speciesId: 'lead_player',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+        playerReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'bench_player',
+            lineupIndex: 1,
+            moves: <BattleMoveData>[_waitingMove()],
+          ),
+        ],
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+
+      expect(
+        buildBattleDecisionPromptForOverlay(freeTurnSession.decisionRequest),
+        equals('Que doit faire le joueur ?'),
+      );
+
+      final forcedReplacementSession = _session(
+        player: _combatant(
+          speciesId: 'fainted_player',
+          lineupIndex: 0,
+          currentHp: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+        playerReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'bench_player',
+            lineupIndex: 1,
+            moves: <BattleMoveData>[_waitingMove()],
+          ),
+        ],
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+
+      expect(
+        buildBattleDecisionPromptForOverlay(
+          forcedReplacementSession.decisionRequest,
+        ),
+        equals('Le joueur doit remplacer son Pokémon K.O.'),
+      );
+
+      final continueSession = _session(
+        player: _combatant(
+          speciesId: 'locked_player',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            const BattleMoveData(
+              id: 'hyper_beam',
+              name: 'Hyper Beam',
+              power: 150,
+              requiresRecharge: true,
+            ),
+          ],
+          volatileState: const BattleVolatileState(
+            mustRecharge: true,
+          ),
+        ),
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+
+      expect(
+        buildBattleDecisionPromptForOverlay(continueSession.decisionRequest),
+        equals('Le joueur doit continuer un tour forcé'),
+      );
+    });
+  });
+
+  group('BattleOverlayComponent BE10A chronology', () {
+    test('renders a voluntary switch before the later enemy attack', () {
+      final session = _session(
+        player: _combatant(
+          speciesId: 'lead_player',
+          lineupIndex: 0,
+          maxHp: 35,
+          currentHp: 35,
+          stats: _stats(speed: 20),
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+        playerReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'bench_player',
+            lineupIndex: 1,
+            maxHp: 50,
+            currentHp: 50,
+            moves: <BattleMoveData>[_waitingMove()],
+          ),
+        ],
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          stats: _stats(speed: 100, attack: 80),
+          moves: <BattleMoveData>[_tackle(power: 35)],
+        ),
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceSwitch(0));
+      final lines =
+          buildBattleTurnLinesForOverlay(afterTurn.state.currentTurn!);
+
+      final switchIndex =
+          lines.indexWhere((line) => line.contains('Joueur switch de'));
+      final attackIndex =
+          lines.indexWhere((line) => line.contains('Ennemi utilise Tackle'));
+
+      expect(switchIndex, greaterThanOrEqualTo(0));
+      expect(attackIndex, greaterThanOrEqualTo(0));
+      expect(switchIndex, lessThan(attackIndex));
+    });
+
+    test('rejects bucket-only turn results because chronology would be false',
+        () {
+      const bucketOnlyTurn = BattleTurnResult(
+        playerAction: BattleActionNone(),
+        enemyAction: BattleActionNone(),
+        executions: <BattleMoveExecution>[
+          BattleMoveExecution(
+            attackerSlot: BattleSlotRef.active(BattleSideId.enemy),
+            move: BattleMove(id: 'tackle', name: 'Tackle', power: 40),
+            targetKind: BattleMoveExecutionTargetKind.combatant,
+            targetSlot: BattleSlotRef.active(BattleSideId.player),
+            damage: 12,
+            didHit: true,
+          ),
+        ],
+      );
+
+      expect(
+        () => buildBattleTurnLinesForOverlay(bucketOnlyTurn),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test(
+        'renders end-of-turn residuals before forced replacement markers after a double KO',
+        () {
+      final session = _session(
+        player: _combatant(
+          speciesId: 'lead_player',
+          lineupIndex: 0,
+          currentHp: 1,
+          majorStatus: const BattleMajorStatusState.psn(),
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+        playerReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'bench_player',
+            lineupIndex: 1,
+            moves: <BattleMoveData>[_waitingMove()],
+          ),
+        ],
+        enemy: _combatant(
+          speciesId: 'lead_enemy',
+          lineupIndex: 0,
+          currentHp: 1,
+          majorStatus: const BattleMajorStatusState.psn(),
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+        enemyReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'bench_enemy',
+            lineupIndex: 1,
+            moves: <BattleMoveData>[_waitingMove()],
+          ),
+        ],
+        isTrainerBattle: true,
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+      final lines =
+          buildBattleTurnLinesForOverlay(afterTurn.state.currentTurn!);
+
+      final residualIndex = lines.indexWhere(
+        (line) => line.contains('dégâts résiduels (PSN)'),
+      );
+      final enemyReplacementIndex = lines.indexWhere(
+        (line) => line.contains('Ennemi remplace lead_enemy par bench_enemy'),
+      );
+      final playerReplacementIndex = lines.indexWhere(
+        (line) => line.contains('Joueur doit remplacer lead_player K.O.'),
+      );
+
+      expect(residualIndex, greaterThanOrEqualTo(0));
+      expect(enemyReplacementIndex, greaterThan(residualIndex));
+      expect(playerReplacementIndex, greaterThan(enemyReplacementIndex));
+    });
+
+    test('renders Stealth Rock set and switch-in damage from timeline events',
+        () {
+      const turn = BattleTurnResult(
+        playerAction: BattleActionFight(
+          BattleMove(
+            id: 'stealth_rock',
+            name: 'Stealth Rock',
+            power: 0,
+            target: BattleMoveTarget.opponentSide,
+            setsStealthRock: true,
+          ),
+          moveIndex: 0,
+        ),
+        enemyAction: BattleActionNone(),
+        executions: <BattleMoveExecution>[
+          BattleMoveExecution(
+            attackerSlot: BattleSlotRef.active(BattleSideId.player),
+            move: BattleMove(
+              id: 'stealth_rock',
+              name: 'Stealth Rock',
+              power: 0,
+              target: BattleMoveTarget.opponentSide,
+              setsStealthRock: true,
+            ),
+            targetKind: BattleMoveExecutionTargetKind.side,
+            targetSideRef: BattleSideId.enemy,
+            damage: 0,
+            didHit: true,
+          ),
+        ],
+        stealthRockEvents: <BattleStealthRockEvent>[
+          BattleStealthRockEvent.set(
+            side: BattleSideId.enemy,
+            sourceMoveId: 'stealth_rock',
+          ),
+          BattleStealthRockEvent.damagedOnEntry(
+            side: BattleSideId.enemy,
+            targetSlot: BattleSlotRef.active(BattleSideId.enemy),
+            damage: 10,
+          ),
+        ],
+        timeline: <BattleTurnEvent>[
+          BattleTurnExecutionEvent(
+            BattleMoveExecution(
+              attackerSlot: BattleSlotRef.active(BattleSideId.player),
+              move: BattleMove(
+                id: 'stealth_rock',
+                name: 'Stealth Rock',
+                power: 0,
+                target: BattleMoveTarget.opponentSide,
+                setsStealthRock: true,
+              ),
+              targetKind: BattleMoveExecutionTargetKind.side,
+              targetSideRef: BattleSideId.enemy,
+              damage: 0,
+              didHit: true,
+            ),
+          ),
+          BattleTurnStealthRockEvent(
+            BattleStealthRockEvent.set(
+              side: BattleSideId.enemy,
+              sourceMoveId: 'stealth_rock',
+            ),
+          ),
+          BattleTurnStealthRockEvent(
+            BattleStealthRockEvent.damagedOnEntry(
+              side: BattleSideId.enemy,
+              targetSlot: BattleSlotRef.active(BattleSideId.enemy),
+              damage: 10,
+            ),
+          ),
+        ],
+      );
+
+      final lines = buildBattleTurnLinesForOverlay(turn);
+
+      expect(
+        lines,
+        contains('Stealth Rock est posé du côté Ennemi'),
+      );
+      expect(
+        lines,
+        contains('Ennemi subit 10 dégâts de Stealth Rock à l’entrée'),
+      );
+    });
+
+    test(
+        'renders Spikes layer growth and switch-in damage from timeline events',
+        () {
+      const turn = BattleTurnResult(
+        playerAction: BattleActionFight(
+          BattleMove(
+            id: 'spikes',
+            name: 'Spikes',
+            power: 0,
+            target: BattleMoveTarget.opponentSide,
+            setsSpikes: true,
+          ),
+          moveIndex: 0,
+        ),
+        enemyAction: BattleActionNone(),
+        executions: <BattleMoveExecution>[
+          BattleMoveExecution(
+            attackerSlot: BattleSlotRef.active(BattleSideId.player),
+            move: BattleMove(
+              id: 'spikes',
+              name: 'Spikes',
+              power: 0,
+              target: BattleMoveTarget.opponentSide,
+              setsSpikes: true,
+            ),
+            targetKind: BattleMoveExecutionTargetKind.side,
+            targetSideRef: BattleSideId.enemy,
+            damage: 0,
+            didHit: true,
+          ),
+        ],
+        spikesEvents: <BattleSpikesEvent>[
+          BattleSpikesEvent.setLayer(
+            side: BattleSideId.enemy,
+            layers: 2,
+          ),
+          BattleSpikesEvent.damagedOnEntry(
+            side: BattleSideId.enemy,
+            targetSlot: BattleSlotRef.active(BattleSideId.enemy),
+            damage: 13,
+            layers: 2,
+          ),
+        ],
+        timeline: <BattleTurnEvent>[
+          BattleTurnExecutionEvent(
+            BattleMoveExecution(
+              attackerSlot: BattleSlotRef.active(BattleSideId.player),
+              move: BattleMove(
+                id: 'spikes',
+                name: 'Spikes',
+                power: 0,
+                target: BattleMoveTarget.opponentSide,
+                setsSpikes: true,
+              ),
+              targetKind: BattleMoveExecutionTargetKind.side,
+              targetSideRef: BattleSideId.enemy,
+              damage: 0,
+              didHit: true,
+            ),
+          ),
+          BattleTurnSpikesEvent(
+            BattleSpikesEvent.setLayer(
+              side: BattleSideId.enemy,
+              layers: 2,
+            ),
+          ),
+          BattleTurnSpikesEvent(
+            BattleSpikesEvent.damagedOnEntry(
+              side: BattleSideId.enemy,
+              targetSlot: BattleSlotRef.active(BattleSideId.enemy),
+              damage: 13,
+              layers: 2,
+            ),
+          ),
+        ],
+      );
+
+      final lines = buildBattleTurnLinesForOverlay(turn);
+
+      expect(
+        lines,
+        contains('Spikes monte à 2 couche(s) du côté Ennemi'),
+      );
+      expect(
+        lines,
+        contains('Ennemi subit 13 dégâts de Spikes à l’entrée (2 couche(s))'),
+      );
+    });
+  });
+
+  group('BattleOverlayComponent lot 1 scene composition', () {
+    test(
+        'uses a stable fallback background when no runtime context is injected',
+        () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          enemy: _combatant(
+            speciesId: 'sparkitten',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      expect(
+        overlay.currentBackgroundKey,
+        equals(BattleBackgroundKey.fallbackField),
+      );
+    });
+
+    test(
+        'mounts a structured battle scene with backdrop, battler zones, huds, command box and narration box by default',
+        () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          enemy: _combatant(
+            speciesId: 'sparkitten',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      expect(
+        overlay.children.whereType<BattleSceneBackdropComponent>(),
+        hasLength(1),
+      );
+      expect(
+        overlay.children.whereType<BattleSceneCombatantComponent>(),
+        hasLength(2),
+      );
+      expect(
+        overlay.children.whereType<BattleSceneHudComponent>(),
+        hasLength(2),
+      );
+      expect(overlay.commandPanelMounted, isTrue);
+      expect(overlay.narrationPanelMounted, isTrue);
+      expect(overlay.children.whereType<BattleDebugPanelComponent>(), isEmpty);
+      expect(overlay.debugPanelMounted, isFalse);
+    });
+
+    test('mounts the resolved background family inside the backdrop layer',
+        () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          enemy: _combatant(
+            speciesId: 'sparkitten',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        backgroundSpec: const BattleBackgroundSpec(
+          key: BattleBackgroundKey.trainerOutdoor,
+        ),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      final backdrop =
+          overlay.children.whereType<BattleSceneBackdropComponent>().single;
+
+      expect(
+        overlay.currentBackgroundKey,
+        equals(BattleBackgroundKey.trainerOutdoor),
+      );
+      expect(
+        backdrop.currentBackgroundKey,
+        equals(BattleBackgroundKey.trainerOutdoor),
+      );
+    });
+
+    test('keeps the debug panel opt-in and separate from the normal battle UI',
+        () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          enemy: _combatant(
+            speciesId: 'sparkitten',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        showDebugPanel: true,
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      expect(
+        overlay.children.whereType<BattleDebugPanelComponent>(),
+        hasLength(1),
+      );
+      expect(overlay.debugPanelMounted, isTrue);
+      expect(overlay.commandPanelMounted, isTrue);
+      expect(overlay.narrationPanelMounted, isTrue);
+    });
+
+    test('updateState refreshes the visible prompt and selected choice source',
+        () async {
+      final initialSession = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+        enemy: _combatant(
+          speciesId: 'sparkitten',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+      );
+      final overlay = BattleOverlayComponent(
+        session: initialSession,
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      expect(overlay.currentPromptText, equals('Que doit faire le joueur ?'));
+      expect(overlay.getSelectedChoice(), isA<PlayerBattleChoiceFight>());
+
+      final forcedReplacementSession = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          currentHp: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+        playerReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'benchmate',
+            lineupIndex: 1,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ],
+        enemy: _combatant(
+          speciesId: 'sparkitten',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+      );
+
+      overlay.updateState(forcedReplacementSession);
+
+      expect(
+        overlay.currentPromptText,
+        equals('Le joueur doit remplacer son Pokémon K.O.'),
+      );
+      expect(overlay.getSelectedChoice(), isA<PlayerBattleChoiceSwitch>());
+    });
+  });
+}
+
+```
+
+### /Users/karim/Project/pokemonProject/packages/map_runtime/test/phase_a_golden_battle_slice_smoke_test.dart
+
+```dart
+import 'dart:convert';
+import 'dart:io';
+import 'dart:math';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_battle/map_battle.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_runtime/src/application/encounter_to_battle_request.dart';
+import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
+import 'package:map_runtime/src/application/runtime_battle_setup_mapper.dart';
+import 'package:map_runtime/src/application/trainer_battle_request.dart';
+import 'package:map_runtime/src/presentation/flame/battle_background_resolver.dart';
+import 'package:path/path.dart' as p;
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('Phase A golden battle-ready slice smoke', () {
+    const mapper = RuntimeBattleSetupMapper();
+    const backgroundResolver = BattleBackgroundResolver();
+
+    test('the versioned golden slice starts a real wild battle', () async {
+      final projectFilePath = _goldenProjectFilePath();
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'golden_field',
+      );
+      final save = await _loadGoldenSave(projectFilePath);
+      final gameState = gameStateFromSaveData(save);
+
+      final world = GameplayWorldState.initial(
+        map: bundle.map,
+        playerPos: gameState.playerPosition,
+        playerFacing: Direction.east,
+        project: bundle.manifest,
+      );
+      final movedWorld = stepGameplayWorld(
+        world,
+        const MoveIntent(Direction.north),
+      ).world;
+      final encounter = checkEncounterAtPlayerPosition(
+        world: movedWorld,
+        project: bundle.manifest,
+        encounterKind: EncounterKind.walk,
+        random: _FixedEncounterRandom(
+          nextDoubleValues: const <double>[0.0],
+          nextIntValues: const <int>[0, 0],
+        ),
+        policy: const GameplayEncounterPolicy(chancePerStep: 1),
+      ).encounter;
+
+      expect(encounter, isNotNull);
+      final request = buildBattleStartRequestFromEncounter(
+        encounter: encounter!,
+        world: movedWorld,
+        createdAtEpochMs: 1,
+      );
+
+      final setup = await mapper.map(
+        bundle: bundle,
+        gameState: gameState,
+        request: request,
+      );
+      final session = createBattleSession(setup);
+
+      expect(session.state.isFinished, isFalse);
+      expect(session.state.player.speciesId, equals('sproutle'));
+      expect(session.state.enemy.speciesId, equals('sparkitten'));
+    });
+
+    test('the versioned golden slice starts a real trainer battle', () async {
+      final projectFilePath = _goldenProjectFilePath();
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'golden_field',
+      );
+      final save = await _loadGoldenSave(projectFilePath);
+      final gameState = gameStateFromSaveData(save);
+
+      final world = GameplayWorldState.initial(
+        map: bundle.map,
+        playerPos: gameState.playerPosition,
+        playerFacing: Direction.east,
+        project: bundle.manifest,
+      );
+      final trainer = bundle.map.entities.firstWhere(
+        (entity) => entity.id == 'npc_trainer_rookie',
+      );
+      final request = buildTrainerBattleRequestFromNpc(
+        entity: trainer,
+        manifest: bundle.manifest,
+        world: world,
+        createdAtEpochMs: 1,
+      );
+
+      expect(request, isNotNull);
+
+      final setup = await mapper.map(
+        bundle: bundle,
+        gameState: gameState,
+        request: request!,
+      );
+      expect(setup.isTrainerBattle, isTrue);
+      final session = createBattleSession(setup);
+
+      expect(session.state.isFinished, isFalse);
+      expect(session.state.player.speciesId, equals('sproutle'));
+      expect(session.state.enemy.speciesId, equals('sparkitten'));
+    });
+
+    test(
+        'the versioned golden slice resolves distinct wild and trainer backgrounds',
+        () async {
+      final projectFilePath = _goldenProjectFilePath();
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'golden_field',
+      );
+      final save = await _loadGoldenSave(projectFilePath);
+      final gameState = gameStateFromSaveData(save);
+
+      final world = GameplayWorldState.initial(
+        map: bundle.map,
+        playerPos: gameState.playerPosition,
+        playerFacing: Direction.east,
+        project: bundle.manifest,
+      );
+
+      final movedWorld = stepGameplayWorld(
+        world,
+        const MoveIntent(Direction.north),
+      ).world;
+      final encounter = checkEncounterAtPlayerPosition(
+        world: movedWorld,
+        project: bundle.manifest,
+        encounterKind: EncounterKind.walk,
+        random: _FixedEncounterRandom(
+          nextDoubleValues: const <double>[0.0],
+          nextIntValues: const <int>[0, 0],
+        ),
+        policy: const GameplayEncounterPolicy(chancePerStep: 1),
+      ).encounter!;
+      final wildRequest = buildBattleStartRequestFromEncounter(
+        encounter: encounter,
+        world: movedWorld,
+        createdAtEpochMs: 1,
+      );
+
+      final trainer = bundle.map.entities.firstWhere(
+        (entity) => entity.id == 'npc_trainer_rookie',
+      );
+      final trainerRequest = buildTrainerBattleRequestFromNpc(
+        entity: trainer,
+        manifest: bundle.manifest,
+        world: world,
+        createdAtEpochMs: 1,
+      )!;
+
+      expect(
+        backgroundResolver.resolve(request: wildRequest, bundle: bundle).key,
+        equals(BattleBackgroundKey.wildOutdoor),
+      );
+      expect(
+        backgroundResolver.resolve(request: trainerRequest, bundle: bundle).key,
+        equals(BattleBackgroundKey.trainerOutdoor),
+      );
+    });
+  });
+}
+
+String _goldenProjectFilePath() {
+  // Le smoke doit consommer le vrai slice versionné du repo, pas une fixture
+  // temporaire en /tmp. On résout donc explicitement le chemin vers l'example
+  // host battleready pour que le test protège cette vérité produit.
+  return p.normalize(
+    p.join(
+      Directory.current.path,
+      '..',
+      '..',
+      'examples',
+      'playable_runtime_host',
+      'golden_battle_slice',
+      'project.json',
+    ),
+  );
+}
+
+Future<SaveData> _loadGoldenSave(String projectFilePath) async {
+  final saveFile = File(
+    p.join(
+      File(projectFilePath).parent.path,
+      'runtime_host_launch_save.json',
+    ),
+  );
+  final decoded = jsonDecode(await saveFile.readAsString());
+  return SaveData.fromJson(decoded as Map<String, dynamic>).normalized();
+}
+
+class _FixedEncounterRandom implements Random {
+  _FixedEncounterRandom({
+    required this.nextDoubleValues,
+    required this.nextIntValues,
+  });
+
+  final List<double> nextDoubleValues;
+  final List<int> nextIntValues;
+  var _doubleIndex = 0;
+  var _intIndex = 0;
+
+  @override
+  bool nextBool() => nextInt(2) == 0;
+
+  @override
+  double nextDouble() {
+    final value = nextDoubleValues[_doubleIndex % nextDoubleValues.length];
+    _doubleIndex++;
+    return value;
+  }
+
+  @override
+  int nextInt(int max) {
+    final value = nextIntValues[_intIndex % nextIntValues.length];
+    _intIndex++;
+    return max == 0 ? 0 : value % max;
+  }
+}
+
+```

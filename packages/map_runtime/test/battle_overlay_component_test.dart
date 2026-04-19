@@ -1,6 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flame/components.dart';
 import 'package:map_battle/map_battle.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_runtime/src/application/battle_start_request.dart';
+import 'package:map_runtime/src/application/runtime_map_bundle.dart';
+import 'package:map_runtime/src/presentation/flame/battle_background_resolver.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_debug_panel_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_backdrop_component.dart';
@@ -89,7 +94,110 @@ BattleSession _session({
   );
 }
 
+RuntimeMapBundle _runtimeBundle({
+  MapMetadata mapMetadata = const MapMetadata(),
+  MapRole mapRole = MapRole.exterior,
+}) {
+  return RuntimeMapBundle(
+    manifest: ProjectManifest(
+      name: 'Lot 2 Battle Background Tests',
+      maps: <ProjectMapEntry>[
+        ProjectMapEntry(
+          id: 'field_map',
+          name: 'Field Map',
+          relativePath: 'maps/field_map.json',
+          role: mapRole,
+        ),
+      ],
+      tilesets: const <ProjectTilesetEntry>[],
+    ),
+    map: MapData(
+      id: 'field_map',
+      name: 'Field Map',
+      size: const GridSize(width: 4, height: 3),
+      mapMetadata: mapMetadata,
+    ),
+    projectRootDirectory: '/tmp/lot2_battle_backgrounds',
+    tilesetAbsolutePathsById: const <String, String>{},
+  );
+}
+
+WildBattleStartRequest _wildRequest() {
+  return const WildBattleStartRequest(
+    requestId: 'wild-request',
+    createdAtEpochMs: 1,
+    returnContext: OverworldReturnContext(
+      mapId: 'field_map',
+      playerPos: GridPos(x: 1, y: 1),
+      playerFacing: Direction.north,
+    ),
+    mapId: 'field_map',
+    zoneId: 'grass_zone',
+    tableId: 'field_grass',
+    encounterKind: EncounterKind.walk,
+    speciesId: 'sparkitten',
+    level: 6,
+    minLevel: 6,
+    maxLevel: 6,
+    weight: 1,
+    playerPos: GridPos(x: 1, y: 1),
+  );
+}
+
+TrainerBattleStartRequest _trainerRequest() {
+  return const TrainerBattleStartRequest(
+    requestId: 'trainer-request',
+    createdAtEpochMs: 1,
+    returnContext: OverworldReturnContext(
+      mapId: 'field_map',
+      playerPos: GridPos(x: 1, y: 1),
+      playerFacing: Direction.north,
+    ),
+    trainerId: 'trainer_rookie',
+    npcEntityId: 'npc_rookie',
+    mapId: 'field_map',
+    playerPos: GridPos(x: 1, y: 1),
+  );
+}
+
 void main() {
+  group('BattleBackgroundResolver lot 2 context resolution', () {
+    const resolver = BattleBackgroundResolver();
+
+    test('resolves an outdoor wild family from a real wild request', () {
+      final spec = resolver.resolve(
+        request: _wildRequest(),
+        bundle: _runtimeBundle(),
+      );
+
+      expect(spec.key, equals(BattleBackgroundKey.wildOutdoor));
+    });
+
+    test('resolves an outdoor trainer family from a real trainer request', () {
+      final spec = resolver.resolve(
+        request: _trainerRequest(),
+        bundle: _runtimeBundle(),
+      );
+
+      expect(spec.key, equals(BattleBackgroundKey.trainerOutdoor));
+    });
+
+    test('prioritizes indoor map truth over the battle kind when needed', () {
+      final spec = resolver.resolve(
+        request: _trainerRequest(),
+        bundle: _runtimeBundle(
+          mapMetadata: const MapMetadata(
+            isIndoor: true,
+            mapType: MapType.interior,
+          ),
+          mapRole: MapRole.interior,
+        ),
+      );
+
+      expect(spec.key, equals(BattleBackgroundKey.indoor));
+    });
+  });
+
   group('BattleOverlayComponent Phase C decision prompts', () {
     test('uses the request type instead of a flat choice list heuristic', () {
       final freeTurnSession = _session(
@@ -472,6 +580,34 @@ void main() {
 
   group('BattleOverlayComponent lot 1 scene composition', () {
     test(
+        'uses a stable fallback background when no runtime context is injected',
+        () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          enemy: _combatant(
+            speciesId: 'sparkitten',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      expect(
+        overlay.currentBackgroundKey,
+        equals(BattleBackgroundKey.fallbackField),
+      );
+    });
+
+    test(
         'mounts a structured battle scene with backdrop, battler zones, huds, command box and narration box by default',
         () async {
       final overlay = BattleOverlayComponent(
@@ -509,6 +645,43 @@ void main() {
       expect(overlay.narrationPanelMounted, isTrue);
       expect(overlay.children.whereType<BattleDebugPanelComponent>(), isEmpty);
       expect(overlay.debugPanelMounted, isFalse);
+    });
+
+    test('mounts the resolved background family inside the backdrop layer',
+        () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          enemy: _combatant(
+            speciesId: 'sparkitten',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        backgroundSpec: const BattleBackgroundSpec(
+          key: BattleBackgroundKey.trainerOutdoor,
+        ),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      final backdrop =
+          overlay.children.whereType<BattleSceneBackdropComponent>().single;
+
+      expect(
+        overlay.currentBackgroundKey,
+        equals(BattleBackgroundKey.trainerOutdoor),
+      );
+      expect(
+        backdrop.currentBackgroundKey,
+        equals(BattleBackgroundKey.trainerOutdoor),
+      );
     });
 
     test('keeps the debug panel opt-in and separate from the normal battle UI',
