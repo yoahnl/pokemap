@@ -1,5 +1,4 @@
 import 'package:map_battle/map_battle.dart';
-import 'package:map_battle/src/battle_opponent_policy.dart';
 import 'package:test/test.dart';
 
 BattleStatsSnapshot _stats({
@@ -49,6 +48,39 @@ final class _LastLegalFightPolicy implements BattleOpponentPolicy {
 
 void main() {
   group('BattleOpponentPolicy seam', () {
+    test(
+        'battleOpponentPolicyForDifficulty maps product difficulty 1..10 to a small set of internal policies',
+        () {
+      expect(
+        battleOpponentPolicyForDifficulty(null),
+        isA<BattleFirstLegalOpponentPolicy>(),
+      );
+      expect(
+        battleOpponentPolicyForDifficulty(0),
+        isA<BattleFirstLegalOpponentPolicy>(),
+      );
+      expect(
+        battleOpponentPolicyForDifficulty(3),
+        isA<BattleFirstLegalOpponentPolicy>(),
+      );
+      expect(
+        battleOpponentPolicyForDifficulty(4),
+        isA<BattleHighestPowerOpponentPolicy>(),
+      );
+      expect(
+        battleOpponentPolicyForDifficulty(7),
+        isA<BattleHighestPowerOpponentPolicy>(),
+      );
+      expect(
+        battleOpponentPolicyForDifficulty(8),
+        isA<BattleHighestExpectedPowerOpponentPolicy>(),
+      );
+      expect(
+        battleOpponentPolicyForDifficulty(42),
+        isA<BattleHighestExpectedPowerOpponentPolicy>(),
+      );
+    });
+
     test('BattleFirstLegalOpponentPolicy picks the first legal fight action',
         () {
       const firstMove = BattleMove(
@@ -80,6 +112,47 @@ void main() {
 
       expect(chosenAction.move.id, equals('first'));
       expect(chosenAction.moveIndex, equals(0));
+    });
+
+    test(
+        'higher internal policies stay fight-only but choose stronger or more reliable damaging moves',
+        () {
+      const setupMove = BattleMove(
+        id: 'growl',
+        name: 'Growl',
+        power: 0,
+        category: BattleMoveCategory.status,
+        target: BattleMoveTarget.opponent,
+        accuracy: BattleMoveAccuracy.alwaysHits(),
+      );
+      const heavyButRiskyMove = BattleMove(
+        id: 'mega_punch',
+        name: 'Mega Punch',
+        power: 100,
+        accuracy: BattleMoveAccuracy.percent(value: 50),
+      );
+      const reliableMove = BattleMove(
+        id: 'swift_strike',
+        name: 'Swift Strike',
+        power: 60,
+        accuracy: BattleMoveAccuracy.percent(value: 100),
+      );
+      const legalFightActions = <BattleActionFight>[
+        BattleActionFight(setupMove, moveIndex: 0),
+        BattleActionFight(heavyButRiskyMove, moveIndex: 1),
+        BattleActionFight(reliableMove, moveIndex: 2),
+      ];
+
+      final lowDifficultyChoice = battleOpponentPolicyForDifficulty(2)
+          .chooseFightAction(legalFightActions: legalFightActions);
+      final midDifficultyChoice = battleOpponentPolicyForDifficulty(5)
+          .chooseFightAction(legalFightActions: legalFightActions);
+      final highDifficultyChoice = battleOpponentPolicyForDifficulty(9)
+          .chooseFightAction(legalFightActions: legalFightActions);
+
+      expect(lowDifficultyChoice.moveIndex, equals(0));
+      expect(midDifficultyChoice.moveIndex, equals(1));
+      expect(highDifficultyChoice.moveIndex, equals(2));
     });
 
     test(

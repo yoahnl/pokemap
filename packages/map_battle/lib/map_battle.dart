@@ -75,4 +75,5 @@ export 'src/battle_type_chart.dart';
 export 'src/battle_rng.dart';
 export 'src/battle_action.dart';
 export 'src/battle_move.dart';
+export 'src/battle_opponent_policy.dart';
 export 'src/battle_resolution.dart';

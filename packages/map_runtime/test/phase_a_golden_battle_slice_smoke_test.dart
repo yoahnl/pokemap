@@ -84,17 +84,22 @@ void main() {
         playerFacing: Direction.east,
         project: bundle.manifest,
       );
-      final trainer = bundle.map.entities.firstWhere(
+      final trainerNpc = bundle.map.entities.firstWhere(
         (entity) => entity.id == 'npc_trainer_rookie',
       );
       final request = buildTrainerBattleRequestFromNpc(
-        entity: trainer,
+        entity: trainerNpc,
         manifest: bundle.manifest,
         world: world,
         createdAtEpochMs: 1,
       );
 
       expect(request, isNotNull);
+      final trainerEntry = bundle.manifest.trainers
+          .cast<ProjectTrainerEntry?>()
+          .firstWhere((entry) => entry?.id == request!.trainerId);
+      expect(trainerEntry, isNotNull);
+      expect(trainerEntry!.battleDifficulty, equals(4));
 
       final setup = await mapper.map(
         bundle: bundle,
@@ -102,7 +107,11 @@ void main() {
         request: request!,
       );
       expect(setup.isTrainerBattle, isTrue);
-      final session = createBattleSession(setup);
+      final session = createBattleSession(
+        setup,
+        opponentPolicy:
+            battleOpponentPolicyForDifficulty(trainerEntry.battleDifficulty),
+      );
 
       expect(session.state.isFinished, isFalse);
       expect(session.state.player.speciesId, equals('sproutle'));

@@ -35,6 +35,21 @@ class ProjectTrainerEntry with _$ProjectTrainerEntry {
     /// Classe libre : "Pokémon Trainer", "Gym Leader", "Rival", etc.
     required String trainerClass,
 
+    /// Difficulté produit battle exprimée sur l'échelle lisible `1..10`.
+    ///
+    /// Ce champ reste volontairement optionnel pour deux raisons :
+    /// - préserver les anciens trainers du dépôt sans migration forcée ;
+    /// - laisser le runtime retomber sur le comportement historique quand
+    ///   aucune difficulté explicite n'a encore été authored.
+    ///
+    /// Interprétation de périmètre :
+    /// - cette valeur ne décrit que la sélection d'action adverse en combat ;
+    /// - elle n'ouvre ni scripts trainer, ni phases boss, ni switch/replacement
+    ///   intelligents ;
+    /// - le routing réel vers quelques profils battle-local reste fait côté
+    ///   runtime + `map_battle`, pas dans ce modèle data.
+    int? battleDifficulty,
+
     String? characterId,
     String? portraitElementId,
     String? battleThemeId,

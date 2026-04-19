@@ -31,6 +31,7 @@
       "id": "trainer_rookie",
       "name": "Mira",
       "trainerClass": "Rookie",
+      "battleDifficulty": 4,
       "team": [
         {
           "speciesId": "sparkitten",

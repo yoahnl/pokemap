@@ -340,6 +340,21 @@ mixin _$ProjectTrainerEntry {
 
   /// Classe libre : "Pokémon Trainer", "Gym Leader", "Rival", etc.
   String get trainerClass => throw _privateConstructorUsedError;
+
+  /// Difficulté produit battle exprimée sur l'échelle lisible `1..10`.
+  ///
+  /// Ce champ reste volontairement optionnel pour deux raisons :
+  /// - préserver les anciens trainers du dépôt sans migration forcée ;
+  /// - laisser le runtime retomber sur le comportement historique quand
+  ///   aucune difficulté explicite n'a encore été authored.
+  ///
+  /// Interprétation de périmètre :
+  /// - cette valeur ne décrit que la sélection d'action adverse en combat ;
+  /// - elle n'ouvre ni scripts trainer, ni phases boss, ni switch/replacement
+  ///   intelligents ;
+  /// - le routing réel vers quelques profils battle-local reste fait côté
+  ///   runtime + `map_battle`, pas dans ce modèle data.
+  int? get battleDifficulty => throw _privateConstructorUsedError;
   String? get characterId => throw _privateConstructorUsedError;
   String? get portraitElementId => throw _privateConstructorUsedError;
   String? get battleThemeId => throw _privateConstructorUsedError;
@@ -368,6 +383,7 @@ abstract class $ProjectTrainerEntryCopyWith<$Res> {
       {String id,
       String name,
       String trainerClass,
+      int? battleDifficulty,
       String? characterId,
       String? portraitElementId,
       String? battleThemeId,
@@ -394,6 +410,7 @@ class _$ProjectTrainerEntryCopyWithImpl<$Res, $Val extends ProjectTrainerEntry>
     Object? id = null,
     Object? name = null,
     Object? trainerClass = null,
+    Object? battleDifficulty = freezed,
     Object? characterId = freezed,
     Object? portraitElementId = freezed,
     Object? battleThemeId = freezed,
@@ -414,6 +431,10 @@ class _$ProjectTrainerEntryCopyWithImpl<$Res, $Val extends ProjectTrainerEntry>
           ? _value.trainerClass
           : trainerClass // ignore: cast_nullable_to_non_nullable
               as String,
+      battleDifficulty: freezed == battleDifficulty
+          ? _value.battleDifficulty
+          : battleDifficulty // ignore: cast_nullable_to_non_nullable
+              as int?,
       characterId: freezed == characterId
           ? _value.characterId
           : characterId // ignore: cast_nullable_to_non_nullable
@@ -454,6 +475,7 @@ abstract class _$$ProjectTrainerEntryImplCopyWith<$Res>
       {String id,
       String name,
       String trainerClass,
+      int? battleDifficulty,
       String? characterId,
       String? portraitElementId,
       String? battleThemeId,
@@ -478,6 +500,7 @@ class __$$ProjectTrainerEntryImplCopyWithImpl<$Res>
     Object? id = null,
     Object? name = null,
     Object? trainerClass = null,
+    Object? battleDifficulty = freezed,
     Object? characterId = freezed,
     Object? portraitElementId = freezed,
     Object? battleThemeId = freezed,
@@ -498,6 +521,10 @@ class __$$ProjectTrainerEntryImplCopyWithImpl<$Res>
           ? _value.trainerClass
           : trainerClass // ignore: cast_nullable_to_non_nullable
               as String,
+      battleDifficulty: freezed == battleDifficulty
+          ? _value.battleDifficulty
+          : battleDifficulty // ignore: cast_nullable_to_non_nullable
+              as int?,
       characterId: freezed == characterId
           ? _value.characterId
           : characterId // ignore: cast_nullable_to_non_nullable
@@ -534,6 +561,7 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
       {required this.id,
       required this.name,
       required this.trainerClass,
+      this.battleDifficulty,
       this.characterId,
       this.portraitElementId,
       this.battleThemeId,
@@ -554,6 +582,22 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
   /// Classe libre : "Pokémon Trainer", "Gym Leader", "Rival", etc.
   @override
   final String trainerClass;
+
+  /// Difficulté produit battle exprimée sur l'échelle lisible `1..10`.
+  ///
+  /// Ce champ reste volontairement optionnel pour deux raisons :
+  /// - préserver les anciens trainers du dépôt sans migration forcée ;
+  /// - laisser le runtime retomber sur le comportement historique quand
+  ///   aucune difficulté explicite n'a encore été authored.
+  ///
+  /// Interprétation de périmètre :
+  /// - cette valeur ne décrit que la sélection d'action adverse en combat ;
+  /// - elle n'ouvre ni scripts trainer, ni phases boss, ni switch/replacement
+  ///   intelligents ;
+  /// - le routing réel vers quelques profils battle-local reste fait côté
+  ///   runtime + `map_battle`, pas dans ce modèle data.
+  @override
+  final int? battleDifficulty;
   @override
   final String? characterId;
   @override
@@ -582,7 +626,7 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
 
   @override
   String toString() {
-    return 'ProjectTrainerEntry(id: $id, name: $name, trainerClass: $trainerClass, characterId: $characterId, portraitElementId: $portraitElementId, battleThemeId: $battleThemeId, victoryThemeId: $victoryThemeId, team: $team, tags: $tags)';
+    return 'ProjectTrainerEntry(id: $id, name: $name, trainerClass: $trainerClass, battleDifficulty: $battleDifficulty, characterId: $characterId, portraitElementId: $portraitElementId, battleThemeId: $battleThemeId, victoryThemeId: $victoryThemeId, team: $team, tags: $tags)';
   }
 
   @override
@@ -594,6 +638,8 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
             (identical(other.name, name) || other.name == name) &&
             (identical(other.trainerClass, trainerClass) ||
                 other.trainerClass == trainerClass) &&
+            (identical(other.battleDifficulty, battleDifficulty) ||
+                other.battleDifficulty == battleDifficulty) &&
             (identical(other.characterId, characterId) ||
                 other.characterId == characterId) &&
             (identical(other.portraitElementId, portraitElementId) ||
@@ -613,6 +659,7 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
       id,
       name,
       trainerClass,
+      battleDifficulty,
       characterId,
       portraitElementId,
       battleThemeId,
@@ -642,6 +689,7 @@ abstract class _ProjectTrainerEntry implements ProjectTrainerEntry {
       {required final String id,
       required final String name,
       required final String trainerClass,
+      final int? battleDifficulty,
       final String? characterId,
       final String? portraitElementId,
       final String? battleThemeId,
@@ -660,6 +708,22 @@ abstract class _ProjectTrainerEntry implements ProjectTrainerEntry {
   /// Classe libre : "Pokémon Trainer", "Gym Leader", "Rival", etc.
   @override
   String get trainerClass;
+
+  /// Difficulté produit battle exprimée sur l'échelle lisible `1..10`.
+  ///
+  /// Ce champ reste volontairement optionnel pour deux raisons :
+  /// - préserver les anciens trainers du dépôt sans migration forcée ;
+  /// - laisser le runtime retomber sur le comportement historique quand
+  ///   aucune difficulté explicite n'a encore été authored.
+  ///
+  /// Interprétation de périmètre :
+  /// - cette valeur ne décrit que la sélection d'action adverse en combat ;
+  /// - elle n'ouvre ni scripts trainer, ni phases boss, ni switch/replacement
+  ///   intelligents ;
+  /// - le routing réel vers quelques profils battle-local reste fait côté
+  ///   runtime + `map_battle`, pas dans ce modèle data.
+  @override
+  int? get battleDifficulty;
   @override
   String? get characterId;
   @override
