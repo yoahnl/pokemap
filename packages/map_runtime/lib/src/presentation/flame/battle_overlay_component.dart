@@ -318,9 +318,9 @@ class BattleOverlayComponent extends PositionComponent {
     // - on place des zones stables joueur/ennemi ;
     // - on garde un seul panneau bas pour narration + commandes ;
     // - on évite volontairement un système de layout générique.
-    const padding = 28.0;
-    final commandPanelHeight = (size.y * 0.31).clamp(188.0, 232.0).toDouble();
-    final commandPanelY = size.y - commandPanelHeight - padding;
+    const padding = 24.0;
+    final commandPanelHeight = (size.y * 0.3).clamp(186.0, 224.0).toDouble();
+    final commandPanelY = size.y - commandPanelHeight - 18;
 
     final enemyHudSize = Vector2(
       (size.x * 0.31).clamp(240.0, 320.0).toDouble(),
@@ -332,12 +332,12 @@ class BattleOverlayComponent extends PositionComponent {
     );
 
     final enemyCombatantSize = Vector2(
-      (size.x * 0.27).clamp(220.0, 320.0).toDouble(),
-      (size.y * 0.28).clamp(140.0, 190.0).toDouble(),
+      (size.x * 0.24).clamp(220.0, 310.0).toDouble(),
+      (size.y * 0.26).clamp(136.0, 182.0).toDouble(),
     );
     final playerCombatantSize = Vector2(
-      (size.x * 0.31).clamp(250.0, 360.0).toDouble(),
-      (size.y * 0.32).clamp(170.0, 230.0).toDouble(),
+      (size.x * 0.3).clamp(250.0, 350.0).toDouble(),
+      (size.y * 0.31).clamp(166.0, 222.0).toDouble(),
     );
 
     _backdrop = BattleSceneBackdropComponent(
@@ -347,7 +347,7 @@ class BattleOverlayComponent extends PositionComponent {
     await add(_backdrop!);
 
     _enemyCombatant = BattleSceneCombatantComponent(
-      position: Vector2(size.x - enemyCombatantSize.x - 88, 82),
+      position: Vector2(size.x - enemyCombatantSize.x - 116, 92),
       size: enemyCombatantSize,
       isPlayerSide: false,
       speciesLabel: _session.state.enemy.speciesId,
@@ -355,7 +355,7 @@ class BattleOverlayComponent extends PositionComponent {
     await add(_enemyCombatant!);
 
     _playerCombatant = BattleSceneCombatantComponent(
-      position: Vector2(72, commandPanelY - playerCombatantSize.y - 26),
+      position: Vector2(62, commandPanelY - playerCombatantSize.y - 12),
       size: playerCombatantSize,
       isPlayerSide: true,
       speciesLabel: _session.state.player.speciesId,
@@ -374,7 +374,7 @@ class BattleOverlayComponent extends PositionComponent {
     _playerHud = BattleSceneHudComponent(
       position: Vector2(
         size.x - playerHudSize.x - padding,
-        commandPanelY - playerHudSize.y - 18,
+        commandPanelY - playerHudSize.y - 10,
       ),
       size: playerHudSize,
       ownerLabel: 'JOUEUR',
@@ -532,15 +532,12 @@ class BattleOverlayComponent extends PositionComponent {
   ) {
     return List<BattleCommandChoiceEntry>.unmodifiable(
       request.allowedChoices.map(
-        (choice) => BattleCommandChoiceEntry(
-          choice: choice,
-          label: _labelForChoice(request, choice),
-        ),
+        (choice) => _entryForChoice(request, choice),
       ),
     );
   }
 
-  String _labelForChoice(
+  BattleCommandChoiceEntry _entryForChoice(
     BattleDecisionRequest request,
     PlayerBattleChoice choice,
   ) {
@@ -552,38 +549,83 @@ class BattleOverlayComponent extends PositionComponent {
         BattleMoveCategory.status => 'Statut',
         null => 'Technique',
       };
-      final powerLabel = move.power > 0 ? ' · Puissance ${move.power}' : '';
-      return '${move.name} · $moveKind$powerLabel';
+      final moveType = move.type.toUpperCase();
+      final powerLabel = move.power > 0 ? 'Puissance ${move.power}' : 'Sans degats directs';
+      return BattleCommandChoiceEntry(
+        choice: choice,
+        title: move.name,
+        subtitle: '$moveType · $moveKind · $powerLabel',
+        tone: switch (move.category) {
+          BattleMoveCategory.physical => BattleCommandChoiceTone.attack,
+          BattleMoveCategory.special => BattleCommandChoiceTone.special,
+          BattleMoveCategory.status || null => BattleCommandChoiceTone.support,
+        },
+      );
     }
 
     if (choice is PlayerBattleChoiceSwitch) {
       final reserve = _session.state.playerReserve[choice.reserveIndex];
       final isForcedReplacement = request is BattleForcedReplacementRequest;
-      final verb = isForcedReplacement ? 'Remplacer par' : 'Switch vers';
-      return '$verb ${reserve.speciesId} · ${reserve.currentHp}/${reserve.maxHp} PV';
+      final verb = isForcedReplacement ? 'Remplacer' : 'Switch';
+      return BattleCommandChoiceEntry(
+        choice: choice,
+        title: '$verb ${reserve.speciesId}',
+        subtitle: 'Reserve · ${reserve.currentHp}/${reserve.maxHp} PV',
+        tone: BattleCommandChoiceTone.switching,
+      );
     }
 
     if (choice is PlayerBattleChoiceContinue) {
       if (request case BattleContinueRequest(:final reason)) {
         if (reason == BattleContinueReason.pendingChargeRelease) {
-          return 'Continuer · liberer la charge';
+          return BattleCommandChoiceEntry(
+            choice: choice,
+            title: 'Continuer',
+            subtitle: 'Liberer l attaque chargee',
+            tone: BattleCommandChoiceTone.neutral,
+          );
         }
         if (reason == BattleContinueReason.mustRecharge) {
-          return 'Continuer · tour de recharge';
+          return BattleCommandChoiceEntry(
+            choice: choice,
+            title: 'Continuer',
+            subtitle: 'Tour de recharge force',
+            tone: BattleCommandChoiceTone.neutral,
+          );
         }
       }
-      return 'Continuer';
+      return BattleCommandChoiceEntry(
+        choice: choice,
+        title: 'Continuer',
+        subtitle: 'Aucune autre commande legale',
+        tone: BattleCommandChoiceTone.neutral,
+      );
     }
 
     if (choice is PlayerBattleChoiceCapture) {
-      return 'Capturer';
+      return BattleCommandChoiceEntry(
+        choice: choice,
+        title: 'Capturer',
+        subtitle: 'Tentative de capture supportee',
+        tone: BattleCommandChoiceTone.special,
+      );
     }
 
     if (choice is PlayerBattleChoiceRun) {
-      return 'Fuir';
+      return BattleCommandChoiceEntry(
+        choice: choice,
+        title: 'Fuir',
+        subtitle: 'Tentative de fuite supportee',
+        tone: BattleCommandChoiceTone.attack,
+      );
     }
 
-    return 'Action inconnue';
+    return BattleCommandChoiceEntry(
+      choice: choice,
+      title: 'Action inconnue',
+      subtitle: 'Choix legal mais non habille',
+      tone: BattleCommandChoiceTone.neutral,
+    );
   }
 
   void _clampSelectionToCurrentChoices() {

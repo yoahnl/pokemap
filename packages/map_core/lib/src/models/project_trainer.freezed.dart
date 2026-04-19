@@ -355,6 +355,19 @@ mixin _$ProjectTrainerEntry {
   /// - le routing réel vers quelques profils battle-local reste fait côté
   ///   runtime + `map_battle`, pas dans ce modèle data.
   int? get battleDifficulty => throw _privateConstructorUsedError;
+
+  /// Image de fond de combat explicitement authored pour ce trainer.
+  ///
+  /// Ce champ reste volontairement petit et purement data :
+  /// - il stocke un chemin relatif au projet, pas un asset handle global ;
+  /// - il ne vit pas dans `map_battle` parce qu'il ne décrit aucune vérité
+  ///   métier battle ;
+  /// - il permet simplement au runtime de prioriser un fond explicite
+  ///   trainer avant le fond contextuel du lot 2 ;
+  /// - s'il est absent ou inutilisable, le runtime retombe honnêtement sur
+  ///   sa chaîne `explicite > contextuel > fallback`.
+  String? get battleBackgroundRelativePath =>
+      throw _privateConstructorUsedError;
   String? get characterId => throw _privateConstructorUsedError;
   String? get portraitElementId => throw _privateConstructorUsedError;
   String? get battleThemeId => throw _privateConstructorUsedError;
@@ -384,6 +397,7 @@ abstract class $ProjectTrainerEntryCopyWith<$Res> {
       String name,
       String trainerClass,
       int? battleDifficulty,
+      String? battleBackgroundRelativePath,
       String? characterId,
       String? portraitElementId,
       String? battleThemeId,
@@ -411,6 +425,7 @@ class _$ProjectTrainerEntryCopyWithImpl<$Res, $Val extends ProjectTrainerEntry>
     Object? name = null,
     Object? trainerClass = null,
     Object? battleDifficulty = freezed,
+    Object? battleBackgroundRelativePath = freezed,
     Object? characterId = freezed,
     Object? portraitElementId = freezed,
     Object? battleThemeId = freezed,
@@ -435,6 +450,10 @@ class _$ProjectTrainerEntryCopyWithImpl<$Res, $Val extends ProjectTrainerEntry>
           ? _value.battleDifficulty
           : battleDifficulty // ignore: cast_nullable_to_non_nullable
               as int?,
+      battleBackgroundRelativePath: freezed == battleBackgroundRelativePath
+          ? _value.battleBackgroundRelativePath
+          : battleBackgroundRelativePath // ignore: cast_nullable_to_non_nullable
+              as String?,
       characterId: freezed == characterId
           ? _value.characterId
           : characterId // ignore: cast_nullable_to_non_nullable
@@ -476,6 +495,7 @@ abstract class _$$ProjectTrainerEntryImplCopyWith<$Res>
       String name,
       String trainerClass,
       int? battleDifficulty,
+      String? battleBackgroundRelativePath,
       String? characterId,
       String? portraitElementId,
       String? battleThemeId,
@@ -501,6 +521,7 @@ class __$$ProjectTrainerEntryImplCopyWithImpl<$Res>
     Object? name = null,
     Object? trainerClass = null,
     Object? battleDifficulty = freezed,
+    Object? battleBackgroundRelativePath = freezed,
     Object? characterId = freezed,
     Object? portraitElementId = freezed,
     Object? battleThemeId = freezed,
@@ -525,6 +546,10 @@ class __$$ProjectTrainerEntryImplCopyWithImpl<$Res>
           ? _value.battleDifficulty
           : battleDifficulty // ignore: cast_nullable_to_non_nullable
               as int?,
+      battleBackgroundRelativePath: freezed == battleBackgroundRelativePath
+          ? _value.battleBackgroundRelativePath
+          : battleBackgroundRelativePath // ignore: cast_nullable_to_non_nullable
+              as String?,
       characterId: freezed == characterId
           ? _value.characterId
           : characterId // ignore: cast_nullable_to_non_nullable
@@ -562,6 +587,7 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
       required this.name,
       required this.trainerClass,
       this.battleDifficulty,
+      this.battleBackgroundRelativePath,
       this.characterId,
       this.portraitElementId,
       this.battleThemeId,
@@ -598,6 +624,19 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
   ///   runtime + `map_battle`, pas dans ce modèle data.
   @override
   final int? battleDifficulty;
+
+  /// Image de fond de combat explicitement authored pour ce trainer.
+  ///
+  /// Ce champ reste volontairement petit et purement data :
+  /// - il stocke un chemin relatif au projet, pas un asset handle global ;
+  /// - il ne vit pas dans `map_battle` parce qu'il ne décrit aucune vérité
+  ///   métier battle ;
+  /// - il permet simplement au runtime de prioriser un fond explicite
+  ///   trainer avant le fond contextuel du lot 2 ;
+  /// - s'il est absent ou inutilisable, le runtime retombe honnêtement sur
+  ///   sa chaîne `explicite > contextuel > fallback`.
+  @override
+  final String? battleBackgroundRelativePath;
   @override
   final String? characterId;
   @override
@@ -626,7 +665,7 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
 
   @override
   String toString() {
-    return 'ProjectTrainerEntry(id: $id, name: $name, trainerClass: $trainerClass, battleDifficulty: $battleDifficulty, characterId: $characterId, portraitElementId: $portraitElementId, battleThemeId: $battleThemeId, victoryThemeId: $victoryThemeId, team: $team, tags: $tags)';
+    return 'ProjectTrainerEntry(id: $id, name: $name, trainerClass: $trainerClass, battleDifficulty: $battleDifficulty, battleBackgroundRelativePath: $battleBackgroundRelativePath, characterId: $characterId, portraitElementId: $portraitElementId, battleThemeId: $battleThemeId, victoryThemeId: $victoryThemeId, team: $team, tags: $tags)';
   }
 
   @override
@@ -640,6 +679,10 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
                 other.trainerClass == trainerClass) &&
             (identical(other.battleDifficulty, battleDifficulty) ||
                 other.battleDifficulty == battleDifficulty) &&
+            (identical(other.battleBackgroundRelativePath,
+                    battleBackgroundRelativePath) ||
+                other.battleBackgroundRelativePath ==
+                    battleBackgroundRelativePath) &&
             (identical(other.characterId, characterId) ||
                 other.characterId == characterId) &&
             (identical(other.portraitElementId, portraitElementId) ||
@@ -660,6 +703,7 @@ class _$ProjectTrainerEntryImpl implements _ProjectTrainerEntry {
       name,
       trainerClass,
       battleDifficulty,
+      battleBackgroundRelativePath,
       characterId,
       portraitElementId,
       battleThemeId,
@@ -690,6 +734,7 @@ abstract class _ProjectTrainerEntry implements ProjectTrainerEntry {
       required final String name,
       required final String trainerClass,
       final int? battleDifficulty,
+      final String? battleBackgroundRelativePath,
       final String? characterId,
       final String? portraitElementId,
       final String? battleThemeId,
@@ -724,6 +769,19 @@ abstract class _ProjectTrainerEntry implements ProjectTrainerEntry {
   ///   runtime + `map_battle`, pas dans ce modèle data.
   @override
   int? get battleDifficulty;
+
+  /// Image de fond de combat explicitement authored pour ce trainer.
+  ///
+  /// Ce champ reste volontairement petit et purement data :
+  /// - il stocke un chemin relatif au projet, pas un asset handle global ;
+  /// - il ne vit pas dans `map_battle` parce qu'il ne décrit aucune vérité
+  ///   métier battle ;
+  /// - il permet simplement au runtime de prioriser un fond explicite
+  ///   trainer avant le fond contextuel du lot 2 ;
+  /// - s'il est absent ou inutilisable, le runtime retombe honnêtement sur
+  ///   sa chaîne `explicite > contextuel > fallback`.
+  @override
+  String? get battleBackgroundRelativePath;
   @override
   String? get characterId;
   @override

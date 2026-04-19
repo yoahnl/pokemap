@@ -11,6 +11,7 @@ import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
 import 'package:map_runtime/src/application/runtime_battle_setup_mapper.dart';
 import 'package:map_runtime/src/application/trainer_battle_request.dart';
 import 'package:map_runtime/src/presentation/flame/battle_background_resolver.dart';
+import 'package:map_runtime/src/presentation/flame/runtime_trainer_battle_overrides.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
@@ -100,17 +101,26 @@ void main() {
           .firstWhere((entry) => entry?.id == request!.trainerId);
       expect(trainerEntry, isNotNull);
       expect(trainerEntry!.battleDifficulty, equals(4));
+      expect(
+        trainerEntry.battleBackgroundRelativePath,
+        equals('assets/battle_backgrounds/trainer_rookie.png'),
+      );
+
+      final routedPolicy = resolveRuntimeTrainerOpponentPolicy(
+        request: request!,
+        manifest: bundle.manifest,
+      );
+      expect(routedPolicy, isA<BattleHighestPowerOpponentPolicy>());
 
       final setup = await mapper.map(
         bundle: bundle,
         gameState: gameState,
-        request: request!,
+        request: request,
       );
       expect(setup.isTrainerBattle, isTrue);
       final session = createBattleSession(
         setup,
-        opponentPolicy:
-            battleOpponentPolicyForDifficulty(trainerEntry.battleDifficulty),
+        opponentPolicy: routedPolicy,
       );
 
       expect(session.state.isFinished, isFalse);
@@ -173,6 +183,14 @@ void main() {
       expect(
         backgroundResolver.resolve(request: trainerRequest, bundle: bundle).key,
         equals(BattleBackgroundKey.trainerOutdoor),
+      );
+      expect(
+        backgroundResolver
+            .resolve(request: trainerRequest, bundle: bundle)
+            .explicitImageAbsolutePath,
+        endsWith(
+          p.join('assets', 'battle_backgrounds', 'trainer_rookie.png'),
+        ),
       );
     });
   });

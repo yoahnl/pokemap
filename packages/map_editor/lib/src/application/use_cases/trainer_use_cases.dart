@@ -1,4 +1,5 @@
 import 'package:map_core/map_core.dart';
+import 'package:path/path.dart' as p;
 
 import '../../domain/repositories/repositories.dart';
 import '../errors/application_errors.dart';
@@ -39,6 +40,14 @@ List<String> _normalizeTrainerStringList(Iterable<String> rawValues) {
       .toList(growable: false);
 }
 
+String? _normalizeOptionalTrainerRelativePath(String? rawValue) {
+  final trimmed = rawValue?.trim() ?? '';
+  if (trimmed.isEmpty) {
+    return null;
+  }
+  return p.posix.normalize(trimmed.replaceAll(r'\', '/'));
+}
+
 // ---------------------------------------------------------------------------
 // Use cases — dresseurs
 // ---------------------------------------------------------------------------
@@ -53,6 +62,8 @@ class CreateTrainerUseCase {
     ProjectManifest project, {
     required String name,
     required String trainerClass,
+    int? battleDifficulty,
+    String? battleBackgroundRelativePath,
     String? characterId,
     String? portraitElementId,
     String? battleThemeId,
@@ -71,6 +82,10 @@ class CreateTrainerUseCase {
       id: _generateUniqueTrainerId(project, trimmedName),
       name: trimmedName,
       trainerClass: trimmedClass,
+      battleDifficulty: battleDifficulty,
+      battleBackgroundRelativePath: _normalizeOptionalTrainerRelativePath(
+        battleBackgroundRelativePath,
+      ),
       characterId:
           characterId?.trim().isEmpty == true ? null : characterId?.trim(),
       portraitElementId: portraitElementId?.trim().isEmpty == true
@@ -103,6 +118,8 @@ class UpdateTrainerUseCase {
     required String trainerId,
     String? name,
     String? trainerClass,
+    Object? battleDifficulty = _unset,
+    Object? battleBackgroundRelativePath = _unset,
     Object? characterId = _unset,
     Object? portraitElementId = _unset,
     Object? battleThemeId = _unset,
@@ -127,6 +144,18 @@ class UpdateTrainerUseCase {
       trainerClass: trimmedClass,
       tags: tags == null ? current.tags : _normalizeTrainerStringList(tags),
     );
+    if (!identical(battleDifficulty, _unset)) {
+      updatedTrainer = updatedTrainer.copyWith(
+        battleDifficulty: battleDifficulty as int?,
+      );
+    }
+    if (!identical(battleBackgroundRelativePath, _unset)) {
+      updatedTrainer = updatedTrainer.copyWith(
+        battleBackgroundRelativePath: _normalizeOptionalTrainerRelativePath(
+          battleBackgroundRelativePath as String?,
+        ),
+      );
+    }
     if (!identical(characterId, _unset)) {
       final v = (characterId as String?)?.trim();
       updatedTrainer = updatedTrainer.copyWith(

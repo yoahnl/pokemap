@@ -22,6 +22,9 @@ void main() {
         _project(),
         name: '  Misty  ',
         trainerClass: '  Gym Leader  ',
+        battleDifficulty: 7,
+        battleBackgroundRelativePath:
+            r' assets\battle_backgrounds\misty.png ',
         battleThemeId: ' battle_theme ',
         victoryThemeId: ' victory_theme ',
         tags: <String>[' rival ', ' ', ' gym '],
@@ -31,10 +34,56 @@ void main() {
       expect(trainer.id, 'misty');
       expect(trainer.name, 'Misty');
       expect(trainer.trainerClass, 'Gym Leader');
+      expect(trainer.battleDifficulty, 7);
+      expect(
+        trainer.battleBackgroundRelativePath,
+        'assets/battle_backgrounds/misty.png',
+      );
       expect(trainer.battleThemeId, 'battle_theme');
       expect(trainer.victoryThemeId, 'victory_theme');
       expect(trainer.tags, <String>['rival', 'gym']);
       expect(repository.savedProjects.single.trainers.single.name, 'Misty');
+    });
+
+    test('update trainer can author and clear difficulty/background fields',
+        () async {
+      final useCase = UpdateTrainerUseCase(repository);
+
+      final updated = await useCase.execute(
+        workspace,
+        _project(
+          trainers: const <ProjectTrainerEntry>[
+            ProjectTrainerEntry(
+              id: 'misty',
+              name: 'Misty',
+              trainerClass: 'Gym Leader',
+            ),
+          ],
+        ),
+        trainerId: 'misty',
+        battleDifficulty: 9,
+        battleBackgroundRelativePath:
+            'assets/battle_backgrounds/misty_evening.png',
+      );
+
+      final authoredTrainer = updated.trainers.single;
+      expect(authoredTrainer.battleDifficulty, 9);
+      expect(
+        authoredTrainer.battleBackgroundRelativePath,
+        'assets/battle_backgrounds/misty_evening.png',
+      );
+
+      final cleared = await useCase.execute(
+        workspace,
+        updated,
+        trainerId: 'misty',
+        battleDifficulty: null,
+        battleBackgroundRelativePath: '',
+      );
+
+      final clearedTrainer = cleared.trainers.single;
+      expect(clearedTrainer.battleDifficulty, isNull);
+      expect(clearedTrainer.battleBackgroundRelativePath, isNull);
     });
 
     test('add/update trainer pokemon keeps data normalized and stable',

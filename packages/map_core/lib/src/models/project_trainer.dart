@@ -50,6 +50,18 @@ class ProjectTrainerEntry with _$ProjectTrainerEntry {
     ///   runtime + `map_battle`, pas dans ce modèle data.
     int? battleDifficulty,
 
+    /// Image de fond de combat explicitement authored pour ce trainer.
+    ///
+    /// Ce champ reste volontairement petit et purement data :
+    /// - il stocke un chemin relatif au projet, pas un asset handle global ;
+    /// - il ne vit pas dans `map_battle` parce qu'il ne décrit aucune vérité
+    ///   métier battle ;
+    /// - il permet simplement au runtime de prioriser un fond explicite
+    ///   trainer avant le fond contextuel du lot 2 ;
+    /// - s'il est absent ou inutilisable, le runtime retombe honnêtement sur
+    ///   sa chaîne `explicite > contextuel > fallback`.
+    String? battleBackgroundRelativePath,
+
     String? characterId,
     String? portraitElementId,
     String? battleThemeId,

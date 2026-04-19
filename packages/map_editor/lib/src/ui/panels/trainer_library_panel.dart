@@ -1,7 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
+import 'package:path/path.dart' as p;
 
 import '../../app/providers/core/repository_providers.dart';
 import '../../app/providers/pokedex/pokedex_providers.dart';
@@ -74,6 +78,8 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   final _newTagsController = TextEditingController();
   final _trainerSearchController = TextEditingController();
   String? _newCharacterId;
+  int? _newBattleDifficulty = 4;
+  String? _newBattleBackgroundRelativePath;
   bool _showCreateForm = false;
   bool _showCreateAdvanced = false;
   String? _createTrainerValidationMessage;
@@ -90,6 +96,8 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   final _editVictoryThemeController = TextEditingController();
   final _editTagsController = TextEditingController();
   String? _editCharacterId;
+  int? _editBattleDifficulty;
+  String? _editBattleBackgroundRelativePath;
   bool _showEditAdvanced = false;
   String? _editTrainerValidationMessage;
 
@@ -353,6 +361,8 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       project: project,
       name: _newNameController.text,
       trainerClass: _newClassController.text,
+      battleDifficulty: _newBattleDifficulty,
+      battleBackgroundRelativePath: _newBattleBackgroundRelativePath,
       portraitElementId: _newPortraitController.text,
     );
     setState(() {
@@ -365,6 +375,8 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     final success = await notifier.createTrainer(
       name: _newNameController.text,
       trainerClass: _newClassController.text,
+      battleDifficulty: _newBattleDifficulty,
+      battleBackgroundRelativePath: _newBattleBackgroundRelativePath,
       characterId: _newCharacterId,
       portraitElementId: _newPortraitController.text,
       battleThemeId: _newBattleThemeController.text,
@@ -396,6 +408,8 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       project: project,
       name: _editNameController.text,
       trainerClass: _editClassController.text,
+      battleDifficulty: _editBattleDifficulty,
+      battleBackgroundRelativePath: _editBattleBackgroundRelativePath,
       portraitElementId: _editPortraitController.text,
     );
     setState(() {
@@ -409,6 +423,8 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       trainerId: trainer.id,
       name: _editNameController.text,
       trainerClass: _editClassController.text,
+      battleDifficulty: _editBattleDifficulty,
+      battleBackgroundRelativePath: _editBattleBackgroundRelativePath,
       characterId: _editCharacterId,
       portraitElementId: _editPortraitController.text,
       battleThemeId: _editBattleThemeController.text,
@@ -453,6 +469,8 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     required ProjectManifest project,
     required String name,
     required String trainerClass,
+    required int? battleDifficulty,
+    required String? battleBackgroundRelativePath,
     required String portraitElementId,
   }) {
     if (name.trim().isEmpty) {
@@ -466,6 +484,25 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     if (portraitId.isNotEmpty &&
         !project.elements.any((element) => element.id == portraitId)) {
       return 'Portrait element "$portraitId" does not exist in this project.';
+    }
+
+    if (battleDifficulty != null &&
+        (battleDifficulty < 1 || battleDifficulty > 10)) {
+      return 'Battle difficulty must stay between 1 and 10.';
+    }
+
+    final normalizedBattleBackgroundPath =
+        _normalizeOptionalField(battleBackgroundRelativePath ?? '');
+    if (normalizedBattleBackgroundPath != null) {
+      final normalizedPath =
+          normalizedBattleBackgroundPath.replaceAll(r'\', '/');
+      if (normalizedPath.startsWith('/') ||
+          normalizedPath.startsWith('\\') ||
+          normalizedPath.contains(':\\') ||
+          normalizedPath.contains(':/') ||
+          normalizedPath.contains('..')) {
+        return 'Battle background image must stay inside the project as a relative path.';
+      }
     }
 
     return null;
@@ -482,6 +519,8 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     _newVictoryThemeController.clear();
     _newTagsController.clear();
     _newCharacterId = null;
+    _newBattleDifficulty = 4;
+    _newBattleBackgroundRelativePath = null;
   }
 
   void _openCreateTrainerForm() {
@@ -555,6 +594,9 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
       _editVictoryThemeController.text = trainer.victoryThemeId ?? '';
       _editTagsController.text = trainer.tags.join(', ');
       _editCharacterId = trainer.characterId;
+      _editBattleDifficulty = trainer.battleDifficulty;
+      _editBattleBackgroundRelativePath =
+          trainer.battleBackgroundRelativePath;
       _showEditAdvanced = false;
       _editTrainerValidationMessage = null;
       _showCreateForm = false;
@@ -576,6 +618,148 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
 
   void _cancelTrainerEditor() {
     setState(_closeTrainerEditor);
+  }
+
+  void _setNewBattleDifficulty(double value) {
+    setState(() {
+      _newBattleDifficulty = value.round().clamp(1, 10);
+      _createTrainerValidationMessage = null;
+    });
+  }
+
+  void _setEditBattleDifficulty(double value) {
+    setState(() {
+      _editBattleDifficulty = value.round().clamp(1, 10);
+      _editTrainerValidationMessage = null;
+    });
+  }
+
+  void _clearNewBattleDifficulty() {
+    setState(() {
+      _newBattleDifficulty = null;
+      _createTrainerValidationMessage = null;
+    });
+  }
+
+  void _clearEditBattleDifficulty() {
+    setState(() {
+      _editBattleDifficulty = null;
+      _editTrainerValidationMessage = null;
+    });
+  }
+
+  Future<void> _pickCreateBattleBackground() async {
+    await _pickBattleBackgroundImage(
+      createMode: true,
+    );
+  }
+
+  Future<void> _pickEditBattleBackground() async {
+    await _pickBattleBackgroundImage(
+      createMode: false,
+    );
+  }
+
+  void _clearCreateBattleBackground() {
+    setState(() {
+      _newBattleBackgroundRelativePath = null;
+      _createTrainerValidationMessage = null;
+    });
+  }
+
+  void _clearEditBattleBackground() {
+    setState(() {
+      _editBattleBackgroundRelativePath = null;
+      _editTrainerValidationMessage = null;
+    });
+  }
+
+  Future<void> _pickBattleBackgroundImage({
+    required bool createMode,
+  }) async {
+    final projectRootPath =
+        ref.read(editorNotifierProvider).projectRootPath?.trim();
+    if (projectRootPath == null || projectRootPath.isEmpty) {
+      setState(() {
+        if (createMode) {
+          _createTrainerValidationMessage =
+              'A valid project workspace is required before linking a battle background image.';
+        } else {
+          _editTrainerValidationMessage =
+              'A valid project workspace is required before linking a battle background image.';
+        }
+      });
+      return;
+    }
+
+    final pickedAbsolutePath =
+        await _pickBattleBackgroundAbsolutePath(projectRootPath);
+    if (pickedAbsolutePath == null) {
+      return;
+    }
+
+    final relativePath = _normalizePickedBattleBackgroundPath(
+      createMode: createMode,
+      projectRootPath: projectRootPath,
+      pickedAbsolutePath: pickedAbsolutePath,
+    );
+    if (relativePath == null) {
+      return;
+    }
+
+    setState(() {
+      if (createMode) {
+        _newBattleBackgroundRelativePath = relativePath;
+        _createTrainerValidationMessage = null;
+      } else {
+        _editBattleBackgroundRelativePath = relativePath;
+        _editTrainerValidationMessage = null;
+      }
+    });
+  }
+
+  Future<String?> _pickBattleBackgroundAbsolutePath(String projectRootPath) async {
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const <String>[
+        'png',
+        'jpg',
+        'jpeg',
+        'webp',
+        'bmp',
+        'gif',
+      ],
+      withData: false,
+    );
+    return result?.files.single.path?.trim();
+  }
+
+  String? _normalizePickedBattleBackgroundPath({
+    required bool createMode,
+    required String projectRootPath,
+    required String pickedAbsolutePath,
+  }) {
+    final normalizedProjectRoot = p.normalize(projectRootPath);
+    final normalizedAbsolutePath = p.normalize(pickedAbsolutePath);
+    final relativePath = p.posix.normalize(
+      p.relative(normalizedAbsolutePath, from: normalizedProjectRoot),
+    );
+
+    if (relativePath == '.' ||
+        relativePath.startsWith('..') ||
+        p.isAbsolute(relativePath)) {
+      setState(() {
+        const message =
+            'This lot only links project-local images. Move the background into the project folder, then pick it again.';
+        if (createMode) {
+          _createTrainerValidationMessage = message;
+        } else {
+          _editTrainerValidationMessage = message;
+        }
+      });
+      return null;
+    }
+    return relativePath;
   }
 
   // -------------------------------------------------------------------------
@@ -852,5 +1036,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     _editingTrainerId = null;
     _editTrainerValidationMessage = null;
     _showEditAdvanced = false;
+    _editBattleDifficulty = null;
+    _editBattleBackgroundRelativePath = null;
   }
 }

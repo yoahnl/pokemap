@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flame/components.dart';
 import 'package:map_battle/map_battle.dart';
@@ -158,6 +161,19 @@ TrainerBattleStartRequest _trainerRequest() {
     mapId: 'field_map',
     playerPos: GridPos(x: 1, y: 1),
   );
+}
+
+Future<String> _writeTinyBattleBackgroundImage() async {
+  final directory = await Directory.systemTemp.createTemp(
+    'battle_overlay_background_',
+  );
+  final file = File('${directory.path}/trainer_background.png');
+  await file.writeAsBytes(
+    base64Decode(
+      'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFUlEQVR4nGOMmnbnPwMDAwMTiABhACpmAs+3EdpKAAAAAElFTkSuQmCC',
+    ),
+  );
+  return file.path;
 }
 
 void main() {
@@ -682,6 +698,22 @@ void main() {
         backdrop.currentBackgroundKey,
         equals(BattleBackgroundKey.trainerOutdoor),
       );
+    });
+
+    test('loads an authored explicit trainer image when the spec resolves one',
+        () async {
+      final explicitImagePath = await _writeTinyBattleBackgroundImage();
+      final backdrop = BattleSceneBackdropComponent(
+        size: Vector2(960, 540),
+        backgroundSpec: BattleBackgroundSpec.explicitImage(
+          absolutePath: explicitImagePath,
+          fallbackKey: BattleBackgroundKey.trainerOutdoor,
+        ),
+      );
+
+      await backdrop.onLoad();
+      expect(backdrop.currentBackgroundKey, BattleBackgroundKey.trainerOutdoor);
+      expect(backdrop.hasResolvedExplicitImage, isTrue);
     });
 
     test('keeps the debug panel opt-in and separate from the normal battle UI',

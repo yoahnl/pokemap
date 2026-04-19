@@ -5,10 +5,11 @@ import 'package:map_battle/map_battle.dart';
 
 /// HUD de combattant pour la scène de combat.
 ///
-/// Responsabilité volontairement bornée :
-/// - afficher les informations déjà vraies dans `BattleSession` ;
-/// - ne pas recalculer de logique ;
-/// - ne pas devenir un modèle de présentation générique.
+/// Le lot 4b rapproche ce HUD d'une lecture battle-like plus premium, tout en
+/// restant honnête :
+/// - on n'invente aucune donnée absente du moteur ;
+/// - on n'ouvre pas de nouveau système d'UI générique ;
+/// - on reformate seulement des informations déjà vraies dans `BattleSession`.
 class BattleSceneHudComponent extends PositionComponent {
   BattleSceneHudComponent({
     required Vector2 position,
@@ -30,6 +31,8 @@ class BattleSceneHudComponent extends PositionComponent {
 
   TextComponent? _ownerText;
   TextComponent? _speciesText;
+  TextComponent? _levelText;
+  TextComponent? _hpLabelText;
   TextComponent? _hpText;
   TextComponent? _statusText;
   RectangleComponent? _hpBarFill;
@@ -38,14 +41,14 @@ class BattleSceneHudComponent extends PositionComponent {
   Future<void> onLoad() async {
     _ownerText = TextComponent(
       text: ownerLabel,
-      position: Vector2(18, 12),
+      position: Vector2(16, 10),
       anchor: Anchor.topLeft,
       textRenderer: TextPaint(
         style: const TextStyle(
-          color: Color(0xB3D7DEEC),
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.1,
+          color: Color(0xB34D5A6D),
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.0,
         ),
       ),
     );
@@ -53,11 +56,11 @@ class BattleSceneHudComponent extends PositionComponent {
 
     _speciesText = TextComponent(
       text: _combatant.speciesId,
-      position: Vector2(18, 28),
+      position: Vector2(16, 26),
       anchor: Anchor.topLeft,
       textRenderer: TextPaint(
         style: const TextStyle(
-          color: Color(0xFFF5F7FB),
+          color: Color(0xFF202738),
           fontSize: 18,
           fontWeight: FontWeight.w800,
         ),
@@ -65,53 +68,80 @@ class BattleSceneHudComponent extends PositionComponent {
     );
     await add(_speciesText!);
 
-    final hpBarBackground = RectangleComponent(
-      position: Vector2(18, size.y - 34),
-      size: Vector2(size.x - 36, 10),
+    _levelText = TextComponent(
+      text: '',
+      position: Vector2(size.x - 16, 30),
+      anchor: Anchor.topRight,
+      textRenderer: TextPaint(
+        style: const TextStyle(
+          color: Color(0xFF3C4758),
+          fontSize: 15,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+    await add(_levelText!);
+
+    _statusText = TextComponent(
+      text: '',
+      position: Vector2(size.x - 16, 14),
+      anchor: Anchor.topRight,
+      textRenderer: TextPaint(
+        style: const TextStyle(
+          color: Color(0xFF5A6579),
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.8,
+        ),
+      ),
+    );
+    await add(_statusText!);
+
+    _hpLabelText = TextComponent(
+      text: 'HP',
+      position: Vector2(16, size.y - 40),
       anchor: Anchor.topLeft,
-      paint: Paint()..color = const Color(0x33222A3B),
+      textRenderer: TextPaint(
+        style: const TextStyle(
+          color: Color(0xFFB87D2F),
+          fontSize: 12,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+    await add(_hpLabelText!);
+
+    final hpBarBackground = RectangleComponent(
+      position: Vector2(42, size.y - 36),
+      size: Vector2(size.x - 58, 10),
+      anchor: Anchor.topLeft,
+      paint: Paint()..color = const Color(0xFFABB5C1),
       priority: 21,
     );
     await add(hpBarBackground);
 
     _hpBarFill = RectangleComponent(
-      position: Vector2(18, size.y - 34),
-      size: Vector2(size.x - 36, 10),
+      position: Vector2(42, size.y - 36),
+      size: Vector2(size.x - 58, 10),
       anchor: Anchor.topLeft,
-      paint: Paint()
-        ..color =
-            isPlayerSide ? const Color(0xFF79D88E) : const Color(0xFFE1A95F),
+      paint: Paint()..color = const Color(0xFF62C06E),
       priority: 22,
     );
     await add(_hpBarFill!);
 
     _hpText = TextComponent(
       text: '',
-      position: Vector2(18, size.y - 54),
-      anchor: Anchor.topLeft,
+      position: Vector2(size.x - 16, size.y - 18),
+      anchor: Anchor.bottomRight,
       textRenderer: TextPaint(
         style: const TextStyle(
-          color: Color(0xFFE4EAF6),
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
+          color: Color(0xFF364355),
+          fontSize: 12,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );
     await add(_hpText!);
-
-    _statusText = TextComponent(
-      text: '',
-      position: Vector2(size.x - 18, 14),
-      anchor: Anchor.topRight,
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0xFFD9E4F7),
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-    await add(_statusText!);
 
     sync(combatant: _combatant);
   }
@@ -121,12 +151,15 @@ class BattleSceneHudComponent extends PositionComponent {
   }) {
     _combatant = combatant;
     _speciesText?.text = combatant.speciesId;
-    _hpText?.text = 'PV ${combatant.currentHp}/${combatant.maxHp}';
+    _levelText?.text = 'Lv.${combatant.level}';
     _statusText?.text = _statusLabel(combatant);
+    _hpText?.text = isPlayerSide
+        ? '${combatant.currentHp}/${combatant.maxHp}'
+        : '${((combatant.currentHp / (combatant.maxHp <= 0 ? 1 : combatant.maxHp)) * 100).round()}%';
 
     final safeMaxHp = combatant.maxHp <= 0 ? 1 : combatant.maxHp;
     final hpRatio = (combatant.currentHp / safeMaxHp).clamp(0.0, 1.0);
-    _hpBarFill?.size = Vector2((size.x - 36) * hpRatio, 10);
+    _hpBarFill?.size = Vector2((size.x - 58) * hpRatio, 10);
     _hpBarFill?.paint.color = _hpColor(hpRatio);
   }
 
@@ -134,21 +167,35 @@ class BattleSceneHudComponent extends PositionComponent {
   void render(Canvas canvas) {
     super.render(canvas);
     final panelRect = Offset.zero & Size(size.x, size.y);
+
+    canvas.drawShadow(
+      Path()
+        ..addRRect(
+          RRect.fromRectAndRadius(panelRect, const Radius.circular(20)),
+        ),
+      const Color(0x55000000),
+      10,
+      true,
+    );
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(panelRect, const Radius.circular(20)),
+      Paint()..color = const Color(0xFFF3F0E8),
+    );
     canvas.drawRRect(
       RRect.fromRectAndRadius(panelRect, const Radius.circular(20)),
       Paint()
-        ..color =
-            isPlayerSide ? const Color(0xD818273D) : const Color(0xD8261E38),
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        panelRect.deflate(1),
-        const Radius.circular(19),
-      ),
-      Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2
-        ..color = const Color(0x66FFFFFF),
+        ..color = const Color(0xFF798394),
+    );
+
+    final accentRect = Rect.fromLTWH(12, 12, size.x - 24, 6);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(accentRect, const Radius.circular(999)),
+      Paint()
+        ..color =
+            isPlayerSide ? const Color(0xFF86B7F2) : const Color(0xFFB4C18D),
     );
   }
 
@@ -165,11 +212,11 @@ class BattleSceneHudComponent extends PositionComponent {
 
   Color _hpColor(double hpRatio) {
     if (hpRatio <= 0.25) {
-      return const Color(0xFFEB5E55);
+      return const Color(0xFFD35B49);
     }
     if (hpRatio <= 0.5) {
-      return const Color(0xFFE5B95A);
+      return const Color(0xFFD9A84B);
     }
-    return isPlayerSide ? const Color(0xFF79D88E) : const Color(0xFFE1A95F);
+    return const Color(0xFF62C06E);
   }
 }

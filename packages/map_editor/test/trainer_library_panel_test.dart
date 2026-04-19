@@ -263,6 +263,7 @@ void main() {
     final trainer =
         container.read(editorNotifierProvider).project!.trainers.single;
     expect(trainer.name, 'Misty');
+    expect(trainer.battleDifficulty, 4);
     expect(trainer.battleThemeId, 'battle_misty');
     expect(trainer.victoryThemeId, 'victory_misty');
     expect(trainer.tags, <String>['rival', 'gym']);
@@ -341,6 +342,67 @@ void main() {
     expect(pokemon.shiny, isFalse);
     expect(
       find.byKey(Key('trainer-library-pokemon-row-${trainer.id}-0')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets(
+      'shows trainer difficulty and background authoring controls in the editor',
+      (tester) async {
+    final container = ProviderContainer(
+      overrides: [
+        projectRepositoryProvider.overrideWithValue(_FakeProjectRepository()),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      project: ProjectManifest(
+        name: 'trainer_picker_test',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+        trainers: <ProjectTrainerEntry>[
+          ProjectTrainerEntry(
+            id: 'mira',
+            name: 'Mira',
+            trainerClass: 'Rookie',
+            battleDifficulty: 6,
+            battleBackgroundRelativePath: 'assets/battle_backgrounds/mira.png',
+          ),
+        ],
+      ),
+    );
+
+    await pumpTrainerPanel(tester, container);
+    await settleTrainerUi(tester);
+
+    expect(find.textContaining('AI 6'), findsOneWidget);
+
+    await tester.tap(find.text('Edit').first);
+    await settleTrainerUi(tester);
+
+    expect(
+      find.byKey(const Key('trainer-library-edit-difficulty-slider')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Show optional references'));
+    await settleTrainerUi(tester);
+
+    expect(
+      find.text('assets/battle_backgrounds/mira.png'),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('trainer-library-edit-background-pick-button')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const Key('trainer-library-edit-background-clear-button')),
+    );
+    await settleTrainerUi(tester);
+    expect(
+      find.text('No explicit trainer background selected.'),
       findsOneWidget,
     );
   });
@@ -1605,11 +1667,13 @@ class _FakeWorkspaceFactory implements ProjectWorkspaceFactory {
 class _FakeWorkspace implements ProjectWorkspace {
   const _FakeWorkspace();
 
-  @override
-  String get projectManifestPath => '/tmp/project.json';
+  static const String projectRootValue = '/tmp';
 
   @override
-  String get projectRoot => '/tmp';
+  String get projectManifestPath => '$projectRootValue/project.json';
+
+  @override
+  String get projectRoot => projectRootValue;
 
   @override
   Future<void> copyFile(String sourcePath, String destinationPath) async {}
@@ -1630,7 +1694,7 @@ class _FakeWorkspace implements ProjectWorkspace {
   Future<bool> fileExists(String path) async => false;
 
   @override
-  String getMapPath(String mapId) => '/tmp/$mapId.json';
+  String getMapPath(String mapId) => '$projectRootValue/$mapId.json';
 
   @override
   String getMapRelativePath(String mapId) => '$mapId.json';
@@ -1653,14 +1717,16 @@ class _FakeWorkspace implements ProjectWorkspace {
   Future<String> readTextFile(String path) async => '';
 
   @override
-  String resolveMapPath(String relativePath) => '/tmp/$relativePath';
+  String resolveMapPath(String relativePath) =>
+      '$projectRootValue/$relativePath';
 
   @override
   String resolveProjectRelativePath(String relativePath) =>
-      '/tmp/$relativePath';
+      '$projectRootValue/$relativePath';
 
   @override
-  String resolveTilesetPath(String relativePath) => '/tmp/$relativePath';
+  String resolveTilesetPath(String relativePath) =>
+      '$projectRootValue/$relativePath';
 
   @override
   Future<void> writeTextFile(String path, String contents) async {}

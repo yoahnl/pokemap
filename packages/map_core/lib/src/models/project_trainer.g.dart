@@ -39,6 +39,8 @@ _$ProjectTrainerEntryImpl _$$ProjectTrainerEntryImplFromJson(
       name: json['name'] as String,
       trainerClass: json['trainerClass'] as String,
       battleDifficulty: (json['battleDifficulty'] as num?)?.toInt(),
+      battleBackgroundRelativePath:
+          json['battleBackgroundRelativePath'] as String?,
       characterId: json['characterId'] as String?,
       portraitElementId: json['portraitElementId'] as String?,
       battleThemeId: json['battleThemeId'] as String?,
@@ -60,6 +62,7 @@ Map<String, dynamic> _$$ProjectTrainerEntryImplToJson(
       'name': instance.name,
       'trainerClass': instance.trainerClass,
       'battleDifficulty': instance.battleDifficulty,
+      'battleBackgroundRelativePath': instance.battleBackgroundRelativePath,
       'characterId': instance.characterId,
       'portraitElementId': instance.portraitElementId,
       'battleThemeId': instance.battleThemeId,

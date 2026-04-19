@@ -56,6 +56,7 @@ import 'dialogue_overlay_component.dart';
 import 'map_layers_component.dart';
 import 'overworld_actor_component.dart';
 import 'player_component.dart';
+import 'runtime_trainer_battle_overrides.dart';
 import 'warp_transition_overlay_component.dart';
 
 const double _kViewportTilesX = 15.0;
@@ -3089,7 +3090,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       // - `map_battle` ne doit recevoir qu'une policy déjà choisie ;
       // - `battle_session.dart` ne redevient donc pas le cerveau de la
       //   difficulté.
-      final opponentPolicy = _resolveBattleOpponentPolicy(request);
+      final opponentPolicy = resolveRuntimeTrainerOpponentPolicy(
+        request: request,
+        manifest: _bundle.manifest,
+      );
 
       // Créer la session de combat
       _battleSession = createBattleSession(
@@ -3153,32 +3157,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       request: request,
       playerPartyIndex: playerPartyIndex,
     );
-  }
-
-  BattleOpponentPolicy _resolveBattleOpponentPolicy(
-    BattleStartRequest request,
-  ) {
-    // Le lot 4 reste volontairement borné :
-    // - wild battles gardent le fallback historique ;
-    // - la difficulté produit n'est lue que pour les trainer battles ;
-    // - on ne fait pas transiter cette décision par `BattleSetup`, la queue
-    //   ou la session elle-même.
-    if (request is! TrainerBattleStartRequest) {
-      return const BattleFirstLegalOpponentPolicy();
-    }
-
-    // On relit le trainer depuis le manifest runtime déjà chargé :
-    // - la donnée authored reste à sa vraie place (`ProjectTrainerEntry`) ;
-    // - on évite d'élargir `BattleStartRequest` juste pour "préparer le
-    //   futur" ;
-    // - si un vieux trainer n'a pas encore de difficulté, on retombe
-    //   explicitement sur la policy historique du dépôt.
-    final trainer = _bundle.manifest.trainers.cast<ProjectTrainerEntry?>()
-        .firstWhere(
-          (entry) => entry?.id == request.trainerId,
-          orElse: () => null,
-        );
-    return battleOpponentPolicyForDifficulty(trainer?.battleDifficulty);
   }
 
   void _cancelBattleHandoff({

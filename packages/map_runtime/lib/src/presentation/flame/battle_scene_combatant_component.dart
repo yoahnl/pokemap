@@ -2,18 +2,13 @@ import 'package:flame/components.dart';
 import 'package:flame/text.dart';
 import 'package:flutter/material.dart';
 
-/// Placeholder visuel de combattant pour le lot 1.
+/// Placeholder visuel de combattant pour la battle scene runtime.
 ///
-/// Ce composant sert uniquement à donner une vraie lecture de scène :
-/// - un ancrage visuel côté ennemi ;
-/// - un ancrage visuel côté joueur ;
-/// - sans dépendre d'assets battle dédiés qui n'existent pas encore.
-///
-/// Garde-fous :
-/// - aucun sprite loading ;
-/// - aucune vérité métier ;
-/// - aucune tentative de résoudre un fond contextuel ;
-/// - aucune tentative d'ouvrir une pipeline d'assets "pour plus tard".
+/// Le lot 4b modernise la lecture de scène sans mentir :
+/// - toujours aucun sprite battle dédié ;
+/// - toujours aucune dépendance battle-core ;
+/// - mais une silhouette plus vivante, avec une plateforme plus lisible et un
+///   vrai ancrage joueur/ennemi inspiré du rythme du gif de référence.
 class BattleSceneCombatantComponent extends PositionComponent {
   BattleSceneCombatantComponent({
     required Vector2 position,
@@ -31,42 +26,20 @@ class BattleSceneCombatantComponent extends PositionComponent {
   final bool isPlayerSide;
 
   String _speciesLabel;
-  TextComponent? _roleText;
   TextComponent? _speciesText;
   TextComponent? _monogramText;
 
   @override
   Future<void> onLoad() async {
-    // Le rendu reste volontairement très sobre :
-    // il donne une présence de scène au combattant, mais laisse le vrai futur
-    // travail d'assets ou d'arrière-plan contextuel aux lots suivants.
-    _roleText = TextComponent(
-      text: isPlayerSide ? 'JOUEUR' : 'ENNEMI',
-      position: Vector2(0, isPlayerSide ? size.y - 20 : 6),
-      anchor: isPlayerSide ? Anchor.bottomLeft : Anchor.topLeft,
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0xCCFFFFFF),
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.2,
-        ),
-      ),
-    );
-    await add(_roleText!);
-
     _speciesText = TextComponent(
       text: _speciesLabel,
-      position: Vector2(
-        size.x / 2,
-        isPlayerSide ? size.y - 12 : size.y - 20,
-      ),
+      position: Vector2(size.x / 2, size.y - 8),
       anchor: Anchor.bottomCenter,
       textRenderer: TextPaint(
         style: const TextStyle(
-          color: Color(0xFFF5F7FB),
-          fontSize: 16,
-          fontWeight: FontWeight.w700,
+          color: Color(0xFFF8FBFF),
+          fontSize: 15,
+          fontWeight: FontWeight.w800,
         ),
       ),
       priority: 13,
@@ -75,13 +48,13 @@ class BattleSceneCombatantComponent extends PositionComponent {
 
     _monogramText = TextComponent(
       text: _speciesMonogram(_speciesLabel),
-      position: Vector2(size.x / 2, size.y * 0.38),
+      position: Vector2(size.x * 0.54, size.y * 0.4),
       anchor: Anchor.center,
       textRenderer: TextPaint(
         style: const TextStyle(
-          color: Color(0xFFF3F6FF),
+          color: Color(0xF8FFFFFF),
           fontSize: 34,
-          fontWeight: FontWeight.w800,
+          fontWeight: FontWeight.w900,
         ),
       ),
       priority: 13,
@@ -101,46 +74,104 @@ class BattleSceneCombatantComponent extends PositionComponent {
   void render(Canvas canvas) {
     super.render(canvas);
 
-    final baseY = size.y * 0.72;
     final platformRect = Rect.fromCenter(
-      center: Offset(size.x * 0.5, baseY + 22),
-      width: size.x * 0.78,
-      height: isPlayerSide ? 28 : 24,
+      center: Offset(size.x * 0.56, size.y * 0.8),
+      width: size.x * (isPlayerSide ? 0.86 : 0.7),
+      height: isPlayerSide ? 34 : 28,
     );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(platformRect, const Radius.circular(20)),
-      Paint()..color = const Color(0x1AFFFFFF),
+    canvas.drawOval(
+      platformRect,
+      Paint()..color = const Color(0x995E4E34),
+    );
+    canvas.drawOval(
+      platformRect.deflate(5),
+      Paint()..color = const Color(0xFFD8C59E),
     );
 
     final shadowRect = Rect.fromCenter(
-      center: Offset(size.x * 0.5, baseY + 6),
-      width: size.x * 0.46,
-      height: size.y * 0.14,
+      center: Offset(size.x * 0.54, size.y * 0.69),
+      width: size.x * 0.42,
+      height: size.y * 0.12,
     );
     canvas.drawOval(
       shadowRect,
-      Paint()..color = const Color(0x55000000),
+      Paint()..color = const Color(0x33000000),
     );
+
+    final auraRect = Rect.fromCenter(
+      center: Offset(size.x * (isPlayerSide ? 0.48 : 0.58), size.y * 0.42),
+      width: size.x * (isPlayerSide ? 0.64 : 0.48),
+      height: size.y * 0.54,
+    );
+    canvas.drawOval(
+      auraRect,
+      Paint()
+        ..shader = RadialGradient(
+          colors: isPlayerSide
+              ? const <Color>[
+                  Color(0x667AA9F4),
+                  Color(0x00000000),
+                ]
+              : const <Color>[
+                  Color(0x66B9D27A),
+                  Color(0x00000000),
+                ],
+        ).createShader(auraRect),
+    );
+
+    _renderSilhouette(canvas);
+  }
+
+  void _renderSilhouette(Canvas canvas) {
+    final primaryColor =
+        isPlayerSide ? const Color(0xFF3E4B7E) : const Color(0xFF6B87B7);
+    final secondaryColor =
+        isPlayerSide ? const Color(0xFF7DB4F7) : const Color(0xFFD7E8FF);
 
     final bodyRect = Rect.fromCenter(
-      center: Offset(size.x * 0.5, size.y * 0.42),
-      width: isPlayerSide ? size.x * 0.44 : size.x * 0.34,
-      height: isPlayerSide ? size.y * 0.48 : size.y * 0.38,
+      center: Offset(size.x * 0.52, size.y * 0.44),
+      width: size.x * (isPlayerSide ? 0.42 : 0.28),
+      height: size.y * (isPlayerSide ? 0.48 : 0.34),
     );
     canvas.drawRRect(
-      RRect.fromRectAndRadius(bodyRect, const Radius.circular(28)),
-      Paint()
-        ..color =
-            isPlayerSide ? const Color(0xD83C5F92) : const Color(0xD8A75E4F),
+      RRect.fromRectAndRadius(bodyRect, const Radius.circular(34)),
+      Paint()..color = primaryColor,
     );
 
-    final innerRect = bodyRect.deflate(10);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(innerRect, const Radius.circular(22)),
-      Paint()
-        ..color =
-            isPlayerSide ? const Color(0xCC7FC0FF) : const Color(0xCCFFD7A8),
+    final chestRect = Rect.fromCenter(
+      center: Offset(size.x * 0.54, size.y * 0.46),
+      width: bodyRect.width * 0.72,
+      height: bodyRect.height * 0.68,
     );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(chestRect, const Radius.circular(28)),
+      Paint()..color = secondaryColor.withValues(alpha: 0.88),
+    );
+
+    final headRect = Rect.fromCircle(
+      center: Offset(size.x * 0.5, size.y * 0.22),
+      radius: isPlayerSide ? size.x * 0.11 : size.x * 0.085,
+    );
+    canvas.drawOval(
+      headRect,
+      Paint()..color = secondaryColor,
+    );
+
+    final accentPath = Path();
+    if (isPlayerSide) {
+      accentPath
+        ..moveTo(size.x * 0.3, size.y * 0.44)
+        ..lineTo(size.x * 0.14, size.y * 0.3)
+        ..lineTo(size.x * 0.2, size.y * 0.58)
+        ..close();
+    } else {
+      accentPath
+        ..moveTo(size.x * 0.6, size.y * 0.34)
+        ..lineTo(size.x * 0.8, size.y * 0.2)
+        ..lineTo(size.x * 0.74, size.y * 0.5)
+        ..close();
+    }
+    canvas.drawPath(accentPath, Paint()..color = primaryColor.withValues(alpha: 0.92));
   }
 
   String _speciesMonogram(String speciesLabel) {

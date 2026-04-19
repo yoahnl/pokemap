@@ -1134,6 +1134,22 @@ class ProjectValidator {
       if (trainer.trainerClass.trim().isEmpty) {
         throw ValidationException('Trainer $id has an empty trainerClass');
       }
+      final battleDifficulty = trainer.battleDifficulty;
+      if (battleDifficulty != null &&
+          (battleDifficulty < 1 || battleDifficulty > 10)) {
+        throw ValidationException(
+          'Trainer $id battleDifficulty must stay within 1..10 (got $battleDifficulty)',
+        );
+      }
+      final battleBackgroundRelativePath =
+          trainer.battleBackgroundRelativePath?.trim();
+      if (battleBackgroundRelativePath != null &&
+          battleBackgroundRelativePath.isNotEmpty) {
+        _validateRelativePath(
+          battleBackgroundRelativePath,
+          'Trainer $id battleBackgroundRelativePath',
+        );
+      }
       final characterId = trainer.characterId?.trim();
       if (characterId != null &&
           characterId.isNotEmpty &&

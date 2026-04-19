@@ -1,7 +1,9 @@
+import 'package:path/path.dart' as p;
 import 'package:map_core/map_core.dart';
 
 import '../../application/battle_start_request.dart';
 import '../../application/runtime_map_bundle.dart';
+import 'runtime_trainer_battle_overrides.dart';
 
 /// Clé minimale de fond de combat pour le lot 2.
 ///
@@ -27,19 +29,32 @@ enum BattleBackgroundKey {
 final class BattleBackgroundSpec {
   const BattleBackgroundSpec({
     required this.key,
+    this.explicitImageAbsolutePath,
   });
 
   const BattleBackgroundSpec.fallbackField()
-      : key = BattleBackgroundKey.fallbackField;
+      : key = BattleBackgroundKey.fallbackField,
+        explicitImageAbsolutePath = null;
+
+  const BattleBackgroundSpec.explicitImage({
+    required BattleBackgroundKey fallbackKey,
+    required String absolutePath,
+  })  : key = fallbackKey,
+        explicitImageAbsolutePath = absolutePath;
 
   final BattleBackgroundKey key;
+  final String? explicitImageAbsolutePath;
+
+  bool get hasExplicitImage =>
+      (explicitImageAbsolutePath?.trim().isNotEmpty ?? false);
 
   String get debugLabel => switch (key) {
         BattleBackgroundKey.fallbackField => 'fallback_field',
         BattleBackgroundKey.wildOutdoor => 'wild_outdoor',
         BattleBackgroundKey.trainerOutdoor => 'trainer_outdoor',
         BattleBackgroundKey.indoor => 'indoor',
-      };
+      } +
+      (hasExplicitImage ? '+explicit_image' : '');
 }
 
 /// Résout le fond de combat à partir du contexte runtime déjà disponible.
@@ -73,20 +88,58 @@ final class BattleBackgroundResolver {
     required BattleStartRequest request,
     required RuntimeMapBundle bundle,
   }) {
-    if (_isIndoorMap(bundle)) {
-      return const BattleBackgroundSpec(
-        key: BattleBackgroundKey.indoor,
+    final contextualKey = _resolveContextualKey(
+      request: request,
+      bundle: bundle,
+    );
+
+    final explicitTrainerBackgroundAbsolutePath =
+        _resolveExplicitTrainerBackgroundAbsolutePath(
+      request: request,
+      bundle: bundle,
+    );
+    if (explicitTrainerBackgroundAbsolutePath != null) {
+      return BattleBackgroundSpec.explicitImage(
+        fallbackKey: contextualKey,
+        absolutePath: explicitTrainerBackgroundAbsolutePath,
       );
     }
 
+    return BattleBackgroundSpec(
+      key: contextualKey,
+    );
+  }
+
+  BattleBackgroundKey _resolveContextualKey({
+    required BattleStartRequest request,
+    required RuntimeMapBundle bundle,
+  }) {
+    if (_isIndoorMap(bundle)) {
+      return BattleBackgroundKey.indoor;
+    }
+
     return switch (request) {
-      TrainerBattleStartRequest() => const BattleBackgroundSpec(
-          key: BattleBackgroundKey.trainerOutdoor,
-        ),
-      WildBattleStartRequest() => const BattleBackgroundSpec(
-          key: BattleBackgroundKey.wildOutdoor,
-        ),
+      TrainerBattleStartRequest() => BattleBackgroundKey.trainerOutdoor,
+      WildBattleStartRequest() => BattleBackgroundKey.wildOutdoor,
     };
+  }
+
+  String? _resolveExplicitTrainerBackgroundAbsolutePath({
+    required BattleStartRequest request,
+    required RuntimeMapBundle bundle,
+  }) {
+    final trainer = findTrainerEntryForBattleRequest(
+      request: request,
+      manifest: bundle.manifest,
+    );
+    final relativePath = trainer?.battleBackgroundRelativePath?.trim();
+    if (relativePath == null || relativePath.isEmpty) {
+      return null;
+    }
+
+    return p.normalize(
+      p.join(bundle.projectRootDirectory, relativePath),
+    );
   }
 
   bool _isIndoorMap(RuntimeMapBundle bundle) {

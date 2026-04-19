@@ -32,6 +32,7 @@
       "name": "Mira",
       "trainerClass": "Rookie",
       "battleDifficulty": 4,
+      "battleBackgroundRelativePath": "assets/battle_backgrounds/trainer_rookie.png",
       "team": [
         {
           "speciesId": "sparkitten",

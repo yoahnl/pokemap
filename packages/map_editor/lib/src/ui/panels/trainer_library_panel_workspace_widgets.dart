@@ -449,6 +449,9 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
             battleThemeController: _newBattleThemeController,
             victoryThemeController: _newVictoryThemeController,
             tagsController: _newTagsController,
+            battleDifficulty: _newBattleDifficulty,
+            battleBackgroundRelativePath: _newBattleBackgroundRelativePath,
+            projectRootPath: ref.read(editorNotifierProvider).projectRootPath,
             characters: project.characters,
             elements: project.elements,
             selectedCharacterId: _newCharacterId,
@@ -456,6 +459,10 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
             showAdvanced: _showCreateAdvanced,
             createMode: true,
             onToggleAdvanced: _toggleCreateAdvanced,
+            onBattleDifficultyChanged: _setNewBattleDifficulty,
+            onClearBattleDifficulty: _clearNewBattleDifficulty,
+            onPickBattleBackground: _pickCreateBattleBackground,
+            onClearBattleBackground: _clearCreateBattleBackground,
             onSelectCharacter: _setNewCharacterId,
             onCancel: _cancelCreateTrainerDraft,
             onSubmit: () => _handleCreateTrainer(
@@ -496,6 +503,9 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
             battleThemeController: _editBattleThemeController,
             victoryThemeController: _editVictoryThemeController,
             tagsController: _editTagsController,
+            battleDifficulty: _editBattleDifficulty,
+            battleBackgroundRelativePath: _editBattleBackgroundRelativePath,
+            projectRootPath: ref.read(editorNotifierProvider).projectRootPath,
             characters: project.characters,
             elements: project.elements,
             selectedCharacterId: _editCharacterId,
@@ -503,6 +513,10 @@ extension _TrainerLibraryWorkspaceRendering on _TrainerLibraryPanelState {
             showAdvanced: _showEditAdvanced,
             createMode: false,
             onToggleAdvanced: _toggleEditAdvanced,
+            onBattleDifficultyChanged: _setEditBattleDifficulty,
+            onClearBattleDifficulty: _clearEditBattleDifficulty,
+            onPickBattleBackground: _pickEditBattleBackground,
+            onClearBattleBackground: _clearEditBattleBackground,
             onSelectCharacter: _setEditCharacterId,
             onCancel: _cancelTrainerEditor,
             onSubmit: () => _handleUpdateTrainer(
@@ -875,6 +889,13 @@ class _TrainerStudioRosterCard extends StatelessWidget {
                   label: '${trainer.team.length} mon',
                   selected: selected,
                 ),
+                if (trainer.battleDifficulty != null) ...[
+                  const SizedBox(width: 6),
+                  _TrainerStudioMiniBadge(
+                    label: 'AI ${trainer.battleDifficulty}',
+                    selected: selected,
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 4),
@@ -1038,6 +1059,10 @@ class _TrainerStudioIdentityCard extends StatelessWidget {
                   'Battle theme: ${trainer.battleThemeId!.trim()}',
                 if ((trainer.victoryThemeId ?? '').trim().isNotEmpty)
                   'Victory theme: ${trainer.victoryThemeId!.trim()}',
+                if (trainer.battleDifficulty != null)
+                  'Difficulty: ${trainer.battleDifficulty}/10',
+                if ((trainer.battleBackgroundRelativePath ?? '').trim().isNotEmpty)
+                  'Background: ${trainer.battleBackgroundRelativePath!.trim()}',
               ].isEmpty
                   ? 'No optional refs configured yet. You can still author a complete battle team right away.'
                   : [
@@ -1049,6 +1074,12 @@ class _TrainerStudioIdentityCard extends StatelessWidget {
                         'Battle theme: ${trainer.battleThemeId!.trim()}',
                       if ((trainer.victoryThemeId ?? '').trim().isNotEmpty)
                         'Victory theme: ${trainer.victoryThemeId!.trim()}',
+                      if (trainer.battleDifficulty != null)
+                        'Difficulty: ${trainer.battleDifficulty}/10',
+                      if ((trainer.battleBackgroundRelativePath ?? '')
+                          .trim()
+                          .isNotEmpty)
+                        'Background: ${trainer.battleBackgroundRelativePath!.trim()}',
                     ].join('\n'),
               style: TextStyle(
                 color: subtle,

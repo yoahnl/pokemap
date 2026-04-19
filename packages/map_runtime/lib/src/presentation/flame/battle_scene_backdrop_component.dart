@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 
+import '../../infrastructure/tile_image_loader.dart';
 import 'battle_background_resolver.dart';
 
 /// Fond de scène par défaut pour le lot 1.
@@ -27,9 +28,24 @@ class BattleSceneBackdropComponent extends PositionComponent {
         );
 
   BattleBackgroundSpec _backgroundSpec;
+  ui.Image? _explicitImage;
+  String? _explicitImageSourcePath;
+  bool _didExplicitImageLoadFail = false;
 
   @visibleForTesting
   BattleBackgroundKey get currentBackgroundKey => _backgroundSpec.key;
+
+  @visibleForTesting
+  bool get hasResolvedExplicitImage => _explicitImage != null;
+
+  @visibleForTesting
+  bool get didExplicitImageLoadFail => _didExplicitImageLoadFail;
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    await _syncExplicitImage();
+  }
 
   /// Le backdrop reste un consommateur passif de spec.
   ///
@@ -41,6 +57,7 @@ class BattleSceneBackdropComponent extends PositionComponent {
     required BattleBackgroundSpec backgroundSpec,
   }) {
     _backgroundSpec = backgroundSpec;
+    _syncExplicitImage();
   }
 
   @override
@@ -49,6 +66,13 @@ class BattleSceneBackdropComponent extends PositionComponent {
 
     final rect = Offset.zero & Size(size.x, size.y);
     final palette = _paletteFor(_backgroundSpec.key);
+
+    if (_explicitImage != null) {
+      _renderExplicitImage(canvas, rect, palette);
+      _renderFloor(canvas, palette);
+      _renderForegroundAccent(canvas, palette);
+      return;
+    }
 
     final skyPaint = Paint()
       ..shader = ui.Gradient.linear(
@@ -75,6 +99,81 @@ class BattleSceneBackdropComponent extends PositionComponent {
     _renderMidground(canvas, palette);
     _renderFloor(canvas, palette);
     _renderForegroundAccent(canvas, palette);
+  }
+
+  Future<void> _syncExplicitImage() async {
+    final explicitImagePath = _backgroundSpec.explicitImageAbsolutePath?.trim();
+    if (explicitImagePath == null || explicitImagePath.isEmpty) {
+      _explicitImage = null;
+      _explicitImageSourcePath = null;
+      _didExplicitImageLoadFail = false;
+      return;
+    }
+
+    if (_explicitImage != null && _explicitImageSourcePath == explicitImagePath) {
+      return;
+    }
+
+    try {
+      final image = await loadImageFromFilePath(explicitImagePath);
+      _explicitImage = image;
+      _explicitImageSourcePath = explicitImagePath;
+      _didExplicitImageLoadFail = false;
+    } catch (_) {
+      _explicitImage = null;
+      _explicitImageSourcePath = explicitImagePath;
+      _didExplicitImageLoadFail = true;
+    }
+  }
+
+  void _renderExplicitImage(
+    Canvas canvas,
+    Rect rect,
+    _BattleBackdropPalette palette,
+  ) {
+    final image = _explicitImage!;
+    final imageSize = Size(
+      image.width.toDouble(),
+      image.height.toDouble(),
+    );
+    final fitted = applyBoxFit(BoxFit.cover, imageSize, rect.size);
+    final inputSubrect = Alignment.center.inscribe(
+      fitted.source,
+      Offset.zero & imageSize,
+    );
+    final outputSubrect = Alignment.center.inscribe(
+      fitted.destination,
+      rect,
+    );
+    canvas.drawImageRect(image, inputSubrect, outputSubrect, Paint());
+
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = ui.Gradient.linear(
+          const Offset(0, 0),
+          Offset(0, size.y),
+          <Color>[
+            const Color(0x6610141E),
+            palette.bandColor.withValues(alpha: 0.18),
+            const Color(0xB80B1017),
+          ],
+          const <double>[0.0, 0.45, 1.0],
+        ),
+    );
+
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = ui.Gradient.radial(
+          Offset(size.x * 0.52, size.y * 0.32),
+          size.x * 0.46,
+          <Color>[
+            palette.glowColor.withValues(alpha: 0.16),
+            const Color(0x00000000),
+          ],
+        ),
+    );
   }
 
   void _renderMidground(Canvas canvas, _BattleBackdropPalette palette) {
