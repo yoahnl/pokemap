@@ -68,6 +68,7 @@ BattleSession _applyForcedPlayerReplacement({
     ),
     setup: session.setup,
     rng: turn.rng,
+    opponentPolicy: session.opponentPolicy,
     pendingTurn: null,
   );
 }
@@ -123,6 +124,7 @@ BattleSession _resumePendingTurnWithReplacement({
     ),
     setup: session.setup,
     rng: turn.rng,
+    opponentPolicy: session.opponentPolicy,
     pendingTurn: turn.pendingTurn,
   );
 }

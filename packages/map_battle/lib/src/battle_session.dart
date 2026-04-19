@@ -8,6 +8,7 @@ import 'battle_action.dart';
 import 'battle_queue.dart';
 import 'battle_field.dart';
 import 'battle_move.dart';
+import 'battle_opponent_policy.dart';
 import 'battle_rng.dart';
 import 'battle_resolution.dart';
 import 'battle_status.dart';
@@ -32,6 +33,8 @@ const BattleConditionEngine _conditionEngine = BattleConditionEngine();
 BattleSession createBattleSession(
   BattleSetup setup, {
   BattleRng rng = const BattleSeededRng(),
+  BattleOpponentPolicy opponentPolicy =
+      const BattleFirstLegalOpponentPolicy(),
 }) {
   final player = _buildBattleCombatantFromData(setup.playerPokemon);
   final enemy = _buildBattleCombatantFromData(setup.enemyPokemon);
@@ -62,6 +65,7 @@ BattleSession createBattleSession(
     state: initialState,
     setup: setup,
     rng: rng,
+    opponentPolicy: opponentPolicy,
     pendingTurn: null,
   );
 }
@@ -158,6 +162,7 @@ class BattleSession {
     required this.state,
     required this.setup,
     required this.rng,
+    required this.opponentPolicy,
     required this.pendingTurn,
   });
 
@@ -176,6 +181,17 @@ class BattleSession {
   /// - le RNG reste un détail de résolution, pas une donnée UI/runtime ;
   /// - mais il reste explicitement injectable et immutable.
   final BattleRng rng;
+
+  /// Policy battle-locale de choix d'action adverse.
+  ///
+  /// Ce seam reste volontairement petit dans le lot 3 :
+  /// - la session continue à porter l'orchestration du tour, les actions
+  ///   forcées et les dead-ends explicites ;
+  /// - la policy ne choisit qu'entre des `BattleActionFight` déjà légales ;
+  /// - la difficulté, les profils 1..10, les scripts trainer/boss et tout ce
+  ///   qui touche switch/replacement/targeting restent volontairement hors
+  ///   scope de ce champ pour éviter un faux framework d'IA.
+  final BattleOpponentPolicy opponentPolicy;
 
   /// Continuation locale d'un tour déjà commencé mais suspendu pour demander
   /// un remplacement joueur en plein scheduling.
@@ -514,6 +530,7 @@ class BattleSession {
         ),
         setup: setup,
         rng: rng,
+        opponentPolicy: opponentPolicy,
         pendingTurn: null,
       );
     }
@@ -550,6 +567,7 @@ class BattleSession {
         ),
         setup: setup,
         rng: rng,
+        opponentPolicy: opponentPolicy,
         pendingTurn: null,
       );
     }
@@ -557,12 +575,8 @@ class BattleSession {
     // Phase 1: Convertir le choix en action
     final playerAction = forcedPlayerAction ?? _choiceToAction(choice);
 
-    // Phase 2: Déterminer l'action de l'ennemi (IA simple)
-    final enemyAction = _resolveForcedAction(
-          combatantLabel: 'enemy',
-          combatant: state.enemy,
-        ) ??
-        _chooseEnemyAction();
+    // Phase 2: Déterminer l'action de l'ennemi via le seam adverse borné.
+    final enemyAction = _resolveEnemyAction();
 
     // R2 consolide ici le seam scheduler déjà vivant sans élargir le slice :
     // - `applyChoice` reste responsable de la frontière request -> action ;
@@ -627,6 +641,7 @@ class BattleSession {
       state: newState,
       setup: setup,
       rng: turn.rng,
+      opponentPolicy: opponentPolicy,
       pendingTurn: turn.pendingTurn,
     );
   }
@@ -777,22 +792,25 @@ class BattleSession {
     );
   }
 
-  /// Détermine l'action de l'ennemi (IA simple).
+  /// Résout l'action adverse sans re-déverser la policy dans la session.
   ///
-  /// Pour ce MVP, l'IA est très simple :
-  /// - Si l'ennemi peut attaquer, il attaque avec une attaque aléatoire (déterministe : première)
-  /// - L'ennemi ne fuit jamais
-  ///
-  /// Cette méthode est interne au moteur de combat.
-  BattleAction _chooseEnemyAction() {
-    // R1 refuse toujours de rouvrir Struggle, mais supprime le vieux faux
-    // fallback "Run" côté ennemi :
-    // - `BattleActionRun` est une vraie fuite joueur, pas un "tour vide" ;
-    // - la queue ignore déjà `Run`, donc le garder ici maquillait juste un état
-    //   moteur malformé sans le traiter honnêtement ;
-    // - un ennemi déjà K.O. ne doit simplement plus agir ;
-    // - un ennemi vivant sans move configuré ou sans PP reste une dette visible
-    //   et doit échouer explicitement.
+  /// Répartition volontaire des responsabilités :
+  /// - la session garde les cas forcés (`charge`, `recharge`) et les échecs
+  ///   explicites (`aucun move`, `plus de PP`, ennemi déjà K.O.) ;
+  /// - la policy ne tranche qu'entre des actions fight déjà légales ;
+  /// - on évite ainsi à la fois un faux framework d'IA et le retour de la
+  ///   logique de difficulté au milieu de `battle_session.dart`.
+  BattleAction _resolveEnemyAction() {
+    final forcedAction = _resolveForcedAction(
+      combatantLabel: 'enemy',
+      combatant: state.enemy,
+    );
+    if (forcedAction != null) {
+      return forcedAction;
+    }
+
+    // R1 a déjà rendu ce dead-end honnête : un ennemi K.O. ne joue simplement
+    // aucune action pendant ce tour.
     if (state.enemy.isFainted) {
       return const BattleActionNone();
     }
@@ -801,17 +819,55 @@ class BattleSession {
         'Le combattant adverse n’a aucun move configuré et ne peut pas agir honnêtement.',
       );
     }
+
+    final legalFightActions = _availableEnemyFightActions();
+    if (legalFightActions.isEmpty) {
+      throw StateError(
+        'Le combattant adverse n’a plus aucun move utilisable et Struggle est hors scope.',
+      );
+    }
+
+    // Garde-fou de périmètre lot 3 :
+    // - la policy reçoit uniquement des actions fight déjà légales ;
+    // - elle doit en retourner une parmi cette liste, sans en synthétiser une
+    //   nouvelle ni rouvrir switch/replacement/targeting ;
+    // - si une future policy enfreint ce contrat, on préfère échouer ici
+    //   explicitement plutôt que laisser entrer une action mensongère.
+    final selectedAction = opponentPolicy.chooseFightAction(
+      legalFightActions: List<BattleActionFight>.unmodifiable(
+        legalFightActions,
+      ),
+    );
+    if (!legalFightActions.contains(selectedAction)) {
+      throw StateError(
+        'BattleOpponentPolicy doit retourner une des actions fight légales fournies par la session.',
+      );
+    }
+    return selectedAction;
+  }
+
+  /// Calcule la liste des actions fight adverse actuellement légales.
+  ///
+  /// Ce helper reste côté session pour une raison précise :
+  /// - la légalité des moves dépend encore de l'état battle courant et des PP
+  ///   réellement portés par le moteur ;
+  /// - déplacer cette logique dans la policy la rendrait responsable de
+  ///   valider l'état battle, ce qui dériverait déjà vers un seam trop riche ;
+  /// - la policy n'a donc plus qu'à choisir, pas à déterminer ce qui est légal.
+  List<BattleActionFight> _availableEnemyFightActions() {
+    final actions = <BattleActionFight>[];
     for (var i = 0; i < state.enemy.moves.length; i++) {
-      if (state.enemy.moves[i].hasUsablePp) {
-        return BattleActionFight(
-          state.enemy.moves[i],
-          moveIndex: i,
+      final move = state.enemy.moves[i];
+      if (move.hasUsablePp) {
+        actions.add(
+          BattleActionFight(
+            move,
+            moveIndex: i,
+          ),
         );
       }
     }
-    throw StateError(
-      'Le combattant adverse n’a plus aucun move utilisable et Struggle est hors scope.',
-    );
+    return List<BattleActionFight>.unmodifiable(actions);
   }
 
   /// Résout une exécution unique de move.
