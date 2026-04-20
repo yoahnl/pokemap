@@ -184,12 +184,13 @@ class BattleSession {
 
   /// Policy battle-locale de choix d'action adverse.
   ///
-  /// Ce seam reste volontairement petit dans le lot 3 :
+  /// Ce seam reste volontairement petit après les lots 3 à 5 :
   /// - la session continue à porter l'orchestration du tour, les actions
   ///   forcées et les dead-ends explicites ;
-  /// - la policy ne choisit qu'entre des `BattleActionFight` déjà légales ;
+  /// - la policy ne choisit qu'entre des `BattleActionFight` déjà légales et,
+  ///   depuis le lot 5, entre des options de replacement adverse déjà légales ;
   /// - la difficulté, les profils 1..10, les scripts trainer/boss et tout ce
-  ///   qui touche switch/replacement/targeting restent volontairement hors
+  ///   qui touche switch volontaire/targeting restent volontairement hors
   ///   scope de ce champ pour éviter un faux framework d'IA.
   final BattleOpponentPolicy opponentPolicy;
 
@@ -827,10 +828,10 @@ class BattleSession {
       );
     }
 
-    // Garde-fou de périmètre lot 3 :
+    // Garde-fou de périmètre lots 3 à 5 :
     // - la policy reçoit uniquement des actions fight déjà légales ;
     // - elle doit en retourner une parmi cette liste, sans en synthétiser une
-    //   nouvelle ni rouvrir switch/replacement/targeting ;
+    //   nouvelle ni rouvrir switch volontaire/targeting ;
     // - si une future policy enfreint ce contrat, on préfère échouer ici
     //   explicitement plutôt que laisser entrer une action mensongère.
     final selectedAction = opponentPolicy.chooseFightAction(

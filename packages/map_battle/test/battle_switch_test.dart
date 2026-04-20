@@ -73,6 +73,7 @@ BattleSession _session({
   bool allowCapture = false,
   BattleFieldState fieldState = const BattleFieldState(),
   BattleRng rng = const BattleSeededRng(),
+  BattleOpponentPolicy opponentPolicy = const BattleFirstLegalOpponentPolicy(),
 }) {
   return createBattleSession(
     BattleSetup(
@@ -85,6 +86,7 @@ BattleSession _session({
       allowCapture: allowCapture,
       fieldState: fieldState,
     ),
+    opponentPolicy: opponentPolicy,
     rng: rng,
   );
 }
@@ -138,6 +140,307 @@ void main() {
             .whereType<BattleTurnSwitchEvent>(),
         hasLength(1),
       );
+    });
+
+    test(
+        'trainer battles without explicit difficulty keep the historical first-usable enemy replacement fallback',
+        () {
+      final session = _session(
+        isTrainerBattle: true,
+        opponentPolicy: battleOpponentPolicyForDifficulty(null),
+        player: _combatant(
+          speciesId: 'lead_player',
+          lineupIndex: 0,
+          stats: _stats(speed: 90, attack: 100),
+          moves: <BattleMoveData>[
+            _tackle(power: 200),
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'lead_enemy',
+          lineupIndex: 0,
+          stats: _stats(speed: 20),
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+        enemyReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'status_wall',
+            lineupIndex: 1,
+            stats: _stats(speed: 20),
+            moves: <BattleMoveData>[_waitingMove()],
+          ),
+          _combatant(
+            speciesId: 'slow_nuke',
+            lineupIndex: 2,
+            stats: _stats(speed: 25),
+            moves: <BattleMoveData>[_tackle(power: 120)],
+          ),
+          _combatant(
+            speciesId: 'fast_striker',
+            lineupIndex: 3,
+            stats: _stats(speed: 95),
+            moves: <BattleMoveData>[_tackle(power: 85)],
+          ),
+        ],
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(afterTurn.state.enemy.speciesId, equals('status_wall'));
+      expect(afterTurn.state.currentTurn!.switchEvents.single.wasForced, isTrue);
+    });
+
+    test(
+        'mid difficulty trainer auto-replaces with the stronger offensive reserve after KO',
+        () {
+      final session = _session(
+        isTrainerBattle: true,
+        opponentPolicy: battleOpponentPolicyForDifficulty(5),
+        player: _combatant(
+          speciesId: 'lead_player',
+          lineupIndex: 0,
+          stats: _stats(speed: 90, attack: 100),
+          moves: <BattleMoveData>[
+            _tackle(power: 200),
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'lead_enemy',
+          lineupIndex: 0,
+          stats: _stats(speed: 20),
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+        enemyReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'status_wall',
+            lineupIndex: 1,
+            stats: _stats(speed: 20),
+            moves: <BattleMoveData>[_waitingMove()],
+          ),
+          _combatant(
+            speciesId: 'slow_nuke',
+            lineupIndex: 2,
+            currentHp: 14,
+            stats: _stats(speed: 25, attack: 110, specialAttack: 110),
+            moves: <BattleMoveData>[_tackle(power: 120)],
+          ),
+          _combatant(
+            speciesId: 'fast_striker',
+            lineupIndex: 3,
+            currentHp: 36,
+            stats: _stats(speed: 95, attack: 95, specialAttack: 95),
+            moves: <BattleMoveData>[_tackle(power: 85)],
+          ),
+        ],
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(afterTurn.state.enemy.speciesId, equals('slow_nuke'));
+      expect(afterTurn.state.currentTurn!.switchEvents.single.wasForced, isTrue);
+    });
+
+    test(
+        'high difficulty trainer auto-replaces with the healthier faster attacker after KO',
+        () {
+      final session = _session(
+        isTrainerBattle: true,
+        opponentPolicy: battleOpponentPolicyForDifficulty(9),
+        player: _combatant(
+          speciesId: 'lead_player',
+          lineupIndex: 0,
+          stats: _stats(speed: 90, attack: 100),
+          moves: <BattleMoveData>[
+            _tackle(power: 200),
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'lead_enemy',
+          lineupIndex: 0,
+          stats: _stats(speed: 20),
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+        enemyReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'status_wall',
+            lineupIndex: 1,
+            stats: _stats(speed: 20),
+            moves: <BattleMoveData>[_waitingMove()],
+          ),
+          _combatant(
+            speciesId: 'slow_nuke',
+            lineupIndex: 2,
+            currentHp: 14,
+            stats: _stats(speed: 25, attack: 110, specialAttack: 110),
+            moves: <BattleMoveData>[_tackle(power: 120)],
+          ),
+          _combatant(
+            speciesId: 'fast_striker',
+            lineupIndex: 3,
+            currentHp: 36,
+            stats: _stats(speed: 95, attack: 95, specialAttack: 95),
+            moves: <BattleMoveData>[_tackle(power: 85)],
+          ),
+        ],
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(afterTurn.state.enemy.speciesId, equals('fast_striker'));
+      expect(afterTurn.state.currentTurn!.switchEvents.single.wasForced, isTrue);
+    });
+
+    test(
+        'wild battles keep the historical first-usable enemy replacement fallback',
+        () {
+      final session = _session(
+        isTrainerBattle: false,
+        player: _combatant(
+          speciesId: 'lead_player',
+          lineupIndex: 0,
+          stats: _stats(speed: 90, attack: 100),
+          moves: <BattleMoveData>[
+            _tackle(power: 200),
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'lead_enemy',
+          lineupIndex: 0,
+          stats: _stats(speed: 20),
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+        enemyReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'status_wall',
+            lineupIndex: 1,
+            stats: _stats(speed: 20),
+            moves: <BattleMoveData>[_waitingMove()],
+          ),
+          _combatant(
+            speciesId: 'slow_nuke',
+            lineupIndex: 2,
+            currentHp: 14,
+            stats: _stats(speed: 25, attack: 110, specialAttack: 110),
+            moves: <BattleMoveData>[_tackle(power: 120)],
+          ),
+        ],
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(afterTurn.state.enemy.speciesId, equals('status_wall'));
+      expect(afterTurn.state.currentTurn!.switchEvents.single.wasForced, isTrue);
+    });
+
+    test(
+        'enemy auto-replacement ignores fainted reserves before consulting the trainer policy',
+        () {
+      final session = _session(
+        isTrainerBattle: true,
+        opponentPolicy: battleOpponentPolicyForDifficulty(5),
+        player: _combatant(
+          speciesId: 'lead_player',
+          lineupIndex: 0,
+          stats: _stats(speed: 90, attack: 100),
+          moves: <BattleMoveData>[
+            _tackle(power: 200),
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'lead_enemy',
+          lineupIndex: 0,
+          stats: _stats(speed: 20),
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+        enemyReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'fainted_wall',
+            lineupIndex: 1,
+            currentHp: 0,
+            stats: _stats(speed: 20),
+            moves: <BattleMoveData>[_waitingMove()],
+          ),
+          _combatant(
+            speciesId: 'slow_nuke',
+            lineupIndex: 2,
+            currentHp: 14,
+            stats: _stats(speed: 25, attack: 110, specialAttack: 110),
+            moves: <BattleMoveData>[_tackle(power: 120)],
+          ),
+          _combatant(
+            speciesId: 'fast_striker',
+            lineupIndex: 3,
+            currentHp: 36,
+            stats: _stats(speed: 95, attack: 95, specialAttack: 95),
+            moves: <BattleMoveData>[_tackle(power: 85)],
+          ),
+        ],
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(afterTurn.state.enemy.speciesId, equals('slow_nuke'));
+      expect(afterTurn.state.currentTurn!.switchEvents.single.wasForced, isTrue);
+    });
+
+    test(
+        'enemy auto-replacement ignores offensive reserves whose big move is out of PP',
+        () {
+      final session = _session(
+        isTrainerBattle: true,
+        opponentPolicy: battleOpponentPolicyForDifficulty(5),
+        player: _combatant(
+          speciesId: 'lead_player',
+          lineupIndex: 0,
+          stats: _stats(speed: 90, attack: 100),
+          moves: <BattleMoveData>[
+            _tackle(power: 200),
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'lead_enemy',
+          lineupIndex: 0,
+          stats: _stats(speed: 20),
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+        enemyReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'spent_nuke',
+            lineupIndex: 1,
+            stats: _stats(speed: 25, attack: 110, specialAttack: 110),
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'hyper_beam',
+                name: 'Hyper Beam',
+                power: 160,
+                category: BattleMoveCategory.special,
+                target: BattleMoveTarget.opponent,
+                pp: 5,
+                currentPp: 0,
+              ),
+            ],
+          ),
+          _combatant(
+            speciesId: 'usable_striker',
+            lineupIndex: 2,
+            stats: _stats(speed: 70, attack: 90, specialAttack: 90),
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'slash',
+                name: 'Slash',
+                power: 75,
+                category: BattleMoveCategory.physical,
+                target: BattleMoveTarget.opponent,
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(afterTurn.state.enemy.speciesId, equals('usable_striker'));
+      expect(afterTurn.state.currentTurn!.switchEvents.single.wasForced, isTrue);
     });
 
     test(

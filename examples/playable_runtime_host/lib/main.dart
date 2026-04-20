@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -208,12 +207,17 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     final projectName = p.basename(projectDir.path);
     final docsDir = await _getProjectsDirectory();
     final targetDir = Directory(p.join(docsDir.path, projectName));
-
-    if (await targetDir.exists()) {
-      return p.join(targetDir.path, 'project.json');
-    }
+    final mapsDir = Directory(p.join(targetDir.path, 'maps'));
 
     await _copyDirectory(projectDir, targetDir);
+
+    if (!await mapsDir.exists()) {
+      throw Exception(
+        'Le dossier maps/ est manquant après copie. '
+        'Source: ${projectDir.path}, Cible: ${targetDir.path}',
+      );
+    }
+
     return p.join(targetDir.path, 'project.json');
   }
 
@@ -239,40 +243,55 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     if (!await target.exists()) {
       await target.create(recursive: true);
     }
-    await for (final entity in source.list(recursive: false)) {
+    await for (final entity in source.list(recursive: true)) {
+      final relativePath = p.relative(entity.path, from: source.path);
+      final newPath = p.join(target.path, relativePath);
       if (entity is File) {
-        final newPath = p.join(target.path, p.basename(entity.path));
+        final newFile = File(newPath);
+        await newFile.parent.create(recursive: true);
         await entity.copy(newPath);
       } else if (entity is Directory) {
-        final newDir = Directory(p.join(target.path, p.basename(entity.path)));
-        await _copyDirectory(entity, newDir);
+        final newDir = Directory(newPath);
+        await newDir.create(recursive: true);
       }
     }
   }
 
-  // Le host laisse l'utilisateur choisir explicitement un project.json.
-  // Cela reste séparé de toute logique de menu in-game ou de save gameplay.
+  Future<({String name, String projectJsonPath})?> _scanFirstProjectInDocuments() async {
+    final docsDir = await _getProjectsDirectory();
+    if (!await docsDir.exists()) return null;
+
+    await for (final entity in docsDir.list()) {
+      if (entity is Directory) {
+        final projectFile = File(p.join(entity.path, 'project.json'));
+        if (await projectFile.exists()) {
+          final name = p.basename(entity.path);
+          return (name: name, projectJsonPath: projectFile.path);
+        }
+      }
+    }
+    return null;
+  }
+
+  // Le host lit automatiquement les projets copiés via l'app Fichiers.
   Future<void> _pickProjectFile() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: const ['json'],
-      dialogTitle: 'Sélectionner project.json',
-    );
-    final path = result?.files.single.path;
-    if (path == null || path.isEmpty || !mounted) return;
+    final info = await _scanFirstProjectInDocuments();
+    if (info == null || !mounted) {
+      setState(() => _error = 'Aucun projet trouvé. Copiez un projet via l\'app Fichiers.');
+      return;
+    }
 
     setState(() => _loading = true);
     try {
-      final copiedPath = await _ensureProjectCopiedToDocuments(path);
       setState(() {
-        _projectFilePath = copiedPath;
+        _projectFilePath = info.projectJsonPath;
         _error = null;
       });
-      await _loadProjectMapsFromManifest(copiedPath);
+      await _loadProjectMapsFromManifest(info.projectJsonPath);
       await _persistLastSession();
     } catch (e) {
       if (mounted) {
-        setState(() => _error = 'Erreur lors de la copie du projet: $e');
+        setState(() => _error = 'Erreur projet: $e');
       }
     } finally {
       if (mounted) setState(() => _loading = false);

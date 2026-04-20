@@ -1,21 +1,27 @@
 import 'battle_action.dart';
 import 'battle_move.dart';
+import 'battle_state.dart';
 
 /// Seam battle-local de choix d'action adverse.
 ///
-/// Ce contrat existe pour une raison volontairement étroite dans le lot 3 :
-/// - sortir la sélection du move adverse de `battle_session.dart` ;
-/// - empêcher le futur lot difficulté de réinjecter cette logique au milieu de
-///   la session ;
-/// - mais sans ouvrir dès maintenant un framework d'IA, des profils multiples,
-///   du switch intelligent ou du targeting riche.
+/// Ce contrat a été introduit au lot 3 pour sortir la sélection adverse de
+/// `battle_session.dart`, puis légèrement élargi au lot 5 pour couvrir un
+/// second cas très précis : le replacement adverse forcé après un K.O.
+///
+/// Cette extension reste volontairement bornée :
+/// - elle garde la logique de difficulté hors de la session elle-même ;
+/// - elle donne enfin un effet battle réel à la difficulté trainer ;
+/// - mais sans ouvrir un arbitrage global entre familles d'actions, sans
+///   scripts trainer/boss, sans switch volontaire intelligent et sans
+///   targeting riche.
 ///
 /// Frontières non négociables de ce seam :
 /// - il ne choisit qu'entre des `BattleActionFight` déjà jugées légales ;
+/// - il ne choisit un replacement qu'entre des réserves déjà jugées légales ;
 /// - il ne reçoit ni `BattleSession`, ni queue, ni request, ni scheduler ;
-/// - il ne gère ni switch, ni replacement, ni `Run`, ni `Capture` ;
+/// - il ne gère toujours ni switch volontaire, ni `Run`, ni `Capture` ;
 /// - il ne synthétise pas une nouvelle action : il doit retourner l'une des
-///   actions fight fournies.
+///   options fight ou replacement qui lui sont fournies.
 abstract interface class BattleOpponentPolicy {
   /// Choisit l'action fight adverse à jouer parmi les options déjà légales.
   ///
@@ -28,6 +34,36 @@ abstract interface class BattleOpponentPolicy {
   BattleActionFight chooseFightAction({
     required List<BattleActionFight> legalFightActions,
   });
+
+  /// Choisit le replacement adverse forcé parmi les réserves déjà légales.
+  ///
+  /// Lot 5 garde cette question étroite pour éviter de dériver :
+  /// - la session/scheduler continuent à décider quand un remplaçant est
+  ///   requis ;
+  /// - la policy n'arbitre pas "fight ou switch" ;
+  /// - elle choisit seulement quel Pokémon déjà remplaçable doit entrer quand
+  ///   l'adversaire est obligé de remplacer un K.O.
+  BattleOpponentReplacementOption chooseReplacement({
+    required List<BattleOpponentReplacementOption> legalReplacementOptions,
+  });
+}
+
+/// Option de replacement adverse déjà jugée légale par le moteur.
+///
+/// Ce type reste battle-local et volontairement pauvre :
+/// - le scheduler filtre les réserves déjà K.O. avant d'arriver ici ;
+/// - la policy reçoit juste l'index de réserve réellement switchable et le
+///   combattant correspondant ;
+/// - on évite ainsi de passer la session entière, la queue ou un contexte
+///   d'IA surdimensionné pour un lot 5 qui doit rester petit.
+final class BattleOpponentReplacementOption {
+  const BattleOpponentReplacementOption({
+    required this.reserveIndex,
+    required this.combatant,
+  });
+
+  final int reserveIndex;
+  final BattleCombatant combatant;
 }
 
 /// Route une difficulté produit `1..10` vers un petit nombre de profiles.
@@ -42,8 +78,9 @@ abstract interface class BattleOpponentPolicy {
 /// - `null` revient au comportement historique du dépôt ;
 /// - les valeurs hors plage sont clampées à `[1, 10]` au lieu d'ouvrir ici un
 ///   nouveau système global de validation produit ;
-/// - le mapping reste fight-only et ne prépare ni scripts trainer, ni switch,
-///   ni replacement, ni targeting plus riche.
+/// - le mapping couvre maintenant `fight` et le replacement forcé ;
+/// - mais il ne prépare toujours ni scripts trainer, ni switch volontaire,
+///   ni targeting plus riche.
 BattleOpponentPolicy battleOpponentPolicyForDifficulty(int? difficulty) {
   final clampedDifficulty = difficulty == null
       ? null
@@ -67,7 +104,8 @@ BattleOpponentPolicy battleOpponentPolicyForDifficulty(int? difficulty) {
 /// - aucune difficulté ;
 /// - aucune heuristique de puissance, type ou statut ;
 /// - aucune variabilité pseudo-aléatoire ;
-/// - simplement le premier move fight encore légal.
+/// - simplement le premier move fight encore légal et le premier remplaçant
+///   encore utilisable.
 ///
 /// Ce nom explicite évite deux mensonges :
 /// - appeler cette classe `DefaultBattleOpponentPolicy` ferait masquer le fait
@@ -87,6 +125,18 @@ final class BattleFirstLegalOpponentPolicy implements BattleOpponentPolicy {
     }
     return legalFightActions.first;
   }
+
+  @override
+  BattleOpponentReplacementOption chooseReplacement({
+    required List<BattleOpponentReplacementOption> legalReplacementOptions,
+  }) {
+    if (legalReplacementOptions.isEmpty) {
+      throw StateError(
+        'BattleFirstLegalOpponentPolicy requiert au moins une option de replacement légale.',
+      );
+    }
+    return legalReplacementOptions.first;
+  }
 }
 
 /// Policy adverse "agressive" minimaliste du lot 4.
@@ -101,8 +151,10 @@ final class BattleFirstLegalOpponentPolicy implements BattleOpponentPolicy {
 /// - seuls les moves offensifs avec `power > 0` marquent des points ;
 /// - si toutes les actions sont purement de statut, on retombe sur le premier
 ///   move légal pour garder un comportement stable et lisible ;
-/// - aucune prise en compte du switch, du replacement, du targeting ou de
-///   scripts trainer n'est introduite ici.
+/// - lot 5 lui ajoute un replacement forcé du même esprit :
+///   choisir le remplaçant avec la pression offensive brute la plus forte ;
+/// - aucune prise en compte du switch volontaire, du targeting ou de scripts
+///   trainer n'est introduite ici.
 final class BattleHighestPowerOpponentPolicy implements BattleOpponentPolicy {
   const BattleHighestPowerOpponentPolicy();
 
@@ -117,6 +169,18 @@ final class BattleHighestPowerOpponentPolicy implements BattleOpponentPolicy {
           'BattleHighestPowerOpponentPolicy requiert au moins une action fight légale.',
     );
   }
+
+  @override
+  BattleOpponentReplacementOption chooseReplacement({
+    required List<BattleOpponentReplacementOption> legalReplacementOptions,
+  }) {
+    return _pickBestReplacementOption(
+      legalReplacementOptions: legalReplacementOptions,
+      scoreCombatant: _rawReplacementScore,
+      emptyListError:
+          'BattleHighestPowerOpponentPolicy requiert au moins une option de replacement légale.',
+    );
+  }
 }
 
 /// Policy adverse "calculée" du lot 4.
@@ -128,8 +192,10 @@ final class BattleHighestPowerOpponentPolicy implements BattleOpponentPolicy {
 ///
 /// Elle fait uniquement mieux que le profil intermédiaire sur un point :
 /// - pondérer la puissance offensive par la précision disponible ;
-/// - ce qui donne un profil haut de gamme plus fiable sans prétendre devenir
-///   une IA riche.
+/// - et, au lot 5, préférer lors d'un replacement forcé un attaquant qui
+///   reste à la fois menaçant, rapide et encore suffisamment sain ;
+/// - ce qui donne un profil haut de gamme un peu plus dangereux sans
+///   prétendre devenir une IA riche.
 final class BattleHighestExpectedPowerOpponentPolicy
     implements BattleOpponentPolicy {
   const BattleHighestExpectedPowerOpponentPolicy();
@@ -143,6 +209,18 @@ final class BattleHighestExpectedPowerOpponentPolicy
       scoreMove: _expectedPowerScore,
       emptyListError:
           'BattleHighestExpectedPowerOpponentPolicy requiert au moins une action fight légale.',
+    );
+  }
+
+  @override
+  BattleOpponentReplacementOption chooseReplacement({
+    required List<BattleOpponentReplacementOption> legalReplacementOptions,
+  }) {
+    return _pickBestReplacementOption(
+      legalReplacementOptions: legalReplacementOptions,
+      scoreCombatant: _calculatedReplacementScore,
+      emptyListError:
+          'BattleHighestExpectedPowerOpponentPolicy requiert au moins une option de replacement légale.',
     );
   }
 }
@@ -208,4 +286,71 @@ double _expectedPowerScore(BattleMove move) {
   final accuracyMultiplier =
       move.accuracy.isAlwaysHits ? 1.0 : move.accuracy.value / 100.0;
   return rawPower * accuracyMultiplier;
+}
+
+BattleOpponentReplacementOption _pickBestReplacementOption({
+  required List<BattleOpponentReplacementOption> legalReplacementOptions,
+  required double Function(BattleCombatant combatant) scoreCombatant,
+  required String emptyListError,
+}) {
+  if (legalReplacementOptions.isEmpty) {
+    throw StateError(emptyListError);
+  }
+
+  var bestOption = legalReplacementOptions.first;
+  var bestScore = scoreCombatant(bestOption.combatant);
+  for (final option in legalReplacementOptions.skip(1)) {
+    final optionScore = scoreCombatant(option.combatant);
+    if (optionScore > bestScore) {
+      bestOption = option;
+      bestScore = optionScore;
+    }
+  }
+  return bestOption;
+}
+
+double _rawReplacementScore(BattleCombatant combatant) {
+  return _bestDamagingMoveScore(
+    combatant: combatant,
+    moveScore: _rawPowerScore,
+  );
+}
+
+double _calculatedReplacementScore(BattleCombatant combatant) {
+  final expectedDamagePressure = _bestDamagingMoveScore(
+    combatant: combatant,
+    moveScore: _expectedPowerScore,
+  );
+  if (expectedDamagePressure <= 0) {
+    return 0.0;
+  }
+
+  // Lot 5 reste volontairement petit :
+  // - pas de lookahead multi-tour ;
+  // - pas de type pressure complète ;
+  // - pas de simulation de dégâts ;
+  // - juste un léger lift crédible pour départager deux remplaçants déjà
+  //   offensifs selon leur vitesse et leur marge de survie immédiate.
+  final hpRatio =
+      combatant.maxHp <= 0 ? 0.0 : combatant.currentHp / combatant.maxHp;
+  final speedPressure = combatant.stats.speed * 0.35;
+  final healthPressure = hpRatio * 40.0;
+  return expectedDamagePressure + speedPressure + healthPressure;
+}
+
+double _bestDamagingMoveScore({
+  required BattleCombatant combatant,
+  required double Function(BattleMove move) moveScore,
+}) {
+  var bestScore = 0.0;
+  for (final move in combatant.moves) {
+    if (!move.hasUsablePp) {
+      continue;
+    }
+    final candidateScore = moveScore(move);
+    if (candidateScore > bestScore) {
+      bestScore = candidateScore;
+    }
+  }
+  return bestScore;
 }

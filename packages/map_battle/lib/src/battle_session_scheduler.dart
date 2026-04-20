@@ -484,8 +484,10 @@ void _executePostTurnChecksQueueStep({
   required BattleTurnQueue queue,
   required _QueuedTurnContext turn,
 }) {
-  final enemyReplacementIndex =
-      session._firstUsableReserveIndex(turn.enemySide.reserve);
+  final enemyReplacementIndex = _chooseEnemyReplacementIndex(
+    session: session,
+    reserve: turn.enemySide.reserve,
+  );
   if (turn.enemySide.active.isFainted && enemyReplacementIndex != null) {
     queue.pushBack(
       BattleQueueAutoSwitchStep(
@@ -540,8 +542,12 @@ void _executeAutoSwitchQueueStep({
   );
 
   if (turn.side(step.side).active.isFainted) {
-    final nextReserveIndex =
-        session._firstUsableReserveIndex(turn.side(step.side).reserve);
+    final nextReserveIndex = step.side == BattleSideId.enemy
+        ? _chooseEnemyReplacementIndex(
+            session: session,
+            reserve: turn.side(step.side).reserve,
+          )
+        : session._firstUsableReserveIndex(turn.side(step.side).reserve);
     if (nextReserveIndex != null) {
       queue.pushBack(
         BattleQueueAutoSwitchStep(
@@ -566,6 +572,40 @@ void _executeAutoSwitchQueueStep({
       ),
     );
   }
+}
+
+int? _chooseEnemyReplacementIndex({
+  required BattleSession session,
+  required List<BattleCombatant> reserve,
+}) {
+  final legalReplacementOptions = <BattleOpponentReplacementOption>[];
+  for (var i = 0; i < reserve.length; i++) {
+    final combatant = reserve[i];
+    if (!combatant.isFainted) {
+      legalReplacementOptions.add(
+        BattleOpponentReplacementOption(
+          reserveIndex: i,
+          combatant: combatant,
+        ),
+      );
+    }
+  }
+  if (legalReplacementOptions.isEmpty) {
+    return null;
+  }
+
+  final selectedOption = session.opponentPolicy.chooseReplacement(
+    legalReplacementOptions:
+        List<BattleOpponentReplacementOption>.unmodifiable(
+      legalReplacementOptions,
+    ),
+  );
+  if (!legalReplacementOptions.contains(selectedOption)) {
+    throw StateError(
+      'BattleOpponentPolicy doit retourner une des options de replacement légales fournies par le scheduler.',
+    );
+  }
+  return selectedOption.reserveIndex;
 }
 
 void _executeReplacementRequiredQueueStep({
