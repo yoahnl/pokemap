@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:map_battle/map_battle.dart';
 
 import 'battle_command_menu_model.dart';
+import 'battle_party_menu_model.dart';
 import 'battle_scene_layout.dart';
 
 class BattleCommandButtonSnapshot {
@@ -27,12 +28,35 @@ class BattleCommandButtonSnapshot {
   final double subtitleFontSize;
 }
 
+class BattlePartyEntrySnapshot {
+  const BattlePartyEntrySnapshot({
+    required this.bounds,
+    required this.titleRect,
+    required this.levelRect,
+    required this.hpRect,
+    required this.statusRect,
+    required this.titleFontSize,
+    required this.levelFontSize,
+    required this.metaFontSize,
+  });
+
+  final Rect bounds;
+  final Rect titleRect;
+  final Rect levelRect;
+  final Rect hpRect;
+  final Rect statusRect;
+  final double titleFontSize;
+  final double levelFontSize;
+  final double metaFontSize;
+}
+
 class BattleCommandPanelComponent extends PositionComponent {
   BattleCommandPanelComponent({
     required Vector2 position,
     required Vector2 size,
     required this.onChoiceSelected,
     required this.onRootActionSelected,
+    required this.onPartyEntrySelected,
     this.layoutModeOverride,
   }) : super(
           position: position,
@@ -43,6 +67,7 @@ class BattleCommandPanelComponent extends PositionComponent {
 
   final void Function(PlayerBattleChoice choice) onChoiceSelected;
   final void Function(BattleCommandRootAction action) onRootActionSelected;
+  final void Function(BattlePartyMenuEntry entry) onPartyEntrySelected;
   final BattleCommandPanelLayoutMode? layoutModeOverride;
 
   PositionComponent? _promptPanel;
@@ -55,9 +80,13 @@ class BattleCommandPanelComponent extends PositionComponent {
   final List<PositionComponent> _interactiveComponents = <PositionComponent>[];
   final List<BattleCommandButtonSnapshot> _rootButtonSnapshots =
       <BattleCommandButtonSnapshot>[];
+  final List<BattlePartyEntrySnapshot> _partyEntrySnapshots =
+      <BattlePartyEntrySnapshot>[];
   String _currentPromptValue = '';
   String _currentNarrationValue = '';
   _BattleCommandPanelLayout? _layout;
+  BattlePartyMenuModel? _partyMenuModel;
+  int _selectedPartyIndex = 0;
   BattleCommandMenuModel _menuModel = const BattleCommandMenuModel(
     mode: BattleCommandMenuMode.root,
     rootEntries: <BattleCommandRootEntry>[],
@@ -96,6 +125,31 @@ class BattleCommandPanelComponent extends PositionComponent {
 
   @visibleForTesting
   int get currentSelectedChoiceIndex => _menuModel.selectedChoiceIndex;
+
+  @visibleForTesting
+  List<String> get currentPartySpeciesLabels => (_partyMenuModel?.allEntries ??
+          const <BattlePartyMenuEntry>[])
+      .map((entry) => entry.speciesId)
+      .toList(growable: false);
+
+  @visibleForTesting
+  List<bool> get currentPartySelectableStates =>
+      (_partyMenuModel?.allEntries ?? const <BattlePartyMenuEntry>[])
+          .map((entry) => entry.isSelectable)
+          .toList(growable: false);
+
+  @visibleForTesting
+  List<String> get currentPartyStatusLabels =>
+      (_partyMenuModel?.allEntries ?? const <BattlePartyMenuEntry>[])
+          .map(_partyEntryStatusLabel)
+          .toList(growable: false);
+
+  @visibleForTesting
+  int get currentSelectedPartyIndex => _selectedPartyIndex;
+
+  @visibleForTesting
+  List<BattlePartyEntrySnapshot> get currentPartyEntrySnapshots =>
+      List<BattlePartyEntrySnapshot>.unmodifiable(_partyEntrySnapshots);
 
   @visibleForTesting
   BattleCommandPanelLayoutMode get currentLayoutMode =>
@@ -222,10 +276,14 @@ class BattleCommandPanelComponent extends PositionComponent {
     required String prompt,
     required List<String> narrationLines,
     required BattleCommandMenuModel menuModel,
+    BattlePartyMenuModel? partyMenuModel,
+    int selectedPartyIndex = 0,
     bool allowEmptyNarrationBody = false,
     bool interactionsEnabled = true,
   }) {
     _menuModel = menuModel;
+    _partyMenuModel = partyMenuModel;
+    _selectedPartyIndex = selectedPartyIndex;
     _battleLabelText?.text = battleLabel.toUpperCase();
     _currentPromptValue = prompt;
     _promptText?.text = prompt;
@@ -311,6 +369,8 @@ class BattleCommandPanelComponent extends PositionComponent {
       component.removeFromParent();
     }
     _interactiveComponents.clear();
+    _rootButtonSnapshots.clear();
+    _partyEntrySnapshots.clear();
 
     final commandsPanel = _commandsPanel;
     if (commandsPanel == null) {
@@ -319,6 +379,15 @@ class BattleCommandPanelComponent extends PositionComponent {
 
     if (_menuModel.isRootMode) {
       _renderRootEntries(
+        commandsPanel,
+        interactionsEnabled: interactionsEnabled,
+      );
+      return;
+    }
+
+    if (_menuModel.mode == BattleCommandMenuMode.pokemon &&
+        _partyMenuModel != null) {
+      _renderPartyEntries(
         commandsPanel,
         interactionsEnabled: interactionsEnabled,
       );
@@ -344,7 +413,6 @@ class BattleCommandPanelComponent extends PositionComponent {
     required bool interactionsEnabled,
   }) {
     final layout = _layout ?? _BattleCommandPanelLayout.forSize(size);
-    _rootButtonSnapshots.clear();
     final top =
         layout.mode == BattleCommandPanelLayoutMode.stacked ? 14.0 : 20.0;
     final gap =
@@ -432,9 +500,69 @@ class BattleCommandPanelComponent extends PositionComponent {
     }
   }
 
+  void _renderPartyEntries(
+    PositionComponent commandsPanel, {
+    required bool interactionsEnabled,
+  }) {
+    final partyMenuModel = _partyMenuModel;
+    if (partyMenuModel == null) {
+      return;
+    }
+
+    final layout = _layout ?? _BattleCommandPanelLayout.forSize(size);
+    final top =
+        layout.mode == BattleCommandPanelLayoutMode.stacked ? 18.0 : 24.0;
+    final gap =
+        layout.mode == BattleCommandPanelLayoutMode.stacked ? 7.0 : 8.0;
+    final entries = partyMenuModel.allEntries;
+    if (entries.isEmpty) {
+      return;
+    }
+
+    final availableWidth = commandsPanel.size.x - 24;
+    final availableHeight = commandsPanel.size.y - (top + 14);
+    final cardHeight = ((availableHeight - ((entries.length - 1) * gap)) /
+            entries.length)
+        .clamp(
+          layout.mode == BattleCommandPanelLayoutMode.stacked ? 36.0 : 42.0,
+          layout.mode == BattleCommandPanelLayoutMode.stacked ? 58.0 : 64.0,
+        )
+        .toDouble();
+
+    for (var index = 0; index < entries.length; index++) {
+      final entry = entries[index];
+      final snapshot = _buildPartyEntrySnapshot(
+        entrySize: Size(availableWidth, cardHeight),
+        speciesLabel: entry.speciesId,
+        levelLabel: 'Nv. ${entry.level}',
+        hpLabel: '${entry.currentHp}/${entry.maxHp} PV',
+        statusLabel: _partyEntryStatusLabel(entry),
+        compact: layout.mode == BattleCommandPanelLayoutMode.stacked,
+      );
+      _partyEntrySnapshots.add(snapshot);
+      final card = _BattlePartyEntryComponent(
+        entry: entry,
+        position: Vector2(12, top + ((cardHeight + gap) * index)),
+        size: Vector2(availableWidth, cardHeight),
+        snapshot: snapshot,
+        isSelected: index == _selectedPartyIndex,
+        onPressed: onPartyEntrySelected,
+        compact: layout.mode == BattleCommandPanelLayoutMode.stacked,
+        interactionsEnabled: interactionsEnabled,
+        statusLabel: _partyEntryStatusLabel(entry),
+      );
+      _interactiveComponents.add(card);
+      commandsPanel.add(card);
+    }
+  }
+
   String _hintFor(BattleCommandMenuModel menuModel) {
     if (menuModel.isContinueOnly) {
       return 'Enter / Space';
+    }
+    if (menuModel.mode == BattleCommandMenuMode.pokemon &&
+        _partyMenuModel?.mode == BattlePartyMenuMode.forcedReplacement) {
+      return '';
     }
     if (menuModel.isRootMode) {
       return '';
@@ -462,6 +590,19 @@ class BattleCommandPanelComponent extends PositionComponent {
     }
     return const <String>['Choisis une action.'];
   }
+}
+
+String _partyEntryStatusLabel(BattlePartyMenuEntry entry) {
+  if (entry.isActive) {
+    return 'Actif';
+  }
+  if (entry.isFainted) {
+    return 'K.O.';
+  }
+  if (entry.isSelectable) {
+    return 'OK';
+  }
+  return 'Indisponible';
 }
 
 class _BattleRootButtonComponent extends PositionComponent with TapCallbacks {
@@ -660,6 +801,136 @@ class _BattleChoiceCardComponent extends PositionComponent with TapCallbacks {
   }
 }
 
+class _BattlePartyEntryComponent extends PositionComponent with TapCallbacks {
+  _BattlePartyEntryComponent({
+    required this.entry,
+    required Vector2 position,
+    required Vector2 size,
+    required this.snapshot,
+    required this.isSelected,
+    required this.onPressed,
+    required this.statusLabel,
+    this.compact = false,
+    this.interactionsEnabled = true,
+  }) : super(
+          position: position,
+          size: size,
+          anchor: Anchor.topLeft,
+          priority: 32,
+        );
+
+  final BattlePartyMenuEntry entry;
+  final BattlePartyEntrySnapshot snapshot;
+  final bool isSelected;
+  final void Function(BattlePartyMenuEntry entry) onPressed;
+  final String statusLabel;
+  final bool compact;
+  final bool interactionsEnabled;
+
+  @override
+  bool containsLocalPoint(Vector2 point) {
+    return point.x >= 0 &&
+        point.x <= size.x &&
+        point.y >= 0 &&
+        point.y <= size.y;
+  }
+
+  @override
+  void onTapDown(TapDownEvent event) {
+    if (!interactionsEnabled || !entry.isSelectable) {
+      return;
+    }
+    onPressed(entry);
+  }
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+
+    final rect = Offset.zero & Size(size.x, size.y);
+    final cornerRadius = Radius.circular(compact ? 12 : 14);
+    final enabled = entry.isSelectable;
+    final backgroundTop = enabled
+        ? const Color(0xFF597FBF)
+        : entry.isActive
+            ? const Color(0xFF5B616A)
+            : const Color(0xFF444B58);
+    final backgroundBottom = enabled
+        ? const Color(0xFF3C5A93)
+        : entry.isActive
+            ? const Color(0xFF41464E)
+            : const Color(0xFF323844);
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, cornerRadius),
+      Paint()
+        ..shader = LinearGradient(
+          colors: <Color>[backgroundTop, backgroundBottom],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ).createShader(rect),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, cornerRadius),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = isSelected ? 2.25 : 1.1
+        ..color = isSelected
+            ? const Color(0xFFF7F0D4)
+            : enabled
+                ? const Color(0x55FFFFFF)
+                : const Color(0x33FFFFFF),
+    );
+
+    final titleColor =
+        enabled ? const Color(0xFFFDFDFD) : const Color(0xD8F1F4FA);
+    final metaColor =
+        enabled ? const Color(0xE6E7EFFA) : const Color(0xB6D5DDE8);
+    final statusColor = switch (entry.disabledReason) {
+      BattlePartyMenuDisabledReason.fainted => const Color(0xFFFFB0A5),
+      BattlePartyMenuDisabledReason.activePokemon => const Color(0xFFEFDDA8),
+      _ => enabled ? const Color(0xFFC8F0CF) : const Color(0xD5DDE8F1),
+    };
+
+    _paintButtonText(
+      canvas,
+      text: entry.speciesId,
+      rect: snapshot.titleRect,
+      fontSize: snapshot.titleFontSize,
+      color: titleColor,
+      align: TextAlign.left,
+      fontWeight: FontWeight.w900,
+    );
+    _paintButtonText(
+      canvas,
+      text: 'Nv. ${entry.level}',
+      rect: snapshot.levelRect,
+      fontSize: snapshot.levelFontSize,
+      color: metaColor,
+      align: TextAlign.right,
+      fontWeight: FontWeight.w800,
+    );
+    _paintButtonText(
+      canvas,
+      text: '${entry.currentHp}/${entry.maxHp} PV',
+      rect: snapshot.hpRect,
+      fontSize: snapshot.metaFontSize,
+      color: metaColor,
+      align: TextAlign.left,
+      fontWeight: FontWeight.w700,
+    );
+    _paintButtonText(
+      canvas,
+      text: statusLabel,
+      rect: snapshot.statusRect,
+      fontSize: snapshot.metaFontSize,
+      color: statusColor,
+      align: TextAlign.right,
+      fontWeight: FontWeight.w800,
+    );
+  }
+}
+
 class _BattleCommandPanelLayout {
   const _BattleCommandPanelLayout({
     required this.mode,
@@ -801,6 +1072,74 @@ BattleCommandButtonSnapshot _buildRootButtonSnapshot({
     showSubtitle: subtitleRect != null,
     titleFontSize: titleFontSize,
     subtitleFontSize: subtitleFontSize,
+  );
+}
+
+BattlePartyEntrySnapshot _buildPartyEntrySnapshot({
+  required Size entrySize,
+  required String speciesLabel,
+  required String levelLabel,
+  required String hpLabel,
+  required String statusLabel,
+  required bool compact,
+}) {
+  final horizontalPadding = compact ? 10.0 : 12.0;
+  final topPadding = compact ? 7.0 : 8.0;
+  final bottomPadding = compact ? 6.0 : 7.0;
+  final verticalGap = compact ? 2.0 : 3.0;
+  final levelWidth = (entrySize.width * 0.24).clamp(54.0, 88.0).toDouble();
+  final metaWidth = (entrySize.width * 0.34).clamp(74.0, 118.0).toDouble();
+  final titleWidth =
+      entrySize.width - (horizontalPadding * 2) - levelWidth - 6.0;
+  final titleFontSize = _fitSingleLineFontSize(
+    text: speciesLabel,
+    maxWidth: titleWidth,
+    maxFontSize: compact ? 13.0 : 14.0,
+    minFontSize: compact ? 10.0 : 11.0,
+    fontWeight: FontWeight.w900,
+  );
+  final levelFontSize = _fitSingleLineFontSize(
+    text: levelLabel,
+    maxWidth: levelWidth,
+    maxFontSize: compact ? 11.0 : 12.0,
+    minFontSize: compact ? 9.0 : 10.0,
+    fontWeight: FontWeight.w800,
+  );
+  final metaFontSize = compact ? 9.0 : 10.0;
+  final titleHeight = titleFontSize * 1.1;
+  final levelHeight = levelFontSize * 1.1;
+  final metaHeight = metaFontSize * 1.15;
+  final bottomTop = entrySize.height - bottomPadding - metaHeight;
+
+  return BattlePartyEntrySnapshot(
+    bounds: Offset.zero & entrySize,
+    titleRect: Rect.fromLTWH(
+      horizontalPadding,
+      topPadding,
+      titleWidth,
+      titleHeight,
+    ),
+    levelRect: Rect.fromLTWH(
+      entrySize.width - horizontalPadding - levelWidth,
+      topPadding,
+      levelWidth,
+      levelHeight,
+    ),
+    hpRect: Rect.fromLTWH(
+      horizontalPadding,
+      math.max(topPadding + titleHeight + verticalGap, bottomTop),
+      metaWidth,
+      metaHeight,
+    ),
+    statusRect: Rect.fromLTWH(
+      entrySize.width - horizontalPadding - metaWidth,
+      math.max(topPadding + titleHeight + verticalGap, bottomTop),
+      metaWidth,
+      metaHeight,
+    ),
+    titleFontSize: titleFontSize,
+    levelFontSize: levelFontSize,
+    metaFontSize: metaFontSize,
   );
 }
 

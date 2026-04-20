@@ -1051,16 +1051,174 @@ void main() {
 
       expect(
         overlay.currentPromptText,
-        equals('Le joueur doit remplacer son Pokémon K.O.'),
+        equals('Choisis un remplaçant.'),
       );
-      expect(overlay.currentMenuMode, BattleCommandMenuMode.root);
-      expect(overlay.getSelectedChoice(), isNull);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.pokemon);
+      expect(overlay.getSelectedChoice(), isA<PlayerBattleChoiceSwitch>());
+      final commandPanel =
+          overlay.children.whereType<BattleCommandPanelComponent>().single;
+      expect(commandPanel.currentSelectedPartyIndex, 1);
+      expect(
+        commandPanel.currentPartySpeciesLabels,
+        const <String>['sproutle', 'benchmate'],
+      );
+    });
+
+    test(
+        'voluntary switch selection applies PlayerBattleChoiceSwitch and refreshes battle state',
+        () async {
+      PlayerBattleChoice? pickedChoice;
+      final initialSession = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+        playerReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'benchmate',
+            lineupIndex: 1,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ],
+        enemy: _combatant(
+          speciesId: 'sparkitten',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+      );
+      final overlay = BattleOverlayComponent(
+        session: initialSession,
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (choice) => pickedChoice = choice,
+      );
+
+      await overlay.onLoad();
+
+      overlay.moveSelectionDown();
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.pokemon);
+      expect(overlay.getSelectedChoice(), isA<PlayerBattleChoiceSwitch>());
+
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(pickedChoice, isA<PlayerBattleChoiceSwitch>());
+      expect((pickedChoice as PlayerBattleChoiceSwitch).reserveIndex, 0);
+
+      overlay.updateState(initialSession.applyChoice(pickedChoice!));
+      await overlay.waitForPendingVisualSync();
+
+      expect(overlay.currentPlayerHudSpeciesText, equals('benchmate'));
+      final playerCombatant = overlay.children
+          .whereType<BattleSceneCombatantComponent>()
+          .singleWhere((component) => component.belongsToPlayerSide);
+      expect(playerCombatant.currentSpeciesLabel, equals('benchmate'));
+    });
+
+    test(
+        'forced replacement opens party menu and does not allow backing out to invalid root actions',
+        () async {
+      PlayerBattleChoice? pickedChoice;
+      final initialSession = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          currentHp: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+        playerReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'fainted_one',
+            lineupIndex: 1,
+            currentHp: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          _combatant(
+            speciesId: 'benchmate',
+            lineupIndex: 2,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ],
+        enemy: _combatant(
+          speciesId: 'sparkitten',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+      );
+      final overlay = BattleOverlayComponent(
+        session: initialSession,
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (choice) => pickedChoice = choice,
+      );
+
+      await overlay.onLoad();
+
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.pokemon);
+      expect(overlay.handleEscape(), isFalse);
       final commandPanel =
           overlay.children.whereType<BattleCommandPanelComponent>().single;
       expect(
-        commandPanel.currentSelectedRootIndex,
-        BattleCommandRootAction.pokemon.index,
+        commandPanel.currentPartySpeciesLabels,
+        const <String>['sproutle', 'fainted_one', 'benchmate'],
       );
+      expect(commandPanel.currentSelectedPartyIndex, 2);
+
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(pickedChoice, isA<PlayerBattleChoiceSwitch>());
+      expect((pickedChoice as PlayerBattleChoiceSwitch).reserveIndex, 1);
+
+      overlay.updateState(initialSession.applyChoice(pickedChoice!));
+      await overlay.waitForPendingVisualSync();
+
+      expect(overlay.currentPlayerHudSpeciesText, equals('benchmate'));
+    });
+
+    test(
+        'forced replacement keeps a later valid reserve selectable after moving the cursor',
+        () async {
+      PlayerBattleChoice? pickedChoice;
+      final initialSession = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          currentHp: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+        playerReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'bench_one',
+            lineupIndex: 1,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          _combatant(
+            speciesId: 'bench_two',
+            lineupIndex: 2,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ],
+        enemy: _combatant(
+          speciesId: 'sparkitten',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+      );
+      final overlay = BattleOverlayComponent(
+        session: initialSession,
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (choice) => pickedChoice = choice,
+      );
+
+      await overlay.onLoad();
+
+      final commandPanel =
+          overlay.children.whereType<BattleCommandPanelComponent>().single;
+      expect(commandPanel.currentSelectedPartyIndex, 1);
+
+      overlay.moveSelectionDown();
+      expect(commandPanel.currentSelectedPartyIndex, 2);
+
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(pickedChoice, isA<PlayerBattleChoiceSwitch>());
+      expect((pickedChoice as PlayerBattleChoiceSwitch).reserveIndex, 1);
     });
 
     test('does not repeat the main prompt again in the narration body',

@@ -10,6 +10,7 @@ import 'battle_command_panel_component.dart';
 import 'battle_combatant_gender_resolver.dart';
 import 'battle_background_resolver.dart';
 import 'battle_debug_panel_component.dart';
+import 'battle_party_menu_model.dart';
 import 'battle_pokemon_sprite_resolver.dart';
 import 'battle_scene_layout.dart';
 import 'battle_scene_backdrop_component.dart';
@@ -108,6 +109,26 @@ List<String> buildBattleNarrationLinesForOverlay(BattleSession session) {
   return List<String>.unmodifiable(<String>[
     buildBattleDecisionPromptForOverlay(session.decisionRequest),
   ]);
+}
+
+String buildBattlePartyPromptForOverlay(BattlePartyMenuModel partyMenuModel) {
+  return switch (partyMenuModel.mode) {
+    BattlePartyMenuMode.voluntarySwitch => 'Choisis un Pokémon.',
+    BattlePartyMenuMode.forcedReplacement => 'Choisis un remplaçant.',
+    BattlePartyMenuMode.unavailable => 'POKÉMON indisponible.',
+  };
+}
+
+List<String> buildBattlePartyNarrationLinesForOverlay(
+  BattlePartyMenuModel partyMenuModel,
+) {
+  if (partyMenuModel.mode == BattlePartyMenuMode.forcedReplacement) {
+    return const <String>['Remplacement requis.'];
+  }
+  if (!partyMenuModel.hasSelectableEntries) {
+    return const <String>['Aucun switch disponible.'];
+  }
+  return const <String>['Actif et K.O. sont indisponibles.'];
 }
 
 /// Construit les lignes du panneau debug optionnel.
@@ -310,6 +331,7 @@ class BattleOverlayComponent extends PositionComponent {
   BattleCommandMenuMode _menuMode = BattleCommandMenuMode.root;
   int _selectedRootIndex = 0;
   int _selectedChoiceIndex = 0;
+  int _selectedPartyIndex = 0;
 
   static const double _presentationEffectDelaySeconds = 0.16;
   static const double _presentationImpactStepSeconds = 0.62;
@@ -432,6 +454,7 @@ class BattleOverlayComponent extends PositionComponent {
       ),
       onChoiceSelected: _handleChoiceSelected,
       onRootActionSelected: _handleRootActionSelected,
+      onPartyEntrySelected: _handlePartyEntrySelected,
       layoutModeOverride: layout.commandPanelLayoutMode,
     );
     await add(_commandPanel!);
@@ -493,6 +516,15 @@ class BattleOverlayComponent extends PositionComponent {
     if (isTurnPresentationActive) {
       return null;
     }
+    final partyMenuModel = _currentPartyMenuModel();
+    if (_currentMenuModel().mode == BattleCommandMenuMode.pokemon) {
+      if (partyMenuModel.allEntries.isEmpty) {
+        return null;
+      }
+      final safeIndex =
+          _selectedPartyIndex.clamp(0, partyMenuModel.allEntries.length - 1);
+      return partyMenuModel.allEntries[safeIndex].playerChoice;
+    }
     final menuModel = _currentMenuModel();
     if (menuModel.isRootMode || menuModel.choiceEntries.isEmpty) {
       return null;
@@ -505,6 +537,7 @@ class BattleOverlayComponent extends PositionComponent {
       return false;
     }
     final menuModel = _currentMenuModel();
+    final partyMenuModel = _currentPartyMenuModel();
     if (menuModel.isContinueOnly) {
       final selectedChoice = menuModel.choiceEntries.first.choice;
       _handleChoiceSelected(selectedChoice);
@@ -516,6 +549,19 @@ class BattleOverlayComponent extends PositionComponent {
         return false;
       }
       _handleRootActionSelected(entry.action);
+      return true;
+    }
+    if (menuModel.mode == BattleCommandMenuMode.pokemon) {
+      if (partyMenuModel.allEntries.isEmpty) {
+        return false;
+      }
+      final safeIndex =
+          _selectedPartyIndex.clamp(0, partyMenuModel.allEntries.length - 1);
+      final selectedEntry = partyMenuModel.allEntries[safeIndex];
+      if (!selectedEntry.isSelectable || selectedEntry.playerChoice == null) {
+        return false;
+      }
+      _handlePartyEntrySelected(selectedEntry);
       return true;
     }
     final selectedChoice =
@@ -533,6 +579,11 @@ class BattleOverlayComponent extends PositionComponent {
       return false;
     }
     if (!menuModel.isRootMode) {
+      final partyMenuModel = _currentPartyMenuModel();
+      if (menuModel.mode == BattleCommandMenuMode.pokemon &&
+          partyMenuModel.mode == BattlePartyMenuMode.forcedReplacement) {
+        return false;
+      }
       _menuMode = BattleCommandMenuMode.root;
       _syncPanelsOnly();
       return true;
@@ -659,17 +710,27 @@ class BattleOverlayComponent extends PositionComponent {
   void _syncPanelsOnly() {
     _syncMenuStateFromModel();
     final menuModel = _currentMenuModel();
+    final partyMenuModel = _currentPartyMenuModel();
     final currentPresentationStep = _currentTurnPresentationStep;
     final isPresenting = currentPresentationStep != null;
+    final partyPrompt = menuModel.mode == BattleCommandMenuMode.pokemon
+        ? buildBattlePartyPromptForOverlay(partyMenuModel)
+        : null;
+    final partyNarration = menuModel.mode == BattleCommandMenuMode.pokemon
+        ? buildBattlePartyNarrationLinesForOverlay(partyMenuModel)
+        : null;
 
     _commandPanel?.sync(
       battleLabel: _titleForSession(),
       prompt: currentPresentationStep?.message ??
+          partyPrompt ??
           buildBattleDecisionPromptForOverlay(_session.decisionRequest),
       narrationLines: isPresenting
           ? const <String>[]
-          : buildBattleNarrationLinesForOverlay(_session),
+          : (partyNarration ?? buildBattleNarrationLinesForOverlay(_session)),
       menuModel: menuModel,
+      partyMenuModel: partyMenuModel,
+      selectedPartyIndex: _selectedPartyIndex,
       allowEmptyNarrationBody: isPresenting,
       interactionsEnabled: !isPresenting,
     );
@@ -692,6 +753,7 @@ class BattleOverlayComponent extends PositionComponent {
       return false;
     }
     final menuModel = _currentMenuModel();
+    final partyMenuModel = _currentPartyMenuModel();
     if (menuModel.isContinueOnly) {
       return false;
     }
@@ -707,6 +769,23 @@ class BattleOverlayComponent extends PositionComponent {
         return false;
       }
       _selectedRootIndex = nextIndex;
+      _syncPanelsOnly();
+      return true;
+    }
+
+    if (menuModel.mode == BattleCommandMenuMode.pokemon &&
+        partyMenuModel.allEntries.isNotEmpty) {
+      final nextIndex = moveBattleCommandGridSelection(
+        currentIndex: _selectedPartyIndex,
+        itemCount: partyMenuModel.allEntries.length,
+        columnCount: 1,
+        horizontalDelta: 0,
+        verticalDelta: verticalDelta,
+      );
+      if (nextIndex == _selectedPartyIndex) {
+        return false;
+      }
+      _selectedPartyIndex = nextIndex;
       _syncPanelsOnly();
       return true;
     }
@@ -730,6 +809,14 @@ class BattleOverlayComponent extends PositionComponent {
     onPlayerChoice(choice);
   }
 
+  void _handlePartyEntrySelected(BattlePartyMenuEntry entry) {
+    final choice = entry.playerChoice;
+    if (choice == null) {
+      return;
+    }
+    onPlayerChoice(choice);
+  }
+
   void _handleRootActionSelected(BattleCommandRootAction action) {
     switch (action) {
       case BattleCommandRootAction.fight:
@@ -744,7 +831,7 @@ class BattleOverlayComponent extends PositionComponent {
         return;
       case BattleCommandRootAction.pokemon:
         _menuMode = BattleCommandMenuMode.pokemon;
-        _selectedChoiceIndex = 0;
+        _selectedPartyIndex = _firstSelectablePartyIndex();
         _syncPanelsOnly();
         return;
       case BattleCommandRootAction.run:
@@ -761,27 +848,54 @@ class BattleOverlayComponent extends PositionComponent {
   BattleCommandMenuModel _currentMenuModel() {
     return buildBattleCommandMenuModel(
       session: _session,
-      mode: _menuMode,
+      mode: _effectiveMenuMode(),
       selectedRootIndex: _selectedRootIndex,
       selectedChoiceIndex: _selectedChoiceIndex,
     );
   }
 
+  BattlePartyMenuModel _currentPartyMenuModel() {
+    return buildBattlePartyMenuModel(session: _session);
+  }
+
+  BattleCommandMenuMode _effectiveMenuMode() {
+    final partyMenuModel = _currentPartyMenuModel();
+    if (partyMenuModel.mode == BattlePartyMenuMode.forcedReplacement &&
+        partyMenuModel.hasSelectableEntries) {
+      return BattleCommandMenuMode.pokemon;
+    }
+    return _menuMode;
+  }
+
   void _normalizeMenuSelection() {
+    final previousMenuMode = _menuMode;
     final menuModel = _currentMenuModel();
+    final partyMenuModel = _currentPartyMenuModel();
     _menuMode = menuModel.mode;
     _selectedRootIndex = _firstEnabledRootIndex(
       rootEntries: menuModel.rootEntries,
       requestedIndex: menuModel.selectedRootIndex,
     );
     _selectedChoiceIndex = menuModel.selectedChoiceIndex;
+    _selectedPartyIndex = _normalizeSelectedPartyIndex(
+      partyMenuModel: partyMenuModel,
+      previousMenuMode: previousMenuMode,
+      nextMenuMode: menuModel.mode,
+    );
   }
 
   void _syncMenuStateFromModel() {
+    final previousMenuMode = _menuMode;
     final menuModel = _currentMenuModel();
+    final partyMenuModel = _currentPartyMenuModel();
     _menuMode = menuModel.mode;
     _selectedRootIndex = menuModel.selectedRootIndex;
     _selectedChoiceIndex = menuModel.selectedChoiceIndex;
+    _selectedPartyIndex = _normalizeSelectedPartyIndex(
+      partyMenuModel: partyMenuModel,
+      previousMenuMode: previousMenuMode,
+      nextMenuMode: menuModel.mode,
+    );
   }
 
   int _firstEnabledRootIndex({
@@ -799,6 +913,41 @@ class BattleOverlayComponent extends PositionComponent {
       if (rootEntries[index].enabled) {
         return index;
       }
+    }
+    return safeIndex;
+  }
+
+  int _firstSelectablePartyIndex() {
+    return _firstSelectablePartyIndexFor(_currentPartyMenuModel());
+  }
+
+  int _firstSelectablePartyIndexFor(BattlePartyMenuModel partyMenuModel) {
+    for (var index = 0; index < partyMenuModel.allEntries.length; index++) {
+      if (partyMenuModel.allEntries[index].isSelectable) {
+        return index;
+      }
+    }
+    return 0;
+  }
+
+  int _normalizeSelectedPartyIndex({
+    required BattlePartyMenuModel partyMenuModel,
+    required BattleCommandMenuMode previousMenuMode,
+    required BattleCommandMenuMode nextMenuMode,
+  }) {
+    if (partyMenuModel.allEntries.isEmpty) {
+      return 0;
+    }
+    final safeIndex = _selectedPartyIndex.clamp(
+      0,
+      partyMenuModel.allEntries.length - 1,
+    );
+    final isEnteringForcedReplacement =
+        previousMenuMode != BattleCommandMenuMode.pokemon &&
+            nextMenuMode == BattleCommandMenuMode.pokemon &&
+            partyMenuModel.mode == BattlePartyMenuMode.forcedReplacement;
+    if (isEnteringForcedReplacement) {
+      return _firstSelectablePartyIndexFor(partyMenuModel);
     }
     return safeIndex;
   }

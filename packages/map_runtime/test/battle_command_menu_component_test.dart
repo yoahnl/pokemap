@@ -82,6 +82,7 @@ void main() {
         size: Vector2(360, 220),
         onChoiceSelected: (_) {},
         onRootActionSelected: (_) {},
+        onPartyEntrySelected: (_) {},
       );
 
       await panel.onLoad();
@@ -98,6 +99,7 @@ void main() {
         size: Vector2(920, 170),
         onChoiceSelected: (_) {},
         onRootActionSelected: (_) {},
+        onPartyEntrySelected: (_) {},
       );
 
       await panel.onLoad();
@@ -267,6 +269,7 @@ void main() {
         size: Vector2(360, 220),
         onChoiceSelected: (_) {},
         onRootActionSelected: (_) {},
+        onPartyEntrySelected: (_) {},
       );
 
       await panel.onLoad();
@@ -327,6 +330,7 @@ void main() {
         size: Vector2(300, 126),
         onChoiceSelected: (_) {},
         onRootActionSelected: (_) {},
+        onPartyEntrySelected: (_) {},
         layoutModeOverride: BattleCommandPanelLayoutMode.split,
       );
 
@@ -493,6 +497,205 @@ void main() {
 
       overlay.moveSelectionLeft();
       expect(panel.currentSelectedChoiceIndex, 2);
+    });
+
+    test('battle party submenu opens from root POKÉMON when switch choices exist',
+        () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'charmander',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[
+              _move(id: 'scratch', name: 'Scratch'),
+            ],
+          ),
+          playerReserve: <BattleCombatantData>[
+            _combatant(
+              speciesId: 'ivysaur',
+              lineupIndex: 1,
+              moves: <BattleMoveData>[
+                _move(id: 'vine_whip', name: 'Vine Whip'),
+              ],
+            ),
+          ],
+          enemy: _combatant(
+            speciesId: 'squirtle',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[
+              _move(id: 'tackle', name: 'Tackle'),
+            ],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+      final panel = _panelFromOverlay(overlay);
+
+      overlay.moveSelectionDown();
+      expect(panel.currentSelectedRootIndex, BattleCommandRootAction.pokemon.index);
+
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.pokemon);
+      expect(panel.currentPartySpeciesLabels, const <String>['charmander', 'ivysaur']);
+      expect(panel.currentPartySelectableStates, const <bool>[false, true]);
+      expect(panel.currentPartyStatusLabels, const <String>['Actif', 'OK']);
+      expect(panel.currentSelectedPartyIndex, 1);
+    });
+
+    test('battle party submenu keeps fainted reserves visible but disabled',
+        () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'charmander',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[
+              _move(id: 'scratch', name: 'Scratch'),
+            ],
+          ),
+          playerReserve: <BattleCombatantData>[
+            _combatant(
+              speciesId: 'bulbasaur',
+              lineupIndex: 1,
+              currentHp: 0,
+              moves: <BattleMoveData>[
+                _move(id: 'vine_whip', name: 'Vine Whip'),
+              ],
+            ),
+          ],
+          enemy: _combatant(
+            speciesId: 'squirtle',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[
+              _move(id: 'tackle', name: 'Tackle'),
+            ],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+      final panel = _panelFromOverlay(overlay);
+
+      expect(panel.currentRootEnabledStates[BattleCommandRootAction.pokemon.index], isFalse);
+      overlay.moveSelectionDown();
+      expect(panel.currentSelectedRootIndex, BattleCommandRootAction.pokemon.index);
+      expect(overlay.validateSelectedChoice(), isFalse);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.root);
+    });
+
+    test('party submenu preserves battle reserveIndex instead of visualIndex',
+        () async {
+      PlayerBattleChoice? pickedChoice;
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'charmander',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[
+              _move(id: 'scratch', name: 'Scratch'),
+            ],
+          ),
+          playerReserve: <BattleCombatantData>[
+            _combatant(
+              speciesId: 'fainted_one',
+              lineupIndex: 1,
+              currentHp: 0,
+              moves: <BattleMoveData>[
+                _move(id: 'growl', name: 'Growl', power: 0),
+              ],
+            ),
+            _combatant(
+              speciesId: 'healthy_two',
+              lineupIndex: 2,
+              moves: <BattleMoveData>[
+                _move(id: 'slash', name: 'Slash'),
+              ],
+            ),
+          ],
+          enemy: _combatant(
+            speciesId: 'squirtle',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[
+              _move(id: 'tackle', name: 'Tackle'),
+            ],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (choice) => pickedChoice = choice,
+      );
+
+      await overlay.onLoad();
+      final panel = _panelFromOverlay(overlay);
+
+      overlay.moveSelectionDown();
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.pokemon);
+      expect(panel.currentPartySpeciesLabels,
+          const <String>['charmander', 'fainted_one', 'healthy_two']);
+      expect(panel.currentSelectedPartyIndex, 2);
+
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(pickedChoice, isA<PlayerBattleChoiceSwitch>());
+      expect((pickedChoice as PlayerBattleChoiceSwitch).reserveIndex, 1);
+    });
+
+    test('party submenu layout survives portrait and landscape', () async {
+      Future<BattleCommandPanelComponent> loadPanel(Vector2 viewport) async {
+        final overlay = BattleOverlayComponent(
+          session: _session(
+            player: _combatant(
+              speciesId: 'lead_player',
+              lineupIndex: 0,
+              moves: <BattleMoveData>[
+                _move(id: 'scratch', name: 'Scratch'),
+              ],
+            ),
+            playerReserve: <BattleCombatantData>[
+              _combatant(
+                speciesId: 'bench_one',
+                lineupIndex: 1,
+                moves: <BattleMoveData>[
+                  _move(id: 'vine_whip', name: 'Vine Whip'),
+                ],
+              ),
+              _combatant(
+                speciesId: 'bench_two',
+                lineupIndex: 2,
+                currentHp: 0,
+                moves: <BattleMoveData>[
+                  _move(id: 'growl', name: 'Growl', power: 0),
+                ],
+              ),
+            ],
+            enemy: _combatant(
+              speciesId: 'enemy',
+              lineupIndex: 0,
+              moves: <BattleMoveData>[
+                _move(id: 'tackle', name: 'Tackle'),
+              ],
+            ),
+          ),
+          viewportSize: viewport,
+          onPlayerChoice: (_) {},
+        );
+        await overlay.onLoad();
+        overlay.moveSelectionDown();
+        expect(overlay.validateSelectedChoice(), isTrue);
+        return _panelFromOverlay(overlay);
+      }
+
+      final portraitPanel = await loadPanel(Vector2(390, 844));
+      final landscapePanel = await loadPanel(Vector2(844, 390));
+
+      expect(portraitPanel.currentMenuMode, BattleCommandMenuMode.pokemon);
+      expect(landscapePanel.currentMenuMode, BattleCommandMenuMode.pokemon);
+      expect(portraitPanel.currentPartySpeciesLabels, hasLength(3));
+      expect(landscapePanel.currentPartySpeciesLabels, hasLength(3));
     });
 
     test('forced continue shows a dedicated CONTINUE action', () async {
