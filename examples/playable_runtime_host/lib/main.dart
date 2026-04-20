@@ -2,10 +2,11 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:gamepads/gamepads.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
@@ -13,12 +14,13 @@ import 'package:path/path.dart' as p;
 
 import 'src/in_game_menu.dart';
 import 'src/runtime_demo_party_seed.dart';
-import 'src/runtime_ios_controller_bridge.dart';
+import 'src/runtime_gamepad_bridge.dart';
 import 'src/runtime_ios_project_picker.dart';
 import 'src/runtime_launch_save.dart';
 import 'src/runtime_launch_options.dart';
 import 'src/runtime_pokedex_loader.dart';
 import 'src/runtime_project_picker.dart';
+import 'src/runtime_touch_controls.dart';
 
 // Point d'entrée minimal du host runtime.
 // On garde un MaterialApp très simple, puis toute la navigation se fait
@@ -57,14 +59,14 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   String? _saveLoadStatus;
   String? _saveLoadError;
   Timer? _runtimeInfoTicker;
-  StreamSubscription<Object?>? _runtimeIosControllerSubscription;
+  StreamSubscription<NormalizedGamepadEvent>? _runtimeGamepadSubscription;
 
   static const _prefsFileName = '.playable_runtime_host_prefs.json';
 
   @override
   void initState() {
     super.initState();
-    _bindIosControllerInputsIfNeeded();
+    _bindGamepadInputsIfNeeded();
     _restoreLastSession();
   }
 
@@ -73,22 +75,37 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     // Le ticker d'overlay est strictement local au host et doit toujours être
     // arrêté quand la page sort, pour éviter toute fuite de rafraîchissement.
     _runtimeInfoTicker?.cancel();
-    _runtimeIosControllerSubscription?.cancel();
+    _runtimeGamepadSubscription?.cancel();
     super.dispose();
   }
 
-  void _bindIosControllerInputsIfNeeded() {
-    if (kIsWeb || !Platform.isIOS || _runtimeIosControllerSubscription != null) {
+  void _bindGamepadInputsIfNeeded() {
+    if (kIsWeb || _runtimeGamepadSubscription != null) {
       return;
     }
-    _runtimeIosControllerSubscription = listenToRuntimeIosControllerEvents(
-      dispatch: (event) {
+    final bridge = RuntimeGamepadBridge();
+    _runtimeGamepadSubscription = Gamepads.normalizedEvents.listen(
+      (event) {
         final game = _game;
         if (game == null) {
-          return false;
+          return;
         }
-        return game.handleRuntimeInputEvent(event);
+        final runtimeEvents = event.button != null
+            ? bridge.handleButton(
+                gamepadId: event.gamepadId,
+                button: event.button!,
+                value: event.value,
+              )
+            : bridge.handleAxis(
+                gamepadId: event.gamepadId,
+                axis: event.axis!,
+                value: event.value,
+              );
+        for (final runtimeEvent in runtimeEvents) {
+          game.handleRuntimeInputEvent(runtimeEvent);
+        }
       },
+      onError: (_) {},
     );
   }
 
@@ -291,8 +308,9 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
               ? await pickRuntimeProjectDirectoryOnIos()
               : await pickRuntimeProjectDirectory(
                   pickDirectoryPath: () {
-                    return FilePicker.platform.getDirectoryPath(
-                      dialogTitle: 'Choisir un dossier projet',
+                    return getDirectoryPath(
+                      confirmButtonText: 'Choisir',
+                      initialDirectory: Platform.environment['HOME'],
                     );
                   },
                   importProjectJsonPath: _ensureProjectCopiedToDocuments,
@@ -551,6 +569,9 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     final game = _game;
     if (game != null) {
       final info = game.saveLoadInfo;
+      final showTouchControls = !kIsWeb &&
+          (defaultTargetPlatform == TargetPlatform.iOS ||
+              defaultTargetPlatform == TargetPlatform.android);
       return Scaffold(
         appBar: AppBar(
           title: Text((_selectedMapId ?? '').trim()),
@@ -585,6 +606,12 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         body: Stack(
           children: [
             GameWidget(game: game),
+            if (showTouchControls)
+              Positioned.fill(
+                child: RuntimeTouchControls(
+                  dispatch: game.handleRuntimeInputEvent,
+                ),
+              ),
             if (_showRuntimeDebugPanel)
               Positioned(
                 top: 12,

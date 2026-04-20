@@ -259,6 +259,62 @@
             </list>
           </value>
         </entry>
+        <entry key="file_selector">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/file_selector-1.1.0/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="file_selector_android">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/file_selector_android-0.5.2+5/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="file_selector_ios">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/file_selector_ios-0.5.3+5/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="file_selector_linux">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/file_selector_linux-0.9.4/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="file_selector_macos">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/file_selector_macos-0.9.5/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="file_selector_platform_interface">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/file_selector_platform_interface-2.7.0/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="file_selector_web">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/file_selector_web-0.9.4+2/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="file_selector_windows">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/file_selector_windows-0.9.3+5/lib" />
+            </list>
+          </value>
+        </entry>
         <entry key="fixnum">
           <value>
             <list>
@@ -277,6 +333,13 @@
           <value>
             <list>
               <option value="/opt/homebrew/share/flutter/packages/flutter/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="flutter_joystick">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/flutter_joystick-0.2.2/lib" />
             </list>
           </value>
         </entry>
@@ -333,6 +396,62 @@
           <value>
             <list>
               <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/frontend_server_client-4.0.0/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="gamepads">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/gamepads-0.1.10+1/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="gamepads_android">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/gamepads_android-0.1.7/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="gamepads_darwin">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/gamepads_darwin-0.1.2+4/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="gamepads_ios">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/gamepads_ios-0.1.3+3/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="gamepads_linux">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/gamepads_linux-0.1.2/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="gamepads_platform_interface">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/gamepads_platform_interface-0.1.3/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="gamepads_web">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/gamepads_web-0.1.1/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="gamepads_windows">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/gamepads_windows-0.3.0/lib" />
             </list>
           </value>
         </entry>
@@ -403,6 +522,14 @@
           <value>
             <list>
               <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/js-0.7.2/lib" />
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/js-0.6.7/lib" />
+            </list>
+          </value>
+        </entry>
+        <entry key="js_interop">
+          <value>
+            <list>
+              <option value="$USER_HOME$/.pub-cache/hosted/pub.dev/js_interop-0.0.1/lib" />
             </list>
           </value>
         </entry>
@@ -939,14 +1066,31 @@
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/ffi-2.2.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/file-7.0.1/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/file_picker-8.3.7/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/file_selector-1.1.0/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/file_selector_android-0.5.2+5/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/file_selector_ios-0.5.3+5/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/file_selector_linux-0.9.4/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/file_selector_macos-0.9.5/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/file_selector_platform_interface-2.7.0/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/file_selector_web-0.9.4+2/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/file_selector_windows-0.9.3+5/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/fixnum-1.1.1/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/flame-1.35.1/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/flutter_joystick-0.2.2/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/flutter_lints-3.0.2/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/flutter_plugin_android_lifecycle-2.0.34/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/flutter_riverpod-2.6.1/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/freezed-2.5.8/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/freezed_annotation-2.4.4/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/frontend_server_client-4.0.0/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/gamepads-0.1.10+1/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/gamepads_android-0.1.7/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/gamepads_darwin-0.1.2+4/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/gamepads_ios-0.1.3+3/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/gamepads_linux-0.1.2/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/gamepads_platform_interface-0.1.3/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/gamepads_web-0.1.1/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/gamepads_windows-0.3.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/glob-2.1.3/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/gradient_borders-1.0.2/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/graphs-2.3.2/lib" />
@@ -956,7 +1100,9 @@
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/http_parser-4.1.2/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/image-4.8.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/io-1.0.5/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/js-0.6.7/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/js-0.7.2/lib" />
+      <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/js_interop-0.0.1/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/json_annotation-4.11.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/json_annotation-4.9.0/lib" />
       <root url="file://$USER_HOME$/.pub-cache/hosted/pub.dev/json_serializable-6.9.5/lib" />

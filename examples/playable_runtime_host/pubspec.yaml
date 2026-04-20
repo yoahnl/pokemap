@@ -11,7 +11,9 @@ dependencies:
   flutter:
     sdk: flutter
   flame: ^1.35.0
-  file_picker: ^8.0.0
+  file_selector: ^1.0.3
+  flutter_joystick: ^0.2.2
+  gamepads: ^0.1.10+1
   path_provider: ^2.1.0
   path: ^1.9.0
   map_core:
@@ -28,3 +30,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  config:
+    enable-swift-package-manager: false

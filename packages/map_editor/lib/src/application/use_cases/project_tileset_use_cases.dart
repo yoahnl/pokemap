@@ -1,3 +1,6 @@
+import 'dart:io';
+
+import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -5,6 +8,8 @@ import '../../domain/repositories/repositories.dart';
 import '../errors/application_errors.dart';
 import '../ports/project_workspace.dart';
 import 'project_use_case_support.dart';
+
+const int _kMaxImportedTilesetDimension = 8192;
 
 class ImportProjectTilesetUseCase {
   ImportProjectTilesetUseCase(this._repo);
@@ -59,6 +64,7 @@ class ImportProjectTilesetUseCase {
         'Unsupported tileset image format: $sourceExt',
       );
     }
+    await _validateImportedTilesetImage(sourcePath);
 
     final id = generateUniqueTilesetId(project, trimmedName);
     final relativePath = await workspace.importTilesetImage(
@@ -96,6 +102,23 @@ class ImportProjectTilesetUseCase {
       await workspace.deleteRelativeFile(relativePath);
       rethrow;
     }
+  }
+}
+
+Future<void> _validateImportedTilesetImage(String sourcePath) async {
+  final bytes = await File(sourcePath).readAsBytes();
+  final decoded = img.decodeImage(bytes);
+  if (decoded == null) {
+    throw const EditorValidationException(
+      'Could not decode the selected tileset image.',
+    );
+  }
+  if (decoded.width > _kMaxImportedTilesetDimension ||
+      decoded.height > _kMaxImportedTilesetDimension) {
+    throw const EditorValidationException(
+      'Tileset image dimensions exceed the supported maximum of '
+      '${_kMaxImportedTilesetDimension}px per side.',
+    );
   }
 }
 
