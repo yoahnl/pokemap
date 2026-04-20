@@ -19,6 +19,8 @@ final class BattleSceneLayout {
   BattleSceneLayout._({
     required this.viewportSize,
     required this.safePadding,
+    required this.isPortrait,
+    required this.portraitSafeMargin,
     required this.sceneRect,
     required this.stageRect,
     required this.commandPanelRect,
@@ -36,6 +38,8 @@ final class BattleSceneLayout {
 
   final Size viewportSize;
   final EdgeInsets safePadding;
+  final bool isPortrait;
+  final double portraitSafeMargin;
   final Rect sceneRect;
   final Rect stageRect;
   final Rect commandPanelRect;
@@ -60,12 +64,16 @@ final class BattleSceneLayout {
     required Size viewportSize,
     EdgeInsets safePadding = EdgeInsets.zero,
   }) {
+    final isPortrait = viewportSize.height > viewportSize.width;
     final sceneRect = Rect.fromLTWH(
       safePadding.left,
       safePadding.top,
       math.max(0, viewportSize.width - safePadding.horizontal),
       math.max(0, viewportSize.height - safePadding.vertical),
     );
+    final portraitSafeMargin = isPortrait
+        ? (sceneRect.width * 0.038).clamp(14.0, 20.0).toDouble()
+        : 0.0;
 
     final commandPanelLayoutMode =
         _resolveCommandPanelLayoutMode(sceneRect.size);
@@ -79,11 +87,15 @@ final class BattleSceneLayout {
             : 14.0;
     final commandPanelHeight =
         (commandPanelLayoutMode == BattleCommandPanelLayoutMode.stacked
-                ? sceneRect.height * 0.34
+                ? isPortrait
+                    ? sceneRect.height * 0.31
+                    : sceneRect.height * 0.34
                 : sceneRect.height * 0.295)
             .clamp(
               commandPanelLayoutMode == BattleCommandPanelLayoutMode.stacked
-                  ? 236.0
+                  ? isPortrait
+                      ? 248.0
+                      : 236.0
                   : 152.0,
               commandPanelLayoutMode == BattleCommandPanelLayoutMode.stacked
                   ? 320.0
@@ -98,14 +110,14 @@ final class BattleSceneLayout {
     );
 
     final stageAvailableRect = Rect.fromLTRB(
-      sceneRect.left,
-      sceneRect.top + 8,
-      sceneRect.right,
+      isPortrait ? sceneRect.left + portraitSafeMargin : sceneRect.left,
+      isPortrait ? sceneRect.top + 14 : sceneRect.top + 8,
+      isPortrait ? sceneRect.right - portraitSafeMargin : sceneRect.right,
       commandPanelRect.top - 12,
     );
 
-    const referenceStageWidth = 960.0;
-    const referenceStageHeight = 330.0;
+    final referenceStageWidth = isPortrait ? 820.0 : 960.0;
+    final referenceStageHeight = isPortrait ? 360.0 : 330.0;
     final scale = math.min(
       1.0,
       math.min(
@@ -165,8 +177,10 @@ final class BattleSceneLayout {
       );
     }
 
-    const playerFootReference = Offset(158, 322);
-    const enemyFootReference = Offset(724, 214);
+    final playerFootReference =
+        isPortrait ? const Offset(192, 350) : const Offset(158, 322);
+    final enemyFootReference =
+        isPortrait ? const Offset(610, 220) : const Offset(724, 214);
     final playerFootAnchor = mapPoint(
       playerFootReference.dx,
       playerFootReference.dy,
@@ -198,12 +212,32 @@ final class BattleSceneLayout {
       footYOffset: 4,
     );
 
-    final enemyHudRect = mapRect(16, 8, 210, 68);
-    final playerHudRect = mapRect(668, 232, 244, 72);
+    final enemyHudRect = isPortrait
+        ? Rect.fromLTWH(
+            sceneRect.left + portraitSafeMargin,
+            sceneRect.top + portraitSafeMargin,
+            (sceneRect.width * 0.31).clamp(118.0, 154.0).toDouble(),
+            (sceneRect.height * 0.054).clamp(42.0, 48.0).toDouble(),
+          )
+        : mapRect(16, 8, 210, 68);
+    final playerHudRect = isPortrait
+        ? Rect.fromLTWH(
+            sceneRect.right -
+                portraitSafeMargin -
+                (sceneRect.width * 0.34).clamp(132.0, 170.0).toDouble(),
+            commandPanelRect.top -
+                (sceneRect.height * 0.056).clamp(44.0, 50.0).toDouble() -
+                12,
+            (sceneRect.width * 0.34).clamp(132.0, 170.0).toDouble(),
+            (sceneRect.height * 0.056).clamp(44.0, 50.0).toDouble(),
+          )
+        : mapRect(668, 232, 244, 72);
 
     return BattleSceneLayout._(
       viewportSize: viewportSize,
       safePadding: safePadding,
+      isPortrait: isPortrait,
+      portraitSafeMargin: portraitSafeMargin,
       sceneRect: sceneRect,
       stageRect: stageRect,
       commandPanelRect: commandPanelRect,

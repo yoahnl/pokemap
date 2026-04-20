@@ -152,7 +152,7 @@ Future<void> _renderCapture({
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  test('renders lot 4e visual captures', () async {
+  test('renders lot 4f portrait hardening captures', () async {
     final manifest = await _loadGoldenManifest();
     final spriteResolver = BattlePokemonSpriteResolver(
       manifest: manifest,
@@ -161,16 +161,13 @@ void main() {
     );
     final captures = <ui.Size>[
       const ui.Size(390, 844),
-      const ui.Size(528, 467),
-      const ui.Size(844, 390),
-      const ui.Size(960, 540),
-      const ui.Size(1012, 467),
-      const ui.Size(1280, 720),
+      const ui.Size(430, 932),
+      const ui.Size(480, 854),
     ];
 
     for (final viewport in captures) {
       final path =
-          '/Users/karim/Project/pokemonProject/reports/visual/lot-4e/battle-${viewport.width.toInt()}x${viewport.height.toInt()}.png';
+          '/Users/karim/Project/pokemonProject/reports/visual/lot-4f/battle-${viewport.width.toInt()}x${viewport.height.toInt()}.png';
       print('rendering $path');
       await _renderCapture(
         viewport: viewport,

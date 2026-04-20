@@ -190,5 +190,48 @@ void main() {
       expect(layout.playerHudRect.overlaps(layout.commandPanelRect), isFalse);
       expect(layout.playerSpriteRect.overlaps(layout.commandPanelRect), isFalse);
     });
+
+    group('portrait hardening', () {
+      const portraitSafeMargin = 14.0;
+      const portraitViewports = <Size>[
+        Size(390, 844),
+        Size(430, 932),
+        Size(480, 854),
+      ];
+
+      for (final viewport in portraitViewports) {
+        test('keeps portrait HUDs off the screen edges at ${viewport.width}x${viewport.height}',
+            () {
+          final layout = BattleSceneLayout.forViewport(viewportSize: viewport);
+
+          expect(
+            layout.enemyHudRect.left,
+            greaterThanOrEqualTo(portraitSafeMargin),
+          );
+          expect(
+            layout.sceneRect.right - layout.playerHudRect.right,
+            greaterThanOrEqualTo(portraitSafeMargin),
+          );
+          expect(
+            layout.enemyHudRect.overlaps(layout.enemySpriteRect.inflate(4)),
+            isFalse,
+          );
+          expect(
+            layout.enemyHudRect.overlaps(layout.playerSpriteRect.inflate(4)),
+            isFalse,
+          );
+          expect(layout.playerHudRect.overlaps(layout.commandPanelRect), isFalse);
+        });
+      }
+
+      test('gives portrait HUDs more breathing room than the 4e baseline', () {
+        final layout = BattleSceneLayout.forViewport(
+          viewportSize: const Size(390, 844),
+        );
+
+        expect(layout.enemyHudRect.width, greaterThanOrEqualTo(110));
+        expect(layout.playerHudRect.width, greaterThanOrEqualTo(128));
+      });
+    });
   });
 }

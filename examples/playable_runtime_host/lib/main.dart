@@ -5,8 +5,11 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:path/path.dart' as p;
 
 import 'src/in_game_menu.dart';
 import 'src/runtime_demo_party_seed.dart';
@@ -200,6 +203,53 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     _runtimeInfoTicker = null;
   }
 
+  Future<String> _ensureProjectCopiedToDocuments(String projectJsonPath) async {
+    final projectDir = Directory(p.dirname(projectJsonPath));
+    final projectName = p.basename(projectDir.path);
+    final docsDir = await _getProjectsDirectory();
+    final targetDir = Directory(p.join(docsDir.path, projectName));
+
+    if (await targetDir.exists()) {
+      return p.join(targetDir.path, 'project.json');
+    }
+
+    await _copyDirectory(projectDir, targetDir);
+    return p.join(targetDir.path, 'project.json');
+  }
+
+  Future<Directory> _getProjectsDirectory() async {
+    if (kIsWeb) {
+      return Directory('');
+    }
+    String docsPath;
+    if (Platform.isIOS) {
+      final docDir = await getApplicationDocumentsDirectory();
+      docsPath = docDir.path;
+    } else {
+      docsPath = Platform.environment['HOME'] ?? '.';
+    }
+    final projectsDir = Directory(p.join(docsPath, 'playable_projects'));
+    if (!await projectsDir.exists()) {
+      await projectsDir.create(recursive: true);
+    }
+    return projectsDir;
+  }
+
+  Future<void> _copyDirectory(Directory source, Directory target) async {
+    if (!await target.exists()) {
+      await target.create(recursive: true);
+    }
+    await for (final entity in source.list(recursive: false)) {
+      if (entity is File) {
+        final newPath = p.join(target.path, p.basename(entity.path));
+        await entity.copy(newPath);
+      } else if (entity is Directory) {
+        final newDir = Directory(p.join(target.path, p.basename(entity.path)));
+        await _copyDirectory(entity, newDir);
+      }
+    }
+  }
+
   // Le host laisse l'utilisateur choisir explicitement un project.json.
   // Cela reste séparé de toute logique de menu in-game ou de save gameplay.
   Future<void> _pickProjectFile() async {
@@ -210,12 +260,23 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     );
     final path = result?.files.single.path;
     if (path == null || path.isEmpty || !mounted) return;
-    setState(() {
-      _projectFilePath = path;
-      _error = null;
-    });
-    await _loadProjectMapsFromManifest(path);
-    await _persistLastSession();
+
+    setState(() => _loading = true);
+    try {
+      final copiedPath = await _ensureProjectCopiedToDocuments(path);
+      setState(() {
+        _projectFilePath = copiedPath;
+        _error = null;
+      });
+      await _loadProjectMapsFromManifest(copiedPath);
+      await _persistLastSession();
+    } catch (e) {
+      if (mounted) {
+        setState(() => _error = 'Erreur lors de la copie du projet: $e');
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   // Ce chargement construit uniquement le bundle runtime et l'instance de jeu.

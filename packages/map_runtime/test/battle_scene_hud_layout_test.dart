@@ -81,5 +81,38 @@ void main() {
       expectVisibleRectsInsideHud(layout, allowMissingHpValue: true);
       expect(layout.showsHpValue, isFalse);
     });
+
+    test('drops gender before squeezing a portrait enemy HUD', () {
+      final layout = BattleSceneHudLayout.forBounds(
+        hudRect: const Rect.fromLTWH(0, 0, 122, 42),
+        isPlayerSide: false,
+        speciesText: 'caterpie_with_a_long_name',
+        genderSymbol: '♂',
+        levelText: 'Lv.100',
+        hpValueText: '100%',
+        statusText: 'PAR',
+      );
+
+      expectVisibleRectsInsideHud(layout, allowMissingHpValue: true);
+      expect(layout.genderRect, isNull);
+      expect(layout.statusRect, isNull);
+    });
+
+    test('drops secondary player HUD details on portrait widths before overlap',
+        () {
+      final layout = BattleSceneHudLayout.forBounds(
+        hudRect: const Rect.fromLTWH(0, 0, 138, 46),
+        isPlayerSide: true,
+        speciesText: 'very_long_species_name_that_should_not_overlap',
+        genderSymbol: '♀',
+        levelText: 'Lv.100',
+        hpValueText: '152/152',
+        statusText: 'BRN',
+      );
+
+      expectVisibleRectsInsideHud(layout, allowMissingHpValue: true);
+      expect(layout.genderRect, isNull);
+      expect(layout.hpValueRect, isNull);
+    });
   });
 }

@@ -50,21 +50,33 @@ final class BattleSceneHudLayout {
   }) {
     final compact = hudRect.width <= 220 || hudRect.height <= 74;
     final extraCompact = hudRect.width <= 170 || hudRect.height <= 68;
+    final ultraCompact = hudRect.width <= 140 || hudRect.height <= 46;
 
-    final horizontalPadding = extraCompact ? 10.0 : 14.0;
-    final topPadding = extraCompact ? 10.0 : 12.0;
-    final bottomPadding = extraCompact ? 10.0 : 12.0;
-    final ownerFontSize = extraCompact ? 8.0 : compact ? 9.0 : 10.0;
-    final nameFontSize = extraCompact ? 12.0 : compact ? 14.0 : 16.0;
-    final levelFontSize = extraCompact ? 12.0 : compact ? 14.0 : 15.0;
-    final statusFontSize = extraCompact ? 8.0 : 9.0;
-    final hpLabelFontSize = extraCompact ? 10.0 : 11.0;
-    final hpValueFontSize = extraCompact ? 10.0 : compact ? 11.0 : 12.0;
-    final ownerHeight = ownerFontSize * 1.2;
-    final titleHeight = math.max(nameFontSize, levelFontSize) * 1.15;
-    final statusHeight = statusFontSize * 1.5;
-    final hpRowHeight = math.max(hpLabelFontSize, hpValueFontSize) * 1.15;
-    final hpBarHeight = extraCompact ? 7.0 : 8.0;
+    final horizontalPadding = ultraCompact ? 7.0 : extraCompact ? 10.0 : 14.0;
+    final topPadding = ultraCompact ? 6.0 : extraCompact ? 10.0 : 12.0;
+    final bottomPadding = ultraCompact ? 6.0 : extraCompact ? 10.0 : 12.0;
+    final ownerFontSize =
+        ultraCompact ? 6.0 : extraCompact ? 8.0 : compact ? 9.0 : 10.0;
+    final nameFontSize =
+        ultraCompact ? 9.0 : extraCompact ? 12.0 : compact ? 14.0 : 16.0;
+    final levelFontSize =
+        ultraCompact ? 9.0 : extraCompact ? 12.0 : compact ? 14.0 : 15.0;
+    final statusFontSize = ultraCompact ? 6.5 : extraCompact ? 8.0 : 9.0;
+    final hpLabelFontSize = ultraCompact ? 8.0 : extraCompact ? 10.0 : 11.0;
+    final hpValueFontSize = ultraCompact
+        ? 8.0
+        : extraCompact
+            ? 10.0
+            : compact
+                ? 11.0
+                : 12.0;
+    final ownerHeight = ownerFontSize * (ultraCompact ? 1.0 : 1.2);
+    final titleHeight =
+        math.max(nameFontSize, levelFontSize) * (ultraCompact ? 1.0 : 1.15);
+    final statusHeight = statusFontSize * (ultraCompact ? 1.2 : 1.5);
+    final hpRowHeight =
+        math.max(hpLabelFontSize, hpValueFontSize) * (ultraCompact ? 1.0 : 1.15);
+    final hpBarHeight = ultraCompact ? 6.0 : extraCompact ? 7.0 : 8.0;
 
     final ownerRect = Rect.fromLTWH(
       hudRect.left + horizontalPadding,
@@ -73,7 +85,7 @@ final class BattleSceneHudLayout {
       ownerHeight,
     );
 
-    final titleTop = ownerRect.bottom + 2;
+    final titleTop = ownerRect.bottom + (ultraCompact ? 1 : 2);
     final innerRight = hudRect.right - horizontalPadding;
     final levelWidth = _measureSingleLineWidth(
           levelText,
@@ -103,7 +115,8 @@ final class BattleSceneHudLayout {
               ),
             ) +
             2;
-    final genderRect = normalizedGender == null
+    final canShowGender = normalizedGender != null && !ultraCompact;
+    final tentativeGenderRect = !canShowGender
         ? null
         : Rect.fromLTWH(
             levelRect.left - 4 - genderWidth,
@@ -111,6 +124,14 @@ final class BattleSceneHudLayout {
             genderWidth,
             nameFontSize * 0.95,
           );
+    final tentativeNameRight =
+        (tentativeGenderRect?.left ?? levelRect.left) - (canShowGender ? 4 : 6);
+    final minimumPortraitNameWidth = ultraCompact ? 46.0 : 40.0;
+    final genderRect = tentativeGenderRect != null &&
+            tentativeNameRight - (hudRect.left + horizontalPadding) >=
+                minimumPortraitNameWidth
+        ? tentativeGenderRect
+        : null;
 
     final nameRight =
         (genderRect?.left ?? levelRect.left) - (normalizedGender == null ? 6 : 4);
@@ -141,6 +162,7 @@ final class BattleSceneHudLayout {
 
     final hpRowTop = hudRect.bottom - bottomPadding - math.max(hpRowHeight, hpBarHeight);
     final fitsStatus = normalizedStatus != null &&
+        !ultraCompact &&
         statusTop + statusHeight <= hpRowTop - 4 &&
         tentativeStatusWidth <= hudRect.width * 0.28;
     final statusRect = fitsStatus
@@ -155,11 +177,12 @@ final class BattleSceneHudLayout {
     final hpLabelRect = Rect.fromLTWH(
       hudRect.left + horizontalPadding,
       hpRowTop,
-      20,
+      ultraCompact ? 18 : 20,
       hpRowHeight,
     );
 
-    final shouldShowHpValue = isPlayerSide && !extraCompact && hudRect.width >= 190;
+    final shouldShowHpValue =
+        isPlayerSide && !extraCompact && !ultraCompact && hudRect.width >= 210;
     final hpValueWidth = shouldShowHpValue
         ? _measureSingleLineWidth(
               hpValueText,
@@ -184,7 +207,7 @@ final class BattleSceneHudLayout {
     final hpBarRect = Rect.fromLTWH(
       hpBarLeft,
       hpRowTop + ((hpRowHeight - hpBarHeight) / 2),
-      math.max(24, hpBarRight - hpBarLeft),
+      math.max(ultraCompact ? 20 : 24, hpBarRight - hpBarLeft),
       hpBarHeight,
     );
 

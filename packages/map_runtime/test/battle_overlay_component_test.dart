@@ -825,6 +825,35 @@ void main() {
       );
     });
 
+    test('keeps portrait HUDs inset and readable on 390x844', () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'squirtle',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          enemy: _combatant(
+            speciesId: 'caterpie',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ),
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      final layout = overlay.currentSceneLayout;
+
+      expect(layout.enemyHudRect.left, greaterThanOrEqualTo(14));
+      expect(layout.sceneRect.right - layout.playerHudRect.right,
+          greaterThanOrEqualTo(14));
+      expect(layout.enemyHudRect.overlaps(layout.playerSpriteRect.inflate(4)),
+          isFalse);
+    });
+
     test('updateState keeps scene rects stable for a fixed viewport', () async {
       final initialSession = _session(
         player: _combatant(
