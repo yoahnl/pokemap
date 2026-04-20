@@ -87,6 +87,26 @@ void main() {
       expect(seed!.speciesId, equals('squirtle'));
       expect(seed.gender, anyOf(equals('male'), equals('female')));
     });
+
+    test('resolves a preferred demo species without parsing unrelated bad species files',
+        () async {
+      await _writeProjectFixture(
+        root,
+        includeSquirtle: true,
+        squirtleFileName: '0007-squirtle.json',
+      );
+      await File('${root.path}/data/pokemon/species/9999-broken.json')
+          .writeAsString('{ definitely not valid json');
+
+      final seed = await buildRuntimeHostLaunchDemoPartySeed(
+        seedDemoPokemon: true,
+        projectFilePath: '${root.path}/project.json',
+      );
+
+      expect(seed, isNotNull);
+      expect(seed!.speciesId, equals('squirtle'));
+      expect(seed.abilityId, equals('torrent'));
+    });
   });
 }
 
@@ -95,6 +115,7 @@ Future<void> _writeProjectFixture(
   bool includeAbra = false,
   bool includeSquirtle = false,
   bool includeGenderRatio = false,
+  String squirtleFileName = '0007-squirtle.json',
 }) async {
   await File('${root.path}/project.json').writeAsString(
     jsonEncode(<String, dynamic>{
@@ -195,7 +216,7 @@ Future<void> _writeProjectFixture(
   if (includeSquirtle) {
     await _writeJson(
       root,
-      'data/pokemon/species/0007-squirtle.json',
+      'data/pokemon/species/$squirtleFileName',
       <String, dynamic>{
         'id': 'squirtle',
         'nationalDex': 7,

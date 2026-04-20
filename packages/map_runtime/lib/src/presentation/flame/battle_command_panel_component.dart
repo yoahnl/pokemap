@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
 import 'package:flame/text.dart';
@@ -6,6 +8,24 @@ import 'package:map_battle/map_battle.dart';
 
 import 'battle_command_menu_model.dart';
 import 'battle_scene_layout.dart';
+
+class BattleCommandButtonSnapshot {
+  const BattleCommandButtonSnapshot({
+    required this.bounds,
+    required this.titleRect,
+    required this.subtitleRect,
+    required this.showSubtitle,
+    required this.titleFontSize,
+    required this.subtitleFontSize,
+  });
+
+  final Rect bounds;
+  final Rect titleRect;
+  final Rect? subtitleRect;
+  final bool showSubtitle;
+  final double titleFontSize;
+  final double subtitleFontSize;
+}
 
 class BattleCommandPanelComponent extends PositionComponent {
   BattleCommandPanelComponent({
@@ -33,6 +53,10 @@ class BattleCommandPanelComponent extends PositionComponent {
   TextComponent? _commandTitleText;
   TextComponent? _hintText;
   final List<PositionComponent> _interactiveComponents = <PositionComponent>[];
+  final List<BattleCommandButtonSnapshot> _rootButtonSnapshots =
+      <BattleCommandButtonSnapshot>[];
+  String _currentPromptValue = '';
+  String _currentNarrationValue = '';
   _BattleCommandPanelLayout? _layout;
   BattleCommandMenuModel _menuModel = const BattleCommandMenuModel(
     mode: BattleCommandMenuMode.root,
@@ -46,8 +70,8 @@ class BattleCommandPanelComponent extends PositionComponent {
 
   bool get narrationPanelMounted => _promptPanel != null;
   bool get commandPanelMounted => _commandsPanel != null;
-  String get currentPromptText => _promptText?.text ?? '';
-  String get currentNarrationText => _narrationBodyText?.text ?? '';
+  String get currentPromptText => _currentPromptValue;
+  String get currentNarrationText => _currentNarrationValue;
 
   @visibleForTesting
   BattleCommandMenuMode get currentMenuMode => _menuModel.mode;
@@ -89,6 +113,10 @@ class BattleCommandPanelComponent extends PositionComponent {
 
   @visibleForTesting
   Vector2 get commandsPanelSize => _commandsPanel?.size ?? Vector2.zero();
+
+  @visibleForTesting
+  List<BattleCommandButtonSnapshot> get currentRootButtonSnapshots =>
+      List<BattleCommandButtonSnapshot>.unmodifiable(_rootButtonSnapshots);
 
   @override
   Future<void> onLoad() async {
@@ -197,11 +225,14 @@ class BattleCommandPanelComponent extends PositionComponent {
   }) {
     _menuModel = menuModel;
     _battleLabelText?.text = battleLabel.toUpperCase();
+    _currentPromptValue = prompt;
     _promptText?.text = prompt;
-    final clippedNarration = narrationLines.isEmpty
-        ? const <String>['The battle awaits the next action.']
-        : narrationLines.take(3).toList(growable: false);
-    _narrationBodyText?.text = clippedNarration.join('\n');
+    final clippedNarration = _sanitizeNarrationBody(
+      prompt: prompt,
+      narrationLines: narrationLines,
+    );
+    _currentNarrationValue = clippedNarration.join('\n');
+    _narrationBodyText?.text = _currentNarrationValue;
     _commandTitleText?.text =
         menuModel.isRootMode ? '' : menuModel.choiceGroupTitle;
     _hintText?.text = _hintFor(menuModel);
@@ -296,6 +327,7 @@ class BattleCommandPanelComponent extends PositionComponent {
 
   void _renderRootEntries(PositionComponent commandsPanel) {
     final layout = _layout ?? _BattleCommandPanelLayout.forSize(size);
+    _rootButtonSnapshots.clear();
     final top =
         layout.mode == BattleCommandPanelLayoutMode.stacked ? 14.0 : 20.0;
     final gap =
@@ -312,6 +344,13 @@ class BattleCommandPanelComponent extends PositionComponent {
       final entry = _menuModel.rootEntries[index];
       final row = index ~/ 2;
       final column = index % 2;
+      final snapshot = _buildRootButtonSnapshot(
+        buttonSize: Size(cardWidth, cardHeight),
+        title: entry.label,
+        subtitle: entry.subtitle,
+        compact: layout.mode == BattleCommandPanelLayoutMode.stacked,
+      );
+      _rootButtonSnapshots.add(snapshot);
       final card = _BattleRootButtonComponent(
         entry: entry,
         position: Vector2(
@@ -319,6 +358,7 @@ class BattleCommandPanelComponent extends PositionComponent {
           top + ((cardHeight + gap) * row),
         ),
         size: Vector2(cardWidth, cardHeight),
+        snapshot: snapshot,
         isSelected: index == _menuModel.selectedRootIndex,
         onPressed: onRootActionSelected,
         compact: layout.mode == BattleCommandPanelLayoutMode.stacked,
@@ -379,6 +419,23 @@ class BattleCommandPanelComponent extends PositionComponent {
     }
     return 'Esc back';
   }
+
+  List<String> _sanitizeNarrationBody({
+    required String prompt,
+    required List<String> narrationLines,
+  }) {
+    final normalizedPrompt = prompt.trim().toLowerCase();
+    final sanitized = narrationLines
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .where((line) => line.toLowerCase() != normalizedPrompt)
+        .take(3)
+        .toList(growable: false);
+    if (sanitized.isNotEmpty) {
+      return sanitized;
+    }
+    return const <String>['Choisis une action.'];
+  }
 }
 
 class _BattleRootButtonComponent extends PositionComponent with TapCallbacks {
@@ -386,6 +443,7 @@ class _BattleRootButtonComponent extends PositionComponent with TapCallbacks {
     required this.entry,
     required Vector2 position,
     required Vector2 size,
+    required this.snapshot,
     required this.isSelected,
     required this.onPressed,
     this.compact = false,
@@ -397,48 +455,10 @@ class _BattleRootButtonComponent extends PositionComponent with TapCallbacks {
         );
 
   final BattleCommandRootEntry entry;
+  final BattleCommandButtonSnapshot snapshot;
   final bool isSelected;
   final void Function(BattleCommandRootAction action) onPressed;
   final bool compact;
-
-  TextComponent? _labelText;
-  TextComponent? _subtitleText;
-
-  @override
-  Future<void> onLoad() async {
-    _labelText = TextComponent(
-      text: entry.label,
-      position: Vector2(size.x / 2, size.y * 0.38),
-      anchor: Anchor.center,
-      textRenderer: TextPaint(
-        style: TextStyle(
-          color:
-              entry.enabled ? const Color(0xFFFDFDFD) : const Color(0x9AFDFDFD),
-          fontSize: compact ? 17 : 20,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 0.4,
-        ),
-      ),
-      priority: 33,
-    );
-    await add(_labelText!);
-
-    _subtitleText = TextComponent(
-      text: entry.subtitle,
-      position: Vector2(size.x / 2, size.y - 10),
-      anchor: Anchor.bottomCenter,
-      textRenderer: TextPaint(
-        style: TextStyle(
-          color:
-              entry.enabled ? const Color(0xDDF7F7F7) : const Color(0x99F7F7F7),
-          fontSize: compact ? 9 : 10,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-      priority: 33,
-    );
-    await add(_subtitleText!);
-  }
 
   @override
   bool containsLocalPoint(Vector2 point) {
@@ -485,6 +505,29 @@ class _BattleRootButtonComponent extends PositionComponent with TapCallbacks {
         ..color =
             isSelected ? const Color(0xFFF6E8B0) : const Color(0x55FFFFFF),
     );
+
+    _paintButtonText(
+      canvas,
+      text: entry.label,
+      rect: snapshot.titleRect,
+      fontSize: snapshot.titleFontSize,
+      color:
+          entry.enabled ? const Color(0xFFFDFDFD) : const Color(0x9AFDFDFD),
+      align: TextAlign.center,
+      fontWeight: FontWeight.w900,
+    );
+    if (snapshot.showSubtitle && snapshot.subtitleRect != null) {
+      _paintButtonText(
+        canvas,
+        text: entry.subtitle,
+        rect: snapshot.subtitleRect!,
+        fontSize: snapshot.subtitleFontSize,
+        color:
+            entry.enabled ? const Color(0xDDF7F7F7) : const Color(0x99F7F7F7),
+        align: TextAlign.center,
+        fontWeight: FontWeight.w700,
+      );
+    }
   }
 }
 
@@ -672,6 +715,124 @@ class _BattleCommandPanelLayout {
       commandLabelFontSize: 10,
     );
   }
+}
+
+BattleCommandButtonSnapshot _buildRootButtonSnapshot({
+  required Size buttonSize,
+  required String title,
+  required String subtitle,
+  required bool compact,
+}) {
+  final horizontalPadding = compact ? 10.0 : 12.0;
+  final titleMaxWidth = buttonSize.width - (horizontalPadding * 2);
+  final maxTitleFontSize = compact ? 17.0 : 20.0;
+  final minTitleFontSize = compact ? 12.0 : 14.0;
+  final titleFontSize = _fitSingleLineFontSize(
+    text: title,
+    maxWidth: titleMaxWidth,
+    maxFontSize: maxTitleFontSize,
+    minFontSize: minTitleFontSize,
+    fontWeight: FontWeight.w900,
+  );
+  final titleHeight = titleFontSize * 1.1;
+  final canShowSubtitle = buttonSize.height >= (compact ? 46.0 : 54.0);
+  final subtitleFontSize = compact ? 9.0 : 10.0;
+  final subtitleHeight = subtitleFontSize * 1.15;
+
+  Rect? subtitleRect;
+  if (canShowSubtitle) {
+    final subtitleTop = buttonSize.height - subtitleHeight - 8;
+    if (subtitleTop - (buttonSize.height * 0.24) >= titleHeight + 4) {
+      subtitleRect = Rect.fromLTWH(
+        horizontalPadding,
+        subtitleTop,
+        titleMaxWidth,
+        subtitleHeight,
+      );
+    }
+  }
+
+  final titleTop = subtitleRect == null
+      ? (buttonSize.height - titleHeight) / 2
+      : math.min(buttonSize.height * 0.2, subtitleRect.top - titleHeight - 4);
+  final titleRect = Rect.fromLTWH(
+    horizontalPadding,
+    titleTop,
+    titleMaxWidth,
+    titleHeight,
+  );
+
+  return BattleCommandButtonSnapshot(
+    bounds: Offset.zero & buttonSize,
+    titleRect: titleRect,
+    subtitleRect: subtitleRect,
+    showSubtitle: subtitleRect != null,
+    titleFontSize: titleFontSize,
+    subtitleFontSize: subtitleFontSize,
+  );
+}
+
+double _fitSingleLineFontSize({
+  required String text,
+  required double maxWidth,
+  required double maxFontSize,
+  required double minFontSize,
+  required FontWeight fontWeight,
+}) {
+  var fontSize = maxFontSize;
+  while (fontSize > minFontSize) {
+    final width = _measureSingleLineWidth(
+      text,
+      TextStyle(fontSize: fontSize, fontWeight: fontWeight),
+    );
+    if (width <= maxWidth) {
+      break;
+    }
+    fontSize -= 1;
+  }
+  return fontSize.clamp(minFontSize, maxFontSize);
+}
+
+double _measureSingleLineWidth(String text, TextStyle style) {
+  final painter = TextPainter(
+    text: TextSpan(text: text, style: style),
+    maxLines: 1,
+    textDirection: TextDirection.ltr,
+  )..layout();
+  return painter.width;
+}
+
+void _paintButtonText(
+  Canvas canvas, {
+  required String text,
+  required Rect rect,
+  required double fontSize,
+  required Color color,
+  required TextAlign align,
+  required FontWeight fontWeight,
+}) {
+  final painter = TextPainter(
+    text: TextSpan(
+      text: text,
+      style: TextStyle(
+        color: color,
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+      ),
+    ),
+    maxLines: 1,
+    ellipsis: '…',
+    textAlign: align,
+    textDirection: TextDirection.ltr,
+  )..layout(maxWidth: rect.width);
+
+  final dx = switch (align) {
+    TextAlign.right => rect.right - painter.width,
+    TextAlign.center => rect.left + ((rect.width - painter.width) / 2),
+    _ => rect.left,
+  };
+  final dy = rect.top + ((rect.height - painter.height) / 2);
+  painter.paint(canvas, Offset(dx, dy));
 }
 
 _BattlePalette _rootPaletteFor(

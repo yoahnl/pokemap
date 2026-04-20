@@ -1,7 +1,8 @@
 import 'package:flame/components.dart';
-import 'package:flame/text.dart';
 import 'package:flutter/material.dart';
 import 'package:map_battle/map_battle.dart';
+
+import 'battle_scene_hud_layout.dart';
 
 /// HUD de combattant pour la scène de combat.
 ///
@@ -31,98 +32,56 @@ class BattleSceneHudComponent extends PositionComponent {
   final String? initialGenderSymbol;
   BattleCombatant _combatant;
   String? _genderSymbol;
-
-  TextComponent? _ownerText;
-  TextComponent? _speciesText;
-  TextComponent? _levelText;
-  TextComponent? _hpLabelText;
-  TextComponent? _hpText;
-  TextComponent? _statusText;
   RectangleComponent? _hpBarFill;
+  BattleSceneHudLayout? _layout;
 
   @visibleForTesting
   bool get belongsToPlayerSide => isPlayerSide;
 
   @visibleForTesting
-  String get currentSpeciesDisplayText => _speciesText?.text ?? '';
+  String get currentSpeciesDisplayText => _speciesDisplayText;
+
+  @visibleForTesting
+  BattleSceneHudLayout get currentLayout =>
+      _layout ??
+      BattleSceneHudLayout.forBounds(
+        hudRect: Offset.zero & Size(size.x, size.y),
+        isPlayerSide: isPlayerSide,
+        speciesText: _combatant.speciesId,
+        genderSymbol: _genderSymbol,
+        levelText: 'Lv.${_combatant.level}',
+        hpValueText: _hpValueText,
+        statusText: _statusLabel(_combatant),
+      );
+
+  @visibleForTesting
+  Rect get currentNameRect => currentLayout.nameRect.shift(Offset(position.x, position.y));
+
+  @visibleForTesting
+  Rect? get currentGenderRect =>
+      currentLayout.genderRect?.shift(Offset(position.x, position.y));
+
+  @visibleForTesting
+  Rect get currentLevelRect =>
+      currentLayout.levelRect.shift(Offset(position.x, position.y));
+
+  @visibleForTesting
+  Rect get currentHpBarRect =>
+      currentLayout.hpBarRect.shift(Offset(position.x, position.y));
+
+  @visibleForTesting
+  Rect? get currentHpValueRect =>
+      currentLayout.hpValueRect?.shift(Offset(position.x, position.y));
+
+  @visibleForTesting
+  Rect? get currentStatusRect =>
+      currentLayout.statusRect?.shift(Offset(position.x, position.y));
 
   @override
   Future<void> onLoad() async {
-    _ownerText = TextComponent(
-      text: ownerLabel,
-      position: Vector2(16, 10),
-      anchor: Anchor.topLeft,
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0xB34D5A6D),
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 1.0,
-        ),
-      ),
-    );
-    await add(_ownerText!);
-
-    _speciesText = TextComponent(
-      text: _combatant.speciesId,
-      position: Vector2(16, 26),
-      anchor: Anchor.topLeft,
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0xFF202738),
-          fontSize: 18,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-    await add(_speciesText!);
-
-    _levelText = TextComponent(
-      text: '',
-      position: Vector2(size.x - 16, 30),
-      anchor: Anchor.topRight,
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0xFF3C4758),
-          fontSize: 15,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-    await add(_levelText!);
-
-    _statusText = TextComponent(
-      text: '',
-      position: Vector2(size.x - 16, 14),
-      anchor: Anchor.topRight,
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0xFF5A6579),
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 0.8,
-        ),
-      ),
-    );
-    await add(_statusText!);
-
-    _hpLabelText = TextComponent(
-      text: 'HP',
-      position: Vector2(16, size.y - 40),
-      anchor: Anchor.topLeft,
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0xFFB87D2F),
-          fontSize: 12,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-    );
-    await add(_hpLabelText!);
-
     final hpBarBackground = RectangleComponent(
-      position: Vector2(42, size.y - 36),
-      size: Vector2(size.x - 58, 10),
+      position: Vector2.zero(),
+      size: Vector2.zero(),
       anchor: Anchor.topLeft,
       paint: Paint()..color = const Color(0xFFABB5C1),
       priority: 21,
@@ -130,27 +89,13 @@ class BattleSceneHudComponent extends PositionComponent {
     await add(hpBarBackground);
 
     _hpBarFill = RectangleComponent(
-      position: Vector2(42, size.y - 36),
-      size: Vector2(size.x - 58, 10),
+      position: Vector2.zero(),
+      size: Vector2.zero(),
       anchor: Anchor.topLeft,
       paint: Paint()..color = const Color(0xFF62C06E),
       priority: 22,
     );
     await add(_hpBarFill!);
-
-    _hpText = TextComponent(
-      text: '',
-      position: Vector2(size.x - 16, size.y - 18),
-      anchor: Anchor.bottomRight,
-      textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0xFF364355),
-          fontSize: 12,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-    await add(_hpText!);
 
     sync(
       combatant: _combatant,
@@ -166,18 +111,26 @@ class BattleSceneHudComponent extends PositionComponent {
     _genderSymbol = genderSymbol?.trim().isEmpty ?? true
         ? null
         : genderSymbol?.trim();
-    _speciesText?.text = _genderSymbol == null
-        ? combatant.speciesId
-        : '${combatant.speciesId} $_genderSymbol';
-    _levelText?.text = 'Lv.${combatant.level}';
-    _statusText?.text = _statusLabel(combatant);
-    _hpText?.text = isPlayerSide
-        ? '${combatant.currentHp}/${combatant.maxHp}'
-        : '${((combatant.currentHp / (combatant.maxHp <= 0 ? 1 : combatant.maxHp)) * 100).round()}%';
+    _layout = BattleSceneHudLayout.forBounds(
+      hudRect: Offset.zero & Size(size.x, size.y),
+      isPlayerSide: isPlayerSide,
+      speciesText: combatant.speciesId,
+      genderSymbol: _genderSymbol,
+      levelText: 'Lv.${combatant.level}',
+      hpValueText: _hpValueText,
+      statusText: _statusLabel(combatant),
+    );
 
     final safeMaxHp = combatant.maxHp <= 0 ? 1 : combatant.maxHp;
     final hpRatio = (combatant.currentHp / safeMaxHp).clamp(0.0, 1.0);
-    _hpBarFill?.size = Vector2((size.x - 58) * hpRatio, 10);
+    _hpBarFill?.position = Vector2(
+      currentLayout.hpBarRect.left,
+      currentLayout.hpBarRect.top,
+    );
+    _hpBarFill?.size = Vector2(
+      currentLayout.hpBarRect.width * hpRatio,
+      currentLayout.hpBarRect.height,
+    );
     _hpBarFill?.paint.color = _hpColor(hpRatio);
   }
 
@@ -215,7 +168,119 @@ class BattleSceneHudComponent extends PositionComponent {
         ..color =
             isPlayerSide ? const Color(0xFF86B7F2) : const Color(0xFFB4C18D),
     );
+
+    final layout = currentLayout;
+    final hpBarBackgroundPaint = Paint()..color = const Color(0xFFABB5C1);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(layout.hpBarRect, const Radius.circular(999)),
+      hpBarBackgroundPaint,
+    );
+
+    _paintText(
+      canvas,
+      ownerLabel,
+      layout.ownerRect,
+      TextStyle(
+        color: const Color(0xB34D5A6D),
+        fontSize: layout.ownerFontSize,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 1.0,
+      ),
+      align: TextAlign.left,
+    );
+    _paintText(
+      canvas,
+      _combatant.speciesId,
+      layout.nameRect,
+      TextStyle(
+        color: const Color(0xFF202738),
+        fontSize: layout.nameFontSize,
+        fontWeight: FontWeight.w800,
+      ),
+      align: TextAlign.left,
+    );
+    if (_genderSymbol != null && layout.genderRect != null) {
+      _paintText(
+        canvas,
+        _genderSymbol!,
+        layout.genderRect!,
+        TextStyle(
+          color: const Color(0xFF2E3C52),
+          fontSize: layout.nameFontSize * 0.9,
+          fontWeight: FontWeight.w800,
+        ),
+        align: TextAlign.left,
+      );
+    }
+    _paintText(
+      canvas,
+      'Lv.${_combatant.level}',
+      layout.levelRect,
+      TextStyle(
+        color: const Color(0xFF3C4758),
+        fontSize: layout.levelFontSize,
+        fontWeight: FontWeight.w800,
+      ),
+      align: TextAlign.right,
+    );
+    final statusLabel = _statusLabel(_combatant);
+    if (statusLabel.isNotEmpty && layout.statusRect != null) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(layout.statusRect!, const Radius.circular(999)),
+        Paint()..color = const Color(0xFFE2E7F0),
+      );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(layout.statusRect!, const Radius.circular(999)),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..color = const Color(0xFF90A0B6),
+      );
+      _paintText(
+        canvas,
+        statusLabel,
+        layout.statusRect!,
+        TextStyle(
+          color: const Color(0xFF516178),
+          fontSize: layout.statusFontSize,
+          fontWeight: FontWeight.w800,
+        ),
+        align: TextAlign.center,
+      );
+    }
+    _paintText(
+      canvas,
+      'HP',
+      layout.hpLabelRect,
+      TextStyle(
+        color: const Color(0xFFB87D2F),
+        fontSize: layout.hpLabelFontSize,
+        fontWeight: FontWeight.w900,
+      ),
+      align: TextAlign.left,
+    );
+    if (layout.showsHpValue && layout.hpValueRect != null) {
+      _paintText(
+        canvas,
+        _hpValueText,
+        layout.hpValueRect!,
+        TextStyle(
+          color: const Color(0xFF364355),
+          fontSize: layout.hpValueFontSize,
+          fontWeight: FontWeight.w800,
+        ),
+        align: TextAlign.right,
+      );
+    }
   }
+
+  String get _speciesDisplayText => _genderSymbol == null
+      ? _combatant.speciesId
+      : '${_combatant.speciesId} $_genderSymbol';
+
+  String get _hpValueText => isPlayerSide
+      ? '${_combatant.currentHp}/${_combatant.maxHp}'
+      : '${(((_combatant.currentHp) / (_combatant.maxHp <= 0 ? 1 : _combatant.maxHp)) * 100).round()}%';
 
   String _statusLabel(BattleCombatant combatant) {
     if (combatant.isFainted) {
@@ -237,4 +302,28 @@ class BattleSceneHudComponent extends PositionComponent {
     }
     return const Color(0xFF62C06E);
   }
+}
+
+void _paintText(
+  Canvas canvas,
+  String text,
+  Rect rect,
+  TextStyle style, {
+  required TextAlign align,
+}) {
+  final painter = TextPainter(
+    text: TextSpan(text: text, style: style),
+    maxLines: 1,
+    ellipsis: '…',
+    textAlign: align,
+    textDirection: TextDirection.ltr,
+  )..layout(maxWidth: rect.width);
+
+  final dx = switch (align) {
+    TextAlign.right => rect.right - painter.width,
+    TextAlign.center => rect.left + ((rect.width - painter.width) / 2),
+    _ => rect.left,
+  };
+  final dy = rect.top + ((rect.height - painter.height) / 2);
+  painter.paint(canvas, Offset(dx, dy));
 }

@@ -95,6 +95,7 @@ BattleSceneCombatantComponent _combatantComponent({
       isPlayerSide ? 20 : 16,
     ),
     sceneFootAnchor: footAnchor,
+    spriteFootXRatio: isPlayerSide ? 0.68 : 0.5,
     isPlayerSide: isPlayerSide,
     speciesLabel: speciesLabel,
     initialSpriteSpec: spriteSpec,
@@ -266,6 +267,10 @@ void main() {
 
       expect(bounds.width, greaterThan(90));
       expect(bounds.height, greaterThan(90));
+      expect(
+        component.currentRenderedSpriteRect.bottom,
+        closeTo(component.currentFootAnchor.dy, 0.01),
+      );
     });
 
     test('preserves sprite aspect ratio and bottom foot alignment', () async {
@@ -335,6 +340,27 @@ void main() {
         component.currentSpriteRect.bottom,
         closeTo(component.currentFootAnchor.dy, 0.01),
       );
+    });
+
+    test('keeps the fallback silhouette anchored on the same foot point',
+        () async {
+      final component = _combatantComponent(
+        isPlayerSide: true,
+        speciesLabel: 'missingno',
+        spriteSpec: const BattleCombatantSpriteSpec(
+          facing: BattleCombatantSpriteFacing.back,
+          explicitImageAbsolutePath: '/tmp/does_not_exist_missingno_back.png',
+        ),
+      );
+
+      await component.onLoad();
+
+      expect(
+        component.currentRenderedSpriteRect.bottom,
+        closeTo(component.currentFootAnchor.dy, 0.01),
+      );
+      expect(component.currentRenderedSpriteRect.width, greaterThan(0));
+      expect(component.currentRenderedSpriteRect.height, greaterThan(0));
     });
   });
 

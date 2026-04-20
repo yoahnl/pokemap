@@ -1033,6 +1033,71 @@ void main() {
       );
     });
 
+    test('does not repeat the main prompt again in the narration body',
+        () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          enemy: _combatant(
+            speciesId: 'sparkitten',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      final commandPanel =
+          overlay.children.whereType<BattleCommandPanelComponent>().single;
+      expect(overlay.currentPromptText, equals('Que doit faire le joueur ?'));
+      expect(commandPanel.currentNarrationText,
+          isNot('Que doit faire le joueur ?'));
+      expect(
+        commandPanel.currentNarrationText,
+        isNot(contains('Que doit faire le joueur ?\nQue doit faire le joueur ?')),
+      );
+    });
+
+    test('keeps the resolved timeline visible when a real turn exists',
+        () async {
+      final initialSession = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+        enemy: _combatant(
+          speciesId: 'sparkitten',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+      );
+      final overlay = BattleOverlayComponent(
+        session: initialSession,
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      final nextSession =
+          initialSession.applyChoice(const PlayerBattleChoiceFight(0));
+      overlay.updateState(nextSession);
+      await overlay.waitForPendingVisualSync();
+
+      final commandPanel =
+          overlay.children.whereType<BattleCommandPanelComponent>().single;
+      expect(commandPanel.currentNarrationText, isNotEmpty);
+      expect(commandPanel.currentNarrationText, isNot('Choisis une action.'));
+    });
+
     test('shows resolved gender symbols in both hud labels when known',
         () async {
       final overlay = BattleOverlayComponent(

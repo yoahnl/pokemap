@@ -165,8 +165,8 @@ final class BattleSceneLayout {
       );
     }
 
-    const playerFootReference = Offset(218, 296);
-    const enemyFootReference = Offset(712, 208);
+    const playerFootReference = Offset(158, 322);
+    const enemyFootReference = Offset(724, 214);
     final playerFootAnchor = mapPoint(
       playerFootReference.dx,
       playerFootReference.dy,
@@ -178,26 +178,28 @@ final class BattleSceneLayout {
 
     final playerSpriteRect = rectFromFootAnchor(
       playerFootAnchor,
-      const Size(440, 264),
-      footXRatio: 0.57,
+      const Size(350, 214),
+      footXRatio: 0.70,
     );
     final enemySpriteRect = rectFromFootAnchor(
       enemyFootAnchor,
-      const Size(258, 182),
+      const Size(210, 154),
       footXRatio: 0.5,
     );
 
     final playerPlatformRect = platformRectFromFootAnchor(
       playerFootAnchor,
-      const Size(248, 36),
+      const Size(222, 28),
+      footYOffset: 5,
     );
     final enemyPlatformRect = platformRectFromFootAnchor(
       enemyFootAnchor,
-      const Size(176, 28),
+      const Size(160, 22),
+      footYOffset: 4,
     );
 
-    final enemyHudRect = mapRect(18, 14, 262, 84);
-    final playerHudRect = mapRect(640, 228, 286, 84);
+    final enemyHudRect = mapRect(16, 8, 210, 68);
+    final playerHudRect = mapRect(668, 232, 244, 72);
 
     return BattleSceneLayout._(
       viewportSize: viewportSize,

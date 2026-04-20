@@ -12,6 +12,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
     required Rect sceneSpriteRect,
     required Rect scenePlatformRect,
     required Offset sceneFootAnchor,
+    required double spriteFootXRatio,
     required this.isPlayerSide,
     required String speciesLabel,
     BattleCombatantSpriteSpec initialSpriteSpec =
@@ -32,6 +33,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
           sceneFootAnchor,
           _sceneBounds(sceneSpriteRect, scenePlatformRect),
         ),
+        _spriteFootXRatio = spriteFootXRatio,
         super(
           position: Vector2(
             _sceneBounds(sceneSpriteRect, scenePlatformRect).left,
@@ -52,6 +54,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
   final Rect _spriteRect;
   final Rect _platformRect;
   final Offset _footAnchor;
+  final double _spriteFootXRatio;
   ui.Image? _spriteImage;
   Rect? _spriteOpaqueSourceRect;
   String? _spriteSourcePath;
@@ -85,6 +88,10 @@ class BattleSceneCombatantComponent extends PositionComponent {
 
   @visibleForTesting
   Offset get currentFootAnchor => _footAnchor.translate(position.x, position.y);
+
+  @visibleForTesting
+  Rect get currentRenderedSpriteRect =>
+      _computeRenderedSpriteRect().shift(Offset(position.x, position.y));
 
   @override
   Future<void> onLoad() async {
@@ -240,9 +247,8 @@ class BattleSceneCombatantComponent extends PositionComponent {
             ));
     final fitted =
         applyBoxFit(BoxFit.contain, inputSubrect.size, _spriteRect.size);
-    final outputSubrect = Alignment.bottomCenter.inscribe(
-      fitted.destination,
-      _spriteRect,
+    final outputSubrect = _computeRenderedSpriteRect(
+      destinationSize: fitted.destination,
     );
     canvas.drawImageRect(
       image,
@@ -258,7 +264,9 @@ class BattleSceneCombatantComponent extends PositionComponent {
     final secondaryColor =
         isPlayerSide ? const Color(0xFF7DB4F7) : const Color(0xFFD7E8FF);
 
-    final spriteRect = _spriteRect;
+    final spriteRect = _computeRenderedSpriteRect(
+      destinationSize: _fallbackDestinationSize(),
+    );
     final bodyRect = Rect.fromCenter(
       center: Offset(
         spriteRect.left + (spriteRect.width * (isPlayerSide ? 0.42 : 0.6)),
@@ -274,8 +282,8 @@ class BattleSceneCombatantComponent extends PositionComponent {
 
     final chestRect = Rect.fromCenter(
       center: Offset(
-        size.x * (isPlayerSide ? 0.44 : 0.62),
-        size.y * (isPlayerSide ? 0.48 : 0.46),
+        spriteRect.left + (spriteRect.width * (isPlayerSide ? 0.44 : 0.62)),
+        spriteRect.top + (spriteRect.height * (isPlayerSide ? 0.48 : 0.46)),
       ),
       width: bodyRect.width * 0.72,
       height: bodyRect.height * 0.68,
@@ -347,6 +355,38 @@ class BattleSceneCombatantComponent extends PositionComponent {
     }
     return trimmed.substring(0, 1).toUpperCase();
   }
+
+  Rect _computeRenderedSpriteRect({
+    Size? destinationSize,
+  }) {
+    final targetSize = destinationSize ?? _fallbackDestinationSize();
+    return _renderedSpriteRectFor(
+      spriteRect: _spriteRect,
+      footAnchor: _footAnchor,
+      footXRatio: _spriteFootXRatio,
+      destinationSize: targetSize,
+    );
+  }
+
+  Size _fallbackDestinationSize() {
+    final sourceSize =
+        isPlayerSide ? const Size(172, 172) : const Size(132, 132);
+    return applyBoxFit(BoxFit.contain, sourceSize, _spriteRect.size).destination;
+  }
+}
+
+Rect _renderedSpriteRectFor({
+  required Rect spriteRect,
+  required Offset footAnchor,
+  required double footXRatio,
+  required Size destinationSize,
+}) {
+  return Rect.fromLTWH(
+    footAnchor.dx - (destinationSize.width * footXRatio),
+    footAnchor.dy - destinationSize.height,
+    destinationSize.width,
+    destinationSize.height,
+  );
 }
 
 Rect _sceneBounds(Rect sceneSpriteRect, Rect scenePlatformRect) {

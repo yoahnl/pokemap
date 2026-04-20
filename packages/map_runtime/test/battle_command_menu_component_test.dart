@@ -243,6 +243,125 @@ void main() {
         isTrue,
       );
     });
+
+    test('keeps root labels and subtitles inside buttons on a compact portrait panel',
+        () async {
+      final session = _session(
+        player: _combatant(
+          speciesId: 'charmander',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'scratch', name: 'Scratch'),
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'squirtle',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'tackle', name: 'Tackle'),
+          ],
+        ),
+      );
+      final panel = BattleCommandPanelComponent(
+        position: Vector2.zero(),
+        size: Vector2(360, 220),
+        onChoiceSelected: (_) {},
+        onRootActionSelected: (_) {},
+      );
+
+      await panel.onLoad();
+      panel.sync(
+        battleLabel: 'Combat sauvage',
+        prompt: 'Que doit faire le joueur ?',
+        narrationLines: const <String>['Choisis une action.'],
+        menuModel: buildBattleCommandMenuModel(
+          session: session,
+          mode: BattleCommandMenuMode.root,
+          selectedRootIndex: 0,
+          selectedChoiceIndex: 0,
+        ),
+      );
+
+      expect(panel.currentRootButtonSnapshots, hasLength(4));
+      final pokemonButton = panel.currentRootButtonSnapshots[2];
+      expect(
+        pokemonButton.titleRect.left,
+        greaterThanOrEqualTo(pokemonButton.bounds.left),
+      );
+      expect(
+        pokemonButton.titleRect.right,
+        lessThanOrEqualTo(pokemonButton.bounds.right),
+      );
+      if (pokemonButton.subtitleRect != null) {
+        expect(
+          pokemonButton.titleRect.overlaps(pokemonButton.subtitleRect!),
+          isFalse,
+        );
+        expect(
+          pokemonButton.subtitleRect!.right,
+          lessThanOrEqualTo(pokemonButton.bounds.right),
+        );
+      }
+    });
+
+    test('keeps root labels and disabled subtitles inside buttons on a small landscape panel',
+        () async {
+      final session = _session(
+        player: _combatant(
+          speciesId: 'charmander',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'scratch', name: 'Scratch'),
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'squirtle',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'tackle', name: 'Tackle'),
+          ],
+        ),
+      );
+      final panel = BattleCommandPanelComponent(
+        position: Vector2.zero(),
+        size: Vector2(300, 126),
+        onChoiceSelected: (_) {},
+        onRootActionSelected: (_) {},
+        layoutModeOverride: BattleCommandPanelLayoutMode.split,
+      );
+
+      await panel.onLoad();
+      panel.sync(
+        battleLabel: 'Combat sauvage',
+        prompt: 'Que doit faire le joueur ?',
+        narrationLines: const <String>['Choisis une action.'],
+        menuModel: buildBattleCommandMenuModel(
+          session: session,
+          mode: BattleCommandMenuMode.root,
+          selectedRootIndex: 0,
+          selectedChoiceIndex: 0,
+        ),
+      );
+
+      expect(panel.currentRootButtonSnapshots, hasLength(4));
+      for (final snapshot in panel.currentRootButtonSnapshots) {
+        expect(
+          snapshot.titleRect.left,
+          greaterThanOrEqualTo(snapshot.bounds.left),
+        );
+        expect(
+          snapshot.titleRect.right,
+          lessThanOrEqualTo(snapshot.bounds.right),
+        );
+        if (snapshot.subtitleRect != null) {
+          expect(snapshot.titleRect.overlaps(snapshot.subtitleRect!), isFalse);
+          expect(
+            snapshot.subtitleRect!.bottom,
+            lessThanOrEqualTo(snapshot.bounds.bottom),
+          );
+        }
+      }
+    });
   });
 
   group('Battle command menu interaction', () {

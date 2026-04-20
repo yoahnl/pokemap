@@ -365,6 +365,7 @@ class BattleOverlayComponent extends PositionComponent {
       sceneSpriteRect: layout.enemySpriteRect,
       scenePlatformRect: layout.enemyPlatformRect,
       sceneFootAnchor: layout.enemyFootAnchor,
+      spriteFootXRatio: 0.5,
       isPlayerSide: false,
       speciesLabel: _session.state.enemy.speciesId,
     );
@@ -374,6 +375,7 @@ class BattleOverlayComponent extends PositionComponent {
       sceneSpriteRect: layout.playerSpriteRect,
       scenePlatformRect: layout.playerPlatformRect,
       sceneFootAnchor: layout.playerFootAnchor,
+      spriteFootXRatio: 0.68,
       isPlayerSide: true,
       speciesLabel: _session.state.player.speciesId,
     );

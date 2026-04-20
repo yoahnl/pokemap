@@ -43,18 +43,24 @@ Future<RuntimeDemoPartySeed?> buildRuntimeHostLaunchDemoPartySeed({
       jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
   final projectRootUri = projectFile.parent.uri;
   final pokemonConfig = _readPokemonConfig(projectJson);
-
-  final speciesJsonEntries = await _readSpeciesEntries(
+  final preferredSpeciesEntry = await _tryReadPreferredSpeciesEntry(
     projectRootUri: projectRootUri,
     speciesDir: pokemonConfig.speciesDir,
   );
+  final speciesJsonEntries = preferredSpeciesEntry == null
+      ? await _readSpeciesEntries(
+          projectRootUri: projectRootUri,
+          speciesDir: pokemonConfig.speciesDir,
+        )
+      : <_RuntimeHostSpeciesJsonEntry>[preferredSpeciesEntry];
   if (speciesJsonEntries.isEmpty) {
     throw StateError(
       'Impossible de preparer un Pokemon de demo: aucune espece locale disponible.',
     );
   }
 
-  final selectedSpecies = _selectDemoSpeciesEntry(speciesJsonEntries);
+  final selectedSpecies =
+      preferredSpeciesEntry ?? _selectDemoSpeciesEntry(speciesJsonEntries);
   final speciesJson = selectedSpecies.json;
   final learnsetId = _readLearnsetId(speciesJson, selectedSpecies.id);
   final learnsetJson = await _readJsonMap(
@@ -194,6 +200,67 @@ Future<List<_RuntimeHostSpeciesJsonEntry>> _readSpeciesEntries({
   }
   entries.sort((left, right) => left.id.compareTo(right.id));
   return List<_RuntimeHostSpeciesJsonEntry>.unmodifiable(entries);
+}
+
+Future<_RuntimeHostSpeciesJsonEntry?> _tryReadPreferredSpeciesEntry({
+  required Uri projectRootUri,
+  required String speciesDir,
+}) async {
+  final speciesDirectory = Directory.fromUri(
+    projectRootUri.resolve('$speciesDir/'),
+  );
+  if (!await speciesDirectory.exists()) {
+    throw StateError(
+      'Impossible de preparer un Pokemon de demo: dossier species introuvable.',
+    );
+  }
+
+  final preferredFilesById = <String, File>{};
+  await for (final entity in speciesDirectory.list()) {
+    if (entity is! File || !entity.path.endsWith('.json')) {
+      continue;
+    }
+    final fileName = entity.uri.pathSegments.isEmpty
+        ? entity.path.toLowerCase()
+        : entity.uri.pathSegments.last.toLowerCase();
+    for (final preferredId in _preferredRuntimeDemoSpeciesIds) {
+      final normalizedPreferredId = preferredId.toLowerCase();
+      if (fileName == '$normalizedPreferredId.json' ||
+          fileName.endsWith('-$normalizedPreferredId.json')) {
+        preferredFilesById.putIfAbsent(normalizedPreferredId, () => entity);
+      }
+    }
+  }
+
+  for (final preferredId in _preferredRuntimeDemoSpeciesIds) {
+    final normalizedPreferredId = preferredId.toLowerCase();
+    final candidateFile = preferredFilesById[normalizedPreferredId];
+    if (candidateFile == null) {
+      continue;
+    }
+    final json = await _readJsonMap(candidateFile.uri);
+    final declaredId = (json['id'] as String?)?.trim();
+    if (declaredId == null || declaredId.isEmpty) {
+      continue;
+    }
+    final classification = (json['classification'] as Map<String, dynamic>?) ??
+        const <String, dynamic>{};
+    final isEnabledInProject =
+        (classification['isEnabledInProject'] as bool?) ?? true;
+    if (!isEnabledInProject) {
+      continue;
+    }
+    if (declaredId.toLowerCase() != normalizedPreferredId) {
+      continue;
+    }
+    return _RuntimeHostSpeciesJsonEntry(
+      id: declaredId,
+      isEnabledInProject: isEnabledInProject,
+      json: json,
+    );
+  }
+
+  return null;
 }
 
 Future<Map<String, dynamic>> _readJsonMap(Uri fileUri) async {
