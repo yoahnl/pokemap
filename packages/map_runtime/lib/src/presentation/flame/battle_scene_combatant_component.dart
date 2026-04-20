@@ -60,6 +60,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
   String? _spriteSourcePath;
   String? _pendingSpriteSourcePath;
   bool _didSpriteLoadFail = false;
+  double _hitFlashRemaining = 0;
   TextComponent? _speciesText;
   TextComponent? _monogramText;
 
@@ -92,6 +93,9 @@ class BattleSceneCombatantComponent extends PositionComponent {
   @visibleForTesting
   Rect get currentRenderedSpriteRect =>
       _computeRenderedSpriteRect().shift(Offset(position.x, position.y));
+
+  @visibleForTesting
+  bool get isHitFlashActive => _hitFlashRemaining > 0;
 
   @override
   Future<void> onLoad() async {
@@ -134,6 +138,21 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _speciesLabel = speciesLabel;
     _spriteSpec = spriteSpec;
     await _syncSpriteImage();
+  }
+
+  void triggerHitFlash({
+    double duration = 0.24,
+  }) {
+    _hitFlashRemaining = duration;
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    if (_hitFlashRemaining <= 0) {
+      return;
+    }
+    _hitFlashRemaining = (_hitFlashRemaining - dt).clamp(0, double.infinity);
   }
 
   @override
@@ -254,15 +273,17 @@ class BattleSceneCombatantComponent extends PositionComponent {
       image,
       inputSubrect,
       outputSubrect,
-      Paint()..filterQuality = FilterQuality.none,
+      _spritePaint(),
     );
   }
 
   void _renderSilhouette(Canvas canvas) {
-    final primaryColor =
-        isPlayerSide ? const Color(0xFF3E4B7E) : const Color(0xFF6B87B7);
-    final secondaryColor =
-        isPlayerSide ? const Color(0xFF7DB4F7) : const Color(0xFFD7E8FF);
+    final primaryColor = _flashAdjustedColor(
+      isPlayerSide ? const Color(0xFF3E4B7E) : const Color(0xFF6B87B7),
+    );
+    final secondaryColor = _flashAdjustedColor(
+      isPlayerSide ? const Color(0xFF7DB4F7) : const Color(0xFFD7E8FF),
+    );
 
     final spriteRect = _computeRenderedSpriteRect(
       destinationSize: _fallbackDestinationSize(),
@@ -371,7 +392,34 @@ class BattleSceneCombatantComponent extends PositionComponent {
   Size _fallbackDestinationSize() {
     final sourceSize =
         isPlayerSide ? const Size(172, 172) : const Size(132, 132);
-    return applyBoxFit(BoxFit.contain, sourceSize, _spriteRect.size).destination;
+    return applyBoxFit(BoxFit.contain, sourceSize, _spriteRect.size)
+        .destination;
+  }
+
+  Paint _spritePaint() {
+    final paint = Paint()..filterQuality = FilterQuality.none;
+    if (!_shouldRenderFlashTint) {
+      return paint;
+    }
+    paint.colorFilter = const ColorFilter.mode(
+      Color(0xCCFFFFFF),
+      BlendMode.modulate,
+    );
+    return paint;
+  }
+
+  Color _flashAdjustedColor(Color color) {
+    if (!_shouldRenderFlashTint) {
+      return color;
+    }
+    return Color.lerp(color, const Color(0xFFF7FBFF), 0.45) ?? color;
+  }
+
+  bool get _shouldRenderFlashTint {
+    if (_hitFlashRemaining <= 0) {
+      return false;
+    }
+    return ((_hitFlashRemaining * 18).floor() % 2) == 0;
   }
 }
 

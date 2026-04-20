@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:map_battle/map_battle.dart';
@@ -20,6 +22,7 @@ class BattleSceneHudComponent extends PositionComponent {
     required this.isPlayerSide,
     this.initialGenderSymbol,
   })  : _combatant = combatant,
+        _displayedHp = combatant.currentHp.toDouble(),
         super(
           position: position,
           size: size,
@@ -32,6 +35,11 @@ class BattleSceneHudComponent extends PositionComponent {
   final String? initialGenderSymbol;
   BattleCombatant _combatant;
   String? _genderSymbol;
+  double _displayedHp;
+  double? _hpAnimationFrom;
+  double? _hpAnimationTo;
+  double _hpAnimationElapsed = 0;
+  double _hpAnimationDuration = 0;
   RectangleComponent? _hpBarFill;
   BattleSceneHudLayout? _layout;
 
@@ -55,7 +63,8 @@ class BattleSceneHudComponent extends PositionComponent {
       );
 
   @visibleForTesting
-  Rect get currentNameRect => currentLayout.nameRect.shift(Offset(position.x, position.y));
+  Rect get currentNameRect =>
+      currentLayout.nameRect.shift(Offset(position.x, position.y));
 
   @visibleForTesting
   Rect? get currentGenderRect =>
@@ -76,6 +85,12 @@ class BattleSceneHudComponent extends PositionComponent {
   @visibleForTesting
   Rect? get currentStatusRect =>
       currentLayout.statusRect?.shift(Offset(position.x, position.y));
+
+  @visibleForTesting
+  double get currentDisplayedHp => _displayedHp;
+
+  @visibleForTesting
+  bool get isHpAnimationActive => _hpAnimationTo != null;
 
   @override
   Future<void> onLoad() async {
@@ -106,32 +121,58 @@ class BattleSceneHudComponent extends PositionComponent {
   void sync({
     required BattleCombatant combatant,
     String? genderSymbol,
+    int? startingDisplayedHp,
   }) {
+    final shouldResetDisplayedHp = startingDisplayedHp == null ||
+        !_isSameVisibleCombatant(_combatant, combatant);
     _combatant = combatant;
-    _genderSymbol = genderSymbol?.trim().isEmpty ?? true
-        ? null
-        : genderSymbol?.trim();
-    _layout = BattleSceneHudLayout.forBounds(
-      hudRect: Offset.zero & Size(size.x, size.y),
-      isPlayerSide: isPlayerSide,
-      speciesText: combatant.speciesId,
-      genderSymbol: _genderSymbol,
-      levelText: 'Lv.${combatant.level}',
-      hpValueText: _hpValueText,
-      statusText: _statusLabel(combatant),
-    );
+    _genderSymbol =
+        genderSymbol?.trim().isEmpty ?? true ? null : genderSymbol?.trim();
+    if (shouldResetDisplayedHp) {
+      _displayedHp = combatant.currentHp.toDouble();
+      _clearHpAnimation();
+    } else {
+      _displayedHp = startingDisplayedHp.toDouble();
+    }
+    _layout = _buildLayout();
+    _updateHpBarFill();
+  }
 
-    final safeMaxHp = combatant.maxHp <= 0 ? 1 : combatant.maxHp;
-    final hpRatio = (combatant.currentHp / safeMaxHp).clamp(0.0, 1.0);
-    _hpBarFill?.position = Vector2(
-      currentLayout.hpBarRect.left,
-      currentLayout.hpBarRect.top,
-    );
-    _hpBarFill?.size = Vector2(
-      currentLayout.hpBarRect.width * hpRatio,
-      currentLayout.hpBarRect.height,
-    );
-    _hpBarFill?.paint.color = _hpColor(hpRatio);
+  void animateDisplayedHp({
+    required int fromHp,
+    required int toHp,
+    double duration = 0.34,
+  }) {
+    _displayedHp = fromHp.toDouble();
+    _hpAnimationFrom = fromHp.toDouble();
+    _hpAnimationTo = toHp.toDouble();
+    _hpAnimationElapsed = 0;
+    _hpAnimationDuration = duration;
+    _layout = _buildLayout();
+    _updateHpBarFill();
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    final hpAnimationTo = _hpAnimationTo;
+    final hpAnimationFrom = _hpAnimationFrom;
+    if (hpAnimationTo == null || hpAnimationFrom == null) {
+      return;
+    }
+    _hpAnimationElapsed += dt;
+    final progress = (_hpAnimationElapsed /
+            (_hpAnimationDuration <= 0 ? 0.0001 : _hpAnimationDuration))
+        .clamp(0.0, 1.0);
+    _displayedHp = ui.lerpDouble(hpAnimationFrom, hpAnimationTo, progress)!;
+    _layout = _buildLayout();
+    _updateHpBarFill();
+    if (progress >= 1) {
+      _displayedHp = hpAnimationTo;
+      _clearHpAnimation();
+      _layout = _buildLayout();
+      _updateHpBarFill();
+    }
   }
 
   @override
@@ -279,8 +320,8 @@ class BattleSceneHudComponent extends PositionComponent {
       : '${_combatant.speciesId} $_genderSymbol';
 
   String get _hpValueText => isPlayerSide
-      ? '${_combatant.currentHp}/${_combatant.maxHp}'
-      : '${(((_combatant.currentHp) / (_combatant.maxHp <= 0 ? 1 : _combatant.maxHp)) * 100).round()}%';
+      ? '${_displayedHp.round()}/${_combatant.maxHp}'
+      : '${(((_displayedHp) / (_combatant.maxHp <= 0 ? 1 : _combatant.maxHp)) * 100).round()}%';
 
   String _statusLabel(BattleCombatant combatant) {
     if (combatant.isFainted) {
@@ -301,6 +342,47 @@ class BattleSceneHudComponent extends PositionComponent {
       return const Color(0xFFD9A84B);
     }
     return const Color(0xFF62C06E);
+  }
+
+  BattleSceneHudLayout _buildLayout() {
+    return BattleSceneHudLayout.forBounds(
+      hudRect: Offset.zero & Size(size.x, size.y),
+      isPlayerSide: isPlayerSide,
+      speciesText: _combatant.speciesId,
+      genderSymbol: _genderSymbol,
+      levelText: 'Lv.${_combatant.level}',
+      hpValueText: _hpValueText,
+      statusText: _statusLabel(_combatant),
+    );
+  }
+
+  void _updateHpBarFill() {
+    final safeMaxHp = _combatant.maxHp <= 0 ? 1 : _combatant.maxHp;
+    final hpRatio = (_displayedHp / safeMaxHp).clamp(0.0, 1.0);
+    _hpBarFill?.position = Vector2(
+      currentLayout.hpBarRect.left,
+      currentLayout.hpBarRect.top,
+    );
+    _hpBarFill?.size = Vector2(
+      currentLayout.hpBarRect.width * hpRatio,
+      currentLayout.hpBarRect.height,
+    );
+    _hpBarFill?.paint.color = _hpColor(hpRatio);
+  }
+
+  void _clearHpAnimation() {
+    _hpAnimationFrom = null;
+    _hpAnimationTo = null;
+    _hpAnimationElapsed = 0;
+    _hpAnimationDuration = 0;
+  }
+
+  bool _isSameVisibleCombatant(
+    BattleCombatant current,
+    BattleCombatant next,
+  ) {
+    return current.lineupIndex == next.lineupIndex &&
+        current.speciesId == next.speciesId;
   }
 }
 

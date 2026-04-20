@@ -19,6 +19,7 @@ import 'package:map_runtime/src/presentation/flame/battle_scene_backdrop_compone
 import 'package:map_runtime/src/presentation/flame/battle_scene_combatant_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_hud_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
+import 'package:map_runtime/src/presentation/flame/battle_turn_presentation.dart';
 
 BattleStatsSnapshot _stats({
   int attack = 60,
@@ -1090,7 +1091,8 @@ void main() {
           isNot('Que doit faire le joueur ?'));
       expect(
         commandPanel.currentNarrationText,
-        isNot(contains('Que doit faire le joueur ?\nQue doit faire le joueur ?')),
+        isNot(
+            contains('Que doit faire le joueur ?\nQue doit faire le joueur ?')),
       );
     });
 
@@ -1123,8 +1125,8 @@ void main() {
 
       final commandPanel =
           overlay.children.whereType<BattleCommandPanelComponent>().single;
-      expect(commandPanel.currentNarrationText, isNotEmpty);
-      expect(commandPanel.currentNarrationText, isNot('Choisis une action.'));
+      expect(commandPanel.currentPromptText, isNotEmpty);
+      expect(commandPanel.currentNarrationText, isEmpty);
     });
 
     test('shows resolved gender symbols in both hud labels when known',
@@ -1200,6 +1202,94 @@ void main() {
       await overlay.waitForPendingVisualSync();
 
       expect(overlay.currentPlayerHudSpeciesText, equals('aquafi ♂'));
+    });
+
+    test('plays a short turn presentation with flash and hp tween on damage',
+        () async {
+      final session = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          currentHp: 40,
+          stats: _stats(speed: 120, attack: 180),
+          moves: <BattleMoveData>[_tackle(power: 180)],
+        ),
+        enemy: _combatant(
+          speciesId: 'sparkitten',
+          lineupIndex: 0,
+          maxHp: 24,
+          currentHp: 24,
+          stats: _stats(speed: 40, defense: 20),
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+      final overlay = BattleOverlayComponent(
+        session: session,
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+      await overlay.waitForPendingVisualSync();
+
+      final initialEnemyHud = overlay.children
+          .whereType<BattleSceneHudComponent>()
+          .singleWhere((hud) => !hud.belongsToPlayerSide);
+      final initialEnemyCombatant = overlay.children
+          .whereType<BattleSceneCombatantComponent>()
+          .singleWhere((combatant) => !combatant.belongsToPlayerSide);
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+      final currentTurn = afterTurn.state.currentTurn!;
+      final expectedSteps = buildBattleTurnPresentationSteps(
+        playerBefore: session.state.player,
+        enemyBefore: session.state.enemy,
+        turnResult: currentTurn,
+      );
+
+      expect(expectedSteps, isNotEmpty);
+      expect(expectedSteps.first.animatesDamage, isTrue);
+
+      overlay.updateState(afterTurn);
+      await overlay.waitForPendingVisualSync();
+      final commandPanel =
+          overlay.children.whereType<BattleCommandPanelComponent>().single;
+
+      expect(overlay.isTurnPresentationActive, isTrue);
+      expect(overlay.currentPromptText, equals(expectedSteps.first.message));
+      expect(commandPanel.currentNarrationText, isEmpty);
+      expect(
+        initialEnemyHud.currentDisplayedHp.round(),
+        equals(session.state.enemy.currentHp),
+      );
+      expect(initialEnemyCombatant.isHitFlashActive, isFalse);
+      expect(overlay.validateSelectedChoice(), isFalse);
+
+      overlay.updateTree(0.20);
+
+      expect(initialEnemyCombatant.isHitFlashActive, isTrue);
+      expect(initialEnemyHud.isHpAnimationActive, isTrue);
+
+      overlay.updateTree(0.05);
+
+      expect(
+        initialEnemyHud.currentDisplayedHp,
+        lessThan(session.state.enemy.currentHp.toDouble()),
+      );
+      expect(
+        initialEnemyHud.currentDisplayedHp,
+        greaterThan(afterTurn.state.enemy.currentHp.toDouble()),
+      );
+
+      overlay.updateTree(1.5);
+
+      expect(overlay.isTurnPresentationActive, isFalse);
+      expect(initialEnemyCombatant.isHitFlashActive, isFalse);
+      expect(initialEnemyHud.isHpAnimationActive, isFalse);
+      expect(
+        initialEnemyHud.currentDisplayedHp.round(),
+        equals(afterTurn.state.enemy.currentHp),
+      );
     });
   });
 }

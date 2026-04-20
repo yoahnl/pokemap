@@ -222,6 +222,8 @@ class BattleCommandPanelComponent extends PositionComponent {
     required String prompt,
     required List<String> narrationLines,
     required BattleCommandMenuModel menuModel,
+    bool allowEmptyNarrationBody = false,
+    bool interactionsEnabled = true,
   }) {
     _menuModel = menuModel;
     _battleLabelText?.text = battleLabel.toUpperCase();
@@ -230,13 +232,14 @@ class BattleCommandPanelComponent extends PositionComponent {
     final clippedNarration = _sanitizeNarrationBody(
       prompt: prompt,
       narrationLines: narrationLines,
+      allowEmptyFallback: allowEmptyNarrationBody,
     );
     _currentNarrationValue = clippedNarration.join('\n');
     _narrationBodyText?.text = _currentNarrationValue;
     _commandTitleText?.text =
         menuModel.isRootMode ? '' : menuModel.choiceGroupTitle;
     _hintText?.text = _hintFor(menuModel);
-    _renderInteractiveArea();
+    _renderInteractiveArea(interactionsEnabled: interactionsEnabled);
   }
 
   @override
@@ -301,7 +304,9 @@ class BattleCommandPanelComponent extends PositionComponent {
     }
   }
 
-  void _renderInteractiveArea() {
+  void _renderInteractiveArea({
+    required bool interactionsEnabled,
+  }) {
     for (final component in _interactiveComponents) {
       component.removeFromParent();
     }
@@ -313,19 +318,31 @@ class BattleCommandPanelComponent extends PositionComponent {
     }
 
     if (_menuModel.isRootMode) {
-      _renderRootEntries(commandsPanel);
+      _renderRootEntries(
+        commandsPanel,
+        interactionsEnabled: interactionsEnabled,
+      );
       return;
     }
 
     if (_menuModel.isContinueOnly) {
-      _renderChoiceEntries(commandsPanel);
+      _renderChoiceEntries(
+        commandsPanel,
+        interactionsEnabled: interactionsEnabled,
+      );
       return;
     }
 
-    _renderChoiceEntries(commandsPanel);
+    _renderChoiceEntries(
+      commandsPanel,
+      interactionsEnabled: interactionsEnabled,
+    );
   }
 
-  void _renderRootEntries(PositionComponent commandsPanel) {
+  void _renderRootEntries(
+    PositionComponent commandsPanel, {
+    required bool interactionsEnabled,
+  }) {
     final layout = _layout ?? _BattleCommandPanelLayout.forSize(size);
     _rootButtonSnapshots.clear();
     final top =
@@ -362,13 +379,17 @@ class BattleCommandPanelComponent extends PositionComponent {
         isSelected: index == _menuModel.selectedRootIndex,
         onPressed: onRootActionSelected,
         compact: layout.mode == BattleCommandPanelLayoutMode.stacked,
+        interactionsEnabled: interactionsEnabled,
       );
       _interactiveComponents.add(card);
       commandsPanel.add(card);
     }
   }
 
-  void _renderChoiceEntries(PositionComponent commandsPanel) {
+  void _renderChoiceEntries(
+    PositionComponent commandsPanel, {
+    required bool interactionsEnabled,
+  }) {
     final layout = _layout ?? _BattleCommandPanelLayout.forSize(size);
     final top = _menuModel.isContinueOnly
         ? (layout.mode == BattleCommandPanelLayoutMode.stacked ? 16.0 : 28.0)
@@ -404,6 +425,7 @@ class BattleCommandPanelComponent extends PositionComponent {
         isSelected: index == _menuModel.selectedChoiceIndex,
         onPressed: onChoiceSelected,
         compact: layout.mode == BattleCommandPanelLayoutMode.stacked,
+        interactionsEnabled: interactionsEnabled,
       );
       _interactiveComponents.add(card);
       commandsPanel.add(card);
@@ -423,6 +445,7 @@ class BattleCommandPanelComponent extends PositionComponent {
   List<String> _sanitizeNarrationBody({
     required String prompt,
     required List<String> narrationLines,
+    required bool allowEmptyFallback,
   }) {
     final normalizedPrompt = prompt.trim().toLowerCase();
     final sanitized = narrationLines
@@ -433,6 +456,9 @@ class BattleCommandPanelComponent extends PositionComponent {
         .toList(growable: false);
     if (sanitized.isNotEmpty) {
       return sanitized;
+    }
+    if (allowEmptyFallback) {
+      return const <String>[];
     }
     return const <String>['Choisis une action.'];
   }
@@ -447,6 +473,7 @@ class _BattleRootButtonComponent extends PositionComponent with TapCallbacks {
     required this.isSelected,
     required this.onPressed,
     this.compact = false,
+    this.interactionsEnabled = true,
   }) : super(
           position: position,
           size: size,
@@ -459,6 +486,7 @@ class _BattleRootButtonComponent extends PositionComponent with TapCallbacks {
   final bool isSelected;
   final void Function(BattleCommandRootAction action) onPressed;
   final bool compact;
+  final bool interactionsEnabled;
 
   @override
   bool containsLocalPoint(Vector2 point) {
@@ -470,7 +498,7 @@ class _BattleRootButtonComponent extends PositionComponent with TapCallbacks {
 
   @override
   void onTapDown(TapDownEvent event) {
-    if (!entry.enabled) {
+    if (!interactionsEnabled || !entry.enabled) {
       return;
     }
     onPressed(entry.action);
@@ -511,8 +539,7 @@ class _BattleRootButtonComponent extends PositionComponent with TapCallbacks {
       text: entry.label,
       rect: snapshot.titleRect,
       fontSize: snapshot.titleFontSize,
-      color:
-          entry.enabled ? const Color(0xFFFDFDFD) : const Color(0x9AFDFDFD),
+      color: entry.enabled ? const Color(0xFFFDFDFD) : const Color(0x9AFDFDFD),
       align: TextAlign.center,
       fontWeight: FontWeight.w900,
     );
@@ -539,6 +566,7 @@ class _BattleChoiceCardComponent extends PositionComponent with TapCallbacks {
     required this.isSelected,
     required this.onPressed,
     this.compact = false,
+    this.interactionsEnabled = true,
   }) : super(
           position: position,
           size: size,
@@ -550,6 +578,7 @@ class _BattleChoiceCardComponent extends PositionComponent with TapCallbacks {
   final bool isSelected;
   final void Function(PlayerBattleChoice choice) onPressed;
   final bool compact;
+  final bool interactionsEnabled;
 
   TextComponent? _titleText;
   TextComponent? _subtitleText;
@@ -598,6 +627,9 @@ class _BattleChoiceCardComponent extends PositionComponent with TapCallbacks {
 
   @override
   void onTapDown(TapDownEvent event) {
+    if (!interactionsEnabled) {
+      return;
+    }
     onPressed(entry.choice);
   }
 

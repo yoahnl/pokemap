@@ -15,6 +15,7 @@ import 'battle_scene_layout.dart';
 import 'battle_scene_backdrop_component.dart';
 import 'battle_scene_combatant_component.dart';
 import 'battle_scene_hud_component.dart';
+import 'battle_turn_presentation.dart';
 
 /// Retourne le prompt de décision à afficher pour la requête courante.
 ///
@@ -300,10 +301,19 @@ class BattleOverlayComponent extends PositionComponent {
   TextComponent? _outcomeBanner;
   Future<void>? _pendingVisualSync;
   BattleSceneLayout? _sceneLayout;
+  List<BattleTurnPresentationStep> _turnPresentationSteps =
+      const <BattleTurnPresentationStep>[];
+  int _turnPresentationIndex = 0;
+  double _turnPresentationElapsed = 0;
+  bool _turnPresentationEffectTriggered = false;
 
   BattleCommandMenuMode _menuMode = BattleCommandMenuMode.root;
   int _selectedRootIndex = 0;
   int _selectedChoiceIndex = 0;
+
+  static const double _presentationEffectDelaySeconds = 0.16;
+  static const double _presentationImpactStepSeconds = 0.62;
+  static const double _presentationMessageOnlyStepSeconds = 0.42;
 
   @visibleForTesting
   bool get commandPanelMounted => _commandPanel != null;
@@ -319,6 +329,7 @@ class BattleOverlayComponent extends PositionComponent {
 
   @visibleForTesting
   String get currentPromptText =>
+      _commandPanel?.currentPromptText ??
       buildBattleDecisionPromptForOverlay(_session.decisionRequest);
 
   @visibleForTesting
@@ -327,6 +338,9 @@ class BattleOverlayComponent extends PositionComponent {
 
   @visibleForTesting
   BattleCommandMenuMode get currentMenuMode => _menuMode;
+
+  @visibleForTesting
+  bool get isTurnPresentationActive => _currentTurnPresentationStep != null;
 
   @visibleForTesting
   String get currentPlayerHudSpeciesText =>
@@ -447,9 +461,15 @@ class BattleOverlayComponent extends PositionComponent {
   /// - un vrai resolver contextuel plus riche restera un sujet futur côté
   ///   runtime, pas un effet secondaire de `BattleSession`.
   void updateState(BattleSession newSession) {
+    final previousSession = _session;
+    final presentationSteps = _buildTurnPresentationSteps(
+      previousSession: previousSession,
+      newSession: newSession,
+    );
     _session = newSession;
+    _startTurnPresentation(presentationSteps);
     _normalizeMenuSelection();
-    _pendingVisualSync = _syncVisualState();
+    _pendingVisualSync = _syncVisualState(previousSession: previousSession);
     unawaited(_pendingVisualSync);
   }
 
@@ -470,6 +490,9 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   PlayerBattleChoice? getSelectedChoice() {
+    if (isTurnPresentationActive) {
+      return null;
+    }
     final menuModel = _currentMenuModel();
     if (menuModel.isRootMode || menuModel.choiceEntries.isEmpty) {
       return null;
@@ -478,6 +501,9 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   bool validateSelectedChoice() {
+    if (isTurnPresentationActive) {
+      return false;
+    }
     final menuModel = _currentMenuModel();
     if (menuModel.isContinueOnly) {
       final selectedChoice = menuModel.choiceEntries.first.choice;
@@ -499,6 +525,9 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   bool handleEscape() {
+    if (isTurnPresentationActive) {
+      return false;
+    }
     final menuModel = _currentMenuModel();
     if (menuModel.isContinueOnly) {
       return false;
@@ -518,7 +547,28 @@ class BattleOverlayComponent extends PositionComponent {
     return false;
   }
 
-  Future<void> _syncVisualState() async {
+  @override
+  void update(double dt) {
+    final currentStep = _currentTurnPresentationStep;
+    if (currentStep == null) {
+      super.update(dt);
+      return;
+    }
+    _turnPresentationElapsed += dt;
+    if (!_turnPresentationEffectTriggered &&
+        _turnPresentationElapsed >= _presentationEffectDelaySeconds) {
+      _turnPresentationEffectTriggered = true;
+      _applyTurnPresentationEffect(currentStep);
+    }
+    super.update(dt);
+    if (_turnPresentationElapsed >= _durationForPresentationStep(currentStep)) {
+      _advanceTurnPresentationStep();
+    }
+  }
+
+  Future<void> _syncVisualState({
+    BattleSession? previousSession,
+  }) async {
     if (_enemyCombatant != null) {
       final enemySpriteSpec = await _resolveCombatantSpriteSpec(
         speciesId: _session.state.enemy.speciesId,
@@ -545,12 +595,20 @@ class BattleOverlayComponent extends PositionComponent {
         combatant: _session.state.enemy,
         isPlayerSide: false,
       ),
+      startingDisplayedHp: _presentationStartingHpForSide(
+        side: BattleSideId.enemy,
+        previousSession: previousSession,
+      ),
     );
     _playerHud?.sync(
       combatant: _session.state.player,
       genderSymbol: _resolveCombatantGenderSymbol(
         combatant: _session.state.player,
         isPlayerSide: true,
+      ),
+      startingDisplayedHp: _presentationStartingHpForSide(
+        side: BattleSideId.player,
+        previousSession: previousSession,
       ),
     );
     _syncPanelsOnly();
@@ -601,12 +659,19 @@ class BattleOverlayComponent extends PositionComponent {
   void _syncPanelsOnly() {
     _syncMenuStateFromModel();
     final menuModel = _currentMenuModel();
+    final currentPresentationStep = _currentTurnPresentationStep;
+    final isPresenting = currentPresentationStep != null;
 
     _commandPanel?.sync(
       battleLabel: _titleForSession(),
-      prompt: buildBattleDecisionPromptForOverlay(_session.decisionRequest),
-      narrationLines: buildBattleNarrationLinesForOverlay(_session),
+      prompt: currentPresentationStep?.message ??
+          buildBattleDecisionPromptForOverlay(_session.decisionRequest),
+      narrationLines: isPresenting
+          ? const <String>[]
+          : buildBattleNarrationLinesForOverlay(_session),
       menuModel: menuModel,
+      allowEmptyNarrationBody: isPresenting,
+      interactionsEnabled: !isPresenting,
     );
 
     _debugPanel?.sync(
@@ -623,6 +688,9 @@ class BattleOverlayComponent extends PositionComponent {
     required int horizontalDelta,
     required int verticalDelta,
   }) {
+    if (isTurnPresentationActive) {
+      return false;
+    }
     final menuModel = _currentMenuModel();
     if (menuModel.isContinueOnly) {
       return false;
@@ -781,5 +849,111 @@ class BattleOverlayComponent extends PositionComponent {
       return 'Combat dresseur';
     }
     return 'Combat sauvage';
+  }
+
+  List<BattleTurnPresentationStep> _buildTurnPresentationSteps({
+    required BattleSession previousSession,
+    required BattleSession newSession,
+  }) {
+    final currentTurn = newSession.state.currentTurn;
+    if (currentTurn == null) {
+      return const <BattleTurnPresentationStep>[];
+    }
+    if (!_isSameVisibleCombatant(
+          previousSession.state.player,
+          newSession.state.player,
+        ) ||
+        !_isSameVisibleCombatant(
+          previousSession.state.enemy,
+          newSession.state.enemy,
+        )) {
+      return const <BattleTurnPresentationStep>[];
+    }
+    return buildBattleTurnPresentationSteps(
+      playerBefore: previousSession.state.player,
+      enemyBefore: previousSession.state.enemy,
+      turnResult: currentTurn,
+    );
+  }
+
+  void _startTurnPresentation(List<BattleTurnPresentationStep> steps) {
+    if (steps.isEmpty) {
+      _turnPresentationSteps = const <BattleTurnPresentationStep>[];
+      _turnPresentationIndex = 0;
+      _turnPresentationElapsed = 0;
+      _turnPresentationEffectTriggered = false;
+      return;
+    }
+    _turnPresentationSteps = List<BattleTurnPresentationStep>.unmodifiable(
+      steps,
+    );
+    _turnPresentationIndex = 0;
+    _turnPresentationElapsed = 0;
+    _turnPresentationEffectTriggered = false;
+  }
+
+  BattleTurnPresentationStep? get _currentTurnPresentationStep =>
+      _turnPresentationIndex >= _turnPresentationSteps.length
+          ? null
+          : _turnPresentationSteps[_turnPresentationIndex];
+
+  double _durationForPresentationStep(BattleTurnPresentationStep step) {
+    return step.animatesDamage
+        ? _presentationImpactStepSeconds
+        : _presentationMessageOnlyStepSeconds;
+  }
+
+  void _advanceTurnPresentationStep() {
+    _turnPresentationIndex += 1;
+    _turnPresentationElapsed = 0;
+    _turnPresentationEffectTriggered = false;
+    if (_turnPresentationIndex >= _turnPresentationSteps.length) {
+      _turnPresentationSteps = const <BattleTurnPresentationStep>[];
+      _turnPresentationIndex = 0;
+    }
+    _syncPanelsOnly();
+  }
+
+  void _applyTurnPresentationEffect(BattleTurnPresentationStep step) {
+    final targetSide = step.flashTargetSide;
+    final hpFrom = step.hpFrom;
+    final hpTo = step.hpTo;
+    if (targetSide == null || hpFrom == null || hpTo == null) {
+      return;
+    }
+    final isPlayerSide = targetSide == BattleSideId.player;
+    final combatant = isPlayerSide ? _playerCombatant : _enemyCombatant;
+    final hud = isPlayerSide ? _playerHud : _enemyHud;
+    combatant?.triggerHitFlash();
+    hud?.animateDisplayedHp(fromHp: hpFrom, toHp: hpTo);
+  }
+
+  int? _presentationStartingHpForSide({
+    required BattleSideId side,
+    required BattleSession? previousSession,
+  }) {
+    if (previousSession == null ||
+        !isTurnPresentationActive ||
+        !_turnPresentationSteps.any((step) => step.flashTargetSide == side)) {
+      return null;
+    }
+    final previousCombatant = side == BattleSideId.player
+        ? previousSession.state.player
+        : previousSession.state.enemy;
+    final currentCombatant = side == BattleSideId.player
+        ? _session.state.player
+        : _session.state.enemy;
+    if (!_isSameVisibleCombatant(previousCombatant, currentCombatant)) {
+      return null;
+    }
+    return previousCombatant.currentHp;
+  }
+
+  bool _isSameVisibleCombatant(
+    BattleCombatant current,
+    BattleCombatant next,
+  ) {
+    return current.lineupIndex == next.lineupIndex &&
+        current.speciesId == next.speciesId;
   }
 }
