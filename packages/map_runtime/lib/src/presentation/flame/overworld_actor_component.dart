@@ -1,9 +1,9 @@
 import 'dart:math' as math;
-import 'dart:ui' as ui;
-
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
+
+import '../../infrastructure/runtime_tileset_image.dart';
 
 class OverworldActorComponent extends PositionComponent {
   OverworldActorComponent({
@@ -32,7 +32,7 @@ class OverworldActorComponent extends PositionComponent {
         );
 
   final ProjectCharacterEntry character;
-  final Map<String, ui.Image> tileImages;
+  final Map<String, RuntimeTilesetImage> tileImages;
   final int _tileWidth;
   final int _tileHeight;
   final double _cellWidth;
@@ -258,7 +258,7 @@ class OverworldActorComponent extends PositionComponent {
       srcW.toDouble(),
       srcH.toDouble(),
     );
-    if (srcRect.right > image.width || srcRect.bottom > image.height) {
+    if (!image.containsSourceRect(srcRect)) {
       _renderFallback(canvas);
       return;
     }
@@ -268,8 +268,8 @@ class OverworldActorComponent extends PositionComponent {
         : 0.0;
     canvas.save();
     canvas.translate(0, bobY);
-    canvas.drawImageRect(
-      image,
+    image.drawImageRect(
+      canvas,
       srcRect,
       Rect.fromLTWH(0, 0, size.x, size.y),
       Paint()..filterQuality = FilterQuality.none,

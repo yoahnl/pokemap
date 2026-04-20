@@ -1,5 +1,3 @@
-import 'dart:ui' as ui;
-
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
@@ -8,6 +6,7 @@ import 'package:map_gameplay/map_gameplay.dart';
 import '../../application/runtime_character_refs.dart';
 import '../../application/runtime_manifest_tilesets.dart';
 import '../../application/runtime_map_bundle.dart';
+import '../../infrastructure/runtime_tileset_image.dart';
 import 'runtime_path_autotile.dart';
 
 const int _kEntityFrameDurationFallbackMs = 200;
@@ -60,7 +59,7 @@ class MapLayersComponent extends PositionComponent {
   }
 
   final RuntimeMapBundle bundle;
-  final Map<String, ui.Image> tileImagesByTilesetId;
+  final Map<String, RuntimeTilesetImage> tileImagesByTilesetId;
   final MapLayerRenderPass renderPass;
   bool showCollisionOverlay;
 
@@ -344,7 +343,7 @@ class MapLayersComponent extends PositionComponent {
         srcW.toDouble(),
         srcH.toDouble(),
       );
-      if (srcRect.right > image.width || srcRect.bottom > image.height) {
+      if (!image.containsSourceRect(srcRect)) {
         continue;
       }
       final bounds = Rect.fromLTWH(
@@ -359,7 +358,7 @@ class MapLayersComponent extends PositionComponent {
 
   void _paintEntityFrame(
     Canvas canvas,
-    ui.Image image,
+    RuntimeTilesetImage image,
     Rect src,
     Rect bounds,
   ) {
@@ -376,8 +375,8 @@ class MapLayersComponent extends PositionComponent {
       final w = h * srcAr;
       dst = Rect.fromCenter(center: bounds.center, width: w, height: h);
     }
-    canvas.drawImageRect(
-      image,
+    image.drawImageRect(
+      canvas,
       src,
       dst,
       Paint()..filterQuality = FilterQuality.none,
@@ -494,17 +493,17 @@ class MapLayersComponent extends PositionComponent {
         final row = sourceIndex ~/ cols;
         final sx = col * tw;
         final sy = row * th;
-        if (sx + tw > image.width || sy + th > image.height) {
-          continue;
-        }
         final src = Rect.fromLTWH(
           sx.toDouble(),
           sy.toDouble(),
           tw.toDouble(),
           th.toDouble(),
         );
+        if (!image.containsSourceRect(src)) {
+          continue;
+        }
         final dst = Rect.fromLTWH(x * cw, y * ch, cw, ch);
-        canvas.drawImageRect(image, src, dst, paint);
+        image.drawImageRect(canvas, src, dst, paint);
       }
     }
   }
@@ -838,17 +837,17 @@ class MapLayersComponent extends PositionComponent {
     }
     final sx = (frame.source.x + animatedCell.localX) * tw;
     final sy = (frame.source.y + animatedCell.localY) * th;
-    if (sx + tw > image.width || sy + th > image.height) {
-      return false;
-    }
     final src = Rect.fromLTWH(
       sx.toDouble(),
       sy.toDouble(),
       tw.toDouble(),
       th.toDouble(),
     );
+    if (!image.containsSourceRect(src)) {
+      return false;
+    }
     final dst = Rect.fromLTWH(x * dstWidth, y * dstHeight, dstWidth, dstHeight);
-    canvas.drawImageRect(image, src, dst, paint);
+    image.drawImageRect(canvas, src, dst, paint);
     return true;
   }
 
@@ -1047,20 +1046,17 @@ class MapLayersComponent extends PositionComponent {
     final offsetY = tileIndex ~/ width;
     final sourceX = (sourceRect.x + offsetX) * tw;
     final sourceY = (sourceRect.y + offsetY) * th;
-    if (sourceX < 0 ||
-        sourceY < 0 ||
-        sourceX + tw > tilesetImage.width ||
-        sourceY + th > tilesetImage.height) {
-      return false;
-    }
     final srcRect = Rect.fromLTWH(
       sourceX.toDouble(),
       sourceY.toDouble(),
       tw.toDouble(),
       th.toDouble(),
     );
-    canvas.drawImageRect(
-      tilesetImage,
+    if (!tilesetImage.containsSourceRect(srcRect)) {
+      return false;
+    }
+    tilesetImage.drawImageRect(
+      canvas,
       srcRect,
       cell,
       Paint()
@@ -1441,20 +1437,17 @@ class MapLayersComponent extends PositionComponent {
     }
     final sourceX = source.x * tw;
     final sourceY = source.y * th;
-    if (sourceX < 0 ||
-        sourceY < 0 ||
-        sourceX + tw > tilesetImage.width ||
-        sourceY + th > tilesetImage.height) {
-      return false;
-    }
     final srcRect = Rect.fromLTWH(
       sourceX.toDouble(),
       sourceY.toDouble(),
       tw.toDouble(),
       th.toDouble(),
     );
-    canvas.drawImageRect(
-      tilesetImage,
+    if (!tilesetImage.containsSourceRect(srcRect)) {
+      return false;
+    }
+    tilesetImage.drawImageRect(
+      canvas,
       srcRect,
       dstRect,
       Paint()

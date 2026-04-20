@@ -1,11 +1,10 @@
 import 'dart:math' as math;
-import 'dart:ui' as ui;
-
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 
+import '../../infrastructure/runtime_tileset_image.dart';
 import '../../application/runtime_map_bundle.dart';
 import 'overworld_actor_component.dart';
 
@@ -42,7 +41,7 @@ class PlayerComponent extends PositionComponent {
 
   final RuntimeMapBundle bundle;
   final ProjectCharacterEntry? characterEntry;
-  final Map<String, ui.Image> tileImages;
+  final Map<String, RuntimeTilesetImage> tileImages;
 
   GameplayPlayerState _state;
   Vector2 _mapOrigin;

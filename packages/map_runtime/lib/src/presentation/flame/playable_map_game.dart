@@ -48,6 +48,7 @@ import '../../application/step_studio_completion_runtime.dart';
 import '../../application/step_studio_world_presence_runtime.dart';
 import '../../application/story_flags_manager.dart';
 import '../../application/trainer_battle_request.dart';
+import '../../infrastructure/runtime_tileset_image.dart';
 import '../../infrastructure/tile_image_loader.dart';
 import 'battle_overlay_component.dart';
 import 'battle_background_resolver.dart';
@@ -4404,7 +4405,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     // 3. Charger newImages (avec error handling)
-    Map<String, ui.Image> newImages;
+    Map<String, RuntimeTilesetImage> newImages;
     try {
       newImages =
           await loadTilesetImagesById(newBundle.tilesetAbsolutePathsById);
@@ -5202,7 +5203,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   Future<_LoadedPlayableMap> _mountLoadedMap({
     required RuntimeMapBundle bundle,
-    required Map<String, ui.Image> tileImagesById,
+    required Map<String, RuntimeTilesetImage> tileImagesById,
     required int originCellX,
     required int originCellY,
   }) async {

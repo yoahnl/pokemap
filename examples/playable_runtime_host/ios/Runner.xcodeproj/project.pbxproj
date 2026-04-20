@@ -375,6 +375,8 @@
 				DEVELOPMENT_TEAM = X93A7E6KX4;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = PokeMap;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.adventure-games";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -555,6 +557,8 @@
 				DEVELOPMENT_TEAM = X93A7E6KX4;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = PokeMap;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.adventure-games";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -578,6 +582,8 @@
 				DEVELOPMENT_TEAM = X93A7E6KX4;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = Runner/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = PokeMap;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.adventure-games";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",

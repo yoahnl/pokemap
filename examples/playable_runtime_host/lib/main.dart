@@ -13,6 +13,8 @@ import 'package:path/path.dart' as p;
 
 import 'src/in_game_menu.dart';
 import 'src/runtime_demo_party_seed.dart';
+import 'src/runtime_ios_controller_bridge.dart';
+import 'src/runtime_ios_project_picker.dart';
 import 'src/runtime_launch_save.dart';
 import 'src/runtime_launch_options.dart';
 import 'src/runtime_pokedex_loader.dart';
@@ -48,18 +50,21 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   bool _showCollisionOverlay = false;
   bool _showNpcCollisionDebugOverlay = false;
   bool _showFpsOverlay = false;
+  bool _showRuntimeDebugPanel = true;
   bool _surfingEnabled = false;
   bool _seedDemoPokemon = true;
   bool _saveLoadBusy = false;
   String? _saveLoadStatus;
   String? _saveLoadError;
   Timer? _runtimeInfoTicker;
+  StreamSubscription<Object?>? _runtimeIosControllerSubscription;
 
   static const _prefsFileName = '.playable_runtime_host_prefs.json';
 
   @override
   void initState() {
     super.initState();
+    _bindIosControllerInputsIfNeeded();
     _restoreLastSession();
   }
 
@@ -68,7 +73,23 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     // Le ticker d'overlay est strictement local au host et doit toujours être
     // arrêté quand la page sort, pour éviter toute fuite de rafraîchissement.
     _runtimeInfoTicker?.cancel();
+    _runtimeIosControllerSubscription?.cancel();
     super.dispose();
+  }
+
+  void _bindIosControllerInputsIfNeeded() {
+    if (kIsWeb || !Platform.isIOS || _runtimeIosControllerSubscription != null) {
+      return;
+    }
+    _runtimeIosControllerSubscription = listenToRuntimeIosControllerEvents(
+      dispatch: (event) {
+        final game = _game;
+        if (game == null) {
+          return false;
+        }
+        return game.handleRuntimeInputEvent(event);
+      },
+    );
   }
 
   // Les préférences locales du host ne font pas partie de la save gameplay.
@@ -265,14 +286,17 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       _error = null;
     });
     try {
-      final result = await pickRuntimeProjectDirectory(
-        pickDirectoryPath: () {
-          return FilePicker.platform.getDirectoryPath(
-            dialogTitle: 'Choisir un dossier projet',
-          );
-        },
-        importProjectJsonPath: _ensureProjectCopiedToDocuments,
-      );
+      final result =
+          !kIsWeb && Platform.isIOS
+              ? await pickRuntimeProjectDirectoryOnIos()
+              : await pickRuntimeProjectDirectory(
+                  pickDirectoryPath: () {
+                    return FilePicker.platform.getDirectoryPath(
+                      dialogTitle: 'Choisir un dossier projet',
+                    );
+                  },
+                  importProjectJsonPath: _ensureProjectCopiedToDocuments,
+                );
       if (!mounted) {
         return;
       }
@@ -535,6 +559,20 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
             onPressed: _reset,
           ),
           actions: [
+            IconButton(
+              key: const Key('runtime-debug-panel-toggle-button'),
+              tooltip: _showRuntimeDebugPanel
+                  ? 'Masquer le panneau debug'
+                  : 'Afficher le panneau debug',
+              icon: Icon(
+                _showRuntimeDebugPanel
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+              ),
+              onPressed: () {
+                setState(() => _showRuntimeDebugPanel = !_showRuntimeDebugPanel);
+              },
+            ),
             // Le menu in-game est volontairement minimal :
             // un seul bouton ouvre les écrans lecture seule de la phase 10.
             IconButton(
@@ -547,147 +585,149 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         body: Stack(
           children: [
             GameWidget(game: game),
-            Positioned(
-              top: 12,
-              right: 12,
-              child: Card(
-                color: Colors.black.withValues(alpha: 0.55),
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'Collisions',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          const SizedBox(width: 8),
-                          Switch(
-                            value: _showCollisionOverlay,
-                            onChanged: _saveLoadBusy
-                                ? null
-                                : (v) {
-                                    setState(() => _showCollisionOverlay = v);
-                                    game.setCollisionOverlayVisible(v);
-                                  },
-                          ),
-                        ],
-                      ),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'FPS',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          const SizedBox(width: 8),
-                          Switch(
-                            value: _showFpsOverlay,
-                            onChanged: _saveLoadBusy
-                                ? null
-                                : (v) {
-                                    setState(() => _showFpsOverlay = v);
-                                    game.setFpsOverlayVisible(v);
-                                  },
-                          ),
-                        ],
-                      ),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'Surf',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          const SizedBox(width: 8),
-                          Switch(
-                            value: _surfingEnabled,
-                            onChanged: _saveLoadBusy
-                                ? null
-                                : (v) {
-                                    setState(() => _surfingEnabled = v);
-                                    game.setSurfingEnabled(v);
-                                  },
-                          ),
-                        ],
-                      ),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'NPC hitbox',
-                            style: TextStyle(color: Colors.white),
-                          ),
-                          const SizedBox(width: 8),
-                          Switch(
-                            value: _showNpcCollisionDebugOverlay,
-                            onChanged: _saveLoadBusy
-                                ? null
-                                : (v) {
-                                    setState(
-                                      () => _showNpcCollisionDebugOverlay = v,
-                                    );
-                                    game.setNpcCollisionDebugOverlayVisible(v);
-                                  },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Map: ${info.mapId}',
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                      Text(
-                        'Pos: (${info.playerX}, ${info.playerY})  Face: ${info.facing}',
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                      Text(
-                        'Mode: ${info.movementMode}',
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                      Text(
-                        'FPS: ${game.currentFps.toStringAsFixed(1)}',
-                        style: const TextStyle(color: Colors.lightGreenAccent),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          FilledButton.tonal(
-                            onPressed: _saveLoadBusy ? null : _saveGame,
-                            child: const Text('Sauvegarder'),
-                          ),
-                          const SizedBox(width: 8),
-                          FilledButton(
-                            onPressed: _saveLoadBusy ? null : _loadGame,
-                            child: const Text('Charger'),
-                          ),
-                        ],
-                      ),
-                      if (_saveLoadStatus != null) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          _saveLoadStatus!,
-                          style: const TextStyle(color: Colors.greenAccent),
+            if (_showRuntimeDebugPanel)
+              Positioned(
+                top: 12,
+                right: 12,
+                child: Card(
+                  color: Colors.black.withValues(alpha: 0.55),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'Collisions',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            const SizedBox(width: 8),
+                            Switch(
+                              value: _showCollisionOverlay,
+                              onChanged: _saveLoadBusy
+                                  ? null
+                                  : (v) {
+                                      setState(() => _showCollisionOverlay = v);
+                                      game.setCollisionOverlayVisible(v);
+                                    },
+                            ),
+                          ],
                         ),
-                      ],
-                      if (_saveLoadError != null) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          _saveLoadError!,
-                          style: const TextStyle(color: Colors.redAccent),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'FPS',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            const SizedBox(width: 8),
+                            Switch(
+                              value: _showFpsOverlay,
+                              onChanged: _saveLoadBusy
+                                  ? null
+                                  : (v) {
+                                      setState(() => _showFpsOverlay = v);
+                                      game.setFpsOverlayVisible(v);
+                                    },
+                            ),
+                          ],
                         ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'Surf',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            const SizedBox(width: 8),
+                            Switch(
+                              value: _surfingEnabled,
+                              onChanged: _saveLoadBusy
+                                  ? null
+                                  : (v) {
+                                      setState(() => _surfingEnabled = v);
+                                      game.setSurfingEnabled(v);
+                                    },
+                            ),
+                          ],
+                        ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text(
+                              'NPC hitbox',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            const SizedBox(width: 8),
+                            Switch(
+                              value: _showNpcCollisionDebugOverlay,
+                              onChanged: _saveLoadBusy
+                                  ? null
+                                  : (v) {
+                                      setState(
+                                        () => _showNpcCollisionDebugOverlay = v,
+                                      );
+                                      game.setNpcCollisionDebugOverlayVisible(v);
+                                    },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Map: ${info.mapId}',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        Text(
+                          'Pos: (${info.playerX}, ${info.playerY})  Face: ${info.facing}',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        Text(
+                          'Mode: ${info.movementMode}',
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        Text(
+                          'FPS: ${game.currentFps.toStringAsFixed(1)}',
+                          style:
+                              const TextStyle(color: Colors.lightGreenAccent),
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            FilledButton.tonal(
+                              onPressed: _saveLoadBusy ? null : _saveGame,
+                              child: const Text('Sauvegarder'),
+                            ),
+                            const SizedBox(width: 8),
+                            FilledButton(
+                              onPressed: _saveLoadBusy ? null : _loadGame,
+                              child: const Text('Charger'),
+                            ),
+                          ],
+                        ),
+                        if (_saveLoadStatus != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            _saveLoadStatus!,
+                            style: const TextStyle(color: Colors.greenAccent),
+                          ),
+                        ],
+                        if (_saveLoadError != null) ...[
+                          const SizedBox(height: 8),
+                          Text(
+                            _saveLoadError!,
+                            style: const TextStyle(color: Colors.redAccent),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
           ],
         ),
       );
