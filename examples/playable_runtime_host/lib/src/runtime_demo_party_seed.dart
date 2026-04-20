@@ -1,9 +1,15 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:map_core/map_core.dart';
+
 const kRuntimeDemoSeedLevel = 25;
 const kRuntimeDemoSeedCurrentHp = 60;
 const kRuntimeDemoSeedSaveId = 'runtime-host-demo-save';
+const _runtimeDemoSeedBagEntries = <BagEntry>[
+  BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
+  BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+];
 const _preferredRuntimeDemoSpeciesIds = <String>[
   'squirtle',
   'carapuce',
@@ -38,6 +44,33 @@ class RuntimeDemoPartyPokemonSeed {
   final int level;
   final int currentHp;
   final List<String> knownMoveIds;
+}
+
+SaveData buildRuntimeHostLaunchDemoSaveData({
+  required String mapId,
+  required RuntimeDemoPartySeed seed,
+}) {
+  return SaveData(
+    saveId: kRuntimeDemoSeedSaveId,
+    currentMapId: mapId,
+    party: PlayerParty(
+      members: seed.members
+          .map(
+            (member) => PlayerPokemon(
+              speciesId: member.speciesId,
+              natureId: 'hardy',
+              abilityId: member.abilityId,
+              gender: member.gender,
+              level: member.level,
+              knownMoveIds: member.knownMoveIds,
+              currentHp: member.currentHp,
+            ),
+          )
+          .toList(growable: false),
+    ),
+    trainerProfile: const TrainerProfile(name: 'Demo'),
+    bag: const Bag(entries: _runtimeDemoSeedBagEntries),
+  );
 }
 
 Future<RuntimeDemoPartySeed?> buildRuntimeHostLaunchDemoPartySeed({

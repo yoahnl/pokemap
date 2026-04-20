@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
 import 'package:playable_runtime_host/src/runtime_demo_party_seed.dart';
 
 void main() {
@@ -139,6 +140,35 @@ void main() {
       final member = seed!.members.first;
       expect(member.speciesId, equals('squirtle'));
       expect(member.abilityId, equals('torrent'));
+    });
+
+    test('builds a demo save with seeded bag entries', () async {
+      const seed = RuntimeDemoPartySeed(
+        members: <RuntimeDemoPartyPokemonSeed>[
+          RuntimeDemoPartyPokemonSeed(
+            speciesId: 'squirtle',
+            abilityId: 'torrent',
+            gender: 'male',
+            level: 25,
+            currentHp: 60,
+            knownMoveIds: <String>['tackle', 'tail_whip'],
+          ),
+        ],
+      );
+
+      final saveData = buildRuntimeHostLaunchDemoSaveData(
+        mapId: 'lab',
+        seed: seed,
+      );
+
+      expect(saveData.saveId, equals(kRuntimeDemoSeedSaveId));
+      expect(saveData.currentMapId, equals('lab'));
+      expect(saveData.party.members, hasLength(1));
+      expect(saveData.party.members.single.speciesId, equals('squirtle'));
+      expect(saveData.bag.entries, equals(const <BagEntry>[
+        BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
+        BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+      ]));
     });
   });
 }
