@@ -52,6 +52,8 @@ import '../../infrastructure/tile_image_loader.dart';
 import 'battle_overlay_component.dart';
 import 'battle_background_resolver.dart';
 import 'battle_pokemon_sprite_resolver.dart';
+import 'runtime_input_event.dart';
+import 'runtime_input_key_bindings.dart';
 import 'battle_transition_overlay_component.dart';
 import 'dialogue_overlay_component.dart';
 import 'map_layers_component.dart';
@@ -108,8 +110,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   String _activeMapId = '';
   String? _previousMapId;
   _RuntimeFlowPhase _flowPhase = _RuntimeFlowPhase.overworld;
-  final Set<LogicalKeyboardKey> _pressedKeys = <LogicalKeyboardKey>{};
-  LogicalKeyboardKey? _lastMoveKey;
+  final Set<RuntimeInputControl> _pressedMovementControls =
+      <RuntimeInputControl>{};
+  RuntimeInputControl? _lastMovementControl;
   TriggeredWarp? _pendingWarp;
   TriggeredConnection? _pendingConnection;
   BattleStartRequest? _pendingBattleRequest;
@@ -755,183 +758,169 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     KeyEvent event,
     Set<LogicalKeyboardKey> keysPressed,
   ) {
-    final isDown = event is KeyDownEvent || event is KeyRepeatEvent;
-    final isUp = event is KeyUpEvent;
-    final key = event.logicalKey;
+    final runtimeEvent = runtimeInputEventFromKeyEvent(event);
+    if (runtimeEvent == null) {
+      return KeyEventResult.ignored;
+    }
+    return handleRuntimeInputEvent(runtimeEvent)
+        ? KeyEventResult.handled
+        : KeyEventResult.ignored;
+  }
 
-    // IMPORTANT: Handle battle phase FIRST before movement keys
-    // Otherwise arrow keys will be captured by movement handler
+  /// Point d'entrée public pour injecter des commandes runtime depuis une autre
+  /// source que le clavier: boutons tactiles Flutter, bridge plateforme,
+  /// remapping host, etc.
+  ///
+  /// Le contrat reste volontairement borné aux commandes réellement supportées
+  /// par le runtime actuel. On ne transforme pas `PlayableMapGame` en système
+  /// générique d'input; on donne juste un seam honnête pour ne plus dépendre
+  /// directement des `LogicalKeyboardKey`.
+  bool handleRuntimeInputEvent(RuntimeInputEvent event) {
+    if (!isLoaded) {
+      return false;
+    }
+
+    final control = event.control;
+
     if (_flowPhase == _RuntimeFlowPhase.battle) {
       final overlay = _battleOverlay;
-      if (overlay != null) {
-        if (key == LogicalKeyboardKey.arrowUp && isDown) {
-          final changed = overlay.moveSelectionUp();
-          debugPrint('[battle] ArrowUp pressed, selection changed=$changed');
-          return KeyEventResult.handled;
-        }
-        if (key == LogicalKeyboardKey.arrowDown && isDown) {
-          final changed = overlay.moveSelectionDown();
-          debugPrint('[battle] ArrowDown pressed, selection changed=$changed');
-          return KeyEventResult.handled;
-        }
-        if (key == LogicalKeyboardKey.arrowLeft && isDown) {
-          final changed = overlay.moveSelectionLeft();
-          debugPrint('[battle] ArrowLeft pressed, selection changed=$changed');
-          return KeyEventResult.handled;
-        }
-        if (key == LogicalKeyboardKey.arrowRight && isDown) {
-          final changed = overlay.moveSelectionRight();
-          debugPrint('[battle] ArrowRight pressed, selection changed=$changed');
-          return KeyEventResult.handled;
-        }
-        if (event is KeyDownEvent &&
-            (key == LogicalKeyboardKey.keyE ||
-                key == LogicalKeyboardKey.space ||
-                key == LogicalKeyboardKey.enter)) {
-          if (_flowPhase != _RuntimeFlowPhase.battle) {
-            debugPrint(
-                '[battle] Validate key pressed but phase changed to $_flowPhase, IGNORING');
-            return KeyEventResult.ignored;
-          }
-          if (_battleOverlay == null) {
-            debugPrint(
-                '[battle] Validate key pressed but overlay is null, IGNORING');
-            return KeyEventResult.ignored;
-          }
-          final selectedChoice = overlay.getSelectedChoice();
-          debugPrint(
-              '[battle] Validate key pressed (E/Space/Enter), selectedChoice=$selectedChoice');
-          final validated = overlay.validateSelectedChoice();
-          debugPrint('[battle] validateSelectedChoice returned=$validated');
-          return KeyEventResult.handled;
-        }
-        if (event is KeyDownEvent && key == LogicalKeyboardKey.escape) {
-          final handled = overlay.handleEscape();
-          debugPrint('[battle] Escape pressed, handled=$handled');
-          return handled ? KeyEventResult.handled : KeyEventResult.ignored;
-        }
-      } else {
-        debugPrint('[battle] Keyboard event but overlay is null!');
+      if (overlay == null) {
+        debugPrint('[battle] Runtime input but overlay is null!');
+        return false;
       }
-      return KeyEventResult.ignored;
+      if (event.isPress &&
+          control == RuntimeInputControl.up) {
+        final changed = overlay.moveSelectionUp();
+        debugPrint('[battle] Up pressed, selection changed=$changed');
+        return true;
+      }
+      if (event.isPress &&
+          control == RuntimeInputControl.down) {
+        final changed = overlay.moveSelectionDown();
+        debugPrint('[battle] Down pressed, selection changed=$changed');
+        return true;
+      }
+      if (event.isPress &&
+          control == RuntimeInputControl.left) {
+        final changed = overlay.moveSelectionLeft();
+        debugPrint('[battle] Left pressed, selection changed=$changed');
+        return true;
+      }
+      if (event.isPress &&
+          control == RuntimeInputControl.right) {
+        final changed = overlay.moveSelectionRight();
+        debugPrint('[battle] Right pressed, selection changed=$changed');
+        return true;
+      }
+      if (event.isPress &&
+          !event.isRepeat &&
+          control == RuntimeInputControl.primary) {
+        if (_flowPhase != _RuntimeFlowPhase.battle || _battleOverlay == null) {
+          debugPrint(
+            '[battle] Validate input pressed but phase changed to $_flowPhase, IGNORING',
+          );
+          return false;
+        }
+        final selectedChoice = overlay.getSelectedChoice();
+        debugPrint(
+          '[battle] Validate input pressed, selectedChoice=$selectedChoice',
+        );
+        final validated = overlay.validateSelectedChoice();
+        debugPrint('[battle] validateSelectedChoice returned=$validated');
+        return true;
+      }
+      if (event.isPress &&
+          !event.isRepeat &&
+          control == RuntimeInputControl.secondary) {
+        final handled = overlay.handleEscape();
+        debugPrint('[battle] Secondary input pressed, handled=$handled');
+        return handled;
+      }
+      return false;
     }
 
     // Pendant une cutscene active en overworld, on bloque les entrées joueur
     // directes (déplacement/interact) pour garder la scène déterministe.
     if (isCutsceneRunning && _flowPhase == _RuntimeFlowPhase.overworld) {
-      if (_isMovementKey(key)) {
-        _pressedKeys.remove(key);
-        if (_lastMoveKey == key) {
-          _lastMoveKey = null;
-        }
-        return KeyEventResult.handled;
+      if (_isMovementControl(control)) {
+        _releaseMovementControl(control);
+        return true;
       }
-      if (event is KeyDownEvent &&
-          (key == LogicalKeyboardKey.keyE ||
-              key == LogicalKeyboardKey.space ||
-              key == LogicalKeyboardKey.enter)) {
-        return KeyEventResult.handled;
+      if (event.isPress && control == RuntimeInputControl.primary) {
+        return true;
       }
     }
 
-    // Déplacement scripté joueur (scénario / cutscene): pas d’entrées clavier.
+    // Déplacement scripté joueur (scénario / cutscene): pas d’entrées directes.
     if (_suppressOverworldInputForScriptedPlayerMovement() &&
         _flowPhase == _RuntimeFlowPhase.overworld) {
-      if (_isMovementKey(key)) {
-        _pressedKeys.remove(key);
-        if (_lastMoveKey == key) {
-          _lastMoveKey = null;
-        }
-        return KeyEventResult.handled;
+      if (_isMovementControl(control)) {
+        _releaseMovementControl(control);
+        return true;
       }
-      if (event is KeyDownEvent &&
-          (key == LogicalKeyboardKey.keyE ||
-              key == LogicalKeyboardKey.space ||
-              key == LogicalKeyboardKey.enter)) {
-        return KeyEventResult.handled;
+      if (event.isPress && control == RuntimeInputControl.primary) {
+        return true;
       }
     }
 
-    // Handle movement keys (but NOT during battle)
-    if (_isMovementKey(key)) {
+    if (_isMovementControl(control)) {
       if (_flowPhase == _RuntimeFlowPhase.dialogue) {
-        _pressedKeys.remove(key);
-        if (_lastMoveKey == key) {
-          _lastMoveKey = null;
-        }
-        if ((_dialogueOverlay?.isShowingChoices ?? false) && isDown) {
-          if (key == LogicalKeyboardKey.arrowUp) {
+        _releaseMovementControl(control);
+        if ((_dialogueOverlay?.isShowingChoices ?? false) && event.isPress) {
+          if (control == RuntimeInputControl.up) {
             _moveChoiceCursor(-1);
-          } else if (key == LogicalKeyboardKey.arrowDown) {
+          } else if (control == RuntimeInputControl.down) {
             _moveChoiceCursor(1);
           }
         }
-        return KeyEventResult.handled;
+        return true;
       }
       if (_flowPhase != _RuntimeFlowPhase.overworld) {
-        _pressedKeys.remove(key);
-        if (_lastMoveKey == key) {
-          _lastMoveKey = null;
-        }
-        return KeyEventResult.handled;
+        _releaseMovementControl(control);
+        return true;
       }
-      if (isDown) {
-        _pressedKeys.add(key);
-        _lastMoveKey = key;
-      } else if (isUp) {
-        _pressedKeys.remove(key);
-        if (_lastMoveKey == key) {
-          _lastMoveKey = null;
-        }
+      if (event.isPress) {
+        _pressMovementControl(control);
+      } else if (event.isRelease) {
+        _releaseMovementControl(control);
       }
-      return KeyEventResult.handled;
+      return true;
     }
 
     if (_flowPhase == _RuntimeFlowPhase.mapTransition ||
         _flowPhase == _RuntimeFlowPhase.battleTransition) {
-      return KeyEventResult.ignored;
+      return false;
     }
-    if (!isDown) return KeyEventResult.ignored;
+    if (!event.isPress || event.isRepeat) {
+      return false;
+    }
 
     if (_flowPhase == _RuntimeFlowPhase.dialogue) {
       final overlay = _dialogueOverlay!;
       if (overlay.isShowingChoices) {
-        if (key == LogicalKeyboardKey.arrowUp) {
-          _moveChoiceCursor(-1);
-          return KeyEventResult.handled;
-        }
-        if (key == LogicalKeyboardKey.arrowDown) {
-          _moveChoiceCursor(1);
-          return KeyEventResult.handled;
-        }
-        if (event is KeyDownEvent &&
-            (key == LogicalKeyboardKey.keyE ||
-                key == LogicalKeyboardKey.space)) {
+        if (control == RuntimeInputControl.primary) {
           _confirmDialogueChoice();
-          return KeyEventResult.handled;
+          return true;
         }
       } else {
-        if (event is KeyDownEvent &&
-            (key == LogicalKeyboardKey.keyE ||
-                key == LogicalKeyboardKey.space)) {
+        if (control == RuntimeInputControl.primary) {
           _advanceDialogue();
-          return KeyEventResult.handled;
+          return true;
         }
       }
-      return KeyEventResult.ignored;
+      return false;
     }
 
     if (_flowPhase != _RuntimeFlowPhase.overworld) {
-      return KeyEventResult.ignored;
+      return false;
     }
 
-    if (event is KeyDownEvent &&
-        (key == LogicalKeyboardKey.keyE || key == LogicalKeyboardKey.space)) {
+    if (control == RuntimeInputControl.primary) {
       _handleInteract();
-      return KeyEventResult.handled;
+      return true;
     }
 
-    return KeyEventResult.handled;
+    return false;
   }
 
   @override
@@ -1011,49 +1000,60 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
-  bool _isMovementKey(LogicalKeyboardKey key) {
-    return key == LogicalKeyboardKey.arrowUp ||
-        key == LogicalKeyboardKey.arrowDown ||
-        key == LogicalKeyboardKey.arrowLeft ||
-        key == LogicalKeyboardKey.arrowRight ||
-        key == LogicalKeyboardKey.keyW ||
-        key == LogicalKeyboardKey.keyA ||
-        key == LogicalKeyboardKey.keyS ||
-        key == LogicalKeyboardKey.keyD;
+  bool _isMovementControl(RuntimeInputControl control) {
+    return control == RuntimeInputControl.up ||
+        control == RuntimeInputControl.down ||
+        control == RuntimeInputControl.left ||
+        control == RuntimeInputControl.right;
   }
 
-  GameplayIntent? _intentFromPressedKeys() {
-    Direction? dirFor(LogicalKeyboardKey key) {
-      if (key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.keyW) {
+  Direction? _directionForControl(RuntimeInputControl control) {
+    switch (control) {
+      case RuntimeInputControl.up:
         return Direction.north;
-      }
-      if (key == LogicalKeyboardKey.arrowDown ||
-          key == LogicalKeyboardKey.keyS) {
+      case RuntimeInputControl.down:
         return Direction.south;
-      }
-      if (key == LogicalKeyboardKey.arrowLeft ||
-          key == LogicalKeyboardKey.keyA) {
+      case RuntimeInputControl.left:
         return Direction.west;
-      }
-      if (key == LogicalKeyboardKey.arrowRight ||
-          key == LogicalKeyboardKey.keyD) {
+      case RuntimeInputControl.right:
         return Direction.east;
+      case RuntimeInputControl.primary:
+      case RuntimeInputControl.secondary:
+        return null;
+    }
+  }
+
+  void _pressMovementControl(RuntimeInputControl control) {
+    if (!_isMovementControl(control)) {
+      return;
+    }
+    _pressedMovementControls.add(control);
+    _lastMovementControl = control;
+  }
+
+  void _releaseMovementControl(RuntimeInputControl control) {
+    if (!_isMovementControl(control)) {
+      return;
+    }
+    _pressedMovementControls.remove(control);
+    if (_lastMovementControl == control) {
+      _lastMovementControl = null;
+    }
+  }
+
+  GameplayIntent? _intentFromPressedMovementControls() {
+    final preferred = _lastMovementControl;
+    if (preferred != null && _pressedMovementControls.contains(preferred)) {
+      final direction = _directionForControl(preferred);
+      if (direction != null) {
+        return MoveIntent(direction);
       }
-      return null;
     }
 
-    final preferred = _lastMoveKey;
-    if (preferred != null && _pressedKeys.contains(preferred)) {
-      final d = dirFor(preferred);
-      if (d != null) {
-        return MoveIntent(d);
-      }
-    }
-
-    for (final key in _pressedKeys) {
-      final d = dirFor(key);
-      if (d != null) {
-        return MoveIntent(d);
+    for (final control in _pressedMovementControls) {
+      final direction = _directionForControl(control);
+      if (direction != null) {
+        return MoveIntent(direction);
       }
     }
     return null;
@@ -1061,14 +1061,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   void _driveMovement() {
     if (_suppressOverworldInputForScriptedPlayerMovement()) {
-      _clearPressedMovementKeys();
+      _clearPressedMovementControls();
       return;
     }
     if (_player.isStepping) {
       return;
     }
 
-    final intent = _intentFromPressedKeys();
+    final intent = _intentFromPressedMovementControls();
     if (intent == null) {
       _player.syncState(_world.player);
       return;
@@ -2094,11 +2094,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     return status.state == ScriptedEntityMovementState.moving;
   }
 
-  void _clearPressedMovementKeys() {
-    _pressedKeys.removeWhere(_isMovementKey);
-    if (_lastMoveKey != null && !_pressedKeys.contains(_lastMoveKey!)) {
-      _lastMoveKey = null;
-    }
+  void _clearPressedMovementControls() {
+    _pressedMovementControls.clear();
+    _lastMovementControl = null;
   }
 
   void _processPendingScenarioNpcWarpEntries() {
@@ -3176,8 +3174,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _activeBattleContext = null;
     _isBattleResolving = false;
     _flowPhase = _RuntimeFlowPhase.overworld;
-    _pressedKeys.clear();
-    _lastMoveKey = null;
+    _clearPressedMovementControls();
     debugPrint(
       '[battle] handoff cancelled message="$userMessage" details=${debugDetails ?? 'n/a'}',
     );
@@ -3303,8 +3300,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // car il est marqué defeated dans storyFlags (guard dans _checkTrainerLineOfSight).
 
     _flowPhase = _RuntimeFlowPhase.overworld;
-    _pressedKeys.clear();
-    _lastMoveKey = null;
+    _clearPressedMovementControls();
     debugPrint('[battle] overworld resumed');
   }
 
@@ -3926,8 +3922,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   void _openDialogue(DialogueSession session) {
     _notification?.removeFromParent();
     _notification = null;
-    _pressedKeys.clear();
-    _lastMoveKey = null;
+    _clearPressedMovementControls();
     _flowPhase = _RuntimeFlowPhase.dialogue;
 
     final overlay = DialogueOverlayComponent(
@@ -5022,8 +5017,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _activeBattleContext = null;
     _warpTransitionOverlay?.removeFromParent();
     _warpTransitionOverlay = null;
-    _pressedKeys.clear();
-    _lastMoveKey = null;
+    _clearPressedMovementControls();
   }
 
   void _unmountAllLoadedMaps() {

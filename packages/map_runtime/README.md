@@ -58,7 +58,8 @@ void main() async {
     ),
   ));
 
-  // Or: playable game (arrows/WASD to move, E/Space to interact)
+  // Or: playable game (keyboard by default, plus public input seam for
+  // controller/touch bridges)
   runApp(MaterialApp(
     home: Scaffold(
       body: GameWidget(
@@ -74,7 +75,7 @@ void main() async {
 
 `loadRuntimeMapBundle` validates the project and map and resolves all required tileset paths.
 `RuntimeMapGame` loads the tileset images and renders the map as a read-only viewer.
-`PlayableMapGame` adds keyboard movement, collision, warps, entity interaction, battle triggering, battle overlay handoff, and narrow outcome write-back for the currently supported battle slice.
+`PlayableMapGame` adds keyboard movement, collision, warps, entity interaction, battle triggering, battle overlay handoff, narrow outcome write-back for the currently supported battle slice, and a small source-agnostic runtime input seam for future touch/controller bridges.
 
 ## Public API
 
@@ -83,7 +84,7 @@ void main() async {
 | `loadRuntimeMapBundle({projectFilePath, mapId})` | Loads and validates a project + map from disk. Returns a `RuntimeMapBundle`. |
 | `RuntimeMapBundle` | Holds the resolved `ProjectManifest`, `MapData`, and tileset paths. |
 | `RuntimeMapGame` | A `FlameGame` that renders the map (read-only). |
-| `PlayableMapGame` | A `FlameGame` with player movement (arrows/WASD), collision, warp transitions, entity interaction (E/Space), battle triggering, and narrow battle outcome write-back for the supported slice. |
+| `PlayableMapGame` | A `FlameGame` with player movement, collision, warp transitions, entity interaction, battle triggering, narrow battle outcome write-back for the supported slice, and `handleRuntimeInputEvent(...)` for custom input sources. |
 
 All other types and functions in this package are internal.
 
@@ -100,7 +101,7 @@ Thrown by `loadRuntimeMapBundle`, from `map_core`:
 
 ## Limitations
 
-- **`PlayableMapGame` is keyboard-only.** No gamepad, touch, or on-screen controls.
+- **Built-in input remains intentionally small.** Keyboard is wired by default; gamepads can participate through Flutter hardware key events; custom touch/on-screen controls should call `PlayableMapGame.handleRuntimeInputEvent(...)`.
 - **Local filesystem only.** Uses `dart:io`; Flutter Web is not supported.
 - **`map_core` is a local path dependency.** Before this package can be published to pub.dev, `map_core` must be published independently, and the `path:` dependency replaced with a version constraint.
 - The camera fits the entire map in the available viewport. Camera controls (pan, zoom) are not provided.

@@ -17,6 +17,8 @@ export 'src/application/npc_runtime_presence.dart'
 export 'src/application/load_runtime_map_bundle.dart' show loadRuntimeMapBundle;
 export 'src/application/runtime_map_bundle.dart' show RuntimeMapBundle;
 export 'src/presentation/flame/playable_map_game.dart' show PlayableMapGame;
+export 'src/presentation/flame/runtime_input_event.dart'
+    show RuntimeInputControl, RuntimeInputEvent, RuntimeInputEventPhase;
 export 'src/presentation/flame/runtime_map_game.dart' show RuntimeMapGame;
 
 // Script system exports
