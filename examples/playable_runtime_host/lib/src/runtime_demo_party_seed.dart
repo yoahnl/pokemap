@@ -16,6 +16,7 @@ class RuntimeDemoPartySeed {
   const RuntimeDemoPartySeed({
     required this.speciesId,
     required this.abilityId,
+    required this.gender,
     required this.level,
     required this.currentHp,
     required this.knownMoveIds,
@@ -23,6 +24,7 @@ class RuntimeDemoPartySeed {
 
   final String speciesId;
   final String abilityId;
+  final String? gender;
   final int level;
   final int currentHp;
   final List<String> knownMoveIds;
@@ -74,6 +76,7 @@ Future<RuntimeDemoPartySeed?> buildRuntimeHostLaunchDemoPartySeed({
   return RuntimeDemoPartySeed(
     speciesId: selectedSpecies.id,
     abilityId: abilityId,
+    gender: _resolveSeedGender(speciesJson, selectedSpecies.id),
     level: kRuntimeDemoSeedLevel,
     currentHp: kRuntimeDemoSeedCurrentHp,
     knownMoveIds: knownMoveIds,
@@ -230,6 +233,41 @@ String? _readPrimaryAbilityId(Map<String, dynamic> speciesJson) {
     return null;
   }
   return primary;
+}
+
+String? _resolveSeedGender(
+  Map<String, dynamic> speciesJson,
+  String speciesId,
+) {
+  final breeding = speciesJson['breeding'];
+  final genderRatio =
+      (breeding is Map<String, dynamic> ? breeding['genderRatio'] : null);
+  if (genderRatio is! Map<String, dynamic>) {
+    return null;
+  }
+  final maleRatio = (genderRatio['male'] as num?)?.toDouble() ?? 0.0;
+  final femaleRatio = (genderRatio['female'] as num?)?.toDouble() ?? 0.0;
+  final total = maleRatio + femaleRatio;
+  if (total <= 0) {
+    return 'genderless';
+  }
+  if (maleRatio > 0 && femaleRatio <= 0) {
+    return 'male';
+  }
+  if (femaleRatio > 0 && maleRatio <= 0) {
+    return 'female';
+  }
+  return _stableUnitInterval('demo-seed|$speciesId') < (maleRatio / total)
+      ? 'male'
+      : 'female';
+}
+
+double _stableUnitInterval(String seed) {
+  var hash = 0;
+  for (final codeUnit in seed.codeUnits) {
+    hash = ((hash * 31) + codeUnit) & 0x7fffffff;
+  }
+  return (hash % 10000) / 10000.0;
 }
 
 List<String> _deriveKnownMoveIds(

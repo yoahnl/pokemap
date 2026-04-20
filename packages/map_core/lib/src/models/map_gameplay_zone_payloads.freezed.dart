@@ -26,6 +26,15 @@ mixin _$EncounterZonePayload {
   /// Type de rencontre déclenchée dans cette zone.
   EncounterKind get encounterKind => throw _privateConstructorUsedError;
 
+  /// Image de fond de combat authorée explicitement pour cette zone.
+  ///
+  /// Le chemin reste project-local et optionnel :
+  /// - aucune bibliothèque média globale n'est introduite ici ;
+  /// - le runtime pourra l'utiliser comme override visuel du fond contextuel ;
+  /// - l'absence de valeur garde le comportement contextuel existant.
+  String? get battleBackgroundRelativePath =>
+      throw _privateConstructorUsedError;
+
   /// Serializes this EncounterZonePayload to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -42,7 +51,10 @@ abstract class $EncounterZonePayloadCopyWith<$Res> {
           $Res Function(EncounterZonePayload) then) =
       _$EncounterZonePayloadCopyWithImpl<$Res, EncounterZonePayload>;
   @useResult
-  $Res call({String? encounterTableId, EncounterKind encounterKind});
+  $Res call(
+      {String? encounterTableId,
+      EncounterKind encounterKind,
+      String? battleBackgroundRelativePath});
 }
 
 /// @nodoc
@@ -63,6 +75,7 @@ class _$EncounterZonePayloadCopyWithImpl<$Res,
   $Res call({
     Object? encounterTableId = freezed,
     Object? encounterKind = null,
+    Object? battleBackgroundRelativePath = freezed,
   }) {
     return _then(_value.copyWith(
       encounterTableId: freezed == encounterTableId
@@ -73,6 +86,10 @@ class _$EncounterZonePayloadCopyWithImpl<$Res,
           ? _value.encounterKind
           : encounterKind // ignore: cast_nullable_to_non_nullable
               as EncounterKind,
+      battleBackgroundRelativePath: freezed == battleBackgroundRelativePath
+          ? _value.battleBackgroundRelativePath
+          : battleBackgroundRelativePath // ignore: cast_nullable_to_non_nullable
+              as String?,
     ) as $Val);
   }
 }
@@ -85,7 +102,10 @@ abstract class _$$EncounterZonePayloadImplCopyWith<$Res>
       __$$EncounterZonePayloadImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({String? encounterTableId, EncounterKind encounterKind});
+  $Res call(
+      {String? encounterTableId,
+      EncounterKind encounterKind,
+      String? battleBackgroundRelativePath});
 }
 
 /// @nodoc
@@ -103,6 +123,7 @@ class __$$EncounterZonePayloadImplCopyWithImpl<$Res>
   $Res call({
     Object? encounterTableId = freezed,
     Object? encounterKind = null,
+    Object? battleBackgroundRelativePath = freezed,
   }) {
     return _then(_$EncounterZonePayloadImpl(
       encounterTableId: freezed == encounterTableId
@@ -113,6 +134,10 @@ class __$$EncounterZonePayloadImplCopyWithImpl<$Res>
           ? _value.encounterKind
           : encounterKind // ignore: cast_nullable_to_non_nullable
               as EncounterKind,
+      battleBackgroundRelativePath: freezed == battleBackgroundRelativePath
+          ? _value.battleBackgroundRelativePath
+          : battleBackgroundRelativePath // ignore: cast_nullable_to_non_nullable
+              as String?,
     ));
   }
 }
@@ -122,7 +147,9 @@ class __$$EncounterZonePayloadImplCopyWithImpl<$Res>
 @JsonSerializable(explicitToJson: true)
 class _$EncounterZonePayloadImpl implements _EncounterZonePayload {
   const _$EncounterZonePayloadImpl(
-      {this.encounterTableId, this.encounterKind = EncounterKind.walk});
+      {this.encounterTableId,
+      this.encounterKind = EncounterKind.walk,
+      this.battleBackgroundRelativePath});
 
   factory _$EncounterZonePayloadImpl.fromJson(Map<String, dynamic> json) =>
       _$$EncounterZonePayloadImplFromJson(json);
@@ -136,9 +163,18 @@ class _$EncounterZonePayloadImpl implements _EncounterZonePayload {
   @JsonKey()
   final EncounterKind encounterKind;
 
+  /// Image de fond de combat authorée explicitement pour cette zone.
+  ///
+  /// Le chemin reste project-local et optionnel :
+  /// - aucune bibliothèque média globale n'est introduite ici ;
+  /// - le runtime pourra l'utiliser comme override visuel du fond contextuel ;
+  /// - l'absence de valeur garde le comportement contextuel existant.
+  @override
+  final String? battleBackgroundRelativePath;
+
   @override
   String toString() {
-    return 'EncounterZonePayload(encounterTableId: $encounterTableId, encounterKind: $encounterKind)';
+    return 'EncounterZonePayload(encounterTableId: $encounterTableId, encounterKind: $encounterKind, battleBackgroundRelativePath: $battleBackgroundRelativePath)';
   }
 
   @override
@@ -149,12 +185,17 @@ class _$EncounterZonePayloadImpl implements _EncounterZonePayload {
             (identical(other.encounterTableId, encounterTableId) ||
                 other.encounterTableId == encounterTableId) &&
             (identical(other.encounterKind, encounterKind) ||
-                other.encounterKind == encounterKind));
+                other.encounterKind == encounterKind) &&
+            (identical(other.battleBackgroundRelativePath,
+                    battleBackgroundRelativePath) ||
+                other.battleBackgroundRelativePath ==
+                    battleBackgroundRelativePath));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(runtimeType, encounterTableId, encounterKind);
+  int get hashCode => Object.hash(runtimeType, encounterTableId, encounterKind,
+      battleBackgroundRelativePath);
 
   /// Create a copy of EncounterZonePayload
   /// with the given fields replaced by the non-null parameter values.
@@ -177,7 +218,8 @@ class _$EncounterZonePayloadImpl implements _EncounterZonePayload {
 abstract class _EncounterZonePayload implements EncounterZonePayload {
   const factory _EncounterZonePayload(
       {final String? encounterTableId,
-      final EncounterKind encounterKind}) = _$EncounterZonePayloadImpl;
+      final EncounterKind encounterKind,
+      final String? battleBackgroundRelativePath}) = _$EncounterZonePayloadImpl;
 
   factory _EncounterZonePayload.fromJson(Map<String, dynamic> json) =
       _$EncounterZonePayloadImpl.fromJson;
@@ -189,6 +231,15 @@ abstract class _EncounterZonePayload implements EncounterZonePayload {
   /// Type de rencontre déclenchée dans cette zone.
   @override
   EncounterKind get encounterKind;
+
+  /// Image de fond de combat authorée explicitement pour cette zone.
+  ///
+  /// Le chemin reste project-local et optionnel :
+  /// - aucune bibliothèque média globale n'est introduite ici ;
+  /// - le runtime pourra l'utiliser comme override visuel du fond contextuel ;
+  /// - l'absence de valeur garde le comportement contextuel existant.
+  @override
+  String? get battleBackgroundRelativePath;
 
   /// Create a copy of EncounterZonePayload
   /// with the given fields replaced by the non-null parameter values.

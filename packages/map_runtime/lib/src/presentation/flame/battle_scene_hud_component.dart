@@ -17,6 +17,7 @@ class BattleSceneHudComponent extends PositionComponent {
     required this.ownerLabel,
     required BattleCombatant combatant,
     required this.isPlayerSide,
+    this.initialGenderSymbol,
   })  : _combatant = combatant,
         super(
           position: position,
@@ -27,7 +28,9 @@ class BattleSceneHudComponent extends PositionComponent {
 
   final String ownerLabel;
   final bool isPlayerSide;
+  final String? initialGenderSymbol;
   BattleCombatant _combatant;
+  String? _genderSymbol;
 
   TextComponent? _ownerText;
   TextComponent? _speciesText;
@@ -36,6 +39,12 @@ class BattleSceneHudComponent extends PositionComponent {
   TextComponent? _hpText;
   TextComponent? _statusText;
   RectangleComponent? _hpBarFill;
+
+  @visibleForTesting
+  bool get belongsToPlayerSide => isPlayerSide;
+
+  @visibleForTesting
+  String get currentSpeciesDisplayText => _speciesText?.text ?? '';
 
   @override
   Future<void> onLoad() async {
@@ -143,14 +152,23 @@ class BattleSceneHudComponent extends PositionComponent {
     );
     await add(_hpText!);
 
-    sync(combatant: _combatant);
+    sync(
+      combatant: _combatant,
+      genderSymbol: initialGenderSymbol,
+    );
   }
 
   void sync({
     required BattleCombatant combatant,
+    String? genderSymbol,
   }) {
     _combatant = combatant;
-    _speciesText?.text = combatant.speciesId;
+    _genderSymbol = genderSymbol?.trim().isEmpty ?? true
+        ? null
+        : genderSymbol?.trim();
+    _speciesText?.text = _genderSymbol == null
+        ? combatant.speciesId
+        : '${combatant.speciesId} $_genderSymbol';
     _levelText?.text = 'Lv.${combatant.level}';
     _statusText?.text = _statusLabel(combatant);
     _hpText?.text = isPlayerSide

@@ -103,6 +103,7 @@ class PlayerPokemon with _$PlayerPokemon {
     required String speciesId,
     required String natureId,
     required String abilityId,
+    String? gender,
     @Default(1) int level,
     @Default(PokemonStatSpread()) PokemonStatSpread ivs,
     @Default(PokemonStatSpread()) PokemonStatSpread evs,
@@ -122,6 +123,7 @@ class PlayerPokemon with _$PlayerPokemon {
     final normalizedSpeciesId = speciesId.trim();
     final normalizedNatureId = natureId.trim();
     final normalizedAbilityId = abilityId.trim();
+    final normalizedGender = gender?.trim().toLowerCase();
     if (knownMoveIds.any((moveId) => moveId.trim().isEmpty)) {
       throw StateError(
           'PlayerPokemon knownMoveIds must not contain empty values');
@@ -158,6 +160,9 @@ class PlayerPokemon with _$PlayerPokemon {
       speciesId: normalizedSpeciesId,
       natureId: normalizedNatureId,
       abilityId: normalizedAbilityId,
+      gender: normalizedGender == null || normalizedGender.isEmpty
+          ? null
+          : normalizedGender,
       ivs: ivs.normalized(),
       evs: evs.normalized(),
       knownMoveIds: normalizedMoveIds,

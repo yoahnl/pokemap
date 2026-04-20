@@ -70,6 +70,23 @@ void main() {
         equals(<String>['tackle', 'tail_whip', 'bubble', 'water_gun']),
       );
     });
+
+    test('derives a stable gender from breeding ratios when available', () async {
+      await _writeProjectFixture(
+        root,
+        includeSquirtle: true,
+        includeGenderRatio: true,
+      );
+
+      final seed = await buildRuntimeHostLaunchDemoPartySeed(
+        seedDemoPokemon: true,
+        projectFilePath: '${root.path}/project.json',
+      );
+
+      expect(seed, isNotNull);
+      expect(seed!.speciesId, equals('squirtle'));
+      expect(seed.gender, anyOf(equals('male'), equals('female')));
+    });
   });
 }
 
@@ -77,6 +94,7 @@ Future<void> _writeProjectFixture(
   Directory root, {
   bool includeAbra = false,
   bool includeSquirtle = false,
+  bool includeGenderRatio = false,
 }) async {
   await File('${root.path}/project.json').writeAsString(
     jsonEncode(<String, dynamic>{
@@ -191,6 +209,13 @@ Future<void> _writeProjectFixture(
           'evolution': 'squirtle',
           'media': 'squirtle',
         },
+        if (includeGenderRatio)
+          'breeding': <String, Object>{
+            'genderRatio': <String, double>{
+              'male': 0.875,
+              'female': 0.125,
+            },
+          },
         'classification': <String, bool>{'isEnabledInProject': true},
       },
     );

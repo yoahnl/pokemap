@@ -1,9 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:map_core/map_core.dart';
+import 'package:path/path.dart' as p;
 
 import '../../features/editor/state/editor_notifier.dart';
+import 'battle_background_path_utils.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/editor_paint_palette.dart';
 import '../shared/inspector_embedded_widgets.dart';
@@ -35,6 +40,8 @@ class _GameplayZonePropertiesPanelState
   // encounter
   String? _encounterTableId;
   EncounterKind _encounterKind = EncounterKind.walk;
+  String? _encounterBattleBackgroundRelativePath;
+  String? _encounterBattleBackgroundMessage;
 
   // movement
   MovementMode _movementMode = MovementMode.walk;
@@ -184,6 +191,7 @@ class _GameplayZonePropertiesPanelState
                   notifier: notifier,
                   zone: selectedZone,
                   encounterTableOptions: encounterTableOptions,
+                  projectRootPath: state.projectRootPath?.trim(),
                 ),
             ],
           );
@@ -231,6 +239,7 @@ class _GameplayZonePropertiesPanelState
     required EditorNotifier notifier,
     required MapGameplayZone zone,
     required List<ProjectEncounterTable> encounterTableOptions,
+    required String? projectRootPath,
   }) {
     const coral = EditorChrome.inspectorJoyCoral;
     return Column(
@@ -301,6 +310,11 @@ class _GameplayZonePropertiesPanelState
             ),
           const SizedBox(height: 8),
           _buildEncounterKindDropdown(context, coral),
+          const SizedBox(height: 8),
+          _buildEncounterBattleBackgroundPicker(
+            context: context,
+            projectRootPath: projectRootPath,
+          ),
           const SizedBox(height: 8),
         ],
 
@@ -493,6 +507,135 @@ class _GameplayZonePropertiesPanelState
     );
   }
 
+  Widget _buildEncounterBattleBackgroundPicker({
+    required BuildContext context,
+    required String? projectRootPath,
+  }) {
+    final labelColor = CupertinoColors.label.resolveFrom(context);
+    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final relativePath = _encounterBattleBackgroundRelativePath?.trim();
+    final hasExplicitPath = relativePath != null && relativePath.isNotEmpty;
+    final absolutePath = !hasExplicitPath || projectRootPath == null
+        ? null
+        : p.normalize(p.join(projectRootPath, relativePath));
+    final exists = absolutePath != null && File(absolutePath).existsSync();
+    final statusLabel = !hasExplicitPath
+        ? 'none'
+        : exists
+            ? 'linked'
+            : 'missing';
+    final statusColor = switch (statusLabel) {
+      'linked' => EditorChrome.accentJade,
+      'missing' => EditorChrome.inspectorJoyCoral,
+      _ => subtle,
+    };
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Battle background',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: subtle,
+          ),
+        ),
+        const SizedBox(height: 6),
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: EditorChrome.islandFillElevated(context),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: EditorChrome.editorIslandRim(context),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  hasExplicitPath ? relativePath : 'No battle background linked.',
+                  style: TextStyle(
+                    color: hasExplicitPath ? labelColor : subtle,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Status: $statusLabel',
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                if (_encounterBattleBackgroundMessage != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    _encounterBattleBackgroundMessage!,
+                    style: const TextStyle(
+                      color: EditorChrome.inspectorJoyCoral,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    CupertinoButton(
+                      key: const Key(
+                        'gameplay-zone-encounter-background-pick-button',
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      minimumSize: const Size(1, 30),
+                      onPressed: () => _pickEncounterBattleBackground(
+                        projectRootPath: projectRootPath,
+                      ),
+                      child: const Text(
+                        'Choose battle background',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    CupertinoButton(
+                      key: const Key(
+                        'gameplay-zone-encounter-background-clear-button',
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      minimumSize: const Size(1, 30),
+                      onPressed: hasExplicitPath
+                          ? () {
+                              setState(() {
+                                _encounterBattleBackgroundRelativePath = null;
+                                _encounterBattleBackgroundMessage = null;
+                              });
+                            }
+                          : null,
+                      child: const Text(
+                        'Clear',
+                        style: TextStyle(fontSize: 12),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildMovementModeDropdown(BuildContext context, Color accent) {
     if (widget.embedded) {
       return InspectorEmbeddedDropdown(
@@ -602,7 +745,7 @@ class _GameplayZonePropertiesPanelState
             '|${zone.area.pos.x}|${zone.area.pos.y}'
             '|${zone.area.size.width}|${zone.area.size.height}'
             '|${zone.priority}'
-            '|${zone.encounter?.encounterTableId}|${zone.encounter?.encounterKind.name}'
+            '|${zone.encounter?.encounterTableId}|${zone.encounter?.encounterKind.name}|${zone.encounter?.battleBackgroundRelativePath}'
             '|${zone.movement?.requiredMode.name}'
             '|${zone.hazard?.hazardKind.name}|${zone.hazard?.damagePerStep}'
             '|${zone.special?.scriptKey}';
@@ -617,6 +760,9 @@ class _GameplayZonePropertiesPanelState
     // encounter
     _encounterTableId = zone?.encounter?.encounterTableId;
     _encounterKind = zone?.encounter?.encounterKind ?? EncounterKind.walk;
+    _encounterBattleBackgroundRelativePath =
+        zone?.encounter?.battleBackgroundRelativePath;
+    _encounterBattleBackgroundMessage = null;
 
     // movement
     _movementMode = zone?.movement?.requiredMode ?? MovementMode.walk;
@@ -642,6 +788,10 @@ class _GameplayZonePropertiesPanelState
         encounter = EncounterZonePayload(
           encounterTableId: _encounterTableId,
           encounterKind: _encounterKind,
+          battleBackgroundRelativePath:
+              _normalizeOptionalProjectRelativePath(
+            _encounterBattleBackgroundRelativePath,
+          ),
         );
       case GameplayZoneKind.movement:
         movement = MovementZonePayload(requiredMode: _movementMode);
@@ -667,6 +817,73 @@ class _GameplayZonePropertiesPanelState
       hazard: hazard,
       special: special,
     );
+  }
+
+  Future<void> _pickEncounterBattleBackground({
+    required String? projectRootPath,
+  }) async {
+    final normalizedProjectRoot = projectRootPath?.trim();
+    if (normalizedProjectRoot == null || normalizedProjectRoot.isEmpty) {
+      setState(() {
+        _encounterBattleBackgroundMessage =
+            'A valid project workspace is required before linking a battle background.';
+      });
+      return;
+    }
+
+    final result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: const <String>[
+        'png',
+        'jpg',
+        'jpeg',
+        'webp',
+        'bmp',
+        'gif',
+      ],
+      withData: false,
+    );
+    final pickedAbsolutePath = result?.files.single.path?.trim();
+    if (pickedAbsolutePath == null || pickedAbsolutePath.isEmpty) {
+      return;
+    }
+
+    final relativePath = _normalizePickedBattleBackgroundPath(
+      projectRootPath: normalizedProjectRoot,
+      pickedAbsolutePath: pickedAbsolutePath,
+    );
+    if (relativePath == null) {
+      return;
+    }
+
+    setState(() {
+      _encounterBattleBackgroundRelativePath = relativePath;
+      _encounterBattleBackgroundMessage = null;
+    });
+  }
+
+  String? _normalizePickedBattleBackgroundPath({
+    required String projectRootPath,
+    required String pickedAbsolutePath,
+  }) {
+    final relativePath = normalizeProjectLocalBattleBackgroundPath(
+      projectRootPath: projectRootPath,
+      pickedAbsolutePath: pickedAbsolutePath,
+    );
+
+    if (relativePath == null) {
+      setState(() {
+        _encounterBattleBackgroundMessage =
+            'Only project-local images can be linked to a battle zone.';
+      });
+      return null;
+    }
+
+    return relativePath;
+  }
+
+  String? _normalizeOptionalProjectRelativePath(String? rawValue) {
+    return normalizeOptionalBattleBackgroundRelativePath(rawValue);
   }
 
   static IconData _iconForKind(GameplayZoneKind kind) {

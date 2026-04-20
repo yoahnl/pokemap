@@ -3,6 +3,7 @@ import 'package:path/path.dart' as p;
 
 import '../../domain/repositories/repositories.dart';
 import '../errors/application_errors.dart';
+import '../models/trainer_field_update.dart';
 import '../ports/project_workspace.dart';
 
 // ---------------------------------------------------------------------------
@@ -118,12 +119,18 @@ class UpdateTrainerUseCase {
     required String trainerId,
     String? name,
     String? trainerClass,
-    Object? battleDifficulty = _unset,
-    Object? battleBackgroundRelativePath = _unset,
-    Object? characterId = _unset,
-    Object? portraitElementId = _unset,
-    Object? battleThemeId = _unset,
-    Object? victoryThemeId = _unset,
+    TrainerFieldUpdate<int> battleDifficulty =
+        const TrainerFieldUpdate<int>.keep(),
+    TrainerFieldUpdate<String> battleBackgroundRelativePath =
+        const TrainerFieldUpdate<String>.keep(),
+    TrainerFieldUpdate<String> characterId =
+        const TrainerFieldUpdate<String>.keep(),
+    TrainerFieldUpdate<String> portraitElementId =
+        const TrainerFieldUpdate<String>.keep(),
+    TrainerFieldUpdate<String> battleThemeId =
+        const TrainerFieldUpdate<String>.keep(),
+    TrainerFieldUpdate<String> victoryThemeId =
+        const TrainerFieldUpdate<String>.keep(),
     List<String>? tags,
   }) async {
     final index = project.trainers.indexWhere((t) => t.id == trainerId);
@@ -144,38 +151,38 @@ class UpdateTrainerUseCase {
       trainerClass: trimmedClass,
       tags: tags == null ? current.tags : _normalizeTrainerStringList(tags),
     );
-    if (!identical(battleDifficulty, _unset)) {
+    if (!battleDifficulty.isKeep) {
       updatedTrainer = updatedTrainer.copyWith(
-        battleDifficulty: battleDifficulty as int?,
+        battleDifficulty: battleDifficulty.valueOrNull,
       );
     }
-    if (!identical(battleBackgroundRelativePath, _unset)) {
+    if (!battleBackgroundRelativePath.isKeep) {
       updatedTrainer = updatedTrainer.copyWith(
         battleBackgroundRelativePath: _normalizeOptionalTrainerRelativePath(
-          battleBackgroundRelativePath as String?,
+          battleBackgroundRelativePath.valueOrNull,
         ),
       );
     }
-    if (!identical(characterId, _unset)) {
-      final v = (characterId as String?)?.trim();
+    if (!characterId.isKeep) {
+      final v = characterId.valueOrNull?.trim();
       updatedTrainer = updatedTrainer.copyWith(
         characterId: (v == null || v.isEmpty) ? null : v,
       );
     }
-    if (!identical(portraitElementId, _unset)) {
-      final v = (portraitElementId as String?)?.trim();
+    if (!portraitElementId.isKeep) {
+      final v = portraitElementId.valueOrNull?.trim();
       updatedTrainer = updatedTrainer.copyWith(
         portraitElementId: (v == null || v.isEmpty) ? null : v,
       );
     }
-    if (!identical(battleThemeId, _unset)) {
-      final v = (battleThemeId as String?)?.trim();
+    if (!battleThemeId.isKeep) {
+      final v = battleThemeId.valueOrNull?.trim();
       updatedTrainer = updatedTrainer.copyWith(
         battleThemeId: (v == null || v.isEmpty) ? null : v,
       );
     }
-    if (!identical(victoryThemeId, _unset)) {
-      final v = (victoryThemeId as String?)?.trim();
+    if (!victoryThemeId.isKeep) {
+      final v = victoryThemeId.valueOrNull?.trim();
       updatedTrainer = updatedTrainer.copyWith(
         victoryThemeId: (v == null || v.isEmpty) ? null : v,
       );
@@ -188,8 +195,6 @@ class UpdateTrainerUseCase {
     return updated;
   }
 }
-
-const Object _unset = Object();
 
 class DeleteTrainerUseCase {
   DeleteTrainerUseCase(this._repo);
@@ -280,9 +285,12 @@ class UpdateTrainerPokemonUseCase {
     String? speciesId,
     int? level,
     List<String>? moves,
-    Object? heldItemId = _unset,
-    Object? formId = _unset,
-    Object? gender = _unset,
+    TrainerFieldUpdate<String> heldItemId =
+        const TrainerFieldUpdate<String>.keep(),
+    TrainerFieldUpdate<String> formId =
+        const TrainerFieldUpdate<String>.keep(),
+    TrainerFieldUpdate<String> gender =
+        const TrainerFieldUpdate<String>.keep(),
     bool? shiny,
   }) async {
     final trainerIndex = project.trainers.indexWhere((t) => t.id == trainerId);
@@ -310,20 +318,20 @@ class UpdateTrainerPokemonUseCase {
       moves: moves == null ? current.moves : _normalizeTrainerStringList(moves),
       shiny: shiny ?? current.shiny,
     );
-    if (!identical(heldItemId, _unset)) {
-      final v = (heldItemId as String?)?.trim();
+    if (!heldItemId.isKeep) {
+      final v = heldItemId.valueOrNull?.trim();
       updatedPokemon = updatedPokemon.copyWith(
         heldItemId: (v == null || v.isEmpty) ? null : v,
       );
     }
-    if (!identical(formId, _unset)) {
-      final v = (formId as String?)?.trim();
+    if (!formId.isKeep) {
+      final v = formId.valueOrNull?.trim();
       updatedPokemon = updatedPokemon.copyWith(
         formId: (v == null || v.isEmpty) ? null : v,
       );
     }
-    if (!identical(gender, _unset)) {
-      final v = (gender as String?)?.trim();
+    if (!gender.isKeep) {
+      final v = gender.valueOrNull?.trim();
       updatedPokemon = updatedPokemon.copyWith(
         gender: (v == null || v.isEmpty) ? null : v,
       );

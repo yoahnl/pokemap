@@ -9,6 +9,9 @@ import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/runtime_map_bundle.dart';
 import 'package:map_runtime/src/presentation/flame/battle_background_resolver.dart';
+import 'package:map_runtime/src/presentation/flame/battle_command_menu_model.dart';
+import 'package:map_runtime/src/presentation/flame/battle_command_panel_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_combatant_gender_resolver.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_debug_panel_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_backdrop_component.dart';
@@ -663,6 +666,124 @@ void main() {
       expect(overlay.debugPanelMounted, isFalse);
     });
 
+    test('stages battlers with a stronger pokemon-like framing', () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'squirtle',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          enemy: _combatant(
+            speciesId: 'charmander',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      final playerCombatant = overlay.children
+          .whereType<BattleSceneCombatantComponent>()
+          .firstWhere((component) => component.belongsToPlayerSide);
+      final enemyCombatant = overlay.children
+          .whereType<BattleSceneCombatantComponent>()
+          .firstWhere((component) => !component.belongsToPlayerSide);
+
+      expect(playerCombatant.position.x, lessThanOrEqualTo(20));
+      expect(playerCombatant.position.y, greaterThanOrEqualTo(110));
+      expect(playerCombatant.size.x, greaterThanOrEqualTo(380));
+      expect(playerCombatant.size.y, greaterThanOrEqualTo(240));
+      expect(enemyCombatant.position.x, greaterThanOrEqualTo(560));
+      expect(enemyCombatant.position.x, lessThanOrEqualTo(590));
+      expect(enemyCombatant.position.y, greaterThanOrEqualTo(130));
+      expect(enemyCombatant.size.x, greaterThanOrEqualTo(230));
+      expect(enemyCombatant.size.y, greaterThanOrEqualTo(160));
+    });
+
+    test('keeps battler scale stable on wider landscape viewports', () async {
+      Future<
+          ({
+            BattleSceneCombatantComponent player,
+            BattleSceneCombatantComponent enemy
+          })> loadBattlers(Vector2 viewportSize) async {
+        final overlay = BattleOverlayComponent(
+          session: _session(
+            player: _combatant(
+              speciesId: 'squirtle',
+              lineupIndex: 0,
+              moves: <BattleMoveData>[_tackle()],
+            ),
+            enemy: _combatant(
+              speciesId: 'charmander',
+              lineupIndex: 0,
+              moves: <BattleMoveData>[_tackle()],
+            ),
+          ),
+          viewportSize: viewportSize,
+          onPlayerChoice: (_) {},
+        );
+
+        await overlay.onLoad();
+
+        final combatants = overlay.children
+            .whereType<BattleSceneCombatantComponent>()
+            .toList(growable: false);
+        return (
+          player: combatants
+              .firstWhere((component) => component.belongsToPlayerSide),
+          enemy: combatants
+              .firstWhere((component) => !component.belongsToPlayerSide),
+        );
+      }
+
+      final standard = await loadBattlers(Vector2(960, 540));
+      final wide = await loadBattlers(Vector2(1280, 540));
+
+      expect(wide.player.size.x, closeTo(standard.player.size.x, 0.01));
+      expect(wide.player.size.y, closeTo(standard.player.size.y, 0.01));
+      expect(wide.enemy.size.x, closeTo(standard.enemy.size.x, 0.01));
+      expect(wide.enemy.size.y, closeTo(standard.enemy.size.y, 0.01));
+      expect(wide.player.position.y, closeTo(standard.player.position.y, 0.01));
+      expect(wide.enemy.position.y, closeTo(standard.enemy.position.y, 0.01));
+    });
+
+    test(
+        'switches to a mobile-friendly bottom panel layout on narrow viewports',
+        () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'squirtle',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          enemy: _combatant(
+            speciesId: 'pikachu',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ),
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      final panel =
+          overlay.children.whereType<BattleCommandPanelComponent>().single;
+      await panel.onLoad();
+
+      expect(panel.currentLayoutMode, BattleCommandPanelLayoutMode.stacked);
+      expect(panel.commandsPanelPosition.y,
+          greaterThan(panel.promptPanelPosition.y));
+      expect(panel.promptPanelSize.x, closeTo(panel.size.x, 0.01));
+      expect(panel.commandsPanelSize.x, closeTo(panel.size.x, 0.01));
+    });
+
     test('mounts the resolved background family inside the backdrop layer',
         () async {
       final overlay = BattleOverlayComponent(
@@ -747,7 +868,7 @@ void main() {
       expect(overlay.narrationPanelMounted, isTrue);
     });
 
-    test('updateState refreshes the visible prompt and selected choice source',
+    test('updateState refreshes the visible prompt and command menu source',
         () async {
       final initialSession = _session(
         player: _combatant(
@@ -770,7 +891,8 @@ void main() {
       await overlay.onLoad();
 
       expect(overlay.currentPromptText, equals('Que doit faire le joueur ?'));
-      expect(overlay.getSelectedChoice(), isA<PlayerBattleChoiceFight>());
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.root);
+      expect(overlay.getSelectedChoice(), isNull);
 
       final forcedReplacementSession = _session(
         player: _combatant(
@@ -794,12 +916,95 @@ void main() {
       );
 
       overlay.updateState(forcedReplacementSession);
+      await overlay.waitForPendingVisualSync();
 
       expect(
         overlay.currentPromptText,
         equals('Le joueur doit remplacer son Pokémon K.O.'),
       );
-      expect(overlay.getSelectedChoice(), isA<PlayerBattleChoiceSwitch>());
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.root);
+      expect(overlay.getSelectedChoice(), isNull);
+      final commandPanel =
+          overlay.children.whereType<BattleCommandPanelComponent>().single;
+      expect(
+        commandPanel.currentSelectedRootIndex,
+        BattleCommandRootAction.pokemon.index,
+      );
+    });
+
+    test('shows resolved gender symbols in both hud labels when known',
+        () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          enemy: _combatant(
+            speciesId: 'sparkitten',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          isTrainerBattle: true,
+        ),
+        viewportSize: Vector2(960, 540),
+        genderResolver: const BattleCombatantGenderResolver(
+          playerLineupGenderIdsByIndex: <int, String>{0: 'female'},
+          enemyLineupGenderIdsByIndex: <int, String>{0: 'male'},
+        ),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      expect(overlay.currentPlayerHudSpeciesText, equals('sproutle ♀'));
+      expect(overlay.currentEnemyHudSpeciesText, equals('sparkitten ♂'));
+    });
+
+    test(
+        'updates the player gender label when the active lineup member changes',
+        () async {
+      final initialSession = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+        playerReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'aquafi',
+            lineupIndex: 1,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ],
+        enemy: _combatant(
+          speciesId: 'sparkitten',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+        isTrainerBattle: true,
+      );
+      final overlay = BattleOverlayComponent(
+        session: initialSession,
+        viewportSize: Vector2(960, 540),
+        genderResolver: const BattleCombatantGenderResolver(
+          playerLineupGenderIdsByIndex: <int, String>{
+            0: 'female',
+            1: 'male',
+          },
+        ),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      final switchedSession =
+          initialSession.applyChoice(const PlayerBattleChoiceSwitch(0));
+      overlay.updateState(switchedSession);
+      await overlay.waitForPendingVisualSync();
+
+      expect(overlay.currentPlayerHudSpeciesText, equals('aquafi ♂'));
     });
   });
 }

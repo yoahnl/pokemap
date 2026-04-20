@@ -308,9 +308,13 @@ class _TrainerEditorCard extends StatelessWidget {
                           vertical: 4,
                         ),
                         minimumSize: const Size(1, 24),
-                        onPressed: onClearBattleDifficulty,
+                        onPressed: battleDifficulty == null
+                            ? null
+                            : onClearBattleDifficulty,
                         child: Text(
-                          battleDifficulty == null ? 'Use 4/10' : 'Use fallback',
+                          battleDifficulty == null
+                              ? 'Fallback active'
+                              : 'Use fallback',
                           style: const TextStyle(fontSize: 11),
                         ),
                       ),

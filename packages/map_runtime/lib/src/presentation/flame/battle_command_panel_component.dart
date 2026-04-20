@@ -4,55 +4,19 @@ import 'package:flame/text.dart';
 import 'package:flutter/material.dart';
 import 'package:map_battle/map_battle.dart';
 
-/// Ton visuel minimal pour les commandes rendues dans la battle box.
-///
-/// Garde-fous de périmètre :
-/// - on ne crée pas un système de thème global ;
-/// - on encode uniquement quelques accents utiles pour distinguer les vraies
-///   familles de choix déjà supportées par le moteur ;
-/// - toute décision reste adossée à `BattleDecisionRequest.allowedChoices`.
-enum BattleCommandChoiceTone {
-  attack,
-  special,
-  support,
-  switching,
-  neutral,
+import 'battle_command_menu_model.dart';
+
+enum BattleCommandPanelLayoutMode {
+  split,
+  stacked,
 }
 
-/// Entrée de choix rendue dans la command box.
-///
-/// Cette structure reste strictement présentative :
-/// - la vérité des choix vient toujours de `BattleDecisionRequest` ;
-/// - le runtime ne crée ici ni faux menu, ni fausse famille d'action ;
-/// - le découpage `title/subtitle/tone` ne sert qu'à mieux restituer un choix
-///   déjà légal dans une UI plus proche d'une vraie battle box.
-class BattleCommandChoiceEntry {
-  const BattleCommandChoiceEntry({
-    required this.choice,
-    required this.title,
-    required this.subtitle,
-    required this.tone,
-  });
-
-  final PlayerBattleChoice choice;
-  final String title;
-  final String subtitle;
-  final BattleCommandChoiceTone tone;
-}
-
-/// Panneau bas de commandes et de narration.
-///
-/// Dans le lot 4b, on rapproche la composition de l'esprit du gif de
-/// référence :
-/// - une vraie narration lisible à gauche ;
-/// - une grille de commandes lisible à droite quand c'est honnête ;
-/// - aucun bouton factice de type `Bag` ou `Pokemon` si le moteur ne les
-///   expose pas réellement.
 class BattleCommandPanelComponent extends PositionComponent {
   BattleCommandPanelComponent({
     required Vector2 position,
     required Vector2 size,
     required this.onChoiceSelected,
+    required this.onRootActionSelected,
   }) : super(
           position: position,
           size: size,
@@ -61,6 +25,7 @@ class BattleCommandPanelComponent extends PositionComponent {
         );
 
   final void Function(PlayerBattleChoice choice) onChoiceSelected;
+  final void Function(BattleCommandRootAction action) onRootActionSelected;
 
   PositionComponent? _promptPanel;
   PositionComponent? _commandsPanel;
@@ -69,31 +34,79 @@ class BattleCommandPanelComponent extends PositionComponent {
   TextComponent? _narrationBodyText;
   TextComponent? _commandTitleText;
   TextComponent? _hintText;
-  final List<_BattleChoiceCardComponent> _choiceComponents =
-      <_BattleChoiceCardComponent>[];
+  final List<PositionComponent> _interactiveComponents = <PositionComponent>[];
+  _BattleCommandPanelLayout? _layout;
+  BattleCommandMenuModel _menuModel = const BattleCommandMenuModel(
+    mode: BattleCommandMenuMode.root,
+    rootEntries: <BattleCommandRootEntry>[],
+    selectedRootIndex: 0,
+    choiceEntries: <BattleCommandChoiceEntry>[],
+    selectedChoiceIndex: 0,
+    choiceColumns: 1,
+    choiceGroupTitle: 'COMMANDS',
+  );
 
   bool get narrationPanelMounted => _promptPanel != null;
   bool get commandPanelMounted => _commandsPanel != null;
   String get currentPromptText => _promptText?.text ?? '';
   String get currentNarrationText => _narrationBodyText?.text ?? '';
 
+  @visibleForTesting
+  BattleCommandMenuMode get currentMenuMode => _menuModel.mode;
+
+  @visibleForTesting
+  List<String> get currentRootLabels =>
+      _menuModel.rootEntries.map((entry) => entry.label).toList(growable: false);
+
+  @visibleForTesting
+  List<bool> get currentRootEnabledStates => _menuModel.rootEntries
+      .map((entry) => entry.enabled)
+      .toList(growable: false);
+
+  @visibleForTesting
+  int get currentSelectedRootIndex => _menuModel.selectedRootIndex;
+
+  @visibleForTesting
+  List<String> get currentChoiceLabels => _menuModel.choiceEntries
+      .map((entry) => entry.title)
+      .toList(growable: false);
+
+  @visibleForTesting
+  int get currentSelectedChoiceIndex => _menuModel.selectedChoiceIndex;
+
+  @visibleForTesting
+  BattleCommandPanelLayoutMode get currentLayoutMode =>
+      _layout?.mode ?? BattleCommandPanelLayoutMode.split;
+
+  @visibleForTesting
+  Vector2 get promptPanelPosition => _promptPanel?.position ?? Vector2.zero();
+
+  @visibleForTesting
+  Vector2 get promptPanelSize => _promptPanel?.size ?? Vector2.zero();
+
+  @visibleForTesting
+  Vector2 get commandsPanelPosition =>
+      _commandsPanel?.position ?? Vector2.zero();
+
+  @visibleForTesting
+  Vector2 get commandsPanelSize => _commandsPanel?.size ?? Vector2.zero();
+
   @override
   Future<void> onLoad() async {
-    final promptWidth = (size.x * 0.38).clamp(250.0, 350.0).toDouble();
-    const spacing = 16.0;
-    final commandsWidth = size.x - promptWidth - spacing;
+    final layout = _BattleCommandPanelLayout.forSize(size);
+    _layout = layout;
 
     _promptPanel = PositionComponent(
-      position: Vector2(16, 14),
-      size: Vector2(promptWidth - 8, size.y - 28),
+      position: layout.promptPosition,
+      size: layout.promptSize,
       anchor: Anchor.topLeft,
       priority: 31,
     );
     await add(_promptPanel!);
 
     _commandsPanel = PositionComponent(
-      position: Vector2(promptWidth + spacing, 14),
-      size: Vector2(commandsWidth - 8, size.y - 28),
+      position: layout.commandsPosition,
+      size: layout.commandsSize,
       anchor: Anchor.topLeft,
       priority: 31,
     );
@@ -101,14 +114,14 @@ class BattleCommandPanelComponent extends PositionComponent {
 
     _battleLabelText = TextComponent(
       text: '',
-      position: Vector2(16, 14),
+      position: layout.battleLabelPosition,
       anchor: Anchor.topLeft,
       textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0xCC55657D),
-          fontSize: 11,
+        style: TextStyle(
+          color: const Color(0xCC55657D),
+          fontSize: layout.battleLabelFontSize,
           fontWeight: FontWeight.w800,
-          letterSpacing: 1.0,
+          letterSpacing: 0.9,
         ),
       ),
     );
@@ -116,12 +129,12 @@ class BattleCommandPanelComponent extends PositionComponent {
 
     _promptText = TextComponent(
       text: '',
-      position: Vector2(16, 34),
+      position: layout.promptTextPosition,
       anchor: Anchor.topLeft,
       textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0xFF1D2634),
-          fontSize: 24,
+        style: TextStyle(
+          color: const Color(0xFF1D2634),
+          fontSize: layout.promptFontSize,
           fontWeight: FontWeight.w800,
           height: 1.1,
         ),
@@ -131,42 +144,42 @@ class BattleCommandPanelComponent extends PositionComponent {
 
     _narrationBodyText = TextComponent(
       text: '',
-      position: Vector2(16, 104),
+      position: layout.narrationPosition,
       anchor: Anchor.topLeft,
       textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0xFF435064),
-          fontSize: 14,
+        style: TextStyle(
+          color: const Color(0xFF435064),
+          fontSize: layout.narrationFontSize,
           fontWeight: FontWeight.w700,
-          height: 1.4,
+          height: 1.35,
         ),
       ),
     );
     await _promptPanel!.add(_narrationBodyText!);
 
     _commandTitleText = TextComponent(
-      text: 'COMMANDES',
-      position: Vector2(16, 16),
+      text: 'COMMANDS',
+      position: layout.commandTitlePosition,
       anchor: Anchor.topLeft,
       textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0xCCEAEEF8),
-          fontSize: 11,
+        style: TextStyle(
+          color: const Color(0xDCE6EDF8),
+          fontSize: layout.commandLabelFontSize,
           fontWeight: FontWeight.w800,
-          letterSpacing: 1.1,
+          letterSpacing: 0.9,
         ),
       ),
     );
     await _commandsPanel!.add(_commandTitleText!);
 
     _hintText = TextComponent(
-      text: 'Fleches / clic / entree',
-      position: Vector2(_commandsPanel!.size.x - 16, _commandsPanel!.size.y - 14),
+      text: '',
+      position: layout.hintPosition(commandsPanelSize: _commandsPanel!.size),
       anchor: Anchor.bottomRight,
       textRenderer: TextPaint(
-        style: const TextStyle(
-          color: Color(0x99E8EEF8),
-          fontSize: 11,
+        style: TextStyle(
+          color: const Color(0xA6E8EEF8),
+          fontSize: layout.commandLabelFontSize,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -178,45 +191,23 @@ class BattleCommandPanelComponent extends PositionComponent {
     required String battleLabel,
     required String prompt,
     required List<String> narrationLines,
-    required List<BattleCommandChoiceEntry> choices,
-    required int selectedIndex,
+    required BattleCommandMenuModel menuModel,
   }) {
+    _menuModel = menuModel;
     _battleLabelText?.text = battleLabel.toUpperCase();
     _promptText?.text = prompt;
-
     final clippedNarration = narrationLines.isEmpty
-        ? const <String>['Le combat attend la prochaine action.']
-        : narrationLines.take(4).toList(growable: false);
+        ? const <String>['The battle awaits the next action.']
+        : narrationLines.take(3).toList(growable: false);
     _narrationBodyText?.text = clippedNarration.join('\n');
-
-    _renderChoices(
-      choices: choices,
-      selectedIndex: selectedIndex,
-    );
+    _commandTitleText?.text = menuModel.isRootMode ? '' : menuModel.choiceGroupTitle;
+    _hintText?.text = _hintFor(menuModel);
+    _renderInteractiveArea();
   }
 
   @override
   void render(Canvas canvas) {
     super.render(canvas);
-
-    final rootRect = Offset.zero & Size(size.x, size.y);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(rootRect, const Radius.circular(28)),
-      Paint()..color = const Color(0xE7EEF2FB),
-    );
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(rootRect, const Radius.circular(28)),
-      Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2
-        ..color = const Color(0xFF53637B),
-    );
-
-    final shadowRect = Rect.fromLTWH(14, size.y - 18, size.x - 28, 10);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(shadowRect, const Radius.circular(999)),
-      Paint()..color = const Color(0x220E1520),
-    );
 
     if (_promptPanel != null) {
       final promptRect = Rect.fromLTWH(
@@ -226,15 +217,24 @@ class BattleCommandPanelComponent extends PositionComponent {
         _promptPanel!.size.y,
       );
       canvas.drawRRect(
-        RRect.fromRectAndRadius(promptRect, const Radius.circular(22)),
-        Paint()..color = const Color(0xFFF6F1EA),
+        RRect.fromRectAndRadius(promptRect, const Radius.circular(18)),
+        Paint()..color = const Color(0xFF57626C),
       );
       canvas.drawRRect(
         RRect.fromRectAndRadius(promptRect, const Radius.circular(22)),
+        Paint()..color = const Color(0x22000000),
+      );
+      final promptInnerRect = promptRect.deflate(6);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(promptInnerRect, const Radius.circular(14)),
+        Paint()..color = const Color(0xFFF7F1E7),
+      );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(promptInnerRect, const Radius.circular(14)),
         Paint()
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.5
-          ..color = const Color(0xFFD5CCBD),
+          ..strokeWidth = 1.25
+          ..color = const Color(0xFFD1C7B7),
       );
     }
 
@@ -246,106 +246,239 @@ class BattleCommandPanelComponent extends PositionComponent {
         _commandsPanel!.size.y,
       );
       canvas.drawRRect(
-        RRect.fromRectAndRadius(commandsRect, const Radius.circular(24)),
+        RRect.fromRectAndRadius(commandsRect, const Radius.circular(18)),
         Paint()
           ..shader = const LinearGradient(
             colors: <Color>[
-              Color(0xFF253449),
-              Color(0xFF1D2738),
+              Color(0xC12D3640),
+              Color(0xA61B2127),
             ],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ).createShader(commandsRect),
       );
       canvas.drawRRect(
-        RRect.fromRectAndRadius(commandsRect, const Radius.circular(24)),
+        RRect.fromRectAndRadius(commandsRect, const Radius.circular(18)),
         Paint()
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.5
-          ..color = const Color(0x3DFFFFFF),
+          ..strokeWidth = 1.25
+          ..color = const Color(0x38FFFFFF),
       );
     }
   }
 
-  void _renderChoices({
-    required List<BattleCommandChoiceEntry> choices,
-    required int selectedIndex,
-  }) {
-    for (final component in _choiceComponents) {
+  void _renderInteractiveArea() {
+    for (final component in _interactiveComponents) {
       component.removeFromParent();
     }
-    _choiceComponents.clear();
+    _interactiveComponents.clear();
 
-    if (_commandsPanel == null) {
+    final commandsPanel = _commandsPanel;
+    if (commandsPanel == null) {
       return;
     }
 
-    const contentTop = 40.0;
-    final availableWidth = _commandsPanel!.size.x - 32;
-    final availableHeight = _commandsPanel!.size.y - 68;
+    if (_menuModel.isRootMode) {
+      _renderRootEntries(commandsPanel);
+      return;
+    }
 
-    if (choices.isEmpty) {
-      final emptyState = _BattleChoiceCardComponent(
-        entry: const BattleCommandChoiceEntry(
-          choice: PlayerBattleChoiceContinue(),
-          title: 'Aucune commande',
-          subtitle: 'Le moteur ne propose actuellement aucun choix interactif.',
-          tone: BattleCommandChoiceTone.neutral,
+    if (_menuModel.isContinueOnly) {
+      _renderChoiceEntries(commandsPanel);
+      return;
+    }
+
+    _renderChoiceEntries(commandsPanel);
+  }
+
+  void _renderRootEntries(PositionComponent commandsPanel) {
+    final layout = _layout ?? _BattleCommandPanelLayout.forSize(size);
+    final top = layout.mode == BattleCommandPanelLayoutMode.stacked ? 14.0 : 20.0;
+    final gap = layout.mode == BattleCommandPanelLayoutMode.stacked ? 8.0 : 10.0;
+    final availableWidth = commandsPanel.size.x - 24;
+    final availableHeight = commandsPanel.size.y - (layout.mode == BattleCommandPanelLayoutMode.stacked ? 18 : 28);
+    final cardWidth = (availableWidth - gap) / 2;
+    final cardHeight = ((availableHeight - gap) / 2)
+        .clamp(layout.mode == BattleCommandPanelLayoutMode.stacked ? 46.0 : 54.0, layout.mode == BattleCommandPanelLayoutMode.stacked ? 64.0 : 72.0);
+
+    for (var index = 0; index < _menuModel.rootEntries.length; index++) {
+      final entry = _menuModel.rootEntries[index];
+      final row = index ~/ 2;
+      final column = index % 2;
+      final card = _BattleRootButtonComponent(
+        entry: entry,
+        position: Vector2(
+          12 + ((cardWidth + gap) * column),
+          top + ((cardHeight + gap) * row),
         ),
-        position: Vector2(16, contentTop),
-        size: Vector2(availableWidth, 72),
-        isSelected: false,
-        isInteractive: false,
-        onPressed: (_) {},
+        size: Vector2(cardWidth, cardHeight),
+        isSelected: index == _menuModel.selectedRootIndex,
+        onPressed: onRootActionSelected,
+        compact: layout.mode == BattleCommandPanelLayoutMode.stacked,
       );
-      _choiceComponents.add(emptyState);
-      _commandsPanel!.add(emptyState);
+      _interactiveComponents.add(card);
+      commandsPanel.add(card);
+    }
+  }
+
+  void _renderChoiceEntries(PositionComponent commandsPanel) {
+    final layout = _layout ?? _BattleCommandPanelLayout.forSize(size);
+    final top = _menuModel.isContinueOnly
+        ? (layout.mode == BattleCommandPanelLayoutMode.stacked ? 16.0 : 28.0)
+        : (layout.mode == BattleCommandPanelLayoutMode.stacked ? 18.0 : 24.0);
+    final gap = layout.mode == BattleCommandPanelLayoutMode.stacked ? 8.0 : 10.0;
+    final entries = _menuModel.choiceEntries;
+    if (entries.isEmpty) {
       return;
     }
 
-    final useGrid = choices.length <= 4;
-    if (useGrid) {
-      const gap = 12.0;
-      final cardWidth = (availableWidth - gap) / 2;
-      final rows = (choices.length / 2).ceil();
-      final cardHeight = rows > 1
-          ? ((availableHeight - ((rows - 1) * gap)) / rows).clamp(66.0, 88.0)
-          : 88.0;
+    final availableWidth = commandsPanel.size.x - 24;
+    final availableHeight = commandsPanel.size.y - (top + 14);
+    final columns = _menuModel.choiceColumns <= 0 ? 1 : _menuModel.choiceColumns;
+    final rows = (entries.length / columns).ceil();
+    final cardWidth = columns == 1
+        ? availableWidth
+        : ((availableWidth - ((columns - 1) * gap)) / columns);
+    final cardHeight = ((availableHeight - ((rows - 1) * gap)) / rows)
+        .clamp(52.0, _menuModel.isContinueOnly ? 92.0 : 78.0);
 
-      for (var i = 0; i < choices.length; i++) {
-        final row = i ~/ 2;
-        final column = i % 2;
-        final card = _BattleChoiceCardComponent(
-          entry: choices[i],
-          position: Vector2(
-            16 + ((cardWidth + gap) * column),
-            contentTop + ((cardHeight + gap) * row),
-          ),
-          size: Vector2(cardWidth, cardHeight),
-          isSelected: i == selectedIndex,
-          isInteractive: true,
-          onPressed: onChoiceSelected,
-        );
-        _choiceComponents.add(card);
-        _commandsPanel!.add(card);
-      }
-      return;
-    }
-
-    var y = contentTop;
-    for (var i = 0; i < choices.length; i++) {
+    for (var index = 0; index < entries.length; index++) {
+      final row = index ~/ columns;
+      final column = index % columns;
       final card = _BattleChoiceCardComponent(
-        entry: choices[i],
-        position: Vector2(16, y),
-        size: Vector2(availableWidth, 64),
-        isSelected: i == selectedIndex,
-        isInteractive: true,
+        entry: entries[index],
+        position: Vector2(
+          12 + ((cardWidth + gap) * column),
+          top + ((cardHeight + gap) * row),
+        ),
+        size: Vector2(cardWidth, cardHeight),
+        isSelected: index == _menuModel.selectedChoiceIndex,
         onPressed: onChoiceSelected,
+        compact: layout.mode == BattleCommandPanelLayoutMode.stacked,
       );
-      _choiceComponents.add(card);
-      _commandsPanel!.add(card);
-      y += 72;
+      _interactiveComponents.add(card);
+      commandsPanel.add(card);
     }
+  }
+
+  String _hintFor(BattleCommandMenuModel menuModel) {
+    if (menuModel.isContinueOnly) {
+      return 'Enter / Space';
+    }
+    if (menuModel.isRootMode) {
+      return '';
+    }
+    return 'Esc back';
+  }
+}
+
+class _BattleRootButtonComponent extends PositionComponent with TapCallbacks {
+  _BattleRootButtonComponent({
+    required this.entry,
+    required Vector2 position,
+    required Vector2 size,
+    required this.isSelected,
+    required this.onPressed,
+    this.compact = false,
+  }) : super(
+          position: position,
+          size: size,
+          anchor: Anchor.topLeft,
+          priority: 32,
+        );
+
+  final BattleCommandRootEntry entry;
+  final bool isSelected;
+  final void Function(BattleCommandRootAction action) onPressed;
+  final bool compact;
+
+  TextComponent? _labelText;
+  TextComponent? _subtitleText;
+
+  @override
+  Future<void> onLoad() async {
+    _labelText = TextComponent(
+      text: entry.label,
+      position: Vector2(size.x / 2, size.y * 0.38),
+      anchor: Anchor.center,
+      textRenderer: TextPaint(
+        style: TextStyle(
+          color: entry.enabled
+              ? const Color(0xFFFDFDFD)
+              : const Color(0x9AFDFDFD),
+          fontSize: compact ? 17 : 20,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 0.4,
+        ),
+      ),
+      priority: 33,
+    );
+    await add(_labelText!);
+
+    _subtitleText = TextComponent(
+      text: entry.subtitle,
+      position: Vector2(size.x / 2, size.y - 10),
+      anchor: Anchor.bottomCenter,
+      textRenderer: TextPaint(
+        style: TextStyle(
+          color: entry.enabled
+              ? const Color(0xDDF7F7F7)
+              : const Color(0x99F7F7F7),
+          fontSize: compact ? 9 : 10,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      priority: 33,
+    );
+    await add(_subtitleText!);
+  }
+
+  @override
+  bool containsLocalPoint(Vector2 point) {
+    return point.x >= 0 &&
+        point.x <= size.x &&
+        point.y >= 0 &&
+        point.y <= size.y;
+  }
+
+  @override
+  void onTapDown(TapDownEvent event) {
+    if (!entry.enabled) {
+      return;
+    }
+    onPressed(entry.action);
+  }
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+
+    final rect = Offset.zero & Size(size.x, size.y);
+    final palette = _rootPaletteFor(entry.action, enabled: entry.enabled);
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(16)),
+      Paint()
+        ..shader = LinearGradient(
+          colors: <Color>[palette.primary, palette.secondary],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ).createShader(rect),
+    );
+    final upperBevelRect = Rect.fromLTWH(3, 3, size.x - 6, size.y * 0.36);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(upperBevelRect, const Radius.circular(12)),
+      Paint()..color = const Color(0x26FFFFFF),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(16)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = isSelected ? 2.5 : 1.25
+        ..color = isSelected
+            ? const Color(0xFFF6E8B0)
+            : const Color(0x55FFFFFF),
+    );
   }
 }
 
@@ -355,8 +488,8 @@ class _BattleChoiceCardComponent extends PositionComponent with TapCallbacks {
     required Vector2 position,
     required Vector2 size,
     required this.isSelected,
-    required this.isInteractive,
     required this.onPressed,
+    this.compact = false,
   }) : super(
           position: position,
           size: size,
@@ -366,8 +499,8 @@ class _BattleChoiceCardComponent extends PositionComponent with TapCallbacks {
 
   final BattleCommandChoiceEntry entry;
   final bool isSelected;
-  final bool isInteractive;
   final void Function(PlayerBattleChoice choice) onPressed;
+  final bool compact;
 
   TextComponent? _titleText;
   TextComponent? _subtitleText;
@@ -376,13 +509,12 @@ class _BattleChoiceCardComponent extends PositionComponent with TapCallbacks {
   Future<void> onLoad() async {
     _titleText = TextComponent(
       text: entry.title,
-      position: Vector2(16, 14),
+      position: Vector2(14, 12),
       anchor: Anchor.topLeft,
       textRenderer: TextPaint(
         style: TextStyle(
-          color:
-              isInteractive ? const Color(0xFFF8FBFF) : const Color(0x88F8FBFF),
-          fontSize: 15,
+          color: const Color(0xFFF8FBFF),
+          fontSize: compact ? 13 : 14,
           fontWeight: FontWeight.w800,
         ),
       ),
@@ -392,13 +524,12 @@ class _BattleChoiceCardComponent extends PositionComponent with TapCallbacks {
 
     _subtitleText = TextComponent(
       text: entry.subtitle,
-      position: Vector2(16, size.y - 14),
+      position: Vector2(14, size.y - 10),
       anchor: Anchor.bottomLeft,
       textRenderer: TextPaint(
         style: TextStyle(
-          color:
-              isInteractive ? const Color(0xCCE6EEF8) : const Color(0x77E6EEF8),
-          fontSize: 11,
+          color: const Color(0xCCE6EEF8),
+          fontSize: compact ? 9 : 10,
           fontWeight: FontWeight.w700,
           height: 1.2,
         ),
@@ -418,9 +549,6 @@ class _BattleChoiceCardComponent extends PositionComponent with TapCallbacks {
 
   @override
   void onTapDown(TapDownEvent event) {
-    if (!isInteractive) {
-      return;
-    }
     onPressed(entry.choice);
   }
 
@@ -429,71 +557,170 @@ class _BattleChoiceCardComponent extends PositionComponent with TapCallbacks {
     super.render(canvas);
 
     final rect = Offset.zero & Size(size.x, size.y);
-    final palette = _paletteFor(entry.tone);
+    final palette = _choicePaletteFor(entry.tone);
 
     canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, const Radius.circular(18)),
+      RRect.fromRectAndRadius(rect, const Radius.circular(16)),
       Paint()
         ..shader = LinearGradient(
-          colors: isInteractive
-              ? <Color>[
-                  palette.primary,
-                  palette.secondary,
-                ]
-              : <Color>[
-                  const Color(0xFF445166),
-                  const Color(0xFF384457),
-                ],
+          colors: <Color>[palette.primary, palette.secondary],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ).createShader(rect),
     );
-
     canvas.drawRRect(
-      RRect.fromRectAndRadius(rect, const Radius.circular(18)),
+      RRect.fromRectAndRadius(rect, const Radius.circular(16)),
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = isSelected ? 3 : 1.5
+        ..strokeWidth = isSelected ? 2.5 : 1.25
         ..color = isSelected
             ? const Color(0xFFF7F0D4)
-            : const Color(0x35FFFFFF),
+            : const Color(0x55FFFFFF),
     );
-
-    final accentRect = Rect.fromLTWH(10, 10, size.x - 20, 8);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(accentRect, const Radius.circular(999)),
-      Paint()..color = const Color(0x24FFFFFF),
-    );
-  }
-
-  _BattleChoicePalette _paletteFor(BattleCommandChoiceTone tone) {
-    return switch (tone) {
-      BattleCommandChoiceTone.attack => const _BattleChoicePalette(
-          primary: Color(0xFFDE7B58),
-          secondary: Color(0xFFB54F4B),
-        ),
-      BattleCommandChoiceTone.special => const _BattleChoicePalette(
-          primary: Color(0xFF5B84D6),
-          secondary: Color(0xFF3758A8),
-        ),
-      BattleCommandChoiceTone.support => const _BattleChoicePalette(
-          primary: Color(0xFF5FAD86),
-          secondary: Color(0xFF3D7F64),
-        ),
-      BattleCommandChoiceTone.switching => const _BattleChoicePalette(
-          primary: Color(0xFF8D79D6),
-          secondary: Color(0xFF6655AC),
-        ),
-      BattleCommandChoiceTone.neutral => const _BattleChoicePalette(
-          primary: Color(0xFF637890),
-          secondary: Color(0xFF46586F),
-        ),
-    };
   }
 }
 
-class _BattleChoicePalette {
-  const _BattleChoicePalette({
+class _BattleCommandPanelLayout {
+  const _BattleCommandPanelLayout({
+    required this.mode,
+    required this.promptPosition,
+    required this.promptSize,
+    required this.commandsPosition,
+    required this.commandsSize,
+    required this.battleLabelPosition,
+    required this.battleLabelFontSize,
+    required this.promptTextPosition,
+    required this.promptFontSize,
+    required this.narrationPosition,
+    required this.narrationFontSize,
+    required this.commandTitlePosition,
+    required this.commandLabelFontSize,
+  });
+
+  final BattleCommandPanelLayoutMode mode;
+  final Vector2 promptPosition;
+  final Vector2 promptSize;
+  final Vector2 commandsPosition;
+  final Vector2 commandsSize;
+  final Vector2 battleLabelPosition;
+  final double battleLabelFontSize;
+  final Vector2 promptTextPosition;
+  final double promptFontSize;
+  final Vector2 narrationPosition;
+  final double narrationFontSize;
+  final Vector2 commandTitlePosition;
+  final double commandLabelFontSize;
+
+  Vector2 hintPosition({
+    required Vector2 commandsPanelSize,
+  }) {
+    return Vector2(commandsPanelSize.x - 10, commandsPanelSize.y - 2);
+  }
+
+  factory _BattleCommandPanelLayout.forSize(Vector2 panelSize) {
+    final useStacked =
+        panelSize.x < 700 || (panelSize.x / (panelSize.y <= 0 ? 1 : panelSize.y)) < 2.45;
+    if (useStacked) {
+      const spacing = 12.0;
+      final promptHeight = (panelSize.y * 0.42).clamp(90.0, 120.0).toDouble();
+      final commandsHeight = (panelSize.y - promptHeight - spacing)
+          .clamp(110.0, panelSize.y)
+          .toDouble();
+      return _BattleCommandPanelLayout(
+        mode: BattleCommandPanelLayoutMode.stacked,
+        promptPosition: Vector2.zero(),
+        promptSize: Vector2(panelSize.x, promptHeight),
+        commandsPosition: Vector2(0, promptHeight + spacing),
+        commandsSize: Vector2(panelSize.x, commandsHeight),
+        battleLabelPosition: Vector2(16, 12),
+        battleLabelFontSize: 9,
+        promptTextPosition: Vector2(16, 28),
+        promptFontSize: 16,
+        narrationPosition: Vector2(16, 58),
+        narrationFontSize: 11,
+        commandTitlePosition: Vector2(10, 2),
+        commandLabelFontSize: 9,
+      );
+    }
+
+    final promptWidth = (panelSize.x * 0.46).clamp(320.0, 430.0).toDouble();
+    const spacing = 22.0;
+    final commandsWidth = panelSize.x - promptWidth - spacing;
+    return _BattleCommandPanelLayout(
+      mode: BattleCommandPanelLayoutMode.split,
+      promptPosition: Vector2.zero(),
+      promptSize: Vector2(promptWidth, panelSize.y),
+      commandsPosition: Vector2(promptWidth + spacing, 0),
+      commandsSize: Vector2(commandsWidth, panelSize.y),
+      battleLabelPosition: Vector2(20, 16),
+      battleLabelFontSize: 10,
+      promptTextPosition: Vector2(20, 36),
+      promptFontSize: 20,
+      narrationPosition: Vector2(20, 82),
+      narrationFontSize: 13,
+      commandTitlePosition: Vector2(10, 2),
+      commandLabelFontSize: 10,
+    );
+  }
+}
+
+_BattlePalette _rootPaletteFor(
+  BattleCommandRootAction action, {
+  required bool enabled,
+}) {
+  if (!enabled) {
+    return const _BattlePalette(
+      primary: Color(0xFF4E5768),
+      secondary: Color(0xFF373F4C),
+    );
+  }
+  return switch (action) {
+    BattleCommandRootAction.fight => const _BattlePalette(
+        primary: Color(0xFFF5897D),
+        secondary: Color(0xFFD55D59),
+      ),
+    BattleCommandRootAction.bag => const _BattlePalette(
+        primary: Color(0xFFE8B95D),
+        secondary: Color(0xFFC48D2B),
+      ),
+    BattleCommandRootAction.pokemon => const _BattlePalette(
+        primary: Color(0xFF86B665),
+        secondary: Color(0xFF4E7E3D),
+      ),
+    BattleCommandRootAction.run => const _BattlePalette(
+        primary: Color(0xFF6C95D8),
+        secondary: Color(0xFF4569B1),
+      ),
+  };
+}
+
+_BattlePalette _choicePaletteFor(BattleCommandChoiceTone tone) {
+  return switch (tone) {
+    BattleCommandChoiceTone.attack => const _BattlePalette(
+        primary: Color(0xFFDE7B58),
+        secondary: Color(0xFFB54F4B),
+      ),
+    BattleCommandChoiceTone.special => const _BattlePalette(
+        primary: Color(0xFF5B84D6),
+        secondary: Color(0xFF3758A8),
+      ),
+    BattleCommandChoiceTone.support => const _BattlePalette(
+        primary: Color(0xFF5FAD86),
+        secondary: Color(0xFF3D7F64),
+      ),
+    BattleCommandChoiceTone.switching => const _BattlePalette(
+        primary: Color(0xFF8D79D6),
+        secondary: Color(0xFF6655AC),
+      ),
+    BattleCommandChoiceTone.neutral => const _BattlePalette(
+        primary: Color(0xFF637890),
+        secondary: Color(0xFF46586F),
+      ),
+  };
+}
+
+class _BattlePalette {
+  const _BattlePalette({
     required this.primary,
     required this.secondary,
   });

@@ -51,11 +51,13 @@ import '../../application/trainer_battle_request.dart';
 import '../../infrastructure/tile_image_loader.dart';
 import 'battle_overlay_component.dart';
 import 'battle_background_resolver.dart';
+import 'battle_pokemon_sprite_resolver.dart';
 import 'battle_transition_overlay_component.dart';
 import 'dialogue_overlay_component.dart';
 import 'map_layers_component.dart';
 import 'overworld_actor_component.dart';
 import 'player_component.dart';
+import 'runtime_battle_gender_overrides.dart';
 import 'runtime_trainer_battle_overrides.dart';
 import 'warp_transition_overlay_component.dart';
 
@@ -760,38 +762,37 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // IMPORTANT: Handle battle phase FIRST before movement keys
     // Otherwise arrow keys will be captured by movement handler
     if (_flowPhase == _RuntimeFlowPhase.battle) {
-      // Navigation dans les choix du combat
-      // ↑/↓ pour naviguer, E/Space/Enter pour valider, Escape pour fuir
       final overlay = _battleOverlay;
       if (overlay != null) {
-        // ↑ : sélection précédente (KeyDownEvent ONLY, pas KeyRepeatEvent)
-        if (key == LogicalKeyboardKey.arrowUp && event is KeyDownEvent) {
+        if (key == LogicalKeyboardKey.arrowUp && isDown) {
           final changed = overlay.moveSelectionUp();
           debugPrint('[battle] ArrowUp pressed, selection changed=$changed');
           return KeyEventResult.handled;
         }
-        // ↓ : sélection suivante (KeyDownEvent ONLY, pas KeyRepeatEvent)
-        if (key == LogicalKeyboardKey.arrowDown && event is KeyDownEvent) {
+        if (key == LogicalKeyboardKey.arrowDown && isDown) {
           final changed = overlay.moveSelectionDown();
           debugPrint('[battle] ArrowDown pressed, selection changed=$changed');
           return KeyEventResult.handled;
         }
-        // E / Space / Enter : validation du choix sélectionné
-        // CRITICAL: Only process KeyDownEvent, NOT KeyRepeatEvent!
-        // KeyRepeatEvent is sent when key is held down, which causes multiple validations
+        if (key == LogicalKeyboardKey.arrowLeft && isDown) {
+          final changed = overlay.moveSelectionLeft();
+          debugPrint('[battle] ArrowLeft pressed, selection changed=$changed');
+          return KeyEventResult.handled;
+        }
+        if (key == LogicalKeyboardKey.arrowRight && isDown) {
+          final changed = overlay.moveSelectionRight();
+          debugPrint('[battle] ArrowRight pressed, selection changed=$changed');
+          return KeyEventResult.handled;
+        }
         if (event is KeyDownEvent &&
             (key == LogicalKeyboardKey.keyE ||
                 key == LogicalKeyboardKey.space ||
                 key == LogicalKeyboardKey.enter)) {
-          // CRITICAL: Re-check phase AFTER getting into this block
-          // Because the phase might have changed during this same key event processing
-          // (e.g., last attack of the battle finished it)
           if (_flowPhase != _RuntimeFlowPhase.battle) {
             debugPrint(
                 '[battle] Validate key pressed but phase changed to $_flowPhase, IGNORING');
             return KeyEventResult.ignored;
           }
-          // Also check if overlay is still valid (might have been removed)
           if (_battleOverlay == null) {
             debugPrint(
                 '[battle] Validate key pressed but overlay is null, IGNORING');
@@ -804,19 +805,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           debugPrint('[battle] validateSelectedChoice returned=$validated');
           return KeyEventResult.handled;
         }
-        // Escape : tentative de fuite (seulement si l'action est disponible)
         if (event is KeyDownEvent && key == LogicalKeyboardKey.escape) {
-          // Vérifier si l'action "Fuir" est disponible dans les choix
-          final selectedChoice = overlay.getSelectedChoice();
-          debugPrint('[battle] Escape pressed, selectedChoice=$selectedChoice');
-          if (selectedChoice is PlayerBattleChoiceRun) {
-            overlay.validateSelectedChoice();
-            debugPrint('[battle] Escape validated (run selected)');
-            return KeyEventResult.handled;
-          }
-          // Si "Fuir" n'est pas sélectionné, ne rien faire
-          debugPrint('[battle] Escape ignored (run not selected)');
-          return KeyEventResult.ignored;
+          final handled = overlay.handleEscape();
+          debugPrint('[battle] Escape pressed, handled=$handled');
+          return handled ? KeyEventResult.handled : KeyEventResult.ignored;
         }
       } else {
         debugPrint('[battle] Keyboard event but overlay is null!');
@@ -3115,12 +3107,23 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         request: request,
         bundle: _bundle,
       );
+      final genderResolver = await buildRuntimeBattleGenderResolver(
+        bundle: _bundle,
+        gameState: _gameState,
+        request: request,
+        playerLineup: playerLineup,
+      );
 
       // Afficher l'overlay de combat avec la session
       final overlay = BattleOverlayComponent(
         session: _battleSession!,
         viewportSize: camera.viewport.size,
         backgroundSpec: backgroundSpec,
+        spriteResolver: BattlePokemonSpriteResolver(
+          manifest: _bundle.manifest,
+          projectRootDirectory: _bundle.projectRootDirectory,
+        ),
+        genderResolver: genderResolver,
         onPlayerChoice: _onPlayerBattleChoice,
       );
       camera.viewport.add(overlay);

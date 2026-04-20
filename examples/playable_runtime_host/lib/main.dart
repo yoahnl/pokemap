@@ -270,6 +270,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
                           speciesId: launchDemoSeed.speciesId,
                           natureId: 'hardy',
                           abilityId: launchDemoSeed.abilityId,
+                          gender: launchDemoSeed.gender,
                           level: launchDemoSeed.level,
                           knownMoveIds: launchDemoSeed.knownMoveIds,
                           currentHp: launchDemoSeed.currentHp,

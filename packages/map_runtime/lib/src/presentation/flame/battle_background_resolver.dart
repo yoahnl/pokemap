@@ -105,6 +105,18 @@ final class BattleBackgroundResolver {
       );
     }
 
+    final explicitZoneBackgroundAbsolutePath =
+        _resolveExplicitEncounterZoneBackgroundAbsolutePath(
+      request: request,
+      bundle: bundle,
+    );
+    if (explicitZoneBackgroundAbsolutePath != null) {
+      return BattleBackgroundSpec.explicitImage(
+        fallbackKey: contextualKey,
+        absolutePath: explicitZoneBackgroundAbsolutePath,
+      );
+    }
+
     return BattleBackgroundSpec(
       key: contextualKey,
     );
@@ -140,6 +152,91 @@ final class BattleBackgroundResolver {
     return p.normalize(
       p.join(bundle.projectRootDirectory, relativePath),
     );
+  }
+
+  String? _resolveExplicitEncounterZoneBackgroundAbsolutePath({
+    required BattleStartRequest request,
+    required RuntimeMapBundle bundle,
+  }) {
+    if (request case WildBattleStartRequest(:final zoneId)) {
+      final explicitPath = _resolveExplicitZoneBackgroundById(
+        bundle: bundle,
+        zoneId: zoneId,
+      );
+      if (explicitPath != null) {
+        return explicitPath;
+      }
+    }
+
+    final lookupPos = switch (request) {
+      WildBattleStartRequest(:final playerPos) => playerPos,
+      TrainerBattleStartRequest(:final playerPos) => playerPos,
+    };
+    final zone = _resolveEncounterZoneAtPos(
+      bundle: bundle,
+      pos: lookupPos,
+    );
+    final relativePath = zone?.encounter?.battleBackgroundRelativePath?.trim();
+    if (relativePath == null || relativePath.isEmpty) {
+      return null;
+    }
+
+    return p.normalize(
+      p.join(bundle.projectRootDirectory, relativePath),
+    );
+  }
+
+  String? _resolveExplicitZoneBackgroundById({
+    required RuntimeMapBundle bundle,
+    required String zoneId,
+  }) {
+    final normalizedZoneId = zoneId.trim();
+    if (normalizedZoneId.isEmpty) {
+      return null;
+    }
+    for (final zone in bundle.map.gameplayZones) {
+      if (zone.id != normalizedZoneId) {
+        continue;
+      }
+      final relativePath = zone.encounter?.battleBackgroundRelativePath?.trim();
+      if (relativePath == null || relativePath.isEmpty) {
+        return null;
+      }
+      return p.normalize(
+        p.join(bundle.projectRootDirectory, relativePath),
+      );
+    }
+    return null;
+  }
+
+  MapGameplayZone? _resolveEncounterZoneAtPos({
+    required RuntimeMapBundle bundle,
+    required GridPos pos,
+  }) {
+    MapGameplayZone? bestZone;
+    for (final zone in bundle.map.gameplayZones) {
+      if (zone.kind != GameplayZoneKind.encounter) {
+        continue;
+      }
+      final relativePath = zone.encounter?.battleBackgroundRelativePath?.trim();
+      if (relativePath == null || relativePath.isEmpty) {
+        continue;
+      }
+      if (!_containsPos(zone.area, pos)) {
+        continue;
+      }
+      if (bestZone == null || zone.priority >= bestZone.priority) {
+        bestZone = zone;
+      }
+    }
+    return bestZone;
+  }
+
+  bool _containsPos(MapRect rect, GridPos pos) {
+    return pos.x >= rect.pos.x &&
+        pos.y >= rect.pos.y &&
+        pos.x < rect.pos.x + rect.size.width &&
+        pos.y < rect.pos.y + rect.size.height;
   }
 
   bool _isIndoorMap(RuntimeMapBundle bundle) {

@@ -83,6 +83,19 @@ void main() {
       expect(json['currentHp'], 1);
     });
 
+    test('normalizes an optional authored gender without inventing one', () {
+      const pokemon = PlayerPokemon(
+        speciesId: 'pikachu',
+        natureId: 'jolly',
+        abilityId: 'static',
+        gender: ' female ',
+      );
+
+      final normalized = pokemon.normalized();
+
+      expect(normalized.gender, 'female');
+    });
+
     test('normalized rejects more than four moves', () {
       const pokemon = PlayerPokemon(
         speciesId: 'pikachu',

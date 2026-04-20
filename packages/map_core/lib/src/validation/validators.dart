@@ -1681,6 +1681,15 @@ class MapValidator {
           _requireNonBlank(zone.id, 'Gameplay zone ID cannot be empty');
       _requireNonBlank(
           zone.kind.name, 'Gameplay zone $zoneId has invalid kind');
+      final encounterBattleBackgroundRelativePath =
+          zone.encounter?.battleBackgroundRelativePath?.trim();
+      if (encounterBattleBackgroundRelativePath != null &&
+          encounterBattleBackgroundRelativePath.isNotEmpty) {
+        ProjectValidator._validateRelativePath(
+          encounterBattleBackgroundRelativePath,
+          'Gameplay zone $zoneId encounter battleBackgroundRelativePath',
+        );
+      }
       final specialProps = zone.special?.properties;
       if (specialProps != null) {
         for (final key in specialProps.keys) {

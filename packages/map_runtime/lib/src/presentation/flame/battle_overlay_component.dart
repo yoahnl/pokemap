@@ -1,11 +1,17 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flame/components.dart';
 import 'package:flame/text.dart';
 import 'package:flutter/material.dart';
 import 'package:map_battle/map_battle.dart';
 
+import 'battle_command_menu_model.dart';
 import 'battle_command_panel_component.dart';
+import 'battle_combatant_gender_resolver.dart';
 import 'battle_background_resolver.dart';
 import 'battle_debug_panel_component.dart';
+import 'battle_pokemon_sprite_resolver.dart';
 import 'battle_scene_backdrop_component.dart';
 import 'battle_scene_combatant_component.dart';
 import 'battle_scene_hud_component.dart';
@@ -242,6 +248,168 @@ String _buildOutcomeHeadline(BattleOutcome outcome) {
   };
 }
 
+class _BattleOverlayLayout {
+  const _BattleOverlayLayout({
+    required this.enemyHudPosition,
+    required this.enemyHudSize,
+    required this.playerHudPosition,
+    required this.playerHudSize,
+    required this.enemyCombatantPosition,
+    required this.enemyCombatantSize,
+    required this.playerCombatantPosition,
+    required this.playerCombatantSize,
+    required this.commandPanelPosition,
+    required this.commandPanelSize,
+  });
+
+  final Vector2 enemyHudPosition;
+  final Vector2 enemyHudSize;
+  final Vector2 playerHudPosition;
+  final Vector2 playerHudSize;
+  final Vector2 enemyCombatantPosition;
+  final Vector2 enemyCombatantSize;
+  final Vector2 playerCombatantPosition;
+  final Vector2 playerCombatantSize;
+  final Vector2 commandPanelPosition;
+  final Vector2 commandPanelSize;
+
+  factory _BattleOverlayLayout.forViewport(Vector2 viewportSize) {
+    final compact =
+        viewportSize.x < 720 || (viewportSize.x / viewportSize.y) < 1.05;
+    final padding = compact ? 12.0 : 18.0;
+    final commandPanelHeight = compact
+        ? (viewportSize.y * 0.34).clamp(220.0, 292.0).toDouble()
+        : (viewportSize.y * 0.265).clamp(152.0, 176.0).toDouble();
+    final commandPanelY =
+        viewportSize.y - commandPanelHeight - (compact ? 12 : 14);
+
+    final enemyHudSize = compact
+        ? Vector2(
+            (viewportSize.x * 0.5).clamp(180.0, 232.0).toDouble(),
+            82,
+          )
+        : Vector2(
+            (viewportSize.x * 0.29).clamp(232.0, 304.0).toDouble(),
+            92,
+          );
+    final playerHudSize = compact
+        ? Vector2(
+            (viewportSize.x * 0.56).clamp(196.0, 236.0).toDouble(),
+            88,
+          )
+        : Vector2(
+            (viewportSize.x * 0.33).clamp(248.0, 330.0).toDouble(),
+            98,
+          );
+
+    final enemyHudPosition = Vector2(padding, padding + 2);
+
+    final commandPanelPosition = Vector2(padding, commandPanelY);
+    final commandPanelSize =
+        Vector2(viewportSize.x - (padding * 2), commandPanelHeight);
+
+    final combatStageLayout = _BattleCombatStageLayout.forViewport(
+      viewportSize: viewportSize,
+      commandPanelTop: commandPanelY,
+    );
+
+    final playerHudPosition = compact
+        ? Vector2(
+            viewportSize.x - playerHudSize.x - 12,
+            commandPanelY - playerHudSize.y - 12,
+          )
+        : Vector2(
+            viewportSize.x - playerHudSize.x - 34,
+            commandPanelY - playerHudSize.y + 6,
+          );
+
+    return _BattleOverlayLayout(
+      enemyHudPosition: enemyHudPosition,
+      enemyHudSize: enemyHudSize,
+      playerHudPosition: playerHudPosition,
+      playerHudSize: playerHudSize,
+      enemyCombatantPosition: combatStageLayout.enemyPosition,
+      enemyCombatantSize: combatStageLayout.enemySize,
+      playerCombatantPosition: combatStageLayout.playerPosition,
+      playerCombatantSize: combatStageLayout.playerSize,
+      commandPanelPosition: commandPanelPosition,
+      commandPanelSize: commandPanelSize,
+    );
+  }
+}
+
+class _BattleCombatStageLayout {
+  const _BattleCombatStageLayout({
+    required this.playerPosition,
+    required this.playerSize,
+    required this.enemyPosition,
+    required this.enemySize,
+  });
+
+  final Vector2 playerPosition;
+  final Vector2 playerSize;
+  final Vector2 enemyPosition;
+  final Vector2 enemySize;
+
+  factory _BattleCombatStageLayout.forViewport({
+    required Vector2 viewportSize,
+    required double commandPanelTop,
+  }) {
+    const referenceStageWidth = 760.0;
+    const referenceStageHeight = 260.0;
+    // Le staging des battlers suit une scène de référence fixe inspirée du
+    // cadrage Pokémon-like : le joueur est grand et ancré côté gauche,
+    // l’adversaire reste plus compact côté droit. On évite ainsi qu’un écran
+    // plus large “écarte” artificiellement les sprites.
+    const referencePlayerX = -90.0;
+    const referencePlayerY = 18.0;
+    const referencePlayerWidth = 392.0;
+    const referencePlayerHeight = 248.0;
+    const referenceEnemyX = 470.0;
+    const referenceEnemyY = 40.0;
+    const referenceEnemyWidth = 238.0;
+    const referenceEnemyHeight = 166.0;
+
+    const stageTopPadding = 20.0;
+    const stageBottomPadding = 18.0;
+    final stageSidePadding = viewportSize.x < 720 ? 12.0 : 0.0;
+    final availableStageWidth =
+        (viewportSize.x - (stageSidePadding * 2)).clamp(240.0, viewportSize.x);
+    final availableStageHeight =
+        (commandPanelTop - stageTopPadding - stageBottomPadding)
+            .clamp(120.0, viewportSize.y);
+    final scale = math.min(
+      1.0,
+      math.min(
+        availableStageWidth / referenceStageWidth,
+        availableStageHeight / referenceStageHeight,
+      ),
+    );
+    final stageWidth = referenceStageWidth * scale;
+    final stageHeight = referenceStageHeight * scale;
+    final stageLeft = (viewportSize.x - stageWidth) / 2;
+    final stageTop = commandPanelTop - stageBottomPadding - stageHeight;
+
+    Vector2 mapPoint(double x, double y) {
+      return Vector2(
+        stageLeft + (x * scale),
+        stageTop + (y * scale),
+      );
+    }
+
+    Vector2 mapSize(double width, double height) {
+      return Vector2(width * scale, height * scale);
+    }
+
+    return _BattleCombatStageLayout(
+      playerPosition: mapPoint(referencePlayerX, referencePlayerY),
+      playerSize: mapSize(referencePlayerWidth, referencePlayerHeight),
+      enemyPosition: mapPoint(referenceEnemyX, referenceEnemyY),
+      enemySize: mapSize(referenceEnemyWidth, referenceEnemyHeight),
+    );
+  }
+}
+
 /// Overlay de combat lot 1.
 ///
 /// Responsabilité :
@@ -260,6 +428,8 @@ class BattleOverlayComponent extends PositionComponent {
     required Vector2 viewportSize,
     required this.onPlayerChoice,
     this.backgroundSpec = const BattleBackgroundSpec.fallbackField(),
+    this.spriteResolver,
+    this.genderResolver,
     this.showDebugPanel = false,
   })  : _session = session,
         super(
@@ -272,6 +442,8 @@ class BattleOverlayComponent extends PositionComponent {
 
   final void Function(PlayerBattleChoice choice) onPlayerChoice;
   final BattleBackgroundSpec backgroundSpec;
+  final BattlePokemonSpriteResolver? spriteResolver;
+  final BattleCombatantGenderResolver? genderResolver;
 
   /// Le debug reste volontairement opt-in.
   ///
@@ -288,8 +460,11 @@ class BattleOverlayComponent extends PositionComponent {
   BattleCommandPanelComponent? _commandPanel;
   BattleDebugPanelComponent? _debugPanel;
   TextComponent? _outcomeBanner;
+  Future<void>? _pendingVisualSync;
 
-  int _selectedIndex = 0;
+  BattleCommandMenuMode _menuMode = BattleCommandMenuMode.root;
+  int _selectedRootIndex = 0;
+  int _selectedChoiceIndex = 0;
 
   @visibleForTesting
   bool get commandPanelMounted => _commandPanel != null;
@@ -311,34 +486,25 @@ class BattleOverlayComponent extends PositionComponent {
   String get currentNarrationText =>
       buildBattleNarrationLinesForOverlay(_session).join('\n');
 
+  @visibleForTesting
+  BattleCommandMenuMode get currentMenuMode => _menuMode;
+
+  @visibleForTesting
+  String get currentPlayerHudSpeciesText =>
+      _hudSpeciesDisplayText(_session.state.player, isPlayerSide: true);
+
+  @visibleForTesting
+  String get currentEnemyHudSpeciesText =>
+      _hudSpeciesDisplayText(_session.state.enemy, isPlayerSide: false);
+
+  @visibleForTesting
+  Future<void> waitForPendingVisualSync() async {
+    await (_pendingVisualSync ?? Future<void>.value());
+  }
+
   @override
   Future<void> onLoad() async {
-    // Le layout du lot 1 reste volontairement local et concret :
-    // - on assume une scène plein écran ;
-    // - on place des zones stables joueur/ennemi ;
-    // - on garde un seul panneau bas pour narration + commandes ;
-    // - on évite volontairement un système de layout générique.
-    const padding = 24.0;
-    final commandPanelHeight = (size.y * 0.3).clamp(186.0, 224.0).toDouble();
-    final commandPanelY = size.y - commandPanelHeight - 18;
-
-    final enemyHudSize = Vector2(
-      (size.x * 0.31).clamp(240.0, 320.0).toDouble(),
-      98,
-    );
-    final playerHudSize = Vector2(
-      (size.x * 0.34).clamp(250.0, 340.0).toDouble(),
-      106,
-    );
-
-    final enemyCombatantSize = Vector2(
-      (size.x * 0.24).clamp(220.0, 310.0).toDouble(),
-      (size.y * 0.26).clamp(136.0, 182.0).toDouble(),
-    );
-    final playerCombatantSize = Vector2(
-      (size.x * 0.3).clamp(250.0, 350.0).toDouble(),
-      (size.y * 0.31).clamp(166.0, 222.0).toDouble(),
-    );
+    final layout = _BattleOverlayLayout.forViewport(size);
 
     _backdrop = BattleSceneBackdropComponent(
       size: size.clone(),
@@ -347,46 +513,52 @@ class BattleOverlayComponent extends PositionComponent {
     await add(_backdrop!);
 
     _enemyCombatant = BattleSceneCombatantComponent(
-      position: Vector2(size.x - enemyCombatantSize.x - 116, 92),
-      size: enemyCombatantSize,
+      position: layout.enemyCombatantPosition,
+      size: layout.enemyCombatantSize,
       isPlayerSide: false,
       speciesLabel: _session.state.enemy.speciesId,
     );
     await add(_enemyCombatant!);
 
     _playerCombatant = BattleSceneCombatantComponent(
-      position: Vector2(62, commandPanelY - playerCombatantSize.y - 12),
-      size: playerCombatantSize,
+      position: layout.playerCombatantPosition,
+      size: layout.playerCombatantSize,
       isPlayerSide: true,
       speciesLabel: _session.state.player.speciesId,
     );
     await add(_playerCombatant!);
 
     _enemyHud = BattleSceneHudComponent(
-      position: Vector2(padding, padding),
-      size: enemyHudSize,
+      position: layout.enemyHudPosition,
+      size: layout.enemyHudSize,
       ownerLabel: 'ENNEMI',
       combatant: _session.state.enemy,
       isPlayerSide: false,
+      initialGenderSymbol: _resolveCombatantGenderSymbol(
+        combatant: _session.state.enemy,
+        isPlayerSide: false,
+      ),
     );
     await add(_enemyHud!);
 
     _playerHud = BattleSceneHudComponent(
-      position: Vector2(
-        size.x - playerHudSize.x - padding,
-        commandPanelY - playerHudSize.y - 10,
-      ),
-      size: playerHudSize,
+      position: layout.playerHudPosition,
+      size: layout.playerHudSize,
       ownerLabel: 'JOUEUR',
       combatant: _session.state.player,
       isPlayerSide: true,
+      initialGenderSymbol: _resolveCombatantGenderSymbol(
+        combatant: _session.state.player,
+        isPlayerSide: true,
+      ),
     );
     await add(_playerHud!);
 
     _commandPanel = BattleCommandPanelComponent(
-      position: Vector2(padding, commandPanelY),
-      size: Vector2(size.x - (padding * 2), commandPanelHeight),
-      onChoiceSelected: onPlayerChoice,
+      position: layout.commandPanelPosition,
+      size: layout.commandPanelSize,
+      onChoiceSelected: _handleChoiceSelected,
+      onRootActionSelected: _handleRootActionSelected,
     );
     await add(_commandPanel!);
 
@@ -398,7 +570,8 @@ class BattleOverlayComponent extends PositionComponent {
       await add(_debugPanel!);
     }
 
-    _syncVisualState();
+    _pendingVisualSync = _syncVisualState();
+    await _pendingVisualSync;
   }
 
   /// Met à jour l'overlay avec une nouvelle session immutable.
@@ -415,75 +588,291 @@ class BattleOverlayComponent extends PositionComponent {
   ///   runtime, pas un effet secondaire de `BattleSession`.
   void updateState(BattleSession newSession) {
     _session = newSession;
-    _clampSelectionToCurrentChoices();
-    _syncVisualState();
+    _normalizeMenuSelection();
+    _pendingVisualSync = _syncVisualState();
+    unawaited(_pendingVisualSync);
   }
 
   bool moveSelectionUp() {
-    if (_selectedIndex > 0) {
-      _selectedIndex--;
-      _syncPanelsOnly();
-      return true;
-    }
-    return false;
+    return _moveSelection(horizontalDelta: 0, verticalDelta: -1);
   }
 
   bool moveSelectionDown() {
-    final choices = _session.decisionRequest.allowedChoices;
-    if (_selectedIndex < choices.length - 1) {
-      _selectedIndex++;
+    return _moveSelection(horizontalDelta: 0, verticalDelta: 1);
+  }
+
+  bool moveSelectionLeft() {
+    return _moveSelection(horizontalDelta: -1, verticalDelta: 0);
+  }
+
+  bool moveSelectionRight() {
+    return _moveSelection(horizontalDelta: 1, verticalDelta: 0);
+  }
+
+  PlayerBattleChoice? getSelectedChoice() {
+    final menuModel = _currentMenuModel();
+    if (menuModel.isRootMode || menuModel.choiceEntries.isEmpty) {
+      return null;
+    }
+    return menuModel.choiceEntries[menuModel.selectedChoiceIndex].choice;
+  }
+
+  bool validateSelectedChoice() {
+    final menuModel = _currentMenuModel();
+    if (menuModel.isContinueOnly) {
+      final selectedChoice = menuModel.choiceEntries.first.choice;
+      _handleChoiceSelected(selectedChoice);
+      return true;
+    }
+    if (menuModel.isRootMode) {
+      final entry = menuModel.rootEntries[menuModel.selectedRootIndex];
+      if (!entry.enabled) {
+        return false;
+      }
+      _handleRootActionSelected(entry.action);
+      return true;
+    }
+    final selectedChoice =
+        menuModel.choiceEntries[menuModel.selectedChoiceIndex].choice;
+    _handleChoiceSelected(selectedChoice);
+    return true;
+  }
+
+  bool handleEscape() {
+    final menuModel = _currentMenuModel();
+    if (menuModel.isContinueOnly) {
+      return false;
+    }
+    if (!menuModel.isRootMode) {
+      _menuMode = BattleCommandMenuMode.root;
       _syncPanelsOnly();
+      return true;
+    }
+
+    final runEntry = menuModel.rootEntries[BattleCommandRootAction.run.index];
+    if (menuModel.selectedRootIndex == BattleCommandRootAction.run.index &&
+        runEntry.enabled) {
+      _handleRootActionSelected(BattleCommandRootAction.run);
       return true;
     }
     return false;
   }
 
-  PlayerBattleChoice? getSelectedChoice() {
-    final choices = _session.decisionRequest.allowedChoices;
-    if (choices.isEmpty) {
-      return null;
+  Future<void> _syncVisualState() async {
+    if (_enemyCombatant != null) {
+      final enemySpriteSpec = await _resolveCombatantSpriteSpec(
+        speciesId: _session.state.enemy.speciesId,
+        isPlayerSide: false,
+      );
+      await _enemyCombatant!.sync(
+        speciesLabel: _session.state.enemy.speciesId,
+        spriteSpec: enemySpriteSpec,
+      );
     }
-    if (_selectedIndex < 0 || _selectedIndex >= choices.length) {
-      return null;
+    if (_playerCombatant != null) {
+      final playerSpriteSpec = await _resolveCombatantSpriteSpec(
+        speciesId: _session.state.player.speciesId,
+        isPlayerSide: true,
+      );
+      await _playerCombatant!.sync(
+        speciesLabel: _session.state.player.speciesId,
+        spriteSpec: playerSpriteSpec,
+      );
     }
-    return choices[_selectedIndex];
-  }
-
-  bool validateSelectedChoice() {
-    final selectedChoice = getSelectedChoice();
-    if (selectedChoice == null) {
-      return false;
-    }
-    onPlayerChoice(selectedChoice);
-    return true;
-  }
-
-  void _syncVisualState() {
-    _enemyCombatant?.sync(speciesLabel: _session.state.enemy.speciesId);
-    _playerCombatant?.sync(speciesLabel: _session.state.player.speciesId);
-    _enemyHud?.sync(combatant: _session.state.enemy);
-    _playerHud?.sync(combatant: _session.state.player);
+    _enemyHud?.sync(
+      combatant: _session.state.enemy,
+      genderSymbol: _resolveCombatantGenderSymbol(
+        combatant: _session.state.enemy,
+        isPlayerSide: false,
+      ),
+    );
+    _playerHud?.sync(
+      combatant: _session.state.player,
+      genderSymbol: _resolveCombatantGenderSymbol(
+        combatant: _session.state.player,
+        isPlayerSide: true,
+      ),
+    );
     _syncPanelsOnly();
     _syncOutcomeBanner();
   }
 
+  Future<BattleCombatantSpriteSpec> _resolveCombatantSpriteSpec({
+    required String speciesId,
+    required bool isPlayerSide,
+  }) async {
+    final resolver = spriteResolver;
+    if (resolver == null) {
+      return BattleCombatantSpriteSpec(
+        facing: isPlayerSide
+            ? BattleCombatantSpriteFacing.back
+            : BattleCombatantSpriteFacing.front,
+      );
+    }
+    return resolver.resolve(
+      speciesId: speciesId,
+      isPlayerSide: isPlayerSide,
+    );
+  }
+
+  String? _resolveCombatantGenderSymbol({
+    required BattleCombatant combatant,
+    required bool isPlayerSide,
+  }) {
+    return genderResolver?.resolveGenderSymbol(
+      isPlayerSide: isPlayerSide,
+      lineupIndex: combatant.lineupIndex,
+    );
+  }
+
+  String _hudSpeciesDisplayText(
+    BattleCombatant combatant, {
+    required bool isPlayerSide,
+  }) {
+    final genderSymbol = _resolveCombatantGenderSymbol(
+      combatant: combatant,
+      isPlayerSide: isPlayerSide,
+    );
+    return genderSymbol == null
+        ? combatant.speciesId
+        : '${combatant.speciesId} $genderSymbol';
+  }
+
   void _syncPanelsOnly() {
-    _clampSelectionToCurrentChoices();
+    _syncMenuStateFromModel();
+    final menuModel = _currentMenuModel();
 
     _commandPanel?.sync(
       battleLabel: _titleForSession(),
       prompt: buildBattleDecisionPromptForOverlay(_session.decisionRequest),
       narrationLines: buildBattleNarrationLinesForOverlay(_session),
-      choices: _buildChoiceEntries(_session.decisionRequest),
-      selectedIndex: _selectedIndex,
+      menuModel: menuModel,
     );
 
     _debugPanel?.sync(
       lines: buildBattleDebugLinesForOverlay(
         _session,
-        selectedIndex: _selectedIndex,
+        selectedIndex: menuModel.isRootMode
+            ? menuModel.selectedRootIndex
+            : menuModel.selectedChoiceIndex,
       ),
     );
+  }
+
+  bool _moveSelection({
+    required int horizontalDelta,
+    required int verticalDelta,
+  }) {
+    final menuModel = _currentMenuModel();
+    if (menuModel.isContinueOnly) {
+      return false;
+    }
+    if (menuModel.isRootMode) {
+      final nextIndex = moveBattleCommandGridSelection(
+        currentIndex: menuModel.selectedRootIndex,
+        itemCount: menuModel.rootEntries.length,
+        columnCount: 2,
+        horizontalDelta: horizontalDelta,
+        verticalDelta: verticalDelta,
+      );
+      if (nextIndex == _selectedRootIndex) {
+        return false;
+      }
+      _selectedRootIndex = nextIndex;
+      _syncPanelsOnly();
+      return true;
+    }
+
+    final nextIndex = moveBattleCommandGridSelection(
+      currentIndex: menuModel.selectedChoiceIndex,
+      itemCount: menuModel.choiceEntries.length,
+      columnCount: menuModel.choiceColumns,
+      horizontalDelta: horizontalDelta,
+      verticalDelta: verticalDelta,
+    );
+    if (nextIndex == _selectedChoiceIndex) {
+      return false;
+    }
+    _selectedChoiceIndex = nextIndex;
+    _syncPanelsOnly();
+    return true;
+  }
+
+  void _handleChoiceSelected(PlayerBattleChoice choice) {
+    onPlayerChoice(choice);
+  }
+
+  void _handleRootActionSelected(BattleCommandRootAction action) {
+    switch (action) {
+      case BattleCommandRootAction.fight:
+        _menuMode = BattleCommandMenuMode.fight;
+        _selectedChoiceIndex = 0;
+        _syncPanelsOnly();
+        return;
+      case BattleCommandRootAction.bag:
+        _menuMode = BattleCommandMenuMode.bag;
+        _selectedChoiceIndex = 0;
+        _syncPanelsOnly();
+        return;
+      case BattleCommandRootAction.pokemon:
+        _menuMode = BattleCommandMenuMode.pokemon;
+        _selectedChoiceIndex = 0;
+        _syncPanelsOnly();
+        return;
+      case BattleCommandRootAction.run:
+        for (final choice in _session.decisionRequest.allowedChoices) {
+          if (choice is PlayerBattleChoiceRun) {
+            onPlayerChoice(choice);
+            break;
+          }
+        }
+        return;
+    }
+  }
+
+  BattleCommandMenuModel _currentMenuModel() {
+    return buildBattleCommandMenuModel(
+      session: _session,
+      mode: _menuMode,
+      selectedRootIndex: _selectedRootIndex,
+      selectedChoiceIndex: _selectedChoiceIndex,
+    );
+  }
+
+  void _normalizeMenuSelection() {
+    final menuModel = _currentMenuModel();
+    _menuMode = menuModel.mode;
+    _selectedRootIndex = _firstEnabledRootIndex(
+      rootEntries: menuModel.rootEntries,
+      requestedIndex: menuModel.selectedRootIndex,
+    );
+    _selectedChoiceIndex = menuModel.selectedChoiceIndex;
+  }
+
+  void _syncMenuStateFromModel() {
+    final menuModel = _currentMenuModel();
+    _menuMode = menuModel.mode;
+    _selectedRootIndex = menuModel.selectedRootIndex;
+    _selectedChoiceIndex = menuModel.selectedChoiceIndex;
+  }
+
+  int _firstEnabledRootIndex({
+    required List<BattleCommandRootEntry> rootEntries,
+    required int requestedIndex,
+  }) {
+    if (rootEntries.isEmpty) {
+      return 0;
+    }
+    final safeIndex = requestedIndex.clamp(0, rootEntries.length - 1);
+    if (rootEntries[safeIndex].enabled) {
+      return safeIndex;
+    }
+    for (var index = 0; index < rootEntries.length; index++) {
+      if (rootEntries[index].enabled) {
+        return index;
+      }
+    }
+    return safeIndex;
   }
 
   void _syncOutcomeBanner() {
@@ -525,121 +914,6 @@ class BattleOverlayComponent extends PositionComponent {
         fontWeight: FontWeight.w800,
       ),
     );
-  }
-
-  List<BattleCommandChoiceEntry> _buildChoiceEntries(
-    BattleDecisionRequest request,
-  ) {
-    return List<BattleCommandChoiceEntry>.unmodifiable(
-      request.allowedChoices.map(
-        (choice) => _entryForChoice(request, choice),
-      ),
-    );
-  }
-
-  BattleCommandChoiceEntry _entryForChoice(
-    BattleDecisionRequest request,
-    PlayerBattleChoice choice,
-  ) {
-    if (choice is PlayerBattleChoiceFight) {
-      final move = _session.state.player.moves[choice.moveIndex];
-      final moveKind = switch (move.category) {
-        BattleMoveCategory.physical => 'Physique',
-        BattleMoveCategory.special => 'Speciale',
-        BattleMoveCategory.status => 'Statut',
-        null => 'Technique',
-      };
-      final moveType = move.type.toUpperCase();
-      final powerLabel = move.power > 0 ? 'Puissance ${move.power}' : 'Sans degats directs';
-      return BattleCommandChoiceEntry(
-        choice: choice,
-        title: move.name,
-        subtitle: '$moveType · $moveKind · $powerLabel',
-        tone: switch (move.category) {
-          BattleMoveCategory.physical => BattleCommandChoiceTone.attack,
-          BattleMoveCategory.special => BattleCommandChoiceTone.special,
-          BattleMoveCategory.status || null => BattleCommandChoiceTone.support,
-        },
-      );
-    }
-
-    if (choice is PlayerBattleChoiceSwitch) {
-      final reserve = _session.state.playerReserve[choice.reserveIndex];
-      final isForcedReplacement = request is BattleForcedReplacementRequest;
-      final verb = isForcedReplacement ? 'Remplacer' : 'Switch';
-      return BattleCommandChoiceEntry(
-        choice: choice,
-        title: '$verb ${reserve.speciesId}',
-        subtitle: 'Reserve · ${reserve.currentHp}/${reserve.maxHp} PV',
-        tone: BattleCommandChoiceTone.switching,
-      );
-    }
-
-    if (choice is PlayerBattleChoiceContinue) {
-      if (request case BattleContinueRequest(:final reason)) {
-        if (reason == BattleContinueReason.pendingChargeRelease) {
-          return BattleCommandChoiceEntry(
-            choice: choice,
-            title: 'Continuer',
-            subtitle: 'Liberer l attaque chargee',
-            tone: BattleCommandChoiceTone.neutral,
-          );
-        }
-        if (reason == BattleContinueReason.mustRecharge) {
-          return BattleCommandChoiceEntry(
-            choice: choice,
-            title: 'Continuer',
-            subtitle: 'Tour de recharge force',
-            tone: BattleCommandChoiceTone.neutral,
-          );
-        }
-      }
-      return BattleCommandChoiceEntry(
-        choice: choice,
-        title: 'Continuer',
-        subtitle: 'Aucune autre commande legale',
-        tone: BattleCommandChoiceTone.neutral,
-      );
-    }
-
-    if (choice is PlayerBattleChoiceCapture) {
-      return BattleCommandChoiceEntry(
-        choice: choice,
-        title: 'Capturer',
-        subtitle: 'Tentative de capture supportee',
-        tone: BattleCommandChoiceTone.special,
-      );
-    }
-
-    if (choice is PlayerBattleChoiceRun) {
-      return BattleCommandChoiceEntry(
-        choice: choice,
-        title: 'Fuir',
-        subtitle: 'Tentative de fuite supportee',
-        tone: BattleCommandChoiceTone.attack,
-      );
-    }
-
-    return BattleCommandChoiceEntry(
-      choice: choice,
-      title: 'Action inconnue',
-      subtitle: 'Choix legal mais non habille',
-      tone: BattleCommandChoiceTone.neutral,
-    );
-  }
-
-  void _clampSelectionToCurrentChoices() {
-    final choices = _session.decisionRequest.allowedChoices;
-    if (choices.isEmpty) {
-      _selectedIndex = 0;
-      return;
-    }
-    if (_selectedIndex >= choices.length) {
-      _selectedIndex = choices.length - 1;
-    }
-    if (_selectedIndex < 0) {
-      _selectedIndex = 0;
-    }
   }
 
   String _titleForSession() {

@@ -21,6 +21,7 @@ import '../../application/use_cases/load_pokemon_items_catalog_use_case.dart';
 import '../../application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
+import 'battle_background_path_utils.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/inspector_embedded_widgets.dart';
 
@@ -78,7 +79,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
   final _newTagsController = TextEditingController();
   final _trainerSearchController = TextEditingController();
   String? _newCharacterId;
-  int? _newBattleDifficulty = 4;
+  int? _newBattleDifficulty;
   String? _newBattleBackgroundRelativePath;
   bool _showCreateForm = false;
   bool _showCreateAdvanced = false;
@@ -519,7 +520,7 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     _newVictoryThemeController.clear();
     _newTagsController.clear();
     _newCharacterId = null;
-    _newBattleDifficulty = 4;
+    _newBattleDifficulty = null;
     _newBattleBackgroundRelativePath = null;
   }
 
@@ -739,15 +740,12 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
     required String projectRootPath,
     required String pickedAbsolutePath,
   }) {
-    final normalizedProjectRoot = p.normalize(projectRootPath);
-    final normalizedAbsolutePath = p.normalize(pickedAbsolutePath);
-    final relativePath = p.posix.normalize(
-      p.relative(normalizedAbsolutePath, from: normalizedProjectRoot),
+    final relativePath = normalizeProjectLocalBattleBackgroundPath(
+      projectRootPath: projectRootPath,
+      pickedAbsolutePath: pickedAbsolutePath,
     );
 
-    if (relativePath == '.' ||
-        relativePath.startsWith('..') ||
-        p.isAbsolute(relativePath)) {
+    if (relativePath == null) {
       setState(() {
         const message =
             'This lot only links project-local images. Move the background into the project folder, then pick it again.';
@@ -757,7 +755,6 @@ class _TrainerLibraryPanelState extends ConsumerState<TrainerLibraryPanel> {
           _editTrainerValidationMessage = message;
         }
       });
-      return null;
     }
     return relativePath;
   }

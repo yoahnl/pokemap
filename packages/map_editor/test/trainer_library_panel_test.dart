@@ -263,7 +263,7 @@ void main() {
     final trainer =
         container.read(editorNotifierProvider).project!.trainers.single;
     expect(trainer.name, 'Misty');
-    expect(trainer.battleDifficulty, 4);
+    expect(trainer.battleDifficulty, isNull);
     expect(trainer.battleThemeId, 'battle_misty');
     expect(trainer.victoryThemeId, 'victory_misty');
     expect(trainer.tags, <String>['rival', 'gym']);
@@ -344,6 +344,102 @@ void main() {
       find.byKey(Key('trainer-library-pokemon-row-${trainer.id}-0')),
       findsOneWidget,
     );
+  });
+
+  testWidgets(
+      'trainer difficulty authoring stays in fallback until the slider is actually used',
+      (tester) async {
+    final repository = _FakeProjectRepository();
+    const workspace = _FakeWorkspace();
+    final container = ProviderContainer(
+      overrides: [
+        projectRepositoryProvider.overrideWithValue(repository),
+        projectWorkspaceFactoryProvider.overrideWithValue(
+          const _FakeWorkspaceFactory(workspace),
+        ),
+        pokedexEntryLoaderProvider.overrideWithValue(
+          (_) async => _speciesEntries,
+        ),
+        pokedexMovesCatalogLoaderProvider.overrideWithValue(
+          (_) async => _movesCatalogView,
+        ),
+        pokedexSpeciesDetailLoaderProvider.overrideWithValue(
+          (_, speciesId) async =>
+              _detailsById[speciesId] ??
+              (throw EditorNotFoundException('Missing detail: $speciesId')),
+        ),
+        loadPokemonItemsCatalogUseCaseProvider.overrideWithValue(
+          LoadPokemonItemsCatalogUseCase(
+            readRepository: _FakePokemonReadRepository(
+              catalogByKey: <String, PokemonCatalogFile>{
+                'items': _itemsCatalog,
+              },
+            ),
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    container.read(editorNotifierProvider.notifier).state = const EditorState(
+      projectRootPath: '/tmp/trainers_panel_difficulty_test',
+      project: ProjectManifest(
+        name: 'trainers_panel_difficulty_test',
+        maps: <ProjectMapEntry>[],
+        tilesets: <ProjectTilesetEntry>[],
+      ),
+    );
+
+    await pumpTrainerPanel(tester, container);
+    await settleTrainerUi(tester);
+
+    await tester.tap(
+      find.byKey(const Key('trainer-library-new-trainer-button')),
+    );
+    await settleTrainerUi(tester);
+
+    expect(find.text('Battle difficulty · legacy fallback'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const Key('trainer-library-create-name-field')),
+      'Brock',
+    );
+    await tester.enterText(
+      find.byKey(const Key('trainer-library-create-class-field')),
+      'Gym Leader',
+    );
+
+    await tester.tap(find.text('Create'));
+    await tester.pumpAndSettle();
+
+    var trainer = container.read(editorNotifierProvider).project!.trainers.single;
+    expect(trainer.battleDifficulty, isNull);
+
+    await tester.tap(find.text('Edit').first);
+    await settleTrainerUi(tester);
+
+    final slider = tester.widget<CupertinoSlider>(
+      find.byKey(const Key('trainer-library-edit-difficulty-slider')),
+    );
+    slider.onChanged!(7);
+    await settleTrainerUi(tester);
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    trainer = container.read(editorNotifierProvider).project!.trainers.single;
+    expect(trainer.battleDifficulty, 7);
+
+    await tester.tap(find.text('Edit').first);
+    await settleTrainerUi(tester);
+    await tester.tap(
+      find.byKey(const Key('trainer-library-edit-difficulty-clear-button')),
+    );
+    await settleTrainerUi(tester);
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    trainer = container.read(editorNotifierProvider).project!.trainers.single;
+    expect(trainer.battleDifficulty, isNull);
   });
 
   testWidgets(

@@ -161,6 +161,14 @@ class RuntimePokemonSpeciesLoader {
       baseSpecialAttack: baseSpecialAttack,
       baseSpecialDefense: baseSpecialDefense,
       baseSpeed: baseSpeed,
+      maleGenderRatio: _readOptionalGenderRatio(
+        rawJson['breeding'],
+        ratioKey: 'male',
+      ),
+      femaleGenderRatio: _readOptionalGenderRatio(
+        rawJson['breeding'],
+        ratioKey: 'female',
+      ),
       primaryAbilityId: (abilities['primary'] as String?)?.trim() ?? '',
       // `learnsetRef` peut rester vide : le loader learnset conservera le
       // fallback historique vers l'id de l'espèce.
@@ -246,6 +254,20 @@ class RuntimePokemonSpeciesLoader {
     return value;
   }
 
+  double? _readOptionalGenderRatio(
+    Object? rawBreeding, {
+    required String ratioKey,
+  }) {
+    final breeding = (rawBreeding as Map?)?.cast<String, dynamic>();
+    final genderRatio =
+        (breeding?['genderRatio'] as Map?)?.cast<String, dynamic>();
+    final rawValue = genderRatio?[ratioKey];
+    if (rawValue is num) {
+      return rawValue.toDouble();
+    }
+    return null;
+  }
+
   Future<Map<String, dynamic>> _readJsonFile(
     File file, {
     required String label,
@@ -308,6 +330,8 @@ class RuntimePokemonSpecies {
     required this.baseSpecialAttack,
     required this.baseSpecialDefense,
     required this.baseSpeed,
+    this.maleGenderRatio,
+    this.femaleGenderRatio,
     required this.primaryAbilityId,
     required this.learnsetRef,
   });
@@ -327,6 +351,8 @@ class RuntimePokemonSpecies {
   final int baseSpecialAttack;
   final int baseSpecialDefense;
   final int baseSpeed;
+  final double? maleGenderRatio;
+  final double? femaleGenderRatio;
   final String primaryAbilityId;
   final String learnsetRef;
 }

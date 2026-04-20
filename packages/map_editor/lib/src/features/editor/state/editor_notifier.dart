@@ -13,6 +13,7 @@ import '../../../app/providers/core_providers.dart';
 import '../../../app/providers/editor_workspace_providers.dart';
 import '../../../app/providers/use_case_providers.dart';
 import '../../../application/errors/application_errors.dart';
+import '../../../application/models/trainer_field_update.dart';
 import '../../../application/models/map_tool_preview.dart';
 import '../../../application/models/path_autotile_set.dart';
 import '../../../application/ports/project_workspace.dart';
@@ -6020,12 +6021,13 @@ class EditorNotifier extends _$EditorNotifier {
         trainerId: trainerId,
         name: name,
         trainerClass: trainerClass,
-        battleDifficulty: battleDifficulty,
-        battleBackgroundRelativePath: battleBackgroundRelativePath,
-        characterId: characterId,
-        portraitElementId: portraitElementId,
-        battleThemeId: battleThemeId,
-        victoryThemeId: victoryThemeId,
+        battleDifficulty: _trainerFieldUpdate<int>(battleDifficulty),
+        battleBackgroundRelativePath:
+            _trainerFieldUpdate<String>(battleBackgroundRelativePath),
+        characterId: _trainerFieldUpdate<String>(characterId),
+        portraitElementId: _trainerFieldUpdate<String>(portraitElementId),
+        battleThemeId: _trainerFieldUpdate<String>(battleThemeId),
+        victoryThemeId: _trainerFieldUpdate<String>(victoryThemeId),
         tags: tags,
       );
       state = state.copyWith(
@@ -6129,9 +6131,9 @@ class EditorNotifier extends _$EditorNotifier {
         speciesId: speciesId,
         level: level,
         moves: moves,
-        heldItemId: heldItemId,
-        formId: formId,
-        gender: gender,
+        heldItemId: _trainerFieldUpdate<String>(heldItemId),
+        formId: _trainerFieldUpdate<String>(formId),
+        gender: _trainerFieldUpdate<String>(gender),
         shiny: shiny,
       );
       state = state.copyWith(
@@ -6172,6 +6174,13 @@ class EditorNotifier extends _$EditorNotifier {
       return false;
     }
   }
+}
+
+TrainerFieldUpdate<T> _trainerFieldUpdate<T>(Object? rawValue) {
+  if (identical(rawValue, _trainerUnset)) {
+    return TrainerFieldUpdate<T>.keep();
+  }
+  return TrainerFieldUpdate<T>.set(rawValue as T?);
 }
 
 class _PaintPattern {

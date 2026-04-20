@@ -33,6 +33,7 @@ _$PlayerPokemonImpl _$$PlayerPokemonImplFromJson(Map<String, dynamic> json) =>
       speciesId: json['speciesId'] as String,
       natureId: json['natureId'] as String,
       abilityId: json['abilityId'] as String,
+      gender: json['gender'] as String?,
       level: (json['level'] as num?)?.toInt() ?? 1,
       ivs: json['ivs'] == null
           ? const PokemonStatSpread()
@@ -55,6 +56,7 @@ Map<String, dynamic> _$$PlayerPokemonImplToJson(_$PlayerPokemonImpl instance) =>
       'speciesId': instance.speciesId,
       'natureId': instance.natureId,
       'abilityId': instance.abilityId,
+      'gender': instance.gender,
       'level': instance.level,
       'ivs': instance.ivs.toJson(),
       'evs': instance.evs.toJson(),

@@ -289,6 +289,7 @@ mixin _$PlayerPokemon {
   String get speciesId => throw _privateConstructorUsedError;
   String get natureId => throw _privateConstructorUsedError;
   String get abilityId => throw _privateConstructorUsedError;
+  String? get gender => throw _privateConstructorUsedError;
   int get level => throw _privateConstructorUsedError;
   PokemonStatSpread get ivs => throw _privateConstructorUsedError;
   PokemonStatSpread get evs => throw _privateConstructorUsedError;
@@ -318,6 +319,7 @@ abstract class $PlayerPokemonCopyWith<$Res> {
       {String speciesId,
       String natureId,
       String abilityId,
+      String? gender,
       int level,
       PokemonStatSpread ivs,
       PokemonStatSpread evs,
@@ -349,6 +351,7 @@ class _$PlayerPokemonCopyWithImpl<$Res, $Val extends PlayerPokemon>
     Object? speciesId = null,
     Object? natureId = null,
     Object? abilityId = null,
+    Object? gender = freezed,
     Object? level = null,
     Object? ivs = null,
     Object? evs = null,
@@ -371,6 +374,10 @@ class _$PlayerPokemonCopyWithImpl<$Res, $Val extends PlayerPokemon>
           ? _value.abilityId
           : abilityId // ignore: cast_nullable_to_non_nullable
               as String,
+      gender: freezed == gender
+          ? _value.gender
+          : gender // ignore: cast_nullable_to_non_nullable
+              as String?,
       level: null == level
           ? _value.level
           : level // ignore: cast_nullable_to_non_nullable
@@ -439,6 +446,7 @@ abstract class _$$PlayerPokemonImplCopyWith<$Res>
       {String speciesId,
       String natureId,
       String abilityId,
+      String? gender,
       int level,
       PokemonStatSpread ivs,
       PokemonStatSpread evs,
@@ -470,6 +478,7 @@ class __$$PlayerPokemonImplCopyWithImpl<$Res>
     Object? speciesId = null,
     Object? natureId = null,
     Object? abilityId = null,
+    Object? gender = freezed,
     Object? level = null,
     Object? ivs = null,
     Object? evs = null,
@@ -492,6 +501,10 @@ class __$$PlayerPokemonImplCopyWithImpl<$Res>
           ? _value.abilityId
           : abilityId // ignore: cast_nullable_to_non_nullable
               as String,
+      gender: freezed == gender
+          ? _value.gender
+          : gender // ignore: cast_nullable_to_non_nullable
+              as String?,
       level: null == level
           ? _value.level
           : level // ignore: cast_nullable_to_non_nullable
@@ -536,6 +549,7 @@ class _$PlayerPokemonImpl extends _PlayerPokemon {
       {required this.speciesId,
       required this.natureId,
       required this.abilityId,
+      this.gender,
       this.level = 1,
       this.ivs = const PokemonStatSpread(),
       this.evs = const PokemonStatSpread(),
@@ -556,6 +570,8 @@ class _$PlayerPokemonImpl extends _PlayerPokemon {
   final String natureId;
   @override
   final String abilityId;
+  @override
+  final String? gender;
   @override
   @JsonKey()
   final int level;
@@ -589,7 +605,7 @@ class _$PlayerPokemonImpl extends _PlayerPokemon {
 
   @override
   String toString() {
-    return 'PlayerPokemon(speciesId: $speciesId, natureId: $natureId, abilityId: $abilityId, level: $level, ivs: $ivs, evs: $evs, knownMoveIds: $knownMoveIds, currentHp: $currentHp, statusId: $statusId, isShiny: $isShiny, heldItemId: $heldItemId)';
+    return 'PlayerPokemon(speciesId: $speciesId, natureId: $natureId, abilityId: $abilityId, gender: $gender, level: $level, ivs: $ivs, evs: $evs, knownMoveIds: $knownMoveIds, currentHp: $currentHp, statusId: $statusId, isShiny: $isShiny, heldItemId: $heldItemId)';
   }
 
   @override
@@ -603,6 +619,7 @@ class _$PlayerPokemonImpl extends _PlayerPokemon {
                 other.natureId == natureId) &&
             (identical(other.abilityId, abilityId) ||
                 other.abilityId == abilityId) &&
+            (identical(other.gender, gender) || other.gender == gender) &&
             (identical(other.level, level) || other.level == level) &&
             (identical(other.ivs, ivs) || other.ivs == ivs) &&
             (identical(other.evs, evs) || other.evs == evs) &&
@@ -624,6 +641,7 @@ class _$PlayerPokemonImpl extends _PlayerPokemon {
       speciesId,
       natureId,
       abilityId,
+      gender,
       level,
       ivs,
       evs,
@@ -654,6 +672,7 @@ abstract class _PlayerPokemon extends PlayerPokemon {
       {required final String speciesId,
       required final String natureId,
       required final String abilityId,
+      final String? gender,
       final int level,
       final PokemonStatSpread ivs,
       final PokemonStatSpread evs,
@@ -673,6 +692,8 @@ abstract class _PlayerPokemon extends PlayerPokemon {
   String get natureId;
   @override
   String get abilityId;
+  @override
+  String? get gender;
   @override
   int get level;
   @override

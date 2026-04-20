@@ -19,6 +19,13 @@ class EncounterZonePayload with _$EncounterZonePayload {
     String? encounterTableId,
     /// Type de rencontre déclenchée dans cette zone.
     @Default(EncounterKind.walk) EncounterKind encounterKind,
+    /// Image de fond de combat authorée explicitement pour cette zone.
+    ///
+    /// Le chemin reste project-local et optionnel :
+    /// - aucune bibliothèque média globale n'est introduite ici ;
+    /// - le runtime pourra l'utiliser comme override visuel du fond contextuel ;
+    /// - l'absence de valeur garde le comportement contextuel existant.
+    String? battleBackgroundRelativePath,
   }) = _EncounterZonePayload;
 
   factory EncounterZonePayload.fromJson(Map<String, dynamic> json) =>
