@@ -4,6 +4,7 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_runtime/src/presentation/flame/battle_command_menu_model.dart';
 import 'package:map_runtime/src/presentation/flame/battle_command_panel_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 
 BattleStatsSnapshot _stats() {
   return const BattleStatsSnapshot(
@@ -233,7 +234,8 @@ void main() {
       );
 
       expect(
-        noSwitchModel.rootEntries[BattleCommandRootAction.pokemon.index].enabled,
+        noSwitchModel
+            .rootEntries[BattleCommandRootAction.pokemon.index].enabled,
         isFalse,
       );
       expect(
@@ -330,7 +332,8 @@ void main() {
       expect((pickedChoice as PlayerBattleChoiceFight).moveIndex, 1);
     });
 
-    test('fight submenu supports left and right navigation on a real 2x2 move grid',
+    test(
+        'fight submenu supports left and right navigation on a real 2x2 move grid',
         () async {
       final overlay = BattleOverlayComponent(
         session: _session(

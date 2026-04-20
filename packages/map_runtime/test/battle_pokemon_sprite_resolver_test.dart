@@ -70,6 +70,37 @@ const String _tinyPngBase64 =
 const String _paddedSpritePngBase64 =
     'iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAYAAACNiR0NAAAALElEQVR4nGNgGAWDDjDikvgfEPAfr8YNG7DqZaKGq5DBqIEjwcBRMAoYSAcAopsEECjFJ6AAAAAASUVORK5CYII=';
 
+BattleSceneCombatantComponent _combatantComponent({
+  required bool isPlayerSide,
+  required String speciesLabel,
+  required BattleCombatantSpriteSpec spriteSpec,
+}) {
+  final footAnchor = ui.Offset(
+    isPlayerSide ? 107 : 98,
+    isPlayerSide ? 140 : 104,
+  );
+  final spriteWidth = isPlayerSide ? 182.0 : 132.0;
+  final spriteHeight = isPlayerSide ? 132.0 : 94.0;
+  return BattleSceneCombatantComponent(
+    sceneSpriteRect: ui.Rect.fromLTWH(
+      footAnchor.dx - (spriteWidth / 2),
+      footAnchor.dy - spriteHeight,
+      spriteWidth,
+      spriteHeight,
+    ),
+    scenePlatformRect: ui.Rect.fromLTWH(
+      isPlayerSide ? 44 : 52,
+      isPlayerSide ? 136 : 100,
+      isPlayerSide ? 126 : 92,
+      isPlayerSide ? 20 : 16,
+    ),
+    sceneFootAnchor: footAnchor,
+    isPlayerSide: isPlayerSide,
+    speciesLabel: speciesLabel,
+    initialSpriteSpec: spriteSpec,
+  );
+}
+
 Future<String> _writeTinyPng({
   required Directory root,
   required String relativePath,
@@ -163,12 +194,10 @@ void main() {
         relativePath: 'assets/pokemon/sprites/charmander/back.png',
       );
 
-      final component = BattleSceneCombatantComponent(
-        position: Vector2.zero(),
-        size: Vector2(240, 160),
+      final component = _combatantComponent(
         isPlayerSide: true,
         speciesLabel: 'charmander',
-        initialSpriteSpec: BattleCombatantSpriteSpec(
+        spriteSpec: BattleCombatantSpriteSpec(
           facing: BattleCombatantSpriteFacing.back,
           explicitImageAbsolutePath: spritePath,
         ),
@@ -181,12 +210,10 @@ void main() {
     });
 
     test('keeps the silhouette fallback when the sprite is missing', () async {
-      final component = BattleSceneCombatantComponent(
-        position: Vector2.zero(),
-        size: Vector2(240, 160),
+      final component = _combatantComponent(
         isPlayerSide: false,
         speciesLabel: 'gastly',
-        initialSpriteSpec: const BattleCombatantSpriteSpec(
+        spriteSpec: const BattleCombatantSpriteSpec(
           facing: BattleCombatantSpriteFacing.front,
           explicitImageAbsolutePath: '/tmp/does_not_exist_gastly_front.png',
         ),
@@ -208,12 +235,10 @@ void main() {
         base64Png: _paddedSpritePngBase64,
       );
 
-      final component = BattleSceneCombatantComponent(
-        position: Vector2.zero(),
-        size: Vector2(240, 160),
+      final component = _combatantComponent(
         isPlayerSide: true,
         speciesLabel: 'squirtle',
-        initialSpriteSpec: BattleCombatantSpriteSpec(
+        spriteSpec: BattleCombatantSpriteSpec(
           facing: BattleCombatantSpriteFacing.back,
           explicitImageAbsolutePath: spritePath,
         ),
@@ -224,7 +249,10 @@ void main() {
       final recorder = ui.PictureRecorder();
       final canvas = ui.Canvas(recorder);
       component.render(canvas);
-      final rendered = await recorder.endRecording().toImage(240, 160);
+      final rendered = await recorder.endRecording().toImage(
+            component.size.x.ceil(),
+            component.size.y.ceil(),
+          );
       final byteData = await rendered.toByteData(
         format: ui.ImageByteFormat.rawRgba,
       );
@@ -232,12 +260,81 @@ void main() {
 
       final bounds = _opaqueBoundsFromRgba(
         rgba: byteData!.buffer.asUint8List(),
-        width: 240,
-        height: 120,
+        width: component.size.x.ceil(),
+        height: component.size.y.ceil(),
       );
 
       expect(bounds.width, greaterThan(90));
       expect(bounds.height, greaterThan(90));
+    });
+
+    test('preserves sprite aspect ratio and bottom foot alignment', () async {
+      final projectRoot = await Directory.systemTemp.createTemp(
+        'battle_combatant_ratio_',
+      );
+      final spritePath = await _writeTinyPng(
+        root: projectRoot,
+        relativePath: 'assets/pokemon/sprites/charmander/front.png',
+      );
+
+      final component = _combatantComponent(
+        isPlayerSide: false,
+        speciesLabel: 'charmander',
+        spriteSpec: BattleCombatantSpriteSpec(
+          facing: BattleCombatantSpriteFacing.front,
+          explicitImageAbsolutePath: spritePath,
+        ),
+      );
+
+      await component.onLoad();
+
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder);
+      component.render(canvas);
+      final rendered = await recorder.endRecording().toImage(
+            component.size.x.ceil(),
+            component.size.y.ceil(),
+          );
+      final byteData = await rendered.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      );
+      expect(byteData, isNotNull);
+
+      final bounds = _opaqueBoundsFromRgba(
+        rgba: byteData!.buffer.asUint8List(),
+        width: component.size.x.ceil(),
+        height: component.size.y.ceil(),
+      );
+
+      final renderedAspectRatio = bounds.width / bounds.height;
+      expect(renderedAspectRatio, greaterThanOrEqualTo(0.8));
+      expect(renderedAspectRatio, lessThanOrEqualTo(1.2));
+      expect(
+        component.currentSpriteRect.bottom,
+        closeTo(component.currentFootAnchor.dy, 0.01),
+      );
+    });
+
+    test('keeps sprite and platform centered on the same foot anchor',
+        () async {
+      final component = _combatantComponent(
+        isPlayerSide: true,
+        speciesLabel: 'squirtle',
+        spriteSpec: const BattleCombatantSpriteSpec(
+          facing: BattleCombatantSpriteFacing.back,
+        ),
+      );
+
+      await component.onLoad();
+
+      expect(
+        component.currentPlatformRect.center.dx,
+        closeTo(component.currentFootAnchor.dx, 0.01),
+      );
+      expect(
+        component.currentSpriteRect.bottom,
+        closeTo(component.currentFootAnchor.dy, 0.01),
+      );
     });
   });
 

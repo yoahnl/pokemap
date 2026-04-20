@@ -5,11 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:map_battle/map_battle.dart';
 
 import 'battle_command_menu_model.dart';
-
-enum BattleCommandPanelLayoutMode {
-  split,
-  stacked,
-}
+import 'battle_scene_layout.dart';
 
 class BattleCommandPanelComponent extends PositionComponent {
   BattleCommandPanelComponent({
@@ -17,6 +13,7 @@ class BattleCommandPanelComponent extends PositionComponent {
     required Vector2 size,
     required this.onChoiceSelected,
     required this.onRootActionSelected,
+    this.layoutModeOverride,
   }) : super(
           position: position,
           size: size,
@@ -26,6 +23,7 @@ class BattleCommandPanelComponent extends PositionComponent {
 
   final void Function(PlayerBattleChoice choice) onChoiceSelected;
   final void Function(BattleCommandRootAction action) onRootActionSelected;
+  final BattleCommandPanelLayoutMode? layoutModeOverride;
 
   PositionComponent? _promptPanel;
   PositionComponent? _commandsPanel;
@@ -55,8 +53,9 @@ class BattleCommandPanelComponent extends PositionComponent {
   BattleCommandMenuMode get currentMenuMode => _menuModel.mode;
 
   @visibleForTesting
-  List<String> get currentRootLabels =>
-      _menuModel.rootEntries.map((entry) => entry.label).toList(growable: false);
+  List<String> get currentRootLabels => _menuModel.rootEntries
+      .map((entry) => entry.label)
+      .toList(growable: false);
 
   @visibleForTesting
   List<bool> get currentRootEnabledStates => _menuModel.rootEntries
@@ -93,7 +92,10 @@ class BattleCommandPanelComponent extends PositionComponent {
 
   @override
   Future<void> onLoad() async {
-    final layout = _BattleCommandPanelLayout.forSize(size);
+    final layout = _BattleCommandPanelLayout.forSize(
+      size,
+      modeOverride: layoutModeOverride,
+    );
     _layout = layout;
 
     _promptPanel = PositionComponent(
@@ -200,7 +202,8 @@ class BattleCommandPanelComponent extends PositionComponent {
         ? const <String>['The battle awaits the next action.']
         : narrationLines.take(3).toList(growable: false);
     _narrationBodyText?.text = clippedNarration.join('\n');
-    _commandTitleText?.text = menuModel.isRootMode ? '' : menuModel.choiceGroupTitle;
+    _commandTitleText?.text =
+        menuModel.isRootMode ? '' : menuModel.choiceGroupTitle;
     _hintText?.text = _hintFor(menuModel);
     _renderInteractiveArea();
   }
@@ -293,13 +296,17 @@ class BattleCommandPanelComponent extends PositionComponent {
 
   void _renderRootEntries(PositionComponent commandsPanel) {
     final layout = _layout ?? _BattleCommandPanelLayout.forSize(size);
-    final top = layout.mode == BattleCommandPanelLayoutMode.stacked ? 14.0 : 20.0;
-    final gap = layout.mode == BattleCommandPanelLayoutMode.stacked ? 8.0 : 10.0;
+    final top =
+        layout.mode == BattleCommandPanelLayoutMode.stacked ? 14.0 : 20.0;
+    final gap =
+        layout.mode == BattleCommandPanelLayoutMode.stacked ? 8.0 : 10.0;
     final availableWidth = commandsPanel.size.x - 24;
-    final availableHeight = commandsPanel.size.y - (layout.mode == BattleCommandPanelLayoutMode.stacked ? 18 : 28);
+    final availableHeight = commandsPanel.size.y -
+        (layout.mode == BattleCommandPanelLayoutMode.stacked ? 18 : 28);
     final cardWidth = (availableWidth - gap) / 2;
-    final cardHeight = ((availableHeight - gap) / 2)
-        .clamp(layout.mode == BattleCommandPanelLayoutMode.stacked ? 46.0 : 54.0, layout.mode == BattleCommandPanelLayoutMode.stacked ? 64.0 : 72.0);
+    final cardHeight = ((availableHeight - gap) / 2).clamp(
+        layout.mode == BattleCommandPanelLayoutMode.stacked ? 46.0 : 54.0,
+        layout.mode == BattleCommandPanelLayoutMode.stacked ? 64.0 : 72.0);
 
     for (var index = 0; index < _menuModel.rootEntries.length; index++) {
       final entry = _menuModel.rootEntries[index];
@@ -326,7 +333,8 @@ class BattleCommandPanelComponent extends PositionComponent {
     final top = _menuModel.isContinueOnly
         ? (layout.mode == BattleCommandPanelLayoutMode.stacked ? 16.0 : 28.0)
         : (layout.mode == BattleCommandPanelLayoutMode.stacked ? 18.0 : 24.0);
-    final gap = layout.mode == BattleCommandPanelLayoutMode.stacked ? 8.0 : 10.0;
+    final gap =
+        layout.mode == BattleCommandPanelLayoutMode.stacked ? 8.0 : 10.0;
     final entries = _menuModel.choiceEntries;
     if (entries.isEmpty) {
       return;
@@ -334,7 +342,8 @@ class BattleCommandPanelComponent extends PositionComponent {
 
     final availableWidth = commandsPanel.size.x - 24;
     final availableHeight = commandsPanel.size.y - (top + 14);
-    final columns = _menuModel.choiceColumns <= 0 ? 1 : _menuModel.choiceColumns;
+    final columns =
+        _menuModel.choiceColumns <= 0 ? 1 : _menuModel.choiceColumns;
     final rows = (entries.length / columns).ceil();
     final cardWidth = columns == 1
         ? availableWidth
@@ -403,9 +412,8 @@ class _BattleRootButtonComponent extends PositionComponent with TapCallbacks {
       anchor: Anchor.center,
       textRenderer: TextPaint(
         style: TextStyle(
-          color: entry.enabled
-              ? const Color(0xFFFDFDFD)
-              : const Color(0x9AFDFDFD),
+          color:
+              entry.enabled ? const Color(0xFFFDFDFD) : const Color(0x9AFDFDFD),
           fontSize: compact ? 17 : 20,
           fontWeight: FontWeight.w900,
           letterSpacing: 0.4,
@@ -421,9 +429,8 @@ class _BattleRootButtonComponent extends PositionComponent with TapCallbacks {
       anchor: Anchor.bottomCenter,
       textRenderer: TextPaint(
         style: TextStyle(
-          color: entry.enabled
-              ? const Color(0xDDF7F7F7)
-              : const Color(0x99F7F7F7),
+          color:
+              entry.enabled ? const Color(0xDDF7F7F7) : const Color(0x99F7F7F7),
           fontSize: compact ? 9 : 10,
           fontWeight: FontWeight.w700,
         ),
@@ -475,9 +482,8 @@ class _BattleRootButtonComponent extends PositionComponent with TapCallbacks {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = isSelected ? 2.5 : 1.25
-        ..color = isSelected
-            ? const Color(0xFFF6E8B0)
-            : const Color(0x55FFFFFF),
+        ..color =
+            isSelected ? const Color(0xFFF6E8B0) : const Color(0x55FFFFFF),
     );
   }
 }
@@ -573,9 +579,8 @@ class _BattleChoiceCardComponent extends PositionComponent with TapCallbacks {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = isSelected ? 2.5 : 1.25
-        ..color = isSelected
-            ? const Color(0xFFF7F0D4)
-            : const Color(0x55FFFFFF),
+        ..color =
+            isSelected ? const Color(0xFFF7F0D4) : const Color(0x55FFFFFF),
     );
   }
 }
@@ -617,9 +622,14 @@ class _BattleCommandPanelLayout {
     return Vector2(commandsPanelSize.x - 10, commandsPanelSize.y - 2);
   }
 
-  factory _BattleCommandPanelLayout.forSize(Vector2 panelSize) {
-    final useStacked =
-        panelSize.x < 700 || (panelSize.x / (panelSize.y <= 0 ? 1 : panelSize.y)) < 2.45;
+  factory _BattleCommandPanelLayout.forSize(
+    Vector2 panelSize, {
+    BattleCommandPanelLayoutMode? modeOverride,
+  }) {
+    final useStacked = modeOverride == null
+        ? panelSize.x < 700 ||
+            (panelSize.x / (panelSize.y <= 0 ? 1 : panelSize.y)) < 2.45
+        : modeOverride == BattleCommandPanelLayoutMode.stacked;
     if (useStacked) {
       const spacing = 12.0;
       final promptHeight = (panelSize.y * 0.42).clamp(90.0, 120.0).toDouble();

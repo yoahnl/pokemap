@@ -9,18 +9,38 @@ import 'battle_pokemon_sprite_resolver.dart';
 
 class BattleSceneCombatantComponent extends PositionComponent {
   BattleSceneCombatantComponent({
-    required Vector2 position,
-    required Vector2 size,
+    required Rect sceneSpriteRect,
+    required Rect scenePlatformRect,
+    required Offset sceneFootAnchor,
     required this.isPlayerSide,
     required String speciesLabel,
-    BattleCombatantSpriteSpec initialSpriteSpec = const BattleCombatantSpriteSpec(
+    BattleCombatantSpriteSpec initialSpriteSpec =
+        const BattleCombatantSpriteSpec(
       facing: BattleCombatantSpriteFacing.front,
     ),
   })  : _speciesLabel = speciesLabel,
         _spriteSpec = initialSpriteSpec,
+        _spriteRect = _toLocalRect(
+          sceneSpriteRect,
+          _sceneBounds(sceneSpriteRect, scenePlatformRect),
+        ),
+        _platformRect = _toLocalRect(
+          scenePlatformRect,
+          _sceneBounds(sceneSpriteRect, scenePlatformRect),
+        ),
+        _footAnchor = _toLocalOffset(
+          sceneFootAnchor,
+          _sceneBounds(sceneSpriteRect, scenePlatformRect),
+        ),
         super(
-          position: position,
-          size: size,
+          position: Vector2(
+            _sceneBounds(sceneSpriteRect, scenePlatformRect).left,
+            _sceneBounds(sceneSpriteRect, scenePlatformRect).top,
+          ),
+          size: Vector2(
+            _sceneBounds(sceneSpriteRect, scenePlatformRect).width,
+            _sceneBounds(sceneSpriteRect, scenePlatformRect).height,
+          ),
           anchor: Anchor.topLeft,
           priority: 10,
         );
@@ -29,6 +49,9 @@ class BattleSceneCombatantComponent extends PositionComponent {
 
   String _speciesLabel;
   BattleCombatantSpriteSpec _spriteSpec;
+  final Rect _spriteRect;
+  final Rect _platformRect;
+  final Offset _footAnchor;
   ui.Image? _spriteImage;
   Rect? _spriteOpaqueSourceRect;
   String? _spriteSourcePath;
@@ -52,11 +75,22 @@ class BattleSceneCombatantComponent extends PositionComponent {
   @visibleForTesting
   String get currentSpeciesLabel => _speciesLabel;
 
+  @visibleForTesting
+  Rect get currentSpriteRect =>
+      _spriteRect.shift(Offset(position.x, position.y));
+
+  @visibleForTesting
+  Rect get currentPlatformRect =>
+      _platformRect.shift(Offset(position.x, position.y));
+
+  @visibleForTesting
+  Offset get currentFootAnchor => _footAnchor.translate(position.x, position.y);
+
   @override
   Future<void> onLoad() async {
     _speciesText = TextComponent(
       text: _speciesLabel,
-      position: Vector2(size.x * 0.16, size.y - 4),
+      position: Vector2(_spriteRect.left + 8, size.y - 4),
       anchor: Anchor.bottomLeft,
       textRenderer: TextPaint(
         style: const TextStyle(
@@ -71,7 +105,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
 
     _monogramText = TextComponent(
       text: _speciesMonogram(_speciesLabel),
-      position: Vector2(size.x * 0.5, size.y * 0.42),
+      position: Vector2(_spriteRect.center.dx, _spriteRect.center.dy),
       anchor: Anchor.center,
       textRenderer: TextPaint(
         style: const TextStyle(
@@ -99,36 +133,26 @@ class BattleSceneCombatantComponent extends PositionComponent {
   void render(Canvas canvas) {
     super.render(canvas);
 
-    final platformRect = Rect.fromCenter(
-      center: Offset(
-        size.x * (isPlayerSide ? 0.54 : 0.58),
-        size.y * (isPlayerSide ? 0.86 : 0.84),
-      ),
-      width: size.x * (isPlayerSide ? 0.52 : 0.58),
-      height: isPlayerSide ? 22 : 32,
+    canvas.drawOval(
+      _platformRect,
+      Paint()
+        ..color =
+            isPlayerSide ? const Color(0x4431261A) : const Color(0x8B5E4E34),
     );
     canvas.drawOval(
-      platformRect,
+      _platformRect.deflate(isPlayerSide ? 4 : 5),
       Paint()
-        ..color = isPlayerSide
-            ? const Color(0x4431261A)
-            : const Color(0x8B5E4E34),
-    );
-    canvas.drawOval(
-      platformRect.deflate(isPlayerSide ? 4 : 5),
-      Paint()
-        ..color = isPlayerSide
-            ? const Color(0x7A8E7B61)
-            : const Color(0xFFD8C59E),
+        ..color =
+            isPlayerSide ? const Color(0x7A8E7B61) : const Color(0xFFD8C59E),
     );
 
     final shadowRect = Rect.fromCenter(
       center: Offset(
-        size.x * (isPlayerSide ? 0.52 : 0.58),
-        size.y * (isPlayerSide ? 0.73 : 0.73),
+        _platformRect.center.dx,
+        _platformRect.center.dy - (_platformRect.height * 0.75),
       ),
-      width: size.x * (isPlayerSide ? 0.32 : 0.36),
-      height: size.y * 0.11,
+      width: _platformRect.width * (isPlayerSide ? 0.6 : 0.48),
+      height: _platformRect.height * 1.25,
     );
     canvas.drawOval(
       shadowRect,
@@ -137,11 +161,12 @@ class BattleSceneCombatantComponent extends PositionComponent {
 
     final auraRect = Rect.fromCenter(
       center: Offset(
-        size.x * (isPlayerSide ? 0.52 : 0.58),
-        size.y * (isPlayerSide ? 0.5 : 0.48),
+        _spriteRect.center.dx,
+        _spriteRect.center.dy -
+            (_spriteRect.height * (isPlayerSide ? 0.02 : 0.04)),
       ),
-      width: size.x * (isPlayerSide ? 0.48 : 0.4),
-      height: size.y * (isPlayerSide ? 0.4 : 0.4),
+      width: _spriteRect.width * (isPlayerSide ? 0.78 : 0.72),
+      height: _spriteRect.height * 0.6,
     );
     canvas.drawOval(
       auraRect,
@@ -207,25 +232,17 @@ class BattleSceneCombatantComponent extends PositionComponent {
 
   void _renderSprite(Canvas canvas) {
     final image = _spriteImage!;
-    final spriteRect = Rect.fromLTWH(
-      size.x * (isPlayerSide ? 0.08 : 0.18),
-      size.y * (isPlayerSide ? 0.02 : 0.08),
-      size.x * (isPlayerSide ? 0.72 : 0.54),
-      size.y * (isPlayerSide ? 0.86 : 0.72),
-    );
     final inputSubrect = _spriteOpaqueSourceRect ??
         (Offset.zero &
             Size(
               image.width.toDouble(),
               image.height.toDouble(),
             ));
-    final fitted = applyBoxFit(BoxFit.contain, inputSubrect.size, spriteRect.size);
-    final outputSubrect = (isPlayerSide
-            ? Alignment.bottomCenter
-            : Alignment.bottomCenter)
-        .inscribe(
+    final fitted =
+        applyBoxFit(BoxFit.contain, inputSubrect.size, _spriteRect.size);
+    final outputSubrect = Alignment.bottomCenter.inscribe(
       fitted.destination,
-      spriteRect,
+      _spriteRect,
     );
     canvas.drawImageRect(
       image,
@@ -241,13 +258,14 @@ class BattleSceneCombatantComponent extends PositionComponent {
     final secondaryColor =
         isPlayerSide ? const Color(0xFF7DB4F7) : const Color(0xFFD7E8FF);
 
+    final spriteRect = _spriteRect;
     final bodyRect = Rect.fromCenter(
       center: Offset(
-        size.x * (isPlayerSide ? 0.42 : 0.6),
-        size.y * (isPlayerSide ? 0.46 : 0.44),
+        spriteRect.left + (spriteRect.width * (isPlayerSide ? 0.42 : 0.6)),
+        spriteRect.top + (spriteRect.height * (isPlayerSide ? 0.46 : 0.44)),
       ),
-      width: size.x * (isPlayerSide ? 0.42 : 0.28),
-      height: size.y * (isPlayerSide ? 0.48 : 0.36),
+      width: spriteRect.width * (isPlayerSide ? 0.42 : 0.28),
+      height: spriteRect.height * (isPlayerSide ? 0.48 : 0.36),
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(bodyRect, const Radius.circular(34)),
@@ -269,10 +287,10 @@ class BattleSceneCombatantComponent extends PositionComponent {
 
     final headRect = Rect.fromCircle(
       center: Offset(
-        size.x * (isPlayerSide ? 0.36 : 0.56),
-        size.y * (isPlayerSide ? 0.21 : 0.23),
+        spriteRect.left + (spriteRect.width * (isPlayerSide ? 0.36 : 0.56)),
+        spriteRect.top + (spriteRect.height * (isPlayerSide ? 0.21 : 0.23)),
       ),
-      radius: isPlayerSide ? size.x * 0.11 : size.x * 0.085,
+      radius: isPlayerSide ? spriteRect.width * 0.11 : spriteRect.width * 0.085,
     );
     canvas.drawOval(
       headRect,
@@ -282,18 +300,37 @@ class BattleSceneCombatantComponent extends PositionComponent {
     final accentPath = Path();
     if (isPlayerSide) {
       accentPath
-        ..moveTo(size.x * 0.3, size.y * 0.44)
-        ..lineTo(size.x * 0.14, size.y * 0.3)
-        ..lineTo(size.x * 0.2, size.y * 0.58)
+        ..moveTo(
+          spriteRect.left + (spriteRect.width * 0.3),
+          spriteRect.top + (spriteRect.height * 0.44),
+        )
+        ..lineTo(
+          spriteRect.left + (spriteRect.width * 0.14),
+          spriteRect.top + (spriteRect.height * 0.3),
+        )
+        ..lineTo(
+          spriteRect.left + (spriteRect.width * 0.2),
+          spriteRect.top + (spriteRect.height * 0.58),
+        )
         ..close();
     } else {
       accentPath
-        ..moveTo(size.x * 0.6, size.y * 0.34)
-        ..lineTo(size.x * 0.8, size.y * 0.2)
-        ..lineTo(size.x * 0.74, size.y * 0.5)
+        ..moveTo(
+          spriteRect.left + (spriteRect.width * 0.6),
+          spriteRect.top + (spriteRect.height * 0.34),
+        )
+        ..lineTo(
+          spriteRect.left + (spriteRect.width * 0.8),
+          spriteRect.top + (spriteRect.height * 0.2),
+        )
+        ..lineTo(
+          spriteRect.left + (spriteRect.width * 0.74),
+          spriteRect.top + (spriteRect.height * 0.5),
+        )
         ..close();
     }
-    canvas.drawPath(accentPath, Paint()..color = primaryColor.withValues(alpha: 0.92));
+    canvas.drawPath(
+        accentPath, Paint()..color = primaryColor.withValues(alpha: 0.92));
   }
 
   void _syncTextVisibility() {
@@ -310,6 +347,18 @@ class BattleSceneCombatantComponent extends PositionComponent {
     }
     return trimmed.substring(0, 1).toUpperCase();
   }
+}
+
+Rect _sceneBounds(Rect sceneSpriteRect, Rect scenePlatformRect) {
+  return sceneSpriteRect.expandToInclude(scenePlatformRect).inflate(12);
+}
+
+Rect _toLocalRect(Rect sceneRect, Rect boundsRect) {
+  return sceneRect.shift(-boundsRect.topLeft);
+}
+
+Offset _toLocalOffset(Offset sceneOffset, Rect boundsRect) {
+  return sceneOffset - boundsRect.topLeft;
 }
 
 Future<Rect?> _computeOpaqueSourceRect(ui.Image image) async {

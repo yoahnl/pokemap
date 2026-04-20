@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flame/components.dart';
 import 'package:flame/text.dart';
@@ -12,6 +11,7 @@ import 'battle_combatant_gender_resolver.dart';
 import 'battle_background_resolver.dart';
 import 'battle_debug_panel_component.dart';
 import 'battle_pokemon_sprite_resolver.dart';
+import 'battle_scene_layout.dart';
 import 'battle_scene_backdrop_component.dart';
 import 'battle_scene_combatant_component.dart';
 import 'battle_scene_hud_component.dart';
@@ -248,168 +248,6 @@ String _buildOutcomeHeadline(BattleOutcome outcome) {
   };
 }
 
-class _BattleOverlayLayout {
-  const _BattleOverlayLayout({
-    required this.enemyHudPosition,
-    required this.enemyHudSize,
-    required this.playerHudPosition,
-    required this.playerHudSize,
-    required this.enemyCombatantPosition,
-    required this.enemyCombatantSize,
-    required this.playerCombatantPosition,
-    required this.playerCombatantSize,
-    required this.commandPanelPosition,
-    required this.commandPanelSize,
-  });
-
-  final Vector2 enemyHudPosition;
-  final Vector2 enemyHudSize;
-  final Vector2 playerHudPosition;
-  final Vector2 playerHudSize;
-  final Vector2 enemyCombatantPosition;
-  final Vector2 enemyCombatantSize;
-  final Vector2 playerCombatantPosition;
-  final Vector2 playerCombatantSize;
-  final Vector2 commandPanelPosition;
-  final Vector2 commandPanelSize;
-
-  factory _BattleOverlayLayout.forViewport(Vector2 viewportSize) {
-    final compact =
-        viewportSize.x < 720 || (viewportSize.x / viewportSize.y) < 1.05;
-    final padding = compact ? 12.0 : 18.0;
-    final commandPanelHeight = compact
-        ? (viewportSize.y * 0.34).clamp(220.0, 292.0).toDouble()
-        : (viewportSize.y * 0.265).clamp(152.0, 176.0).toDouble();
-    final commandPanelY =
-        viewportSize.y - commandPanelHeight - (compact ? 12 : 14);
-
-    final enemyHudSize = compact
-        ? Vector2(
-            (viewportSize.x * 0.5).clamp(180.0, 232.0).toDouble(),
-            82,
-          )
-        : Vector2(
-            (viewportSize.x * 0.29).clamp(232.0, 304.0).toDouble(),
-            92,
-          );
-    final playerHudSize = compact
-        ? Vector2(
-            (viewportSize.x * 0.56).clamp(196.0, 236.0).toDouble(),
-            88,
-          )
-        : Vector2(
-            (viewportSize.x * 0.33).clamp(248.0, 330.0).toDouble(),
-            98,
-          );
-
-    final enemyHudPosition = Vector2(padding, padding + 2);
-
-    final commandPanelPosition = Vector2(padding, commandPanelY);
-    final commandPanelSize =
-        Vector2(viewportSize.x - (padding * 2), commandPanelHeight);
-
-    final combatStageLayout = _BattleCombatStageLayout.forViewport(
-      viewportSize: viewportSize,
-      commandPanelTop: commandPanelY,
-    );
-
-    final playerHudPosition = compact
-        ? Vector2(
-            viewportSize.x - playerHudSize.x - 12,
-            commandPanelY - playerHudSize.y - 12,
-          )
-        : Vector2(
-            viewportSize.x - playerHudSize.x - 34,
-            commandPanelY - playerHudSize.y + 6,
-          );
-
-    return _BattleOverlayLayout(
-      enemyHudPosition: enemyHudPosition,
-      enemyHudSize: enemyHudSize,
-      playerHudPosition: playerHudPosition,
-      playerHudSize: playerHudSize,
-      enemyCombatantPosition: combatStageLayout.enemyPosition,
-      enemyCombatantSize: combatStageLayout.enemySize,
-      playerCombatantPosition: combatStageLayout.playerPosition,
-      playerCombatantSize: combatStageLayout.playerSize,
-      commandPanelPosition: commandPanelPosition,
-      commandPanelSize: commandPanelSize,
-    );
-  }
-}
-
-class _BattleCombatStageLayout {
-  const _BattleCombatStageLayout({
-    required this.playerPosition,
-    required this.playerSize,
-    required this.enemyPosition,
-    required this.enemySize,
-  });
-
-  final Vector2 playerPosition;
-  final Vector2 playerSize;
-  final Vector2 enemyPosition;
-  final Vector2 enemySize;
-
-  factory _BattleCombatStageLayout.forViewport({
-    required Vector2 viewportSize,
-    required double commandPanelTop,
-  }) {
-    const referenceStageWidth = 760.0;
-    const referenceStageHeight = 260.0;
-    // Le staging des battlers suit une scène de référence fixe inspirée du
-    // cadrage Pokémon-like : le joueur est grand et ancré côté gauche,
-    // l’adversaire reste plus compact côté droit. On évite ainsi qu’un écran
-    // plus large “écarte” artificiellement les sprites.
-    const referencePlayerX = -90.0;
-    const referencePlayerY = 18.0;
-    const referencePlayerWidth = 392.0;
-    const referencePlayerHeight = 248.0;
-    const referenceEnemyX = 470.0;
-    const referenceEnemyY = 40.0;
-    const referenceEnemyWidth = 238.0;
-    const referenceEnemyHeight = 166.0;
-
-    const stageTopPadding = 20.0;
-    const stageBottomPadding = 18.0;
-    final stageSidePadding = viewportSize.x < 720 ? 12.0 : 0.0;
-    final availableStageWidth =
-        (viewportSize.x - (stageSidePadding * 2)).clamp(240.0, viewportSize.x);
-    final availableStageHeight =
-        (commandPanelTop - stageTopPadding - stageBottomPadding)
-            .clamp(120.0, viewportSize.y);
-    final scale = math.min(
-      1.0,
-      math.min(
-        availableStageWidth / referenceStageWidth,
-        availableStageHeight / referenceStageHeight,
-      ),
-    );
-    final stageWidth = referenceStageWidth * scale;
-    final stageHeight = referenceStageHeight * scale;
-    final stageLeft = (viewportSize.x - stageWidth) / 2;
-    final stageTop = commandPanelTop - stageBottomPadding - stageHeight;
-
-    Vector2 mapPoint(double x, double y) {
-      return Vector2(
-        stageLeft + (x * scale),
-        stageTop + (y * scale),
-      );
-    }
-
-    Vector2 mapSize(double width, double height) {
-      return Vector2(width * scale, height * scale);
-    }
-
-    return _BattleCombatStageLayout(
-      playerPosition: mapPoint(referencePlayerX, referencePlayerY),
-      playerSize: mapSize(referencePlayerWidth, referencePlayerHeight),
-      enemyPosition: mapPoint(referenceEnemyX, referenceEnemyY),
-      enemySize: mapSize(referenceEnemyWidth, referenceEnemyHeight),
-    );
-  }
-}
-
 /// Overlay de combat lot 1.
 ///
 /// Responsabilité :
@@ -461,6 +299,7 @@ class BattleOverlayComponent extends PositionComponent {
   BattleDebugPanelComponent? _debugPanel;
   TextComponent? _outcomeBanner;
   Future<void>? _pendingVisualSync;
+  BattleSceneLayout? _sceneLayout;
 
   BattleCommandMenuMode _menuMode = BattleCommandMenuMode.root;
   int _selectedRootIndex = 0;
@@ -502,9 +341,19 @@ class BattleOverlayComponent extends PositionComponent {
     await (_pendingVisualSync ?? Future<void>.value());
   }
 
+  @visibleForTesting
+  BattleSceneLayout get currentSceneLayout =>
+      _sceneLayout ??
+      BattleSceneLayout.forViewport(
+        viewportSize: Size(size.x, size.y),
+      );
+
   @override
   Future<void> onLoad() async {
-    final layout = _BattleOverlayLayout.forViewport(size);
+    final layout = BattleSceneLayout.forViewport(
+      viewportSize: Size(size.x, size.y),
+    );
+    _sceneLayout = layout;
 
     _backdrop = BattleSceneBackdropComponent(
       size: size.clone(),
@@ -513,24 +362,26 @@ class BattleOverlayComponent extends PositionComponent {
     await add(_backdrop!);
 
     _enemyCombatant = BattleSceneCombatantComponent(
-      position: layout.enemyCombatantPosition,
-      size: layout.enemyCombatantSize,
+      sceneSpriteRect: layout.enemySpriteRect,
+      scenePlatformRect: layout.enemyPlatformRect,
+      sceneFootAnchor: layout.enemyFootAnchor,
       isPlayerSide: false,
       speciesLabel: _session.state.enemy.speciesId,
     );
     await add(_enemyCombatant!);
 
     _playerCombatant = BattleSceneCombatantComponent(
-      position: layout.playerCombatantPosition,
-      size: layout.playerCombatantSize,
+      sceneSpriteRect: layout.playerSpriteRect,
+      scenePlatformRect: layout.playerPlatformRect,
+      sceneFootAnchor: layout.playerFootAnchor,
       isPlayerSide: true,
       speciesLabel: _session.state.player.speciesId,
     );
     await add(_playerCombatant!);
 
     _enemyHud = BattleSceneHudComponent(
-      position: layout.enemyHudPosition,
-      size: layout.enemyHudSize,
+      position: Vector2(layout.enemyHudRect.left, layout.enemyHudRect.top),
+      size: Vector2(layout.enemyHudRect.width, layout.enemyHudRect.height),
       ownerLabel: 'ENNEMI',
       combatant: _session.state.enemy,
       isPlayerSide: false,
@@ -542,8 +393,8 @@ class BattleOverlayComponent extends PositionComponent {
     await add(_enemyHud!);
 
     _playerHud = BattleSceneHudComponent(
-      position: layout.playerHudPosition,
-      size: layout.playerHudSize,
+      position: Vector2(layout.playerHudRect.left, layout.playerHudRect.top),
+      size: Vector2(layout.playerHudRect.width, layout.playerHudRect.height),
       ownerLabel: 'JOUEUR',
       combatant: _session.state.player,
       isPlayerSide: true,
@@ -555,10 +406,17 @@ class BattleOverlayComponent extends PositionComponent {
     await add(_playerHud!);
 
     _commandPanel = BattleCommandPanelComponent(
-      position: layout.commandPanelPosition,
-      size: layout.commandPanelSize,
+      position: Vector2(
+        layout.commandPanelRect.left,
+        layout.commandPanelRect.top,
+      ),
+      size: Vector2(
+        layout.commandPanelRect.width,
+        layout.commandPanelRect.height,
+      ),
       onChoiceSelected: _handleChoiceSelected,
       onRootActionSelected: _handleRootActionSelected,
+      layoutModeOverride: layout.commandPanelLayoutMode,
     );
     await add(_commandPanel!);
 

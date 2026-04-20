@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flame/components.dart';
@@ -17,6 +18,7 @@ import 'package:map_runtime/src/presentation/flame/battle_debug_panel_component.
 import 'package:map_runtime/src/presentation/flame/battle_scene_backdrop_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_combatant_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_hud_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 
 BattleStatsSnapshot _stats({
   int attack = 60,
@@ -177,6 +179,17 @@ Future<String> _writeTinyBattleBackgroundImage() async {
     ),
   );
   return file.path;
+}
+
+void _expectRectCloseTo(
+  ui.Rect actual,
+  ui.Rect expected, {
+  double tolerance = 0.01,
+}) {
+  expect(actual.left, closeTo(expected.left, tolerance));
+  expect(actual.top, closeTo(expected.top, tolerance));
+  expect(actual.right, closeTo(expected.right, tolerance));
+  expect(actual.bottom, closeTo(expected.bottom, tolerance));
 }
 
 void main() {
@@ -666,7 +679,8 @@ void main() {
       expect(overlay.debugPanelMounted, isFalse);
     });
 
-    test('stages battlers with a stronger pokemon-like framing', () async {
+    test('consumes the pure scene layout with stable battler relations',
+        () async {
       final overlay = BattleOverlayComponent(
         session: _session(
           player: _combatant(
@@ -692,24 +706,42 @@ void main() {
       final enemyCombatant = overlay.children
           .whereType<BattleSceneCombatantComponent>()
           .firstWhere((component) => !component.belongsToPlayerSide);
+      final layout = overlay.currentSceneLayout;
 
-      expect(playerCombatant.position.x, lessThanOrEqualTo(20));
-      expect(playerCombatant.position.y, greaterThanOrEqualTo(110));
-      expect(playerCombatant.size.x, greaterThanOrEqualTo(380));
-      expect(playerCombatant.size.y, greaterThanOrEqualTo(240));
-      expect(enemyCombatant.position.x, greaterThanOrEqualTo(560));
-      expect(enemyCombatant.position.x, lessThanOrEqualTo(590));
-      expect(enemyCombatant.position.y, greaterThanOrEqualTo(130));
-      expect(enemyCombatant.size.x, greaterThanOrEqualTo(230));
-      expect(enemyCombatant.size.y, greaterThanOrEqualTo(160));
+      _expectRectCloseTo(
+        playerCombatant.currentSpriteRect,
+        layout.playerSpriteRect,
+      );
+      _expectRectCloseTo(
+        enemyCombatant.currentSpriteRect,
+        layout.enemySpriteRect,
+      );
+      _expectRectCloseTo(
+        playerCombatant.currentPlatformRect,
+        layout.playerPlatformRect,
+      );
+      _expectRectCloseTo(
+        enemyCombatant.currentPlatformRect,
+        layout.enemyPlatformRect,
+      );
+      expect(
+        layout.playerSpriteRect.height,
+        greaterThan(layout.enemySpriteRect.height),
+      );
+      expect(
+          layout.playerFootAnchor.dy, greaterThan(layout.enemyFootAnchor.dy));
+      expect(
+          layout.enemyFootAnchor.dx, greaterThan(layout.playerFootAnchor.dx));
+      expect(
+        layout.playerSpriteRect.bottom,
+        lessThanOrEqualTo(layout.commandPanelRect.top),
+      );
+      expect(layout.enemySpriteRect.overlaps(layout.enemyHudRect), isFalse);
+      expect(layout.playerSpriteRect.overlaps(layout.playerHudRect), isFalse);
     });
 
     test('keeps battler scale stable on wider landscape viewports', () async {
-      Future<
-          ({
-            BattleSceneCombatantComponent player,
-            BattleSceneCombatantComponent enemy
-          })> loadBattlers(Vector2 viewportSize) async {
+      Future<BattleSceneLayout> loadLayout(Vector2 viewportSize) async {
         final overlay = BattleOverlayComponent(
           session: _session(
             player: _combatant(
@@ -729,26 +761,29 @@ void main() {
 
         await overlay.onLoad();
 
-        final combatants = overlay.children
-            .whereType<BattleSceneCombatantComponent>()
-            .toList(growable: false);
-        return (
-          player: combatants
-              .firstWhere((component) => component.belongsToPlayerSide),
-          enemy: combatants
-              .firstWhere((component) => !component.belongsToPlayerSide),
-        );
+        return overlay.currentSceneLayout;
       }
 
-      final standard = await loadBattlers(Vector2(960, 540));
-      final wide = await loadBattlers(Vector2(1280, 540));
+      final reference = await loadLayout(Vector2(960, 540));
+      final laptop = await loadLayout(Vector2(1280, 720));
+      final wide = await loadLayout(Vector2(1600, 900));
 
-      expect(wide.player.size.x, closeTo(standard.player.size.x, 0.01));
-      expect(wide.player.size.y, closeTo(standard.player.size.y, 0.01));
-      expect(wide.enemy.size.x, closeTo(standard.enemy.size.x, 0.01));
-      expect(wide.enemy.size.y, closeTo(standard.enemy.size.y, 0.01));
-      expect(wide.player.position.y, closeTo(standard.player.position.y, 0.01));
-      expect(wide.enemy.position.y, closeTo(standard.enemy.position.y, 0.01));
+      expect(
+        laptop.playerSpriteRect.size,
+        equals(reference.playerSpriteRect.size),
+      );
+      expect(
+        laptop.enemySpriteRect.size,
+        equals(reference.enemySpriteRect.size),
+      );
+      expect(
+        wide.playerSpriteRect.size,
+        equals(reference.playerSpriteRect.size),
+      );
+      expect(
+        wide.enemySpriteRect.size,
+        equals(reference.enemySpriteRect.size),
+      );
     });
 
     test(
@@ -778,10 +813,76 @@ void main() {
       await panel.onLoad();
 
       expect(panel.currentLayoutMode, BattleCommandPanelLayoutMode.stacked);
-      expect(panel.commandsPanelPosition.y,
-          greaterThan(panel.promptPanelPosition.y));
+      expect(
+        panel.commandsPanelPosition.y,
+        greaterThan(panel.promptPanelPosition.y),
+      );
       expect(panel.promptPanelSize.x, closeTo(panel.size.x, 0.01));
       expect(panel.commandsPanelSize.x, closeTo(panel.size.x, 0.01));
+      expect(
+        overlay.currentSceneLayout.commandPanelLayoutMode,
+        BattleCommandPanelLayoutMode.stacked,
+      );
+    });
+
+    test('updateState keeps scene rects stable for a fixed viewport', () async {
+      final initialSession = _session(
+        player: _combatant(
+          speciesId: 'squirtle',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+        playerReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'ivysaur',
+            lineupIndex: 1,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ],
+        enemy: _combatant(
+          speciesId: 'pikachu',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+      );
+      final overlay = BattleOverlayComponent(
+        session: initialSession,
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+      final initialLayout = overlay.currentSceneLayout;
+
+      final nextSession = _session(
+        player: _combatant(
+          speciesId: 'ivysaur',
+          lineupIndex: 1,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+        enemy: _combatant(
+          speciesId: 'pikachu',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+      );
+
+      overlay.updateState(nextSession);
+      await overlay.waitForPendingVisualSync();
+
+      final updatedLayout = overlay.currentSceneLayout;
+      _expectRectCloseTo(
+        updatedLayout.playerSpriteRect,
+        initialLayout.playerSpriteRect,
+      );
+      _expectRectCloseTo(
+        updatedLayout.enemySpriteRect,
+        initialLayout.enemySpriteRect,
+      );
+      _expectRectCloseTo(
+        updatedLayout.commandPanelRect,
+        initialLayout.commandPanelRect,
+      );
     });
 
     test('mounts the resolved background family inside the backdrop layer',
