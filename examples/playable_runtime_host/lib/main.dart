@@ -15,12 +15,14 @@ import 'package:path/path.dart' as p;
 import 'src/in_game_menu.dart';
 import 'src/runtime_demo_party_seed.dart';
 import 'src/runtime_gamepad_bridge.dart';
+import 'src/runtime_gamepad_presence.dart';
 import 'src/runtime_ios_project_picker.dart';
 import 'src/runtime_launch_save.dart';
 import 'src/runtime_launch_options.dart';
 import 'src/runtime_pokedex_loader.dart';
 import 'src/runtime_project_picker.dart';
 import 'src/runtime_touch_controls.dart';
+import 'src/runtime_touch_controls_visibility.dart';
 
 // Point d'entrée minimal du host runtime.
 // On garde un MaterialApp très simple, puis toute la navigation se fait
@@ -53,13 +55,18 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   bool _showNpcCollisionDebugOverlay = false;
   bool _showFpsOverlay = false;
   bool _showRuntimeDebugPanel = true;
+  bool _touchControlsHiddenByUser = false;
+  bool _hasConnectedGamepad = false;
   bool _surfingEnabled = false;
   bool _seedDemoPokemon = true;
   bool _saveLoadBusy = false;
   String? _saveLoadStatus;
   String? _saveLoadError;
   Timer? _runtimeInfoTicker;
+  Timer? _gamepadPresenceTimer;
   StreamSubscription<NormalizedGamepadEvent>? _runtimeGamepadSubscription;
+  final RuntimeGamepadPresence _runtimeGamepadPresence =
+      RuntimeGamepadPresence();
 
   static const _prefsFileName = '.playable_runtime_host_prefs.json';
 
@@ -67,6 +74,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   void initState() {
     super.initState();
     _bindGamepadInputsIfNeeded();
+    _startGamepadPresenceRefreshIfNeeded();
     _restoreLastSession();
   }
 
@@ -75,9 +83,15 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     // Le ticker d'overlay est strictement local au host et doit toujours être
     // arrêté quand la page sort, pour éviter toute fuite de rafraîchissement.
     _runtimeInfoTicker?.cancel();
+    _gamepadPresenceTimer?.cancel();
     _runtimeGamepadSubscription?.cancel();
     super.dispose();
   }
+
+  bool get _supportsTouchControls =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.iOS ||
+          defaultTargetPlatform == TargetPlatform.android);
 
   void _bindGamepadInputsIfNeeded() {
     if (kIsWeb || _runtimeGamepadSubscription != null) {
@@ -87,6 +101,9 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     _runtimeGamepadSubscription = Gamepads.normalizedEvents.listen(
       (event) {
         final game = _game;
+        if (!_hasConnectedGamepad && mounted) {
+          setState(() => _hasConnectedGamepad = true);
+        }
         if (game == null) {
           return;
         }
@@ -107,6 +124,34 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       },
       onError: (_) {},
     );
+  }
+
+  void _startGamepadPresenceRefreshIfNeeded() {
+    if (!_supportsTouchControls || _gamepadPresenceTimer != null) {
+      return;
+    }
+    _refreshConnectedGamepadState();
+    _gamepadPresenceTimer = Timer.periodic(
+      const Duration(seconds: 2),
+      (_) => _refreshConnectedGamepadState(),
+    );
+  }
+
+  Future<void> _refreshConnectedGamepadState() async {
+    if (!_supportsTouchControls || !mounted) {
+      return;
+    }
+    try {
+      final hasConnectedGamepad =
+          await _runtimeGamepadPresence.hasConnectedGamepads();
+      if (!mounted || _hasConnectedGamepad == hasConnectedGamepad) {
+        return;
+      }
+      setState(() => _hasConnectedGamepad = hasConnectedGamepad);
+    } catch (_) {
+      // Best-effort seulement : une erreur de détection de manette ne doit
+      // jamais bloquer le host ni le runtime.
+    }
   }
 
   // Les préférences locales du host ne font pas partie de la save gameplay.
@@ -569,9 +614,12 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     final game = _game;
     if (game != null) {
       final info = game.saveLoadInfo;
-      final showTouchControls = !kIsWeb &&
-          (defaultTargetPlatform == TargetPlatform.iOS ||
-              defaultTargetPlatform == TargetPlatform.android);
+      final touchControlsVisibility = resolveRuntimeTouchControlsVisibility(
+        supportsTouchControls: _supportsTouchControls,
+        userHidden: _touchControlsHiddenByUser,
+        hasConnectedGamepad: _hasConnectedGamepad,
+        isBattleActive: game.isBattleUiActive,
+      );
       return Scaffold(
         appBar: AppBar(
           title: Text((_selectedMapId ?? '').trim()),
@@ -580,6 +628,22 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
             onPressed: _reset,
           ),
           actions: [
+            if (touchControlsVisibility.showToggleButton)
+              IconButton(
+                key: const Key('runtime-touch-controls-toggle-button'),
+                tooltip: touchControlsVisibility.toggleTooltip,
+                icon: Icon(
+                  touchControlsVisibility.userHidden
+                      ? Icons.touch_app_outlined
+                      : Icons.touch_app,
+                ),
+                onPressed: () {
+                  setState(
+                    () =>
+                        _touchControlsHiddenByUser = !_touchControlsHiddenByUser,
+                  );
+                },
+              ),
             IconButton(
               key: const Key('runtime-debug-panel-toggle-button'),
               tooltip: _showRuntimeDebugPanel
@@ -606,7 +670,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         body: Stack(
           children: [
             GameWidget(game: game),
-            if (showTouchControls)
+            if (touchControlsVisibility.showControls)
               Positioned.fill(
                 child: RuntimeTouchControls(
                   dispatch: game.handleRuntimeInputEvent,

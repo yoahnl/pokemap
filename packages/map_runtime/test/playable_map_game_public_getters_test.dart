@@ -18,6 +18,7 @@ void main() {
       expect(game.isSurfing, isFalse);
       expect(() => game.saveLoadInfo, returnsNormally);
       expect(game.saveLoadInfo.movementMode, MovementMode.walk.name);
+      expect(game.isBattleUiActive, isFalse);
     });
 
     test('getters use normalized saveData movement mode before onLoad', () {

@@ -274,6 +274,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   bool get isSurfing => playerMovementMode == MovementMode.surf;
 
+  bool get isBattleUiActive =>
+      _flowPhase == _RuntimeFlowPhase.battle ||
+      _flowPhase == _RuntimeFlowPhase.battleTransition;
+
   ({String mapId, int playerX, int playerY, String facing, String movementMode})
       get saveLoadInfo {
     if (isLoaded) {
