@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -15,6 +16,7 @@ import 'src/runtime_demo_party_seed.dart';
 import 'src/runtime_launch_save.dart';
 import 'src/runtime_launch_options.dart';
 import 'src/runtime_pokedex_loader.dart';
+import 'src/runtime_project_picker.dart';
 
 // Point d'entrée minimal du host runtime.
 // On garde un MaterialApp très simple, puis toute la navigation se fait
@@ -257,44 +259,46 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     }
   }
 
-  Future<({String name, String projectJsonPath})?> _scanFirstProjectInDocuments() async {
-    final docsDir = await _getProjectsDirectory();
-    if (!await docsDir.exists()) return null;
-
-    await for (final entity in docsDir.list()) {
-      if (entity is Directory) {
-        final projectFile = File(p.join(entity.path, 'project.json'));
-        if (await projectFile.exists()) {
-          final name = p.basename(entity.path);
-          return (name: name, projectJsonPath: projectFile.path);
-        }
-      }
-    }
-    return null;
-  }
-
-  // Le host lit automatiquement les projets copiés via l'app Fichiers.
   Future<void> _pickProjectFile() async {
-    final info = await _scanFirstProjectInDocuments();
-    if (info == null || !mounted) {
-      setState(() => _error = 'Aucun projet trouvé. Copiez un projet via l\'app Fichiers.');
-      return;
-    }
-
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
+      final result = await pickRuntimeProjectDirectory(
+        pickDirectoryPath: () {
+          return FilePicker.platform.getDirectoryPath(
+            dialogTitle: 'Choisir un dossier projet',
+          );
+        },
+        importProjectJsonPath: _ensureProjectCopiedToDocuments,
+      );
+      if (!mounted) {
+        return;
+      }
+      if (result.didCancel) {
+        return;
+      }
+      if (!result.didSelectProject) {
+        setState(() => _error = result.errorMessage);
+        return;
+      }
+      final projectJsonPath = result.projectJsonPath!;
       setState(() {
-        _projectFilePath = info.projectJsonPath;
+        _projectFilePath = projectJsonPath;
         _error = null;
       });
-      await _loadProjectMapsFromManifest(info.projectJsonPath);
+      await _loadProjectMapsFromManifest(projectJsonPath);
       await _persistLastSession();
     } catch (e) {
-      if (mounted) {
-        setState(() => _error = 'Erreur projet: $e');
+      if (!mounted) {
+        return;
       }
+      setState(() => _error = 'Erreur projet: $e');
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -305,7 +309,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     final mapId = (_selectedMapId ?? '').trim();
 
     if (projectFilePath.isEmpty) {
-      setState(() => _error = 'Sélectionnez un fichier project.json.');
+      setState(() => _error = 'Sélectionnez un dossier projet valide.');
       return;
     }
     if (mapId.isEmpty) {
@@ -709,7 +713,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
                 decoration: InputDecoration(
                   labelText: 'Map',
                   hintText:
-                      'Chargez un project.json valide pour lister les maps',
+                      'Chargez un projet valide pour lister les maps',
                   border: OutlineInputBorder(),
                 ),
               )
@@ -778,10 +782,10 @@ class _ProjectFileField extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                path.isEmpty ? 'Aucun fichier sélectionné' : path,
+                path.isEmpty ? 'Aucun projet sélectionné' : path,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: path.isEmpty ? Theme.of(context).hintColor : null,
-                    ),
+                  color: path.isEmpty ? Theme.of(context).hintColor : null,
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),

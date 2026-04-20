@@ -20,11 +20,17 @@ Ce slice contient :
 
 1. `cd /Users/karim/Project/pokemonProject/examples/playable_runtime_host`
 2. `/opt/homebrew/bin/flutter run -d macos`
-3. Sélectionner le `project.json` du dossier `golden_battle_slice`
+3. Sélectionner le dossier `golden_battle_slice`
 4. Charger la map `golden_field`
 
 Le host charge automatiquement `runtime_host_launch_save.json` s’il existe à
 côté du `project.json`. Sinon, il retombe sur le seed de démo historique.
+
+## iOS
+
+Sur iOS, le bouton `Parcourir…` ouvre désormais le picker Fichiers pour choisir
+un dossier projet complet. Le host importe ensuite ce dossier dans son espace
+Documents interne pour garder `project.json`, `maps/` et les assets ensemble.
 
 ## Validation locale utile
 
