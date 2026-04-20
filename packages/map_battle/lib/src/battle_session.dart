@@ -828,6 +828,28 @@ class BattleSession {
       );
     }
 
+    if (setup.isTrainerBattle) {
+      final legalSwitchOptions = _availableEnemyVoluntarySwitchOptions();
+      final voluntarySwitch = opponentPolicy.chooseVoluntarySwitch(
+        activeCombatant: state.enemy,
+        legalFightActions: List<BattleActionFight>.unmodifiable(
+          legalFightActions,
+        ),
+        legalSwitchOptions: List<BattleOpponentReplacementOption>.unmodifiable(
+          legalSwitchOptions,
+        ),
+        didEnemySwitchLastTurn: _didEnemySwitchLastTurn(),
+      );
+      if (voluntarySwitch != null) {
+        if (!legalSwitchOptions.contains(voluntarySwitch)) {
+          throw StateError(
+            'BattleOpponentPolicy doit retourner une des options de switch volontaire légales fournies par la session.',
+          );
+        }
+        return BattleActionSwitch(reserveIndex: voluntarySwitch.reserveIndex);
+      }
+    }
+
     // Garde-fou de périmètre lots 3 à 5 :
     // - la policy reçoit uniquement des actions fight déjà légales ;
     // - elle doit en retourner une parmi cette liste, sans en synthétiser une
@@ -845,6 +867,37 @@ class BattleSession {
       );
     }
     return selectedAction;
+  }
+
+  List<BattleOpponentReplacementOption> _availableEnemyVoluntarySwitchOptions() {
+    if (state.enemy.isFainted) {
+      return const <BattleOpponentReplacementOption>[];
+    }
+
+    final options = <BattleOpponentReplacementOption>[];
+    for (final reserveIndex in _selectableReserveIndices(state.enemyReserve)) {
+      options.add(
+        BattleOpponentReplacementOption(
+          reserveIndex: reserveIndex,
+          combatant: state.enemyReserve[reserveIndex],
+        ),
+      );
+    }
+    return List<BattleOpponentReplacementOption>.unmodifiable(options);
+  }
+
+  bool _didEnemySwitchLastTurn() {
+    final previousTurn = state.currentTurn;
+    if (previousTurn == null) {
+      return false;
+    }
+    for (final event in previousTurn.switchEvents) {
+      if (event.side == BattleSideId.enemy &&
+          event.kind == BattleSwitchEventKind.switched) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /// Calcule la liste des actions fight adverse actuellement légales.

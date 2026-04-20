@@ -109,7 +109,7 @@ void main() {
           speciesId: 'lead_enemy',
           lineupIndex: 0,
           stats: _stats(speed: 20),
-          moves: <BattleMoveData>[_waitingMove()],
+          moves: <BattleMoveData>[_tackle(power: 40)],
         ),
         enemyReserve: <BattleCombatantData>[
           _combatant(
@@ -160,7 +160,7 @@ void main() {
           speciesId: 'lead_enemy',
           lineupIndex: 0,
           stats: _stats(speed: 20),
-          moves: <BattleMoveData>[_waitingMove()],
+          moves: <BattleMoveData>[_tackle(power: 40)],
         ),
         enemyReserve: <BattleCombatantData>[
           _combatant(
@@ -208,7 +208,7 @@ void main() {
           speciesId: 'lead_enemy',
           lineupIndex: 0,
           stats: _stats(speed: 20),
-          moves: <BattleMoveData>[_waitingMove()],
+          moves: <BattleMoveData>[_tackle(power: 40)],
         ),
         enemyReserve: <BattleCombatantData>[
           _combatant(
@@ -258,7 +258,7 @@ void main() {
           speciesId: 'lead_enemy',
           lineupIndex: 0,
           stats: _stats(speed: 20),
-          moves: <BattleMoveData>[_waitingMove()],
+          moves: <BattleMoveData>[_tackle(power: 40)],
         ),
         enemyReserve: <BattleCombatantData>[
           _combatant(
@@ -307,7 +307,7 @@ void main() {
           speciesId: 'lead_enemy',
           lineupIndex: 0,
           stats: _stats(speed: 20),
-          moves: <BattleMoveData>[_waitingMove()],
+          moves: <BattleMoveData>[_tackle(power: 20)],
         ),
         enemyReserve: <BattleCombatantData>[
           _combatant(
@@ -350,7 +350,7 @@ void main() {
           speciesId: 'lead_enemy',
           lineupIndex: 0,
           stats: _stats(speed: 20),
-          moves: <BattleMoveData>[_waitingMove()],
+          moves: <BattleMoveData>[_tackle(power: 20)],
         ),
         enemyReserve: <BattleCombatantData>[
           _combatant(
@@ -611,6 +611,208 @@ void main() {
       expect(
         timeline.indexOf(firstSwitchEvent),
         lessThan(timeline.indexOf(enemyExecution)),
+      );
+    });
+
+    test(
+        'legacy trainer behavior keeps fighting instead of switching voluntarily',
+        () {
+      final session = _session(
+        isTrainerBattle: true,
+        opponentPolicy: battleOpponentPolicyForDifficulty(null),
+        player: _combatant(
+          speciesId: 'lead_player',
+          lineupIndex: 0,
+          maxHp: 50,
+          currentHp: 50,
+          stats: _stats(speed: 80, attack: 80),
+          moves: <BattleMoveData>[_tackle(power: 35)],
+        ),
+        enemy: _combatant(
+          speciesId: 'lead_enemy',
+          lineupIndex: 0,
+          maxHp: 40,
+          currentHp: 40,
+          stats: _stats(speed: 20),
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+        enemyReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'bench_enemy',
+            lineupIndex: 1,
+            maxHp: 45,
+            currentHp: 45,
+            stats: _stats(speed: 70, attack: 90),
+            moves: <BattleMoveData>[_tackle(power: 120)],
+          ),
+        ],
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(afterTurn.state.currentTurn!.enemyAction, isA<BattleActionFight>());
+      expect(afterTurn.state.enemy.speciesId, equals('lead_enemy'));
+      expect(afterTurn.state.currentTurn!.switchEvents, isEmpty);
+    });
+
+    test(
+        'wild battles do not opt into voluntary enemy switches even if a richer policy is injected manually',
+        () {
+      final session = _session(
+        isTrainerBattle: false,
+        opponentPolicy: battleOpponentPolicyForDifficulty(9),
+        player: _combatant(
+          speciesId: 'lead_player',
+          lineupIndex: 0,
+          maxHp: 50,
+          currentHp: 50,
+          stats: _stats(speed: 80, attack: 80),
+          moves: <BattleMoveData>[_tackle(power: 35)],
+        ),
+        enemy: _combatant(
+          speciesId: 'lead_enemy',
+          lineupIndex: 0,
+          maxHp: 40,
+          currentHp: 40,
+          stats: _stats(speed: 20),
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+        enemyReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'bench_enemy',
+            lineupIndex: 1,
+            maxHp: 45,
+            currentHp: 45,
+            stats: _stats(speed: 70, attack: 90),
+            moves: <BattleMoveData>[_tackle(power: 120)],
+          ),
+        ],
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(afterTurn.state.currentTurn!.enemyAction, isA<BattleActionFight>());
+      expect(afterTurn.state.enemy.speciesId, equals('lead_enemy'));
+      expect(afterTurn.state.currentTurn!.switchEvents, isEmpty);
+    });
+
+    test(
+        'mid difficulty trainer can switch voluntarily before the player attack when the active is offensively useless',
+        () {
+      final session = _session(
+        isTrainerBattle: true,
+        opponentPolicy: battleOpponentPolicyForDifficulty(5),
+        player: _combatant(
+          speciesId: 'lead_player',
+          lineupIndex: 0,
+          maxHp: 50,
+          currentHp: 50,
+          stats: _stats(speed: 80, attack: 80),
+          moves: <BattleMoveData>[_tackle(power: 35)],
+        ),
+        enemy: _combatant(
+          speciesId: 'lead_enemy',
+          lineupIndex: 0,
+          maxHp: 40,
+          currentHp: 40,
+          stats: _stats(speed: 20),
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+        enemyReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'bench_enemy',
+            lineupIndex: 1,
+            maxHp: 45,
+            currentHp: 45,
+            stats: _stats(speed: 70, attack: 90),
+            moves: <BattleMoveData>[_tackle(power: 120)],
+          ),
+        ],
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(afterTurn.state.currentTurn!.enemyAction, isA<BattleActionSwitch>());
+      expect(afterTurn.state.enemy.speciesId, equals('bench_enemy'));
+      expect(afterTurn.state.enemy.currentHp, lessThan(45));
+      expect(
+        afterTurn.state.enemyReserve.single.speciesId,
+        equals('lead_enemy'),
+      );
+      expect(afterTurn.state.currentTurn!.switchEvents, hasLength(1));
+      expect(
+        afterTurn.state.currentTurn!.switchEvents.single.wasForced,
+        isFalse,
+      );
+      expect(
+        afterTurn.state.currentTurn!.switchEvents.single.side,
+        equals(BattleSideId.enemy),
+      );
+      final timeline = afterTurn.state.currentTurn!.timeline;
+      final switchEvent = timeline.whereType<BattleTurnSwitchEvent>().single;
+      final playerExecution =
+          timeline.whereType<BattleTurnExecutionEvent>().single;
+      expect(
+        timeline.indexOf(switchEvent),
+        lessThan(timeline.indexOf(playerExecution)),
+      );
+      expect(playerExecution.execution.target, equals('enemy'));
+    });
+
+    test(
+        'high difficulty trainer can bail out a low HP active via a voluntary switch without breaking the next turn',
+        () {
+      final session = _session(
+        isTrainerBattle: true,
+        opponentPolicy: battleOpponentPolicyForDifficulty(9),
+        player: _combatant(
+          speciesId: 'lead_player',
+          lineupIndex: 0,
+          maxHp: 50,
+          currentHp: 50,
+          stats: _stats(speed: 80, attack: 80),
+          moves: <BattleMoveData>[_tackle(power: 20)],
+        ),
+        enemy: _combatant(
+          speciesId: 'doomed_enemy',
+          lineupIndex: 0,
+          maxHp: 40,
+          currentHp: 8,
+          stats: _stats(speed: 45, attack: 95),
+          moves: <BattleMoveData>[_tackle(power: 70)],
+        ),
+        enemyReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'healthy_enemy',
+            lineupIndex: 1,
+            maxHp: 45,
+            currentHp: 45,
+            stats: _stats(speed: 95, attack: 90),
+            moves: <BattleMoveData>[_tackle(power: 85)],
+          ),
+        ],
+      );
+
+      final afterSwitchTurn =
+          session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(
+        afterSwitchTurn.state.currentTurn!.enemyAction,
+        isA<BattleActionSwitch>(),
+      );
+      expect(afterSwitchTurn.state.enemy.speciesId, equals('healthy_enemy'));
+      expect(
+        afterSwitchTurn.state.currentTurn!.switchEvents.single.wasForced,
+        isFalse,
+      );
+
+      final nextTurn =
+          afterSwitchTurn.applyChoice(const PlayerBattleChoiceFight(0));
+
+      expect(nextTurn.state.currentTurn!.enemyAction, isA<BattleActionFight>());
+      expect(
+        nextTurn.state.currentTurn!.timeline.whereType<BattleTurnSwitchEvent>(),
+        isEmpty,
       );
     });
 

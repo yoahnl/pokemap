@@ -39,6 +39,9 @@ BattleCombatantData _combatant({
 final class _LastLegalFightPolicy implements BattleOpponentPolicy {
   List<BattleActionFight>? lastLegalFightActions;
   List<BattleOpponentReplacementOption>? lastLegalReplacementOptions;
+  List<BattleOpponentReplacementOption>? lastLegalVoluntarySwitchOptions;
+  BattleCombatant? lastActiveCombatant;
+  bool? lastDidEnemySwitchLastTurn;
 
   @override
   BattleActionFight chooseFightAction({
@@ -54,6 +57,20 @@ final class _LastLegalFightPolicy implements BattleOpponentPolicy {
   }) {
     lastLegalReplacementOptions = legalReplacementOptions;
     return legalReplacementOptions.last;
+  }
+
+  @override
+  BattleOpponentReplacementOption? chooseVoluntarySwitch({
+    required BattleCombatant activeCombatant,
+    required List<BattleActionFight> legalFightActions,
+    required List<BattleOpponentReplacementOption> legalSwitchOptions,
+    required bool didEnemySwitchLastTurn,
+  }) {
+    lastActiveCombatant = activeCombatant;
+    lastLegalFightActions = legalFightActions;
+    lastLegalVoluntarySwitchOptions = legalSwitchOptions;
+    lastDidEnemySwitchLastTurn = didEnemySwitchLastTurn;
+    return legalSwitchOptions.isEmpty ? null : legalSwitchOptions.last;
   }
 }
 
@@ -372,6 +389,232 @@ void main() {
       expect(aggressiveChoice.combatant.speciesId, equals('usable_striker'));
       expect(calculatedChoice.reserveIndex, equals(1));
       expect(calculatedChoice.combatant.speciesId, equals('usable_striker'));
+    });
+
+    test(
+        'basic voluntary switch behavior keeps the legacy fallback and never switches voluntarily',
+        () {
+      final choice = battleOpponentPolicyForDifficulty(null).chooseVoluntarySwitch(
+        activeCombatant: _battleCombatant(
+          speciesId: 'status_wall',
+          lineupIndex: 0,
+          moves: const <BattleMoveData>[
+            BattleMoveData(
+              id: 'growl',
+              name: 'Growl',
+              power: 0,
+              category: BattleMoveCategory.status,
+              target: BattleMoveTarget.opponent,
+            ),
+          ],
+        ),
+        legalFightActions: const <BattleActionFight>[
+          BattleActionFight(
+            BattleMove(
+              id: 'growl',
+              name: 'Growl',
+              power: 0,
+              category: BattleMoveCategory.status,
+              target: BattleMoveTarget.opponent,
+            ),
+            moveIndex: 0,
+          ),
+        ],
+        legalSwitchOptions: _replacementOptions(),
+        didEnemySwitchLastTurn: false,
+      );
+
+      expect(choice, isNull);
+    });
+
+    test(
+        'aggressive voluntary switch behavior triggers only when the active has no real offensive pressure and a reserve is clearly stronger',
+        () {
+      final choice = battleOpponentPolicyForDifficulty(5).chooseVoluntarySwitch(
+        activeCombatant: _battleCombatant(
+          speciesId: 'status_wall',
+          lineupIndex: 0,
+          moves: const <BattleMoveData>[
+            BattleMoveData(
+              id: 'growl',
+              name: 'Growl',
+              power: 0,
+              category: BattleMoveCategory.status,
+              target: BattleMoveTarget.opponent,
+            ),
+          ],
+        ),
+        legalFightActions: const <BattleActionFight>[
+          BattleActionFight(
+            BattleMove(
+              id: 'growl',
+              name: 'Growl',
+              power: 0,
+              category: BattleMoveCategory.status,
+              target: BattleMoveTarget.opponent,
+            ),
+            moveIndex: 0,
+          ),
+        ],
+        legalSwitchOptions: _replacementOptions(),
+        didEnemySwitchLastTurn: false,
+      );
+
+      expect(choice, isNotNull);
+      expect(choice!.reserveIndex, equals(1));
+      expect(choice.combatant.speciesId, equals('slow_nuke'));
+    });
+
+    test(
+        'calculated voluntary switch behavior can bail out a low HP active when a healthier faster reserve is clearly better',
+        () {
+      final choice = battleOpponentPolicyForDifficulty(9).chooseVoluntarySwitch(
+        activeCombatant: _battleCombatant(
+          speciesId: 'doomed_attacker',
+          lineupIndex: 0,
+          maxHp: 40,
+          currentHp: 8,
+          stats: _stats(attack: 100, specialAttack: 100, speed: 60),
+          moves: const <BattleMoveData>[
+            BattleMoveData(
+              id: 'slash',
+              name: 'Slash',
+              power: 70,
+              category: BattleMoveCategory.physical,
+              target: BattleMoveTarget.opponent,
+              accuracy: BattleMoveAccuracy.alwaysHits(),
+            ),
+          ],
+        ),
+        legalFightActions: const <BattleActionFight>[
+          BattleActionFight(
+            BattleMove(
+              id: 'slash',
+              name: 'Slash',
+              power: 70,
+              category: BattleMoveCategory.physical,
+              target: BattleMoveTarget.opponent,
+              accuracy: BattleMoveAccuracy.alwaysHits(),
+            ),
+            moveIndex: 0,
+          ),
+        ],
+        legalSwitchOptions: _replacementOptions(),
+        didEnemySwitchLastTurn: false,
+      );
+
+      expect(choice, isNotNull);
+      expect(choice!.reserveIndex, equals(2));
+      expect(choice.combatant.speciesId, equals('fast_striker'));
+    });
+
+    test(
+        'voluntary switch behavior refuses to re-switch immediately after a previous enemy voluntary switch',
+        () {
+      final choice = battleOpponentPolicyForDifficulty(9).chooseVoluntarySwitch(
+        activeCombatant: _battleCombatant(
+          speciesId: 'status_wall',
+          lineupIndex: 0,
+          moves: const <BattleMoveData>[
+            BattleMoveData(
+              id: 'growl',
+              name: 'Growl',
+              power: 0,
+              category: BattleMoveCategory.status,
+              target: BattleMoveTarget.opponent,
+            ),
+          ],
+        ),
+        legalFightActions: const <BattleActionFight>[
+          BattleActionFight(
+            BattleMove(
+              id: 'growl',
+              name: 'Growl',
+              power: 0,
+              category: BattleMoveCategory.status,
+              target: BattleMoveTarget.opponent,
+            ),
+            moveIndex: 0,
+          ),
+        ],
+        legalSwitchOptions: _replacementOptions(),
+        didEnemySwitchLastTurn: true,
+      );
+
+      expect(choice, isNull);
+    });
+
+    test(
+        'voluntary switch behavior stays put when reserves do not offer a clear or usable gain',
+        () {
+      final legalSwitchOptions = <BattleOpponentReplacementOption>[
+        BattleOpponentReplacementOption(
+          reserveIndex: 0,
+          combatant: _battleCombatant(
+            speciesId: 'spent_nuke',
+            lineupIndex: 1,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'hyper_beam',
+                name: 'Hyper Beam',
+                power: 200,
+                category: BattleMoveCategory.special,
+                target: BattleMoveTarget.opponent,
+                pp: 5,
+                currentPp: 0,
+              ),
+            ],
+          ),
+        ),
+        BattleOpponentReplacementOption(
+          reserveIndex: 1,
+          combatant: _battleCombatant(
+            speciesId: 'status_wall_b',
+            lineupIndex: 2,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'tail_whip',
+                name: 'Tail Whip',
+                power: 0,
+                category: BattleMoveCategory.status,
+                target: BattleMoveTarget.opponent,
+              ),
+            ],
+          ),
+        ),
+      ];
+
+      final choice = battleOpponentPolicyForDifficulty(9).chooseVoluntarySwitch(
+        activeCombatant: _battleCombatant(
+          speciesId: 'usable_attacker',
+          lineupIndex: 0,
+          moves: const <BattleMoveData>[
+            BattleMoveData(
+              id: 'slash',
+              name: 'Slash',
+              power: 75,
+              category: BattleMoveCategory.physical,
+              target: BattleMoveTarget.opponent,
+            ),
+          ],
+        ),
+        legalFightActions: const <BattleActionFight>[
+          BattleActionFight(
+            BattleMove(
+              id: 'slash',
+              name: 'Slash',
+              power: 75,
+              category: BattleMoveCategory.physical,
+              target: BattleMoveTarget.opponent,
+            ),
+            moveIndex: 0,
+          ),
+        ],
+        legalSwitchOptions: legalSwitchOptions,
+        didEnemySwitchLastTurn: false,
+      );
+
+      expect(choice, isNull);
     });
   });
 }

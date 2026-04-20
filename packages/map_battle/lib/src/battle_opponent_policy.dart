@@ -46,6 +46,29 @@ abstract interface class BattleOpponentPolicy {
   BattleOpponentReplacementOption chooseReplacement({
     required List<BattleOpponentReplacementOption> legalReplacementOptions,
   });
+
+  /// Choisit éventuellement un switch volontaire adverse minimal.
+  ///
+  /// Le lot 6 garde ce seam volontairement borné :
+  /// - la session continue à déterminer les moves fight légaux et les réserves
+  ///   effectivement switchables ;
+  /// - la policy ne reçoit qu'un snapshot local du combattant actif, ses
+  ///   options fight et ses options de réserve ;
+  /// - elle peut soit rester simple (`null` => continuer à fight), soit
+  ///   retourner une des options de switch déjà légales qui lui sont fournies ;
+  /// - aucun arbitrage global `Run/Capture`, aucun targeting riche, aucun
+  ///   script trainer/boss n'est ouvert ici.
+  ///
+  /// `didEnemySwitchLastTurn` sert de garde-fou anti-thrash minimal :
+  /// - il ne crée pas un état d'IA persistant ;
+  /// - il permet simplement d'interdire un reswitch volontaire immédiat ;
+  /// - si ce booléen vaut vrai, une policy saine doit préférer rester simple.
+  BattleOpponentReplacementOption? chooseVoluntarySwitch({
+    required BattleCombatant activeCombatant,
+    required List<BattleActionFight> legalFightActions,
+    required List<BattleOpponentReplacementOption> legalSwitchOptions,
+    required bool didEnemySwitchLastTurn,
+  });
 }
 
 /// Option de replacement adverse déjà jugée légale par le moteur.
@@ -137,6 +160,16 @@ final class BattleFirstLegalOpponentPolicy implements BattleOpponentPolicy {
     }
     return legalReplacementOptions.first;
   }
+
+  @override
+  BattleOpponentReplacementOption? chooseVoluntarySwitch({
+    required BattleCombatant activeCombatant,
+    required List<BattleActionFight> legalFightActions,
+    required List<BattleOpponentReplacementOption> legalSwitchOptions,
+    required bool didEnemySwitchLastTurn,
+  }) {
+    return null;
+  }
 }
 
 /// Policy adverse "agressive" minimaliste du lot 4.
@@ -181,6 +214,29 @@ final class BattleHighestPowerOpponentPolicy implements BattleOpponentPolicy {
           'BattleHighestPowerOpponentPolicy requiert au moins une option de replacement légale.',
     );
   }
+
+  @override
+  BattleOpponentReplacementOption? chooseVoluntarySwitch({
+    required BattleCombatant activeCombatant,
+    required List<BattleActionFight> legalFightActions,
+    required List<BattleOpponentReplacementOption> legalSwitchOptions,
+    required bool didEnemySwitchLastTurn,
+  }) {
+    return _chooseMinimalVoluntarySwitch(
+      activeCombatant: activeCombatant,
+      legalFightActions: legalFightActions,
+      legalSwitchOptions: legalSwitchOptions,
+      didEnemySwitchLastTurn: didEnemySwitchLastTurn,
+      activeFightScore: _bestFightActionScore(
+        legalFightActions: legalFightActions,
+        moveScore: _rawPowerScore,
+      ),
+      switchOptionScore: _rawReplacementScore,
+      clearGainThreshold: 60.0,
+      lowPressureThreshold: 0.0,
+      lowHpThreshold: 0.0,
+    );
+  }
 }
 
 /// Policy adverse "calculée" du lot 4.
@@ -221,6 +277,30 @@ final class BattleHighestExpectedPowerOpponentPolicy
       scoreCombatant: _calculatedReplacementScore,
       emptyListError:
           'BattleHighestExpectedPowerOpponentPolicy requiert au moins une option de replacement légale.',
+    );
+  }
+
+  @override
+  BattleOpponentReplacementOption? chooseVoluntarySwitch({
+    required BattleCombatant activeCombatant,
+    required List<BattleActionFight> legalFightActions,
+    required List<BattleOpponentReplacementOption> legalSwitchOptions,
+    required bool didEnemySwitchLastTurn,
+  }) {
+    final activeFightScore = _bestFightActionScore(
+      legalFightActions: legalFightActions,
+      moveScore: _expectedPowerScore,
+    );
+    return _chooseMinimalVoluntarySwitch(
+      activeCombatant: activeCombatant,
+      legalFightActions: legalFightActions,
+      legalSwitchOptions: legalSwitchOptions,
+      didEnemySwitchLastTurn: didEnemySwitchLastTurn,
+      activeFightScore: activeFightScore,
+      switchOptionScore: _calculatedReplacementScore,
+      clearGainThreshold: 25.0,
+      lowPressureThreshold: 20.0,
+      lowHpThreshold: 0.25,
     );
   }
 }
@@ -288,6 +368,20 @@ double _expectedPowerScore(BattleMove move) {
   return rawPower * accuracyMultiplier;
 }
 
+double _bestFightActionScore({
+  required List<BattleActionFight> legalFightActions,
+  required double Function(BattleMove move) moveScore,
+}) {
+  var bestScore = 0.0;
+  for (final action in legalFightActions) {
+    final candidateScore = moveScore(action.move);
+    if (candidateScore > bestScore) {
+      bestScore = candidateScore;
+    }
+  }
+  return bestScore;
+}
+
 BattleOpponentReplacementOption _pickBestReplacementOption({
   required List<BattleOpponentReplacementOption> legalReplacementOptions,
   required double Function(BattleCombatant combatant) scoreCombatant,
@@ -336,6 +430,55 @@ double _calculatedReplacementScore(BattleCombatant combatant) {
   final speedPressure = combatant.stats.speed * 0.35;
   final healthPressure = hpRatio * 40.0;
   return expectedDamagePressure + speedPressure + healthPressure;
+}
+
+BattleOpponentReplacementOption? _chooseMinimalVoluntarySwitch({
+  required BattleCombatant activeCombatant,
+  required List<BattleActionFight> legalFightActions,
+  required List<BattleOpponentReplacementOption> legalSwitchOptions,
+  required bool didEnemySwitchLastTurn,
+  required double activeFightScore,
+  required double Function(BattleCombatant combatant) switchOptionScore,
+  required double clearGainThreshold,
+  required double lowPressureThreshold,
+  required double lowHpThreshold,
+}) {
+  if (didEnemySwitchLastTurn ||
+      legalFightActions.isEmpty ||
+      legalSwitchOptions.isEmpty) {
+    return null;
+  }
+
+  final hpRatio = activeCombatant.maxHp <= 0
+      ? 0.0
+      : activeCombatant.currentHp / activeCombatant.maxHp;
+  final activeIsLowPressure = activeFightScore <= lowPressureThreshold;
+  final activeIsLowHp = lowHpThreshold > 0.0 && hpRatio <= lowHpThreshold;
+  if (!activeIsLowPressure && !activeIsLowHp) {
+    return null;
+  }
+
+  final activeStayScore = activeFightScore +
+      (activeCombatant.stats.speed * 0.35) +
+      (hpRatio * 40.0);
+
+  BattleOpponentReplacementOption? bestOption;
+  var bestOptionScore = 0.0;
+  for (final option in legalSwitchOptions) {
+    final optionScore = switchOptionScore(option.combatant);
+    if (optionScore > bestOptionScore || bestOption == null) {
+      bestOption = option;
+      bestOptionScore = optionScore;
+    }
+  }
+
+  if (bestOption == null || bestOptionScore <= 0.0) {
+    return null;
+  }
+  if (bestOptionScore - activeStayScore < clearGainThreshold) {
+    return null;
+  }
+  return bestOption;
 }
 
 double _bestDamagingMoveScore({
