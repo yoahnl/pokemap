@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'dart:io';
 
 const kRuntimeDemoSeedLevel = 25;
-const kRuntimeDemoSeedCurrentHp = 50;
+const kRuntimeDemoSeedCurrentHp = 60;
 const kRuntimeDemoSeedSaveId = 'runtime-host-demo-save';
 const _preferredRuntimeDemoSpeciesIds = <String>[
   'squirtle',
   'carapuce',
+  'mew',
+  'dratini'
 ];
 const _avoidRuntimeDemoSpeciesIds = <String>{
   'abra',
@@ -14,6 +16,14 @@ const _avoidRuntimeDemoSpeciesIds = <String>{
 
 class RuntimeDemoPartySeed {
   const RuntimeDemoPartySeed({
+    required this.members,
+  });
+
+  final List<RuntimeDemoPartyPokemonSeed> members;
+}
+
+class RuntimeDemoPartyPokemonSeed {
+  const RuntimeDemoPartyPokemonSeed({
     required this.speciesId,
     required this.abilityId,
     required this.gender,
@@ -43,83 +53,80 @@ Future<RuntimeDemoPartySeed?> buildRuntimeHostLaunchDemoPartySeed({
       jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
   final projectRootUri = projectFile.parent.uri;
   final pokemonConfig = _readPokemonConfig(projectJson);
-  final preferredSpeciesEntry = await _tryReadPreferredSpeciesEntry(
+  final speciesJsonEntries = await _readSpeciesEntries(
     projectRootUri: projectRootUri,
     speciesDir: pokemonConfig.speciesDir,
   );
-  final speciesJsonEntries = preferredSpeciesEntry == null
-      ? await _readSpeciesEntries(
-          projectRootUri: projectRootUri,
-          speciesDir: pokemonConfig.speciesDir,
-        )
-      : <_RuntimeHostSpeciesJsonEntry>[preferredSpeciesEntry];
   if (speciesJsonEntries.isEmpty) {
     throw StateError(
       'Impossible de preparer un Pokemon de demo: aucune espece locale disponible.',
     );
   }
 
-  final selectedSpecies =
-      preferredSpeciesEntry ?? _selectDemoSpeciesEntry(speciesJsonEntries);
-  final speciesJson = selectedSpecies.json;
-  final learnsetId = _readLearnsetId(speciesJson, selectedSpecies.id);
-  final learnsetJson = await _readJsonMap(
-    projectRootUri.resolve('${pokemonConfig.learnsetsDir}/$learnsetId.json'),
-  );
+  final orderedSpecies = _orderDemoSpeciesEntries(speciesJsonEntries);
+  final members = <RuntimeDemoPartyPokemonSeed>[];
+  final selectedSpeciesIds = <String>{};
+  for (final speciesEntry in orderedSpecies) {
+    if (!selectedSpeciesIds.add(speciesEntry.id)) {
+      continue;
+    }
+    final member = await _tryBuildPartySeedMember(
+      projectRootUri: projectRootUri,
+      pokemonConfig: pokemonConfig,
+      speciesEntry: speciesEntry,
+    );
+    if (member == null) {
+      continue;
+    }
+    members.add(member);
+    if (members.length >= 2) {
+      break;
+    }
+  }
 
-  final abilityId = _readPrimaryAbilityId(speciesJson) ?? 'unknown';
-  final knownMoveIds = _deriveKnownMoveIds(
-    learnsetJson,
-    level: kRuntimeDemoSeedLevel,
-  );
-
-  if (knownMoveIds.isEmpty) {
+  if (members.isEmpty) {
     throw StateError(
       'Impossible de preparer un Pokemon de demo utilisable: aucune attaque locale exploitable.',
     );
   }
 
   return RuntimeDemoPartySeed(
-    speciesId: selectedSpecies.id,
-    abilityId: abilityId,
-    gender: _resolveSeedGender(speciesJson, selectedSpecies.id),
-    level: kRuntimeDemoSeedLevel,
-    currentHp: kRuntimeDemoSeedCurrentHp,
-    knownMoveIds: knownMoveIds,
+    members: List<RuntimeDemoPartyPokemonSeed>.unmodifiable(members),
   );
 }
 
-_RuntimeHostSpeciesJsonEntry _selectDemoSpeciesEntry(
+List<_RuntimeHostSpeciesJsonEntry> _orderDemoSpeciesEntries(
   List<_RuntimeHostSpeciesJsonEntry> entries,
 ) {
-  for (final preferredId in _preferredRuntimeDemoSpeciesIds) {
-    for (final entry in entries) {
-      if (!entry.isEnabledInProject) {
-        continue;
-      }
-      if (entry.id.toLowerCase() == preferredId) {
-        return entry;
-      }
+  final ordered = List<_RuntimeHostSpeciesJsonEntry>.from(entries);
+  ordered.sort((left, right) {
+    final leftRank = _runtimeDemoSpeciesRank(left);
+    final rightRank = _runtimeDemoSpeciesRank(right);
+    if (leftRank != rightRank) {
+      return leftRank.compareTo(rightRank);
     }
-  }
+    return left.id.compareTo(right.id);
+  });
+  return List<_RuntimeHostSpeciesJsonEntry>.unmodifiable(ordered);
+}
 
-  for (final entry in entries) {
-    if (!entry.isEnabledInProject) {
-      continue;
-    }
-    if (_avoidRuntimeDemoSpeciesIds.contains(entry.id.toLowerCase())) {
-      continue;
-    }
-    return entry;
+int _runtimeDemoSpeciesRank(_RuntimeHostSpeciesJsonEntry entry) {
+  final normalizedId = entry.id.toLowerCase();
+  final preferredIndex = _preferredRuntimeDemoSpeciesIds.indexOf(normalizedId);
+  if (entry.isEnabledInProject && preferredIndex >= 0) {
+    return preferredIndex;
   }
-
-  for (final entry in entries) {
-    if (entry.isEnabledInProject) {
-      return entry;
-    }
+  if (entry.isEnabledInProject &&
+      !_avoidRuntimeDemoSpeciesIds.contains(normalizedId)) {
+    return 100;
   }
-
-  return entries.first;
+  if (entry.isEnabledInProject) {
+    return 200;
+  }
+  if (!_avoidRuntimeDemoSpeciesIds.contains(normalizedId)) {
+    return 300;
+  }
+  return 400;
 }
 
 class _RuntimeHostPokemonConfig {
@@ -182,7 +189,10 @@ Future<List<_RuntimeHostSpeciesJsonEntry>> _readSpeciesEntries({
     if (entity is! File || !entity.path.endsWith('.json')) {
       continue;
     }
-    final json = await _readJsonMap(entity.uri);
+    final json = await _tryReadJsonMap(entity.uri);
+    if (json == null) {
+      continue;
+    }
     final declaredId = (json['id'] as String?)?.trim();
     if (declaredId == null || declaredId.isEmpty) {
       continue;
@@ -202,67 +212,6 @@ Future<List<_RuntimeHostSpeciesJsonEntry>> _readSpeciesEntries({
   return List<_RuntimeHostSpeciesJsonEntry>.unmodifiable(entries);
 }
 
-Future<_RuntimeHostSpeciesJsonEntry?> _tryReadPreferredSpeciesEntry({
-  required Uri projectRootUri,
-  required String speciesDir,
-}) async {
-  final speciesDirectory = Directory.fromUri(
-    projectRootUri.resolve('$speciesDir/'),
-  );
-  if (!await speciesDirectory.exists()) {
-    throw StateError(
-      'Impossible de preparer un Pokemon de demo: dossier species introuvable.',
-    );
-  }
-
-  final preferredFilesById = <String, File>{};
-  await for (final entity in speciesDirectory.list()) {
-    if (entity is! File || !entity.path.endsWith('.json')) {
-      continue;
-    }
-    final fileName = entity.uri.pathSegments.isEmpty
-        ? entity.path.toLowerCase()
-        : entity.uri.pathSegments.last.toLowerCase();
-    for (final preferredId in _preferredRuntimeDemoSpeciesIds) {
-      final normalizedPreferredId = preferredId.toLowerCase();
-      if (fileName == '$normalizedPreferredId.json' ||
-          fileName.endsWith('-$normalizedPreferredId.json')) {
-        preferredFilesById.putIfAbsent(normalizedPreferredId, () => entity);
-      }
-    }
-  }
-
-  for (final preferredId in _preferredRuntimeDemoSpeciesIds) {
-    final normalizedPreferredId = preferredId.toLowerCase();
-    final candidateFile = preferredFilesById[normalizedPreferredId];
-    if (candidateFile == null) {
-      continue;
-    }
-    final json = await _readJsonMap(candidateFile.uri);
-    final declaredId = (json['id'] as String?)?.trim();
-    if (declaredId == null || declaredId.isEmpty) {
-      continue;
-    }
-    final classification = (json['classification'] as Map<String, dynamic>?) ??
-        const <String, dynamic>{};
-    final isEnabledInProject =
-        (classification['isEnabledInProject'] as bool?) ?? true;
-    if (!isEnabledInProject) {
-      continue;
-    }
-    if (declaredId.toLowerCase() != normalizedPreferredId) {
-      continue;
-    }
-    return _RuntimeHostSpeciesJsonEntry(
-      id: declaredId,
-      isEnabledInProject: isEnabledInProject,
-      json: json,
-    );
-  }
-
-  return null;
-}
-
 Future<Map<String, dynamic>> _readJsonMap(Uri fileUri) async {
   final file = File.fromUri(fileUri);
   final decoded = jsonDecode(await file.readAsString());
@@ -270,6 +219,50 @@ Future<Map<String, dynamic>> _readJsonMap(Uri fileUri) async {
     throw StateError('JSON project Pokemon invalide.');
   }
   return decoded;
+}
+
+Future<Map<String, dynamic>?> _tryReadJsonMap(Uri fileUri) async {
+  try {
+    return await _readJsonMap(fileUri);
+  } on FormatException {
+    return null;
+  } on FileSystemException {
+    return null;
+  } on StateError {
+    return null;
+  }
+}
+
+Future<RuntimeDemoPartyPokemonSeed?> _tryBuildPartySeedMember({
+  required Uri projectRootUri,
+  required _RuntimeHostPokemonConfig pokemonConfig,
+  required _RuntimeHostSpeciesJsonEntry speciesEntry,
+}) async {
+  final speciesJson = speciesEntry.json;
+  final learnsetId = _readLearnsetId(speciesJson, speciesEntry.id);
+  final learnsetJson = await _tryReadJsonMap(
+    projectRootUri.resolve('${pokemonConfig.learnsetsDir}/$learnsetId.json'),
+  );
+  if (learnsetJson == null) {
+    return null;
+  }
+
+  final knownMoveIds = _deriveKnownMoveIds(
+    learnsetJson,
+    level: kRuntimeDemoSeedLevel,
+  );
+  if (knownMoveIds.isEmpty) {
+    return null;
+  }
+
+  return RuntimeDemoPartyPokemonSeed(
+    speciesId: speciesEntry.id,
+    abilityId: _readPrimaryAbilityId(speciesJson) ?? 'unknown',
+    gender: _resolveSeedGender(speciesJson, speciesEntry.id),
+    level: kRuntimeDemoSeedLevel,
+    currentHp: kRuntimeDemoSeedCurrentHp,
+    knownMoveIds: knownMoveIds,
+  );
 }
 
 String _readLearnsetId(

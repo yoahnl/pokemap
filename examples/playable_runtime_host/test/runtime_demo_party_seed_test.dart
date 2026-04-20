@@ -31,6 +31,34 @@ void main() {
       expect(seed, isNull);
     });
 
+    test('builds a seeded demo party with two usable pokemon when enabled',
+        () async {
+      await _writeProjectFixture(
+        root,
+        includeSquirtle: true,
+      );
+
+      final seed = await buildRuntimeHostLaunchDemoPartySeed(
+        seedDemoPokemon: true,
+        projectFilePath: '${root.path}/project.json',
+      );
+
+      expect(seed, isNotNull);
+      expect(seed!.members, hasLength(2));
+      expect(seed.members.first.speciesId, equals('squirtle'));
+      expect(seed.members.first.level, equals(kRuntimeDemoSeedLevel));
+      expect(
+        seed.members.first.knownMoveIds,
+        equals(<String>['tackle', 'tail_whip', 'bubble', 'water_gun']),
+      );
+      expect(seed.members.last.speciesId, equals('bulbasaur'));
+      expect(seed.members.last.currentHp, equals(kRuntimeDemoSeedCurrentHp));
+      expect(
+        seed.members.last.knownMoveIds,
+        equals(<String>['tackle', 'growl', 'vine_whip', 'razor_leaf']),
+      );
+    });
+
     test('builds a seeded save with one usable pokemon when enabled', () async {
       await _writeProjectFixture(root);
 
@@ -40,13 +68,15 @@ void main() {
       );
 
       expect(seed, isNotNull);
-      expect(seed!.speciesId, equals('bulbasaur'));
-      expect(seed.level, equals(kRuntimeDemoSeedLevel));
-      expect(seed.currentHp, equals(kRuntimeDemoSeedCurrentHp));
-      expect(seed.abilityId, equals('overgrow'));
+      expect(seed!.members, hasLength(1));
+      final member = seed.members.single;
+      expect(member.speciesId, equals('bulbasaur'));
+      expect(member.level, equals(kRuntimeDemoSeedLevel));
+      expect(member.currentHp, equals(kRuntimeDemoSeedCurrentHp));
+      expect(member.abilityId, equals('overgrow'));
       expect(
-        seed.knownMoveIds,
-        equals(<String>['tackle', 'growl', 'vine_whip']),
+        member.knownMoveIds,
+        equals(<String>['tackle', 'growl', 'vine_whip', 'razor_leaf']),
       );
     });
 
@@ -63,10 +93,11 @@ void main() {
       );
 
       expect(seed, isNotNull);
-      expect(seed!.speciesId, equals('squirtle'));
-      expect(seed.abilityId, equals('torrent'));
+      final member = seed!.members.first;
+      expect(member.speciesId, equals('squirtle'));
+      expect(member.abilityId, equals('torrent'));
       expect(
-        seed.knownMoveIds,
+        member.knownMoveIds,
         equals(<String>['tackle', 'tail_whip', 'bubble', 'water_gun']),
       );
     });
@@ -84,8 +115,9 @@ void main() {
       );
 
       expect(seed, isNotNull);
-      expect(seed!.speciesId, equals('squirtle'));
-      expect(seed.gender, anyOf(equals('male'), equals('female')));
+      final member = seed!.members.first;
+      expect(member.speciesId, equals('squirtle'));
+      expect(member.gender, anyOf(equals('male'), equals('female')));
     });
 
     test('resolves a preferred demo species without parsing unrelated bad species files',
@@ -104,8 +136,9 @@ void main() {
       );
 
       expect(seed, isNotNull);
-      expect(seed!.speciesId, equals('squirtle'));
-      expect(seed.abilityId, equals('torrent'));
+      final member = seed!.members.first;
+      expect(member.speciesId, equals('squirtle'));
+      expect(member.abilityId, equals('torrent'));
     });
   });
 }

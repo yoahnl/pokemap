@@ -436,17 +436,19 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
                     saveId: kRuntimeDemoSeedSaveId,
                     currentMapId: mapId,
                     party: PlayerParty(
-                      members: <PlayerPokemon>[
-                        PlayerPokemon(
-                          speciesId: launchDemoSeed.speciesId,
-                          natureId: 'hardy',
-                          abilityId: launchDemoSeed.abilityId,
-                          gender: launchDemoSeed.gender,
-                          level: launchDemoSeed.level,
-                          knownMoveIds: launchDemoSeed.knownMoveIds,
-                          currentHp: launchDemoSeed.currentHp,
-                        ),
-                      ],
+                      members: launchDemoSeed.members
+                          .map(
+                            (member) => PlayerPokemon(
+                              speciesId: member.speciesId,
+                              natureId: 'hardy',
+                              abilityId: member.abilityId,
+                              gender: member.gender,
+                              level: member.level,
+                              knownMoveIds: member.knownMoveIds,
+                              currentHp: member.currentHp,
+                            ),
+                          )
+                          .toList(growable: false),
                     ),
                     trainerProfile: const TrainerProfile(name: 'Demo'),
                   )),
