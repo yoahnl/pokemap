@@ -303,6 +303,34 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   String get debugFlowPhaseName => _flowPhase.name;
 
   @visibleForTesting
+  bool get debugIsPlayerStepping => _player.isStepping;
+
+  @visibleForTesting
+  bool get debugHasPendingMapTransition =>
+      _pendingWarp != null || _pendingConnection != null;
+
+  @visibleForTesting
+  GridPos? get debugRenderedPlayerFootCell =>
+      isLoaded ? _renderedPlayerFootGridCell() : null;
+
+  @visibleForTesting
+  Vector2 get debugPlayerWorldTopLeft => _player.position.clone();
+
+  @visibleForTesting
+  Vector2 get debugExpectedPlayerWorldTopLeft {
+    final tileWidth = _bundle.manifest.settings.tileWidth;
+    final tileHeight = _bundle.manifest.settings.tileHeight;
+    final scaleX = _cellWidth / (tileWidth > 0 ? tileWidth : 1);
+    final scaleY = _cellHeight / (tileHeight > 0 ? tileHeight : 1);
+    final origin = _player.mapOrigin;
+    final topLeft = _world.player.playerPositionPx;
+    return Vector2(
+      (origin.x + topLeft.leftPx * scaleX).roundToDouble(),
+      (origin.y + topLeft.topPx * scaleY).roundToDouble(),
+    );
+  }
+
+  @visibleForTesting
   void debugApplyBattleOutcomeForTest({
     required RuntimeActiveBattleContext context,
     required BattleOutcome outcome,
@@ -324,15 +352,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required Direction facing,
     MovementMode movementMode = MovementMode.walk,
   }) {
-    // Petit seam de test volontaire :
-    // - il permet de placer le joueur sur une cellule précise avant un scénario
-    //   de reprise runtime ;
-    // - il évite d'écrire un test d'input Flame plus fragile que la logique que
-    //   l'on cherche réellement à prouver ici ;
-    // - il ne sert pas au produit, uniquement à valider la cohérence du lot 15.
     _world = _world.withPlayer(
-      _world.player.copyWith(
-        pos: position,
+      _gridAlignedPlayerState(
+        position: position,
         facing: facing,
         movementMode: movementMode,
       ),
@@ -5835,7 +5857,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }) {
     if (entityId.trim() == 'player') {
       final walkFacing = _directionFromEntityFacing(facing);
-      final nextState = _world.player.copyWith(pos: to, facing: walkFacing);
+      final nextState = _gridAlignedPlayerState(
+        position: to,
+        facing: walkFacing,
+      );
       _player.startStep(
         nextState,
         durationSeconds: durationSeconds ?? PlayerComponent.kDefaultStepSeconds,
@@ -5884,7 +5909,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final facing = _directionBetweenAdjacent(from: from, to: position) ??
           _world.player.facing;
       _world = _world.withPlayer(
-        _world.player.copyWith(pos: position, facing: facing),
+        _gridAlignedPlayerState(
+          position: position,
+          facing: facing,
+        ),
       );
       _runtimeNpcPositions['player'] = position;
       _scriptedNpcReservedOccupiedCellsByEntity.remove(entityId);
@@ -5904,6 +5932,25 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       }
     }
     return false;
+  }
+
+  GameplayPlayerState _gridAlignedPlayerState({
+    required GridPos position,
+    Direction? facing,
+    MovementMode? movementMode,
+  }) {
+    final current = _world.player;
+    return GameplayPlayerState.fromGridSpawn(
+      cell: position,
+      facing: facing ?? current.facing,
+      movementMode: movementMode ?? current.movementMode,
+      tileWidthPx: _bundle.manifest.settings.tileWidth,
+      tileHeightPx: _bundle.manifest.settings.tileHeight,
+      mapWidthCells: _world.map.size.width,
+      mapHeightCells: _world.map.size.height,
+      spriteWidthPx: current.playerSpriteWidthPx,
+      spriteHeightPx: current.playerSpriteHeightPx,
+    );
   }
 
   void _reserveScriptedNpcStepOccupiedCells({
