@@ -424,7 +424,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
             leading: const MacosIcon(CupertinoIcons.sparkles),
             title: const Text('Moves'),
             subtitle: const Text(
-              'Shell du futur catalogue des capacités',
+              'Catalogue local des capacités du projet',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

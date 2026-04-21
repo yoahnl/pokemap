@@ -2,8 +2,10 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/app/providers/pokemon_moves/pokemon_moves_workspace_providers.dart';
 import 'package:map_editor/src/app/providers/pokedex/pokedex_providers.dart';
 import 'package:map_editor/src/application/models/pokemon_database_index.dart';
+import 'package:map_editor/src/application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 
 import 'shell_chrome_test_harness.dart';
@@ -114,6 +116,23 @@ void main() {
           pokemonCatalogSection: PokemonCatalogSection.moves,
         ),
         overrides: [
+          pokemonMovesCatalogWorkspaceLoaderProvider.overrideWithValue(
+            (_) async => const PokemonMovesCatalogView(
+              entries: <PokemonMoveCatalogEntryView>[
+                PokemonMoveCatalogEntryView(
+                  id: 'water-gun',
+                  name: 'Water Gun',
+                  type: 'water',
+                  category: 'special',
+                  power: 40,
+                  accuracy: 100,
+                  pp: 25,
+                ),
+              ],
+              isAvailable: true,
+              description: 'Catalogue local des capacités du projet.',
+            ),
+          ),
           pokedexEntryLoaderProvider.overrideWithValue(
             (_) async => const <PokemonDatabaseIndexEntry>[],
           ),
@@ -124,7 +143,7 @@ void main() {
       expect(find.byKey(const Key('pokemon-catalogs-tabs')), findsNothing);
       expect(find.text('Moves'), findsWidgets);
       expect(
-        find.text('Le futur catalogue des capacités du projet vivra ici.'),
+        find.text('Catalogue local des capacités du projet.'),
         findsOneWidget,
       );
       expect(

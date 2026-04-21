@@ -192,10 +192,11 @@ void main() {
       ),
     );
 
-    expect(loadedView.isAvailable, isFalse);
-    expect(loadedView.description, 'Catalogue local des attaques illisible.');
+    expect(loadedView.isAvailable, isTrue);
+    expect(loadedView.entries, isEmpty);
+    expect(loadedView.diagnostics, hasLength(1));
     expect(
-      loadedView.message,
+      loadedView.diagnostics.single.message,
       contains('invalid canonical PokemonMove entry'),
     );
   });
@@ -271,9 +272,11 @@ void main() {
       ),
     );
 
-    expect(loadedView.isAvailable, isFalse);
+    expect(loadedView.isAvailable, isTrue);
+    expect(loadedView.entries, isEmpty);
+    expect(loadedView.diagnostics, hasLength(1));
     expect(
-      loadedView.message,
+      loadedView.diagnostics.single.message,
       contains('invalid canonical PokemonMove entry'),
     );
   });
@@ -302,9 +305,11 @@ void main() {
       ),
     );
 
-    expect(loadedView.isAvailable, isFalse);
+    expect(loadedView.isAvailable, isTrue);
+    expect(loadedView.entries, isEmpty);
+    expect(loadedView.diagnostics, hasLength(1));
     expect(
-      loadedView.message,
+      loadedView.diagnostics.single.message,
       contains('invalid canonical PokemonMove entry'),
     );
   });
@@ -340,7 +345,7 @@ void main() {
     expect(loadedView.entries.single.shortDesc, 'A true legacy move entry.');
   });
 
-  test('load use case rejects an unknown move entry shape explicitly',
+  test('load use case accepts a minimal local move entry shape',
       () async {
     final loadedView = await loadViewFromCatalog(
       _catalogWithEntries(
@@ -358,11 +363,12 @@ void main() {
       ),
     );
 
-    expect(loadedView.isAvailable, isFalse);
-    expect(
-      loadedView.message,
-      contains('unknown or unsupported move shape'),
-    );
+    expect(loadedView.isAvailable, isTrue);
+    expect(loadedView.diagnostics, isEmpty);
+    expect(loadedView.entries, hasLength(1));
+    expect(loadedView.entries.single.id, 'unknown_shape_move');
+    expect(loadedView.entries.single.name, 'Unknown Shape Move');
+    expect(loadedView.entries.single.category, 'status');
   });
 }
 

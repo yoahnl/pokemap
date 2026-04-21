@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/editor/state/editor_selectors.dart';
 import '../../features/editor/state/editor_state.dart';
 import 'pokedex_workspace.dart';
+import 'pokemon_catalogs_workspace/moves_catalog_workspace.dart';
 
 class PokemonCatalogsWorkspace extends ConsumerWidget {
   const PokemonCatalogsWorkspace({super.key});
@@ -17,19 +18,7 @@ class PokemonCatalogsWorkspace extends ConsumerWidget {
           padding: EdgeInsets.fromLTRB(4, 4, 4, 0),
           child: PokedexWorkspace(),
         ),
-      PokemonCatalogSection.moves => const Padding(
-          padding: EdgeInsets.fromLTRB(18, 18, 18, 16),
-          child: _PokemonCatalogShellSection(
-            title: 'Moves',
-            subtitle: 'Le futur catalogue des capacités du projet vivra ici.',
-            description:
-                'Ce shell prépare un vrai workspace dédié au catalogue des capacités, distinct du Learnset Pokédex. Le branchement catalogue, la sync externe et l’édition ciblée arriveront dans un lot dédié.',
-            readiness:
-                'Structure prête pour accueillir recherche, revue et sync du catalogue des capacités.',
-            liveBridge:
-                'Aujourd’hui, le seul outillage moves réellement branché reste accessible dans Pokédex > Learnset.',
-          ),
-        ),
+      PokemonCatalogSection.moves => const PokemonMovesCatalogWorkspace(),
       PokemonCatalogSection.items => const Padding(
           padding: EdgeInsets.fromLTRB(18, 18, 18, 16),
           child: _PokemonCatalogShellSection(
@@ -51,14 +40,12 @@ class _PokemonCatalogShellSection extends StatelessWidget {
     required this.subtitle,
     required this.description,
     required this.readiness,
-    this.liveBridge,
   });
 
   final String title;
   final String subtitle;
   final String description;
   final String readiness;
-  final String? liveBridge;
 
   @override
   Widget build(BuildContext context) {
@@ -121,26 +108,6 @@ class _PokemonCatalogShellSection extends StatelessWidget {
                       height: 1.4,
                     ),
                   ),
-                  if (liveBridge != null) ...[
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: panelFill,
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: border),
-                      ),
-                      child: Text(
-                        liveBridge!,
-                        style: TextStyle(
-                          color: subtle,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          height: 1.4,
-                        ),
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),

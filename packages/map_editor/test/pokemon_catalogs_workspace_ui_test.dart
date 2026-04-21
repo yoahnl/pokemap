@@ -3,8 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/app/providers/pokemon_moves/pokemon_moves_workspace_providers.dart';
 import 'package:map_editor/src/app/providers/pokedex/pokedex_providers.dart';
 import 'package:map_editor/src/application/models/pokemon_database_index.dart';
+import 'package:map_editor/src/application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/ui/canvas/pokemon_catalogs_workspace.dart';
@@ -34,7 +36,7 @@ Future<void> _pumpCatalogsWorkspace(
     ),
   );
   await tester.pump();
-  await tester.pump(const Duration(milliseconds: 300));
+  await tester.pumpAndSettle(const Duration(milliseconds: 50));
 }
 
 Widget _buildCatalogsHost({
@@ -65,6 +67,20 @@ void main() {
         (tester) async {
       final container = ProviderContainer(
         overrides: [
+          pokemonMovesCatalogWorkspaceLoaderProvider.overrideWithValue(
+            (_) async => const PokemonMovesCatalogView(
+              entries: <PokemonMoveCatalogEntryView>[
+                PokemonMoveCatalogEntryView(
+                  id: 'water-gun',
+                  name: 'Water Gun',
+                  type: 'water',
+                  category: 'special',
+                ),
+              ],
+              isAvailable: true,
+              description: 'Catalogue local des capacités du projet.',
+            ),
+          ),
           pokedexEntryLoaderProvider.overrideWithValue(
             (_) async => const <PokemonDatabaseIndexEntry>[],
           ),
@@ -97,10 +113,28 @@ void main() {
       expect(find.textContaining('Pokédex est encore vide'), findsOneWidget);
     });
 
-    testWidgets('renders the Moves shell when the Moves section is active',
+    testWidgets(
+        'renders the Moves workspace when the Moves section is active',
         (tester) async {
       final container = ProviderContainer(
         overrides: [
+          pokemonMovesCatalogWorkspaceLoaderProvider.overrideWithValue(
+            (_) async => const PokemonMovesCatalogView(
+              entries: <PokemonMoveCatalogEntryView>[
+                PokemonMoveCatalogEntryView(
+                  id: 'water-gun',
+                  name: 'Water Gun',
+                  type: 'water',
+                  category: 'special',
+                  power: 40,
+                  accuracy: 100,
+                  pp: 25,
+                ),
+              ],
+              isAvailable: true,
+              description: 'Catalogue local des capacités du projet.',
+            ),
+          ),
           pokedexEntryLoaderProvider.overrideWithValue(
             (_) async => const <PokemonDatabaseIndexEntry>[],
           ),
@@ -131,14 +165,14 @@ void main() {
 
       expect(find.text('Moves'), findsWidgets);
       expect(
-        find.text('Le futur catalogue des capacités du projet vivra ici.'),
+        find.text('Catalogue local des capacités du projet.'),
         findsOneWidget,
       );
+      expect(find.text('Moves'), findsWidgets);
       expect(
-        find.textContaining('Pokédex > Learnset'),
+        find.text('Catalogue local des capacités du projet.'),
         findsOneWidget,
       );
-      expect(find.textContaining('lot dédié'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
@@ -146,6 +180,20 @@ void main() {
         (tester) async {
       final container = ProviderContainer(
         overrides: [
+          pokemonMovesCatalogWorkspaceLoaderProvider.overrideWithValue(
+            (_) async => const PokemonMovesCatalogView(
+              entries: <PokemonMoveCatalogEntryView>[
+                PokemonMoveCatalogEntryView(
+                  id: 'water-gun',
+                  name: 'Water Gun',
+                  type: 'water',
+                  category: 'special',
+                ),
+              ],
+              isAvailable: true,
+              description: 'Catalogue local des capacités du projet.',
+            ),
+          ),
           pokedexEntryLoaderProvider.overrideWithValue(
             (_) async => const <PokemonDatabaseIndexEntry>[],
           ),
@@ -220,10 +268,11 @@ void main() {
         ),
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle(const Duration(milliseconds: 50));
 
+      expect(find.text('Moves'), findsWidgets);
       expect(
-        find.text('Le futur catalogue des capacités du projet vivra ici.'),
+        find.text('Catalogue local des capacités du projet.'),
         findsOneWidget,
       );
 
@@ -234,6 +283,7 @@ void main() {
         ),
       );
       await tester.pump();
+      await tester.pumpAndSettle(const Duration(milliseconds: 50));
 
       await tester.pumpWidget(
         _buildCatalogsHost(
@@ -242,10 +292,11 @@ void main() {
         ),
       );
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle(const Duration(milliseconds: 50));
 
+      expect(find.text('Moves'), findsWidgets);
       expect(
-        find.text('Le futur catalogue des capacités du projet vivra ici.'),
+        find.text('Catalogue local des capacités du projet.'),
         findsOneWidget,
       );
     });
