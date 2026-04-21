@@ -6,6 +6,7 @@ import 'package:flame/text.dart';
 import 'package:flutter/material.dart';
 import 'package:map_battle/map_battle.dart';
 
+import 'battle_bag_menu_model.dart';
 import 'battle_command_menu_model.dart';
 import 'battle_party_menu_model.dart';
 import 'battle_scene_layout.dart';
@@ -50,6 +51,28 @@ class BattlePartyEntrySnapshot {
   final double metaFontSize;
 }
 
+class BattleBagEntrySnapshot {
+  const BattleBagEntrySnapshot({
+    required this.bounds,
+    required this.titleRect,
+    required this.typeRect,
+    required this.quantityRect,
+    required this.statusRect,
+    required this.titleFontSize,
+    required this.typeFontSize,
+    required this.metaFontSize,
+  });
+
+  final Rect bounds;
+  final Rect titleRect;
+  final Rect typeRect;
+  final Rect quantityRect;
+  final Rect statusRect;
+  final double titleFontSize;
+  final double typeFontSize;
+  final double metaFontSize;
+}
+
 class BattleCommandPanelComponent extends PositionComponent {
   BattleCommandPanelComponent({
     required Vector2 position,
@@ -57,6 +80,7 @@ class BattleCommandPanelComponent extends PositionComponent {
     required this.onChoiceSelected,
     required this.onRootActionSelected,
     required this.onPartyEntrySelected,
+    this.onBagEntrySelected,
     this.layoutModeOverride,
   }) : super(
           position: position,
@@ -68,6 +92,7 @@ class BattleCommandPanelComponent extends PositionComponent {
   final void Function(PlayerBattleChoice choice) onChoiceSelected;
   final void Function(BattleCommandRootAction action) onRootActionSelected;
   final void Function(BattlePartyMenuEntry entry) onPartyEntrySelected;
+  final void Function(BattleBagMenuEntry entry)? onBagEntrySelected;
   final BattleCommandPanelLayoutMode? layoutModeOverride;
 
   PositionComponent? _promptPanel;
@@ -82,11 +107,15 @@ class BattleCommandPanelComponent extends PositionComponent {
       <BattleCommandButtonSnapshot>[];
   final List<BattlePartyEntrySnapshot> _partyEntrySnapshots =
       <BattlePartyEntrySnapshot>[];
+  final List<BattleBagEntrySnapshot> _bagEntrySnapshots =
+      <BattleBagEntrySnapshot>[];
   String _currentPromptValue = '';
   String _currentNarrationValue = '';
   _BattleCommandPanelLayout? _layout;
   BattlePartyMenuModel? _partyMenuModel;
+  BattleBagMenuModel? _bagMenuModel;
   int _selectedPartyIndex = 0;
+  int _selectedBagIndex = 0;
   BattleCommandMenuModel _menuModel = const BattleCommandMenuModel(
     mode: BattleCommandMenuMode.root,
     rootEntries: <BattleCommandRootEntry>[],
@@ -127,10 +156,10 @@ class BattleCommandPanelComponent extends PositionComponent {
   int get currentSelectedChoiceIndex => _menuModel.selectedChoiceIndex;
 
   @visibleForTesting
-  List<String> get currentPartySpeciesLabels => (_partyMenuModel?.allEntries ??
-          const <BattlePartyMenuEntry>[])
-      .map((entry) => entry.speciesId)
-      .toList(growable: false);
+  List<String> get currentPartySpeciesLabels =>
+      (_partyMenuModel?.allEntries ?? const <BattlePartyMenuEntry>[])
+          .map((entry) => entry.speciesId)
+          .toList(growable: false);
 
   @visibleForTesting
   List<bool> get currentPartySelectableStates =>
@@ -150,6 +179,33 @@ class BattleCommandPanelComponent extends PositionComponent {
   @visibleForTesting
   List<BattlePartyEntrySnapshot> get currentPartyEntrySnapshots =>
       List<BattlePartyEntrySnapshot>.unmodifiable(_partyEntrySnapshots);
+
+  @visibleForTesting
+  List<String> get currentBagEntryLabels =>
+      (_bagMenuModel?.entries ?? const <BattleBagMenuEntry>[])
+          .map(_bagEntryTitleLabel)
+          .toList(growable: false);
+
+  @visibleForTesting
+  List<String> get currentBagTypeLabels =>
+      (_bagMenuModel?.entries ?? const <BattleBagMenuEntry>[])
+          .map(_bagEntryTypeLabel)
+          .toList(growable: false);
+
+  @visibleForTesting
+  List<bool> get currentBagSelectableStates =>
+      (_bagMenuModel?.entries ?? const <BattleBagMenuEntry>[])
+          .map((entry) => entry.isSelectable)
+          .toList(growable: false);
+
+  @visibleForTesting
+  List<String> get currentBagStatusLabels =>
+      (_bagMenuModel?.entries ?? const <BattleBagMenuEntry>[])
+          .map(_bagEntryStatusLabel)
+          .toList(growable: false);
+
+  @visibleForTesting
+  int get currentSelectedBagIndex => _selectedBagIndex;
 
   @visibleForTesting
   BattleCommandPanelLayoutMode get currentLayoutMode =>
@@ -277,13 +333,17 @@ class BattleCommandPanelComponent extends PositionComponent {
     required List<String> narrationLines,
     required BattleCommandMenuModel menuModel,
     BattlePartyMenuModel? partyMenuModel,
+    BattleBagMenuModel? bagMenuModel,
     int selectedPartyIndex = 0,
+    int selectedBagIndex = 0,
     bool allowEmptyNarrationBody = false,
     bool interactionsEnabled = true,
   }) {
     _menuModel = menuModel;
     _partyMenuModel = partyMenuModel;
+    _bagMenuModel = bagMenuModel;
     _selectedPartyIndex = selectedPartyIndex;
+    _selectedBagIndex = selectedBagIndex;
     _battleLabelText?.text = battleLabel.toUpperCase();
     _currentPromptValue = prompt;
     _promptText?.text = prompt;
@@ -371,6 +431,7 @@ class BattleCommandPanelComponent extends PositionComponent {
     _interactiveComponents.clear();
     _rootButtonSnapshots.clear();
     _partyEntrySnapshots.clear();
+    _bagEntrySnapshots.clear();
 
     final commandsPanel = _commandsPanel;
     if (commandsPanel == null) {
@@ -388,6 +449,14 @@ class BattleCommandPanelComponent extends PositionComponent {
     if (_menuModel.mode == BattleCommandMenuMode.pokemon &&
         _partyMenuModel != null) {
       _renderPartyEntries(
+        commandsPanel,
+        interactionsEnabled: interactionsEnabled,
+      );
+      return;
+    }
+
+    if (_menuModel.mode == BattleCommandMenuMode.bag && _bagMenuModel != null) {
+      _renderBagEntries(
         commandsPanel,
         interactionsEnabled: interactionsEnabled,
       );
@@ -512,8 +581,7 @@ class BattleCommandPanelComponent extends PositionComponent {
     final layout = _layout ?? _BattleCommandPanelLayout.forSize(size);
     final top =
         layout.mode == BattleCommandPanelLayoutMode.stacked ? 18.0 : 24.0;
-    final gap =
-        layout.mode == BattleCommandPanelLayoutMode.stacked ? 7.0 : 8.0;
+    final gap = layout.mode == BattleCommandPanelLayoutMode.stacked ? 7.0 : 8.0;
     final entries = partyMenuModel.allEntries;
     if (entries.isEmpty) {
       return;
@@ -521,13 +589,13 @@ class BattleCommandPanelComponent extends PositionComponent {
 
     final availableWidth = commandsPanel.size.x - 24;
     final availableHeight = commandsPanel.size.y - (top + 14);
-    final cardHeight = ((availableHeight - ((entries.length - 1) * gap)) /
-            entries.length)
-        .clamp(
-          layout.mode == BattleCommandPanelLayoutMode.stacked ? 36.0 : 42.0,
-          layout.mode == BattleCommandPanelLayoutMode.stacked ? 58.0 : 64.0,
-        )
-        .toDouble();
+    final cardHeight =
+        ((availableHeight - ((entries.length - 1) * gap)) / entries.length)
+            .clamp(
+              layout.mode == BattleCommandPanelLayoutMode.stacked ? 36.0 : 42.0,
+              layout.mode == BattleCommandPanelLayoutMode.stacked ? 58.0 : 64.0,
+            )
+            .toDouble();
 
     for (var index = 0; index < entries.length; index++) {
       final entry = entries[index];
@@ -550,6 +618,63 @@ class BattleCommandPanelComponent extends PositionComponent {
         compact: layout.mode == BattleCommandPanelLayoutMode.stacked,
         interactionsEnabled: interactionsEnabled,
         statusLabel: _partyEntryStatusLabel(entry),
+      );
+      _interactiveComponents.add(card);
+      commandsPanel.add(card);
+    }
+  }
+
+  void _renderBagEntries(
+    PositionComponent commandsPanel, {
+    required bool interactionsEnabled,
+  }) {
+    final bagMenuModel = _bagMenuModel;
+    if (bagMenuModel == null) {
+      return;
+    }
+
+    final layout = _layout ?? _BattleCommandPanelLayout.forSize(size);
+    final top =
+        layout.mode == BattleCommandPanelLayoutMode.stacked ? 18.0 : 24.0;
+    final gap = layout.mode == BattleCommandPanelLayoutMode.stacked ? 7.0 : 8.0;
+    final entries = bagMenuModel.entries;
+    if (entries.isEmpty) {
+      return;
+    }
+
+    final availableWidth = commandsPanel.size.x - 24;
+    final availableHeight = commandsPanel.size.y - (top + 14);
+    final cardHeight =
+        ((availableHeight - ((entries.length - 1) * gap)) / entries.length)
+            .clamp(
+              layout.mode == BattleCommandPanelLayoutMode.stacked ? 40.0 : 46.0,
+              layout.mode == BattleCommandPanelLayoutMode.stacked ? 62.0 : 70.0,
+            )
+            .toDouble();
+
+    for (var index = 0; index < entries.length; index++) {
+      final entry = entries[index];
+      final snapshot = _buildBagEntrySnapshot(
+        entrySize: Size(availableWidth, cardHeight),
+        titleLabel: _humanizeBagItemId(entry.itemId),
+        typeLabel: _bagEntryTypeLabel(entry),
+        quantityLabel: 'x${entry.quantity}',
+        statusLabel: _bagEntryStatusLabel(entry),
+        compact: layout.mode == BattleCommandPanelLayoutMode.stacked,
+      );
+      _bagEntrySnapshots.add(snapshot);
+      final card = _BattleBagEntryComponent(
+        entry: entry,
+        position: Vector2(12, top + ((cardHeight + gap) * index)),
+        size: Vector2(availableWidth, cardHeight),
+        snapshot: snapshot,
+        isSelected: index == _selectedBagIndex,
+        onPressed: onBagEntrySelected,
+        compact: layout.mode == BattleCommandPanelLayoutMode.stacked,
+        interactionsEnabled: interactionsEnabled,
+        typeLabel: _bagEntryTypeLabel(entry),
+        quantityLabel: 'x${entry.quantity}',
+        statusLabel: _bagEntryStatusLabel(entry),
       );
       _interactiveComponents.add(card);
       commandsPanel.add(card);
@@ -603,6 +728,48 @@ String _partyEntryStatusLabel(BattlePartyMenuEntry entry) {
     return 'OK';
   }
   return 'Indisponible';
+}
+
+String _bagEntryTitleLabel(BattleBagMenuEntry entry) {
+  return '${_humanizeBagItemId(entry.itemId)} x${entry.quantity}';
+}
+
+String _bagEntryTypeLabel(BattleBagMenuEntry entry) {
+  return switch (entry.kind) {
+    BattleBagItemKind.captureBall => 'Capture',
+    BattleBagItemKind.medicine => 'Medicine',
+    BattleBagItemKind.unsupported => 'Unsupported',
+  };
+}
+
+String _bagEntryStatusLabel(BattleBagMenuEntry entry) {
+  if (entry.isSelectable) {
+    return 'OK';
+  }
+  return switch (entry.disabledReason) {
+    BattleBagMenuDisabledReason.trainerBattle => 'Trainer battle',
+    BattleBagMenuDisabledReason.partyFull => 'Party full',
+    BattleBagMenuDisabledReason.captureUnavailable => 'Indisponible',
+    BattleBagMenuDisabledReason.currentRequestDisallowsBag => 'Indisponible',
+    BattleBagMenuDisabledReason.medicineNotImplemented => 'Not implemented',
+    BattleBagMenuDisabledReason.unsupportedItem => 'Unsupported item',
+    null => 'Indisponible',
+  };
+}
+
+String _humanizeBagItemId(String itemId) {
+  final normalized = itemId.replaceAll('_', '-');
+  if (normalized == 'poke-ball') {
+    return 'Poké Ball';
+  }
+  return normalized
+      .split('-')
+      .where((segment) => segment.isNotEmpty)
+      .map(
+        (segment) =>
+            '${segment[0].toUpperCase()}${segment.substring(1).toLowerCase()}',
+      )
+      .join(' ');
 }
 
 class _BattleRootButtonComponent extends PositionComponent with TapCallbacks {
@@ -931,6 +1098,131 @@ class _BattlePartyEntryComponent extends PositionComponent with TapCallbacks {
   }
 }
 
+class _BattleBagEntryComponent extends PositionComponent with TapCallbacks {
+  _BattleBagEntryComponent({
+    required this.entry,
+    required Vector2 position,
+    required Vector2 size,
+    required this.snapshot,
+    required this.isSelected,
+    required this.onPressed,
+    required this.typeLabel,
+    required this.quantityLabel,
+    required this.statusLabel,
+    this.compact = false,
+    this.interactionsEnabled = true,
+  }) : super(
+          position: position,
+          size: size,
+          anchor: Anchor.topLeft,
+          priority: 32,
+        );
+
+  final BattleBagMenuEntry entry;
+  final BattleBagEntrySnapshot snapshot;
+  final bool isSelected;
+  final void Function(BattleBagMenuEntry entry)? onPressed;
+  final String typeLabel;
+  final String quantityLabel;
+  final String statusLabel;
+  final bool compact;
+  final bool interactionsEnabled;
+
+  @override
+  bool containsLocalPoint(Vector2 point) {
+    return point.x >= 0 &&
+        point.x <= size.x &&
+        point.y >= 0 &&
+        point.y <= size.y;
+  }
+
+  @override
+  void onTapDown(TapDownEvent event) {
+    if (!interactionsEnabled || !entry.isSelectable) {
+      return;
+    }
+    onPressed?.call(entry);
+  }
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+
+    final rect = Offset.zero & Size(size.x, size.y);
+    final cornerRadius = Radius.circular(compact ? 12 : 14);
+    final enabled = entry.isSelectable;
+    final backgroundTop =
+        enabled ? const Color(0xFF7B6950) : const Color(0xFF434956);
+    final backgroundBottom =
+        enabled ? const Color(0xFF5C4D39) : const Color(0xFF2F3540);
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, cornerRadius),
+      Paint()
+        ..shader = LinearGradient(
+          colors: <Color>[backgroundTop, backgroundBottom],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ).createShader(rect),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, cornerRadius),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = isSelected ? 2.25 : 1.1
+        ..color = isSelected
+            ? const Color(0xFFF7F0D4)
+            : enabled
+                ? const Color(0x55FFFFFF)
+                : const Color(0x33FFFFFF),
+    );
+
+    final titleColor =
+        enabled ? const Color(0xFFFDFDFD) : const Color(0xD8F1F4FA);
+    final metaColor =
+        enabled ? const Color(0xE6E7EFFA) : const Color(0xB6D5DDE8);
+    final statusColor =
+        enabled ? const Color(0xFFC8F0CF) : const Color(0xFFE7C9B0);
+
+    _paintButtonText(
+      canvas,
+      text: _humanizeBagItemId(entry.itemId),
+      rect: snapshot.titleRect,
+      fontSize: snapshot.titleFontSize,
+      color: titleColor,
+      align: TextAlign.left,
+      fontWeight: FontWeight.w900,
+    );
+    _paintButtonText(
+      canvas,
+      text: typeLabel,
+      rect: snapshot.typeRect,
+      fontSize: snapshot.typeFontSize,
+      color: metaColor,
+      align: TextAlign.left,
+      fontWeight: FontWeight.w700,
+    );
+    _paintButtonText(
+      canvas,
+      text: quantityLabel,
+      rect: snapshot.quantityRect,
+      fontSize: snapshot.metaFontSize,
+      color: metaColor,
+      align: TextAlign.right,
+      fontWeight: FontWeight.w800,
+    );
+    _paintButtonText(
+      canvas,
+      text: statusLabel,
+      rect: snapshot.statusRect,
+      fontSize: snapshot.metaFontSize,
+      color: statusColor,
+      align: TextAlign.right,
+      fontWeight: FontWeight.w800,
+    );
+  }
+}
+
 class _BattleCommandPanelLayout {
   const _BattleCommandPanelLayout({
     required this.mode,
@@ -1139,6 +1431,83 @@ BattlePartyEntrySnapshot _buildPartyEntrySnapshot({
     ),
     titleFontSize: titleFontSize,
     levelFontSize: levelFontSize,
+    metaFontSize: metaFontSize,
+  );
+}
+
+BattleBagEntrySnapshot _buildBagEntrySnapshot({
+  required Size entrySize,
+  required String titleLabel,
+  required String typeLabel,
+  required String quantityLabel,
+  required String statusLabel,
+  required bool compact,
+}) {
+  final horizontalPadding = compact ? 10.0 : 12.0;
+  final topPadding = compact ? 7.0 : 8.0;
+  final bottomPadding = compact ? 6.0 : 7.0;
+  final verticalGap = compact ? 2.0 : 3.0;
+  final quantityWidth = (entrySize.width * 0.16).clamp(44.0, 68.0).toDouble();
+  final statusWidth = (entrySize.width * 0.32).clamp(86.0, 126.0).toDouble();
+  final typeWidth = (entrySize.width * 0.24).clamp(64.0, 98.0).toDouble();
+  final titleWidth =
+      entrySize.width - (horizontalPadding * 2) - quantityWidth - 6.0;
+  final titleFontSize = _fitSingleLineFontSize(
+    text: titleLabel,
+    maxWidth: titleWidth,
+    maxFontSize: compact ? 13.0 : 14.0,
+    minFontSize: compact ? 10.0 : 11.0,
+    fontWeight: FontWeight.w900,
+  );
+  final typeFontSize = _fitSingleLineFontSize(
+    text: typeLabel,
+    maxWidth: typeWidth,
+    maxFontSize: compact ? 9.5 : 10.5,
+    minFontSize: compact ? 8.0 : 9.0,
+    fontWeight: FontWeight.w700,
+  );
+  final metaFontSize = _fitSingleLineFontSize(
+    text:
+        quantityLabel.length > statusLabel.length ? quantityLabel : statusLabel,
+    maxWidth: statusWidth,
+    maxFontSize: compact ? 9.0 : 10.0,
+    minFontSize: compact ? 8.0 : 9.0,
+    fontWeight: FontWeight.w800,
+  );
+  final titleHeight = titleFontSize * 1.1;
+  final quantityHeight = metaFontSize * 1.1;
+  final metaHeight = metaFontSize * 1.15;
+  final typeHeight = typeFontSize * 1.15;
+  final bottomTop = entrySize.height - bottomPadding - metaHeight;
+
+  return BattleBagEntrySnapshot(
+    bounds: Offset.zero & entrySize,
+    titleRect: Rect.fromLTWH(
+      horizontalPadding,
+      topPadding,
+      titleWidth,
+      titleHeight,
+    ),
+    typeRect: Rect.fromLTWH(
+      horizontalPadding,
+      math.max(topPadding + titleHeight + verticalGap, bottomTop),
+      typeWidth,
+      typeHeight,
+    ),
+    quantityRect: Rect.fromLTWH(
+      entrySize.width - horizontalPadding - quantityWidth,
+      topPadding,
+      quantityWidth,
+      quantityHeight,
+    ),
+    statusRect: Rect.fromLTWH(
+      entrySize.width - horizontalPadding - statusWidth,
+      math.max(topPadding + titleHeight + verticalGap, bottomTop),
+      statusWidth,
+      metaHeight,
+    ),
+    titleFontSize: titleFontSize,
+    typeFontSize: typeFontSize,
     metaFontSize: metaFontSize,
   );
 }

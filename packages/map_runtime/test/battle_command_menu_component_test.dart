@@ -1,6 +1,7 @@
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/presentation/flame/battle_command_menu_model.dart';
 import 'package:map_runtime/src/presentation/flame/battle_command_panel_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
@@ -67,6 +68,27 @@ BattleSession _session({
       trainerId: isTrainerBattle ? 'trainer' : null,
       allowCapture: allowCapture,
     ),
+  );
+}
+
+GameState _gameState({
+  Bag bag = const Bag(),
+}) {
+  return GameState(
+    saveId: 'battle-bag-ui-shell',
+    bag: bag,
+  );
+}
+
+BagEntry _bagEntry({
+  required String itemId,
+  required String categoryId,
+  required int quantity,
+}) {
+  return BagEntry(
+    itemId: itemId,
+    categoryId: categoryId,
+    quantity: quantity,
   );
 }
 
@@ -142,7 +164,9 @@ void main() {
       );
     });
 
-    test('trainer root disables BAG and RUN when those choices are absent', () {
+    test(
+        'trainer root keeps BAG enabled for inspection and RUN disabled when those choices are absent',
+        () {
       final session = _session(
         player: _combatant(
           speciesId: 'charmander',
@@ -171,7 +195,7 @@ void main() {
           isTrue);
       expect(
         model.rootEntries[BattleCommandRootAction.bag.index].enabled,
-        isFalse,
+        isTrue,
       );
       expect(
         model.rootEntries[BattleCommandRootAction.run.index].enabled,
@@ -246,7 +270,8 @@ void main() {
       );
     });
 
-    test('keeps root labels and subtitles inside buttons on a compact portrait panel',
+    test(
+        'keeps root labels and subtitles inside buttons on a compact portrait panel',
         () async {
       final session = _session(
         player: _combatant(
@@ -307,7 +332,8 @@ void main() {
       }
     });
 
-    test('keeps root labels and disabled subtitles inside buttons on a small landscape panel',
+    test(
+        'keeps root labels and disabled subtitles inside buttons on a small landscape panel',
         () async {
       final session = _session(
         player: _combatant(
@@ -499,7 +525,8 @@ void main() {
       expect(panel.currentSelectedChoiceIndex, 2);
     });
 
-    test('battle party submenu opens from root POKÉMON when switch choices exist',
+    test(
+        'battle party submenu opens from root POKÉMON when switch choices exist',
         () async {
       final overlay = BattleOverlayComponent(
         session: _session(
@@ -535,14 +562,243 @@ void main() {
       final panel = _panelFromOverlay(overlay);
 
       overlay.moveSelectionDown();
-      expect(panel.currentSelectedRootIndex, BattleCommandRootAction.pokemon.index);
+      expect(panel.currentSelectedRootIndex,
+          BattleCommandRootAction.pokemon.index);
 
       expect(overlay.validateSelectedChoice(), isTrue);
       expect(overlay.currentMenuMode, BattleCommandMenuMode.pokemon);
-      expect(panel.currentPartySpeciesLabels, const <String>['charmander', 'ivysaur']);
+      expect(panel.currentPartySpeciesLabels,
+          const <String>['charmander', 'ivysaur']);
       expect(panel.currentPartySelectableStates, const <bool>[false, true]);
       expect(panel.currentPartyStatusLabels, const <String>['Actif', 'OK']);
       expect(panel.currentSelectedPartyIndex, 1);
+    });
+
+    test('battle bag submenu opens from root BAG when bag can be inspected',
+        () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'charmander',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[
+              _move(id: 'scratch', name: 'Scratch'),
+            ],
+          ),
+          enemy: _combatant(
+            speciesId: 'pidgey',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[
+              _move(id: 'tackle', name: 'Tackle'),
+            ],
+          ),
+          isTrainerBattle: false,
+          allowCapture: true,
+        ),
+        gameState: _gameState(
+          bag: Bag(
+            entries: <BagEntry>[
+              _bagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 3),
+            ],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+      final panel = _panelFromOverlay(overlay);
+
+      overlay.moveSelectionRight();
+      expect(panel.currentSelectedRootIndex, BattleCommandRootAction.bag.index);
+
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+      expect(panel.currentBagEntryLabels, const <String>['Poké Ball x3']);
+      expect(panel.currentBagSelectableStates, const <bool>[true]);
+      expect(panel.currentSelectedBagIndex, 0);
+    });
+
+    test('battle bag submenu renders disabled medicine and unsupported items',
+        () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'charmander',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[
+              _move(id: 'scratch', name: 'Scratch'),
+            ],
+          ),
+          enemy: _combatant(
+            speciesId: 'pidgey',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[
+              _move(id: 'tackle', name: 'Tackle'),
+            ],
+          ),
+          isTrainerBattle: false,
+        ),
+        gameState: _gameState(
+          bag: Bag(
+            entries: <BagEntry>[
+              _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+              _bagEntry(
+                itemId: 'rare-candy',
+                categoryId: 'items',
+                quantity: 1,
+              ),
+            ],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+      final panel = _panelFromOverlay(overlay);
+
+      overlay.moveSelectionRight();
+      expect(overlay.validateSelectedChoice(), isTrue);
+
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+      expect(
+        panel.currentBagEntryLabels,
+        const <String>['Rare Candy x1', 'Potion x2'],
+      );
+      expect(panel.currentBagSelectableStates, const <bool>[false, false]);
+      expect(
+        panel.currentBagStatusLabels,
+        const <String>['Unsupported item', 'Not implemented'],
+      );
+    });
+
+    test(
+        'battle bag submenu keeps poke ball visible but disabled in trainer battle',
+        () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'charmander',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[
+              _move(id: 'scratch', name: 'Scratch'),
+            ],
+          ),
+          enemy: _combatant(
+            speciesId: 'pidgey',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[
+              _move(id: 'tackle', name: 'Tackle'),
+            ],
+          ),
+          isTrainerBattle: true,
+        ),
+        gameState: _gameState(
+          bag: Bag(
+            entries: <BagEntry>[
+              _bagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+            ],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+      final panel = _panelFromOverlay(overlay);
+
+      overlay.moveSelectionRight();
+      expect(overlay.validateSelectedChoice(), isTrue);
+
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+      expect(panel.currentBagEntryLabels, const <String>['Poké Ball x2']);
+      expect(panel.currentBagSelectableStates, const <bool>[false]);
+      expect(panel.currentBagStatusLabels, const <String>['Trainer battle']);
+    });
+
+    test('battle bag submenu handles an empty bag', () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'charmander',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[
+              _move(id: 'scratch', name: 'Scratch'),
+            ],
+          ),
+          enemy: _combatant(
+            speciesId: 'pidgey',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[
+              _move(id: 'tackle', name: 'Tackle'),
+            ],
+          ),
+          isTrainerBattle: false,
+        ),
+        gameState: _gameState(),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+      final panel = _panelFromOverlay(overlay);
+
+      overlay.moveSelectionRight();
+      expect(overlay.validateSelectedChoice(), isTrue);
+
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+      expect(panel.currentBagEntryLabels, isEmpty);
+      expect(overlay.currentPromptText, 'Sac vide.');
+    });
+
+    test('battle bag submenu layout survives portrait and landscape', () async {
+      Future<BattleCommandPanelComponent> loadPanel(Vector2 viewport) async {
+        final overlay = BattleOverlayComponent(
+          session: _session(
+            player: _combatant(
+              speciesId: 'lead_player',
+              lineupIndex: 0,
+              moves: <BattleMoveData>[
+                _move(id: 'scratch', name: 'Scratch'),
+              ],
+            ),
+            enemy: _combatant(
+              speciesId: 'enemy',
+              lineupIndex: 0,
+              moves: <BattleMoveData>[
+                _move(id: 'tackle', name: 'Tackle'),
+              ],
+            ),
+            isTrainerBattle: false,
+            allowCapture: true,
+          ),
+          gameState: _gameState(
+            bag: Bag(
+              entries: <BagEntry>[
+                _bagEntry(
+                    itemId: 'poke-ball', categoryId: 'items', quantity: 3),
+                _bagEntry(
+                    itemId: 'potion', categoryId: 'medicine', quantity: 2),
+              ],
+            ),
+          ),
+          viewportSize: viewport,
+          onPlayerChoice: (_) {},
+        );
+        await overlay.onLoad();
+        overlay.moveSelectionRight();
+        expect(overlay.validateSelectedChoice(), isTrue);
+        return _panelFromOverlay(overlay);
+      }
+
+      final portraitPanel = await loadPanel(Vector2(390, 844));
+      final landscapePanel = await loadPanel(Vector2(844, 390));
+
+      expect(portraitPanel.currentMenuMode, BattleCommandMenuMode.bag);
+      expect(landscapePanel.currentMenuMode, BattleCommandMenuMode.bag);
+      expect(portraitPanel.currentBagEntryLabels, hasLength(2));
+      expect(landscapePanel.currentBagEntryLabels, hasLength(2));
     });
 
     test('battle party submenu keeps fainted reserves visible but disabled',
@@ -581,9 +837,12 @@ void main() {
       await overlay.onLoad();
       final panel = _panelFromOverlay(overlay);
 
-      expect(panel.currentRootEnabledStates[BattleCommandRootAction.pokemon.index], isFalse);
+      expect(
+          panel.currentRootEnabledStates[BattleCommandRootAction.pokemon.index],
+          isFalse);
       overlay.moveSelectionDown();
-      expect(panel.currentSelectedRootIndex, BattleCommandRootAction.pokemon.index);
+      expect(panel.currentSelectedRootIndex,
+          BattleCommandRootAction.pokemon.index);
       expect(overlay.validateSelectedChoice(), isFalse);
       expect(overlay.currentMenuMode, BattleCommandMenuMode.root);
     });

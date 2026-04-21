@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -9,6 +10,7 @@ import 'package:map_editor/src/application/use_cases/project_management_use_case
 import 'package:map_editor/src/application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
 import 'package:map_editor/src/infrastructure/filesystem/project_filesystem.dart';
 import 'package:map_editor/src/infrastructure/repositories/file_repositories.dart';
+import 'package:path/path.dart' as p;
 
 void main() {
   late Directory tempProjectRoot;
@@ -87,6 +89,24 @@ void main() {
     expect(await projectFile.readAsString(), beforeProjectJson);
   });
 
+  test('sync creates the moves catalog when it is missing', () async {
+    final catalogPath = workspace.resolveProjectRelativePath(
+      'data/pokemon/catalogs/moves.json',
+    );
+    final catalogFile = File(catalogPath);
+    if (catalogFile.existsSync()) {
+      await catalogFile.delete();
+    }
+
+    final dryRunResult = await syncUseCase.execute(workspace, dryRun: true);
+    expect(dryRunResult.createdIds, isNotEmpty);
+    expect(catalogFile.existsSync(), isFalse);
+
+    final syncResult = await syncUseCase.execute(workspace);
+    expect(syncResult.createdIds, isNotEmpty);
+    expect(catalogFile.existsSync(), isTrue);
+  });
+
   test(
       'sync merges Showdown moves into the local catalog and preserves local-only metadata',
       () async {
@@ -155,6 +175,53 @@ void main() {
     );
     expect(swiftView.accuracyLabel, 'always');
     expect(await projectFile.readAsString(), beforeProjectJson);
+  });
+
+  test(
+      'sync honors a custom pokemon data root for the moves catalog path',
+      () async {
+    await _configureCustomPokemonDataRoot(
+      projectRoot: tempProjectRoot,
+      dataRoot: 'custom/pokemon',
+      movesCatalogRelativePath: 'catalogs/project-moves.json',
+    );
+
+    final defaultCatalogPath = File(
+      workspace.resolveProjectRelativePath('data/pokemon/catalogs/moves.json'),
+    );
+    if (defaultCatalogPath.existsSync()) {
+      await defaultCatalogPath.delete();
+    }
+
+    final previewResult = await syncUseCase.execute(workspace, dryRun: true);
+    expect(previewResult.createdIds, isNotEmpty);
+    expect(
+      File(
+        workspace.resolveProjectRelativePath(
+          'custom/pokemon/catalogs/project-moves.json',
+        ),
+      ).existsSync(),
+      isFalse,
+    );
+
+    final syncResult = await syncUseCase.execute(workspace);
+    final customCatalogPath = File(
+      workspace.resolveProjectRelativePath(
+        'custom/pokemon/catalogs/project-moves.json',
+      ),
+    );
+    final syncedCatalog = await readRepository.readCatalogByKey(
+      workspace,
+      'moves',
+    );
+
+    expect(syncResult.createdIds, isNotEmpty);
+    expect(customCatalogPath.existsSync(), isTrue);
+    expect(defaultCatalogPath.existsSync(), isFalse);
+    expect(
+      syncedCatalog.entries.map((entry) => entry['id']),
+      contains('thunderbolt'),
+    );
   });
 
   test(
@@ -370,6 +437,48 @@ void main() {
     expect(loadedView.entries.single.name, 'Unknown Shape Move');
     expect(loadedView.entries.single.category, 'status');
   });
+}
+
+Future<void> _configureCustomPokemonDataRoot({
+  required Directory projectRoot,
+  required String dataRoot,
+  required String movesCatalogRelativePath,
+}) async {
+  final manifestFile = File(p.join(projectRoot.path, 'project.json'));
+  final manifest = ProjectManifest.fromJson(
+    jsonDecode(await manifestFile.readAsString()) as Map<String, dynamic>,
+  );
+  await manifestFile.writeAsString(
+    const JsonEncoder.withIndent('  ').convert(
+      manifest
+          .copyWith(
+            pokemon: manifest.pokemon.copyWith(
+              dataRoot: dataRoot,
+            ),
+          )
+          .toJson(),
+    ),
+  );
+
+  final bootstrapManifest = File(
+    p.join(projectRoot.path, dataRoot, 'pokemon_data_manifest.json'),
+  );
+  await bootstrapManifest.create(recursive: true);
+  await bootstrapManifest.writeAsString(
+    const JsonEncoder.withIndent('  ').convert(
+      <String, Object?>{
+        'schemaVersion': 1,
+        'kind': 'pokemon_data_manifest',
+        'meta': <String, Object?>{
+          'description': 'Custom bootstrap manifest.',
+        },
+        'catalogFiles': <String, Object?>{
+          'moves': movesCatalogRelativePath,
+        },
+        'futureDataFolders': <String, Object?>{},
+      },
+    ),
+  );
 }
 
 PokemonCatalogFile _catalogWithEntries(

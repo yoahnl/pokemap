@@ -4,7 +4,9 @@ import 'package:flame/components.dart';
 import 'package:flame/text.dart';
 import 'package:flutter/material.dart';
 import 'package:map_battle/map_battle.dart';
+import 'package:map_core/map_core.dart';
 
+import 'battle_bag_menu_model.dart';
 import 'battle_command_menu_model.dart';
 import 'battle_command_panel_component.dart';
 import 'battle_combatant_gender_resolver.dart';
@@ -129,6 +131,38 @@ List<String> buildBattlePartyNarrationLinesForOverlay(
     return const <String>['Aucun switch disponible.'];
   }
   return const <String>['Actif et K.O. sont indisponibles.'];
+}
+
+String buildBattleBagPromptForOverlay(
+  BattleBagMenuModel bagMenuModel, {
+  String? feedbackMessage,
+}) {
+  if (feedbackMessage != null && feedbackMessage.isNotEmpty) {
+    return feedbackMessage;
+  }
+  return switch (bagMenuModel.mode) {
+    BattleBagMenuMode.empty => 'Sac vide.',
+    BattleBagMenuMode.available => 'Choisis un objet.',
+    BattleBagMenuMode.unavailable => 'Choisis un objet.',
+  };
+}
+
+List<String> buildBattleBagNarrationLinesForOverlay(
+  BattleBagMenuModel bagMenuModel, {
+  String? feedbackMessage,
+}) {
+  if (feedbackMessage != null && feedbackMessage.isNotEmpty) {
+    return const <String>['Action BAG non branchée dans ce lot.'];
+  }
+  return switch (bagMenuModel.mode) {
+    BattleBagMenuMode.empty => const <String>['Aucun objet dans le sac.'],
+    BattleBagMenuMode.available => const <String>[
+        'Les objets indisponibles restent grisés.',
+      ],
+    BattleBagMenuMode.unavailable => const <String>[
+        'Aucun objet utilisable pour ce tour.',
+      ],
+  };
 }
 
 /// Construit les lignes du panneau debug optionnel.
@@ -287,11 +321,13 @@ class BattleOverlayComponent extends PositionComponent {
     required BattleSession session,
     required Vector2 viewportSize,
     required this.onPlayerChoice,
+    GameState gameState = const GameState(saveId: 'battle-overlay'),
     this.backgroundSpec = const BattleBackgroundSpec.fallbackField(),
     this.spriteResolver,
     this.genderResolver,
     this.showDebugPanel = false,
   })  : _session = session,
+        _gameState = gameState,
         super(
           size: viewportSize,
           anchor: Anchor.topLeft,
@@ -299,6 +335,7 @@ class BattleOverlayComponent extends PositionComponent {
         );
 
   BattleSession _session;
+  GameState _gameState;
 
   final void Function(PlayerBattleChoice choice) onPlayerChoice;
   final BattleBackgroundSpec backgroundSpec;
@@ -332,6 +369,8 @@ class BattleOverlayComponent extends PositionComponent {
   int _selectedRootIndex = 0;
   int _selectedChoiceIndex = 0;
   int _selectedPartyIndex = 0;
+  int _selectedBagIndex = 0;
+  String? _bagFeedbackMessage;
 
   static const double _presentationEffectDelaySeconds = 0.16;
   static const double _presentationImpactStepSeconds = 0.62;
@@ -455,6 +494,7 @@ class BattleOverlayComponent extends PositionComponent {
       onChoiceSelected: _handleChoiceSelected,
       onRootActionSelected: _handleRootActionSelected,
       onPartyEntrySelected: _handlePartyEntrySelected,
+      onBagEntrySelected: _handleBagEntrySelected,
       layoutModeOverride: layout.commandPanelLayoutMode,
     );
     await add(_commandPanel!);
@@ -483,13 +523,17 @@ class BattleOverlayComponent extends PositionComponent {
   /// - l'évolution du tour ne doit pas recréer une logique parallèle de décor ;
   /// - un vrai resolver contextuel plus riche restera un sujet futur côté
   ///   runtime, pas un effet secondaire de `BattleSession`.
-  void updateState(BattleSession newSession) {
+  void updateState(BattleSession newSession, {GameState? gameState}) {
     final previousSession = _session;
     final presentationSteps = _buildTurnPresentationSteps(
       previousSession: previousSession,
       newSession: newSession,
     );
     _session = newSession;
+    if (gameState != null) {
+      _gameState = gameState;
+    }
+    _bagFeedbackMessage = null;
     _startTurnPresentation(presentationSteps);
     _normalizeMenuSelection();
     _pendingVisualSync = _syncVisualState(previousSession: previousSession);
@@ -516,8 +560,12 @@ class BattleOverlayComponent extends PositionComponent {
     if (isTurnPresentationActive) {
       return null;
     }
+    final menuModel = _currentMenuModel();
+    if (menuModel.mode == BattleCommandMenuMode.bag) {
+      return null;
+    }
     final partyMenuModel = _currentPartyMenuModel();
-    if (_currentMenuModel().mode == BattleCommandMenuMode.pokemon) {
+    if (menuModel.mode == BattleCommandMenuMode.pokemon) {
       if (partyMenuModel.allEntries.isEmpty) {
         return null;
       }
@@ -525,7 +573,6 @@ class BattleOverlayComponent extends PositionComponent {
           _selectedPartyIndex.clamp(0, partyMenuModel.allEntries.length - 1);
       return partyMenuModel.allEntries[safeIndex].playerChoice;
     }
-    final menuModel = _currentMenuModel();
     if (menuModel.isRootMode || menuModel.choiceEntries.isEmpty) {
       return null;
     }
@@ -538,6 +585,7 @@ class BattleOverlayComponent extends PositionComponent {
     }
     final menuModel = _currentMenuModel();
     final partyMenuModel = _currentPartyMenuModel();
+    final bagMenuModel = _currentBagMenuModel();
     if (menuModel.isContinueOnly) {
       final selectedChoice = menuModel.choiceEntries.first.choice;
       _handleChoiceSelected(selectedChoice);
@@ -564,6 +612,19 @@ class BattleOverlayComponent extends PositionComponent {
       _handlePartyEntrySelected(selectedEntry);
       return true;
     }
+    if (menuModel.mode == BattleCommandMenuMode.bag) {
+      if (bagMenuModel.entries.isEmpty) {
+        return false;
+      }
+      final safeIndex =
+          _selectedBagIndex.clamp(0, bagMenuModel.entries.length - 1);
+      final selectedEntry = bagMenuModel.entries[safeIndex];
+      if (!selectedEntry.isSelectable) {
+        return false;
+      }
+      _handleBagEntrySelected(selectedEntry);
+      return true;
+    }
     final selectedChoice =
         menuModel.choiceEntries[menuModel.selectedChoiceIndex].choice;
     _handleChoiceSelected(selectedChoice);
@@ -584,6 +645,7 @@ class BattleOverlayComponent extends PositionComponent {
           partyMenuModel.mode == BattlePartyMenuMode.forcedReplacement) {
         return false;
       }
+      _bagFeedbackMessage = null;
       _menuMode = BattleCommandMenuMode.root;
       _syncPanelsOnly();
       return true;
@@ -711,6 +773,7 @@ class BattleOverlayComponent extends PositionComponent {
     _syncMenuStateFromModel();
     final menuModel = _currentMenuModel();
     final partyMenuModel = _currentPartyMenuModel();
+    final bagMenuModel = _currentBagMenuModel();
     final currentPresentationStep = _currentTurnPresentationStep;
     final isPresenting = currentPresentationStep != null;
     final partyPrompt = menuModel.mode == BattleCommandMenuMode.pokemon
@@ -719,18 +782,35 @@ class BattleOverlayComponent extends PositionComponent {
     final partyNarration = menuModel.mode == BattleCommandMenuMode.pokemon
         ? buildBattlePartyNarrationLinesForOverlay(partyMenuModel)
         : null;
+    final bagPrompt = menuModel.mode == BattleCommandMenuMode.bag
+        ? buildBattleBagPromptForOverlay(
+            bagMenuModel,
+            feedbackMessage: _bagFeedbackMessage,
+          )
+        : null;
+    final bagNarration = menuModel.mode == BattleCommandMenuMode.bag
+        ? buildBattleBagNarrationLinesForOverlay(
+            bagMenuModel,
+            feedbackMessage: _bagFeedbackMessage,
+          )
+        : null;
 
     _commandPanel?.sync(
       battleLabel: _titleForSession(),
       prompt: currentPresentationStep?.message ??
+          bagPrompt ??
           partyPrompt ??
           buildBattleDecisionPromptForOverlay(_session.decisionRequest),
       narrationLines: isPresenting
           ? const <String>[]
-          : (partyNarration ?? buildBattleNarrationLinesForOverlay(_session)),
+          : (bagNarration ??
+              partyNarration ??
+              buildBattleNarrationLinesForOverlay(_session)),
       menuModel: menuModel,
       partyMenuModel: partyMenuModel,
+      bagMenuModel: bagMenuModel,
       selectedPartyIndex: _selectedPartyIndex,
+      selectedBagIndex: _selectedBagIndex,
       allowEmptyNarrationBody: isPresenting,
       interactionsEnabled: !isPresenting,
     );
@@ -754,6 +834,7 @@ class BattleOverlayComponent extends PositionComponent {
     }
     final menuModel = _currentMenuModel();
     final partyMenuModel = _currentPartyMenuModel();
+    final bagMenuModel = _currentBagMenuModel();
     if (menuModel.isContinueOnly) {
       return false;
     }
@@ -790,6 +871,24 @@ class BattleOverlayComponent extends PositionComponent {
       return true;
     }
 
+    if (menuModel.mode == BattleCommandMenuMode.bag &&
+        bagMenuModel.entries.isNotEmpty) {
+      final nextIndex = moveBattleCommandGridSelection(
+        currentIndex: _selectedBagIndex,
+        itemCount: bagMenuModel.entries.length,
+        columnCount: 1,
+        horizontalDelta: 0,
+        verticalDelta: verticalDelta,
+      );
+      if (nextIndex == _selectedBagIndex) {
+        return false;
+      }
+      _selectedBagIndex = nextIndex;
+      _bagFeedbackMessage = null;
+      _syncPanelsOnly();
+      return true;
+    }
+
     final nextIndex = moveBattleCommandGridSelection(
       currentIndex: menuModel.selectedChoiceIndex,
       itemCount: menuModel.choiceEntries.length,
@@ -817,7 +916,17 @@ class BattleOverlayComponent extends PositionComponent {
     onPlayerChoice(choice);
   }
 
+  void _handleBagEntrySelected(BattleBagMenuEntry entry) {
+    if (!entry.isSelectable) {
+      return;
+    }
+    _bagFeedbackMessage =
+        'L’utilisation des objets sera branchée au prochain lot.';
+    _syncPanelsOnly();
+  }
+
   void _handleRootActionSelected(BattleCommandRootAction action) {
+    _bagFeedbackMessage = null;
     switch (action) {
       case BattleCommandRootAction.fight:
         _menuMode = BattleCommandMenuMode.fight;
@@ -826,7 +935,7 @@ class BattleOverlayComponent extends PositionComponent {
         return;
       case BattleCommandRootAction.bag:
         _menuMode = BattleCommandMenuMode.bag;
-        _selectedChoiceIndex = 0;
+        _selectedBagIndex = _firstSelectableBagIndex();
         _syncPanelsOnly();
         return;
       case BattleCommandRootAction.pokemon:
@@ -858,6 +967,13 @@ class BattleOverlayComponent extends PositionComponent {
     return buildBattlePartyMenuModel(session: _session);
   }
 
+  BattleBagMenuModel _currentBagMenuModel() {
+    return buildBattleBagMenuModel(
+      gameState: _gameState,
+      session: _session,
+    );
+  }
+
   BattleCommandMenuMode _effectiveMenuMode() {
     final partyMenuModel = _currentPartyMenuModel();
     if (partyMenuModel.mode == BattlePartyMenuMode.forcedReplacement &&
@@ -871,6 +987,7 @@ class BattleOverlayComponent extends PositionComponent {
     final previousMenuMode = _menuMode;
     final menuModel = _currentMenuModel();
     final partyMenuModel = _currentPartyMenuModel();
+    final bagMenuModel = _currentBagMenuModel();
     _menuMode = menuModel.mode;
     _selectedRootIndex = _firstEnabledRootIndex(
       rootEntries: menuModel.rootEntries,
@@ -882,17 +999,28 @@ class BattleOverlayComponent extends PositionComponent {
       previousMenuMode: previousMenuMode,
       nextMenuMode: menuModel.mode,
     );
+    _selectedBagIndex = _normalizeSelectedBagIndex(
+      bagMenuModel: bagMenuModel,
+      previousMenuMode: previousMenuMode,
+      nextMenuMode: menuModel.mode,
+    );
   }
 
   void _syncMenuStateFromModel() {
     final previousMenuMode = _menuMode;
     final menuModel = _currentMenuModel();
     final partyMenuModel = _currentPartyMenuModel();
+    final bagMenuModel = _currentBagMenuModel();
     _menuMode = menuModel.mode;
     _selectedRootIndex = menuModel.selectedRootIndex;
     _selectedChoiceIndex = menuModel.selectedChoiceIndex;
     _selectedPartyIndex = _normalizeSelectedPartyIndex(
       partyMenuModel: partyMenuModel,
+      previousMenuMode: previousMenuMode,
+      nextMenuMode: menuModel.mode,
+    );
+    _selectedBagIndex = _normalizeSelectedBagIndex(
+      bagMenuModel: bagMenuModel,
       previousMenuMode: previousMenuMode,
       nextMenuMode: menuModel.mode,
     );
@@ -921,9 +1049,22 @@ class BattleOverlayComponent extends PositionComponent {
     return _firstSelectablePartyIndexFor(_currentPartyMenuModel());
   }
 
+  int _firstSelectableBagIndex() {
+    return _firstSelectableBagIndexFor(_currentBagMenuModel());
+  }
+
   int _firstSelectablePartyIndexFor(BattlePartyMenuModel partyMenuModel) {
     for (var index = 0; index < partyMenuModel.allEntries.length; index++) {
       if (partyMenuModel.allEntries[index].isSelectable) {
+        return index;
+      }
+    }
+    return 0;
+  }
+
+  int _firstSelectableBagIndexFor(BattleBagMenuModel bagMenuModel) {
+    for (var index = 0; index < bagMenuModel.entries.length; index++) {
+      if (bagMenuModel.entries[index].isSelectable) {
         return index;
       }
     }
@@ -948,6 +1089,27 @@ class BattleOverlayComponent extends PositionComponent {
             partyMenuModel.mode == BattlePartyMenuMode.forcedReplacement;
     if (isEnteringForcedReplacement) {
       return _firstSelectablePartyIndexFor(partyMenuModel);
+    }
+    return safeIndex;
+  }
+
+  int _normalizeSelectedBagIndex({
+    required BattleBagMenuModel bagMenuModel,
+    required BattleCommandMenuMode previousMenuMode,
+    required BattleCommandMenuMode nextMenuMode,
+  }) {
+    if (bagMenuModel.entries.isEmpty) {
+      return 0;
+    }
+    final safeIndex = _selectedBagIndex.clamp(
+      0,
+      bagMenuModel.entries.length - 1,
+    );
+    if (nextMenuMode != BattleCommandMenuMode.bag) {
+      return safeIndex;
+    }
+    if (previousMenuMode != BattleCommandMenuMode.bag) {
+      return _firstSelectableBagIndexFor(bagMenuModel);
     }
     return safeIndex;
   }

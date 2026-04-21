@@ -19,6 +19,9 @@ class _PokemonMovesCatalogWorkspaceState
   String? _selectedMoveId;
   String? _loadedProjectRootPath;
   Future<PokemonMovesCatalogView>? _catalogFuture;
+  bool _isSyncing = false;
+  PokemonMovesCatalogSyncResult? _lastSyncResult;
+  String? _lastSyncError;
 
   @override
   void initState() {
@@ -66,6 +69,7 @@ class _PokemonMovesCatalogWorkspaceState
                     description: 'Catalogue local des attaques indisponible.',
                     loadState: PokemonMovesCatalogLoadState.loadError,
                   ),
+              projectRootPath,
             );
           },
         ),
@@ -89,7 +93,12 @@ class _PokemonMovesCatalogWorkspaceState
   Widget _buildCatalogContent(
     BuildContext context,
     PokemonMovesCatalogView view,
+    String? projectRootPath,
   ) {
+    final syncToolbar = _buildSyncToolbar(
+      context,
+      projectRootPath: projectRootPath,
+    );
     final query = _searchController.text.trim();
     final filteredEntries = _filterEntries(view.entries, query);
     final selectedEntry = _resolveSelectedEntry(filteredEntries);
@@ -102,32 +111,77 @@ class _PokemonMovesCatalogWorkspaceState
     }
 
     if (view.loadState == PokemonMovesCatalogLoadState.missingCatalog) {
-      return _MovesWorkspaceNotice(
-        title: 'Moves',
-        message:
-            'Aucun move local pour le moment.\nAjoute des entrées dans ${view.catalogRelativePath}. L’import PokeAPI sera traité dans un lot suivant.',
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (syncToolbar != null) ...[
+            syncToolbar,
+            const SizedBox(height: 16),
+          ],
+          Expanded(
+            child: _MovesWorkspaceNotice(
+              title: 'Moves',
+              message:
+                  'Aucun move local pour le moment.\nAjoute des entrées dans ${view.catalogRelativePath}. L’import externe sera traité dans un lot suivant.',
+            ),
+          ),
+        ],
       );
     }
 
     if (view.loadState == PokemonMovesCatalogLoadState.loadError) {
-      return _MovesWorkspaceNotice(
-        title: 'Moves',
-        message: view.message ?? 'Le catalogue local des moves est illisible.',
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (syncToolbar != null) ...[
+            syncToolbar,
+            const SizedBox(height: 16),
+          ],
+          Expanded(
+            child: _MovesWorkspaceNotice(
+              title: 'Moves',
+              message:
+                  view.message ?? 'Le catalogue local des moves est illisible.',
+            ),
+          ),
+        ],
       );
     }
 
     if (view.entries.isEmpty) {
       if (view.diagnostics.isNotEmpty) {
-        return _MovesWorkspaceNotice(
-          title: 'Moves',
-          message:
-              'Le catalogue local des moves contient uniquement des entrées invalides.\n${_diagnosticsSummary(view.diagnostics.length)}\nChemin lu : ${view.catalogRelativePath}',
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (syncToolbar != null) ...[
+              syncToolbar,
+              const SizedBox(height: 16),
+            ],
+            Expanded(
+              child: _MovesWorkspaceNotice(
+                title: 'Moves',
+                message:
+                    'Le catalogue local des moves contient uniquement des entrées invalides.\n${_diagnosticsSummary(view.diagnostics.length)}\nChemin lu : ${view.catalogRelativePath}',
+              ),
+            ),
+          ],
         );
       }
-      return _MovesWorkspaceNotice(
-        title: 'Moves',
-        message:
-            'Le catalogue local des moves existe, mais il ne contient aucune entrée.\nChemin lu : ${view.catalogRelativePath}',
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (syncToolbar != null) ...[
+            syncToolbar,
+            const SizedBox(height: 16),
+          ],
+          Expanded(
+            child: _MovesWorkspaceNotice(
+              title: 'Moves',
+              message:
+                  'Le catalogue local des moves existe, mais il ne contient aucune entrée.\nChemin lu : ${view.catalogRelativePath}',
+            ),
+          ),
+        ],
       );
     }
 
@@ -154,6 +208,10 @@ class _PokemonMovesCatalogWorkspaceState
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (syncToolbar != null) ...[
+            syncToolbar,
+            const SizedBox(height: 16),
+          ],
           Expanded(
             flex: 5,
             child: listPanel,
@@ -167,20 +225,167 @@ class _PokemonMovesCatalogWorkspaceState
       );
     }
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (syncToolbar != null) ...[
+          syncToolbar,
+          const SizedBox(height: 16),
+        ],
         Expanded(
-          flex: 5,
-          child: listPanel,
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          flex: 4,
-          child: detailPanel,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 5,
+                child: listPanel,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                flex: 4,
+                child: detailPanel,
+              ),
+            ],
+          ),
         ),
       ],
     );
+  }
+
+  Widget? _buildSyncToolbar(
+    BuildContext context, {
+    required String? projectRootPath,
+  }) {
+    if (projectRootPath == null || projectRootPath.trim().isEmpty) {
+      return null;
+    }
+
+    final border = CupertinoColors.separator.resolveFrom(context);
+    final fill = CupertinoColors.systemGrey6.resolveFrom(context);
+    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final statusText = _buildSyncStatusText();
+
+    return Container(
+      key: const Key('moves-catalog-sync-toolbar'),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              CupertinoButton(
+                key: const Key('moves-catalog-preview-sync-button'),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                onPressed: _isSyncing
+                    ? null
+                    : () => _runSync(
+                          projectRootPath,
+                          dryRun: true,
+                        ),
+                child: const Text('Preview sync'),
+              ),
+              CupertinoButton.filled(
+                key: const Key('moves-catalog-run-sync-button'),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                onPressed: _isSyncing
+                    ? null
+                    : () => _runSync(
+                          projectRootPath,
+                          dryRun: false,
+                        ),
+                child: Text(
+                  _isSyncing ? 'Sync en cours…' : 'Sync depuis Showdown',
+                ),
+              ),
+              if (_isSyncing) const CupertinoActivityIndicator(),
+            ],
+          ),
+          if (statusText != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              statusText,
+              key: const Key('moves-catalog-sync-status'),
+              style: TextStyle(
+                color: subtle,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String? _buildSyncStatusText() {
+    if (_lastSyncError != null && _lastSyncError!.trim().isNotEmpty) {
+      return _lastSyncError;
+    }
+    final result = _lastSyncResult;
+    if (result == null) {
+      return null;
+    }
+
+    final prefix = result.dryRun ? 'Prévisualisation' : 'Synchronisation';
+    final summary =
+        '$prefix: ${result.createdIds.length} créé(s), ${result.updatedIds.length} mis à jour, ${result.unchangedIds.length} inchangé(s), ${result.preservedLocalOnlyIds.length} local(aux) conservé(s).';
+
+    if (result.warnings.isEmpty) {
+      return summary;
+    }
+    return '$summary\n${result.warnings.join('\n')}';
+  }
+
+  Future<void> _runSync(
+    String projectRootPath, {
+    required bool dryRun,
+  }) async {
+    setState(() {
+      _isSyncing = true;
+      _lastSyncError = null;
+    });
+
+    try {
+      final syncer = ref.read(pokemonMovesCatalogWorkspaceSyncerProvider);
+      final result = await syncer(
+        projectRootPath,
+        dryRun: dryRun,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isSyncing = false;
+        _lastSyncResult = result;
+        _lastSyncError = null;
+        if (!dryRun) {
+          _loadedProjectRootPath = null;
+          _catalogFuture = null;
+        }
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isSyncing = false;
+        _lastSyncError = 'Échec de la sync moves: $error';
+      });
+    }
   }
 
   List<PokemonMoveCatalogEntryView> _filterEntries(

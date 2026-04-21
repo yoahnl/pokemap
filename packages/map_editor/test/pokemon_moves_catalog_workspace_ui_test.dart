@@ -114,6 +114,40 @@ void main() {
     expect(find.text('Inflicts regular damage.'), findsOneWidget);
   });
 
+  testWidgets('Moves catalog shows sync actions when a project is open',
+      (tester) async {
+    await _pumpMovesWorkspace(
+      tester,
+      initialState: const EditorState(
+        projectRootPath: '/tmp/moves_catalog_ui_test',
+        project: project,
+        workspaceMode: EditorWorkspaceMode.pokedex,
+        pokemonCatalogSection: PokemonCatalogSection.moves,
+      ),
+      overrides: [
+        pokemonMovesCatalogWorkspaceLoaderProvider.overrideWithValue(
+          (_) async => const PokemonMovesCatalogView(
+            entries: <PokemonMoveCatalogEntryView>[
+              PokemonMoveCatalogEntryView(
+                id: 'water-gun',
+                name: 'Water Gun',
+                type: 'water',
+                category: 'special',
+              ),
+            ],
+            isAvailable: true,
+            description: 'Catalogue local des attaques.',
+          ),
+        ),
+      ],
+    );
+
+    expect(find.byKey(const Key('moves-catalog-preview-sync-button')), findsOneWidget);
+    expect(find.byKey(const Key('moves-catalog-run-sync-button')), findsOneWidget);
+    expect(find.text('Preview sync'), findsOneWidget);
+    expect(find.text('Sync depuis Showdown'), findsOneWidget);
+  });
+
   testWidgets('Moves catalog search filters by name id type and damage class',
       (tester) async {
     await _pumpMovesWorkspace(
@@ -289,6 +323,197 @@ void main() {
     expect(find.text('Accuracy'), findsWidgets);
     expect(find.text('PP'), findsWidgets);
     expect(find.text('—'), findsWidgets);
+  });
+
+  testWidgets('Moves catalog preview sync uses the workspace syncer and shows a summary',
+      (tester) async {
+    var loaderCallCount = 0;
+    String? capturedProjectRootPath;
+    bool? capturedDryRun;
+
+    await _pumpMovesWorkspace(
+      tester,
+      initialState: const EditorState(
+        projectRootPath: '/tmp/moves_catalog_ui_test',
+        project: project,
+        workspaceMode: EditorWorkspaceMode.pokedex,
+        pokemonCatalogSection: PokemonCatalogSection.moves,
+      ),
+      overrides: [
+        pokemonMovesCatalogWorkspaceLoaderProvider.overrideWithValue(
+          (_) async {
+            loaderCallCount += 1;
+            return const PokemonMovesCatalogView(
+              entries: <PokemonMoveCatalogEntryView>[
+                PokemonMoveCatalogEntryView(
+                  id: 'water-gun',
+                  name: 'Water Gun',
+                  type: 'water',
+                  category: 'special',
+                ),
+              ],
+              isAvailable: true,
+              description: 'Catalogue local des attaques.',
+            );
+          },
+        ),
+        pokemonMovesCatalogWorkspaceSyncerProvider.overrideWithValue(
+          (
+            projectRootPath, {
+            bool dryRun = false,
+          }) async {
+            capturedProjectRootPath = projectRootPath;
+            capturedDryRun = dryRun;
+            return const PokemonMovesCatalogSyncResult(
+              dryRun: true,
+              externalEntryCount: 3,
+              createdIds: <String>['swift'],
+              updatedIds: <String>['water-gun'],
+              unchangedIds: <String>['growl'],
+              preservedLocalOnlyIds: <String>['custom-move'],
+              resultingEntryCount: 4,
+              warnings: <String>['Ignored malformed external move "broken".'],
+            );
+          },
+        ),
+      ],
+    );
+
+    await tester.tap(find.byKey(const Key('moves-catalog-preview-sync-button')));
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(capturedProjectRootPath, '/tmp/moves_catalog_ui_test');
+    expect(capturedDryRun, isTrue);
+    expect(find.byKey(const Key('moves-catalog-sync-status')), findsOneWidget);
+    expect(find.textContaining('Prévisualisation'), findsOneWidget);
+    expect(
+      find.textContaining('Ignored malformed external move "broken".'),
+      findsOneWidget,
+    );
+    expect(loaderCallCount, 1);
+  });
+
+  testWidgets('Moves catalog run sync refreshes the local catalog after success',
+      (tester) async {
+    var loaderCallCount = 0;
+    var hasSynced = false;
+    bool? capturedDryRun;
+
+    await _pumpMovesWorkspace(
+      tester,
+      initialState: const EditorState(
+        projectRootPath: '/tmp/moves_catalog_ui_test',
+        project: project,
+        workspaceMode: EditorWorkspaceMode.pokedex,
+        pokemonCatalogSection: PokemonCatalogSection.moves,
+      ),
+      overrides: [
+        pokemonMovesCatalogWorkspaceLoaderProvider.overrideWithValue(
+          (_) async {
+            loaderCallCount += 1;
+            return PokemonMovesCatalogView(
+              entries: hasSynced
+                  ? const <PokemonMoveCatalogEntryView>[
+                      PokemonMoveCatalogEntryView(
+                        id: 'thunderbolt',
+                        name: 'Thunderbolt',
+                        type: 'electric',
+                        category: 'special',
+                        power: 90,
+                      ),
+                    ]
+                  : const <PokemonMoveCatalogEntryView>[
+                      PokemonMoveCatalogEntryView(
+                        id: 'water-gun',
+                        name: 'Water Gun',
+                        type: 'water',
+                        category: 'special',
+                        power: 40,
+                      ),
+                    ],
+              isAvailable: true,
+              description: 'Catalogue local des attaques.',
+            );
+          },
+        ),
+        pokemonMovesCatalogWorkspaceSyncerProvider.overrideWithValue(
+          (
+            projectRootPath, {
+            bool dryRun = false,
+          }) async {
+            capturedDryRun = dryRun;
+            hasSynced = true;
+            return const PokemonMovesCatalogSyncResult(
+              dryRun: false,
+              externalEntryCount: 1,
+              createdIds: <String>['thunderbolt'],
+              updatedIds: <String>[],
+              unchangedIds: <String>[],
+              preservedLocalOnlyIds: <String>[],
+              resultingEntryCount: 1,
+            );
+          },
+        ),
+      ],
+    );
+
+    expect(find.text('Water Gun'), findsWidgets);
+
+    await tester.tap(find.byKey(const Key('moves-catalog-run-sync-button')));
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(capturedDryRun, isFalse);
+    expect(find.text('Thunderbolt'), findsWidgets);
+    expect(find.text('Water Gun'), findsNothing);
+    expect(loaderCallCount, greaterThanOrEqualTo(2));
+    expect(find.textContaining('Synchronisation'), findsOneWidget);
+  });
+
+  testWidgets('Moves catalog sync errors do not crash the workspace',
+      (tester) async {
+    await _pumpMovesWorkspace(
+      tester,
+      initialState: const EditorState(
+        projectRootPath: '/tmp/moves_catalog_ui_test',
+        project: project,
+        workspaceMode: EditorWorkspaceMode.pokedex,
+        pokemonCatalogSection: PokemonCatalogSection.moves,
+      ),
+      overrides: [
+        pokemonMovesCatalogWorkspaceLoaderProvider.overrideWithValue(
+          (_) async => const PokemonMovesCatalogView(
+            entries: <PokemonMoveCatalogEntryView>[
+              PokemonMoveCatalogEntryView(
+                id: 'water-gun',
+                name: 'Water Gun',
+                type: 'water',
+                category: 'special',
+              ),
+            ],
+            isAvailable: true,
+            description: 'Catalogue local des attaques.',
+          ),
+        ),
+        pokemonMovesCatalogWorkspaceSyncerProvider.overrideWithValue(
+          (
+            projectRootPath, {
+            bool dryRun = false,
+          }) async {
+            throw StateError('showdown offline');
+          },
+        ),
+      ],
+    );
+
+    await tester.tap(find.byKey(const Key('moves-catalog-run-sync-button')));
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Échec de la sync moves'), findsOneWidget);
+    expect(find.textContaining('showdown offline'), findsOneWidget);
+    expect(find.text('Water Gun'), findsWidgets);
   });
 }
 

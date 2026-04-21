@@ -163,7 +163,9 @@ class LoadPokemonMovesCatalogUseCase {
   final PokemonReadRepository readRepository;
 
   Future<PokemonMovesCatalogView> execute(ProjectWorkspace workspace) async {
-    final catalogRelativePath = await _resolveCatalogRelativePath(workspace);
+    final catalogRelativePath = await _resolveMovesCatalogRelativePath(
+      workspace,
+    );
     try {
       final catalog = await readRepository.readCatalogByKey(workspace, 'moves');
       final projectedCatalog = _projectEntries(catalog);
@@ -196,46 +198,6 @@ class LoadPokemonMovesCatalogUseCase {
         catalogRelativePath: catalogRelativePath,
       );
     }
-  }
-
-  Future<String> _resolveCatalogRelativePath(ProjectWorkspace workspace) async {
-    final pokemonConfig = await _readProjectPokemonConfig(workspace);
-    final dataRoot = _normalizeConfiguredRelativePath(
-      pokemonConfig.dataRoot,
-      fallback: 'data/pokemon',
-    );
-
-    try {
-      final manifestPath = workspace.resolveProjectRelativePath(
-        p.normalize(p.join(dataRoot, 'pokemon_data_manifest.json')),
-      );
-      if (await workspace.fileExists(manifestPath)) {
-        final manifestRaw = await workspace.readTextFile(manifestPath);
-        final manifest = PokemonDataManifest.fromJson(
-          (jsonDecode(manifestRaw) as Map).cast<String, dynamic>(),
-        );
-        final declaredPath = manifest.catalogFiles['moves']?.trim();
-        if (declaredPath != null && declaredPath.isNotEmpty) {
-          return _resolvePathWithinPokemonDataRoot(
-            pokemonConfig: pokemonConfig,
-            rawRelativePath: declaredPath,
-          );
-        }
-      }
-    } on Object {
-      final configuredPath = pokemonConfig.catalogFiles['moves']?.trim();
-      if (configuredPath != null && configuredPath.isNotEmpty) {
-        return p.normalize(configuredPath);
-      }
-      return 'data/pokemon/catalogs/moves.json';
-    }
-
-    final configuredPath = pokemonConfig.catalogFiles['moves']?.trim();
-    if (configuredPath != null && configuredPath.isNotEmpty) {
-      return p.normalize(configuredPath);
-    }
-
-    return 'data/pokemon/catalogs/moves.json';
   }
 
   _ProjectedMovesCatalog _projectEntries(PokemonCatalogFile catalog) {
@@ -418,17 +380,29 @@ class SyncExternalPokemonMovesCatalogUseCase {
     ProjectWorkspace workspace, {
     bool dryRun = false,
   }) async {
+    final catalogRelativePath = await _resolveMovesCatalogRelativePath(
+      workspace,
+    );
     final externalCatalog = converter.convert(
       await externalSourceRepository.fetchShowdownMovesSnapshot(),
     );
-    final localCatalog = await _readLocalCatalogIfAvailable(workspace);
+    final localCatalog = await _readLocalCatalogIfAvailable(
+      workspace,
+      catalogRelativePath: catalogRelativePath,
+    );
     final merge = _mergeCatalogs(
       localCatalog: localCatalog,
       externalCatalog: externalCatalog,
     );
 
     if (!dryRun) {
-      await writeRepository.saveCatalogByKey(workspace, 'moves', merge.catalog);
+      final absoluteCatalogPath = workspace.resolveProjectRelativePath(
+        catalogRelativePath,
+      );
+      await workspace.writeTextFile(
+        absoluteCatalogPath,
+        const JsonEncoder.withIndent('  ').convert(merge.catalog.toJson()),
+      );
     }
 
     return PokemonMovesCatalogSyncResult(
@@ -445,14 +419,55 @@ class SyncExternalPokemonMovesCatalogUseCase {
 
   Future<PokemonCatalogFile?> _readLocalCatalogIfAvailable(
     ProjectWorkspace workspace,
+    {
+    required String catalogRelativePath,
+  }
   ) async {
     try {
       return await readRepository.readCatalogByKey(workspace, 'moves');
     } on EditorNotFoundException {
-      // Le storage 11A/11B initialise normalement le fichier, mais on garde ce
-      // fallback local pour éviter qu'une absence de catalogue ne bloque
-      // complètement un premier sync sur un workspace partiellement initialisé.
+      return _readCatalogAtResolvedPathIfPresent(
+        workspace,
+        catalogRelativePath: catalogRelativePath,
+      );
+    } on EditorApplicationException {
+      return _readCatalogAtResolvedPathIfPresent(
+        workspace,
+        catalogRelativePath: catalogRelativePath,
+      );
+    }
+  }
+
+  Future<PokemonCatalogFile?> _readCatalogAtResolvedPathIfPresent(
+    ProjectWorkspace workspace, {
+    required String catalogRelativePath,
+  }) async {
+    final absolutePath = workspace.resolveProjectRelativePath(
+      catalogRelativePath,
+    );
+    if (!await workspace.fileExists(absolutePath)) {
       return null;
+    }
+
+    try {
+      final raw = await workspace.readTextFile(absolutePath);
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map<String, dynamic>) {
+        throw EditorPersistenceException(
+          'Pokemon catalog "moves" is not a JSON object: $catalogRelativePath',
+        );
+      }
+      return PokemonCatalogFile.fromJson(decoded);
+    } on EditorApplicationException {
+      rethrow;
+    } on FormatException catch (error) {
+      throw EditorPersistenceException(
+        'Invalid JSON in Pokemon catalog "moves" at $catalogRelativePath: $error',
+      );
+    } catch (error) {
+      throw EditorPersistenceException(
+        'Failed to read Pokemon catalog "moves" at $catalogRelativePath: $error',
+      );
     }
   }
 
@@ -874,6 +889,46 @@ String? _generationIdFromNumber(int? generation) {
     9 => 'generation-ix',
     _ => null,
   };
+}
+
+Future<String> _resolveMovesCatalogRelativePath(ProjectWorkspace workspace) async {
+  final pokemonConfig = await _readProjectPokemonConfig(workspace);
+  final dataRoot = _normalizeConfiguredRelativePath(
+    pokemonConfig.dataRoot,
+    fallback: 'data/pokemon',
+  );
+
+  try {
+    final manifestPath = workspace.resolveProjectRelativePath(
+      p.normalize(p.join(dataRoot, 'pokemon_data_manifest.json')),
+    );
+    if (await workspace.fileExists(manifestPath)) {
+      final manifestRaw = await workspace.readTextFile(manifestPath);
+      final manifest = PokemonDataManifest.fromJson(
+        (jsonDecode(manifestRaw) as Map).cast<String, dynamic>(),
+      );
+      final declaredPath = manifest.catalogFiles['moves']?.trim();
+      if (declaredPath != null && declaredPath.isNotEmpty) {
+        return _resolvePathWithinPokemonDataRoot(
+          pokemonConfig: pokemonConfig,
+          rawRelativePath: declaredPath,
+        );
+      }
+    }
+  } on Object {
+    final configuredPath = pokemonConfig.catalogFiles['moves']?.trim();
+    if (configuredPath != null && configuredPath.isNotEmpty) {
+      return p.normalize(configuredPath);
+    }
+    return 'data/pokemon/catalogs/moves.json';
+  }
+
+  final configuredPath = pokemonConfig.catalogFiles['moves']?.trim();
+  if (configuredPath != null && configuredPath.isNotEmpty) {
+    return p.normalize(configuredPath);
+  }
+
+  return 'data/pokemon/catalogs/moves.json';
 }
 
 Future<ProjectPokemonConfig> _readProjectPokemonConfig(

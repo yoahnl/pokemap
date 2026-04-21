@@ -127,9 +127,8 @@ BattleCommandMenuModel buildBattleCommandMenuModel({
       ],
       selectedChoiceIndex: 0,
       choiceColumns: 1,
-      choiceGroupTitle: continueChoice is PlayerBattleChoiceContinue
-          ? 'CONTINUE'
-          : 'COMMAND',
+      choiceGroupTitle:
+          continueChoice is PlayerBattleChoiceContinue ? 'CONTINUE' : 'COMMAND',
     );
   }
 
@@ -174,8 +173,7 @@ int moveBattleCommandGridSelection({
   final rowCount = (itemCount / safeColumns).ceil();
   final currentRow = currentIndex ~/ safeColumns;
   final currentColumn = currentIndex % safeColumns;
-  final nextRow =
-      (currentRow + verticalDelta).clamp(0, rowCount - 1).toInt();
+  final nextRow = (currentRow + verticalDelta).clamp(0, rowCount - 1).toInt();
   var nextColumn =
       (currentColumn + horizontalDelta).clamp(0, safeColumns - 1).toInt();
   var nextIndex = (nextRow * safeColumns) + nextColumn;
@@ -206,19 +204,21 @@ BattleCommandMenuMode _normalizeSubmenuAgainstRequest({
     return BattleCommandMenuMode.root;
   }
   if (mode == BattleCommandMenuMode.bag &&
-      request.allowedChoices.whereType<PlayerBattleChoiceCapture>().isEmpty) {
+      request is! BattleTurnChoiceRequest) {
     return BattleCommandMenuMode.root;
   }
   return mode;
 }
 
 List<BattleCommandRootEntry> _buildRootEntries(BattleDecisionRequest request) {
-  final fightChoices = request.allowedChoices.whereType<PlayerBattleChoiceFight>();
+  final fightChoices =
+      request.allowedChoices.whereType<PlayerBattleChoiceFight>();
   final switchChoices =
       request.allowedChoices.whereType<PlayerBattleChoiceSwitch>();
   final captureChoices =
       request.allowedChoices.whereType<PlayerBattleChoiceCapture>();
   final runChoices = request.allowedChoices.whereType<PlayerBattleChoiceRun>();
+  final bagInspectable = request is BattleTurnChoiceRequest;
 
   return <BattleCommandRootEntry>[
     BattleCommandRootEntry(
@@ -232,8 +232,12 @@ List<BattleCommandRootEntry> _buildRootEntries(BattleDecisionRequest request) {
     BattleCommandRootEntry(
       action: BattleCommandRootAction.bag,
       label: 'BAG',
-      subtitle: captureChoices.isEmpty ? 'Unavailable' : 'Capture',
-      enabled: captureChoices.isNotEmpty,
+      subtitle: !bagInspectable
+          ? 'Unavailable'
+          : captureChoices.isEmpty
+              ? 'Inspect'
+              : 'Capture',
+      enabled: bagInspectable,
     ),
     BattleCommandRootEntry(
       action: BattleCommandRootAction.pokemon,
@@ -278,11 +282,7 @@ List<BattleCommandChoiceEntry> _buildChoiceEntries({
           ),
     );
   }
-  return List<BattleCommandChoiceEntry>.unmodifiable(
-    request.allowedChoices.whereType<PlayerBattleChoiceCapture>().map(
-          (choice) => _entryForChoice(session, choice),
-        ),
-  );
+  return const <BattleCommandChoiceEntry>[];
 }
 
 int _choiceColumnsFor({

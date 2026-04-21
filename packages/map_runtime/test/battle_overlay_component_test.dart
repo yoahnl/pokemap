@@ -90,6 +90,7 @@ BattleSession _session({
   required BattleCombatantData enemy,
   List<BattleCombatantData> enemyReserve = const <BattleCombatantData>[],
   bool isTrainerBattle = false,
+  bool allowCapture = false,
 }) {
   return createBattleSession(
     BattleSetup(
@@ -99,7 +100,29 @@ BattleSession _session({
       enemyReservePokemon: enemyReserve,
       isTrainerBattle: isTrainerBattle,
       trainerId: isTrainerBattle ? 'trainer' : null,
+      allowCapture: allowCapture,
     ),
+  );
+}
+
+GameState _gameState({
+  Bag bag = const Bag(),
+}) {
+  return GameState(
+    saveId: 'battle-overlay-bag-shell',
+    bag: bag,
+  );
+}
+
+BagEntry _bagEntry({
+  required String itemId,
+  required String categoryId,
+  required int quantity,
+}) {
+  return BagEntry(
+    itemId: itemId,
+    categoryId: categoryId,
+    quantity: quantity,
   );
 }
 
@@ -1065,6 +1088,150 @@ void main() {
     });
 
     test(
+        'root BAG opens the battle bag submenu without dispatching a battle choice',
+        () async {
+      PlayerBattleChoice? pickedChoice;
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          enemy: _combatant(
+            speciesId: 'wild_enemy',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          allowCapture: true,
+        ),
+        gameState: _gameState(
+          bag: Bag(
+            entries: <BagEntry>[
+              _bagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 3),
+            ],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (choice) => pickedChoice = choice,
+      );
+
+      await overlay.onLoad();
+
+      overlay.moveSelectionRight();
+      expect(overlay.validateSelectedChoice(), isTrue);
+
+      final commandPanel =
+          overlay.children.whereType<BattleCommandPanelComponent>().single;
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+      expect(
+          commandPanel.currentBagEntryLabels, const <String>['Poké Ball x3']);
+      expect(pickedChoice, isNull);
+    });
+
+    test(
+        'selecting a capture-capable poke ball does not apply capture in lot 9a',
+        () async {
+      PlayerBattleChoice? pickedChoice;
+      final session = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+        enemy: _combatant(
+          speciesId: 'wild_enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+        allowCapture: true,
+      );
+      final overlay = BattleOverlayComponent(
+        session: session,
+        gameState: _gameState(
+          bag: Bag(
+            entries: <BagEntry>[
+              _bagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
+            ],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (choice) => pickedChoice = choice,
+      );
+
+      await overlay.onLoad();
+
+      overlay.moveSelectionRight();
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(pickedChoice, isNull);
+      expect(
+        overlay.currentPromptText,
+        equals('L’utilisation des objets sera branchée au prochain lot.'),
+      );
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+      expect(overlay.getSelectedChoice(), isNull);
+      expect(session.state.outcome, isNull);
+    });
+
+    test('updateState refreshes bag menu source', () async {
+      final initialSession = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+        enemy: _combatant(
+          speciesId: 'wild_enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+      );
+      final overlay = BattleOverlayComponent(
+        session: initialSession,
+        gameState: _gameState(
+          bag: Bag(
+            entries: <BagEntry>[
+              _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+            ],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      overlay.moveSelectionRight();
+      expect(overlay.validateSelectedChoice(), isTrue);
+
+      final commandPanel =
+          overlay.children.whereType<BattleCommandPanelComponent>().single;
+      expect(commandPanel.currentBagEntryLabels, const <String>['Potion x1']);
+
+      overlay.updateState(
+        initialSession,
+        gameState: _gameState(
+          bag: Bag(
+            entries: <BagEntry>[
+              _bagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+              _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 4),
+            ],
+          ),
+        ),
+      );
+      await overlay.waitForPendingVisualSync();
+
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+      expect(
+        commandPanel.currentBagEntryLabels,
+        const <String>['Poké Ball x2', 'Potion x4'],
+      );
+    });
+
+    test(
         'voluntary switch selection applies PlayerBattleChoiceSwitch and refreshes battle state',
         () async {
       PlayerBattleChoice? pickedChoice;
@@ -1154,6 +1321,8 @@ void main() {
 
       expect(overlay.currentMenuMode, BattleCommandMenuMode.pokemon);
       expect(overlay.handleEscape(), isFalse);
+      expect(overlay.moveSelectionRight(), isFalse);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.pokemon);
       final commandPanel =
           overlay.children.whereType<BattleCommandPanelComponent>().single;
       expect(

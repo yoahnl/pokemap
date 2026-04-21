@@ -793,26 +793,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         debugPrint('[battle] Runtime input but overlay is null!');
         return false;
       }
-      if (event.isPress &&
-          control == RuntimeInputControl.up) {
+      if (event.isPress && control == RuntimeInputControl.up) {
         final changed = overlay.moveSelectionUp();
         debugPrint('[battle] Up pressed, selection changed=$changed');
         return true;
       }
-      if (event.isPress &&
-          control == RuntimeInputControl.down) {
+      if (event.isPress && control == RuntimeInputControl.down) {
         final changed = overlay.moveSelectionDown();
         debugPrint('[battle] Down pressed, selection changed=$changed');
         return true;
       }
-      if (event.isPress &&
-          control == RuntimeInputControl.left) {
+      if (event.isPress && control == RuntimeInputControl.left) {
         final changed = overlay.moveSelectionLeft();
         debugPrint('[battle] Left pressed, selection changed=$changed');
         return true;
       }
-      if (event.isPress &&
-          control == RuntimeInputControl.right) {
+      if (event.isPress && control == RuntimeInputControl.right) {
         final changed = overlay.moveSelectionRight();
         debugPrint('[battle] Right pressed, selection changed=$changed');
         return true;
@@ -3120,6 +3116,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       // Afficher l'overlay de combat avec la session
       final overlay = BattleOverlayComponent(
         session: _battleSession!,
+        gameState: _gameState,
         viewportSize: camera.viewport.size,
         backgroundSpec: backgroundSpec,
         spriteResolver: BattlePokemonSpriteResolver(
@@ -3216,7 +3213,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
       // Mettre à jour l'UI avec le nouvel état
       final overlay = _battleOverlay;
-      overlay?.updateState(_battleSession!);
+      overlay?.updateState(_battleSession!, gameState: _gameState);
 
       // Vérifier si le combat est fini
       if (_battleSession!.state.isFinished) {
