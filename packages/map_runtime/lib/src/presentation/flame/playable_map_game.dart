@@ -3368,9 +3368,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       //   la position overworld mémorisée au moment du handoff combat ;
       // - `_buildSafeWorldState` gardera ensuite le dernier mot pour éviter une
       //   cellule bloquée et trouver un point sûr si nécessaire.
-      return GameplayPlayerState(
-        pos: activeBattleContext.request.returnContext.playerPos,
+      return GameplayPlayerState.fromGridSpawn(
+        cell: activeBattleContext.request.returnContext.playerPos,
         facing: activeBattleContext.request.returnContext.playerFacing,
+        tileWidthPx: _bundle.manifest.settings.tileWidth,
+        tileHeightPx: _bundle.manifest.settings.tileHeight,
+        mapWidthCells: _bundle.map.size.width,
+        mapHeightCells: _bundle.map.size.height,
       );
     }
   }

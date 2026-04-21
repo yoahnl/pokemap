@@ -87,88 +87,88 @@ class GameplayWorldState {
       npcPresence: npcMapPresencePredicate,
     );
     return GameplayWorldState._(
-        map: map,
-        player: GameplayPlayerState.fromGridSpawn(
-          cell: playerPos,
-          facing: playerFacing,
-          movementMode: playerMovementMode,
-          tileWidthPx: tileWidth,
-          tileHeightPx: tileHeight,
-          mapWidthCells: map.size.width,
-          mapHeightCells: map.size.height,
-        ),
-        tileCollisionCellCache: _buildTileCollisionCellCache(map),
-        blockingEntityByPos: blockingEntities,
-        pixelCollisionCache: _buildPixelCollisionCache(
-          map,
-          project: project,
-          tileWidth: tileWidth,
-          tileHeight: tileHeight,
-          blockingEntityByPos: blockingEntities,
-        ),
-        warpCandidatesByPos:
-            _buildWarpCandidatesByPos(map, tileWidth, tileHeight),
-        entityByPos: _buildEntityByPos(
-          map,
-          npcPresence: npcMapPresencePredicate,
-        ),
-        actionBehaviorByPos: _buildPlacedElementBehaviorByPos(
-          map,
-          project: project,
-          trigger: MapPlacedElementTriggerType.onAction,
-        ),
-        enterBehaviorByPos: _buildPlacedElementBehaviorByPos(
-          map,
-          project: project,
-          trigger: MapPlacedElementTriggerType.onEnter,
-        ),
-        bumpBehaviorByPos: _buildPlacedElementBehaviorByPos(
-          map,
-          project: project,
-          trigger: MapPlacedElementTriggerType.onBump,
-        ),
-        exitBehaviorByPos: _buildPlacedElementBehaviorByPos(
-          map,
-          project: project,
-          trigger: MapPlacedElementTriggerType.onExit,
-        ),
-        nearBehaviorByPos: _buildPlacedElementNearBehaviorByPos(
-          map,
-          project: project,
-        ),
-        placedElementCoverageByPos: _buildPlacedElementCoverageByPos(
-          map,
-          project: project,
-        ),
-        pathRuleOnEnterByPos: _buildPathAnimationRuleByPos(
-          map,
-          trigger: PathAnimationTriggerType.onEnter,
-        ),
-        pathRuleOnStepByPos: _buildPathAnimationRuleByPos(
-          map,
-          trigger: PathAnimationTriggerType.onStep,
-        ),
-        pathRuleOnActionByPos: _buildPathAnimationRuleByPos(
-          map,
-          trigger: PathAnimationTriggerType.onAction,
-        ),
-        pathRuleOnBumpByPos: _buildPathAnimationRuleByPos(
-          map,
-          trigger: PathAnimationTriggerType.onBump,
-        ),
-        pathRuleOnNearByPos: _buildPathAnimationNearRuleByPos(
-          map,
-        ),
-        pathRuleWhileInsideByPos: _buildPathAnimationRuleByPos(
-          map,
-          trigger: PathAnimationTriggerType.whileInside,
-        ),
-        waterCellCache: _buildWaterCellCache(map, project: project),
+      map: map,
+      player: GameplayPlayerState.fromGridSpawn(
+        cell: playerPos,
+        facing: playerFacing,
+        movementMode: playerMovementMode,
+        tileWidthPx: tileWidth,
+        tileHeightPx: tileHeight,
+        mapWidthCells: map.size.width,
+        mapHeightCells: map.size.height,
+      ),
+      tileCollisionCellCache: _buildTileCollisionCellCache(map),
+      blockingEntityByPos: blockingEntities,
+      pixelCollisionCache: _buildPixelCollisionCache(
+        map,
+        project: project,
         tileWidth: tileWidth,
         tileHeight: tileHeight,
-        npcMapPresencePredicate: npcMapPresencePredicate,
-        projectManifest: project,
-      );
+        blockingEntityByPos: blockingEntities,
+      ),
+      warpCandidatesByPos:
+          _buildWarpCandidatesByPos(map, tileWidth, tileHeight),
+      entityByPos: _buildEntityByPos(
+        map,
+        npcPresence: npcMapPresencePredicate,
+      ),
+      actionBehaviorByPos: _buildPlacedElementBehaviorByPos(
+        map,
+        project: project,
+        trigger: MapPlacedElementTriggerType.onAction,
+      ),
+      enterBehaviorByPos: _buildPlacedElementBehaviorByPos(
+        map,
+        project: project,
+        trigger: MapPlacedElementTriggerType.onEnter,
+      ),
+      bumpBehaviorByPos: _buildPlacedElementBehaviorByPos(
+        map,
+        project: project,
+        trigger: MapPlacedElementTriggerType.onBump,
+      ),
+      exitBehaviorByPos: _buildPlacedElementBehaviorByPos(
+        map,
+        project: project,
+        trigger: MapPlacedElementTriggerType.onExit,
+      ),
+      nearBehaviorByPos: _buildPlacedElementNearBehaviorByPos(
+        map,
+        project: project,
+      ),
+      placedElementCoverageByPos: _buildPlacedElementCoverageByPos(
+        map,
+        project: project,
+      ),
+      pathRuleOnEnterByPos: _buildPathAnimationRuleByPos(
+        map,
+        trigger: PathAnimationTriggerType.onEnter,
+      ),
+      pathRuleOnStepByPos: _buildPathAnimationRuleByPos(
+        map,
+        trigger: PathAnimationTriggerType.onStep,
+      ),
+      pathRuleOnActionByPos: _buildPathAnimationRuleByPos(
+        map,
+        trigger: PathAnimationTriggerType.onAction,
+      ),
+      pathRuleOnBumpByPos: _buildPathAnimationRuleByPos(
+        map,
+        trigger: PathAnimationTriggerType.onBump,
+      ),
+      pathRuleOnNearByPos: _buildPathAnimationNearRuleByPos(
+        map,
+      ),
+      pathRuleWhileInsideByPos: _buildPathAnimationRuleByPos(
+        map,
+        trigger: PathAnimationTriggerType.whileInside,
+      ),
+      waterCellCache: _buildWaterCellCache(map, project: project),
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
+      npcMapPresencePredicate: npcMapPresencePredicate,
+      projectManifest: project,
+    );
   }
 
   factory GameplayWorldState.fromMap(
@@ -279,6 +279,7 @@ class GameplayWorldState {
 
   /// Filtre optionnel de présence des PNJ sur la grille (voir [NpcMapPresencePredicate]).
   final NpcMapPresencePredicate? npcMapPresencePredicate;
+
   /// Calque collision **tuiles** uniquement (grille auteur). Pas les éléments placés.
   final List<bool> _tileCollisionCellCache;
   final List<bool> _pixelCollisionCache;
@@ -386,6 +387,67 @@ class GameplayWorldState {
       return GameplayMovementBlockReason.solid;
     }
     return null;
+  }
+
+  GameplayMovementBlockReason? movementBlockReasonAt({
+    required int x,
+    required int y,
+    required MovementMode movementMode,
+  }) {
+    if (x < 0 || y < 0 || x >= map.size.width || y >= map.size.height) {
+      return GameplayMovementBlockReason.outOfBounds;
+    }
+    final index = y * map.size.width + x;
+    if (_tileCollisionCellCache[index] ||
+        _blockingEntityByPos.containsKey(index)) {
+      return GameplayMovementBlockReason.solid;
+    }
+    if (_hasLegacyPlacedElementCellCollision(x, y)) {
+      return GameplayMovementBlockReason.solid;
+    }
+    return movementBlockReasonAtPlayerFeetCellForWaterAndGridSolidTrial(
+      cellX: x,
+      cellY: y,
+      movementMode: movementMode,
+    );
+  }
+
+  bool isBlocked(
+    int x,
+    int y, {
+    MovementMode? movementMode,
+  }) {
+    return movementBlockReasonAt(
+          x: x,
+          y: y,
+          movementMode: movementMode ?? player.movementMode,
+        ) !=
+        null;
+  }
+
+  bool _hasLegacyPlacedElementCellCollision(int x, int y) {
+    final project = _projectManifest;
+    if (project == null) {
+      return false;
+    }
+    final elementById = <String, ProjectElementEntry>{
+      for (final entry in project.elements) entry.id: entry,
+    };
+    for (final instance in map.placedElements) {
+      if (!instance.applyCollision) {
+        continue;
+      }
+      final profile = elementById[instance.elementId]?.collisionProfile;
+      if (profile == null || profile.collisionMask != null) {
+        continue;
+      }
+      for (final cell in profile.cells) {
+        if (instance.pos.x + cell.x == x && instance.pos.y + cell.y == y) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   MapWarp? warpAt(int x, int y) {

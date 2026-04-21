@@ -8,11 +8,8 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
-import 'package:map_runtime/src/application/battle_start_request.dart';
-import 'package:map_runtime/src/application/encounter_to_battle_request.dart';
 import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 import 'package:map_runtime/src/application/runtime_battle_setup_mapper.dart';
-import 'package:map_runtime/src/application/runtime_map_bundle.dart';
 import 'package:map_runtime/src/presentation/flame/battle_command_menu_model.dart';
 import 'package:map_runtime/src/presentation/flame/battle_command_panel_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
@@ -449,43 +446,43 @@ void main() {
           members: <PlayerPokemon>[
             ..._playerState().party.members,
             const PlayerPokemon(
-              speciesId: 'party_2',
+              speciesId: 'sproutle',
               natureId: 'hardy',
               abilityId: 'pressure',
               level: 10,
-              knownMoveIds: <String>['growl'],
+              knownMoveIds: <String>['vine_whip'],
               currentHp: 10,
             ),
             const PlayerPokemon(
-              speciesId: 'party_3',
+              speciesId: 'sproutle',
               natureId: 'hardy',
               abilityId: 'pressure',
               level: 10,
-              knownMoveIds: <String>['growl'],
+              knownMoveIds: <String>['vine_whip'],
               currentHp: 10,
             ),
             const PlayerPokemon(
-              speciesId: 'party_4',
+              speciesId: 'sproutle',
               natureId: 'hardy',
               abilityId: 'pressure',
               level: 10,
-              knownMoveIds: <String>['growl'],
+              knownMoveIds: <String>['vine_whip'],
               currentHp: 10,
             ),
             const PlayerPokemon(
-              speciesId: 'party_5',
+              speciesId: 'sproutle',
               natureId: 'hardy',
               abilityId: 'pressure',
               level: 10,
-              knownMoveIds: <String>['growl'],
+              knownMoveIds: <String>['vine_whip'],
               currentHp: 10,
             ),
             const PlayerPokemon(
-              speciesId: 'party_6',
+              speciesId: 'sproutle',
               natureId: 'hardy',
               abilityId: 'pressure',
               level: 10,
-              knownMoveIds: <String>['growl'],
+              knownMoveIds: <String>['vine_whip'],
               currentHp: 10,
             ),
           ],
@@ -514,7 +511,8 @@ void main() {
       expect(overlay.validateSelectedChoice(), isTrue);
       final commandPanel =
           overlay.children.whereType<BattleCommandPanelComponent>().single;
-      expect(commandPanel.currentBagEntryLabels, const <String>['Poké Ball x2']);
+      expect(
+          commandPanel.currentBagEntryLabels, const <String>['Poké Ball x2']);
       expect(commandPanel.currentBagStatusLabels, const <String>['Party full']);
       expect(overlay.validateSelectedChoice(), isFalse);
       expect(pickedChoice, isNull);
