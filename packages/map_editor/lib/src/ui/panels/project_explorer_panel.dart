@@ -439,7 +439,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
             leading: const MacosIcon(CupertinoIcons.cube_box),
             title: const Text('Items'),
             subtitle: const Text(
-              'Shell du futur catalogue des objets',
+              'Catalogue local des objets du projet',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),

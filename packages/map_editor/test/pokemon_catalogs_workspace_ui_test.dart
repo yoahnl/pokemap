@@ -3,8 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/app/providers/pokemon_items/pokemon_items_workspace_providers.dart';
 import 'package:map_editor/src/app/providers/pokemon_moves/pokemon_moves_workspace_providers.dart';
 import 'package:map_editor/src/app/providers/pokedex/pokedex_providers.dart';
+import 'package:map_editor/src/application/use_cases/load_pokemon_items_catalog_use_case.dart';
 import 'package:map_editor/src/application/models/pokemon_database_index.dart';
 import 'package:map_editor/src/application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
@@ -176,7 +178,7 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('renders the Items shell when the Items section is active',
+    testWidgets('renders the Items workspace when the Items section is active',
         (tester) async {
       final container = ProviderContainer(
         overrides: [
@@ -196,6 +198,21 @@ void main() {
           ),
           pokedexEntryLoaderProvider.overrideWithValue(
             (_) async => const <PokemonDatabaseIndexEntry>[],
+          ),
+          pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
+            (_) async => const PokemonItemsCatalogView(
+              entries: <PokemonItemCatalogEntryView>[
+                PokemonItemCatalogEntryView(
+                  id: 'poke-ball',
+                  name: 'Poké Ball',
+                  categoryId: 'standard-balls',
+                  pocketId: 'poke-balls',
+                  cost: 200,
+                ),
+              ],
+              isAvailable: true,
+              description: 'Catalogue local des objets du projet.',
+            ),
           ),
         ],
       );
@@ -224,10 +241,10 @@ void main() {
 
       expect(find.text('Items'), findsWidgets);
       expect(
-        find.text('Le futur catalogue des objets du projet vivra ici.'),
+        find.text('Catalogue local des objets du projet.'),
         findsOneWidget,
       );
-      expect(find.textContaining('structure de workspace'), findsOneWidget);
+      expect(find.byKey(const Key('items-catalog-detail-poke-ball')), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 

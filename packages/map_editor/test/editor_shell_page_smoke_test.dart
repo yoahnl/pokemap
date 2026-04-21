@@ -2,8 +2,10 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/app/providers/pokemon_items/pokemon_items_workspace_providers.dart';
 import 'package:map_editor/src/app/providers/pokemon_moves/pokemon_moves_workspace_providers.dart';
 import 'package:map_editor/src/app/providers/pokedex/pokedex_providers.dart';
+import 'package:map_editor/src/application/use_cases/load_pokemon_items_catalog_use_case.dart';
 import 'package:map_editor/src/application/models/pokemon_database_index.dart';
 import 'package:map_editor/src/application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
@@ -144,6 +146,55 @@ void main() {
       expect(find.text('Moves'), findsWidgets);
       expect(
         find.text('Catalogue local des capacités du projet.'),
+        findsOneWidget,
+      );
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is MacosIconButton &&
+              (widget.semanticLabel == 'Hide right panel' ||
+                  widget.semanticLabel == 'Show right panel'),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('renders the Items catalogs workspace shell', (tester) async {
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/editor_shell_items_catalogs',
+          project: buildShellChromeProject(),
+          workspaceMode: EditorWorkspaceMode.pokedex,
+          pokemonCatalogSection: PokemonCatalogSection.items,
+        ),
+        overrides: [
+          pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
+            (_) async => const PokemonItemsCatalogView(
+              entries: <PokemonItemCatalogEntryView>[
+                PokemonItemCatalogEntryView(
+                  id: 'poke-ball',
+                  name: 'Poké Ball',
+                  categoryId: 'standard-balls',
+                  pocketId: 'poke-balls',
+                  cost: 200,
+                ),
+              ],
+              isAvailable: true,
+              description: 'Catalogue local des objets du projet.',
+            ),
+          ),
+          pokedexEntryLoaderProvider.overrideWithValue(
+            (_) async => const <PokemonDatabaseIndexEntry>[],
+          ),
+        ],
+      );
+
+      expect(find.text('Catalogues Pokémon'), findsWidgets);
+      expect(find.byKey(const Key('pokemon-catalogs-tabs')), findsNothing);
+      expect(find.text('Items'), findsWidgets);
+      expect(
+        find.text('Catalogue local des objets du projet.'),
         findsOneWidget,
       );
       expect(

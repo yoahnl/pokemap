@@ -64,6 +64,10 @@ void main() {
     expect(find.text('Pokédex'), findsWidgets);
     expect(find.text('Moves'), findsWidgets);
     expect(find.text('Items'), findsWidgets);
+    expect(
+      find.text('Catalogue local des objets du projet'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('ProjectExplorerPanel taps update the active catalog section',
