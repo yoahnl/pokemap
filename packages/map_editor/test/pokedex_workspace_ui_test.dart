@@ -478,7 +478,10 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
 
-    expect(find.byKey(const Key('pokedex-explorer-entry')), findsOneWidget);
+    expect(
+      find.byKey(const Key('pokemon-catalog-entry-pokedex')),
+      findsOneWidget,
+    );
     expect(find.text('Pokédex'), findsWidgets);
     expect(
       find.textContaining('Recherche, import, détail et édition locale'),

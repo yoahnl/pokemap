@@ -20,7 +20,22 @@ class EditorWorkspaceController {
   }
 
   EditorState selectPokedexWorkspace(EditorState current) {
-    return _openWorkspace(current, EditorWorkspaceMode.pokedex);
+    return _openWorkspace(
+      current.copyWith(
+        pokemonCatalogSection: PokemonCatalogSection.pokedex,
+      ),
+      EditorWorkspaceMode.pokedex,
+    );
+  }
+
+  EditorState selectPokemonCatalogSection(
+    EditorState current,
+    PokemonCatalogSection section,
+  ) {
+    return _openWorkspace(
+      current.copyWith(pokemonCatalogSection: section),
+      EditorWorkspaceMode.pokedex,
+    );
   }
 
   EditorState selectTrainerWorkspace(EditorState current) {

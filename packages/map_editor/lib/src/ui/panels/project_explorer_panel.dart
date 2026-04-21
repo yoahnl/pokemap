@@ -278,7 +278,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           expanded: _expandPokedex,
           onToggle: () => setState(() => _expandPokedex = !_expandPokedex),
           expandedHeight: hPokedex,
-          child: _buildPokedexPlaceholderCard(context, snapshot, notifier),
+          child: _buildPokemonCatalogsCard(context, snapshot, notifier),
         ),
         InspectorSectionCard(
           borderRadius: explorerTileRadius,
@@ -385,13 +385,13 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
     );
   }
 
-  Widget _buildPokedexPlaceholderCard(
+  Widget _buildPokemonCatalogsCard(
     BuildContext context,
     EditorProjectExplorerSnapshot snapshot,
     EditorNotifier notifier,
   ) {
-    final selected = snapshot.workspaceMode == EditorWorkspaceMode.pokedex;
-    final subtle = CupertinoColors.placeholderText.resolveFrom(context);
+    final isCatalogsWorkspace =
+        snapshot.workspaceMode == EditorWorkspaceMode.pokedex;
 
     return SingleChildScrollView(
       primary: false,
@@ -400,9 +400,12 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           EditorSidebarListRow(
-            key: const Key('pokedex-explorer-entry'),
-            selected: selected,
-            onTap: notifier.selectPokedexWorkspace,
+            key: const Key('pokemon-catalog-entry-pokedex'),
+            selected: isCatalogsWorkspace &&
+                snapshot.pokemonCatalogSection == PokemonCatalogSection.pokedex,
+            onTap: () => notifier.selectPokemonCatalogSection(
+              PokemonCatalogSection.pokedex,
+            ),
             leading: const MacosIcon(CupertinoIcons.book),
             title: const Text('Pokédex'),
             subtitle: const Text(
@@ -411,17 +414,34 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(height: 10),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 0, 14, 4),
-            child: Text(
-              'Cette entrée ouvre le pôle Catalogues Pokémon du projet. Le sous-espace Pokédex est déjà fonctionnel, tandis que Moves et Items sont préparés comme shells propres pour les prochains lots.',
-              style: TextStyle(
-                color: subtle,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                height: 1.35,
-              ),
+          EditorSidebarListRow(
+            key: const Key('pokemon-catalog-entry-moves'),
+            selected: isCatalogsWorkspace &&
+                snapshot.pokemonCatalogSection == PokemonCatalogSection.moves,
+            onTap: () => notifier.selectPokemonCatalogSection(
+              PokemonCatalogSection.moves,
+            ),
+            leading: const MacosIcon(CupertinoIcons.sparkles),
+            title: const Text('Moves'),
+            subtitle: const Text(
+              'Shell du futur catalogue des capacités',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          EditorSidebarListRow(
+            key: const Key('pokemon-catalog-entry-items'),
+            selected: isCatalogsWorkspace &&
+                snapshot.pokemonCatalogSection == PokemonCatalogSection.items,
+            onTap: () => notifier.selectPokemonCatalogSection(
+              PokemonCatalogSection.items,
+            ),
+            leading: const MacosIcon(CupertinoIcons.cube_box),
+            title: const Text('Items'),
+            subtitle: const Text(
+              'Shell du futur catalogue des objets',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],

@@ -6,11 +6,13 @@ import '../../../application/models/map_history_snapshot.dart';
 import '../../../application/models/terrain_selection_mode.dart';
 import 'models/editor_ui_modes.dart';
 import 'models/editor_workspace_mode.dart';
+import 'models/pokemon_catalog_section.dart';
 import '../tools/editor_tool.dart';
 
 export 'models/editor_state_groups.dart';
 export 'models/editor_ui_modes.dart';
 export 'models/editor_workspace_mode.dart';
+export 'models/pokemon_catalog_section.dart';
 
 part 'editor_state.freezed.dart';
 
@@ -37,6 +39,8 @@ class EditorState with _$EditorState {
     String? projectRootPath,
     ProjectManifest? project,
     @Default(EditorWorkspaceMode.map) EditorWorkspaceMode workspaceMode,
+    @Default(PokemonCatalogSection.pokedex)
+    PokemonCatalogSection pokemonCatalogSection,
 
     // Document map actif
     MapData? activeMap,

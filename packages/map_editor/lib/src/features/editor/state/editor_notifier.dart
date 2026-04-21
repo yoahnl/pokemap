@@ -1353,6 +1353,13 @@ class EditorNotifier extends _$EditorNotifier {
     state = _editorWorkspaceController.selectPokedexWorkspace(state);
   }
 
+  void selectPokemonCatalogSection(PokemonCatalogSection section) {
+    state = _editorWorkspaceController.selectPokemonCatalogSection(
+      state,
+      section,
+    );
+  }
+
   /// Ouvre le workspace central "Trainer Studio".
   ///
   /// Cette navigation reste volontairement minimale :

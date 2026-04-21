@@ -10,11 +10,13 @@ void main() {
       const current = EditorState(
         workspaceMode: EditorWorkspaceMode.map,
         errorMessage: 'Old failure',
+        pokemonCatalogSection: PokemonCatalogSection.items,
       );
 
       final next = controller.selectPokedexWorkspace(current);
 
       expect(next.workspaceMode, EditorWorkspaceMode.pokedex);
+      expect(next.pokemonCatalogSection, PokemonCatalogSection.pokedex);
       expect(next.errorMessage, isNull);
       expect(next.statusMessage, current.statusMessage);
     });
@@ -43,6 +45,23 @@ void main() {
 
       expect(next.projectRootPath, '/tmp/demo');
       expect(next.workspaceMode, EditorWorkspaceMode.dialogue);
+    });
+
+    test('selectPokemonCatalogSection opens the parent workspace and stores the section',
+        () {
+      const current = EditorState(
+        workspaceMode: EditorWorkspaceMode.map,
+        errorMessage: 'Old failure',
+      );
+
+      final next = controller.selectPokemonCatalogSection(
+        current,
+        PokemonCatalogSection.items,
+      );
+
+      expect(next.workspaceMode, EditorWorkspaceMode.pokedex);
+      expect(next.pokemonCatalogSection, PokemonCatalogSection.items);
+      expect(next.errorMessage, isNull);
     });
   });
 }

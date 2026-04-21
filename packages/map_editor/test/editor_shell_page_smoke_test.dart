@@ -111,6 +111,7 @@ void main() {
           projectRootPath: '/tmp/editor_shell_catalogs',
           project: buildShellChromeProject(),
           workspaceMode: EditorWorkspaceMode.pokedex,
+          pokemonCatalogSection: PokemonCatalogSection.moves,
         ),
         overrides: [
           pokedexEntryLoaderProvider.overrideWithValue(
@@ -120,8 +121,12 @@ void main() {
       );
 
       expect(find.text('Catalogues Pokémon'), findsWidgets);
-      expect(find.byKey(const Key('pokemon-catalogs-tabs')), findsOneWidget);
-      expect(find.textContaining('Pokédex est encore vide'), findsOneWidget);
+      expect(find.byKey(const Key('pokemon-catalogs-tabs')), findsNothing);
+      expect(find.text('Moves'), findsWidgets);
+      expect(
+        find.text('Le futur catalogue des capacités du projet vivra ici.'),
+        findsOneWidget,
+      );
       expect(
         find.byWidgetPredicate(
           (widget) =>

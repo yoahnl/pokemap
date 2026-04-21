@@ -82,6 +82,7 @@ void main() {
 
       container.read(editorNotifierProvider.notifier).state = const EditorState(
         workspaceMode: EditorWorkspaceMode.pokedex,
+        pokemonCatalogSection: PokemonCatalogSection.items,
         project: ProjectManifest(
           name: 'demo',
           maps: <ProjectMapEntry>[],
@@ -97,6 +98,7 @@ void main() {
 
       final snapshot = container.read(editorProjectExplorerSnapshotProvider);
       expect(snapshot.workspaceMode, EditorWorkspaceMode.pokedex);
+      expect(snapshot.pokemonCatalogSection, PokemonCatalogSection.items);
       expect(snapshot.activeMapId, 'town');
       expect(snapshot.project?.name, 'demo');
     });

@@ -48,6 +48,7 @@ typedef EditorProjectExplorerSnapshot = ({
   ProjectManifest? project,
   ProjectSettings settings,
   EditorWorkspaceMode workspaceMode,
+  PokemonCatalogSection pokemonCatalogSection,
   ProjectTilesetEntry? selectedTilesetEntry,
   String? activeMapId,
 });
@@ -84,6 +85,14 @@ final editorWorkspaceModeProvider = Provider<EditorWorkspaceMode>((ref) {
 
 final editorProjectManifestProvider = Provider<ProjectManifest?>((ref) {
   return ref.watch(editorNotifierProvider.select((s) => s.project));
+});
+
+final editorPokemonCatalogSectionProvider = Provider<PokemonCatalogSection>((
+  ref,
+) {
+  return ref.watch(
+    editorNotifierProvider.select((s) => s.pokemonCatalogSection),
+  );
 });
 
 final editorProjectRootPathProvider = Provider<String?>((ref) {
@@ -210,6 +219,7 @@ final editorProjectExplorerSnapshotProvider =
         project: project,
         settings: project?.settings ?? const ProjectSettings(),
         workspaceMode: state.workspaceMode,
+        pokemonCatalogSection: state.pokemonCatalogSection,
         selectedTilesetEntry: _resolveSelectedTilesetEntryFromState(state),
         activeMapId: state.activeMap?.id,
       );

@@ -701,7 +701,8 @@ mixin _$EditorState {
 // Session projet / document ouvert
   String? get projectRootPath => throw _privateConstructorUsedError;
   ProjectManifest? get project => throw _privateConstructorUsedError;
-  EditorWorkspaceMode get workspaceMode =>
+  EditorWorkspaceMode get workspaceMode => throw _privateConstructorUsedError;
+  PokemonCatalogSection get pokemonCatalogSection =>
       throw _privateConstructorUsedError; // Document map actif
   MapData? get activeMap => throw _privateConstructorUsedError;
   String? get activeMapPath =>
@@ -792,6 +793,7 @@ abstract class $EditorStateCopyWith<$Res> {
       {String? projectRootPath,
       ProjectManifest? project,
       EditorWorkspaceMode workspaceMode,
+      PokemonCatalogSection pokemonCatalogSection,
       MapData? activeMap,
       String? activeMapPath,
       EditorToolType activeTool,
@@ -860,6 +862,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? projectRootPath = freezed,
     Object? project = freezed,
     Object? workspaceMode = null,
+    Object? pokemonCatalogSection = null,
     Object? activeMap = freezed,
     Object? activeMapPath = freezed,
     Object? activeTool = null,
@@ -914,6 +917,10 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
           ? _value.workspaceMode
           : workspaceMode // ignore: cast_nullable_to_non_nullable
               as EditorWorkspaceMode,
+      pokemonCatalogSection: null == pokemonCatalogSection
+          ? _value.pokemonCatalogSection
+          : pokemonCatalogSection // ignore: cast_nullable_to_non_nullable
+              as PokemonCatalogSection,
       activeMap: freezed == activeMap
           ? _value.activeMap
           : activeMap // ignore: cast_nullable_to_non_nullable
@@ -1185,6 +1192,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       {String? projectRootPath,
       ProjectManifest? project,
       EditorWorkspaceMode workspaceMode,
+      PokemonCatalogSection pokemonCatalogSection,
       MapData? activeMap,
       String? activeMapPath,
       EditorToolType activeTool,
@@ -1258,6 +1266,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? projectRootPath = freezed,
     Object? project = freezed,
     Object? workspaceMode = null,
+    Object? pokemonCatalogSection = null,
     Object? activeMap = freezed,
     Object? activeMapPath = freezed,
     Object? activeTool = null,
@@ -1312,6 +1321,10 @@ class __$$EditorStateImplCopyWithImpl<$Res>
           ? _value.workspaceMode
           : workspaceMode // ignore: cast_nullable_to_non_nullable
               as EditorWorkspaceMode,
+      pokemonCatalogSection: null == pokemonCatalogSection
+          ? _value.pokemonCatalogSection
+          : pokemonCatalogSection // ignore: cast_nullable_to_non_nullable
+              as PokemonCatalogSection,
       activeMap: freezed == activeMap
           ? _value.activeMap
           : activeMap // ignore: cast_nullable_to_non_nullable
@@ -1484,6 +1497,7 @@ class _$EditorStateImpl implements _EditorState {
       {this.projectRootPath,
       this.project,
       this.workspaceMode = EditorWorkspaceMode.map,
+      this.pokemonCatalogSection = PokemonCatalogSection.pokedex,
       this.activeMap,
       this.activeMapPath,
       this.activeTool = EditorToolType.selection,
@@ -1536,6 +1550,9 @@ class _$EditorStateImpl implements _EditorState {
   @override
   @JsonKey()
   final EditorWorkspaceMode workspaceMode;
+  @override
+  @JsonKey()
+  final PokemonCatalogSection pokemonCatalogSection;
 // Document map actif
   @override
   final MapData? activeMap;
@@ -1678,7 +1695,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, npcWaypointPlacementEntityId: $npcWaypointPlacementEntityId, selectedMapEventId: $selectedMapEventId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, tilesElementsPanelMode: $tilesElementsPanelMode, selectedPlacedElementInstanceId: $selectedPlacedElementInstanceId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, pokemonCatalogSection: $pokemonCatalogSection, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, npcWaypointPlacementEntityId: $npcWaypointPlacementEntityId, selectedMapEventId: $selectedMapEventId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, tilesElementsPanelMode: $tilesElementsPanelMode, selectedPlacedElementInstanceId: $selectedPlacedElementInstanceId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -1691,6 +1708,8 @@ class _$EditorStateImpl implements _EditorState {
             (identical(other.project, project) || other.project == project) &&
             (identical(other.workspaceMode, workspaceMode) ||
                 other.workspaceMode == workspaceMode) &&
+            (identical(other.pokemonCatalogSection, pokemonCatalogSection) ||
+                other.pokemonCatalogSection == pokemonCatalogSection) &&
             (identical(other.activeMap, activeMap) ||
                 other.activeMap == activeMap) &&
             (identical(other.activeMapPath, activeMapPath) ||
@@ -1770,6 +1789,7 @@ class _$EditorStateImpl implements _EditorState {
         projectRootPath,
         project,
         workspaceMode,
+        pokemonCatalogSection,
         activeMap,
         activeMapPath,
         activeTool,
@@ -1826,6 +1846,7 @@ abstract class _EditorState implements EditorState {
       {final String? projectRootPath,
       final ProjectManifest? project,
       final EditorWorkspaceMode workspaceMode,
+      final PokemonCatalogSection pokemonCatalogSection,
       final MapData? activeMap,
       final String? activeMapPath,
       final EditorToolType activeTool,
@@ -1873,7 +1894,9 @@ abstract class _EditorState implements EditorState {
   @override
   ProjectManifest? get project;
   @override
-  EditorWorkspaceMode get workspaceMode; // Document map actif
+  EditorWorkspaceMode get workspaceMode;
+  @override
+  PokemonCatalogSection get pokemonCatalogSection; // Document map actif
   @override
   MapData? get activeMap;
   @override
