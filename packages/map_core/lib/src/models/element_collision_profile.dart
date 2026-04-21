@@ -10,11 +10,29 @@ part 'element_collision_profile.freezed.dart';
 part 'element_collision_profile.g.dart';
 
 @freezed
+class ElementCollisionPixelMask with _$ElementCollisionPixelMask {
+  @JsonSerializable(explicitToJson: true)
+  const factory ElementCollisionPixelMask({
+    required int widthPx,
+    required int heightPx,
+    @Default(ElementCollisionMaskEncoding.packedBitsV1)
+    ElementCollisionMaskEncoding encoding,
+    @Default('') String dataBase64,
+  }) = _ElementCollisionPixelMask;
+
+  factory ElementCollisionPixelMask.fromJson(Map<String, dynamic> json) =>
+      _$ElementCollisionPixelMaskFromJson(json);
+}
+
+@freezed
 class ElementCollisionProfile with _$ElementCollisionProfile {
   @JsonSerializable(explicitToJson: true)
   const factory ElementCollisionProfile({
     @Default(ElementCollisionProfileSource.generated)
     ElementCollisionProfileSource source,
+    ElementCollisionPixelMask? visualMask,
+    @JsonKey(name: 'pixelMask') ElementCollisionPixelMask? collisionMask,
+    ElementCollisionPixelMask? occlusionMask,
     @Default(WarpTriggerPadding()) WarpTriggerPadding padding,
     // Authoring base when `source == manual`.
     //

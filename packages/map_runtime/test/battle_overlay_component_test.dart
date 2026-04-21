@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:flame/components.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
-import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_gameplay/src/direction.dart';
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/runtime_map_bundle.dart';
 import 'package:map_runtime/src/presentation/flame/battle_background_resolver.dart';
@@ -1129,8 +1129,7 @@ void main() {
       expect(pickedChoice, isNull);
     });
 
-    test(
-        'selecting a capture-capable poke ball does not apply capture in lot 9a',
+    test('selecting a capture-capable poke ball dispatches PlayerBattleChoiceCapture',
         () async {
       PlayerBattleChoice? pickedChoice;
       final session = _session(
@@ -1166,14 +1165,96 @@ void main() {
       expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
 
       expect(overlay.validateSelectedChoice(), isTrue);
-      expect(pickedChoice, isNull);
       expect(
-        overlay.currentPromptText,
-        equals('L’utilisation des objets sera branchée au prochain lot.'),
+        pickedChoice,
+        isA<PlayerBattleChoiceCapture>(),
+      );
+      expect(session.state.outcome, isNull);
+      expect(
+        _gameState(
+          bag: Bag(
+            entries: <BagEntry>[
+              _bagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
+            ],
+          ),
+        ).bag.entries.single.quantity,
+        equals(1),
       );
       expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
       expect(overlay.getSelectedChoice(), isNull);
-      expect(session.state.outcome, isNull);
+    });
+
+    test('selecting disabled poke ball in trainer battle does not dispatch capture',
+        () async {
+      PlayerBattleChoice? pickedChoice;
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          enemy: _combatant(
+            speciesId: 'trainer_enemy',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          isTrainerBattle: true,
+        ),
+        gameState: _gameState(
+          bag: Bag(
+            entries: <BagEntry>[
+              _bagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+            ],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (choice) => pickedChoice = choice,
+      );
+
+      await overlay.onLoad();
+
+      overlay.moveSelectionRight();
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+      expect(overlay.validateSelectedChoice(), isFalse);
+      expect(pickedChoice, isNull);
+    });
+
+    test('selecting medicine from battle bag does not dispatch a battle choice',
+        () async {
+      PlayerBattleChoice? pickedChoice;
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          enemy: _combatant(
+            speciesId: 'wild_enemy',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ),
+        gameState: _gameState(
+          bag: Bag(
+            entries: <BagEntry>[
+              _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+            ],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (choice) => pickedChoice = choice,
+      );
+
+      await overlay.onLoad();
+
+      overlay.moveSelectionRight();
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+      expect(overlay.validateSelectedChoice(), isFalse);
+      expect(pickedChoice, isNull);
     });
 
     test('updateState refreshes bag menu source', () async {

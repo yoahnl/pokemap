@@ -23,9 +23,29 @@ mixin _$ScenarioAsset {
   String get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
   String get description => throw _privateConstructorUsedError;
+
+  /// Couche fonctionnelle du scénario:
+  /// - globalStory: progression centrale
+  /// - localEventFlow: hooks monde locaux
+  ///
+  /// Cette séparation explicite est la base du modèle story-centric.
   ScenarioScope get scope => throw _privateConstructorUsedError;
   String get entryNodeId => throw _privateConstructorUsedError;
+
+  /// Liste d'outcomes "métier" déclarés par ce scénario.
+  ///
+  /// Exemple:
+  /// - professor_intro.completed
+  /// - starter.selected.fire
+  ///
+  /// Objectif: rendre les transitions locales -> globales explicites.
   List<String> get declaredOutcomes => throw _privateConstructorUsedError;
+
+  /// Gating optionnel du scénario.
+  ///
+  /// Si défini, le runtime n'activera ce scénario que lorsque la condition
+  /// est vraie. Permet au graphe global de piloter l'activation des flows
+  /// locaux sans dupliquer les règles partout.
   ScriptCondition? get activationCondition =>
       throw _privateConstructorUsedError;
   List<ScenarioNode> get nodes => throw _privateConstructorUsedError;
@@ -271,12 +291,34 @@ class _$ScenarioAssetImpl implements _ScenarioAsset {
   @override
   @JsonKey()
   final String description;
+
+  /// Couche fonctionnelle du scénario:
+  /// - globalStory: progression centrale
+  /// - localEventFlow: hooks monde locaux
+  ///
+  /// Cette séparation explicite est la base du modèle story-centric.
   @override
   @JsonKey()
   final ScenarioScope scope;
   @override
   final String entryNodeId;
+
+  /// Liste d'outcomes "métier" déclarés par ce scénario.
+  ///
+  /// Exemple:
+  /// - professor_intro.completed
+  /// - starter.selected.fire
+  ///
+  /// Objectif: rendre les transitions locales -> globales explicites.
   final List<String> _declaredOutcomes;
+
+  /// Liste d'outcomes "métier" déclarés par ce scénario.
+  ///
+  /// Exemple:
+  /// - professor_intro.completed
+  /// - starter.selected.fire
+  ///
+  /// Objectif: rendre les transitions locales -> globales explicites.
   @override
   @JsonKey()
   List<String> get declaredOutcomes {
@@ -286,6 +328,11 @@ class _$ScenarioAssetImpl implements _ScenarioAsset {
     return EqualUnmodifiableListView(_declaredOutcomes);
   }
 
+  /// Gating optionnel du scénario.
+  ///
+  /// Si défini, le runtime n'activera ce scénario que lorsque la condition
+  /// est vraie. Permet au graphe global de piloter l'activation des flows
+  /// locaux sans dupliquer les règles partout.
   @override
   final ScriptCondition? activationCondition;
   final List<ScenarioNode> _nodes;
@@ -394,12 +441,32 @@ abstract class _ScenarioAsset implements ScenarioAsset {
   String get name;
   @override
   String get description;
+
+  /// Couche fonctionnelle du scénario:
+  /// - globalStory: progression centrale
+  /// - localEventFlow: hooks monde locaux
+  ///
+  /// Cette séparation explicite est la base du modèle story-centric.
   @override
   ScenarioScope get scope;
   @override
   String get entryNodeId;
+
+  /// Liste d'outcomes "métier" déclarés par ce scénario.
+  ///
+  /// Exemple:
+  /// - professor_intro.completed
+  /// - starter.selected.fire
+  ///
+  /// Objectif: rendre les transitions locales -> globales explicites.
   @override
   List<String> get declaredOutcomes;
+
+  /// Gating optionnel du scénario.
+  ///
+  /// Si défini, le runtime n'activera ce scénario que lorsque la condition
+  /// est vraie. Permet au graphe global de piloter l'activation des flows
+  /// locaux sans dupliquer les règles partout.
   @override
   ScriptCondition? get activationCondition;
   @override
@@ -960,6 +1027,12 @@ mixin _$ScenarioNodeBinding {
   String? get trainerId => throw _privateConstructorUsedError;
   String? get dialogueId => throw _privateConstructorUsedError;
   String? get scriptId => throw _privateConstructorUsedError;
+
+  /// Identifiant d'outcome explicite.
+  ///
+  /// Utilisé notamment par:
+  /// - sourceOutcome (consommation côté global)
+  /// - emitOutcome (production côté local)
   String? get outcomeId => throw _privateConstructorUsedError;
   String? get flagName => throw _privateConstructorUsedError;
   String? get variableName => throw _privateConstructorUsedError;
@@ -1201,6 +1274,12 @@ class _$ScenarioNodeBindingImpl implements _ScenarioNodeBinding {
   final String? dialogueId;
   @override
   final String? scriptId;
+
+  /// Identifiant d'outcome explicite.
+  ///
+  /// Utilisé notamment par:
+  /// - sourceOutcome (consommation côté global)
+  /// - emitOutcome (production côté local)
   @override
   final String? outcomeId;
   @override
@@ -1305,6 +1384,12 @@ abstract class _ScenarioNodeBinding implements ScenarioNodeBinding {
   String? get dialogueId;
   @override
   String? get scriptId;
+
+  /// Identifiant d'outcome explicite.
+  ///
+  /// Utilisé notamment par:
+  /// - sourceOutcome (consommation côté global)
+  /// - emitOutcome (production côté local)
   @override
   String? get outcomeId;
   @override

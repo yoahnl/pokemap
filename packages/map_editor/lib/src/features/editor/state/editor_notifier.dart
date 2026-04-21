@@ -19,7 +19,6 @@ import '../../../application/models/path_autotile_set.dart';
 import '../../../application/ports/project_workspace.dart';
 import '../../../application/services/editor_map_session_coordinator.dart';
 import '../../../application/services/editor_map_mutation_coordinator.dart';
-import '../../../application/collision_generation/placed_element_collision_params.dart';
 import '../../../application/services/element_collision_profile_generator.dart';
 import '../../../application/services/entity_editing_service.dart';
 import '../../../application/services/gameplay_zone_editing_service.dart';
@@ -1952,9 +1951,8 @@ class EditorNotifier extends _$EditorNotifier {
   Future<ElementCollisionProfile?> generateElementCollisionProfile({
     required String tilesetId,
     required TilesetSourceRect source,
+    ElementPresetKind presetKind = ElementPresetKind.generic,
     WarpTriggerPadding padding = const WarpTriggerPadding(),
-    PlacedElementCollisionGenerationParams params =
-        PlacedElementCollisionGenerationParams.defaults,
   }) async {
     final project = state.project;
     if (project == null) {
@@ -1972,8 +1970,8 @@ class EditorNotifier extends _$EditorNotifier {
         source: source,
         tileWidth: project.settings.tileWidth,
         tileHeight: project.settings.tileHeight,
+        presetKind: presetKind,
         padding: padding,
-        params: params,
       );
       state = state.copyWith(
         statusMessage:

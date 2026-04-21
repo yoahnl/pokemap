@@ -920,6 +920,12 @@ class BattleOverlayComponent extends PositionComponent {
     if (!entry.isSelectable) {
       return;
     }
+    final action = entry.action;
+    if (action case BattleBagMenuActionCapture(:final playerChoice)) {
+      _bagFeedbackMessage = null;
+      onPlayerChoice(playerChoice);
+      return;
+    }
     _bagFeedbackMessage =
         'L’utilisation des objets sera branchée au prochain lot.';
     _syncPanelsOnly();

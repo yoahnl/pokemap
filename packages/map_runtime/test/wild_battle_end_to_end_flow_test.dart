@@ -2,15 +2,20 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/encounter_to_battle_request.dart';
 import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 import 'package:map_runtime/src/application/runtime_battle_setup_mapper.dart';
 import 'package:map_runtime/src/application/runtime_map_bundle.dart';
+import 'package:map_runtime/src/presentation/flame/battle_command_menu_model.dart';
+import 'package:map_runtime/src/presentation/flame/battle_command_panel_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
@@ -316,6 +321,203 @@ void main() {
       expect(updatedState.progression.seenSpeciesIds, contains('sparkitten'));
       expect(updatedState.progression.caughtSpeciesIds, contains('sparkitten'));
       expect(updatedState.storyFlags.activeFlags, isEmpty);
+    });
+
+    test('wild battle can capture from BAG poke ball and return to overworld',
+        () async {
+      final manifest = await _writeProjectManifest(tempProjectRoot);
+      final map = _buildMap();
+      final world = GameplayWorldState.fromMap(
+        map,
+        project: manifest,
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+      final movedWorld = stepGameplayWorld(
+        world,
+        const MoveIntent(Direction.east),
+      ).world;
+      final encounter = checkEncounterAtPlayerPosition(
+        world: movedWorld,
+        project: manifest,
+        encounterKind: EncounterKind.walk,
+        random: _FixedEncounterRandom(
+          nextDoubleValues: const <double>[0.0],
+          nextIntValues: const <int>[0, 0],
+        ),
+        policy: const GameplayEncounterPolicy(chancePerStep: 1),
+      ).encounter!;
+      final request = buildBattleStartRequestFromEncounter(
+        encounter: encounter,
+        world: movedWorld,
+        createdAtEpochMs: 1,
+      );
+
+      final initialState = _playerState();
+      final setup = await mapper.map(
+        bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+        gameState: initialState,
+        request: request,
+      );
+      final stateWithSeen = markSpeciesSeenInGameState(
+        initialState,
+        setup.enemyPokemon.speciesId,
+      );
+      final session = createBattleSession(setup);
+
+      PlayerBattleChoice? pickedChoice;
+      final overlay = BattleOverlayComponent(
+        session: session,
+        gameState: stateWithSeen,
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (choice) => pickedChoice = choice,
+      );
+
+      await overlay.onLoad();
+
+      overlay.moveSelectionRight();
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(pickedChoice, isA<PlayerBattleChoiceCapture>());
+
+      final outcome = session.applyChoice(pickedChoice!).state.outcome!;
+      expect(outcome.isCaptured, isTrue);
+
+      final game = PlayableMapGame(
+        bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+        projectFilePath: p.join(tempProjectRoot.path, 'project.json'),
+        saveData: saveDataFromGameState(stateWithSeen),
+      );
+      game.onGameResize(Vector2(640, 480));
+      await game.onLoad();
+
+      game.debugApplyBattleOutcomeForTest(
+        context: RuntimeActiveBattleContext(
+          request: request,
+          playerPartyIndex: 0,
+        ),
+        outcome: outcome,
+      );
+
+      final snapshot = game.gameStateSnapshot;
+      expect(game.debugFlowPhaseName, equals('overworld'));
+      expect(snapshot.party.members, hasLength(2));
+      expect(snapshot.party.members.last.speciesId, equals('sparkitten'));
+      expect(
+        snapshot.bag.entries,
+        equals(
+          const <BagEntry>[
+            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 1),
+          ],
+        ),
+      );
+      expect(snapshot.progression.caughtSpeciesIds, contains('sparkitten'));
+    });
+
+    test('wild battle BAG capture does not work when party is full', () async {
+      final manifest = await _writeProjectManifest(tempProjectRoot);
+      final map = _buildMap();
+      final world = GameplayWorldState.fromMap(
+        map,
+        project: manifest,
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+      final movedWorld = stepGameplayWorld(
+        world,
+        const MoveIntent(Direction.east),
+      ).world;
+      final encounter = checkEncounterAtPlayerPosition(
+        world: movedWorld,
+        project: manifest,
+        encounterKind: EncounterKind.walk,
+        random: _FixedEncounterRandom(
+          nextDoubleValues: const <double>[0.0],
+          nextIntValues: const <int>[0, 0],
+        ),
+        policy: const GameplayEncounterPolicy(chancePerStep: 1),
+      ).encounter!;
+      final request = buildBattleStartRequestFromEncounter(
+        encounter: encounter,
+        world: movedWorld,
+        createdAtEpochMs: 1,
+      );
+
+      final fullPartyState = _playerState().copyWith(
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            ..._playerState().party.members,
+            const PlayerPokemon(
+              speciesId: 'party_2',
+              natureId: 'hardy',
+              abilityId: 'pressure',
+              level: 10,
+              knownMoveIds: <String>['growl'],
+              currentHp: 10,
+            ),
+            const PlayerPokemon(
+              speciesId: 'party_3',
+              natureId: 'hardy',
+              abilityId: 'pressure',
+              level: 10,
+              knownMoveIds: <String>['growl'],
+              currentHp: 10,
+            ),
+            const PlayerPokemon(
+              speciesId: 'party_4',
+              natureId: 'hardy',
+              abilityId: 'pressure',
+              level: 10,
+              knownMoveIds: <String>['growl'],
+              currentHp: 10,
+            ),
+            const PlayerPokemon(
+              speciesId: 'party_5',
+              natureId: 'hardy',
+              abilityId: 'pressure',
+              level: 10,
+              knownMoveIds: <String>['growl'],
+              currentHp: 10,
+            ),
+            const PlayerPokemon(
+              speciesId: 'party_6',
+              natureId: 'hardy',
+              abilityId: 'pressure',
+              level: 10,
+              knownMoveIds: <String>['growl'],
+              currentHp: 10,
+            ),
+          ],
+        ),
+      );
+
+      final setup = await mapper.map(
+        bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+        gameState: fullPartyState,
+        request: request,
+      );
+
+      expect(setup.allowCapture, isFalse);
+
+      PlayerBattleChoice? pickedChoice;
+      final overlay = BattleOverlayComponent(
+        session: createBattleSession(setup),
+        gameState: fullPartyState,
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (choice) => pickedChoice = choice,
+      );
+
+      await overlay.onLoad();
+
+      overlay.moveSelectionRight();
+      expect(overlay.validateSelectedChoice(), isTrue);
+      final commandPanel =
+          overlay.children.whereType<BattleCommandPanelComponent>().single;
+      expect(commandPanel.currentBagEntryLabels, const <String>['Poké Ball x2']);
+      expect(commandPanel.currentBagStatusLabels, const <String>['Party full']);
+      expect(overlay.validateSelectedChoice(), isFalse);
+      expect(pickedChoice, isNull);
     });
   });
 }
