@@ -37,10 +37,12 @@ const _runtimeCapturePokeBallCategoryId = 'items';
 /// - il garde seulement l'orchestration de haut niveau, la politique de
 ///   capture et les sélections exactes qui appartiennent encore au runtime.
 class RuntimeBattleSetupMapper {
-  const RuntimeBattleSetupMapper({
-    this.moveCatalogLoader = const RuntimeMoveCatalogLoader(),
-    this.combatantSeedBuilder = const RuntimeBattleCombatantSeedBuilder(),
-  });
+  RuntimeBattleSetupMapper({
+    RuntimeMoveCatalogLoader? moveCatalogLoader,
+    RuntimeBattleCombatantSeedBuilder? combatantSeedBuilder,
+  })  : moveCatalogLoader = moveCatalogLoader ?? RuntimeMoveCatalogLoader(),
+        combatantSeedBuilder =
+            combatantSeedBuilder ?? RuntimeBattleCombatantSeedBuilder();
 
   final RuntimeMoveCatalogLoader moveCatalogLoader;
   final RuntimeBattleCombatantSeedBuilder combatantSeedBuilder;

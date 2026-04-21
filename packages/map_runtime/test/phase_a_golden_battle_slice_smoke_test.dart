@@ -18,7 +18,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('Phase A golden battle-ready slice smoke', () {
-    const mapper = RuntimeBattleSetupMapper();
+    final mapper = RuntimeBattleSetupMapper();
     const backgroundResolver = BattleBackgroundResolver();
 
     test('the versioned golden slice starts a real wild battle', () async {

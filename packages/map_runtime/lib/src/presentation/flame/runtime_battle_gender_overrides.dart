@@ -11,8 +11,10 @@ Future<BattleCombatantGenderResolver> buildRuntimeBattleGenderResolver({
   required GameState gameState,
   required BattleStartRequest request,
   required RuntimePlayerBattleLineupSelection playerLineup,
-  RuntimePokemonSpeciesLoader speciesLoader = const RuntimePokemonSpeciesLoader(),
+  RuntimePokemonSpeciesLoader? speciesLoader,
 }) async {
+  final effectiveSpeciesLoader =
+      speciesLoader ?? RuntimePokemonSpeciesLoader();
   final playerGenderIdsByIndex = <int, String>{};
   for (final entry in playerLineup.lineupPartyIndices.asMap().entries) {
     final lineupIndex = entry.key;
@@ -21,10 +23,10 @@ Future<BattleCombatantGenderResolver> buildRuntimeBattleGenderResolver({
       continue;
     }
     final resolvedGenderId = await _resolvePlayerPartyGenderId(
-      bundle: bundle,
-      speciesLoader: speciesLoader,
-      playerPokemon: gameState.party.members[partyIndex],
-    );
+        bundle: bundle,
+        speciesLoader: effectiveSpeciesLoader,
+        playerPokemon: gameState.party.members[partyIndex],
+      );
     if (resolvedGenderId != null) {
       playerGenderIdsByIndex[lineupIndex] = resolvedGenderId;
     }
@@ -33,12 +35,12 @@ Future<BattleCombatantGenderResolver> buildRuntimeBattleGenderResolver({
   final enemyGenderIdsByIndex = switch (request) {
     WildBattleStartRequest() => await _buildWildEnemyGenderIdsByIndex(
         bundle: bundle,
-        speciesLoader: speciesLoader,
+        speciesLoader: effectiveSpeciesLoader,
         request: request,
       ),
     TrainerBattleStartRequest() => await _buildTrainerEnemyGenderIdsByIndex(
         bundle: bundle,
-        speciesLoader: speciesLoader,
+        speciesLoader: effectiveSpeciesLoader,
         request: request,
       ),
   };

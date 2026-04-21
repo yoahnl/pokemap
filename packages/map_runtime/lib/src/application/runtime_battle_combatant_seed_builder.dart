@@ -171,11 +171,12 @@ String _formatDebugStringList(List<String> values) {
 /// - il ne modifie pas le contrat `BattleSetup` ;
 /// - il ne rouvre pas M8 et n’essaie pas d’exécuter les `effects`.
 class RuntimeBattleCombatantSeedBuilder {
-  const RuntimeBattleCombatantSeedBuilder({
-    this.speciesLoader = const RuntimePokemonSpeciesLoader(),
-    this.learnsetLoader = const RuntimePokemonLearnsetLoader(),
+  RuntimeBattleCombatantSeedBuilder({
+    RuntimePokemonSpeciesLoader? speciesLoader,
+    RuntimePokemonLearnsetLoader? learnsetLoader,
     this.battleMoveBridge = const RuntimeBattleMoveBridge(),
-  });
+  })  : speciesLoader = speciesLoader ?? RuntimePokemonSpeciesLoader(),
+        learnsetLoader = learnsetLoader ?? RuntimePokemonLearnsetLoader();
 
   final RuntimePokemonSpeciesLoader speciesLoader;
   final RuntimePokemonLearnsetLoader learnsetLoader;

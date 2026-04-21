@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -18,7 +19,14 @@ import 'runtime_battle_setup_exception.dart';
 /// - fallback vers `fallbackSpeciesId` si le ref est vide ;
 /// - seules les familles déjà utilisées par le mapper sont exposées.
 class RuntimePokemonLearnsetLoader {
-  const RuntimePokemonLearnsetLoader();
+  RuntimePokemonLearnsetLoader();
+
+  final Map<String, Future<RuntimePokemonLearnset>> _cache =
+      <String, Future<RuntimePokemonLearnset>>{};
+  int _actualReadCount = 0;
+
+  @visibleForTesting
+  int get debugActualReadCount => _actualReadCount;
 
   Future<RuntimePokemonLearnset> loadByRef({
     required String projectRootDirectory,
@@ -42,39 +50,54 @@ class RuntimePokemonLearnsetLoader {
       fallback: 'data/pokemon/learnsets',
     );
     final relativePath = p.join(learnsetsDirectory, '$learnsetId.json');
-    final json = await _readJsonAtProjectRelativePath(
-      projectRootDirectory,
-      relativePath,
-      label: 'Pokemon learnset "$learnsetId"',
-    );
+    final cacheKey =
+        '${p.normalize(projectRootDirectory)}|${p.normalize(relativePath)}';
+    final cached = _cache[cacheKey];
+    if (cached != null) {
+      return cached;
+    }
 
-    final rawLevelUp = (json['levelUp'] as List?) ?? const <Object?>[];
-    return RuntimePokemonLearnset(
-      // On préserve volontairement la tolérance historique :
-      // seules les vraies chaînes sont gardées ici, puis le mapper continuera
-      // à normaliser/dédupliquer les ids plus loin.
-      startingMoves: ((json['startingMoves'] as List?) ?? const <Object?>[])
-          .whereType<String>()
-          .toList(growable: false),
-      relearnMoves: ((json['relearnMoves'] as List?) ?? const <Object?>[])
-          .whereType<String>()
-          .toList(growable: false),
-      // Même choix qu'avant extraction :
-      // - on ignore les entrées levelUp mal formées ;
-      // - on ne change pas cette politique en erreur fatale dans M6 ;
-      // - la sélection par niveau/ordre reste du ressort du mapper.
-      levelUp: rawLevelUp
-          .whereType<Map>()
-          .map((entry) => entry.cast<String, dynamic>())
-          .map(
-            (entry) => RuntimePokemonLevelUpMove(
-              moveId: (entry['moveId'] as String?)?.trim() ?? '',
-              level: (entry['level'] as num?)?.toInt() ?? 0,
-            ),
-          )
-          .where((entry) => entry.moveId.isNotEmpty && entry.level > 0)
-          .toList(growable: false),
-    );
+    Future<RuntimePokemonLearnset> loadLearnset() async {
+      _actualReadCount += 1;
+      final json = await _readJsonAtProjectRelativePath(
+        projectRootDirectory,
+        relativePath,
+        label: 'Pokemon learnset "$learnsetId"',
+      );
+
+      final rawLevelUp = (json['levelUp'] as List?) ?? const <Object?>[];
+      return RuntimePokemonLearnset(
+        startingMoves: ((json['startingMoves'] as List?) ?? const <Object?>[])
+            .whereType<String>()
+            .toList(growable: false),
+        relearnMoves: ((json['relearnMoves'] as List?) ?? const <Object?>[])
+            .whereType<String>()
+            .toList(growable: false),
+        levelUp: rawLevelUp
+            .whereType<Map>()
+            .map((entry) => entry.cast<String, dynamic>())
+            .map(
+              (entry) => RuntimePokemonLevelUpMove(
+                moveId: (entry['moveId'] as String?)?.trim() ?? '',
+                level: (entry['level'] as num?)?.toInt() ?? 0,
+              ),
+            )
+            .where((entry) => entry.moveId.isNotEmpty && entry.level > 0)
+            .toList(growable: false),
+      );
+    }
+
+    final future = loadLearnset();
+    _cache[cacheKey] = future;
+    try {
+      return await future;
+    } catch (_) {
+      final current = _cache[cacheKey];
+      if (identical(current, future)) {
+        _cache.remove(cacheKey);
+      }
+      rethrow;
+    }
   }
 
   Future<Map<String, dynamic>> _readJsonAtProjectRelativePath(

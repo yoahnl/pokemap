@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -20,7 +21,14 @@ import 'runtime_battle_setup_exception.dart';
 /// - construire un index stable par id ;
 /// - échouer explicitement si une entrée est invalide, dupliquée ou absente.
 class RuntimeMoveCatalogLoader {
-  const RuntimeMoveCatalogLoader();
+  RuntimeMoveCatalogLoader();
+
+  final Map<String, Future<RuntimeMoveCatalog>> _cache =
+      <String, Future<RuntimeMoveCatalog>>{};
+  int _actualReadCount = 0;
+
+  @visibleForTesting
+  int get debugActualReadCount => _actualReadCount;
 
   Future<RuntimeMoveCatalog> load({
     required String projectRootDirectory,
@@ -34,73 +42,92 @@ class RuntimeMoveCatalogLoader {
       );
     }
 
-    final json = await _readJsonAtProjectRelativePath(
-      projectRootDirectory,
-      relativePath,
-      label: 'Moves catalog',
-    );
-    final declaredCatalog = (json['catalog'] as String?)?.trim();
-    if (declaredCatalog == null || declaredCatalog.isEmpty) {
-      throw const RuntimeBattleSetupException(
-        'Le catalogue local des attaques est invalide; combat impossible.',
-        debugDetails: 'Moves catalog is missing a non-empty "catalog" field',
-      );
-    }
-    if (declaredCatalog != 'moves') {
-      throw RuntimeBattleSetupException(
-        'Le catalogue local des attaques a une forme inattendue.',
-        debugDetails:
-            'expected catalog="moves", actual catalog="$declaredCatalog"',
-      );
+    final cacheKey =
+        '${p.normalize(projectRootDirectory)}|${p.normalize(relativePath)}';
+    final cached = _cache[cacheKey];
+    if (cached != null) {
+      return cached;
     }
 
-    final rawEntries = json['entries'];
-    if (rawEntries is! List) {
-      throw const RuntimeBattleSetupException(
-        'Le catalogue local des attaques est invalide; combat impossible.',
-        debugDetails: 'Moves catalog "entries" must be a JSON list',
-      );
-    }
+    Future<RuntimeMoveCatalog> loadCatalog() async {
+      _actualReadCount += 1;
 
-    final entriesById = <String, PokemonMove>{};
-    for (var index = 0; index < rawEntries.length; index++) {
-      final rawEntry = rawEntries[index];
-      if (rawEntry is! Map) {
-        throw RuntimeBattleSetupException(
-          'Le catalogue local des attaques contient une entrée invalide.',
-          debugDetails: 'entryIndex=$index is not a JSON object',
+      final json = await _readJsonAtProjectRelativePath(
+        projectRootDirectory,
+        relativePath,
+        label: 'Moves catalog',
+      );
+      final declaredCatalog = (json['catalog'] as String?)?.trim();
+      if (declaredCatalog == null || declaredCatalog.isEmpty) {
+        throw const RuntimeBattleSetupException(
+          'Le catalogue local des attaques est invalide; combat impossible.',
+          debugDetails: 'Moves catalog is missing a non-empty "catalog" field',
         );
       }
-
-      final entry = rawEntry.cast<String, dynamic>();
-      final parsedMove = _parseCanonicalMoveEntry(
-        entry,
-        entryIndex: index,
-      );
-
-      // Le runtime est volontairement plus strict que l'éditeur :
-      // - pas de fallback legacy ;
-      // - pas de "last one wins" sur les ids dupliqués ;
-      // - un catalogue ambigu doit être refusé avant le handoff combat.
-      if (entriesById.containsKey(parsedMove.id)) {
+      if (declaredCatalog != 'moves') {
         throw RuntimeBattleSetupException(
-          'Le catalogue local des attaques contient des ids dupliqués.',
+          'Le catalogue local des attaques a une forme inattendue.',
           debugDetails:
-              'duplicate move id="${parsedMove.id}" at entryIndex=$index',
+              'expected catalog="moves", actual catalog="$declaredCatalog"',
         );
       }
-      entriesById[parsedMove.id] = parsedMove;
-    }
 
-    if (entriesById.isEmpty) {
-      throw const RuntimeBattleSetupException(
-        'Le catalogue local des attaques est vide; combat impossible.',
+      final rawEntries = json['entries'];
+      if (rawEntries is! List) {
+        throw const RuntimeBattleSetupException(
+          'Le catalogue local des attaques est invalide; combat impossible.',
+          debugDetails: 'Moves catalog "entries" must be a JSON list',
+        );
+      }
+
+      final entriesById = <String, PokemonMove>{};
+      for (var index = 0; index < rawEntries.length; index++) {
+        final rawEntry = rawEntries[index];
+        if (rawEntry is! Map) {
+          throw RuntimeBattleSetupException(
+            'Le catalogue local des attaques contient une entrée invalide.',
+            debugDetails: 'entryIndex=$index is not a JSON object',
+          );
+        }
+
+        final entry = rawEntry.cast<String, dynamic>();
+        final parsedMove = _parseCanonicalMoveEntry(
+          entry,
+          entryIndex: index,
+        );
+
+        if (entriesById.containsKey(parsedMove.id)) {
+          throw RuntimeBattleSetupException(
+            'Le catalogue local des attaques contient des ids dupliqués.',
+            debugDetails:
+                'duplicate move id="${parsedMove.id}" at entryIndex=$index',
+          );
+        }
+        entriesById[parsedMove.id] = parsedMove;
+      }
+
+      if (entriesById.isEmpty) {
+        throw const RuntimeBattleSetupException(
+          'Le catalogue local des attaques est vide; combat impossible.',
+        );
+      }
+
+      return RuntimeMoveCatalog._(
+        Map<String, PokemonMove>.unmodifiable(entriesById),
       );
     }
 
-    return RuntimeMoveCatalog._(
-      Map<String, PokemonMove>.unmodifiable(entriesById),
-    );
+    final future = loadCatalog();
+    _cache[cacheKey] = future;
+    try {
+      return await future;
+    } catch (_) {
+      final current = _cache[cacheKey];
+      if (identical(current, future)) {
+        _cache.remove(cacheKey);
+      }
+      rethrow;
+    }
   }
 
   PokemonMove _parseCanonicalMoveEntry(

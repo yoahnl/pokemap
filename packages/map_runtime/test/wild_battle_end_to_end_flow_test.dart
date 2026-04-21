@@ -20,7 +20,7 @@ void main() {
 
   group('wild battle runtime flow lot 11', () {
     late Directory tempProjectRoot;
-    const mapper = RuntimeBattleSetupMapper();
+    final mapper = RuntimeBattleSetupMapper();
 
     setUp(() async {
       tempProjectRoot =

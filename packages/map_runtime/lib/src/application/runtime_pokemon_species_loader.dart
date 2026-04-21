@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
@@ -19,7 +20,14 @@ import 'runtime_battle_setup_exception.dart';
 /// - il ne devient pas un repository Pokémon générique ;
 /// - il lit uniquement les champs dont le runtime battle actuel a besoin.
 class RuntimePokemonSpeciesLoader {
-  const RuntimePokemonSpeciesLoader();
+  RuntimePokemonSpeciesLoader();
+
+  final Map<String, Future<RuntimePokemonSpecies>> _cache =
+      <String, Future<RuntimePokemonSpecies>>{};
+  int _actualReadCount = 0;
+
+  @visibleForTesting
+  int get debugActualReadCount => _actualReadCount;
 
   Future<RuntimePokemonSpecies> loadById({
     required String projectRootDirectory,
@@ -33,68 +41,85 @@ class RuntimePokemonSpeciesLoader {
       );
     }
 
-    final speciesDirectory = Directory(
-      _resolveProjectPath(
-        projectRootDirectory,
-        _normalizeConfiguredRelativePath(
-          pokemonConfig.speciesDir,
-          fallback: 'data/pokemon/species',
-        ),
+    final speciesDirectoryPath = _resolveProjectPath(
+      projectRootDirectory,
+      _normalizeConfiguredRelativePath(
+        pokemonConfig.speciesDir,
+        fallback: 'data/pokemon/species',
       ),
     );
-    if (!await speciesDirectory.exists()) {
-      throw RuntimeBattleSetupException(
-        'Impossible de charger les espèces Pokémon locales pour démarrer le combat.',
-        debugDetails: 'Missing species directory: ${speciesDirectory.path}',
-      );
+    final cacheKey =
+        '${p.normalize(projectRootDirectory)}|${p.normalize(speciesDirectoryPath)}|$normalizedSpeciesId';
+    final cached = _cache[cacheKey];
+    if (cached != null) {
+      return cached;
     }
 
-    RuntimePokemonSpecies? matchedSpecies;
-    String? matchedFilePath;
-
-    // Invariant important préservé depuis le mapper historique :
-    // la résolution se fait par l'id déclaré dans le JSON, pas par le nom
-    // de fichier. On scanne donc les fichiers JSON top-level et on lit leur
-    // `id` réel avant de conclure.
-    await for (final entity in speciesDirectory.list(recursive: false)) {
-      if (entity is! File ||
-          p.extension(entity.path).toLowerCase() != '.json') {
-        continue;
-      }
-
-      final rawJson = await _readJsonFile(
-        entity,
-        label: 'Pokemon species file',
-      );
-      final declaredId = (rawJson['id'] as String?)?.trim() ?? '';
-      if (declaredId != normalizedSpeciesId) {
-        continue;
-      }
-
-      if (matchedSpecies != null) {
+    Future<RuntimePokemonSpecies> loadSpecies() async {
+      _actualReadCount += 1;
+      final speciesDirectory = Directory(speciesDirectoryPath);
+      if (!await speciesDirectory.exists()) {
         throw RuntimeBattleSetupException(
-          'Plusieurs espèces Pokémon locales déclarent le même id; combat impossible.',
-          debugDetails:
-              'speciesId=$normalizedSpeciesId, firstFile=$matchedFilePath, duplicateFile=${entity.path}',
+          'Impossible de charger les espèces Pokémon locales pour démarrer le combat.',
+          debugDetails: 'Missing species directory: ${speciesDirectory.path}',
         );
       }
 
-      matchedSpecies = _parseRuntimeSpecies(
-        rawJson,
-        expectedSpeciesId: normalizedSpeciesId,
-        filePath: entity.path,
-      );
-      matchedFilePath = entity.path;
+      RuntimePokemonSpecies? matchedSpecies;
+      String? matchedFilePath;
+
+      await for (final entity in speciesDirectory.list(recursive: false)) {
+        if (entity is! File ||
+            p.extension(entity.path).toLowerCase() != '.json') {
+          continue;
+        }
+
+        final rawJson = await _readJsonFile(
+          entity,
+          label: 'Pokemon species file',
+        );
+        final declaredId = (rawJson['id'] as String?)?.trim() ?? '';
+        if (declaredId != normalizedSpeciesId) {
+          continue;
+        }
+
+        if (matchedSpecies != null) {
+          throw RuntimeBattleSetupException(
+            'Plusieurs espèces Pokémon locales déclarent le même id; combat impossible.',
+            debugDetails:
+                'speciesId=$normalizedSpeciesId, firstFile=$matchedFilePath, duplicateFile=${entity.path}',
+          );
+        }
+
+        matchedSpecies = _parseRuntimeSpecies(
+          rawJson,
+          expectedSpeciesId: normalizedSpeciesId,
+          filePath: entity.path,
+        );
+        matchedFilePath = entity.path;
+      }
+
+      if (matchedSpecies == null) {
+        throw RuntimeBattleSetupException(
+          'Espèce Pokémon introuvable pour démarrer le combat.',
+          debugDetails: 'speciesId=$speciesId',
+        );
+      }
+
+      return matchedSpecies;
     }
 
-    if (matchedSpecies == null) {
-      throw RuntimeBattleSetupException(
-        'Espèce Pokémon introuvable pour démarrer le combat.',
-        debugDetails: 'speciesId=$speciesId',
-      );
+    final future = loadSpecies();
+    _cache[cacheKey] = future;
+    try {
+      return await future;
+    } catch (_) {
+      final current = _cache[cacheKey];
+      if (identical(current, future)) {
+        _cache.remove(cacheKey);
+      }
+      rethrow;
     }
-
-    return matchedSpecies;
   }
 
   RuntimePokemonSpecies _parseRuntimeSpecies(

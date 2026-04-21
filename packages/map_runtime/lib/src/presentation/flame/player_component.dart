@@ -96,21 +96,32 @@ class PlayerComponent extends PositionComponent {
         position.y + size.y / 2,
       );
 
-  /// Point de pied (ancre profondeur) : centre du bas de la hitbox V1, en monde Flame.
   Vector2 get footPoint {
-    final hit = PlayerCollisionConventionsV1.playerCollisionRectFromSpriteTopLeft(
-      spriteTopLeftPx: _state.playerPositionPx,
-      spriteWidthPx: _state.playerSpriteWidthPx,
-      spriteHeightPx: _state.playerSpriteHeightPx,
-    );
-    final bc = hit.bottomCenterPx;
+    const hitboxWidthPx = PlayerCollisionConventionsV1.playerHitboxWidthPx;
+    final spriteWidthPx = _state.playerSpriteWidthPx;
+    final spriteHeightPx = _state.playerSpriteHeightPx;
+    final leftOffsetPx = (spriteWidthPx - hitboxWidthPx) ~/ 2;
+    final centerOffsetPx = leftOffsetPx + hitboxWidthPx / 2;
     return Vector2(
-      _mapOrigin.x + bc.xPx * _scaleX,
-      _mapOrigin.y + bc.yPx * _scaleY,
+      position.x + centerOffsetPx * _scaleX,
+      position.y + spriteHeightPx * _scaleY,
     );
   }
 
   Vector2 get mapOrigin => _mapOrigin.clone();
+
+  Vector2? get debugActorLocalPosition => _actor?.position.clone();
+
+  void _layoutActor() {
+    final actor = _actor;
+    if (actor == null) {
+      return;
+    }
+    actor.position = Vector2(
+      (size.x - actor.size.x) / 2,
+      size.y - actor.size.y,
+    );
+  }
 
   void _snapToStatePosition() {
     final target = _computeWorldTopLeft(
@@ -118,11 +129,9 @@ class PlayerComponent extends PositionComponent {
       bundle: bundle,
       state: _state,
     );
-    position = Vector2(
-      target.x.roundToDouble(),
-      target.y.roundToDouble(),
-    );
+    position = target;
     size.setFrom(_computeWorldSpriteSize(bundle: bundle, state: _state));
+    _layoutActor();
   }
 
   @override
@@ -139,10 +148,8 @@ class PlayerComponent extends PositionComponent {
         cellHeight: bundle.cellHeight,
         facing: EntityFacing.values.byName(_state.facing.name),
       );
-      final extraWidthTiles = math.max(0, actor.frameWidthTiles - 1);
-      final offsetX = -(extraWidthTiles * bundle.cellWidth) / 2;
-      actor.position = Vector2(offsetX, -actor.footOffsetY);
       _actor = actor;
+      _layoutActor();
       await add(actor);
     }
   }
@@ -159,10 +166,7 @@ class PlayerComponent extends PositionComponent {
         _moveFrom!.x + (_moveTo!.x - _moveFrom!.x) * progress,
         _moveFrom!.y + (_moveTo!.y - _moveFrom!.y) * progress,
       );
-      position = Vector2(
-        next.x.roundToDouble(),
-        next.y.roundToDouble(),
-      );
+      position = next;
       if (_moveRemaining <= 0) {
         position = _moveTo!.clone();
         _moveFrom = null;
@@ -224,7 +228,32 @@ class PlayerComponent extends PositionComponent {
   }) {
     _state = state;
     _stepDurationSeconds = durationSeconds;
+    size.setFrom(_computeWorldSpriteSize(bundle: bundle, state: _state));
+    _layoutActor();
     _moveFrom = position.clone();
+    _moveTo = _computeWorldTopLeft(
+      mapOrigin: _mapOrigin,
+      bundle: bundle,
+      state: state,
+    );
+    _moveRemaining = durationSeconds;
+    _actor?.setMotion(
+      EntityFacing.values.byName(state.facing.name),
+      CharacterAnimationState.walk,
+    );
+  }
+
+  void startVisualStepFromWorldTopLeft(
+    GameplayPlayerState state, {
+    required Vector2 fromWorldTopLeft,
+    double durationSeconds = kDefaultStepSeconds,
+  }) {
+    _state = state;
+    _stepDurationSeconds = durationSeconds;
+    size.setFrom(_computeWorldSpriteSize(bundle: bundle, state: _state));
+    _layoutActor();
+    position = fromWorldTopLeft.clone();
+    _moveFrom = fromWorldTopLeft.clone();
     _moveTo = _computeWorldTopLeft(
       mapOrigin: _mapOrigin,
       bundle: bundle,

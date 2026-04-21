@@ -33,8 +33,12 @@ import '../../application/placed_behavior_runtime_cooldown.dart';
 import '../../application/resolve_dialogue.dart';
 import '../../application/runtime_battle_setup_mapper.dart';
 import '../../application/runtime_battle_outcome_apply.dart';
+import '../../application/runtime_battle_combatant_seed_builder.dart';
 import '../../application/runtime_character_refs.dart';
 import '../../application/runtime_map_bundle.dart';
+import '../../application/runtime_move_catalog_loader.dart';
+import '../../application/runtime_pokemon_learnset_loader.dart';
+import '../../application/runtime_pokemon_species_loader.dart';
 import '../../application/runtime_story_branching.dart';
 import '../../application/scenario_runtime/scenario_runtime_executor.dart';
 import '../../application/scenario_runtime/scenario_runtime_models.dart';
@@ -79,6 +83,14 @@ enum _RuntimeFlowPhase {
   battle,
 }
 
+typedef RuntimeMapBundleLoader = Future<RuntimeMapBundle> Function({
+  required String projectFilePath,
+  required String mapId,
+});
+
+typedef RuntimeTilesetImageLoader = Future<Map<String, RuntimeTilesetImage>>
+    Function(Map<String, String> absolutePathByTilesetId);
+
 class PlayableMapGame extends FlameGame with KeyboardEvents {
   PlayableMapGame({
     required RuntimeMapBundle bundle,
@@ -87,18 +99,24 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     GameSaveRepository? saveRepository,
     this.bundleTransformer,
     this.runtimeCutscenes = const <RuntimeCutsceneAsset>[],
+    RuntimeMapBundleLoader? runtimeMapBundleLoader,
+    RuntimeTilesetImageLoader? runtimeTilesetImageLoader,
   })  : _bundle = bundle,
         _gameState = normalizeLoadedGameState(
           saveData == null
               ? const GameState(saveId: 'default')
               : gameStateFromSaveData(saveData),
         ),
-        _saveRepo = saveRepository ?? FileGameSaveRepository() {
+        _saveRepo = saveRepository ?? FileGameSaveRepository(),
+        _runtimeMapBundleLoader = runtimeMapBundleLoader ?? loadRuntimeMapBundle,
+        _runtimeTilesetImageLoader =
+            runtimeTilesetImageLoader ?? loadTilesetImagesById {
     if (bundleTransformer != null) {
       _bundle = bundleTransformer!(_bundle);
     }
     _saveGameUseCase = SaveGameUseCase(_saveRepo);
     _loadGameUseCase = LoadGameUseCase(_saveRepo);
+    _runtimeBundleByMapId[_bundle.map.id] = _bundle;
   }
 
   final String projectFilePath;
@@ -126,10 +144,30 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final List<OverworldActorComponent> _npcActors = [];
   final Map<String, _LoadedPlayableMap> _loadedMapsById = {};
   final Map<String, Future<_LoadedPlayableMap?>> _loadMapFutureById = {};
+  final RuntimeMapBundleLoader _runtimeMapBundleLoader;
+  final RuntimeTilesetImageLoader _runtimeTilesetImageLoader;
+  final Map<String, RuntimeMapBundle> _runtimeBundleByMapId =
+      <String, RuntimeMapBundle>{};
+  final Map<String, Future<RuntimeMapBundle>> _runtimeBundleFutureByMapId =
+      <String, Future<RuntimeMapBundle>>{};
+  final Map<String, RuntimeTilesetImage> _cachedTilesetImagesByPath =
+      <String, RuntimeTilesetImage>{};
   final math.Random _encounterRandom = math.Random();
   final GridPathfinder _followPathfinder = const GridPathfinder();
-  final RuntimeBattleSetupMapper _battleSetupMapper =
-      const RuntimeBattleSetupMapper();
+  final RuntimeMoveCatalogLoader _battleMoveCatalogLoader =
+      RuntimeMoveCatalogLoader();
+  final RuntimePokemonSpeciesLoader _battleSpeciesLoader =
+      RuntimePokemonSpeciesLoader();
+  final RuntimePokemonLearnsetLoader _battleLearnsetLoader =
+      RuntimePokemonLearnsetLoader();
+  late final RuntimeBattleSetupMapper _battleSetupMapper =
+      RuntimeBattleSetupMapper(
+        moveCatalogLoader: _battleMoveCatalogLoader,
+        combatantSeedBuilder: RuntimeBattleCombatantSeedBuilder(
+          speciesLoader: _battleSpeciesLoader,
+          learnsetLoader: _battleLearnsetLoader,
+        ),
+      );
   final BattleBackgroundResolver _battleBackgroundResolver =
       const BattleBackgroundResolver();
   final PlacedBehaviorCooldownGate _placedBehaviorCooldownGate =
@@ -216,6 +254,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   // Battle system (map_battle integration)
   BattleSession? _battleSession;
   RuntimeActiveBattleContext? _activeBattleContext;
+  _PendingConnectionEntryAnimation? _pendingConnectionEntryAnimation;
 
   // Battle flow hardening
   bool _isBattleResolving =
@@ -315,6 +354,23 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   @visibleForTesting
   Vector2 get debugPlayerWorldTopLeft => _player.position.clone();
+
+  @visibleForTesting
+  Vector2? get debugPlayerActorLocalPosition =>
+      _player.debugActorLocalPosition;
+
+  @visibleForTesting
+  bool debugIsMapLoaded(String mapId) => _loadedMapsById.containsKey(mapId);
+
+  @visibleForTesting
+  Vector2 debugWorldTopLeftForSpawnCell(GridPos cell) {
+    return _worldTopLeftForPlayerSpawnCell(
+      bundle: _bundle,
+      mapOrigin: _player.mapOrigin,
+      cell: cell,
+      playerState: _world.player,
+    );
+  }
 
   @visibleForTesting
   Vector2 get debugExpectedPlayerWorldTopLeft {
@@ -536,6 +592,133 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     return transform(bundle);
   }
 
+  Future<RuntimeMapBundle> _loadRuntimeMapBundleCached(String mapId) async {
+    final cached = _runtimeBundleByMapId[mapId];
+    if (cached != null) {
+      return cached;
+    }
+    final inFlight = _runtimeBundleFutureByMapId[mapId];
+    if (inFlight != null) {
+      return await inFlight;
+    }
+    final future = () async {
+      final loaded = await _runtimeMapBundleLoader(
+        projectFilePath: projectFilePath,
+        mapId: mapId,
+      );
+      final resolved = _resolveRuntimeBundle(loaded);
+      _runtimeBundleByMapId[mapId] = resolved;
+      return resolved;
+    }();
+    _runtimeBundleFutureByMapId[mapId] = future;
+    try {
+      return await future;
+    } finally {
+      final current = _runtimeBundleFutureByMapId[mapId];
+      if (identical(current, future)) {
+        _runtimeBundleFutureByMapId.remove(mapId);
+      }
+    }
+  }
+
+  Future<Map<String, RuntimeTilesetImage>> _loadTilesetImagesCached(
+    Map<String, String> absolutePathByTilesetId,
+  ) async {
+    if (absolutePathByTilesetId.isEmpty) {
+      return const <String, RuntimeTilesetImage>{};
+    }
+    final result = <String, RuntimeTilesetImage>{};
+    final missing = <String, String>{};
+    for (final entry in absolutePathByTilesetId.entries) {
+      final cached = _cachedTilesetImagesByPath[entry.value];
+      if (cached != null) {
+        result[entry.key] = cached;
+      } else {
+        missing[entry.key] = entry.value;
+      }
+    }
+    if (missing.isNotEmpty) {
+      final loaded = await _runtimeTilesetImageLoader(missing);
+      for (final entry in missing.entries) {
+        final image = loaded[entry.key];
+        if (image == null) {
+          continue;
+        }
+        _cachedTilesetImagesByPath[entry.value] = image;
+        result[entry.key] = image;
+      }
+    }
+    return result;
+  }
+
+  Future<T> _traceAsync<T>(
+    String domain,
+    String label,
+    Future<T> Function() action,
+  ) async {
+    final stopwatch = Stopwatch()..start();
+    try {
+      return await action();
+    } finally {
+      stopwatch.stop();
+      debugPrint('[perf][$domain] $label=${stopwatch.elapsedMilliseconds}ms');
+    }
+  }
+
+  T _traceSync<T>(
+    String domain,
+    String label,
+    T Function() action,
+  ) {
+    final stopwatch = Stopwatch()..start();
+    try {
+      return action();
+    } finally {
+      stopwatch.stop();
+      debugPrint('[perf][$domain] $label=${stopwatch.elapsedMilliseconds}ms');
+    }
+  }
+
+  _GridCellPos _connectionEntryStartCell({
+    required GridPos targetPos,
+    required MapConnectionDirection direction,
+  }) {
+    return switch (direction) {
+      MapConnectionDirection.east =>
+        _GridCellPos(x: targetPos.x - 1, y: targetPos.y),
+      MapConnectionDirection.west =>
+        _GridCellPos(x: targetPos.x + 1, y: targetPos.y),
+      MapConnectionDirection.north =>
+        _GridCellPos(x: targetPos.x, y: targetPos.y + 1),
+      MapConnectionDirection.south =>
+        _GridCellPos(x: targetPos.x, y: targetPos.y - 1),
+    };
+  }
+
+  Vector2 _worldTopLeftForPlayerSpawnCell({
+    required RuntimeMapBundle bundle,
+    required Vector2 mapOrigin,
+    required GridPos cell,
+    required GameplayPlayerState playerState,
+  }) {
+    final topLeft = PlayerCollisionConventionsV1.playerSpriteTopLeftFromSpawnCell(
+      cellX: cell.x,
+      cellY: cell.y,
+      tileWidthPx: bundle.manifest.settings.tileWidth,
+      tileHeightPx: bundle.manifest.settings.tileHeight,
+      spriteWidthPx: playerState.playerSpriteWidthPx,
+      spriteHeightPx: playerState.playerSpriteHeightPx,
+    );
+    final scaleX = bundle.cellWidth /
+        math.max(1, bundle.manifest.settings.tileWidth);
+    final scaleY = bundle.cellHeight /
+        math.max(1, bundle.manifest.settings.tileHeight);
+    return Vector2(
+      mapOrigin.x + topLeft.leftPx * scaleX,
+      mapOrigin.y + topLeft.topPx * scaleY,
+    );
+  }
+
   void setPlayerMovementMode(MovementMode movementMode) {
     if (!isLoaded) {
       return;
@@ -745,7 +928,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
     }
     final images =
-        await loadTilesetImagesById(_bundle.tilesetAbsolutePathsById);
+        await _loadTilesetImagesCached(_bundle.tilesetAbsolutePathsById);
     _activeMapId = _bundle.map.id;
     final rootMap = await _mountLoadedMap(
       bundle: _bundle,
@@ -955,6 +1138,25 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _updateActorDepthOrdering();
     _syncCameraToPlayer();
     _syncNpcCollisionDebugOverlay();
+
+    if (_flowPhase == _RuntimeFlowPhase.mapTransition) {
+      final pendingConnectionEntryAnimation = _pendingConnectionEntryAnimation;
+      if (pendingConnectionEntryAnimation != null && !_player.isStepping) {
+        _pendingConnectionEntryAnimation = null;
+        _flowPhase = _RuntimeFlowPhase.overworld;
+        _activeScenarioTriggerIds = _scenarioRuntime.triggerIdsAtPosition(
+          map: _bundle.map,
+          pos: _world.player.pos,
+        );
+        debugPrint(
+          '[connection] transition complete -> map=${pendingConnectionEntryAnimation.mapId} pos=(${_world.player.pos.x}, ${_world.player.pos.y})',
+        );
+        _dispatchScenarioRuntimeSource(
+          ScenarioRuntimeSourceEvent.mapEnter(mapId: _activeMapId),
+        );
+      }
+      return;
+    }
 
     if (_flowPhase != _RuntimeFlowPhase.overworld) {
       return;
@@ -1832,11 +2034,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return;
     }
     try {
-      final loadedBundle = await loadRuntimeMapBundle(
-        projectFilePath: projectFilePath,
-        mapId: request.mapId,
-      );
-      final targetBundle = _resolveRuntimeBundle(loadedBundle);
+      final targetBundle = await _loadRuntimeMapBundleCached(request.mapId);
       MapWarp? targetWarp;
       for (final candidate in targetBundle.map.warps) {
         if (candidate.id == request.warpId) {
@@ -3060,6 +3258,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
+    final battleStopwatch = Stopwatch()..start();
     try {
       // BE10 recadré élargit légèrement cet invariant runtime :
       // - on mémorise toujours le slot actif exact utilisé au handoff ;
@@ -3074,14 +3273,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       // - on évite ainsi le bug classique "recalculer le premier Pokémon
       //   jouable après le combat", qui casserait la cohérence dès qu'un
       //   switch a déplacé l'actif.
-      final playerLineup =
-          _battleSetupMapper.selectPlayerBattleLineup(_gameState.party);
+      final playerLineup = _traceSync(
+        'battle',
+        'selectPlayerBattleLineup',
+        () => _battleSetupMapper.selectPlayerBattleLineup(_gameState.party),
+      );
 
       // Le lot 9 remplace enfin le setup placeholder par un mapping réel
       // depuis la save runtime et les données projet.
-      final setup = await _toBattleSetup(
-        request,
-        playerPartyIndex: playerLineup.activeIndex,
+      final setup = await _traceAsync(
+        'battle',
+        'toBattleSetup',
+        () => _toBattleSetup(
+          request,
+          playerPartyIndex: playerLineup.activeIndex,
+        ),
       );
 
       // Lot 12 pose le premier write runtime honnête du "seen" :
@@ -3092,9 +3298,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       // - une simple case d'herbe ne suffit pas ;
       // - un setup qui échoue ne doit rien écrire ;
       // - aucune capture n'est ouverte ici.
-      _gameState = markSpeciesSeenInGameState(
-        _gameState,
-        setup.enemyPokemon.speciesId,
+      _gameState = _traceSync(
+        'battle',
+        'markSpeciesSeen',
+        () => markSpeciesSeenInGameState(
+          _gameState,
+          setup.enemyPokemon.speciesId,
+        ),
       );
       _flowPhase = _RuntimeFlowPhase.battle;
 
@@ -3109,9 +3319,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
 
       // Créer la session de combat
-      _battleSession = createBattleSession(
-        setup,
-        opponentPolicy: opponentPolicy,
+      _battleSession = _traceSync(
+        'battle',
+        'createSession',
+        () => createBattleSession(
+          setup,
+          opponentPolicy: opponentPolicy,
+        ),
       );
       _activeBattleContext = RuntimeActiveBattleContext(
         request: request,
@@ -3124,32 +3338,47 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       // - on se limite au contexte déjà disponible ici (request + map active) ;
       // - on n'introduit pas encore de resolver contextuel plus large que ce
       //   besoin visible immédiat.
-      final backgroundSpec = _battleBackgroundResolver.resolve(
-        request: request,
-        bundle: _bundle,
+      final backgroundSpec = _traceSync(
+        'battle',
+        'backgroundResolver',
+        () => _battleBackgroundResolver.resolve(
+          request: request,
+          bundle: _bundle,
+        ),
       );
-      final genderResolver = await buildRuntimeBattleGenderResolver(
-        bundle: _bundle,
-        gameState: _gameState,
-        request: request,
-        playerLineup: playerLineup,
+      final genderResolver = await _traceAsync(
+        'battle',
+        'genderResolver',
+        () => buildRuntimeBattleGenderResolver(
+          bundle: _bundle,
+          gameState: _gameState,
+          request: request,
+          playerLineup: playerLineup,
+          speciesLoader: _battleSpeciesLoader,
+        ),
       );
 
       // Afficher l'overlay de combat avec la session
-      final overlay = BattleOverlayComponent(
-        session: _battleSession!,
-        gameState: _gameState,
-        viewportSize: camera.viewport.size,
-        backgroundSpec: backgroundSpec,
-        spriteResolver: BattlePokemonSpriteResolver(
-          manifest: _bundle.manifest,
-          projectRootDirectory: _bundle.projectRootDirectory,
+      final overlay = _traceSync(
+        'battle',
+        'overlay',
+        () => BattleOverlayComponent(
+          session: _battleSession!,
+          gameState: _gameState,
+          viewportSize: camera.viewport.size,
+          backgroundSpec: backgroundSpec,
+          spriteResolver: BattlePokemonSpriteResolver(
+            manifest: _bundle.manifest,
+            projectRootDirectory: _bundle.projectRootDirectory,
+          ),
+          genderResolver: genderResolver,
+          onPlayerChoice: _onPlayerBattleChoice,
         ),
-        genderResolver: genderResolver,
-        onPlayerChoice: _onPlayerBattleChoice,
       );
       camera.viewport.add(overlay);
       _battleOverlay = overlay;
+      battleStopwatch.stop();
+      debugPrint('[perf][battle] total=${battleStopwatch.elapsedMilliseconds}ms');
       debugPrint(
         '[battle] overlay opened requestId=${request.requestId} kind=${request.kind.name}',
       );
@@ -4421,11 +4650,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // 2. Charger newBundle (avec error handling)
     RuntimeMapBundle newBundle;
     try {
-      final loadedBundle = await loadRuntimeMapBundle(
-        projectFilePath: projectFilePath,
-        mapId: loadedState.currentMapId,
-      );
-      newBundle = _resolveRuntimeBundle(loadedBundle);
+      newBundle = await _loadRuntimeMapBundleCached(loadedState.currentMapId);
     } catch (e, st) {
       debugPrint('[load] failed to load map: $e\n$st');
       return false;
@@ -4435,7 +4660,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     Map<String, RuntimeTilesetImage> newImages;
     try {
       newImages =
-          await loadTilesetImagesById(newBundle.tilesetAbsolutePathsById);
+          await _loadTilesetImagesCached(newBundle.tilesetAbsolutePathsById);
     } catch (e, st) {
       debugPrint('[load] failed to load tileset images: $e\n$st');
       return false;
@@ -4650,11 +4875,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint(
         '[warp] start transition warp=${warp.warpId} map=$sourceMapId -> ${warp.targetMapId} target=(${warp.targetPos.x}, ${warp.targetPos.y})',
       );
-      final loadedBundle = await loadRuntimeMapBundle(
-        projectFilePath: projectFilePath,
-        mapId: warp.targetMapId,
+      final warpStopwatch = Stopwatch()..start();
+      final newBundle = await _traceAsync(
+        'warp',
+        'loadBundle',
+        () => _loadRuntimeMapBundleCached(warp.targetMapId),
       );
-      final newBundle = _resolveRuntimeBundle(loadedBundle);
       debugPrint('[warp] target map loaded id=${newBundle.map.id}');
       final transitionSpec = _resolveWarpTransitionSpec(
         sourceMap: sourceBundle.map,
@@ -4671,14 +4897,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           'warp target out of bounds map=${newBundle.map.id} pos=(${warp.targetPos.x}, ${warp.targetPos.y}) size=${newBundle.map.size.width}x${newBundle.map.size.height}',
         );
       }
-      final newWorld = GameplayWorldState.initial(
-        map: newBundle.map,
-        playerPos: warp.targetPos,
-        playerFacing: sourceFacing,
-        project: newBundle.manifest,
-        tileWidth: newBundle.manifest.settings.tileWidth,
-        tileHeight: newBundle.manifest.settings.tileHeight,
-        npcMapPresencePredicate: _npcPresencePredicateFor(newBundle.manifest),
+      final newWorld = _traceSync(
+        'warp',
+        'worldInitial',
+        () => GameplayWorldState.initial(
+          map: newBundle.map,
+          playerPos: warp.targetPos,
+          playerFacing: sourceFacing,
+          project: newBundle.manifest,
+          tileWidth: newBundle.manifest.settings.tileWidth,
+          tileHeight: newBundle.manifest.settings.tileHeight,
+          npcMapPresencePredicate: _npcPresencePredicateFor(newBundle.manifest),
+        ),
       );
       if (newWorld.isBlocked(warp.targetPos.x, warp.targetPos.y)) {
         throw StateError(
@@ -4686,14 +4916,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         );
       }
       debugPrint('[warp] loading target map visuals id=${newBundle.map.id}');
-      final newImages =
-          await loadTilesetImagesById(newBundle.tilesetAbsolutePathsById);
+      final newImages = await _traceAsync(
+        'warp',
+        'loadTilesets',
+        () => _loadTilesetImagesCached(newBundle.tilesetAbsolutePathsById),
+      );
       _unmountAllLoadedMaps();
-      final root = await _mountLoadedMap(
-        bundle: newBundle,
-        tileImagesById: newImages,
-        originCellX: 0,
-        originCellY: 0,
+      final root = await _traceAsync(
+        'warp',
+        'mountMap',
+        () => _mountLoadedMap(
+          bundle: newBundle,
+          tileImagesById: newImages,
+          originCellX: 0,
+          originCellY: 0,
+        ),
       );
       _bundle = newBundle;
       _world = newWorld;
@@ -4708,17 +4945,27 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint(
         '[warp] player placed at map=${newBundle.map.id} pos=(${_world.player.pos.x}, ${_world.player.pos.y})',
       );
-      _configureCameraViewport();
-      _syncCameraToPlayer();
-      _preloadActiveMapConnections();
-      _pruneLoadedMapsToActiveNeighborhood();
-      _refreshWorldNpcPresence();
+      _traceSync('warp', 'configureCamera', () {
+        _configureCameraViewport();
+        _syncCameraToPlayer();
+      });
+      _traceSync('warp', 'preloadConnectionsKickoff', () {
+        _preloadActiveMapConnections();
+      });
+      _traceSync('warp', 'pruneLoadedMaps', () {
+        _pruneLoadedMapsToActiveNeighborhood();
+      });
+      _traceSync('warp', 'refreshWorldNpcPresence', () {
+        _refreshWorldNpcPresence();
+      });
       if (transitionSpec.style == _WarpTransitionStyle.fade) {
         debugPrint(
           '[warp] fade in durationMs=${transitionSpec.fadeIn.inMilliseconds}',
         );
         await overlay.fadeIn(duration: transitionSpec.fadeIn);
       }
+      warpStopwatch.stop();
+      debugPrint('[perf][warp] total=${warpStopwatch.elapsedMilliseconds}ms');
       debugPrint('[warp] transition completed');
     } catch (e, st) {
       debugPrint('[warp] transition failed: $e\n$st');
@@ -4799,11 +5046,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     try {
       _unmountAllLoadedMaps();
-      final loadedFallbackBundle = await loadRuntimeMapBundle(
-        projectFilePath: projectFilePath,
-        mapId: sourceMapId,
-      );
-      final fallbackBundle = _resolveRuntimeBundle(loadedFallbackBundle);
+      final fallbackBundle = await _loadRuntimeMapBundleCached(sourceMapId);
       final fallbackWorld = _buildSafeWorldState(
         map: fallbackBundle.map,
         project: fallbackBundle.manifest,
@@ -4813,7 +5056,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         tileHeight: fallbackBundle.manifest.settings.tileHeight,
       );
       final fallbackImages =
-          await loadTilesetImagesById(fallbackBundle.tilesetAbsolutePathsById);
+          await _loadTilesetImagesCached(fallbackBundle.tilesetAbsolutePathsById);
       final root = await _mountLoadedMap(
         bundle: fallbackBundle,
         tileImagesById: fallbackImages,
@@ -4909,6 +5152,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   Future<void> _handleConnection(TriggeredConnection connection) async {
     _flowPhase = _RuntimeFlowPhase.mapTransition;
     var transitionCompleted = false;
+    final connectionStopwatch = Stopwatch()..start();
     try {
       _clearTransientUiState();
       debugPrint(
@@ -4974,39 +5218,51 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _activeMapId = target.bundle.map.id;
       _resetScriptedNpcMovementController();
       _syncGameStateFromWorld(mapIdOverride: _activeMapId);
-      final fromPx = _player.position.clone();
       final targetOriginPx = _originPixelsOf(target);
-      final toPx = Vector2(
-        targetOriginPx.x + targetPos.x * _cellWidth,
-        targetOriginPx.y + targetPos.y * _cellHeight,
+      final entryStartCell = _connectionEntryStartCell(
+        targetPos: targetPos,
+        direction: connection.direction,
       );
-      debugPrint(
-        '[connection] player step pixels from=(${fromPx.x.toStringAsFixed(1)}, ${fromPx.y.toStringAsFixed(1)}) to=(${toPx.x.toStringAsFixed(1)}, ${toPx.y.toStringAsFixed(1)})',
+      final entryStartTopLeft = _worldTopLeftForPlayerSpawnCell(
+        bundle: target.bundle,
+        mapOrigin: targetOriginPx,
+        cell: GridPos(x: entryStartCell.x, y: entryStartCell.y),
+        playerState: _world.player,
       );
       _player.setMapOrigin(targetOriginPx, snapToGrid: false);
-      _player.startStep(
+      _player.startVisualStepFromWorldTopLeft(
         _world.player,
-        durationSeconds: PlayerComponent.kDefaultStepSeconds,
+        fromWorldTopLeft: entryStartTopLeft,
       );
       _configureCameraViewport();
+      _syncCameraToPlayer();
       final visibleSize = camera.viewfinder.visibleGameSize;
       debugPrint(
         '[connection] camera after transition focus=(${_player.focusPoint.x.toStringAsFixed(1)}, ${_player.focusPoint.y.toStringAsFixed(1)}) viewport=(${(visibleSize?.x ?? 0).toStringAsFixed(1)}, ${(visibleSize?.y ?? 0).toStringAsFixed(1)})',
       );
       debugPrint(
-        '[connection] transition complete -> map=${target.bundle.map.id} pos=(${targetPos.x}, ${targetPos.y})',
+        '[connection] visual entry step direction=${connection.direction.name} fromCell=(${entryStartCell.x},${entryStartCell.y}) toCell=(${targetPos.x},${targetPos.y}) durationMs=${(PlayerComponent.kDefaultStepSeconds * 1000).round()}',
       );
       _preloadActiveMapConnections();
       _pruneLoadedMapsToActiveNeighborhood();
       _refreshWorldNpcPresence();
+      _pendingConnectionEntryAnimation = _PendingConnectionEntryAnimation(
+        mapId: target.bundle.map.id,
+      );
+      connectionStopwatch.stop();
+      debugPrint(
+        '[perf][connection] total=${connectionStopwatch.elapsedMilliseconds}ms',
+      );
       transitionCompleted = true;
     } catch (e, st) {
       debugPrint('[connection] transition failed: $e\n$st');
       _player.syncState(_world.player, snapToGrid: true);
       _showNotification('Connection failed');
     } finally {
-      _flowPhase = _RuntimeFlowPhase.overworld;
-      if (transitionCompleted) {
+      if (!transitionCompleted) {
+        _flowPhase = _RuntimeFlowPhase.overworld;
+      }
+      if (transitionCompleted && _pendingConnectionEntryAnimation == null) {
         _activeScenarioTriggerIds = _scenarioRuntime.triggerIdsAtPosition(
           map: _bundle.map,
           pos: _world.player.pos,
@@ -5021,6 +5277,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   void _clearTransientUiState() {
     _pendingWarp = null;
     _pendingConnection = null;
+    _pendingConnectionEntryAnimation = null;
     // CRITICAL: Do NOT clear _pendingBattleRequest if a battle is active!
     // This would cancel a pending wild encounter battle.
     // Only clear if we're in overworld phase (no battle in progress).
@@ -5337,6 +5594,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         debugPrint(
           '[connection] origin mismatch target=$targetMapId existing=(${existing.originCellX}, ${existing.originCellY}) expected=(${expected.x}, ${expected.y})',
         );
+        return _repositionLoadedMap(
+          existing,
+          originCellX: expected.x,
+          originCellY: expected.y,
+        );
       }
       return existing;
     }
@@ -5347,18 +5609,14 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     Future<_LoadedPlayableMap?> load() async {
       try {
-        final loadedBundle = await loadRuntimeMapBundle(
-          projectFilePath: projectFilePath,
-          mapId: targetMapId,
-        );
-        final bundle = _resolveRuntimeBundle(loadedBundle);
+        final bundle = await _loadRuntimeMapBundleCached(targetMapId);
         final origin = _computeConnectedOriginCells(
           source: source,
           connection: connection,
           targetSize: bundle.map.size,
         );
         final images =
-            await loadTilesetImagesById(bundle.tilesetAbsolutePathsById);
+            await _loadTilesetImagesCached(bundle.tilesetAbsolutePathsById);
         final loaded = await _mountLoadedMap(
           bundle: bundle,
           tileImagesById: images,
@@ -5411,6 +5669,45 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           y: source.originCellY + source.bundle.map.size.height,
         ),
     };
+  }
+
+  _LoadedPlayableMap _repositionLoadedMap(
+    _LoadedPlayableMap loaded, {
+    required int originCellX,
+    required int originCellY,
+  }) {
+    final originPx = _originPixels(
+      originCellX: originCellX,
+      originCellY: originCellY,
+    );
+    loaded.backgroundLayers.position = originPx.clone();
+    loaded.foregroundLayers.position = originPx.clone();
+    for (final entity in loaded.bundle.map.entities) {
+      if (entity.kind != MapEntityKind.npc) {
+        continue;
+      }
+      final actor = loaded.npcActorByEntityId[entity.id];
+      if (actor == null) {
+        continue;
+      }
+      actor.configureGridPlacement(
+        pos: entity.pos,
+        footprint: entity.size,
+        mapOrigin: originPx,
+        snapToGrid: true,
+      );
+    }
+    final updated = _LoadedPlayableMap(
+      bundle: loaded.bundle,
+      originCellX: originCellX,
+      originCellY: originCellY,
+      backgroundLayers: loaded.backgroundLayers,
+      foregroundLayers: loaded.foregroundLayers,
+      npcActors: loaded.npcActors,
+      npcActorByEntityId: loaded.npcActorByEntityId,
+    );
+    _loadedMapsById[loaded.bundle.map.id] = updated;
+    return updated;
   }
 
   void _preloadActiveMapConnections() {
@@ -6093,6 +6390,14 @@ class _GridCellPos {
 
   final int x;
   final int y;
+}
+
+class _PendingConnectionEntryAnimation {
+  _PendingConnectionEntryAnimation({
+    required this.mapId,
+  });
+
+  final String mapId;
 }
 
 class _PendingScenarioFollowRequest {

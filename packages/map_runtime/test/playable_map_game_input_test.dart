@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:ui' show KeyEventDeviceType;
+import 'dart:ui' as ui show Image, KeyEventDeviceType;
 
 import 'package:flame/components.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +8,7 @@ import 'package:flutter/widgets.dart' show KeyEventResult;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
@@ -75,7 +76,7 @@ void main() {
           physicalKey: PhysicalKeyboardKey.enter,
           logicalKey: LogicalKeyboardKey.gameButtonA,
           timeStamp: Duration.zero,
-          deviceType: KeyEventDeviceType.gamepad,
+          deviceType: ui.KeyEventDeviceType.gamepad,
         ),
         const <LogicalKeyboardKey>{},
       );
@@ -84,7 +85,7 @@ void main() {
           physicalKey: PhysicalKeyboardKey.enter,
           logicalKey: LogicalKeyboardKey.gameButtonA,
           timeStamp: Duration.zero,
-          deviceType: KeyEventDeviceType.gamepad,
+          deviceType: ui.KeyEventDeviceType.gamepad,
         ),
         const <LogicalKeyboardKey>{},
       );
@@ -233,6 +234,467 @@ void main() {
       expect(
           game.debugPlayerWorldTopLeft, game.debugExpectedPlayerWorldTopLeft);
     });
+
+    test(
+        'connection transition animates one entry step in target map coordinates',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_connection_trajectory_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        maps: <MapData>[
+          _connectionSourceMap(),
+          _targetMap(id: 'connection_target'),
+        ],
+      );
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'connection_source',
+      );
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.right),
+        ),
+        isTrue,
+      );
+      game.update(0.016);
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.release(RuntimeInputControl.right),
+        ),
+        isTrue,
+      );
+
+      final firstTopLeftAfterSwap = await _captureFirstTopLeftOnMap(
+        game,
+        targetMapId: 'connection_target',
+      );
+
+      expect(firstTopLeftAfterSwap, isNotNull);
+      expect(game.debugFlowPhaseName, 'mapTransition');
+      expect(game.debugIsPlayerStepping, isTrue);
+      expect(
+        firstTopLeftAfterSwap,
+        game.debugWorldTopLeftForSpawnCell(const GridPos(x: -1, y: 0)),
+      );
+
+      final samples = <double>[firstTopLeftAfterSwap!.x];
+      for (var i = 0; i < 3; i++) {
+        game.update(0.016);
+        await Future<void>.delayed(Duration.zero);
+        samples.add(game.debugPlayerWorldTopLeft.x);
+      }
+      expect(samples[1], greaterThan(samples[0]));
+      expect(samples[2], greaterThan(samples[1]));
+      expect(samples[3], greaterThan(samples[2]));
+
+      await _pumpUntil(
+        game,
+        () =>
+            game.gameStateSnapshot.currentMapId == 'connection_target' &&
+            game.debugFlowPhaseName == 'overworld' &&
+            !game.debugIsPlayerStepping,
+      );
+      expect(
+        game.debugPlayerWorldTopLeft,
+        game.debugWorldTopLeftForSpawnCell(const GridPos(x: 0, y: 0)),
+      );
+    });
+
+    test(
+        'warp transition snaps cleanly after fade and does not interpolate across maps',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_warp_trajectory_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        maps: <MapData>[
+          _warpSourceMap(),
+          _targetMap(id: 'warp_target'),
+        ],
+      );
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'warp_source',
+      );
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.right),
+        ),
+        isTrue,
+      );
+      game.update(0.016);
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.release(RuntimeInputControl.right),
+        ),
+        isTrue,
+      );
+
+      final firstTopLeftAfterSwap = await _captureFirstTopLeftOnMap(
+        game,
+        targetMapId: 'warp_target',
+      );
+
+      expect(firstTopLeftAfterSwap, isNotNull);
+      expect(game.debugIsPlayerStepping, isFalse);
+
+      for (var i = 0; i < 5; i++) {
+        game.update(0.016);
+        await Future<void>.delayed(Duration.zero);
+        expect(game.debugPlayerWorldTopLeft.x, firstTopLeftAfterSwap!.x);
+        expect(game.debugPlayerWorldTopLeft.y, firstTopLeftAfterSwap.y);
+      }
+    });
+
+    test(
+        'connection transition west and east use target-space entry start cells',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_connection_directional_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        maps: <MapData>[
+          _connectionSourceMap(),
+          _targetMap(id: 'connection_target'),
+          _connectionTargetWestMap(),
+          _connectionWestSourceMap(),
+        ],
+      );
+
+      final eastBundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'connection_source',
+      );
+      final eastGame = _TestPlayableMapGame(
+        bundle: eastBundle,
+        projectFilePath: projectFilePath,
+      );
+      eastGame.onGameResize(_testViewportSize);
+      await eastGame.onLoad();
+      expect(
+        eastGame.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.right),
+        ),
+        isTrue,
+      );
+      eastGame.update(0.016);
+      expect(
+        eastGame.handleRuntimeInputEvent(
+          const RuntimeInputEvent.release(RuntimeInputControl.right),
+        ),
+        isTrue,
+      );
+      final eastFirstTopLeft = await _captureFirstTopLeftOnMap(
+        eastGame,
+        targetMapId: 'connection_target',
+      );
+      expect(
+        eastFirstTopLeft,
+        eastGame.debugWorldTopLeftForSpawnCell(const GridPos(x: -1, y: 0)),
+      );
+
+      final westBundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'connection_source_west',
+      );
+      final westGame = _TestPlayableMapGame(
+        bundle: westBundle,
+        projectFilePath: projectFilePath,
+      );
+      westGame.onGameResize(_testViewportSize);
+      await westGame.onLoad();
+      expect(
+        westGame.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.left),
+        ),
+        isTrue,
+      );
+      westGame.update(0.016);
+      expect(
+        westGame.handleRuntimeInputEvent(
+          const RuntimeInputEvent.release(RuntimeInputControl.left),
+        ),
+        isTrue,
+      );
+      final westFirstTopLeft = await _captureFirstTopLeftOnMap(
+        westGame,
+        targetMapId: 'connection_target_west',
+      );
+      expect(
+        westFirstTopLeft,
+        westGame.debugWorldTopLeftForSpawnCell(const GridPos(x: 3, y: 0)),
+      );
+    });
+
+    test(
+        'connection transition keeps input locked until visual entry step completes',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_connection_input_lock_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        maps: <MapData>[
+          _connectionSourceMap(),
+          _targetMap(id: 'connection_target'),
+        ],
+      );
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'connection_source',
+      );
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.right),
+        ),
+        isTrue,
+      );
+      game.update(0.016);
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.release(RuntimeInputControl.right),
+        ),
+        isTrue,
+      );
+
+      await _captureFirstTopLeftOnMap(
+        game,
+        targetMapId: 'connection_target',
+      );
+
+      expect(game.debugFlowPhaseName, 'mapTransition');
+      expect(game.debugIsPlayerStepping, isTrue);
+
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.left),
+        ),
+        isTrue,
+      );
+      game.update(0.016);
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.release(RuntimeInputControl.left),
+        ),
+        isTrue,
+      );
+
+      await _pumpUntil(
+        game,
+        () =>
+            game.gameStateSnapshot.currentMapId == 'connection_target' &&
+            game.debugFlowPhaseName == 'overworld' &&
+            !game.debugIsPlayerStepping,
+      );
+      expect(
+        game.gameStateSnapshot.playerPosition,
+        const GridPos(x: 0, y: 0),
+      );
+      expect(game.debugRenderedPlayerFootCell, const GridPos(x: 0, y: 0));
+    });
+
+    test('warp to already loaded map reuses cached map visuals', () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_warp_cache_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        maps: <MapData>[
+          _warpSourceMapWithConnectionToTarget(),
+          _targetMap(id: 'warp_target'),
+        ],
+      );
+      final bundleLoadCounts = <String, int>{};
+      final tilesetLoadCounts = <String, int>{};
+      Future<RuntimeMapBundle> bundleLoader({
+        required String projectFilePath,
+        required String mapId,
+      }) async {
+        bundleLoadCounts[mapId] = (bundleLoadCounts[mapId] ?? 0) + 1;
+        final bundle = await loadRuntimeMapBundle(
+          projectFilePath: projectFilePath,
+          mapId: mapId,
+        );
+        return RuntimeMapBundle(
+          manifest: bundle.manifest,
+          map: bundle.map,
+          projectRootDirectory: bundle.projectRootDirectory,
+          tilesetAbsolutePathsById: const <String, String>{
+            'shared': '/tmp/shared_tileset.png',
+          },
+        );
+      }
+      Future<Map<String, RuntimeTilesetImage>> tilesetLoader(
+        Map<String, String> absolutePathByTilesetId,
+      ) async {
+        for (final path in absolutePathByTilesetId.values) {
+          tilesetLoadCounts[path] = (tilesetLoadCounts[path] ?? 0) + 1;
+        }
+        return <String, RuntimeTilesetImage>{
+          for (final entry in absolutePathByTilesetId.entries)
+            entry.key: RuntimeTilesetImage(
+              images: const <ui.Image>[],
+              chunks: const <RuntimeTilesetChunk>[],
+              width: 0,
+              height: 0,
+            ),
+        };
+      }
+      final initialBundle = await bundleLoader(
+        projectFilePath: projectFilePath,
+        mapId: 'warp_source',
+      );
+      final game = _TestPlayableMapGame(
+        bundle: initialBundle,
+        projectFilePath: projectFilePath,
+        runtimeMapBundleLoader: bundleLoader,
+        runtimeTilesetImageLoader: tilesetLoader,
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+      await _pumpUntil(game, () => game.debugIsMapLoaded('warp_target'));
+
+      final bundleLoadsBeforeWarp = Map<String, int>.from(bundleLoadCounts);
+      final tilesetLoadsBeforeWarp = Map<String, int>.from(tilesetLoadCounts);
+
+      await _runSingleMove(game, RuntimeInputControl.right);
+      await _pumpUntil(
+        game,
+        () =>
+            game.gameStateSnapshot.currentMapId == 'warp_target' &&
+            game.debugFlowPhaseName == 'overworld' &&
+            !game.debugIsPlayerStepping,
+      );
+
+      expect(bundleLoadCounts, equals(bundleLoadsBeforeWarp));
+      expect(tilesetLoadCounts, equals(tilesetLoadsBeforeWarp));
+    });
+
+    test(
+        'connection transition rebases a preloaded target map before the entry step',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_connection_rebase_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        maps: <MapData>[
+          _connectionHubMap(),
+          _connectionSouthSourceMap(),
+          _targetMap(id: 'shared_target'),
+        ],
+      );
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'connection_hub',
+      );
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+      await _pumpUntil(
+        game,
+        () =>
+            game.debugIsMapLoaded('shared_target') &&
+            game.debugIsMapLoaded('connection_source_south'),
+      );
+
+      await _runSingleMove(game, RuntimeInputControl.down);
+      await _pumpUntil(
+        game,
+        () =>
+            game.gameStateSnapshot.currentMapId == 'connection_source_south' &&
+            game.debugFlowPhaseName == 'overworld' &&
+            !game.debugIsPlayerStepping,
+      );
+
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.right),
+        ),
+        isTrue,
+      );
+      game.update(0.016);
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.release(RuntimeInputControl.right),
+        ),
+        isTrue,
+      );
+
+      final firstTopLeftAfterSwap = await _captureFirstTopLeftOnMap(
+        game,
+        targetMapId: 'shared_target',
+      );
+
+      expect(firstTopLeftAfterSwap, isNotNull);
+      expect(
+        firstTopLeftAfterSwap,
+        game.debugWorldTopLeftForSpawnCell(const GridPos(x: -1, y: 0)),
+      );
+    });
   });
 }
 
@@ -255,6 +717,8 @@ class _TestPlayableMapGame extends PlayableMapGame {
   _TestPlayableMapGame({
     required super.bundle,
     required super.projectFilePath,
+    super.runtimeMapBundleLoader,
+    super.runtimeTilesetImageLoader,
   });
 
   @override
@@ -321,6 +785,24 @@ Future<void> _pumpUntil(
     await Future<void>.delayed(Duration.zero);
   }
   fail('Timed out waiting for the runtime game to settle.');
+}
+
+Future<Vector2?> _captureFirstTopLeftOnMap(
+  PlayableMapGame game, {
+  required String targetMapId,
+  int maxTicks = 240,
+}) async {
+  if (game.gameStateSnapshot.currentMapId == targetMapId) {
+    return game.debugPlayerWorldTopLeft.clone();
+  }
+  for (var i = 0; i < maxTicks; i++) {
+    game.update(0.016);
+    await Future<void>.delayed(Duration.zero);
+    if (game.gameStateSnapshot.currentMapId == targetMapId) {
+      return game.debugPlayerWorldTopLeft.clone();
+    }
+  }
+  return null;
 }
 
 Future<String> _writeRuntimeProject(
@@ -445,6 +927,132 @@ MapData _connectionSourceMap() {
   );
 }
 
+MapData _connectionWestSourceMap() {
+  return const MapData(
+    id: 'connection_source_west',
+    name: 'Connection Source West',
+    size: GridSize(width: 2, height: 2),
+    layers: <MapLayer>[
+      MapLayer.object(id: 'objects', name: 'Objects'),
+    ],
+    entities: <MapEntity>[
+      MapEntity(
+        id: 'spawn_connection_source_west',
+        name: 'Spawn Connection Source West',
+        kind: MapEntityKind.spawn,
+        pos: GridPos(x: 0, y: 0),
+        blocksMovement: false,
+        spawn: MapEntitySpawnData(
+          role: EntitySpawnRole.playerStart,
+          facing: EntityFacing.west,
+        ),
+      ),
+    ],
+    connections: <MapConnection>[
+      MapConnection(
+        direction: MapConnectionDirection.west,
+        targetMapId: 'connection_target_west',
+        offset: 0,
+      ),
+    ],
+    mapMetadata: MapMetadata(defaultSpawnId: 'spawn_connection_source_west'),
+  );
+}
+
+MapData _connectionHubMap() {
+  return const MapData(
+    id: 'connection_hub',
+    name: 'Connection Hub',
+    size: GridSize(width: 2, height: 2),
+    layers: <MapLayer>[
+      MapLayer.object(id: 'objects', name: 'Objects'),
+    ],
+    entities: <MapEntity>[
+      MapEntity(
+        id: 'spawn_connection_hub',
+        name: 'Spawn Connection Hub',
+        kind: MapEntityKind.spawn,
+        pos: GridPos(x: 1, y: 1),
+        blocksMovement: false,
+        spawn: MapEntitySpawnData(
+          role: EntitySpawnRole.playerStart,
+          facing: EntityFacing.south,
+        ),
+      ),
+    ],
+    connections: <MapConnection>[
+      MapConnection(
+        direction: MapConnectionDirection.east,
+        targetMapId: 'shared_target',
+        offset: 0,
+      ),
+      MapConnection(
+        direction: MapConnectionDirection.south,
+        targetMapId: 'connection_source_south',
+        offset: 0,
+      ),
+    ],
+    mapMetadata: MapMetadata(defaultSpawnId: 'spawn_connection_hub'),
+  );
+}
+
+MapData _connectionSouthSourceMap() {
+  return const MapData(
+    id: 'connection_source_south',
+    name: 'Connection Source South',
+    size: GridSize(width: 2, height: 2),
+    layers: <MapLayer>[
+      MapLayer.object(id: 'objects', name: 'Objects'),
+    ],
+    entities: <MapEntity>[
+      MapEntity(
+        id: 'spawn_connection_source_south',
+        name: 'Spawn Connection Source South',
+        kind: MapEntityKind.spawn,
+        pos: GridPos(x: 1, y: 0),
+        blocksMovement: false,
+        spawn: MapEntitySpawnData(
+          role: EntitySpawnRole.playerStart,
+          facing: EntityFacing.east,
+        ),
+      ),
+    ],
+    connections: <MapConnection>[
+      MapConnection(
+        direction: MapConnectionDirection.east,
+        targetMapId: 'shared_target',
+        offset: 0,
+      ),
+    ],
+    mapMetadata: MapMetadata(defaultSpawnId: 'spawn_connection_source_south'),
+  );
+}
+
+MapData _connectionTargetWestMap() {
+  return const MapData(
+    id: 'connection_target_west',
+    name: 'Connection Target West',
+    size: GridSize(width: 3, height: 2),
+    layers: <MapLayer>[
+      MapLayer.object(id: 'objects', name: 'Objects'),
+    ],
+    entities: <MapEntity>[
+      MapEntity(
+        id: 'spawn_connection_target_west',
+        name: 'Spawn Connection Target West',
+        kind: MapEntityKind.spawn,
+        pos: GridPos(x: 2, y: 0),
+        blocksMovement: false,
+        spawn: MapEntitySpawnData(
+          role: EntitySpawnRole.playerStart,
+          facing: EntityFacing.west,
+        ),
+      ),
+    ],
+    mapMetadata: MapMetadata(defaultSpawnId: 'spawn_connection_target_west'),
+  );
+}
+
 MapData _targetMap({
   required String id,
 }) {
@@ -469,5 +1077,45 @@ MapData _targetMap({
       ),
     ],
     mapMetadata: const MapMetadata(defaultSpawnId: 'spawn_target'),
+  );
+}
+
+MapData _warpSourceMapWithConnectionToTarget() {
+  return const MapData(
+    id: 'warp_source',
+    name: 'Warp Source',
+    size: GridSize(width: 3, height: 2),
+    layers: <MapLayer>[
+      MapLayer.object(id: 'objects', name: 'Objects'),
+    ],
+    entities: <MapEntity>[
+      MapEntity(
+        id: 'spawn_warp_source',
+        name: 'Spawn Warp Source',
+        kind: MapEntityKind.spawn,
+        pos: GridPos(x: 0, y: 0),
+        blocksMovement: false,
+        spawn: MapEntitySpawnData(
+          role: EntitySpawnRole.playerStart,
+          facing: EntityFacing.east,
+        ),
+      ),
+    ],
+    warps: <MapWarp>[
+      MapWarp(
+        id: 'warp_to_target',
+        pos: GridPos(x: 1, y: 0),
+        targetMapId: 'warp_target',
+        targetPos: GridPos(x: 1, y: 1),
+      ),
+    ],
+    connections: <MapConnection>[
+      MapConnection(
+        direction: MapConnectionDirection.east,
+        targetMapId: 'warp_target',
+        offset: 0,
+      ),
+    ],
+    mapMetadata: MapMetadata(defaultSpawnId: 'spawn_warp_source'),
   );
 }

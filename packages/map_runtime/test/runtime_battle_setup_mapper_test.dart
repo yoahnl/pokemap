@@ -7,8 +7,12 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
+import 'package:map_runtime/src/application/runtime_battle_combatant_seed_builder.dart';
 import 'package:map_runtime/src/application/runtime_battle_setup_mapper.dart';
 import 'package:map_runtime/src/application/runtime_map_bundle.dart';
+import 'package:map_runtime/src/application/runtime_move_catalog_loader.dart';
+import 'package:map_runtime/src/application/runtime_pokemon_learnset_loader.dart';
+import 'package:map_runtime/src/application/runtime_pokemon_species_loader.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
@@ -16,7 +20,7 @@ void main() {
 
   group('RuntimeBattleSetupMapper', () {
     late Directory tempProjectRoot;
-    const mapper = RuntimeBattleSetupMapper();
+    final mapper = RuntimeBattleSetupMapper();
 
     setUp(() async {
       tempProjectRoot =
@@ -1262,6 +1266,48 @@ void main() {
         afterAttack.state.currentTurn!.executions.first.attacker,
         equals('player'),
       );
+    });
+
+    test('reuses local pokemon catalog cache on second battle mapping',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+      final moveCatalogLoader = RuntimeMoveCatalogLoader();
+      final speciesLoader = RuntimePokemonSpeciesLoader();
+      final learnsetLoader = RuntimePokemonLearnsetLoader();
+      final mapper = RuntimeBattleSetupMapper(
+        moveCatalogLoader: moveCatalogLoader,
+        combatantSeedBuilder: RuntimeBattleCombatantSeedBuilder(
+          speciesLoader: speciesLoader,
+          learnsetLoader: learnsetLoader,
+        ),
+      );
+
+      final firstSetup = await mapper.map(
+        bundle: bundle,
+        gameState: _playerStateForTests(),
+        request: _wildRequest(
+          speciesId: 'sparkitten',
+          level: 10,
+        ),
+      );
+      final secondSetup = await mapper.map(
+        bundle: bundle,
+        gameState: _playerStateForTests(),
+        request: _wildRequest(
+          speciesId: 'sparkitten',
+          level: 10,
+        ),
+      );
+
+      expect(firstSetup.playerPokemon.speciesId, equals('sproutle'));
+      expect(secondSetup.enemyPokemon.speciesId, equals('sparkitten'));
+      expect(moveCatalogLoader.debugActualReadCount, equals(1));
+      expect(speciesLoader.debugActualReadCount, equals(2));
+      expect(learnsetLoader.debugActualReadCount, equals(1));
     });
   });
 }
