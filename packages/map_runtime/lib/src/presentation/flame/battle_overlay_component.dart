@@ -14,6 +14,7 @@ import 'battle_background_resolver.dart';
 import 'battle_debug_panel_component.dart';
 import 'battle_party_menu_model.dart';
 import 'battle_pokemon_sprite_resolver.dart';
+import 'battle_visual_asset_cache.dart';
 import 'battle_scene_layout.dart';
 import 'battle_scene_backdrop_component.dart';
 import 'battle_scene_combatant_component.dart';
@@ -324,6 +325,7 @@ class BattleOverlayComponent extends PositionComponent {
     GameState gameState = const GameState(saveId: 'battle-overlay'),
     this.backgroundSpec = const BattleBackgroundSpec.fallbackField(),
     this.spriteResolver,
+    this.visualAssetCache,
     this.genderResolver,
     this.showDebugPanel = false,
   })  : _session = session,
@@ -340,6 +342,7 @@ class BattleOverlayComponent extends PositionComponent {
   final void Function(PlayerBattleChoice choice) onPlayerChoice;
   final BattleBackgroundSpec backgroundSpec;
   final BattlePokemonSpriteResolver? spriteResolver;
+  final BattleVisualAssetCache? visualAssetCache;
   final BattleCombatantGenderResolver? genderResolver;
 
   /// Le debug reste volontairement opt-in.
@@ -411,7 +414,6 @@ class BattleOverlayComponent extends PositionComponent {
   String get currentEnemyHudSpeciesText =>
       _hudSpeciesDisplayText(_session.state.enemy, isPlayerSide: false);
 
-  @visibleForTesting
   Future<void> waitForPendingVisualSync() async {
     await (_pendingVisualSync ?? Future<void>.value());
   }
@@ -425,17 +427,25 @@ class BattleOverlayComponent extends PositionComponent {
 
   @override
   Future<void> onLoad() async {
+    final overlayStopwatch = Stopwatch()..start();
     final layout = BattleSceneLayout.forViewport(
       viewportSize: Size(size.x, size.y),
     );
     _sceneLayout = layout;
 
+    final backdropStopwatch = Stopwatch()..start();
     _backdrop = BattleSceneBackdropComponent(
       size: size.clone(),
       backgroundSpec: backgroundSpec,
+      visualAssetCache: visualAssetCache,
     );
     await add(_backdrop!);
+    backdropStopwatch.stop();
+    debugPrint(
+      '[perf][battle][real] overlay.backdrop=${backdropStopwatch.elapsedMilliseconds}ms',
+    );
 
+    final enemyCombatantStopwatch = Stopwatch()..start();
     _enemyCombatant = BattleSceneCombatantComponent(
       sceneSpriteRect: layout.enemySpriteRect,
       scenePlatformRect: layout.enemyPlatformRect,
@@ -443,9 +453,15 @@ class BattleOverlayComponent extends PositionComponent {
       spriteFootXRatio: 0.5,
       isPlayerSide: false,
       speciesLabel: _session.state.enemy.speciesId,
+      visualAssetCache: visualAssetCache,
     );
     await add(_enemyCombatant!);
+    enemyCombatantStopwatch.stop();
+    debugPrint(
+      '[perf][battle][real] overlay.enemyCombatant=${enemyCombatantStopwatch.elapsedMilliseconds}ms',
+    );
 
+    final playerCombatantStopwatch = Stopwatch()..start();
     _playerCombatant = BattleSceneCombatantComponent(
       sceneSpriteRect: layout.playerSpriteRect,
       scenePlatformRect: layout.playerPlatformRect,
@@ -453,9 +469,15 @@ class BattleOverlayComponent extends PositionComponent {
       spriteFootXRatio: 0.68,
       isPlayerSide: true,
       speciesLabel: _session.state.player.speciesId,
+      visualAssetCache: visualAssetCache,
     );
     await add(_playerCombatant!);
+    playerCombatantStopwatch.stop();
+    debugPrint(
+      '[perf][battle][real] overlay.playerCombatant=${playerCombatantStopwatch.elapsedMilliseconds}ms',
+    );
 
+    final enemyHudStopwatch = Stopwatch()..start();
     _enemyHud = BattleSceneHudComponent(
       position: Vector2(layout.enemyHudRect.left, layout.enemyHudRect.top),
       size: Vector2(layout.enemyHudRect.width, layout.enemyHudRect.height),
@@ -468,7 +490,12 @@ class BattleOverlayComponent extends PositionComponent {
       ),
     );
     await add(_enemyHud!);
+    enemyHudStopwatch.stop();
+    debugPrint(
+      '[perf][battle][real] overlay.enemyHud=${enemyHudStopwatch.elapsedMilliseconds}ms',
+    );
 
+    final playerHudStopwatch = Stopwatch()..start();
     _playerHud = BattleSceneHudComponent(
       position: Vector2(layout.playerHudRect.left, layout.playerHudRect.top),
       size: Vector2(layout.playerHudRect.width, layout.playerHudRect.height),
@@ -481,7 +508,12 @@ class BattleOverlayComponent extends PositionComponent {
       ),
     );
     await add(_playerHud!);
+    playerHudStopwatch.stop();
+    debugPrint(
+      '[perf][battle][real] overlay.playerHud=${playerHudStopwatch.elapsedMilliseconds}ms',
+    );
 
+    final commandPanelStopwatch = Stopwatch()..start();
     _commandPanel = BattleCommandPanelComponent(
       position: Vector2(
         layout.commandPanelRect.left,
@@ -498,17 +530,35 @@ class BattleOverlayComponent extends PositionComponent {
       layoutModeOverride: layout.commandPanelLayoutMode,
     );
     await add(_commandPanel!);
+    commandPanelStopwatch.stop();
+    debugPrint(
+      '[perf][battle][real] overlay.commandPanel=${commandPanelStopwatch.elapsedMilliseconds}ms',
+    );
 
     if (showDebugPanel) {
+      final debugPanelStopwatch = Stopwatch()..start();
       _debugPanel = BattleDebugPanelComponent(
         position: Vector2(size.x - 248, 32),
         size: Vector2(216, 148),
       );
       await add(_debugPanel!);
+      debugPanelStopwatch.stop();
+      debugPrint(
+        '[perf][battle][real] overlay.debugPanel=${debugPanelStopwatch.elapsedMilliseconds}ms',
+      );
     }
 
+    final initialSyncStopwatch = Stopwatch()..start();
     _pendingVisualSync = _syncVisualState();
     await _pendingVisualSync;
+    initialSyncStopwatch.stop();
+    debugPrint(
+      '[perf][battle][real] overlay.initialVisualSync=${initialSyncStopwatch.elapsedMilliseconds}ms',
+    );
+    overlayStopwatch.stop();
+    debugPrint(
+      '[perf][battle][real] overlay.total=${overlayStopwatch.elapsedMilliseconds}ms',
+    );
   }
 
   /// Met à jour l'overlay avec une nouvelle session immutable.

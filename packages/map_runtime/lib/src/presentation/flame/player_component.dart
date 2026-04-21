@@ -50,6 +50,7 @@ class PlayerComponent extends PositionComponent {
   Vector2? _moveTo;
   double _moveRemaining = 0.0;
   double _stepDurationSeconds = kDefaultStepSeconds;
+  bool _deferStepProgressUntilNextUpdate = false;
 
   /// Facteur gameplay px → monde Flame (écran), identique pour X/Y si tuiles carrées.
   double get _scaleX =>
@@ -158,6 +159,11 @@ class PlayerComponent extends PositionComponent {
   void update(double dt) {
     super.update(dt);
     if (isStepping && _moveFrom != null && _moveTo != null) {
+      if (_deferStepProgressUntilNextUpdate) {
+        _deferStepProgressUntilNextUpdate = false;
+        position = _moveFrom!.clone();
+        return;
+      }
       _moveRemaining = (_moveRemaining - dt).clamp(0.0, _stepDurationSeconds);
       final progress =
           ((_stepDurationSeconds - _moveRemaining) / _stepDurationSeconds)
@@ -213,6 +219,7 @@ class PlayerComponent extends PositionComponent {
       _moveFrom = null;
       _moveTo = null;
       _moveRemaining = 0.0;
+      _deferStepProgressUntilNextUpdate = false;
       _snapToStatePosition();
       _actor?.setMotion(facing, CharacterAnimationState.idle);
     } else {
@@ -237,6 +244,7 @@ class PlayerComponent extends PositionComponent {
       state: state,
     );
     _moveRemaining = durationSeconds;
+    _deferStepProgressUntilNextUpdate = false;
     _actor?.setMotion(
       EntityFacing.values.byName(state.facing.name),
       CharacterAnimationState.walk,
@@ -260,6 +268,7 @@ class PlayerComponent extends PositionComponent {
       state: state,
     );
     _moveRemaining = durationSeconds;
+    _deferStepProgressUntilNextUpdate = true;
     _actor?.setMotion(
       EntityFacing.values.byName(state.facing.name),
       CharacterAnimationState.walk,

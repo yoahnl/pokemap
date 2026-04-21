@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -38,6 +39,9 @@ final class BattlePokemonSpriteResolver {
   final String projectRootDirectory;
   final Map<String, Future<_BattlePokemonMediaRecord?>> _mediaCache =
       <String, Future<_BattlePokemonMediaRecord?>>{};
+  int _actualMediaReadCount = 0;
+
+  int get debugActualMediaReadCount => _actualMediaReadCount;
 
   Future<BattleCombatantSpriteSpec> resolve({
     required String speciesId,
@@ -79,6 +83,7 @@ final class BattlePokemonSpriteResolver {
     if (!await mediaFile.exists()) {
       return null;
     }
+    _actualMediaReadCount += 1;
 
     final decoded = jsonDecode(await mediaFile.readAsString());
     if (decoded is! Map<String, dynamic>) {

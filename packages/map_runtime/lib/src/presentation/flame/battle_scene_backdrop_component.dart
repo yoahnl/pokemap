@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../infrastructure/tile_image_loader.dart';
 import 'battle_background_resolver.dart';
+import 'battle_visual_asset_cache.dart';
 
 /// Fond de scène par défaut pour le lot 1.
 ///
@@ -18,6 +19,7 @@ import 'battle_background_resolver.dart';
 class BattleSceneBackdropComponent extends PositionComponent {
   BattleSceneBackdropComponent({
     required Vector2 size,
+    this.visualAssetCache,
     BattleBackgroundSpec backgroundSpec =
         const BattleBackgroundSpec.fallbackField(),
   })  : _backgroundSpec = backgroundSpec,
@@ -28,6 +30,7 @@ class BattleSceneBackdropComponent extends PositionComponent {
         );
 
   BattleBackgroundSpec _backgroundSpec;
+  final BattleVisualAssetCache? visualAssetCache;
   ui.Image? _explicitImage;
   String? _explicitImageSourcePath;
   bool _didExplicitImageLoadFail = false;
@@ -115,7 +118,9 @@ class BattleSceneBackdropComponent extends PositionComponent {
     }
 
     try {
-      final image = await loadImageFromFilePath(explicitImagePath);
+      final image = visualAssetCache == null
+          ? await loadImageFromFilePath(explicitImagePath)
+          : await visualAssetCache!.loadImage(explicitImagePath);
       _explicitImage = image;
       _explicitImageSourcePath = explicitImagePath;
       _didExplicitImageLoadFail = false;

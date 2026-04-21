@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
@@ -26,7 +25,6 @@ class RuntimePokemonSpeciesLoader {
       <String, Future<RuntimePokemonSpecies>>{};
   int _actualReadCount = 0;
 
-  @visibleForTesting
   int get debugActualReadCount => _actualReadCount;
 
   Future<RuntimePokemonSpecies> loadById({
@@ -62,6 +60,29 @@ class RuntimePokemonSpeciesLoader {
         throw RuntimeBattleSetupException(
           'Impossible de charger les espèces Pokémon locales pour démarrer le combat.',
           debugDetails: 'Missing species directory: ${speciesDirectory.path}',
+        );
+      }
+
+      final canonicalSpeciesFile = File(
+        p.join(speciesDirectoryPath, '$normalizedSpeciesId.json'),
+      );
+      if (await canonicalSpeciesFile.exists()) {
+        final rawJson = await _readJsonFile(
+          canonicalSpeciesFile,
+          label: 'Pokemon species file',
+        );
+        final declaredId = (rawJson['id'] as String?)?.trim() ?? '';
+        if (declaredId != normalizedSpeciesId) {
+          throw RuntimeBattleSetupException(
+            'Les données d’espèce Pokémon locales sont invalides; combat impossible.',
+            debugDetails:
+                'speciesId=$normalizedSpeciesId, canonicalFile=${canonicalSpeciesFile.path}, declaredId=$declaredId',
+          );
+        }
+        return _parseRuntimeSpecies(
+          rawJson,
+          expectedSpeciesId: normalizedSpeciesId,
+          filePath: canonicalSpeciesFile.path,
         );
       }
 

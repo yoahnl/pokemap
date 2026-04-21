@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -11,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
+import 'package:path/path.dart' as p;
 
 import '../../../domain/repositories/game_save_repository.dart';
 import '../../../src/application/load_game_use_case.dart';
@@ -57,6 +59,7 @@ import '../../infrastructure/tile_image_loader.dart';
 import 'battle_overlay_component.dart';
 import 'battle_background_resolver.dart';
 import 'battle_pokemon_sprite_resolver.dart';
+import 'battle_visual_asset_cache.dart';
 import 'runtime_input_event.dart';
 import 'runtime_input_key_bindings.dart';
 import 'battle_transition_overlay_component.dart';
@@ -117,6 +120,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _saveGameUseCase = SaveGameUseCase(_saveRepo);
     _loadGameUseCase = LoadGameUseCase(_saveRepo);
     _runtimeBundleByMapId[_bundle.map.id] = _bundle;
+    _battleSpriteResolver = BattlePokemonSpriteResolver(
+      manifest: _bundle.manifest,
+      projectRootDirectory: _bundle.projectRootDirectory,
+    );
   }
 
   final String projectFilePath;
@@ -150,6 +157,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       <String, RuntimeMapBundle>{};
   final Map<String, Future<RuntimeMapBundle>> _runtimeBundleFutureByMapId =
       <String, Future<RuntimeMapBundle>>{};
+  final Map<String, Future<void>> _prewarmedWarpTargetFutureByMapId =
+      <String, Future<void>>{};
+  final Map<String, Future<void>> _prewarmedBattleDataFutureByKey =
+      <String, Future<void>>{};
   final Map<String, RuntimeTilesetImage> _cachedTilesetImagesByPath =
       <String, RuntimeTilesetImage>{};
   final math.Random _encounterRandom = math.Random();
@@ -160,6 +171,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       RuntimePokemonSpeciesLoader();
   final RuntimePokemonLearnsetLoader _battleLearnsetLoader =
       RuntimePokemonLearnsetLoader();
+  late final BattlePokemonSpriteResolver _battleSpriteResolver;
+  final BattleVisualAssetCache _battleVisualAssetCache =
+      BattleVisualAssetCache();
   late final RuntimeBattleSetupMapper _battleSetupMapper =
       RuntimeBattleSetupMapper(
         moveCatalogLoader: _battleMoveCatalogLoader,
@@ -356,6 +370,28 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   Vector2 get debugPlayerWorldTopLeft => _player.position.clone();
 
   @visibleForTesting
+  Vector2 get debugPlayerScreenTopLeft {
+    return debugPlayerWorldTopLeft - debugCameraWorldTopLeft;
+  }
+
+  @visibleForTesting
+  Vector2 get debugPlayerScreenFootPoint {
+    return _player.footPoint - debugCameraWorldTopLeft;
+  }
+
+  @visibleForTesting
+  Vector2 get debugCameraWorldTopLeft {
+    final visibleSize = camera.viewfinder.visibleGameSize;
+    final viewportSize =
+        visibleSize ?? Vector2(camera.viewport.size.x, camera.viewport.size.y);
+    final center = camera.viewfinder.position;
+    return Vector2(
+      center.x - viewportSize.x / 2,
+      center.y - viewportSize.y / 2,
+    );
+  }
+
+  @visibleForTesting
   Vector2? get debugPlayerActorLocalPosition =>
       _player.debugActorLocalPosition;
 
@@ -384,6 +420,60 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       (origin.x + topLeft.leftPx * scaleX).roundToDouble(),
       (origin.y + topLeft.topPx * scaleY).roundToDouble(),
     );
+  }
+
+  @visibleForTesting
+  int get debugBattleMoveCatalogReadCount =>
+      _battleMoveCatalogLoader.debugActualReadCount;
+
+  @visibleForTesting
+  int get debugBattleSpeciesReadCount => _battleSpeciesLoader.debugActualReadCount;
+
+  @visibleForTesting
+  int get debugBattleLearnsetReadCount =>
+      _battleLearnsetLoader.debugActualReadCount;
+
+  @visibleForTesting
+  int get debugBattleSpriteMediaReadCount =>
+      _battleSpriteResolver.debugActualMediaReadCount;
+
+  @visibleForTesting
+  int get debugBattleVisualImageLoadCount =>
+      _battleVisualAssetCache.debugActualImageLoadCount;
+
+  @visibleForTesting
+  int get debugBattleVisualOpaqueRectComputeCount =>
+      _battleVisualAssetCache.debugActualOpaqueRectComputeCount;
+
+  @visibleForTesting
+  bool get debugBattleOverlayMounted => _battleOverlay != null;
+
+  @visibleForTesting
+  Future<void> debugOpenBattleForTest(BattleStartRequest request) async {
+    if (_flowPhase != _RuntimeFlowPhase.overworld) {
+      throw StateError('Battle test seam requires overworld flow.');
+    }
+    _flowPhase = _RuntimeFlowPhase.battleTransition;
+    await _openBattleOverlay(request);
+  }
+
+  @visibleForTesting
+  Future<void> debugWaitForBattleOverlaySync() async {
+    await (_battleOverlay?.waitForPendingVisualSync() ?? Future<void>.value());
+  }
+
+  @visibleForTesting
+  void debugResetBattleForTest() {
+    _battleOverlay?.removeFromParent();
+    _battleOverlay = null;
+    _battleTransitionOverlay?.removeFromParent();
+    _battleTransitionOverlay = null;
+    _battleSession = null;
+    _activeBattleContext = null;
+    _isBattleResolving = false;
+    _pendingBattleRequest = null;
+    _flowPhase = _RuntimeFlowPhase.overworld;
+    _clearPressedMovementControls();
   }
 
   @visibleForTesting
@@ -949,6 +1039,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _configureCameraViewport();
     _syncCameraToPlayer();
     _preloadActiveMapConnections();
+    _prewarmActiveMapWarpTargets();
+    _prewarmActiveMapBattleData();
     _ensureBehaviorDebugOverlay();
     _ensureFpsOverlay();
     _applyDebugTileMarker();
@@ -1136,11 +1228,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _runtimeClockMs += dt * 1000;
     _placedBehaviorCooldownGate.prune(nowMs: _runtimeClockMs);
     _updateActorDepthOrdering();
-    _syncCameraToPlayer();
+    final pendingConnectionEntryAnimation = _pendingConnectionEntryAnimation;
+    if (pendingConnectionEntryAnimation != null &&
+        pendingConnectionEntryAnimation.holdInitialCameraFrame) {
+      _setCameraWorldTopLeft(
+        pendingConnectionEntryAnimation.initialCameraWorldTopLeft,
+      );
+      pendingConnectionEntryAnimation.holdInitialCameraFrame = false;
+    } else {
+      _syncCameraToPlayer();
+    }
     _syncNpcCollisionDebugOverlay();
 
     if (_flowPhase == _RuntimeFlowPhase.mapTransition) {
-      final pendingConnectionEntryAnimation = _pendingConnectionEntryAnimation;
       if (pendingConnectionEntryAnimation != null && !_player.isStepping) {
         _pendingConnectionEntryAnimation = null;
         _flowPhase = _RuntimeFlowPhase.overworld;
@@ -3367,10 +3467,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           gameState: _gameState,
           viewportSize: camera.viewport.size,
           backgroundSpec: backgroundSpec,
-          spriteResolver: BattlePokemonSpriteResolver(
-            manifest: _bundle.manifest,
-            projectRootDirectory: _bundle.projectRootDirectory,
-          ),
+          spriteResolver: _battleSpriteResolver,
+          visualAssetCache: _battleVisualAssetCache,
           genderResolver: genderResolver,
           onPlayerChoice: _onPlayerBattleChoice,
         ),
@@ -3554,6 +3652,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     _flowPhase = _RuntimeFlowPhase.overworld;
     _clearPressedMovementControls();
+    _prewarmActiveMapBattleData();
     debugPrint('[battle] overworld resumed');
   }
 
@@ -3599,6 +3698,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _configureCameraViewport();
     _syncCameraToPlayer();
     _preloadActiveMapConnections();
+    _prewarmActiveMapBattleData();
     _pruneLoadedMapsToActiveNeighborhood();
     _activeScenarioTriggerIds = _scenarioRuntime.triggerIdsAtPosition(
       map: _bundle.map,
@@ -4713,6 +4813,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _configureCameraViewport();
       _syncCameraToPlayer();
       _preloadActiveMapConnections();
+      _prewarmActiveMapBattleData();
       _pruneLoadedMapsToActiveNeighborhood();
       _applyDebugTileMarker();
       _activeScenarioTriggerIds = _scenarioRuntime.triggerIdsAtPosition(
@@ -4952,6 +5053,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _traceSync('warp', 'preloadConnectionsKickoff', () {
         _preloadActiveMapConnections();
       });
+      _traceSync('warp', 'prewarmWarpsKickoff', () {
+        _prewarmActiveMapWarpTargets();
+      });
+      _traceSync('warp', 'prewarmBattleKickoff', () {
+        _prewarmActiveMapBattleData();
+      });
       _traceSync('warp', 'pruneLoadedMaps', () {
         _pruneLoadedMapsToActiveNeighborhood();
       });
@@ -5074,6 +5181,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _configureCameraViewport();
       _syncCameraToPlayer();
       _preloadActiveMapConnections();
+      _prewarmActiveMapBattleData();
       _pruneLoadedMapsToActiveNeighborhood();
       debugPrint(
         '[warp] rollback restored map=${fallbackBundle.map.id} pos=(${_world.player.pos.x}, ${_world.player.pos.y})',
@@ -5155,6 +5263,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final connectionStopwatch = Stopwatch()..start();
     try {
       _clearTransientUiState();
+      final sourcePlayerScreenTopLeft = debugPlayerScreenTopLeft;
+      final sourceCameraWorldTopLeft = debugCameraWorldTopLeft;
       debugPrint(
         '[connection] attempting map=${_bundle.map.id} direction=${connection.direction.name} target=${connection.targetMapId} offset=${connection.offset} source=(${connection.sourcePos.x}, ${connection.sourcePos.y})',
       );
@@ -5235,19 +5345,29 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         fromWorldTopLeft: entryStartTopLeft,
       );
       _configureCameraViewport();
-      _syncCameraToPlayer();
+      final continuityCameraWorldTopLeft = Vector2(
+        entryStartTopLeft.x - sourcePlayerScreenTopLeft.x,
+        entryStartTopLeft.y - sourcePlayerScreenTopLeft.y,
+      );
+      _setCameraWorldTopLeft(continuityCameraWorldTopLeft);
       final visibleSize = camera.viewfinder.visibleGameSize;
       debugPrint(
         '[connection] camera after transition focus=(${_player.focusPoint.x.toStringAsFixed(1)}, ${_player.focusPoint.y.toStringAsFixed(1)}) viewport=(${(visibleSize?.x ?? 0).toStringAsFixed(1)}, ${(visibleSize?.y ?? 0).toStringAsFixed(1)})',
       );
       debugPrint(
+        '[connection] screen continuity sourceScreen=(${sourcePlayerScreenTopLeft.x.toStringAsFixed(1)}, ${sourcePlayerScreenTopLeft.y.toStringAsFixed(1)}) targetStartScreen=(${debugPlayerScreenTopLeft.x.toStringAsFixed(1)}, ${debugPlayerScreenTopLeft.y.toStringAsFixed(1)}) sourceCameraTopLeft=(${sourceCameraWorldTopLeft.x.toStringAsFixed(1)}, ${sourceCameraWorldTopLeft.y.toStringAsFixed(1)}) targetCameraTopLeft=(${debugCameraWorldTopLeft.x.toStringAsFixed(1)}, ${debugCameraWorldTopLeft.y.toStringAsFixed(1)})',
+      );
+      debugPrint(
         '[connection] visual entry step direction=${connection.direction.name} fromCell=(${entryStartCell.x},${entryStartCell.y}) toCell=(${targetPos.x},${targetPos.y}) durationMs=${(PlayerComponent.kDefaultStepSeconds * 1000).round()}',
       );
       _preloadActiveMapConnections();
+      _prewarmActiveMapWarpTargets();
+      _prewarmActiveMapBattleData();
       _pruneLoadedMapsToActiveNeighborhood();
       _refreshWorldNpcPresence();
       _pendingConnectionEntryAnimation = _PendingConnectionEntryAnimation(
         mapId: target.bundle.map.id,
+        initialCameraWorldTopLeft: continuityCameraWorldTopLeft,
       );
       connectionStopwatch.stop();
       debugPrint(
@@ -5725,6 +5845,279 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           sourcePos: _world.player.pos,
         ),
       );
+    }
+  }
+
+  void _prewarmActiveMapWarpTargets() {
+    final active = _loadedMapsById[_activeMapId];
+    if (active == null) {
+      return;
+    }
+    for (final warp in active.bundle.map.warps) {
+      _prewarmWarpTargetResources(warp.targetMapId);
+    }
+  }
+
+  void _prewarmWarpTargetResources(String targetMapId) {
+    final normalizedTargetMapId = targetMapId.trim();
+    if (normalizedTargetMapId.isEmpty) {
+      return;
+    }
+    final inFlight = _prewarmedWarpTargetFutureByMapId[normalizedTargetMapId];
+    if (inFlight != null) {
+      return;
+    }
+
+    late final Future<void> future;
+    future = () async {
+      try {
+        final bundle = await _loadRuntimeMapBundleCached(normalizedTargetMapId);
+        await _loadTilesetImagesCached(bundle.tilesetAbsolutePathsById);
+      } catch (error, stackTrace) {
+        debugPrint(
+          '[perf][warp][real] prewarmTargetFailed map=$normalizedTargetMapId error=$error\n$stackTrace',
+        );
+      } finally {
+        final current =
+            _prewarmedWarpTargetFutureByMapId[normalizedTargetMapId];
+        if (identical(current, future)) {
+          _prewarmedWarpTargetFutureByMapId.remove(normalizedTargetMapId);
+        }
+      }
+    }();
+
+    _prewarmedWarpTargetFutureByMapId[normalizedTargetMapId] = future;
+  }
+
+  void _prewarmActiveMapBattleData() {
+    final active = _loadedMapsById[_activeMapId];
+    if (active == null) {
+      return;
+    }
+    final prewarmKey = [
+      active.bundle.map.id,
+      ..._gameState.party.members.map((member) => member.speciesId.trim()),
+    ].join('|');
+    final inFlight = _prewarmedBattleDataFutureByKey[prewarmKey];
+    if (inFlight != null) {
+      return;
+    }
+
+    final completer = Completer<void>();
+    _prewarmedBattleDataFutureByKey[prewarmKey] = completer.future;
+    unawaited(() async {
+      try {
+        final speciesIds = _collectActiveMapBattleSpeciesIds(active.bundle);
+        final backgroundPaths =
+            _collectBattleBackgroundPathsForBundle(active.bundle).toList();
+        if (speciesIds.isEmpty && backgroundPaths.isEmpty) {
+          return;
+        }
+        if (!await _canPrewarmBattleData(active.bundle)) {
+          return;
+        }
+        await _battleMoveCatalogLoader.load(
+          projectRootDirectory: active.bundle.projectRootDirectory,
+          pokemonConfig: active.bundle.manifest.pokemon,
+        );
+        for (final speciesId in speciesIds) {
+          final species = await _battleSpeciesLoader.loadById(
+            projectRootDirectory: active.bundle.projectRootDirectory,
+            pokemonConfig: active.bundle.manifest.pokemon,
+            speciesId: speciesId,
+          );
+          await _battleLearnsetLoader.loadByRef(
+            projectRootDirectory: active.bundle.projectRootDirectory,
+            pokemonConfig: active.bundle.manifest.pokemon,
+            speciesRef: species.learnsetRef,
+            fallbackSpeciesId: species.id,
+          );
+          await _prewarmBattleSpriteAssetsForSpecies(species.id);
+        }
+        for (final backgroundPath in backgroundPaths) {
+          await _battleVisualAssetCache.prewarmImage(backgroundPath);
+        }
+      } catch (error, stackTrace) {
+        debugPrint(
+          '[perf][battle][real] prewarmActiveMapDataFailed map=${active.bundle.map.id} error=$error\n$stackTrace',
+        );
+      } finally {
+        final current = _prewarmedBattleDataFutureByKey[prewarmKey];
+        if (identical(current, completer.future)) {
+          _prewarmedBattleDataFutureByKey.remove(prewarmKey);
+        }
+        if (!completer.isCompleted) {
+          completer.complete();
+        }
+      }
+    }());
+  }
+
+  Future<bool> _canPrewarmBattleData(RuntimeMapBundle bundle) async {
+    final movesCatalogPath = _resolveProjectPath(
+      bundle.projectRootDirectory,
+      bundle.manifest.pokemon.catalogFiles['moves']?.trim() ?? '',
+    );
+    if (movesCatalogPath == null || !await File(movesCatalogPath).exists()) {
+      return false;
+    }
+
+    final speciesDirectoryPath = _resolveProjectPath(
+      bundle.projectRootDirectory,
+      _normalizeConfiguredRelativePath(
+        bundle.manifest.pokemon.speciesDir,
+        fallback: 'data/pokemon/species',
+      ),
+    );
+    if (speciesDirectoryPath == null ||
+        !await Directory(speciesDirectoryPath).exists()) {
+      return false;
+    }
+
+    return true;
+  }
+
+  String _normalizeConfiguredRelativePath(
+    String? configuredPath, {
+    required String fallback,
+  }) {
+    final normalized = configuredPath?.trim();
+    if (normalized == null || normalized.isEmpty) {
+      return fallback;
+    }
+    return normalized;
+  }
+
+  String? _resolveProjectPath(
+    String projectRootDirectory,
+    String relativeOrAbsolutePath,
+  ) {
+    final normalizedPath = relativeOrAbsolutePath.trim();
+    if (normalizedPath.isEmpty) {
+      return null;
+    }
+    if (p.isAbsolute(normalizedPath)) {
+      return p.normalize(normalizedPath);
+    }
+    return p.normalize(p.join(projectRootDirectory, normalizedPath));
+  }
+
+  Set<String> _collectActiveMapBattleSpeciesIds(RuntimeMapBundle bundle) {
+    final speciesIds = <String>{};
+    for (final member in _gameState.party.members) {
+      final speciesId = member.speciesId.trim();
+      if (speciesId.isNotEmpty) {
+        speciesIds.add(speciesId);
+      }
+    }
+
+    for (final zone in bundle.map.gameplayZones) {
+      if (zone.kind != GameplayZoneKind.encounter) {
+        continue;
+      }
+      final tableId = zone.encounter?.encounterTableId?.trim() ?? '';
+      if (tableId.isEmpty) {
+        continue;
+      }
+      final table = _findEncounterTable(bundle.manifest, tableId);
+      if (table == null) {
+        continue;
+      }
+      for (final entry in table.entries) {
+        final speciesId = entry.speciesId.trim();
+        if (speciesId.isNotEmpty) {
+          speciesIds.add(speciesId);
+        }
+      }
+    }
+
+    for (final entity in bundle.map.entities) {
+      final trainerId = entity.npc?.trainerId?.trim() ?? '';
+      if (trainerId.isEmpty) {
+        continue;
+      }
+      final trainer = _findTrainerEntry(bundle.manifest, trainerId);
+      if (trainer == null) {
+        continue;
+      }
+      for (final teamMember in trainer.team) {
+        final speciesId = teamMember.speciesId.trim();
+        if (speciesId.isNotEmpty) {
+          speciesIds.add(speciesId);
+        }
+      }
+    }
+
+    return speciesIds;
+  }
+
+  Iterable<String> _collectBattleBackgroundPathsForBundle(
+    RuntimeMapBundle bundle,
+  ) sync* {
+    for (final zone in bundle.map.gameplayZones) {
+      final relativePath =
+          zone.encounter?.battleBackgroundRelativePath?.trim() ?? '';
+      if (relativePath.isEmpty) {
+        continue;
+      }
+      yield p.normalize(p.join(bundle.projectRootDirectory, relativePath));
+    }
+
+    for (final entity in bundle.map.entities) {
+      final trainerId = entity.npc?.trainerId?.trim() ?? '';
+      if (trainerId.isEmpty) {
+        continue;
+      }
+      final trainer = _findTrainerEntry(bundle.manifest, trainerId);
+      final relativePath = trainer?.battleBackgroundRelativePath?.trim() ?? '';
+      if (relativePath.isEmpty) {
+        continue;
+      }
+      yield p.normalize(p.join(bundle.projectRootDirectory, relativePath));
+    }
+  }
+
+  ProjectEncounterTable? _findEncounterTable(
+    ProjectManifest manifest,
+    String encounterTableId,
+  ) {
+    for (final table in manifest.encounterTables) {
+      if (table.id == encounterTableId) {
+        return table;
+      }
+    }
+    return null;
+  }
+
+  ProjectTrainerEntry? _findTrainerEntry(
+    ProjectManifest manifest,
+    String trainerId,
+  ) {
+    for (final trainer in manifest.trainers) {
+      if (trainer.id == trainerId) {
+        return trainer;
+      }
+    }
+    return null;
+  }
+
+  Future<void> _prewarmBattleSpriteAssetsForSpecies(String speciesId) async {
+    final enemySpriteSpec = await _battleSpriteResolver.resolve(
+      speciesId: speciesId,
+      isPlayerSide: false,
+    );
+    final playerSpriteSpec = await _battleSpriteResolver.resolve(
+      speciesId: speciesId,
+      isPlayerSide: true,
+    );
+
+    final enemySpritePath = enemySpriteSpec.explicitImageAbsolutePath?.trim();
+    if (enemySpritePath != null && enemySpritePath.isNotEmpty) {
+      await _battleVisualAssetCache.prewarmSprite(enemySpritePath);
+    }
+    final playerSpritePath = playerSpriteSpec.explicitImageAbsolutePath?.trim();
+    if (playerSpritePath != null && playerSpritePath.isNotEmpty) {
+      await _battleVisualAssetCache.prewarmSprite(playerSpritePath);
     }
   }
 
@@ -6338,14 +6731,29 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     camera.viewfinder.visibleGameSize = Vector2(vw, vh);
   }
 
+  void _setCameraWorldTopLeft(Vector2 worldTopLeft) {
+    final visibleSize = camera.viewfinder.visibleGameSize;
+    final viewportSize =
+        visibleSize ?? Vector2(camera.viewport.size.x, camera.viewport.size.y);
+    camera.viewfinder.position = Vector2(
+      worldTopLeft.x + viewportSize.x / 2,
+      worldTopLeft.y + viewportSize.y / 2,
+    );
+  }
+
   void _syncCameraToPlayer() {
     if (!isLoaded) {
       return;
     }
-    final focus = _player.focusPoint;
-    camera.viewfinder.position = Vector2(
-      focus.x.roundToDouble(),
-      focus.y.roundToDouble(),
+    _setCameraWorldTopLeft(
+      Vector2(
+        _player.focusPoint.x -
+            (camera.viewfinder.visibleGameSize?.x ?? camera.viewport.size.x) /
+                2,
+        _player.focusPoint.y -
+            (camera.viewfinder.visibleGameSize?.y ?? camera.viewport.size.y) /
+                2,
+      ),
     );
   }
 }
@@ -6395,9 +6803,12 @@ class _GridCellPos {
 class _PendingConnectionEntryAnimation {
   _PendingConnectionEntryAnimation({
     required this.mapId,
+    required this.initialCameraWorldTopLeft,
   });
 
   final String mapId;
+  final Vector2 initialCameraWorldTopLeft;
+  bool holdInitialCameraFrame = true;
 }
 
 class _PendingScenarioFollowRequest {

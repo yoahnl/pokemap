@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
@@ -27,7 +26,6 @@ class RuntimeMoveCatalogLoader {
       <String, Future<RuntimeMoveCatalog>>{};
   int _actualReadCount = 0;
 
-  @visibleForTesting
   int get debugActualReadCount => _actualReadCount;
 
   Future<RuntimeMoveCatalog> load({

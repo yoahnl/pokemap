@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../../infrastructure/tile_image_loader.dart';
 import 'battle_pokemon_sprite_resolver.dart';
+import 'battle_visual_asset_cache.dart';
 
 class BattleSceneCombatantComponent extends PositionComponent {
   BattleSceneCombatantComponent({
@@ -15,6 +16,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
     required double spriteFootXRatio,
     required this.isPlayerSide,
     required String speciesLabel,
+    this.visualAssetCache,
     BattleCombatantSpriteSpec initialSpriteSpec =
         const BattleCombatantSpriteSpec(
       facing: BattleCombatantSpriteFacing.front,
@@ -48,6 +50,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
         );
 
   final bool isPlayerSide;
+  final BattleVisualAssetCache? visualAssetCache;
 
   String _speciesLabel;
   BattleCombatantSpriteSpec _spriteSpec;
@@ -235,12 +238,19 @@ class BattleSceneCombatantComponent extends PositionComponent {
     }
 
     try {
-      final image = await loadImageFromFilePath(explicitImagePath);
+      final image = visualAssetCache == null
+          ? await loadImageFromFilePath(explicitImagePath)
+          : await visualAssetCache!.loadImage(explicitImagePath);
       if (_pendingSpriteSourcePath != explicitImagePath) {
         return;
       }
       _spriteImage = image;
-      _spriteOpaqueSourceRect = await _computeOpaqueSourceRect(image);
+      _spriteOpaqueSourceRect = visualAssetCache == null
+          ? await _computeOpaqueSourceRect(image)
+          : await visualAssetCache!.loadOpaqueSourceRect(
+              explicitImagePath,
+              image: image,
+            );
       _spriteSourcePath = explicitImagePath;
       _didSpriteLoadFail = false;
       _syncTextVisibility();

@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart' show KeyEventResult;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
 import 'package:path/path.dart' as p;
@@ -298,7 +299,7 @@ void main() {
         await Future<void>.delayed(Duration.zero);
         samples.add(game.debugPlayerWorldTopLeft.x);
       }
-      expect(samples[1], greaterThan(samples[0]));
+      expect(samples[1], samples[0]);
       expect(samples[2], greaterThan(samples[1]));
       expect(samples[3], greaterThan(samples[2]));
 
@@ -541,6 +542,127 @@ void main() {
       expect(game.debugRenderedPlayerFootCell, const GridPos(x: 0, y: 0));
     });
 
+    test(
+        'connection preserves player screen position on first target-map frame',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_connection_screen_continuity_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        maps: <MapData>[
+          _connectionSourceMap(),
+          _targetMap(id: 'connection_target'),
+        ],
+      );
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'connection_source',
+      );
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.right),
+        ),
+        isTrue,
+      );
+      game.update(0.016);
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.release(RuntimeInputControl.right),
+        ),
+        isTrue,
+      );
+
+      final continuity = await _captureConnectionContinuitySample(
+        game,
+        sourceMapId: 'connection_source',
+        targetMapId: 'connection_target',
+        postSwapFirstFrameDt: 0.080,
+      );
+
+      expect(continuity.sourceScreenTopLeft, isNotNull);
+      expect(continuity.targetScreenTopLeft, isNotNull);
+      expect(
+        continuity.sourceScreenTopLeft!.distanceTo(
+          continuity.targetScreenTopLeft!,
+        ),
+        lessThanOrEqualTo(1.0),
+      );
+    });
+
+    test('connection does not camera-snap before visual entry step starts',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_connection_camera_continuity_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        maps: <MapData>[
+          _connectionSourceMap(),
+          _targetMap(id: 'connection_target'),
+        ],
+      );
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'connection_source',
+      );
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.right),
+        ),
+        isTrue,
+      );
+      game.update(0.016);
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.release(RuntimeInputControl.right),
+        ),
+        isTrue,
+      );
+
+      final continuity = await _captureConnectionContinuitySample(
+        game,
+        sourceMapId: 'connection_source',
+        targetMapId: 'connection_target',
+        postSwapFirstFrameDt: 0.080,
+      );
+
+      expect(continuity.sourceCameraTopLeft, isNotNull);
+      expect(continuity.targetCameraTopLeft, isNotNull);
+      expect(
+        continuity.sourceCameraTopLeft!.distanceTo(
+          continuity.targetCameraTopLeft!,
+        ),
+        lessThanOrEqualTo(1.0),
+      );
+    });
+
     test('warp to already loaded map reuses cached map visuals', () async {
       final root = await Directory.systemTemp.createTemp(
         'runtime_warp_cache_',
@@ -622,6 +744,233 @@ void main() {
 
       expect(bundleLoadCounts, equals(bundleLoadsBeforeWarp));
       expect(tilesetLoadCounts, equals(tilesetLoadsBeforeWarp));
+    });
+
+    test('active map prewarms visible warp target resources after load',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_warp_prewarm_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        maps: <MapData>[
+          _warpSourceMap(),
+          _targetMap(id: 'warp_target'),
+        ],
+      );
+      final bundleLoadCounts = <String, int>{};
+      Future<RuntimeMapBundle> bundleLoader({
+        required String projectFilePath,
+        required String mapId,
+      }) async {
+        bundleLoadCounts[mapId] = (bundleLoadCounts[mapId] ?? 0) + 1;
+        return loadRuntimeMapBundle(
+          projectFilePath: projectFilePath,
+          mapId: mapId,
+        );
+      }
+
+      final initialBundle = await bundleLoader(
+        projectFilePath: projectFilePath,
+        mapId: 'warp_source',
+      );
+      final game = _TestPlayableMapGame(
+        bundle: initialBundle,
+        projectFilePath: projectFilePath,
+        runtimeMapBundleLoader: bundleLoader,
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+
+      await _pumpUntil(
+        game,
+        () => (bundleLoadCounts['warp_target'] ?? 0) >= 1,
+        maxTicks: 120,
+      );
+
+      expect(bundleLoadCounts['warp_target'], 1);
+    });
+
+    test('active map prewarms battle data for likely local combatants after load',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_battle_prewarm_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        maps: <MapData>[_battleWarmMap()],
+        encounterTables: const <ProjectEncounterTable>[
+          ProjectEncounterTable(
+            id: 'field_grass',
+            name: 'Field Grass',
+            encounterKind: EncounterKind.walk,
+            entries: <ProjectEncounterEntry>[
+              ProjectEncounterEntry(
+                speciesId: 'sparkitten',
+                minLevel: 6,
+                maxLevel: 6,
+              ),
+            ],
+          ),
+        ],
+        trainers: const <ProjectTrainerEntry>[
+          ProjectTrainerEntry(
+            id: 'trainer_1',
+            name: 'Trainer One',
+            trainerClass: 'Pokémon Trainer',
+            team: <ProjectTrainerPokemonEntry>[
+              ProjectTrainerPokemonEntry(
+                speciesId: 'aquafi',
+                level: 7,
+                moves: <String>['tackle'],
+              ),
+            ],
+          ),
+        ],
+      );
+      await _writeBattleRuntimePokemonData(root);
+
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'battle_warm_map',
+      );
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+        saveData: _battleReadySaveData(mapId: 'battle_warm_map'),
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+
+      await _pumpUntil(
+        game,
+        () =>
+            game.debugBattleMoveCatalogReadCount >= 1 &&
+            game.debugBattleSpeciesReadCount >= 3 &&
+            game.debugBattleLearnsetReadCount >= 3 &&
+            game.debugBattleSpriteMediaReadCount >= 3 &&
+            game.debugBattleVisualImageLoadCount >= 6 &&
+            game.debugBattleVisualOpaqueRectComputeCount >= 6,
+        maxTicks: 360,
+      );
+
+      expect(game.debugBattleMoveCatalogReadCount, 1);
+      expect(game.debugBattleSpeciesReadCount, 3);
+      expect(game.debugBattleLearnsetReadCount, 3);
+      expect(game.debugBattleSpriteMediaReadCount, 3);
+      expect(game.debugBattleVisualImageLoadCount, 6);
+      expect(game.debugBattleVisualOpaqueRectComputeCount, 6);
+    });
+
+    test('battle handoff second run reuses cached battle data and visual assets',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_battle_handoff_cache_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        maps: <MapData>[_battleWarmMap()],
+        encounterTables: const <ProjectEncounterTable>[
+          ProjectEncounterTable(
+            id: 'field_grass',
+            name: 'Field Grass',
+            encounterKind: EncounterKind.walk,
+            entries: <ProjectEncounterEntry>[
+              ProjectEncounterEntry(
+                speciesId: 'sparkitten',
+                minLevel: 6,
+                maxLevel: 6,
+              ),
+            ],
+          ),
+        ],
+        trainers: const <ProjectTrainerEntry>[
+          ProjectTrainerEntry(
+            id: 'trainer_1',
+            name: 'Trainer One',
+            trainerClass: 'Pokémon Trainer',
+            team: <ProjectTrainerPokemonEntry>[
+              ProjectTrainerPokemonEntry(
+                speciesId: 'aquafi',
+                level: 7,
+                moves: <String>['tackle'],
+              ),
+            ],
+          ),
+        ],
+      );
+      await _writeBattleRuntimePokemonData(root);
+
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'battle_warm_map',
+      );
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+        saveData: _battleReadySaveData(mapId: 'battle_warm_map'),
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+      await _pumpUntil(
+        game,
+        () =>
+            game.debugBattleMoveCatalogReadCount >= 1 &&
+            game.debugBattleSpeciesReadCount >= 3 &&
+            game.debugBattleLearnsetReadCount >= 3 &&
+            game.debugBattleSpriteMediaReadCount >= 3 &&
+            game.debugBattleVisualImageLoadCount >= 6 &&
+            game.debugBattleVisualOpaqueRectComputeCount >= 6,
+        maxTicks: 360,
+      );
+
+      final request = _battleWarmWildRequest();
+
+      await game.debugOpenBattleForTest(request);
+      await _pumpUntil(game, () => game.debugBattleOverlayMounted);
+      await game.debugWaitForBattleOverlaySync();
+
+      final moveReadsAfterFirstBattle = game.debugBattleMoveCatalogReadCount;
+      final speciesReadsAfterFirstBattle = game.debugBattleSpeciesReadCount;
+      final learnsetReadsAfterFirstBattle = game.debugBattleLearnsetReadCount;
+      final mediaReadsAfterFirstBattle = game.debugBattleSpriteMediaReadCount;
+      final imageLoadsAfterFirstBattle = game.debugBattleVisualImageLoadCount;
+      final opaqueLoadsAfterFirstBattle =
+          game.debugBattleVisualOpaqueRectComputeCount;
+
+      game.debugResetBattleForTest();
+
+      await game.debugOpenBattleForTest(request);
+      await _pumpUntil(game, () => game.debugBattleOverlayMounted);
+      await game.debugWaitForBattleOverlaySync();
+
+      expect(game.debugBattleMoveCatalogReadCount, moveReadsAfterFirstBattle);
+      expect(game.debugBattleSpeciesReadCount, speciesReadsAfterFirstBattle);
+      expect(game.debugBattleLearnsetReadCount, learnsetReadsAfterFirstBattle);
+      expect(game.debugBattleSpriteMediaReadCount, mediaReadsAfterFirstBattle);
+      expect(game.debugBattleVisualImageLoadCount, imageLoadsAfterFirstBattle);
+      expect(
+        game.debugBattleVisualOpaqueRectComputeCount,
+        opaqueLoadsAfterFirstBattle,
+      );
     });
 
     test(
@@ -717,6 +1066,7 @@ class _TestPlayableMapGame extends PlayableMapGame {
   _TestPlayableMapGame({
     required super.bundle,
     required super.projectFilePath,
+    super.saveData,
     super.runtimeMapBundleLoader,
     super.runtimeTilesetImageLoader,
   });
@@ -805,9 +1155,63 @@ Future<Vector2?> _captureFirstTopLeftOnMap(
   return null;
 }
 
+Future<_ConnectionContinuitySample> _captureConnectionContinuitySample(
+  PlayableMapGame game, {
+  required String sourceMapId,
+  required String targetMapId,
+  required double postSwapFirstFrameDt,
+  int maxTicks = 240,
+}) async {
+  Vector2? sourceScreenTopLeft;
+  Vector2? sourceCameraTopLeft;
+  Vector2? targetScreenTopLeft;
+  Vector2? targetCameraTopLeft;
+  var hasSeenTargetMap = false;
+
+  for (var i = 0; i < maxTicks; i++) {
+    if (game.gameStateSnapshot.currentMapId == sourceMapId) {
+      sourceScreenTopLeft = game.debugPlayerScreenTopLeft.clone();
+      sourceCameraTopLeft = game.debugCameraWorldTopLeft.clone();
+    }
+    final dt = hasSeenTargetMap ? 0.016 : postSwapFirstFrameDt;
+    game.update(dt);
+    await Future<void>.delayed(Duration.zero);
+    if (game.gameStateSnapshot.currentMapId == targetMapId) {
+      hasSeenTargetMap = true;
+      targetScreenTopLeft ??= game.debugPlayerScreenTopLeft.clone();
+      targetCameraTopLeft ??= game.debugCameraWorldTopLeft.clone();
+      break;
+    }
+  }
+
+  return _ConnectionContinuitySample(
+    sourceScreenTopLeft: sourceScreenTopLeft,
+    sourceCameraTopLeft: sourceCameraTopLeft,
+    targetScreenTopLeft: targetScreenTopLeft,
+    targetCameraTopLeft: targetCameraTopLeft,
+  );
+}
+
+class _ConnectionContinuitySample {
+  const _ConnectionContinuitySample({
+    required this.sourceScreenTopLeft,
+    required this.sourceCameraTopLeft,
+    required this.targetScreenTopLeft,
+    required this.targetCameraTopLeft,
+  });
+
+  final Vector2? sourceScreenTopLeft;
+  final Vector2? sourceCameraTopLeft;
+  final Vector2? targetScreenTopLeft;
+  final Vector2? targetCameraTopLeft;
+}
+
 Future<String> _writeRuntimeProject(
   Directory root, {
   required List<MapData> maps,
+  List<ProjectEncounterTable> encounterTables = const <ProjectEncounterTable>[],
+  List<ProjectTrainerEntry> trainers = const <ProjectTrainerEntry>[],
+  ProjectPokemonConfig pokemonConfig = const ProjectPokemonConfig(),
 }) async {
   final manifest = ProjectManifest(
     name: 'Runtime Movement Regression',
@@ -822,6 +1226,9 @@ Future<String> _writeRuntimeProject(
         )
         .toList(growable: false),
     tilesets: const <ProjectTilesetEntry>[],
+    encounterTables: encounterTables,
+    trainers: trainers,
+    pokemon: pokemonConfig,
   );
   final mapsDir = Directory(p.join(root.path, 'maps'));
   await mapsDir.create(recursive: true);
@@ -836,6 +1243,295 @@ Future<String> _writeRuntimeProject(
   );
   return projectFile.path;
 }
+
+Future<void> _writeBattleRuntimePokemonData(Directory root) async {
+  await _writeProjectRelativeJson(
+    root,
+    'data/pokemon/catalogs/moves.json',
+    <String, dynamic>{
+      'schemaVersion': 1,
+      'kind': 'pokemon_catalog',
+      'catalog': 'moves',
+      'entries': <Map<String, dynamic>>[
+        _runtimeMoveJson(
+          id: 'tackle',
+          name: 'Tackle',
+          type: 'normal',
+          category: PokemonMoveCategory.physical,
+          basePower: 40,
+        ),
+      ],
+    },
+  );
+
+  await _writeProjectRelativeJson(
+    root,
+    'data/pokemon/species/sproutle.json',
+    _runtimeSpeciesJson(
+      id: 'sproutle',
+      type: 'grass',
+      abilityId: 'overgrow',
+    ),
+  );
+  await _writeProjectRelativeJson(
+    root,
+    'data/pokemon/species/sparkitten.json',
+    _runtimeSpeciesJson(
+      id: 'sparkitten',
+      type: 'fire',
+      abilityId: 'blaze',
+    ),
+  );
+  await _writeProjectRelativeJson(
+    root,
+    'data/pokemon/species/aquafi.json',
+    _runtimeSpeciesJson(
+      id: 'aquafi',
+      type: 'water',
+      abilityId: 'torrent',
+    ),
+  );
+
+  await _writeProjectRelativeJson(
+    root,
+    'data/pokemon/learnsets/sproutle.json',
+    _runtimeLearnsetJson(),
+  );
+  await _writeProjectRelativeJson(
+    root,
+    'data/pokemon/learnsets/sparkitten.json',
+    _runtimeLearnsetJson(),
+  );
+  await _writeProjectRelativeJson(
+    root,
+    'data/pokemon/learnsets/aquafi.json',
+    _runtimeLearnsetJson(),
+  );
+
+  await _writeBattleMediaSet(root, speciesId: 'sproutle');
+  await _writeBattleMediaSet(root, speciesId: 'sparkitten');
+  await _writeBattleMediaSet(root, speciesId: 'aquafi');
+}
+
+Future<void> _writeBattleMediaSet(
+  Directory root, {
+  required String speciesId,
+}) async {
+  final frontRelativePath = 'data/pokemon/media/$speciesId-front.png';
+  final backRelativePath = 'data/pokemon/media/$speciesId-back.png';
+  await _writeProjectRelativeBytes(
+    root,
+    frontRelativePath,
+    base64Decode(_tinyBattleSpritePngBase64),
+  );
+  await _writeProjectRelativeBytes(
+    root,
+    backRelativePath,
+    base64Decode(_tinyBattleSpritePngBase64),
+  );
+  await _writeProjectRelativeJson(
+    root,
+    'data/pokemon/media/$speciesId.json',
+    <String, dynamic>{
+      'defaultFormId': 'base',
+      'variants': <String, dynamic>{
+        'base': <String, dynamic>{
+          'frontStatic': frontRelativePath,
+          'backStatic': backRelativePath,
+        },
+      },
+    },
+  );
+}
+
+Future<void> _writeProjectRelativeJson(
+  Directory root,
+  String relativePath,
+  Map<String, dynamic> json,
+) async {
+  final file = File(p.join(root.path, relativePath));
+  await file.parent.create(recursive: true);
+  await file.writeAsString(
+    const JsonEncoder.withIndent('  ').convert(json),
+  );
+}
+
+Future<void> _writeProjectRelativeBytes(
+  Directory root,
+  String relativePath,
+  List<int> bytes,
+) async {
+  final file = File(p.join(root.path, relativePath));
+  await file.parent.create(recursive: true);
+  await file.writeAsBytes(bytes);
+}
+
+Map<String, dynamic> _runtimeMoveJson({
+  required String id,
+  required String name,
+  required String type,
+  required PokemonMoveCategory category,
+  required int basePower,
+}) {
+  return <String, dynamic>{
+    'id': id,
+    'name': name,
+    'type': type,
+    'category': category.name,
+    'basePower': basePower,
+    'accuracy': <String, dynamic>{
+      'kind': 'percent',
+      'value': 100,
+    },
+    'pp': 35,
+    'target': 'normal',
+    'priority': 0,
+    'engineSupportLevel': 'structured_supported',
+    'effects': const <Map<String, dynamic>>[],
+    'unsupportedReasons': const <String>[],
+  };
+}
+
+Map<String, dynamic> _runtimeSpeciesJson({
+  required String id,
+  required String type,
+  required String abilityId,
+}) {
+  return <String, dynamic>{
+    'id': id,
+    'typing': <String, dynamic>{
+      'types': <String>[type],
+    },
+    'baseStats': <String, dynamic>{
+      'hp': 45,
+      'atk': 49,
+      'def': 49,
+      'spa': 65,
+      'spd': 65,
+      'spe': 45,
+    },
+    'abilities': <String, dynamic>{
+      'primary': abilityId,
+    },
+    'refs': <String, dynamic>{
+      'learnset': id,
+    },
+  };
+}
+
+Map<String, dynamic> _runtimeLearnsetJson() {
+  return <String, dynamic>{
+    'startingMoves': const <String>['tackle'],
+    'relearnMoves': const <String>[],
+    'levelUp': const <Map<String, dynamic>>[],
+  };
+}
+
+SaveData _battleReadySaveData({
+  required String mapId,
+}) {
+  return SaveData(
+    saveId: 'battle-warm-save',
+    currentMapId: mapId,
+    party: const PlayerParty(
+      members: <PlayerPokemon>[
+        PlayerPokemon(
+          speciesId: 'sproutle',
+          natureId: 'hardy',
+          abilityId: 'overgrow',
+          level: 7,
+          knownMoveIds: <String>['tackle'],
+          currentHp: 18,
+        ),
+      ],
+    ),
+    bag: const Bag(
+      entries: <BagEntry>[
+        BagEntry(
+          itemId: 'poke-ball',
+          categoryId: 'items',
+          quantity: 3,
+        ),
+      ],
+    ),
+    trainerProfile: const TrainerProfile(name: 'Runtime'),
+  );
+}
+
+WildBattleStartRequest _battleWarmWildRequest() {
+    return const WildBattleStartRequest(
+    requestId: 'battle-warm-request',
+    createdAtEpochMs: 1,
+    returnContext: OverworldReturnContext(
+      mapId: 'battle_warm_map',
+      playerPos: GridPos(x: 0, y: 0),
+      playerFacing: Direction.east,
+    ),
+    mapId: 'battle_warm_map',
+    zoneId: 'encounter_grass',
+    tableId: 'field_grass',
+    encounterKind: EncounterKind.walk,
+    speciesId: 'sparkitten',
+    level: 6,
+    minLevel: 6,
+    maxLevel: 6,
+    weight: 1,
+    playerPos: GridPos(x: 0, y: 0),
+  );
+}
+
+MapData _battleWarmMap() {
+  return const MapData(
+    id: 'battle_warm_map',
+    name: 'Battle Warm Map',
+    size: GridSize(width: 2, height: 1),
+    layers: <MapLayer>[
+      MapLayer.object(id: 'objects', name: 'Objects'),
+    ],
+    entities: <MapEntity>[
+      MapEntity(
+        id: 'spawn_battle_warm',
+        name: 'Spawn Battle Warm',
+        kind: MapEntityKind.spawn,
+        pos: GridPos(x: 0, y: 0),
+        blocksMovement: false,
+        spawn: MapEntitySpawnData(
+          role: EntitySpawnRole.playerStart,
+          facing: EntityFacing.east,
+        ),
+      ),
+      MapEntity(
+        id: 'trainer_battle_warm',
+        name: 'Trainer Battle Warm',
+        kind: MapEntityKind.npc,
+        pos: GridPos(x: 1, y: 0),
+        npc: MapEntityNpcData(
+          displayName: 'Trainer One',
+          trainerId: 'trainer_1',
+        ),
+      ),
+    ],
+    gameplayZones: <MapGameplayZone>[
+      MapGameplayZone(
+        id: 'encounter_grass',
+        name: 'Encounter Grass',
+        kind: GameplayZoneKind.encounter,
+        area: MapRect(
+          pos: GridPos(x: 0, y: 0),
+          size: GridSize(width: 1, height: 1),
+        ),
+        encounter: EncounterZonePayload(
+          encounterTableId: 'field_grass',
+          encounterKind: EncounterKind.walk,
+        ),
+      ),
+    ],
+    mapMetadata: MapMetadata(defaultSpawnId: 'spawn_battle_warm'),
+  );
+}
+
+const _tinyBattleSpritePngBase64 =
+    'iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFUlEQVR4nGOMmnbnPwMDAwMTiABhACpmAs+3EdpKAAAAAElFTkSuQmCC';
 
 MapData _singleStepMap() {
   return const MapData(
