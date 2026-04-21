@@ -122,6 +122,24 @@ void main() {
       );
     });
 
+    test('editorShellSnapshotProvider exposes Pokémon catalogs labels', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        workspaceMode: EditorWorkspaceMode.pokedex,
+        project: ProjectManifest(
+          name: 'demo',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+        ),
+      );
+
+      final shell = container.read(editorShellSnapshotProvider);
+      expect(shell.workspaceTitle, 'Catalogues Pokémon');
+      expect(shell.workspaceSubtitle, contains('Pokédex, Moves et Items'));
+    });
+
     test('editorTerrainLibrarySnapshotProvider exposes preset selection inputs',
         () {
       final container = ProviderContainer();

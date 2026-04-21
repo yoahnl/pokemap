@@ -40,8 +40,9 @@ Future<ProviderContainer> pumpEditorShellPage(
   WidgetTester tester, {
   required EditorState initialState,
   Size surfaceSize = const Size(1600, 1000),
+  List<Override> overrides = const <Override>[],
 }) async {
-  final container = ProviderContainer();
+  final container = ProviderContainer(overrides: overrides);
   final editorStateSubscription = container.listen<EditorState>(
     editorNotifierProvider,
     (_, __) {},

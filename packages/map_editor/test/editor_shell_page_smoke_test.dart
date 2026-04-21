@@ -2,6 +2,8 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/app/providers/pokedex/pokedex_providers.dart';
+import 'package:map_editor/src/application/models/pokemon_database_index.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 
 import 'shell_chrome_test_harness.dart';
@@ -99,6 +101,35 @@ void main() {
       expect(
         find.byKey(const Key('trainer-library-new-trainer-button')),
         findsOneWidget,
+      );
+    });
+
+    testWidgets('renders the Pokémon catalogs workspace shell', (tester) async {
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/editor_shell_catalogs',
+          project: buildShellChromeProject(),
+          workspaceMode: EditorWorkspaceMode.pokedex,
+        ),
+        overrides: [
+          pokedexEntryLoaderProvider.overrideWithValue(
+            (_) async => const <PokemonDatabaseIndexEntry>[],
+          ),
+        ],
+      );
+
+      expect(find.text('Catalogues Pokémon'), findsWidgets);
+      expect(find.byKey(const Key('pokemon-catalogs-tabs')), findsOneWidget);
+      expect(find.textContaining('Pokédex est encore vide'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is MacosIconButton &&
+              (widget.semanticLabel == 'Hide right panel' ||
+                  widget.semanticLabel == 'Show right panel'),
+        ),
+        findsNothing,
       );
     });
 

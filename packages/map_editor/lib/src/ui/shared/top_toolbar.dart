@@ -214,11 +214,8 @@ class TopToolbar extends ConsumerWidget {
           ),
           ToolbarCapsuleButton(
             icon: CupertinoIcons.book,
-            tooltip: 'Switch to Pokédex species list',
+            tooltip: 'Switch to Catalogues Pokémon',
             selected: toolbar.workspaceMode == EditorWorkspaceMode.pokedex,
-            // Lot 13: simple navigation UI vers une liste lecture seule.
-            // Aucun filtre, aucune recherche ni action d'édition n'est ajouté
-            // dans cette toolbar.
             onPressed: toolbar.project != null
                 ? notifier.selectPokedexWorkspace
                 : null,
@@ -438,7 +435,7 @@ class TopToolbar extends ConsumerWidget {
           EditorWorkspaceMode.map => 'World Editor',
           EditorWorkspaceMode.tileset => 'Tileset Studio',
           EditorWorkspaceMode.trainer => 'Trainer Studio',
-          EditorWorkspaceMode.pokedex => 'Pokédex',
+          EditorWorkspaceMode.pokedex => 'Catalogues Pokémon',
           EditorWorkspaceMode.globalStory => 'Global Story',
           EditorWorkspaceMode.step => 'Step Studio',
           EditorWorkspaceMode.cutscene => 'Cutscene Studio',

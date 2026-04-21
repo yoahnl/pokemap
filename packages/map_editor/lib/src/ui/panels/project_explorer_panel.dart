@@ -271,14 +271,10 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         ),
         InspectorSectionCard(
           borderRadius: explorerTileRadius,
-          title: 'Pokédex',
-          subtitle:
-              'Simple local species list (lot 13: number, name, id, types)',
+          title: 'Catalogues Pokémon',
+          subtitle: 'Pokédex, Moves et Items dans un espace guidé unique',
           icon: CupertinoIcons.book_fill,
           accentColor: EditorChrome.inspectorJoyAmber,
-          // Pas de compteur ni de résumé riche ici :
-          // le lot 13 doit rester une porte d'entrée sobre vers la liste
-          // simple, sans glisser vers les futurs lots d'édition ou de détail.
           expanded: _expandPokedex,
           onToggle: () => setState(() => _expandPokedex = !_expandPokedex),
           expandedHeight: hPokedex,
@@ -403,9 +399,6 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // On reutilise le pattern de ligne cliquable du navigateur existant.
-          // C'est le point d'integration le plus petit possible pour rendre
-          // Pokédex visible et ouvrable, sans inventer une nouvelle convention.
           EditorSidebarListRow(
             key: const Key('pokedex-explorer-entry'),
             selected: selected,
@@ -422,7 +415,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 0, 14, 4),
             child: Text(
-              'Cette entrée ouvre le workspace Pokédex du projet : import local JSON, recherche, filtres, détail et édition locale des espèces importées.',
+              'Cette entrée ouvre le pôle Catalogues Pokémon du projet. Le sous-espace Pokédex est déjà fonctionnel, tandis que Moves et Items sont préparés comme shells propres pour les prochains lots.',
               style: TextStyle(
                 color: subtle,
                 fontSize: 12,

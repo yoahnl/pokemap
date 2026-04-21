@@ -75,6 +75,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
     final shell = ref.watch(editorShellSnapshotProvider);
     final workspaceMode = shell.workspaceMode;
     final notifier = ref.read(editorNotifierProvider.notifier);
+    final supportsRightInspector = workspaceMode != EditorWorkspaceMode.pokedex;
 
     ref.listen(editorNotifierProvider.select((s) => s.errorMessage),
         (prev, next) {
@@ -251,6 +252,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                                 workspaceMode: workspaceMode,
                                                 rightPanelVisible:
                                                     _rightInspectorVisible,
+                                                showRightPanelToggle:
+                                                    supportsRightInspector,
                                                 onToggleRightPanel: () {
                                                   setState(() {
                                                     _rightInspectorVisible =
@@ -289,7 +292,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                               );
                             },
                           ),
-                          if (_rightInspectorVisible)
+                          if (supportsRightInspector && _rightInspectorVisible)
                             ResizablePane.noScrollBar(
                               key: ValueKey<String>(
                                 'editor_right_${isNarrativeWorkspace ? 'n' : 'm'}',
@@ -450,6 +453,7 @@ class _WorkspaceStageHeader extends StatelessWidget {
     required this.subtitle,
     required this.workspaceMode,
     required this.rightPanelVisible,
+    required this.showRightPanelToggle,
     required this.onToggleRightPanel,
   });
 
@@ -457,6 +461,7 @@ class _WorkspaceStageHeader extends StatelessWidget {
   final String subtitle;
   final EditorWorkspaceMode workspaceMode;
   final bool rightPanelVisible;
+  final bool showRightPanelToggle;
   final VoidCallback onToggleRightPanel;
 
   @override
@@ -551,29 +556,32 @@ class _WorkspaceStageHeader extends StatelessWidget {
             ],
           ),
         ),
-        MacosTooltip(
-          message: rightPanelVisible ? 'Hide right panel' : 'Show right panel',
-          child: MacosIconButton(
-            semanticLabel:
+        if (showRightPanelToggle) ...[
+          MacosTooltip(
+            message:
                 rightPanelVisible ? 'Hide right panel' : 'Show right panel',
-            icon: MacosIcon(
-              rightPanelVisible ? Icons.open_in_full : Icons.close_fullscreen,
-              color: label.withValues(alpha: 0.85),
-              size: 18,
+            child: MacosIconButton(
+              semanticLabel:
+                  rightPanelVisible ? 'Hide right panel' : 'Show right panel',
+              icon: MacosIcon(
+                rightPanelVisible ? Icons.open_in_full : Icons.close_fullscreen,
+                color: label.withValues(alpha: 0.85),
+                size: 18,
+              ),
+              backgroundColor: CupertinoColors.transparent,
+              hoverColor: chipAccent.withValues(alpha: 0.12),
+              onPressed: onToggleRightPanel,
+              boxConstraints: const BoxConstraints(
+                minWidth: 34,
+                maxWidth: 34,
+                minHeight: 34,
+                maxHeight: 34,
+              ),
+              borderRadius: BorderRadius.circular(10),
             ),
-            backgroundColor: CupertinoColors.transparent,
-            hoverColor: chipAccent.withValues(alpha: 0.12),
-            onPressed: onToggleRightPanel,
-            boxConstraints: const BoxConstraints(
-              minWidth: 34,
-              maxWidth: 34,
-              minHeight: 34,
-              maxHeight: 34,
-            ),
-            borderRadius: BorderRadius.circular(10),
           ),
-        ),
-        const SizedBox(width: 8),
+          const SizedBox(width: 8),
+        ],
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
           decoration: BoxDecoration(
@@ -589,7 +597,7 @@ class _WorkspaceStageHeader extends StatelessWidget {
               EditorWorkspaceMode.map => 'Scene',
               EditorWorkspaceMode.tileset => 'Library',
               EditorWorkspaceMode.trainer => 'Trainer',
-              EditorWorkspaceMode.pokedex => 'Pokedex',
+              EditorWorkspaceMode.pokedex => 'Catalogues',
               EditorWorkspaceMode.globalStory => 'Global',
               EditorWorkspaceMode.step => 'Step',
               EditorWorkspaceMode.cutscene => 'Cutscene',

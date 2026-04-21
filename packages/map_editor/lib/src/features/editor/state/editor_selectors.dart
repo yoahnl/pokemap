@@ -135,7 +135,7 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
     EditorWorkspaceMode.map => activeMap?.name ?? 'Map Workspace',
     EditorWorkspaceMode.tileset => selectedTileset?.name ?? 'Tileset Studio',
     EditorWorkspaceMode.trainer => 'Trainer Studio',
-    EditorWorkspaceMode.pokedex => 'Pokédex',
+    EditorWorkspaceMode.pokedex => 'Catalogues Pokémon',
     EditorWorkspaceMode.globalStory => 'Global Story Workspace',
     EditorWorkspaceMode.step => 'Step Studio',
     EditorWorkspaceMode.cutscene => 'Cutscene Studio',
@@ -152,7 +152,7 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
     EditorWorkspaceMode.trainer =>
       'Create trainers, teams and battle-ready rosters without editing raw JSON.',
     EditorWorkspaceMode.pokedex =>
-      'Simple species list from local project data: number, name, id and types.',
+      'Pokédex, Moves et Items réunis dans un même pôle de catalogues Pokémon.',
     EditorWorkspaceMode.globalStory =>
       'Macro narrative progression: arcs, milestones and high-level branches.',
     EditorWorkspaceMode.step =>

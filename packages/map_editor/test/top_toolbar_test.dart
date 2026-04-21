@@ -17,7 +17,7 @@ void main() {
       );
 
       expect(find.text('RPG Map Editor'), findsOneWidget);
-      expect(find.text('Pokemon Map  •  Pokédex'), findsOneWidget);
+      expect(find.text('Pokemon Map  •  Catalogues Pokémon'), findsOneWidget);
     });
 
     testWidgets('falls back to the workspace label when no project is loaded',
