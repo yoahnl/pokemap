@@ -17,6 +17,7 @@ import '../../../application/use_cases/resolve_external_pokemon_batch_selection_
 import '../../../application/use_cases/search_external_pokemon_species_use_case.dart';
 import '../../../application/use_cases/delete_pokedex_species_use_case.dart';
 import '../../../application/use_cases/load_pokedex_species_detail_use_case.dart';
+import '../../../application/use_cases/sync_pokemon_items_catalog_use_case.dart';
 import '../../../application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
 import '../../../application/use_cases/update_pokedex_species_evolution_use_case.dart';
 import '../../../application/use_cases/update_pokedex_species_forms_classification_use_case.dart';
@@ -295,6 +296,16 @@ final loadPokemonItemsCatalogUseCaseProvider =
 final syncExternalPokemonMovesCatalogUseCaseProvider =
     Provider<SyncExternalPokemonMovesCatalogUseCase>((ref) {
   return SyncExternalPokemonMovesCatalogUseCase(
+    externalSourceRepository:
+        ref.watch(pokemonExternalSourceRepositoryProvider),
+    readRepository: ref.watch(pokemonReadRepositoryProvider),
+    writeRepository: ref.watch(pokemonWriteRepositoryProvider),
+  );
+});
+
+final syncExternalPokemonItemsCatalogUseCaseProvider =
+    Provider<SyncExternalPokemonItemsCatalogUseCase>((ref) {
+  return SyncExternalPokemonItemsCatalogUseCase(
     externalSourceRepository:
         ref.watch(pokemonExternalSourceRepositoryProvider),
     readRepository: ref.watch(pokemonReadRepositoryProvider),

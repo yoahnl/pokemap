@@ -191,6 +191,19 @@ class _FakePokemonExternalSourceRepository
   }
 
   @override
+  Future<Map<String, dynamic>> fetchPokeApiItemsResourceList({
+    required int limit,
+    required int offset,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<Map<String, dynamic>> fetchPokeApiItemPayload(String itemIdOrName) {
+    throw UnimplementedError();
+  }
+
+  @override
   Future<Map<String, dynamic>> fetchPokeApiPokemonPayload(String speciesId) {
     throw UnimplementedError();
   }

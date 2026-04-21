@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -5,9 +7,12 @@ import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/app/providers/pokemon_items/pokemon_items_workspace_providers.dart';
 import 'package:map_editor/src/application/use_cases/load_pokemon_items_catalog_use_case.dart';
+import 'package:map_editor/src/application/use_cases/sync_pokemon_items_catalog_use_case.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/ui/canvas/pokemon_catalogs_workspace.dart';
+import 'package:map_editor/src/ui/canvas/pokemon_catalogs_workspace/items_catalog_workspace.dart';
+import 'package:path/path.dart' as p;
 
 void main() {
   const project = ProjectManifest(
@@ -285,7 +290,30 @@ void main() {
     expect(find.text('—'), findsWidgets);
   });
 
-  testWidgets('Items catalog displays sprite metadata without loading network images',
+  test('Items catalog local sprite helper detects an existing local sprite',
+      () async {
+    final tempRoot = Directory(
+      p.join(
+        Directory.systemTemp.path,
+        'items_catalog_sprite_ui_${DateTime.now().microsecondsSinceEpoch}',
+      ),
+    );
+    final spriteFile = File(
+      '${tempRoot.path}/data/pokemon/assets/items/poke-ball.png',
+    );
+    await spriteFile.create(recursive: true);
+    await spriteFile.writeAsBytes(_tinyTransparentPng);
+
+    expect(
+      hasPokemonItemsLocalSpriteAsset(
+        projectRootPath: tempRoot.path,
+        localSpritePath: 'data/pokemon/assets/items/poke-ball.png',
+      ),
+      isTrue,
+    );
+  });
+
+  testWidgets('Items catalog keeps sprite metadata text-only when only spriteUrl exists',
       (tester) async {
     await _pumpItemsWorkspace(
       tester,
@@ -304,7 +332,6 @@ void main() {
                 name: 'Poké Ball',
                 spriteUrl:
                     'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png',
-                localSpritePath: 'data/pokemon/assets/items/poke-ball.png',
               ),
             ],
             isAvailable: true,
@@ -321,13 +348,144 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(
-      find.textContaining('data/pokemon/assets/items/poke-ball.png'),
-      findsOneWidget,
-    );
+    expect(find.byKey(const Key('items-catalog-local-sprite-preview')), findsNothing);
     expect(find.byType(Image), findsNothing);
   });
+
+  testWidgets('Items catalog preview sync uses the workspace syncer and shows a summary',
+      (tester) async {
+    String? capturedProjectRootPath;
+    bool? capturedDryRun;
+    bool? capturedDownloadSprites;
+
+    await _pumpItemsWorkspace(
+      tester,
+      initialState: const EditorState(
+        projectRootPath: '/tmp/items_catalog_ui_test',
+        project: project,
+        workspaceMode: EditorWorkspaceMode.pokedex,
+        pokemonCatalogSection: PokemonCatalogSection.items,
+      ),
+      overrides: [
+        pokemonItemsCatalogWorkspaceLoaderProvider.overrideWithValue(
+          (_) async => const PokemonItemsCatalogView(
+            entries: <PokemonItemCatalogEntryView>[
+              PokemonItemCatalogEntryView(
+                id: 'poke-ball',
+                name: 'Poké Ball',
+              ),
+            ],
+            isAvailable: true,
+            description: 'Catalogue local des objets.',
+          ),
+        ),
+        pokemonItemsCatalogWorkspaceSyncerProvider.overrideWithValue(
+          (
+            projectRootPath, {
+            bool dryRun = false,
+            bool downloadSprites = false,
+            bool overwriteSprites = false,
+          }) async {
+            capturedProjectRootPath = projectRootPath;
+            capturedDryRun = dryRun;
+            capturedDownloadSprites = downloadSprites;
+            return const PokemonItemsCatalogSyncResult(
+              dryRun: true,
+              externalEntryCount: 2,
+              createdIds: <String>['potion'],
+              updatedIds: <String>['poke-ball'],
+              unchangedIds: <String>[],
+              preservedLocalOnlyIds: <String>[],
+              downloadedSpriteIds: <String>[],
+              skippedSpriteIds: <String>[],
+              failedSpriteIds: <String>[],
+              resultingEntryCount: 2,
+            );
+          },
+        ),
+      ],
+    );
+
+    await tester.tap(find.byKey(const Key('items-catalog-preview-sync-button')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+
+    expect(capturedProjectRootPath, '/tmp/items_catalog_ui_test');
+    expect(capturedDryRun, isTrue);
+    expect(capturedDownloadSprites, isFalse);
+    expect(find.textContaining('Prévisualisation'), findsOneWidget);
+  });
 }
+
+const List<int> _tinyTransparentPng = <int>[
+  137,
+  80,
+  78,
+  71,
+  13,
+  10,
+  26,
+  10,
+  0,
+  0,
+  0,
+  13,
+  73,
+  72,
+  68,
+  82,
+  0,
+  0,
+  0,
+  1,
+  0,
+  0,
+  0,
+  1,
+  8,
+  6,
+  0,
+  0,
+  0,
+  31,
+  21,
+  196,
+  137,
+  0,
+  0,
+  0,
+  12,
+  73,
+  68,
+  65,
+  84,
+  8,
+  153,
+  99,
+  0,
+  1,
+  0,
+  0,
+  5,
+  0,
+  1,
+  13,
+  10,
+  44,
+  181,
+  0,
+  0,
+  0,
+  0,
+  73,
+  69,
+  78,
+  68,
+  174,
+  66,
+  96,
+  130,
+];
 
 Future<ProviderContainer> _pumpItemsWorkspace(
   WidgetTester tester, {
@@ -358,6 +516,7 @@ Future<ProviderContainer> _pumpItemsWorkspace(
     ),
   );
   await tester.pump();
-  await tester.pumpAndSettle(const Duration(milliseconds: 50));
+  await tester.pump(const Duration(milliseconds: 50));
+  await tester.pump(const Duration(milliseconds: 50));
   return container;
 }

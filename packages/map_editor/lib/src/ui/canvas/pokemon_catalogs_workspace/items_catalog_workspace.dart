@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 
 import '../../../app/providers/pokemon_items/pokemon_items_workspace_providers.dart';
 import '../../../application/use_cases/load_pokemon_items_catalog_use_case.dart';
+import '../../../application/use_cases/sync_pokemon_items_catalog_use_case.dart';
 import '../../../features/editor/state/editor_selectors.dart';
 
 class PokemonItemsCatalogWorkspace extends ConsumerStatefulWidget {
@@ -19,6 +23,9 @@ class _PokemonItemsCatalogWorkspaceState
   String? _selectedItemId;
   String? _loadedProjectRootPath;
   Future<PokemonItemsCatalogView>? _catalogFuture;
+  bool _isSyncing = false;
+  PokemonItemsCatalogSyncResult? _lastSyncResult;
+  String? _lastSyncError;
 
   @override
   void initState() {
@@ -66,6 +73,7 @@ class _PokemonItemsCatalogWorkspaceState
                     description: 'Catalogue local des objets indisponible.',
                     loadState: PokemonItemsCatalogLoadState.loadError,
                   ),
+              projectRootPath,
             );
           },
         ),
@@ -89,7 +97,12 @@ class _PokemonItemsCatalogWorkspaceState
   Widget _buildCatalogContent(
     BuildContext context,
     PokemonItemsCatalogView view,
+    String? projectRootPath,
   ) {
+    final syncToolbar = _buildSyncToolbar(
+      context,
+      projectRootPath: projectRootPath,
+    );
     final query = _searchController.text.trim();
     final filteredEntries = _filterEntries(view.entries, query);
     final selectedEntry = _resolveSelectedEntry(filteredEntries);
@@ -102,32 +115,76 @@ class _PokemonItemsCatalogWorkspaceState
     }
 
     if (view.loadState == PokemonItemsCatalogLoadState.missingCatalog) {
-      return _ItemsWorkspaceNotice(
-        title: 'Items',
-        message:
-            'Aucun item local pour le moment.\nAjoute des entrées dans ${view.catalogRelativePath}. L’import PokeAPI sera traité dans un lot suivant.',
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (syncToolbar != null) ...[
+            syncToolbar,
+            const SizedBox(height: 16),
+          ],
+          Expanded(
+            child: _ItemsWorkspaceNotice(
+              title: 'Items',
+              message:
+                  'Aucun item local pour le moment.\nAjoute des entrées dans ${view.catalogRelativePath}. L’import PokeAPI sera traité dans un lot suivant.',
+            ),
+          ),
+        ],
       );
     }
 
     if (view.loadState == PokemonItemsCatalogLoadState.loadError) {
-      return _ItemsWorkspaceNotice(
-        title: 'Items',
-        message: view.message ?? 'Le catalogue local des items est illisible.',
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (syncToolbar != null) ...[
+            syncToolbar,
+            const SizedBox(height: 16),
+          ],
+          Expanded(
+            child: _ItemsWorkspaceNotice(
+              title: 'Items',
+              message: view.message ?? 'Le catalogue local des items est illisible.',
+            ),
+          ),
+        ],
       );
     }
 
     if (view.entries.isEmpty) {
       if (view.diagnostics.isNotEmpty) {
-        return _ItemsWorkspaceNotice(
-          title: 'Items',
-          message:
-              'Le catalogue local des items contient uniquement des entrées invalides.\n${_diagnosticsSummary(view.diagnostics.length)}\nChemin lu : ${view.catalogRelativePath}',
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (syncToolbar != null) ...[
+              syncToolbar,
+              const SizedBox(height: 16),
+            ],
+            Expanded(
+              child: _ItemsWorkspaceNotice(
+                title: 'Items',
+                message:
+                    'Le catalogue local des items contient uniquement des entrées invalides.\n${_diagnosticsSummary(view.diagnostics.length)}\nChemin lu : ${view.catalogRelativePath}',
+              ),
+            ),
+          ],
         );
       }
-      return _ItemsWorkspaceNotice(
-        title: 'Items',
-        message:
-            'Le catalogue local des items existe, mais il ne contient aucune entrée.\nChemin lu : ${view.catalogRelativePath}',
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (syncToolbar != null) ...[
+            syncToolbar,
+            const SizedBox(height: 16),
+          ],
+          Expanded(
+            child: _ItemsWorkspaceNotice(
+              title: 'Items',
+              message:
+                  'Le catalogue local des items existe, mais il ne contient aucune entrée.\nChemin lu : ${view.catalogRelativePath}',
+            ),
+          ),
+        ],
       );
     }
 
@@ -148,12 +205,17 @@ class _PokemonItemsCatalogWorkspaceState
     final detailPanel = _ItemsCatalogDetailPanel(
       entry: selectedEntry,
       hasSearchQuery: query.isNotEmpty,
+      projectRootPath: projectRootPath,
     );
 
     if (isCompact) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (syncToolbar != null) ...[
+            syncToolbar,
+            const SizedBox(height: 16),
+          ],
           Expanded(
             flex: 5,
             child: listPanel,
@@ -171,16 +233,167 @@ class _PokemonItemsCatalogWorkspaceState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          flex: 5,
-          child: listPanel,
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          flex: 4,
-          child: detailPanel,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (syncToolbar != null) ...[
+                syncToolbar,
+                const SizedBox(height: 16),
+              ],
+              Expanded(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 5,
+                      child: listPanel,
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 4,
+                      child: detailPanel,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
+  }
+
+  Widget? _buildSyncToolbar(
+    BuildContext context, {
+    required String? projectRootPath,
+  }) {
+    if (projectRootPath == null || projectRootPath.trim().isEmpty) {
+      return null;
+    }
+
+    final border = CupertinoColors.separator.resolveFrom(context);
+    final fill = CupertinoColors.systemGrey6.resolveFrom(context);
+    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final statusText = _buildSyncStatusText();
+
+    return Container(
+      key: const Key('items-catalog-sync-toolbar'),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              CupertinoButton(
+                key: const Key('items-catalog-preview-sync-button'),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                onPressed: _isSyncing
+                    ? null
+                    : () => _runSync(
+                          projectRootPath,
+                          dryRun: true,
+                          downloadSprites: false,
+                        ),
+                child: const Text('Preview sync'),
+              ),
+              CupertinoButton.filled(
+                key: const Key('items-catalog-run-sync-button'),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
+                onPressed: _isSyncing
+                    ? null
+                    : () => _runSync(
+                          projectRootPath,
+                          dryRun: false,
+                          downloadSprites: true,
+                        ),
+                child: Text(
+                  _isSyncing ? 'Sync en cours…' : 'Sync depuis PokéAPI',
+                ),
+              ),
+              if (_isSyncing) const CupertinoActivityIndicator(),
+            ],
+          ),
+          if (statusText != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              statusText,
+              key: const Key('items-catalog-sync-status'),
+              style: TextStyle(
+                color: subtle,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  String? _buildSyncStatusText() {
+    if (_lastSyncError != null && _lastSyncError!.trim().isNotEmpty) {
+      return _lastSyncError;
+    }
+    final result = _lastSyncResult;
+    if (result == null) {
+      return null;
+    }
+    final prefix = result.dryRun ? 'Prévisualisation' : 'Synchronisation';
+    return '$prefix: ${result.createdIds.length} créé(s), ${result.updatedIds.length} mis à jour, ${result.unchangedIds.length} inchangé(s), ${result.downloadedSpriteIds.length} sprite(s) téléchargé(s).';
+  }
+
+  Future<void> _runSync(
+    String projectRootPath, {
+    required bool dryRun,
+    required bool downloadSprites,
+  }) async {
+    setState(() {
+      _isSyncing = true;
+      _lastSyncError = null;
+    });
+
+    try {
+      final syncer = ref.read(pokemonItemsCatalogWorkspaceSyncerProvider);
+      final result = await syncer(
+        projectRootPath,
+        dryRun: dryRun,
+        downloadSprites: downloadSprites,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isSyncing = false;
+        _lastSyncResult = result;
+        _lastSyncError = null;
+        if (!dryRun) {
+          _loadedProjectRootPath = null;
+          _catalogFuture = null;
+        }
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isSyncing = false;
+        _lastSyncError = 'Échec de la sync items: $error';
+      });
+    }
   }
 
   List<PokemonItemCatalogEntryView> _filterEntries(
@@ -477,10 +690,12 @@ class _ItemsCatalogDetailPanel extends StatelessWidget {
   const _ItemsCatalogDetailPanel({
     required this.entry,
     required this.hasSearchQuery,
+    required this.projectRootPath,
   });
 
   final PokemonItemCatalogEntryView? entry;
   final bool hasSearchQuery;
+  final String? projectRootPath;
 
   @override
   Widget build(BuildContext context) {
@@ -575,6 +790,12 @@ class _ItemsCatalogDetailPanel extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 10),
+            PokemonItemsCatalogSpritePreview(
+              projectRootPath: projectRootPath,
+              localSpritePath: entry!.localSpritePath,
+              spriteUrl: entry!.spriteUrl,
+            ),
+            const SizedBox(height: 12),
             _ItemsDetailField(
               label: 'Sprite URL',
               value: _labelOrDash(entry!.spriteUrl),
@@ -586,6 +807,100 @@ class _ItemsCatalogDetailPanel extends StatelessWidget {
               multiLine: true,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class PokemonItemsCatalogSpritePreview extends StatelessWidget {
+  const PokemonItemsCatalogSpritePreview({
+    super.key,
+    required this.projectRootPath,
+    required this.localSpritePath,
+    required this.spriteUrl,
+  });
+
+  final String? projectRootPath;
+  final String? localSpritePath;
+  final String? spriteUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final border = CupertinoColors.separator.resolveFrom(context);
+    final mutedFill = CupertinoColors.systemGrey6.resolveFrom(context);
+    final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final hasLocalSprite = hasPokemonItemsLocalSpriteAsset(
+      projectRootPath: projectRootPath,
+      localSpritePath: localSpritePath,
+    );
+
+    if (hasLocalSprite) {
+      return Container(
+        key: const Key('items-catalog-local-sprite-preview'),
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: mutedFill,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: border),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: CupertinoColors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: border),
+              ),
+              alignment: Alignment.center,
+              child: const Text(
+                'PNG',
+                key: Key('items-catalog-local-sprite-indicator'),
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                'Sprite local chargé depuis ${_labelOrDash(localSpritePath)}',
+                style: TextStyle(
+                  color: subtle,
+                  height: 1.4,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final hasLocalPath = localSpritePath != null && localSpritePath!.trim().isNotEmpty;
+    final hasRemoteMetadata = spriteUrl != null && spriteUrl!.trim().isNotEmpty;
+    final message = hasLocalPath
+        ? 'Le sprite local indiqué est introuvable pour le moment.'
+        : hasRemoteMetadata
+            ? 'Sprite disponible après sync assets.'
+            : 'No sprite metadata';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: mutedFill,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: border),
+      ),
+      child: Text(
+        message,
+        style: TextStyle(
+          color: subtle,
+          height: 1.4,
         ),
       ),
     );
@@ -651,4 +966,28 @@ String _diagnosticsSummary(int count) {
   return count == 1
       ? '1 entrée ignorée dans le catalogue.'
       : '$count entrées ignorées dans le catalogue.';
+}
+
+bool hasPokemonItemsLocalSpriteAsset({
+  required String? projectRootPath,
+  required String? localSpritePath,
+}) {
+  final normalizedProjectRoot = projectRootPath?.trim();
+  final normalizedLocalSpritePath = localSpritePath?.trim();
+  if (normalizedProjectRoot == null ||
+      normalizedProjectRoot.isEmpty ||
+      normalizedLocalSpritePath == null ||
+      normalizedLocalSpritePath.isEmpty) {
+    return false;
+  }
+
+  final absolutePath = p.normalize(
+    p.join(normalizedProjectRoot, normalizedLocalSpritePath),
+  );
+  final file = File(absolutePath);
+  try {
+    return file.existsSync() && file.lengthSync() > 0;
+  } on FileSystemException {
+    return false;
+  }
 }

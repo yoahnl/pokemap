@@ -41,6 +41,10 @@ class PokeApiLiveSource {
       <String, Map<String, dynamic>>{};
   final Map<String, Map<String, dynamic>> _evolutionChainCache =
       <String, Map<String, dynamic>>{};
+  final Map<String, Map<String, dynamic>> _itemCache =
+      <String, Map<String, dynamic>>{};
+  final Map<String, Map<String, dynamic>> _itemListCache =
+      <String, Map<String, dynamic>>{};
   final Map<String, PokemonExternalBinaryAsset> _assetCache =
       <String, PokemonExternalBinaryAsset>{};
 
@@ -120,6 +124,49 @@ class PokeApiLiveSource {
       contextLabel: 'PokeAPI evolution-chain payload',
     );
     _evolutionChainCache[evolutionChainUrl] = payload;
+    return _deepCopy(payload);
+  }
+
+  Future<Map<String, dynamic>> fetchItemsResourceList({
+    required int limit,
+    required int offset,
+  }) async {
+    final cacheKey = '$limit:$offset';
+    final cached = _itemListCache[cacheKey];
+    if (cached != null) {
+      return _deepCopy(cached);
+    }
+
+    final payload = await _getJsonObject(
+      _resolveApiUri('item?limit=$limit&offset=$offset'),
+      notFoundMessage:
+          'External PokeAPI item list payload not found for limit=$limit offset=$offset',
+      contextLabel: 'PokeAPI item list payload',
+    );
+    _itemListCache[cacheKey] = payload;
+    return _deepCopy(payload);
+  }
+
+  Future<Map<String, dynamic>> fetchItem(String itemIdOrName) async {
+    final cacheKey = _normalizeKey(itemIdOrName);
+    final cached = _itemCache[cacheKey];
+    if (cached != null) {
+      return _deepCopy(cached);
+    }
+
+    final payload = await _getJsonObject(
+      _resolveApiUri('item/$cacheKey'),
+      notFoundMessage:
+          'External PokeAPI item payload not found for item "$itemIdOrName"',
+      contextLabel: 'PokeAPI item payload',
+    );
+    _itemCache[cacheKey] = payload;
+
+    final canonicalName = _readNamedResourceName(payload['name']);
+    if (canonicalName.isNotEmpty) {
+      _itemCache.putIfAbsent(canonicalName, () => payload);
+    }
+
     return _deepCopy(payload);
   }
 

@@ -39,6 +39,13 @@ abstract class PokemonExternalSourceRepository {
   /// - aucune dépendance directe de l'application à l'URL Showdown.
   Future<Map<String, dynamic>> fetchShowdownMovesSnapshot();
 
+  Future<Map<String, dynamic>> fetchPokeApiItemsResourceList({
+    required int limit,
+    required int offset,
+  });
+
+  Future<Map<String, dynamic>> fetchPokeApiItemPayload(String itemIdOrName);
+
   Future<Map<String, dynamic>> fetchPokeApiPokemonPayload(String speciesId);
 
   Future<Map<String, dynamic>> fetchPokeApiPokemonSpeciesPayload(

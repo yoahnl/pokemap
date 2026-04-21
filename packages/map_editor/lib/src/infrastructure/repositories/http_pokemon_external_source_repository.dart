@@ -37,6 +37,24 @@ class HttpPokemonExternalSourceRepository
   }
 
   @override
+  Future<Map<String, dynamic>> fetchPokeApiItemsResourceList({
+    required int limit,
+    required int offset,
+  }) {
+    return pokeApiSource.fetchItemsResourceList(
+      limit: limit,
+      offset: offset,
+    );
+  }
+
+  @override
+  Future<Map<String, dynamic>> fetchPokeApiItemPayload(
+    String itemIdOrName,
+  ) {
+    return pokeApiSource.fetchItem(itemIdOrName);
+  }
+
+  @override
   Future<Map<String, dynamic>> fetchPokeApiPokemonPayload(
     String speciesId,
   ) {
