@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui show Image, KeyEventDeviceType;
@@ -9,6 +10,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
+import 'package:map_runtime/src/application/dialogue_runtime_models.dart';
 import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
 import 'package:path/path.dart' as p;
 
@@ -102,6 +104,393 @@ void main() {
       );
     });
 
+    test(
+        'direct dialogue locks movement before dialogue content finishes loading',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_dialogue_pending_lock_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        maps: <MapData>[
+          _npcDialogueMap(),
+        ],
+        dialogues: const <ProjectDialogueEntry>[
+          ProjectDialogueEntry(
+            id: 'intro',
+            name: 'Intro',
+            relativePath: 'dialogues/intro.yarn',
+          ),
+        ],
+      );
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'npc_dialogue_map',
+      );
+      final dialogueCompleter = Completer<DialogueSession?>();
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+        dialogueSessionLoader: (_) => dialogueCompleter.future,
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.primary),
+        ),
+        isTrue,
+      );
+
+      expect(game.debugHasPendingDialogueLoad, isTrue);
+      expect(game.debugIsGameplayInputLocked, isTrue);
+      expect(game.debugFlowPhaseName, 'blockingInteraction');
+      expect(game.debugPlayerGridPosition, const GridPos(x: 0, y: 0));
+
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.down),
+        ),
+        isTrue,
+      );
+      game.update(0.016);
+      await Future<void>.delayed(Duration.zero);
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.release(RuntimeInputControl.down),
+        ),
+        isTrue,
+      );
+
+      expect(game.debugPlayerGridPosition, const GridPos(x: 0, y: 0));
+      expect(game.debugFlowPhaseName, 'blockingInteraction');
+
+      dialogueCompleter.complete(_singleLineDialogueSession('Bonjour.'));
+      await _pumpUntil(game, () => game.debugFlowPhaseName == 'dialogue');
+
+      expect(game.debugHasPendingDialogueLoad, isFalse);
+      expect(game.debugIsGameplayInputLocked, isTrue);
+
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.primary),
+        ),
+        isTrue,
+      );
+      expect(game.debugFlowPhaseName, 'overworld');
+      expect(game.debugIsGameplayInputLocked, isFalse);
+    });
+
+    test('failed pending dialogue unlocks gameplay and shows fallback',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_dialogue_pending_failure_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        maps: <MapData>[
+          _npcDialogueMap(),
+        ],
+        dialogues: const <ProjectDialogueEntry>[
+          ProjectDialogueEntry(
+            id: 'intro',
+            name: 'Intro',
+            relativePath: 'dialogues/intro.yarn',
+          ),
+        ],
+      );
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'npc_dialogue_map',
+      );
+      final dialogueCompleter = Completer<DialogueSession?>();
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+        dialogueSessionLoader: (_) => dialogueCompleter.future,
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.primary),
+        ),
+        isTrue,
+      );
+
+      expect(game.debugHasPendingDialogueLoad, isTrue);
+      expect(game.debugFlowPhaseName, 'blockingInteraction');
+
+      dialogueCompleter.complete(null);
+      await _pumpUntil(game, () => game.debugFlowPhaseName == 'overworld');
+
+      expect(game.debugHasPendingDialogueLoad, isFalse);
+      expect(game.debugIsGameplayInputLocked, isFalse);
+      expect(game.debugNotificationText, 'Professor Oak');
+
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.down),
+        ),
+        isTrue,
+      );
+      game.update(0.016);
+      await Future<void>.delayed(Duration.zero);
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.release(RuntimeInputControl.down),
+        ),
+        isTrue,
+      );
+      await _pumpUntil(game, () => !game.debugIsPlayerStepping);
+
+      expect(game.debugPlayerGridPosition, const GridPos(x: 0, y: 1));
+    });
+
+    test('script dialogue locks gameplay before dialogue overlay is mounted',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_script_dialogue_pending_lock_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        maps: <MapData>[
+          _eventScriptDialogueMap(),
+        ],
+        scripts: <ProjectScriptEntry>[
+          ProjectScriptEntry(
+            id: 'intro_script',
+            name: 'Intro Script',
+            asset: ScriptAsset(
+              id: 'intro_script',
+              defaultStartNode: 'start',
+              nodes: <ScriptNode>[
+                ScriptNode(
+                  id: 'start',
+                  commands: <ScriptCommand>[
+                    ScriptCommand(
+                      type: ScriptCommandType.openDialogue,
+                      params: <String, String>{
+                        'filePath': 'dialogues/intro.yarn',
+                        'startNode': 'Start',
+                      },
+                    ),
+                    const ScriptCommand(type: ScriptCommandType.end),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'event_script_dialogue_map',
+      );
+      final dialogueCompleter = Completer<DialogueSession?>();
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+        dialogueSessionLoader: (_) => dialogueCompleter.future,
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.primary),
+        ),
+        isTrue,
+      );
+
+      expect(game.debugHasPendingDialogueLoad, isTrue);
+      expect(game.debugIsGameplayInputLocked, isTrue);
+      expect(game.debugFlowPhaseName, 'blockingInteraction');
+
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.down),
+        ),
+        isTrue,
+      );
+      game.update(0.016);
+      await Future<void>.delayed(Duration.zero);
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.release(RuntimeInputControl.down),
+        ),
+        isTrue,
+      );
+
+      expect(game.debugPlayerGridPosition, const GridPos(x: 0, y: 0));
+
+      dialogueCompleter.complete(_singleLineDialogueSession('Script hello.'));
+      await _pumpUntil(game, () => game.debugFlowPhaseName == 'dialogue');
+
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.primary),
+        ),
+        isTrue,
+      );
+      expect(game.debugFlowPhaseName, 'overworld');
+      expect(game.debugIsGameplayInputLocked, isFalse);
+    });
+
+    test('pending dialogue prevents a second interaction from starting',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_dialogue_pending_second_interaction_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        maps: <MapData>[
+          _npcDialogueMap(),
+        ],
+        dialogues: const <ProjectDialogueEntry>[
+          ProjectDialogueEntry(
+            id: 'intro',
+            name: 'Intro',
+            relativePath: 'dialogues/intro.yarn',
+          ),
+        ],
+      );
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'npc_dialogue_map',
+      );
+      var loadCount = 0;
+      final dialogueCompleter = Completer<DialogueSession?>();
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+        dialogueSessionLoader: (_) {
+          loadCount += 1;
+          return dialogueCompleter.future;
+        },
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.primary),
+        ),
+        isTrue,
+      );
+      expect(loadCount, 1);
+      expect(game.debugHasPendingDialogueLoad, isTrue);
+
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.primary),
+        ),
+        isTrue,
+      );
+      game.update(0.016);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(loadCount, 1);
+      expect(game.debugPlayerGridPosition, const GridPos(x: 0, y: 0));
+
+      dialogueCompleter.complete(_singleLineDialogueSession('Bonjour.'));
+      await _pumpUntil(game, () => game.debugFlowPhaseName == 'dialogue');
+    });
+
+    test('pending scenario blocks overworld input affordances until resolved',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_pending_scenario_blocks_inputs_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        maps: <MapData>[
+          _npcDialogueMap(),
+        ],
+        dialogues: const <ProjectDialogueEntry>[
+          ProjectDialogueEntry(
+            id: 'intro',
+            name: 'Intro',
+            relativePath: 'dialogues/intro.yarn',
+          ),
+        ],
+      );
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'npc_dialogue_map',
+      );
+      final dialogueCompleter = Completer<DialogueSession?>();
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+        dialogueSessionLoader: (_) => dialogueCompleter.future,
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.primary),
+        ),
+        isTrue,
+      );
+      expect(game.debugHasPendingDialogueLoad, isTrue);
+
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.down),
+        ),
+        isTrue,
+      );
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.primary),
+        ),
+        isTrue,
+      );
+      game.update(0.016);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(game.debugPlayerGridPosition, const GridPos(x: 0, y: 0));
+      expect(game.debugFlowPhaseName, 'blockingInteraction');
+      expect(game.debugIsGameplayInputLocked, isTrue);
+
+      dialogueCompleter.complete(_singleLineDialogueSession('Bonjour.'));
+      await _pumpUntil(game, () => game.debugFlowPhaseName == 'dialogue');
+    });
+
     test('one cardinal step lands on the expected cell without a visual offset',
         () async {
       final root = await Directory.systemTemp.createTemp(
@@ -137,6 +526,162 @@ void main() {
       expect(game.debugRenderedPlayerFootCell, const GridPos(x: 1, y: 0));
       expect(
           game.debugPlayerWorldTopLeft, game.debugExpectedPlayerWorldTopLeft);
+    });
+
+    test('normal overworld walk step uses the full tile width on 32px maps',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_step_full_tile_32px_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        settings: const ProjectSettings(
+          tileWidth: 32,
+          tileHeight: 32,
+          displayScale: 1,
+        ),
+        maps: <MapData>[
+          _singleStepMap(),
+        ],
+      );
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'step_map',
+      );
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+
+      await _runSingleMove(game, RuntimeInputControl.right);
+
+      expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 1, y: 0));
+      expect(game.debugRenderedPlayerFootCell, const GridPos(x: 1, y: 0));
+      expect(
+          game.debugPlayerWorldTopLeft, game.debugExpectedPlayerWorldTopLeft);
+      expect(game.debugPlayerWorldTopLeft.x, 32);
+    });
+
+    test('held directional input chains full-tile steps without an idle gap',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_step_chain_full_tile_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        settings: const ProjectSettings(
+          tileWidth: 32,
+          tileHeight: 32,
+          displayScale: 1,
+        ),
+        maps: <MapData>[
+          _wideStepMap(),
+        ],
+      );
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'wide_step_map',
+      );
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.right),
+        ),
+        isTrue,
+      );
+      for (var i = 0; i < 16; i++) {
+        game.update(0.016);
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.release(RuntimeInputControl.right),
+        ),
+        isTrue,
+      );
+      await _pumpUntil(
+        game,
+        () => !game.debugIsPlayerStepping && !game.debugHasPendingMapTransition,
+      );
+
+      expect(game.gameStateSnapshot.playerPosition.x, greaterThanOrEqualTo(2));
+      expect(game.debugPlayerWorldTopLeft.x, greaterThanOrEqualTo(64));
+      expect(
+          game.debugPlayerWorldTopLeft, game.debugExpectedPlayerWorldTopLeft);
+    });
+
+    test('walk encounter check runs once per completed movement step',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_step_encounter_once_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        settings: const ProjectSettings(
+          tileWidth: 64,
+          tileHeight: 64,
+          displayScale: 1,
+        ),
+        maps: <MapData>[
+          _encounterStepMap(),
+        ],
+        encounterTables: const <ProjectEncounterTable>[
+          ProjectEncounterTable(
+            id: 'field_grass',
+            name: 'Field Grass',
+            encounterKind: EncounterKind.walk,
+            entries: <ProjectEncounterEntry>[
+              ProjectEncounterEntry(
+                speciesId: 'pidgey',
+                minLevel: 2,
+                maxLevel: 2,
+                weight: 1,
+              ),
+            ],
+          ),
+        ],
+      );
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'encounter_step_map',
+      );
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+
+      await _runSingleMove(game, RuntimeInputControl.right);
+
+      expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 1, y: 0));
+      expect(game.debugEncounterCheckCount, 1);
     });
 
     test(
@@ -603,6 +1148,87 @@ void main() {
       );
     });
 
+    test(
+        'connection preserves tile-space camera continuity, not only player screen continuity',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_connection_tile_continuity_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        settings: const ProjectSettings(
+          tileWidth: 32,
+          tileHeight: 32,
+          displayScale: 1,
+        ),
+        maps: <MapData>[
+          _connectionTwoStepEastSourceMap(),
+          _targetMap(id: 'connection_target'),
+        ],
+      );
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'connection_source_two_step',
+      );
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+
+      await _runSingleMove(game, RuntimeInputControl.right);
+      expect(game.gameStateSnapshot.currentMapId, 'connection_source_two_step');
+      expect(game.gameStateSnapshot.playerPosition, const GridPos(x: 1, y: 0));
+
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.right),
+        ),
+        isTrue,
+      );
+      game.update(0.016);
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.release(RuntimeInputControl.right),
+        ),
+        isTrue,
+      );
+
+      final continuity = await _captureConnectionTileContinuitySample(
+        game,
+        sourceMapId: 'connection_source_two_step',
+        targetMapId: 'connection_target',
+        sourceSeamCell: const GridPos(x: 1, y: 0),
+        targetEntryStartCell: const GridPos(x: -1, y: 0),
+        postSwapFirstFrameDt: 0.080,
+      );
+
+      expect(continuity.sourcePlayerScreenTopLeft, isNotNull);
+      expect(continuity.targetPlayerScreenTopLeft, isNotNull);
+      expect(continuity.sourceSeamScreenTopLeft, isNotNull);
+      expect(continuity.targetSeamScreenTopLeft, isNotNull);
+
+      expect(
+        continuity.sourcePlayerScreenTopLeft!.distanceTo(
+          continuity.targetPlayerScreenTopLeft!,
+        ),
+        lessThanOrEqualTo(1.0),
+      );
+      expect(
+        continuity.sourceSeamScreenTopLeft!.distanceTo(
+          continuity.targetSeamScreenTopLeft!,
+        ),
+        lessThanOrEqualTo(1.0),
+      );
+    });
+
     test('connection does not camera-snap before visual entry step starts',
         () async {
       final root = await Directory.systemTemp.createTemp(
@@ -699,6 +1325,7 @@ void main() {
           },
         );
       }
+
       Future<Map<String, RuntimeTilesetImage>> tilesetLoader(
         Map<String, String> absolutePathByTilesetId,
       ) async {
@@ -715,6 +1342,7 @@ void main() {
             ),
         };
       }
+
       final initialBundle = await bundleLoader(
         projectFilePath: projectFilePath,
         mapId: 'warp_source',
@@ -797,7 +1425,8 @@ void main() {
       expect(bundleLoadCounts['warp_target'], 1);
     });
 
-    test('active map prewarms battle data for likely local combatants after load',
+    test(
+        'active map prewarms battle data for likely local combatants after load',
         () async {
       final root = await Directory.systemTemp.createTemp(
         'runtime_battle_prewarm_',
@@ -874,7 +1503,8 @@ void main() {
       expect(game.debugBattleVisualOpaqueRectComputeCount, 6);
     });
 
-    test('battle handoff second run reuses cached battle data and visual assets',
+    test(
+        'battle handoff second run reuses cached battle data and visual assets',
         () async {
       final root = await Directory.systemTemp.createTemp(
         'runtime_battle_handoff_cache_',
@@ -1067,6 +1697,7 @@ class _TestPlayableMapGame extends PlayableMapGame {
     required super.bundle,
     required super.projectFilePath,
     super.saveData,
+    super.dialogueSessionLoader,
     super.runtimeMapBundleLoader,
     super.runtimeTilesetImageLoader,
   });
@@ -1099,6 +1730,20 @@ RuntimeMapBundle _baseBundle() {
     projectRootDirectory: '/tmp/project',
     tilesetAbsolutePathsById: const {},
   );
+}
+
+DialogueSession _singleLineDialogueSession(String text) {
+  return DialogueSession.start(
+    <YarnNode>[
+      YarnNode(
+        title: 'Start',
+        steps: <YarnStep>[
+          YarnStepLine(text),
+        ],
+      ),
+    ],
+    'Start',
+  )!;
 }
 
 final _testViewportSize = Vector2(640, 480);
@@ -1192,6 +1837,49 @@ Future<_ConnectionContinuitySample> _captureConnectionContinuitySample(
   );
 }
 
+Future<_ConnectionTileContinuitySample> _captureConnectionTileContinuitySample(
+  PlayableMapGame game, {
+  required String sourceMapId,
+  required String targetMapId,
+  required GridPos sourceSeamCell,
+  required GridPos targetEntryStartCell,
+  required double postSwapFirstFrameDt,
+  int maxTicks = 240,
+}) async {
+  Vector2? sourcePlayerScreenTopLeft;
+  Vector2? targetPlayerScreenTopLeft;
+  Vector2? sourceSeamScreenTopLeft;
+  Vector2? targetSeamScreenTopLeft;
+  var hasSeenTargetMap = false;
+
+  for (var i = 0; i < maxTicks; i++) {
+    if (game.gameStateSnapshot.currentMapId == sourceMapId) {
+      sourcePlayerScreenTopLeft = game.debugPlayerScreenTopLeft.clone();
+      sourceSeamScreenTopLeft = game.debugWorldToScreen(
+        game.debugMapCellWorldTopLeft(sourceSeamCell),
+      );
+    }
+    final dt = hasSeenTargetMap ? 0.016 : postSwapFirstFrameDt;
+    game.update(dt);
+    await Future<void>.delayed(Duration.zero);
+    if (game.gameStateSnapshot.currentMapId == targetMapId) {
+      hasSeenTargetMap = true;
+      targetPlayerScreenTopLeft ??= game.debugPlayerScreenTopLeft.clone();
+      targetSeamScreenTopLeft ??= game.debugWorldToScreen(
+        game.debugMapCellWorldTopLeft(targetEntryStartCell),
+      );
+      break;
+    }
+  }
+
+  return _ConnectionTileContinuitySample(
+    sourcePlayerScreenTopLeft: sourcePlayerScreenTopLeft,
+    targetPlayerScreenTopLeft: targetPlayerScreenTopLeft,
+    sourceSeamScreenTopLeft: sourceSeamScreenTopLeft,
+    targetSeamScreenTopLeft: targetSeamScreenTopLeft,
+  );
+}
+
 class _ConnectionContinuitySample {
   const _ConnectionContinuitySample({
     required this.sourceScreenTopLeft,
@@ -1206,16 +1894,36 @@ class _ConnectionContinuitySample {
   final Vector2? targetCameraTopLeft;
 }
 
+class _ConnectionTileContinuitySample {
+  const _ConnectionTileContinuitySample({
+    required this.sourcePlayerScreenTopLeft,
+    required this.targetPlayerScreenTopLeft,
+    required this.sourceSeamScreenTopLeft,
+    required this.targetSeamScreenTopLeft,
+  });
+
+  final Vector2? sourcePlayerScreenTopLeft;
+  final Vector2? targetPlayerScreenTopLeft;
+  final Vector2? sourceSeamScreenTopLeft;
+  final Vector2? targetSeamScreenTopLeft;
+}
+
 Future<String> _writeRuntimeProject(
   Directory root, {
+  ProjectSettings settings = const ProjectSettings(
+    tileWidth: 16,
+    tileHeight: 16,
+  ),
   required List<MapData> maps,
   List<ProjectEncounterTable> encounterTables = const <ProjectEncounterTable>[],
   List<ProjectTrainerEntry> trainers = const <ProjectTrainerEntry>[],
+  List<ProjectScriptEntry> scripts = const <ProjectScriptEntry>[],
+  List<ProjectDialogueEntry> dialogues = const <ProjectDialogueEntry>[],
   ProjectPokemonConfig pokemonConfig = const ProjectPokemonConfig(),
 }) async {
   final manifest = ProjectManifest(
     name: 'Runtime Movement Regression',
-    settings: const ProjectSettings(tileWidth: 16, tileHeight: 16),
+    settings: settings,
     maps: maps
         .map(
           (map) => ProjectMapEntry(
@@ -1228,6 +1936,8 @@ Future<String> _writeRuntimeProject(
     tilesets: const <ProjectTilesetEntry>[],
     encounterTables: encounterTables,
     trainers: trainers,
+    scripts: scripts,
+    dialogues: dialogues,
     pokemon: pokemonConfig,
   );
   final mapsDir = Directory(p.join(root.path, 'maps'));
@@ -1242,6 +1952,79 @@ Future<String> _writeRuntimeProject(
     const JsonEncoder.withIndent('  ').convert(manifest.toJson()),
   );
   return projectFile.path;
+}
+
+MapData _npcDialogueMap() {
+  return const MapData(
+    id: 'npc_dialogue_map',
+    name: 'NPC Dialogue Map',
+    size: GridSize(width: 3, height: 3),
+    layers: <MapLayer>[
+      MapLayer.object(id: 'objects', name: 'Objects'),
+    ],
+    entities: <MapEntity>[
+      MapEntity(
+        id: 'spawn_npc_dialogue',
+        name: 'Spawn NPC Dialogue',
+        kind: MapEntityKind.spawn,
+        pos: GridPos(x: 0, y: 0),
+        blocksMovement: false,
+        spawn: MapEntitySpawnData(
+          role: EntitySpawnRole.playerStart,
+          facing: EntityFacing.east,
+        ),
+      ),
+      MapEntity(
+        id: 'npc_professor',
+        name: 'Professor Oak',
+        kind: MapEntityKind.npc,
+        pos: GridPos(x: 1, y: 0),
+        npc: MapEntityNpcData(
+          displayName: 'Professor Oak',
+          dialogue: DialogueRef(dialogueId: 'intro'),
+        ),
+      ),
+    ],
+    mapMetadata: MapMetadata(defaultSpawnId: 'spawn_npc_dialogue'),
+  );
+}
+
+MapData _eventScriptDialogueMap() {
+  return const MapData(
+    id: 'event_script_dialogue_map',
+    name: 'Event Script Dialogue Map',
+    size: GridSize(width: 3, height: 3),
+    layers: <MapLayer>[
+      MapLayer.object(id: 'objects', name: 'Objects'),
+    ],
+    entities: <MapEntity>[
+      MapEntity(
+        id: 'spawn_event_dialogue',
+        name: 'Spawn Event Dialogue',
+        kind: MapEntityKind.spawn,
+        pos: GridPos(x: 0, y: 0),
+        blocksMovement: false,
+        spawn: MapEntitySpawnData(
+          role: EntitySpawnRole.playerStart,
+          facing: EntityFacing.east,
+        ),
+      ),
+    ],
+    events: <MapEventDefinition>[
+      MapEventDefinition(
+        id: 'intro_event',
+        title: 'Intro Event',
+        position: EventPosition(layerId: 'objects', x: 1, y: 0),
+        pages: <MapEventPage>[
+          MapEventPage(
+            pageNumber: 0,
+            script: ScriptRef(scriptId: 'intro_script', startNode: 'start'),
+          ),
+        ],
+      ),
+    ],
+    mapMetadata: MapMetadata(defaultSpawnId: 'spawn_event_dialogue'),
+  );
 }
 
 Future<void> _writeBattleRuntimePokemonData(Directory root) async {
@@ -1459,7 +2242,7 @@ SaveData _battleReadySaveData({
 }
 
 WildBattleStartRequest _battleWarmWildRequest() {
-    return const WildBattleStartRequest(
+  return const WildBattleStartRequest(
     requestId: 'battle-warm-request',
     createdAtEpochMs: 1,
     returnContext: OverworldReturnContext(
@@ -1558,6 +2341,71 @@ MapData _singleStepMap() {
   );
 }
 
+MapData _wideStepMap() {
+  return const MapData(
+    id: 'wide_step_map',
+    name: 'Wide Step Map',
+    size: GridSize(width: 6, height: 2),
+    layers: <MapLayer>[
+      MapLayer.object(id: 'objects', name: 'Objects'),
+    ],
+    entities: <MapEntity>[
+      MapEntity(
+        id: 'spawn_wide_step',
+        name: 'Spawn Wide Step',
+        kind: MapEntityKind.spawn,
+        pos: GridPos(x: 0, y: 0),
+        blocksMovement: false,
+        spawn: MapEntitySpawnData(
+          role: EntitySpawnRole.playerStart,
+          facing: EntityFacing.east,
+        ),
+      ),
+    ],
+    mapMetadata: MapMetadata(defaultSpawnId: 'spawn_wide_step'),
+  );
+}
+
+MapData _encounterStepMap() {
+  return const MapData(
+    id: 'encounter_step_map',
+    name: 'Encounter Step Map',
+    size: GridSize(width: 4, height: 2),
+    layers: <MapLayer>[
+      MapLayer.object(id: 'objects', name: 'Objects'),
+    ],
+    gameplayZones: <MapGameplayZone>[
+      MapGameplayZone(
+        id: 'encounter_grass',
+        name: 'Encounter Grass',
+        kind: GameplayZoneKind.encounter,
+        area: MapRect(
+          pos: GridPos(x: 0, y: 0),
+          size: GridSize(width: 4, height: 1),
+        ),
+        encounter: EncounterZonePayload(
+          encounterTableId: 'field_grass',
+          encounterKind: EncounterKind.walk,
+        ),
+      ),
+    ],
+    entities: <MapEntity>[
+      MapEntity(
+        id: 'spawn_encounter_step',
+        name: 'Spawn Encounter Step',
+        kind: MapEntityKind.spawn,
+        pos: GridPos(x: 0, y: 0),
+        blocksMovement: false,
+        spawn: MapEntitySpawnData(
+          role: EntitySpawnRole.playerStart,
+          facing: EntityFacing.east,
+        ),
+      ),
+    ],
+    mapMetadata: MapMetadata(defaultSpawnId: 'spawn_encounter_step'),
+  );
+}
+
 MapData _warpSourceMap() {
   return const MapData(
     id: 'warp_source',
@@ -1620,6 +2468,38 @@ MapData _connectionSourceMap() {
       ),
     ],
     mapMetadata: MapMetadata(defaultSpawnId: 'spawn_connection_source'),
+  );
+}
+
+MapData _connectionTwoStepEastSourceMap() {
+  return const MapData(
+    id: 'connection_source_two_step',
+    name: 'Connection Source Two Step',
+    size: GridSize(width: 2, height: 2),
+    layers: <MapLayer>[
+      MapLayer.object(id: 'objects', name: 'Objects'),
+    ],
+    entities: <MapEntity>[
+      MapEntity(
+        id: 'spawn_connection_two_step',
+        name: 'Spawn Connection Two Step',
+        kind: MapEntityKind.spawn,
+        pos: GridPos(x: 0, y: 0),
+        blocksMovement: false,
+        spawn: MapEntitySpawnData(
+          role: EntitySpawnRole.playerStart,
+          facing: EntityFacing.east,
+        ),
+      ),
+    ],
+    connections: <MapConnection>[
+      MapConnection(
+        direction: MapConnectionDirection.east,
+        targetMapId: 'connection_target',
+        offset: 0,
+      ),
+    ],
+    mapMetadata: MapMetadata(defaultSpawnId: 'spawn_connection_two_step'),
   );
 }
 

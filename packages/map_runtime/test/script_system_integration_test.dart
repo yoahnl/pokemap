@@ -18,7 +18,8 @@ void main() {
               type: ScriptConditionType.flagIsUnset,
               params: {ScriptConditionParams.flagName: 'professor_met'},
             ),
-            script: const ScriptRef(scriptId: 'professor_intro', startNode: 'start'),
+            script: const ScriptRef(
+                scriptId: 'professor_intro', startNode: 'start'),
             message: 'Hello! I am Professor Oak!',
           ),
           MapEventPage(
@@ -193,6 +194,57 @@ void main() {
       expect(gameState.storyFlags.activeFlags, contains('test_flag'));
     });
 
+    test('Script resume continues after an openDialogue suspension', () {
+      final script = ScriptAsset(
+        id: 'resume_after_dialogue',
+        defaultStartNode: 'start',
+        nodes: [
+          ScriptNode(
+            id: 'start',
+            commands: [
+              ScriptCommand(
+                type: ScriptCommandType.openDialogue,
+                params: {'filePath': 'dialogues/test.yarn'},
+              ),
+              ScriptCommand(
+                type: ScriptCommandType.setFlag,
+                params: {'flagName': 'after_dialogue'},
+              ),
+              const ScriptCommand(type: ScriptCommandType.end),
+            ],
+          ),
+        ],
+      );
+
+      var gameState = GameState(saveId: 'test-save');
+
+      final context = ScriptExecutionContext(
+        gameState: gameState,
+        onGameStateUpdated: (state) {
+          gameState = state;
+        },
+        onDialogueOpened: (_) {},
+        onWarpRequested: (_, __, ___) {},
+      );
+
+      final controller = ScriptRuntimeController(
+        script: script,
+        context: context,
+      );
+
+      final firstResult = controller.step();
+      expect(firstResult, isA<ScriptCommandResultSuspended>());
+      expect(controller.isSuspended, isTrue);
+
+      controller.resume();
+
+      while (!controller.isTerminated) {
+        controller.step();
+      }
+
+      expect(gameState.storyFlags.activeFlags, contains('after_dialogue'));
+    });
+
     test('Script controller is cleaned up after termination', () {
       final script = ScriptAsset(
         id: 'cleanup_test',
@@ -257,7 +309,7 @@ void main() {
       // This test would FAIL before the fix because projectFilePath
       // is the path to project.json, not the project root directory.
       // After the fix, it uses _bundle.projectRootDirectory which is correct.
-      
+
       final dialogueEntry = ProjectDialogueEntry(
         id: 'test_dialogue',
         name: 'Test Dialogue',
@@ -289,7 +341,7 @@ void main() {
       expect(resolved, isNotNull);
       // This assertion would FAIL if projectFilePath was used instead of projectRootDirectory
       expect(
-        resolved!.absoluteFilePath, 
+        resolved!.absoluteFilePath,
         equals('/Users/karim/Project/pokemonProject/dialogues/test.yarn'),
         reason: 'Path should not include project.json in the middle',
       );
@@ -323,14 +375,15 @@ void main() {
       );
 
       expect(resolved, isNotNull);
-      expect(resolved!.absoluteFilePath, equals('/project/dialogues/test.yarn'));
+      expect(
+          resolved!.absoluteFilePath, equals('/project/dialogues/test.yarn'));
       expect(resolved.startNode, equals('start'));
     });
 
     test('Dialogue resolution constructs path for missing dialogue file', () {
       // Note: This test only verifies path construction, not file existence.
       // loadDialogueContent() will fail later if the file doesn't exist.
-      
+
       final manifest = ProjectManifest(
         name: 'Test Project',
         maps: [],
@@ -352,7 +405,8 @@ void main() {
 
       // Resolution succeeds (path is constructed), but file may not exist
       expect(resolved, isNotNull);
-      expect(resolved!.absoluteFilePath, equals('/project/dialogues/missing.yarn'));
+      expect(resolved!.absoluteFilePath,
+          equals('/project/dialogues/missing.yarn'));
     });
   });
 }

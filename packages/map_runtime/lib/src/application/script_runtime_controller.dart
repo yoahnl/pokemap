@@ -60,7 +60,8 @@ class ScriptRuntimeController {
 
     final node = _findNode(_state.currentNodeId);
     if (node == null) {
-      return ScriptCommandResult.error('Node not found: ${_state.currentNodeId}');
+      return ScriptCommandResult.error(
+          'Node not found: ${_state.currentNodeId}');
     }
 
     if (_state.currentCommandIndex >= node.commands.length) {
@@ -84,7 +85,7 @@ class ScriptRuntimeController {
         script: ScriptAsset(id: '', nodes: []),
         currentNodeId: '',
       );
-      return ScriptCommandResult.terminated();
+      return const ScriptCommandResult.terminated();
     }
 
     final nextNode = _findNode(nextNodeId);
@@ -97,7 +98,7 @@ class ScriptRuntimeController {
       currentCommandIndex: 0,
     );
 
-    return ScriptCommandResult.completed();
+    return const ScriptCommandResult.completed();
   }
 
   ScriptExecutionState _applyResult(
@@ -140,8 +141,10 @@ class ScriptRuntimeController {
     if (!_state.isSuspended) return;
 
     _state = _state.copyWith(
+      currentCommandIndex: _state.currentCommandIndex + 1,
       isSuspended: false,
       suspendReason: null,
+      pendingDialogue: null,
     );
   }
 

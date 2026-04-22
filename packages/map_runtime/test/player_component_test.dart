@@ -61,6 +61,27 @@ void main() {
       expect(maxDelta - minDelta, lessThan(0.0001));
       expect(component.position.x, closeTo(16, 0.0001));
     });
+
+    test('normal overworld walk step progresses on the first update', () async {
+      final component = PlayerComponent(
+        bundle: _bundle(),
+        state: _stateAt(const GridPos(x: 0, y: 0)),
+        tileImages: const {},
+        mapOrigin: Vector2.zero(),
+      );
+
+      await component.onLoad();
+
+      final initialX = component.position.x;
+      component.startStep(
+        _stateAt(const GridPos(x: 1, y: 0)),
+        durationSeconds: 0.12,
+      );
+      component.update(0.02);
+
+      expect(component.position.x, greaterThan(initialX));
+      expect(component.position.x, lessThan(16));
+    });
   });
 }
 

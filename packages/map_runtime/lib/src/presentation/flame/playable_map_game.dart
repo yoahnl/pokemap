@@ -74,12 +74,14 @@ import 'warp_transition_overlay_component.dart';
 const double _kViewportTilesX = 15.0;
 const double _kViewportTilesY = 11.0;
 const double _kWaterRequiresSurfMessageCooldownMs = 900;
+const bool _kVerboseEncounterLogs = false;
 const GameplayEncounterPolicy _kEncounterPolicy = GameplayEncounterPolicy(
   chancePerStep: 0.12,
 );
 
 enum _RuntimeFlowPhase {
   overworld,
+  blockingInteraction,
   dialogue,
   mapTransition,
   battleTransition,
@@ -93,6 +95,9 @@ typedef RuntimeMapBundleLoader = Future<RuntimeMapBundle> Function({
 
 typedef RuntimeTilesetImageLoader = Future<Map<String, RuntimeTilesetImage>>
     Function(Map<String, String> absolutePathByTilesetId);
+typedef RuntimeDialogueSessionLoader = Future<DialogueSession?> Function(
+  ResolvedDialogue resolved,
+);
 
 class PlayableMapGame extends FlameGame with KeyboardEvents {
   PlayableMapGame({
@@ -102,6 +107,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     GameSaveRepository? saveRepository,
     this.bundleTransformer,
     this.runtimeCutscenes = const <RuntimeCutsceneAsset>[],
+    RuntimeDialogueSessionLoader? dialogueSessionLoader,
     RuntimeMapBundleLoader? runtimeMapBundleLoader,
     RuntimeTilesetImageLoader? runtimeTilesetImageLoader,
   })  : _bundle = bundle,
@@ -111,7 +117,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
               : gameStateFromSaveData(saveData),
         ),
         _saveRepo = saveRepository ?? FileGameSaveRepository(),
-        _runtimeMapBundleLoader = runtimeMapBundleLoader ?? loadRuntimeMapBundle,
+        _dialogueSessionLoader = dialogueSessionLoader ?? loadDialogueContent,
+        _runtimeMapBundleLoader =
+            runtimeMapBundleLoader ?? loadRuntimeMapBundle,
         _runtimeTilesetImageLoader =
             runtimeTilesetImageLoader ?? loadTilesetImagesById {
     if (bundleTransformer != null) {
@@ -151,6 +159,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final List<OverworldActorComponent> _npcActors = [];
   final Map<String, _LoadedPlayableMap> _loadedMapsById = {};
   final Map<String, Future<_LoadedPlayableMap?>> _loadMapFutureById = {};
+  final RuntimeDialogueSessionLoader _dialogueSessionLoader;
   final RuntimeMapBundleLoader _runtimeMapBundleLoader;
   final RuntimeTilesetImageLoader _runtimeTilesetImageLoader;
   final Map<String, RuntimeMapBundle> _runtimeBundleByMapId =
@@ -176,12 +185,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       BattleVisualAssetCache();
   late final RuntimeBattleSetupMapper _battleSetupMapper =
       RuntimeBattleSetupMapper(
-        moveCatalogLoader: _battleMoveCatalogLoader,
-        combatantSeedBuilder: RuntimeBattleCombatantSeedBuilder(
-          speciesLoader: _battleSpeciesLoader,
-          learnsetLoader: _battleLearnsetLoader,
-        ),
-      );
+    moveCatalogLoader: _battleMoveCatalogLoader,
+    combatantSeedBuilder: RuntimeBattleCombatantSeedBuilder(
+      speciesLoader: _battleSpeciesLoader,
+      learnsetLoader: _battleLearnsetLoader,
+    ),
+  );
   final BattleBackgroundResolver _battleBackgroundResolver =
       const BattleBackgroundResolver();
   final PlacedBehaviorCooldownGate _placedBehaviorCooldownGate =
@@ -223,6 +232,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final Map<String, Set<GridPos>> _scriptedNpcReservedOccupiedCellsByEntity =
       <String, Set<GridPos>>{};
   double _runtimeClockMs = 0;
+  int _debugEncounterCheckCount = 0;
+  _EncounterCheckMarker? _lastEncounterCheckMarker;
   double _lastWaterRequiresSurfMessageAtMs = -1000000000;
   void Function()? _pendingPostDialogueAction;
   bool _awaitingSurfConfirmation = false;
@@ -236,6 +247,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   int _fpsFrameCount = 0;
   double _currentFps = 0.0;
   String _lastBehaviorDebugLine = 'Aucun behavior déclenché';
+  int _nextBlockingInteractionSerial = 0;
+  int? _activeBlockingInteractionSerial;
+  String? _activeBlockingInteractionSourceId;
+  bool _hasPendingDialogueLoad = false;
+  String? _activeScriptRuntimeSourceId;
   GridPos? _debugTileMarkerPos;
   String? _debugTileMarkerLabel;
   RectangleComponent? _debugTileMarkerFill;
@@ -245,7 +261,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       <String, _NpcCollisionDebugVisual>{};
 
   ScriptRuntimeController? _activeScriptController;
-  bool _isAwaitingScriptResume = false;
   Set<String> _activeScenarioTriggerIds = <String>{};
   _PendingScenarioFollowRequest? _pendingScenarioFollowRequest;
   _PendingScenarioTransitionMapRequest? _pendingScenarioTransitionMapRequest;
@@ -356,6 +371,20 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   String get debugFlowPhaseName => _flowPhase.name;
 
   @visibleForTesting
+  bool get debugHasPendingDialogueLoad => _hasPendingDialogueLoad;
+
+  @visibleForTesting
+  bool get debugIsGameplayInputLocked =>
+      _activeBlockingInteractionSerial != null ||
+      _flowPhase != _RuntimeFlowPhase.overworld;
+
+  @visibleForTesting
+  GridPos get debugPlayerGridPosition => _world.player.pos;
+
+  @visibleForTesting
+  String? get debugNotificationText => _notification?.text;
+
+  @visibleForTesting
   bool get debugIsPlayerStepping => _player.isStepping;
 
   @visibleForTesting
@@ -380,6 +409,22 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   @visibleForTesting
+  Vector2 get debugMapOriginWorldTopLeft => _player.mapOrigin;
+
+  @visibleForTesting
+  Vector2 debugMapCellWorldTopLeft(GridPos cell) {
+    return Vector2(
+      _player.mapOrigin.x + cell.x * _cellWidth,
+      _player.mapOrigin.y + cell.y * _cellHeight,
+    );
+  }
+
+  @visibleForTesting
+  Vector2 debugWorldToScreen(Vector2 worldPoint) {
+    return worldPoint - debugCameraWorldTopLeft;
+  }
+
+  @visibleForTesting
   Vector2 get debugCameraWorldTopLeft {
     final visibleSize = camera.viewfinder.visibleGameSize;
     final viewportSize =
@@ -392,8 +437,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   @visibleForTesting
-  Vector2? get debugPlayerActorLocalPosition =>
-      _player.debugActorLocalPosition;
+  Vector2? get debugPlayerActorLocalPosition => _player.debugActorLocalPosition;
 
   @visibleForTesting
   bool debugIsMapLoaded(String mapId) => _loadedMapsById.containsKey(mapId);
@@ -427,7 +471,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _battleMoveCatalogLoader.debugActualReadCount;
 
   @visibleForTesting
-  int get debugBattleSpeciesReadCount => _battleSpeciesLoader.debugActualReadCount;
+  int get debugEncounterCheckCount => _debugEncounterCheckCount;
+
+  @visibleForTesting
+  int get debugBattleSpeciesReadCount =>
+      _battleSpeciesLoader.debugActualReadCount;
 
   @visibleForTesting
   int get debugBattleLearnsetReadCount =>
@@ -791,7 +839,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required GridPos cell,
     required GameplayPlayerState playerState,
   }) {
-    final topLeft = PlayerCollisionConventionsV1.playerSpriteTopLeftFromSpawnCell(
+    final topLeft =
+        PlayerCollisionConventionsV1.playerSpriteTopLeftFromSpawnCell(
       cellX: cell.x,
       cellY: cell.y,
       tileWidthPx: bundle.manifest.settings.tileWidth,
@@ -799,10 +848,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       spriteWidthPx: playerState.playerSpriteWidthPx,
       spriteHeightPx: playerState.playerSpriteHeightPx,
     );
-    final scaleX = bundle.cellWidth /
-        math.max(1, bundle.manifest.settings.tileWidth);
-    final scaleY = bundle.cellHeight /
-        math.max(1, bundle.manifest.settings.tileHeight);
+    final scaleX =
+        bundle.cellWidth / math.max(1, bundle.manifest.settings.tileWidth);
+    final scaleY =
+        bundle.cellHeight / math.max(1, bundle.manifest.settings.tileHeight);
     return Vector2(
       mapOrigin.x + topLeft.leftPx * scaleX,
       mapOrigin.y + topLeft.topPx * scaleY,
@@ -1137,6 +1186,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return false;
     }
 
+    if (_activeBlockingInteractionSerial != null) {
+      if (_isMovementControl(control)) {
+        _releaseMovementControl(control);
+      }
+      if (event.isPress) {
+        debugPrint(
+          '[scenario_lock] input blocked while pending source=${_activeBlockingInteractionSourceId ?? '-'}',
+        );
+      }
+      return true;
+    }
+
     // Pendant une cutscene active en overworld, on bloque les entrées joueur
     // directes (déplacement/interact) pour garder la scène déterministe.
     if (isCutsceneRunning && _flowPhase == _RuntimeFlowPhase.overworld) {
@@ -1315,6 +1376,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return;
     }
 
+    if (_activeBlockingInteractionSerial != null) {
+      _clearPressedMovementControls();
+      return;
+    }
+
     _driveMovement();
   }
 
@@ -1371,17 +1437,31 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (preferred != null && _pressedMovementControls.contains(preferred)) {
       final direction = _directionForControl(preferred);
       if (direction != null) {
-        return MoveIntent(direction);
+        return MoveIntent(
+          direction,
+          pixelsPerStep: _playerStepPixels(direction),
+        );
       }
     }
 
     for (final control in _pressedMovementControls) {
       final direction = _directionForControl(control);
       if (direction != null) {
-        return MoveIntent(direction);
+        return MoveIntent(
+          direction,
+          pixelsPerStep: _playerStepPixels(direction),
+        );
       }
     }
     return null;
+  }
+
+  int _playerStepPixels(Direction direction) {
+    final raw = switch (direction) {
+      Direction.east || Direction.west => _world.tileWidthPx,
+      Direction.north || Direction.south => _world.tileHeightPx,
+    };
+    return math.max(1, raw);
   }
 
   void _driveMovement() {
@@ -1524,9 +1604,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         ? EncounterKind.surf
         : EncounterKind.walk;
     final pos = _world.player.pos;
-    debugPrint(
-      '[encounter] checking at x=${pos.x} y=${pos.y} kind=${encounterKind.name}',
+    final marker = _EncounterCheckMarker(
+      mapId: _activeMapId,
+      pos: pos,
+      kind: encounterKind,
     );
+    if (_lastEncounterCheckMarker == marker) {
+      return;
+    }
+    _lastEncounterCheckMarker = marker;
+    _debugEncounterCheckCount += 1;
+    if (_kVerboseEncounterLogs) {
+      debugPrint(
+        '[encounter] checking at x=${pos.x} y=${pos.y} kind=${encounterKind.name}',
+      );
+    }
     final check = checkEncounterAtPlayerPosition(
       world: _world,
       project: _bundle.manifest,
@@ -2420,6 +2512,95 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _lastMovementControl = null;
   }
 
+  int _beginBlockingInteraction({
+    required String source,
+    bool pendingDialogueLoad = false,
+  }) {
+    _clearPressedMovementControls();
+    final serial = ++_nextBlockingInteractionSerial;
+    _activeBlockingInteractionSerial = serial;
+    _activeBlockingInteractionSourceId = source;
+    _hasPendingDialogueLoad = pendingDialogueLoad;
+    _flowPhase = _RuntimeFlowPhase.blockingInteraction;
+    debugPrint(
+      '[scenario_lock] accepted source=$source phase=${pendingDialogueLoad ? 'dialogueLoading' : 'blockingInteraction'} serial=$serial',
+    );
+    return serial;
+  }
+
+  bool _isBlockingInteractionActive(int serial) {
+    return _activeBlockingInteractionSerial == serial;
+  }
+
+  void _markBlockingInteractionPendingDialogue() {
+    if (_activeBlockingInteractionSerial == null) {
+      return;
+    }
+    _hasPendingDialogueLoad = true;
+  }
+
+  void _clearBlockingInteractionState() {
+    _activeBlockingInteractionSerial = null;
+    _activeBlockingInteractionSourceId = null;
+    _hasPendingDialogueLoad = false;
+  }
+
+  void _releaseBlockingInteraction({
+    required int serial,
+    required String source,
+    required String reason,
+  }) {
+    if (!_isBlockingInteractionActive(serial)) {
+      return;
+    }
+    _clearBlockingInteractionState();
+    if (_flowPhase == _RuntimeFlowPhase.blockingInteraction) {
+      _flowPhase = _RuntimeFlowPhase.overworld;
+    }
+    debugPrint(
+      '[scenario_lock] released source=$source reason=$reason serial=$serial',
+    );
+  }
+
+  void _clearBlockingInteractionWithoutUnlock({required String reason}) {
+    final source = _activeBlockingInteractionSourceId;
+    final serial = _activeBlockingInteractionSerial;
+    if (serial == null) {
+      return;
+    }
+    _clearBlockingInteractionState();
+    debugPrint(
+      '[scenario_lock] cleared source=${source ?? '-'} reason=$reason serial=$serial',
+    );
+  }
+
+  void _abortActiveScriptAfterDialogueFailure({
+    required int serial,
+    required String source,
+    required String fallbackLabel,
+  }) {
+    _activeScriptController = null;
+    _activeScriptRuntimeSourceId = null;
+    _releaseBlockingInteraction(
+      serial: serial,
+      source: source,
+      reason: 'dialogueLoadFailed',
+    );
+    _showNotification(fallbackLabel);
+  }
+
+  void _resumeActiveScriptAfterDialogue(String runtimeSourceId) {
+    final controller = _activeScriptController;
+    if (controller == null) {
+      _activeScriptRuntimeSourceId = null;
+      return;
+    }
+    _activeScriptRuntimeSourceId = runtimeSourceId;
+    controller.resume();
+    _beginBlockingInteraction(source: runtimeSourceId);
+    _runScriptStep();
+  }
+
   void _processPendingScenarioNpcWarpEntries() {
     if (_pendingScenarioNpcWarpEntries.isEmpty) {
       return;
@@ -3259,6 +3440,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   void _logEncounterCheck(GameplayEncounterCheckResult check) {
+    if (!_kVerboseEncounterLogs &&
+        check.status != GameplayEncounterCheckStatus.triggered) {
+      return;
+    }
     final kind = check.encounterKind?.name ?? EncounterKind.walk.name;
     switch (check.status) {
       case GameplayEncounterCheckStatus.noZone:
@@ -3476,7 +3661,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       camera.viewport.add(overlay);
       _battleOverlay = overlay;
       battleStopwatch.stop();
-      debugPrint('[perf][battle] total=${battleStopwatch.elapsedMilliseconds}ms');
+      debugPrint(
+          '[perf][battle] total=${battleStopwatch.elapsedMilliseconds}ms');
       debugPrint(
         '[battle] overlay opened requestId=${request.requestId} kind=${request.kind.name}',
       );
@@ -3890,6 +4076,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     String? startNodeId,
     required String runtimeSourceId,
   }) {
+    _activeScriptRuntimeSourceId = runtimeSourceId;
+    _beginBlockingInteraction(source: runtimeSourceId);
     final context = ScriptExecutionContext(
       gameState: _gameState,
       onGameStateUpdated: (state) {
@@ -3914,7 +4102,6 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       context: context,
       startNodeId: startNodeId,
     );
-    _isAwaitingScriptResume = false;
     _runScriptStep();
   }
 
@@ -3925,23 +4112,35 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     if (controller.isTerminated) {
+      final serial = _activeBlockingInteractionSerial;
+      final source = _activeScriptRuntimeSourceId ?? 'script';
+      final hasPendingRuntimeHandoff = _pendingWarp != null ||
+          _pendingConnection != null ||
+          _pendingBattleRequest != null ||
+          _pendingScenarioTransitionMapRequest != null;
       _activeScriptController = null;
-      _isAwaitingScriptResume = false;
+      _activeScriptRuntimeSourceId = null;
+      if (serial != null && !hasPendingRuntimeHandoff) {
+        _releaseBlockingInteraction(
+          serial: serial,
+          source: source,
+          reason: 'scriptCompleted',
+        );
+      } else if (serial != null) {
+        _flowPhase = _RuntimeFlowPhase.overworld;
+      }
       return;
     }
 
     if (controller.isSuspended) {
-      _isAwaitingScriptResume = true;
+      _markBlockingInteractionPendingDialogue();
       return;
     }
 
     final result = controller.step();
 
     if (result is ScriptCommandResultSuspended) {
-      _isAwaitingScriptResume = true;
-      if (result.reason == ScriptSuspendReason.waitingForDialogue) {
-        _flowPhase = _RuntimeFlowPhase.dialogue;
-      }
+      _markBlockingInteractionPendingDialogue();
       return;
     }
 
@@ -3950,6 +4149,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   void _openDialogueForScriptSource(
       String runtimeSourceId, YarnDialogueRef dialogueRef) {
+    final serial = _activeBlockingInteractionSerial ??
+        _beginBlockingInteraction(
+          source: runtimeSourceId,
+          pendingDialogueLoad: true,
+        );
+    _markBlockingInteractionPendingDialogue();
     final resolved = resolveDialogue(
       entityId: runtimeSourceId,
       ref: DialogueRef(
@@ -3964,26 +4169,50 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (resolved == null) {
       debugPrint(
           '[script] failed to resolve dialogue: ${dialogueRef.filePath}');
-      _runScriptStep();
+      _abortActiveScriptAfterDialogueFailure(
+        serial: serial,
+        source: runtimeSourceId,
+        fallbackLabel: 'Dialogue introuvable',
+      );
       return;
     }
 
-    loadDialogueContent(resolved).then((session) {
+    final stopwatch = Stopwatch()..start();
+    _dialogueSessionLoader(resolved).then((session) {
+      stopwatch.stop();
+      if (!_isBlockingInteractionActive(serial)) {
+        debugPrint(
+          '[dialogue] stale response ignored source=$runtimeSourceId serial=$serial',
+        );
+        return;
+      }
+      debugPrint(
+        '[dialogue] content loaded source=$runtimeSourceId elapsedMs=${stopwatch.elapsedMilliseconds}',
+      );
       if (session == null) {
         debugPrint('[script] failed to load dialogue');
-        _runScriptStep();
+        _abortActiveScriptAfterDialogueFailure(
+          serial: serial,
+          source: runtimeSourceId,
+          fallbackLabel: 'Dialogue introuvable',
+        );
         return;
       }
 
       _pendingPostDialogueAction = () {
-        _flowPhase = _RuntimeFlowPhase.overworld;
-        if (_isAwaitingScriptResume) {
-          _isAwaitingScriptResume = false;
-          _runScriptStep();
-        }
+        _resumeActiveScriptAfterDialogue(runtimeSourceId);
       };
 
       _openDialogue(session);
+    }).onError((Object error, StackTrace stackTrace) {
+      debugPrint(
+        '[dialogue] failed to load source=$runtimeSourceId error=$error\n$stackTrace',
+      );
+      _abortActiveScriptAfterDialogueFailure(
+        serial: serial,
+        source: runtimeSourceId,
+        fallbackLabel: 'Dialogue introuvable',
+      );
     });
   }
 
@@ -4245,6 +4474,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool _tryOpenDialogue(
       String entityId, DialogueRef? ref, String fallbackLabel) {
     if (_flowPhase != _RuntimeFlowPhase.overworld) return false;
+    if (_activeBlockingInteractionSerial != null) return false;
     if (_dialogueOverlay != null) return false;
     if (!_npcEntityAllowedOnActiveMapForDialogue(entityId)) {
       debugPrint('[dialogue] blocked: npc absent entityId=$entityId');
@@ -4263,15 +4493,44 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return false;
     }
 
-    loadDialogueContent(resolved).then((session) {
-      if (_dialogueOverlay != null) return;
+    final serial = _beginBlockingInteraction(
+      source: entityId,
+      pendingDialogueLoad: true,
+    );
+    final stopwatch = Stopwatch()..start();
+    _dialogueSessionLoader(resolved).then((session) {
+      stopwatch.stop();
+      if (!_isBlockingInteractionActive(serial)) {
+        debugPrint(
+          '[dialogue] stale response ignored source=$entityId serial=$serial',
+        );
+        return;
+      }
       if (session == null) {
         debugPrint('[dialogue] failed to load session for entity=$entityId');
+        _releaseBlockingInteraction(
+          serial: serial,
+          source: entityId,
+          reason: 'dialogueLoadFailed',
+        );
         _showNotification(fallbackLabel);
         return;
       }
+      debugPrint(
+        '[dialogue] content loaded source=$entityId elapsedMs=${stopwatch.elapsedMilliseconds}',
+      );
       debugPrint('[dialogue] opening dialogue for entity=$entityId');
       _openDialogue(session);
+    }).onError((Object error, StackTrace stackTrace) {
+      debugPrint(
+        '[dialogue] failed to load source=$entityId error=$error\n$stackTrace',
+      );
+      _releaseBlockingInteraction(
+        serial: serial,
+        source: entityId,
+        reason: 'dialogueLoadFailed',
+      );
+      _showNotification(fallbackLabel);
     });
     return true;
   }
@@ -4279,6 +4538,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   void _openDialogue(DialogueSession session) {
     _notification?.removeFromParent();
     _notification = null;
+    _clearBlockingInteractionWithoutUnlock(reason: 'dialogueOpened');
     _clearPressedMovementControls();
     _flowPhase = _RuntimeFlowPhase.dialogue;
 
@@ -5162,8 +5422,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         tileWidth: fallbackBundle.manifest.settings.tileWidth,
         tileHeight: fallbackBundle.manifest.settings.tileHeight,
       );
-      final fallbackImages =
-          await _loadTilesetImagesCached(fallbackBundle.tilesetAbsolutePathsById);
+      final fallbackImages = await _loadTilesetImagesCached(
+          fallbackBundle.tilesetAbsolutePathsById);
       final root = await _mountLoadedMap(
         bundle: fallbackBundle,
         tileImagesById: fallbackImages,
@@ -5398,6 +5658,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _pendingWarp = null;
     _pendingConnection = null;
     _pendingConnectionEntryAnimation = null;
+    _clearBlockingInteractionWithoutUnlock(reason: 'clearTransientUiState');
     // CRITICAL: Do NOT clear _pendingBattleRequest if a battle is active!
     // This would cancel a pending wild encounter battle.
     // Only clear if we're in overworld phase (no battle in progress).
@@ -6809,6 +7070,29 @@ class _PendingConnectionEntryAnimation {
   final String mapId;
   final Vector2 initialCameraWorldTopLeft;
   bool holdInitialCameraFrame = true;
+}
+
+class _EncounterCheckMarker {
+  const _EncounterCheckMarker({
+    required this.mapId,
+    required this.pos,
+    required this.kind,
+  });
+
+  final String mapId;
+  final GridPos pos;
+  final EncounterKind kind;
+
+  @override
+  bool operator ==(Object other) {
+    return other is _EncounterCheckMarker &&
+        other.mapId == mapId &&
+        other.pos == pos &&
+        other.kind == kind;
+  }
+
+  @override
+  int get hashCode => Object.hash(mapId, pos, kind);
 }
 
 class _PendingScenarioFollowRequest {
