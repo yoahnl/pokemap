@@ -1151,5 +1151,76 @@ void main() {
         isA<BattleTurnBagHpHealItemEvent>(),
       );
     });
+
+    test(
+        'applyHyperPotionTurn commits a real turn and records a hyper potion timeline event',
+        () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: const BattleCombatantData(
+            speciesId: 'sproutle',
+            level: 10,
+            maxHp: 260,
+            currentHp: 12,
+            lineupIndex: 0,
+            stats: _neutralBattleStats,
+            moves: <BattleMoveData>[
+              BattleMoveData(id: 'tackle', name: 'Tackle', power: 40),
+            ],
+          ),
+          enemyPokemon: const BattleCombatantData(
+            speciesId: 'sparkitten',
+            level: 10,
+            maxHp: 40,
+            lineupIndex: 0,
+            stats: _neutralBattleStats,
+            moves: <BattleMoveData>[
+              BattleMoveData(
+                id: 'wait',
+                name: 'Wait',
+                power: 0,
+                category: BattleMoveCategory.status,
+                target: BattleMoveTarget.self,
+                accuracy: BattleMoveAccuracy.alwaysHits(),
+              ),
+            ],
+          ),
+          isTrainerBattle: true,
+          trainerId: 'trainer_1',
+        ),
+      );
+
+      final updatedSession = session.applyHyperPotionTurn(
+        targetLineupIndex: 0,
+        healAmount: 200,
+      );
+
+      expect(updatedSession.state.currentTurn, isNotNull);
+      expect(updatedSession.state.player.currentHp, equals(212));
+      expect(
+        updatedSession.state.currentTurn!.playerAction,
+        isA<BattleActionBagHpHealItemUse>().having(
+          (action) => action.itemKind,
+          'itemKind',
+          equals(BattleBagHpHealItemKind.hyperPotion),
+        ),
+      );
+      expect(
+        updatedSession.state.currentTurn!.bagHpHealItemEvents,
+        hasLength(1),
+      );
+      expect(
+        updatedSession.state.currentTurn!.bagHpHealItemEvents.single.itemKind,
+        equals(BattleBagHpHealItemKind.hyperPotion),
+      );
+      expect(
+        updatedSession.state.currentTurn!.timeline.first,
+        isA<BattleTurnBagHpHealItemEvent>(),
+      );
+      expect(
+        updatedSession.state.currentTurn!.timeline.last,
+        isA<BattleTurnExecutionEvent>(),
+      );
+    });
   });
 }

@@ -125,34 +125,38 @@ class BattleActionRun extends BattleAction {
 /// Lot 9-f factorise seulement ce qui devenait absurde à dupliquer :
 /// - `potion`
 /// - `super-potion`
+/// - `hyper-potion`
 ///
 /// Garde-fous de frontière :
 /// - ce n'est pas un catalogue runtime d'objets ;
 /// - ce n'est pas une taxonomie générale de medicines ;
-/// - aucune autre entrée (`antidote`, `hyper-potion`, `revive`, etc.)
+/// - aucune autre entrée (`antidote`, `revive`, etc.)
 ///   n'est implicite ou "préparée".
 enum BattleBagHpHealItemKind {
   potion,
-  superPotion;
+  superPotion,
+  hyperPotion;
 
   String get itemId => switch (this) {
         BattleBagHpHealItemKind.potion => 'potion',
         BattleBagHpHealItemKind.superPotion => 'super-potion',
+        BattleBagHpHealItemKind.hyperPotion => 'hyper-potion',
       };
 
   String get label => switch (this) {
         BattleBagHpHealItemKind.potion => 'Potion',
         BattleBagHpHealItemKind.superPotion => 'Super Potion',
+        BattleBagHpHealItemKind.hyperPotion => 'Hyper Potion',
       };
 }
 
 /// Utiliser un objet BAG de soin HP plat sur un membre du lineup joueur.
 ///
 /// Cette action reste volontairement très étroite :
-/// - elle couvre seulement `Potion` + `Super Potion` ;
+/// - elle couvre seulement `Potion` + `Super Potion` + `Hyper Potion` ;
 /// - elle ne lit jamais le bag ;
 /// - elle n'ouvre pas un système générique d'items battle ;
-/// - elle existe uniquement pour rendre ces deux objets honnêtes comme vraies
+/// - elle existe uniquement pour rendre ces trois objets honnêtes comme vraies
 ///   actions de tour committées et visibles dans la timeline.
 class BattleActionBagHpHealItemUse extends BattleAction {
   const BattleActionBagHpHealItemUse({
@@ -163,7 +167,7 @@ class BattleActionBagHpHealItemUse extends BattleAction {
 
   /// L'objet précis réellement utilisé.
   ///
-  /// Le `kind` reste borné à deux cas, ce qui évite de transporter un
+  /// Le `kind` reste borné à trois cas, ce qui évite de transporter un
   /// `itemId` stringly-typed arbitraire dans le moteur.
   final BattleBagHpHealItemKind itemKind;
 

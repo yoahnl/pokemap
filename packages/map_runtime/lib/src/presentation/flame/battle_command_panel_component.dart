@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
 import 'package:flame/events.dart';
@@ -7,10 +9,12 @@ import 'package:flutter/material.dart';
 import 'package:map_battle/map_battle.dart';
 
 import 'battle_bag_menu_model.dart';
+import 'battle_bag_item_icon_resolver.dart';
 import 'battle_command_menu_model.dart';
 import 'battle_medicine_target_menu_model.dart';
 import 'battle_party_menu_model.dart';
 import 'battle_scene_layout.dart';
+import 'battle_visual_asset_cache.dart';
 
 class BattleCommandButtonSnapshot {
   const BattleCommandButtonSnapshot({
@@ -55,6 +59,7 @@ class BattlePartyEntrySnapshot {
 class BattleBagEntrySnapshot {
   const BattleBagEntrySnapshot({
     required this.bounds,
+    required this.iconRect,
     required this.titleRect,
     required this.typeRect,
     required this.quantityRect,
@@ -65,6 +70,7 @@ class BattleBagEntrySnapshot {
   });
 
   final Rect bounds;
+  final Rect iconRect;
   final Rect titleRect;
   final Rect typeRect;
   final Rect quantityRect;
@@ -74,7 +80,7 @@ class BattleBagEntrySnapshot {
   final double metaFontSize;
 }
 
-class BattleCommandPanelComponent extends PositionComponent {
+class BattleCommandPanelComponent extends PositionComponent with DragCallbacks {
   BattleCommandPanelComponent({
     required Vector2 position,
     required Vector2 size,
@@ -83,8 +89,15 @@ class BattleCommandPanelComponent extends PositionComponent {
     required this.onPartyEntrySelected,
     this.onBagEntrySelected,
     this.onMedicineTargetEntrySelected,
+    this.onBackRequested,
+    this.onScrollUpRequested,
+    this.onScrollDownRequested,
+    this.bagItemIconResolver,
+    this.visualAssetCache,
     this.layoutModeOverride,
-  }) : super(
+    bool preferTouchListDragScroll = false,
+  })  : _preferTouchListDragScroll = preferTouchListDragScroll,
+        super(
           position: position,
           size: size,
           anchor: Anchor.topLeft,
@@ -97,6 +110,11 @@ class BattleCommandPanelComponent extends PositionComponent {
   final void Function(BattleBagMenuEntry entry)? onBagEntrySelected;
   final void Function(BattleMedicineTargetEntry entry)?
       onMedicineTargetEntrySelected;
+  final void Function()? onBackRequested;
+  final bool Function()? onScrollUpRequested;
+  final bool Function()? onScrollDownRequested;
+  final BattleBagItemIconResolver? bagItemIconResolver;
+  final BattleVisualAssetCache? visualAssetCache;
   final BattleCommandPanelLayoutMode? layoutModeOverride;
 
   PositionComponent? _promptPanel;
@@ -122,6 +140,17 @@ class BattleCommandPanelComponent extends PositionComponent {
   int _selectedPartyIndex = 0;
   int _selectedBagIndex = 0;
   int _selectedMedicineTargetIndex = 0;
+  bool _interactionsEnabled = true;
+  _BattleVisibleListWindow? _currentListWindow;
+  final Map<String, String?> _bagIconAssetPathByItemId = <String, String?>{};
+  final Map<String, ui.Image> _bagIconImageByItemId = <String, ui.Image>{};
+  final Map<String, Future<void>> _pendingBagIconLoadsByItemId =
+      <String, Future<void>>{};
+  bool _preferTouchListDragScroll;
+  Rect? _touchListDragRegion;
+  double _touchListDragStepExtent = 0;
+  bool _touchListDragGestureActive = false;
+  double _touchListDragCarry = 0;
   BattleCommandMenuModel _menuModel = const BattleCommandMenuModel(
     mode: BattleCommandMenuMode.root,
     rootEntries: <BattleCommandRootEntry>[],
@@ -168,6 +197,20 @@ class BattleCommandPanelComponent extends PositionComponent {
           .toList(growable: false);
 
   @visibleForTesting
+  List<String> get currentVisiblePartySpeciesLabels {
+    final entries =
+        _partyMenuModel?.allEntries ?? const <BattlePartyMenuEntry>[];
+    final window = _visibleListWindowForTesting();
+    if (_menuModel.mode != BattleCommandMenuMode.pokemon || window == null) {
+      return currentPartySpeciesLabels;
+    }
+    return entries
+        .sublist(window.startIndex, window.endIndexExclusive)
+        .map((entry) => entry.speciesId)
+        .toList(growable: false);
+  }
+
+  @visibleForTesting
   List<bool> get currentPartySelectableStates =>
       (_partyMenuModel?.allEntries ?? const <BattlePartyMenuEntry>[])
           .map((entry) => entry.isSelectable)
@@ -193,6 +236,19 @@ class BattleCommandPanelComponent extends PositionComponent {
           .toList(growable: false);
 
   @visibleForTesting
+  List<String> get currentVisibleBagEntryLabels {
+    final entries = _bagMenuModel?.entries ?? const <BattleBagMenuEntry>[];
+    final window = _visibleListWindowForTesting();
+    if (_menuModel.mode != BattleCommandMenuMode.bag || window == null) {
+      return currentBagEntryLabels;
+    }
+    return entries
+        .sublist(window.startIndex, window.endIndexExclusive)
+        .map(_bagEntryTitleLabel)
+        .toList(growable: false);
+  }
+
+  @visibleForTesting
   List<String> get currentBagTypeLabels =>
       (_bagMenuModel?.entries ?? const <BattleBagMenuEntry>[])
           .map(_bagEntryTypeLabel)
@@ -214,10 +270,56 @@ class BattleCommandPanelComponent extends PositionComponent {
   int get currentSelectedBagIndex => _selectedBagIndex;
 
   @visibleForTesting
+  List<String> get currentVisibleBagIconKinds {
+    final entries = _bagMenuModel?.entries ?? const <BattleBagMenuEntry>[];
+    final window = _visibleListWindowForTesting();
+    final visibleEntries =
+        _menuModel.mode == BattleCommandMenuMode.bag && window != null
+            ? entries.sublist(window.startIndex, window.endIndexExclusive)
+            : entries;
+    return visibleEntries
+        .map((entry) => _bagItemIconKind(entry.itemId).name)
+        .toList(growable: false);
+  }
+
+  @visibleForTesting
+  List<String?> get currentVisibleBagIconAssetPaths {
+    final entries = _bagMenuModel?.entries ?? const <BattleBagMenuEntry>[];
+    final window = _visibleListWindowForTesting();
+    final visibleEntries =
+        _menuModel.mode == BattleCommandMenuMode.bag && window != null
+            ? entries.sublist(window.startIndex, window.endIndexExclusive)
+            : entries;
+    return visibleEntries
+        .map((entry) => _bagIconAssetPathByItemId[entry.itemId])
+        .toList(growable: false);
+  }
+
+  @visibleForTesting
+  Future<void> debugWaitForBagIconLoads() async {
+    await Future.wait(_pendingBagIconLoadsByItemId.values);
+  }
+
+  @visibleForTesting
   List<String> get currentMedicineTargetSpeciesLabels =>
       (_medicineTargetMenuModel?.entries ?? const <BattleMedicineTargetEntry>[])
           .map((entry) => entry.speciesId)
           .toList(growable: false);
+
+  @visibleForTesting
+  List<String> get currentVisibleMedicineTargetSpeciesLabels {
+    final entries = _medicineTargetMenuModel?.entries ??
+        const <BattleMedicineTargetEntry>[];
+    final window = _visibleListWindowForTesting();
+    if (_menuModel.mode != BattleCommandMenuMode.bagMedicineTarget ||
+        window == null) {
+      return currentMedicineTargetSpeciesLabels;
+    }
+    return entries
+        .sublist(window.startIndex, window.endIndexExclusive)
+        .map((entry) => entry.speciesId)
+        .toList(growable: false);
+  }
 
   @visibleForTesting
   List<bool> get currentMedicineTargetSelectableStates =>
@@ -254,6 +356,142 @@ class BattleCommandPanelComponent extends PositionComponent {
   @visibleForTesting
   List<BattleCommandButtonSnapshot> get currentRootButtonSnapshots =>
       List<BattleCommandButtonSnapshot>.unmodifiable(_rootButtonSnapshots);
+
+  @visibleForTesting
+  bool get currentShowsTouchBackControl => _showsTouchBackControl;
+
+  @visibleForTesting
+  bool get currentListScrollControlsVisible =>
+      (_visibleListWindowForTesting()?.isScrollable ?? false) &&
+      !currentUsesTouchListDragScroll;
+
+  @visibleForTesting
+  bool get currentListCanScrollUp => switch (_menuModel.mode) {
+        BattleCommandMenuMode.pokemon => _partyMenuModel != null &&
+            _partyMenuModel!.allEntries.length > _partyEntrySnapshots.length &&
+            _selectedPartyIndex > 0,
+        BattleCommandMenuMode.bag => _bagMenuModel != null &&
+            _bagMenuModel!.entries.length > _bagEntrySnapshots.length &&
+            _selectedBagIndex > 0,
+        _ => _visibleListWindowForTesting()?.canScrollUp ?? false,
+      };
+
+  @visibleForTesting
+  bool get currentListCanScrollDown => switch (_menuModel.mode) {
+        BattleCommandMenuMode.pokemon => _partyMenuModel != null &&
+            _partyMenuModel!.allEntries.length > _partyEntrySnapshots.length &&
+            _selectedPartyIndex < _partyMenuModel!.allEntries.length - 1,
+        BattleCommandMenuMode.bag => _bagMenuModel != null &&
+            _bagMenuModel!.entries.length > _bagEntrySnapshots.length &&
+            _selectedBagIndex < _bagMenuModel!.entries.length - 1,
+        _ => _visibleListWindowForTesting()?.canScrollDown ?? false,
+      };
+
+  @visibleForTesting
+  bool get currentUsesTouchListDragScroll =>
+      _shouldUseTouchListDragScroll(_visibleListWindowForTesting());
+
+  @visibleForTesting
+  bool tapTouchBackControlForTest() {
+    if (!_showsTouchBackControl) {
+      return false;
+    }
+    onBackRequested?.call();
+    return true;
+  }
+
+  @visibleForTesting
+  bool tapScrollUpControlForTest() {
+    if (!currentListScrollControlsVisible || !currentListCanScrollUp) {
+      return false;
+    }
+    return onScrollUpRequested?.call() ?? false;
+  }
+
+  @visibleForTesting
+  bool tapScrollDownControlForTest() {
+    if (!currentListScrollControlsVisible || !currentListCanScrollDown) {
+      return false;
+    }
+    return onScrollDownRequested?.call() ?? false;
+  }
+
+  @visibleForTesting
+  int dragTouchListForTest(double localDeltaY) {
+    if (!currentUsesTouchListDragScroll) {
+      return 0;
+    }
+    _touchListDragGestureActive = true;
+    return _applyTouchListDragDelta(localDeltaY);
+  }
+
+  @visibleForTesting
+  bool touchDownVisibleBagEntryForTest(int visibleIndex) {
+    final component = _visibleBagEntryComponentForTest(visibleIndex);
+    if (component == null) {
+      return false;
+    }
+    component.debugHandleTouchDownForTest();
+    return true;
+  }
+
+  @visibleForTesting
+  bool touchUpVisibleBagEntryForTest(int visibleIndex) {
+    final component = _visibleBagEntryComponentForTest(visibleIndex);
+    if (component == null) {
+      return false;
+    }
+    component.debugHandleTouchUpForTest();
+    return true;
+  }
+
+  _BattleBagEntryComponent? _visibleBagEntryComponentForTest(int visibleIndex) {
+    if (visibleIndex < 0) {
+      return null;
+    }
+    final components = _interactiveComponents
+        .whereType<_BattleBagEntryComponent>()
+        .toList(growable: false);
+    if (visibleIndex >= components.length) {
+      return null;
+    }
+    return components[visibleIndex];
+  }
+
+  _BattleVisibleListWindow? _visibleListWindowForTesting() {
+    switch (_menuModel.mode) {
+      case BattleCommandMenuMode.pokemon:
+        final partyMenuModel = _partyMenuModel;
+        if (partyMenuModel == null) {
+          return null;
+        }
+        final visibleCount = _partyEntrySnapshots.isEmpty
+            ? partyMenuModel.allEntries.length
+            : _partyEntrySnapshots.length;
+        return _buildVisibleListWindow(
+          itemCount: partyMenuModel.allEntries.length,
+          selectedIndex: _selectedPartyIndex,
+          maxVisibleEntries: visibleCount,
+        );
+      case BattleCommandMenuMode.bag:
+        final bagMenuModel = _bagMenuModel;
+        if (bagMenuModel == null) {
+          return null;
+        }
+        final visibleCount = _bagEntrySnapshots.isEmpty
+            ? bagMenuModel.entries.length
+            : _bagEntrySnapshots.length;
+        return _buildVisibleListWindow(
+          itemCount: bagMenuModel.entries.length,
+          selectedIndex: _selectedBagIndex,
+          maxVisibleEntries: visibleCount,
+        );
+      case BattleCommandMenuMode.bagMedicineTarget:
+        return _currentListWindow;
+      default:
+        return null;
+    }
+  }
 
   @override
   Future<void> onLoad() async {
@@ -354,6 +592,151 @@ class BattleCommandPanelComponent extends PositionComponent {
     await _commandsPanel!.add(_hintText!);
   }
 
+  @override
+  bool containsLocalPoint(Vector2 point) {
+    return point.x >= 0 &&
+        point.x <= size.x &&
+        point.y >= 0 &&
+        point.y <= size.y;
+  }
+
+  @override
+  void onDragStart(DragStartEvent event) {
+    super.onDragStart(event);
+    final region = _touchListDragRegion;
+    final position = event.localPosition;
+    if (!_shouldUseTouchListDragScroll(_currentListWindow) ||
+        region == null ||
+        !region.contains(Offset(position.x, position.y))) {
+      _touchListDragGestureActive = false;
+      _touchListDragCarry = 0;
+      return;
+    }
+    _touchListDragGestureActive = true;
+    _touchListDragCarry = 0;
+  }
+
+  @override
+  void onDragUpdate(DragUpdateEvent event) {
+    if (!_touchListDragGestureActive) {
+      return;
+    }
+    _applyTouchListDragDelta(event.localDelta.y);
+  }
+
+  @override
+  void onDragEnd(DragEndEvent event) {
+    super.onDragEnd(event);
+    _touchListDragGestureActive = false;
+    _touchListDragCarry = 0;
+  }
+
+  @override
+  void onDragCancel(DragCancelEvent event) {
+    super.onDragCancel(event);
+    _touchListDragGestureActive = false;
+    _touchListDragCarry = 0;
+  }
+
+  /// Le host/runtime peut activer ce mode quand on est sur mobile sans
+  /// manette active.
+  ///
+  /// Frontière volontaire :
+  /// - on ne remplace pas la navigation manette/clavier ;
+  /// - on ne recrée pas l'UI avec des widgets Flutter séparés ;
+  /// - on bascule seulement les listes longues vers un scroll tactile direct.
+  void setPreferTouchListDragScroll(bool preferred) {
+    if (_preferTouchListDragScroll == preferred) {
+      return;
+    }
+    _preferTouchListDragScroll = preferred;
+    _renderInteractiveArea(interactionsEnabled: _interactionsEnabled);
+  }
+
+  /// Recalcule le panel quand le viewport battle change.
+  ///
+  /// Le runtime battle n'utilise pas de widgets Flutter natifs ici :
+  /// - le panel est dessiné au canvas Flame ;
+  /// - il doit donc reposer explicitement ses sous-zones sur resize ;
+  /// - cette méthode garde le reflow borné au composant de présentation.
+  void updateLayout({
+    required Vector2 position,
+    required Vector2 size,
+    BattleCommandPanelLayoutMode? modeOverride,
+  }) {
+    this.position = position;
+    this.size = size;
+    final layout = _BattleCommandPanelLayout.forSize(
+      size,
+      modeOverride: modeOverride ?? layoutModeOverride,
+    );
+    _layout = layout;
+
+    final promptPanel = _promptPanel;
+    if (promptPanel != null) {
+      promptPanel.position = layout.promptPosition;
+      promptPanel.size = layout.promptSize;
+    }
+    final commandsPanel = _commandsPanel;
+    if (commandsPanel != null) {
+      commandsPanel.position = layout.commandsPosition;
+      commandsPanel.size = layout.commandsSize;
+    }
+
+    _battleLabelText
+      ?..position = layout.battleLabelPosition
+      ..textRenderer = TextPaint(
+        style: TextStyle(
+          color: const Color(0xCC55657D),
+          fontSize: layout.battleLabelFontSize,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.9,
+        ),
+      );
+    _promptText
+      ?..position = layout.promptTextPosition
+      ..textRenderer = TextPaint(
+        style: TextStyle(
+          color: const Color(0xFF1D2634),
+          fontSize: layout.promptFontSize,
+          fontWeight: FontWeight.w800,
+          height: 1.1,
+        ),
+      );
+    _narrationBodyText
+      ?..position = layout.narrationPosition
+      ..textRenderer = TextPaint(
+        style: TextStyle(
+          color: const Color(0xFF435064),
+          fontSize: layout.narrationFontSize,
+          fontWeight: FontWeight.w700,
+          height: 1.35,
+        ),
+      );
+    _commandTitleText
+      ?..position = layout.commandTitlePosition
+      ..textRenderer = TextPaint(
+        style: TextStyle(
+          color: const Color(0xDCE6EDF8),
+          fontSize: layout.commandLabelFontSize,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.9,
+        ),
+      );
+    _hintText
+      ?..position = layout.hintPosition(
+        commandsPanelSize: commandsPanel?.size ?? layout.commandsSize,
+      )
+      ..textRenderer = TextPaint(
+        style: TextStyle(
+          color: const Color(0xA6E8EEF8),
+          fontSize: layout.commandLabelFontSize,
+          fontWeight: FontWeight.w700,
+        ),
+      );
+    _renderInteractiveArea(interactionsEnabled: _interactionsEnabled);
+  }
+
   void sync({
     required String battleLabel,
     required String prompt,
@@ -388,7 +771,66 @@ class BattleCommandPanelComponent extends PositionComponent {
     _commandTitleText?.text =
         menuModel.isRootMode ? '' : menuModel.choiceGroupTitle;
     _hintText?.text = _hintFor(menuModel);
+    _interactionsEnabled = interactionsEnabled;
+    _primeVisibleBagItemIcons();
     _renderInteractiveArea(interactionsEnabled: interactionsEnabled);
+  }
+
+  void _primeVisibleBagItemIcons() {
+    final resolver = bagItemIconResolver;
+    final cache = visualAssetCache;
+    final bagEntries = _bagMenuModel?.entries ?? const <BattleBagMenuEntry>[];
+    if (resolver == null || cache == null || bagEntries.isEmpty) {
+      return;
+    }
+
+    // On réutilise les sprites déjà synchronisés dans le projet quand ils
+    // existent. Ce seam reste purement visuel : si le catalogue ou le fichier
+    // sprite manque, le panel garde un fallback dessiné au lieu de casser le
+    // flow battle.
+    final uniqueItemIds = bagEntries
+        .map((entry) => entry.itemId.trim())
+        .where((itemId) => itemId.isNotEmpty)
+        .toSet();
+    for (final itemId in uniqueItemIds) {
+      _ensureBagItemIconLoaded(
+        itemId,
+        resolver: resolver,
+        cache: cache,
+      );
+    }
+  }
+
+  void _ensureBagItemIconLoaded(
+    String itemId, {
+    required BattleBagItemIconResolver resolver,
+    required BattleVisualAssetCache cache,
+  }) {
+    if (_bagIconAssetPathByItemId.containsKey(itemId) ||
+        _pendingBagIconLoadsByItemId.containsKey(itemId)) {
+      return;
+    }
+
+    Future<void> load() async {
+      try {
+        final spec = await resolver.resolve(itemId);
+        final imagePath = spec.explicitImageAbsolutePath?.trim();
+        if (imagePath == null || imagePath.isEmpty) {
+          _bagIconAssetPathByItemId[itemId] = null;
+          return;
+        }
+        final image = await cache.loadImage(imagePath);
+        _bagIconAssetPathByItemId[itemId] = imagePath;
+        _bagIconImageByItemId[itemId] = image;
+      } catch (_) {
+        _bagIconAssetPathByItemId[itemId] = null;
+      } finally {
+        _pendingBagIconLoadsByItemId.remove(itemId);
+      }
+    }
+
+    final future = load();
+    _pendingBagIconLoadsByItemId[itemId] = future;
   }
 
   @override
@@ -463,11 +905,16 @@ class BattleCommandPanelComponent extends PositionComponent {
     _rootButtonSnapshots.clear();
     _partyEntrySnapshots.clear();
     _bagEntrySnapshots.clear();
+    _currentListWindow = null;
+    _touchListDragRegion = null;
+    _touchListDragStepExtent = 0;
 
     final commandsPanel = _commandsPanel;
     if (commandsPanel == null) {
       return;
     }
+
+    _updateHeaderChrome(commandsPanel);
 
     if (_menuModel.isRootMode) {
       _renderRootEntries(
@@ -620,25 +1067,71 @@ class BattleCommandPanelComponent extends PositionComponent {
 
     final layout = _layout ?? _BattleCommandPanelLayout.forSize(size);
     final top =
-        layout.mode == BattleCommandPanelLayoutMode.stacked ? 18.0 : 24.0;
+        layout.mode == BattleCommandPanelLayoutMode.stacked ? 34.0 : 38.0;
     final gap = layout.mode == BattleCommandPanelLayoutMode.stacked ? 7.0 : 8.0;
     final entries = partyMenuModel.allEntries;
     if (entries.isEmpty) {
       return;
     }
 
-    final availableWidth = commandsPanel.size.x - 24;
+    const controlColumnWidth = 28.0;
     final availableHeight = commandsPanel.size.y - (top + 14);
+    final maxVisibleEntries = math.min(
+      layout.mode == BattleCommandPanelLayoutMode.stacked ? 4 : 5,
+      _maxVisibleListEntries(
+        availableHeight: availableHeight,
+        gap: gap,
+        minimumCardHeight:
+            layout.mode == BattleCommandPanelLayoutMode.stacked ? 48.0 : 54.0,
+      ),
+    );
+    final window = _buildVisibleListWindow(
+      itemCount: entries.length,
+      selectedIndex: _selectedPartyIndex,
+      maxVisibleEntries: maxVisibleEntries,
+    );
+    _currentListWindow = window;
+    final useTouchListDragScroll = _shouldUseTouchListDragScroll(window);
+    final availableWidth = commandsPanel.size.x -
+        24 -
+        (window.isScrollable && !useTouchListDragScroll
+            ? controlColumnWidth
+            : 0);
+    final visibleEntries =
+        entries.sublist(window.startIndex, window.endIndexExclusive);
     final cardHeight =
-        ((availableHeight - ((entries.length - 1) * gap)) / entries.length)
+        ((availableHeight - ((visibleEntries.length - 1) * gap)) /
+                visibleEntries.length)
             .clamp(
-              layout.mode == BattleCommandPanelLayoutMode.stacked ? 36.0 : 42.0,
+              layout.mode == BattleCommandPanelLayoutMode.stacked ? 44.0 : 50.0,
               layout.mode == BattleCommandPanelLayoutMode.stacked ? 58.0 : 64.0,
             )
             .toDouble();
 
-    for (var index = 0; index < entries.length; index++) {
-      final entry = entries[index];
+    if (useTouchListDragScroll) {
+      _configureTouchListDragRegion(
+        commandsPanel: commandsPanel,
+        left: 12,
+        top: top,
+        width: availableWidth,
+        height: availableHeight,
+        stepExtent: cardHeight + gap,
+      );
+    } else if (window.isScrollable) {
+      _addScrollControls(
+        commandsPanel,
+        top: top,
+        availableHeight: availableHeight,
+        controlColumnLeft: 12 + availableWidth + 6,
+        interactionsEnabled: interactionsEnabled,
+      );
+    }
+
+    for (var visibleIndex = 0;
+        visibleIndex < visibleEntries.length;
+        visibleIndex++) {
+      final index = window.startIndex + visibleIndex;
+      final entry = visibleEntries[visibleIndex];
       final snapshot = _buildPartyEntrySnapshot(
         entrySize: Size(availableWidth, cardHeight),
         speciesLabel: entry.speciesId,
@@ -650,7 +1143,7 @@ class BattleCommandPanelComponent extends PositionComponent {
       _partyEntrySnapshots.add(snapshot);
       final card = _BattlePartyEntryComponent(
         entry: entry,
-        position: Vector2(12, top + ((cardHeight + gap) * index)),
+        position: Vector2(12, top + ((cardHeight + gap) * visibleIndex)),
         size: Vector2(availableWidth, cardHeight),
         snapshot: snapshot,
         isSelected: index == _selectedPartyIndex,
@@ -675,25 +1168,71 @@ class BattleCommandPanelComponent extends PositionComponent {
 
     final layout = _layout ?? _BattleCommandPanelLayout.forSize(size);
     final top =
-        layout.mode == BattleCommandPanelLayoutMode.stacked ? 18.0 : 24.0;
+        layout.mode == BattleCommandPanelLayoutMode.stacked ? 34.0 : 38.0;
     final gap = layout.mode == BattleCommandPanelLayoutMode.stacked ? 7.0 : 8.0;
     final entries = bagMenuModel.entries;
     if (entries.isEmpty) {
       return;
     }
 
-    final availableWidth = commandsPanel.size.x - 24;
+    const controlColumnWidth = 28.0;
     final availableHeight = commandsPanel.size.y - (top + 14);
+    final maxVisibleEntries = math.min(
+      layout.mode == BattleCommandPanelLayoutMode.stacked ? 4 : 5,
+      _maxVisibleListEntries(
+        availableHeight: availableHeight,
+        gap: gap,
+        minimumCardHeight:
+            layout.mode == BattleCommandPanelLayoutMode.stacked ? 52.0 : 58.0,
+      ),
+    );
+    final window = _buildVisibleListWindow(
+      itemCount: entries.length,
+      selectedIndex: _selectedBagIndex,
+      maxVisibleEntries: maxVisibleEntries,
+    );
+    _currentListWindow = window;
+    final useTouchListDragScroll = _shouldUseTouchListDragScroll(window);
+    final availableWidth = commandsPanel.size.x -
+        24 -
+        (window.isScrollable && !useTouchListDragScroll
+            ? controlColumnWidth
+            : 0);
+    final visibleEntries =
+        entries.sublist(window.startIndex, window.endIndexExclusive);
     final cardHeight =
-        ((availableHeight - ((entries.length - 1) * gap)) / entries.length)
+        ((availableHeight - ((visibleEntries.length - 1) * gap)) /
+                visibleEntries.length)
             .clamp(
-              layout.mode == BattleCommandPanelLayoutMode.stacked ? 40.0 : 46.0,
+              layout.mode == BattleCommandPanelLayoutMode.stacked ? 46.0 : 52.0,
               layout.mode == BattleCommandPanelLayoutMode.stacked ? 62.0 : 70.0,
             )
             .toDouble();
 
-    for (var index = 0; index < entries.length; index++) {
-      final entry = entries[index];
+    if (useTouchListDragScroll) {
+      _configureTouchListDragRegion(
+        commandsPanel: commandsPanel,
+        left: 12,
+        top: top,
+        width: availableWidth,
+        height: availableHeight,
+        stepExtent: cardHeight + gap,
+      );
+    } else if (window.isScrollable) {
+      _addScrollControls(
+        commandsPanel,
+        top: top,
+        availableHeight: availableHeight,
+        controlColumnLeft: 12 + availableWidth + 6,
+        interactionsEnabled: interactionsEnabled,
+      );
+    }
+
+    for (var visibleIndex = 0;
+        visibleIndex < visibleEntries.length;
+        visibleIndex++) {
+      final index = window.startIndex + visibleIndex;
+      final entry = visibleEntries[visibleIndex];
       final snapshot = _buildBagEntrySnapshot(
         entrySize: Size(availableWidth, cardHeight),
         titleLabel: _humanizeBagItemId(entry.itemId),
@@ -705,7 +1244,7 @@ class BattleCommandPanelComponent extends PositionComponent {
       _bagEntrySnapshots.add(snapshot);
       final card = _BattleBagEntryComponent(
         entry: entry,
-        position: Vector2(12, top + ((cardHeight + gap) * index)),
+        position: Vector2(12, top + ((cardHeight + gap) * visibleIndex)),
         size: Vector2(availableWidth, cardHeight),
         snapshot: snapshot,
         isSelected: index == _selectedBagIndex,
@@ -715,6 +1254,7 @@ class BattleCommandPanelComponent extends PositionComponent {
         typeLabel: _bagEntryTypeLabel(entry),
         quantityLabel: 'x${entry.quantity}',
         statusLabel: _bagEntryStatusLabel(entry),
+        resolvedIconImage: _bagIconImageByItemId[entry.itemId],
       );
       _interactiveComponents.add(card);
       commandsPanel.add(card);
@@ -732,25 +1272,71 @@ class BattleCommandPanelComponent extends PositionComponent {
 
     final layout = _layout ?? _BattleCommandPanelLayout.forSize(size);
     final top =
-        layout.mode == BattleCommandPanelLayoutMode.stacked ? 18.0 : 24.0;
+        layout.mode == BattleCommandPanelLayoutMode.stacked ? 34.0 : 38.0;
     final gap = layout.mode == BattleCommandPanelLayoutMode.stacked ? 7.0 : 8.0;
     final entries = medicineTargetMenuModel.entries;
     if (entries.isEmpty) {
       return;
     }
 
-    final availableWidth = commandsPanel.size.x - 24;
+    const controlColumnWidth = 28.0;
     final availableHeight = commandsPanel.size.y - (top + 14);
+    final maxVisibleEntries = math.min(
+      layout.mode == BattleCommandPanelLayoutMode.stacked ? 4 : 5,
+      _maxVisibleListEntries(
+        availableHeight: availableHeight,
+        gap: gap,
+        minimumCardHeight:
+            layout.mode == BattleCommandPanelLayoutMode.stacked ? 48.0 : 54.0,
+      ),
+    );
+    final window = _buildVisibleListWindow(
+      itemCount: entries.length,
+      selectedIndex: _selectedMedicineTargetIndex,
+      maxVisibleEntries: maxVisibleEntries,
+    );
+    _currentListWindow = window;
+    final useTouchListDragScroll = _shouldUseTouchListDragScroll(window);
+    final availableWidth = commandsPanel.size.x -
+        24 -
+        (window.isScrollable && !useTouchListDragScroll
+            ? controlColumnWidth
+            : 0);
+    final visibleEntries =
+        entries.sublist(window.startIndex, window.endIndexExclusive);
     final cardHeight =
-        ((availableHeight - ((entries.length - 1) * gap)) / entries.length)
+        ((availableHeight - ((visibleEntries.length - 1) * gap)) /
+                visibleEntries.length)
             .clamp(
-              layout.mode == BattleCommandPanelLayoutMode.stacked ? 36.0 : 42.0,
+              layout.mode == BattleCommandPanelLayoutMode.stacked ? 44.0 : 50.0,
               layout.mode == BattleCommandPanelLayoutMode.stacked ? 58.0 : 64.0,
             )
             .toDouble();
 
-    for (var index = 0; index < entries.length; index++) {
-      final entry = entries[index];
+    if (useTouchListDragScroll) {
+      _configureTouchListDragRegion(
+        commandsPanel: commandsPanel,
+        left: 12,
+        top: top,
+        width: availableWidth,
+        height: availableHeight,
+        stepExtent: cardHeight + gap,
+      );
+    } else if (window.isScrollable) {
+      _addScrollControls(
+        commandsPanel,
+        top: top,
+        availableHeight: availableHeight,
+        controlColumnLeft: 12 + availableWidth + 6,
+        interactionsEnabled: interactionsEnabled,
+      );
+    }
+
+    for (var visibleIndex = 0;
+        visibleIndex < visibleEntries.length;
+        visibleIndex++) {
+      final index = window.startIndex + visibleIndex;
+      final entry = visibleEntries[visibleIndex];
       final snapshot = _buildPartyEntrySnapshot(
         entrySize: Size(availableWidth, cardHeight),
         speciesLabel: entry.speciesId,
@@ -761,7 +1347,7 @@ class BattleCommandPanelComponent extends PositionComponent {
       );
       final card = _BattleMedicineTargetEntryComponent(
         entry: entry,
-        position: Vector2(12, top + ((cardHeight + gap) * index)),
+        position: Vector2(12, top + ((cardHeight + gap) * visibleIndex)),
         size: Vector2(availableWidth, cardHeight),
         snapshot: snapshot,
         isSelected: index == _selectedMedicineTargetIndex,
@@ -786,7 +1372,7 @@ class BattleCommandPanelComponent extends PositionComponent {
     if (menuModel.isRootMode) {
       return '';
     }
-    return 'Esc back';
+    return 'Esc / Retour';
   }
 
   List<String> _sanitizeNarrationBody({
@@ -809,6 +1395,196 @@ class BattleCommandPanelComponent extends PositionComponent {
     }
     return const <String>['Choisis une action.'];
   }
+
+  bool get _showsTouchBackControl {
+    if (_menuModel.isContinueOnly || _menuModel.isRootMode) {
+      return false;
+    }
+    if (_menuModel.mode == BattleCommandMenuMode.pokemon &&
+        _partyMenuModel?.mode == BattlePartyMenuMode.forcedReplacement) {
+      return false;
+    }
+    return onBackRequested != null;
+  }
+
+  void _updateHeaderChrome(PositionComponent commandsPanel) {
+    final layout = _layout ?? _BattleCommandPanelLayout.forSize(size);
+    final titleX = _showsTouchBackControl ? 44.0 : 10.0;
+    _commandTitleText?.position =
+        Vector2(titleX, layout.commandTitlePosition.y);
+    _hintText?.position =
+        layout.hintPosition(commandsPanelSize: commandsPanel.size);
+    if (!_showsTouchBackControl) {
+      return;
+    }
+
+    final backControl = _BattleUtilityButtonComponent(
+      label: '←',
+      position: Vector2(
+          10, layout.mode == BattleCommandPanelLayoutMode.stacked ? 8 : 10),
+      size: Vector2(26, 22),
+      isEnabled: _interactionsEnabled,
+      palette: const _BattlePalette(
+        primary: Color(0xFF59697C),
+        secondary: Color(0xFF3C4758),
+      ),
+      onPressed: onBackRequested,
+    );
+    _interactiveComponents.add(backControl);
+    commandsPanel.add(backControl);
+  }
+
+  void _addScrollControls(
+    PositionComponent commandsPanel, {
+    required double top,
+    required double availableHeight,
+    required double controlColumnLeft,
+    required bool interactionsEnabled,
+  }) {
+    final window = _currentListWindow;
+    if (window == null || !window.isScrollable) {
+      return;
+    }
+    const buttonSize = Size(22, 22);
+    final upButton = _BattleUtilityButtonComponent(
+      label: '▲',
+      position: Vector2(controlColumnLeft, top),
+      size: Vector2(buttonSize.width, buttonSize.height),
+      isEnabled: interactionsEnabled && window.canScrollUp,
+      palette: const _BattlePalette(
+        primary: Color(0xFF59697C),
+        secondary: Color(0xFF3C4758),
+      ),
+      onPressed: () => onScrollUpRequested?.call(),
+    );
+    final downButton = _BattleUtilityButtonComponent(
+      label: '▼',
+      position: Vector2(
+        controlColumnLeft,
+        top + availableHeight - buttonSize.height,
+      ),
+      size: Vector2(buttonSize.width, buttonSize.height),
+      isEnabled: interactionsEnabled && window.canScrollDown,
+      palette: const _BattlePalette(
+        primary: Color(0xFF59697C),
+        secondary: Color(0xFF3C4758),
+      ),
+      onPressed: () => onScrollDownRequested?.call(),
+    );
+    _interactiveComponents.add(upButton);
+    _interactiveComponents.add(downButton);
+    commandsPanel.add(upButton);
+    commandsPanel.add(downButton);
+  }
+
+  bool _shouldUseTouchListDragScroll(_BattleVisibleListWindow? window) {
+    final layout = _layout ?? _BattleCommandPanelLayout.forSize(size);
+    return _preferTouchListDragScroll &&
+        layout.mode == BattleCommandPanelLayoutMode.stacked &&
+        (window?.isScrollable ?? false);
+  }
+
+  void _configureTouchListDragRegion({
+    required PositionComponent commandsPanel,
+    required double left,
+    required double top,
+    required double width,
+    required double height,
+    required double stepExtent,
+  }) {
+    _touchListDragRegion = Rect.fromLTWH(
+      commandsPanel.position.x + left,
+      commandsPanel.position.y + top,
+      width,
+      height,
+    );
+    _touchListDragStepExtent = stepExtent;
+  }
+
+  int _applyTouchListDragDelta(double localDeltaY) {
+    if (!_shouldUseTouchListDragScroll(_currentListWindow) ||
+        _touchListDragStepExtent <= 0) {
+      return 0;
+    }
+    final threshold = math.max(18.0, _touchListDragStepExtent * 0.55);
+    _touchListDragCarry += localDeltaY;
+    var appliedSteps = 0;
+    while (_touchListDragCarry <= -threshold) {
+      final moved = onScrollDownRequested?.call() ?? false;
+      if (!moved) {
+        _touchListDragCarry = 0;
+        break;
+      }
+      _touchListDragCarry += threshold;
+      appliedSteps += 1;
+    }
+    while (_touchListDragCarry >= threshold) {
+      final moved = onScrollUpRequested?.call() ?? false;
+      if (!moved) {
+        _touchListDragCarry = 0;
+        break;
+      }
+      _touchListDragCarry -= threshold;
+      appliedSteps += 1;
+    }
+    return appliedSteps;
+  }
+}
+
+int _maxVisibleListEntries({
+  required double availableHeight,
+  required double gap,
+  required double minimumCardHeight,
+}) {
+  final slotHeight = minimumCardHeight + gap;
+  if (slotHeight <= 0) {
+    return 1;
+  }
+  return math.max(1, ((availableHeight + gap) / slotHeight).floor());
+}
+
+_BattleVisibleListWindow _buildVisibleListWindow({
+  required int itemCount,
+  required int selectedIndex,
+  required int maxVisibleEntries,
+}) {
+  if (itemCount <= 0) {
+    return const _BattleVisibleListWindow(
+      startIndex: 0,
+      endIndexExclusive: 0,
+      canScrollUp: false,
+      canScrollDown: false,
+    );
+  }
+  final visibleCount = math.min(itemCount, math.max(1, maxVisibleEntries));
+  final safeSelectedIndex = selectedIndex.clamp(0, itemCount - 1);
+  final maxStart = itemCount - visibleCount;
+  final startIndex = math.max(
+    0,
+    math.min(safeSelectedIndex - visibleCount + 1, maxStart),
+  );
+  return _BattleVisibleListWindow(
+    startIndex: startIndex,
+    endIndexExclusive: startIndex + visibleCount,
+    canScrollUp: startIndex > 0,
+    canScrollDown: (startIndex + visibleCount) < itemCount,
+  );
+}
+
+class _BattleVisibleListWindow {
+  const _BattleVisibleListWindow({
+    required this.startIndex,
+    required this.endIndexExclusive,
+    required this.canScrollUp,
+    required this.canScrollDown,
+  });
+
+  final int startIndex;
+  final int endIndexExclusive;
+  final bool canScrollUp;
+  final bool canScrollDown;
+
+  bool get isScrollable => canScrollUp || canScrollDown;
 }
 
 String _partyEntryStatusLabel(BattlePartyMenuEntry entry) {
@@ -886,6 +1662,178 @@ String _humanizeBagItemId(String itemId) {
             '${segment[0].toUpperCase()}${segment.substring(1).toLowerCase()}',
       )
       .join(' ');
+}
+
+_BattleBagItemIconKind _bagItemIconKind(String itemId) {
+  return switch (itemId) {
+    'poke-ball' => _BattleBagItemIconKind.pokeBall,
+    'potion' => _BattleBagItemIconKind.potion,
+    'super-potion' => _BattleBagItemIconKind.superPotion,
+    'hyper-potion' => _BattleBagItemIconKind.hyperPotion,
+    _ => _BattleBagItemIconKind.unsupported,
+  };
+}
+
+void _paintBagItemIcon(
+  Canvas canvas, {
+  required Rect rect,
+  required _BattleBagItemIconKind kind,
+  required bool enabled,
+}) {
+  switch (kind) {
+    case _BattleBagItemIconKind.pokeBall:
+      final center = rect.center;
+      final radius = rect.shortestSide / 2;
+      canvas.drawCircle(
+        center,
+        radius,
+        Paint()
+          ..color = enabled ? const Color(0xFFF7F5F2) : const Color(0xCCCDD3DD),
+      );
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        math.pi,
+        math.pi,
+        true,
+        Paint()
+          ..color = enabled ? const Color(0xFFD85656) : const Color(0xAA8C949F),
+      );
+      canvas.drawLine(
+        Offset(rect.left + 2, center.dy),
+        Offset(rect.right - 2, center.dy),
+        Paint()
+          ..color = const Color(0xFF263140)
+          ..strokeWidth = 1.4,
+      );
+      canvas.drawCircle(
+        center,
+        radius * 0.28,
+        Paint()..color = const Color(0xFFF6EAC2),
+      );
+      canvas.drawCircle(
+        center,
+        radius * 0.28,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.1
+          ..color = const Color(0xFF263140),
+      );
+    case _BattleBagItemIconKind.potion:
+      _paintBottleIcon(
+        canvas,
+        rect: rect,
+        liquidColor: const Color(0xFFE56262),
+        capColor: const Color(0xFFF2C27F),
+        enabled: enabled,
+      );
+    case _BattleBagItemIconKind.superPotion:
+      _paintBottleIcon(
+        canvas,
+        rect: rect,
+        liquidColor: const Color(0xFF58A7F4),
+        capColor: const Color(0xFFEBD07B),
+        enabled: enabled,
+      );
+    case _BattleBagItemIconKind.hyperPotion:
+      _paintBottleIcon(
+        canvas,
+        rect: rect,
+        liquidColor: const Color(0xFFB574F1),
+        capColor: const Color(0xFFF0B96C),
+        enabled: enabled,
+      );
+    case _BattleBagItemIconKind.unsupported:
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rect.deflate(3), const Radius.circular(6)),
+        Paint()
+          ..color = enabled ? const Color(0xFF7D8797) : const Color(0x805C6470),
+      );
+      _paintButtonText(
+        canvas,
+        text: '?',
+        rect: rect,
+        fontSize: rect.height * 0.52,
+        color: const Color(0xFFFDFDFD),
+        align: TextAlign.center,
+        fontWeight: FontWeight.w900,
+      );
+  }
+}
+
+void _paintResolvedBagItemIcon(
+  Canvas canvas, {
+  required Rect rect,
+  required ui.Image image,
+  required bool enabled,
+}) {
+  final source = Rect.fromLTWH(
+    0,
+    0,
+    image.width.toDouble(),
+    image.height.toDouble(),
+  );
+  final paint = Paint()..filterQuality = FilterQuality.none;
+  if (!enabled) {
+    paint.colorFilter = const ui.ColorFilter.mode(
+      Color(0x99FFFFFF),
+      BlendMode.modulate,
+    );
+  }
+  canvas.drawImageRect(
+    image,
+    source,
+    rect,
+    paint,
+  );
+}
+
+void _paintBottleIcon(
+  Canvas canvas, {
+  required Rect rect,
+  required Color liquidColor,
+  required Color capColor,
+  required bool enabled,
+}) {
+  final bottleRect = Rect.fromLTWH(
+    rect.left + (rect.width * 0.2),
+    rect.top + (rect.height * 0.22),
+    rect.width * 0.6,
+    rect.height * 0.62,
+  );
+  final neckRect = Rect.fromLTWH(
+    rect.left + (rect.width * 0.36),
+    rect.top + (rect.height * 0.08),
+    rect.width * 0.28,
+    rect.height * 0.22,
+  );
+  canvas.drawRRect(
+    RRect.fromRectAndRadius(bottleRect, const Radius.circular(7)),
+    Paint()
+      ..color = enabled ? const Color(0xFFF6F7FB) : const Color(0xCCD1D7E1),
+  );
+  canvas.drawRRect(
+    RRect.fromRectAndRadius(neckRect, const Radius.circular(4)),
+    Paint()..color = capColor.withValues(alpha: enabled ? 1 : 0.66),
+  );
+  canvas.drawRRect(
+    RRect.fromRectAndRadius(
+      Rect.fromLTWH(
+        bottleRect.left + 2,
+        bottleRect.top + (bottleRect.height * 0.38),
+        bottleRect.width - 4,
+        bottleRect.height * 0.44,
+      ),
+      const Radius.circular(5),
+    ),
+    Paint()..color = liquidColor.withValues(alpha: enabled ? 1 : 0.72),
+  );
+  canvas.drawRRect(
+    RRect.fromRectAndRadius(bottleRect, const Radius.circular(7)),
+    Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0
+      ..color = const Color(0xFF263140),
+  );
 }
 
 class _BattleRootButtonComponent extends PositionComponent with TapCallbacks {
@@ -1119,7 +2067,12 @@ class _BattlePartyEntryComponent extends PositionComponent with TapCallbacks {
   }
 
   @override
-  void onTapDown(TapDownEvent event) {
+  void onTapUp(TapUpEvent event) {
+    super.onTapUp(event);
+    _activateIfAllowed();
+  }
+
+  void _activateIfAllowed() {
     if (!interactionsEnabled || !entry.isSelectable) {
       return;
     }
@@ -1250,7 +2203,12 @@ class _BattleMedicineTargetEntryComponent extends PositionComponent
   }
 
   @override
-  void onTapDown(TapDownEvent event) {
+  void onTapUp(TapUpEvent event) {
+    super.onTapUp(event);
+    _activateIfAllowed();
+  }
+
+  void _activateIfAllowed() {
     if (!interactionsEnabled || !entry.isSelectable) {
       return;
     }
@@ -1358,6 +2316,7 @@ class _BattleBagEntryComponent extends PositionComponent with TapCallbacks {
     required this.statusLabel,
     this.compact = false,
     this.interactionsEnabled = true,
+    this.resolvedIconImage,
   }) : super(
           position: position,
           size: size,
@@ -1374,6 +2333,7 @@ class _BattleBagEntryComponent extends PositionComponent with TapCallbacks {
   final String statusLabel;
   final bool compact;
   final bool interactionsEnabled;
+  final ui.Image? resolvedIconImage;
 
   @override
   bool containsLocalPoint(Vector2 point) {
@@ -1384,11 +2344,24 @@ class _BattleBagEntryComponent extends PositionComponent with TapCallbacks {
   }
 
   @override
-  void onTapDown(TapDownEvent event) {
+  void onTapUp(TapUpEvent event) {
+    super.onTapUp(event);
+    _activateIfAllowed();
+  }
+
+  void _activateIfAllowed() {
     if (!interactionsEnabled || !entry.isSelectable) {
       return;
     }
     onPressed?.call(entry);
+  }
+
+  @visibleForTesting
+  void debugHandleTouchDownForTest() {}
+
+  @visibleForTesting
+  void debugHandleTouchUpForTest() {
+    _activateIfAllowed();
   }
 
   @override
@@ -1430,6 +2403,22 @@ class _BattleBagEntryComponent extends PositionComponent with TapCallbacks {
         enabled ? const Color(0xE6E7EFFA) : const Color(0xB6D5DDE8);
     final statusColor =
         enabled ? const Color(0xFFC8F0CF) : const Color(0xFFE7C9B0);
+
+    if (resolvedIconImage != null) {
+      _paintResolvedBagItemIcon(
+        canvas,
+        rect: snapshot.iconRect,
+        image: resolvedIconImage!,
+        enabled: enabled,
+      );
+    } else {
+      _paintBagItemIcon(
+        canvas,
+        rect: snapshot.iconRect,
+        kind: _bagItemIconKind(entry.itemId),
+        enabled: enabled,
+      );
+    }
 
     _paintButtonText(
       canvas,
@@ -1694,11 +2683,17 @@ BattleBagEntrySnapshot _buildBagEntrySnapshot({
   final topPadding = compact ? 7.0 : 8.0;
   final bottomPadding = compact ? 6.0 : 7.0;
   final verticalGap = compact ? 2.0 : 3.0;
+  final iconSize = compact ? 20.0 : 24.0;
+  final iconSpacing = compact ? 8.0 : 10.0;
   final quantityWidth = (entrySize.width * 0.16).clamp(44.0, 68.0).toDouble();
   final statusWidth = (entrySize.width * 0.32).clamp(86.0, 126.0).toDouble();
   final typeWidth = (entrySize.width * 0.24).clamp(64.0, 98.0).toDouble();
-  final titleWidth =
-      entrySize.width - (horizontalPadding * 2) - quantityWidth - 6.0;
+  final titleWidth = entrySize.width -
+      (horizontalPadding * 2) -
+      quantityWidth -
+      iconSize -
+      iconSpacing -
+      6.0;
   final titleFontSize = _fitSingleLineFontSize(
     text: titleLabel,
     maxWidth: titleWidth,
@@ -1729,14 +2724,20 @@ BattleBagEntrySnapshot _buildBagEntrySnapshot({
 
   return BattleBagEntrySnapshot(
     bounds: Offset.zero & entrySize,
-    titleRect: Rect.fromLTWH(
+    iconRect: Rect.fromLTWH(
       horizontalPadding,
+      (entrySize.height - iconSize) / 2,
+      iconSize,
+      iconSize,
+    ),
+    titleRect: Rect.fromLTWH(
+      horizontalPadding + iconSize + iconSpacing,
       topPadding,
       titleWidth,
       titleHeight,
     ),
     typeRect: Rect.fromLTWH(
-      horizontalPadding,
+      horizontalPadding + iconSize + iconSpacing,
       math.max(topPadding + titleHeight + verticalGap, bottomTop),
       typeWidth,
       typeHeight,
@@ -1885,4 +2886,88 @@ class _BattlePalette {
 
   final Color primary;
   final Color secondary;
+}
+
+class _BattleUtilityButtonComponent extends PositionComponent
+    with TapCallbacks {
+  _BattleUtilityButtonComponent({
+    required this.label,
+    required Vector2 position,
+    required Vector2 size,
+    required this.isEnabled,
+    required this.palette,
+    required this.onPressed,
+  }) : super(
+          position: position,
+          size: size,
+          anchor: Anchor.topLeft,
+          priority: 33,
+        );
+
+  final String label;
+  final bool isEnabled;
+  final _BattlePalette palette;
+  final void Function()? onPressed;
+
+  @override
+  bool containsLocalPoint(Vector2 point) {
+    return point.x >= 0 &&
+        point.x <= size.x &&
+        point.y >= 0 &&
+        point.y <= size.y;
+  }
+
+  @override
+  void onTapDown(TapDownEvent event) {
+    if (!isEnabled) {
+      return;
+    }
+    onPressed?.call();
+  }
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+
+    final rect = Offset.zero & Size(size.x, size.y);
+    final fillPalette = isEnabled
+        ? palette
+        : const _BattlePalette(
+            primary: Color(0xFF4B5261),
+            secondary: Color(0xFF323844),
+          );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(10)),
+      Paint()
+        ..shader = LinearGradient(
+          colors: <Color>[fillPalette.primary, fillPalette.secondary],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ).createShader(rect),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, const Radius.circular(10)),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.1
+        ..color = isEnabled ? const Color(0x55FFFFFF) : const Color(0x22FFFFFF),
+    );
+    _paintButtonText(
+      canvas,
+      text: label,
+      rect: rect,
+      fontSize: 11,
+      color: isEnabled ? const Color(0xFFFDFDFD) : const Color(0xA0FDFDFD),
+      align: TextAlign.center,
+      fontWeight: FontWeight.w900,
+    );
+  }
+}
+
+enum _BattleBagItemIconKind {
+  pokeBall,
+  potion,
+  superPotion,
+  hyperPotion,
+  unsupported,
 }

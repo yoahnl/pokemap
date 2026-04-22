@@ -54,9 +54,9 @@ class BattleSceneCombatantComponent extends PositionComponent {
 
   String _speciesLabel;
   BattleCombatantSpriteSpec _spriteSpec;
-  final Rect _spriteRect;
-  final Rect _platformRect;
-  final Offset _footAnchor;
+  Rect _spriteRect;
+  Rect _platformRect;
+  Offset _footAnchor;
   final double _spriteFootXRatio;
   ui.Image? _spriteImage;
   Rect? _spriteOpaqueSourceRect;
@@ -141,6 +141,29 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _speciesLabel = speciesLabel;
     _spriteSpec = spriteSpec;
     await _syncSpriteImage();
+  }
+
+  /// Repositionne le combattant quand le layout battle est recalculé.
+  ///
+  /// Ce seam reste strictement visuel :
+  /// - aucune donnée métier battle n'est modifiée ;
+  /// - on met seulement à jour les bounds calculés par `BattleSceneLayout` ;
+  /// - cela permet au runtime de répondre proprement aux resize/orientation
+  ///   sans reconstruire tout le combat.
+  void updateSceneGeometry({
+    required Rect sceneSpriteRect,
+    required Rect scenePlatformRect,
+    required Offset sceneFootAnchor,
+  }) {
+    final sceneBounds = _sceneBounds(sceneSpriteRect, scenePlatformRect);
+    position = Vector2(sceneBounds.left, sceneBounds.top);
+    size = Vector2(sceneBounds.width, sceneBounds.height);
+    _spriteRect = _toLocalRect(sceneSpriteRect, sceneBounds);
+    _platformRect = _toLocalRect(scenePlatformRect, sceneBounds);
+    _footAnchor = _toLocalOffset(sceneFootAnchor, sceneBounds);
+    _speciesText?.position = Vector2(_spriteRect.left + 8, size.y - 4);
+    _monogramText?.position =
+        Vector2(_spriteRect.center.dx, _spriteRect.center.dy);
   }
 
   void triggerHitFlash({

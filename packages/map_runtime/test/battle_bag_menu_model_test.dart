@@ -449,6 +449,60 @@ void main() {
       );
     });
 
+    test(
+        'supported hyper potion is selectable in a free turn and opens a medicine target action',
+        () {
+      final session = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_move(id: 'tackle', name: 'Tackle')],
+        ),
+        enemy: _combatant(
+          speciesId: 'wildmon',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_move(id: 'scratch', name: 'Scratch')],
+        ),
+        allowCapture: true,
+      );
+
+      final model = buildBattleBagMenuModel(
+        gameState: _gameState(
+          bag: Bag(
+            entries: <BagEntry>[
+              _entry(
+                itemId: 'hyper-potion',
+                categoryId: 'medicine',
+                quantity: 1,
+              ),
+            ],
+          ),
+        ),
+        session: session,
+      );
+
+      final entry = model.entries.single;
+      expect(entry.kind, equals(BattleBagItemKind.medicine));
+      expect(entry.quantity, equals(1));
+      expect(entry.isSelectable, isTrue);
+      expect(entry.disabledReason, isNull);
+      expect(
+        entry.action,
+        isA<BattleBagMenuActionMedicineTarget>()
+            .having(
+              (action) => action.itemId,
+              'itemId',
+              equals('hyper-potion'),
+            )
+            .having(
+              (action) => action.categoryId,
+              'categoryId',
+              equals('medicine'),
+            )
+            .having((action) => action.quantity, 'quantity', equals(1)),
+      );
+    });
+
     test('unsupported medicine stays visible but disabled', () {
       final session = _session(
         player: _combatant(

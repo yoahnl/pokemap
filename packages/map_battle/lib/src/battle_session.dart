@@ -272,7 +272,8 @@ class BattleSession {
   ///
   /// Lot 9-f conserve cette façade explicite pour éviter de vendre une API
   /// générique d'objets : l'implémentation factorise en interne avec
-  /// `Super Potion`, mais l'appelant reste bien sur un objet concret.
+  /// `Super Potion` et `Hyper Potion`, mais l'appelant reste bien sur un
+  /// objet concret.
   BattleSession applyPotionTurn({
     required int targetLineupIndex,
     required int healAmount,
@@ -301,8 +302,26 @@ class BattleSession {
     );
   }
 
+  /// Commit une vraie action de tour `Hyper Potion`.
+  ///
+  /// Lot 9-g étend la mini-famille bornée sans franchir la frontière vers un
+  /// système générique :
+  /// - aucune autre medicine n'est implicitement supportée ;
+  /// - le scheduler et la timeline restent ceux déjà prouvés par 9-e/9-f ;
+  /// - l'appelant reste sur une façade explicite par objet.
+  BattleSession applyHyperPotionTurn({
+    required int targetLineupIndex,
+    required int healAmount,
+  }) {
+    return _applyBagHpHealItemTurn(
+      itemKind: BattleBagHpHealItemKind.hyperPotion,
+      targetLineupIndex: targetLineupIndex,
+      healAmount: healAmount,
+    );
+  }
+
   /// Commit une vraie action de tour pour la famille ultra-bornée
-  /// `Potion` + `Super Potion`.
+  /// `Potion` + `Super Potion` + `Hyper Potion`.
   ///
   /// Ce helper interne factorise seulement ce qui était devenu duplication :
   /// - même validation de requête ;

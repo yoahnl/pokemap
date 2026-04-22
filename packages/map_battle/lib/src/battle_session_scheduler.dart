@@ -815,8 +815,9 @@ int _priorityForResolvedAction(BattleAction action) {
     // - cela ne prétend toujours pas modéliser la taxonomie Showdown complète
     //   des priorités de switch.
     //
-    // Lots 9-e / 9-f ajoutent un seul micro-slice d'objets :
-    // - `Potion` et `Super Potion` deviennent de vraies actions de tour ;
+    // Lots 9-e / 9-f / 9-g ajoutent un seul micro-slice d'objets :
+    // - `Potion`, `Super Potion` et `Hyper Potion` deviennent de vraies
+    //   actions de tour ;
     // - elles résolvent avant les moves actuellement supportés ;
     // - on refuse pourtant d'ouvrir une échelle générique de priorités items.
     BattleActionBagHpHealItemUse() => 7,

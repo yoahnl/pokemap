@@ -4,7 +4,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
-import 'package:map_runtime/src/application/runtime_battle_potion_apply.dart';
+import 'package:map_runtime/src/application/runtime_battle_bag_hp_heal_item_apply.dart';
 
 BattleStatsSnapshot _stats() {
   return const BattleStatsSnapshot(
@@ -120,7 +120,7 @@ RuntimeActiveBattleContext _context({
 }
 
 void main() {
-  group('tryApplyRuntimeBattlePotionUse', () {
+  group('tryApplyRuntimeBattleBagHpHealItemUse', () {
     test('potion heals a damaged active target by 20 and consumes one item',
         () {
       final result = tryApplyRuntimeBattlePotionUse(
@@ -322,6 +322,129 @@ void main() {
       expect(result!.healedAmount, equals(20));
       expect(result.updatedSession.state.player.currentHp, equals(80));
       expect(result.updatedGameState.party.members.first.currentHp, equals(80));
+      expect(result.updatedGameState.bag.entries, isEmpty);
+    });
+
+    test(
+        'hyper potion heals a damaged active target by 200 and consumes only hyper potion',
+        () {
+      final result = tryApplyRuntimeBattleHyperPotionUse(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            currentHp: 12,
+            maxHp: 260,
+            moves: <BattleMoveData>[_move(id: 'tackle', name: 'Tackle')],
+          ),
+          enemy: _combatant(
+            speciesId: 'enemy',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_move(id: 'wait', name: 'Wait', power: 0)],
+          ),
+        ),
+        gameState: _gameState(
+          bag: const Bag(
+            entries: <BagEntry>[
+              BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+              BagEntry(
+                itemId: 'super-potion',
+                categoryId: 'medicine',
+                quantity: 2,
+              ),
+              BagEntry(
+                itemId: 'hyper-potion',
+                categoryId: 'medicine',
+                quantity: 2,
+              ),
+            ],
+          ),
+          partyMembers: <PlayerPokemon>[
+            _partyMember(speciesId: 'sproutle', currentHp: 12, level: 10),
+          ],
+        ),
+        context: _context(
+          playerPartyIndex: 0,
+          lineupPartyIndices: const <int>[0],
+        ),
+        targetLineupIndex: 0,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.healedAmount, equals(200));
+      expect(
+        result.updatedSession.state.currentTurn!.playerAction,
+        isA<BattleActionBagHpHealItemUse>().having(
+          (action) => action.itemKind,
+          'itemKind',
+          equals(BattleBagHpHealItemKind.hyperPotion),
+        ),
+      );
+      expect(result.updatedSession.state.player.currentHp, equals(212));
+      expect(
+          result.updatedGameState.party.members.first.currentHp, equals(212));
+      expect(
+        result.updatedGameState.bag.entries,
+        const Bag(
+          entries: <BagEntry>[
+            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+            BagEntry(
+              itemId: 'super-potion',
+              categoryId: 'medicine',
+              quantity: 2,
+            ),
+            BagEntry(
+              itemId: 'hyper-potion',
+              categoryId: 'medicine',
+              quantity: 1,
+            ),
+          ],
+        ).normalized().entries,
+      );
+    });
+
+    test('hyper potion heal is capped at max hp', () {
+      final result = tryApplyRuntimeBattleHyperPotionUse(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            currentHp: 190,
+            maxHp: 260,
+            moves: <BattleMoveData>[_move(id: 'tackle', name: 'Tackle')],
+          ),
+          enemy: _combatant(
+            speciesId: 'enemy',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_move(id: 'wait', name: 'Wait', power: 0)],
+          ),
+        ),
+        gameState: _gameState(
+          bag: const Bag(
+            entries: <BagEntry>[
+              BagEntry(
+                itemId: 'hyper-potion',
+                categoryId: 'medicine',
+                quantity: 1,
+              ),
+            ],
+          ),
+          partyMembers: <PlayerPokemon>[
+            _partyMember(speciesId: 'sproutle', currentHp: 190),
+          ],
+        ),
+        context: _context(
+          playerPartyIndex: 0,
+          lineupPartyIndices: const <int>[0],
+        ),
+        targetLineupIndex: 0,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.healedAmount, equals(70));
+      expect(result.updatedSession.state.player.currentHp, equals(260));
+      expect(
+          result.updatedGameState.party.members.first.currentHp, equals(260));
       expect(result.updatedGameState.bag.entries, isEmpty);
     });
 

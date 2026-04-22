@@ -6,6 +6,7 @@ import 'runtime_battle_outcome_apply.dart';
 const _runtimeBattleMedicineCategoryId = 'medicine';
 const _runtimeBattlePotionHealAmount = 20;
 const _runtimeBattleSuperPotionHealAmount = 50;
+const _runtimeBattleHyperPotionHealAmount = 200;
 
 class RuntimeBattleBagHpHealItemApplyResult {
   const RuntimeBattleBagHpHealItemApplyResult({
@@ -25,12 +26,15 @@ class RuntimeBattleBagHpHealItemApplyResult {
   final int healedAmount;
 }
 
-/// Lot 9-f garde le fichier historique pour minimiser le blast radius, mais le
-/// seam réel n'est plus "Potion seulement" :
-/// - on supporte exactement `Potion` + `Super Potion` ;
-/// - on refuse tout autre item ;
-/// - le moteur battle commit le vrai tour ;
-/// - le runtime reste propriétaire du bag réel et du write-back party.
+/// Runtime owner du mini-slice BAG HP-heal battle.
+///
+/// Le renommage devient utile au lot 9-g :
+/// - avec `Potion` + `Super Potion` + `Hyper Potion`, le nom historique
+///   `runtime_battle_potion_apply.dart` devient trop mensonger ;
+/// - le blast radius reste raisonnable car ce seam n'est importé qu'en
+///   interne par le runtime et ses tests ;
+/// - on reste malgré tout strictement borné à trois objets, pas à une famille
+///   ouverte de medicines.
 RuntimeBattleBagHpHealItemApplyResult? tryApplyRuntimeBattlePotionUse({
   required BattleSession session,
   required GameState gameState,
@@ -61,6 +65,28 @@ RuntimeBattleBagHpHealItemApplyResult? tryApplyRuntimeBattleSuperPotionUse({
     gameState: gameState,
     context: context,
     itemSpec: _runtimeItemSpec(BattleBagHpHealItemKind.superPotion),
+    targetLineupIndex: targetLineupIndex,
+  );
+}
+
+/// Support explicite ajouté par le lot 9-g.
+///
+/// Le runtime expose toujours une façade par objet pour éviter toute ambiguïté
+/// produit :
+/// - pas de registre d'items ;
+/// - pas de `itemId` arbitraire côté API publique ;
+/// - seulement le troisième objet explicitement demandé.
+RuntimeBattleBagHpHealItemApplyResult? tryApplyRuntimeBattleHyperPotionUse({
+  required BattleSession session,
+  required GameState gameState,
+  required RuntimeActiveBattleContext context,
+  required int targetLineupIndex,
+}) {
+  return _tryApplyRuntimeBattleBagHpHealItemUse(
+    session: session,
+    gameState: gameState,
+    context: context,
+    itemSpec: _runtimeItemSpec(BattleBagHpHealItemKind.hyperPotion),
     targetLineupIndex: targetLineupIndex,
   );
 }
@@ -108,6 +134,10 @@ RuntimeBattleBagHpHealItemApplyResult? _tryApplyRuntimeBattleBagHpHealItemUse({
         targetLineupIndex: targetLineupIndex,
         healAmount: itemSpec.healAmount,
       ),
+    BattleBagHpHealItemKind.hyperPotion => session.applyHyperPotionTurn(
+        targetLineupIndex: targetLineupIndex,
+        healAmount: itemSpec.healAmount,
+      ),
   };
   final updatedGameState = _applyCommittedBagHpHealItemTurnToRuntimeState(
     gameState: gameState,
@@ -142,7 +172,7 @@ BattleCombatant? _findPlayerCombatantByLineupIndex({
   return null;
 }
 
-// Lot 9-f reste runtime-owner pour la vérité hors moteur :
+// Le fil 9-d -> 9-g garde le runtime propriétaire de la vérité hors moteur :
 // - write-back réel de toute la lineup engagée ;
 // - consommation réelle du bon item de bag ;
 // - aucune divergence overlay-only.
@@ -230,6 +260,13 @@ _RuntimeBattleBagHpHealItemSpec _runtimeItemSpec(
         itemId: 'super-potion',
         label: 'Super Potion',
         healAmount: _runtimeBattleSuperPotionHealAmount,
+      ),
+    BattleBagHpHealItemKind.hyperPotion =>
+      const _RuntimeBattleBagHpHealItemSpec(
+        kind: BattleBagHpHealItemKind.hyperPotion,
+        itemId: 'hyper-potion',
+        label: 'Hyper Potion',
+        healAmount: _runtimeBattleHyperPotionHealAmount,
       ),
   };
 }

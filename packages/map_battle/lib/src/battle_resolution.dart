@@ -24,7 +24,8 @@ class BattleTurnResult {
   /// [fieldEvents] - Les événements de champ BE9 visibles du tour.
   /// [stealthRockEvents] - Les événements Stealth Rock visibles du tour.
   /// [spikesEvents] - Les événements Spikes visibles du tour.
-  /// [bagHpHealItemEvents] - Les usages visibles de Potion / Super Potion.
+  /// [bagHpHealItemEvents] - Les usages visibles de Potion / Super Potion /
+  /// Hyper Potion.
   /// [timeline] - La chronologie ordonnée réellement produite par le moteur.
   const BattleTurnResult({
     required this.playerAction,
@@ -103,7 +104,7 @@ class BattleTurnResult {
   /// Lot 9-f choisit une mini-factorisation bornée plutôt qu'une duplication
   /// intégrale du pipeline 9-e :
   /// - ce bucket ne devient pas `itemEvents` ;
-  /// - il ne couvre que `Potion` + `Super Potion` ;
+  /// - il ne couvre que `Potion` + `Super Potion` + `Hyper Potion` ;
   /// - toute autre medicine reste hors scope tant qu'un lot explicite ne la
   ///   branche pas réellement.
   final List<BattleBagHpHealItemEvent> bagHpHealItemEvents;
@@ -196,13 +197,14 @@ final class BattleTurnSwitchEvent extends BattleTurnEvent {
   final BattleSwitchEvent event;
 }
 
-/// Trace visible d'un vrai usage de `Potion` ou `Super Potion`.
+/// Trace visible d'un vrai usage de `Potion`, `Super Potion` ou
+/// `Hyper Potion`.
 ///
 /// La factorisation reste honnête parce qu'elle est bornée par
 /// [BattleBagHpHealItemKind] :
 /// - pas d'`itemId` arbitraire ;
 /// - pas de registre d'objets ;
-/// - seulement les données nécessaires pour raconter les deux objets de soin
+/// - seulement les données nécessaires pour raconter les trois objets de soin
 ///   HP plats réellement supportés à ce stade.
 final class BattleBagHpHealItemEvent {
   const BattleBagHpHealItemEvent({

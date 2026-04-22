@@ -9,7 +9,7 @@ import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/src/direction.dart';
 import 'package:map_runtime/src/application/battle_start_request.dart';
 import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
-import 'package:map_runtime/src/application/runtime_battle_potion_apply.dart';
+import 'package:map_runtime/src/application/runtime_battle_bag_hp_heal_item_apply.dart';
 import 'package:map_runtime/src/application/runtime_map_bundle.dart';
 import 'package:map_runtime/src/presentation/flame/battle_background_resolver.dart';
 import 'package:map_runtime/src/presentation/flame/battle_command_menu_model.dart';
@@ -143,6 +143,10 @@ BagEntry _bagEntry({
     categoryId: categoryId,
     quantity: quantity,
   );
+}
+
+BattleCommandPanelComponent _panelFromOverlay(BattleOverlayComponent overlay) {
+  return overlay.children.whereType<BattleCommandPanelComponent>().single;
 }
 
 RuntimeMapBundle _runtimeBundle({
@@ -957,6 +961,38 @@ void main() {
       );
     });
 
+    test('reflows the battle scene when the viewport changes orientation',
+        () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'squirtle',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          enemy: _combatant(
+            speciesId: 'pikachu',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      final panel = _panelFromOverlay(overlay);
+      expect(overlay.currentSceneLayout.isPortrait, isFalse);
+      expect(panel.currentLayoutMode, BattleCommandPanelLayoutMode.split);
+
+      overlay.onGameResize(Vector2(390, 844));
+
+      expect(overlay.currentSceneLayout.isPortrait, isTrue);
+      expect(overlay.currentSceneLayout.viewportSize, const ui.Size(390, 844));
+      expect(panel.currentLayoutMode, BattleCommandPanelLayoutMode.stacked);
+    });
+
     test('mounts the resolved background family inside the backdrop layer',
         () async {
       final overlay = BattleOverlayComponent(
@@ -1379,6 +1415,28 @@ void main() {
                 ),
                 targetLineupIndex: entry.lineupIndex,
               ),
+            'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
+                session: overlay.debugSession,
+                gameState: overlay.debugGameState,
+                context: const RuntimeActiveBattleContext(
+                  request: TrainerBattleStartRequest(
+                    requestId: 'trainer-request',
+                    createdAtEpochMs: 1,
+                    returnContext: OverworldReturnContext(
+                      mapId: 'field_map',
+                      playerPos: GridPos(x: 1, y: 1),
+                      playerFacing: Direction.north,
+                    ),
+                    trainerId: 'trainer',
+                    npcEntityId: 'npc_trainer',
+                    mapId: 'field_map',
+                    playerPos: GridPos(x: 1, y: 1),
+                  ),
+                  playerPartyIndex: 0,
+                  playerPartySlotIndicesByLineupIndex: <int>[0, 1],
+                ),
+                targetLineupIndex: entry.lineupIndex,
+              ),
             _ => null,
           };
           if (result == null) {
@@ -1494,6 +1552,28 @@ void main() {
                 targetLineupIndex: entry.lineupIndex,
               ),
             'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
+                session: overlay.debugSession,
+                gameState: overlay.debugGameState,
+                context: const RuntimeActiveBattleContext(
+                  request: TrainerBattleStartRequest(
+                    requestId: 'trainer-request',
+                    createdAtEpochMs: 1,
+                    returnContext: OverworldReturnContext(
+                      mapId: 'field_map',
+                      playerPos: GridPos(x: 1, y: 1),
+                      playerFacing: Direction.north,
+                    ),
+                    trainerId: 'trainer',
+                    npcEntityId: 'npc_trainer',
+                    mapId: 'field_map',
+                    playerPos: GridPos(x: 1, y: 1),
+                  ),
+                  playerPartyIndex: 0,
+                  playerPartySlotIndicesByLineupIndex: <int>[1, 0],
+                ),
+                targetLineupIndex: entry.lineupIndex,
+              ),
+            'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
                 session: overlay.debugSession,
                 gameState: overlay.debugGameState,
                 context: const RuntimeActiveBattleContext(
@@ -1645,6 +1725,28 @@ void main() {
                 ),
                 targetLineupIndex: entry.lineupIndex,
               ),
+            'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
+                session: overlay.debugSession,
+                gameState: overlay.debugGameState,
+                context: const RuntimeActiveBattleContext(
+                  request: TrainerBattleStartRequest(
+                    requestId: 'trainer-request',
+                    createdAtEpochMs: 1,
+                    returnContext: OverworldReturnContext(
+                      mapId: 'field_map',
+                      playerPos: GridPos(x: 1, y: 1),
+                      playerFacing: Direction.north,
+                    ),
+                    trainerId: 'trainer',
+                    npcEntityId: 'npc_trainer',
+                    mapId: 'field_map',
+                    playerPos: GridPos(x: 1, y: 1),
+                  ),
+                  playerPartyIndex: 0,
+                  playerPartySlotIndicesByLineupIndex: <int>[0],
+                ),
+                targetLineupIndex: entry.lineupIndex,
+              ),
             _ => null,
           };
           if (result == null) {
@@ -1692,6 +1794,164 @@ void main() {
 
       overlay.updateTree(0.50);
       expect(overlay.currentPromptText, equals('sproutle récupère 50 PV.'));
+    });
+
+    test(
+        'selecting a valid hyper potion target commits a real turn without dispatching a PlayerBattleChoice',
+        () async {
+      PlayerBattleChoice? pickedChoice;
+      final session = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          currentHp: 22,
+          maxHp: 260,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+        enemy: _combatant(
+          speciesId: 'wild_enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+      final gameState = _gameState(
+        bag: Bag(
+          entries: <BagEntry>[
+            _bagEntry(
+              itemId: 'hyper-potion',
+              categoryId: 'medicine',
+              quantity: 1,
+            ),
+          ],
+        ),
+        partyMembers: <PlayerPokemon>[
+          _partyMember(speciesId: 'sproutle', currentHp: 22),
+        ],
+      );
+      late BattleOverlayComponent overlay;
+      overlay = BattleOverlayComponent(
+        session: session,
+        gameState: gameState,
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (choice) => pickedChoice = choice,
+        onBagHpHealItemUseRequested: (action, entry) {
+          final result = switch (action.itemId) {
+            'potion' => tryApplyRuntimeBattlePotionUse(
+                session: overlay.debugSession,
+                gameState: overlay.debugGameState,
+                context: const RuntimeActiveBattleContext(
+                  request: TrainerBattleStartRequest(
+                    requestId: 'trainer-request',
+                    createdAtEpochMs: 1,
+                    returnContext: OverworldReturnContext(
+                      mapId: 'field_map',
+                      playerPos: GridPos(x: 1, y: 1),
+                      playerFacing: Direction.north,
+                    ),
+                    trainerId: 'trainer',
+                    npcEntityId: 'npc_trainer',
+                    mapId: 'field_map',
+                    playerPos: GridPos(x: 1, y: 1),
+                  ),
+                  playerPartyIndex: 0,
+                  playerPartySlotIndicesByLineupIndex: <int>[0],
+                ),
+                targetLineupIndex: entry.lineupIndex,
+              ),
+            'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
+                session: overlay.debugSession,
+                gameState: overlay.debugGameState,
+                context: const RuntimeActiveBattleContext(
+                  request: TrainerBattleStartRequest(
+                    requestId: 'trainer-request',
+                    createdAtEpochMs: 1,
+                    returnContext: OverworldReturnContext(
+                      mapId: 'field_map',
+                      playerPos: GridPos(x: 1, y: 1),
+                      playerFacing: Direction.north,
+                    ),
+                    trainerId: 'trainer',
+                    npcEntityId: 'npc_trainer',
+                    mapId: 'field_map',
+                    playerPos: GridPos(x: 1, y: 1),
+                  ),
+                  playerPartyIndex: 0,
+                  playerPartySlotIndicesByLineupIndex: <int>[0],
+                ),
+                targetLineupIndex: entry.lineupIndex,
+              ),
+            'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
+                session: overlay.debugSession,
+                gameState: overlay.debugGameState,
+                context: const RuntimeActiveBattleContext(
+                  request: TrainerBattleStartRequest(
+                    requestId: 'trainer-request',
+                    createdAtEpochMs: 1,
+                    returnContext: OverworldReturnContext(
+                      mapId: 'field_map',
+                      playerPos: GridPos(x: 1, y: 1),
+                      playerFacing: Direction.north,
+                    ),
+                    trainerId: 'trainer',
+                    npcEntityId: 'npc_trainer',
+                    mapId: 'field_map',
+                    playerPos: GridPos(x: 1, y: 1),
+                  ),
+                  playerPartyIndex: 0,
+                  playerPartySlotIndicesByLineupIndex: <int>[0],
+                ),
+                targetLineupIndex: entry.lineupIndex,
+              ),
+            _ => null,
+          };
+          if (result == null) {
+            return false;
+          }
+          overlay.updateState(
+            result.updatedSession,
+            gameState: result.updatedGameState,
+          );
+          return true;
+        },
+      );
+
+      await overlay.onLoad();
+
+      overlay.moveSelectionRight();
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bagMedicineTarget);
+      expect(overlay.validateSelectedChoice(), isTrue);
+
+      await overlay.waitForPendingVisualSync();
+
+      expect(pickedChoice, isNull);
+      expect(overlay.debugSession.state.currentTurn, isNotNull);
+      expect(
+        overlay.debugSession.state.currentTurn!.playerAction,
+        isA<BattleActionBagHpHealItemUse>().having(
+          (action) => action.itemKind,
+          'itemKind',
+          equals(BattleBagHpHealItemKind.hyperPotion),
+        ),
+      );
+      expect(overlay.debugSession.state.player.currentHp, equals(222));
+      expect(
+        overlay.debugGameState.party.members.first.currentHp,
+        equals(222),
+      );
+      expect(overlay.debugGameState.bag.entries, isEmpty);
+      expect(overlay.isTurnPresentationActive, isTrue);
+      expect(
+        overlay.currentPromptText,
+        equals('Joueur utilise Hyper Potion sur sproutle !'),
+      );
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+      expect(overlay.validateSelectedChoice(), isFalse);
+
+      overlay.updateTree(0.50);
+      expect(overlay.currentPromptText, equals('sproutle récupère 200 PV.'));
     });
 
     test('full hp medicine targets stay visible but non-selectable', () async {
@@ -1842,6 +2102,47 @@ void main() {
       expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
 
       expect(overlay.handleEscape(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.root);
+    });
+
+    test('touch back control mirrors escape navigation for submenus', () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            currentHp: 12,
+            maxHp: 40,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          enemy: _combatant(
+            speciesId: 'wild_enemy',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ),
+        gameState: _gameState(
+          bag: Bag(
+            entries: <BagEntry>[
+              _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+            ],
+          ),
+        ),
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+      overlay.setPreferTouchListDragScroll(true);
+      final panel = _panelFromOverlay(overlay);
+
+      expect(panel.currentShowsTouchBackControl, isFalse);
+      overlay.moveSelectionRight();
+      expect(overlay.validateSelectedChoice(), isTrue);
+
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+      expect(panel.currentShowsTouchBackControl, isTrue);
+      expect(panel.tapTouchBackControlForTest(), isTrue);
       expect(overlay.currentMenuMode, BattleCommandMenuMode.root);
     });
 

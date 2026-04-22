@@ -152,6 +152,22 @@ class BattleSceneHudComponent extends PositionComponent {
     _updateHpBarFill();
   }
 
+  /// Réapplique seulement la géométrie HUD quand le viewport battle change.
+  ///
+  /// On garde ici un seam purement présentatif :
+  /// - le combattant affiché reste identique ;
+  /// - la vérité HP/statut reste dans `BattleSession` ;
+  /// - le resize ne doit pas réinitialiser l'animation ou l'état métier.
+  void updateBounds({
+    required Vector2 position,
+    required Vector2 size,
+  }) {
+    this.position = position;
+    this.size = size;
+    _layout = _buildLayout();
+    _updateHpBarFill();
+  }
+
   @override
   void update(double dt) {
     super.update(dt);

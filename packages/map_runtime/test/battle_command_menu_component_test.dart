@@ -1,11 +1,22 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flame/components.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_runtime/src/presentation/flame/battle_bag_menu_model.dart';
+import 'package:map_runtime/src/presentation/flame/battle_bag_item_icon_resolver.dart';
 import 'package:map_runtime/src/presentation/flame/battle_command_menu_model.dart';
 import 'package:map_runtime/src/presentation/flame/battle_command_panel_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_party_menu_model.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
+import 'package:map_runtime/src/presentation/flame/battle_visual_asset_cache.dart';
+import 'package:path/path.dart' as p;
+
+const String _tinyPngBase64 =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a9tsAAAAASUVORK5CYII=';
 
 BattleStatsSnapshot _stats() {
   return const BattleStatsSnapshot(
@@ -94,6 +105,34 @@ BagEntry _bagEntry({
 
 BattleCommandPanelComponent _panelFromOverlay(BattleOverlayComponent overlay) {
   return overlay.children.whereType<BattleCommandPanelComponent>().single;
+}
+
+Future<void> _writeProjectItemsCatalog(
+  Directory root, {
+  required List<Map<String, Object?>> entries,
+}) async {
+  final catalogFile = File(
+    p.join(root.path, 'data', 'pokemon', 'catalogs', 'items.json'),
+  );
+  await catalogFile.parent.create(recursive: true);
+  await catalogFile.writeAsString(
+    jsonEncode(<String, Object?>{
+      'catalog': 'items',
+      'entries': entries,
+    }),
+  );
+}
+
+Future<String> _writeTinyItemSprite(
+  Directory root,
+  String itemId,
+) async {
+  final file = File(
+    p.join(root.path, 'data', 'pokemon', 'assets', 'items', '$itemId.png'),
+  );
+  await file.parent.create(recursive: true);
+  await file.writeAsBytes(base64Decode(_tinyPngBase64));
+  return file.path;
 }
 
 void main() {
@@ -1093,6 +1132,439 @@ void main() {
       expect(landscapePanel.currentMenuMode, BattleCommandMenuMode.pokemon);
       expect(portraitPanel.currentPartySpeciesLabels, hasLength(3));
       expect(landscapePanel.currentPartySpeciesLabels, hasLength(3));
+    });
+
+    test(
+        'party submenu keeps a scrollable visible window instead of squeezing every entry',
+        () async {
+      final reserves = List<BattleCombatantData>.generate(
+        6,
+        (index) => _combatant(
+          speciesId: 'bench_$index',
+          lineupIndex: index + 1,
+          moves: <BattleMoveData>[
+            _move(id: 'move_$index', name: 'Move $index'),
+          ],
+        ),
+      );
+      final session = _session(
+        player: _combatant(
+          speciesId: 'lead_player',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'scratch', name: 'Scratch'),
+          ],
+        ),
+        playerReserve: reserves,
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'tackle', name: 'Tackle'),
+          ],
+        ),
+      );
+      final panel = BattleCommandPanelComponent(
+        position: Vector2.zero(),
+        size: Vector2(360, 220),
+        onChoiceSelected: (_) {},
+        onRootActionSelected: (_) {},
+        onPartyEntrySelected: (_) {},
+      );
+
+      await panel.onLoad();
+      panel.sync(
+        battleLabel: 'Combat sauvage',
+        prompt: 'Choisis un Pokémon.',
+        narrationLines: const <String>['Actif et K.O. sont indisponibles.'],
+        menuModel: buildBattleCommandMenuModel(
+          session: session,
+          mode: BattleCommandMenuMode.pokemon,
+          selectedRootIndex: BattleCommandRootAction.pokemon.index,
+          selectedChoiceIndex: 0,
+        ),
+        partyMenuModel: buildBattlePartyMenuModel(session: session),
+        selectedPartyIndex: 1,
+      );
+
+      expect(panel.currentPartySpeciesLabels.length, equals(7));
+      expect(
+        panel.currentPartyEntrySnapshots.length,
+        lessThan(panel.currentPartySpeciesLabels.length),
+      );
+      expect(panel.currentListScrollControlsVisible, isTrue);
+      expect(panel.currentListCanScrollDown, isTrue);
+      panel.sync(
+        battleLabel: 'Combat sauvage',
+        prompt: 'Choisis un Pokémon.',
+        narrationLines: const <String>['Actif et K.O. sont indisponibles.'],
+        menuModel: buildBattleCommandMenuModel(
+          session: session,
+          mode: BattleCommandMenuMode.pokemon,
+          selectedRootIndex: BattleCommandRootAction.pokemon.index,
+          selectedChoiceIndex: 0,
+        ),
+        partyMenuModel: buildBattlePartyMenuModel(session: session),
+        selectedPartyIndex: 6,
+      );
+
+      expect(panel.currentSelectedPartyIndex, 6);
+      expect(panel.currentListCanScrollUp, isTrue);
+    });
+
+    test(
+        'party submenu uses touch drag scrolling on mobile panels when touch scrolling is preferred',
+        () async {
+      final reserves = List<BattleCombatantData>.generate(
+        6,
+        (index) => _combatant(
+          speciesId: 'bench_$index',
+          lineupIndex: index + 1,
+          moves: <BattleMoveData>[
+            _move(id: 'move_$index', name: 'Move $index'),
+          ],
+        ),
+      );
+      final session = _session(
+        player: _combatant(
+          speciesId: 'lead_player',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'scratch', name: 'Scratch'),
+          ],
+        ),
+        playerReserve: reserves,
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'tackle', name: 'Tackle'),
+          ],
+        ),
+      );
+      final panel = BattleCommandPanelComponent(
+        position: Vector2.zero(),
+        size: Vector2(360, 220),
+        onChoiceSelected: (_) {},
+        onRootActionSelected: (_) {},
+        onPartyEntrySelected: (_) {},
+        onScrollUpRequested: () => false,
+        onScrollDownRequested: () => false,
+        preferTouchListDragScroll: true,
+      );
+
+      await panel.onLoad();
+      panel.sync(
+        battleLabel: 'Combat sauvage',
+        prompt: 'Choisis un Pokémon.',
+        narrationLines: const <String>['Actif et K.O. sont indisponibles.'],
+        menuModel: buildBattleCommandMenuModel(
+          session: session,
+          mode: BattleCommandMenuMode.pokemon,
+          selectedRootIndex: BattleCommandRootAction.pokemon.index,
+          selectedChoiceIndex: 0,
+        ),
+        partyMenuModel: buildBattlePartyMenuModel(session: session),
+        selectedPartyIndex: 1,
+      );
+
+      expect(panel.currentUsesTouchListDragScroll, isTrue);
+      expect(panel.currentListScrollControlsVisible, isFalse);
+    });
+
+    test(
+        'bag submenu uses touch drag scrolling on mobile panels when touch scrolling is preferred',
+        () async {
+      final session = _session(
+        player: _combatant(
+          speciesId: 'lead_player',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'scratch', name: 'Scratch'),
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'tackle', name: 'Tackle'),
+          ],
+        ),
+        isTrainerBattle: false,
+        allowCapture: true,
+      );
+      final gameState = _gameState(
+        bag: Bag(
+          entries: <BagEntry>[
+            _bagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 3),
+            _bagEntry(
+              itemId: 'hyper-potion',
+              categoryId: 'medicine',
+              quantity: 2,
+            ),
+            _bagEntry(
+              itemId: 'super-potion',
+              categoryId: 'medicine',
+              quantity: 2,
+            ),
+            _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+            _bagEntry(itemId: 'antidote', categoryId: 'medicine', quantity: 1),
+            _bagEntry(itemId: 'rare-candy', categoryId: 'items', quantity: 1),
+            _bagEntry(itemId: 'repel', categoryId: 'items', quantity: 1),
+          ],
+        ),
+      );
+      final bagMenuModel = buildBattleBagMenuModel(
+        gameState: gameState,
+        session: session,
+      );
+      var selectedBagIndex = 0;
+      late BattleCommandPanelComponent panel;
+
+      void syncPanel() {
+        panel.sync(
+          battleLabel: 'Combat sauvage',
+          prompt: 'Choisis un objet.',
+          narrationLines: const <String>[
+            'Les objets indisponibles restent grisés.',
+          ],
+          menuModel: buildBattleCommandMenuModel(
+            session: session,
+            mode: BattleCommandMenuMode.bag,
+            selectedRootIndex: BattleCommandRootAction.bag.index,
+            selectedChoiceIndex: 0,
+          ),
+          bagMenuModel: bagMenuModel,
+          selectedBagIndex: selectedBagIndex,
+        );
+      }
+
+      panel = BattleCommandPanelComponent(
+        position: Vector2.zero(),
+        size: Vector2(360, 220),
+        onChoiceSelected: (_) {},
+        onRootActionSelected: (_) {},
+        onPartyEntrySelected: (_) {},
+        onBagEntrySelected: (_) {},
+        onScrollUpRequested: () {
+          if (selectedBagIndex <= 0) {
+            return false;
+          }
+          selectedBagIndex -= 1;
+          syncPanel();
+          return true;
+        },
+        onScrollDownRequested: () {
+          if (selectedBagIndex >= bagMenuModel.entries.length - 1) {
+            return false;
+          }
+          selectedBagIndex += 1;
+          syncPanel();
+          return true;
+        },
+        preferTouchListDragScroll: true,
+      );
+
+      await panel.onLoad();
+      syncPanel();
+
+      expect(panel.currentUsesTouchListDragScroll, isTrue);
+      expect(panel.currentListScrollControlsVisible, isFalse);
+      expect(
+        panel.currentVisibleBagEntryLabels.length,
+        lessThan(panel.currentBagEntryLabels.length),
+      );
+      expect(panel.currentSelectedBagIndex, 0);
+
+      final initialVisibleEntries = panel.currentVisibleBagEntryLabels;
+      final appliedSteps = panel.dragTouchListForTest(-180);
+
+      expect(appliedSteps, greaterThan(0));
+      expect(panel.currentSelectedBagIndex, greaterThan(0));
+      expect(panel.currentVisibleBagEntryLabels, isNot(initialVisibleEntries));
+    });
+
+    test(
+        'touch scrolling bag entries do not activate on touch down before release',
+        () async {
+      final session = _session(
+        player: _combatant(
+          speciesId: 'lead_player',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'scratch', name: 'Scratch'),
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'tackle', name: 'Tackle'),
+          ],
+        ),
+        isTrainerBattle: false,
+        allowCapture: true,
+      );
+      final gameState = _gameState(
+        bag: Bag(
+          entries: <BagEntry>[
+            _bagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 3),
+            _bagEntry(
+              itemId: 'hyper-potion',
+              categoryId: 'medicine',
+              quantity: 2,
+            ),
+            _bagEntry(
+              itemId: 'super-potion',
+              categoryId: 'medicine',
+              quantity: 2,
+            ),
+            _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+            _bagEntry(itemId: 'antidote', categoryId: 'medicine', quantity: 1),
+            _bagEntry(itemId: 'rare-candy', categoryId: 'items', quantity: 1),
+            _bagEntry(itemId: 'repel', categoryId: 'items', quantity: 1),
+          ],
+        ),
+      );
+      final bagMenuModel = buildBattleBagMenuModel(
+        gameState: gameState,
+        session: session,
+      );
+      BattleBagMenuEntry? selectedEntry;
+      final panel = BattleCommandPanelComponent(
+        position: Vector2.zero(),
+        size: Vector2(360, 220),
+        onChoiceSelected: (_) {},
+        onRootActionSelected: (_) {},
+        onPartyEntrySelected: (_) {},
+        onBagEntrySelected: (entry) => selectedEntry = entry,
+        onScrollUpRequested: () => false,
+        onScrollDownRequested: () => false,
+        preferTouchListDragScroll: true,
+      );
+
+      await panel.onLoad();
+      panel.sync(
+        battleLabel: 'Combat sauvage',
+        prompt: 'Choisis un objet.',
+        narrationLines: const <String>[
+          'Les objets indisponibles restent grisés.',
+        ],
+        menuModel: buildBattleCommandMenuModel(
+          session: session,
+          mode: BattleCommandMenuMode.bag,
+          selectedRootIndex: BattleCommandRootAction.bag.index,
+          selectedChoiceIndex: 0,
+        ),
+        bagMenuModel: bagMenuModel,
+        selectedBagIndex: 0,
+      );
+
+      expect(panel.currentUsesTouchListDragScroll, isTrue);
+      expect(panel.touchDownVisibleBagEntryForTest(0), isTrue);
+      expect(selectedEntry, isNull);
+      expect(panel.touchUpVisibleBagEntryForTest(0), isTrue);
+      expect(selectedEntry, isNotNull);
+    });
+
+    test('bag submenu prefers project local item sprites when available',
+        () async {
+      final projectRoot = await Directory.systemTemp.createTemp(
+        'battle_bag_item_icons_',
+      );
+      addTearDown(() async {
+        if (await projectRoot.exists()) {
+          await projectRoot.delete(recursive: true);
+        }
+      });
+      final pokeBallPath = await _writeTinyItemSprite(projectRoot, 'poke-ball');
+      final hyperPotionPath =
+          await _writeTinyItemSprite(projectRoot, 'hyper-potion');
+      final potionPath = await _writeTinyItemSprite(projectRoot, 'potion');
+      await _writeProjectItemsCatalog(
+        projectRoot,
+        entries: <Map<String, Object?>>[
+          <String, Object?>{
+            'id': 'poke-ball',
+            'name': 'Poké Ball',
+            'localSpritePath': 'data/pokemon/assets/items/poke-ball.png',
+          },
+          <String, Object?>{
+            'id': 'hyper-potion',
+            'name': 'Hyper Potion',
+            'localSpritePath': 'data/pokemon/assets/items/hyper-potion.png',
+          },
+          <String, Object?>{
+            'id': 'potion',
+            'name': 'Potion',
+            'localSpritePath': 'data/pokemon/assets/items/potion.png',
+          },
+        ],
+      );
+
+      final iconResolver = BattleBagItemIconResolver(
+        manifest: const ProjectManifest(
+          name: 'Bag Icon Test',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+        ),
+        projectRootDirectory: projectRoot.path,
+      );
+      final visualAssetCache = BattleVisualAssetCache();
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'charmander',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[
+              _move(id: 'scratch', name: 'Scratch'),
+            ],
+          ),
+          enemy: _combatant(
+            speciesId: 'enemy',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[
+              _move(id: 'tackle', name: 'Tackle'),
+            ],
+          ),
+          isTrainerBattle: false,
+          allowCapture: true,
+        ),
+        gameState: _gameState(
+          bag: Bag(
+            entries: <BagEntry>[
+              _bagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 2),
+              _bagEntry(
+                itemId: 'hyper-potion',
+                categoryId: 'medicine',
+                quantity: 1,
+              ),
+              _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+            ],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+        bagItemIconResolver: iconResolver,
+        visualAssetCache: visualAssetCache,
+      );
+
+      await overlay.onLoad();
+      final panel = _panelFromOverlay(overlay);
+
+      overlay.moveSelectionRight();
+      expect(overlay.validateSelectedChoice(), isTrue);
+      await panel.debugWaitForBagIconLoads();
+
+      expect(visualAssetCache.debugActualImageLoadCount, equals(3));
+      expect(
+        {
+          p.normalize(pokeBallPath),
+          p.normalize(hyperPotionPath),
+          p.normalize(potionPath),
+        },
+        hasLength(3),
+      );
     });
 
     test('forced continue shows a dedicated CONTINUE action', () async {

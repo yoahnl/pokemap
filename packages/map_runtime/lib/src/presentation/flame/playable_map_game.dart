@@ -35,7 +35,7 @@ import '../../application/placed_behavior_runtime_cooldown.dart';
 import '../../application/resolve_dialogue.dart';
 import '../../application/runtime_battle_setup_mapper.dart';
 import '../../application/runtime_battle_outcome_apply.dart';
-import '../../application/runtime_battle_potion_apply.dart';
+import '../../application/runtime_battle_bag_hp_heal_item_apply.dart';
 import '../../application/runtime_battle_combatant_seed_builder.dart';
 import '../../application/runtime_character_refs.dart';
 import '../../application/runtime_map_bundle.dart';
@@ -58,6 +58,7 @@ import '../../application/trainer_battle_request.dart';
 import '../../infrastructure/runtime_tileset_image.dart';
 import '../../infrastructure/tile_image_loader.dart';
 import 'battle_bag_menu_model.dart';
+import 'battle_bag_item_icon_resolver.dart';
 import 'battle_overlay_component.dart';
 import 'battle_background_resolver.dart';
 import 'battle_medicine_target_menu_model.dart';
@@ -135,6 +136,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       manifest: _bundle.manifest,
       projectRootDirectory: _bundle.projectRootDirectory,
     );
+    _battleBagItemIconResolver = BattleBagItemIconResolver(
+      manifest: _bundle.manifest,
+      projectRootDirectory: _bundle.projectRootDirectory,
+    );
   }
 
   final String projectFilePath;
@@ -184,6 +189,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final RuntimePokemonLearnsetLoader _battleLearnsetLoader =
       RuntimePokemonLearnsetLoader();
   late final BattlePokemonSpriteResolver _battleSpriteResolver;
+  late final BattleBagItemIconResolver _battleBagItemIconResolver;
   final BattleVisualAssetCache _battleVisualAssetCache =
       BattleVisualAssetCache();
   late final RuntimeBattleSetupMapper _battleSetupMapper =
@@ -244,6 +250,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool _showNpcCollisionDebugOverlay = false;
   bool _showBehaviorDebugOverlay = false;
   bool _showFpsOverlay = false;
+  bool _preferBattleTouchListDragScroll = false;
   TextComponent? _behaviorDebugOverlay;
   TextComponent? _fpsOverlay;
   double _fpsAccumulatorSeconds = 0.0;
@@ -337,6 +344,18 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return;
     }
     _ensureFpsOverlay();
+  }
+
+  /// Le host mobile peut préférer un scroll tactile direct dans les listes
+  /// battle quand aucune manette n'est active.
+  ///
+  /// Frontière volontaire :
+  /// - le runtime ne détecte pas le hardware tout seul ;
+  /// - le host pousse seulement une préférence d'interaction ;
+  /// - l'overlay battle reste la seule surface concernée.
+  void setBattleTouchListDragScrollPreferred(bool preferred) {
+    _preferBattleTouchListDragScroll = preferred;
+    _battleOverlay?.setPreferTouchListDragScroll(preferred);
   }
 
   MovementMode get playerMovementMode {
@@ -540,6 +559,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   @visibleForTesting
   BattleOverlayComponent? get debugBattleOverlayComponent => _battleOverlay;
+
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    _battleOverlay?.onGameResize(camera.viewport.size.clone());
+  }
 
   @visibleForTesting
   BattleSession? get debugBattleSessionSnapshot => _battleSession;
@@ -3863,12 +3888,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           backgroundSpec: backgroundSpec,
           spriteResolver: _battleSpriteResolver,
           visualAssetCache: _battleVisualAssetCache,
+          bagItemIconResolver: _battleBagItemIconResolver,
           genderResolver: genderResolver,
           onPlayerChoice: _onPlayerBattleChoice,
           onBagHpHealItemUseRequested: _onBattleBagHpHealItemUseRequested,
+          preferTouchListDragScroll: _preferBattleTouchListDragScroll,
         ),
       );
       camera.viewport.add(overlay);
+      overlay.setPreferTouchListDragScroll(_preferBattleTouchListDragScroll);
       _battleOverlay = overlay;
       battleStopwatch.stop();
       debugPrint(
@@ -3990,11 +4018,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     _isBattleResolving = true;
     try {
-      // Lots 9-e / 9-f gardent `PlayableMapGame` comme propriétaire honnête
+      // Lots 9-e / 9-f / 9-g gardent `PlayableMapGame` comme propriétaire honnête
       // du runtime autour du moteur battle :
       // - le moteur battle produit un `currentTurn` et une timeline honnêtes ;
       // - le runtime reste propriétaire du bag réel et du write-back party ;
-      // - on reste borné à `Potion` + `Super Potion`, sans API item générique.
+      // - on reste borné à `Potion` + `Super Potion` + `Hyper Potion`,
+      //   sans API item générique.
       final result = switch (action.itemId) {
         'potion' => tryApplyRuntimeBattlePotionUse(
             session: battleSession,
@@ -4003,6 +4032,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             targetLineupIndex: entry.lineupIndex,
           ),
         'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
+            session: battleSession,
+            gameState: _gameState,
+            context: activeBattleContext,
+            targetLineupIndex: entry.lineupIndex,
+          ),
+        'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
             session: battleSession,
             gameState: _gameState,
             context: activeBattleContext,

@@ -7,6 +7,7 @@ import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 
 import 'battle_bag_menu_model.dart';
+import 'battle_bag_item_icon_resolver.dart';
 import 'battle_command_menu_model.dart';
 import 'battle_command_panel_component.dart';
 import 'battle_combatant_gender_resolver.dart';
@@ -330,6 +331,7 @@ String? _overlaySupportedMedicineLabel(String itemId) {
   return switch (itemId) {
     'potion' => 'Potion',
     'super-potion' => 'Super Potion',
+    'hyper-potion' => 'Hyper Potion',
     _ => null,
   };
 }
@@ -378,10 +380,13 @@ class BattleOverlayComponent extends PositionComponent {
     this.backgroundSpec = const BattleBackgroundSpec.fallbackField(),
     this.spriteResolver,
     this.visualAssetCache,
+    this.bagItemIconResolver,
     this.genderResolver,
     this.showDebugPanel = false,
+    bool preferTouchListDragScroll = false,
   })  : _session = session,
         _gameState = gameState,
+        _preferTouchListDragScroll = preferTouchListDragScroll,
         super(
           size: viewportSize,
           anchor: Anchor.topLeft,
@@ -399,6 +404,7 @@ class BattleOverlayComponent extends PositionComponent {
   final BattleBackgroundSpec backgroundSpec;
   final BattlePokemonSpriteResolver? spriteResolver;
   final BattleVisualAssetCache? visualAssetCache;
+  final BattleBagItemIconResolver? bagItemIconResolver;
   final BattleCombatantGenderResolver? genderResolver;
 
   /// Le debug reste volontairement opt-in.
@@ -407,6 +413,7 @@ class BattleOverlayComponent extends PositionComponent {
   /// interrupteur explicite au lieu de laisser le debug redéfinir l'apparence
   /// par défaut du combat.
   final bool showDebugPanel;
+  bool _preferTouchListDragScroll;
 
   BattleSceneBackdropComponent? _backdrop;
   BattleSceneCombatantComponent? _enemyCombatant;
@@ -480,6 +487,20 @@ class BattleOverlayComponent extends PositionComponent {
 
   Future<void> waitForPendingVisualSync() async {
     await (_pendingVisualSync ?? Future<void>.value());
+  }
+
+  /// Le host garde la détection de plateforme/manette et pousse simplement une
+  /// préférence UX dans l'overlay.
+  ///
+  /// Cela évite de recréer une logique de hardware dans `map_runtime` tout en
+  /// gardant le panel battle tactile quand il n'y a pas de manette sur mobile.
+  void setPreferTouchListDragScroll(bool preferred) {
+    if (_preferTouchListDragScroll == preferred) {
+      return;
+    }
+    _preferTouchListDragScroll = preferred;
+    _commandPanel?.setPreferTouchListDragScroll(preferred);
+    _syncPanelsOnly();
   }
 
   @visibleForTesting
@@ -592,7 +613,13 @@ class BattleOverlayComponent extends PositionComponent {
       onPartyEntrySelected: _handlePartyEntrySelected,
       onBagEntrySelected: _handleBagEntrySelected,
       onMedicineTargetEntrySelected: _handleMedicineTargetEntrySelected,
+      onBackRequested: handleEscape,
+      onScrollUpRequested: moveSelectionUp,
+      onScrollDownRequested: moveSelectionDown,
+      bagItemIconResolver: bagItemIconResolver,
+      visualAssetCache: visualAssetCache,
       layoutModeOverride: layout.commandPanelLayoutMode,
+      preferTouchListDragScroll: _preferTouchListDragScroll,
     );
     await add(_commandPanel!);
     commandPanelStopwatch.stop();
@@ -626,6 +653,12 @@ class BattleOverlayComponent extends PositionComponent {
     );
   }
 
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    _applyViewportLayout(size);
+  }
+
   /// Met à jour l'overlay avec une nouvelle session immutable.
   ///
   /// Invariants runtime préservés :
@@ -655,6 +688,51 @@ class BattleOverlayComponent extends PositionComponent {
     _normalizeMenuSelection();
     _pendingVisualSync = _syncVisualState(previousSession: previousSession);
     unawaited(_pendingVisualSync);
+  }
+
+  void _applyViewportLayout(Vector2 viewportSize) {
+    if (viewportSize.x <= 0 || viewportSize.y <= 0) {
+      return;
+    }
+    size = viewportSize.clone();
+    final layout = BattleSceneLayout.forViewport(
+      viewportSize: Size(size.x, size.y),
+    );
+    _sceneLayout = layout;
+
+    _backdrop?.size = viewportSize.clone();
+    _enemyCombatant?.updateSceneGeometry(
+      sceneSpriteRect: layout.enemySpriteRect,
+      scenePlatformRect: layout.enemyPlatformRect,
+      sceneFootAnchor: layout.enemyFootAnchor,
+    );
+    _playerCombatant?.updateSceneGeometry(
+      sceneSpriteRect: layout.playerSpriteRect,
+      scenePlatformRect: layout.playerPlatformRect,
+      sceneFootAnchor: layout.playerFootAnchor,
+    );
+    _enemyHud?.updateBounds(
+      position: Vector2(layout.enemyHudRect.left, layout.enemyHudRect.top),
+      size: Vector2(layout.enemyHudRect.width, layout.enemyHudRect.height),
+    );
+    _playerHud?.updateBounds(
+      position: Vector2(layout.playerHudRect.left, layout.playerHudRect.top),
+      size: Vector2(layout.playerHudRect.width, layout.playerHudRect.height),
+    );
+    _commandPanel?.updateLayout(
+      position: Vector2(
+        layout.commandPanelRect.left,
+        layout.commandPanelRect.top,
+      ),
+      size: Vector2(
+        layout.commandPanelRect.width,
+        layout.commandPanelRect.height,
+      ),
+      modeOverride: layout.commandPanelLayoutMode,
+    );
+    _debugPanel?.position = Vector2(size.x - 248, 32);
+    _syncOutcomeBanner();
+    _syncPanelsOnly();
   }
 
   bool moveSelectionUp() {
@@ -1109,8 +1187,10 @@ class BattleOverlayComponent extends PositionComponent {
       return false;
     }
 
-    // Lots 9-e / 9-f gardent l'overlay strictement borné au shell de ciblage :
-    // - le parent runtime commit le vrai tour pour `Potion` / `Super Potion` ;
+    // Lots 9-e / 9-f / 9-g gardent l'overlay strictement borné au shell de
+    // ciblage :
+    // - le parent runtime commit le vrai tour pour `Potion`, `Super Potion`
+    //   et `Hyper Potion` ;
     // - l'overlay ne patche plus sa session localement ;
     // - cela évite de mentir sur l'ordre du tour et garde `PlayableMapGame`
     //   propriétaire unique du vrai BattleSession / GameState.
@@ -1448,6 +1528,7 @@ class BattleOverlayComponent extends PositionComponent {
     }
 
     _outcomeBanner!.text = bannerText;
+    _outcomeBanner!.position = Vector2(size.x / 2, size.y * 0.17);
     _outcomeBanner!.textRenderer = TextPaint(
       style: TextStyle(
         color: bannerColor,

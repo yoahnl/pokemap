@@ -93,6 +93,15 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       (defaultTargetPlatform == TargetPlatform.iOS ||
           defaultTargetPlatform == TargetPlatform.android);
 
+  bool get _prefersBattleTouchListDragScroll =>
+      _supportsTouchControls && !_hasConnectedGamepad;
+
+  void _syncBattleTouchListDragScrollPreference() {
+    _game?.setBattleTouchListDragScrollPreferred(
+      _prefersBattleTouchListDragScroll,
+    );
+  }
+
   void _bindGamepadInputsIfNeeded() {
     if (kIsWeb || _runtimeGamepadSubscription != null) {
       return;
@@ -103,6 +112,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         final game = _game;
         if (!_hasConnectedGamepad && mounted) {
           setState(() => _hasConnectedGamepad = true);
+          _syncBattleTouchListDragScrollPreference();
         }
         if (game == null) {
           return;
@@ -148,6 +158,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         return;
       }
       setState(() => _hasConnectedGamepad = hasConnectedGamepad);
+      _syncBattleTouchListDragScrollPreference();
     } catch (_) {
       // Best-effort seulement : une erreur de détection de manette ne doit
       // jamais bloquer le host ni le runtime.
@@ -348,18 +359,17 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       _error = null;
     });
     try {
-      final result =
-          !kIsWeb && Platform.isIOS
-              ? await pickRuntimeProjectDirectoryOnIos()
-              : await pickRuntimeProjectDirectory(
-                  pickDirectoryPath: () {
-                    return getDirectoryPath(
-                      confirmButtonText: 'Choisir',
-                      initialDirectory: Platform.environment['HOME'],
-                    );
-                  },
-                  importProjectJsonPath: _ensureProjectCopiedToDocuments,
+      final result = !kIsWeb && Platform.isIOS
+          ? await pickRuntimeProjectDirectoryOnIos()
+          : await pickRuntimeProjectDirectory(
+              pickDirectoryPath: () {
+                return getDirectoryPath(
+                  confirmButtonText: 'Choisir',
+                  initialDirectory: Platform.environment['HOME'],
                 );
+              },
+              importProjectJsonPath: _ensureProjectCopiedToDocuments,
+            );
       if (!mounted) {
         return;
       }
@@ -447,6 +457,9 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
           .setNpcCollisionDebugOverlayVisible(_showNpcCollisionDebugOverlay);
       nextGame.setFpsOverlayVisible(_showFpsOverlay);
       nextGame.setSurfingEnabled(_surfingEnabled);
+      nextGame.setBattleTouchListDragScrollPreferred(
+        _prefersBattleTouchListDragScroll,
+      );
       _startRuntimeInfoTicker();
       await _persistLastSession();
     } catch (e) {
@@ -625,8 +638,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
                 ),
                 onPressed: () {
                   setState(
-                    () =>
-                        _touchControlsHiddenByUser = !_touchControlsHiddenByUser,
+                    () => _touchControlsHiddenByUser =
+                        !_touchControlsHiddenByUser,
                   );
                 },
               ),
@@ -641,7 +654,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
                     : Icons.visibility_outlined,
               ),
               onPressed: () {
-                setState(() => _showRuntimeDebugPanel = !_showRuntimeDebugPanel);
+                setState(
+                    () => _showRuntimeDebugPanel = !_showRuntimeDebugPanel);
               },
             ),
             // Le menu in-game est volontairement minimal :
@@ -669,8 +683,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
                 child: Card(
                   color: Colors.black.withValues(alpha: 0.55),
                   child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
@@ -748,7 +762,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
                                       setState(
                                         () => _showNpcCollisionDebugOverlay = v,
                                       );
-                                      game.setNpcCollisionDebugOverlayVisible(v);
+                                      game.setNpcCollisionDebugOverlayVisible(
+                                          v);
                                     },
                             ),
                           ],
@@ -829,8 +844,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
                 enabled: false,
                 decoration: InputDecoration(
                   labelText: 'Map',
-                  hintText:
-                      'Chargez un projet valide pour lister les maps',
+                  hintText: 'Chargez un projet valide pour lister les maps',
                   border: OutlineInputBorder(),
                 ),
               )
@@ -901,8 +915,8 @@ class _ProjectFileField extends StatelessWidget {
               child: Text(
                 path.isEmpty ? 'Aucun projet sélectionné' : path,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: path.isEmpty ? Theme.of(context).hintColor : null,
-                ),
+                      color: path.isEmpty ? Theme.of(context).hintColor : null,
+                    ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
