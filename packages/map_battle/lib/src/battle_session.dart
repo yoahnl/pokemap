@@ -229,6 +229,46 @@ class BattleSession {
     return decisionRequest.allowedChoices;
   }
 
+  /// Remplace explicitement un combattant joueur déjà présent dans la session.
+  ///
+  /// Lot 9-d ouvre ici le plus petit seam honnête nécessaire au runtime :
+  /// - on ne crée aucune action item battle ;
+  /// - on ne crée aucun scheduler parallèle ;
+  /// - on permet seulement au runtime de refléter un effet local immédiat
+  ///   déjà décidé hors moteur, tout en gardant une `BattleSession` immutable.
+  ///
+  /// Garde-fous :
+  /// - uniquement le côté joueur ;
+  /// - remplacement par identité de lineup, jamais par index visuel ;
+  /// - aucune reconstruction lossy depuis `BattleSetup`.
+  BattleSession withUpdatedPlayerCombatant(BattleCombatant updatedCombatant) {
+    if (state.isFinished) {
+      throw StateError(
+        'Impossible de patcher un combattant joueur sur une BattleSession terminée.',
+      );
+    }
+
+    final updatedPlayerSide = _replacePlayerCombatantByLineupIndex(
+      side: state.playerSide,
+      updatedCombatant: updatedCombatant,
+    );
+
+    return BattleSession._(
+      state: BattleState(
+        phase: state.phase,
+        playerSide: updatedPlayerSide,
+        enemySide: state.enemySide,
+        field: state.field,
+        currentTurn: state.currentTurn,
+        outcome: state.outcome,
+      ),
+      setup: setup,
+      rng: rng,
+      opponentPolicy: opponentPolicy,
+      pendingTurn: pendingTurn,
+    );
+  }
+
   BattleDecisionRequest _buildDecisionRequest() {
     const playerSideId = BattleSideId.player;
     const playerSlot = BattleSlotRef.active(BattleSideId.player);
@@ -1742,4 +1782,27 @@ class _CritChance {
   final int numerator;
   final int denominator;
   final bool didOccurWithoutRng;
+}
+
+BattleSideState _replacePlayerCombatantByLineupIndex({
+  required BattleSideState side,
+  required BattleCombatant updatedCombatant,
+}) {
+  if (side.active.lineupIndex == updatedCombatant.lineupIndex) {
+    return side.withActive(updatedCombatant);
+  }
+
+  final reserveIndex = side.reserve.indexWhere(
+    (combatant) => combatant.lineupIndex == updatedCombatant.lineupIndex,
+  );
+  if (reserveIndex == -1) {
+    throw StateError(
+      'Aucun combattant joueur avec lineupIndex=${updatedCombatant.lineupIndex} '
+      'n’existe dans la session battle courante.',
+    );
+  }
+
+  final updatedReserve = List<BattleCombatant>.of(side.reserve, growable: false);
+  updatedReserve[reserveIndex] = updatedCombatant;
+  return side.withReserve(updatedReserve);
 }

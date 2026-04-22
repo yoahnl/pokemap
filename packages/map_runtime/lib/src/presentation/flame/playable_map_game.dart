@@ -35,6 +35,7 @@ import '../../application/placed_behavior_runtime_cooldown.dart';
 import '../../application/resolve_dialogue.dart';
 import '../../application/runtime_battle_setup_mapper.dart';
 import '../../application/runtime_battle_outcome_apply.dart';
+import '../../application/runtime_battle_potion_apply.dart';
 import '../../application/runtime_battle_combatant_seed_builder.dart';
 import '../../application/runtime_character_refs.dart';
 import '../../application/runtime_map_bundle.dart';
@@ -58,6 +59,7 @@ import '../../infrastructure/runtime_tileset_image.dart';
 import '../../infrastructure/tile_image_loader.dart';
 import 'battle_overlay_component.dart';
 import 'battle_background_resolver.dart';
+import 'battle_medicine_target_menu_model.dart';
 import 'battle_pokemon_sprite_resolver.dart';
 import 'battle_visual_asset_cache.dart';
 import 'runtime_input_event.dart';
@@ -533,6 +535,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   @visibleForTesting
   bool get debugBattleOverlayMounted => _battleOverlay != null;
+
+  @visibleForTesting
+  BattleOverlayComponent? get debugBattleOverlayComponent => _battleOverlay;
+
+  @visibleForTesting
+  BattleSession? get debugBattleSessionSnapshot => _battleSession;
 
   @visibleForTesting
   Future<void> debugOpenBattleForTest(BattleStartRequest request) async {
@@ -3853,6 +3861,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           visualAssetCache: _battleVisualAssetCache,
           genderResolver: genderResolver,
           onPlayerChoice: _onPlayerBattleChoice,
+          onPotionUseRequested: _onBattlePotionUseRequested,
         ),
       );
       camera.viewport.add(overlay);
@@ -3958,6 +3967,35 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         _isBattleResolving = false;
       }
     }
+  }
+
+  RuntimeBattlePotionApplyResult? _onBattlePotionUseRequested(
+    BattleMedicineTargetEntry entry,
+  ) {
+    final battleSession = _battleSession;
+    final activeBattleContext = _activeBattleContext;
+    if (battleSession == null || activeBattleContext == null) {
+      return null;
+    }
+
+    // Lot 9-d garde l’effet de Potion entièrement côté runtime :
+    // - aucun PlayerBattleChoice item ;
+    // - aucun système générique d’objets battle ;
+    // - la mutation réelle porte seulement sur la session courante et le
+    //   GameState possédés ici, puis l’overlay se resynchronise dessus.
+    final result = tryApplyRuntimeBattlePotionUse(
+      session: battleSession,
+      gameState: _gameState,
+      context: activeBattleContext,
+      targetLineupIndex: entry.lineupIndex,
+    );
+    if (result == null) {
+      return null;
+    }
+
+    _battleSession = result.updatedSession;
+    _gameState = result.updatedGameState;
+    return result;
   }
 
   /// Gère la fin du combat.

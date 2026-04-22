@@ -237,6 +237,77 @@ void main() {
     });
 
     test(
+        'withUpdatedPlayerCombatant updates the active player combatant without mutating the enemy state',
+        () {
+      final session = createBattleSession(createTestSetup());
+
+      final updatedSession = session.withUpdatedPlayerCombatant(
+        session.state.player.withDamage(6),
+      );
+
+      expect(updatedSession.state.player.currentHp, equals(14));
+      expect(updatedSession.state.enemy.currentHp, equals(25));
+      expect(
+        updatedSession.decisionRequest.runtimeType,
+        equals(session.decisionRequest.runtimeType),
+      );
+    });
+
+    test(
+        'withUpdatedPlayerCombatant updates a reserve combatant by lineup identity',
+        () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'pikachu',
+            lineupIndex: 1,
+            level: 5,
+            maxHp: 20,
+            currentHp: 10,
+            stats: _neutralBattleStats,
+            moves: const [
+              BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
+            ],
+          ),
+          playerReservePokemon: const <BattleCombatantData>[
+            BattleCombatantData(
+              speciesId: 'pikachu',
+              lineupIndex: 0,
+              level: 5,
+              maxHp: 20,
+              currentHp: 8,
+              stats: _neutralBattleStats,
+              moves: [
+                BattleMoveData(id: 'scratch', name: 'Griffe', power: 4),
+              ],
+            ),
+          ],
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'lapras',
+            level: 5,
+            maxHp: 25,
+            stats: _neutralBattleStats,
+            moves: const [
+              BattleMoveData(id: 'tackle', name: 'Charge', power: 5),
+            ],
+          ),
+          isTrainerBattle: true,
+          trainerId: 'trainer',
+        ),
+      );
+
+      final updatedReserveCombatant =
+          session.state.playerReserve.single.withHeal(6);
+      final updatedSession =
+          session.withUpdatedPlayerCombatant(updatedReserveCombatant);
+
+      expect(updatedSession.state.player.currentHp, equals(10));
+      expect(updatedSession.state.player.lineupIndex, equals(1));
+      expect(updatedSession.state.playerReserve.single.lineupIndex, equals(0));
+      expect(updatedSession.state.playerReserve.single.currentHp, equals(14));
+    });
+
+    test(
         'createBattleSession preserves an explicit major status seed and move status effect',
         () {
       final setup = BattleSetup(

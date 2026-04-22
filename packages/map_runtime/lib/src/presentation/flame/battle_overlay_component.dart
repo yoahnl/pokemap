@@ -21,6 +21,7 @@ import 'battle_scene_backdrop_component.dart';
 import 'battle_scene_combatant_component.dart';
 import 'battle_scene_hud_component.dart';
 import 'battle_turn_presentation.dart';
+import '../../application/runtime_battle_potion_apply.dart';
 
 /// Retourne le prompt de décision à afficher pour la requête courante.
 ///
@@ -154,7 +155,7 @@ List<String> buildBattleBagNarrationLinesForOverlay(
   String? feedbackMessage,
 }) {
   if (feedbackMessage != null && feedbackMessage.isNotEmpty) {
-    return const <String>['Action BAG non branchée dans ce lot.'];
+    return const <String>['Le sac reflète maintenant l’état réel du runtime.'];
   }
   return switch (bagMenuModel.mode) {
     BattleBagMenuMode.empty => const <String>['Aucun objet dans le sac.'],
@@ -186,7 +187,7 @@ List<String> buildBattleMedicineTargetNarrationLinesForOverlay(
 }) {
   if (feedbackMessage != null && feedbackMessage.isNotEmpty) {
     return const <String>[
-      'Aucun soin ni objet consommé dans ce lot.',
+      'L’état battle/runtime affiché a déjà été mis à jour.',
     ];
   }
   if (!medicineTargetMenuModel.hasSelectableEntries) {
@@ -355,6 +356,7 @@ class BattleOverlayComponent extends PositionComponent {
     required BattleSession session,
     required Vector2 viewportSize,
     required this.onPlayerChoice,
+    this.onPotionUseRequested,
     GameState gameState = const GameState(saveId: 'battle-overlay'),
     this.backgroundSpec = const BattleBackgroundSpec.fallbackField(),
     this.spriteResolver,
@@ -373,6 +375,8 @@ class BattleOverlayComponent extends PositionComponent {
   GameState _gameState;
 
   final void Function(PlayerBattleChoice choice) onPlayerChoice;
+  final RuntimeBattlePotionApplyResult? Function(BattleMedicineTargetEntry entry)?
+      onPotionUseRequested;
   final BattleBackgroundSpec backgroundSpec;
   final BattlePokemonSpriteResolver? spriteResolver;
   final BattleVisualAssetCache? visualAssetCache;
@@ -440,6 +444,12 @@ class BattleOverlayComponent extends PositionComponent {
 
   @visibleForTesting
   bool get isTurnPresentationActive => _currentTurnPresentationStep != null;
+
+  @visibleForTesting
+  BattleSession get debugSession => _session;
+
+  @visibleForTesting
+  GameState get debugGameState => _gameState;
 
   @visibleForTesting
   String get currentPlayerHudSpeciesText =>
@@ -728,10 +738,7 @@ class BattleOverlayComponent extends PositionComponent {
       if (!selectedEntry.isSelectable) {
         return false;
       }
-      // Le mode bagMedicineTarget reste un shell runtime local : valider une
-      // entrée déclenche seulement un feedback UX, jamais un choix battle.
-      _handleMedicineTargetEntrySelected(selectedEntry);
-      return true;
+      return _handleMedicineTargetEntrySelected(selectedEntry);
     }
     final selectedChoice =
         menuModel.choiceEntries[menuModel.selectedChoiceIndex].choice;
@@ -1073,18 +1080,44 @@ class BattleOverlayComponent extends PositionComponent {
     onPlayerChoice(choice);
   }
 
-  void _handleMedicineTargetEntrySelected(BattleMedicineTargetEntry entry) {
+  bool _handleMedicineTargetEntrySelected(BattleMedicineTargetEntry entry) {
     if (!entry.isSelectable) {
-      return;
+      return false;
     }
-    // Shell only: une cible valide confirme juste la navigation UX du lot 9-c.
-    // Aucun soin, aucune consommation et aucun PlayerBattleChoice item ne
-    // partent d'ici ; le vrai branchement reste pour le lot suivant.
-    final itemLabel =
-        _selectedMedicineAction?.itemId == 'potion' ? 'Potion' : 'Cet objet';
+    final selectedMedicineAction = _selectedMedicineAction;
+    if (selectedMedicineAction == null || selectedMedicineAction.itemId != 'potion') {
+      return false;
+    }
+    // Lot 9-d garde ce handler volontairement borné :
+    // - il ne synthétise toujours aucun PlayerBattleChoice item ;
+    // - il ne crée aucun contrat générique d’objets battle ;
+    // - il reflète seulement un effet runtime déjà appliqué par le parent,
+    //   propriétaire du vrai BattleSession et du vrai GameState.
+    final applyResult = onPotionUseRequested?.call(entry);
+    if (applyResult == null) {
+      return false;
+    }
+
+    final previousSession = _session;
+    _session = applyResult.updatedSession;
+    _gameState = applyResult.updatedGameState;
+    _selectedMedicineAction = null;
+    _selectedMedicineTargetIndex = 0;
     _bagFeedbackMessage =
-        'L’utilisation de $itemLabel sera branchée au prochain lot.';
+        '${applyResult.targetSpeciesId} récupère ${applyResult.healedAmount} PV.';
+
+    // Choix UX lot 9-d :
+    // - on revient au BAG après un usage réussi ;
+    // - on garde le feedback de succès sur un écran encore pertinent ;
+    // - on évite de laisser le curseur sur une cible devenue full HP ;
+    // - on n'invente toujours aucun tour "item" dans le moteur battle.
+    final bagMenuModel = _currentBagMenuModel();
+    _menuMode = BattleCommandMenuMode.bag;
+    _selectedBagIndex = _firstSelectableBagIndexFor(bagMenuModel);
     _syncPanelsOnly();
+    _pendingVisualSync = _syncVisualState(previousSession: previousSession);
+    unawaited(_pendingVisualSync);
+    return true;
   }
 
   void _handleBagEntrySelected(BattleBagMenuEntry entry) {
@@ -1098,9 +1131,10 @@ class BattleOverlayComponent extends PositionComponent {
       return;
     }
     if (action case BattleBagMenuActionMedicineTarget()) {
-      // Le shell cible la lineup battle courante uniquement. On mémorise
-      // l'action BAG locale pour construire le sous-menu, sans toucher au
-      // moteur battle ni au GameState.
+      // Le shell medicine reste borné à la lineup battle courante :
+      // - aucun accès direct à la party complète du save ;
+      // - aucune consommation ni soin ici ;
+      // - seulement la préparation du ciblage pour le seam runtime réel.
       _selectedMedicineAction = action;
       _selectedMedicineTargetIndex = _firstSelectableMedicineTargetIndex();
       _bagFeedbackMessage = null;
@@ -1165,8 +1199,10 @@ class BattleOverlayComponent extends PositionComponent {
     if (selectedMedicineAction == null) {
       return null;
     }
-    // Shell only: les cibles viennent de la session battle en cours, pas de la
-    // party complète du GameState. Aucun effet item réel n'est calculé ici.
+    // Le ciblage medicine reste borné à la vérité battle courante :
+    // - lineup du combat, pas party complète du GameState ;
+    // - aucune heuristique par index visuel ;
+    // - aucun effet item calculé ici, seulement le menu de cibles.
     return buildBattleMedicineTargetMenuModel(
       session: _session,
       itemId: selectedMedicineAction.itemId,
@@ -1280,8 +1316,9 @@ class BattleOverlayComponent extends PositionComponent {
     if (medicineTargetMenuModel == null) {
       return 0;
     }
-    // Prépare le prochain lot en amenant le curseur sur une vraie cible
-    // soignable quand elle existe, mais sans appliquer quoi que ce soit.
+    // Le curseur commence sur la première cible réellement soignable :
+    // - aucun soin n'est appliqué ici ;
+    // - on évite juste un aller-retour UX inutile avant validation.
     return _firstSelectableMedicineTargetIndexFor(medicineTargetMenuModel);
   }
 

@@ -517,6 +517,89 @@ void main() {
       expect(overlay.validateSelectedChoice(), isFalse);
       expect(pickedChoice, isNull);
     });
+
+    test('battle BAG potion use persists to PlayableMapGame state', () async {
+      final manifest = await _writeProjectManifest(tempProjectRoot);
+      final map = _buildMap();
+      final world = GameplayWorldState.fromMap(
+        map,
+        project: manifest,
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+      final movedWorld = stepGameplayWorld(
+        world,
+        const MoveIntent(Direction.east),
+      ).world;
+      final encounter = checkEncounterAtPlayerPosition(
+        world: movedWorld,
+        project: manifest,
+        encounterKind: EncounterKind.walk,
+        random: _FixedEncounterRandom(
+          nextDoubleValues: const <double>[0.0],
+          nextIntValues: const <int>[0, 0],
+        ),
+        policy: const GameplayEncounterPolicy(chancePerStep: 1),
+      ).encounter!;
+      final request = buildBattleStartRequestFromEncounter(
+        encounter: encounter,
+        world: movedWorld,
+        createdAtEpochMs: 1,
+      );
+
+      const initialState = GameState(
+        saveId: 'wild-flow-potion-save',
+        bag: Bag(
+          entries: <BagEntry>[
+            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+          ],
+        ),
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'sproutle',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+              level: 10,
+              knownMoveIds: <String>['vine_whip'],
+              currentHp: 12,
+            ),
+          ],
+        ),
+      );
+
+      final game = PlayableMapGame(
+        bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+        projectFilePath: p.join(tempProjectRoot.path, 'project.json'),
+        saveData: saveDataFromGameState(initialState),
+      );
+      game.onGameResize(Vector2(640, 480));
+      await game.onLoad();
+
+      await game.debugOpenBattleForTest(request);
+      await game.debugWaitForBattleOverlaySync();
+
+      final overlay = game.debugBattleOverlayComponent;
+      expect(overlay, isNotNull);
+      expect(game.debugBattleSessionSnapshot, isNotNull);
+      final initialBattleHp = game.debugBattleSessionSnapshot!.state.player.currentHp;
+      final initialBattleMaxHp = game.debugBattleSessionSnapshot!.state.player.maxHp;
+      final expectedHealedHp = min(initialBattleHp + 20, initialBattleMaxHp);
+
+      overlay!.moveSelectionRight();
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bagMedicineTarget);
+      expect(overlay.validateSelectedChoice(), isTrue);
+      await game.debugWaitForBattleOverlaySync();
+
+      expect(game.debugFlowPhaseName, equals('battle'));
+      expect(game.debugBattleSessionSnapshot, isNotNull);
+      expect(game.debugBattleSessionSnapshot!.state.player.currentHp, equals(expectedHealedHp));
+      expect(game.gameStateSnapshot.party.members.first.currentHp, equals(expectedHealedHp));
+      expect(game.gameStateSnapshot.bag.entries, isEmpty);
+    });
   });
 }
 
