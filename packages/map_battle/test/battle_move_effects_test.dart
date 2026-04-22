@@ -807,6 +807,170 @@ void main() {
       expect(session.state.currentTurn!.executions.first.attacker, 'player');
     });
 
+    test(
+        'a damaging move applies a probabilistic target stat rider when the chance roll succeeds',
+        () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'squirtle',
+            level: 20,
+            maxHp: 70,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'bubble',
+                name: 'Bubble',
+                power: 40,
+                type: 'water',
+                category: BattleMoveCategory.special,
+                target: BattleMoveTarget.opponent,
+                accuracy: BattleMoveAccuracy.percent(value: 100),
+                targetStatStageRider: BattleStatStageEffect(
+                  chancePercent: 10,
+                  changes: <BattleStatStageChange>[
+                    BattleStatStageChange(
+                      stat: BattleStatId.speed,
+                      stages: -1,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'geodude',
+            level: 20,
+            maxHp: 70,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+        rng: const BattleScriptedRng(<int>[24, 1]),
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+      final execution = afterTurn.state.currentTurn!.executions.first;
+
+      expect(execution.didHit, isTrue);
+      expect(execution.damage, greaterThan(0));
+      expect(afterTurn.state.enemy.statStages.speed, equals(-1));
+    });
+
+    test(
+        'a damaging move skips the probabilistic target stat rider when the chance roll fails',
+        () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'squirtle',
+            level: 20,
+            maxHp: 70,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'bubble',
+                name: 'Bubble',
+                power: 40,
+                type: 'water',
+                category: BattleMoveCategory.special,
+                target: BattleMoveTarget.opponent,
+                accuracy: BattleMoveAccuracy.percent(value: 100),
+                targetStatStageRider: BattleStatStageEffect(
+                  chancePercent: 10,
+                  changes: <BattleStatStageChange>[
+                    BattleStatStageChange(
+                      stat: BattleStatId.speed,
+                      stages: -1,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'geodude',
+            level: 20,
+            maxHp: 70,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+        rng: const BattleScriptedRng(<int>[24, 11]),
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+      final execution = afterTurn.state.currentTurn!.executions.first;
+
+      expect(execution.didHit, isTrue);
+      expect(execution.damage, greaterThan(0));
+      expect(afterTurn.state.enemy.statStages.speed, equals(0));
+    });
+
+    test(
+        'a miss does not consume or apply a probabilistic target stat rider',
+        () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: BattleCombatantData(
+            speciesId: 'squirtle',
+            level: 20,
+            maxHp: 70,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(
+                id: 'bubble',
+                name: 'Bubble',
+                power: 40,
+                type: 'water',
+                category: BattleMoveCategory.special,
+                target: BattleMoveTarget.opponent,
+                accuracy: BattleMoveAccuracy.percent(value: 50),
+                pp: 30,
+                targetStatStageRider: BattleStatStageEffect(
+                  chancePercent: 10,
+                  changes: <BattleStatStageChange>[
+                    BattleStatStageChange(
+                      stat: BattleStatId.speed,
+                      stages: -1,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          enemyPokemon: BattleCombatantData(
+            speciesId: 'geodude',
+            level: 20,
+            maxHp: 70,
+            stats: _balancedStats,
+            moves: const <BattleMoveData>[
+              BattleMoveData(id: 'growl', name: 'Growl', power: 0),
+            ],
+          ),
+          isTrainerBattle: false,
+          trainerId: null,
+        ),
+        rng: const BattleScriptedRng(<int>[100]),
+      );
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+      final execution = afterTurn.state.currentTurn!.executions.first;
+
+      expect(execution.didHit, isFalse);
+      expect(execution.damage, equals(0));
+      expect(afterTurn.state.enemy.statStages.speed, equals(0));
+      expect(afterTurn.state.player.moves.single.currentPp, equals(29));
+    });
+
     test('an alwaysHits move bypasses the hit check and still applies damage',
         () {
       final session = createBattleSession(

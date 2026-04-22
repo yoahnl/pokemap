@@ -414,17 +414,11 @@ class ShowdownMoveCatalogConverter {
     if (stageChanges.isEmpty) {
       return;
     }
-    // Mini-lot starter coverage :
-    // - le modèle canonique sait déjà décrire un rider probabiliste de baisse /
-    //   hausse de stats ;
-    // - mais le slice runtime -> battle actuel ne sait toujours pas le projeter
-    //   honnêtement, car `map_battle` ne consomme pour l'instant que des
-    //   changements d'étages déterministes ;
-    // - on garde donc la donnée structurée, utile pour le catalogue et les
-    //   audits, tout en marquant explicitement la limite de support ;
-    // - cela évite le faux positif où `bubble` / `bubble_beam` paraîtraient
-    //   déjà bridgeables alors que le moteur local n'a pas encore ce contrat.
-    if (chance != null) {
+    if (chance != null &&
+        !_supportsBattleProbabilisticModifyStats(
+          targetScope: targetScope,
+          stageChanges: stageChanges,
+        )) {
       addUnsupportedReason('unsupported_mechanic:probabilistic_modify_stats');
     }
     addEffect(
@@ -807,6 +801,31 @@ class ShowdownMoveCatalogConverter {
     }
 
     return changes;
+  }
+
+  bool _supportsBattleProbabilisticModifyStats({
+    required PokemonMoveEffectTargetScope targetScope,
+    required List<PokemonMoveStatStageChange> stageChanges,
+  }) {
+    if (stageChanges.isEmpty) {
+      return false;
+    }
+    if (targetScope != PokemonMoveEffectTargetScope.self &&
+        targetScope != PokemonMoveEffectTargetScope.target) {
+      return false;
+    }
+
+    return stageChanges.every(
+      (change) => switch (change.stat) {
+        PokemonMoveStatId.attack ||
+        PokemonMoveStatId.defense ||
+        PokemonMoveStatId.specialAttack ||
+        PokemonMoveStatId.specialDefense ||
+        PokemonMoveStatId.speed =>
+          true,
+        PokemonMoveStatId.accuracy || PokemonMoveStatId.evasion => false,
+      },
+    );
   }
 
   void _collectUnsupportedTopLevelFields({

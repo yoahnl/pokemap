@@ -12,7 +12,7 @@ void main() {
 
   group('RuntimePokemonLearnsetLoader', () {
     late Directory tempProjectRoot;
-    const loader = RuntimePokemonLearnsetLoader();
+    final loader = RuntimePokemonLearnsetLoader();
 
     setUp(() async {
       tempProjectRoot =

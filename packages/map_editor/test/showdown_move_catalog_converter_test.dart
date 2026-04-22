@@ -394,7 +394,7 @@ void main() {
   });
 
   test(
-      'marks probabilistic stat stage riders as partial instead of pretending they already bridge to battle',
+      'keeps Bubble and Bubble Beam structured and fully supported once their probabilistic speed-drop rider is really consumable by battle',
       () {
     final catalog = converter.convert(<String, dynamic>{
       'bubble': <String, dynamic>{
@@ -450,20 +450,68 @@ void main() {
     );
     expect(
       bubble.engineSupportLevel,
-      equals(PokemonMoveEngineSupportLevel.structuredPartial),
+      equals(PokemonMoveEngineSupportLevel.structuredSupported),
     );
     expect(
       bubble.unsupportedReasons,
-      contains('unsupported_mechanic:probabilistic_modify_stats'),
+      isNot(contains('unsupported_mechanic:probabilistic_modify_stats')),
     );
 
     final bubbleBeam = _move(catalog, 'bubble_beam');
     expect(
       bubbleBeam.engineSupportLevel,
-      equals(PokemonMoveEngineSupportLevel.structuredPartial),
+      equals(PokemonMoveEngineSupportLevel.structuredSupported),
     );
     expect(
       bubbleBeam.unsupportedReasons,
+      isNot(contains('unsupported_mechanic:probabilistic_modify_stats')),
+    );
+  });
+
+  test(
+      'keeps unsupported probabilistic stat riders partial when the affected stat still exceeds the local battle contract',
+      () {
+    final catalog = converter.convert(<String, dynamic>{
+      'sandveil_burst': <String, dynamic>{
+        'name': 'Sandveil Burst',
+        'type': 'Ground',
+        'category': 'Special',
+        'basePower': 50,
+        'accuracy': 100,
+        'pp': 15,
+        'priority': 0,
+        'target': 'normal',
+        'secondary': <String, dynamic>{
+          'chance': 30,
+          'boosts': <String, int>{'accuracy': -1},
+        },
+        'shortDesc': '30% chance to lower the target Accuracy by 1.',
+        'desc': 'A dusty burst may lower the target Accuracy.',
+        'gen': 3,
+      },
+    });
+
+    final move = _move(catalog, 'sandveil_burst');
+    expect(
+      move.effects,
+      contains(
+        const PokemonMoveEffect.modifyStats(
+          chance: 30,
+          stageChanges: <PokemonMoveStatStageChange>[
+            PokemonMoveStatStageChange(
+              stat: PokemonMoveStatId.accuracy,
+              stages: -1,
+            ),
+          ],
+        ),
+      ),
+    );
+    expect(
+      move.engineSupportLevel,
+      equals(PokemonMoveEngineSupportLevel.structuredPartial),
+    );
+    expect(
+      move.unsupportedReasons,
       contains('unsupported_mechanic:probabilistic_modify_stats'),
     );
   });

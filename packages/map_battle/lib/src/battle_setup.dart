@@ -257,6 +257,10 @@ final class BattleMoveData {
   ///   suivant sans repayer les PP.
   /// [selfStatStageChanges] - Boosts / baisses appliqués au lanceur.
   /// [targetStatStageChanges] - Boosts / baisses appliqués à la cible.
+  /// [selfStatStageRider] - Rider de stats probabiliste appliqué au lanceur
+  ///   après un hit/résolution réussie.
+  /// [targetStatStageRider] - Rider de stats probabiliste appliqué à la cible
+  ///   après un hit/résolution réussie.
   ///
   /// Ce contrat reste volontairement petit :
   /// - il ne copie pas `PokemonMove` ;
@@ -297,6 +301,8 @@ final class BattleMoveData {
     this.chargeThenStrikeEffect,
     this.selfStatStageChanges = const <BattleStatStageChange>[],
     this.targetStatStageChanges = const <BattleStatStageChange>[],
+    this.selfStatStageRider,
+    this.targetStatStageRider,
   })  : assert(
           critRatio >= 1,
           'BattleMoveData critRatio must be >= 1.',
@@ -473,4 +479,10 @@ final class BattleMoveData {
 
   /// Changements d'étages de stats appliqués à la cible.
   final List<BattleStatStageChange> targetStatStageChanges;
+
+  /// Rider de stats appliqué au lanceur après un hit/résolution réussie.
+  final BattleStatStageEffect? selfStatStageRider;
+
+  /// Rider de stats appliqué à la cible après un hit/résolution réussie.
+  final BattleStatStageEffect? targetStatStageRider;
 }

@@ -12,7 +12,7 @@ void main() {
 
   group('RuntimeMoveCatalogLoader', () {
     late Directory tempProjectRoot;
-    const loader = RuntimeMoveCatalogLoader();
+    final loader = RuntimeMoveCatalogLoader();
 
     setUp(() async {
       tempProjectRoot =

@@ -66,6 +66,8 @@ class RuntimeBattleMoveBridge {
 
     final selfChanges = <BattleStatStageChange>[];
     final targetChanges = <BattleStatStageChange>[];
+    BattleStatStageEffect? selfStatStageRider;
+    BattleStatStageEffect? targetStatStageRider;
     BattleMoveMajorStatusEffect? majorStatusEffect;
     BattleVolatileStatusId? selfVolatileStatus;
     BattleWeatherId? weatherEffect;
@@ -177,13 +179,6 @@ class RuntimeBattleMoveBridge {
           );
         },
         modifyStats: (effect) {
-          if (effect.chance != null) {
-            _rejectMove(
-              move: move,
-              combatantLabel: combatantLabel,
-              bridgeLimit: 'probabilistic_modify_stats_not_supported',
-            );
-          }
           if (effect.stageChanges.isEmpty) {
             _rejectMove(
               move: move,
@@ -201,6 +196,54 @@ class RuntimeBattleMoveBridge {
                 ),
               )
               .toList(growable: false);
+
+          if (effect.chance case final chance?) {
+            if (chance < 1 || chance > 100) {
+              _rejectMove(
+                move: move,
+                combatantLabel: combatantLabel,
+                bridgeLimit: 'invalid_modify_stats_chance:$chance',
+              );
+            }
+
+            final rider = BattleStatStageEffect(
+              chancePercent: chance,
+              changes: List<BattleStatStageChange>.unmodifiable(translated),
+            );
+            switch (effect.targetScope) {
+              case PokemonMoveEffectTargetScope.self:
+                if (selfStatStageRider != null) {
+                  _rejectMove(
+                    move: move,
+                    combatantLabel: combatantLabel,
+                    bridgeLimit:
+                        'multiple_probabilistic_self_stat_riders_not_supported',
+                  );
+                }
+                selfStatStageRider = rider;
+              case PokemonMoveEffectTargetScope.target:
+                if (targetStatStageRider != null) {
+                  _rejectMove(
+                    move: move,
+                    combatantLabel: combatantLabel,
+                    bridgeLimit:
+                        'multiple_probabilistic_target_stat_riders_not_supported',
+                  );
+                }
+                targetStatStageRider = rider;
+              case PokemonMoveEffectTargetScope.field:
+              case PokemonMoveEffectTargetScope.allySide:
+              case PokemonMoveEffectTargetScope.foeSide:
+              case PokemonMoveEffectTargetScope.slot:
+                _rejectMove(
+                  move: move,
+                  combatantLabel: combatantLabel,
+                  bridgeLimit:
+                      'unsupported_modify_stats_scope:${effect.targetScope.name}',
+                );
+            }
+            return;
+          }
 
           switch (effect.targetScope) {
             case PokemonMoveEffectTargetScope.self:
@@ -612,6 +655,8 @@ class RuntimeBattleMoveBridge {
           List<BattleStatStageChange>.unmodifiable(selfChanges),
       targetStatStageChanges:
           List<BattleStatStageChange>.unmodifiable(targetChanges),
+      selfStatStageRider: selfStatStageRider,
+      targetStatStageRider: targetStatStageRider,
     );
   }
 
@@ -919,6 +964,7 @@ class RuntimeBattleMoveBridge {
     //   sans élargir la famille de mécaniques réellement exécutées.
     const allowedReasons = <String>{
       'unsupported_mechanic:zMove',
+      'unsupported_mechanic:probabilistic_modify_stats',
     };
     if (move.unsupportedReasons.isEmpty ||
         !move.unsupportedReasons.every(allowedReasons.contains)) {
@@ -933,7 +979,8 @@ class RuntimeBattleMoveBridge {
     // - ce mini-lot starter coverage n'autorise donc que le sous-ensemble
     //   déjà réellement exécutable aujourd'hui : un `modifyStats`
     //   déterministe sur `self` ou `target`.
-    return _isPureDeterministicStatMoveCandidate(move);
+    return _isPureDeterministicStatMoveCandidate(move) ||
+        _isSupportedProbabilisticStatRiderCandidate(move);
   }
 
   bool _isPureDeterministicStatMoveCandidate(PokemonMove move) {
@@ -966,6 +1013,67 @@ class RuntimeBattleMoveBridge {
         setSideCondition: (_) => false,
         setSlotCondition: (_) => false,
       ),
+    );
+  }
+
+  bool _isSupportedProbabilisticStatRiderCandidate(PokemonMove move) {
+    if (move.effects.isEmpty) {
+      return false;
+    }
+
+    var hasSupportedProbabilisticModifyStats = false;
+    final allEffectsSupported = move.effects.every(
+      (effect) => effect.map(
+        fixedDamage: (_) => false,
+        multiHit: (_) => false,
+        applyStatus: (_) => false,
+        applyVolatileStatus: (_) => false,
+        modifyStats: (effect) {
+          final chance = effect.chance;
+          final supported = chance != null &&
+              chance >= 1 &&
+              chance <= 100 &&
+              effect.stageChanges.isNotEmpty &&
+              (effect.targetScope == PokemonMoveEffectTargetScope.self ||
+                  effect.targetScope == PokemonMoveEffectTargetScope.target) &&
+              _areBattleBridgeableStageChanges(effect.stageChanges);
+          if (supported) {
+            hasSupportedProbabilisticModifyStats = true;
+          }
+          return supported;
+        },
+        heal: (_) => false,
+        drain: (_) => false,
+        recoil: (_) => false,
+        setWeather: (_) => false,
+        setTerrain: (_) => false,
+        setPseudoWeather: (_) => false,
+        selfSwitch: (_) => false,
+        forceSwitch: (_) => false,
+        breakProtect: (_) => false,
+        requireRecharge: (_) => false,
+        chargeThenStrike: (_) => false,
+        setSideCondition: (_) => false,
+        setSlotCondition: (_) => false,
+      ),
+    );
+
+    return allEffectsSupported && hasSupportedProbabilisticModifyStats;
+  }
+
+  bool _areBattleBridgeableStageChanges(
+    List<PokemonMoveStatStageChange> changes,
+  ) {
+    return changes.every(
+      (change) => switch (change.stat) {
+        PokemonMoveStatId.attack ||
+        PokemonMoveStatId.defense ||
+        PokemonMoveStatId.specialAttack ||
+        PokemonMoveStatId.specialDefense ||
+        PokemonMoveStatId.speed =>
+          true,
+        PokemonMoveStatId.accuracy || PokemonMoveStatId.evasion => false,
+      },
     );
   }
 

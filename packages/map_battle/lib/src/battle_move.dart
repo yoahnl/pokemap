@@ -120,6 +120,22 @@ class BattleStatStageChange {
   final int stages;
 }
 
+/// Rider battle minimal de changement de stats résolu après un hit réussi.
+///
+/// BDC-01 garde volontairement ce contrat petit :
+/// - un seul paquet de changements de stages ;
+/// - une chance optionnelle, exprimée en pourcentage entier ;
+/// - aucune callback, aucun bus d'événements, aucune logique Showdown-like.
+class BattleStatStageEffect {
+  const BattleStatStageEffect({
+    required this.changes,
+    this.chancePercent,
+  }) : assert(chancePercent == null || (chancePercent >= 1 && chancePercent <= 100));
+
+  final List<BattleStatStageChange> changes;
+  final int? chancePercent;
+}
+
 /// Attaque utilisée pendant un combat.
 ///
 /// Ce modèle représente une attaque disponible pour un combattant.
@@ -167,6 +183,10 @@ final class BattleMove {
   ///   charge un tour puis frappe le tour suivant sans repayer les PP.
   /// [selfStatStageChanges] - Boosts / baisses appliqués au lanceur.
   /// [targetStatStageChanges] - Boosts / baisses appliqués à la cible.
+  /// [selfStatStageRider] - Rider de stats probabiliste appliqué au lanceur
+  ///   après un hit/résolution réussie.
+  /// [targetStatStageRider] - Rider de stats probabiliste appliqué à la cible
+  ///   après un hit/résolution réussie.
   ///
   /// M8 puis BE1 choisissent volontairement de n'embarquer ici qu'un petit
   /// sous-ensemble :
@@ -208,6 +228,8 @@ final class BattleMove {
     this.chargeThenStrikeEffect,
     this.selfStatStageChanges = const <BattleStatStageChange>[],
     this.targetStatStageChanges = const <BattleStatStageChange>[],
+    this.selfStatStageRider,
+    this.targetStatStageRider,
   })  : assert(
           critRatio >= 1,
           'BattleMove critRatio must be >= 1.',
@@ -419,6 +441,12 @@ final class BattleMove {
   /// Changements d'étages de stats appliqués à la cible.
   final List<BattleStatStageChange> targetStatStageChanges;
 
+  /// Rider de stats appliqué au lanceur après un hit/résolution réussie.
+  final BattleStatStageEffect? selfStatStageRider;
+
+  /// Rider de stats appliqué à la cible après un hit/résolution réussie.
+  final BattleStatStageEffect? targetStatStageRider;
+
   /// true si le move peut encore être tenté honnêtement.
   ///
   /// BE4 n'ouvre toujours pas Struggle :
@@ -471,6 +499,8 @@ final class BattleMove {
       chargeThenStrikeEffect: chargeThenStrikeEffect,
       selfStatStageChanges: selfStatStageChanges,
       targetStatStageChanges: targetStatStageChanges,
+      selfStatStageRider: selfStatStageRider,
+      targetStatStageRider: targetStatStageRider,
     );
   }
 }

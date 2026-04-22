@@ -809,18 +809,24 @@ void main() {
         ),
       );
 
-      // Ce test verrouille le résultat produit attendu de ce mini-lot :
-      // - `tail_whip`, `water_gun` et `withdraw` ne doivent plus disparaître
-      //   à cause d'un truth/filtering décalé ;
-      // - `bubble` reste volontairement absent tant que le moteur/bridge ne
-      //   savent pas porter honnêtement son rider probabiliste de baisse de
-      //   vitesse ;
-      // - on améliore donc la vérité des choix de combat sans rouvrir R3.
+      // Ce test verrouille le slice starter coverage après BDC-01 :
+      // - `tail_whip`, `water_gun`, `withdraw` et maintenant `bubble`
+      //   doivent rester visibles si le bridge/runtime/battle savent déjà
+      //   consommer honnêtement leurs contrats ;
+      // - on n'ouvre pas pour autant les autres partials hors scope.
       expect(
         setup.playerPokemon.moves
             .map((move) => move.id)
             .toList(growable: false),
-        equals(<String>['tail_whip', 'water_gun', 'withdraw']),
+        equals(<String>['tail_whip', 'water_gun', 'withdraw', 'bubble']),
+      );
+      final bubble =
+          setup.playerPokemon.moves.firstWhere((move) => move.id == 'bubble');
+      expect(bubble.targetStatStageRider, isNotNull);
+      expect(bubble.targetStatStageRider!.chancePercent, equals(10));
+      expect(
+        bubble.targetStatStageRider!.changes.single.stat,
+        equals(BattleStatId.speed),
       );
 
       final request = createBattleSession(setup).decisionRequest;
@@ -831,8 +837,7 @@ void main() {
           .toList(growable: false);
 
       expect(
-          moveChoices, equals(<String>['tail_whip', 'water_gun', 'withdraw']));
-      expect(moveChoices, isNot(contains('bubble')));
+          moveChoices, equals(<String>['tail_whip', 'water_gun', 'withdraw', 'bubble']));
     });
 
     test(
@@ -1684,9 +1689,8 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
         _moveEntry('tail_whip', 'Tail Whip', 0),
         // Mini-lot starter coverage :
         // - `withdraw` reste bridgeable malgré un vieux partial `zMove` ;
-        // - `bubble` reste visible dans le catalogue de test, mais marqué
-        //   partiel pour que le runtime le filtre honnêtement tant que le
-        //   rider probabiliste de baisse de vitesse n'est pas supporté.
+        // - `bubble` devient maintenant réellement bridgeable parce que son
+        //   rider probabiliste de baisse de vitesse est consommé localement.
         _moveEntry(
           'withdraw',
           'Withdraw',
@@ -1704,10 +1708,6 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
           type: 'water',
           target: PokemonMoveTarget.allAdjacentFoes,
           pp: 30,
-          engineSupportLevel: PokemonMoveEngineSupportLevel.structuredPartial,
-          unsupportedReasons: const <String>[
-            'unsupported_mechanic:probabilistic_modify_stats',
-          ],
         ),
         _moveEntry('ember', 'Ember', 40, type: 'fire'),
         _moveEntry('flame_wheel', 'Flame Wheel', 60, type: 'fire'),

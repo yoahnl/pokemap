@@ -17,8 +17,8 @@ void main() {
 
   group('RuntimeBattleCombatantSeedBuilder', () {
     late Directory tempProjectRoot;
-    const builder = RuntimeBattleCombatantSeedBuilder();
-    const moveCatalogLoader = RuntimeMoveCatalogLoader();
+    final builder = RuntimeBattleCombatantSeedBuilder();
+    final moveCatalogLoader = RuntimeMoveCatalogLoader();
 
     setUp(() async {
       tempProjectRoot =
@@ -404,8 +404,8 @@ void main() {
         'does not silently filter malformed move data just because another move is bridgeable',
         () async {
       await _writePokemonFixtures(tempProjectRoot);
-      const builderWithRejectingBridge = RuntimeBattleCombatantSeedBuilder(
-        battleMoveBridge: _RejectingRuntimeBattleMoveBridge(
+      final builderWithRejectingBridge = RuntimeBattleCombatantSeedBuilder(
+        battleMoveBridge: const _RejectingRuntimeBattleMoveBridge(
           rejectedMoveId: 'thunder_wave',
           rejection: RuntimeBattleSetupException(
             'Le combat ne peut pas démarrer car "Le Pokémon actif du joueur" utilise une attaque que le bridge battle actuel ne sait pas projeter honnêtement.',

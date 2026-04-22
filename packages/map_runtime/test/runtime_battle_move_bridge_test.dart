@@ -195,7 +195,7 @@ void main() {
     });
 
     test(
-        'still rejects Bubble honestly because a probabilistic speed drop rider is not part of the current bridge contract',
+        'projects Bubble honestly once the only remaining partial reason is a supported probabilistic speed-drop rider',
         () {
       const move = PokemonMove(
         id: 'bubble',
@@ -227,6 +227,74 @@ void main() {
         ],
       );
 
+      final battleMove = bridge.toBattleMoveData(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(battleMove.id, equals('bubble'));
+      expect(battleMove.name, equals('Bubble'));
+      expect(battleMove.type, equals('water'));
+      expect(battleMove.category, equals(BattleMoveCategory.special));
+      expect(battleMove.power, equals(40));
+      expect(battleMove.target, equals(BattleMoveTarget.opponent));
+      expect(
+        battleMove.accuracy.kind,
+        equals(BattleMoveAccuracyKind.percent),
+      );
+      expect(battleMove.accuracy.value, equals(100));
+      expect(battleMove.pp, equals(30));
+      expect(battleMove.selfStatStageChanges, isEmpty);
+      expect(battleMove.targetStatStageChanges, isEmpty);
+      expect(battleMove.targetStatStageRider, isNotNull);
+      expect(
+        battleMove.targetStatStageRider!.chancePercent,
+        equals(10),
+      );
+      expect(
+        battleMove.targetStatStageRider!.changes.single.stat,
+        equals(BattleStatId.speed),
+      );
+      expect(
+        battleMove.targetStatStageRider!.changes.single.stages,
+        equals(-1),
+      );
+    });
+
+    test(
+        'still rejects a probabilistic stat rider move when another real unsupported reason remains',
+        () {
+      const move = PokemonMove(
+        id: 'bubble_plus_terrain',
+        name: 'Bubble Plus Terrain',
+        names: <String, String>{'en': 'Bubble Plus Terrain'},
+        generation: 1,
+        source: 'test',
+        type: 'water',
+        category: PokemonMoveCategory.special,
+        target: PokemonMoveTarget.allAdjacentFoes,
+        basePower: 40,
+        accuracy: PokemonMoveAccuracy.percent(value: 100),
+        pp: 30,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.modifyStats(
+            targetScope: PokemonMoveEffectTargetScope.target,
+            chance: 10,
+            stageChanges: <PokemonMoveStatStageChange>[
+              PokemonMoveStatStageChange(
+                stat: PokemonMoveStatId.speed,
+                stages: -1,
+              ),
+            ],
+          ),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredPartial,
+        unsupportedReasons: <String>[
+          'unsupported_mechanic:probabilistic_modify_stats',
+          'unsupported_effect_kind:set_terrain',
+        ],
+      );
+
       expect(
         () => bridge.toBattleMoveData(
           move: move,
@@ -237,11 +305,8 @@ void main() {
             (error) => error.debugDetails,
             'debugDetails',
             allOf(
-              contains('moveId=bubble'),
+              contains('moveId=bubble_plus_terrain'),
               contains('engineSupportLevel=structuredPartial'),
-              contains(
-                'unsupportedReasons=[unsupported_mechanic:probabilistic_modify_stats]',
-              ),
               contains('bridgeLimit=engine_support_level_not_bridgeable'),
             ),
           ),

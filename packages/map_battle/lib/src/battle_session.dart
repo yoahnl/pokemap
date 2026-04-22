@@ -129,6 +129,8 @@ BattleCombatant _buildBattleCombatantFromData(
             chargeThenStrikeEffect: m.chargeThenStrikeEffect,
             selfStatStageChanges: m.selfStatStageChanges,
             targetStatStageChanges: m.targetStatStageChanges,
+            selfStatStageRider: m.selfStatStageRider,
+            targetStatStageRider: m.targetStatStageRider,
           ),
         )
         .toList(growable: false),
@@ -1085,7 +1087,7 @@ class BattleSession {
       rng: hitCheck.nextRng,
     );
 
-    final updatedAttacker = damageResult.wasImmune
+    final attackerAfterDeterministicStages = damageResult.wasImmune
         ? hitInterception.attacker
         : hitInterception.attacker
             .withAppliedStageChanges(move.selfStatStageChanges);
@@ -1094,15 +1096,35 @@ class BattleSession {
         : hitInterception.defender
             .withDamage(damageResult.damage)
             .withAppliedStageChanges(move.targetStatStageChanges);
+    final attackerAfterRider = damageResult.wasImmune
+        ? _ResolvedStatStageRiderApplication(
+            combatant: attackerAfterDeterministicStages,
+            nextRng: damageResult.nextRng,
+          )
+        : _applyStatStageRider(
+            rider: move.selfStatStageRider,
+            combatant: attackerAfterDeterministicStages,
+            rng: damageResult.nextRng,
+          );
+    final defenderAfterRider = damageResult.wasImmune
+        ? _ResolvedStatStageRiderApplication(
+            combatant: defenderAfterHit,
+            nextRng: attackerAfterRider.nextRng,
+          )
+        : _applyStatStageRider(
+            rider: move.targetStatStageRider,
+            combatant: defenderAfterHit,
+            rng: attackerAfterRider.nextRng,
+          );
     final postMoveConditions = _conditionEngine.runMoveResolved(
       move: move,
       attackerSlot: attackerSlot,
       targetSlot: targetSlot,
-      attacker: updatedAttacker,
-      defender: defenderAfterHit,
+      attacker: attackerAfterRider.combatant,
+      defender: defenderAfterRider.combatant,
       field: field,
       wasImmune: damageResult.wasImmune,
-      rng: damageResult.nextRng,
+      rng: defenderAfterRider.nextRng,
     );
     final preExecutionVolatileEvents =
         List<BattleVolatileEvent>.unmodifiable(preHitVolatileEvents);
@@ -1402,6 +1424,37 @@ class BattleSession {
     );
   }
 
+  _ResolvedStatStageRiderApplication _applyStatStageRider({
+    required BattleStatStageEffect? rider,
+    required BattleCombatant combatant,
+    required BattleRng rng,
+  }) {
+    if (rider == null) {
+      return _ResolvedStatStageRiderApplication(
+        combatant: combatant,
+        nextRng: rng,
+      );
+    }
+
+    if (rider.chancePercent == null) {
+      return _ResolvedStatStageRiderApplication(
+        combatant: combatant.withAppliedStageChanges(rider.changes),
+        nextRng: rng,
+      );
+    }
+
+    final roll = rng.nextChance(
+      numerator: rider.chancePercent!,
+      denominator: 100,
+    );
+    return _ResolvedStatStageRiderApplication(
+      combatant: roll.didOccur
+          ? combatant.withAppliedStageChanges(rider.changes)
+          : combatant,
+      nextRng: roll.next,
+    );
+  }
+
   _CritChance _critChanceForRatio(int critRatio) {
     // Table BE6 volontairement explicite :
     // - on suit une lecture moderne Pokémon-like des stages de crit ;
@@ -1662,6 +1715,16 @@ class _ResolvedCriticalHit {
 
   final bool didCrit;
   final double multiplier;
+  final BattleRng nextRng;
+}
+
+class _ResolvedStatStageRiderApplication {
+  const _ResolvedStatStageRiderApplication({
+    required this.combatant,
+    required this.nextRng,
+  });
+
+  final BattleCombatant combatant;
   final BattleRng nextRng;
 }
 
