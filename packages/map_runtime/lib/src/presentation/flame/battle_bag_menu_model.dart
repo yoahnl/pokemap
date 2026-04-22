@@ -88,21 +88,54 @@ BattleBagMenuModel buildBattleBagMenuModel({
   final normalizedBag = gameState.bag.normalized();
   final captureChoice = _captureChoiceFor(session.decisionRequest);
   final entries = List<BattleBagMenuEntry>.unmodifiable(
-    normalizedBag.entries.asMap().entries.map(
-          (entry) => _buildEntry(
-            visualIndex: entry.key,
-            bagEntry: entry.value,
-            gameState: gameState,
-            session: session,
-            captureChoice: captureChoice,
+    _sortedBagEntriesForDisplay(
+      normalizedBag.entries.asMap().entries.map(
+            (entry) => _buildEntry(
+              visualIndex: entry.key,
+              bagEntry: entry.value,
+              gameState: gameState,
+              session: session,
+              captureChoice: captureChoice,
+            ),
           ),
-        ),
+    ),
   );
 
   return BattleBagMenuModel(
     mode: _modeForEntries(entries),
     entries: entries,
   );
+}
+
+List<BattleBagMenuEntry> _sortedBagEntriesForDisplay(
+  Iterable<BattleBagMenuEntry> entries,
+) {
+  final sorted = entries.toList(growable: false);
+  sorted.sort((left, right) {
+    final rankCompare = _displayRankForBagKind(left.kind)
+        .compareTo(_displayRankForBagKind(right.kind));
+    if (rankCompare != 0) {
+      return rankCompare;
+    }
+    final categoryCompare = left.categoryId.compareTo(right.categoryId);
+    if (categoryCompare != 0) {
+      return categoryCompare;
+    }
+    final itemCompare = left.itemId.compareTo(right.itemId);
+    if (itemCompare != 0) {
+      return itemCompare;
+    }
+    return left.visualIndex.compareTo(right.visualIndex);
+  });
+  return sorted;
+}
+
+int _displayRankForBagKind(BattleBagItemKind kind) {
+  return switch (kind) {
+    BattleBagItemKind.captureBall => 0,
+    BattleBagItemKind.medicine => 1,
+    BattleBagItemKind.unsupported => 2,
+  };
 }
 
 BattleBagMenuMode _modeForEntries(List<BattleBagMenuEntry> entries) {

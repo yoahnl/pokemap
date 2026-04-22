@@ -7,6 +7,12 @@ enum BattleCommandPanelLayoutMode {
   stacked,
 }
 
+enum BattleViewportClass {
+  compactPortrait,
+  mediumLandscape,
+  wideDesktop,
+}
+
 /// Contrat pur de composition de la battle scene.
 ///
 /// Ce modèle reste volontairement indépendant de Flame :
@@ -19,6 +25,7 @@ final class BattleSceneLayout {
   BattleSceneLayout._({
     required this.viewportSize,
     required this.safePadding,
+    required this.viewportClass,
     required this.isPortrait,
     required this.portraitSafeMargin,
     required this.sceneRect,
@@ -38,6 +45,7 @@ final class BattleSceneLayout {
 
   final Size viewportSize;
   final EdgeInsets safePadding;
+  final BattleViewportClass viewportClass;
   final bool isPortrait;
   final double portraitSafeMargin;
   final Rect sceneRect;
@@ -64,6 +72,10 @@ final class BattleSceneLayout {
     required Size viewportSize,
     EdgeInsets safePadding = EdgeInsets.zero,
   }) {
+    final viewportClass = classifyViewport(
+      viewportSize: viewportSize,
+      safePadding: safePadding,
+    );
     final isPortrait = viewportSize.height > viewportSize.width;
     final sceneRect = Rect.fromLTWH(
       safePadding.left,
@@ -76,34 +88,25 @@ final class BattleSceneLayout {
         : 0.0;
 
     final commandPanelLayoutMode =
-        _resolveCommandPanelLayoutMode(sceneRect.size);
-    final commandPanelHorizontalPadding =
-        commandPanelLayoutMode == BattleCommandPanelLayoutMode.stacked
-            ? 12.0
-            : 16.0;
-    final commandPanelBottomPadding =
-        commandPanelLayoutMode == BattleCommandPanelLayoutMode.stacked
-            ? isPortrait
-                ? 14.0
-                : 12.0
-            : 14.0;
-    final commandPanelHeight =
-        (commandPanelLayoutMode == BattleCommandPanelLayoutMode.stacked
-                ? isPortrait
-                    ? sceneRect.height * 0.31
-                    : sceneRect.height * 0.30
-                : sceneRect.height * 0.255)
-            .clamp(
-              commandPanelLayoutMode == BattleCommandPanelLayoutMode.stacked
-                  ? isPortrait
-                      ? 232.0
-                      : 210.0
-                  : 138.0,
-              commandPanelLayoutMode == BattleCommandPanelLayoutMode.stacked
-                  ? (isPortrait ? 276.0 : 252.0)
-                  : 164.0,
-            )
-            .toDouble();
+        _resolveCommandPanelLayoutMode(viewportClass);
+    final commandPanelHorizontalPadding = switch (viewportClass) {
+      BattleViewportClass.compactPortrait => 12.0,
+      BattleViewportClass.mediumLandscape => 16.0,
+      BattleViewportClass.wideDesktop => 20.0,
+    };
+    final commandPanelBottomPadding = switch (viewportClass) {
+      BattleViewportClass.compactPortrait => 14.0,
+      BattleViewportClass.mediumLandscape => 12.0,
+      BattleViewportClass.wideDesktop => 18.0,
+    };
+    final commandPanelHeight = switch (viewportClass) {
+      BattleViewportClass.compactPortrait =>
+        (sceneRect.height * 0.315).clamp(248.0, 272.0).toDouble(),
+      BattleViewportClass.mediumLandscape =>
+        (sceneRect.height * 0.34).clamp(138.0, 168.0).toDouble(),
+      BattleViewportClass.wideDesktop =>
+        (sceneRect.height * 0.22).clamp(146.0, 176.0).toDouble(),
+    };
     final commandPanelRect = Rect.fromLTWH(
       sceneRect.left + commandPanelHorizontalPadding,
       sceneRect.bottom - commandPanelBottomPadding - commandPanelHeight,
@@ -111,20 +114,32 @@ final class BattleSceneLayout {
       commandPanelHeight,
     );
 
-    final stageBottomGap =
-        commandPanelLayoutMode == BattleCommandPanelLayoutMode.stacked &&
-                isPortrait
-            ? 18.0
-            : 12.0;
+    final stageBottomGap = switch (viewportClass) {
+      BattleViewportClass.compactPortrait => 16.0,
+      BattleViewportClass.mediumLandscape => 12.0,
+      BattleViewportClass.wideDesktop => 16.0,
+    };
     final stageAvailableRect = Rect.fromLTRB(
       isPortrait ? sceneRect.left + portraitSafeMargin : sceneRect.left,
-      isPortrait ? sceneRect.top + 14 : sceneRect.top + 8,
+      switch (viewportClass) {
+        BattleViewportClass.compactPortrait => sceneRect.top + 14,
+        BattleViewportClass.mediumLandscape => sceneRect.top + 8,
+        BattleViewportClass.wideDesktop => sceneRect.top + 18,
+      },
       isPortrait ? sceneRect.right - portraitSafeMargin : sceneRect.right,
       commandPanelRect.top - stageBottomGap,
     );
 
-    final referenceStageWidth = isPortrait ? 820.0 : 960.0;
-    final referenceStageHeight = isPortrait ? 360.0 : 330.0;
+    final referenceStageWidth = switch (viewportClass) {
+      BattleViewportClass.compactPortrait => 820.0,
+      BattleViewportClass.mediumLandscape => 960.0,
+      BattleViewportClass.wideDesktop => 960.0,
+    };
+    final referenceStageHeight = switch (viewportClass) {
+      BattleViewportClass.compactPortrait => 360.0,
+      BattleViewportClass.mediumLandscape => 330.0,
+      BattleViewportClass.wideDesktop => 330.0,
+    };
     final scale = math.min(
       1.0,
       math.min(
@@ -184,10 +199,16 @@ final class BattleSceneLayout {
       );
     }
 
-    final playerFootReference =
-        isPortrait ? const Offset(192, 350) : const Offset(158, 322);
-    final enemyFootReference =
-        isPortrait ? const Offset(610, 220) : const Offset(724, 214);
+    final playerFootReference = switch (viewportClass) {
+      BattleViewportClass.compactPortrait => const Offset(192, 350),
+      BattleViewportClass.mediumLandscape => const Offset(158, 322),
+      BattleViewportClass.wideDesktop => const Offset(158, 322),
+    };
+    final enemyFootReference = switch (viewportClass) {
+      BattleViewportClass.compactPortrait => const Offset(610, 220),
+      BattleViewportClass.mediumLandscape => const Offset(724, 214),
+      BattleViewportClass.wideDesktop => const Offset(724, 214),
+    };
     final playerFootAnchor = mapPoint(
       playerFootReference.dx,
       playerFootReference.dy,
@@ -219,30 +240,35 @@ final class BattleSceneLayout {
       footYOffset: 4,
     );
 
-    final enemyHudRect = isPortrait
-        ? Rect.fromLTWH(
-            sceneRect.left + portraitSafeMargin,
-            sceneRect.top + portraitSafeMargin,
-            (sceneRect.width * 0.31).clamp(118.0, 154.0).toDouble(),
-            (sceneRect.height * 0.054).clamp(42.0, 48.0).toDouble(),
-          )
-        : mapRect(16, 8, 210, 68);
-    final playerHudRect = isPortrait
-        ? Rect.fromLTWH(
-            sceneRect.right -
-                portraitSafeMargin -
-                (sceneRect.width * 0.34).clamp(132.0, 170.0).toDouble(),
-            commandPanelRect.top -
-                (sceneRect.height * 0.056).clamp(44.0, 50.0).toDouble() -
-                12,
-            (sceneRect.width * 0.34).clamp(132.0, 170.0).toDouble(),
-            (sceneRect.height * 0.056).clamp(44.0, 50.0).toDouble(),
-          )
-        : mapRect(668, 232, 244, 72);
+    final enemyHudRect = switch (viewportClass) {
+      BattleViewportClass.compactPortrait => Rect.fromLTWH(
+          sceneRect.left + portraitSafeMargin,
+          sceneRect.top + portraitSafeMargin,
+          (sceneRect.width * 0.33).clamp(122.0, 160.0).toDouble(),
+          (sceneRect.height * 0.061).clamp(46.0, 52.0).toDouble(),
+        ),
+      BattleViewportClass.mediumLandscape => mapRect(16, 8, 210, 68),
+      BattleViewportClass.wideDesktop => mapRect(16, 8, 210, 68),
+    };
+    final playerHudRect = switch (viewportClass) {
+      BattleViewportClass.compactPortrait => Rect.fromLTWH(
+          sceneRect.right -
+              portraitSafeMargin -
+              (sceneRect.width * 0.36).clamp(142.0, 180.0).toDouble(),
+          commandPanelRect.top -
+              (sceneRect.height * 0.068).clamp(54.0, 60.0).toDouble() -
+              10,
+          (sceneRect.width * 0.36).clamp(142.0, 180.0).toDouble(),
+          (sceneRect.height * 0.068).clamp(54.0, 60.0).toDouble(),
+        ),
+      BattleViewportClass.mediumLandscape => mapRect(668, 232, 244, 72),
+      BattleViewportClass.wideDesktop => mapRect(668, 232, 244, 72),
+    };
 
     return BattleSceneLayout._(
       viewportSize: viewportSize,
       safePadding: safePadding,
+      viewportClass: viewportClass,
       isPortrait: isPortrait,
       portraitSafeMargin: portraitSafeMargin,
       sceneRect: sceneRect,
@@ -261,12 +287,26 @@ final class BattleSceneLayout {
     );
   }
 
+  static BattleViewportClass classifyViewport({
+    required Size viewportSize,
+    EdgeInsets safePadding = EdgeInsets.zero,
+  }) {
+    final sceneWidth = math.max(0, viewportSize.width - safePadding.horizontal);
+    final sceneHeight = math.max(0, viewportSize.height - safePadding.vertical);
+    final isPortrait = sceneHeight > sceneWidth;
+    if (isPortrait) {
+      return BattleViewportClass.compactPortrait;
+    }
+    if (sceneWidth >= 1000 && sceneHeight >= 600) {
+      return BattleViewportClass.wideDesktop;
+    }
+    return BattleViewportClass.mediumLandscape;
+  }
+
   static BattleCommandPanelLayoutMode _resolveCommandPanelLayoutMode(
-    Size sceneSize,
+    BattleViewportClass viewportClass,
   ) {
-    final portrait = sceneSize.height > sceneSize.width;
-    final veryNarrow = sceneSize.width < 480;
-    return portrait || veryNarrow
+    return viewportClass == BattleViewportClass.compactPortrait
         ? BattleCommandPanelLayoutMode.stacked
         : BattleCommandPanelLayoutMode.split;
   }

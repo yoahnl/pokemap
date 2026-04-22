@@ -10,7 +10,6 @@ import 'package:flutter/widgets.dart'
         Directionality,
         KeyEventResult,
         LayoutBuilder,
-        SizedBox,
         Text,
         TextDirection,
         ValueListenableBuilder;

@@ -10,6 +10,10 @@ BattleCommandOverlaySnapshot _snapshot({
   bool canGoBack = false,
   Size viewportSize = const Size(390, 600),
   double panelHeight = 260,
+  int enemyCurrentHp = 18,
+  int enemyMaxHp = 18,
+  int playerCurrentHp = 57,
+  int playerMaxHp = 57,
 }) {
   final playerHudRect = Rect.fromLTWH(
     viewportSize.width - 168,
@@ -25,13 +29,13 @@ BattleCommandOverlaySnapshot _snapshot({
       viewportSize.width - 24,
       panelHeight,
     ),
-    enemyHud: const BattleCommandOverlayHudSnapshot(
-      rect: Rect.fromLTWH(16, 20, 138, 62),
+    enemyHud: BattleCommandOverlayHudSnapshot(
+      rect: const Rect.fromLTWH(16, 20, 138, 62),
       ownerLabel: 'ENNEMI',
       speciesLabel: 'caterpie',
       level: 4,
-      currentHp: 18,
-      maxHp: 18,
+      currentHp: enemyCurrentHp,
+      maxHp: enemyMaxHp,
       isPlayerSide: false,
     ),
     playerHud: BattleCommandOverlayHudSnapshot(
@@ -39,8 +43,8 @@ BattleCommandOverlaySnapshot _snapshot({
       ownerLabel: 'JOUEUR',
       speciesLabel: 'squirtle',
       level: 25,
-      currentHp: 57,
-      maxHp: 57,
+      currentHp: playerCurrentHp,
+      maxHp: playerMaxHp,
       isPlayerSide: true,
     ),
     battleLabel: 'COMBAT SAUVAGE',
@@ -112,10 +116,206 @@ Widget _hostedOverlay({
   );
 }
 
+List<BattleCommandOverlayEntry> _rootEntries() {
+  return <BattleCommandOverlayEntry>[
+    _entry(
+      index: 0,
+      kind: BattleCommandOverlayEntryKind.root,
+      primaryLabel: 'FIGHT',
+      secondaryLabel: '2 moves',
+    ),
+    _entry(
+      index: 1,
+      kind: BattleCommandOverlayEntryKind.root,
+      primaryLabel: 'BAG',
+      secondaryLabel: 'Capture',
+    ),
+    _entry(
+      index: 2,
+      kind: BattleCommandOverlayEntryKind.root,
+      primaryLabel: 'POKEMON',
+      secondaryLabel: '1 switch',
+    ),
+    _entry(
+      index: 3,
+      kind: BattleCommandOverlayEntryKind.root,
+      primaryLabel: 'RUN',
+      secondaryLabel: 'Escape',
+    ),
+  ];
+}
+
+BattleCommandOverlaySnapshot _layoutSnapshot({
+  required Size viewportSize,
+  BattleCommandOverlayMode mode = BattleCommandOverlayMode.root,
+  List<BattleCommandOverlayEntry>? entries,
+  int enemyCurrentHp = 18,
+  int enemyMaxHp = 18,
+  int playerCurrentHp = 57,
+  int playerMaxHp = 57,
+}) {
+  final layout = BattleSceneLayout.forViewport(viewportSize: viewportSize);
+  return BattleCommandOverlaySnapshot(
+    mode: mode,
+    panelRect: layout.commandPanelRect,
+    enemyHud: BattleCommandOverlayHudSnapshot(
+      rect: layout.enemyHudRect,
+      ownerLabel: 'ENNEMI',
+      speciesLabel: 'charmander',
+      level: 4,
+      currentHp: enemyCurrentHp,
+      maxHp: enemyMaxHp,
+      isPlayerSide: false,
+    ),
+    playerHud: BattleCommandOverlayHudSnapshot(
+      rect: layout.playerHudRect,
+      ownerLabel: 'JOUEUR',
+      speciesLabel: 'squirtle',
+      level: 25,
+      currentHp: playerCurrentHp,
+      maxHp: playerMaxHp,
+      isPlayerSide: true,
+    ),
+    battleLabel: 'COMBAT SAUVAGE',
+    title: 'COMMANDS',
+    prompt: 'Que doit faire le joueur ?',
+    narrationLines: const <String>[
+      'Choisis une action.',
+    ],
+    entries: entries ?? _rootEntries(),
+    interactionsEnabled: true,
+    canGoBack: false,
+  );
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('BattleMobileCommandOverlay', () {
+    testWidgets('renders a light prompt card with colored root actions',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() async => tester.binding.setSurfaceSize(null));
+      final snapshot = _layoutSnapshot(
+        viewportSize: const Size(390, 844),
+      );
+
+      await tester.pumpWidget(
+        _hostedOverlay(
+          snapshot: snapshot,
+          onEntrySelected: (_) {},
+          canvasSize: const Size(390, 844),
+        ),
+      );
+
+      expect(
+          find.byKey(const Key('battle-mobile-prompt-card')), findsOneWidget);
+      expect(
+          find.byKey(const Key('battle-mobile-root-tile-0')), findsOneWidget);
+      expect(
+          find.byKey(const Key('battle-mobile-root-tile-3')), findsOneWidget);
+    });
+
+    testWidgets('keeps compact portrait root actions touch-friendly on iPhone',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() async => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        _hostedOverlay(
+          snapshot: _layoutSnapshot(
+            viewportSize: const Size(390, 844),
+          ),
+          onEntrySelected: (_) {},
+          canvasSize: const Size(390, 844),
+        ),
+      );
+
+      final fightTileRect =
+          tester.getRect(find.byKey(const Key('battle-mobile-root-tile-0')));
+      final runTileRect =
+          tester.getRect(find.byKey(const Key('battle-mobile-root-tile-3')));
+
+      expect(fightTileRect.height, greaterThanOrEqualTo(48));
+      expect(runTileRect.height, greaterThanOrEqualTo(48));
+    });
+
+    testWidgets('uses the compact portrait panel variant', (tester) async {
+      const viewportSize = Size(390, 844);
+      await tester.binding.setSurfaceSize(viewportSize);
+      addTearDown(() async => tester.binding.setSurfaceSize(null));
+      final snapshot = _layoutSnapshot(viewportSize: viewportSize);
+
+      await tester.pumpWidget(
+        _hostedOverlay(
+          snapshot: snapshot,
+          onEntrySelected: (_) {},
+          canvasSize: viewportSize,
+        ),
+      );
+
+      expect(
+        find.byKey(const Key('battle-mobile-panel-compactPortrait')),
+        findsOneWidget,
+      );
+      final promptRect =
+          tester.getRect(find.byKey(const Key('battle-mobile-prompt-card')));
+      final firstActionRect =
+          tester.getRect(find.byKey(const Key('battle-mobile-root-tile-0')));
+      expect(promptRect.bottom, lessThan(firstActionRect.top));
+    });
+
+    testWidgets('uses the medium landscape split variant', (tester) async {
+      const viewportSize = Size(844, 390);
+      await tester.binding.setSurfaceSize(viewportSize);
+      addTearDown(() async => tester.binding.setSurfaceSize(null));
+      final snapshot = _layoutSnapshot(viewportSize: viewportSize);
+
+      await tester.pumpWidget(
+        _hostedOverlay(
+          snapshot: snapshot,
+          onEntrySelected: (_) {},
+          canvasSize: viewportSize,
+        ),
+      );
+
+      expect(
+        find.byKey(const Key('battle-mobile-panel-mediumLandscape')),
+        findsOneWidget,
+      );
+      final promptRect =
+          tester.getRect(find.byKey(const Key('battle-mobile-prompt-card')));
+      final firstActionRect =
+          tester.getRect(find.byKey(const Key('battle-mobile-root-tile-0')));
+      expect(promptRect.right, lessThan(firstActionRect.left));
+    });
+
+    testWidgets('uses the wide desktop panel variant', (tester) async {
+      const viewportSize = Size(1280, 720);
+      await tester.binding.setSurfaceSize(viewportSize);
+      addTearDown(() async => tester.binding.setSurfaceSize(null));
+      final snapshot = _layoutSnapshot(viewportSize: viewportSize);
+
+      await tester.pumpWidget(
+        _hostedOverlay(
+          snapshot: snapshot,
+          onEntrySelected: (_) {},
+          canvasSize: viewportSize,
+        ),
+      );
+
+      expect(
+        find.byKey(const Key('battle-mobile-panel-wideDesktop')),
+        findsOneWidget,
+      );
+      final promptRect =
+          tester.getRect(find.byKey(const Key('battle-mobile-prompt-card')));
+      final firstActionRect =
+          tester.getRect(find.byKey(const Key('battle-mobile-root-tile-0')));
+      expect(promptRect.right, lessThan(firstActionRect.left));
+      expect(promptRect.width, greaterThan(260));
+    });
+
     testWidgets('renders the battle huds outside the command panel',
         (tester) async {
       await tester.pumpWidget(
@@ -229,47 +429,260 @@ void main() {
       expect(draggedTop, lessThan(initialTop));
     });
 
-    testWidgets('fight mode renders a single tall column of move cards',
+    testWidgets('fight mode uses a compact two-column move grid in portrait',
         (tester) async {
-      final entries = <BattleCommandOverlayEntry>[
-        _entry(
-          index: 0,
-          kind: BattleCommandOverlayEntryKind.move,
-          primaryLabel: 'Rain Dance',
-          secondaryLabel: 'WATER · Status · No direct damage',
-          tone: BattleCommandOverlayEntryTone.support,
-        ),
-        _entry(
-          index: 1,
-          kind: BattleCommandOverlayEntryKind.move,
-          primaryLabel: 'Aqua Tail',
-          secondaryLabel: 'WATER · Physical · Power 90',
-          tone: BattleCommandOverlayEntryTone.attack,
-        ),
-      ];
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() async => tester.binding.setSurfaceSize(null));
+      final snapshot = _layoutSnapshot(
+        viewportSize: const Size(390, 844),
+        mode: BattleCommandOverlayMode.fight,
+        entries: <BattleCommandOverlayEntry>[
+          _entry(
+            index: 0,
+            kind: BattleCommandOverlayEntryKind.move,
+            primaryLabel: 'Rain Dance',
+            secondaryLabel: 'WATER · Status · No direct damage',
+            tone: BattleCommandOverlayEntryTone.support,
+          ),
+          _entry(
+            index: 1,
+            kind: BattleCommandOverlayEntryKind.move,
+            primaryLabel: 'Aqua Tail',
+            secondaryLabel: 'WATER · Physical · Power 90',
+            tone: BattleCommandOverlayEntryTone.attack,
+          ),
+          _entry(
+            index: 2,
+            kind: BattleCommandOverlayEntryKind.move,
+            primaryLabel: 'Bubble Beam',
+            secondaryLabel: 'WATER · Special · Power 65',
+            tone: BattleCommandOverlayEntryTone.special,
+          ),
+          _entry(
+            index: 3,
+            kind: BattleCommandOverlayEntryKind.move,
+            primaryLabel: 'Protect',
+            secondaryLabel: 'NORMAL · Status · Shields user',
+            tone: BattleCommandOverlayEntryTone.support,
+          ),
+        ],
+      );
 
       await tester.pumpWidget(
         _hostedOverlay(
-          snapshot: _snapshot(
-            mode: BattleCommandOverlayMode.fight,
-            entries: entries,
-            canGoBack: true,
-            panelHeight: 420,
-          ),
+          snapshot: snapshot,
           onEntrySelected: (_) {},
-          onBack: () {},
+          canvasSize: const Size(390, 844),
+        ),
+      );
+
+      final promptRect =
+          tester.getRect(find.byKey(const Key('battle-mobile-prompt-card')));
+      final firstRect =
+          tester.getRect(find.byKey(const Key('battle-mobile-entry-0')));
+      final secondRect =
+          tester.getRect(find.byKey(const Key('battle-mobile-entry-1')));
+      final thirdRect =
+          tester.getRect(find.byKey(const Key('battle-mobile-entry-2')));
+
+      expect(find.byKey(const Key('battle-mobile-entry-grid')), findsOneWidget);
+      expect(promptRect.height, lessThan(58));
+      expect((firstRect.top - secondRect.top).abs(), lessThan(1));
+      expect(secondRect.left, greaterThan(firstRect.right));
+      expect(thirdRect.top, greaterThan(firstRect.bottom));
+      expect(firstRect.height, lessThan(60));
+    });
+
+    testWidgets('fight mode keeps four moves visible on compact landscape',
+        (tester) async {
+      const viewportSize = Size(844, 390);
+      await tester.binding.setSurfaceSize(viewportSize);
+      addTearDown(() async => tester.binding.setSurfaceSize(null));
+      final snapshot = _layoutSnapshot(
+        viewportSize: viewportSize,
+        mode: BattleCommandOverlayMode.fight,
+        entries: <BattleCommandOverlayEntry>[
+          _entry(
+            index: 0,
+            kind: BattleCommandOverlayEntryKind.move,
+            primaryLabel: 'Rain Dance',
+            secondaryLabel: 'WATER · Status · No direct damage',
+            tone: BattleCommandOverlayEntryTone.support,
+          ),
+          _entry(
+            index: 1,
+            kind: BattleCommandOverlayEntryKind.move,
+            primaryLabel: 'Aqua Tail',
+            secondaryLabel: 'WATER · Physical · Power 90',
+            tone: BattleCommandOverlayEntryTone.attack,
+          ),
+          _entry(
+            index: 2,
+            kind: BattleCommandOverlayEntryKind.move,
+            primaryLabel: 'Bubble Beam',
+            secondaryLabel: 'WATER · Special · Power 65',
+            tone: BattleCommandOverlayEntryTone.special,
+          ),
+          _entry(
+            index: 3,
+            kind: BattleCommandOverlayEntryKind.move,
+            primaryLabel: 'Protect',
+            secondaryLabel: 'NORMAL · Status · Shields user',
+            tone: BattleCommandOverlayEntryTone.support,
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _hostedOverlay(
+          snapshot: snapshot,
+          onEntrySelected: (_) {},
+          canvasSize: viewportSize,
         ),
       );
 
       final firstRect =
           tester.getRect(find.byKey(const Key('battle-mobile-entry-0')));
-      final secondRect =
+      final fourthRect =
+          tester.getRect(find.byKey(const Key('battle-mobile-entry-3')));
+
+      expect(find.byKey(const Key('battle-mobile-entry-grid')), findsOneWidget);
+      expect(fourthRect.bottom, lessThanOrEqualTo(snapshot.panelRect.bottom));
+      expect(fourthRect.top, greaterThan(firstRect.bottom));
+    });
+
+    testWidgets('compact portrait player hud keeps hp numerics visible',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() async => tester.binding.setSurfaceSize(null));
+      final snapshot = _layoutSnapshot(
+        viewportSize: const Size(390, 844),
+      );
+
+      await tester.pumpWidget(
+        _hostedOverlay(
+          snapshot: snapshot,
+          onEntrySelected: (_) {},
+          canvasSize: const Size(390, 844),
+        ),
+      );
+
+      expect(
+          find.byKey(const Key('battle-mobile-player-hp-bar')), findsOneWidget);
+      expect(find.byKey(const Key('battle-mobile-player-hp-value')),
+          findsOneWidget);
+      expect(find.text('57/57'), findsOneWidget);
+      expect(find.text('18/18'), findsNothing);
+    });
+
+    testWidgets('bag mode groups categories with compact rows', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() async => tester.binding.setSurfaceSize(null));
+      final snapshot = _layoutSnapshot(
+        viewportSize: const Size(390, 844),
+        mode: BattleCommandOverlayMode.bag,
+        entries: <BattleCommandOverlayEntry>[
+          _entry(
+            index: 0,
+            kind: BattleCommandOverlayEntryKind.bag,
+            primaryLabel: 'Potion',
+            secondaryLabel: 'Medicine',
+            trailingLabel: 'x2',
+            statusLabel: 'OK',
+            tone: BattleCommandOverlayEntryTone.medicine,
+          ),
+          _entry(
+            index: 1,
+            kind: BattleCommandOverlayEntryKind.bag,
+            primaryLabel: 'Poke Ball',
+            secondaryLabel: 'Capture',
+            trailingLabel: 'x5',
+            statusLabel: 'OK',
+            tone: BattleCommandOverlayEntryTone.capture,
+          ),
+          _entry(
+            index: 2,
+            kind: BattleCommandOverlayEntryKind.bag,
+            primaryLabel: 'Antidote',
+            secondaryLabel: 'Medicine',
+            trailingLabel: 'x1',
+            statusLabel: 'Unsupported',
+            enabled: false,
+            tone: BattleCommandOverlayEntryTone.disabled,
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        _hostedOverlay(
+          snapshot: snapshot,
+          onEntrySelected: (_) {},
+          canvasSize: const Size(390, 844),
+        ),
+      );
+
+      final captureHeader =
+          find.byKey(const Key('battle-mobile-bag-section-Capture'));
+      final medicineHeader =
+          find.byKey(const Key('battle-mobile-bag-section-Medicine'));
+      final firstTile =
           tester.getRect(find.byKey(const Key('battle-mobile-entry-1')));
 
-      expect((firstRect.left - secondRect.left).abs(), lessThan(1));
-      expect(secondRect.top, greaterThan(firstRect.bottom));
-      expect(firstRect.height, greaterThan(68));
-      expect(firstRect.width, greaterThan(250));
+      expect(captureHeader, findsOneWidget);
+      expect(medicineHeader, findsOneWidget);
+      expect(
+        tester.getTopLeft(captureHeader).dy,
+        lessThan(tester.getTopLeft(medicineHeader).dy),
+      );
+      expect(firstTile.height, lessThan(66));
+    });
+
+    testWidgets('player hp bar shrinks and turns red on low health',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() async => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        _hostedOverlay(
+          snapshot: _layoutSnapshot(
+            viewportSize: const Size(390, 844),
+            playerCurrentHp: 57,
+            playerMaxHp: 57,
+          ),
+          onEntrySelected: (_) {},
+          canvasSize: const Size(390, 844),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final fullWidth = tester
+          .getRect(find.byKey(const Key('battle-mobile-player-hp-fill')))
+          .width;
+
+      await tester.pumpWidget(
+        _hostedOverlay(
+          snapshot: _layoutSnapshot(
+            viewportSize: const Size(390, 844),
+            playerCurrentHp: 10,
+            playerMaxHp: 57,
+          ),
+          onEntrySelected: (_) {},
+          canvasSize: const Size(390, 844),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final lowFillFinder =
+          find.byKey(const Key('battle-mobile-player-hp-fill-decoration'));
+      final lowWidth = tester
+          .getRect(find.byKey(const Key('battle-mobile-player-hp-fill')))
+          .width;
+      final decoration = tester.widget<DecoratedBox>(lowFillFinder).decoration
+          as BoxDecoration;
+      final gradient = decoration.gradient! as LinearGradient;
+
+      expect(lowWidth, lessThan(fullWidth * 0.35));
+      expect(gradient.colors.last, const Color(0xFFD35B49));
     });
 
     testWidgets('shows a back button and invokes it', (tester) async {
@@ -368,6 +781,8 @@ void main() {
     testWidgets(
         'keeps compact desktop battle chrome inside the panel without overflow',
         (tester) async {
+      await tester.binding.setSurfaceSize(const Size(844, 390));
+      addTearDown(() async => tester.binding.setSurfaceSize(null));
       final layout = BattleSceneLayout.forViewport(
         viewportSize: const Size(844, 390),
       );

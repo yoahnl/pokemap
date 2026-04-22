@@ -709,15 +709,15 @@ void main() {
       expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
       expect(
         panel.currentBagEntryLabels,
-        const <String>['Rare Candy x1', 'Antidote x1', 'Potion x2'],
+        const <String>['Antidote x1', 'Potion x2', 'Rare Candy x1'],
       );
       expect(
         panel.currentBagSelectableStates,
-        const <bool>[false, false, true],
+        const <bool>[false, true, false],
       );
       expect(
         panel.currentBagStatusLabels,
-        const <String>['Unsupported item', 'Unsupported medicine', 'OK'],
+        const <String>['Unsupported medicine', 'OK', 'Unsupported item'],
       );
     });
 

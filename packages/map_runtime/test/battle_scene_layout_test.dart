@@ -115,6 +115,27 @@ void main() {
       });
     }
 
+    test('classifies battle viewports', () {
+      expect(
+        BattleSceneLayout.forViewport(
+          viewportSize: const Size(390, 844),
+        ).viewportClass,
+        BattleViewportClass.compactPortrait,
+      );
+      expect(
+        BattleSceneLayout.forViewport(
+          viewportSize: const Size(844, 390),
+        ).viewportClass,
+        BattleViewportClass.mediumLandscape,
+      );
+      expect(
+        BattleSceneLayout.forViewport(
+          viewportSize: const Size(1280, 720),
+        ).viewportClass,
+        BattleViewportClass.wideDesktop,
+      );
+    });
+
     test('uses stacked command panel layout on mobile portrait', () {
       final layout = BattleSceneLayout.forViewport(
         viewportSize: const Size(390, 844),
@@ -171,7 +192,8 @@ void main() {
         isFalse,
       );
       expect(layout.playerHudRect.overlaps(layout.commandPanelRect), isFalse);
-      expect(layout.playerSpriteRect.overlaps(layout.commandPanelRect), isFalse);
+      expect(
+          layout.playerSpriteRect.overlaps(layout.commandPanelRect), isFalse);
     });
 
     test('keeps the product validation viewport 1012x467 readable', () {
@@ -188,7 +210,57 @@ void main() {
         isFalse,
       );
       expect(layout.playerHudRect.overlaps(layout.commandPanelRect), isFalse);
-      expect(layout.playerSpriteRect.overlaps(layout.commandPanelRect), isFalse);
+      expect(
+          layout.playerSpriteRect.overlaps(layout.commandPanelRect), isFalse);
+    });
+
+    test('keeps compact portrait staging protected at 390x844', () {
+      final layout = BattleSceneLayout.forViewport(
+        viewportSize: const Size(390, 844),
+      );
+
+      expect(layout.viewportClass, BattleViewportClass.compactPortrait);
+      expect(
+          layout.commandPanelLayoutMode, BattleCommandPanelLayoutMode.stacked);
+      expect(layout.commandPanelRect.height, inInclusiveRange(248.0, 276.0));
+      expect(
+        layout.stageRect.bottom,
+        lessThanOrEqualTo(layout.commandPanelRect.top - 10),
+      );
+      expect(
+        layout.enemyHudRect.left,
+        greaterThanOrEqualTo(layout.portraitSafeMargin),
+      );
+    });
+
+    test('keeps medium landscape split at 844x390', () {
+      final layout = BattleSceneLayout.forViewport(
+        viewportSize: const Size(844, 390),
+      );
+
+      expect(layout.viewportClass, BattleViewportClass.mediumLandscape);
+      expect(layout.commandPanelLayoutMode, BattleCommandPanelLayoutMode.split);
+      expect(layout.commandPanelRect.height, inInclusiveRange(132.0, 170.0));
+      expect(layout.commandPanelRect.width, greaterThanOrEqualTo(804.0));
+      expect(
+        layout.playerHudRect.bottom,
+        lessThanOrEqualTo(layout.commandPanelRect.top - 8),
+      );
+    });
+
+    test('keeps wide desktop airy at 1280x720', () {
+      final layout = BattleSceneLayout.forViewport(
+        viewportSize: const Size(1280, 720),
+      );
+
+      expect(layout.viewportClass, BattleViewportClass.wideDesktop);
+      expect(layout.commandPanelLayoutMode, BattleCommandPanelLayoutMode.split);
+      expect(layout.commandPanelRect.height, inInclusiveRange(140.0, 184.0));
+      expect(layout.scale, closeTo(1.0, 0.001));
+      expect(
+        layout.stageRect.bottom,
+        lessThanOrEqualTo(layout.commandPanelRect.top - 14),
+      );
     });
 
     group('portrait hardening', () {
@@ -200,7 +272,8 @@ void main() {
       ];
 
       for (final viewport in portraitViewports) {
-        test('keeps portrait HUDs off the screen edges at ${viewport.width}x${viewport.height}',
+        test(
+            'keeps portrait HUDs off the screen edges at ${viewport.width}x${viewport.height}',
             () {
           final layout = BattleSceneLayout.forViewport(viewportSize: viewport);
 
@@ -220,7 +293,8 @@ void main() {
             layout.enemyHudRect.overlaps(layout.playerSpriteRect.inflate(4)),
             isFalse,
           );
-          expect(layout.playerHudRect.overlaps(layout.commandPanelRect), isFalse);
+          expect(
+              layout.playerHudRect.overlaps(layout.commandPanelRect), isFalse);
         });
       }
 
@@ -231,6 +305,8 @@ void main() {
 
         expect(layout.enemyHudRect.width, greaterThanOrEqualTo(110));
         expect(layout.playerHudRect.width, greaterThanOrEqualTo(128));
+        expect(layout.enemyHudRect.height, greaterThanOrEqualTo(46));
+        expect(layout.playerHudRect.height, greaterThanOrEqualTo(54));
       });
     });
   });

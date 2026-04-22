@@ -503,6 +503,54 @@ void main() {
       );
     });
 
+    test('groups battle bag entries by category for display order', () {
+      final session = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_move(id: 'tackle', name: 'Tackle')],
+        ),
+        enemy: _combatant(
+          speciesId: 'wildmon',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_move(id: 'scratch', name: 'Scratch')],
+        ),
+        allowCapture: true,
+      );
+
+      final model = buildBattleBagMenuModel(
+        gameState: _gameState(
+          bag: Bag(
+            entries: <BagEntry>[
+              _entry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+              _entry(itemId: 'poke-ball', categoryId: 'items', quantity: 4),
+              _entry(
+                itemId: 'super-potion',
+                categoryId: 'medicine',
+                quantity: 1,
+              ),
+              _entry(itemId: 'x-attack', categoryId: 'items', quantity: 1),
+            ],
+          ),
+        ),
+        session: session,
+      );
+
+      expect(
+        model.entries.map((entry) => entry.itemId),
+        <String>['poke-ball', 'potion', 'super-potion', 'x-attack'],
+      );
+      expect(
+        model.entries.map((entry) => entry.kind),
+        <BattleBagItemKind>[
+          BattleBagItemKind.captureBall,
+          BattleBagItemKind.medicine,
+          BattleBagItemKind.medicine,
+          BattleBagItemKind.unsupported,
+        ],
+      );
+    });
+
     test('unsupported medicine stays visible but disabled', () {
       final session = _session(
         player: _combatant(
