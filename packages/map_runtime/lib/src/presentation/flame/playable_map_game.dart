@@ -252,6 +252,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   String? _activeBlockingInteractionSourceId;
   bool _hasPendingDialogueLoad = false;
   String? _activeScriptRuntimeSourceId;
+  _PendingScenarioLeaderWarpHandoff? _pendingScenarioLeaderWarpHandoff;
+  int _lastFollowPathNodeCount = 0;
+  GridPos? _lastFollowPathDestination;
   GridPos? _debugTileMarkerPos;
   String? _debugTileMarkerLabel;
   RectangleComponent? _debugTileMarkerFill;
@@ -380,6 +383,41 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   @visibleForTesting
   GridPos get debugPlayerGridPosition => _world.player.pos;
+
+  @visibleForTesting
+  bool get debugHasActiveScenarioFollow => _pendingScenarioFollowRequest != null;
+
+  @visibleForTesting
+  String? get debugScenarioFollowLeaderId =>
+      _pendingScenarioFollowRequest?.leaderEntityId;
+
+  @visibleForTesting
+  int get debugScenarioFollowConsecutiveBlockedSteps =>
+      _pendingScenarioFollowRequest?.consecutiveBlockedSteps ?? 0;
+
+  @visibleForTesting
+  int get debugLastFollowPathNodeCount => _lastFollowPathNodeCount;
+
+  @visibleForTesting
+  GridPos? get debugScenarioFollowDestination => _lastFollowPathDestination;
+
+  @visibleForTesting
+  bool get debugHasPendingLeaderWarpHandoff =>
+      _pendingScenarioLeaderWarpHandoff != null;
+
+  @visibleForTesting
+  GridPos? debugNpcGridPosition(String entityId) {
+    final normalized = entityId.trim();
+    if (normalized.isEmpty) {
+      return null;
+    }
+    final movement = scriptedNpcMovementStatus(normalized);
+    if (movement.entityId == normalized &&
+        movement.state != ScriptedEntityMovementState.failed) {
+      return movement.currentPos;
+    }
+    return _resolveScenarioEntityPosition(normalized);
+  }
 
   @visibleForTesting
   String? get debugNotificationText => _notification?.text;
@@ -556,6 +594,25 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _player.syncState(_world.player, snapToGrid: true);
     _syncGameStateFromWorld(mapIdOverride: _activeMapId);
     _syncCameraToPlayer();
+  }
+
+  @visibleForTesting
+  bool debugStartScenarioFollow(String leaderEntityId) {
+    return _runScenarioFollowCharacter(leaderEntityId: leaderEntityId);
+  }
+
+  @visibleForTesting
+  bool debugRunScenarioMoveCharacterToWarp({
+    required String entityId,
+    required String warpId,
+  }) {
+    return _runScenarioMoveCharacter(
+      entityId: entityId,
+      targetKind: 'warp',
+      targetId: warpId,
+      waitForCompletion: false,
+      runtimeSourceId: 'debug_follow_warp',
+    );
   }
 
   void _syncGameStateFromWorld({String? mapIdOverride}) {
@@ -1462,6 +1519,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       Direction.north || Direction.south => _world.tileHeightPx,
     };
     return math.max(1, raw);
+  }
+
+  MoveIntent _fullTileMoveIntent(Direction direction) {
+    return MoveIntent(
+      direction,
+      pixelsPerStep: _playerStepPixels(direction),
+    );
   }
 
   void _driveMovement() {
@@ -2675,7 +2739,32 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       _completeScenarioPlayerWarpEntry(pending);
       return;
     }
-    final removed = _despawnNpcFromActiveMap(pending.entityId);
+    final activeFollow = _pendingScenarioFollowRequest;
+    final keepFollowActive = activeFollow?.leaderEntityId == pending.entityId;
+    if (keepFollowActive) {
+      final warp = _findMapWarpById(pending.warpId);
+      if (warp != null) {
+        _pendingScenarioLeaderWarpHandoff = _PendingScenarioLeaderWarpHandoff(
+          leaderEntityId: pending.entityId,
+          warpId: warp.id,
+          targetMapId: warp.targetMapId,
+          targetPos: warp.targetPos,
+        );
+        _pendingWarp ??= TriggeredWarp(
+          warpId: warp.id,
+          targetMapId: warp.targetMapId,
+          targetPos: warp.targetPos,
+          triggerMode: warp.triggerMode,
+        );
+        debugPrint(
+          '[scenario_runtime] followCharacter leaderWarp leader=${pending.entityId} warp=${warp.id} targetMap=${warp.targetMapId}',
+        );
+      }
+    }
+    final removed = _despawnNpcFromActiveMap(
+      pending.entityId,
+      keepActiveFollow: keepFollowActive,
+    );
     if (!removed) {
       debugPrint(
         '[scenario_runtime] npc warp failed to remove entity=${pending.entityId} warp=${pending.warpId}',
@@ -2706,7 +2795,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
   }
 
-  bool _despawnNpcFromActiveMap(String entityId) {
+  bool _despawnNpcFromActiveMap(
+    String entityId, {
+    bool keepActiveFollow = false,
+  }) {
     final normalized = entityId.trim();
     if (normalized.isEmpty) {
       return false;
@@ -2745,7 +2837,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _scriptedNpcReservedOccupiedCellsByEntity.remove(normalized);
     _runtimeNpcPositions.remove(normalized);
     _triggeredTrainerBattles.remove(normalized);
-    if (_pendingScenarioFollowRequest?.leaderEntityId == normalized) {
+    if (!keepActiveFollow &&
+        _pendingScenarioFollowRequest?.leaderEntityId == normalized) {
       _pendingScenarioFollowRequest = null;
     }
     _pendingScenarioNpcWarpEntries.remove(normalized);
@@ -2777,6 +2870,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     final leaderPos = _resolveScenarioLeaderPosition(pending.leaderEntityId);
     if (leaderPos == null) {
+      final pendingWarpHandoff = _pendingScenarioLeaderWarpHandoff;
+      if (pendingWarpHandoff != null &&
+          pendingWarpHandoff.leaderEntityId == pending.leaderEntityId) {
+        return;
+      }
       debugPrint(
         '[scenario_runtime] followCharacter canceled leader unresolved=${pending.leaderEntityId}',
       );
@@ -2932,14 +3030,21 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return false;
     }
 
-    final result = stepGameplayWorld(_world, MoveIntent(direction));
+    final followWorld = _buildFollowPlanningWorldIgnoringLeader(
+      leaderEntityId: leaderEntityId,
+      leaderPos: leaderPos,
+    );
+    final result = stepGameplayWorld(
+      followWorld,
+      _fullTileMoveIntent(direction),
+    );
     if (result is! Moved) {
       debugPrint(
         '[scenario_runtime] followCharacter path step blocked leader=$leaderEntityId from=(${currentPos.x},${currentPos.y}) to=(${nextPos.x},${nextPos.y})',
       );
       return false;
     }
-    _world = result.world;
+    _world = _world.withPlayer(result.world.player);
     _syncGameStateFromWorld();
     _consumePathAnimationSignals(result.pathAnimationSignals);
     _player.startStep(
@@ -3076,7 +3181,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   GridPos? _resolveScenarioLeaderPosition(String leaderEntityId) {
     final movementStatus = scriptedNpcMovementStatus(leaderEntityId);
-    if (movementStatus.entityId == leaderEntityId) {
+    if (movementStatus.entityId == leaderEntityId &&
+        movementStatus.state != ScriptedEntityMovementState.failed) {
       return movementStatus.currentPos;
     }
     final active = _loadedMapsById[_activeMapId];
@@ -3084,6 +3190,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final actorGridPos = actor?.gridPos;
     if (actorGridPos != null) {
       return actorGridPos;
+    }
+    final runtimePos = _runtimeNpcPositions[leaderEntityId];
+    if (runtimePos != null) {
+      return runtimePos;
     }
     for (final entity in _world.map.entities) {
       if (entity.id == leaderEntityId) {
@@ -3103,6 +3213,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     final leaderRect = _resolveScenarioLeaderCollisionFootprint(
       leaderEntityId: leaderEntityId,
       fallbackAnchor: leaderPos,
+    );
+    final followWorld = _buildFollowPlanningWorldIgnoringLeader(
+      leaderEntityId: leaderEntityId,
+      leaderPos: leaderPos,
     );
     final candidates = <GridPos>[];
     final preferredCandidates = <GridPos>{};
@@ -3128,19 +3242,41 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return da.compareTo(db);
     });
     for (final candidate in deduplicated) {
-      if (!_canPlacePlayerAt(candidate)) {
+      if (!_canPlacePlayerAtForFollow(
+        candidate,
+        followWorld: followWorld,
+        leaderEntityId: leaderEntityId,
+      )) {
         continue;
       }
       final path = _computeFollowPlayerPath(
         start: currentPlayerPos,
         goal: candidate,
+        followWorld: followWorld,
+        leaderEntityId: leaderEntityId,
       );
       if (path == null) {
         continue;
       }
+      _lastFollowPathNodeCount = path.length;
+      _lastFollowPathDestination = candidate;
       return _FollowPathPlan(
         destination: candidate,
         path: path,
+      );
+    }
+
+    if (_isPosAdjacentToRect(currentPlayerPos, leaderRect) &&
+        _canPlacePlayerAtForFollow(
+          currentPlayerPos,
+          followWorld: followWorld,
+          leaderEntityId: leaderEntityId,
+        )) {
+      _lastFollowPathNodeCount = 1;
+      _lastFollowPathDestination = currentPlayerPos;
+      return _FollowPathPlan(
+        destination: currentPlayerPos,
+        path: <GridPos>[currentPlayerPos],
       );
     }
 
@@ -3157,16 +3293,24 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         return da.compareTo(db);
       });
       for (final candidate in relaxedCandidates) {
-        if (!_canPlacePlayerAt(candidate)) {
+        if (!_canPlacePlayerAtForFollow(
+          candidate,
+          followWorld: followWorld,
+          leaderEntityId: leaderEntityId,
+        )) {
           continue;
         }
         final path = _computeFollowPlayerPath(
           start: currentPlayerPos,
           goal: candidate,
+          followWorld: followWorld,
+          leaderEntityId: leaderEntityId,
         );
         if (path == null) {
           continue;
         }
+        _lastFollowPathNodeCount = path.length;
+        _lastFollowPathDestination = candidate;
         return _FollowPathPlan(
           destination: candidate,
           path: path,
@@ -3175,18 +3319,28 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     if (_isPosAdjacentToRect(currentPlayerPos, leaderRect) &&
-        _canPlacePlayerAt(currentPlayerPos)) {
+        _canPlacePlayerAtForFollow(
+          currentPlayerPos,
+          followWorld: followWorld,
+          leaderEntityId: leaderEntityId,
+        )) {
+      _lastFollowPathNodeCount = 1;
+      _lastFollowPathDestination = currentPlayerPos;
       return _FollowPathPlan(
         destination: currentPlayerPos,
         path: <GridPos>[currentPlayerPos],
       );
     }
+    _lastFollowPathNodeCount = 0;
+    _lastFollowPathDestination = null;
     return null;
   }
 
   List<GridPos>? _computeFollowPlayerPath({
     required GridPos start,
     required GridPos goal,
+    required GameplayWorldState followWorld,
+    required String leaderEntityId,
   }) {
     final result = _followPathfinder.findPath(
       bounds: _world.map.size,
@@ -3200,10 +3354,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         if (!_isWithinMapBounds(_world.map, cell)) {
           return false;
         }
-        if (_isCellReservedByScriptedNpc(cell)) {
+        if (_isCellReservedByScriptedNpc(
+          cell,
+          ignoreEntityId: leaderEntityId,
+        )) {
           return false;
         }
-        final trial = _world.withPlayer(_world.player.copyWith(pos: cell));
+        final trial = followWorld.withPlayer(followWorld.player.copyWith(pos: cell));
         return !trial.isBlocked(x, y);
       },
     );
@@ -3246,6 +3403,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     pending.cachedPath = null;
     pending.cachedPathDestination = null;
     pending.cachedPathLeaderPos = null;
+    _lastFollowPathNodeCount = 0;
+    _lastFollowPathDestination = null;
   }
 
   MapRect _resolveScenarioLeaderCollisionFootprint({
@@ -3396,11 +3555,49 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     return math.max(dx, dy) == 1;
   }
 
-  bool _canPlacePlayerAt(GridPos pos) {
+  GameplayWorldState _buildFollowPlanningWorldIgnoringLeader({
+    required String leaderEntityId,
+    required GridPos leaderPos,
+  }) {
+    final normalized = leaderEntityId.trim();
+    if (normalized.isEmpty) {
+      return _world;
+    }
+    final index = _world.map.entities.indexWhere((entity) => entity.id == normalized);
+    if (index < 0) {
+      return _world;
+    }
+    final updatedEntities = List<MapEntity>.from(_world.map.entities);
+    final leader = updatedEntities[index];
+    updatedEntities[index] = leader.copyWith(
+      pos: leaderPos,
+      blocksMovement: false,
+    );
+    final updatedMap = _world.map.copyWith(entities: updatedEntities);
+    return GameplayWorldState.initial(
+      map: updatedMap,
+      playerPos: _world.player.pos,
+      playerFacing: _world.player.facing,
+      playerMovementMode: _world.player.movementMode,
+      project: _bundle.manifest,
+      tileWidth: _bundle.manifest.settings.tileWidth,
+      tileHeight: _bundle.manifest.settings.tileHeight,
+      npcMapPresencePredicate: _npcPresencePredicateFor(_bundle.manifest),
+    );
+  }
+
+  bool _canPlacePlayerAtForFollow(
+    GridPos pos, {
+    required GameplayWorldState followWorld,
+    required String leaderEntityId,
+  }) {
     if (!_isWithinMapBounds(_world.map, pos)) {
       return false;
     }
-    final trial = _world.withPlayer(_world.player.copyWith(pos: pos));
+    if (_isCellReservedByScriptedNpc(pos, ignoreEntityId: leaderEntityId)) {
+      return false;
+    }
+    final trial = followWorld.withPlayer(followWorld.player.copyWith(pos: pos));
     return !trial.isBlocked(pos.x, pos.y);
   }
 
@@ -5354,6 +5551,32 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       debugPrint(
         '[warp] gameplay unlocked map=$_activeMapId pos=(${_world.player.pos.x}, ${_world.player.pos.y})',
       );
+      final pendingLeaderWarpHandoff = _pendingScenarioLeaderWarpHandoff;
+      if (pendingLeaderWarpHandoff != null) {
+        if (swapCompleted &&
+            _activeMapId == pendingLeaderWarpHandoff.targetMapId) {
+          debugPrint(
+            '[scenario_runtime] followCharacter playerWarpHandoff leader=${pendingLeaderWarpHandoff.leaderEntityId} map=$_activeMapId pos=(${_world.player.pos.x},${_world.player.pos.y})',
+          );
+          if (_pendingScenarioFollowRequest?.leaderEntityId ==
+              pendingLeaderWarpHandoff.leaderEntityId) {
+            _pendingScenarioFollowRequest = null;
+          }
+          _pendingScenarioLeaderWarpHandoff = null;
+          debugPrint(
+            '[scenario_runtime] followCharacter completed leader=${pendingLeaderWarpHandoff.leaderEntityId} reason=warp_handoff',
+          );
+        } else if (!swapCompleted) {
+          if (_pendingScenarioFollowRequest?.leaderEntityId ==
+              pendingLeaderWarpHandoff.leaderEntityId) {
+            _pendingScenarioFollowRequest = null;
+          }
+          _pendingScenarioLeaderWarpHandoff = null;
+          debugPrint(
+            '[scenario_runtime] followCharacter canceled leader=${pendingLeaderWarpHandoff.leaderEntityId} reason=warp_handoff_failed',
+          );
+        }
+      }
       if (swapCompleted) {
         _activeScenarioTriggerIds = _scenarioRuntime.triggerIdsAtPosition(
           map: _bundle.map,
@@ -6876,8 +7099,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _world = _world.withEntityPosition(entityId, position);
   }
 
-  bool _isCellReservedByScriptedNpc(GridPos cell) {
-    for (final cells in _scriptedNpcReservedOccupiedCellsByEntity.values) {
+  bool _isCellReservedByScriptedNpc(
+    GridPos cell, {
+    String? ignoreEntityId,
+  }) {
+    for (final entry in _scriptedNpcReservedOccupiedCellsByEntity.entries) {
+      if (ignoreEntityId != null && entry.key == ignoreEntityId) {
+        continue;
+      }
+      final cells = entry.value;
       if (cells.contains(cell)) {
         return true;
       }
@@ -7133,6 +7363,20 @@ class _PendingScenarioNpcWarpEntry {
   final String warpId;
   final GridPos warpPos;
   final GridPos approachPos;
+}
+
+class _PendingScenarioLeaderWarpHandoff {
+  const _PendingScenarioLeaderWarpHandoff({
+    required this.leaderEntityId,
+    required this.warpId,
+    required this.targetMapId,
+    required this.targetPos,
+  });
+
+  final String leaderEntityId;
+  final String warpId;
+  final String targetMapId;
+  final GridPos targetPos;
 }
 
 class _PendingScenarioMoveContinuation {

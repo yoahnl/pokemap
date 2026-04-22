@@ -491,6 +491,285 @@ void main() {
       await _pumpUntil(game, () => game.debugFlowPhaseName == 'dialogue');
     });
 
+    test('followCharacter player step uses full tile movement on 32px maps',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_follow_full_tile_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        settings: const ProjectSettings(
+          tileWidth: 32,
+          tileHeight: 32,
+        ),
+        maps: <MapData>[
+          _followLeaderMap32(),
+        ],
+        tilesets: _followScenarioTilesets,
+        characters: _followScenarioCharacters,
+      );
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'follow_leader_map_32',
+      );
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+
+      expect(game.debugPlayerGridPosition, const GridPos(x: 0, y: 1));
+
+      expect(game.debugStartScenarioFollow('emma'), isTrue);
+
+      expect(game.debugHasActiveScenarioFollow, isTrue);
+      expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 1));
+      expect(game.debugIsPlayerStepping, isTrue);
+      await _pumpUntil(game, () => !game.debugIsPlayerStepping);
+      expect(game.debugRenderedPlayerFootCell, const GridPos(x: 1, y: 1));
+      expect(
+        game.debugPlayerWorldTopLeft,
+        game.debugExpectedPlayerWorldTopLeft,
+      );
+    });
+
+    test('followCharacter follower keeps pace with a walking leader',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_follow_pace_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        settings: const ProjectSettings(
+          tileWidth: 32,
+          tileHeight: 32,
+        ),
+        maps: <MapData>[
+          _followLeaderMap32(),
+        ],
+        tilesets: _followScenarioTilesets,
+        characters: _followScenarioCharacters,
+      );
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'follow_leader_map_32',
+      );
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+
+      expect(game.debugStartScenarioFollow('emma'), isTrue);
+      expect(
+        game.startScriptedNpcMove(
+          entityId: 'emma',
+          destination: const GridPos(x: 7, y: 1),
+        ).state,
+        ScriptedEntityMovementState.moving,
+      );
+
+      var maxDistance = 0;
+      await _pumpUntil(
+        game,
+        () {
+          final leaderPos = game.debugNpcGridPosition('emma');
+          if (leaderPos != null) {
+            final playerPos = game.debugPlayerGridPosition;
+            final distance = (leaderPos.x - playerPos.x).abs() +
+                (leaderPos.y - playerPos.y).abs();
+            if (distance > maxDistance) {
+              maxDistance = distance;
+            }
+          }
+          return !game.debugHasActiveScenarioFollow &&
+              game.scriptedNpcMovementStatus('emma').state !=
+                  ScriptedEntityMovementState.moving;
+        },
+        maxTicks: 480,
+      );
+
+      expect(maxDistance, lessThanOrEqualTo(2));
+      expect(game.debugPlayerGridPosition, const GridPos(x: 6, y: 1));
+    });
+
+    test('followCharacter pathfinding ignores the followed leader dynamic blocker',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_follow_ignore_leader_blocker_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        settings: const ProjectSettings(
+          tileWidth: 32,
+          tileHeight: 32,
+        ),
+        maps: <MapData>[
+          _followLeaderMap32(),
+        ],
+        tilesets: _followScenarioTilesets,
+        characters: _followScenarioCharacters,
+      );
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'follow_leader_map_32',
+      );
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+      game.debugSetPlayerStateForTest(
+        position: const GridPos(x: 1, y: 1),
+        facing: Direction.east,
+      );
+
+      expect(
+        game.startScriptedNpcMove(
+          entityId: 'emma',
+          destination: const GridPos(x: 3, y: 1),
+        ).state,
+        ScriptedEntityMovementState.moving,
+      );
+      game.update(0.016);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(game.debugStartScenarioFollow('emma'), isTrue);
+
+      expect(game.debugPlayerGridPosition, const GridPos(x: 2, y: 1));
+      expect(game.debugScenarioFollowConsecutiveBlockedSteps, 0);
+      expect(game.debugLastFollowPathNodeCount, lessThanOrEqualTo(2));
+    });
+
+    test('followCharacter transfers player when followed leader enters a warp',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_follow_warp_handoff_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        settings: const ProjectSettings(
+          tileWidth: 32,
+          tileHeight: 32,
+        ),
+        maps: <MapData>[
+          _followLeaderWarpSourceMap32(),
+          _followLeaderWarpTargetMap32(),
+        ],
+        tilesets: _followScenarioTilesets,
+        characters: _followScenarioCharacters,
+      );
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'follow_warp_source_map_32',
+      );
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+
+      expect(game.debugStartScenarioFollow('emma'), isTrue);
+      expect(
+        game.debugRunScenarioMoveCharacterToWarp(
+          entityId: 'emma',
+          warpId: 'to_lab',
+        ),
+        isTrue,
+      );
+
+      await _pumpUntil(game, () => game.debugHasPendingLeaderWarpHandoff);
+      expect(game.debugHasActiveScenarioFollow, isTrue);
+      expect(game.gameStateSnapshot.currentMapId, 'follow_warp_source_map_32');
+
+      await _pumpUntil(
+        game,
+        () =>
+            game.gameStateSnapshot.currentMapId == 'follow_warp_target_map_32' &&
+            game.debugFlowPhaseName == 'overworld',
+        maxTicks: 480,
+      );
+
+      expect(game.gameStateSnapshot.currentMapId, 'follow_warp_target_map_32');
+      expect(game.debugPlayerGridPosition, const GridPos(x: 1, y: 1));
+      expect(game.debugHasPendingLeaderWarpHandoff, isFalse);
+      expect(game.debugHasActiveScenarioFollow, isFalse);
+    });
+
+    test('non-follow NPC dynamic collision still blocks the player', () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_non_follow_npc_collision_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        maps: <MapData>[
+          _blockingNpcMap(),
+        ],
+      );
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'blocking_npc_map',
+      );
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+      );
+
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.press(RuntimeInputControl.right),
+        ),
+        isTrue,
+      );
+      game.update(0.016);
+      await Future<void>.delayed(Duration.zero);
+      expect(
+        game.handleRuntimeInputEvent(
+          const RuntimeInputEvent.release(RuntimeInputControl.right),
+        ),
+        isTrue,
+      );
+
+      expect(game.debugPlayerGridPosition, const GridPos(x: 0, y: 1));
+      expect(game.debugHasActiveScenarioFollow, isFalse);
+    });
+
     test('one cardinal step lands on the expected cell without a visual offset',
         () async {
       final root = await Directory.systemTemp.createTemp(
@@ -1915,10 +2194,12 @@ Future<String> _writeRuntimeProject(
     tileHeight: 16,
   ),
   required List<MapData> maps,
+  List<ProjectTilesetEntry> tilesets = const <ProjectTilesetEntry>[],
   List<ProjectEncounterTable> encounterTables = const <ProjectEncounterTable>[],
   List<ProjectTrainerEntry> trainers = const <ProjectTrainerEntry>[],
   List<ProjectScriptEntry> scripts = const <ProjectScriptEntry>[],
   List<ProjectDialogueEntry> dialogues = const <ProjectDialogueEntry>[],
+  List<ProjectCharacterEntry> characters = const <ProjectCharacterEntry>[],
   ProjectPokemonConfig pokemonConfig = const ProjectPokemonConfig(),
 }) async {
   final manifest = ProjectManifest(
@@ -1933,11 +2214,12 @@ Future<String> _writeRuntimeProject(
           ),
         )
         .toList(growable: false),
-    tilesets: const <ProjectTilesetEntry>[],
+    tilesets: tilesets,
     encounterTables: encounterTables,
     trainers: trainers,
     scripts: scripts,
     dialogues: dialogues,
+    characters: characters,
     pokemon: pokemonConfig,
   );
   final mapsDir = Directory(p.join(root.path, 'maps'));
@@ -1951,6 +2233,13 @@ Future<String> _writeRuntimeProject(
   await projectFile.writeAsString(
     const JsonEncoder.withIndent('  ').convert(manifest.toJson()),
   );
+  for (final tileset in tilesets) {
+    await _writeProjectRelativeBytes(
+      root,
+      tileset.relativePath,
+      base64Decode(_tinyBattleSpritePngBase64),
+    );
+  }
   return projectFile.path;
 }
 
@@ -2024,6 +2313,162 @@ MapData _eventScriptDialogueMap() {
       ),
     ],
     mapMetadata: MapMetadata(defaultSpawnId: 'spawn_event_dialogue'),
+  );
+}
+
+MapData _followLeaderMap32() {
+  return const MapData(
+    id: 'follow_leader_map_32',
+    name: 'Follow Leader Map 32',
+    size: GridSize(width: 10, height: 4),
+    layers: <MapLayer>[
+      MapLayer.object(id: 'objects', name: 'Objects'),
+    ],
+    entities: <MapEntity>[
+      MapEntity(
+        id: 'spawn_follow_leader',
+        name: 'Spawn Follow Leader',
+        kind: MapEntityKind.spawn,
+        pos: GridPos(x: 0, y: 1),
+        blocksMovement: false,
+        spawn: MapEntitySpawnData(
+          role: EntitySpawnRole.playerStart,
+          facing: EntityFacing.east,
+        ),
+      ),
+      MapEntity(
+        id: 'emma',
+        name: 'Emma',
+        kind: MapEntityKind.npc,
+        pos: GridPos(x: 2, y: 1),
+        npc: MapEntityNpcData(
+          displayName: 'Emma',
+          characterId: 'emma_char',
+        ),
+      ),
+    ],
+    mapMetadata: MapMetadata(defaultSpawnId: 'spawn_follow_leader'),
+  );
+}
+
+MapData _followLeaderWarpSourceMap32() {
+  return const MapData(
+    id: 'follow_warp_source_map_32',
+    name: 'Follow Warp Source Map 32',
+    size: GridSize(width: 8, height: 4),
+    layers: <MapLayer>[
+      MapLayer.object(id: 'objects', name: 'Objects'),
+    ],
+    warps: <MapWarp>[
+      MapWarp(
+        id: 'to_lab',
+        pos: GridPos(x: 4, y: 1),
+        targetMapId: 'follow_warp_target_map_32',
+        targetPos: GridPos(x: 1, y: 1),
+      ),
+    ],
+    entities: <MapEntity>[
+      MapEntity(
+        id: 'spawn_follow_warp_source',
+        name: 'Spawn Follow Warp Source',
+        kind: MapEntityKind.spawn,
+        pos: GridPos(x: 0, y: 1),
+        blocksMovement: false,
+        spawn: MapEntitySpawnData(
+          role: EntitySpawnRole.playerStart,
+          facing: EntityFacing.east,
+        ),
+      ),
+      MapEntity(
+        id: 'emma',
+        name: 'Emma',
+        kind: MapEntityKind.npc,
+        pos: GridPos(x: 2, y: 1),
+        npc: MapEntityNpcData(
+          displayName: 'Emma',
+          characterId: 'emma_char',
+        ),
+      ),
+    ],
+    mapMetadata: MapMetadata(defaultSpawnId: 'spawn_follow_warp_source'),
+  );
+}
+
+const List<ProjectCharacterEntry> _followScenarioCharacters =
+    <ProjectCharacterEntry>[
+  ProjectCharacterEntry(
+    id: 'emma_char',
+    name: 'Emma Character',
+    tilesetId: 'npc-emma',
+    frameWidth: 2,
+    frameHeight: 2,
+  ),
+];
+
+const List<ProjectTilesetEntry> _followScenarioTilesets = <ProjectTilesetEntry>[
+  ProjectTilesetEntry(
+    id: 'npc-emma',
+    name: 'NPC Emma',
+    relativePath: 'tilesets/npc-emma.png',
+  ),
+];
+
+MapData _followLeaderWarpTargetMap32() {
+  return const MapData(
+    id: 'follow_warp_target_map_32',
+    name: 'Follow Warp Target Map 32',
+    size: GridSize(width: 6, height: 4),
+    layers: <MapLayer>[
+      MapLayer.object(id: 'objects', name: 'Objects'),
+    ],
+    entities: <MapEntity>[
+      MapEntity(
+        id: 'spawn_follow_warp_target',
+        name: 'Spawn Follow Warp Target',
+        kind: MapEntityKind.spawn,
+        pos: GridPos(x: 1, y: 1),
+        blocksMovement: false,
+        spawn: MapEntitySpawnData(
+          role: EntitySpawnRole.playerStart,
+          facing: EntityFacing.east,
+        ),
+      ),
+    ],
+    mapMetadata: MapMetadata(defaultSpawnId: 'spawn_follow_warp_target'),
+  );
+}
+
+MapData _blockingNpcMap() {
+  return const MapData(
+    id: 'blocking_npc_map',
+    name: 'Blocking NPC Map',
+    size: GridSize(width: 4, height: 3),
+    layers: <MapLayer>[
+      MapLayer.object(id: 'objects', name: 'Objects'),
+    ],
+    entities: <MapEntity>[
+      MapEntity(
+        id: 'spawn_blocking_npc',
+        name: 'Spawn Blocking NPC',
+        kind: MapEntityKind.spawn,
+        pos: GridPos(x: 0, y: 1),
+        blocksMovement: false,
+        spawn: MapEntitySpawnData(
+          role: EntitySpawnRole.playerStart,
+          facing: EntityFacing.east,
+        ),
+      ),
+      MapEntity(
+        id: 'npc_blocker',
+        name: 'Blocker',
+        kind: MapEntityKind.npc,
+        pos: GridPos(x: 1, y: 1),
+        npc: MapEntityNpcData(
+          displayName: 'Blocker',
+        ),
+      ),
+    ],
+    mapMetadata: MapMetadata(defaultSpawnId: 'spawn_blocking_npc'),
   );
 }
 

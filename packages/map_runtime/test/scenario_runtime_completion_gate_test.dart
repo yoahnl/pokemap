@@ -37,6 +37,24 @@ void main() {
       expect(reason, 'follow_character_active');
     });
 
+    test('followCharacter completion waits for leader warp handoff', () {
+      final reason = scenarioRuntimeCompletionBlockingReason(
+        isOverworldFlow: true,
+        flowPhaseName: 'overworld',
+        isDialogueOpen: false,
+        isCutsceneRunnerActive: false,
+        hasPendingFollowCharacter: true,
+        hasPendingMoveContinuations: false,
+        hasPendingNpcWarpEntries: false,
+        hasPendingTransitionMapRequest: false,
+        hasPendingRuntimeWarp: true,
+        hasPendingRuntimeConnection: false,
+        isPlayerStepInProgress: false,
+      );
+
+      expect(reason, 'follow_character_active');
+    });
+
     test('returns flow reason when not overworld', () {
       final reason = scenarioRuntimeCompletionBlockingReason(
         isOverworldFlow: false,
