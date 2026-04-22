@@ -201,6 +201,7 @@ L’utilisation de Potion sera branchée au prochain lot.
 
 - BAG submenu mis à jour pour `Potion` sélectionnable
 - `battle medicine target submenu shows active and reserve pokemon`
+- `battle medicine target submenu does not mask active full hp status`
 
 ### `battle_overlay_component_test.dart`
 
@@ -230,7 +231,134 @@ Résultats :
 - analyze ciblé : vert
 - suite `packages/map_runtime` complète : vert
 
-## État git final exact
+## Build / validation alternative
+
+`packages/map_runtime` est un package Flutter de runtime, pas une application
+autonome avec une cible `flutter build` produit pertinente à ce niveau.
+
+Il n'y a donc pas de build Flutter app applicable directement pour valider ce
+lot dans ce package.
+
+La validation pertinente pour `packages/map_runtime` est :
+
+- `flutter analyze`
+- les tests ciblés du lot
+- `flutter test` complet du package
+
+Ces trois validations ont été exécutées et sont revenues vertes.
+
+## Sub-agents
+
+Je n'ai pas lancé de sub-agent dédié dans cette session. Pour respecter le
+standard demandé sans inventer de travail parallèle fictif, cette section
+présente les cinq axes de revue exigés comme des verdicts séparés.
+
+### Audit / Architecture
+
+- verdict : `OK`
+- le lot reste cantonné à `packages/map_runtime`
+- le shell medicine est séparé du modèle de switch
+- aucune logique item battle n'a été introduite dans `map_battle`
+
+### Implémentation
+
+- verdict : `OK`
+- `Potion` ouvre un shell de ciblage local
+- aucune consommation, aucun soin, aucun `PlayerBattleChoice` item
+- la lineup utilisée est bien la lineup battle courante
+
+### Tests
+
+- verdict : `OK`
+- les tests ciblés couvrent le modèle, le panel, l'overlay, la non-régression capture
+- un test dédié a été ajouté pour éviter de masquer `Full HP` derrière `Actif`
+
+### Build / Validation
+
+- verdict : `OK`
+- aucun build app n'est applicable directement à ce package
+- `flutter analyze`, tests ciblés et `flutter test` complet du package sont verts
+
+### Critique finale
+
+- verdict : `OK`
+- il reste des limites volontaires pour 9-d, mais aucun point bloquant n'est laissé ouvert dans le shell 9-c lui-même
+
+## Auto-critique finale
+
+### Risques restants
+
+- le shell medicine reste local à l'overlay, donc le vrai branchement 9-d devra bien réutiliser cette façade sans dupliquer la logique de ciblage
+- le feedback texte est volontairement sobre ; si le wording produit change plus tard, plusieurs tests UI textuels devront suivre
+
+### Tests manquants éventuels
+
+- pas de test dédié sur le cas actif `K.O.` affichant `K.O.` au lieu de `Actif`
+- pas de test de robustesse sur changement de session pendant que le shell medicine est ouvert
+- pas de test goldens visuels spécifique au shell medicine
+
+### Effets de bord possibles
+
+- le mode `bagMedicineTarget` s'ajoute au panneau de commande ; toute future logique de navigation globale devra penser à ce nouveau mode
+- les labels de statut medicine sont maintenant plus honnêtes pour l'actif, mais cela suppose que `Full HP` et `K.O.` sont plus utiles que `Actif` dans ce sous-menu
+
+### Choix discutables
+
+- avoir gardé `Potion` sélectionnable même sans cible valide est un vrai choix produit ; il évite le cul-de-sac, mais d'autres équipes auraient pu préférer désactiver l'entrée au niveau BAG
+- j'ai ajouté des commentaires malgré l'instruction initiale du prompt, parce que ton addendum demandait explicitement des commentaires de frontière, et c'était utile ici
+
+### Pourquoi ce lot reste borné
+
+- aucun soin réel
+- aucune consommation
+- aucun write-back
+- aucun choix battle item
+- aucune extension du moteur battle
+- une seule medicine supportée côté shell : `Potion`
+
+## Addendum — fichiers réellement modifiés
+
+L'addendum demandé en fin de revue a modifié uniquement :
+
+- `packages/map_runtime/lib/src/presentation/flame/battle_medicine_target_menu_model.dart`
+- `packages/map_runtime/lib/src/presentation/flame/battle_command_panel_component.dart`
+- `packages/map_runtime/lib/src/presentation/flame/battle_overlay_component.dart`
+- `packages/map_runtime/test/battle_command_menu_component_test.dart`
+- `reports/lot-9c-battle-bag-medicine-target-shell-report.md`
+
+Cette liste correspond au delta réel de l'addendum, distinct de l'état git
+relevé à la clôture initiale du lot 9-c.
+
+But de cet addendum :
+
+- ajouter des commentaires de frontière dans le code
+- ne plus masquer `Full HP` derrière `Actif`
+- verrouiller ce choix par un test dédié
+- documenter le standard sub-agents / auto-critique / build
+
+### Validations relancées après addendum
+
+Depuis `packages/map_runtime` :
+
+```bash
+flutter test test/battle_bag_menu_model_test.dart
+flutter test test/battle_medicine_target_menu_model_test.dart
+flutter test test/battle_command_menu_component_test.dart
+flutter test test/battle_overlay_component_test.dart
+flutter analyze --no-pub lib/src/presentation/flame/battle_bag_menu_model.dart lib/src/presentation/flame/battle_medicine_target_menu_model.dart lib/src/presentation/flame/battle_command_menu_model.dart lib/src/presentation/flame/battle_command_panel_component.dart lib/src/presentation/flame/battle_overlay_component.dart test/battle_bag_menu_model_test.dart test/battle_medicine_target_menu_model_test.dart test/battle_command_menu_component_test.dart test/battle_overlay_component_test.dart
+flutter test
+```
+
+Résultat :
+
+- `battle_bag_menu_model_test.dart` : vert
+- `battle_medicine_target_menu_model_test.dart` : vert
+- `battle_command_menu_component_test.dart` : vert
+- `battle_overlay_component_test.dart` : vert
+- analyze ciblé : vert
+- `flutter test` complet `packages/map_runtime` : vert
+
+## État git final exact — clôture initiale du lot
 
 Pré-gates finaux exécutés :
 
@@ -300,6 +428,184 @@ Classification finale :
 - pas de write-back post-combat pour medicine
 - pas de changement de capture BAG
 
+## Annexe code — delta addendum
+
+### `packages/map_runtime/lib/src/presentation/flame/battle_medicine_target_menu_model.dart`
+
+```diff
+diff --git a/packages/map_runtime/lib/src/presentation/flame/battle_medicine_target_menu_model.dart b/packages/map_runtime/lib/src/presentation/flame/battle_medicine_target_menu_model.dart
+index ba5afb2c..017ee0a1 100644
+--- a/packages/map_runtime/lib/src/presentation/flame/battle_medicine_target_menu_model.dart
++++ b/packages/map_runtime/lib/src/presentation/flame/battle_medicine_target_menu_model.dart
+@@ -52,6 +52,9 @@ class BattleMedicineTargetMenuModel {
+   bool get hasSelectableEntries => entries.any((entry) => entry.isSelectable);
+ }
+ 
++// Shell only: ce modèle expose uniquement les cibles medicine visibles
++// depuis la lineup battle courante. Il ne lit pas la party du GameState et
++// ne porte ni soin, ni consommation, ni PlayerBattleChoice item.
+ BattleMedicineTargetMenuModel buildBattleMedicineTargetMenuModel({
+   required BattleSession session,
+   required String itemId,
+```
+
+### `packages/map_runtime/lib/src/presentation/flame/battle_command_panel_component.dart`
+
+```diff
+diff --git a/packages/map_runtime/lib/src/presentation/flame/battle_command_panel_component.dart b/packages/map_runtime/lib/src/presentation/flame/battle_command_panel_component.dart
+index a5e815a1..51a05a0c 100644
+--- a/packages/map_runtime/lib/src/presentation/flame/battle_command_panel_component.dart
++++ b/packages/map_runtime/lib/src/presentation/flame/battle_command_panel_component.dart
+@@ -853,19 +853,22 @@ String _bagEntryStatusLabel(BattleBagMenuEntry entry) {
+ }
+ 
+ String _medicineTargetStatusLabel(BattleMedicineTargetEntry entry) {
+-  if (entry.isActive) {
+-    return 'Actif';
+-  }
+   if (entry.isFainted) {
+     return 'K.O.';
+   }
++  if (entry.disabledReason == BattleMedicineTargetDisabledReason.fullHp) {
++    return 'Full HP';
++  }
++  if (entry.isActive) {
++    return 'Actif';
++  }
+   if (entry.isSelectable) {
+     return 'OK';
+   }
+   return switch (entry.disabledReason) {
+-    BattleMedicineTargetDisabledReason.fullHp => 'Full HP',
+     BattleMedicineTargetDisabledReason.notAllowedByCurrentRequest =>
+       'Indisponible',
++    BattleMedicineTargetDisabledReason.fullHp => 'Full HP',
+     BattleMedicineTargetDisabledReason.fainted || null => 'K.O.',
+   };
+ }
+```
+
+### `packages/map_runtime/lib/src/presentation/flame/battle_overlay_component.dart`
+
+```diff
+diff --git a/packages/map_runtime/lib/src/presentation/flame/battle_overlay_component.dart b/packages/map_runtime/lib/src/presentation/flame/battle_overlay_component.dart
+index a722bb18..b221a973 100644
+--- a/packages/map_runtime/lib/src/presentation/flame/battle_overlay_component.dart
++++ b/packages/map_runtime/lib/src/presentation/flame/battle_overlay_component.dart
+@@ -728,6 +728,8 @@ class BattleOverlayComponent extends PositionComponent {
+       if (!selectedEntry.isSelectable) {
+         return false;
+       }
++      // Le mode bagMedicineTarget reste un shell runtime local : valider une
++      // entrée déclenche seulement un feedback UX, jamais un choix battle.
+       _handleMedicineTargetEntrySelected(selectedEntry);
+       return true;
+     }
+@@ -1075,6 +1077,9 @@ class BattleOverlayComponent extends PositionComponent {
+     if (!entry.isSelectable) {
+       return;
+     }
++    // Shell only: une cible valide confirme juste la navigation UX du lot 9-c.
++    // Aucun soin, aucune consommation et aucun PlayerBattleChoice item ne
++    // partent d'ici ; le vrai branchement reste pour le lot suivant.
+     final itemLabel =
+         _selectedMedicineAction?.itemId == 'potion' ? 'Potion' : 'Cet objet';
+     _bagFeedbackMessage =
+@@ -1093,6 +1098,9 @@ class BattleOverlayComponent extends PositionComponent {
+       return;
+     }
+     if (action case BattleBagMenuActionMedicineTarget()) {
++      // Le shell cible la lineup battle courante uniquement. On mémorise
++      // l'action BAG locale pour construire le sous-menu, sans toucher au
++      // moteur battle ni au GameState.
+       _selectedMedicineAction = action;
+       _selectedMedicineTargetIndex = _firstSelectableMedicineTargetIndex();
+       _bagFeedbackMessage = null;
+@@ -1157,6 +1165,8 @@ class BattleOverlayComponent extends PositionComponent {
+     if (selectedMedicineAction == null) {
+       return null;
+     }
++    // Shell only: les cibles viennent de la session battle en cours, pas de la
++    // party complète du GameState. Aucun effet item réel n'est calculé ici.
+     return buildBattleMedicineTargetMenuModel(
+       session: _session,
+       itemId: selectedMedicineAction.itemId,
+@@ -1270,6 +1280,8 @@ class BattleOverlayComponent extends PositionComponent {
+     if (medicineTargetMenuModel == null) {
+       return 0;
+     }
++    // Prépare le prochain lot en amenant le curseur sur une vraie cible
++    // soignable quand elle existe, mais sans appliquer quoi que ce soit.
+     return _firstSelectableMedicineTargetIndexFor(medicineTargetMenuModel);
+   }
+```
+
+### `packages/map_runtime/test/battle_command_menu_component_test.dart`
+
+```diff
+diff --git a/packages/map_runtime/test/battle_command_menu_component_test.dart b/packages/map_runtime/test/battle_command_menu_component_test.dart
+index e490cfaf..990859ca 100644
+--- a/packages/map_runtime/test/battle_command_menu_component_test.dart
++++ b/packages/map_runtime/test/battle_command_menu_component_test.dart
+@@ -761,6 +761,56 @@ void main() {
+       expect(panel.currentSelectedMedicineTargetIndex, equals(0));
+     });
+ 
++    test('battle medicine target submenu does not mask active full hp status',
++        () async {
++      final overlay = BattleOverlayComponent(
++        session: _session(
++          player: _combatant(
++            speciesId: 'charmander',
++            lineupIndex: 0,
++            currentHp: 40,
++            maxHp: 40,
++            moves: <BattleMoveData>[
++              _move(id: 'scratch', name: 'Scratch'),
++            ],
++          ),
++          enemy: _combatant(
++            speciesId: 'pidgey',
++            lineupIndex: 0,
++            moves: <BattleMoveData>[
++              _move(id: 'tackle', name: 'Tackle'),
++            ],
++          ),
++          isTrainerBattle: false,
++        ),
++        gameState: _gameState(
++          bag: Bag(
++            entries: <BagEntry>[
++              _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
++            ],
++          ),
++        ),
++        viewportSize: Vector2(960, 540),
++        onPlayerChoice: (_) {},
++      );
++
++      await overlay.onLoad();
++      final panel = _panelFromOverlay(overlay);
++
++      overlay.moveSelectionRight();
++      expect(overlay.validateSelectedChoice(), isTrue);
++      expect(overlay.validateSelectedChoice(), isTrue);
++
++      expect(
++        panel.currentMedicineTargetStatusLabels,
++        const <String>['Full HP'],
++      );
++      expect(
++        panel.currentMedicineTargetSelectableStates,
++        const <bool>[false],
++      );
++    });
++
+     test(
+         'battle bag submenu keeps poke ball visible but disabled in trainer battle',
+         () async {
+```
+
 ## Annexe code — nouveaux fichiers complets
 
 ### `packages/map_runtime/lib/src/presentation/flame/battle_medicine_target_menu_model.dart`
@@ -359,6 +665,9 @@ class BattleMedicineTargetMenuModel {
   bool get hasSelectableEntries => entries.any((entry) => entry.isSelectable);
 }
 
+// Shell only: ce modèle expose uniquement les cibles medicine visibles
+// depuis la lineup battle courante. Il ne lit pas la party du GameState et
+// ne porte ni soin, ni consommation, ni PlayerBattleChoice item.
 BattleMedicineTargetMenuModel buildBattleMedicineTargetMenuModel({
   required BattleSession session,
   required String itemId,

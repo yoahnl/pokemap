@@ -15,8 +15,8 @@ import 'package:path/path.dart' as p;
 
 Future<void> main(List<String> args) async {
   final config = _CliConfig.fromArgs(args);
-  const renderer = _PhaseACoverageRenderer(
-    bridge: RuntimeBattleMoveBridge(),
+  final renderer = _PhaseACoverageRenderer(
+    bridge: const RuntimeBattleMoveBridge(),
     mapper: RuntimeBattleSetupMapper(),
     moveCatalogLoader: RuntimeMoveCatalogLoader(),
     combatantSeedBuilder: RuntimeBattleCombatantSeedBuilder(),

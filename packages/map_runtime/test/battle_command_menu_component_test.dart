@@ -761,6 +761,56 @@ void main() {
       expect(panel.currentSelectedMedicineTargetIndex, equals(0));
     });
 
+    test('battle medicine target submenu does not mask active full hp status',
+        () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'charmander',
+            lineupIndex: 0,
+            currentHp: 40,
+            maxHp: 40,
+            moves: <BattleMoveData>[
+              _move(id: 'scratch', name: 'Scratch'),
+            ],
+          ),
+          enemy: _combatant(
+            speciesId: 'pidgey',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[
+              _move(id: 'tackle', name: 'Tackle'),
+            ],
+          ),
+          isTrainerBattle: false,
+        ),
+        gameState: _gameState(
+          bag: Bag(
+            entries: <BagEntry>[
+              _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+            ],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+      final panel = _panelFromOverlay(overlay);
+
+      overlay.moveSelectionRight();
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.validateSelectedChoice(), isTrue);
+
+      expect(
+        panel.currentMedicineTargetStatusLabels,
+        const <String>['Full HP'],
+      );
+      expect(
+        panel.currentMedicineTargetSelectableStates,
+        const <bool>[false],
+      );
+    });
+
     test(
         'battle bag submenu keeps poke ball visible but disabled in trainer battle',
         () async {

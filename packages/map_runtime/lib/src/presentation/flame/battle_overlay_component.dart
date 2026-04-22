@@ -728,6 +728,8 @@ class BattleOverlayComponent extends PositionComponent {
       if (!selectedEntry.isSelectable) {
         return false;
       }
+      // Le mode bagMedicineTarget reste un shell runtime local : valider une
+      // entrée déclenche seulement un feedback UX, jamais un choix battle.
       _handleMedicineTargetEntrySelected(selectedEntry);
       return true;
     }
@@ -1075,6 +1077,9 @@ class BattleOverlayComponent extends PositionComponent {
     if (!entry.isSelectable) {
       return;
     }
+    // Shell only: une cible valide confirme juste la navigation UX du lot 9-c.
+    // Aucun soin, aucune consommation et aucun PlayerBattleChoice item ne
+    // partent d'ici ; le vrai branchement reste pour le lot suivant.
     final itemLabel =
         _selectedMedicineAction?.itemId == 'potion' ? 'Potion' : 'Cet objet';
     _bagFeedbackMessage =
@@ -1093,6 +1098,9 @@ class BattleOverlayComponent extends PositionComponent {
       return;
     }
     if (action case BattleBagMenuActionMedicineTarget()) {
+      // Le shell cible la lineup battle courante uniquement. On mémorise
+      // l'action BAG locale pour construire le sous-menu, sans toucher au
+      // moteur battle ni au GameState.
       _selectedMedicineAction = action;
       _selectedMedicineTargetIndex = _firstSelectableMedicineTargetIndex();
       _bagFeedbackMessage = null;
@@ -1157,6 +1165,8 @@ class BattleOverlayComponent extends PositionComponent {
     if (selectedMedicineAction == null) {
       return null;
     }
+    // Shell only: les cibles viennent de la session battle en cours, pas de la
+    // party complète du GameState. Aucun effet item réel n'est calculé ici.
     return buildBattleMedicineTargetMenuModel(
       session: _session,
       itemId: selectedMedicineAction.itemId,
@@ -1270,6 +1280,8 @@ class BattleOverlayComponent extends PositionComponent {
     if (medicineTargetMenuModel == null) {
       return 0;
     }
+    // Prépare le prochain lot en amenant le curseur sur une vraie cible
+    // soignable quand elle existe, mais sans appliquer quoi que ce soit.
     return _firstSelectableMedicineTargetIndexFor(medicineTargetMenuModel);
   }
 

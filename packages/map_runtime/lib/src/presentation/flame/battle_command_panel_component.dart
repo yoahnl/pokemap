@@ -853,19 +853,22 @@ String _bagEntryStatusLabel(BattleBagMenuEntry entry) {
 }
 
 String _medicineTargetStatusLabel(BattleMedicineTargetEntry entry) {
-  if (entry.isActive) {
-    return 'Actif';
-  }
   if (entry.isFainted) {
     return 'K.O.';
+  }
+  if (entry.disabledReason == BattleMedicineTargetDisabledReason.fullHp) {
+    return 'Full HP';
+  }
+  if (entry.isActive) {
+    return 'Actif';
   }
   if (entry.isSelectable) {
     return 'OK';
   }
   return switch (entry.disabledReason) {
-    BattleMedicineTargetDisabledReason.fullHp => 'Full HP',
     BattleMedicineTargetDisabledReason.notAllowedByCurrentRequest =>
       'Indisponible',
+    BattleMedicineTargetDisabledReason.fullHp => 'Full HP',
     BattleMedicineTargetDisabledReason.fainted || null => 'K.O.',
   };
 }

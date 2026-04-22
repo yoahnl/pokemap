@@ -52,6 +52,9 @@ class BattleMedicineTargetMenuModel {
   bool get hasSelectableEntries => entries.any((entry) => entry.isSelectable);
 }
 
+// Shell only: ce modèle expose uniquement les cibles medicine visibles
+// depuis la lineup battle courante. Il ne lit pas la party du GameState et
+// ne porte ni soin, ni consommation, ni PlayerBattleChoice item.
 BattleMedicineTargetMenuModel buildBattleMedicineTargetMenuModel({
   required BattleSession session,
   required String itemId,
