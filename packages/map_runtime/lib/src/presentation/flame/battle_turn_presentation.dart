@@ -34,11 +34,12 @@ List<BattleTurnPresentationStep> buildBattleTurnPresentationSteps({
 
   for (final event in turnResult.timeline) {
     switch (event) {
-      case BattleTurnPotionEvent(:final event):
+      case BattleTurnBagHpHealItemEvent(:final event):
         final userLabel = _presentationCombatantLabel(event.side);
         steps.add(
           BattleTurnPresentationStep(
-            message: '$userLabel utilise Potion sur ${event.targetSpeciesId} !',
+            message:
+                '$userLabel utilise ${event.itemKind.label} sur ${event.targetSpeciesId} !',
           ),
         );
 

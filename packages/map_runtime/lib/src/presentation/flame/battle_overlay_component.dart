@@ -56,7 +56,7 @@ List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
           turnResult.fieldEvents.isNotEmpty ||
           turnResult.stealthRockEvents.isNotEmpty ||
           turnResult.spikesEvents.isNotEmpty ||
-          turnResult.potionEvents.isNotEmpty ||
+          turnResult.bagHpHealItemEvents.isNotEmpty ||
           turnResult.switchEvents.isNotEmpty)) {
     throw StateError(
       'BattleTurnResult.timeline est requis pour afficher honnêtement la chronologie du tour dans l’overlay runtime.',
@@ -66,9 +66,11 @@ List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
   final lines = <String>[];
   for (final event in turnResult.timeline) {
     switch (event) {
-      case BattleTurnPotionEvent(:final event):
+      case BattleTurnBagHpHealItemEvent(:final event):
         final actor = _overlayCombatantLabelForSide(event.side);
-        lines.add('$actor utilise Potion sur ${event.targetSpeciesId}');
+        lines.add(
+          '$actor utilise ${event.itemKind.label} sur ${event.targetSpeciesId}',
+        );
         lines.add('${event.targetSpeciesId} récupère ${event.healedAmount} PV');
       case BattleTurnExecutionEvent(:final execution):
         final attacker = _overlayCombatantLabelForSide(execution.attackerSide);
@@ -179,8 +181,11 @@ String buildBattleMedicineTargetPromptForOverlay(
   if (feedbackMessage != null && feedbackMessage.isNotEmpty) {
     return feedbackMessage;
   }
-  if (medicineTargetMenuModel.itemId == 'potion') {
-    return 'Choisis une cible pour Potion.';
+  final supportedItemLabel = _overlaySupportedMedicineLabel(
+    medicineTargetMenuModel.itemId,
+  );
+  if (supportedItemLabel != null) {
+    return 'Choisis une cible pour $supportedItemLabel.';
   }
   return 'Choisis un Pokémon.';
 }
@@ -321,6 +326,14 @@ String _overlayCombatantLabelForSide(BattleSideId side) {
   return side == BattleSideId.player ? 'Joueur' : 'Ennemi';
 }
 
+String? _overlaySupportedMedicineLabel(String itemId) {
+  return switch (itemId) {
+    'potion' => 'Potion',
+    'super-potion' => 'Super Potion',
+    _ => null,
+  };
+}
+
 String _overlayWeatherLabel(BattleWeatherId weather) {
   return switch (weather) {
     BattleWeatherId.rain => 'la pluie',
@@ -360,7 +373,7 @@ class BattleOverlayComponent extends PositionComponent {
     required BattleSession session,
     required Vector2 viewportSize,
     required this.onPlayerChoice,
-    this.onPotionUseRequested,
+    this.onBagHpHealItemUseRequested,
     GameState gameState = const GameState(saveId: 'battle-overlay'),
     this.backgroundSpec = const BattleBackgroundSpec.fallbackField(),
     this.spriteResolver,
@@ -379,7 +392,10 @@ class BattleOverlayComponent extends PositionComponent {
   GameState _gameState;
 
   final void Function(PlayerBattleChoice choice) onPlayerChoice;
-  final bool Function(BattleMedicineTargetEntry entry)? onPotionUseRequested;
+  final bool Function(
+    BattleBagMenuActionMedicineTarget action,
+    BattleMedicineTargetEntry entry,
+  )? onBagHpHealItemUseRequested;
   final BattleBackgroundSpec backgroundSpec;
   final BattlePokemonSpriteResolver? spriteResolver;
   final BattleVisualAssetCache? visualAssetCache;
@@ -1089,16 +1105,17 @@ class BattleOverlayComponent extends PositionComponent {
     }
     final selectedMedicineAction = _selectedMedicineAction;
     if (selectedMedicineAction == null ||
-        selectedMedicineAction.itemId != 'potion') {
+        _overlaySupportedMedicineLabel(selectedMedicineAction.itemId) == null) {
       return false;
     }
 
-    // Lot 9-e change volontairement le propriétaire de l'effet réel :
-    // - le parent runtime commit maintenant un vrai tour `Potion` ;
+    // Lots 9-e / 9-f gardent l'overlay strictement borné au shell de ciblage :
+    // - le parent runtime commit le vrai tour pour `Potion` / `Super Potion` ;
     // - l'overlay ne patche plus sa session localement ;
     // - cela évite de mentir sur l'ordre du tour et garde `PlayableMapGame`
     //   propriétaire unique du vrai BattleSession / GameState.
-    return onPotionUseRequested?.call(entry) ?? false;
+    return onBagHpHealItemUseRequested?.call(selectedMedicineAction, entry) ??
+        false;
   }
 
   void _handleBagEntrySelected(BattleBagMenuEntry entry) {

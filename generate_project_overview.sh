@@ -33,6 +33,8 @@ should_exclude() {
     [[ "$path" == *"/docs/"* ]] && return 0
     [[ "$path" == *"/.review/"* ]] && return 0
     [[ "$path" == *"/pokemon-showdown-master/"* ]] && return 0
+    [[ "$path" == *"/pokemon-showdown-client-master/"* ]] && return 0
+    [[ "$path" == *"/sprites-master/"* ]] && return 0
 
     [[ "$base" == ".DS_Store" ]] && return 0
     [[ "$base" == "pubspec.lock" ]] && return 0

@@ -270,24 +270,56 @@ class BattleSession {
 
   /// Commit une vraie action de tour `Potion`.
   ///
-  /// Lot 9-e refuse ici deux faux raccourcis :
-  /// - continuer l'ancien "patch runtime local" 9-d sans vrai `currentTurn` ;
-  /// - ouvrir un framework générique d'items battle.
-  ///
-  /// Ce seam reste donc volontairement étroit :
-  /// - une seule action publique, spécifique à `Potion` ;
-  /// - ciblage par `lineupIndex` battle déjà stable ;
-  /// - aucun bag, aucune consommation d'objet, aucun catalogue d'items ici ;
-  /// - la consommation réelle du bag reste côté runtime une fois le tour
-  ///   effectivement committé par le moteur.
+  /// Lot 9-f conserve cette façade explicite pour éviter de vendre une API
+  /// générique d'objets : l'implémentation factorise en interne avec
+  /// `Super Potion`, mais l'appelant reste bien sur un objet concret.
   BattleSession applyPotionTurn({
+    required int targetLineupIndex,
+    required int healAmount,
+  }) {
+    return _applyBagHpHealItemTurn(
+      itemKind: BattleBagHpHealItemKind.potion,
+      targetLineupIndex: targetLineupIndex,
+      healAmount: healAmount,
+    );
+  }
+
+  /// Commit une vraie action de tour `Super Potion`.
+  ///
+  /// Frontière volontaire :
+  /// - on n'étend pas cette API à toutes les medicines ;
+  /// - on ajoute seulement le deuxième objet explicitement demandé par 9-f ;
+  /// - l'effet reste committé via le même scheduler honnête que `Potion`.
+  BattleSession applySuperPotionTurn({
+    required int targetLineupIndex,
+    required int healAmount,
+  }) {
+    return _applyBagHpHealItemTurn(
+      itemKind: BattleBagHpHealItemKind.superPotion,
+      targetLineupIndex: targetLineupIndex,
+      healAmount: healAmount,
+    );
+  }
+
+  /// Commit une vraie action de tour pour la famille ultra-bornée
+  /// `Potion` + `Super Potion`.
+  ///
+  /// Ce helper interne factorise seulement ce qui était devenu duplication :
+  /// - même validation de requête ;
+  /// - même ciblage par `lineupIndex` ;
+  /// - même scheduler de tour ;
+  /// - même narration battle.
+  ///
+  /// Il ne doit pas dériver vers un système d'items générique.
+  BattleSession _applyBagHpHealItemTurn({
+    required BattleBagHpHealItemKind itemKind,
     required int targetLineupIndex,
     required int healAmount,
   }) {
     final request = decisionRequest;
     if (request is! BattleTurnChoiceRequest) {
       throw StateError(
-        'Potion ne peut être engagée que pendant un vrai BattleTurnChoiceRequest '
+        '${itemKind.label} ne peut être engagée que pendant un vrai BattleTurnChoiceRequest '
         '(request=${request.runtimeType}).',
       );
     }
@@ -295,17 +327,18 @@ class BattleSession {
       throw ArgumentError.value(
         healAmount,
         'healAmount',
-        'Potion healAmount must stay strictly positive.',
+        '${itemKind.label} healAmount must stay strictly positive.',
       );
     }
 
-    _requireUsablePotionTarget(
+    _requireUsableBagHpHealItemTarget(
       side: state.playerSide,
       targetLineupIndex: targetLineupIndex,
     );
 
     return _applyCommittedPlayerAction(
-      playerAction: BattleActionPotionUse(
+      playerAction: BattleActionBagHpHealItemUse(
+        itemKind: itemKind,
         targetLineupIndex: targetLineupIndex,
         healAmount: healAmount,
       ),
@@ -765,36 +798,38 @@ class BattleSession {
     );
   }
 
-  _ResolvedPotionUseAction _resolvePotionUseAction({
+  _ResolvedBagHpHealItemUseAction _resolveBagHpHealItemUseAction({
+    required BattleBagHpHealItemKind itemKind,
     required BattleSideState side,
     required int targetLineupIndex,
     required int healAmount,
   }) {
     if (side.id != BattleSideId.player) {
       throw StateError(
-        'BattleActionPotionUse reste limité au côté joueur dans le lot 9-e.',
+        'BattleActionBagHpHealItemUse reste limité au côté joueur dans le lot 9-f.',
       );
     }
     if (healAmount <= 0) {
       throw ArgumentError.value(
         healAmount,
         'healAmount',
-        'Potion healAmount must stay strictly positive.',
+        '${itemKind.label} healAmount must stay strictly positive.',
       );
     }
 
-    final targetCombatant = _requireUsablePotionTarget(
+    final targetCombatant = _requireUsableBagHpHealItemTarget(
       side: side,
       targetLineupIndex: targetLineupIndex,
     );
     final healedCombatant = targetCombatant.withHeal(healAmount);
 
-    return _ResolvedPotionUseAction(
+    return _ResolvedBagHpHealItemUseAction(
       side: _replacePlayerCombatantByLineupIndex(
         side: side,
         updatedCombatant: healedCombatant,
       ),
-      event: BattlePotionEvent(
+      event: BattleBagHpHealItemEvent(
+        itemKind: itemKind,
         side: side.id,
         targetLineupIndex: healedCombatant.lineupIndex,
         targetSpeciesId: healedCombatant.speciesId,
@@ -1769,14 +1804,14 @@ class _ResolvedSwitchAction {
   final BattleSwitchEvent event;
 }
 
-class _ResolvedPotionUseAction {
-  const _ResolvedPotionUseAction({
+class _ResolvedBagHpHealItemUseAction {
+  const _ResolvedBagHpHealItemUseAction({
     required this.side,
     required this.event,
   });
 
   final BattleSideState side;
-  final BattlePotionEvent event;
+  final BattleBagHpHealItemEvent event;
 }
 
 class _ResolvedMoveExecution {
@@ -1895,7 +1930,7 @@ BattleSideState _replacePlayerCombatantByLineupIndex({
   return side.withReserve(updatedReserve);
 }
 
-BattleCombatant _requireUsablePotionTarget({
+BattleCombatant _requireUsableBagHpHealItemTarget({
   required BattleSideState side,
   required int targetLineupIndex,
 }) {
@@ -1905,19 +1940,19 @@ BattleCombatant _requireUsablePotionTarget({
   );
   if (combatant == null) {
     throw StateError(
-      'Potion vise un lineupIndex joueur introuvable dans la session courante '
+      'Un objet BAG de soin HP vise un lineupIndex joueur introuvable dans la session courante '
       '(lineupIndex=$targetLineupIndex).',
     );
   }
   if (combatant.isFainted) {
     throw StateError(
-      'Potion ne peut pas cibler un combattant joueur K.O. '
+      'Un objet BAG de soin HP ne peut pas cibler un combattant joueur K.O. '
       '(lineupIndex=$targetLineupIndex).',
     );
   }
   if (combatant.currentHp >= combatant.maxHp) {
     throw StateError(
-      'Potion ne peut pas cibler un combattant déjà full HP '
+      'Un objet BAG de soin HP ne peut pas cibler un combattant déjà full HP '
       '(lineupIndex=$targetLineupIndex).',
     );
   }

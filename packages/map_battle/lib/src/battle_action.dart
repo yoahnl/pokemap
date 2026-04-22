@@ -120,23 +120,52 @@ class BattleActionRun extends BattleAction {
   const BattleActionRun();
 }
 
-/// Utiliser une Potion sur un membre du lineup joueur courant.
+/// Famille ultra-bornée d'objets de soin HP supportés en BAG battle.
 ///
-/// Lot 9-e ouvre ici un seam volontairement ultra-borné :
-/// - aucune taxonomie générique d'objets battle ;
-/// - aucune lecture de bag côté moteur ;
-/// - aucune famille "item use" extensible pour 20 objets ;
-/// - uniquement la forme minimale nécessaire pour faire de `Potion`
-///   une vraie action de tour committée et visible dans la timeline.
+/// Lot 9-f factorise seulement ce qui devenait absurde à dupliquer :
+/// - `potion`
+/// - `super-potion`
 ///
-/// Le runtime reste responsable de deux vérités hors moteur :
-/// - vérifier qu'une Potion existe vraiment dans le `GameState.bag` ;
-/// - décrémenter cette entrée après un commit de tour réussi.
-class BattleActionPotionUse extends BattleAction {
-  const BattleActionPotionUse({
+/// Garde-fous de frontière :
+/// - ce n'est pas un catalogue runtime d'objets ;
+/// - ce n'est pas une taxonomie générale de medicines ;
+/// - aucune autre entrée (`antidote`, `hyper-potion`, `revive`, etc.)
+///   n'est implicite ou "préparée".
+enum BattleBagHpHealItemKind {
+  potion,
+  superPotion;
+
+  String get itemId => switch (this) {
+        BattleBagHpHealItemKind.potion => 'potion',
+        BattleBagHpHealItemKind.superPotion => 'super-potion',
+      };
+
+  String get label => switch (this) {
+        BattleBagHpHealItemKind.potion => 'Potion',
+        BattleBagHpHealItemKind.superPotion => 'Super Potion',
+      };
+}
+
+/// Utiliser un objet BAG de soin HP plat sur un membre du lineup joueur.
+///
+/// Cette action reste volontairement très étroite :
+/// - elle couvre seulement `Potion` + `Super Potion` ;
+/// - elle ne lit jamais le bag ;
+/// - elle n'ouvre pas un système générique d'items battle ;
+/// - elle existe uniquement pour rendre ces deux objets honnêtes comme vraies
+///   actions de tour committées et visibles dans la timeline.
+class BattleActionBagHpHealItemUse extends BattleAction {
+  const BattleActionBagHpHealItemUse({
+    required this.itemKind,
     required this.targetLineupIndex,
     required this.healAmount,
-  }) : assert(healAmount > 0, 'Potion healAmount must stay strictly positive.');
+  }) : assert(healAmount > 0, 'HP-heal item healAmount must stay positive.');
+
+  /// L'objet précis réellement utilisé.
+  ///
+  /// Le `kind` reste borné à deux cas, ce qui évite de transporter un
+  /// `itemId` stringly-typed arbitraire dans le moteur.
+  final BattleBagHpHealItemKind itemKind;
 
   /// Lineup cible côté joueur.
   ///
@@ -146,8 +175,8 @@ class BattleActionPotionUse extends BattleAction {
 
   /// Quantité de soin plate réellement portée par cette action.
   ///
-  /// Lot 9-e reste borné à la vraie `Potion` locale ; ce champ n'ouvre pas
-  /// un catalogue d'effets d'items.
+  /// Le runtime décide encore si l'objet est disponible dans le bag ;
+  /// le moteur ne consomme ici que l'effet déjà autorisé.
   final int healAmount;
 }
 

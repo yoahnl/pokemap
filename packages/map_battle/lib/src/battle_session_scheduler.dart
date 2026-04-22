@@ -269,7 +269,8 @@ BattleTurnResult _buildTurnResultFromContext({
     stealthRockEvents:
         List<BattleStealthRockEvent>.unmodifiable(turn.stealthRockEvents),
     spikesEvents: List<BattleSpikesEvent>.unmodifiable(turn.spikesEvents),
-    potionEvents: List<BattlePotionEvent>.unmodifiable(turn.potionEvents),
+    bagHpHealItemEvents:
+        List<BattleBagHpHealItemEvent>.unmodifiable(turn.bagHpHealItemEvents),
     switchEvents: List<BattleSwitchEvent>.unmodifiable(turn.switchEvents),
     timeline: List<BattleTurnEvent>.unmodifiable(turn.timeline),
   );
@@ -446,24 +447,26 @@ void _executeActionQueueStep({
   }
 
   if (step.action
-      case BattleActionPotionUse(
+      case BattleActionBagHpHealItemUse(
+        :final itemKind,
         :final targetLineupIndex,
         :final healAmount,
       )) {
     if (step.side != BattleSideId.player) {
       throw StateError(
-        'BattleActionPotionUse reste player-only dans le lot 9-e.',
+        'BattleActionBagHpHealItemUse reste player-only dans le lot 9-f.',
       );
     }
 
-    final resolution = session._resolvePotionUseAction(
+    final resolution = session._resolveBagHpHealItemUseAction(
+      itemKind: itemKind,
       side: actingSide,
       targetLineupIndex: targetLineupIndex,
       healAmount: healAmount,
     );
     turn.updateSide(step.side, resolution.side);
-    turn.potionEvents.add(resolution.event);
-    turn.timeline.add(BattleTurnPotionEvent(resolution.event));
+    turn.bagHpHealItemEvents.add(resolution.event);
+    turn.timeline.add(BattleTurnBagHpHealItemEvent(resolution.event));
     return;
   }
 
@@ -812,11 +815,11 @@ int _priorityForResolvedAction(BattleAction action) {
     // - cela ne prétend toujours pas modéliser la taxonomie Showdown complète
     //   des priorités de switch.
     //
-    // Lot 9-e ajoute un seul cas de plus :
-    // - `Potion` doit devenir une vraie action de tour ;
-    // - elle résout avant les moves actuellement supportés ;
+    // Lots 9-e / 9-f ajoutent un seul micro-slice d'objets :
+    // - `Potion` et `Super Potion` deviennent de vraies actions de tour ;
+    // - elles résolvent avant les moves actuellement supportés ;
     // - on refuse pourtant d'ouvrir une échelle générique de priorités items.
-    BattleActionPotionUse() => 7,
+    BattleActionBagHpHealItemUse() => 7,
     BattleActionSwitch() => 6,
     BattleActionFight(:final move) => move.priority,
     BattleActionRecharge() => 0,
@@ -850,7 +853,7 @@ final class _PendingTurnContinuation {
     required this.fieldEvents,
     required this.stealthRockEvents,
     required this.spikesEvents,
-    required this.potionEvents,
+    required this.bagHpHealItemEvents,
     required this.switchEvents,
     required this.timeline,
   });
@@ -878,7 +881,9 @@ final class _PendingTurnContinuation {
       stealthRockEvents:
           List<BattleStealthRockEvent>.unmodifiable(turn.stealthRockEvents),
       spikesEvents: List<BattleSpikesEvent>.unmodifiable(turn.spikesEvents),
-      potionEvents: List<BattlePotionEvent>.unmodifiable(turn.potionEvents),
+      bagHpHealItemEvents: List<BattleBagHpHealItemEvent>.unmodifiable(
+        turn.bagHpHealItemEvents,
+      ),
       switchEvents: List<BattleSwitchEvent>.unmodifiable(turn.switchEvents),
       timeline: List<BattleTurnEvent>.unmodifiable(turn.timeline),
     );
@@ -898,7 +903,7 @@ final class _PendingTurnContinuation {
   final List<BattleFieldEvent> fieldEvents;
   final List<BattleStealthRockEvent> stealthRockEvents;
   final List<BattleSpikesEvent> spikesEvents;
-  final List<BattlePotionEvent> potionEvents;
+  final List<BattleBagHpHealItemEvent> bagHpHealItemEvents;
   final List<BattleSwitchEvent> switchEvents;
   final List<BattleTurnEvent> timeline;
 }
@@ -936,7 +941,7 @@ final class _QueuedTurnContext {
       ..fieldEvents.addAll(pending.fieldEvents)
       ..stealthRockEvents.addAll(pending.stealthRockEvents)
       ..spikesEvents.addAll(pending.spikesEvents)
-      ..potionEvents.addAll(pending.potionEvents)
+      ..bagHpHealItemEvents.addAll(pending.bagHpHealItemEvents)
       ..switchEvents.addAll(pending.switchEvents)
       ..timeline.addAll(pending.timeline);
   }
@@ -957,7 +962,8 @@ final class _QueuedTurnContext {
   final List<BattleStealthRockEvent> stealthRockEvents =
       <BattleStealthRockEvent>[];
   final List<BattleSpikesEvent> spikesEvents = <BattleSpikesEvent>[];
-  final List<BattlePotionEvent> potionEvents = <BattlePotionEvent>[];
+  final List<BattleBagHpHealItemEvent> bagHpHealItemEvents =
+      <BattleBagHpHealItemEvent>[];
   final List<BattleSwitchEvent> switchEvents = <BattleSwitchEvent>[];
   final List<BattleTurnEvent> timeline = <BattleTurnEvent>[];
 

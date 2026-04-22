@@ -57,6 +57,7 @@ import '../../application/story_flags_manager.dart';
 import '../../application/trainer_battle_request.dart';
 import '../../infrastructure/runtime_tileset_image.dart';
 import '../../infrastructure/tile_image_loader.dart';
+import 'battle_bag_menu_model.dart';
 import 'battle_overlay_component.dart';
 import 'battle_background_resolver.dart';
 import 'battle_medicine_target_menu_model.dart';
@@ -3864,7 +3865,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           visualAssetCache: _battleVisualAssetCache,
           genderResolver: genderResolver,
           onPlayerChoice: _onPlayerBattleChoice,
-          onPotionUseRequested: _onBattlePotionUseRequested,
+          onBagHpHealItemUseRequested: _onBattleBagHpHealItemUseRequested,
         ),
       );
       camera.viewport.add(overlay);
@@ -3972,7 +3973,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
-  bool _onBattlePotionUseRequested(
+  bool _onBattleBagHpHealItemUseRequested(
+    BattleBagMenuActionMedicineTarget action,
     BattleMedicineTargetEntry entry,
   ) {
     final battleSession = _battleSession;
@@ -3982,22 +3984,32 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
 
     if (_isBattleResolving) {
-      debugPrint('[battle] potion ignored: already resolving');
+      debugPrint('[battle] bag hp-heal item ignored: already resolving');
       return false;
     }
 
     _isBattleResolving = true;
     try {
-      // Lot 9-e fait maintenant passer Potion par un vrai commit de tour :
+      // Lots 9-e / 9-f gardent `PlayableMapGame` comme propriétaire honnête
+      // du runtime autour du moteur battle :
       // - le moteur battle produit un `currentTurn` et une timeline honnêtes ;
       // - le runtime reste propriétaire du bag réel et du write-back party ;
-      // - on n'ouvre toujours aucun PlayerBattleChoice item générique.
-      final result = tryApplyRuntimeBattlePotionUse(
-        session: battleSession,
-        gameState: _gameState,
-        context: activeBattleContext,
-        targetLineupIndex: entry.lineupIndex,
-      );
+      // - on reste borné à `Potion` + `Super Potion`, sans API item générique.
+      final result = switch (action.itemId) {
+        'potion' => tryApplyRuntimeBattlePotionUse(
+            session: battleSession,
+            gameState: _gameState,
+            context: activeBattleContext,
+            targetLineupIndex: entry.lineupIndex,
+          ),
+        'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
+            session: battleSession,
+            gameState: _gameState,
+            context: activeBattleContext,
+            targetLineupIndex: entry.lineupIndex,
+          ),
+        _ => null,
+      };
       if (result == null) {
         return false;
       }

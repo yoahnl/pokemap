@@ -24,7 +24,7 @@ class BattleTurnResult {
   /// [fieldEvents] - Les événements de champ BE9 visibles du tour.
   /// [stealthRockEvents] - Les événements Stealth Rock visibles du tour.
   /// [spikesEvents] - Les événements Spikes visibles du tour.
-  /// [potionEvents] - Les usages de Potion visibles du tour.
+  /// [bagHpHealItemEvents] - Les usages visibles de Potion / Super Potion.
   /// [timeline] - La chronologie ordonnée réellement produite par le moteur.
   const BattleTurnResult({
     required this.playerAction,
@@ -35,7 +35,7 @@ class BattleTurnResult {
     this.fieldEvents = const <BattleFieldEvent>[],
     this.stealthRockEvents = const <BattleStealthRockEvent>[],
     this.spikesEvents = const <BattleSpikesEvent>[],
-    this.potionEvents = const <BattlePotionEvent>[],
+    this.bagHpHealItemEvents = const <BattleBagHpHealItemEvent>[],
     this.switchEvents = const <BattleSwitchEvent>[],
     this.timeline = const <BattleTurnEvent>[],
   });
@@ -98,14 +98,15 @@ class BattleTurnResult {
   /// - ce lot porte donc son propre contrat dédié, vivant et testable.
   final List<BattleSpikesEvent> spikesEvents;
 
-  /// Les usages de Potion visibles pendant ce tour.
+  /// Les usages visibles d'objets BAG à soin HP plat pendant ce tour.
   ///
-  /// Lot 9-e choisit ici un contrat explicitement non générique :
-  /// - ce bucket ne devient pas "itemsEvents" ;
-  /// - il ne couvre ni Antidote, ni Super Potion, ni objets tenus ;
-  /// - il sert uniquement à rendre l'action `Potion` observable quand elle
-  ///   devient une vraie action de tour committée.
-  final List<BattlePotionEvent> potionEvents;
+  /// Lot 9-f choisit une mini-factorisation bornée plutôt qu'une duplication
+  /// intégrale du pipeline 9-e :
+  /// - ce bucket ne devient pas `itemEvents` ;
+  /// - il ne couvre que `Potion` + `Super Potion` ;
+  /// - toute autre medicine reste hors scope tant qu'un lot explicite ne la
+  ///   branche pas réellement.
+  final List<BattleBagHpHealItemEvent> bagHpHealItemEvents;
 
   /// Les événements de switch / remplacement visibles pendant ce tour.
   ///
@@ -183,10 +184,10 @@ final class BattleTurnSpikesEvent extends BattleTurnEvent {
   final BattleSpikesEvent event;
 }
 
-final class BattleTurnPotionEvent extends BattleTurnEvent {
-  const BattleTurnPotionEvent(this.event);
+final class BattleTurnBagHpHealItemEvent extends BattleTurnEvent {
+  const BattleTurnBagHpHealItemEvent(this.event);
 
-  final BattlePotionEvent event;
+  final BattleBagHpHealItemEvent event;
 }
 
 final class BattleTurnSwitchEvent extends BattleTurnEvent {
@@ -195,15 +196,17 @@ final class BattleTurnSwitchEvent extends BattleTurnEvent {
   final BattleSwitchEvent event;
 }
 
-/// Trace visible d'un vrai usage de `Potion` pendant un tour.
+/// Trace visible d'un vrai usage de `Potion` ou `Super Potion`.
 ///
-/// Frontière volontairement serrée :
-/// - on ne transporte pas un "itemId" arbitraire ;
-/// - on ne généralise pas vers un journal d'objets battle ;
-/// - on porte seulement les données nécessaires pour raconter honnêtement
-///   l'usage de Potion et la variation réelle de PV.
-final class BattlePotionEvent {
-  const BattlePotionEvent({
+/// La factorisation reste honnête parce qu'elle est bornée par
+/// [BattleBagHpHealItemKind] :
+/// - pas d'`itemId` arbitraire ;
+/// - pas de registre d'objets ;
+/// - seulement les données nécessaires pour raconter les deux objets de soin
+///   HP plats réellement supportés à ce stade.
+final class BattleBagHpHealItemEvent {
+  const BattleBagHpHealItemEvent({
+    required this.itemKind,
     required this.side,
     required this.targetLineupIndex,
     required this.targetSpeciesId,
@@ -211,6 +214,7 @@ final class BattlePotionEvent {
     required this.hpAfter,
   });
 
+  final BattleBagHpHealItemKind itemKind;
   final BattleSideId side;
   final int targetLineupIndex;
   final String targetSpeciesId;

@@ -1333,29 +1333,54 @@ void main() {
         gameState: gameState,
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (choice) => pickedChoice = choice,
-        onPotionUseRequested: (entry) {
-          final result = tryApplyRuntimeBattlePotionUse(
-            session: overlay.debugSession,
-            gameState: overlay.debugGameState,
-            context: const RuntimeActiveBattleContext(
-              request: TrainerBattleStartRequest(
-                requestId: 'trainer-request',
-                createdAtEpochMs: 1,
-                returnContext: OverworldReturnContext(
-                  mapId: 'field_map',
-                  playerPos: GridPos(x: 1, y: 1),
-                  playerFacing: Direction.north,
+        onBagHpHealItemUseRequested: (action, entry) {
+          final result = switch (action.itemId) {
+            'potion' => tryApplyRuntimeBattlePotionUse(
+                session: overlay.debugSession,
+                gameState: overlay.debugGameState,
+                context: const RuntimeActiveBattleContext(
+                  request: TrainerBattleStartRequest(
+                    requestId: 'trainer-request',
+                    createdAtEpochMs: 1,
+                    returnContext: OverworldReturnContext(
+                      mapId: 'field_map',
+                      playerPos: GridPos(x: 1, y: 1),
+                      playerFacing: Direction.north,
+                    ),
+                    trainerId: 'trainer',
+                    npcEntityId: 'npc_trainer',
+                    mapId: 'field_map',
+                    playerPos: GridPos(x: 1, y: 1),
+                  ),
+                  playerPartyIndex: 0,
+                  playerPartySlotIndicesByLineupIndex: <int>[0, 1],
                 ),
-                trainerId: 'trainer',
-                npcEntityId: 'npc_trainer',
-                mapId: 'field_map',
-                playerPos: GridPos(x: 1, y: 1),
+                targetLineupIndex: entry.lineupIndex,
               ),
-              playerPartyIndex: 0,
-              playerPartySlotIndicesByLineupIndex: <int>[0, 1],
-            ),
-            targetLineupIndex: entry.lineupIndex,
-          );
+            'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
+                session: overlay.debugSession,
+                gameState: overlay.debugGameState,
+                context: const RuntimeActiveBattleContext(
+                  request: TrainerBattleStartRequest(
+                    requestId: 'trainer-request',
+                    createdAtEpochMs: 1,
+                    returnContext: OverworldReturnContext(
+                      mapId: 'field_map',
+                      playerPos: GridPos(x: 1, y: 1),
+                      playerFacing: Direction.north,
+                    ),
+                    trainerId: 'trainer',
+                    npcEntityId: 'npc_trainer',
+                    mapId: 'field_map',
+                    playerPos: GridPos(x: 1, y: 1),
+                  ),
+                  playerPartyIndex: 0,
+                  playerPartySlotIndicesByLineupIndex: <int>[0, 1],
+                ),
+                targetLineupIndex: entry.lineupIndex,
+              ),
+            _ => null,
+          };
           if (result == null) {
             return false;
           }
@@ -1381,7 +1406,11 @@ void main() {
       expect(overlay.debugSession.state.currentTurn, isNotNull);
       expect(
         overlay.debugSession.state.currentTurn!.playerAction,
-        isA<BattleActionPotionUse>(),
+        isA<BattleActionBagHpHealItemUse>().having(
+          (action) => action.itemKind,
+          'itemKind',
+          equals(BattleBagHpHealItemKind.potion),
+        ),
       );
       expect(overlay.debugSession.state.player.currentHp, equals(32));
       expect(overlay.debugGameState.party.members.first.currentHp, equals(32));
@@ -1440,29 +1469,54 @@ void main() {
         ),
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (choice) => pickedChoice = choice,
-        onPotionUseRequested: (entry) {
-          final result = tryApplyRuntimeBattlePotionUse(
-            session: overlay.debugSession,
-            gameState: overlay.debugGameState,
-            context: const RuntimeActiveBattleContext(
-              request: TrainerBattleStartRequest(
-                requestId: 'trainer-request',
-                createdAtEpochMs: 1,
-                returnContext: OverworldReturnContext(
-                  mapId: 'field_map',
-                  playerPos: GridPos(x: 1, y: 1),
-                  playerFacing: Direction.north,
+        onBagHpHealItemUseRequested: (action, entry) {
+          final result = switch (action.itemId) {
+            'potion' => tryApplyRuntimeBattlePotionUse(
+                session: overlay.debugSession,
+                gameState: overlay.debugGameState,
+                context: const RuntimeActiveBattleContext(
+                  request: TrainerBattleStartRequest(
+                    requestId: 'trainer-request',
+                    createdAtEpochMs: 1,
+                    returnContext: OverworldReturnContext(
+                      mapId: 'field_map',
+                      playerPos: GridPos(x: 1, y: 1),
+                      playerFacing: Direction.north,
+                    ),
+                    trainerId: 'trainer',
+                    npcEntityId: 'npc_trainer',
+                    mapId: 'field_map',
+                    playerPos: GridPos(x: 1, y: 1),
+                  ),
+                  playerPartyIndex: 0,
+                  playerPartySlotIndicesByLineupIndex: <int>[1, 0],
                 ),
-                trainerId: 'trainer',
-                npcEntityId: 'npc_trainer',
-                mapId: 'field_map',
-                playerPos: GridPos(x: 1, y: 1),
+                targetLineupIndex: entry.lineupIndex,
               ),
-              playerPartyIndex: 0,
-              playerPartySlotIndicesByLineupIndex: <int>[1, 0],
-            ),
-            targetLineupIndex: entry.lineupIndex,
-          );
+            'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
+                session: overlay.debugSession,
+                gameState: overlay.debugGameState,
+                context: const RuntimeActiveBattleContext(
+                  request: TrainerBattleStartRequest(
+                    requestId: 'trainer-request',
+                    createdAtEpochMs: 1,
+                    returnContext: OverworldReturnContext(
+                      mapId: 'field_map',
+                      playerPos: GridPos(x: 1, y: 1),
+                      playerFacing: Direction.north,
+                    ),
+                    trainerId: 'trainer',
+                    npcEntityId: 'npc_trainer',
+                    mapId: 'field_map',
+                    playerPos: GridPos(x: 1, y: 1),
+                  ),
+                  playerPartyIndex: 0,
+                  playerPartySlotIndicesByLineupIndex: <int>[1, 0],
+                ),
+                targetLineupIndex: entry.lineupIndex,
+              ),
+            _ => null,
+          };
           if (result == null) {
             return false;
           }
@@ -1489,7 +1543,11 @@ void main() {
       expect(overlay.debugSession.state.currentTurn, isNotNull);
       expect(
         overlay.debugSession.state.currentTurn!.playerAction,
-        isA<BattleActionPotionUse>(),
+        isA<BattleActionBagHpHealItemUse>().having(
+          (action) => action.itemKind,
+          'itemKind',
+          equals(BattleBagHpHealItemKind.potion),
+        ),
       );
       expect(overlay.debugSession.state.player.currentHp, equals(22));
       expect(
@@ -1501,6 +1559,139 @@ void main() {
       expect(overlay.currentPromptText,
           equals('Joueur utilise Potion sur benchmate !'));
       expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+    });
+
+    test(
+        'selecting a valid super potion target commits a real turn without dispatching a PlayerBattleChoice',
+        () async {
+      PlayerBattleChoice? pickedChoice;
+      final session = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          currentHp: 22,
+          maxHp: 90,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+        enemy: _combatant(
+          speciesId: 'wild_enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+      final gameState = _gameState(
+        bag: Bag(
+          entries: <BagEntry>[
+            _bagEntry(
+              itemId: 'super-potion',
+              categoryId: 'medicine',
+              quantity: 1,
+            ),
+          ],
+        ),
+        partyMembers: <PlayerPokemon>[
+          _partyMember(speciesId: 'sproutle', currentHp: 22),
+        ],
+      );
+      late BattleOverlayComponent overlay;
+      overlay = BattleOverlayComponent(
+        session: session,
+        gameState: gameState,
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (choice) => pickedChoice = choice,
+        onBagHpHealItemUseRequested: (action, entry) {
+          final result = switch (action.itemId) {
+            'potion' => tryApplyRuntimeBattlePotionUse(
+                session: overlay.debugSession,
+                gameState: overlay.debugGameState,
+                context: const RuntimeActiveBattleContext(
+                  request: TrainerBattleStartRequest(
+                    requestId: 'trainer-request',
+                    createdAtEpochMs: 1,
+                    returnContext: OverworldReturnContext(
+                      mapId: 'field_map',
+                      playerPos: GridPos(x: 1, y: 1),
+                      playerFacing: Direction.north,
+                    ),
+                    trainerId: 'trainer',
+                    npcEntityId: 'npc_trainer',
+                    mapId: 'field_map',
+                    playerPos: GridPos(x: 1, y: 1),
+                  ),
+                  playerPartyIndex: 0,
+                  playerPartySlotIndicesByLineupIndex: <int>[0],
+                ),
+                targetLineupIndex: entry.lineupIndex,
+              ),
+            'super-potion' => tryApplyRuntimeBattleSuperPotionUse(
+                session: overlay.debugSession,
+                gameState: overlay.debugGameState,
+                context: const RuntimeActiveBattleContext(
+                  request: TrainerBattleStartRequest(
+                    requestId: 'trainer-request',
+                    createdAtEpochMs: 1,
+                    returnContext: OverworldReturnContext(
+                      mapId: 'field_map',
+                      playerPos: GridPos(x: 1, y: 1),
+                      playerFacing: Direction.north,
+                    ),
+                    trainerId: 'trainer',
+                    npcEntityId: 'npc_trainer',
+                    mapId: 'field_map',
+                    playerPos: GridPos(x: 1, y: 1),
+                  ),
+                  playerPartyIndex: 0,
+                  playerPartySlotIndicesByLineupIndex: <int>[0],
+                ),
+                targetLineupIndex: entry.lineupIndex,
+              ),
+            _ => null,
+          };
+          if (result == null) {
+            return false;
+          }
+          overlay.updateState(
+            result.updatedSession,
+            gameState: result.updatedGameState,
+          );
+          return true;
+        },
+      );
+
+      await overlay.onLoad();
+
+      overlay.moveSelectionRight();
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bagMedicineTarget);
+      expect(overlay.validateSelectedChoice(), isTrue);
+
+      await overlay.waitForPendingVisualSync();
+
+      expect(pickedChoice, isNull);
+      expect(overlay.debugSession.state.currentTurn, isNotNull);
+      expect(
+        overlay.debugSession.state.currentTurn!.playerAction,
+        isA<BattleActionBagHpHealItemUse>().having(
+          (action) => action.itemKind,
+          'itemKind',
+          equals(BattleBagHpHealItemKind.superPotion),
+        ),
+      );
+      expect(overlay.debugSession.state.player.currentHp, equals(72));
+      expect(overlay.debugGameState.party.members.first.currentHp, equals(72));
+      expect(overlay.debugGameState.bag.entries, isEmpty);
+      expect(overlay.isTurnPresentationActive, isTrue);
+      expect(
+        overlay.currentPromptText,
+        equals('Joueur utilise Super Potion sur sproutle !'),
+      );
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+      expect(overlay.validateSelectedChoice(), isFalse);
+
+      overlay.updateTree(0.50);
+      expect(overlay.currentPromptText, equals('sproutle récupère 50 PV.'));
     });
 
     test('full hp medicine targets stay visible but non-selectable', () async {

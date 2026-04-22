@@ -160,7 +160,11 @@ void main() {
       expect(result.updatedSession.state.currentTurn, isNotNull);
       expect(
         result.updatedSession.state.currentTurn!.playerAction,
-        isA<BattleActionPotionUse>(),
+        isA<BattleActionBagHpHealItemUse>().having(
+          (action) => action.itemKind,
+          'itemKind',
+          equals(BattleBagHpHealItemKind.potion),
+        ),
       );
       expect(result.updatedSession.state.player.currentHp, equals(32));
       expect(result.updatedGameState.party.members.first.currentHp, equals(32));
@@ -210,6 +214,115 @@ void main() {
       expect(result.updatedSession.state.currentTurn, isNotNull);
       expect(result.updatedSession.state.player.currentHp, equals(40));
       expect(result.updatedGameState.party.members.first.currentHp, equals(40));
+    });
+
+    test(
+        'super potion heals a damaged active target by 50 and consumes only super potion',
+        () {
+      final result = tryApplyRuntimeBattleSuperPotionUse(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            currentHp: 12,
+            maxHp: 80,
+            moves: <BattleMoveData>[_move(id: 'tackle', name: 'Tackle')],
+          ),
+          enemy: _combatant(
+            speciesId: 'enemy',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_move(id: 'wait', name: 'Wait', power: 0)],
+          ),
+        ),
+        gameState: _gameState(
+          bag: const Bag(
+            entries: <BagEntry>[
+              BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+              BagEntry(
+                itemId: 'super-potion',
+                categoryId: 'medicine',
+                quantity: 2,
+              ),
+            ],
+          ),
+          partyMembers: <PlayerPokemon>[
+            _partyMember(speciesId: 'sproutle', currentHp: 12, level: 10),
+          ],
+        ),
+        context: _context(
+          playerPartyIndex: 0,
+          lineupPartyIndices: const <int>[0],
+        ),
+        targetLineupIndex: 0,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.healedAmount, equals(50));
+      expect(
+        result.updatedSession.state.currentTurn!.playerAction,
+        isA<BattleActionBagHpHealItemUse>().having(
+          (action) => action.itemKind,
+          'itemKind',
+          equals(BattleBagHpHealItemKind.superPotion),
+        ),
+      );
+      expect(result.updatedSession.state.player.currentHp, equals(62));
+      expect(result.updatedGameState.party.members.first.currentHp, equals(62));
+      expect(
+        result.updatedGameState.bag.entries,
+        const <BagEntry>[
+          BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+          BagEntry(
+            itemId: 'super-potion',
+            categoryId: 'medicine',
+            quantity: 1,
+          ),
+        ],
+      );
+    });
+
+    test('super potion heal is capped at max hp', () {
+      final result = tryApplyRuntimeBattleSuperPotionUse(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            currentHp: 60,
+            maxHp: 80,
+            moves: <BattleMoveData>[_move(id: 'tackle', name: 'Tackle')],
+          ),
+          enemy: _combatant(
+            speciesId: 'enemy',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_move(id: 'wait', name: 'Wait', power: 0)],
+          ),
+        ),
+        gameState: _gameState(
+          bag: const Bag(
+            entries: <BagEntry>[
+              BagEntry(
+                itemId: 'super-potion',
+                categoryId: 'medicine',
+                quantity: 1,
+              ),
+            ],
+          ),
+          partyMembers: <PlayerPokemon>[
+            _partyMember(speciesId: 'sproutle', currentHp: 60),
+          ],
+        ),
+        context: _context(
+          playerPartyIndex: 0,
+          lineupPartyIndices: const <int>[0],
+        ),
+        targetLineupIndex: 0,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.healedAmount, equals(20));
+      expect(result.updatedSession.state.player.currentHp, equals(80));
+      expect(result.updatedGameState.party.members.first.currentHp, equals(80));
+      expect(result.updatedGameState.bag.entries, isEmpty);
     });
 
     test(

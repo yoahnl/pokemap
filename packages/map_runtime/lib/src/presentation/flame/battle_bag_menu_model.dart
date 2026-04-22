@@ -234,7 +234,15 @@ BattleBagItemKind _classifyBagItem(BagEntry bagEntry) {
 }
 
 bool _isSupportedMedicine(BagEntry bagEntry) {
-  return bagEntry.itemId == 'potion' && bagEntry.categoryId == 'medicine';
+  // Lot 9-f factorise ici le strict minimum utile :
+  // - `potion`
+  // - `super-potion`
+  //
+  // On ne bascule pas vers un registre d'items ni vers un catalogue runtime.
+  if (bagEntry.categoryId != 'medicine') {
+    return false;
+  }
+  return bagEntry.itemId == 'potion' || bagEntry.itemId == 'super-potion';
 }
 
 BattleBagMenuDisabledReason _captureDisabledReason({
