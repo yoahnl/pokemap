@@ -12,6 +12,7 @@ import 'battle_command_panel_component.dart';
 import 'battle_combatant_gender_resolver.dart';
 import 'battle_background_resolver.dart';
 import 'battle_debug_panel_component.dart';
+import 'battle_medicine_target_menu_model.dart';
 import 'battle_party_menu_model.dart';
 import 'battle_pokemon_sprite_resolver.dart';
 import 'battle_visual_asset_cache.dart';
@@ -164,6 +165,38 @@ List<String> buildBattleBagNarrationLinesForOverlay(
         'Aucun objet utilisable pour ce tour.',
       ],
   };
+}
+
+String buildBattleMedicineTargetPromptForOverlay(
+  BattleMedicineTargetMenuModel medicineTargetMenuModel, {
+  String? feedbackMessage,
+}) {
+  if (feedbackMessage != null && feedbackMessage.isNotEmpty) {
+    return feedbackMessage;
+  }
+  if (medicineTargetMenuModel.itemId == 'potion') {
+    return 'Choisis une cible pour Potion.';
+  }
+  return 'Choisis un Pokémon.';
+}
+
+List<String> buildBattleMedicineTargetNarrationLinesForOverlay(
+  BattleMedicineTargetMenuModel medicineTargetMenuModel, {
+  String? feedbackMessage,
+}) {
+  if (feedbackMessage != null && feedbackMessage.isNotEmpty) {
+    return const <String>[
+      'Aucun soin ni objet consommé dans ce lot.',
+    ];
+  }
+  if (!medicineTargetMenuModel.hasSelectableEntries) {
+    return const <String>[
+      'Aucune cible valide pour cet objet.',
+    ];
+  }
+  return const <String>[
+    'Les Pokémon K.O. et full HP sont indisponibles.',
+  ];
 }
 
 /// Construit les lignes du panneau debug optionnel.
@@ -373,7 +406,9 @@ class BattleOverlayComponent extends PositionComponent {
   int _selectedChoiceIndex = 0;
   int _selectedPartyIndex = 0;
   int _selectedBagIndex = 0;
+  int _selectedMedicineTargetIndex = 0;
   String? _bagFeedbackMessage;
+  BattleBagMenuActionMedicineTarget? _selectedMedicineAction;
 
   static const double _presentationEffectDelaySeconds = 0.16;
   static const double _presentationImpactStepSeconds = 0.62;
@@ -527,6 +562,7 @@ class BattleOverlayComponent extends PositionComponent {
       onRootActionSelected: _handleRootActionSelected,
       onPartyEntrySelected: _handlePartyEntrySelected,
       onBagEntrySelected: _handleBagEntrySelected,
+      onMedicineTargetEntrySelected: _handleMedicineTargetEntrySelected,
       layoutModeOverride: layout.commandPanelLayoutMode,
     );
     await add(_commandPanel!);
@@ -583,6 +619,8 @@ class BattleOverlayComponent extends PositionComponent {
     if (gameState != null) {
       _gameState = gameState;
     }
+    _selectedMedicineAction = null;
+    _selectedMedicineTargetIndex = 0;
     _bagFeedbackMessage = null;
     _startTurnPresentation(presentationSteps);
     _normalizeMenuSelection();
@@ -611,7 +649,8 @@ class BattleOverlayComponent extends PositionComponent {
       return null;
     }
     final menuModel = _currentMenuModel();
-    if (menuModel.mode == BattleCommandMenuMode.bag) {
+    if (menuModel.mode == BattleCommandMenuMode.bag ||
+        menuModel.mode == BattleCommandMenuMode.bagMedicineTarget) {
       return null;
     }
     final partyMenuModel = _currentPartyMenuModel();
@@ -636,6 +675,7 @@ class BattleOverlayComponent extends PositionComponent {
     final menuModel = _currentMenuModel();
     final partyMenuModel = _currentPartyMenuModel();
     final bagMenuModel = _currentBagMenuModel();
+    final medicineTargetMenuModel = _currentMedicineTargetMenuModel();
     if (menuModel.isContinueOnly) {
       final selectedChoice = menuModel.choiceEntries.first.choice;
       _handleChoiceSelected(selectedChoice);
@@ -675,6 +715,22 @@ class BattleOverlayComponent extends PositionComponent {
       _handleBagEntrySelected(selectedEntry);
       return true;
     }
+    if (menuModel.mode == BattleCommandMenuMode.bagMedicineTarget) {
+      if (medicineTargetMenuModel == null ||
+          medicineTargetMenuModel.entries.isEmpty) {
+        return false;
+      }
+      final safeIndex = _selectedMedicineTargetIndex.clamp(
+        0,
+        medicineTargetMenuModel.entries.length - 1,
+      );
+      final selectedEntry = medicineTargetMenuModel.entries[safeIndex];
+      if (!selectedEntry.isSelectable) {
+        return false;
+      }
+      _handleMedicineTargetEntrySelected(selectedEntry);
+      return true;
+    }
     final selectedChoice =
         menuModel.choiceEntries[menuModel.selectedChoiceIndex].choice;
     _handleChoiceSelected(selectedChoice);
@@ -694,6 +750,14 @@ class BattleOverlayComponent extends PositionComponent {
       if (menuModel.mode == BattleCommandMenuMode.pokemon &&
           partyMenuModel.mode == BattlePartyMenuMode.forcedReplacement) {
         return false;
+      }
+      if (menuModel.mode == BattleCommandMenuMode.bagMedicineTarget) {
+        _selectedMedicineAction = null;
+        _selectedMedicineTargetIndex = 0;
+        _bagFeedbackMessage = null;
+        _menuMode = BattleCommandMenuMode.bag;
+        _syncPanelsOnly();
+        return true;
       }
       _bagFeedbackMessage = null;
       _menuMode = BattleCommandMenuMode.root;
@@ -824,6 +888,7 @@ class BattleOverlayComponent extends PositionComponent {
     final menuModel = _currentMenuModel();
     final partyMenuModel = _currentPartyMenuModel();
     final bagMenuModel = _currentBagMenuModel();
+    final medicineTargetMenuModel = _currentMedicineTargetMenuModel();
     final currentPresentationStep = _currentTurnPresentationStep;
     final isPresenting = currentPresentationStep != null;
     final partyPrompt = menuModel.mode == BattleCommandMenuMode.pokemon
@@ -844,23 +909,43 @@ class BattleOverlayComponent extends PositionComponent {
             feedbackMessage: _bagFeedbackMessage,
           )
         : null;
+    final medicineTargetPrompt =
+        menuModel.mode == BattleCommandMenuMode.bagMedicineTarget &&
+                medicineTargetMenuModel != null
+            ? buildBattleMedicineTargetPromptForOverlay(
+                medicineTargetMenuModel,
+                feedbackMessage: _bagFeedbackMessage,
+              )
+            : null;
+    final medicineTargetNarration =
+        menuModel.mode == BattleCommandMenuMode.bagMedicineTarget &&
+                medicineTargetMenuModel != null
+            ? buildBattleMedicineTargetNarrationLinesForOverlay(
+                medicineTargetMenuModel,
+                feedbackMessage: _bagFeedbackMessage,
+              )
+            : null;
 
     _commandPanel?.sync(
       battleLabel: _titleForSession(),
       prompt: currentPresentationStep?.message ??
+          medicineTargetPrompt ??
           bagPrompt ??
           partyPrompt ??
           buildBattleDecisionPromptForOverlay(_session.decisionRequest),
       narrationLines: isPresenting
           ? const <String>[]
-          : (bagNarration ??
+          : (medicineTargetNarration ??
+              bagNarration ??
               partyNarration ??
               buildBattleNarrationLinesForOverlay(_session)),
       menuModel: menuModel,
       partyMenuModel: partyMenuModel,
       bagMenuModel: bagMenuModel,
+      medicineTargetMenuModel: medicineTargetMenuModel,
       selectedPartyIndex: _selectedPartyIndex,
       selectedBagIndex: _selectedBagIndex,
+      selectedMedicineTargetIndex: _selectedMedicineTargetIndex,
       allowEmptyNarrationBody: isPresenting,
       interactionsEnabled: !isPresenting,
     );
@@ -885,6 +970,7 @@ class BattleOverlayComponent extends PositionComponent {
     final menuModel = _currentMenuModel();
     final partyMenuModel = _currentPartyMenuModel();
     final bagMenuModel = _currentBagMenuModel();
+    final medicineTargetMenuModel = _currentMedicineTargetMenuModel();
     if (menuModel.isContinueOnly) {
       return false;
     }
@@ -939,6 +1025,25 @@ class BattleOverlayComponent extends PositionComponent {
       return true;
     }
 
+    if (menuModel.mode == BattleCommandMenuMode.bagMedicineTarget &&
+        medicineTargetMenuModel != null &&
+        medicineTargetMenuModel.entries.isNotEmpty) {
+      final nextIndex = moveBattleCommandGridSelection(
+        currentIndex: _selectedMedicineTargetIndex,
+        itemCount: medicineTargetMenuModel.entries.length,
+        columnCount: 1,
+        horizontalDelta: 0,
+        verticalDelta: verticalDelta,
+      );
+      if (nextIndex == _selectedMedicineTargetIndex) {
+        return false;
+      }
+      _selectedMedicineTargetIndex = nextIndex;
+      _bagFeedbackMessage = null;
+      _syncPanelsOnly();
+      return true;
+    }
+
     final nextIndex = moveBattleCommandGridSelection(
       currentIndex: menuModel.selectedChoiceIndex,
       itemCount: menuModel.choiceEntries.length,
@@ -966,6 +1071,17 @@ class BattleOverlayComponent extends PositionComponent {
     onPlayerChoice(choice);
   }
 
+  void _handleMedicineTargetEntrySelected(BattleMedicineTargetEntry entry) {
+    if (!entry.isSelectable) {
+      return;
+    }
+    final itemLabel =
+        _selectedMedicineAction?.itemId == 'potion' ? 'Potion' : 'Cet objet';
+    _bagFeedbackMessage =
+        'L’utilisation de $itemLabel sera branchée au prochain lot.';
+    _syncPanelsOnly();
+  }
+
   void _handleBagEntrySelected(BattleBagMenuEntry entry) {
     if (!entry.isSelectable) {
       return;
@@ -976,9 +1092,13 @@ class BattleOverlayComponent extends PositionComponent {
       onPlayerChoice(playerChoice);
       return;
     }
-    _bagFeedbackMessage =
-        'L’utilisation des objets sera branchée au prochain lot.';
-    _syncPanelsOnly();
+    if (action case BattleBagMenuActionMedicineTarget()) {
+      _selectedMedicineAction = action;
+      _selectedMedicineTargetIndex = _firstSelectableMedicineTargetIndex();
+      _bagFeedbackMessage = null;
+      _menuMode = BattleCommandMenuMode.bagMedicineTarget;
+      _syncPanelsOnly();
+    }
   }
 
   void _handleRootActionSelected(BattleCommandRootAction action) {
@@ -990,6 +1110,8 @@ class BattleOverlayComponent extends PositionComponent {
         _syncPanelsOnly();
         return;
       case BattleCommandRootAction.bag:
+        _selectedMedicineAction = null;
+        _selectedMedicineTargetIndex = 0;
         _menuMode = BattleCommandMenuMode.bag;
         _selectedBagIndex = _firstSelectableBagIndex();
         _syncPanelsOnly();
@@ -1030,11 +1152,27 @@ class BattleOverlayComponent extends PositionComponent {
     );
   }
 
+  BattleMedicineTargetMenuModel? _currentMedicineTargetMenuModel() {
+    final selectedMedicineAction = _selectedMedicineAction;
+    if (selectedMedicineAction == null) {
+      return null;
+    }
+    return buildBattleMedicineTargetMenuModel(
+      session: _session,
+      itemId: selectedMedicineAction.itemId,
+      categoryId: selectedMedicineAction.categoryId,
+    );
+  }
+
   BattleCommandMenuMode _effectiveMenuMode() {
     final partyMenuModel = _currentPartyMenuModel();
     if (partyMenuModel.mode == BattlePartyMenuMode.forcedReplacement &&
         partyMenuModel.hasSelectableEntries) {
       return BattleCommandMenuMode.pokemon;
+    }
+    if (_menuMode == BattleCommandMenuMode.bagMedicineTarget &&
+        _selectedMedicineAction == null) {
+      return BattleCommandMenuMode.bag;
     }
     return _menuMode;
   }
@@ -1044,6 +1182,7 @@ class BattleOverlayComponent extends PositionComponent {
     final menuModel = _currentMenuModel();
     final partyMenuModel = _currentPartyMenuModel();
     final bagMenuModel = _currentBagMenuModel();
+    final medicineTargetMenuModel = _currentMedicineTargetMenuModel();
     _menuMode = menuModel.mode;
     _selectedRootIndex = _firstEnabledRootIndex(
       rootEntries: menuModel.rootEntries,
@@ -1060,6 +1199,14 @@ class BattleOverlayComponent extends PositionComponent {
       previousMenuMode: previousMenuMode,
       nextMenuMode: menuModel.mode,
     );
+    _selectedMedicineTargetIndex = _normalizeSelectedMedicineTargetIndex(
+      medicineTargetMenuModel: medicineTargetMenuModel,
+      previousMenuMode: previousMenuMode,
+      nextMenuMode: menuModel.mode,
+    );
+    if (_menuMode != BattleCommandMenuMode.bagMedicineTarget) {
+      _selectedMedicineAction = null;
+    }
   }
 
   void _syncMenuStateFromModel() {
@@ -1067,6 +1214,7 @@ class BattleOverlayComponent extends PositionComponent {
     final menuModel = _currentMenuModel();
     final partyMenuModel = _currentPartyMenuModel();
     final bagMenuModel = _currentBagMenuModel();
+    final medicineTargetMenuModel = _currentMedicineTargetMenuModel();
     _menuMode = menuModel.mode;
     _selectedRootIndex = menuModel.selectedRootIndex;
     _selectedChoiceIndex = menuModel.selectedChoiceIndex;
@@ -1080,6 +1228,14 @@ class BattleOverlayComponent extends PositionComponent {
       previousMenuMode: previousMenuMode,
       nextMenuMode: menuModel.mode,
     );
+    _selectedMedicineTargetIndex = _normalizeSelectedMedicineTargetIndex(
+      medicineTargetMenuModel: medicineTargetMenuModel,
+      previousMenuMode: previousMenuMode,
+      nextMenuMode: menuModel.mode,
+    );
+    if (_menuMode != BattleCommandMenuMode.bagMedicineTarget) {
+      _selectedMedicineAction = null;
+    }
   }
 
   int _firstEnabledRootIndex({
@@ -1109,6 +1265,14 @@ class BattleOverlayComponent extends PositionComponent {
     return _firstSelectableBagIndexFor(_currentBagMenuModel());
   }
 
+  int _firstSelectableMedicineTargetIndex() {
+    final medicineTargetMenuModel = _currentMedicineTargetMenuModel();
+    if (medicineTargetMenuModel == null) {
+      return 0;
+    }
+    return _firstSelectableMedicineTargetIndexFor(medicineTargetMenuModel);
+  }
+
   int _firstSelectablePartyIndexFor(BattlePartyMenuModel partyMenuModel) {
     for (var index = 0; index < partyMenuModel.allEntries.length; index++) {
       if (partyMenuModel.allEntries[index].isSelectable) {
@@ -1121,6 +1285,19 @@ class BattleOverlayComponent extends PositionComponent {
   int _firstSelectableBagIndexFor(BattleBagMenuModel bagMenuModel) {
     for (var index = 0; index < bagMenuModel.entries.length; index++) {
       if (bagMenuModel.entries[index].isSelectable) {
+        return index;
+      }
+    }
+    return 0;
+  }
+
+  int _firstSelectableMedicineTargetIndexFor(
+    BattleMedicineTargetMenuModel medicineTargetMenuModel,
+  ) {
+    for (var index = 0;
+        index < medicineTargetMenuModel.entries.length;
+        index++) {
+      if (medicineTargetMenuModel.entries[index].isSelectable) {
         return index;
       }
     }
@@ -1166,6 +1343,28 @@ class BattleOverlayComponent extends PositionComponent {
     }
     if (previousMenuMode != BattleCommandMenuMode.bag) {
       return _firstSelectableBagIndexFor(bagMenuModel);
+    }
+    return safeIndex;
+  }
+
+  int _normalizeSelectedMedicineTargetIndex({
+    required BattleMedicineTargetMenuModel? medicineTargetMenuModel,
+    required BattleCommandMenuMode previousMenuMode,
+    required BattleCommandMenuMode nextMenuMode,
+  }) {
+    if (medicineTargetMenuModel == null ||
+        medicineTargetMenuModel.entries.isEmpty) {
+      return 0;
+    }
+    final safeIndex = _selectedMedicineTargetIndex.clamp(
+      0,
+      medicineTargetMenuModel.entries.length - 1,
+    );
+    if (nextMenuMode != BattleCommandMenuMode.bagMedicineTarget) {
+      return safeIndex;
+    }
+    if (previousMenuMode != BattleCommandMenuMode.bagMedicineTarget) {
+      return _firstSelectableMedicineTargetIndexFor(medicineTargetMenuModel);
     }
     return safeIndex;
   }

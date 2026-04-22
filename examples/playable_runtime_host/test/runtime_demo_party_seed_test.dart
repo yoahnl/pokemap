@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:PokeMap_Loader/src/runtime_demo_party_seed.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:playable_runtime_host/src/runtime_demo_party_seed.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -103,7 +103,8 @@ void main() {
       );
     });
 
-    test('derives a stable gender from breeding ratios when available', () async {
+    test('derives a stable gender from breeding ratios when available',
+        () async {
       await _writeProjectFixture(
         root,
         includeSquirtle: true,
@@ -121,7 +122,8 @@ void main() {
       expect(member.gender, anyOf(equals('male'), equals('female')));
     });
 
-    test('resolves a preferred demo species without parsing unrelated bad species files',
+    test(
+        'resolves a preferred demo species without parsing unrelated bad species files',
         () async {
       await _writeProjectFixture(
         root,
@@ -165,10 +167,12 @@ void main() {
       expect(saveData.currentMapId, equals('lab'));
       expect(saveData.party.members, hasLength(1));
       expect(saveData.party.members.single.speciesId, equals('squirtle'));
-      expect(saveData.bag.entries, equals(const <BagEntry>[
-        BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
-        BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
-      ]));
+      expect(
+          saveData.bag.entries,
+          equals(const <BagEntry>[
+            BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
+            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
+          ]));
     });
   });
 }

@@ -1,5 +1,5 @@
+import 'package:PokeMap_Loader/src/runtime_project_picker.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:playable_runtime_host/src/runtime_project_picker.dart';
 
 void main() {
   group('pickRuntimeProjectDirectory', () {
@@ -38,7 +38,8 @@ void main() {
           importedPath = projectJsonPath;
           return '/sandbox/copied_project/project.json';
         },
-        projectFileExists: (path) async => path == '/picked/project_dir/project.json',
+        projectFileExists: (path) async =>
+            path == '/picked/project_dir/project.json',
       );
 
       expect(importedPath, '/picked/project_dir/project.json');

@@ -135,7 +135,8 @@ void main() {
       expect(model.hasSelectableEntries, isFalse);
     });
 
-    test('wild battle with poke-ball and allowed capture exposes a selectable capture entry',
+    test(
+        'wild battle with poke-ball and allowed capture exposes a selectable capture entry',
         () {
       final session = _session(
         player: _combatant(
@@ -217,7 +218,8 @@ void main() {
       expect(entry.action, isNull);
     });
 
-    test('wild battle with poke-ball but full party keeps capture disabled with an explicit reason',
+    test(
+        'wild battle with poke-ball but full party keeps capture disabled with an explicit reason',
         () {
       final session = _session(
         player: _combatant(
@@ -347,7 +349,9 @@ void main() {
       );
     });
 
-    test('medicine stays visible with a non-implemented disabled reason', () {
+    test(
+        'supported potion is selectable in a free turn and opens a medicine target action',
+        () {
       final session = _session(
         player: _combatant(
           speciesId: 'sproutle',
@@ -376,10 +380,97 @@ void main() {
       final entry = model.entries.single;
       expect(entry.kind, equals(BattleBagItemKind.medicine));
       expect(entry.quantity, equals(4));
+      expect(entry.isSelectable, isTrue);
+      expect(entry.disabledReason, isNull);
+      expect(
+        entry.action,
+        isA<BattleBagMenuActionMedicineTarget>()
+            .having((action) => action.itemId, 'itemId', equals('potion'))
+            .having(
+              (action) => action.categoryId,
+              'categoryId',
+              equals('medicine'),
+            )
+            .having((action) => action.quantity, 'quantity', equals(4)),
+      );
+    });
+
+    test('unsupported medicine stays visible but disabled', () {
+      final session = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_move(id: 'tackle', name: 'Tackle')],
+        ),
+        enemy: _combatant(
+          speciesId: 'wildmon',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_move(id: 'scratch', name: 'Scratch')],
+        ),
+        allowCapture: true,
+      );
+
+      final model = buildBattleBagMenuModel(
+        gameState: _gameState(
+          bag: Bag(
+            entries: <BagEntry>[
+              _entry(itemId: 'antidote', categoryId: 'medicine', quantity: 2),
+            ],
+          ),
+        ),
+        session: session,
+      );
+
+      final entry = model.entries.single;
+      expect(entry.kind, equals(BattleBagItemKind.medicine));
+      expect(entry.quantity, equals(2));
       expect(entry.isSelectable, isFalse);
       expect(
         entry.disabledReason,
-        equals(BattleBagMenuDisabledReason.medicineNotImplemented),
+        equals(BattleBagMenuDisabledReason.unsupportedMedicine),
+      );
+      expect(entry.action, isNull);
+    });
+
+    test('potion is non-selectable when the current request disallows bag', () {
+      final session = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          currentHp: 0,
+          moves: <BattleMoveData>[_move(id: 'tackle', name: 'Tackle')],
+        ),
+        playerReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'benchmon',
+            lineupIndex: 1,
+            moves: <BattleMoveData>[_move(id: 'scratch', name: 'Scratch')],
+          ),
+        ],
+        enemy: _combatant(
+          speciesId: 'wildmon',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_move(id: 'scratch', name: 'Scratch')],
+        ),
+      );
+
+      final model = buildBattleBagMenuModel(
+        gameState: _gameState(
+          bag: Bag(
+            entries: <BagEntry>[
+              _entry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+            ],
+          ),
+        ),
+        session: session,
+      );
+
+      final entry = model.entries.single;
+      expect(entry.kind, equals(BattleBagItemKind.medicine));
+      expect(entry.isSelectable, isFalse);
+      expect(
+        entry.disabledReason,
+        equals(BattleBagMenuDisabledReason.currentRequestDisallowsBag),
       );
       expect(entry.action, isNull);
     });
@@ -454,7 +545,8 @@ void main() {
       expect(model.entries[1].quantity, equals(4));
     });
 
-    test('capture action is never synthesized when the current request does not allow it',
+    test(
+        'capture action is never synthesized when the current request does not allow it',
         () {
       final session = _session(
         player: _combatant(

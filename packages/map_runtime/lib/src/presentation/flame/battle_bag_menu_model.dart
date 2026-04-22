@@ -19,6 +19,7 @@ enum BattleBagMenuDisabledReason {
   captureUnavailable,
   currentRequestDisallowsBag,
   medicineNotImplemented,
+  unsupportedMedicine,
   unsupportedItem,
 }
 
@@ -30,6 +31,18 @@ final class BattleBagMenuActionCapture extends BattleBagMenuAction {
   const BattleBagMenuActionCapture(this.playerChoice);
 
   final PlayerBattleChoiceCapture playerChoice;
+}
+
+final class BattleBagMenuActionMedicineTarget extends BattleBagMenuAction {
+  const BattleBagMenuActionMedicineTarget({
+    required this.itemId,
+    required this.categoryId,
+    required this.quantity,
+  });
+
+  final String itemId;
+  final String categoryId;
+  final int quantity;
 }
 
 class BattleBagMenuEntry {
@@ -65,8 +78,7 @@ class BattleBagMenuModel {
 
   bool get hasEntries => entries.isNotEmpty;
 
-  bool get hasSelectableEntries =>
-      entries.any((entry) => entry.isSelectable);
+  bool get hasSelectableEntries => entries.any((entry) => entry.isSelectable);
 }
 
 BattleBagMenuModel buildBattleBagMenuModel({
@@ -120,15 +132,10 @@ BattleBagMenuEntry _buildEntry({
         session: session,
         captureChoice: captureChoice,
       ),
-    BattleBagItemKind.medicine => BattleBagMenuEntry(
+    BattleBagItemKind.medicine => _buildMedicineEntry(
         visualIndex: visualIndex,
-        itemId: bagEntry.itemId,
-        categoryId: bagEntry.categoryId,
-        quantity: bagEntry.quantity,
-        kind: kind,
-        isSelectable: false,
-        disabledReason: BattleBagMenuDisabledReason.medicineNotImplemented,
-        action: null,
+        bagEntry: bagEntry,
+        session: session,
       ),
     BattleBagItemKind.unsupported => BattleBagMenuEntry(
         visualIndex: visualIndex,
@@ -168,6 +175,45 @@ BattleBagMenuEntry _buildCaptureEntry({
   );
 }
 
+BattleBagMenuEntry _buildMedicineEntry({
+  required int visualIndex,
+  required BagEntry bagEntry,
+  required BattleSession session,
+}) {
+  if (!_isSupportedMedicine(bagEntry)) {
+    return BattleBagMenuEntry(
+      visualIndex: visualIndex,
+      itemId: bagEntry.itemId,
+      categoryId: bagEntry.categoryId,
+      quantity: bagEntry.quantity,
+      kind: BattleBagItemKind.medicine,
+      isSelectable: false,
+      disabledReason: BattleBagMenuDisabledReason.unsupportedMedicine,
+      action: null,
+    );
+  }
+
+  final bagAllowed = session.decisionRequest is BattleTurnChoiceRequest;
+  return BattleBagMenuEntry(
+    visualIndex: visualIndex,
+    itemId: bagEntry.itemId,
+    categoryId: bagEntry.categoryId,
+    quantity: bagEntry.quantity,
+    kind: BattleBagItemKind.medicine,
+    isSelectable: bagAllowed,
+    disabledReason: bagAllowed
+        ? null
+        : BattleBagMenuDisabledReason.currentRequestDisallowsBag,
+    action: bagAllowed
+        ? BattleBagMenuActionMedicineTarget(
+            itemId: bagEntry.itemId,
+            categoryId: bagEntry.categoryId,
+            quantity: bagEntry.quantity,
+          )
+        : null,
+  );
+}
+
 PlayerBattleChoiceCapture? _captureChoiceFor(BattleDecisionRequest request) {
   for (final choice in request.allowedChoices) {
     if (choice is PlayerBattleChoiceCapture) {
@@ -185,6 +231,10 @@ BattleBagItemKind _classifyBagItem(BagEntry bagEntry) {
     return BattleBagItemKind.medicine;
   }
   return BattleBagItemKind.unsupported;
+}
+
+bool _isSupportedMedicine(BagEntry bagEntry) {
+  return bagEntry.itemId == 'potion' && bagEntry.categoryId == 'medicine';
 }
 
 BattleBagMenuDisabledReason _captureDisabledReason({

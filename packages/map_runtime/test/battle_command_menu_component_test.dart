@@ -619,7 +619,8 @@ void main() {
       expect(panel.currentSelectedBagIndex, 0);
     });
 
-    test('battle bag submenu renders disabled medicine and unsupported items',
+    test(
+        'battle bag submenu renders selectable potion and disabled unsupported entries',
         () async {
       final overlay = BattleOverlayComponent(
         session: _session(
@@ -644,6 +645,11 @@ void main() {
             entries: <BagEntry>[
               _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
               _bagEntry(
+                itemId: 'antidote',
+                categoryId: 'medicine',
+                quantity: 1,
+              ),
+              _bagEntry(
                 itemId: 'rare-candy',
                 categoryId: 'items',
                 quantity: 1,
@@ -664,13 +670,95 @@ void main() {
       expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
       expect(
         panel.currentBagEntryLabels,
-        const <String>['Rare Candy x1', 'Potion x2'],
+        const <String>['Rare Candy x1', 'Antidote x1', 'Potion x2'],
       );
-      expect(panel.currentBagSelectableStates, const <bool>[false, false]);
+      expect(
+        panel.currentBagSelectableStates,
+        const <bool>[false, false, true],
+      );
       expect(
         panel.currentBagStatusLabels,
-        const <String>['Unsupported item', 'Not implemented'],
+        const <String>['Unsupported item', 'Unsupported medicine', 'OK'],
       );
+    });
+
+    test('battle medicine target submenu shows active and reserve pokemon',
+        () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'charmander',
+            lineupIndex: 0,
+            currentHp: 24,
+            maxHp: 40,
+            moves: <BattleMoveData>[
+              _move(id: 'scratch', name: 'Scratch'),
+            ],
+          ),
+          playerReserve: <BattleCombatantData>[
+            _combatant(
+              speciesId: 'bulbasaur',
+              lineupIndex: 1,
+              currentHp: 30,
+              maxHp: 30,
+              moves: <BattleMoveData>[
+                _move(id: 'vine_whip', name: 'Vine Whip'),
+              ],
+            ),
+            _combatant(
+              speciesId: 'squirtle',
+              lineupIndex: 2,
+              currentHp: 0,
+              maxHp: 35,
+              moves: <BattleMoveData>[
+                _move(id: 'tackle', name: 'Tackle'),
+              ],
+            ),
+          ],
+          enemy: _combatant(
+            speciesId: 'pidgey',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[
+              _move(id: 'tackle', name: 'Tackle'),
+            ],
+          ),
+          isTrainerBattle: false,
+        ),
+        gameState: _gameState(
+          bag: Bag(
+            entries: <BagEntry>[
+              _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+            ],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+      final panel = _panelFromOverlay(overlay);
+
+      overlay.moveSelectionRight();
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.validateSelectedChoice(), isTrue);
+
+      expect(
+        overlay.currentMenuMode,
+        BattleCommandMenuMode.bagMedicineTarget,
+      );
+      expect(
+        panel.currentMedicineTargetSpeciesLabels,
+        const <String>['charmander', 'bulbasaur', 'squirtle'],
+      );
+      expect(
+        panel.currentMedicineTargetSelectableStates,
+        const <bool>[true, false, false],
+      );
+      expect(
+        panel.currentMedicineTargetStatusLabels,
+        const <String>['Actif', 'Full HP', 'K.O.'],
+      );
+      expect(panel.currentSelectedMedicineTargetIndex, equals(0));
     });
 
     test(

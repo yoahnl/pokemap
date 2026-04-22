@@ -8,6 +8,7 @@ import 'package:map_battle/map_battle.dart';
 
 import 'battle_bag_menu_model.dart';
 import 'battle_command_menu_model.dart';
+import 'battle_medicine_target_menu_model.dart';
 import 'battle_party_menu_model.dart';
 import 'battle_scene_layout.dart';
 
@@ -81,6 +82,7 @@ class BattleCommandPanelComponent extends PositionComponent {
     required this.onRootActionSelected,
     required this.onPartyEntrySelected,
     this.onBagEntrySelected,
+    this.onMedicineTargetEntrySelected,
     this.layoutModeOverride,
   }) : super(
           position: position,
@@ -93,6 +95,8 @@ class BattleCommandPanelComponent extends PositionComponent {
   final void Function(BattleCommandRootAction action) onRootActionSelected;
   final void Function(BattlePartyMenuEntry entry) onPartyEntrySelected;
   final void Function(BattleBagMenuEntry entry)? onBagEntrySelected;
+  final void Function(BattleMedicineTargetEntry entry)?
+      onMedicineTargetEntrySelected;
   final BattleCommandPanelLayoutMode? layoutModeOverride;
 
   PositionComponent? _promptPanel;
@@ -114,8 +118,10 @@ class BattleCommandPanelComponent extends PositionComponent {
   _BattleCommandPanelLayout? _layout;
   BattlePartyMenuModel? _partyMenuModel;
   BattleBagMenuModel? _bagMenuModel;
+  BattleMedicineTargetMenuModel? _medicineTargetMenuModel;
   int _selectedPartyIndex = 0;
   int _selectedBagIndex = 0;
+  int _selectedMedicineTargetIndex = 0;
   BattleCommandMenuModel _menuModel = const BattleCommandMenuModel(
     mode: BattleCommandMenuMode.root,
     rootEntries: <BattleCommandRootEntry>[],
@@ -206,6 +212,27 @@ class BattleCommandPanelComponent extends PositionComponent {
 
   @visibleForTesting
   int get currentSelectedBagIndex => _selectedBagIndex;
+
+  @visibleForTesting
+  List<String> get currentMedicineTargetSpeciesLabels =>
+      (_medicineTargetMenuModel?.entries ?? const <BattleMedicineTargetEntry>[])
+          .map((entry) => entry.speciesId)
+          .toList(growable: false);
+
+  @visibleForTesting
+  List<bool> get currentMedicineTargetSelectableStates =>
+      (_medicineTargetMenuModel?.entries ?? const <BattleMedicineTargetEntry>[])
+          .map((entry) => entry.isSelectable)
+          .toList(growable: false);
+
+  @visibleForTesting
+  List<String> get currentMedicineTargetStatusLabels =>
+      (_medicineTargetMenuModel?.entries ?? const <BattleMedicineTargetEntry>[])
+          .map(_medicineTargetStatusLabel)
+          .toList(growable: false);
+
+  @visibleForTesting
+  int get currentSelectedMedicineTargetIndex => _selectedMedicineTargetIndex;
 
   @visibleForTesting
   BattleCommandPanelLayoutMode get currentLayoutMode =>
@@ -334,16 +361,20 @@ class BattleCommandPanelComponent extends PositionComponent {
     required BattleCommandMenuModel menuModel,
     BattlePartyMenuModel? partyMenuModel,
     BattleBagMenuModel? bagMenuModel,
+    BattleMedicineTargetMenuModel? medicineTargetMenuModel,
     int selectedPartyIndex = 0,
     int selectedBagIndex = 0,
+    int selectedMedicineTargetIndex = 0,
     bool allowEmptyNarrationBody = false,
     bool interactionsEnabled = true,
   }) {
     _menuModel = menuModel;
     _partyMenuModel = partyMenuModel;
     _bagMenuModel = bagMenuModel;
+    _medicineTargetMenuModel = medicineTargetMenuModel;
     _selectedPartyIndex = selectedPartyIndex;
     _selectedBagIndex = selectedBagIndex;
+    _selectedMedicineTargetIndex = selectedMedicineTargetIndex;
     _battleLabelText?.text = battleLabel.toUpperCase();
     _currentPromptValue = prompt;
     _promptText?.text = prompt;
@@ -457,6 +488,15 @@ class BattleCommandPanelComponent extends PositionComponent {
 
     if (_menuModel.mode == BattleCommandMenuMode.bag && _bagMenuModel != null) {
       _renderBagEntries(
+        commandsPanel,
+        interactionsEnabled: interactionsEnabled,
+      );
+      return;
+    }
+
+    if (_menuModel.mode == BattleCommandMenuMode.bagMedicineTarget &&
+        _medicineTargetMenuModel != null) {
+      _renderMedicineTargetEntries(
         commandsPanel,
         interactionsEnabled: interactionsEnabled,
       );
@@ -681,6 +721,60 @@ class BattleCommandPanelComponent extends PositionComponent {
     }
   }
 
+  void _renderMedicineTargetEntries(
+    PositionComponent commandsPanel, {
+    required bool interactionsEnabled,
+  }) {
+    final medicineTargetMenuModel = _medicineTargetMenuModel;
+    if (medicineTargetMenuModel == null) {
+      return;
+    }
+
+    final layout = _layout ?? _BattleCommandPanelLayout.forSize(size);
+    final top =
+        layout.mode == BattleCommandPanelLayoutMode.stacked ? 18.0 : 24.0;
+    final gap = layout.mode == BattleCommandPanelLayoutMode.stacked ? 7.0 : 8.0;
+    final entries = medicineTargetMenuModel.entries;
+    if (entries.isEmpty) {
+      return;
+    }
+
+    final availableWidth = commandsPanel.size.x - 24;
+    final availableHeight = commandsPanel.size.y - (top + 14);
+    final cardHeight =
+        ((availableHeight - ((entries.length - 1) * gap)) / entries.length)
+            .clamp(
+              layout.mode == BattleCommandPanelLayoutMode.stacked ? 36.0 : 42.0,
+              layout.mode == BattleCommandPanelLayoutMode.stacked ? 58.0 : 64.0,
+            )
+            .toDouble();
+
+    for (var index = 0; index < entries.length; index++) {
+      final entry = entries[index];
+      final snapshot = _buildPartyEntrySnapshot(
+        entrySize: Size(availableWidth, cardHeight),
+        speciesLabel: entry.speciesId,
+        levelLabel: 'Nv. ${entry.level}',
+        hpLabel: '${entry.currentHp}/${entry.maxHp} PV',
+        statusLabel: _medicineTargetStatusLabel(entry),
+        compact: layout.mode == BattleCommandPanelLayoutMode.stacked,
+      );
+      final card = _BattleMedicineTargetEntryComponent(
+        entry: entry,
+        position: Vector2(12, top + ((cardHeight + gap) * index)),
+        size: Vector2(availableWidth, cardHeight),
+        snapshot: snapshot,
+        isSelected: index == _selectedMedicineTargetIndex,
+        onPressed: onMedicineTargetEntrySelected,
+        compact: layout.mode == BattleCommandPanelLayoutMode.stacked,
+        interactionsEnabled: interactionsEnabled,
+        statusLabel: _medicineTargetStatusLabel(entry),
+      );
+      _interactiveComponents.add(card);
+      commandsPanel.add(card);
+    }
+  }
+
   String _hintFor(BattleCommandMenuModel menuModel) {
     if (menuModel.isContinueOnly) {
       return 'Enter / Space';
@@ -752,8 +846,27 @@ String _bagEntryStatusLabel(BattleBagMenuEntry entry) {
     BattleBagMenuDisabledReason.captureUnavailable => 'Indisponible',
     BattleBagMenuDisabledReason.currentRequestDisallowsBag => 'Indisponible',
     BattleBagMenuDisabledReason.medicineNotImplemented => 'Not implemented',
+    BattleBagMenuDisabledReason.unsupportedMedicine => 'Unsupported medicine',
     BattleBagMenuDisabledReason.unsupportedItem => 'Unsupported item',
     null => 'Indisponible',
+  };
+}
+
+String _medicineTargetStatusLabel(BattleMedicineTargetEntry entry) {
+  if (entry.isActive) {
+    return 'Actif';
+  }
+  if (entry.isFainted) {
+    return 'K.O.';
+  }
+  if (entry.isSelectable) {
+    return 'OK';
+  }
+  return switch (entry.disabledReason) {
+    BattleMedicineTargetDisabledReason.fullHp => 'Full HP',
+    BattleMedicineTargetDisabledReason.notAllowedByCurrentRequest =>
+      'Indisponible',
+    BattleMedicineTargetDisabledReason.fainted || null => 'K.O.',
   };
 }
 
@@ -1056,6 +1169,137 @@ class _BattlePartyEntryComponent extends PositionComponent with TapCallbacks {
     final statusColor = switch (entry.disabledReason) {
       BattlePartyMenuDisabledReason.fainted => const Color(0xFFFFB0A5),
       BattlePartyMenuDisabledReason.activePokemon => const Color(0xFFEFDDA8),
+      _ => enabled ? const Color(0xFFC8F0CF) : const Color(0xD5DDE8F1),
+    };
+
+    _paintButtonText(
+      canvas,
+      text: entry.speciesId,
+      rect: snapshot.titleRect,
+      fontSize: snapshot.titleFontSize,
+      color: titleColor,
+      align: TextAlign.left,
+      fontWeight: FontWeight.w900,
+    );
+    _paintButtonText(
+      canvas,
+      text: 'Nv. ${entry.level}',
+      rect: snapshot.levelRect,
+      fontSize: snapshot.levelFontSize,
+      color: metaColor,
+      align: TextAlign.right,
+      fontWeight: FontWeight.w800,
+    );
+    _paintButtonText(
+      canvas,
+      text: '${entry.currentHp}/${entry.maxHp} PV',
+      rect: snapshot.hpRect,
+      fontSize: snapshot.metaFontSize,
+      color: metaColor,
+      align: TextAlign.left,
+      fontWeight: FontWeight.w700,
+    );
+    _paintButtonText(
+      canvas,
+      text: statusLabel,
+      rect: snapshot.statusRect,
+      fontSize: snapshot.metaFontSize,
+      color: statusColor,
+      align: TextAlign.right,
+      fontWeight: FontWeight.w800,
+    );
+  }
+}
+
+class _BattleMedicineTargetEntryComponent extends PositionComponent
+    with TapCallbacks {
+  _BattleMedicineTargetEntryComponent({
+    required this.entry,
+    required Vector2 position,
+    required Vector2 size,
+    required this.snapshot,
+    required this.isSelected,
+    required this.onPressed,
+    required this.statusLabel,
+    this.compact = false,
+    this.interactionsEnabled = true,
+  }) : super(
+          position: position,
+          size: size,
+          anchor: Anchor.topLeft,
+          priority: 32,
+        );
+
+  final BattleMedicineTargetEntry entry;
+  final BattlePartyEntrySnapshot snapshot;
+  final bool isSelected;
+  final void Function(BattleMedicineTargetEntry entry)? onPressed;
+  final String statusLabel;
+  final bool compact;
+  final bool interactionsEnabled;
+
+  @override
+  bool containsLocalPoint(Vector2 point) {
+    return point.x >= 0 &&
+        point.x <= size.x &&
+        point.y >= 0 &&
+        point.y <= size.y;
+  }
+
+  @override
+  void onTapDown(TapDownEvent event) {
+    if (!interactionsEnabled || !entry.isSelectable) {
+      return;
+    }
+    onPressed?.call(entry);
+  }
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+
+    final rect = Offset.zero & Size(size.x, size.y);
+    final cornerRadius = Radius.circular(compact ? 12 : 14);
+    final enabled = entry.isSelectable;
+    final backgroundTop = enabled
+        ? const Color(0xFF597FBF)
+        : entry.isActive
+            ? const Color(0xFF5B616A)
+            : const Color(0xFF444B58);
+    final backgroundBottom = enabled
+        ? const Color(0xFF3C5A93)
+        : entry.isActive
+            ? const Color(0xFF41464E)
+            : const Color(0xFF323844);
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, cornerRadius),
+      Paint()
+        ..shader = LinearGradient(
+          colors: <Color>[backgroundTop, backgroundBottom],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ).createShader(rect),
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(rect, cornerRadius),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = isSelected ? 2.25 : 1.1
+        ..color = isSelected
+            ? const Color(0xFFF7F0D4)
+            : enabled
+                ? const Color(0x55FFFFFF)
+                : const Color(0x33FFFFFF),
+    );
+
+    final titleColor =
+        enabled ? const Color(0xFFFDFDFD) : const Color(0xD8F1F4FA);
+    final metaColor =
+        enabled ? const Color(0xE6E7EFFA) : const Color(0xB6D5DDE8);
+    final statusColor = switch (entry.disabledReason) {
+      BattleMedicineTargetDisabledReason.fainted => const Color(0xFFFFB0A5),
+      BattleMedicineTargetDisabledReason.fullHp => const Color(0xFFEFDDA8),
       _ => enabled ? const Color(0xFFC8F0CF) : const Color(0xD5DDE8F1),
     };
 

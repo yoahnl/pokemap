@@ -1,7 +1,7 @@
+import 'package:PokeMap_Loader/src/runtime_ios_project_picker.dart';
+import 'package:PokeMap_Loader/src/runtime_project_picker.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:playable_runtime_host/src/runtime_ios_project_picker.dart';
-import 'package:playable_runtime_host/src/runtime_project_picker.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -35,7 +35,8 @@ void main() {
     expect(result.outcome, RuntimeProjectPickOutcome.cancelled);
   });
 
-  test('maps invalid selection errors to a user-facing invalid result', () async {
+  test('maps invalid selection errors to a user-facing invalid result',
+      () async {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
       throw PlatformException(

@@ -1129,7 +1129,8 @@ void main() {
       expect(pickedChoice, isNull);
     });
 
-    test('selecting a capture-capable poke ball dispatches PlayerBattleChoiceCapture',
+    test(
+        'selecting a capture-capable poke ball dispatches PlayerBattleChoiceCapture',
         () async {
       PlayerBattleChoice? pickedChoice;
       final session = _session(
@@ -1184,7 +1185,8 @@ void main() {
       expect(overlay.getSelectedChoice(), isNull);
     });
 
-    test('selecting disabled poke ball in trainer battle does not dispatch capture',
+    test(
+        'selecting disabled poke ball in trainer battle does not dispatch capture',
         () async {
       PlayerBattleChoice? pickedChoice;
       final overlay = BattleOverlayComponent(
@@ -1221,7 +1223,8 @@ void main() {
       expect(pickedChoice, isNull);
     });
 
-    test('selecting medicine from battle bag does not dispatch a battle choice',
+    test(
+        'selecting potion from battle bag opens the medicine target shell without dispatching',
         () async {
       PlayerBattleChoice? pickedChoice;
       final overlay = BattleOverlayComponent(
@@ -1253,8 +1256,229 @@ void main() {
       overlay.moveSelectionRight();
       expect(overlay.validateSelectedChoice(), isTrue);
       expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
-      expect(overlay.validateSelectedChoice(), isFalse);
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(
+        overlay.currentMenuMode,
+        BattleCommandMenuMode.bagMedicineTarget,
+      );
+      final commandPanel =
+          overlay.children.whereType<BattleCommandPanelComponent>().single;
+      expect(
+        commandPanel.currentMedicineTargetSpeciesLabels,
+        const <String>['sproutle'],
+      );
       expect(pickedChoice, isNull);
+    });
+
+    test(
+        'selecting a valid medicine target shows shell feedback without dispatching or mutating state',
+        () async {
+      PlayerBattleChoice? pickedChoice;
+      final session = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          currentHp: 12,
+          maxHp: 40,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+        playerReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'benchmate',
+            lineupIndex: 1,
+            currentHp: 40,
+            maxHp: 40,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ],
+        enemy: _combatant(
+          speciesId: 'wild_enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_tackle()],
+        ),
+      );
+      final gameState = _gameState(
+        bag: Bag(
+          entries: <BagEntry>[
+            _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+          ],
+        ),
+      );
+      final overlay = BattleOverlayComponent(
+        session: session,
+        gameState: gameState,
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (choice) => pickedChoice = choice,
+      );
+
+      await overlay.onLoad();
+
+      overlay.moveSelectionRight();
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.validateSelectedChoice(), isTrue);
+
+      final playerHpBefore = session.state.player.currentHp;
+      expect(overlay.validateSelectedChoice(), isTrue);
+
+      final commandPanel =
+          overlay.children.whereType<BattleCommandPanelComponent>().single;
+      expect(pickedChoice, isNull);
+      expect(session.state.player.currentHp, equals(playerHpBefore));
+      expect(gameState.bag.entries.single.quantity, equals(1));
+      expect(
+        overlay.currentPromptText,
+        equals('L’utilisation de Potion sera branchée au prochain lot.'),
+      );
+      expect(
+        commandPanel.currentMedicineTargetSpeciesLabels,
+        const <String>['sproutle', 'benchmate'],
+      );
+    });
+
+    test('full hp medicine targets stay visible but non-selectable', () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            currentHp: 40,
+            maxHp: 40,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          playerReserve: <BattleCombatantData>[
+            _combatant(
+              speciesId: 'benchmate',
+              lineupIndex: 1,
+              currentHp: 35,
+              maxHp: 35,
+              moves: <BattleMoveData>[_tackle()],
+            ),
+          ],
+          enemy: _combatant(
+            speciesId: 'wild_enemy',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ),
+        gameState: _gameState(
+          bag: Bag(
+            entries: <BagEntry>[
+              _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+            ],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      overlay.moveSelectionRight();
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.validateSelectedChoice(), isTrue);
+
+      final commandPanel =
+          overlay.children.whereType<BattleCommandPanelComponent>().single;
+      expect(
+        commandPanel.currentMedicineTargetSelectableStates,
+        const <bool>[false, false],
+      );
+      expect(overlay.validateSelectedChoice(), isFalse);
+    });
+
+    test('fainted medicine targets stay visible but non-selectable', () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            currentHp: 15,
+            maxHp: 40,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          playerReserve: <BattleCombatantData>[
+            _combatant(
+              speciesId: 'fainted_bench',
+              lineupIndex: 1,
+              currentHp: 0,
+              maxHp: 35,
+              moves: <BattleMoveData>[_tackle()],
+            ),
+          ],
+          enemy: _combatant(
+            speciesId: 'wild_enemy',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ),
+        gameState: _gameState(
+          bag: Bag(
+            entries: <BagEntry>[
+              _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+            ],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      overlay.moveSelectionRight();
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.validateSelectedChoice(), isTrue);
+      overlay.moveSelectionDown();
+
+      final commandPanel =
+          overlay.children.whereType<BattleCommandPanelComponent>().single;
+      expect(commandPanel.currentSelectedMedicineTargetIndex, equals(1));
+      expect(
+        commandPanel.currentMedicineTargetStatusLabels,
+        const <String>['Actif', 'K.O.'],
+      );
+      expect(overlay.validateSelectedChoice(), isFalse);
+    });
+
+    test('escape from medicine target returns to bag and then to root',
+        () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            currentHp: 12,
+            maxHp: 40,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          enemy: _combatant(
+            speciesId: 'wild_enemy',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ),
+        gameState: _gameState(
+          bag: Bag(
+            entries: <BagEntry>[
+              _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 1),
+            ],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      overlay.moveSelectionRight();
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bagMedicineTarget);
+
+      expect(overlay.handleEscape(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+
+      expect(overlay.handleEscape(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.root);
     });
 
     test('updateState refreshes bag menu source', () async {

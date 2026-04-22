@@ -1,11 +1,12 @@
+import 'package:PokeMap_Loader/src/runtime_touch_input_driver.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_runtime/map_runtime.dart';
-import 'package:playable_runtime_host/src/runtime_touch_input_driver.dart';
 
 void main() {
   group('runtimeInputControlFromTouchVector', () {
     test('uses a dead zone and dominant axis for virtual stick movement', () {
-      expect(runtimeInputControlFromTouchVector(const Offset(0.1, 0.1)), isNull);
+      expect(
+          runtimeInputControlFromTouchVector(const Offset(0.1, 0.1)), isNull);
       expect(
         runtimeInputControlFromTouchVector(const Offset(0.8, 0.2)),
         RuntimeInputControl.right,
