@@ -17,6 +17,16 @@ export 'src/application/npc_runtime_presence.dart'
 export 'src/application/load_runtime_map_bundle.dart' show loadRuntimeMapBundle;
 export 'src/application/runtime_map_bundle.dart' show RuntimeMapBundle;
 export 'src/presentation/flame/playable_map_game.dart' show PlayableMapGame;
+export 'src/presentation/flutter/battle_command_overlay_snapshot.dart'
+    show
+        BattleCommandOverlayMode,
+        BattleCommandOverlayEntryKind,
+        BattleCommandOverlayEntryTone,
+        BattleCommandOverlayEntry,
+        BattleCommandOverlayHudSnapshot,
+        BattleCommandOverlaySnapshot;
+export 'src/presentation/flutter/battle_mobile_command_overlay.dart'
+    show BattleMobileCommandOverlay;
 export 'src/presentation/flame/runtime_input_event.dart'
     show RuntimeInputControl, RuntimeInputEvent, RuntimeInputEventPhase;
 export 'src/presentation/flame/runtime_map_game.dart' show RuntimeMapGame;

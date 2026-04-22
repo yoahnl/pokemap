@@ -7,10 +7,9 @@ import 'package:flame/components.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/src/direction.dart';
-import 'package:map_runtime/src/application/battle_start_request.dart';
+import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/runtime_battle_outcome_apply.dart';
 import 'package:map_runtime/src/application/runtime_battle_bag_hp_heal_item_apply.dart';
-import 'package:map_runtime/src/application/runtime_map_bundle.dart';
 import 'package:map_runtime/src/presentation/flame/battle_background_resolver.dart';
 import 'package:map_runtime/src/presentation/flame/battle_command_menu_model.dart';
 import 'package:map_runtime/src/presentation/flame/battle_command_panel_component.dart';
@@ -872,6 +871,61 @@ void main() {
       );
     });
 
+    test(
+        'can publish a Flutter command overlay snapshot without mounting the Flame command panel',
+        () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'squirtle',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[
+              _tackle(),
+              _waitingMove(),
+            ],
+          ),
+          enemy: _combatant(
+            speciesId: 'caterpie',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          allowCapture: true,
+        ),
+        gameState: _gameState(
+          bag: Bag(entries: <BagEntry>[
+            _bagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+          ]),
+        ),
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: (_) {},
+        useFlutterCommandOverlay: true,
+      );
+
+      await overlay.onLoad();
+      await overlay.waitForPendingVisualSync();
+
+      expect(overlay.commandPanelMounted, isFalse);
+      expect(overlay.enemyHudMounted, isFalse);
+      expect(overlay.playerHudMounted, isFalse);
+      expect(overlay.currentCommandOverlaySnapshot, isNotNull);
+      expect(
+        overlay.currentCommandOverlaySnapshot!.mode,
+        BattleCommandOverlayMode.root,
+      );
+      expect(
+        overlay.currentCommandOverlaySnapshot!.panelRect.height,
+        greaterThan(0),
+      );
+      expect(
+        overlay.currentCommandOverlaySnapshot!.enemyHud.speciesLabel,
+        equals('caterpie'),
+      );
+      expect(
+        overlay.currentCommandOverlaySnapshot!.playerHud.speciesLabel,
+        equals('squirtle'),
+      );
+    });
+
     test('keeps portrait HUDs inset and readable on 390x844', () async {
       final overlay = BattleOverlayComponent(
         session: _session(
@@ -991,6 +1045,45 @@ void main() {
       expect(overlay.currentSceneLayout.isPortrait, isTrue);
       expect(overlay.currentSceneLayout.viewportSize, const ui.Size(390, 844));
       expect(panel.currentLayoutMode, BattleCommandPanelLayoutMode.stacked);
+    });
+
+    test(
+        'Flutter command overlay snapshot reflows with the battle scene on viewport changes',
+        () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'squirtle',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          enemy: _combatant(
+            speciesId: 'pikachu',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+        useFlutterCommandOverlay: true,
+      );
+
+      await overlay.onLoad();
+      await overlay.waitForPendingVisualSync();
+
+      final initialSnapshot = overlay.currentCommandOverlaySnapshot!;
+      expect(initialSnapshot.panelRect.width, greaterThan(0));
+
+      overlay.onGameResize(Vector2(390, 844));
+      await overlay.waitForPendingVisualSync();
+
+      final updatedSnapshot = overlay.currentCommandOverlaySnapshot!;
+      expect(updatedSnapshot.mode, BattleCommandOverlayMode.root);
+      expect(updatedSnapshot.panelRect, isNot(initialSnapshot.panelRect));
+      expect(
+        updatedSnapshot.panelRect.height,
+        greaterThan(initialSnapshot.panelRect.height),
+      );
     });
 
     test('mounts the resolved background family inside the backdrop layer',

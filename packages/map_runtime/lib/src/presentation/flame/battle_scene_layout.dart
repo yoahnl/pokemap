@@ -83,23 +83,25 @@ final class BattleSceneLayout {
             : 16.0;
     final commandPanelBottomPadding =
         commandPanelLayoutMode == BattleCommandPanelLayoutMode.stacked
-            ? 12.0
+            ? isPortrait
+                ? 14.0
+                : 12.0
             : 14.0;
     final commandPanelHeight =
         (commandPanelLayoutMode == BattleCommandPanelLayoutMode.stacked
                 ? isPortrait
                     ? sceneRect.height * 0.31
-                    : sceneRect.height * 0.34
-                : sceneRect.height * 0.295)
+                    : sceneRect.height * 0.30
+                : sceneRect.height * 0.255)
             .clamp(
               commandPanelLayoutMode == BattleCommandPanelLayoutMode.stacked
                   ? isPortrait
-                      ? 248.0
-                      : 236.0
-                  : 152.0,
+                      ? 232.0
+                      : 210.0
+                  : 138.0,
               commandPanelLayoutMode == BattleCommandPanelLayoutMode.stacked
-                  ? 320.0
-                  : 182.0,
+                  ? (isPortrait ? 276.0 : 252.0)
+                  : 164.0,
             )
             .toDouble();
     final commandPanelRect = Rect.fromLTWH(
@@ -109,11 +111,16 @@ final class BattleSceneLayout {
       commandPanelHeight,
     );
 
+    final stageBottomGap =
+        commandPanelLayoutMode == BattleCommandPanelLayoutMode.stacked &&
+                isPortrait
+            ? 18.0
+            : 12.0;
     final stageAvailableRect = Rect.fromLTRB(
       isPortrait ? sceneRect.left + portraitSafeMargin : sceneRect.left,
       isPortrait ? sceneRect.top + 14 : sceneRect.top + 8,
       isPortrait ? sceneRect.right - portraitSafeMargin : sceneRect.right,
-      commandPanelRect.top - 12,
+      commandPanelRect.top - stageBottomGap,
     );
 
     final referenceStageWidth = isPortrait ? 820.0 : 960.0;

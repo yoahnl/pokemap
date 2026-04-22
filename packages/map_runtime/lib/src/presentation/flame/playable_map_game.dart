@@ -7,7 +7,9 @@ import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flame/input.dart';
 import 'package:flame/text.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
@@ -63,6 +65,7 @@ import 'battle_overlay_component.dart';
 import 'battle_background_resolver.dart';
 import 'battle_medicine_target_menu_model.dart';
 import 'battle_pokemon_sprite_resolver.dart';
+import '../flutter/battle_command_overlay_snapshot.dart';
 import 'battle_visual_asset_cache.dart';
 import 'runtime_input_event.dart';
 import 'runtime_input_key_bindings.dart';
@@ -250,7 +253,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   bool _showNpcCollisionDebugOverlay = false;
   bool _showBehaviorDebugOverlay = false;
   bool _showFpsOverlay = false;
-  bool _preferBattleTouchListDragScroll = false;
+  bool _preferBattleFlutterCommandOverlay = false;
   TextComponent? _behaviorDebugOverlay;
   TextComponent? _fpsOverlay;
   double _fpsAccumulatorSeconds = 0.0;
@@ -296,6 +299,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   // Battle system (map_battle integration)
   BattleSession? _battleSession;
   RuntimeActiveBattleContext? _activeBattleContext;
+  final ValueNotifier<BattleCommandOverlaySnapshot?>
+      _battleCommandOverlayNotifier =
+      ValueNotifier<BattleCommandOverlaySnapshot?>(null);
+  BattleCommandOverlaySnapshot? _pendingBattleCommandOverlaySnapshot;
+  bool _battleCommandOverlayPostFrameFlushScheduled = false;
   _PendingConnectionEntryAnimation? _pendingConnectionEntryAnimation;
 
   // Battle flow hardening
@@ -346,16 +354,85 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _ensureFpsOverlay();
   }
 
-  /// Le host mobile peut préférer un scroll tactile direct dans les listes
-  /// battle quand aucune manette n'est active.
+  /// Le host mobile peut préférer sortir le panneau de commandes battle en
+  /// vrai widget Flutter quand aucune manette n'est active.
   ///
   /// Frontière volontaire :
   /// - le runtime ne détecte pas le hardware tout seul ;
   /// - le host pousse seulement une préférence d'interaction ;
   /// - l'overlay battle reste la seule surface concernée.
+  void setBattleFlutterCommandOverlayPreferred(bool preferred) {
+    _preferBattleFlutterCommandOverlay = preferred;
+    _battleOverlay?.setUseFlutterCommandOverlay(preferred);
+  }
+
+  /// Compat historique : l'ancien seam mobile pilotait un faux scroll tactile
+  /// directement dans le panneau Flame. Le lot mobile Flutter redirige ce
+  /// toggle vers la nouvelle surcouche widget sans casser les appels existants.
   void setBattleTouchListDragScrollPreferred(bool preferred) {
-    _preferBattleTouchListDragScroll = preferred;
-    _battleOverlay?.setPreferTouchListDragScroll(preferred);
+    setBattleFlutterCommandOverlayPreferred(preferred);
+  }
+
+  ValueListenable<BattleCommandOverlaySnapshot?>
+      get battleCommandOverlayListenable => _battleCommandOverlayNotifier;
+
+  void _setBattleCommandOverlaySnapshot(
+    BattleCommandOverlaySnapshot? snapshot,
+  ) {
+    final binding = SchedulerBinding.instance;
+    final phase = binding.schedulerPhase;
+    final shouldDeferUntilPostFrame =
+        phase == SchedulerPhase.persistentCallbacks ||
+            phase == SchedulerPhase.midFrameMicrotasks;
+    if (!shouldDeferUntilPostFrame) {
+      _pendingBattleCommandOverlaySnapshot = null;
+      _flushBattleCommandOverlaySnapshot(snapshot);
+      return;
+    }
+    _pendingBattleCommandOverlaySnapshot = snapshot;
+    if (_battleCommandOverlayPostFrameFlushScheduled) {
+      return;
+    }
+    _battleCommandOverlayPostFrameFlushScheduled = true;
+    binding.addPostFrameCallback((_) {
+      _battleCommandOverlayPostFrameFlushScheduled = false;
+      final pendingSnapshot = _pendingBattleCommandOverlaySnapshot;
+      _pendingBattleCommandOverlaySnapshot = null;
+      _flushBattleCommandOverlaySnapshot(pendingSnapshot);
+    });
+  }
+
+  void _flushBattleCommandOverlaySnapshot(
+    BattleCommandOverlaySnapshot? snapshot,
+  ) {
+    if (_battleCommandOverlayNotifier.value == snapshot) {
+      return;
+    }
+    _battleCommandOverlayNotifier.value = snapshot;
+  }
+
+  bool selectBattleRootEntry(int index) {
+    return _battleOverlay?.selectRootEntry(index) ?? false;
+  }
+
+  bool selectBattleChoiceEntry(int index) {
+    return _battleOverlay?.selectChoiceEntry(index) ?? false;
+  }
+
+  bool selectBattleBagEntry(int index) {
+    return _battleOverlay?.selectBagEntry(index) ?? false;
+  }
+
+  bool selectBattlePartyEntry(int index) {
+    return _battleOverlay?.selectPartyEntry(index) ?? false;
+  }
+
+  bool selectBattleMedicineTargetEntry(int index) {
+    return _battleOverlay?.selectMedicineTargetEntry(index) ?? false;
+  }
+
+  bool backFromBattleOverlay() {
+    return _battleOverlay?.handleEscape() ?? false;
   }
 
   MovementMode get playerMovementMode {
@@ -584,9 +661,17 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   @visibleForTesting
+  void debugPublishBattleCommandOverlaySnapshotForTest(
+    BattleCommandOverlaySnapshot? snapshot,
+  ) {
+    _setBattleCommandOverlaySnapshot(snapshot);
+  }
+
+  @visibleForTesting
   void debugResetBattleForTest() {
     _battleOverlay?.removeFromParent();
     _battleOverlay = null;
+    _setBattleCommandOverlaySnapshot(null);
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
     _battleSession = null;
@@ -3746,6 +3831,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _battleTransitionOverlay = null;
     _battleOverlay?.removeFromParent();
     _battleOverlay = null;
+    _setBattleCommandOverlaySnapshot(null);
     debugPrint(
       '[battle] transition started requestId=${request.requestId} kind=${request.kind.name}',
     );
@@ -3892,11 +3978,15 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           genderResolver: genderResolver,
           onPlayerChoice: _onPlayerBattleChoice,
           onBagHpHealItemUseRequested: _onBattleBagHpHealItemUseRequested,
-          preferTouchListDragScroll: _preferBattleTouchListDragScroll,
+          onCommandOverlaySnapshotChanged: (snapshot) {
+            _setBattleCommandOverlaySnapshot(snapshot);
+          },
+          preferTouchListDragScroll: false,
+          useFlutterCommandOverlay: _preferBattleFlutterCommandOverlay,
         ),
       );
       camera.viewport.add(overlay);
-      overlay.setPreferTouchListDragScroll(_preferBattleTouchListDragScroll);
+      overlay.setUseFlutterCommandOverlay(_preferBattleFlutterCommandOverlay);
       _battleOverlay = overlay;
       battleStopwatch.stop();
       debugPrint(
@@ -3943,6 +4033,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // Ce helper évite qu'un mapping KO laisse le runtime coincé en transition.
     _battleOverlay?.removeFromParent();
     _battleOverlay = null;
+    _setBattleCommandOverlaySnapshot(null);
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
     _battleSession = null;
@@ -4121,6 +4212,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // IMPORTANT: Il faut SUPPRIMER l'overlay du parent, pas juste mettre à null
     _battleOverlay?.removeFromParent();
     _battleOverlay = null;
+    _setBattleCommandOverlaySnapshot(null);
     _battleTransitionOverlay?.removeFromParent();
     _battleTransitionOverlay = null;
     _battleSession = null;
@@ -6005,6 +6097,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _battleTransitionOverlay = null;
     _battleOverlay?.removeFromParent();
     _battleOverlay = null;
+    _setBattleCommandOverlaySnapshot(null);
     // Blindage défensif lot 10 :
     // ce reset central est utilisé par plusieurs chemins runtime (load, warp,
     // connection). Si un contexte battle survivait ici, on garderait en

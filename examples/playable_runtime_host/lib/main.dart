@@ -17,6 +17,7 @@ import 'src/runtime_demo_party_seed.dart';
 import 'src/runtime_gamepad_bridge.dart';
 import 'src/runtime_gamepad_presence.dart';
 import 'src/runtime_ios_project_picker.dart';
+import 'src/runtime_battle_command_overlay_visibility.dart';
 import 'src/runtime_launch_save.dart';
 import 'src/runtime_launch_options.dart';
 import 'src/runtime_pokedex_loader.dart';
@@ -93,12 +94,11 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       (defaultTargetPlatform == TargetPlatform.iOS ||
           defaultTargetPlatform == TargetPlatform.android);
 
-  bool get _prefersBattleTouchListDragScroll =>
-      _supportsTouchControls && !_hasConnectedGamepad;
+  bool get _prefersBattleFlutterCommandOverlay => true;
 
-  void _syncBattleTouchListDragScrollPreference() {
-    _game?.setBattleTouchListDragScrollPreferred(
-      _prefersBattleTouchListDragScroll,
+  void _syncBattleCommandOverlayPreference() {
+    _game?.setBattleFlutterCommandOverlayPreferred(
+      _prefersBattleFlutterCommandOverlay,
     );
   }
 
@@ -112,7 +112,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         final game = _game;
         if (!_hasConnectedGamepad && mounted) {
           setState(() => _hasConnectedGamepad = true);
-          _syncBattleTouchListDragScrollPreference();
+          _syncBattleCommandOverlayPreference();
         }
         if (game == null) {
           return;
@@ -158,7 +158,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         return;
       }
       setState(() => _hasConnectedGamepad = hasConnectedGamepad);
-      _syncBattleTouchListDragScrollPreference();
+      _syncBattleCommandOverlayPreference();
     } catch (_) {
       // Best-effort seulement : une erreur de détection de manette ne doit
       // jamais bloquer le host ni le runtime.
@@ -457,8 +457,8 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
           .setNpcCollisionDebugOverlayVisible(_showNpcCollisionDebugOverlay);
       nextGame.setFpsOverlayVisible(_showFpsOverlay);
       nextGame.setSurfingEnabled(_surfingEnabled);
-      nextGame.setBattleTouchListDragScrollPreferred(
-        _prefersBattleTouchListDragScroll,
+      nextGame.setBattleFlutterCommandOverlayPreferred(
+        _prefersBattleFlutterCommandOverlay,
       );
       _startRuntimeInfoTicker();
       await _persistLastSession();
@@ -605,6 +605,43 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     );
   }
 
+  bool _handleBattleCommandOverlayEntrySelected(
+    PlayableMapGame game,
+    BattleCommandOverlaySnapshot snapshot,
+    int index,
+  ) {
+    return switch (snapshot.mode) {
+      BattleCommandOverlayMode.root => game.selectBattleRootEntry(index),
+      BattleCommandOverlayMode.fight ||
+      BattleCommandOverlayMode.continueOnly => game.selectBattleChoiceEntry(
+          index,
+        ),
+      BattleCommandOverlayMode.bag => game.selectBattleBagEntry(index),
+      BattleCommandOverlayMode.pokemon => game.selectBattlePartyEntry(index),
+      BattleCommandOverlayMode.bagMedicineTarget => game
+          .selectBattleMedicineTargetEntry(index),
+    };
+  }
+
+  Widget _buildBattleCommandOverlay(
+    PlayableMapGame game,
+    BattleCommandOverlaySnapshot snapshot,
+  ) {
+    return Positioned.fill(
+      child: BattleMobileCommandOverlay(
+        snapshot: snapshot,
+        onEntrySelected: (index) {
+          _handleBattleCommandOverlayEntrySelected(game, snapshot, index);
+        },
+        onBack: snapshot.canGoBack
+            ? () {
+                game.backFromBattleOverlay();
+              }
+            : null,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Deux états d'interface seulement :
@@ -670,6 +707,22 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         body: Stack(
           children: [
             GameWidget(game: game),
+            ValueListenableBuilder<BattleCommandOverlaySnapshot?>(
+              valueListenable: game.battleCommandOverlayListenable,
+              builder: (context, snapshot, child) {
+                final showFlutterOverlay =
+                    shouldShowRuntimeBattleCommandOverlay(
+                  supportsTouchControls: _supportsTouchControls,
+                  hasConnectedGamepad: _hasConnectedGamepad,
+                  isBattleActive: game.isBattleUiActive,
+                  hasSnapshot: snapshot != null,
+                );
+                if (!showFlutterOverlay || snapshot == null) {
+                  return const SizedBox.shrink();
+                }
+                return _buildBattleCommandOverlay(game, snapshot);
+              },
+            ),
             if (touchControlsVisibility.showControls)
               Positioned.fill(
                 child: RuntimeTouchControls(

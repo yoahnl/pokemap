@@ -5,13 +5,22 @@ import 'dart:ui' as ui show Image, KeyEventDeviceType;
 
 import 'package:flame/components.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/widgets.dart' show KeyEventResult;
+import 'package:flutter/widgets.dart'
+    show
+        Directionality,
+        KeyEventResult,
+        LayoutBuilder,
+        SizedBox,
+        Text,
+        TextDirection,
+        ValueListenableBuilder;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_gameplay/map_gameplay.dart';
 import 'package:map_runtime/map_runtime.dart';
 import 'package:map_runtime/src/application/dialogue_runtime_models.dart';
 import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
+import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
@@ -277,7 +286,7 @@ void main() {
           _eventScriptDialogueMap(),
         ],
         scripts: <ProjectScriptEntry>[
-          ProjectScriptEntry(
+          const ProjectScriptEntry(
             id: 'intro_script',
             name: 'Intro Script',
             asset: ScriptAsset(
@@ -294,7 +303,7 @@ void main() {
                         'startNode': 'Start',
                       },
                     ),
-                    const ScriptCommand(type: ScriptCommandType.end),
+                    ScriptCommand(type: ScriptCommandType.end),
                   ],
                 ),
               ],
@@ -540,8 +549,7 @@ void main() {
       );
     });
 
-    test('followCharacter follower keeps pace with a walking leader',
-        () async {
+    test('followCharacter follower keeps pace with a walking leader', () async {
       final root = await Directory.systemTemp.createTemp(
         'runtime_follow_pace_',
       );
@@ -576,10 +584,12 @@ void main() {
 
       expect(game.debugStartScenarioFollow('emma'), isTrue);
       expect(
-        game.startScriptedNpcMove(
-          entityId: 'emma',
-          destination: const GridPos(x: 7, y: 1),
-        ).state,
+        game
+            .startScriptedNpcMove(
+              entityId: 'emma',
+              destination: const GridPos(x: 7, y: 1),
+            )
+            .state,
         ScriptedEntityMovementState.moving,
       );
 
@@ -607,7 +617,8 @@ void main() {
       expect(game.debugPlayerGridPosition, const GridPos(x: 6, y: 1));
     });
 
-    test('followCharacter pathfinding ignores the followed leader dynamic blocker',
+    test(
+        'followCharacter pathfinding ignores the followed leader dynamic blocker',
         () async {
       final root = await Directory.systemTemp.createTemp(
         'runtime_follow_ignore_leader_blocker_',
@@ -646,10 +657,12 @@ void main() {
       );
 
       expect(
-        game.startScriptedNpcMove(
-          entityId: 'emma',
-          destination: const GridPos(x: 3, y: 1),
-        ).state,
+        game
+            .startScriptedNpcMove(
+              entityId: 'emma',
+              destination: const GridPos(x: 3, y: 1),
+            )
+            .state,
         ScriptedEntityMovementState.moving,
       );
       game.update(0.016);
@@ -713,7 +726,8 @@ void main() {
       await _pumpUntil(
         game,
         () =>
-            game.gameStateSnapshot.currentMapId == 'follow_warp_target_map_32' &&
+            game.gameStateSnapshot.currentMapId ==
+                'follow_warp_target_map_32' &&
             game.debugFlowPhaseName == 'overworld',
         maxTicks: 480,
       );
@@ -1879,6 +1893,213 @@ void main() {
       expect(
         game.debugBattleVisualOpaqueRectComputeCount,
         opaqueLoadsAfterFirstBattle,
+      );
+    });
+
+    test(
+        'battle command overlay listenable exposes a mobile snapshot and selection seams',
+        () async {
+      final root = await Directory.systemTemp.createTemp(
+        'runtime_battle_command_overlay_snapshot_',
+      );
+      addTearDown(() async {
+        if (await root.exists()) {
+          await root.delete(recursive: true);
+        }
+      });
+      final projectFilePath = await _writeRuntimeProject(
+        root,
+        maps: <MapData>[_battleWarmMap()],
+        encounterTables: const <ProjectEncounterTable>[
+          ProjectEncounterTable(
+            id: 'field_grass',
+            name: 'Field Grass',
+            encounterKind: EncounterKind.walk,
+            entries: <ProjectEncounterEntry>[
+              ProjectEncounterEntry(
+                speciesId: 'sparkitten',
+                minLevel: 6,
+                maxLevel: 6,
+              ),
+            ],
+          ),
+        ],
+        trainers: const <ProjectTrainerEntry>[
+          ProjectTrainerEntry(
+            id: 'trainer_1',
+            name: 'Trainer One',
+            trainerClass: 'Pokémon Trainer',
+            team: <ProjectTrainerPokemonEntry>[
+              ProjectTrainerPokemonEntry(
+                speciesId: 'aquafi',
+                level: 7,
+                moves: <String>['tackle'],
+              ),
+            ],
+          ),
+        ],
+      );
+      await _writeBattleRuntimePokemonData(root);
+
+      final bundle = await loadRuntimeMapBundle(
+        projectFilePath: projectFilePath,
+        mapId: 'battle_warm_map',
+      );
+      final game = _TestPlayableMapGame(
+        bundle: bundle,
+        projectFilePath: projectFilePath,
+        saveData: _battleReadySaveData(mapId: 'battle_warm_map'),
+      );
+
+      game.setBattleFlutterCommandOverlayPreferred(true);
+      game.onGameResize(_testViewportSize);
+      await game.onLoad();
+
+      await game.debugOpenBattleForTest(_battleWarmWildRequest());
+      await _pumpUntil(game, () => game.debugBattleOverlayMounted);
+      await _pumpUntil(
+        game,
+        () => game.battleCommandOverlayListenable.value != null,
+      );
+
+      final rootSnapshot = game.battleCommandOverlayListenable.value!;
+      expect(rootSnapshot.mode, BattleCommandOverlayMode.root);
+
+      expect(game.selectBattleRootEntry(0), isTrue);
+      await _pumpUntil(
+        game,
+        () =>
+            game.battleCommandOverlayListenable.value?.mode ==
+            BattleCommandOverlayMode.fight,
+      );
+
+      final fightSnapshot = game.battleCommandOverlayListenable.value!;
+      expect(fightSnapshot.entries, isNotEmpty);
+    });
+
+    testWidgets(
+        'battle command overlay listenable defers build-time resize notifications',
+        (tester) async {
+      BattleCommandOverlaySnapshot snapshotForSize(Size viewportSize) {
+        final layout =
+            BattleSceneLayout.forViewport(viewportSize: viewportSize);
+        return BattleCommandOverlaySnapshot(
+          mode: BattleCommandOverlayMode.root,
+          panelRect: layout.commandPanelRect,
+          enemyHud: BattleCommandOverlayHudSnapshot(
+            rect: layout.enemyHudRect,
+            ownerLabel: 'ENNEMI',
+            speciesLabel: 'charmander',
+            level: 12,
+            currentHp: 34,
+            maxHp: 34,
+            isPlayerSide: false,
+          ),
+          playerHud: BattleCommandOverlayHudSnapshot(
+            rect: layout.playerHudRect,
+            ownerLabel: 'JOUEUR',
+            speciesLabel: 'squirtle',
+            level: 25,
+            currentHp: 57,
+            maxHp: 57,
+            isPlayerSide: true,
+          ),
+          battleLabel: 'COMBAT SAUVAGE',
+          title: 'COMMANDS',
+          prompt: 'Que doit faire le joueur ?',
+          narrationLines: const <String>[],
+          entries: const <BattleCommandOverlayEntry>[
+            BattleCommandOverlayEntry(
+              index: 0,
+              kind: BattleCommandOverlayEntryKind.root,
+              primaryLabel: 'FIGHT',
+              secondaryLabel: 'Attaquer',
+              enabled: true,
+              selected: true,
+              tone: BattleCommandOverlayEntryTone.attack,
+            ),
+            BattleCommandOverlayEntry(
+              index: 1,
+              kind: BattleCommandOverlayEntryKind.root,
+              primaryLabel: 'BAG',
+              secondaryLabel: 'Objets',
+              enabled: true,
+              selected: false,
+              tone: BattleCommandOverlayEntryTone.medicine,
+            ),
+            BattleCommandOverlayEntry(
+              index: 2,
+              kind: BattleCommandOverlayEntryKind.root,
+              primaryLabel: 'POKEMON',
+              secondaryLabel: 'Équipe',
+              enabled: true,
+              selected: false,
+              tone: BattleCommandOverlayEntryTone.switching,
+            ),
+            BattleCommandOverlayEntry(
+              index: 3,
+              kind: BattleCommandOverlayEntryKind.root,
+              primaryLabel: 'RUN',
+              secondaryLabel: 'Fuir',
+              enabled: true,
+              selected: false,
+              tone: BattleCommandOverlayEntryTone.neutral,
+            ),
+          ],
+          interactionsEnabled: true,
+          canGoBack: false,
+        );
+      }
+
+      final game = _TestPlayableMapGame(
+        bundle: _baseBundle(),
+        projectFilePath: '/tmp/project.json',
+      );
+      final initialSnapshot = snapshotForSize(const Size(640, 480));
+      game.debugPublishBattleCommandOverlaySnapshotForTest(initialSnapshot);
+      Size? publishedSize;
+
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              publishedSize = Size(constraints.maxWidth, constraints.maxHeight);
+              game.debugPublishBattleCommandOverlaySnapshotForTest(
+                snapshotForSize(publishedSize!),
+              );
+              return ValueListenableBuilder<BattleCommandOverlaySnapshot?>(
+                valueListenable: game.battleCommandOverlayListenable,
+                builder: (context, snapshot, child) {
+                  return Text(snapshot?.title ?? 'Aucune chrome battle');
+                },
+              );
+            },
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+      expect(tester.binding.hasScheduledFrame, isFalse);
+
+      final updatedSnapshot = game.battleCommandOverlayListenable.value!;
+      expect(publishedSize, isNotNull);
+      final publishedSnapshot = snapshotForSize(publishedSize!);
+      expect(updatedSnapshot.panelRect, equals(publishedSnapshot.panelRect));
+      expect(
+        updatedSnapshot.enemyHud.rect,
+        equals(publishedSnapshot.enemyHud.rect),
+      );
+      expect(
+        updatedSnapshot.playerHud.rect,
+        equals(publishedSnapshot.playerHud.rect),
+      );
+      expect(updatedSnapshot.panelRect, isNot(initialSnapshot.panelRect));
+      expect(
+        updatedSnapshot.panelRect.height,
+        greaterThan(initialSnapshot.panelRect.height),
       );
     });
 

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 
+import '../flutter/battle_command_overlay_snapshot.dart';
 import 'battle_bag_menu_model.dart';
 import 'battle_bag_item_icon_resolver.dart';
 import 'battle_command_menu_model.dart';
@@ -376,6 +377,7 @@ class BattleOverlayComponent extends PositionComponent {
     required Vector2 viewportSize,
     required this.onPlayerChoice,
     this.onBagHpHealItemUseRequested,
+    this.onCommandOverlaySnapshotChanged,
     GameState gameState = const GameState(saveId: 'battle-overlay'),
     this.backgroundSpec = const BattleBackgroundSpec.fallbackField(),
     this.spriteResolver,
@@ -384,9 +386,11 @@ class BattleOverlayComponent extends PositionComponent {
     this.genderResolver,
     this.showDebugPanel = false,
     bool preferTouchListDragScroll = false,
+    bool useFlutterCommandOverlay = false,
   })  : _session = session,
         _gameState = gameState,
         _preferTouchListDragScroll = preferTouchListDragScroll,
+        _useFlutterCommandOverlay = useFlutterCommandOverlay,
         super(
           size: viewportSize,
           anchor: Anchor.topLeft,
@@ -401,6 +405,8 @@ class BattleOverlayComponent extends PositionComponent {
     BattleBagMenuActionMedicineTarget action,
     BattleMedicineTargetEntry entry,
   )? onBagHpHealItemUseRequested;
+  final ValueChanged<BattleCommandOverlaySnapshot?>?
+      onCommandOverlaySnapshotChanged;
   final BattleBackgroundSpec backgroundSpec;
   final BattlePokemonSpriteResolver? spriteResolver;
   final BattleVisualAssetCache? visualAssetCache;
@@ -414,6 +420,7 @@ class BattleOverlayComponent extends PositionComponent {
   /// par défaut du combat.
   final bool showDebugPanel;
   bool _preferTouchListDragScroll;
+  bool _useFlutterCommandOverlay;
 
   BattleSceneBackdropComponent? _backdrop;
   BattleSceneCombatantComponent? _enemyCombatant;
@@ -439,6 +446,10 @@ class BattleOverlayComponent extends PositionComponent {
   int _selectedMedicineTargetIndex = 0;
   String? _bagFeedbackMessage;
   BattleBagMenuActionMedicineTarget? _selectedMedicineAction;
+  BattleCommandOverlaySnapshot? _currentCommandOverlaySnapshot;
+  final Map<String, String?> _bagIconAssetPathByItemId = <String, String?>{};
+  final Map<String, Future<void>> _pendingBagIconPathsByItemId =
+      <String, Future<void>>{};
 
   static const double _presentationEffectDelaySeconds = 0.16;
   static const double _presentationImpactStepSeconds = 0.62;
@@ -446,6 +457,12 @@ class BattleOverlayComponent extends PositionComponent {
 
   @visibleForTesting
   bool get commandPanelMounted => _commandPanel != null;
+
+  @visibleForTesting
+  bool get enemyHudMounted => _enemyHud != null;
+
+  @visibleForTesting
+  bool get playerHudMounted => _playerHud != null;
 
   @visibleForTesting
   bool get narrationPanelMounted => _commandPanel != null;
@@ -459,11 +476,14 @@ class BattleOverlayComponent extends PositionComponent {
   @visibleForTesting
   String get currentPromptText =>
       _commandPanel?.currentPromptText ??
+      _currentCommandOverlaySnapshot?.prompt ??
       buildBattleDecisionPromptForOverlay(_session.decisionRequest);
 
   @visibleForTesting
   String get currentNarrationText =>
-      buildBattleNarrationLinesForOverlay(_session).join('\n');
+      (_currentCommandOverlaySnapshot?.narrationLines ??
+              buildBattleNarrationLinesForOverlay(_session))
+          .join('\n');
 
   @visibleForTesting
   BattleCommandMenuMode get currentMenuMode => _menuMode;
@@ -476,6 +496,10 @@ class BattleOverlayComponent extends PositionComponent {
 
   @visibleForTesting
   GameState get debugGameState => _gameState;
+
+  @visibleForTesting
+  BattleCommandOverlaySnapshot? get currentCommandOverlaySnapshot =>
+      _currentCommandOverlaySnapshot;
 
   @visibleForTesting
   String get currentPlayerHudSpeciesText =>
@@ -501,6 +525,31 @@ class BattleOverlayComponent extends PositionComponent {
     _preferTouchListDragScroll = preferred;
     _commandPanel?.setPreferTouchListDragScroll(preferred);
     _syncPanelsOnly();
+  }
+
+  /// Le host peut demander une chrome battle Flutter complète.
+  ///
+  /// Frontière volontaire :
+  /// - Flame garde le décor, les sprites et les flashes de hit ;
+  /// - Flutter reprend les HUDs et toute l'UI de décision ;
+  /// - aucun moteur battle parallèle n'est introduit ici.
+  void setUseFlutterCommandOverlay(bool preferred) {
+    if (_useFlutterCommandOverlay == preferred) {
+      return;
+    }
+    _useFlutterCommandOverlay = preferred;
+    if (preferred) {
+      _enemyHud?.removeFromParent();
+      _enemyHud = null;
+      _playerHud?.removeFromParent();
+      _playerHud = null;
+      _commandPanel?.removeFromParent();
+      _commandPanel = null;
+      _syncPanelsOnly();
+      return;
+    }
+    unawaited(_ensureFlameHudsMounted());
+    unawaited(_ensureCommandPanelMounted());
   }
 
   @visibleForTesting
@@ -562,70 +611,52 @@ class BattleOverlayComponent extends PositionComponent {
       '[perf][battle][real] overlay.playerCombatant=${playerCombatantStopwatch.elapsedMilliseconds}ms',
     );
 
-    final enemyHudStopwatch = Stopwatch()..start();
-    _enemyHud = BattleSceneHudComponent(
-      position: Vector2(layout.enemyHudRect.left, layout.enemyHudRect.top),
-      size: Vector2(layout.enemyHudRect.width, layout.enemyHudRect.height),
-      ownerLabel: 'ENNEMI',
-      combatant: _session.state.enemy,
-      isPlayerSide: false,
-      initialGenderSymbol: _resolveCombatantGenderSymbol(
+    if (!_useFlutterCommandOverlay) {
+      final enemyHudStopwatch = Stopwatch()..start();
+      _enemyHud = BattleSceneHudComponent(
+        position: Vector2(layout.enemyHudRect.left, layout.enemyHudRect.top),
+        size: Vector2(layout.enemyHudRect.width, layout.enemyHudRect.height),
+        ownerLabel: 'ENNEMI',
         combatant: _session.state.enemy,
         isPlayerSide: false,
-      ),
-    );
-    await add(_enemyHud!);
-    enemyHudStopwatch.stop();
-    debugPrint(
-      '[perf][battle][real] overlay.enemyHud=${enemyHudStopwatch.elapsedMilliseconds}ms',
-    );
+        initialGenderSymbol: _resolveCombatantGenderSymbol(
+          combatant: _session.state.enemy,
+          isPlayerSide: false,
+        ),
+      );
+      await add(_enemyHud!);
+      enemyHudStopwatch.stop();
+      debugPrint(
+        '[perf][battle][real] overlay.enemyHud=${enemyHudStopwatch.elapsedMilliseconds}ms',
+      );
 
-    final playerHudStopwatch = Stopwatch()..start();
-    _playerHud = BattleSceneHudComponent(
-      position: Vector2(layout.playerHudRect.left, layout.playerHudRect.top),
-      size: Vector2(layout.playerHudRect.width, layout.playerHudRect.height),
-      ownerLabel: 'JOUEUR',
-      combatant: _session.state.player,
-      isPlayerSide: true,
-      initialGenderSymbol: _resolveCombatantGenderSymbol(
+      final playerHudStopwatch = Stopwatch()..start();
+      _playerHud = BattleSceneHudComponent(
+        position: Vector2(layout.playerHudRect.left, layout.playerHudRect.top),
+        size: Vector2(layout.playerHudRect.width, layout.playerHudRect.height),
+        ownerLabel: 'JOUEUR',
         combatant: _session.state.player,
         isPlayerSide: true,
-      ),
-    );
-    await add(_playerHud!);
-    playerHudStopwatch.stop();
-    debugPrint(
-      '[perf][battle][real] overlay.playerHud=${playerHudStopwatch.elapsedMilliseconds}ms',
-    );
+        initialGenderSymbol: _resolveCombatantGenderSymbol(
+          combatant: _session.state.player,
+          isPlayerSide: true,
+        ),
+      );
+      await add(_playerHud!);
+      playerHudStopwatch.stop();
+      debugPrint(
+        '[perf][battle][real] overlay.playerHud=${playerHudStopwatch.elapsedMilliseconds}ms',
+      );
+    }
 
-    final commandPanelStopwatch = Stopwatch()..start();
-    _commandPanel = BattleCommandPanelComponent(
-      position: Vector2(
-        layout.commandPanelRect.left,
-        layout.commandPanelRect.top,
-      ),
-      size: Vector2(
-        layout.commandPanelRect.width,
-        layout.commandPanelRect.height,
-      ),
-      onChoiceSelected: _handleChoiceSelected,
-      onRootActionSelected: _handleRootActionSelected,
-      onPartyEntrySelected: _handlePartyEntrySelected,
-      onBagEntrySelected: _handleBagEntrySelected,
-      onMedicineTargetEntrySelected: _handleMedicineTargetEntrySelected,
-      onBackRequested: handleEscape,
-      onScrollUpRequested: moveSelectionUp,
-      onScrollDownRequested: moveSelectionDown,
-      bagItemIconResolver: bagItemIconResolver,
-      visualAssetCache: visualAssetCache,
-      layoutModeOverride: layout.commandPanelLayoutMode,
-      preferTouchListDragScroll: _preferTouchListDragScroll,
-    );
-    await add(_commandPanel!);
-    commandPanelStopwatch.stop();
-    debugPrint(
-      '[perf][battle][real] overlay.commandPanel=${commandPanelStopwatch.elapsedMilliseconds}ms',
-    );
+    if (!_useFlutterCommandOverlay) {
+      final commandPanelStopwatch = Stopwatch()..start();
+      await _ensureCommandPanelMounted();
+      commandPanelStopwatch.stop();
+      debugPrint(
+        '[perf][battle][real] overlay.commandPanel=${commandPanelStopwatch.elapsedMilliseconds}ms',
+      );
+    }
 
     if (showDebugPanel) {
       final debugPanelStopwatch = Stopwatch()..start();
@@ -651,6 +682,76 @@ class BattleOverlayComponent extends PositionComponent {
     debugPrint(
       '[perf][battle][real] overlay.total=${overlayStopwatch.elapsedMilliseconds}ms',
     );
+  }
+
+  Future<void> _ensureCommandPanelMounted() async {
+    if (_useFlutterCommandOverlay || _commandPanel != null) {
+      return;
+    }
+    final layout = currentSceneLayout;
+    final commandPanel = BattleCommandPanelComponent(
+      position: Vector2(
+        layout.commandPanelRect.left,
+        layout.commandPanelRect.top,
+      ),
+      size: Vector2(
+        layout.commandPanelRect.width,
+        layout.commandPanelRect.height,
+      ),
+      onChoiceSelected: _handleChoiceSelected,
+      onRootActionSelected: _handleRootActionSelected,
+      onPartyEntrySelected: _handlePartyEntrySelected,
+      onBagEntrySelected: _handleBagEntrySelected,
+      onMedicineTargetEntrySelected: _handleMedicineTargetEntrySelected,
+      onBackRequested: handleEscape,
+      onScrollUpRequested: moveSelectionUp,
+      onScrollDownRequested: moveSelectionDown,
+      bagItemIconResolver: bagItemIconResolver,
+      visualAssetCache: visualAssetCache,
+      layoutModeOverride: layout.commandPanelLayoutMode,
+      preferTouchListDragScroll: _preferTouchListDragScroll,
+    );
+    _commandPanel = commandPanel;
+    await add(commandPanel);
+    _syncPanelsOnly();
+  }
+
+  Future<void> _ensureFlameHudsMounted() async {
+    if (_useFlutterCommandOverlay || (_enemyHud != null && _playerHud != null)) {
+      return;
+    }
+    final layout = currentSceneLayout;
+    if (_enemyHud == null) {
+      final enemyHud = BattleSceneHudComponent(
+        position: Vector2(layout.enemyHudRect.left, layout.enemyHudRect.top),
+        size: Vector2(layout.enemyHudRect.width, layout.enemyHudRect.height),
+        ownerLabel: 'ENNEMI',
+        combatant: _session.state.enemy,
+        isPlayerSide: false,
+        initialGenderSymbol: _resolveCombatantGenderSymbol(
+          combatant: _session.state.enemy,
+          isPlayerSide: false,
+        ),
+      );
+      _enemyHud = enemyHud;
+      await add(enemyHud);
+    }
+    if (_playerHud == null) {
+      final playerHud = BattleSceneHudComponent(
+        position: Vector2(layout.playerHudRect.left, layout.playerHudRect.top),
+        size: Vector2(layout.playerHudRect.width, layout.playerHudRect.height),
+        ownerLabel: 'JOUEUR',
+        combatant: _session.state.player,
+        isPlayerSide: true,
+        initialGenderSymbol: _resolveCombatantGenderSymbol(
+          combatant: _session.state.player,
+          isPlayerSide: true,
+        ),
+      );
+      _playerHud = playerHud;
+      await add(playerHud);
+    }
+    await _syncVisualState();
   }
 
   @override
@@ -843,6 +944,98 @@ class BattleOverlayComponent extends PositionComponent {
     return true;
   }
 
+  bool selectRootEntry(int index) {
+    if (isTurnPresentationActive) {
+      return false;
+    }
+    final menuModel = _currentMenuModel();
+    if (!menuModel.isRootMode ||
+        index < 0 ||
+        index >= menuModel.rootEntries.length) {
+      return false;
+    }
+    final entry = menuModel.rootEntries[index];
+    if (!entry.enabled) {
+      return false;
+    }
+    _selectedRootIndex = index;
+    _handleRootActionSelected(entry.action);
+    return true;
+  }
+
+  bool selectChoiceEntry(int index) {
+    if (isTurnPresentationActive) {
+      return false;
+    }
+    final menuModel = _currentMenuModel();
+    if (menuModel.isRootMode ||
+        menuModel.isContinueOnly ||
+        index < 0 ||
+        index >= menuModel.choiceEntries.length) {
+      return false;
+    }
+    _selectedChoiceIndex = index;
+    _handleChoiceSelected(menuModel.choiceEntries[index].choice);
+    return true;
+  }
+
+  bool selectBagEntry(int index) {
+    if (isTurnPresentationActive) {
+      return false;
+    }
+    final bagMenuModel = _currentBagMenuModel();
+    if (_currentMenuModel().mode != BattleCommandMenuMode.bag ||
+        index < 0 ||
+        index >= bagMenuModel.entries.length) {
+      return false;
+    }
+    final entry = bagMenuModel.entries[index];
+    if (!entry.isSelectable) {
+      return false;
+    }
+    _selectedBagIndex = index;
+    _handleBagEntrySelected(entry);
+    return true;
+  }
+
+  bool selectPartyEntry(int index) {
+    if (isTurnPresentationActive) {
+      return false;
+    }
+    final partyMenuModel = _currentPartyMenuModel();
+    if (_currentMenuModel().mode != BattleCommandMenuMode.pokemon ||
+        index < 0 ||
+        index >= partyMenuModel.allEntries.length) {
+      return false;
+    }
+    final entry = partyMenuModel.allEntries[index];
+    if (!entry.isSelectable || entry.playerChoice == null) {
+      return false;
+    }
+    _selectedPartyIndex = index;
+    _handlePartyEntrySelected(entry);
+    return true;
+  }
+
+  bool selectMedicineTargetEntry(int index) {
+    if (isTurnPresentationActive) {
+      return false;
+    }
+    final medicineTargetMenuModel = _currentMedicineTargetMenuModel();
+    if (_currentMenuModel().mode != BattleCommandMenuMode.bagMedicineTarget ||
+        medicineTargetMenuModel == null ||
+        index < 0 ||
+        index >= medicineTargetMenuModel.entries.length) {
+      return false;
+    }
+    final entry = medicineTargetMenuModel.entries[index];
+    if (!entry.isSelectable) {
+      return false;
+    }
+    _selectedMedicineTargetIndex = index;
+    return _handleMedicineTargetEntrySelected(entry);
+  }
+
   bool handleEscape() {
     if (isTurnPresentationActive) {
       return false;
@@ -1031,20 +1224,22 @@ class BattleOverlayComponent extends PositionComponent {
                 feedbackMessage: _bagFeedbackMessage,
               )
             : null;
+    final resolvedPrompt = currentPresentationStep?.message ??
+        medicineTargetPrompt ??
+        bagPrompt ??
+        partyPrompt ??
+        buildBattleDecisionPromptForOverlay(_session.decisionRequest);
+    final resolvedNarration = isPresenting
+        ? const <String>[]
+        : (medicineTargetNarration ??
+            bagNarration ??
+            partyNarration ??
+            buildBattleNarrationLinesForOverlay(_session));
 
     _commandPanel?.sync(
       battleLabel: _titleForSession(),
-      prompt: currentPresentationStep?.message ??
-          medicineTargetPrompt ??
-          bagPrompt ??
-          partyPrompt ??
-          buildBattleDecisionPromptForOverlay(_session.decisionRequest),
-      narrationLines: isPresenting
-          ? const <String>[]
-          : (medicineTargetNarration ??
-              bagNarration ??
-              partyNarration ??
-              buildBattleNarrationLinesForOverlay(_session)),
+      prompt: resolvedPrompt,
+      narrationLines: resolvedNarration,
       menuModel: menuModel,
       partyMenuModel: partyMenuModel,
       bagMenuModel: bagMenuModel,
@@ -1053,6 +1248,15 @@ class BattleOverlayComponent extends PositionComponent {
       selectedBagIndex: _selectedBagIndex,
       selectedMedicineTargetIndex: _selectedMedicineTargetIndex,
       allowEmptyNarrationBody: isPresenting,
+      interactionsEnabled: !isPresenting,
+    );
+    _publishCommandOverlaySnapshot(
+      menuModel: menuModel,
+      partyMenuModel: partyMenuModel,
+      bagMenuModel: bagMenuModel,
+      medicineTargetMenuModel: medicineTargetMenuModel,
+      prompt: resolvedPrompt,
+      narrationLines: resolvedNarration,
       interactionsEnabled: !isPresenting,
     );
 
@@ -1064,6 +1268,230 @@ class BattleOverlayComponent extends PositionComponent {
             : menuModel.selectedChoiceIndex,
       ),
     );
+  }
+
+  void _publishCommandOverlaySnapshot({
+    required BattleCommandMenuModel menuModel,
+    required BattlePartyMenuModel partyMenuModel,
+    required BattleBagMenuModel bagMenuModel,
+    required BattleMedicineTargetMenuModel? medicineTargetMenuModel,
+    required String prompt,
+    required List<String> narrationLines,
+    required bool interactionsEnabled,
+  }) {
+    final layout = currentSceneLayout;
+    final snapshot = BattleCommandOverlaySnapshot(
+      mode: _overlayModeForMenuMode(menuModel.mode),
+      panelRect: layout.commandPanelRect,
+      enemyHud: _buildHudSnapshot(
+        rect: layout.enemyHudRect,
+        ownerLabel: 'ENNEMI',
+        combatant: _session.state.enemy,
+        isPlayerSide: false,
+      ),
+      playerHud: _buildHudSnapshot(
+        rect: layout.playerHudRect,
+        ownerLabel: 'JOUEUR',
+        combatant: _session.state.player,
+        isPlayerSide: true,
+      ),
+      battleLabel: _titleForSession(),
+      title: menuModel.isRootMode ? 'COMMANDS' : menuModel.choiceGroupTitle,
+      prompt: prompt,
+      narrationLines: List<String>.unmodifiable(narrationLines),
+      entries: _buildCommandOverlayEntries(
+        menuModel: menuModel,
+        partyMenuModel: partyMenuModel,
+        bagMenuModel: bagMenuModel,
+        medicineTargetMenuModel: medicineTargetMenuModel,
+      ),
+      interactionsEnabled: interactionsEnabled,
+      canGoBack: _canGoBackFrom(menuModel, partyMenuModel),
+    );
+    _currentCommandOverlaySnapshot = snapshot;
+    onCommandOverlaySnapshotChanged?.call(snapshot);
+    _primeBagIconAssetPaths(bagMenuModel);
+  }
+
+  BattleCommandOverlayHudSnapshot _buildHudSnapshot({
+    required Rect rect,
+    required String ownerLabel,
+    required BattleCombatant combatant,
+    required bool isPlayerSide,
+  }) {
+    final statusLabel = combatant.isFainted
+        ? 'K.O.'
+        : combatant.majorStatus?.id.name.toUpperCase();
+    return BattleCommandOverlayHudSnapshot(
+      rect: rect,
+      ownerLabel: ownerLabel,
+      speciesLabel: combatant.speciesId,
+      level: combatant.level,
+      currentHp: combatant.currentHp,
+      maxHp: combatant.maxHp,
+      isPlayerSide: isPlayerSide,
+      genderSymbol: _resolveCombatantGenderSymbol(
+        combatant: combatant,
+        isPlayerSide: isPlayerSide,
+      ),
+      statusLabel: statusLabel?.trim().isEmpty ?? true ? null : statusLabel,
+    );
+  }
+
+  List<BattleCommandOverlayEntry> _buildCommandOverlayEntries({
+    required BattleCommandMenuModel menuModel,
+    required BattlePartyMenuModel partyMenuModel,
+    required BattleBagMenuModel bagMenuModel,
+    required BattleMedicineTargetMenuModel? medicineTargetMenuModel,
+  }) {
+    return switch (menuModel.mode) {
+      BattleCommandMenuMode.root => List<BattleCommandOverlayEntry>.unmodifiable(
+          menuModel.rootEntries.asMap().entries.map(
+                (entry) => BattleCommandOverlayEntry(
+                  index: entry.key,
+                  kind: BattleCommandOverlayEntryKind.root,
+                  primaryLabel: entry.value.label,
+                  secondaryLabel: entry.value.subtitle,
+                  enabled: entry.value.enabled,
+                  selected: entry.key == menuModel.selectedRootIndex,
+                  tone: entry.value.enabled
+                      ? BattleCommandOverlayEntryTone.neutral
+                      : BattleCommandOverlayEntryTone.disabled,
+                ),
+              ),
+        ),
+      BattleCommandMenuMode.fight ||
+      BattleCommandMenuMode.continueOnly => List<
+          BattleCommandOverlayEntry>.unmodifiable(
+          menuModel.choiceEntries.asMap().entries.map(
+                (entry) => BattleCommandOverlayEntry(
+                  index: entry.key,
+                  kind: menuModel.mode == BattleCommandMenuMode.continueOnly
+                      ? BattleCommandOverlayEntryKind.continueAction
+                      : BattleCommandOverlayEntryKind.move,
+                  primaryLabel: entry.value.title,
+                  secondaryLabel: entry.value.subtitle,
+                  enabled: true,
+                  selected: entry.key == menuModel.selectedChoiceIndex,
+                  tone: _overlayEntryToneForChoiceTone(entry.value.tone),
+                ),
+              ),
+        ),
+      BattleCommandMenuMode.bag => List<BattleCommandOverlayEntry>.unmodifiable(
+          bagMenuModel.entries.asMap().entries.map(
+                (entry) => BattleCommandOverlayEntry(
+                  index: entry.key,
+                  kind: BattleCommandOverlayEntryKind.bag,
+                  primaryLabel: _humanizeBattleBagItemId(entry.value.itemId),
+                  secondaryLabel: _overlayBagEntryTypeLabel(entry.value),
+                  tertiaryLabel: null,
+                  trailingLabel: 'x${entry.value.quantity}',
+                  statusLabel: _overlayBagEntryStatusLabel(entry.value),
+                  enabled: entry.value.isSelectable,
+                  selected: entry.key == _selectedBagIndex,
+                  tone: _overlayEntryToneForBagEntry(entry.value),
+                  iconAssetPath: _bagIconAssetPathByItemId[entry.value.itemId],
+                ),
+              ),
+        ),
+      BattleCommandMenuMode.pokemon => List<
+          BattleCommandOverlayEntry>.unmodifiable(
+          partyMenuModel.allEntries.asMap().entries.map(
+                (entry) => BattleCommandOverlayEntry(
+                  index: entry.key,
+                  kind: BattleCommandOverlayEntryKind.party,
+                  primaryLabel: entry.value.speciesId,
+                  secondaryLabel:
+                      '${entry.value.currentHp}/${entry.value.maxHp} PV',
+                  trailingLabel: 'Nv. ${entry.value.level}',
+                  statusLabel: _overlayPartyEntryStatusLabel(entry.value),
+                  enabled: entry.value.isSelectable &&
+                      entry.value.playerChoice != null,
+                  selected: entry.key == _selectedPartyIndex,
+                  tone: entry.value.isSelectable
+                      ? BattleCommandOverlayEntryTone.switching
+                      : BattleCommandOverlayEntryTone.disabled,
+                ),
+              ),
+        ),
+      BattleCommandMenuMode.bagMedicineTarget => List<
+          BattleCommandOverlayEntry>.unmodifiable(
+          (medicineTargetMenuModel?.entries ?? const <BattleMedicineTargetEntry>[])
+              .asMap()
+              .entries
+              .map(
+                (entry) => BattleCommandOverlayEntry(
+                  index: entry.key,
+                  kind: BattleCommandOverlayEntryKind.medicineTarget,
+                  primaryLabel: entry.value.speciesId,
+                  secondaryLabel:
+                      '${entry.value.currentHp}/${entry.value.maxHp} PV',
+                  trailingLabel: 'Nv. ${entry.value.level}',
+                  statusLabel: _overlayMedicineTargetStatusLabel(entry.value),
+                  enabled: entry.value.isSelectable,
+                  selected: entry.key == _selectedMedicineTargetIndex,
+                  tone: entry.value.isSelectable
+                      ? BattleCommandOverlayEntryTone.medicine
+                      : BattleCommandOverlayEntryTone.disabled,
+                ),
+              ),
+        ),
+    };
+  }
+
+  bool _canGoBackFrom(
+    BattleCommandMenuModel menuModel,
+    BattlePartyMenuModel partyMenuModel,
+  ) {
+    if (menuModel.isContinueOnly || menuModel.isRootMode) {
+      return false;
+    }
+    if (menuModel.mode == BattleCommandMenuMode.pokemon &&
+        partyMenuModel.mode == BattlePartyMenuMode.forcedReplacement) {
+      return false;
+    }
+    return true;
+  }
+
+  void _primeBagIconAssetPaths(BattleBagMenuModel bagMenuModel) {
+    final resolver = bagItemIconResolver;
+    if (resolver == null || bagMenuModel.entries.isEmpty) {
+      return;
+    }
+    final uniqueItemIds = bagMenuModel.entries
+        .map((entry) => entry.itemId.trim())
+        .where((itemId) => itemId.isNotEmpty)
+        .toSet();
+    for (final itemId in uniqueItemIds) {
+      _ensureBagIconAssetPathResolved(itemId, resolver);
+    }
+  }
+
+  void _ensureBagIconAssetPathResolved(
+    String itemId,
+    BattleBagItemIconResolver resolver,
+  ) {
+    if (_bagIconAssetPathByItemId.containsKey(itemId) ||
+        _pendingBagIconPathsByItemId.containsKey(itemId)) {
+      return;
+    }
+
+    Future<void> load() async {
+      try {
+        final spec = await resolver.resolve(itemId);
+        final imagePath = spec.explicitImageAbsolutePath?.trim();
+        _bagIconAssetPathByItemId[itemId] =
+            imagePath == null || imagePath.isEmpty ? null : imagePath;
+      } catch (_) {
+        _bagIconAssetPathByItemId[itemId] = null;
+      } finally {
+        _pendingBagIconPathsByItemId.remove(itemId);
+      }
+      _syncPanelsOnly();
+    }
+
+    final future = load();
+    _pendingBagIconPathsByItemId[itemId] = future;
   }
 
   bool _moveSelection({
@@ -1653,4 +2081,108 @@ class BattleOverlayComponent extends PositionComponent {
     return current.lineupIndex == next.lineupIndex &&
         current.speciesId == next.speciesId;
   }
+}
+
+BattleCommandOverlayMode _overlayModeForMenuMode(BattleCommandMenuMode mode) {
+  return switch (mode) {
+    BattleCommandMenuMode.root => BattleCommandOverlayMode.root,
+    BattleCommandMenuMode.fight => BattleCommandOverlayMode.fight,
+    BattleCommandMenuMode.bag => BattleCommandOverlayMode.bag,
+    BattleCommandMenuMode.bagMedicineTarget =>
+      BattleCommandOverlayMode.bagMedicineTarget,
+    BattleCommandMenuMode.pokemon => BattleCommandOverlayMode.pokemon,
+    BattleCommandMenuMode.continueOnly =>
+      BattleCommandOverlayMode.continueOnly,
+  };
+}
+
+BattleCommandOverlayEntryTone _overlayEntryToneForChoiceTone(
+  BattleCommandChoiceTone tone,
+) {
+  return switch (tone) {
+    BattleCommandChoiceTone.attack => BattleCommandOverlayEntryTone.attack,
+    BattleCommandChoiceTone.special => BattleCommandOverlayEntryTone.special,
+    BattleCommandChoiceTone.support => BattleCommandOverlayEntryTone.support,
+    BattleCommandChoiceTone.switching =>
+      BattleCommandOverlayEntryTone.switching,
+    BattleCommandChoiceTone.neutral => BattleCommandOverlayEntryTone.neutral,
+  };
+}
+
+BattleCommandOverlayEntryTone _overlayEntryToneForBagEntry(
+  BattleBagMenuEntry entry,
+) {
+  if (!entry.isSelectable) {
+    return BattleCommandOverlayEntryTone.disabled;
+  }
+  return switch (entry.kind) {
+    BattleBagItemKind.captureBall => BattleCommandOverlayEntryTone.capture,
+    BattleBagItemKind.medicine => BattleCommandOverlayEntryTone.medicine,
+    BattleBagItemKind.unsupported => BattleCommandOverlayEntryTone.disabled,
+  };
+}
+
+String _overlayBagEntryTypeLabel(BattleBagMenuEntry entry) {
+  return switch (entry.kind) {
+    BattleBagItemKind.captureBall => 'Capture',
+    BattleBagItemKind.medicine => 'Medicine',
+    BattleBagItemKind.unsupported => 'Unsupported',
+  };
+}
+
+String _overlayBagEntryStatusLabel(BattleBagMenuEntry entry) {
+  if (entry.isSelectable) {
+    return 'OK';
+  }
+  return switch (entry.disabledReason) {
+    BattleBagMenuDisabledReason.trainerBattle => 'Trainer only',
+    BattleBagMenuDisabledReason.partyFull => 'Party full',
+    BattleBagMenuDisabledReason.captureUnavailable => 'Unavailable',
+    BattleBagMenuDisabledReason.currentRequestDisallowsBag => 'Unavailable',
+    BattleBagMenuDisabledReason.medicineNotImplemented => 'Not implemented',
+    BattleBagMenuDisabledReason.unsupportedMedicine => 'Unsupported',
+    BattleBagMenuDisabledReason.unsupportedItem => 'Unsupported',
+    null => 'Unavailable',
+  };
+}
+
+String _overlayPartyEntryStatusLabel(BattlePartyMenuEntry entry) {
+  if (entry.isFainted) {
+    return 'K.O.';
+  }
+  if (entry.isActive && !entry.isSelectable) {
+    return 'Actif';
+  }
+  if (entry.isSelectable) {
+    return 'OK';
+  }
+  return 'Unavailable';
+}
+
+String _overlayMedicineTargetStatusLabel(BattleMedicineTargetEntry entry) {
+  if (entry.isFainted) {
+    return 'K.O.';
+  }
+  if (entry.currentHp >= entry.maxHp) {
+    return 'Full HP';
+  }
+  if (entry.isSelectable) {
+    return 'OK';
+  }
+  return 'Unavailable';
+}
+
+String _humanizeBattleBagItemId(String itemId) {
+  final trimmed = itemId.trim();
+  if (trimmed.isEmpty) {
+    return 'Item';
+  }
+  return trimmed
+      .split('-')
+      .where((segment) => segment.isNotEmpty)
+      .map(
+        (segment) =>
+            '${segment[0].toUpperCase()}${segment.substring(1).toLowerCase()}',
+      )
+      .join(' ');
 }
