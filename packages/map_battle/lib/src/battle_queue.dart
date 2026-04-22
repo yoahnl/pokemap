@@ -13,7 +13,7 @@ import 'battle_topology.dart';
 ///
 /// Son rôle est uniquement de devenir la vraie source de vérité du scheduling
 /// interne du tour :
-/// - des actions déjà légales (`Fight`, `Switch`, `Recharge`) ;
+/// - des actions déjà légales (`Fight`, `Switch`, `Recharge`, `Potion`) ;
 /// - de la fin de tour ;
 /// - des checks post-résolution ;
 /// - des remplacements déjà honnêtement supportés.
@@ -86,6 +86,7 @@ sealed class BattleQueueStep {
 ///   pseudo commande universelle.
 bool isBattleQueueManagedAction(BattleAction action) {
   return action is BattleActionFight ||
+      action is BattleActionPotionUse ||
       action is BattleActionRecharge ||
       action is BattleActionSwitch;
 }
@@ -107,7 +108,7 @@ final class BattleQueueActionStep extends BattleQueueStep {
       throw ArgumentError.value(
         action,
         'action',
-        'BattleQueueActionStep n’accepte que Fight/Switch/Recharge.',
+        'BattleQueueActionStep n’accepte que Fight/Potion/Switch/Recharge.',
       );
     }
     return BattleQueueActionStep._(

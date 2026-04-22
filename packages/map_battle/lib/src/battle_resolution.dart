@@ -24,6 +24,7 @@ class BattleTurnResult {
   /// [fieldEvents] - Les événements de champ BE9 visibles du tour.
   /// [stealthRockEvents] - Les événements Stealth Rock visibles du tour.
   /// [spikesEvents] - Les événements Spikes visibles du tour.
+  /// [potionEvents] - Les usages de Potion visibles du tour.
   /// [timeline] - La chronologie ordonnée réellement produite par le moteur.
   const BattleTurnResult({
     required this.playerAction,
@@ -34,6 +35,7 @@ class BattleTurnResult {
     this.fieldEvents = const <BattleFieldEvent>[],
     this.stealthRockEvents = const <BattleStealthRockEvent>[],
     this.spikesEvents = const <BattleSpikesEvent>[],
+    this.potionEvents = const <BattlePotionEvent>[],
     this.switchEvents = const <BattleSwitchEvent>[],
     this.timeline = const <BattleTurnEvent>[],
   });
@@ -95,6 +97,15 @@ class BattleTurnResult {
   /// - on refuse pourtant un journal universel de side conditions ;
   /// - ce lot porte donc son propre contrat dédié, vivant et testable.
   final List<BattleSpikesEvent> spikesEvents;
+
+  /// Les usages de Potion visibles pendant ce tour.
+  ///
+  /// Lot 9-e choisit ici un contrat explicitement non générique :
+  /// - ce bucket ne devient pas "itemsEvents" ;
+  /// - il ne couvre ni Antidote, ni Super Potion, ni objets tenus ;
+  /// - il sert uniquement à rendre l'action `Potion` observable quand elle
+  ///   devient une vraie action de tour committée.
+  final List<BattlePotionEvent> potionEvents;
 
   /// Les événements de switch / remplacement visibles pendant ce tour.
   ///
@@ -172,10 +183,41 @@ final class BattleTurnSpikesEvent extends BattleTurnEvent {
   final BattleSpikesEvent event;
 }
 
+final class BattleTurnPotionEvent extends BattleTurnEvent {
+  const BattleTurnPotionEvent(this.event);
+
+  final BattlePotionEvent event;
+}
+
 final class BattleTurnSwitchEvent extends BattleTurnEvent {
   const BattleTurnSwitchEvent(this.event);
 
   final BattleSwitchEvent event;
+}
+
+/// Trace visible d'un vrai usage de `Potion` pendant un tour.
+///
+/// Frontière volontairement serrée :
+/// - on ne transporte pas un "itemId" arbitraire ;
+/// - on ne généralise pas vers un journal d'objets battle ;
+/// - on porte seulement les données nécessaires pour raconter honnêtement
+///   l'usage de Potion et la variation réelle de PV.
+final class BattlePotionEvent {
+  const BattlePotionEvent({
+    required this.side,
+    required this.targetLineupIndex,
+    required this.targetSpeciesId,
+    required this.hpBefore,
+    required this.hpAfter,
+  });
+
+  final BattleSideId side;
+  final int targetLineupIndex;
+  final String targetSpeciesId;
+  final int hpBefore;
+  final int hpAfter;
+
+  int get healedAmount => hpAfter - hpBefore;
 }
 
 /// Exécution d'une attaque.

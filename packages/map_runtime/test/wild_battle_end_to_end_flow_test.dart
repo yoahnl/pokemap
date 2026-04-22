@@ -582,8 +582,10 @@ void main() {
       final overlay = game.debugBattleOverlayComponent;
       expect(overlay, isNotNull);
       expect(game.debugBattleSessionSnapshot, isNotNull);
-      final initialBattleHp = game.debugBattleSessionSnapshot!.state.player.currentHp;
-      final initialBattleMaxHp = game.debugBattleSessionSnapshot!.state.player.maxHp;
+      final initialBattleHp =
+          game.debugBattleSessionSnapshot!.state.player.currentHp;
+      final initialBattleMaxHp =
+          game.debugBattleSessionSnapshot!.state.player.maxHp;
       final expectedHealedHp = min(initialBattleHp + 20, initialBattleMaxHp);
 
       overlay!.moveSelectionRight();
@@ -596,8 +598,22 @@ void main() {
 
       expect(game.debugFlowPhaseName, equals('battle'));
       expect(game.debugBattleSessionSnapshot, isNotNull);
-      expect(game.debugBattleSessionSnapshot!.state.player.currentHp, equals(expectedHealedHp));
-      expect(game.gameStateSnapshot.party.members.first.currentHp, equals(expectedHealedHp));
+      final currentTurn = game.debugBattleSessionSnapshot!.state.currentTurn;
+      expect(currentTurn, isNotNull);
+      expect(
+        currentTurn!.playerAction,
+        isA<BattleActionPotionUse>(),
+      );
+      expect(currentTurn.potionEvents, hasLength(1));
+      expect(currentTurn.potionEvents.single.hpAfter, equals(expectedHealedHp));
+      expect(
+        game.debugBattleSessionSnapshot!.state.player.currentHp,
+        lessThanOrEqualTo(expectedHealedHp),
+      );
+      expect(
+        game.gameStateSnapshot.party.members.first.currentHp,
+        equals(game.debugBattleSessionSnapshot!.state.player.currentHp),
+      );
       expect(game.gameStateSnapshot.bag.entries, isEmpty);
     });
   });

@@ -1290,7 +1290,7 @@ void main() {
     });
 
     test(
-        'selecting a valid medicine target heals immediately, consumes one potion, and does not dispatch a PlayerBattleChoice',
+        'selecting a valid medicine target commits a real potion turn without dispatching a PlayerBattleChoice',
         () async {
       PlayerBattleChoice? pickedChoice;
       final session = _session(
@@ -1313,7 +1313,7 @@ void main() {
         enemy: _combatant(
           speciesId: 'wild_enemy',
           lineupIndex: 0,
-          moves: <BattleMoveData>[_tackle()],
+          moves: <BattleMoveData>[_waitingMove()],
         ),
       );
       final gameState = _gameState(
@@ -1333,28 +1333,38 @@ void main() {
         gameState: gameState,
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (choice) => pickedChoice = choice,
-        onPotionUseRequested: (entry) => tryApplyRuntimeBattlePotionUse(
-          session: overlay.debugSession,
-          gameState: overlay.debugGameState,
-          context: const RuntimeActiveBattleContext(
-            request: TrainerBattleStartRequest(
-              requestId: 'trainer-request',
-              createdAtEpochMs: 1,
-              returnContext: OverworldReturnContext(
+        onPotionUseRequested: (entry) {
+          final result = tryApplyRuntimeBattlePotionUse(
+            session: overlay.debugSession,
+            gameState: overlay.debugGameState,
+            context: const RuntimeActiveBattleContext(
+              request: TrainerBattleStartRequest(
+                requestId: 'trainer-request',
+                createdAtEpochMs: 1,
+                returnContext: OverworldReturnContext(
+                  mapId: 'field_map',
+                  playerPos: GridPos(x: 1, y: 1),
+                  playerFacing: Direction.north,
+                ),
+                trainerId: 'trainer',
+                npcEntityId: 'npc_trainer',
                 mapId: 'field_map',
                 playerPos: GridPos(x: 1, y: 1),
-                playerFacing: Direction.north,
               ),
-              trainerId: 'trainer',
-              npcEntityId: 'npc_trainer',
-              mapId: 'field_map',
-              playerPos: GridPos(x: 1, y: 1),
+              playerPartyIndex: 0,
+              playerPartySlotIndicesByLineupIndex: <int>[0, 1],
             ),
-            playerPartyIndex: 0,
-            playerPartySlotIndicesByLineupIndex: <int>[0, 1],
-          ),
-          targetLineupIndex: entry.lineupIndex,
-        ),
+            targetLineupIndex: entry.lineupIndex,
+          );
+          if (result == null) {
+            return false;
+          }
+          overlay.updateState(
+            result.updatedSession,
+            gameState: result.updatedGameState,
+          );
+          return true;
+        },
       );
 
       await overlay.onLoad();
@@ -1365,24 +1375,31 @@ void main() {
 
       expect(overlay.validateSelectedChoice(), isTrue);
 
-      final commandPanel =
-          overlay.children.whereType<BattleCommandPanelComponent>().single;
+      await overlay.waitForPendingVisualSync();
+
       expect(pickedChoice, isNull);
+      expect(overlay.debugSession.state.currentTurn, isNotNull);
+      expect(
+        overlay.debugSession.state.currentTurn!.playerAction,
+        isA<BattleActionPotionUse>(),
+      );
       expect(overlay.debugSession.state.player.currentHp, equals(32));
       expect(overlay.debugGameState.party.members.first.currentHp, equals(32));
       expect(overlay.debugGameState.bag.entries, isEmpty);
+      expect(overlay.isTurnPresentationActive, isTrue);
       expect(
         overlay.currentPromptText,
-        equals('sproutle récupère 20 PV.'),
+        equals('Joueur utilise Potion sur sproutle !'),
       );
       expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
-      expect(
-        commandPanel.currentBagEntryLabels,
-        isEmpty,
-      );
+      expect(overlay.validateSelectedChoice(), isFalse);
+
+      overlay.updateTree(0.50);
+      expect(overlay.currentPromptText, equals('sproutle récupère 20 PV.'));
     });
 
-    test('selecting a reserve medicine target heals it and updates visible hp',
+    test(
+        'selecting a reserve medicine target commits a real potion turn and updates runtime state',
         () async {
       PlayerBattleChoice? pickedChoice;
       late BattleOverlayComponent overlay;
@@ -1407,7 +1424,7 @@ void main() {
           enemy: _combatant(
             speciesId: 'wild_enemy',
             lineupIndex: 0,
-            moves: <BattleMoveData>[_tackle()],
+            moves: <BattleMoveData>[_waitingMove()],
           ),
         ),
         gameState: _gameState(
@@ -1423,28 +1440,38 @@ void main() {
         ),
         viewportSize: Vector2(960, 540),
         onPlayerChoice: (choice) => pickedChoice = choice,
-        onPotionUseRequested: (entry) => tryApplyRuntimeBattlePotionUse(
-          session: overlay.debugSession,
-          gameState: overlay.debugGameState,
-          context: const RuntimeActiveBattleContext(
-            request: TrainerBattleStartRequest(
-              requestId: 'trainer-request',
-              createdAtEpochMs: 1,
-              returnContext: OverworldReturnContext(
+        onPotionUseRequested: (entry) {
+          final result = tryApplyRuntimeBattlePotionUse(
+            session: overlay.debugSession,
+            gameState: overlay.debugGameState,
+            context: const RuntimeActiveBattleContext(
+              request: TrainerBattleStartRequest(
+                requestId: 'trainer-request',
+                createdAtEpochMs: 1,
+                returnContext: OverworldReturnContext(
+                  mapId: 'field_map',
+                  playerPos: GridPos(x: 1, y: 1),
+                  playerFacing: Direction.north,
+                ),
+                trainerId: 'trainer',
+                npcEntityId: 'npc_trainer',
                 mapId: 'field_map',
                 playerPos: GridPos(x: 1, y: 1),
-                playerFacing: Direction.north,
               ),
-              trainerId: 'trainer',
-              npcEntityId: 'npc_trainer',
-              mapId: 'field_map',
-              playerPos: GridPos(x: 1, y: 1),
+              playerPartyIndex: 0,
+              playerPartySlotIndicesByLineupIndex: <int>[1, 0],
             ),
-            playerPartyIndex: 0,
-            playerPartySlotIndicesByLineupIndex: <int>[1, 0],
-          ),
-          targetLineupIndex: entry.lineupIndex,
-        ),
+            targetLineupIndex: entry.lineupIndex,
+          );
+          if (result == null) {
+            return false;
+          }
+          overlay.updateState(
+            result.updatedSession,
+            gameState: result.updatedGameState,
+          );
+          return true;
+        },
       );
 
       await overlay.onLoad();
@@ -1456,9 +1483,14 @@ void main() {
 
       expect(overlay.validateSelectedChoice(), isTrue);
 
-      final commandPanel =
-          overlay.children.whereType<BattleCommandPanelComponent>().single;
+      await overlay.waitForPendingVisualSync();
+
       expect(pickedChoice, isNull);
+      expect(overlay.debugSession.state.currentTurn, isNotNull);
+      expect(
+        overlay.debugSession.state.currentTurn!.playerAction,
+        isA<BattleActionPotionUse>(),
+      );
       expect(overlay.debugSession.state.player.currentHp, equals(22));
       expect(
         overlay.debugSession.state.playerReserve.single.currentHp,
@@ -1466,8 +1498,8 @@ void main() {
       );
       expect(overlay.debugGameState.party.members[0].currentHp, equals(22));
       expect(overlay.debugGameState.party.members[1].currentHp, equals(40));
-      expect(commandPanel.currentBagEntryLabels, const <String>['Potion x1']);
-      expect(overlay.currentPromptText, equals('benchmate récupère 5 PV.'));
+      expect(overlay.currentPromptText,
+          equals('Joueur utilise Potion sur benchmate !'));
       expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
     });
 
@@ -1575,7 +1607,8 @@ void main() {
         const <String>['Actif', 'K.O.'],
       );
       expect(overlay.validateSelectedChoice(), isFalse);
-      expect(overlay.debugSession.state.playerReserve.single.currentHp, equals(0));
+      expect(
+          overlay.debugSession.state.playerReserve.single.currentHp, equals(0));
       expect(overlay.debugGameState.bag.entries.single.quantity, equals(1));
     });
 

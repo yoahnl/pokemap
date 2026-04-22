@@ -19,14 +19,19 @@ BattleStatsSnapshot _stats() {
 BattleMoveData _move({
   required String id,
   required String name,
+  int power = 40,
 }) {
   return BattleMoveData(
     id: id,
     name: name,
-    power: 40,
+    power: power,
     type: 'normal',
-    category: BattleMoveCategory.physical,
-    target: BattleMoveTarget.opponent,
+    category:
+        power <= 0 ? BattleMoveCategory.status : BattleMoveCategory.physical,
+    target: power <= 0 ? BattleMoveTarget.self : BattleMoveTarget.opponent,
+    accuracy: power <= 0
+        ? const BattleMoveAccuracy.alwaysHits()
+        : const BattleMoveAccuracy.percent(value: 100),
   );
 }
 
@@ -116,7 +121,8 @@ RuntimeActiveBattleContext _context({
 
 void main() {
   group('tryApplyRuntimeBattlePotionUse', () {
-    test('potion heals a damaged active target by 20 and consumes one item', () {
+    test('potion heals a damaged active target by 20 and consumes one item',
+        () {
       final result = tryApplyRuntimeBattlePotionUse(
         session: _session(
           player: _combatant(
@@ -129,7 +135,7 @@ void main() {
           enemy: _combatant(
             speciesId: 'enemy',
             lineupIndex: 0,
-            moves: <BattleMoveData>[_move(id: 'scratch', name: 'Scratch')],
+            moves: <BattleMoveData>[_move(id: 'wait', name: 'Wait', power: 0)],
           ),
         ),
         gameState: _gameState(
@@ -151,6 +157,11 @@ void main() {
 
       expect(result, isNotNull);
       expect(result!.healedAmount, equals(20));
+      expect(result.updatedSession.state.currentTurn, isNotNull);
+      expect(
+        result.updatedSession.state.currentTurn!.playerAction,
+        isA<BattleActionPotionUse>(),
+      );
       expect(result.updatedSession.state.player.currentHp, equals(32));
       expect(result.updatedGameState.party.members.first.currentHp, equals(32));
       expect(
@@ -174,7 +185,7 @@ void main() {
           enemy: _combatant(
             speciesId: 'enemy',
             lineupIndex: 0,
-            moves: <BattleMoveData>[_move(id: 'scratch', name: 'Scratch')],
+            moves: <BattleMoveData>[_move(id: 'wait', name: 'Wait', power: 0)],
           ),
         ),
         gameState: _gameState(
@@ -196,6 +207,7 @@ void main() {
 
       expect(result, isNotNull);
       expect(result!.healedAmount, equals(5));
+      expect(result.updatedSession.state.currentTurn, isNotNull);
       expect(result.updatedSession.state.player.currentHp, equals(40));
       expect(result.updatedGameState.party.members.first.currentHp, equals(40));
     });
@@ -218,13 +230,15 @@ void main() {
               lineupIndex: 0,
               currentHp: 35,
               maxHp: 40,
-              moves: <BattleMoveData>[_move(id: 'scratch', name: 'Scratch')],
+              moves: <BattleMoveData>[
+                _move(id: 'wait', name: 'Wait', power: 0)
+              ],
             ),
           ],
           enemy: _combatant(
             speciesId: 'enemy',
             lineupIndex: 0,
-            moves: <BattleMoveData>[_move(id: 'scratch', name: 'Scratch')],
+            moves: <BattleMoveData>[_move(id: 'wait', name: 'Wait', power: 0)],
           ),
         ),
         gameState: _gameState(
@@ -247,6 +261,7 @@ void main() {
 
       expect(result, isNotNull);
       expect(result!.healedAmount, equals(5));
+      expect(result.updatedSession.state.currentTurn, isNotNull);
       expect(result.updatedSession.state.player.currentHp, equals(22));
       expect(
         result.updatedSession.state.playerReserve.single.currentHp,
@@ -279,7 +294,7 @@ void main() {
         enemy: _combatant(
           speciesId: 'enemy',
           lineupIndex: 0,
-          moves: <BattleMoveData>[_move(id: 'scratch', name: 'Scratch')],
+          moves: <BattleMoveData>[_move(id: 'wait', name: 'Wait', power: 0)],
         ),
       );
 
@@ -320,7 +335,7 @@ void main() {
         enemy: _combatant(
           speciesId: 'enemy',
           lineupIndex: 0,
-          moves: <BattleMoveData>[_move(id: 'scratch', name: 'Scratch')],
+          moves: <BattleMoveData>[_move(id: 'wait', name: 'Wait', power: 0)],
         ),
       );
 

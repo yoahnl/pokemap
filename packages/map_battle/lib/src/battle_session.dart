@@ -33,8 +33,7 @@ const BattleConditionEngine _conditionEngine = BattleConditionEngine();
 BattleSession createBattleSession(
   BattleSetup setup, {
   BattleRng rng = const BattleSeededRng(),
-  BattleOpponentPolicy opponentPolicy =
-      const BattleFirstLegalOpponentPolicy(),
+  BattleOpponentPolicy opponentPolicy = const BattleFirstLegalOpponentPolicy(),
 }) {
   final player = _buildBattleCombatantFromData(setup.playerPokemon);
   final enemy = _buildBattleCombatantFromData(setup.enemyPokemon);
@@ -266,6 +265,50 @@ class BattleSession {
       rng: rng,
       opponentPolicy: opponentPolicy,
       pendingTurn: pendingTurn,
+    );
+  }
+
+  /// Commit une vraie action de tour `Potion`.
+  ///
+  /// Lot 9-e refuse ici deux faux raccourcis :
+  /// - continuer l'ancien "patch runtime local" 9-d sans vrai `currentTurn` ;
+  /// - ouvrir un framework générique d'items battle.
+  ///
+  /// Ce seam reste donc volontairement étroit :
+  /// - une seule action publique, spécifique à `Potion` ;
+  /// - ciblage par `lineupIndex` battle déjà stable ;
+  /// - aucun bag, aucune consommation d'objet, aucun catalogue d'items ici ;
+  /// - la consommation réelle du bag reste côté runtime une fois le tour
+  ///   effectivement committé par le moteur.
+  BattleSession applyPotionTurn({
+    required int targetLineupIndex,
+    required int healAmount,
+  }) {
+    final request = decisionRequest;
+    if (request is! BattleTurnChoiceRequest) {
+      throw StateError(
+        'Potion ne peut être engagée que pendant un vrai BattleTurnChoiceRequest '
+        '(request=${request.runtimeType}).',
+      );
+    }
+    if (healAmount <= 0) {
+      throw ArgumentError.value(
+        healAmount,
+        'healAmount',
+        'Potion healAmount must stay strictly positive.',
+      );
+    }
+
+    _requireUsablePotionTarget(
+      side: state.playerSide,
+      targetLineupIndex: targetLineupIndex,
+    );
+
+    return _applyCommittedPlayerAction(
+      playerAction: BattleActionPotionUse(
+        targetLineupIndex: targetLineupIndex,
+        healAmount: healAmount,
+      ),
     );
   }
 
@@ -615,19 +658,21 @@ class BattleSession {
       );
     }
 
-    // Phase 1: Convertir le choix en action
-    final playerAction = forcedPlayerAction ?? _choiceToAction(choice);
+    // Phase 1: Convertir le choix en action puis laisser le scheduler commun
+    // résoudre le vrai tour. Lot 9-e réutilise ce même seam pour `Potion`
+    // afin d'éviter un faux pipeline parallèle runtime-only.
+    return _applyCommittedPlayerAction(
+      playerAction: forcedPlayerAction ?? _choiceToAction(choice),
+    );
+  }
 
-    // Phase 2: Déterminer l'action de l'ennemi via le seam adverse borné.
+  BattleSession _applyCommittedPlayerAction({
+    required BattleAction playerAction,
+  }) {
+    // Le seam adverse reste inchangé : même policy, même scheduler, même
+    // timeline. Lot 9-e ajoute seulement une nouvelle action joueur bornée.
     final enemyAction = _resolveEnemyAction();
 
-    // R2 consolide ici le seam scheduler déjà vivant sans élargir le slice :
-    // - `applyChoice` reste responsable de la frontière request -> action ;
-    // - la planification locale du tour devient explicite via `_BattleTurnPlan` ;
-    // - la consommation de queue et la reprise vivent désormais dans le
-    //   scheduler dédié plutôt que d'être entassées dans cette méthode ;
-    // - la résolution métier des moves, hazards et conditions reste, elle,
-    //   dans `BattleSession`.
     final turnPlan = _planInitialTurn(
       session: this,
       playerAction: playerAction,
@@ -655,7 +700,6 @@ class BattleSession {
       enemyAction: turnPlan.reportedEnemyAction,
     );
 
-    // Phase 5: Vérifier si le combat est fini
     final outcome = turn.pendingTurn != null
         ? null
         : _determineOutcome(
@@ -664,18 +708,11 @@ class BattleSession {
             turn.field,
           );
 
-    // Phase 6: Créer le nouvel état
     final newState = BattleState(
       phase: outcome != null ? BattlePhase.finished : BattlePhase.playerChoice,
       playerSide: turn.playerSide,
       enemySide: turn.enemySide,
       field: turn.field,
-      // On conserve maintenant la trace du dernier tour même s'il termine le
-      // combat :
-      // - sinon un K.O. au résiduel, une paralysie bloquante ou une
-      //   application de statut terminale redeviendraient invisibles ;
-      // - `Run` et `Capture` gardent toujours `currentTurn == null`, car ils ne
-      //   passent pas par `_resolveTurn`.
       currentTurn: turnResult,
       outcome: outcome,
     );
@@ -724,6 +761,45 @@ class BattleSession {
         fromSpeciesId: side.active.speciesId,
         toSpeciesId: incoming.speciesId,
         wasForced: wasForced,
+      ),
+    );
+  }
+
+  _ResolvedPotionUseAction _resolvePotionUseAction({
+    required BattleSideState side,
+    required int targetLineupIndex,
+    required int healAmount,
+  }) {
+    if (side.id != BattleSideId.player) {
+      throw StateError(
+        'BattleActionPotionUse reste limité au côté joueur dans le lot 9-e.',
+      );
+    }
+    if (healAmount <= 0) {
+      throw ArgumentError.value(
+        healAmount,
+        'healAmount',
+        'Potion healAmount must stay strictly positive.',
+      );
+    }
+
+    final targetCombatant = _requireUsablePotionTarget(
+      side: side,
+      targetLineupIndex: targetLineupIndex,
+    );
+    final healedCombatant = targetCombatant.withHeal(healAmount);
+
+    return _ResolvedPotionUseAction(
+      side: _replacePlayerCombatantByLineupIndex(
+        side: side,
+        updatedCombatant: healedCombatant,
+      ),
+      event: BattlePotionEvent(
+        side: side.id,
+        targetLineupIndex: healedCombatant.lineupIndex,
+        targetSpeciesId: healedCombatant.speciesId,
+        hpBefore: targetCombatant.currentHp,
+        hpAfter: healedCombatant.currentHp,
       ),
     );
   }
@@ -911,7 +987,8 @@ class BattleSession {
     return selectedAction;
   }
 
-  List<BattleOpponentReplacementOption> _availableEnemyVoluntarySwitchOptions() {
+  List<BattleOpponentReplacementOption>
+      _availableEnemyVoluntarySwitchOptions() {
     if (state.enemy.isFainted) {
       return const <BattleOpponentReplacementOption>[];
     }
@@ -1692,6 +1769,16 @@ class _ResolvedSwitchAction {
   final BattleSwitchEvent event;
 }
 
+class _ResolvedPotionUseAction {
+  const _ResolvedPotionUseAction({
+    required this.side,
+    required this.event,
+  });
+
+  final BattleSideState side;
+  final BattlePotionEvent event;
+}
+
 class _ResolvedMoveExecution {
   const _ResolvedMoveExecution({
     required this.attacker,
@@ -1802,7 +1889,54 @@ BattleSideState _replacePlayerCombatantByLineupIndex({
     );
   }
 
-  final updatedReserve = List<BattleCombatant>.of(side.reserve, growable: false);
+  final updatedReserve =
+      List<BattleCombatant>.of(side.reserve, growable: false);
   updatedReserve[reserveIndex] = updatedCombatant;
   return side.withReserve(updatedReserve);
+}
+
+BattleCombatant _requireUsablePotionTarget({
+  required BattleSideState side,
+  required int targetLineupIndex,
+}) {
+  final combatant = _findCombatantByLineupIndex(
+    side: side,
+    targetLineupIndex: targetLineupIndex,
+  );
+  if (combatant == null) {
+    throw StateError(
+      'Potion vise un lineupIndex joueur introuvable dans la session courante '
+      '(lineupIndex=$targetLineupIndex).',
+    );
+  }
+  if (combatant.isFainted) {
+    throw StateError(
+      'Potion ne peut pas cibler un combattant joueur K.O. '
+      '(lineupIndex=$targetLineupIndex).',
+    );
+  }
+  if (combatant.currentHp >= combatant.maxHp) {
+    throw StateError(
+      'Potion ne peut pas cibler un combattant déjà full HP '
+      '(lineupIndex=$targetLineupIndex).',
+    );
+  }
+  return combatant;
+}
+
+BattleCombatant? _findCombatantByLineupIndex({
+  required BattleSideState side,
+  required int targetLineupIndex,
+}) {
+  if (side.active.lineupIndex == targetLineupIndex) {
+    return side.active;
+  }
+
+  final reserveIndex = side.reserve.indexWhere(
+    (combatant) => combatant.lineupIndex == targetLineupIndex,
+  );
+  if (reserveIndex == -1) {
+    return null;
+  }
+  return side.reserve[reserveIndex];
 }

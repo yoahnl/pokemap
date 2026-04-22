@@ -120,6 +120,37 @@ class BattleActionRun extends BattleAction {
   const BattleActionRun();
 }
 
+/// Utiliser une Potion sur un membre du lineup joueur courant.
+///
+/// Lot 9-e ouvre ici un seam volontairement ultra-borné :
+/// - aucune taxonomie générique d'objets battle ;
+/// - aucune lecture de bag côté moteur ;
+/// - aucune famille "item use" extensible pour 20 objets ;
+/// - uniquement la forme minimale nécessaire pour faire de `Potion`
+///   une vraie action de tour committée et visible dans la timeline.
+///
+/// Le runtime reste responsable de deux vérités hors moteur :
+/// - vérifier qu'une Potion existe vraiment dans le `GameState.bag` ;
+/// - décrémenter cette entrée après un commit de tour réussi.
+class BattleActionPotionUse extends BattleAction {
+  const BattleActionPotionUse({
+    required this.targetLineupIndex,
+    required this.healAmount,
+  }) : assert(healAmount > 0, 'Potion healAmount must stay strictly positive.');
+
+  /// Lineup cible côté joueur.
+  ///
+  /// On reste sur l'identité stable battle `lineupIndex` pour éviter
+  /// tout couplage fragile à un index visuel d'overlay ou à un slot save.
+  final int targetLineupIndex;
+
+  /// Quantité de soin plate réellement portée par cette action.
+  ///
+  /// Lot 9-e reste borné à la vraie `Potion` locale ; ce champ n'ouvre pas
+  /// un catalogue d'effets d'items.
+  final int healAmount;
+}
+
 /// Perdre honnêtement son tour à cause d'une recharge forcée.
 ///
 /// BE8 préfère une action explicite plutôt que de tordre `BattleActionFight`

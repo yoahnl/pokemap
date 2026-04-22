@@ -387,7 +387,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   GridPos get debugPlayerGridPosition => _world.player.pos;
 
   @visibleForTesting
-  bool get debugHasActiveScenarioFollow => _pendingScenarioFollowRequest != null;
+  bool get debugHasActiveScenarioFollow =>
+      _pendingScenarioFollowRequest != null;
 
   @visibleForTesting
   String? get debugScenarioFollowLeaderId =>
@@ -3368,7 +3369,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         )) {
           return false;
         }
-        final trial = followWorld.withPlayer(followWorld.player.copyWith(pos: cell));
+        final trial =
+            followWorld.withPlayer(followWorld.player.copyWith(pos: cell));
         return !trial.isBlocked(x, y);
       },
     );
@@ -3571,7 +3573,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     if (normalized.isEmpty) {
       return _world;
     }
-    final index = _world.map.entities.indexWhere((entity) => entity.id == normalized);
+    final index =
+        _world.map.entities.indexWhere((entity) => entity.id == normalized);
     if (index < 0) {
       return _world;
     }
@@ -3969,33 +3972,53 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
   }
 
-  RuntimeBattlePotionApplyResult? _onBattlePotionUseRequested(
+  bool _onBattlePotionUseRequested(
     BattleMedicineTargetEntry entry,
   ) {
     final battleSession = _battleSession;
     final activeBattleContext = _activeBattleContext;
     if (battleSession == null || activeBattleContext == null) {
-      return null;
+      return false;
     }
 
-    // Lot 9-d garde l’effet de Potion entièrement côté runtime :
-    // - aucun PlayerBattleChoice item ;
-    // - aucun système générique d’objets battle ;
-    // - la mutation réelle porte seulement sur la session courante et le
-    //   GameState possédés ici, puis l’overlay se resynchronise dessus.
-    final result = tryApplyRuntimeBattlePotionUse(
-      session: battleSession,
-      gameState: _gameState,
-      context: activeBattleContext,
-      targetLineupIndex: entry.lineupIndex,
-    );
-    if (result == null) {
-      return null;
+    if (_isBattleResolving) {
+      debugPrint('[battle] potion ignored: already resolving');
+      return false;
     }
 
-    _battleSession = result.updatedSession;
-    _gameState = result.updatedGameState;
-    return result;
+    _isBattleResolving = true;
+    try {
+      // Lot 9-e fait maintenant passer Potion par un vrai commit de tour :
+      // - le moteur battle produit un `currentTurn` et une timeline honnêtes ;
+      // - le runtime reste propriétaire du bag réel et du write-back party ;
+      // - on n'ouvre toujours aucun PlayerBattleChoice item générique.
+      final result = tryApplyRuntimeBattlePotionUse(
+        session: battleSession,
+        gameState: _gameState,
+        context: activeBattleContext,
+        targetLineupIndex: entry.lineupIndex,
+      );
+      if (result == null) {
+        return false;
+      }
+
+      _battleSession = result.updatedSession;
+      _gameState = result.updatedGameState;
+      _battleOverlay?.updateState(
+        _battleSession!,
+        gameState: _gameState,
+      );
+
+      if (_battleSession!.state.isFinished) {
+        _onBattleFinished(_battleSession!.state.outcome!);
+      }
+
+      return true;
+    } finally {
+      if (_flowPhase == _RuntimeFlowPhase.battle) {
+        _isBattleResolving = false;
+      }
+    }
   }
 
   /// Gère la fin du combat.

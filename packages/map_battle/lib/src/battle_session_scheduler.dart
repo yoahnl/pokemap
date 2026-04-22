@@ -269,6 +269,7 @@ BattleTurnResult _buildTurnResultFromContext({
     stealthRockEvents:
         List<BattleStealthRockEvent>.unmodifiable(turn.stealthRockEvents),
     spikesEvents: List<BattleSpikesEvent>.unmodifiable(turn.spikesEvents),
+    potionEvents: List<BattlePotionEvent>.unmodifiable(turn.potionEvents),
     switchEvents: List<BattleSwitchEvent>.unmodifiable(turn.switchEvents),
     timeline: List<BattleTurnEvent>.unmodifiable(turn.timeline),
   );
@@ -398,7 +399,8 @@ void _executeActionQueueStep({
     turn.fieldEvents.addAll(resolution.fieldEvents);
     turn.timeline.addAll(resolution.timeline);
 
-    final sideConditionResolution = _conditionEngine.runSideConditionMoveResolved(
+    final sideConditionResolution =
+        _conditionEngine.runSideConditionMoveResolved(
       move: move,
       didResolveHit: resolution.execution?.didHit == true,
       targetSide: turn.side(_opposingSideId(step.side)),
@@ -417,20 +419,20 @@ void _executeActionQueueStep({
       reserveIndex: reserveIndex,
       wasForced: step.wasForced,
     );
-  turn.updateSide(step.side, resolution.side);
-  turn.switchEvents.add(resolution.event);
-  turn.timeline.add(BattleTurnSwitchEvent(resolution.event));
+    turn.updateSide(step.side, resolution.side);
+    turn.switchEvents.add(resolution.event);
+    turn.timeline.add(BattleTurnSwitchEvent(resolution.event));
 
-  final entryHazards = _conditionEngine.runEntryHazards(
-    side: turn.side(step.side),
-  );
-  _recordSideConditionResolution(
-    turn: turn,
-    sideId: step.side,
-    resolution: entryHazards,
-  );
+    final entryHazards = _conditionEngine.runEntryHazards(
+      side: turn.side(step.side),
+    );
+    _recordSideConditionResolution(
+      turn: turn,
+      sideId: step.side,
+      resolution: entryHazards,
+    );
 
-  final sideAfterEntry = turn.side(step.side);
+    final sideAfterEntry = turn.side(step.side);
     if (sideAfterEntry.active.isFainted &&
         step.side == BattleSideId.player &&
         session._firstUsableReserveIndex(sideAfterEntry.reserve) != null &&
@@ -440,6 +442,28 @@ void _executeActionQueueStep({
         turn: turn,
       );
     }
+    return;
+  }
+
+  if (step.action
+      case BattleActionPotionUse(
+        :final targetLineupIndex,
+        :final healAmount,
+      )) {
+    if (step.side != BattleSideId.player) {
+      throw StateError(
+        'BattleActionPotionUse reste player-only dans le lot 9-e.',
+      );
+    }
+
+    final resolution = session._resolvePotionUseAction(
+      side: actingSide,
+      targetLineupIndex: targetLineupIndex,
+      healAmount: healAmount,
+    );
+    turn.updateSide(step.side, resolution.side);
+    turn.potionEvents.add(resolution.event);
+    turn.timeline.add(BattleTurnPotionEvent(resolution.event));
     return;
   }
 
@@ -595,8 +619,7 @@ int? _chooseEnemyReplacementIndex({
   }
 
   final selectedOption = session.opponentPolicy.chooseReplacement(
-    legalReplacementOptions:
-        List<BattleOpponentReplacementOption>.unmodifiable(
+    legalReplacementOptions: List<BattleOpponentReplacementOption>.unmodifiable(
       legalReplacementOptions,
     ),
   );
@@ -788,6 +811,12 @@ int _priorityForResolvedAction(BattleAction action) {
     // - un switch volontaire ou forcé résout avant un `Fight` standard ;
     // - cela ne prétend toujours pas modéliser la taxonomie Showdown complète
     //   des priorités de switch.
+    //
+    // Lot 9-e ajoute un seul cas de plus :
+    // - `Potion` doit devenir une vraie action de tour ;
+    // - elle résout avant les moves actuellement supportés ;
+    // - on refuse pourtant d'ouvrir une échelle générique de priorités items.
+    BattleActionPotionUse() => 7,
     BattleActionSwitch() => 6,
     BattleActionFight(:final move) => move.priority,
     BattleActionRecharge() => 0,
@@ -821,6 +850,7 @@ final class _PendingTurnContinuation {
     required this.fieldEvents,
     required this.stealthRockEvents,
     required this.spikesEvents,
+    required this.potionEvents,
     required this.switchEvents,
     required this.timeline,
   });
@@ -848,6 +878,7 @@ final class _PendingTurnContinuation {
       stealthRockEvents:
           List<BattleStealthRockEvent>.unmodifiable(turn.stealthRockEvents),
       spikesEvents: List<BattleSpikesEvent>.unmodifiable(turn.spikesEvents),
+      potionEvents: List<BattlePotionEvent>.unmodifiable(turn.potionEvents),
       switchEvents: List<BattleSwitchEvent>.unmodifiable(turn.switchEvents),
       timeline: List<BattleTurnEvent>.unmodifiable(turn.timeline),
     );
@@ -867,6 +898,7 @@ final class _PendingTurnContinuation {
   final List<BattleFieldEvent> fieldEvents;
   final List<BattleStealthRockEvent> stealthRockEvents;
   final List<BattleSpikesEvent> spikesEvents;
+  final List<BattlePotionEvent> potionEvents;
   final List<BattleSwitchEvent> switchEvents;
   final List<BattleTurnEvent> timeline;
 }
@@ -904,6 +936,7 @@ final class _QueuedTurnContext {
       ..fieldEvents.addAll(pending.fieldEvents)
       ..stealthRockEvents.addAll(pending.stealthRockEvents)
       ..spikesEvents.addAll(pending.spikesEvents)
+      ..potionEvents.addAll(pending.potionEvents)
       ..switchEvents.addAll(pending.switchEvents)
       ..timeline.addAll(pending.timeline);
   }
@@ -924,6 +957,7 @@ final class _QueuedTurnContext {
   final List<BattleStealthRockEvent> stealthRockEvents =
       <BattleStealthRockEvent>[];
   final List<BattleSpikesEvent> spikesEvents = <BattleSpikesEvent>[];
+  final List<BattlePotionEvent> potionEvents = <BattlePotionEvent>[];
   final List<BattleSwitchEvent> switchEvents = <BattleSwitchEvent>[];
   final List<BattleTurnEvent> timeline = <BattleTurnEvent>[];
 

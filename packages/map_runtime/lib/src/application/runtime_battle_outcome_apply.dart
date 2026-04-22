@@ -177,10 +177,10 @@ GameState applyRuntimeBattleOutcomeToGameState({
   required BattleOutcome outcome,
   StoryFlagsManager storyFlagsManager = const StoryFlagsManager(),
 }) {
-  final stateWithPlayerHp = _writePlayerBattleLineupBackToPartySlots(
+  final stateWithPlayerHp = writePlayerBattleLineupBackToPartySlots(
     gameState: gameState,
     context: context,
-    finalState: outcome.finalState,
+    battleState: outcome.finalState,
   );
 
   final request = context.request;
@@ -330,14 +330,14 @@ Bag _consumeOnePokeBallOrThrow(Bag bag) {
 /// - on n'écrit encore que les PV, car le runtime hors combat ne possède pas
 ///   encore de write-back honnête des PP courants ni des statuts majeurs ;
 /// - les membres de party non engagés dans ce combat restent inchangés.
-GameState _writePlayerBattleLineupBackToPartySlots({
+GameState writePlayerBattleLineupBackToPartySlots({
   required GameState gameState,
   required RuntimeActiveBattleContext context,
-  required BattleState finalState,
+  required BattleState battleState,
 }) {
   final playerLineup = <BattleCombatant>[
-    finalState.player,
-    ...finalState.playerReserve,
+    battleState.player,
+    ...battleState.playerReserve,
   ];
   final hasExplicitLineupMapping =
       context.playerPartySlotIndicesByLineupIndex.isNotEmpty;
@@ -352,13 +352,13 @@ GameState _writePlayerBattleLineupBackToPartySlots({
   // - on préfère donc un échec explicite et testable à une écriture silencieuse
   //   sur le mauvais membre de la party.
   if (!hasExplicitLineupMapping &&
-      (playerLineup.length > 1 || finalState.player.lineupIndex != 0)) {
+      (playerLineup.length > 1 || battleState.player.lineupIndex != 0)) {
     throw StateError(
       'Le write-back runtime BE10 exige RuntimeActiveBattleContext.'
       'playerPartySlotIndicesByLineupIndex quand BattleOutcome.finalState '
       'porte une lineup joueur multi-membre ou non triviale '
       '(lineupLength=${playerLineup.length}, '
-      'activeLineupIndex=${finalState.player.lineupIndex}).',
+      'activeLineupIndex=${battleState.player.lineupIndex}).',
     );
   }
 

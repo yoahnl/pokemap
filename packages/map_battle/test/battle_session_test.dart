@@ -943,5 +943,140 @@ void main() {
       // Le joueur joue en premier, donc l'ennemi meurt en premier → victoire
       expect(session.state.outcome!.isVictory, isTrue);
     });
+
+    test(
+        'applyPotionTurn commits a real turn and the enemy still responds in the same turn flow',
+        () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: const BattleCombatantData(
+            speciesId: 'sproutle',
+            level: 10,
+            maxHp: 40,
+            currentHp: 12,
+            lineupIndex: 0,
+            stats: _neutralBattleStats,
+            moves: <BattleMoveData>[
+              BattleMoveData(id: 'tackle', name: 'Tackle', power: 40),
+            ],
+          ),
+          enemyPokemon: const BattleCombatantData(
+            speciesId: 'sparkitten',
+            level: 10,
+            maxHp: 40,
+            lineupIndex: 0,
+            stats: _neutralBattleStats,
+            moves: <BattleMoveData>[
+              BattleMoveData(
+                id: 'wait',
+                name: 'Wait',
+                power: 0,
+                category: BattleMoveCategory.status,
+                target: BattleMoveTarget.self,
+                accuracy: BattleMoveAccuracy.alwaysHits(),
+              ),
+            ],
+          ),
+          isTrainerBattle: true,
+          trainerId: 'trainer_1',
+        ),
+      );
+
+      final updatedSession = session.applyPotionTurn(
+        targetLineupIndex: 0,
+        healAmount: 20,
+      );
+
+      expect(updatedSession.state.currentTurn, isNotNull);
+      expect(updatedSession.state.player.currentHp, equals(32));
+      expect(
+        updatedSession.state.currentTurn!.playerAction,
+        isA<BattleActionPotionUse>(),
+      );
+      expect(
+        updatedSession.state.currentTurn!.enemyAction,
+        isA<BattleActionFight>(),
+      );
+      expect(updatedSession.state.currentTurn!.potionEvents, hasLength(1));
+      expect(
+        updatedSession.state.currentTurn!.potionEvents.single.healedAmount,
+        equals(20),
+      );
+      expect(
+        updatedSession.state.currentTurn!.timeline.first,
+        isA<BattleTurnPotionEvent>(),
+      );
+      expect(
+        updatedSession.state.currentTurn!.timeline.last,
+        isA<BattleTurnExecutionEvent>(),
+      );
+      expect(
+        updatedSession.decisionRequest,
+        isA<BattleTurnChoiceRequest>(),
+      );
+    });
+
+    test(
+        'applyPotionTurn rejects invalid targets instead of faking a committed item turn',
+        () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: const BattleCombatantData(
+            speciesId: 'sproutle',
+            level: 10,
+            maxHp: 40,
+            currentHp: 40,
+            lineupIndex: 0,
+            stats: _neutralBattleStats,
+            moves: <BattleMoveData>[
+              BattleMoveData(id: 'tackle', name: 'Tackle', power: 40),
+            ],
+          ),
+          playerReservePokemon: const <BattleCombatantData>[
+            BattleCombatantData(
+              speciesId: 'benchmate',
+              level: 10,
+              maxHp: 35,
+              currentHp: 0,
+              lineupIndex: 1,
+              stats: _neutralBattleStats,
+              moves: <BattleMoveData>[
+                BattleMoveData(id: 'wait', name: 'Wait', power: 0),
+              ],
+            ),
+          ],
+          enemyPokemon: const BattleCombatantData(
+            speciesId: 'sparkitten',
+            level: 10,
+            maxHp: 40,
+            lineupIndex: 0,
+            stats: _neutralBattleStats,
+            moves: <BattleMoveData>[
+              BattleMoveData(id: 'wait', name: 'Wait', power: 0),
+            ],
+          ),
+          isTrainerBattle: true,
+          trainerId: 'trainer_1',
+        ),
+      );
+
+      expect(
+        () => session.applyPotionTurn(
+          targetLineupIndex: 0,
+          healAmount: 20,
+        ),
+        throwsA(isA<StateError>()),
+      );
+      expect(
+        () => session.applyPotionTurn(
+          targetLineupIndex: 1,
+          healAmount: 20,
+        ),
+        throwsA(isA<StateError>()),
+      );
+      expect(session.state.currentTurn, isNull);
+      expect(session.state.player.currentHp, equals(40));
+      expect(session.state.playerReserve.single.currentHp, equals(0));
+    });
   });
 }

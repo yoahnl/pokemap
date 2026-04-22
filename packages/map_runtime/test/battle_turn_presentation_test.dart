@@ -255,6 +255,110 @@ void main() {
       expect(steps.last.hpTo, equals(33));
     });
 
+    test(
+        'renders potion use as a committed turn step before the enemy response',
+        () {
+      final beforeSession = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          maxHp: 40,
+          currentHp: 12,
+          moves: <BattleMoveData>[_move(id: 'tackle', name: 'Tackle')],
+        ),
+        enemy: _combatant(
+          speciesId: 'sparkitten',
+          lineupIndex: 0,
+          maxHp: 50,
+          currentHp: 50,
+          moves: <BattleMoveData>[_move(id: 'scratch', name: 'Scratch')],
+        ),
+      );
+      const turn = BattleTurnResult(
+        playerAction: BattleActionPotionUse(
+          targetLineupIndex: 0,
+          healAmount: 20,
+        ),
+        enemyAction: BattleActionFight(
+          BattleMove(
+            id: 'scratch',
+            name: 'Scratch',
+            power: 35,
+            target: BattleMoveTarget.opponent,
+          ),
+          moveIndex: 0,
+        ),
+        executions: <BattleMoveExecution>[
+          BattleMoveExecution(
+            attackerSlot: BattleSlotRef.active(BattleSideId.enemy),
+            move: BattleMove(
+              id: 'scratch',
+              name: 'Scratch',
+              power: 35,
+              target: BattleMoveTarget.opponent,
+            ),
+            targetKind: BattleMoveExecutionTargetKind.combatant,
+            targetSlot: BattleSlotRef.active(BattleSideId.player),
+            damage: 9,
+            didHit: true,
+          ),
+        ],
+        potionEvents: <BattlePotionEvent>[
+          BattlePotionEvent(
+            side: BattleSideId.player,
+            targetLineupIndex: 0,
+            targetSpeciesId: 'sproutle',
+            hpBefore: 12,
+            hpAfter: 32,
+          ),
+        ],
+        timeline: <BattleTurnEvent>[
+          BattleTurnPotionEvent(
+            BattlePotionEvent(
+              side: BattleSideId.player,
+              targetLineupIndex: 0,
+              targetSpeciesId: 'sproutle',
+              hpBefore: 12,
+              hpAfter: 32,
+            ),
+          ),
+          BattleTurnExecutionEvent(
+            BattleMoveExecution(
+              attackerSlot: BattleSlotRef.active(BattleSideId.enemy),
+              move: BattleMove(
+                id: 'scratch',
+                name: 'Scratch',
+                power: 35,
+                target: BattleMoveTarget.opponent,
+              ),
+              targetKind: BattleMoveExecutionTargetKind.combatant,
+              targetSlot: BattleSlotRef.active(BattleSideId.player),
+              damage: 9,
+              didHit: true,
+            ),
+          ),
+        ],
+      );
+
+      final steps = buildBattleTurnPresentationSteps(
+        playerBefore: beforeSession.state.player,
+        enemyBefore: beforeSession.state.enemy,
+        turnResult: turn,
+      );
+
+      expect(steps, hasLength(3));
+      expect(steps[0].message, equals('Joueur utilise Potion sur sproutle !'));
+      expect(steps[0].animatesDamage, isFalse);
+      expect(steps[1].message, equals('sproutle récupère 20 PV.'));
+      expect(steps[1].animatesHpChange, isTrue);
+      expect(steps[1].flashTargetSide, isNull);
+      expect(steps[1].hpFrom, equals(12));
+      expect(steps[1].hpTo, equals(32));
+      expect(steps[2].message, equals('Ennemi utilise Scratch !'));
+      expect(steps[2].hpFrom, equals(32));
+      expect(steps[2].hpTo, equals(23));
+    });
+
     test('keeps status-like executions as message-only steps', () {
       final beforeSession = _session(
         player: _combatant(

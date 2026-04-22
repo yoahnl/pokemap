@@ -21,7 +21,6 @@ import 'battle_scene_backdrop_component.dart';
 import 'battle_scene_combatant_component.dart';
 import 'battle_scene_hud_component.dart';
 import 'battle_turn_presentation.dart';
-import '../../application/runtime_battle_potion_apply.dart';
 
 /// Retourne le prompt de décision à afficher pour la requête courante.
 ///
@@ -57,6 +56,7 @@ List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
           turnResult.fieldEvents.isNotEmpty ||
           turnResult.stealthRockEvents.isNotEmpty ||
           turnResult.spikesEvents.isNotEmpty ||
+          turnResult.potionEvents.isNotEmpty ||
           turnResult.switchEvents.isNotEmpty)) {
     throw StateError(
       'BattleTurnResult.timeline est requis pour afficher honnêtement la chronologie du tour dans l’overlay runtime.',
@@ -66,6 +66,10 @@ List<String> buildBattleTurnLinesForOverlay(BattleTurnResult turnResult) {
   final lines = <String>[];
   for (final event in turnResult.timeline) {
     switch (event) {
+      case BattleTurnPotionEvent(:final event):
+        final actor = _overlayCombatantLabelForSide(event.side);
+        lines.add('$actor utilise Potion sur ${event.targetSpeciesId}');
+        lines.add('${event.targetSpeciesId} récupère ${event.healedAmount} PV');
       case BattleTurnExecutionEvent(:final execution):
         final attacker = _overlayCombatantLabelForSide(execution.attackerSide);
         lines.add(
@@ -375,8 +379,7 @@ class BattleOverlayComponent extends PositionComponent {
   GameState _gameState;
 
   final void Function(PlayerBattleChoice choice) onPlayerChoice;
-  final RuntimeBattlePotionApplyResult? Function(BattleMedicineTargetEntry entry)?
-      onPotionUseRequested;
+  final bool Function(BattleMedicineTargetEntry entry)? onPotionUseRequested;
   final BattleBackgroundSpec backgroundSpec;
   final BattlePokemonSpriteResolver? spriteResolver;
   final BattleVisualAssetCache? visualAssetCache;
@@ -1085,39 +1088,17 @@ class BattleOverlayComponent extends PositionComponent {
       return false;
     }
     final selectedMedicineAction = _selectedMedicineAction;
-    if (selectedMedicineAction == null || selectedMedicineAction.itemId != 'potion') {
-      return false;
-    }
-    // Lot 9-d garde ce handler volontairement borné :
-    // - il ne synthétise toujours aucun PlayerBattleChoice item ;
-    // - il ne crée aucun contrat générique d’objets battle ;
-    // - il reflète seulement un effet runtime déjà appliqué par le parent,
-    //   propriétaire du vrai BattleSession et du vrai GameState.
-    final applyResult = onPotionUseRequested?.call(entry);
-    if (applyResult == null) {
+    if (selectedMedicineAction == null ||
+        selectedMedicineAction.itemId != 'potion') {
       return false;
     }
 
-    final previousSession = _session;
-    _session = applyResult.updatedSession;
-    _gameState = applyResult.updatedGameState;
-    _selectedMedicineAction = null;
-    _selectedMedicineTargetIndex = 0;
-    _bagFeedbackMessage =
-        '${applyResult.targetSpeciesId} récupère ${applyResult.healedAmount} PV.';
-
-    // Choix UX lot 9-d :
-    // - on revient au BAG après un usage réussi ;
-    // - on garde le feedback de succès sur un écran encore pertinent ;
-    // - on évite de laisser le curseur sur une cible devenue full HP ;
-    // - on n'invente toujours aucun tour "item" dans le moteur battle.
-    final bagMenuModel = _currentBagMenuModel();
-    _menuMode = BattleCommandMenuMode.bag;
-    _selectedBagIndex = _firstSelectableBagIndexFor(bagMenuModel);
-    _syncPanelsOnly();
-    _pendingVisualSync = _syncVisualState(previousSession: previousSession);
-    unawaited(_pendingVisualSync);
-    return true;
+    // Lot 9-e change volontairement le propriétaire de l'effet réel :
+    // - le parent runtime commit maintenant un vrai tour `Potion` ;
+    // - l'overlay ne patche plus sa session localement ;
+    // - cela évite de mentir sur l'ordre du tour et garde `PlayableMapGame`
+    //   propriétaire unique du vrai BattleSession / GameState.
+    return onPotionUseRequested?.call(entry) ?? false;
   }
 
   void _handleBagEntrySelected(BattleBagMenuEntry entry) {
@@ -1513,7 +1494,7 @@ class BattleOverlayComponent extends PositionComponent {
           : _turnPresentationSteps[_turnPresentationIndex];
 
   double _durationForPresentationStep(BattleTurnPresentationStep step) {
-    return step.animatesDamage
+    return step.animatesHpChange
         ? _presentationImpactStepSeconds
         : _presentationMessageOnlyStepSeconds;
   }
@@ -1530,7 +1511,7 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   void _applyTurnPresentationEffect(BattleTurnPresentationStep step) {
-    final targetSide = step.flashTargetSide;
+    final targetSide = step.hpChangeTargetSide;
     final hpFrom = step.hpFrom;
     final hpTo = step.hpTo;
     if (targetSide == null || hpFrom == null || hpTo == null) {
@@ -1539,7 +1520,9 @@ class BattleOverlayComponent extends PositionComponent {
     final isPlayerSide = targetSide == BattleSideId.player;
     final combatant = isPlayerSide ? _playerCombatant : _enemyCombatant;
     final hud = isPlayerSide ? _playerHud : _enemyHud;
-    combatant?.triggerHitFlash();
+    if (step.flashTargetSide == targetSide) {
+      combatant?.triggerHitFlash();
+    }
     hud?.animateDisplayedHp(fromHp: hpFrom, toHp: hpTo);
   }
 
@@ -1549,7 +1532,8 @@ class BattleOverlayComponent extends PositionComponent {
   }) {
     if (previousSession == null ||
         !isTurnPresentationActive ||
-        !_turnPresentationSteps.any((step) => step.flashTargetSide == side)) {
+        !_turnPresentationSteps
+            .any((step) => step.hpChangeTargetSide == side)) {
       return null;
     }
     final previousCombatant = side == BattleSideId.player

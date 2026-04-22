@@ -4,17 +4,21 @@ class BattleTurnPresentationStep {
   const BattleTurnPresentationStep({
     required this.message,
     this.flashTargetSide,
+    this.hpChangeTargetSide,
     this.hpFrom,
     this.hpTo,
   });
 
   final String message;
   final BattleSideId? flashTargetSide;
+  final BattleSideId? hpChangeTargetSide;
   final int? hpFrom;
   final int? hpTo;
 
-  bool get animatesDamage =>
-      flashTargetSide != null && hpFrom != null && hpTo != null;
+  bool get animatesHpChange =>
+      hpChangeTargetSide != null && hpFrom != null && hpTo != null;
+
+  bool get animatesDamage => flashTargetSide != null && animatesHpChange;
 }
 
 List<BattleTurnPresentationStep> buildBattleTurnPresentationSteps({
@@ -29,35 +33,71 @@ List<BattleTurnPresentationStep> buildBattleTurnPresentationSteps({
   final steps = <BattleTurnPresentationStep>[];
 
   for (final event in turnResult.timeline) {
-    if (event is! BattleTurnExecutionEvent) {
-      continue;
+    switch (event) {
+      case BattleTurnPotionEvent(:final event):
+        final userLabel = _presentationCombatantLabel(event.side);
+        steps.add(
+          BattleTurnPresentationStep(
+            message: '$userLabel utilise Potion sur ${event.targetSpeciesId} !',
+          ),
+        );
+
+        final visibleTargetSide = event.side == BattleSideId.player &&
+                playerBefore.lineupIndex == event.targetLineupIndex
+            ? BattleSideId.player
+            : event.side == BattleSideId.enemy &&
+                    enemyBefore.lineupIndex == event.targetLineupIndex
+                ? BattleSideId.enemy
+                : null;
+        if (visibleTargetSide == null || event.healedAmount <= 0) {
+          steps.add(
+            BattleTurnPresentationStep(
+              message:
+                  '${event.targetSpeciesId} récupère ${event.healedAmount} PV.',
+            ),
+          );
+          continue;
+        }
+
+        trackedHp[visibleTargetSide] = event.hpAfter;
+        steps.add(
+          BattleTurnPresentationStep(
+            message:
+                '${event.targetSpeciesId} récupère ${event.healedAmount} PV.',
+            hpChangeTargetSide: visibleTargetSide,
+            hpFrom: event.hpBefore,
+            hpTo: event.hpAfter,
+          ),
+        );
+      case BattleTurnExecutionEvent(:final execution):
+        final message =
+            '${_presentationCombatantLabel(execution.attackerSide)} utilise ${execution.move.name} !';
+        final targetSide = execution.targetSide;
+        final dealsVisibleDamage = execution.didHit &&
+            execution.damage > 0 &&
+            execution.targetKind == BattleMoveExecutionTargetKind.combatant &&
+            targetSide != null;
+
+        if (!dealsVisibleDamage) {
+          steps.add(BattleTurnPresentationStep(message: message));
+          continue;
+        }
+
+        final hpFrom = trackedHp[targetSide] ?? 0;
+        final hpTo = (hpFrom - execution.damage).clamp(0, hpFrom);
+        trackedHp[targetSide] = hpTo;
+        steps.add(
+          BattleTurnPresentationStep(
+            message: message,
+            flashTargetSide: targetSide,
+            hpChangeTargetSide: targetSide,
+            hpFrom: hpFrom,
+            hpTo: hpTo,
+          ),
+        );
+      default:
+        continue;
     }
-
-    final execution = event.execution;
-    final message =
-        '${_presentationCombatantLabel(execution.attackerSide)} utilise ${execution.move.name} !';
-    final targetSide = execution.targetSide;
-    final dealsVisibleDamage = execution.didHit &&
-        execution.damage > 0 &&
-        execution.targetKind == BattleMoveExecutionTargetKind.combatant &&
-        targetSide != null;
-
-    if (!dealsVisibleDamage) {
-      steps.add(BattleTurnPresentationStep(message: message));
-      continue;
-    }
-
-    final hpFrom = trackedHp[targetSide] ?? 0;
-    final hpTo = (hpFrom - execution.damage).clamp(0, hpFrom);
-    trackedHp[targetSide] = hpTo;
-    steps.add(
-      BattleTurnPresentationStep(
-        message: message,
-        flashTargetSide: targetSide,
-        hpFrom: hpFrom,
-        hpTo: hpTo,
-      ),
-    );
   }
 
   return List<BattleTurnPresentationStep>.unmodifiable(steps);
