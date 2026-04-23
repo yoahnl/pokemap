@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:map_battle/map_battle.dart';
@@ -38,12 +39,20 @@ final class BattleAnimationRunner {
   bool _active = false;
   String? _currentMessage;
   HudHpTweenStep? _currentHpTweenStep;
+  Completer<void>? _completionCompleter;
 
   bool get isActive => _active;
 
   String? get currentMessage => _currentMessage;
 
   HudHpTweenStep? get currentHpTweenStep => _currentHpTweenStep;
+
+  Future<void> get completionFuture {
+    if (!_active) {
+      return Future<void>.value();
+    }
+    return _completionCompleter?.future ?? Future<void>.value();
+  }
 
   void start(BattleAnimationPlan plan) {
     cancel(clearMessage: false, notify: false);
@@ -56,6 +65,7 @@ final class BattleAnimationRunner {
     _phaseDuration = 0;
     _active = true;
     _currentHpTweenStep = null;
+    _completionCompleter = Completer<void>();
     _beginNextPhase();
   }
 
@@ -69,6 +79,7 @@ final class BattleAnimationRunner {
     _phaseDuration = 0;
     _active = false;
     _currentHpTweenStep = null;
+    _completeCurrentPlan();
     if (clearMessage) {
       _currentMessage = null;
     }
@@ -106,6 +117,7 @@ final class BattleAnimationRunner {
         _currentMessage = null;
         _currentHpTweenStep = null;
         _plan = null;
+        _completeCurrentPlan();
         onPresentationChanged();
         return;
       }
@@ -237,5 +249,13 @@ final class BattleAnimationRunner {
         }(),
       _ => 0.0,
     };
+  }
+
+  void _completeCurrentPlan() {
+    final completer = _completionCompleter;
+    _completionCompleter = null;
+    if (completer != null && !completer.isCompleted) {
+      completer.complete();
+    }
   }
 }

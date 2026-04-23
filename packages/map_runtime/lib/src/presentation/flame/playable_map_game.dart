@@ -4055,7 +4055,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   /// 1. Applique le choix via BattleSession.applyChoice()
   /// 2. Met à jour l'UI
   /// 3. Vérifie si le combat est fini
-  /// 4. Si fini, appelle _onBattleFinished()
+  /// 4. Si fini, attend la présentation finale puis appelle _onBattleFinished()
   ///
   /// **Lock anti-spam** : `_isBattleResolving` empêche le spam clavier
   /// pendant la résolution d'un tour.
@@ -4070,6 +4070,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       return;
     }
     _isBattleResolving = true;
+    var battleFinishDeferred = false;
 
     try {
       // Appliquer le choix (retourne une nouvelle session immutable)
@@ -4081,12 +4082,19 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
       // Vérifier si le combat est fini
       if (_battleSession!.state.isFinished) {
-        _onBattleFinished(_battleSession!.state.outcome!);
+        battleFinishDeferred = true;
+        unawaited(
+          _finishBattleAfterPresentation(
+            finishedSession: _battleSession!,
+            overlay: overlay,
+            outcome: _battleSession!.state.outcome!,
+          ),
+        );
       }
     } finally {
-      // Unlock après résolution (ou après fin de combat)
-      // Si combat fini, _onBattleFinished() va reset l'état de toute façon
-      if (_flowPhase == _RuntimeFlowPhase.battle) {
+      // Unlock après résolution. En fin de combat, on garde le lock jusqu'à
+      // la narration finale pour éviter un input entre deux états visuels.
+      if (_flowPhase == _RuntimeFlowPhase.battle && !battleFinishDeferred) {
         _isBattleResolving = false;
       }
     }
@@ -4148,15 +4156,46 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       );
 
       if (_battleSession!.state.isFinished) {
-        _onBattleFinished(_battleSession!.state.outcome!);
+        unawaited(
+          _finishBattleAfterPresentation(
+            finishedSession: _battleSession!,
+            overlay: _battleOverlay,
+            outcome: _battleSession!.state.outcome!,
+          ),
+        );
+      } else if (_flowPhase == _RuntimeFlowPhase.battle) {
+        _isBattleResolving = false;
       }
 
       return true;
     } finally {
-      if (_flowPhase == _RuntimeFlowPhase.battle) {
+      if (_flowPhase == _RuntimeFlowPhase.battle &&
+          !(_battleSession?.state.isFinished ?? false)) {
         _isBattleResolving = false;
       }
     }
+  }
+
+  Future<void> _finishBattleAfterPresentation({
+    required BattleSession finishedSession,
+    required BattleOverlayComponent? overlay,
+    required BattleOutcome outcome,
+  }) async {
+    try {
+      await (overlay?.waitForTurnPresentationComplete() ??
+          Future<void>.value());
+    } catch (error, stackTrace) {
+      debugPrint(
+        '[battle] final presentation failed; finishing battle anyway: $error\n$stackTrace',
+      );
+    }
+
+    if (_flowPhase != _RuntimeFlowPhase.battle ||
+        !identical(_battleSession, finishedSession) ||
+        _battleOverlay != overlay) {
+      return;
+    }
+    _onBattleFinished(outcome);
   }
 
   /// Gère la fin du combat.

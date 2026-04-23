@@ -52,6 +52,23 @@ String buildBattleDecisionPromptForOverlay(BattleDecisionRequest request) {
   };
 }
 
+String buildBattleDecisionPromptForSession(BattleSession session) {
+  return switch (session.decisionRequest) {
+    BattleTurnChoiceRequest() =>
+      'Que doit faire ${_battleDisplayName(session.state.player.speciesId)} ?',
+    BattleForcedReplacementRequest() =>
+      '${_battleDisplayName(session.state.player.speciesId)} est K.O. Choisis un remplaçant.',
+    BattleContinueRequest() => 'Appuie pour continuer.',
+    BattleWaitRequest(:final reason) => switch (reason) {
+        BattleWaitReason.battleFinished => 'Combat terminé.',
+        BattleWaitReason.resolvingTurn => 'Résolution du tour en cours.',
+        BattleWaitReason.activeFaintedWithoutReplacement =>
+          'Aucun remplaçant disponible.',
+        BattleWaitReason.noLegalChoice => 'Aucune décision légale disponible.',
+      },
+  };
+}
+
 /// Construit les lignes de restitution d'un tour pour l'overlay runtime.
 ///
 /// La vraie source de vérité de narration reste `BattleTurnResult.timeline`.
@@ -125,8 +142,26 @@ List<String> buildBattleNarrationLinesForOverlay(BattleSession session) {
     ]);
   }
 
+  return buildBattleOpeningNarrationLinesForOverlay(session);
+}
+
+List<String> buildBattleOpeningNarrationLinesForOverlay(BattleSession session) {
+  final enemyName = _battleDisplayName(session.state.enemy.speciesId);
+  final playerName = _battleDisplayName(session.state.player.speciesId);
+  if (session.setup.isTrainerBattle) {
+    final trainerName = session.setup.trainerId?.trim();
+    final challenger = trainerName == null || trainerName.isEmpty
+        ? 'Un Dresseur'
+        : 'Le Dresseur $trainerName';
+    return List<String>.unmodifiable(<String>[
+      '$challenger te défie !',
+      '$challenger envoie $enemyName !',
+      'Vas-y, $playerName !',
+    ]);
+  }
   return List<String>.unmodifiable(<String>[
-    buildBattleDecisionPromptForOverlay(session.decisionRequest),
+    'Un $enemyName sauvage apparaît !',
+    'Vas-y, $playerName !',
   ]);
 }
 
@@ -358,12 +393,16 @@ String _overlayPseudoWeatherLabel(BattlePseudoWeatherId pseudoWeather) {
 
 String _buildOutcomeHeadline(BattleOutcome outcome) {
   return switch (outcome.type) {
-    BattleOutcomeType.victory => 'Victoire !',
-    BattleOutcomeType.defeat => 'Défaite...',
-    BattleOutcomeType.runaway => 'Fuite réussie !',
-    BattleOutcomeType.captured => 'Capture réussie !',
+    BattleOutcomeType.victory => 'Tu as gagné le combat !',
+    BattleOutcomeType.defeat =>
+      'Tu n’as plus de Pokémon en état de combattre !',
+    BattleOutcomeType.runaway => 'Tu as pris la fuite !',
+    BattleOutcomeType.captured =>
+      '${_battleDisplayName(outcome.finalState.enemy.speciesId)} est capturé !',
   };
 }
+
+String _battleDisplayName(String speciesId) => speciesId;
 
 /// Overlay de combat lot 1.
 ///
@@ -496,7 +535,7 @@ class BattleOverlayComponent extends PositionComponent {
   String get currentPromptText =>
       _commandPanel?.currentPromptText ??
       _currentCommandOverlaySnapshot?.prompt ??
-      buildBattleDecisionPromptForOverlay(_session.decisionRequest);
+      buildBattleDecisionPromptForSession(_session);
 
   @visibleForTesting
   String get currentNarrationText =>
@@ -544,6 +583,12 @@ class BattleOverlayComponent extends PositionComponent {
 
   Future<void> waitForPendingVisualSync() async {
     await (_pendingVisualSync ?? Future<void>.value());
+  }
+
+  Future<void> waitForTurnPresentationComplete() async {
+    await waitForPendingVisualSync();
+    await (_animationRunner?.completionFuture ?? Future<void>.value());
+    await waitForPendingVisualSync();
   }
 
   /// Le host garde la détection de plateforme/manette et pousse simplement une
@@ -1326,7 +1371,7 @@ class BattleOverlayComponent extends PositionComponent {
         medicineTargetPrompt ??
         bagPrompt ??
         partyPrompt ??
-        buildBattleDecisionPromptForOverlay(_session.decisionRequest);
+        buildBattleDecisionPromptForSession(_session);
     final resolvedNarration = isPresenting
         ? const <String>[]
         : (medicineTargetNarration ??
