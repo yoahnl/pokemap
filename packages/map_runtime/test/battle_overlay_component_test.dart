@@ -1285,7 +1285,7 @@ void main() {
 
       await overlay.onLoad();
 
-      expect(overlay.currentPromptText, equals('Que doit faire le joueur ?'));
+      expect(overlay.currentPromptText, equals('Que doit faire sproutle ?'));
       expect(overlay.currentMenuMode, BattleCommandMenuMode.root);
       expect(overlay.getSelectedChoice(), isNull);
 
@@ -2581,14 +2581,42 @@ void main() {
 
       final commandPanel =
           overlay.children.whereType<BattleCommandPanelComponent>().single;
-      expect(overlay.currentPromptText, equals('Que doit faire le joueur ?'));
+      expect(overlay.currentPromptText, equals('Que doit faire sproutle ?'));
       expect(commandPanel.currentNarrationText,
-          isNot('Que doit faire le joueur ?'));
+          isNot('Que doit faire sproutle ?'));
       expect(
         commandPanel.currentNarrationText,
-        isNot(
-            contains('Que doit faire le joueur ?\nQue doit faire le joueur ?')),
+        isNot(contains('Que doit faire sproutle ?\nQue doit faire sproutle ?')),
       );
+    });
+
+    test('opens a wild battle with a Pokemon-like encounter narration',
+        () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          enemy: _combatant(
+            speciesId: 'roucoups',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      expect(overlay.currentPromptText, equals('Que doit faire sproutle ?'));
+      expect(
+        overlay.currentNarrationText,
+        contains('Un roucoups sauvage apparaît !'),
+      );
+      expect(overlay.currentNarrationText, contains('Vas-y, sproutle !'));
     });
 
     test('keeps the resolved timeline visible when a real turn exists',
@@ -2756,7 +2784,7 @@ void main() {
           overlay.children.whereType<BattleCommandPanelComponent>().single;
 
       expect(overlay.isTurnPresentationActive, isTrue);
-      expect(overlay.currentPromptText, equals(expectedSteps.first.message));
+      expect(overlay.currentPromptText, equals('sproutle utilise Tackle !'));
       expect(commandPanel.currentNarrationText, isEmpty);
       expect(
         initialEnemyHud.currentDisplayedHp.round(),

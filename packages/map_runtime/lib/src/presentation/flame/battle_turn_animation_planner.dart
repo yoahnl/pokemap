@@ -21,14 +21,32 @@ final class BattleTurnAnimationPlanner {
   }) {
     final turnResult = newSession.state.currentTurn;
     if (turnResult == null) {
-      return const BattleAnimationPlan(steps: <BattleAnimationStep>[]);
+      final outcome = newSession.state.outcome;
+      if (!newSession.state.isFinished || outcome == null) {
+        return const BattleAnimationPlan(steps: <BattleAnimationStep>[]);
+      }
+      return BattleAnimationPlan(
+        steps: List<BattleAnimationStep>.unmodifiable(
+          _buildOutcomeSteps(outcome),
+        ),
+      );
     }
-    return buildForTurn(
+    final plan = buildForTurn(
       playerBefore: previousSession.state.player,
       enemyBefore: previousSession.state.enemy,
       turnResult: turnResult,
       moveCatalog: moveCatalog,
       resolver: resolver,
+    );
+    final outcome = newSession.state.outcome;
+    if (!newSession.state.isFinished || outcome == null) {
+      return plan;
+    }
+    return BattleAnimationPlan(
+      steps: List<BattleAnimationStep>.unmodifiable(<BattleAnimationStep>[
+        ...plan.steps,
+        ..._buildOutcomeSteps(outcome),
+      ]),
     );
   }
 
@@ -43,6 +61,17 @@ final class BattleTurnAnimationPlanner {
       BattleSideId.player: playerBefore.currentHp,
       BattleSideId.enemy: enemyBefore.currentHp,
     };
+    final trackedSpeciesId = <BattleSideId, String>{
+      BattleSideId.player: playerBefore.speciesId,
+      BattleSideId.enemy: enemyBefore.speciesId,
+    };
+    final replacementRequiredSides = turnResult.timeline
+        .whereType<BattleTurnSwitchEvent>()
+        .map((event) => event.event)
+        .where(
+            (event) => event.kind == BattleSwitchEventKind.replacementRequired)
+        .map((event) => event.side)
+        .toSet();
     final steps = <BattleAnimationStep>[];
 
     for (final event in turnResult.timeline) {
@@ -51,7 +80,7 @@ final class BattleTurnAnimationPlanner {
           steps.add(
             ShowMessageStep(
               message:
-                  '${_presentationCombatantLabel(execution.attackerSide)} utilise ${execution.move.name} !',
+                  '${_presentationCombatantName(execution.attackerSide, trackedSpeciesId)} utilise ${execution.move.name} !',
             ),
           );
           final resolvedMove = resolver.resolve(execution.move);
@@ -85,6 +114,22 @@ final class BattleTurnAnimationPlanner {
                 toHp: hpTo,
               ),
             );
+            if (hpFrom > 0 && hpTo == 0) {
+              if (!replacementRequiredSides.contains(targetSide)) {
+                steps.add(
+                  FaintCombatantStep(
+                    side: targetSide,
+                    durationSeconds: 0.22,
+                  ),
+                );
+              }
+              steps.add(
+                ShowMessageStep(
+                  message:
+                      '${_presentationCombatantName(targetSide, trackedSpeciesId)} est K.O. !',
+                ),
+              );
+            }
           }
         case BattleTurnBagHpHealItemEvent(:final event):
           steps.add(
@@ -160,7 +205,7 @@ final class BattleTurnAnimationPlanner {
                 _recipeLibrary.build(
                   BattleMoveVisualRecipeId.rechargePause,
                   BattleMoveVisualRecipeContext(
-                    resolvedMove: BattleResolvedMoveVisual(
+                    resolvedMove: const BattleResolvedMoveVisual(
                       localMoveId: 'recharge',
                       showdownMoveId: 'recharge',
                       recipeId: BattleMoveVisualRecipeId.rechargePause,
@@ -261,6 +306,22 @@ final class BattleTurnAnimationPlanner {
                 toHp: hpTo,
               ),
             );
+            if (hpFrom > 0 && hpTo == 0) {
+              if (!replacementRequiredSides.contains(targetSide)) {
+                steps.add(
+                  FaintCombatantStep(
+                    side: targetSide,
+                    durationSeconds: 0.22,
+                  ),
+                );
+              }
+              steps.add(
+                ShowMessageStep(
+                  message:
+                      '${_presentationCombatantName(targetSide, trackedSpeciesId)} est K.O. !',
+                ),
+              );
+            }
           }
         case BattleTurnSpikesEvent(:final event):
           steps.add(
@@ -302,6 +363,22 @@ final class BattleTurnAnimationPlanner {
                 toHp: hpTo,
               ),
             );
+            if (hpFrom > 0 && hpTo == 0) {
+              if (!replacementRequiredSides.contains(targetSide)) {
+                steps.add(
+                  FaintCombatantStep(
+                    side: targetSide,
+                    durationSeconds: 0.22,
+                  ),
+                );
+              }
+              steps.add(
+                ShowMessageStep(
+                  message:
+                      '${_presentationCombatantName(targetSide, trackedSpeciesId)} est K.O. !',
+                ),
+              );
+            }
           }
         case BattleTurnSwitchEvent(:final event):
           steps.add(ShowMessageStep(message: _messageForSwitchEvent(event)));
@@ -321,6 +398,7 @@ final class BattleTurnAnimationPlanner {
                 durationSeconds: 0.16,
               ),
             );
+            trackedSpeciesId[event.side] = event.toSpeciesId!;
           } else {
             steps.add(
               FaintCombatantStep(
@@ -365,8 +443,27 @@ final class BattleTurnAnimationPlanner {
   }
 }
 
+List<BattleAnimationStep> _buildOutcomeSteps(BattleOutcome outcome) {
+  final message = switch (outcome.type) {
+    BattleOutcomeType.victory => 'Tu as gagné le combat !',
+    BattleOutcomeType.defeat =>
+      'Tu n’as plus de Pokémon en état de combattre !',
+    BattleOutcomeType.runaway => 'Tu as pris la fuite !',
+    BattleOutcomeType.captured =>
+      '${outcome.finalState.enemy.speciesId} est capturé !',
+  };
+  return <BattleAnimationStep>[ShowMessageStep(message: message)];
+}
+
 String _presentationCombatantLabel(BattleSideId side) {
   return side == BattleSideId.player ? 'Joueur' : 'Ennemi';
+}
+
+String _presentationCombatantName(
+  BattleSideId side,
+  Map<BattleSideId, String> speciesIdBySide,
+) {
+  return speciesIdBySide[side] ?? _presentationCombatantLabel(side);
 }
 
 String _messageForStatusEvent(BattleStatusEvent event) {

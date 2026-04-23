@@ -224,6 +224,168 @@ void main() {
       expect(plan.steps.whereType<CombatantFlashStep>(), isNotEmpty);
     });
 
+    test('damage that faints the target adds KO and victory narration', () {
+      final before = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          currentHp: 40,
+          moves: <BattleMoveData>[
+            _move(id: 'tackle', name: 'Tackle', type: 'normal')
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'roucoups',
+          lineupIndex: 0,
+          maxHp: 12,
+          currentHp: 12,
+          moves: <BattleMoveData>[
+            _move(id: 'scratch', name: 'Scratch', type: 'normal')
+          ],
+        ),
+      );
+      final after = before.applyChoice(const PlayerBattleChoiceFight(0));
+      final planner = BattleTurnAnimationPlanner();
+
+      final plan = planner.build(
+        previousSession: before,
+        newSession: after,
+        moveCatalog:
+            RuntimeMoveCatalog.fromEntries(const <String, PokemonMove>{}),
+        resolver: _resolver(),
+      );
+
+      final messages =
+          plan.steps.whereType<ShowMessageStep>().map((step) => step.message);
+      expect(after.state.outcome!.isVictory, isTrue);
+      expect(messages, contains('roucoups est K.O. !'));
+      expect(messages, contains('Tu as gagné le combat !'));
+      expect(plan.steps.whereType<FaintCombatantStep>().single.side,
+          BattleSideId.enemy);
+    });
+
+    test('finished no-turn runaway still produces a final narration plan', () {
+      final before = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'tackle', name: 'Tackle', type: 'normal')
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'roucoups',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'scratch', name: 'Scratch', type: 'normal')
+          ],
+        ),
+      );
+      final after = before.applyChoice(const PlayerBattleChoiceRun());
+      final planner = BattleTurnAnimationPlanner();
+
+      final plan = planner.build(
+        previousSession: before,
+        newSession: after,
+        moveCatalog:
+            RuntimeMoveCatalog.fromEntries(const <String, PokemonMove>{}),
+        resolver: _resolver(),
+      );
+
+      expect(after.state.currentTurn, isNull);
+      expect(
+        plan.steps.whereType<ShowMessageStep>().map((step) => step.message),
+        contains('Tu as pris la fuite !'),
+      );
+    });
+
+    test('replacement-required KO does not duplicate faint animation', () {
+      final before = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _move(id: 'tackle', name: 'Tackle', type: 'normal')
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'roucoups',
+          lineupIndex: 0,
+          maxHp: 10,
+          currentHp: 10,
+          moves: <BattleMoveData>[
+            _move(id: 'scratch', name: 'Scratch', type: 'normal')
+          ],
+        ),
+      );
+      const turn = BattleTurnResult(
+        playerAction: BattleActionFight(
+          BattleMove(
+            id: 'tackle',
+            name: 'Tackle',
+            power: 40,
+            target: BattleMoveTarget.opponent,
+          ),
+          moveIndex: 0,
+        ),
+        enemyAction: BattleActionNone(),
+        executions: <BattleMoveExecution>[
+          BattleMoveExecution(
+            attackerSlot: BattleSlotRef.active(BattleSideId.player),
+            move: BattleMove(
+              id: 'tackle',
+              name: 'Tackle',
+              power: 40,
+              target: BattleMoveTarget.opponent,
+            ),
+            targetKind: BattleMoveExecutionTargetKind.combatant,
+            targetSlot: BattleSlotRef.active(BattleSideId.enemy),
+            damage: 10,
+            didHit: true,
+          ),
+        ],
+        timeline: <BattleTurnEvent>[
+          BattleTurnExecutionEvent(
+            BattleMoveExecution(
+              attackerSlot: BattleSlotRef.active(BattleSideId.player),
+              move: BattleMove(
+                id: 'tackle',
+                name: 'Tackle',
+                power: 40,
+                target: BattleMoveTarget.opponent,
+              ),
+              targetKind: BattleMoveExecutionTargetKind.combatant,
+              targetSlot: BattleSlotRef.active(BattleSideId.enemy),
+              damage: 10,
+              didHit: true,
+            ),
+          ),
+          BattleTurnSwitchEvent(
+            BattleSwitchEvent.replacementRequired(
+              side: BattleSideId.enemy,
+              fromSpeciesId: 'roucoups',
+            ),
+          ),
+        ],
+      );
+      final planner = BattleTurnAnimationPlanner();
+
+      final plan = planner.buildForTurn(
+        playerBefore: before.state.player,
+        enemyBefore: before.state.enemy,
+        turnResult: turn,
+        moveCatalog:
+            RuntimeMoveCatalog.fromEntries(const <String, PokemonMove>{}),
+        resolver: _resolver(),
+      );
+
+      expect(
+        plan.steps.whereType<ShowMessageStep>().map((step) => step.message),
+        contains('roucoups est K.O. !'),
+      );
+      expect(plan.steps.whereType<FaintCombatantStep>(), hasLength(1));
+    });
+
     test('switch event produces switchOut swap switchIn', () {
       final before = _session(
         player: _combatant(

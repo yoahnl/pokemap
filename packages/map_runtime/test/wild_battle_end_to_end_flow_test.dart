@@ -859,6 +859,76 @@ void main() {
       expect(game.gameStateSnapshot.bag.entries, isEmpty);
     });
 
+    test('battle end keeps the overlay mounted until final narration finishes',
+        () async {
+      final manifest = await _writeProjectManifest(tempProjectRoot);
+      final map = _buildMap();
+      final world = GameplayWorldState.fromMap(
+        map,
+        project: manifest,
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+      final movedWorld = stepGameplayWorld(
+        world,
+        const MoveIntent(Direction.east),
+      ).world;
+      final encounter = checkEncounterAtPlayerPosition(
+        world: movedWorld,
+        project: manifest,
+        encounterKind: EncounterKind.walk,
+        random: _FixedEncounterRandom(
+          nextDoubleValues: const <double>[0.0],
+          nextIntValues: const <int>[0, 0],
+        ),
+        policy: const GameplayEncounterPolicy(chancePerStep: 1),
+      ).encounter!;
+      final request = buildBattleStartRequestFromEncounter(
+        encounter: encounter,
+        world: movedWorld,
+        createdAtEpochMs: 1,
+      );
+
+      final game = PlayableMapGame(
+        bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+        projectFilePath: p.join(tempProjectRoot.path, 'project.json'),
+        saveData: saveDataFromGameState(_playerState()),
+      );
+      game.onGameResize(Vector2(640, 480));
+      await game.onLoad();
+
+      await game.debugOpenBattleForTest(request);
+      await game.debugWaitForBattleOverlaySync();
+
+      final overlay = game.debugBattleOverlayComponent;
+      expect(overlay, isNotNull);
+      final activeOverlay = overlay!;
+      for (var i = 0; i < 12 && !activeOverlay.commandPanelMounted; i++) {
+        game.update(0.05);
+        await Future<void>.delayed(Duration.zero);
+      }
+      expect(activeOverlay.commandPanelMounted, isTrue);
+
+      expect(
+        game.selectBattleRootEntry(BattleCommandRootAction.run.index),
+        isTrue,
+      );
+      await game.debugWaitForBattleOverlaySync();
+
+      expect(game.debugFlowPhaseName, equals('battle'));
+      expect(game.debugBattleOverlayComponent, same(activeOverlay));
+      expect(activeOverlay.isTurnPresentationActive, isTrue);
+      expect(activeOverlay.currentPromptText, equals('Tu as pris la fuite !'));
+
+      for (var i = 0; i < 4; i++) {
+        game.update(0.25);
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      expect(game.debugFlowPhaseName, equals('overworld'));
+      expect(game.debugBattleOverlayComponent, isNull);
+    });
+
     test('battle overlay reflows when PlayableMapGame viewport changes',
         () async {
       final manifest = await _writeProjectManifest(tempProjectRoot);
