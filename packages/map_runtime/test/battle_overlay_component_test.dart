@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui' as ui;
@@ -14,6 +15,7 @@ import 'package:map_runtime/src/presentation/flame/battle_background_resolver.da
 import 'package:map_runtime/src/presentation/flame/battle_command_menu_model.dart';
 import 'package:map_runtime/src/presentation/flame/battle_command_panel_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_combatant_gender_resolver.dart';
+import 'package:map_runtime/src/presentation/flame/battle_fx_bundle_cache.dart';
 import 'package:map_runtime/src/presentation/flame/battle_overlay_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_debug_panel_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_backdrop_component.dart';
@@ -62,6 +64,32 @@ BattleMoveData _tackle({
   );
 }
 
+BattleMoveData _quickAttack({
+  int power = 40,
+}) {
+  return BattleMoveData(
+    id: 'quickattack',
+    name: 'Quick Attack',
+    power: power,
+    type: 'normal',
+    category: BattleMoveCategory.physical,
+    target: BattleMoveTarget.opponent,
+  );
+}
+
+BattleMoveData _thunderbolt({
+  int power = 90,
+}) {
+  return BattleMoveData(
+    id: 'thunderbolt',
+    name: 'Thunderbolt',
+    power: power,
+    type: 'electric',
+    category: BattleMoveCategory.special,
+    target: BattleMoveTarget.opponent,
+  );
+}
+
 BattleCombatantData _combatant({
   required String speciesId,
   required int lineupIndex,
@@ -92,6 +120,7 @@ BattleSession _session({
   List<BattleCombatantData> enemyReserve = const <BattleCombatantData>[],
   bool isTrainerBattle = false,
   bool allowCapture = false,
+  BattleFieldState fieldState = const BattleFieldState(),
 }) {
   return createBattleSession(
     BattleSetup(
@@ -102,6 +131,7 @@ BattleSession _session({
       isTrainerBattle: isTrainerBattle,
       trainerId: isTrainerBattle ? 'trainer' : null,
       allowCapture: allowCapture,
+      fieldState: fieldState,
     ),
   );
 }
@@ -227,6 +257,16 @@ Future<String> _writeTinyBattleBackgroundImage() async {
   return file.path;
 }
 
+Future<ui.Image> _fakeBattleFxImage() async {
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(0, 0, 4, 4),
+    ui.Paint()..color = const ui.Color(0xFF66CCFF),
+  );
+  return recorder.endRecording().toImage(4, 4);
+}
+
 void _expectRectCloseTo(
   ui.Rect actual,
   ui.Rect expected, {
@@ -239,6 +279,8 @@ void _expectRectCloseTo(
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('BattleBackgroundResolver lot 2 context resolution', () {
     const resolver = BattleBackgroundResolver();
 
@@ -926,6 +968,57 @@ void main() {
       );
     });
 
+    test(
+        'Flutter command overlay snapshot carries hp tween metadata during turn presentation',
+        () async {
+      final session = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          currentHp: 40,
+          stats: _stats(speed: 120, attack: 180),
+          moves: <BattleMoveData>[_tackle(power: 180)],
+        ),
+        enemy: _combatant(
+          speciesId: 'sparkitten',
+          lineupIndex: 0,
+          maxHp: 24,
+          currentHp: 24,
+          stats: _stats(speed: 40, defense: 20),
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+      final overlay = BattleOverlayComponent(
+        session: session,
+        viewportSize: Vector2(390, 844),
+        onPlayerChoice: (_) {},
+        useFlutterCommandOverlay: true,
+      );
+
+      await overlay.onLoad();
+      await overlay.waitForPendingVisualSync();
+
+      final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
+
+      overlay.updateState(afterTurn);
+      await overlay.waitForPendingVisualSync();
+      overlay.update(0.42);
+      overlay.update(0.22);
+      overlay.update(0.14);
+
+      final snapshot = overlay.currentCommandOverlaySnapshot!;
+      expect(snapshot.interactionsEnabled, isFalse);
+      expect(
+          snapshot.enemyHud.displayedHp, equals(session.state.enemy.currentHp));
+      expect(
+        snapshot.enemyHud.targetDisplayedHp,
+        equals(afterTurn.state.enemy.currentHp),
+      );
+      expect(snapshot.enemyHud.hpTweenDurationMs, greaterThan(0));
+      expect(snapshot.enemyHud.hpTweenRevision, equals(1));
+      expect(snapshot.playerHud.targetDisplayedHp, isNull);
+    });
+
     test('keeps portrait HUDs inset and readable on 390x844', () async {
       final overlay = BattleOverlayComponent(
         session: _session(
@@ -1574,7 +1667,9 @@ void main() {
       expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
       expect(overlay.validateSelectedChoice(), isFalse);
 
-      overlay.updateTree(0.50);
+      overlay.updateTree(0.42);
+      overlay.updateTree(0.14);
+      overlay.updateTree(0.01);
       expect(overlay.currentPromptText, equals('sproutle récupère 20 PV.'));
     });
 
@@ -2337,6 +2432,11 @@ void main() {
       overlay.updateState(initialSession.applyChoice(pickedChoice!));
       await overlay.waitForPendingVisualSync();
 
+      expect(overlay.currentPlayerHudSpeciesText, equals('sproutle'));
+      overlay.updateTree(0.42);
+      overlay.updateTree(0.16);
+      await Future<void>.delayed(Duration.zero);
+
       expect(overlay.currentPlayerHudSpeciesText, equals('benchmate'));
       final playerCombatant = overlay.children
           .whereType<BattleSceneCombatantComponent>()
@@ -2400,6 +2500,11 @@ void main() {
 
       overlay.updateState(initialSession.applyChoice(pickedChoice!));
       await overlay.waitForPendingVisualSync();
+
+      expect(overlay.currentPlayerHudSpeciesText, equals('sproutle'));
+      overlay.updateTree(0.42);
+      overlay.updateTree(0.16);
+      await Future<void>.delayed(Duration.zero);
 
       expect(overlay.currentPlayerHudSpeciesText, equals('benchmate'));
     });
@@ -2591,6 +2696,11 @@ void main() {
       overlay.updateState(switchedSession);
       await overlay.waitForPendingVisualSync();
 
+      expect(overlay.currentPlayerHudSpeciesText, equals('sproutle ♀'));
+      overlay.updateTree(0.42);
+      overlay.updateTree(0.16);
+      await Future<void>.delayed(Duration.zero);
+
       expect(overlay.currentPlayerHudSpeciesText, equals('aquafi ♂'));
     });
 
@@ -2655,9 +2765,16 @@ void main() {
       expect(initialEnemyCombatant.isHitFlashActive, isFalse);
       expect(overlay.validateSelectedChoice(), isFalse);
 
-      overlay.updateTree(0.20);
+      overlay.updateTree(0.42);
+      overlay.updateTree(0.21);
+      overlay.updateTree(0.02);
 
       expect(initialEnemyCombatant.isHitFlashActive, isTrue);
+      expect(initialEnemyHud.isHpAnimationActive, isFalse);
+
+      overlay.updateTree(0.13);
+      overlay.updateTree(0.01);
+
       expect(initialEnemyHud.isHpAnimationActive, isTrue);
 
       overlay.updateTree(0.05);
@@ -2680,6 +2797,183 @@ void main() {
         initialEnemyHud.currentDisplayedHp.round(),
         equals(afterTurn.state.enemy.currentHp),
       );
+    });
+
+    test('keeps a visible turn presentation for a switch event', () async {
+      final initialSession = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_quickAttack()],
+        ),
+        playerReserve: <BattleCombatantData>[
+          _combatant(
+            speciesId: 'aquaffe',
+            lineupIndex: 1,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ],
+        enemy: _combatant(
+          speciesId: 'sparkitten',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+      final overlay = BattleOverlayComponent(
+        session: initialSession,
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+      await overlay.waitForPendingVisualSync();
+
+      final switchedSession =
+          initialSession.applyChoice(const PlayerBattleChoiceSwitch(0));
+
+      overlay.updateState(switchedSession);
+      await overlay.waitForPendingVisualSync();
+
+      expect(overlay.isTurnPresentationActive, isTrue);
+      expect(
+        overlay.currentPromptText,
+        contains('rappelle sproutle et envoie aquaffe'),
+      );
+    });
+
+    test('plays a visible battle fx for a supported attack plan', () async {
+      final initialSession = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_thunderbolt()],
+        ),
+        enemy: _combatant(
+          speciesId: 'sparkitten',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+      final overlay = BattleOverlayComponent(
+        session: initialSession,
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+      await overlay.waitForPendingVisualSync();
+
+      final afterTurn = initialSession.applyChoice(
+        const PlayerBattleChoiceFight(0),
+      );
+
+      overlay.updateState(afterTurn);
+      await overlay.waitForPendingVisualSync();
+
+      expect(overlay.activeBattleFxCount, equals(0));
+
+      overlay.updateTree(0.42);
+      overlay.updateTree(0.14);
+      overlay.updateTree(0.01);
+      for (var i = 0; i < 6 && overlay.activeBattleFxCount == 0; i++) {
+        await Future<void>.delayed(Duration.zero);
+        overlay.updateTree(0.02);
+      }
+
+      expect(overlay.activeBattleFxCount, greaterThan(0));
+    });
+
+    test('latest updateState wins when an older fx prewarm completes late',
+        () async {
+      final delayedElectroball = Completer<ui.Image>();
+      final fxBundleCache = BattleFxBundleCache(
+        imageLoader: (assetKey) {
+          if (assetKey.endsWith('/electroball.png')) {
+            return delayedElectroball.future;
+          }
+          return _fakeBattleFxImage();
+        },
+      );
+      final initialSession = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[
+            _thunderbolt(),
+            _tackle(),
+          ],
+        ),
+        enemy: _combatant(
+          speciesId: 'sparkitten',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+      final overlay = BattleOverlayComponent(
+        session: initialSession,
+        viewportSize: Vector2(960, 540),
+        fxBundleCache: fxBundleCache,
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+      await overlay.waitForPendingVisualSync();
+
+      final delayedSession = initialSession.applyChoice(
+        const PlayerBattleChoiceFight(0),
+      );
+      final latestSession = initialSession.applyChoice(
+        const PlayerBattleChoiceFight(1),
+      );
+
+      overlay.updateState(delayedSession);
+      overlay.updateState(latestSession);
+      await overlay.waitForPendingVisualSync();
+
+      expect(overlay.currentPromptText, contains('Tackle'));
+
+      delayedElectroball.complete(await _fakeBattleFxImage());
+      await Future<void>.delayed(Duration.zero);
+      overlay.updateTree(0.01);
+
+      expect(overlay.currentPromptText, contains('Tackle'));
+      expect(overlay.currentPromptText, isNot(contains('Thunderbolt')));
+    });
+
+    test('keeps weather and trick room ambience in sync with the field state',
+        () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_waitingMove()],
+          ),
+          enemy: _combatant(
+            speciesId: 'sparkitten',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_waitingMove()],
+          ),
+          fieldState: const BattleFieldState(
+            weather: BattleWeatherState(
+              id: BattleWeatherId.rain,
+              remainingTurns: 4,
+            ),
+            pseudoWeather: BattlePseudoWeatherState(
+              id: BattlePseudoWeatherId.trickRoom,
+              remainingTurns: 3,
+            ),
+          ),
+        ),
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+      await overlay.waitForPendingVisualSync();
+
+      expect(overlay.hasWeatherAmbient, isTrue);
+      expect(overlay.hasPseudoWeatherAmbient, isTrue);
     });
   });
 }

@@ -124,6 +124,10 @@ class BattleCommandOverlayHudSnapshot {
     required this.currentHp,
     required this.maxHp,
     required this.isPlayerSide,
+    this.displayedHp,
+    this.targetDisplayedHp,
+    this.hpTweenDurationMs,
+    this.hpTweenRevision = 0,
     this.genderSymbol,
     this.statusLabel,
   });
@@ -135,8 +139,25 @@ class BattleCommandOverlayHudSnapshot {
   final int currentHp;
   final int maxHp;
   final bool isPlayerSide;
+  final int? displayedHp;
+  final int? targetDisplayedHp;
+  final int? hpTweenDurationMs;
+  final int hpTweenRevision;
   final String? genderSymbol;
   final String? statusLabel;
+
+  int get effectiveDisplayedHp => displayedHp ?? currentHp;
+
+  int get effectiveTargetDisplayedHp =>
+      targetDisplayedHp ?? effectiveDisplayedHp;
+
+  Duration? get hpTweenDuration => hpTweenDurationMs == null
+      ? null
+      : Duration(milliseconds: hpTweenDurationMs!);
+
+  bool get hasHpTween =>
+      hpTweenDuration != null &&
+      effectiveDisplayedHp != effectiveTargetDisplayedHp;
 
   @override
   bool operator ==(Object other) {
@@ -151,6 +172,10 @@ class BattleCommandOverlayHudSnapshot {
         other.currentHp == currentHp &&
         other.maxHp == maxHp &&
         other.isPlayerSide == isPlayerSide &&
+        other.displayedHp == displayedHp &&
+        other.targetDisplayedHp == targetDisplayedHp &&
+        other.hpTweenDurationMs == hpTweenDurationMs &&
+        other.hpTweenRevision == hpTweenRevision &&
         other.genderSymbol == genderSymbol &&
         other.statusLabel == statusLabel;
   }
@@ -164,6 +189,10 @@ class BattleCommandOverlayHudSnapshot {
         currentHp,
         maxHp,
         isPlayerSide,
+        displayedHp,
+        targetDisplayedHp,
+        hpTweenDurationMs,
+        hpTweenRevision,
         genderSymbol,
         statusLabel,
       );

@@ -6,14 +6,19 @@ import 'package:flutter/material.dart';
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../application/runtime_move_catalog_loader.dart';
 import '../flutter/battle_command_overlay_snapshot.dart';
 import 'battle_bag_menu_model.dart';
 import 'battle_bag_item_icon_resolver.dart';
 import 'battle_command_menu_model.dart';
 import 'battle_command_panel_component.dart';
 import 'battle_combatant_gender_resolver.dart';
+import 'battle_animation_plan.dart';
+import 'battle_animation_runner.dart';
 import 'battle_background_resolver.dart';
 import 'battle_debug_panel_component.dart';
+import 'battle_fx_bundle_cache.dart';
+import 'battle_fx_layer_component.dart';
 import 'battle_medicine_target_menu_model.dart';
 import 'battle_party_menu_model.dart';
 import 'battle_pokemon_sprite_resolver.dart';
@@ -22,7 +27,8 @@ import 'battle_scene_layout.dart';
 import 'battle_scene_backdrop_component.dart';
 import 'battle_scene_combatant_component.dart';
 import 'battle_scene_hud_component.dart';
-import 'battle_turn_presentation.dart';
+import 'battle_turn_animation_planner.dart';
+import 'battle_move_visual_resolver.dart';
 
 /// Retourne le prompt de décision à afficher pour la requête courante.
 ///
@@ -385,17 +391,26 @@ class BattleOverlayComponent extends PositionComponent {
     this.bagItemIconResolver,
     this.genderResolver,
     this.showDebugPanel = false,
+    RuntimeMoveCatalog? moveCatalog,
+    BattleMoveVisualResolver? moveVisualResolver,
+    BattleFxBundleCache? fxBundleCache,
     bool preferTouchListDragScroll = false,
     bool useFlutterCommandOverlay = false,
   })  : _session = session,
         _gameState = gameState,
+        _moveCatalog = moveCatalog ??
+            RuntimeMoveCatalog.fromEntries(const <String, PokemonMove>{}),
+        _fxBundleCache = fxBundleCache ?? BattleFxBundleCache(),
         _preferTouchListDragScroll = preferTouchListDragScroll,
         _useFlutterCommandOverlay = useFlutterCommandOverlay,
         super(
           size: viewportSize,
           anchor: Anchor.topLeft,
           priority: 97,
-        );
+        ) {
+    _moveVisualResolver =
+        moveVisualResolver ?? BattleMoveVisualResolver(_moveCatalog);
+  }
 
   BattleSession _session;
   GameState _gameState;
@@ -412,6 +427,9 @@ class BattleOverlayComponent extends PositionComponent {
   final BattleVisualAssetCache? visualAssetCache;
   final BattleBagItemIconResolver? bagItemIconResolver;
   final BattleCombatantGenderResolver? genderResolver;
+  final RuntimeMoveCatalog _moveCatalog;
+  late final BattleMoveVisualResolver _moveVisualResolver;
+  final BattleFxBundleCache _fxBundleCache;
 
   /// Le debug reste volontairement opt-in.
   ///
@@ -425,18 +443,23 @@ class BattleOverlayComponent extends PositionComponent {
   BattleSceneBackdropComponent? _backdrop;
   BattleSceneCombatantComponent? _enemyCombatant;
   BattleSceneCombatantComponent? _playerCombatant;
+  BattleFxLayerComponent? _fxLayer;
   BattleSceneHudComponent? _enemyHud;
   BattleSceneHudComponent? _playerHud;
   BattleCommandPanelComponent? _commandPanel;
   BattleDebugPanelComponent? _debugPanel;
   TextComponent? _outcomeBanner;
   Future<void>? _pendingVisualSync;
+  final BattleTurnAnimationPlanner _turnAnimationPlanner =
+      BattleTurnAnimationPlanner();
+  BattleAnimationRunner? _animationRunner;
   BattleSceneLayout? _sceneLayout;
-  List<BattleTurnPresentationStep> _turnPresentationSteps =
-      const <BattleTurnPresentationStep>[];
-  int _turnPresentationIndex = 0;
-  double _turnPresentationElapsed = 0;
-  bool _turnPresentationEffectTriggered = false;
+  BattleAnimationPlan _activeAnimationPlan =
+      const BattleAnimationPlan(steps: <BattleAnimationStep>[]);
+  Set<BattleSideId> _presentationLockedCombatantSides = <BattleSideId>{};
+  BattleCombatant? _displayedEnemyCombatant;
+  BattleCombatant? _displayedPlayerCombatant;
+  int _presentationGeneration = 0;
 
   BattleCommandMenuMode _menuMode = BattleCommandMenuMode.root;
   int _selectedRootIndex = 0;
@@ -450,10 +473,6 @@ class BattleOverlayComponent extends PositionComponent {
   final Map<String, String?> _bagIconAssetPathByItemId = <String, String?>{};
   final Map<String, Future<void>> _pendingBagIconPathsByItemId =
       <String, Future<void>>{};
-
-  static const double _presentationEffectDelaySeconds = 0.16;
-  static const double _presentationImpactStepSeconds = 0.62;
-  static const double _presentationMessageOnlyStepSeconds = 0.42;
 
   @visibleForTesting
   bool get commandPanelMounted => _commandPanel != null;
@@ -489,7 +508,17 @@ class BattleOverlayComponent extends PositionComponent {
   BattleCommandMenuMode get currentMenuMode => _menuMode;
 
   @visibleForTesting
-  bool get isTurnPresentationActive => _currentTurnPresentationStep != null;
+  bool get isTurnPresentationActive => _animationRunner?.isActive ?? false;
+
+  @visibleForTesting
+  int get activeBattleFxCount => _fxLayer?.activeFxCount ?? 0;
+
+  @visibleForTesting
+  bool get hasWeatherAmbient => _fxLayer?.hasWeatherAmbient ?? false;
+
+  @visibleForTesting
+  bool get hasPseudoWeatherAmbient =>
+      _fxLayer?.hasPseudoWeatherAmbient ?? false;
 
   @visibleForTesting
   BattleSession get debugSession => _session;
@@ -502,12 +531,16 @@ class BattleOverlayComponent extends PositionComponent {
       _currentCommandOverlaySnapshot;
 
   @visibleForTesting
-  String get currentPlayerHudSpeciesText =>
-      _hudSpeciesDisplayText(_session.state.player, isPlayerSide: true);
+  String get currentPlayerHudSpeciesText => _hudSpeciesDisplayText(
+        _displayedPlayerCombatant ?? _session.state.player,
+        isPlayerSide: true,
+      );
 
   @visibleForTesting
-  String get currentEnemyHudSpeciesText =>
-      _hudSpeciesDisplayText(_session.state.enemy, isPlayerSide: false);
+  String get currentEnemyHudSpeciesText => _hudSpeciesDisplayText(
+        _displayedEnemyCombatant ?? _session.state.enemy,
+        isPlayerSide: false,
+      );
 
   Future<void> waitForPendingVisualSync() async {
     await (_pendingVisualSync ?? Future<void>.value());
@@ -611,6 +644,25 @@ class BattleOverlayComponent extends PositionComponent {
       '[perf][battle][real] overlay.playerCombatant=${playerCombatantStopwatch.elapsedMilliseconds}ms',
     );
 
+    _fxLayer = BattleFxLayerComponent(
+      size: size.clone(),
+      fxBundleCache: _fxBundleCache,
+    );
+    await add(_fxLayer!);
+    _syncFieldAmbientState();
+    _animationRunner = BattleAnimationRunner(
+      onPresentationChanged: _handleAnimationPresentationChanged,
+      onSpawnFx: _handleSpawnFxStep,
+      onScreenFlash: _handleScreenFlashStep,
+      onCombatantMotion: _handleCombatantMotionStep,
+      onCombatantFlash: _handleCombatantFlashStep,
+      onCombatantShake: _handleCombatantShakeStep,
+      onFaintCombatant: _handleFaintCombatantStep,
+      onHudHpTween: _handleHudHpTweenStep,
+      onBarrierPulse: _handleBarrierPulseStep,
+      onSwapCombatantVisual: _handleSwapCombatantVisualStep,
+    );
+
     if (!_useFlutterCommandOverlay) {
       final enemyHudStopwatch = Stopwatch()..start();
       _enemyHud = BattleSceneHudComponent(
@@ -672,7 +724,10 @@ class BattleOverlayComponent extends PositionComponent {
     }
 
     final initialSyncStopwatch = Stopwatch()..start();
-    _pendingVisualSync = _syncVisualState();
+    final presentationGeneration = _presentationGeneration;
+    _pendingVisualSync = _syncVisualState(
+      presentationGeneration: presentationGeneration,
+    );
     await _pendingVisualSync;
     initialSyncStopwatch.stop();
     debugPrint(
@@ -717,7 +772,8 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   Future<void> _ensureFlameHudsMounted() async {
-    if (_useFlutterCommandOverlay || (_enemyHud != null && _playerHud != null)) {
+    if (_useFlutterCommandOverlay ||
+        (_enemyHud != null && _playerHud != null)) {
       return;
     }
     final layout = currentSceneLayout;
@@ -751,7 +807,9 @@ class BattleOverlayComponent extends PositionComponent {
       _playerHud = playerHud;
       await add(playerHud);
     }
-    await _syncVisualState();
+    await _syncVisualState(
+      presentationGeneration: _presentationGeneration,
+    );
   }
 
   @override
@@ -774,20 +832,34 @@ class BattleOverlayComponent extends PositionComponent {
   ///   runtime, pas un effet secondaire de `BattleSession`.
   void updateState(BattleSession newSession, {GameState? gameState}) {
     final previousSession = _session;
-    final presentationSteps = _buildTurnPresentationSteps(
+    final presentationGeneration = ++_presentationGeneration;
+    final animationPlan = _turnAnimationPlanner.build(
       previousSession: previousSession,
       newSession: newSession,
+      moveCatalog: _moveCatalog,
+      resolver: _moveVisualResolver,
     );
     _session = newSession;
+    _syncFieldAmbientState();
     if (gameState != null) {
       _gameState = gameState;
     }
     _selectedMedicineAction = null;
     _selectedMedicineTargetIndex = 0;
     _bagFeedbackMessage = null;
-    _startTurnPresentation(presentationSteps);
+    _activeAnimationPlan = animationPlan;
+    _presentationLockedCombatantSides =
+        _lockedCombatantSidesFor(animationPlan).toSet();
+    _animationRunner?.cancel(
+      clearMessage: animationPlan.isEmpty,
+      notify: false,
+    );
     _normalizeMenuSelection();
-    _pendingVisualSync = _syncVisualState(previousSession: previousSession);
+    _pendingVisualSync = _prepareAnimationPresentation(
+      previousSession: previousSession,
+      animationPlan: animationPlan,
+      presentationGeneration: presentationGeneration,
+    );
     unawaited(_pendingVisualSync);
   }
 
@@ -802,6 +874,8 @@ class BattleOverlayComponent extends PositionComponent {
     _sceneLayout = layout;
 
     _backdrop?.size = viewportSize.clone();
+    _fxLayer?.size = viewportSize.clone();
+    _syncFieldAmbientState();
     _enemyCombatant?.updateSceneGeometry(
       sceneSpriteRect: layout.enemySpriteRect,
       scenePlatformRect: layout.enemyPlatformRect,
@@ -1075,50 +1149,74 @@ class BattleOverlayComponent extends PositionComponent {
 
   @override
   void update(double dt) {
-    final currentStep = _currentTurnPresentationStep;
-    if (currentStep == null) {
-      super.update(dt);
-      return;
-    }
-    _turnPresentationElapsed += dt;
-    if (!_turnPresentationEffectTriggered &&
-        _turnPresentationElapsed >= _presentationEffectDelaySeconds) {
-      _turnPresentationEffectTriggered = true;
-      _applyTurnPresentationEffect(currentStep);
-    }
+    _animationRunner?.update(dt);
     super.update(dt);
-    if (_turnPresentationElapsed >= _durationForPresentationStep(currentStep)) {
-      _advanceTurnPresentationStep();
-    }
   }
 
   Future<void> _syncVisualState({
     BattleSession? previousSession,
+    Set<BattleSideId> preserveDisplayedCombatantSides = const <BattleSideId>{},
+    required int presentationGeneration,
   }) async {
+    if (!_isCurrentPresentationGeneration(presentationGeneration)) {
+      return;
+    }
+    _syncFieldAmbientState();
+    final displayedEnemyCombatant =
+        preserveDisplayedCombatantSides.contains(BattleSideId.enemy) &&
+                previousSession != null
+            ? previousSession.state.enemy
+            : _session.state.enemy;
+    final displayedPlayerCombatant =
+        preserveDisplayedCombatantSides.contains(BattleSideId.player) &&
+                previousSession != null
+            ? previousSession.state.player
+            : _session.state.player;
+    BattleCombatantSpriteSpec? enemySpriteSpec;
     if (_enemyCombatant != null) {
-      final enemySpriteSpec = await _resolveCombatantSpriteSpec(
-        speciesId: _session.state.enemy.speciesId,
+      enemySpriteSpec = await _resolveCombatantSpriteSpec(
+        speciesId: displayedEnemyCombatant.speciesId,
         isPlayerSide: false,
       );
-      await _enemyCombatant!.sync(
-        speciesLabel: _session.state.enemy.speciesId,
-        spriteSpec: enemySpriteSpec,
-      );
+      if (!_isCurrentPresentationGeneration(presentationGeneration)) {
+        return;
+      }
     }
+    BattleCombatantSpriteSpec? playerSpriteSpec;
     if (_playerCombatant != null) {
-      final playerSpriteSpec = await _resolveCombatantSpriteSpec(
-        speciesId: _session.state.player.speciesId,
+      playerSpriteSpec = await _resolveCombatantSpriteSpec(
+        speciesId: displayedPlayerCombatant.speciesId,
         isPlayerSide: true,
       );
+      if (!_isCurrentPresentationGeneration(presentationGeneration)) {
+        return;
+      }
+    }
+    _displayedEnemyCombatant = displayedEnemyCombatant;
+    _displayedPlayerCombatant = displayedPlayerCombatant;
+
+    if (_enemyCombatant != null && enemySpriteSpec != null) {
+      await _enemyCombatant!.sync(
+        speciesLabel: displayedEnemyCombatant.speciesId,
+        spriteSpec: enemySpriteSpec,
+      );
+      if (!_isCurrentPresentationGeneration(presentationGeneration)) {
+        return;
+      }
+    }
+    if (_playerCombatant != null && playerSpriteSpec != null) {
       await _playerCombatant!.sync(
-        speciesLabel: _session.state.player.speciesId,
+        speciesLabel: displayedPlayerCombatant.speciesId,
         spriteSpec: playerSpriteSpec,
       );
+      if (!_isCurrentPresentationGeneration(presentationGeneration)) {
+        return;
+      }
     }
     _enemyHud?.sync(
-      combatant: _session.state.enemy,
+      combatant: displayedEnemyCombatant,
       genderSymbol: _resolveCombatantGenderSymbol(
-        combatant: _session.state.enemy,
+        combatant: displayedEnemyCombatant,
         isPlayerSide: false,
       ),
       startingDisplayedHp: _presentationStartingHpForSide(
@@ -1127,9 +1225,9 @@ class BattleOverlayComponent extends PositionComponent {
       ),
     );
     _playerHud?.sync(
-      combatant: _session.state.player,
+      combatant: displayedPlayerCombatant,
       genderSymbol: _resolveCombatantGenderSymbol(
-        combatant: _session.state.player,
+        combatant: displayedPlayerCombatant,
         isPlayerSide: true,
       ),
       startingDisplayedHp: _presentationStartingHpForSide(
@@ -1188,8 +1286,8 @@ class BattleOverlayComponent extends PositionComponent {
     final partyMenuModel = _currentPartyMenuModel();
     final bagMenuModel = _currentBagMenuModel();
     final medicineTargetMenuModel = _currentMedicineTargetMenuModel();
-    final currentPresentationStep = _currentTurnPresentationStep;
-    final isPresenting = currentPresentationStep != null;
+    final currentAnimationMessage = _animationRunner?.currentMessage;
+    final isPresenting = _animationRunner?.isActive ?? false;
     final partyPrompt = menuModel.mode == BattleCommandMenuMode.pokemon
         ? buildBattlePartyPromptForOverlay(partyMenuModel)
         : null;
@@ -1224,7 +1322,7 @@ class BattleOverlayComponent extends PositionComponent {
                 feedbackMessage: _bagFeedbackMessage,
               )
             : null;
-    final resolvedPrompt = currentPresentationStep?.message ??
+    final resolvedPrompt = currentAnimationMessage ??
         medicineTargetPrompt ??
         bagPrompt ??
         partyPrompt ??
@@ -1286,13 +1384,13 @@ class BattleOverlayComponent extends PositionComponent {
       enemyHud: _buildHudSnapshot(
         rect: layout.enemyHudRect,
         ownerLabel: 'ENNEMI',
-        combatant: _session.state.enemy,
+        combatant: _displayedEnemyCombatant ?? _session.state.enemy,
         isPlayerSide: false,
       ),
       playerHud: _buildHudSnapshot(
         rect: layout.playerHudRect,
         ownerLabel: 'JOUEUR',
-        combatant: _session.state.player,
+        combatant: _displayedPlayerCombatant ?? _session.state.player,
         isPlayerSide: true,
       ),
       battleLabel: _titleForSession(),
@@ -1319,6 +1417,9 @@ class BattleOverlayComponent extends PositionComponent {
     required BattleCombatant combatant,
     required bool isPlayerSide,
   }) {
+    final targetSide = isPlayerSide ? BattleSideId.player : BattleSideId.enemy;
+    final presentationStep = _animationRunner?.currentHpTweenStep;
+    final isHpTweenStep = presentationStep?.side == targetSide;
     final statusLabel = combatant.isFainted
         ? 'K.O.'
         : combatant.majorStatus?.id.name.toUpperCase();
@@ -1329,6 +1430,12 @@ class BattleOverlayComponent extends PositionComponent {
       level: combatant.level,
       currentHp: combatant.currentHp,
       maxHp: combatant.maxHp,
+      displayedHp:
+          isHpTweenStep ? presentationStep!.fromHp : combatant.currentHp,
+      targetDisplayedHp: isHpTweenStep ? presentationStep!.toHp : null,
+      hpTweenDurationMs: isHpTweenStep ? presentationStep!.durationMs : null,
+      hpTweenRevision:
+          isHpTweenStep ? _hpTweenRevisionFor(presentationStep!) : 0,
       isPlayerSide: isPlayerSide,
       genderSymbol: _resolveCombatantGenderSymbol(
         combatant: combatant,
@@ -1345,7 +1452,8 @@ class BattleOverlayComponent extends PositionComponent {
     required BattleMedicineTargetMenuModel? medicineTargetMenuModel,
   }) {
     return switch (menuModel.mode) {
-      BattleCommandMenuMode.root => List<BattleCommandOverlayEntry>.unmodifiable(
+      BattleCommandMenuMode.root =>
+        List<BattleCommandOverlayEntry>.unmodifiable(
           menuModel.rootEntries.asMap().entries.map(
                 (entry) => BattleCommandOverlayEntry(
                   index: entry.key,
@@ -1361,8 +1469,8 @@ class BattleOverlayComponent extends PositionComponent {
               ),
         ),
       BattleCommandMenuMode.fight ||
-      BattleCommandMenuMode.continueOnly => List<
-          BattleCommandOverlayEntry>.unmodifiable(
+      BattleCommandMenuMode.continueOnly =>
+        List<BattleCommandOverlayEntry>.unmodifiable(
           menuModel.choiceEntries.asMap().entries.map(
                 (entry) => BattleCommandOverlayEntry(
                   index: entry.key,
@@ -1394,8 +1502,8 @@ class BattleOverlayComponent extends PositionComponent {
                 ),
               ),
         ),
-      BattleCommandMenuMode.pokemon => List<
-          BattleCommandOverlayEntry>.unmodifiable(
+      BattleCommandMenuMode.pokemon =>
+        List<BattleCommandOverlayEntry>.unmodifiable(
           partyMenuModel.allEntries.asMap().entries.map(
                 (entry) => BattleCommandOverlayEntry(
                   index: entry.key,
@@ -1414,9 +1522,10 @@ class BattleOverlayComponent extends PositionComponent {
                 ),
               ),
         ),
-      BattleCommandMenuMode.bagMedicineTarget => List<
-          BattleCommandOverlayEntry>.unmodifiable(
-          (medicineTargetMenuModel?.entries ?? const <BattleMedicineTargetEntry>[])
+      BattleCommandMenuMode.bagMedicineTarget =>
+        List<BattleCommandOverlayEntry>.unmodifiable(
+          (medicineTargetMenuModel?.entries ??
+                  const <BattleMedicineTargetEntry>[])
               .asMap()
               .entries
               .map(
@@ -1973,83 +2082,269 @@ class BattleOverlayComponent extends PositionComponent {
     return 'Combat sauvage';
   }
 
-  List<BattleTurnPresentationStep> _buildTurnPresentationSteps({
+  Future<void> _prepareAnimationPresentation({
     required BattleSession previousSession,
-    required BattleSession newSession,
-  }) {
-    final currentTurn = newSession.state.currentTurn;
-    if (currentTurn == null) {
-      return const <BattleTurnPresentationStep>[];
-    }
-    if (!_isSameVisibleCombatant(
-          previousSession.state.player,
-          newSession.state.player,
-        ) ||
-        !_isSameVisibleCombatant(
-          previousSession.state.enemy,
-          newSession.state.enemy,
-        )) {
-      return const <BattleTurnPresentationStep>[];
-    }
-    return buildBattleTurnPresentationSteps(
-      playerBefore: previousSession.state.player,
-      enemyBefore: previousSession.state.enemy,
-      turnResult: currentTurn,
+    required BattleAnimationPlan animationPlan,
+    required int presentationGeneration,
+  }) async {
+    await _syncVisualState(
+      previousSession: previousSession,
+      preserveDisplayedCombatantSides: _presentationLockedCombatantSides,
+      presentationGeneration: presentationGeneration,
     );
-  }
-
-  void _startTurnPresentation(List<BattleTurnPresentationStep> steps) {
-    if (steps.isEmpty) {
-      _turnPresentationSteps = const <BattleTurnPresentationStep>[];
-      _turnPresentationIndex = 0;
-      _turnPresentationElapsed = 0;
-      _turnPresentationEffectTriggered = false;
+    if (!_isCurrentPresentationGeneration(presentationGeneration)) {
       return;
     }
-    _turnPresentationSteps = List<BattleTurnPresentationStep>.unmodifiable(
-      steps,
-    );
-    _turnPresentationIndex = 0;
-    _turnPresentationElapsed = 0;
-    _turnPresentationEffectTriggered = false;
-  }
-
-  BattleTurnPresentationStep? get _currentTurnPresentationStep =>
-      _turnPresentationIndex >= _turnPresentationSteps.length
-          ? null
-          : _turnPresentationSteps[_turnPresentationIndex];
-
-  double _durationForPresentationStep(BattleTurnPresentationStep step) {
-    return step.animatesHpChange
-        ? _presentationImpactStepSeconds
-        : _presentationMessageOnlyStepSeconds;
-  }
-
-  void _advanceTurnPresentationStep() {
-    _turnPresentationIndex += 1;
-    _turnPresentationElapsed = 0;
-    _turnPresentationEffectTriggered = false;
-    if (_turnPresentationIndex >= _turnPresentationSteps.length) {
-      _turnPresentationSteps = const <BattleTurnPresentationStep>[];
-      _turnPresentationIndex = 0;
+    if (animationPlan.isEmpty) {
+      _presentationLockedCombatantSides = <BattleSideId>{};
+      _syncPanelsOnly();
+      return;
     }
+    await _fxBundleCache.prewarm(animationPlan.requiredFxIds);
+    if (!_isCurrentPresentationGeneration(presentationGeneration)) {
+      return;
+    }
+    _animationRunner?.start(animationPlan);
+  }
+
+  Set<BattleSideId> _lockedCombatantSidesFor(BattleAnimationPlan plan) {
+    return plan.steps
+        .whereType<SwapCombatantVisualStep>()
+        .map((step) => step.side)
+        .toSet();
+  }
+
+  void _handleAnimationPresentationChanged() {
+    _syncPanelsOnly();
+    final animationRunner = _animationRunner;
+    if (animationRunner == null || animationRunner.isActive) {
+      return;
+    }
+    _presentationLockedCombatantSides = <BattleSideId>{};
+    _activeAnimationPlan =
+        const BattleAnimationPlan(steps: <BattleAnimationStep>[]);
+    final presentationGeneration = _presentationGeneration;
+    _pendingVisualSync = _syncVisualState(
+      presentationGeneration: presentationGeneration,
+    );
+    unawaited(_pendingVisualSync);
+  }
+
+  void _handleSpawnFxStep(SpawnFxStep step) {
+    final fxLayer = _fxLayer;
+    if (fxLayer == null) {
+      return;
+    }
+    unawaited(
+      fxLayer.playFx(
+        step,
+        BattleFxRuntimeContext(
+          sceneSize: size.clone(),
+          resolveAnchor: _resolveBattleVisualAnchor,
+        ),
+      ),
+    );
+  }
+
+  void _handleScreenFlashStep(ScreenFlashStep step) {
+    _fxLayer?.playScreenFlash(step);
+  }
+
+  void _handleCombatantMotionStep(CombatantMotionStep step) {
+    final combatant = _combatantForSide(step.side);
+    if (combatant == null) {
+      return;
+    }
+    switch (step.motionKind) {
+      case BattleCombatantMotionKind.lunge:
+        unawaited(
+          combatant.playLunge(
+            towardOpponent: true,
+            distancePx: step.distancePx,
+            durationSeconds: step.durationSeconds,
+          ),
+        );
+      case BattleCombatantMotionKind.fastDash:
+        unawaited(
+          combatant.playFastDash(
+            towardOpponent: true,
+            distancePx: step.distancePx,
+            durationSeconds: step.durationSeconds,
+          ),
+        );
+      case BattleCombatantMotionKind.switchOut:
+        unawaited(
+          combatant.playSwitchOut(durationSeconds: step.durationSeconds),
+        );
+      case BattleCombatantMotionKind.switchIn:
+        unawaited(
+          combatant.playSwitchIn(durationSeconds: step.durationSeconds),
+        );
+    }
+  }
+
+  void _handleCombatantFlashStep(CombatantFlashStep step) {
+    _combatantForSide(step.side)
+        ?.triggerHitFlash(duration: step.durationSeconds);
+  }
+
+  void _handleCombatantShakeStep(CombatantShakeStep step) {
+    final combatant = _combatantForSide(step.side);
+    if (combatant == null) {
+      return;
+    }
+    unawaited(
+      combatant.playShake(
+        amplitudePx: step.amplitudePx,
+        durationSeconds: step.durationSeconds,
+      ),
+    );
+  }
+
+  void _handleFaintCombatantStep(FaintCombatantStep step) {
+    final combatant = _combatantForSide(step.side);
+    if (combatant == null) {
+      return;
+    }
+    unawaited(combatant.playFaint(durationSeconds: step.durationSeconds));
+  }
+
+  void _handleHudHpTweenStep(HudHpTweenStep step) {
+    _hudForSide(step.side)?.animateDisplayedHp(
+      fromHp: step.fromHp,
+      toHp: step.toHp,
+      duration: step.durationMs / 1000,
+    );
+  }
+
+  void _handleBarrierPulseStep(BarrierPulseStep step) {
+    final fxLayer = _fxLayer;
+    final targetRect = _combatantRenderedRectForSide(step.side);
+    if (fxLayer == null || targetRect == null) {
+      return;
+    }
+    fxLayer.playBarrierPulse(
+      step,
+      targetRect: targetRect.inflate(18),
+    );
+  }
+
+  void _handleSwapCombatantVisualStep(BattleSideId side) {
+    unawaited(
+      _syncCombatantVisualForSide(
+        side,
+        presentationGeneration: _presentationGeneration,
+      ),
+    );
+  }
+
+  BattleSceneCombatantComponent? _combatantForSide(BattleSideId side) {
+    return side == BattleSideId.player ? _playerCombatant : _enemyCombatant;
+  }
+
+  BattleSceneHudComponent? _hudForSide(BattleSideId side) {
+    return side == BattleSideId.player ? _playerHud : _enemyHud;
+  }
+
+  Rect? _combatantRenderedRectForSide(BattleSideId side) {
+    return _combatantForSide(side)?.currentRenderedSpriteRect;
+  }
+
+  void _syncFieldAmbientState() {
+    _fxLayer?.syncFieldAmbient(
+      weather: _session.state.field.weather?.id,
+      pseudoWeather: _session.state.field.pseudoWeather?.id,
+    );
+  }
+
+  Vector2 _resolveBattleVisualAnchor({
+    required BattleVisualAnchor anchor,
+    required BattleSideId attackerSide,
+    required BattleSideId defenderSide,
+  }) {
+    Offset centerFor(Rect? rect, Rect fallbackRect) {
+      final effectiveRect = rect ?? fallbackRect;
+      return effectiveRect.center;
+    }
+
+    Offset headFor(Rect? rect, Rect fallbackRect) {
+      final effectiveRect = rect ?? fallbackRect;
+      return Offset(
+        effectiveRect.center.dx,
+        effectiveRect.top + (effectiveRect.height * 0.18),
+      );
+    }
+
+    final layout = currentSceneLayout;
+    final attackerRect = _combatantRenderedRectForSide(attackerSide);
+    final defenderRect = _combatantRenderedRectForSide(defenderSide);
+    final attackerFallback = attackerSide == BattleSideId.player
+        ? layout.playerCombatantBoundsRect
+        : layout.enemyCombatantBoundsRect;
+    final defenderFallback = defenderSide == BattleSideId.player
+        ? layout.playerCombatantBoundsRect
+        : layout.enemyCombatantBoundsRect;
+
+    final offset = switch (anchor) {
+      BattleVisualAnchor.attackerCenter =>
+        centerFor(attackerRect, attackerFallback),
+      BattleVisualAnchor.attackerHead =>
+        headFor(attackerRect, attackerFallback),
+      BattleVisualAnchor.defenderCenter =>
+        centerFor(defenderRect, defenderFallback),
+      BattleVisualAnchor.defenderHead =>
+        headFor(defenderRect, defenderFallback),
+      BattleVisualAnchor.screenCenter => Offset(size.x / 2, size.y / 2),
+    };
+    return Vector2(offset.dx, offset.dy);
+  }
+
+  Future<void> _syncCombatantVisualForSide(
+    BattleSideId side, {
+    required int presentationGeneration,
+  }) async {
+    if (!_isCurrentPresentationGeneration(presentationGeneration)) {
+      return;
+    }
+    final combatant = side == BattleSideId.player
+        ? _session.state.player
+        : _session.state.enemy;
+    if (side == BattleSideId.player) {
+      _displayedPlayerCombatant = combatant;
+    } else {
+      _displayedEnemyCombatant = combatant;
+    }
+    final sceneCombatant = _combatantForSide(side);
+    if (sceneCombatant != null) {
+      final spriteSpec = await _resolveCombatantSpriteSpec(
+        speciesId: combatant.speciesId,
+        isPlayerSide: side == BattleSideId.player,
+      );
+      if (!_isCurrentPresentationGeneration(presentationGeneration)) {
+        return;
+      }
+      await sceneCombatant.sync(
+        speciesLabel: combatant.speciesId,
+        spriteSpec: spriteSpec,
+      );
+      if (!_isCurrentPresentationGeneration(presentationGeneration)) {
+        return;
+      }
+      sceneCombatant.snapToBattlePose();
+    }
+    _hudForSide(side)?.sync(
+      combatant: combatant,
+      genderSymbol: _resolveCombatantGenderSymbol(
+        combatant: combatant,
+        isPlayerSide: side == BattleSideId.player,
+      ),
+    );
+    _presentationLockedCombatantSides.remove(side);
     _syncPanelsOnly();
   }
 
-  void _applyTurnPresentationEffect(BattleTurnPresentationStep step) {
-    final targetSide = step.hpChangeTargetSide;
-    final hpFrom = step.hpFrom;
-    final hpTo = step.hpTo;
-    if (targetSide == null || hpFrom == null || hpTo == null) {
-      return;
-    }
-    final isPlayerSide = targetSide == BattleSideId.player;
-    final combatant = isPlayerSide ? _playerCombatant : _enemyCombatant;
-    final hud = isPlayerSide ? _playerHud : _enemyHud;
-    if (step.flashTargetSide == targetSide) {
-      combatant?.triggerHitFlash();
-    }
-    hud?.animateDisplayedHp(fromHp: hpFrom, toHp: hpTo);
+  bool _isCurrentPresentationGeneration(int presentationGeneration) {
+    return presentationGeneration == _presentationGeneration;
   }
 
   int? _presentationStartingHpForSide({
@@ -2057,21 +2352,32 @@ class BattleOverlayComponent extends PositionComponent {
     required BattleSession? previousSession,
   }) {
     if (previousSession == null ||
-        !isTurnPresentationActive ||
-        !_turnPresentationSteps
-            .any((step) => step.hpChangeTargetSide == side)) {
+        !_activeAnimationPlan.steps
+            .whereType<HudHpTweenStep>()
+            .any((step) => step.side == side)) {
       return null;
     }
     final previousCombatant = side == BattleSideId.player
         ? previousSession.state.player
         : previousSession.state.enemy;
     final currentCombatant = side == BattleSideId.player
-        ? _session.state.player
-        : _session.state.enemy;
+        ? (_displayedPlayerCombatant ?? _session.state.player)
+        : (_displayedEnemyCombatant ?? _session.state.enemy);
     if (!_isSameVisibleCombatant(previousCombatant, currentCombatant)) {
       return null;
     }
     return previousCombatant.currentHp;
+  }
+
+  int _hpTweenRevisionFor(HudHpTweenStep targetStep) {
+    var revision = 0;
+    for (final step in _activeAnimationPlan.steps.whereType<HudHpTweenStep>()) {
+      revision += 1;
+      if (identical(step, targetStep)) {
+        return revision;
+      }
+    }
+    return 0;
   }
 
   bool _isSameVisibleCombatant(
@@ -2091,8 +2397,7 @@ BattleCommandOverlayMode _overlayModeForMenuMode(BattleCommandMenuMode mode) {
     BattleCommandMenuMode.bagMedicineTarget =>
       BattleCommandOverlayMode.bagMedicineTarget,
     BattleCommandMenuMode.pokemon => BattleCommandOverlayMode.pokemon,
-    BattleCommandMenuMode.continueOnly =>
-      BattleCommandOverlayMode.continueOnly,
+    BattleCommandMenuMode.continueOnly => BattleCommandOverlayMode.continueOnly,
   };
 }
 

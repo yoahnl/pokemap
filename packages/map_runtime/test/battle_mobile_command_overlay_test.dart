@@ -12,8 +12,16 @@ BattleCommandOverlaySnapshot _snapshot({
   double panelHeight = 260,
   int enemyCurrentHp = 18,
   int enemyMaxHp = 18,
+  int? enemyDisplayedHp,
+  int? enemyTargetDisplayedHp,
+  int? enemyHpTweenDurationMs,
+  int enemyHpTweenRevision = 0,
   int playerCurrentHp = 57,
   int playerMaxHp = 57,
+  int? playerDisplayedHp,
+  int? playerTargetDisplayedHp,
+  int? playerHpTweenDurationMs,
+  int playerHpTweenRevision = 0,
 }) {
   final playerHudRect = Rect.fromLTWH(
     viewportSize.width - 168,
@@ -36,6 +44,10 @@ BattleCommandOverlaySnapshot _snapshot({
       level: 4,
       currentHp: enemyCurrentHp,
       maxHp: enemyMaxHp,
+      displayedHp: enemyDisplayedHp,
+      targetDisplayedHp: enemyTargetDisplayedHp,
+      hpTweenDurationMs: enemyHpTweenDurationMs,
+      hpTweenRevision: enemyHpTweenRevision,
       isPlayerSide: false,
     ),
     playerHud: BattleCommandOverlayHudSnapshot(
@@ -45,6 +57,10 @@ BattleCommandOverlaySnapshot _snapshot({
       level: 25,
       currentHp: playerCurrentHp,
       maxHp: playerMaxHp,
+      displayedHp: playerDisplayedHp,
+      targetDisplayedHp: playerTargetDisplayedHp,
+      hpTweenDurationMs: playerHpTweenDurationMs,
+      hpTweenRevision: playerHpTweenRevision,
       isPlayerSide: true,
     ),
     battleLabel: 'COMBAT SAUVAGE',
@@ -857,6 +873,69 @@ void main() {
           tester.getRect(find.byKey(const Key('battle-mobile-entry-3')));
       expect(
           lastEntryRect.bottom, lessThanOrEqualTo(snapshot.panelRect.bottom));
+    });
+
+    testWidgets('animates player hp from snapshot tween metadata',
+        (tester) async {
+      const playerFillKey = Key('battle-mobile-player-hp-fill');
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() async => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        _hostedOverlay(
+          snapshot: _layoutSnapshot(
+            viewportSize: const Size(390, 844),
+            playerCurrentHp: 24,
+            playerMaxHp: 57,
+          ),
+          onEntrySelected: (_) {},
+          canvasSize: const Size(390, 844),
+        ),
+      );
+      await tester.pump();
+
+      await tester.pumpWidget(
+        _hostedOverlay(
+          snapshot: _snapshot(
+            mode: BattleCommandOverlayMode.root,
+            entries: _rootEntries(),
+            viewportSize: const Size(390, 844),
+            panelHeight: 260,
+            playerCurrentHp: 24,
+            playerMaxHp: 57,
+            playerDisplayedHp: 57,
+            playerTargetDisplayedHp: 24,
+            playerHpTweenDurationMs: 400,
+            playerHpTweenRevision: 1,
+          ),
+          onEntrySelected: (_) {},
+          canvasSize: const Size(390, 844),
+        ),
+      );
+      await tester.pump();
+
+      final startFill = tester.widget<FractionallySizedBox>(
+        find.byKey(playerFillKey),
+      );
+      expect(startFill.widthFactor, closeTo(1.0, 0.001));
+      expect(find.text('57/57'), findsOneWidget);
+
+      await tester.pump(const Duration(milliseconds: 200));
+
+      final midFill = tester.widget<FractionallySizedBox>(
+        find.byKey(playerFillKey),
+      );
+      expect(midFill.widthFactor, greaterThan(24 / 57));
+      expect(midFill.widthFactor, lessThan(1.0));
+      expect(find.text('24/57'), findsNothing);
+
+      await tester.pump(const Duration(milliseconds: 220));
+
+      final endFill = tester.widget<FractionallySizedBox>(
+        find.byKey(playerFillKey),
+      );
+      expect(endFill.widthFactor, closeTo(24 / 57, 0.001));
+      expect(find.text('24/57'), findsOneWidget);
     });
   });
 }

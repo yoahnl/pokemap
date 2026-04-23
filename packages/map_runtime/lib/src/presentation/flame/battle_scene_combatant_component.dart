@@ -1,4 +1,5 @@
 import 'dart:ui' as ui;
+import 'dart:math' as math;
 
 import 'package:flame/components.dart';
 import 'package:flame/text.dart';
@@ -47,7 +48,9 @@ class BattleSceneCombatantComponent extends PositionComponent {
           ),
           anchor: Anchor.topLeft,
           priority: 10,
-        );
+        ) {
+    _basePosition = position.clone();
+  }
 
   final bool isPlayerSide;
   final BattleVisualAssetCache? visualAssetCache;
@@ -66,6 +69,15 @@ class BattleSceneCombatantComponent extends PositionComponent {
   double _hitFlashRemaining = 0;
   TextComponent? _speciesText;
   TextComponent? _monogramText;
+  Vector2 _basePosition = Vector2.zero();
+  Offset _visualOffset = Offset.zero;
+  double _visualOpacity = 1.0;
+  _CombatantPresentationAnimation _animation =
+      _CombatantPresentationAnimation.none;
+  double _animationElapsed = 0;
+  double _animationDuration = 0;
+  double _animationDistancePx = 0;
+  bool _animationTowardOpponent = true;
 
   @visibleForTesting
   bool get hasResolvedExplicitSprite => _spriteImage != null;
@@ -93,12 +105,17 @@ class BattleSceneCombatantComponent extends PositionComponent {
   @visibleForTesting
   Offset get currentFootAnchor => _footAnchor.translate(position.x, position.y);
 
-  @visibleForTesting
   Rect get currentRenderedSpriteRect =>
       _computeRenderedSpriteRect().shift(Offset(position.x, position.y));
 
   @visibleForTesting
   bool get isHitFlashActive => _hitFlashRemaining > 0;
+
+  @visibleForTesting
+  Offset get currentVisualOffset => _visualOffset;
+
+  @visibleForTesting
+  double get currentVisualOpacity => _visualOpacity;
 
   @override
   Future<void> onLoad() async {
@@ -157,6 +174,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
   }) {
     final sceneBounds = _sceneBounds(sceneSpriteRect, scenePlatformRect);
     position = Vector2(sceneBounds.left, sceneBounds.top);
+    _basePosition = position.clone();
     size = Vector2(sceneBounds.width, sceneBounds.height);
     _spriteRect = _toLocalRect(sceneSpriteRect, sceneBounds);
     _platformRect = _toLocalRect(scenePlatformRect, sceneBounds);
@@ -164,6 +182,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _speciesText?.position = Vector2(_spriteRect.left + 8, size.y - 4);
     _monogramText?.position =
         Vector2(_spriteRect.center.dx, _spriteRect.center.dy);
+    _applyVisualPresentation();
   }
 
   void triggerHitFlash({
@@ -172,13 +191,86 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _hitFlashRemaining = duration;
   }
 
+  Future<void> playLunge({
+    required bool towardOpponent,
+    required double distancePx,
+    required double durationSeconds,
+  }) async {
+    _animation = _CombatantPresentationAnimation.lunge;
+    _animationElapsed = 0;
+    _animationDuration = durationSeconds;
+    _animationDistancePx = distancePx;
+    _animationTowardOpponent = towardOpponent;
+  }
+
+  Future<void> playShake({
+    required double amplitudePx,
+    required double durationSeconds,
+  }) async {
+    _animation = _CombatantPresentationAnimation.shake;
+    _animationElapsed = 0;
+    _animationDuration = durationSeconds;
+    _animationDistancePx = amplitudePx;
+  }
+
+  Future<void> playFastDash({
+    required bool towardOpponent,
+    required double distancePx,
+    required double durationSeconds,
+  }) async {
+    _animation = _CombatantPresentationAnimation.fastDash;
+    _animationElapsed = 0;
+    _animationDuration = durationSeconds;
+    _animationDistancePx = distancePx;
+    _animationTowardOpponent = towardOpponent;
+  }
+
+  Future<void> playSwitchOut({
+    required double durationSeconds,
+  }) async {
+    _animation = _CombatantPresentationAnimation.switchOut;
+    _animationElapsed = 0;
+    _animationDuration = durationSeconds;
+    _animationDistancePx = 46;
+  }
+
+  Future<void> playSwitchIn({
+    required double durationSeconds,
+  }) async {
+    _visualOffset = _switchTravelOffset(progress: 1);
+    _visualOpacity = 0;
+    _applyVisualPresentation();
+    _animation = _CombatantPresentationAnimation.switchIn;
+    _animationElapsed = 0;
+    _animationDuration = durationSeconds;
+    _animationDistancePx = 46;
+  }
+
+  Future<void> playFaint({
+    required double durationSeconds,
+  }) async {
+    _animation = _CombatantPresentationAnimation.faint;
+    _animationElapsed = 0;
+    _animationDuration = durationSeconds;
+    _animationDistancePx = 36;
+  }
+
+  void snapToBattlePose() {
+    _animation = _CombatantPresentationAnimation.none;
+    _animationElapsed = 0;
+    _animationDuration = 0;
+    _visualOffset = Offset.zero;
+    _visualOpacity = 1;
+    _applyVisualPresentation();
+  }
+
   @override
   void update(double dt) {
     super.update(dt);
-    if (_hitFlashRemaining <= 0) {
-      return;
+    if (_hitFlashRemaining > 0) {
+      _hitFlashRemaining = (_hitFlashRemaining - dt).clamp(0, double.infinity);
     }
-    _hitFlashRemaining = (_hitFlashRemaining - dt).clamp(0, double.infinity);
+    _updateAnimation(dt);
   }
 
   @override
@@ -188,14 +280,16 @@ class BattleSceneCombatantComponent extends PositionComponent {
     canvas.drawOval(
       _platformRect,
       Paint()
-        ..color =
-            isPlayerSide ? const Color(0x4431261A) : const Color(0x8B5E4E34),
+        ..color = _applyOpacity(
+          isPlayerSide ? const Color(0x4431261A) : const Color(0x8B5E4E34),
+        ),
     );
     canvas.drawOval(
       _platformRect.deflate(isPlayerSide ? 4 : 5),
       Paint()
-        ..color =
-            isPlayerSide ? const Color(0x7A8E7B61) : const Color(0xFFD8C59E),
+        ..color = _applyOpacity(
+          isPlayerSide ? const Color(0x7A8E7B61) : const Color(0xFFD8C59E),
+        ),
     );
 
     final shadowRect = Rect.fromCenter(
@@ -208,7 +302,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
     );
     canvas.drawOval(
       shadowRect,
-      Paint()..color = const Color(0x33000000),
+      Paint()..color = _applyOpacity(const Color(0x33000000)),
     );
 
     final auraRect = Rect.fromCenter(
@@ -225,18 +319,19 @@ class BattleSceneCombatantComponent extends PositionComponent {
       Paint()
         ..shader = RadialGradient(
           colors: isPlayerSide
-              ? const <Color>[
-                  Color(0x667AA9F4),
-                  Color(0x00000000),
+              ? <Color>[
+                  _applyOpacity(const Color(0x667AA9F4)),
+                  _applyOpacity(const Color(0x00000000)),
                 ]
-              : const <Color>[
-                  Color(0x66B9D27A),
-                  Color(0x00000000),
+              : <Color>[
+                  _applyOpacity(const Color(0x66B9D27A)),
+                  _applyOpacity(const Color(0x00000000)),
                 ],
         ).createShader(auraRect),
     );
 
     if (_spriteImage != null) {
+      _renderDashTrail(canvas);
       _renderSprite(canvas);
       return;
     }
@@ -302,11 +397,55 @@ class BattleSceneCombatantComponent extends PositionComponent {
     final outputSubrect = _computeRenderedSpriteRect(
       destinationSize: fitted.destination,
     );
+    canvas.drawImageRect(image, inputSubrect, outputSubrect, _spritePaint());
+  }
+
+  void _renderDashTrail(Canvas canvas) {
+    if (_animation != _CombatantPresentationAnimation.fastDash ||
+        _spriteImage == null) {
+      return;
+    }
+    final progress = (_animationElapsed /
+            (_animationDuration <= 0 ? 0.0001 : _animationDuration))
+        .clamp(0.0, 1.0);
+    if (progress <= 0 || progress >= 0.75) {
+      return;
+    }
+    final baseRect = _computeRenderedSpriteRect();
+    final direction = _signedAnimationDistance().sign;
+    final trailOpacity = (0.26 * (1 - progress)).clamp(0.0, 0.26);
+    if (trailOpacity <= 0) {
+      return;
+    }
+    _drawSpriteRect(
+      canvas,
+      outputSubrect: baseRect.shift(Offset(-direction * 14, 0)),
+      opacity: trailOpacity,
+    );
+    _drawSpriteRect(
+      canvas,
+      outputSubrect: baseRect.shift(Offset(-direction * 28, 0)),
+      opacity: trailOpacity * 0.58,
+    );
+  }
+
+  void _drawSpriteRect(
+    Canvas canvas, {
+    required Rect outputSubrect,
+    required double opacity,
+  }) {
+    final image = _spriteImage!;
+    final inputSubrect = _spriteOpaqueSourceRect ??
+        (Offset.zero &
+            Size(
+              image.width.toDouble(),
+              image.height.toDouble(),
+            ));
     canvas.drawImageRect(
       image,
       inputSubrect,
       outputSubrect,
-      _spritePaint(),
+      _spritePaint(opacityOverride: opacity),
     );
   }
 
@@ -344,7 +483,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
     );
     canvas.drawRRect(
       RRect.fromRectAndRadius(chestRect, const Radius.circular(28)),
-      Paint()..color = secondaryColor.withValues(alpha: 0.88),
+      Paint()..color = _applyOpacity(secondaryColor.withValues(alpha: 0.88)),
     );
 
     final headRect = Rect.fromCircle(
@@ -392,7 +531,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
         ..close();
     }
     canvas.drawPath(
-        accentPath, Paint()..color = primaryColor.withValues(alpha: 0.92));
+        accentPath, Paint()..color = _applyOpacity(primaryColor.withValues(alpha: 0.92)));
   }
 
   void _syncTextVisibility() {
@@ -429,23 +568,34 @@ class BattleSceneCombatantComponent extends PositionComponent {
         .destination;
   }
 
-  Paint _spritePaint() {
+  Paint _spritePaint({
+    double? opacityOverride,
+  }) {
     final paint = Paint()..filterQuality = FilterQuality.none;
-    if (!_shouldRenderFlashTint) {
+    final opacity = (opacityOverride ?? _visualOpacity).clamp(0.0, 1.0);
+    if (!_shouldRenderFlashTint && opacity >= 0.999) {
       return paint;
     }
-    paint.colorFilter = const ColorFilter.mode(
-      Color(0xCCFFFFFF),
+    paint.colorFilter = ColorFilter.mode(
+      _applyOpacityWithValue(
+        _shouldRenderFlashTint
+            ? const Color(0xCCFFFFFF)
+            : const Color(0xFFFFFFFF),
+        opacity,
+      ),
       BlendMode.modulate,
     );
     return paint;
   }
 
   Color _flashAdjustedColor(Color color) {
-    if (!_shouldRenderFlashTint) {
-      return color;
+    final adjustedColor = !_shouldRenderFlashTint
+        ? color
+        : (Color.lerp(color, const Color(0xFFF7FBFF), 0.45) ?? color);
+    if (_visualOpacity >= 0.999) {
+      return adjustedColor;
     }
-    return Color.lerp(color, const Color(0xFFF7FBFF), 0.45) ?? color;
+    return _applyOpacity(adjustedColor);
   }
 
   bool get _shouldRenderFlashTint {
@@ -454,6 +604,158 @@ class BattleSceneCombatantComponent extends PositionComponent {
     }
     return ((_hitFlashRemaining * 18).floor() % 2) == 0;
   }
+
+  void _updateAnimation(double dt) {
+    if (_animation == _CombatantPresentationAnimation.none) {
+      return;
+    }
+    _animationElapsed += dt;
+    final duration = _animationDuration <= 0 ? 0.0001 : _animationDuration;
+    final progress = (_animationElapsed / duration).clamp(0.0, 1.0);
+
+    switch (_animation) {
+      case _CombatantPresentationAnimation.none:
+        return;
+      case _CombatantPresentationAnimation.lunge:
+        final signedDistance = _animationDistancePx *
+            (_animationTowardOpponent ? 1 : -1) *
+            (isPlayerSide ? 1 : -1);
+        final eased = math.sin(math.pi * progress);
+        _visualOffset = Offset(
+          signedDistance * eased,
+          (isPlayerSide ? -1 : 1) * (_animationDistancePx * 0.16) * eased,
+        );
+        _visualOpacity = 1;
+      case _CombatantPresentationAnimation.fastDash:
+        final signedDistance = _signedAnimationDistance();
+        final verticalLift = (isPlayerSide ? -1 : 1) *
+            (_animationDistancePx * 0.08) *
+            math.sin(progress * math.pi);
+        if (progress < 0.55) {
+          final phase = progress / 0.55;
+          _visualOffset = Offset(signedDistance * phase, verticalLift);
+          _visualOpacity = 1 - (phase * 0.55);
+        } else if (progress < 0.75) {
+          final phase = (progress - 0.55) / 0.20;
+          _visualOffset = Offset(
+            signedDistance * (1 + (phase * 0.16)),
+            verticalLift * 0.5,
+          );
+          _visualOpacity = 0.45 * (1 - phase);
+        } else if (progress < 0.82) {
+          _visualOffset = Offset(-signedDistance * 0.42, 0);
+          _visualOpacity = 0;
+        } else {
+          final phase = (progress - 0.82) / 0.18;
+          _visualOffset = Offset((-signedDistance * 0.42) * (1 - phase), 0);
+          _visualOpacity = phase;
+        }
+      case _CombatantPresentationAnimation.shake:
+        final shake =
+            math.sin(progress * math.pi * 6) * _animationDistancePx;
+        _visualOffset = Offset(shake, 0);
+        _visualOpacity = 1;
+      case _CombatantPresentationAnimation.switchOut:
+        _visualOffset = _switchTravelOffset(progress: progress);
+        _visualOpacity = 1 - progress;
+      case _CombatantPresentationAnimation.switchIn:
+        _visualOffset = _switchTravelOffset(progress: 1 - progress);
+        _visualOpacity = progress;
+      case _CombatantPresentationAnimation.faint:
+        _visualOffset = Offset(0, _animationDistancePx * progress);
+        _visualOpacity = 1 - progress;
+    }
+    _applyVisualPresentation();
+    if (progress < 1) {
+      return;
+    }
+
+    switch (_animation) {
+      case _CombatantPresentationAnimation.none:
+        return;
+      case _CombatantPresentationAnimation.lunge:
+      case _CombatantPresentationAnimation.fastDash:
+      case _CombatantPresentationAnimation.shake:
+      case _CombatantPresentationAnimation.switchIn:
+        _visualOffset = Offset.zero;
+        _visualOpacity = 1;
+      case _CombatantPresentationAnimation.switchOut:
+        _visualOffset = _switchTravelOffset(progress: 1);
+        _visualOpacity = 0;
+      case _CombatantPresentationAnimation.faint:
+        _visualOffset = Offset(0, _animationDistancePx);
+        _visualOpacity = 0;
+    }
+
+    _animation = _CombatantPresentationAnimation.none;
+    _applyVisualPresentation();
+  }
+
+  Offset _switchTravelOffset({
+    required double progress,
+  }) {
+    final horizontalDirection = isPlayerSide ? -1.0 : 1.0;
+    final verticalDirection = isPlayerSide ? 1.0 : -1.0;
+    return Offset(
+      _animationDistancePx * horizontalDirection * progress,
+      (_animationDistancePx * 0.36) * verticalDirection * progress,
+    );
+  }
+
+  double _signedAnimationDistance() {
+    return _animationDistancePx *
+        (_animationTowardOpponent ? 1 : -1) *
+        (isPlayerSide ? 1 : -1);
+  }
+
+  void _applyVisualPresentation() {
+    position = Vector2(
+      _basePosition.x + _visualOffset.dx,
+      _basePosition.y + _visualOffset.dy,
+    );
+    _updateTextOpacity();
+  }
+
+  void _updateTextOpacity() {
+    final speciesText = _speciesText;
+    if (speciesText != null) {
+      speciesText.textRenderer = TextPaint(
+        style: TextStyle(
+          color: _applyOpacity(const Color(0xFFF8FBFF)),
+          fontSize: 13,
+          fontWeight: FontWeight.w800,
+        ),
+      );
+    }
+    final monogramText = _monogramText;
+    if (monogramText != null) {
+      monogramText.textRenderer = TextPaint(
+        style: TextStyle(
+          color: _applyOpacity(const Color(0xF8FFFFFF)),
+          fontSize: 30,
+          fontWeight: FontWeight.w900,
+        ),
+      );
+    }
+  }
+
+  Color _applyOpacity(Color color) {
+    return color.withValues(alpha: color.a * _visualOpacity);
+  }
+
+  Color _applyOpacityWithValue(Color color, double opacity) {
+    return color.withValues(alpha: color.a * opacity);
+  }
+}
+
+enum _CombatantPresentationAnimation {
+  none,
+  lunge,
+  fastDash,
+  shake,
+  switchOut,
+  switchIn,
+  faint,
 }
 
 Rect _renderedSpriteRectFor({

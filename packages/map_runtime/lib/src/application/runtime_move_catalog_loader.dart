@@ -203,6 +203,19 @@ class RuntimeMoveCatalogLoader {
 class RuntimeMoveCatalog {
   RuntimeMoveCatalog._(this.entriesById);
 
+  factory RuntimeMoveCatalog.fromEntries(Map<String, PokemonMove> entriesById) {
+    final normalizedEntries = <String, PokemonMove>{};
+    for (final entry in entriesById.entries) {
+      final normalizedKey = entry.key.trim();
+      if (normalizedKey.isEmpty) {
+        continue;
+      }
+      normalizedEntries[normalizedKey] = entry.value.normalized();
+    }
+    return RuntimeMoveCatalog._(
+        Map<String, PokemonMove>.unmodifiable(normalizedEntries));
+  }
+
   final Map<String, PokemonMove> entriesById;
 
   PokemonMove? lookup(String moveId) => entriesById[moveId.trim()];

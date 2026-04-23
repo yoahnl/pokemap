@@ -1,5 +1,7 @@
 import 'package:map_battle/map_battle.dart';
 
+import 'battle_animation_plan.dart';
+
 class BattleTurnPresentationStep {
   const BattleTurnPresentationStep({
     required this.message,
@@ -19,6 +21,52 @@ class BattleTurnPresentationStep {
       hpChangeTargetSide != null && hpFrom != null && hpTo != null;
 
   bool get animatesDamage => flashTargetSide != null && animatesHpChange;
+}
+
+List<BattleTurnPresentationStep> buildLegacyPresentationStepsFromAnimationPlan(
+  BattleAnimationPlan plan,
+) {
+  final steps = <BattleTurnPresentationStep>[];
+
+  for (final step in plan.steps) {
+    switch (step) {
+      case ShowMessageStep(:final message):
+        steps.add(BattleTurnPresentationStep(message: message));
+      case CombatantFlashStep(:final side):
+        if (steps.isEmpty) {
+          continue;
+        }
+        final previous = steps.removeLast();
+        steps.add(
+          BattleTurnPresentationStep(
+            message: previous.message,
+            flashTargetSide: previous.flashTargetSide ?? side,
+            hpChangeTargetSide: previous.hpChangeTargetSide,
+            hpFrom: previous.hpFrom,
+            hpTo: previous.hpTo,
+          ),
+        );
+      case HudHpTweenStep(:final side, :final fromHp, :final toHp):
+        final previous = steps.isEmpty
+            ? const BattleTurnPresentationStep(message: '')
+            : steps.removeLast();
+        steps.add(
+          BattleTurnPresentationStep(
+            message: previous.message,
+            flashTargetSide: previous.flashTargetSide ?? side,
+            hpChangeTargetSide: side,
+            hpFrom: fromHp,
+            hpTo: toHp,
+          ),
+        );
+      default:
+        continue;
+    }
+  }
+
+  return List<BattleTurnPresentationStep>.unmodifiable(
+    steps.where((step) => step.message.isNotEmpty || step.animatesHpChange),
+  );
 }
 
 List<BattleTurnPresentationStep> buildBattleTurnPresentationSteps({

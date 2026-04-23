@@ -96,9 +96,13 @@ class _BattleHudCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hpRatio = snapshot.maxHp <= 0
+    final displayedHpRatio = snapshot.maxHp <= 0
         ? 0.0
-        : (snapshot.currentHp / snapshot.maxHp).clamp(0.0, 1.0);
+        : (snapshot.effectiveDisplayedHp / snapshot.maxHp).clamp(0.0, 1.0);
+    final targetHpRatio = snapshot.maxHp <= 0
+        ? 0.0
+        : (snapshot.effectiveTargetDisplayedHp / snapshot.maxHp)
+            .clamp(0.0, 1.0);
     final nameLabel = _beautifyBattleLabel(snapshot.speciesLabel);
     final genderLabel = snapshot.genderSymbol?.trim();
     final statusLabel = snapshot.statusLabel?.trim();
@@ -214,27 +218,63 @@ class _BattleHudCard extends StatelessWidget {
                               : 'battle-mobile-enemy-hp-bar',
                         ),
                         keyPrefix: snapshot.isPlayerSide ? 'player' : 'enemy',
-                        hpRatio: hpRatio,
+                        startHpRatio: displayedHpRatio,
+                        targetHpRatio: targetHpRatio,
+                        duration: snapshot.hasHpTween
+                            ? snapshot.hpTweenDuration ?? Duration.zero
+                            : Duration.zero,
+                        revision: snapshot.hpTweenRevision,
                         compact: compact,
                       ),
                     ),
                     if (showHpValue) ...<Widget>[
                       SizedBox(width: compact ? 6 : 8),
-                      Text(
-                        '${snapshot.currentHp}/${snapshot.maxHp}',
-                        key: const Key('battle-mobile-player-hp-value'),
-                        style: const TextStyle(
-                          color: Color(0xFF364355),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.2,
-                        ),
+                      _AnimatedHpValue(
+                        snapshot: snapshot,
+                        compact: compact,
                       ),
                     ],
                   ],
                 ),
               ],
             ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _AnimatedHpValue extends StatelessWidget {
+  const _AnimatedHpValue({
+    required this.snapshot,
+    required this.compact,
+  });
+
+  final BattleCommandOverlayHudSnapshot snapshot;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final start = snapshot.effectiveDisplayedHp.toDouble();
+    final end = snapshot.effectiveTargetDisplayedHp.toDouble();
+    final duration = snapshot.hasHpTween
+        ? snapshot.hpTweenDuration ?? Duration.zero
+        : Duration.zero;
+    return TweenAnimationBuilder<double>(
+      key: ValueKey<int>(snapshot.hpTweenRevision),
+      tween: Tween<double>(begin: start, end: end),
+      duration: duration,
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Text(
+          '${value.round()}/${snapshot.maxHp}',
+          key: const Key('battle-mobile-player-hp-value'),
+          style: TextStyle(
+            color: const Color(0xFF364355),
+            fontSize: compact ? 9.5 : 10,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.2,
           ),
         );
       },
@@ -287,12 +327,18 @@ class _BattleHpBar extends StatelessWidget {
   const _BattleHpBar({
     super.key,
     required this.keyPrefix,
-    required this.hpRatio,
+    required this.startHpRatio,
+    required this.targetHpRatio,
+    required this.duration,
+    required this.revision,
     required this.compact,
   });
 
   final String keyPrefix;
-  final double hpRatio;
+  final double startHpRatio;
+  final double targetHpRatio;
+  final Duration duration;
+  final int revision;
   final bool compact;
 
   @override
@@ -314,37 +360,40 @@ class _BattleHpBar extends StatelessWidget {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: TweenAnimationBuilder<double>(
-                  tween: Tween<double>(end: hpRatio),
-                  duration: const Duration(milliseconds: 220),
+                  key: ValueKey<int>(revision),
+                  tween: Tween<double>(
+                    begin: startHpRatio,
+                    end: targetHpRatio,
+                  ),
+                  duration: duration,
                   curve: Curves.easeOutCubic,
                   builder: (context, value, child) {
                     return FractionallySizedBox(
                       key: Key('battle-mobile-$keyPrefix-hp-fill'),
                       widthFactor: value,
                       alignment: Alignment.centerLeft,
-                      child: child,
-                    );
-                  },
-                  child: SizedBox.expand(
-                    child: DecoratedBox(
-                      key: Key(
-                        'battle-mobile-$keyPrefix-hp-fill-decoration',
-                      ),
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: <Color>[
-                            Color.alphaBlend(
-                              const Color(0x66FFFFFF),
-                              _hpColor(hpRatio),
+                      child: SizedBox.expand(
+                        child: DecoratedBox(
+                          key: Key(
+                            'battle-mobile-$keyPrefix-hp-fill-decoration',
+                          ),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: <Color>[
+                                Color.alphaBlend(
+                                  const Color(0x66FFFFFF),
+                                  _hpColor(value),
+                                ),
+                                _hpColor(value),
+                              ],
                             ),
-                            _hpColor(hpRatio),
-                          ],
+                          ),
                         ),
                       ),
-                    ),
-                  ),
+                    );
+                  },
                 ),
               ),
             ),
