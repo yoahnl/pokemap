@@ -18,6 +18,7 @@ final class BattleFxSpriteComponent extends PositionComponent {
     required this.endScale,
     required this.startOpacity,
     required this.endOpacity,
+    this.tintColor,
   })  : _startPosition = startPosition.clone(),
         _endPosition = endPosition.clone(),
         _baseDisplaySize = sprite.srcSize.clone(),
@@ -46,6 +47,7 @@ final class BattleFxSpriteComponent extends PositionComponent {
   final double endScale;
   final double startOpacity;
   final double endOpacity;
+  final Color? tintColor;
 
   static const double _afterEffectSeconds = 0.12;
 
@@ -117,7 +119,13 @@ final class BattleFxSpriteComponent extends PositionComponent {
   @override
   void render(Canvas canvas) {
     final paint = Paint()..filterQuality = FilterQuality.none;
-    if (_currentOpacityMultiplier < 0.999) {
+    final tint = tintColor;
+    if (tint != null) {
+      paint.colorFilter = ColorFilter.mode(
+        tint.withValues(alpha: tint.a * _currentOpacityMultiplier),
+        BlendMode.modulate,
+      );
+    } else if (_currentOpacityMultiplier < 0.999) {
       paint.colorFilter = ColorFilter.mode(
         Colors.white.withValues(alpha: _currentOpacityMultiplier),
         BlendMode.modulate,

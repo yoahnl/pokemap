@@ -27,11 +27,11 @@ void main() {
         },
       );
 
-      await cache.loadImage('fireball');
+      await cache.loadImage('aerial_ace');
 
       expect(
         loadedAssetKey,
-        equals('packages/map_runtime/assets/fx/fireball.png'),
+        equals('packages/map_runtime/assets/battle_animations/aerial_ace.png'),
       );
     });
 
@@ -77,13 +77,13 @@ void main() {
         },
       );
 
-      await cache.prewarm(<String>['fireball', 'impact', 'fireball']);
+      await cache.prewarm(<String>['aerial_ace', 'stat_up', 'aerial_ace']);
 
       expect(
         loadedKeys,
         equals(<String>[
-          'packages/map_runtime/assets/fx/fireball.png',
-          'packages/map_runtime/assets/fx/impact.png',
+          'packages/map_runtime/assets/battle_animations/aerial_ace.png',
+          'packages/map_runtime/assets/battle_animations/stat_up.png',
         ]),
       );
     });
@@ -108,9 +108,9 @@ void main() {
         },
       );
 
-      await cache.loadImage('fireball');
+      await cache.loadImage('aerial_ace');
       cache.clear();
-      await cache.loadImage('fireball');
+      await cache.loadImage('aerial_ace');
 
       expect(loadCount, equals(2));
     });

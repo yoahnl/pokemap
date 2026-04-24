@@ -70,13 +70,27 @@ class BattleSceneCombatantComponent extends PositionComponent {
   TextComponent? _speciesText;
   TextComponent? _monogramText;
   Vector2 _basePosition = Vector2.zero();
+  Vector2 _sceneCameraOffset = Vector2.zero();
+  double _sceneCameraScale = 1.0;
   Offset _visualOffset = Offset.zero;
   double _visualOpacity = 1.0;
+  double _visualScaleX = 1.0;
+  double _visualScaleY = 1.0;
+  Color? _visualToneColor;
+  double _visualToneStrength = 0;
+  double _toneElapsed = 0;
+  double _toneDuration = 0;
   _CombatantPresentationAnimation _animation =
       _CombatantPresentationAnimation.none;
   double _animationElapsed = 0;
   double _animationDuration = 0;
   double _animationDistancePx = 0;
+  double _animationRadiusX = 0;
+  double _animationRadiusY = 0;
+  int _animationTurns = 1;
+  double _animationScaleDeltaX = 0;
+  double _animationScaleDeltaY = 0;
+  int _animationIterations = 1;
   bool _animationTowardOpponent = true;
 
   @visibleForTesting
@@ -106,7 +120,27 @@ class BattleSceneCombatantComponent extends PositionComponent {
   Offset get currentFootAnchor => _footAnchor.translate(position.x, position.y);
 
   Rect get currentRenderedSpriteRect =>
-      _computeRenderedSpriteRect().shift(Offset(position.x, position.y));
+      _currentRenderedSpriteRectLocal().shift(Offset(position.x, position.y));
+
+  Rect get currentCameraNeutralRenderedSpriteRect =>
+      _currentRenderedSpriteRectLocal().shift(_cameraNeutralPosition);
+
+  Rect get currentCameraNeutralPlatformRect =>
+      _platformRect.shift(_cameraNeutralPosition);
+
+  Offset get currentCameraNeutralFootAnchor => _footAnchor.translate(
+      _cameraNeutralPosition.dx, _cameraNeutralPosition.dy);
+
+  Offset currentCameraNeutralImpactAnchorToward({
+    required Offset opponentCenter,
+  }) {
+    final spriteRect = currentCameraNeutralRenderedSpriteRect;
+    final facingSign = opponentCenter.dx >= spriteRect.center.dx ? 1.0 : -1.0;
+    return Offset(
+      spriteRect.center.dx + (facingSign * spriteRect.width * 0.16),
+      spriteRect.top + (spriteRect.height * 0.42),
+    );
+  }
 
   @visibleForTesting
   bool get isHitFlashActive => _hitFlashRemaining > 0;
@@ -116,6 +150,20 @@ class BattleSceneCombatantComponent extends PositionComponent {
 
   @visibleForTesting
   double get currentVisualOpacity => _visualOpacity;
+
+  @visibleForTesting
+  double get currentVisualScaleX => _visualScaleX;
+
+  @visibleForTesting
+  double get currentVisualScaleY => _visualScaleY;
+
+  @visibleForTesting
+  Color? get currentVisualToneColor => _visualToneColor;
+
+  Offset get _cameraNeutralPosition => Offset(
+        _basePosition.x + _visualOffset.dx,
+        _basePosition.y + _visualOffset.dy,
+      );
 
   @override
   Future<void> onLoad() async {
@@ -213,6 +261,44 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _animationDistancePx = amplitudePx;
   }
 
+  Future<void> playCompress({
+    required double scaleX,
+    required double scaleY,
+    required double durationSeconds,
+    int iteration = 1,
+  }) async {
+    _animation = _CombatantPresentationAnimation.compress;
+    _animationElapsed = 0;
+    _animationDuration = durationSeconds;
+    _animationScaleDeltaX = scaleX;
+    _animationScaleDeltaY = scaleY;
+    _animationIterations = math.max(1, iteration);
+  }
+
+  Future<void> playEllipse({
+    required double radiusX,
+    required double radiusY,
+    required int turns,
+    required double durationSeconds,
+  }) async {
+    _animation = _CombatantPresentationAnimation.ellipse;
+    _animationElapsed = 0;
+    _animationDuration = durationSeconds;
+    _animationRadiusX = radiusX;
+    _animationRadiusY = radiusY;
+    _animationTurns = math.max(1, turns);
+  }
+
+  Future<void> playTone({
+    required Color color,
+    required double durationSeconds,
+  }) async {
+    _visualToneColor = color;
+    _visualToneStrength = 1;
+    _toneElapsed = 0;
+    _toneDuration = durationSeconds;
+  }
+
   Future<void> playFastDash({
     required bool towardOpponent,
     required double distancePx,
@@ -261,6 +347,46 @@ class BattleSceneCombatantComponent extends PositionComponent {
     _animationDuration = 0;
     _visualOffset = Offset.zero;
     _visualOpacity = 1;
+    _visualScaleX = 1;
+    _visualScaleY = 1;
+    _visualToneColor = null;
+    _visualToneStrength = 0;
+    _toneElapsed = 0;
+    _toneDuration = 0;
+    _applyVisualPresentation();
+  }
+
+  void applyRmxpTransform({
+    required Offset offset,
+    required double scale,
+  }) {
+    _animation = _CombatantPresentationAnimation.none;
+    _animationElapsed = 0;
+    _visualOffset = offset;
+    _visualScaleX = scale;
+    _visualScaleY = scale;
+    _visualOpacity = 1;
+    _applyVisualPresentation();
+  }
+
+  void clearRmxpTransform() {
+    _visualOffset = Offset.zero;
+    _visualScaleX = 1;
+    _visualScaleY = 1;
+    _applyVisualPresentation();
+  }
+
+  void applyBattleCameraTransform({
+    required Vector2 offset,
+    required double scale,
+  }) {
+    _sceneCameraOffset = offset.clone();
+    _sceneCameraScale = scale;
+    _applyVisualPresentation();
+  }
+
+  void setRmxpHidden(bool hidden) {
+    _visualOpacity = hidden ? 0 : 1;
     _applyVisualPresentation();
   }
 
@@ -270,6 +396,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
     if (_hitFlashRemaining > 0) {
       _hitFlashRemaining = (_hitFlashRemaining - dt).clamp(0, double.infinity);
     }
+    _updateTone(dt);
     _updateAnimation(dt);
   }
 
@@ -386,16 +513,9 @@ class BattleSceneCombatantComponent extends PositionComponent {
 
   void _renderSprite(Canvas canvas) {
     final image = _spriteImage!;
-    final inputSubrect = _spriteOpaqueSourceRect ??
-        (Offset.zero &
-            Size(
-              image.width.toDouble(),
-              image.height.toDouble(),
-            ));
-    final fitted =
-        applyBoxFit(BoxFit.contain, inputSubrect.size, _spriteRect.size);
+    final inputSubrect = _currentSpriteInputSubrect();
     final outputSubrect = _computeRenderedSpriteRect(
-      destinationSize: fitted.destination,
+      destinationSize: _currentRenderedSpriteDestinationSize(),
     );
     canvas.drawImageRect(image, inputSubrect, outputSubrect, _spritePaint());
   }
@@ -530,8 +650,8 @@ class BattleSceneCombatantComponent extends PositionComponent {
         )
         ..close();
     }
-    canvas.drawPath(
-        accentPath, Paint()..color = _applyOpacity(primaryColor.withValues(alpha: 0.92)));
+    canvas.drawPath(accentPath,
+        Paint()..color = _applyOpacity(primaryColor.withValues(alpha: 0.92)));
   }
 
   void _syncTextVisibility() {
@@ -553,11 +673,15 @@ class BattleSceneCombatantComponent extends PositionComponent {
     Size? destinationSize,
   }) {
     final targetSize = destinationSize ?? _fallbackDestinationSize();
+    final scaledTargetSize = Size(
+      targetSize.width * math.max(0.05, _visualScaleX),
+      targetSize.height * math.max(0.05, _visualScaleY),
+    );
     return _renderedSpriteRectFor(
       spriteRect: _spriteRect,
       footAnchor: _footAnchor,
       footXRatio: _spriteFootXRatio,
-      destinationSize: targetSize,
+      destinationSize: scaledTargetSize,
     );
   }
 
@@ -568,34 +692,89 @@ class BattleSceneCombatantComponent extends PositionComponent {
         .destination;
   }
 
+  Rect _currentRenderedSpriteRectLocal() {
+    return _computeRenderedSpriteRect(
+      destinationSize: _currentRenderedSpriteDestinationSize(),
+    );
+  }
+
+  Size _currentRenderedSpriteDestinationSize() {
+    final image = _spriteImage;
+    if (image == null) {
+      return _fallbackDestinationSize();
+    }
+    final inputSubrect = _currentSpriteInputSubrect();
+    return applyBoxFit(BoxFit.contain, inputSubrect.size, _spriteRect.size)
+        .destination;
+  }
+
+  Rect _currentSpriteInputSubrect() {
+    final image = _spriteImage;
+    if (image == null) {
+      return Offset.zero & _fallbackDestinationSize();
+    }
+    return _spriteOpaqueSourceRect ??
+        (Offset.zero &
+            Size(
+              image.width.toDouble(),
+              image.height.toDouble(),
+            ));
+  }
+
   Paint _spritePaint({
     double? opacityOverride,
   }) {
     final paint = Paint()..filterQuality = FilterQuality.none;
     final opacity = (opacityOverride ?? _visualOpacity).clamp(0.0, 1.0);
-    if (!_shouldRenderFlashTint && opacity >= 0.999) {
+    final modulationColor = _spriteModulationColor(opacity);
+    if (modulationColor == const Color(0xFFFFFFFF)) {
       return paint;
     }
     paint.colorFilter = ColorFilter.mode(
-      _applyOpacityWithValue(
-        _shouldRenderFlashTint
-            ? const Color(0xCCFFFFFF)
-            : const Color(0xFFFFFFFF),
-        opacity,
-      ),
+      modulationColor,
       BlendMode.modulate,
     );
     return paint;
   }
 
   Color _flashAdjustedColor(Color color) {
+    final toneAdjustedColor = _toneAdjustedColor(color);
     final adjustedColor = !_shouldRenderFlashTint
-        ? color
-        : (Color.lerp(color, const Color(0xFFF7FBFF), 0.45) ?? color);
+        ? toneAdjustedColor
+        : (Color.lerp(toneAdjustedColor, const Color(0xFFF7FBFF), 0.45) ??
+            toneAdjustedColor);
     if (_visualOpacity >= 0.999) {
       return adjustedColor;
     }
     return _applyOpacity(adjustedColor);
+  }
+
+  Color _spriteModulationColor(double opacity) {
+    var color = const Color(0xFFFFFFFF);
+    if (_visualToneColor != null && _visualToneStrength > 0) {
+      color = Color.lerp(
+            color,
+            _visualToneColor,
+            _visualToneStrength.clamp(0.0, 1.0),
+          ) ??
+          color;
+    }
+    if (_shouldRenderFlashTint) {
+      color = Color.lerp(color, const Color(0xFFFFFFFF), 0.45) ?? color;
+    }
+    return color.withValues(alpha: color.a * opacity);
+  }
+
+  Color _toneAdjustedColor(Color color) {
+    if (_visualToneColor == null || _visualToneStrength <= 0) {
+      return color;
+    }
+    return Color.lerp(
+          color,
+          _visualToneColor,
+          0.35 * _visualToneStrength.clamp(0.0, 1.0),
+        ) ??
+        color;
   }
 
   bool get _shouldRenderFlashTint {
@@ -603,6 +782,21 @@ class BattleSceneCombatantComponent extends PositionComponent {
       return false;
     }
     return ((_hitFlashRemaining * 18).floor() % 2) == 0;
+  }
+
+  void _updateTone(double dt) {
+    if (_visualToneColor == null) {
+      return;
+    }
+    _toneElapsed += dt;
+    final duration = _toneDuration <= 0 ? 0.0001 : _toneDuration;
+    final progress = (_toneElapsed / duration).clamp(0.0, 1.0);
+    _visualToneStrength = 1 - progress;
+    if (progress >= 1) {
+      _visualToneColor = null;
+      _visualToneStrength = 0;
+    }
+    _updateTextOpacity();
   }
 
   void _updateAnimation(double dt) {
@@ -651,8 +845,7 @@ class BattleSceneCombatantComponent extends PositionComponent {
           _visualOpacity = phase;
         }
       case _CombatantPresentationAnimation.shake:
-        final shake =
-            math.sin(progress * math.pi * 6) * _animationDistancePx;
+        final shake = math.sin(progress * math.pi * 6) * _animationDistancePx;
         _visualOffset = Offset(shake, 0);
         _visualOpacity = 1;
       case _CombatantPresentationAnimation.switchOut:
@@ -664,6 +857,19 @@ class BattleSceneCombatantComponent extends PositionComponent {
       case _CombatantPresentationAnimation.faint:
         _visualOffset = Offset(0, _animationDistancePx * progress);
         _visualOpacity = 1 - progress;
+      case _CombatantPresentationAnimation.compress:
+        final oscillation =
+            math.sin(progress * math.pi * _animationIterations).abs();
+        _visualScaleX = 1 + (_animationScaleDeltaX * oscillation);
+        _visualScaleY = 1 + (_animationScaleDeltaY * oscillation);
+        _visualOpacity = 1;
+      case _CombatantPresentationAnimation.ellipse:
+        final angle = progress * math.pi * 2 * _animationTurns;
+        _visualOffset = Offset(
+          math.sin(angle) * _animationRadiusX * (isPlayerSide ? 1 : -1),
+          math.sin(angle * 0.5) * _animationRadiusY,
+        );
+        _visualOpacity = 1;
     }
     _applyVisualPresentation();
     if (progress < 1) {
@@ -679,12 +885,20 @@ class BattleSceneCombatantComponent extends PositionComponent {
       case _CombatantPresentationAnimation.switchIn:
         _visualOffset = Offset.zero;
         _visualOpacity = 1;
+        _visualScaleX = 1;
+        _visualScaleY = 1;
       case _CombatantPresentationAnimation.switchOut:
         _visualOffset = _switchTravelOffset(progress: 1);
         _visualOpacity = 0;
       case _CombatantPresentationAnimation.faint:
         _visualOffset = Offset(0, _animationDistancePx);
         _visualOpacity = 0;
+      case _CombatantPresentationAnimation.compress:
+      case _CombatantPresentationAnimation.ellipse:
+        _visualOffset = Offset.zero;
+        _visualOpacity = 1;
+        _visualScaleX = 1;
+        _visualScaleY = 1;
     }
 
     _animation = _CombatantPresentationAnimation.none;
@@ -710,9 +924,10 @@ class BattleSceneCombatantComponent extends PositionComponent {
 
   void _applyVisualPresentation() {
     position = Vector2(
-      _basePosition.x + _visualOffset.dx,
-      _basePosition.y + _visualOffset.dy,
+      _basePosition.x + _visualOffset.dx + _sceneCameraOffset.x,
+      _basePosition.y + _visualOffset.dy + _sceneCameraOffset.y,
     );
+    scale = Vector2.all(_sceneCameraScale);
     _updateTextOpacity();
   }
 
@@ -742,10 +957,6 @@ class BattleSceneCombatantComponent extends PositionComponent {
   Color _applyOpacity(Color color) {
     return color.withValues(alpha: color.a * _visualOpacity);
   }
-
-  Color _applyOpacityWithValue(Color color, double opacity) {
-    return color.withValues(alpha: color.a * opacity);
-  }
 }
 
 enum _CombatantPresentationAnimation {
@@ -756,6 +967,8 @@ enum _CombatantPresentationAnimation {
   switchOut,
   switchIn,
   faint,
+  compress,
+  ellipse,
 }
 
 Rect _renderedSpriteRectFor({

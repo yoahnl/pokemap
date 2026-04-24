@@ -22,7 +22,8 @@ import 'package:map_runtime/src/presentation/flame/battle_scene_backdrop_compone
 import 'package:map_runtime/src/presentation/flame/battle_scene_combatant_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_hud_component.dart';
 import 'package:map_runtime/src/presentation/flame/battle_scene_layout.dart';
-import 'package:map_runtime/src/presentation/flame/battle_turn_presentation.dart';
+import 'package:map_runtime/src/presentation/flame/battle_fx_layer_component.dart';
+import 'package:map_runtime/src/presentation/flame/battle_rmxp_animation_component.dart';
 
 BattleStatsSnapshot _stats({
   int attack = 60,
@@ -64,6 +65,19 @@ BattleMoveData _tackle({
   );
 }
 
+BattleMoveData _runtimeStrike({
+  int power = 40,
+}) {
+  return BattleMoveData(
+    id: 'runtime_strike',
+    name: 'Tackle',
+    power: power,
+    type: 'normal',
+    category: BattleMoveCategory.physical,
+    target: BattleMoveTarget.opponent,
+  );
+}
+
 BattleMoveData _quickAttack({
   int power = 40,
 }) {
@@ -86,6 +100,32 @@ BattleMoveData _thunderbolt({
     power: power,
     type: 'electric',
     category: BattleMoveCategory.special,
+    target: BattleMoveTarget.opponent,
+  );
+}
+
+BattleMoveData _karateChop({
+  int power = 50,
+}) {
+  return BattleMoveData(
+    id: 'karatechop',
+    name: 'Karate Chop',
+    power: power,
+    type: 'fighting',
+    category: BattleMoveCategory.physical,
+    target: BattleMoveTarget.opponent,
+  );
+}
+
+BattleMoveData _megaPunch({
+  int power = 80,
+}) {
+  return BattleMoveData(
+    id: 'megapunch',
+    name: 'Mega Punch',
+    power: power,
+    type: 'normal',
+    category: BattleMoveCategory.physical,
     target: BattleMoveTarget.opponent,
   );
 }
@@ -828,6 +868,86 @@ void main() {
       expect(layout.playerSpriteRect.overlaps(layout.playerHudRect), isFalse);
     });
 
+    test('bounds RMXP screen animations above the command panel', () async {
+      final overlay = BattleOverlayComponent(
+        session: _session(
+          player: _combatant(
+            speciesId: 'mew',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+          enemy: _combatant(
+            speciesId: 'zapdos',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_tackle()],
+          ),
+        ),
+        viewportSize: Vector2(720, 960),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+
+      final rmxpViewport = overlay.currentRmxpAnimationViewportSize;
+      expect(
+        rmxpViewport.y,
+        closeTo(overlay.currentSceneLayout.commandPanelRect.top, 0.001),
+      );
+      expect(rmxpViewport.y, lessThan(overlay.size.y));
+      expect(
+        rmxpViewport.y,
+        lessThanOrEqualTo(overlay.currentSceneLayout.playerHudRect.bottom + 24),
+      );
+    });
+
+    test('passes the bounded battle viewport into RMXP playback', () async {
+      final initialSession = _session(
+        player: _combatant(
+          speciesId: 'mew',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_megaPunch()],
+        ),
+        enemy: _combatant(
+          speciesId: 'zapdos',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+      final overlay = BattleOverlayComponent(
+        session: initialSession,
+        viewportSize: Vector2(720, 960),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+      await overlay.waitForPendingVisualSync();
+
+      overlay.updateState(
+        initialSession.applyChoice(const PlayerBattleChoiceFight(0)),
+      );
+      await overlay.waitForPendingVisualSync();
+
+      final fxLayer =
+          overlay.children.whereType<BattleFxLayerComponent>().single;
+      for (var i = 0;
+          i < 12 &&
+              fxLayer.children
+                  .whereType<BattleRmxpAnimationComponent>()
+                  .isEmpty;
+          i++) {
+        overlay.updateTree(0.05);
+        await Future<void>.delayed(Duration.zero);
+      }
+
+      final rmxpComponent =
+          fxLayer.children.whereType<BattleRmxpAnimationComponent>().first;
+      expect(
+        rmxpComponent.sceneSize.y,
+        closeTo(overlay.currentRmxpAnimationViewportSize.y, 0.001),
+      );
+      expect(rmxpComponent.sceneSize.y, lessThan(overlay.size.y));
+    });
+
     test('keeps battler scale stable on wider landscape viewports', () async {
       Future<BattleSceneLayout> loadLayout(Vector2 viewportSize) async {
         final overlay = BattleOverlayComponent(
@@ -977,7 +1097,7 @@ void main() {
           lineupIndex: 0,
           currentHp: 40,
           stats: _stats(speed: 120, attack: 180),
-          moves: <BattleMoveData>[_tackle(power: 180)],
+          moves: <BattleMoveData>[_runtimeStrike(power: 180)],
         ),
         enemy: _combatant(
           speciesId: 'sparkitten',
@@ -2919,15 +3039,14 @@ void main() {
       expect(overlay.currentPlayerHudSpeciesText, equals('aquafi ♂'));
     });
 
-    test('plays a short turn presentation with flash and hp tween on damage',
-        () async {
+    test('plays a short turn presentation with hp tween on damage', () async {
       final session = _session(
         player: _combatant(
           speciesId: 'sproutle',
           lineupIndex: 0,
           currentHp: 40,
           stats: _stats(speed: 120, attack: 180),
-          moves: <BattleMoveData>[_tackle(power: 180)],
+          moves: <BattleMoveData>[_runtimeStrike(power: 180)],
         ),
         enemy: _combatant(
           speciesId: 'sparkitten',
@@ -2955,16 +3074,6 @@ void main() {
           .singleWhere((combatant) => !combatant.belongsToPlayerSide);
 
       final afterTurn = session.applyChoice(const PlayerBattleChoiceFight(0));
-      final currentTurn = afterTurn.state.currentTurn!;
-      final expectedSteps = buildBattleTurnPresentationSteps(
-        playerBefore: session.state.player,
-        enemyBefore: session.state.enemy,
-        turnResult: currentTurn,
-      );
-
-      expect(expectedSteps, isNotEmpty);
-      expect(expectedSteps.first.animatesDamage, isTrue);
-
       overlay.updateState(afterTurn);
       await overlay.waitForPendingVisualSync();
       final commandPanel =
@@ -2984,7 +3093,7 @@ void main() {
       overlay.updateTree(0.21);
       overlay.updateTree(0.02);
 
-      expect(initialEnemyCombatant.isHitFlashActive, isTrue);
+      expect(overlay.isTurnPresentationActive, isTrue);
       expect(initialEnemyHud.isHpAnimationActive, isFalse);
 
       overlay.updateTree(0.13);
@@ -3096,6 +3205,92 @@ void main() {
       }
 
       expect(overlay.activeBattleFxCount, greaterThan(0));
+    });
+
+    test('final sync restores a temporarily hidden living enemy', () async {
+      final initialSession = _session(
+        player: _combatant(
+          speciesId: 'mew',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_megaPunch()],
+        ),
+        enemy: _combatant(
+          speciesId: 'riolu',
+          lineupIndex: 0,
+          maxHp: 80,
+          currentHp: 12,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+      final overlay = BattleOverlayComponent(
+        session: initialSession,
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+      await overlay.waitForPendingVisualSync();
+
+      final enemyCombatant = overlay.children
+          .whereType<BattleSceneCombatantComponent>()
+          .firstWhere((component) => !component.belongsToPlayerSide);
+      enemyCombatant.setRmxpHidden(true);
+      expect(enemyCombatant.currentVisualOpacity, closeTo(0, 0.001));
+
+      overlay.updateState(initialSession);
+      await overlay.waitForPendingVisualSync();
+
+      expect(enemyCombatant.currentVisualOpacity, closeTo(1, 0.001));
+    });
+
+    test('SDK camera focus moves only the battle scene and resets after play',
+        () async {
+      final initialSession = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_karateChop()],
+        ),
+        enemy: _combatant(
+          speciesId: 'sparkitten',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_waitingMove()],
+        ),
+      );
+      final overlay = BattleOverlayComponent(
+        session: initialSession,
+        viewportSize: Vector2(960, 540),
+        onPlayerChoice: (_) {},
+      );
+
+      await overlay.onLoad();
+      await overlay.waitForPendingVisualSync();
+      final commandPanel = _panelFromOverlay(overlay);
+      final initialCommandPanelPosition = commandPanel.position.clone();
+
+      final afterTurn = initialSession.applyChoice(
+        const PlayerBattleChoiceFight(0),
+      );
+
+      overlay.updateState(afterTurn);
+      await overlay.waitForPendingVisualSync();
+      overlay.updateTree(0.42);
+
+      expect(overlay.isBattleCameraFocusActive, isTrue);
+      expect(overlay.battleCameraOffset.length, greaterThan(0));
+      expect(overlay.battleCameraScale, greaterThan(1));
+      expect(commandPanel.position, equals(initialCommandPanelPosition));
+
+      for (var i = 0; i < 24 && overlay.isTurnPresentationActive; i++) {
+        overlay.updateTree(0.25);
+        await Future<void>.delayed(Duration.zero);
+      }
+      await overlay.waitForPendingVisualSync();
+
+      expect(overlay.isBattleCameraFocusActive, isFalse);
+      expect(overlay.battleCameraOffset, equals(Vector2.zero()));
+      expect(overlay.battleCameraScale, equals(1));
+      expect(commandPanel.position, equals(initialCommandPanelPosition));
     });
 
     test('latest updateState wins when an older fx prewarm completes late',
