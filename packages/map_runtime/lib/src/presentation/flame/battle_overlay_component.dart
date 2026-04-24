@@ -374,6 +374,7 @@ String? _overlaySupportedMedicineLabel(String itemId) {
     'potion' => 'Potion',
     'super-potion' => 'Super Potion',
     'hyper-potion' => 'Hyper Potion',
+    'max-potion' => 'Max Potion',
     _ => null,
   };
 }
@@ -1769,10 +1770,10 @@ class BattleOverlayComponent extends PositionComponent {
       return false;
     }
 
-    // Lots 9-e / 9-f / 9-g gardent l'overlay strictement borné au shell de
+    // Lots 9-e à 9-h gardent l'overlay strictement borné au shell de
     // ciblage :
     // - le parent runtime commit le vrai tour pour `Potion`, `Super Potion`
-    //   et `Hyper Potion` ;
+    //   `Hyper Potion` et `Max Potion` ;
     // - l'overlay ne patche plus sa session localement ;
     // - cela évite de mentir sur l'ordre du tour et garde `PlayableMapGame`
     //   propriétaire unique du vrai BattleSession / GameState.

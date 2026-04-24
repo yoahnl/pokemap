@@ -122,10 +122,11 @@ class BattleActionRun extends BattleAction {
 
 /// Famille ultra-bornée d'objets de soin HP supportés en BAG battle.
 ///
-/// Lot 9-f factorise seulement ce qui devenait absurde à dupliquer :
+/// Lot 9-h factorise seulement ce qui devenait absurde à dupliquer :
 /// - `potion`
 /// - `super-potion`
 /// - `hyper-potion`
+/// - `max-potion`
 ///
 /// Garde-fous de frontière :
 /// - ce n'est pas un catalogue runtime d'objets ;
@@ -135,39 +136,90 @@ class BattleActionRun extends BattleAction {
 enum BattleBagHpHealItemKind {
   potion,
   superPotion,
-  hyperPotion;
+  hyperPotion,
+  maxPotion;
 
   String get itemId => switch (this) {
         BattleBagHpHealItemKind.potion => 'potion',
         BattleBagHpHealItemKind.superPotion => 'super-potion',
         BattleBagHpHealItemKind.hyperPotion => 'hyper-potion',
+        BattleBagHpHealItemKind.maxPotion => 'max-potion',
       };
 
   String get label => switch (this) {
         BattleBagHpHealItemKind.potion => 'Potion',
         BattleBagHpHealItemKind.superPotion => 'Super Potion',
         BattleBagHpHealItemKind.hyperPotion => 'Hyper Potion',
+        BattleBagHpHealItemKind.maxPotion => 'Max Potion',
       };
 }
 
-/// Utiliser un objet BAG de soin HP plat sur un membre du lineup joueur.
+/// Effet de soin HP porté par la mini-famille BAG battle.
+///
+/// Lot 9-h garde ce modèle minuscule pour une seule raison : `Max Potion`
+/// soigne jusqu'au maximum et ne doit pas être représentée comme un montant
+/// plat arbitraire.
+sealed class BattleBagHpHealEffect {
+  const BattleBagHpHealEffect();
+}
+
+/// Effet strictement plat pour `Potion`, `Super Potion` et `Hyper Potion`.
+///
+/// Le montant reste porté par l'action afin que la timeline battle décrive le
+/// tour réellement committé, sans relire un catalogue d'items depuis le moteur.
+final class BattleBagFlatHpHealEffect extends BattleBagHpHealEffect {
+  const BattleBagFlatHpHealEffect(this.amount)
+      : assert(amount > 0, 'Flat HP-heal item amount must stay positive.');
+
+  final int amount;
+}
+
+/// Effet spécifique à `Max Potion` : restaurer la cible à ses PV maximum.
+///
+/// Ce type existe pour éviter le faux raccourci `healAmount: 999` ou
+/// `healAmount: maxHp`. L'amount vraiment rendu reste calculé au moment de la
+/// résolution via `hpAfter - hpBefore`.
+final class BattleBagRestoreToFullHpHealEffect extends BattleBagHpHealEffect {
+  const BattleBagRestoreToFullHpHealEffect();
+}
+
+/// Utiliser un objet BAG de soin HP sur un membre du lineup joueur.
 ///
 /// Cette action reste volontairement très étroite :
-/// - elle couvre seulement `Potion` + `Super Potion` + `Hyper Potion` ;
+/// - elle couvre seulement `Potion` + `Super Potion` + `Hyper Potion` +
+///   `Max Potion` ;
 /// - elle ne lit jamais le bag ;
 /// - elle n'ouvre pas un système générique d'items battle ;
-/// - elle existe uniquement pour rendre ces trois objets honnêtes comme vraies
+/// - elle existe uniquement pour rendre ces objets honnêtes comme vraies
 ///   actions de tour committées et visibles dans la timeline.
 class BattleActionBagHpHealItemUse extends BattleAction {
   const BattleActionBagHpHealItemUse({
     required this.itemKind,
     required this.targetLineupIndex,
-    required this.healAmount,
-  }) : assert(healAmount > 0, 'HP-heal item healAmount must stay positive.');
+    this.healAmount,
+    this.effect,
+  })  : assert(
+          (healAmount == null) != (effect == null),
+          'Provide exactly one of healAmount or effect.',
+        ),
+        assert(
+          healAmount == null || healAmount > 0,
+          'HP-heal item healAmount must stay positive.',
+        ),
+        assert(
+          itemKind != BattleBagHpHealItemKind.maxPotion ||
+              effect is BattleBagRestoreToFullHpHealEffect,
+          'Max Potion must use a restore-to-full HP heal effect.',
+        ),
+        assert(
+          itemKind == BattleBagHpHealItemKind.maxPotion ||
+              effect is! BattleBagRestoreToFullHpHealEffect,
+          'Restore-to-full HP heal effect is reserved for Max Potion.',
+        );
 
   /// L'objet précis réellement utilisé.
   ///
-  /// Le `kind` reste borné à trois cas, ce qui évite de transporter un
+  /// Le `kind` reste borné à quatre cas, ce qui évite de transporter un
   /// `itemId` stringly-typed arbitraire dans le moteur.
   final BattleBagHpHealItemKind itemKind;
 
@@ -177,11 +229,26 @@ class BattleActionBagHpHealItemUse extends BattleAction {
   /// tout couplage fragile à un index visuel d'overlay ou à un slot save.
   final int targetLineupIndex;
 
-  /// Quantité de soin plate réellement portée par cette action.
+  /// Ancienne forme plate conservée pour les objets à montant fixe.
+  ///
+  /// Ce champ reste nullable pour préserver le constructeur `const` historique
+  /// utilisé par quelques tests et fixtures. Les consommateurs du moteur
+  /// doivent utiliser [resolvedEffect] afin de ne pas confondre `Max Potion`
+  /// avec un montant plat.
+  final int? healAmount;
+
+  /// Effet de soin explicitement porté par cette action.
   ///
   /// Le runtime décide encore si l'objet est disponible dans le bag ;
   /// le moteur ne consomme ici que l'effet déjà autorisé.
-  final int healAmount;
+  final BattleBagHpHealEffect? effect;
+
+  /// Effet normalisé utilisé par le scheduler et la résolution.
+  ///
+  /// Le getter garde la compatibilité avec le `healAmount` historique sans
+  /// réintroduire ce concept dans `Max Potion`.
+  BattleBagHpHealEffect get resolvedEffect =>
+      effect ?? BattleBagFlatHpHealEffect(healAmount!);
 }
 
 /// Perdre honnêtement son tour à cause d'une recharge forcée.

@@ -4117,11 +4117,11 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
     _isBattleResolving = true;
     try {
-      // Lots 9-e / 9-f / 9-g gardent `PlayableMapGame` comme propriétaire honnête
+      // Lots 9-e à 9-h gardent `PlayableMapGame` comme propriétaire honnête
       // du runtime autour du moteur battle :
       // - le moteur battle produit un `currentTurn` et une timeline honnêtes ;
       // - le runtime reste propriétaire du bag réel et du write-back party ;
-      // - on reste borné à `Potion` + `Super Potion` + `Hyper Potion`,
+      // - on reste borné à `Potion` + `Super Potion` + `Hyper Potion` + `Max Potion`,
       //   sans API item générique.
       final result = switch (action.itemId) {
         'potion' => tryApplyRuntimeBattlePotionUse(
@@ -4137,6 +4137,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
             targetLineupIndex: entry.lineupIndex,
           ),
         'hyper-potion' => tryApplyRuntimeBattleHyperPotionUse(
+            session: battleSession,
+            gameState: _gameState,
+            context: activeBattleContext,
+            targetLineupIndex: entry.lineupIndex,
+          ),
+        'max-potion' => tryApplyRuntimeBattleMaxPotionUse(
             session: battleSession,
             gameState: _gameState,
             context: activeBattleContext,

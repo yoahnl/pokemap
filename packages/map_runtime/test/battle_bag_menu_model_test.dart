@@ -503,6 +503,60 @@ void main() {
       );
     });
 
+    test(
+        'supported max potion is selectable in a free turn and opens a medicine target action',
+        () {
+      final session = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_move(id: 'tackle', name: 'Tackle')],
+        ),
+        enemy: _combatant(
+          speciesId: 'wildmon',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_move(id: 'scratch', name: 'Scratch')],
+        ),
+        allowCapture: true,
+      );
+
+      final model = buildBattleBagMenuModel(
+        gameState: _gameState(
+          bag: Bag(
+            entries: <BagEntry>[
+              _entry(
+                itemId: 'max-potion',
+                categoryId: 'medicine',
+                quantity: 3,
+              ),
+            ],
+          ),
+        ),
+        session: session,
+      );
+
+      final entry = model.entries.single;
+      expect(entry.kind, equals(BattleBagItemKind.medicine));
+      expect(entry.quantity, equals(3));
+      expect(entry.isSelectable, isTrue);
+      expect(entry.disabledReason, isNull);
+      expect(
+        entry.action,
+        isA<BattleBagMenuActionMedicineTarget>()
+            .having(
+              (action) => action.itemId,
+              'itemId',
+              equals('max-potion'),
+            )
+            .having(
+              (action) => action.categoryId,
+              'categoryId',
+              equals('medicine'),
+            )
+            .having((action) => action.quantity, 'quantity', equals(3)),
+      );
+    });
+
     test('groups battle bag entries by category for display order', () {
       final session = _session(
         player: _combatant(
@@ -529,6 +583,11 @@ void main() {
                 categoryId: 'medicine',
                 quantity: 1,
               ),
+              _entry(
+                itemId: 'max-potion',
+                categoryId: 'medicine',
+                quantity: 1,
+              ),
               _entry(itemId: 'x-attack', categoryId: 'items', quantity: 1),
             ],
           ),
@@ -538,12 +597,19 @@ void main() {
 
       expect(
         model.entries.map((entry) => entry.itemId),
-        <String>['poke-ball', 'potion', 'super-potion', 'x-attack'],
+        <String>[
+          'poke-ball',
+          'max-potion',
+          'potion',
+          'super-potion',
+          'x-attack',
+        ],
       );
       expect(
         model.entries.map((entry) => entry.kind),
         <BattleBagItemKind>[
           BattleBagItemKind.captureBall,
+          BattleBagItemKind.medicine,
           BattleBagItemKind.medicine,
           BattleBagItemKind.medicine,
           BattleBagItemKind.unsupported,

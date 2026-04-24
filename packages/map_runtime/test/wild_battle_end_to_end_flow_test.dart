@@ -859,6 +859,124 @@ void main() {
       expect(game.gameStateSnapshot.bag.entries, isEmpty);
     });
 
+    test('battle BAG max potion use persists to PlayableMapGame state',
+        () async {
+      final manifest = await _writeProjectManifest(tempProjectRoot);
+      final map = _buildMap();
+      final world = GameplayWorldState.fromMap(
+        map,
+        project: manifest,
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+      final movedWorld = stepGameplayWorld(
+        world,
+        const MoveIntent(Direction.east),
+      ).world;
+      final encounter = checkEncounterAtPlayerPosition(
+        world: movedWorld,
+        project: manifest,
+        encounterKind: EncounterKind.walk,
+        random: _FixedEncounterRandom(
+          nextDoubleValues: const <double>[0.0],
+          nextIntValues: const <int>[0, 0],
+        ),
+        policy: const GameplayEncounterPolicy(chancePerStep: 1),
+      ).encounter!;
+      final request = buildBattleStartRequestFromEncounter(
+        encounter: encounter,
+        world: movedWorld,
+        createdAtEpochMs: 1,
+      );
+
+      const initialState = GameState(
+        saveId: 'wild-flow-max-potion-save',
+        bag: Bag(
+          entries: <BagEntry>[
+            BagEntry(
+              itemId: 'max-potion',
+              categoryId: 'medicine',
+              quantity: 1,
+            ),
+          ],
+        ),
+        party: PlayerParty(
+          members: <PlayerPokemon>[
+            PlayerPokemon(
+              speciesId: 'sproutle',
+              natureId: 'bold',
+              abilityId: 'overgrow',
+              level: 10,
+              knownMoveIds: <String>['vine_whip'],
+              currentHp: 12,
+            ),
+          ],
+        ),
+      );
+
+      final game = PlayableMapGame(
+        bundle: _buildBundle(tempProjectRoot.path, manifest, map),
+        projectFilePath: p.join(tempProjectRoot.path, 'project.json'),
+        saveData: saveDataFromGameState(initialState),
+      );
+      game.onGameResize(Vector2(640, 480));
+      await game.onLoad();
+
+      await game.debugOpenBattleForTest(request);
+      await game.debugWaitForBattleOverlaySync();
+
+      final overlay = game.debugBattleOverlayComponent;
+      expect(overlay, isNotNull);
+      expect(game.debugBattleSessionSnapshot, isNotNull);
+      final initialBattleMaxHp =
+          game.debugBattleSessionSnapshot!.state.player.maxHp;
+
+      overlay!.moveSelectionRight();
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bag);
+      expect(overlay.validateSelectedChoice(), isTrue);
+      expect(overlay.currentMenuMode, BattleCommandMenuMode.bagMedicineTarget);
+      expect(overlay.validateSelectedChoice(), isTrue);
+      await game.debugWaitForBattleOverlaySync();
+
+      expect(game.debugFlowPhaseName, equals('battle'));
+      expect(game.debugBattleSessionSnapshot, isNotNull);
+      final currentTurn = game.debugBattleSessionSnapshot!.state.currentTurn;
+      expect(currentTurn, isNotNull);
+      expect(
+        currentTurn!.playerAction,
+        isA<BattleActionBagHpHealItemUse>()
+            .having(
+              (action) => action.itemKind,
+              'itemKind',
+              equals(BattleBagHpHealItemKind.maxPotion),
+            )
+            .having(
+              (action) => action.effect,
+              'effect',
+              isA<BattleBagRestoreToFullHpHealEffect>(),
+            ),
+      );
+      expect(currentTurn.bagHpHealItemEvents, hasLength(1));
+      expect(
+        currentTurn.bagHpHealItemEvents.single.itemKind,
+        equals(BattleBagHpHealItemKind.maxPotion),
+      );
+      expect(
+        currentTurn.bagHpHealItemEvents.single.hpAfter,
+        equals(initialBattleMaxHp),
+      );
+      expect(
+        game.debugBattleSessionSnapshot!.state.player.currentHp,
+        lessThanOrEqualTo(initialBattleMaxHp),
+      );
+      expect(
+        game.gameStateSnapshot.party.members.first.currentHp,
+        equals(game.debugBattleSessionSnapshot!.state.player.currentHp),
+      );
+      expect(game.gameStateSnapshot.bag.entries, isEmpty);
+    });
+
     test('battle end keeps the overlay mounted until final narration finishes',
         () async {
       final manifest = await _writeProjectManifest(tempProjectRoot);

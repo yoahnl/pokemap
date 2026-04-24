@@ -28,12 +28,12 @@ class RuntimeBattleBagHpHealItemApplyResult {
 
 /// Runtime owner du mini-slice BAG HP-heal battle.
 ///
-/// Le renommage devient utile au lot 9-g :
-/// - avec `Potion` + `Super Potion` + `Hyper Potion`, le nom historique
-///   `runtime_battle_potion_apply.dart` devient trop mensonger ;
+/// Le renommage reste utile au lot 9-h :
+/// - avec `Potion` + `Super Potion` + `Hyper Potion` + `Max Potion`, le nom
+///   historique `runtime_battle_potion_apply.dart` serait trop mensonger ;
 /// - le blast radius reste raisonnable car ce seam n'est importé qu'en
 ///   interne par le runtime et ses tests ;
-/// - on reste malgré tout strictement borné à trois objets, pas à une famille
+/// - on reste malgré tout strictement borné à quatre objets, pas à une famille
 ///   ouverte de medicines.
 RuntimeBattleBagHpHealItemApplyResult? tryApplyRuntimeBattlePotionUse({
   required BattleSession session,
@@ -91,6 +91,25 @@ RuntimeBattleBagHpHealItemApplyResult? tryApplyRuntimeBattleHyperPotionUse({
   );
 }
 
+/// Support explicite ajouté par le lot 9-h.
+///
+/// `Max Potion` partage le même mini-slice BAG HP-heal, mais son effet reste
+/// "restore-to-full" et non un montant plat codé côté runtime.
+RuntimeBattleBagHpHealItemApplyResult? tryApplyRuntimeBattleMaxPotionUse({
+  required BattleSession session,
+  required GameState gameState,
+  required RuntimeActiveBattleContext context,
+  required int targetLineupIndex,
+}) {
+  return _tryApplyRuntimeBattleBagHpHealItemUse(
+    session: session,
+    gameState: gameState,
+    context: context,
+    itemSpec: _runtimeItemSpec(BattleBagHpHealItemKind.maxPotion),
+    targetLineupIndex: targetLineupIndex,
+  );
+}
+
 RuntimeBattleBagHpHealItemApplyResult? _tryApplyRuntimeBattleBagHpHealItemUse({
   required BattleSession session,
   required GameState gameState,
@@ -119,7 +138,14 @@ RuntimeBattleBagHpHealItemApplyResult? _tryApplyRuntimeBattleBagHpHealItemUse({
     return null;
   }
 
-  final healedCombatant = targetCombatant.withHeal(itemSpec.healAmount);
+  final healedCombatant = switch (itemSpec.effect) {
+    BattleBagFlatHpHealEffect(:final amount) => targetCombatant.withHeal(
+        amount,
+      ),
+    BattleBagRestoreToFullHpHealEffect() => targetCombatant.withHeal(
+        targetCombatant.maxHp - targetCombatant.currentHp,
+      ),
+  };
   final healedAmount = healedCombatant.currentHp - targetCombatant.currentHp;
   if (healedAmount <= 0) {
     return null;
@@ -128,15 +154,18 @@ RuntimeBattleBagHpHealItemApplyResult? _tryApplyRuntimeBattleBagHpHealItemUse({
   final updatedSession = switch (itemSpec.kind) {
     BattleBagHpHealItemKind.potion => session.applyPotionTurn(
         targetLineupIndex: targetLineupIndex,
-        healAmount: itemSpec.healAmount,
+        healAmount: (itemSpec.effect as BattleBagFlatHpHealEffect).amount,
       ),
     BattleBagHpHealItemKind.superPotion => session.applySuperPotionTurn(
         targetLineupIndex: targetLineupIndex,
-        healAmount: itemSpec.healAmount,
+        healAmount: (itemSpec.effect as BattleBagFlatHpHealEffect).amount,
       ),
     BattleBagHpHealItemKind.hyperPotion => session.applyHyperPotionTurn(
         targetLineupIndex: targetLineupIndex,
-        healAmount: itemSpec.healAmount,
+        healAmount: (itemSpec.effect as BattleBagFlatHpHealEffect).amount,
+      ),
+    BattleBagHpHealItemKind.maxPotion => session.applyMaxPotionTurn(
+        targetLineupIndex: targetLineupIndex,
       ),
   };
   final updatedGameState = _applyCommittedBagHpHealItemTurnToRuntimeState(
@@ -172,7 +201,7 @@ BattleCombatant? _findPlayerCombatantByLineupIndex({
   return null;
 }
 
-// Le fil 9-d -> 9-g garde le runtime propriétaire de la vérité hors moteur :
+// Le fil 9-d -> 9-h garde le runtime propriétaire de la vérité hors moteur :
 // - write-back réel de toute la lineup engagée ;
 // - consommation réelle du bon item de bag ;
 // - aucune divergence overlay-only.
@@ -252,21 +281,27 @@ _RuntimeBattleBagHpHealItemSpec _runtimeItemSpec(
         kind: BattleBagHpHealItemKind.potion,
         itemId: 'potion',
         label: 'Potion',
-        healAmount: _runtimeBattlePotionHealAmount,
+        effect: BattleBagFlatHpHealEffect(_runtimeBattlePotionHealAmount),
       ),
     BattleBagHpHealItemKind.superPotion =>
       const _RuntimeBattleBagHpHealItemSpec(
         kind: BattleBagHpHealItemKind.superPotion,
         itemId: 'super-potion',
         label: 'Super Potion',
-        healAmount: _runtimeBattleSuperPotionHealAmount,
+        effect: BattleBagFlatHpHealEffect(_runtimeBattleSuperPotionHealAmount),
       ),
     BattleBagHpHealItemKind.hyperPotion =>
       const _RuntimeBattleBagHpHealItemSpec(
         kind: BattleBagHpHealItemKind.hyperPotion,
         itemId: 'hyper-potion',
         label: 'Hyper Potion',
-        healAmount: _runtimeBattleHyperPotionHealAmount,
+        effect: BattleBagFlatHpHealEffect(_runtimeBattleHyperPotionHealAmount),
+      ),
+    BattleBagHpHealItemKind.maxPotion => const _RuntimeBattleBagHpHealItemSpec(
+        kind: BattleBagHpHealItemKind.maxPotion,
+        itemId: 'max-potion',
+        label: 'Max Potion',
+        effect: BattleBagRestoreToFullHpHealEffect(),
       ),
   };
 }
@@ -276,11 +311,11 @@ class _RuntimeBattleBagHpHealItemSpec {
     required this.kind,
     required this.itemId,
     required this.label,
-    required this.healAmount,
+    required this.effect,
   });
 
   final BattleBagHpHealItemKind kind;
   final String itemId;
   final String label;
-  final int healAmount;
+  final BattleBagHpHealEffect effect;
 }

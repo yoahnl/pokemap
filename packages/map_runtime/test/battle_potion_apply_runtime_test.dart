@@ -449,6 +449,145 @@ void main() {
     });
 
     test(
+        'max potion heals a damaged active target to max hp and consumes only max potion',
+        () {
+      final result = tryApplyRuntimeBattleMaxPotionUse(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            currentHp: 12,
+            maxHp: 260,
+            moves: <BattleMoveData>[_move(id: 'tackle', name: 'Tackle')],
+          ),
+          enemy: _combatant(
+            speciesId: 'enemy',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_move(id: 'wait', name: 'Wait', power: 0)],
+          ),
+        ),
+        gameState: _gameState(
+          bag: const Bag(
+            entries: <BagEntry>[
+              BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+              BagEntry(
+                itemId: 'super-potion',
+                categoryId: 'medicine',
+                quantity: 2,
+              ),
+              BagEntry(
+                itemId: 'hyper-potion',
+                categoryId: 'medicine',
+                quantity: 2,
+              ),
+              BagEntry(
+                itemId: 'max-potion',
+                categoryId: 'medicine',
+                quantity: 2,
+              ),
+            ],
+          ),
+          partyMembers: <PlayerPokemon>[
+            _partyMember(speciesId: 'sproutle', currentHp: 12, level: 10),
+          ],
+        ),
+        context: _context(
+          playerPartyIndex: 0,
+          lineupPartyIndices: const <int>[0],
+        ),
+        targetLineupIndex: 0,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.healedAmount, equals(248));
+      expect(
+        result.updatedSession.state.currentTurn!.playerAction,
+        isA<BattleActionBagHpHealItemUse>()
+            .having(
+              (action) => action.itemKind,
+              'itemKind',
+              equals(BattleBagHpHealItemKind.maxPotion),
+            )
+            .having(
+              (action) => action.effect,
+              'effect',
+              isA<BattleBagRestoreToFullHpHealEffect>(),
+            ),
+      );
+      expect(result.updatedSession.state.player.currentHp, equals(260));
+      expect(
+          result.updatedGameState.party.members.first.currentHp, equals(260));
+      expect(
+        result.updatedGameState.bag.entries,
+        const Bag(
+          entries: <BagEntry>[
+            BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 2),
+            BagEntry(
+              itemId: 'super-potion',
+              categoryId: 'medicine',
+              quantity: 2,
+            ),
+            BagEntry(
+              itemId: 'hyper-potion',
+              categoryId: 'medicine',
+              quantity: 2,
+            ),
+            BagEntry(
+              itemId: 'max-potion',
+              categoryId: 'medicine',
+              quantity: 1,
+            ),
+          ],
+        ).normalized().entries,
+      );
+    });
+
+    test('max potion removes the bag entry when quantity reaches zero', () {
+      final result = tryApplyRuntimeBattleMaxPotionUse(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            currentHp: 190,
+            maxHp: 260,
+            moves: <BattleMoveData>[_move(id: 'tackle', name: 'Tackle')],
+          ),
+          enemy: _combatant(
+            speciesId: 'enemy',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_move(id: 'wait', name: 'Wait', power: 0)],
+          ),
+        ),
+        gameState: _gameState(
+          bag: const Bag(
+            entries: <BagEntry>[
+              BagEntry(
+                itemId: 'max-potion',
+                categoryId: 'medicine',
+                quantity: 1,
+              ),
+            ],
+          ),
+          partyMembers: <PlayerPokemon>[
+            _partyMember(speciesId: 'sproutle', currentHp: 190),
+          ],
+        ),
+        context: _context(
+          playerPartyIndex: 0,
+          lineupPartyIndices: const <int>[0],
+        ),
+        targetLineupIndex: 0,
+      );
+
+      expect(result, isNotNull);
+      expect(result!.healedAmount, equals(70));
+      expect(result.updatedSession.state.player.currentHp, equals(260));
+      expect(
+          result.updatedGameState.party.members.first.currentHp, equals(260));
+      expect(result.updatedGameState.bag.entries, isEmpty);
+    });
+
+    test(
         'potion use removes the bag entry when quantity reaches zero and targets the intended reserve by lineup identity',
         () {
       final result = tryApplyRuntimeBattlePotionUse(
@@ -577,6 +716,90 @@ void main() {
 
       expect(
         tryApplyRuntimeBattlePotionUse(
+          session: faintedSession,
+          gameState: faintedState,
+          context: _context(
+            playerPartyIndex: 0,
+            lineupPartyIndices: const <int>[0],
+          ),
+          targetLineupIndex: 0,
+        ),
+        isNull,
+      );
+      expect(faintedSession.state.player.currentHp, equals(0));
+      expect(faintedState.party.members.first.currentHp, equals(0));
+      expect(faintedState.bag.entries.single.quantity, equals(1));
+    });
+
+    test('max potion use does not affect a full hp or fainted target', () {
+      final fullHpState = _gameState(
+        bag: const Bag(
+          entries: <BagEntry>[
+            BagEntry(itemId: 'max-potion', categoryId: 'medicine', quantity: 1),
+          ],
+        ),
+        partyMembers: <PlayerPokemon>[
+          _partyMember(speciesId: 'sproutle', currentHp: 40),
+        ],
+      );
+      final fullHpSession = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          currentHp: 40,
+          maxHp: 40,
+          moves: <BattleMoveData>[_move(id: 'tackle', name: 'Tackle')],
+        ),
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_move(id: 'wait', name: 'Wait', power: 0)],
+        ),
+      );
+
+      expect(
+        tryApplyRuntimeBattleMaxPotionUse(
+          session: fullHpSession,
+          gameState: fullHpState,
+          context: _context(
+            playerPartyIndex: 0,
+            lineupPartyIndices: const <int>[0],
+          ),
+          targetLineupIndex: 0,
+        ),
+        isNull,
+      );
+      expect(fullHpSession.state.player.currentHp, equals(40));
+      expect(fullHpState.party.members.first.currentHp, equals(40));
+      expect(fullHpState.bag.entries.single.quantity, equals(1));
+
+      final faintedState = _gameState(
+        bag: const Bag(
+          entries: <BagEntry>[
+            BagEntry(itemId: 'max-potion', categoryId: 'medicine', quantity: 1),
+          ],
+        ),
+        partyMembers: <PlayerPokemon>[
+          _partyMember(speciesId: 'sproutle', currentHp: 0),
+        ],
+      );
+      final faintedSession = _session(
+        player: _combatant(
+          speciesId: 'sproutle',
+          lineupIndex: 0,
+          currentHp: 0,
+          maxHp: 40,
+          moves: <BattleMoveData>[_move(id: 'tackle', name: 'Tackle')],
+        ),
+        enemy: _combatant(
+          speciesId: 'enemy',
+          lineupIndex: 0,
+          moves: <BattleMoveData>[_move(id: 'wait', name: 'Wait', power: 0)],
+        ),
+      );
+
+      expect(
+        tryApplyRuntimeBattleMaxPotionUse(
           session: faintedSession,
           gameState: faintedState,
           context: _context(

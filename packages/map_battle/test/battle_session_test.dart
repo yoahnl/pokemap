@@ -1222,5 +1222,232 @@ void main() {
         isA<BattleTurnExecutionEvent>(),
       );
     });
+
+    test(
+        'applyMaxPotionTurn commits a real turn and records a max potion timeline event',
+        () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: const BattleCombatantData(
+            speciesId: 'sproutle',
+            level: 10,
+            maxHp: 260,
+            currentHp: 12,
+            lineupIndex: 0,
+            stats: _neutralBattleStats,
+            moves: <BattleMoveData>[
+              BattleMoveData(id: 'tackle', name: 'Tackle', power: 40),
+            ],
+          ),
+          enemyPokemon: const BattleCombatantData(
+            speciesId: 'sparkitten',
+            level: 10,
+            maxHp: 40,
+            lineupIndex: 0,
+            stats: _neutralBattleStats,
+            moves: <BattleMoveData>[
+              BattleMoveData(
+                id: 'wait',
+                name: 'Wait',
+                power: 0,
+                category: BattleMoveCategory.status,
+                target: BattleMoveTarget.self,
+                accuracy: BattleMoveAccuracy.alwaysHits(),
+              ),
+            ],
+          ),
+          isTrainerBattle: true,
+          trainerId: 'trainer_1',
+        ),
+      );
+
+      final updatedSession = session.applyMaxPotionTurn(
+        targetLineupIndex: 0,
+      );
+
+      expect(updatedSession.state.currentTurn, isNotNull);
+      expect(updatedSession.state.player.currentHp, equals(260));
+      expect(
+        updatedSession.state.currentTurn!.playerAction,
+        isA<BattleActionBagHpHealItemUse>()
+            .having(
+              (action) => action.itemKind,
+              'itemKind',
+              equals(BattleBagHpHealItemKind.maxPotion),
+            )
+            .having(
+              (action) => action.effect,
+              'effect',
+              isA<BattleBagRestoreToFullHpHealEffect>(),
+            ),
+      );
+      expect(
+        updatedSession.state.currentTurn!.enemyAction,
+        isA<BattleActionFight>(),
+      );
+      expect(
+        updatedSession.state.currentTurn!.bagHpHealItemEvents,
+        hasLength(1),
+      );
+      expect(
+        updatedSession.state.currentTurn!.bagHpHealItemEvents.single.itemKind,
+        equals(BattleBagHpHealItemKind.maxPotion),
+      );
+      expect(
+        updatedSession
+            .state.currentTurn!.bagHpHealItemEvents.single.healedAmount,
+        equals(248),
+      );
+      expect(
+        updatedSession.state.currentTurn!.timeline.first,
+        isA<BattleTurnBagHpHealItemEvent>(),
+      );
+      expect(
+        updatedSession.state.currentTurn!.timeline.last,
+        isA<BattleTurnExecutionEvent>(),
+      );
+    });
+
+    test(
+        'applyMaxPotionTurn rejects invalid targets instead of faking a committed item turn',
+        () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: const BattleCombatantData(
+            speciesId: 'sproutle',
+            level: 10,
+            maxHp: 40,
+            currentHp: 40,
+            lineupIndex: 0,
+            stats: _neutralBattleStats,
+            moves: <BattleMoveData>[
+              BattleMoveData(id: 'tackle', name: 'Tackle', power: 40),
+            ],
+          ),
+          playerReservePokemon: const <BattleCombatantData>[
+            BattleCombatantData(
+              speciesId: 'benchmate',
+              level: 10,
+              maxHp: 35,
+              currentHp: 0,
+              lineupIndex: 1,
+              stats: _neutralBattleStats,
+              moves: <BattleMoveData>[
+                BattleMoveData(id: 'wait', name: 'Wait', power: 0),
+              ],
+            ),
+          ],
+          enemyPokemon: const BattleCombatantData(
+            speciesId: 'sparkitten',
+            level: 10,
+            maxHp: 40,
+            lineupIndex: 0,
+            stats: _neutralBattleStats,
+            moves: <BattleMoveData>[
+              BattleMoveData(id: 'wait', name: 'Wait', power: 0),
+            ],
+          ),
+          isTrainerBattle: true,
+          trainerId: 'trainer_1',
+        ),
+      );
+
+      expect(
+        () => session.applyMaxPotionTurn(targetLineupIndex: 0),
+        throwsA(isA<StateError>()),
+      );
+      expect(
+        () => session.applyMaxPotionTurn(targetLineupIndex: 1),
+        throwsA(isA<StateError>()),
+      );
+      expect(session.state.currentTurn, isNull);
+      expect(session.state.player.currentHp, equals(40));
+      expect(session.state.playerReserve.single.currentHp, equals(0));
+    });
+
+    test(
+        'BattleActionBagHpHealItemUse keeps restore-to-full semantics reserved for max potion',
+        () {
+      expect(
+        () => BattleActionBagHpHealItemUse(
+          itemKind: BattleBagHpHealItemKind.potion,
+          targetLineupIndex: 0,
+          effect: const BattleBagRestoreToFullHpHealEffect(),
+        ),
+        throwsA(isA<AssertionError>()),
+      );
+      expect(
+        () => BattleActionBagHpHealItemUse(
+          itemKind: BattleBagHpHealItemKind.maxPotion,
+          targetLineupIndex: 0,
+          healAmount: 200,
+        ),
+        throwsA(isA<AssertionError>()),
+      );
+      expect(
+        const BattleActionBagHpHealItemUse(
+          itemKind: BattleBagHpHealItemKind.maxPotion,
+          targetLineupIndex: 0,
+          effect: BattleBagRestoreToFullHpHealEffect(),
+        ).effect,
+        isA<BattleBagRestoreToFullHpHealEffect>(),
+      );
+    });
+
+    test(
+        'flat bag hp heal facades reject non-positive amounts before committing a turn',
+        () {
+      final session = createBattleSession(
+        BattleSetup(
+          playerPokemon: const BattleCombatantData(
+            speciesId: 'sproutle',
+            level: 10,
+            maxHp: 80,
+            currentHp: 20,
+            lineupIndex: 0,
+            stats: _neutralBattleStats,
+            moves: <BattleMoveData>[
+              BattleMoveData(id: 'tackle', name: 'Tackle', power: 40),
+            ],
+          ),
+          enemyPokemon: const BattleCombatantData(
+            speciesId: 'sparkitten',
+            level: 10,
+            maxHp: 40,
+            lineupIndex: 0,
+            stats: _neutralBattleStats,
+            moves: <BattleMoveData>[
+              BattleMoveData(id: 'wait', name: 'Wait', power: 0),
+            ],
+          ),
+          isTrainerBattle: true,
+          trainerId: 'trainer_1',
+        ),
+      );
+
+      expect(
+        () => session.applyPotionTurn(
+          targetLineupIndex: 0,
+          healAmount: 0,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => session.applySuperPotionTurn(
+          targetLineupIndex: 0,
+          healAmount: -1,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => session.applyHyperPotionTurn(
+          targetLineupIndex: 0,
+          healAmount: 0,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(session.state.currentTurn, isNull);
+      expect(session.state.player.currentHp, equals(20));
+    });
   });
 }

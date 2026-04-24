@@ -1670,6 +1670,7 @@ _BattleBagItemIconKind _bagItemIconKind(String itemId) {
     'potion' => _BattleBagItemIconKind.potion,
     'super-potion' => _BattleBagItemIconKind.superPotion,
     'hyper-potion' => _BattleBagItemIconKind.hyperPotion,
+    'max-potion' => _BattleBagItemIconKind.maxPotion,
     _ => _BattleBagItemIconKind.unsupported,
   };
 }
@@ -1740,6 +1741,14 @@ void _paintBagItemIcon(
         rect: rect,
         liquidColor: const Color(0xFFB574F1),
         capColor: const Color(0xFFF0B96C),
+        enabled: enabled,
+      );
+    case _BattleBagItemIconKind.maxPotion:
+      _paintBottleIcon(
+        canvas,
+        rect: rect,
+        liquidColor: const Color(0xFFFFD15C),
+        capColor: const Color(0xFF7BCF84),
         enabled: enabled,
       );
     case _BattleBagItemIconKind.unsupported:
@@ -2969,5 +2978,6 @@ enum _BattleBagItemIconKind {
   potion,
   superPotion,
   hyperPotion,
+  maxPotion,
   unsupported,
 }

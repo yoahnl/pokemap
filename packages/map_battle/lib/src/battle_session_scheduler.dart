@@ -450,11 +450,11 @@ void _executeActionQueueStep({
       case BattleActionBagHpHealItemUse(
         :final itemKind,
         :final targetLineupIndex,
-        :final healAmount,
+        :final resolvedEffect,
       )) {
     if (step.side != BattleSideId.player) {
       throw StateError(
-        'BattleActionBagHpHealItemUse reste player-only dans le lot 9-f.',
+        'BattleActionBagHpHealItemUse reste player-only dans le lot 9-h.',
       );
     }
 
@@ -462,7 +462,7 @@ void _executeActionQueueStep({
       itemKind: itemKind,
       side: actingSide,
       targetLineupIndex: targetLineupIndex,
-      healAmount: healAmount,
+      effect: resolvedEffect,
     );
     turn.updateSide(step.side, resolution.side);
     turn.bagHpHealItemEvents.add(resolution.event);
@@ -815,8 +815,8 @@ int _priorityForResolvedAction(BattleAction action) {
     // - cela ne prétend toujours pas modéliser la taxonomie Showdown complète
     //   des priorités de switch.
     //
-    // Lots 9-e / 9-f / 9-g ajoutent un seul micro-slice d'objets :
-    // - `Potion`, `Super Potion` et `Hyper Potion` deviennent de vraies
+    // Lots 9-e à 9-h ajoutent un seul micro-slice d'objets :
+    // - `Potion`, `Super Potion`, `Hyper Potion` et `Max Potion` deviennent de vraies
     //   actions de tour ;
     // - elles résolvent avant les moves actuellement supportés ;
     // - on refuse pourtant d'ouvrir une échelle générique de priorités items.

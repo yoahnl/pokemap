@@ -267,10 +267,11 @@ BattleBagItemKind _classifyBagItem(BagEntry bagEntry) {
 }
 
 bool _isSupportedMedicine(BagEntry bagEntry) {
-  // Lot 9-g factorise ici le strict minimum utile :
+  // Lot 9-h factorise ici le strict minimum utile :
   // - `potion`
   // - `super-potion`
   // - `hyper-potion`
+  // - `max-potion`
   //
   // On ne bascule pas vers un registre d'items ni vers un catalogue runtime.
   if (bagEntry.categoryId != 'medicine') {
@@ -278,7 +279,8 @@ bool _isSupportedMedicine(BagEntry bagEntry) {
   }
   return bagEntry.itemId == 'potion' ||
       bagEntry.itemId == 'super-potion' ||
-      bagEntry.itemId == 'hyper-potion';
+      bagEntry.itemId == 'hyper-potion' ||
+      bagEntry.itemId == 'max-potion';
 }
 
 BattleBagMenuDisabledReason _captureDisabledReason({

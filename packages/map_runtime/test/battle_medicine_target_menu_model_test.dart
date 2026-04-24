@@ -148,6 +148,33 @@ void main() {
       expect(model.hasSelectableEntries, isTrue);
     });
 
+    test('carries max potion metadata while preserving target selectability',
+        () {
+      final model = buildBattleMedicineTargetMenuModel(
+        session: _session(
+          player: _combatant(
+            speciesId: 'sproutle',
+            lineupIndex: 0,
+            currentHp: 15,
+            maxHp: 40,
+            moves: <BattleMoveData>[_move(id: 'tackle', name: 'Tackle')],
+          ),
+          enemy: _combatant(
+            speciesId: 'wild_enemy',
+            lineupIndex: 0,
+            moves: <BattleMoveData>[_move(id: 'scratch', name: 'Scratch')],
+          ),
+        ),
+        itemId: 'max-potion',
+        categoryId: 'medicine',
+      );
+
+      expect(model.itemId, equals('max-potion'));
+      expect(model.categoryId, equals('medicine'));
+      expect(model.activeEntry.isSelectable, isTrue);
+      expect(model.activeEntry.disabledReason, isNull);
+    });
+
     test('full hp pokemon stay visible but non-selectable', () {
       final model = buildBattleMedicineTargetMenuModel(
         session: _session(

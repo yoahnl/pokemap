@@ -272,16 +272,20 @@ class BattleSession {
   ///
   /// Lot 9-f conserve cette façade explicite pour éviter de vendre une API
   /// générique d'objets : l'implémentation factorise en interne avec
-  /// `Super Potion` et `Hyper Potion`, mais l'appelant reste bien sur un
-  /// objet concret.
+  /// `Super Potion`, `Hyper Potion` et `Max Potion`, mais l'appelant reste bien
+  /// sur un objet concret.
   BattleSession applyPotionTurn({
     required int targetLineupIndex,
     required int healAmount,
   }) {
+    _requirePositiveBagHpHealAmount(
+      itemLabel: BattleBagHpHealItemKind.potion.label,
+      healAmount: healAmount,
+    );
     return _applyBagHpHealItemTurn(
       itemKind: BattleBagHpHealItemKind.potion,
       targetLineupIndex: targetLineupIndex,
-      healAmount: healAmount,
+      effect: BattleBagFlatHpHealEffect(healAmount),
     );
   }
 
@@ -295,10 +299,14 @@ class BattleSession {
     required int targetLineupIndex,
     required int healAmount,
   }) {
+    _requirePositiveBagHpHealAmount(
+      itemLabel: BattleBagHpHealItemKind.superPotion.label,
+      healAmount: healAmount,
+    );
     return _applyBagHpHealItemTurn(
       itemKind: BattleBagHpHealItemKind.superPotion,
       targetLineupIndex: targetLineupIndex,
-      healAmount: healAmount,
+      effect: BattleBagFlatHpHealEffect(healAmount),
     );
   }
 
@@ -313,15 +321,34 @@ class BattleSession {
     required int targetLineupIndex,
     required int healAmount,
   }) {
+    _requirePositiveBagHpHealAmount(
+      itemLabel: BattleBagHpHealItemKind.hyperPotion.label,
+      healAmount: healAmount,
+    );
     return _applyBagHpHealItemTurn(
       itemKind: BattleBagHpHealItemKind.hyperPotion,
       targetLineupIndex: targetLineupIndex,
-      healAmount: healAmount,
+      effect: BattleBagFlatHpHealEffect(healAmount),
+    );
+  }
+
+  /// Commit une vraie action de tour `Max Potion`.
+  ///
+  /// Contrairement aux trois objets précédents, cette façade ne prend pas de
+  /// `healAmount` : le lot 9-h modélise explicitement "restore-to-full" pour ne
+  /// pas déguiser `Max Potion` en soin plat arbitraire.
+  BattleSession applyMaxPotionTurn({
+    required int targetLineupIndex,
+  }) {
+    return _applyBagHpHealItemTurn(
+      itemKind: BattleBagHpHealItemKind.maxPotion,
+      targetLineupIndex: targetLineupIndex,
+      effect: const BattleBagRestoreToFullHpHealEffect(),
     );
   }
 
   /// Commit une vraie action de tour pour la famille ultra-bornée
-  /// `Potion` + `Super Potion` + `Hyper Potion`.
+  /// `Potion` + `Super Potion` + `Hyper Potion` + `Max Potion`.
   ///
   /// Ce helper interne factorise seulement ce qui était devenu duplication :
   /// - même validation de requête ;
@@ -333,7 +360,7 @@ class BattleSession {
   BattleSession _applyBagHpHealItemTurn({
     required BattleBagHpHealItemKind itemKind,
     required int targetLineupIndex,
-    required int healAmount,
+    required BattleBagHpHealEffect effect,
   }) {
     final request = decisionRequest;
     if (request is! BattleTurnChoiceRequest) {
@@ -342,13 +369,10 @@ class BattleSession {
         '(request=${request.runtimeType}).',
       );
     }
-    if (healAmount <= 0) {
-      throw ArgumentError.value(
-        healAmount,
-        'healAmount',
-        '${itemKind.label} healAmount must stay strictly positive.',
-      );
-    }
+    _requireBagHpHealEffectMatchesItemKind(
+      itemKind: itemKind,
+      effect: effect,
+    );
 
     _requireUsableBagHpHealItemTarget(
       side: state.playerSide,
@@ -359,7 +383,7 @@ class BattleSession {
       playerAction: BattleActionBagHpHealItemUse(
         itemKind: itemKind,
         targetLineupIndex: targetLineupIndex,
-        healAmount: healAmount,
+        effect: effect,
       ),
     );
   }
@@ -821,26 +845,30 @@ class BattleSession {
     required BattleBagHpHealItemKind itemKind,
     required BattleSideState side,
     required int targetLineupIndex,
-    required int healAmount,
+    required BattleBagHpHealEffect effect,
   }) {
     if (side.id != BattleSideId.player) {
       throw StateError(
-        'BattleActionBagHpHealItemUse reste limité au côté joueur dans le lot 9-f.',
+        'BattleActionBagHpHealItemUse reste limité au côté joueur dans le lot 9-h.',
       );
     }
-    if (healAmount <= 0) {
-      throw ArgumentError.value(
-        healAmount,
-        'healAmount',
-        '${itemKind.label} healAmount must stay strictly positive.',
-      );
-    }
+    _requireBagHpHealEffectMatchesItemKind(
+      itemKind: itemKind,
+      effect: effect,
+    );
 
     final targetCombatant = _requireUsableBagHpHealItemTarget(
       side: side,
       targetLineupIndex: targetLineupIndex,
     );
-    final healedCombatant = targetCombatant.withHeal(healAmount);
+    final healedCombatant = switch (effect) {
+      BattleBagFlatHpHealEffect(:final amount) => targetCombatant.withHeal(
+          amount,
+        ),
+      BattleBagRestoreToFullHpHealEffect() => targetCombatant.withHeal(
+          targetCombatant.maxHp - targetCombatant.currentHp,
+        ),
+    };
 
     return _ResolvedBagHpHealItemUseAction(
       side: _replacePlayerCombatantByLineupIndex(
@@ -856,6 +884,51 @@ class BattleSession {
         hpAfter: healedCombatant.currentHp,
       ),
     );
+  }
+
+  void _requireBagHpHealEffectMatchesItemKind({
+    required BattleBagHpHealItemKind itemKind,
+    required BattleBagHpHealEffect effect,
+  }) {
+    // Garde-fou runtime, pas seulement `assert` debug :
+    // - les trois premiers objets restent des soins plats ;
+    // - `Max Potion` reste le seul restore-to-full ;
+    // - on refuse donc les combinaisons qui mentiraient à la timeline ou au
+    //   write-back runtime en release.
+    switch (effect) {
+      case BattleBagFlatHpHealEffect(:final amount):
+        _requirePositiveBagHpHealAmount(
+          itemLabel: itemKind.label,
+          healAmount: amount,
+        );
+        if (itemKind == BattleBagHpHealItemKind.maxPotion) {
+          throw StateError(
+            'Max Potion must use a restore-to-full HP heal effect.',
+          );
+        }
+      case BattleBagRestoreToFullHpHealEffect():
+        if (itemKind != BattleBagHpHealItemKind.maxPotion) {
+          throw StateError(
+            'Restore-to-full HP heal effect is reserved for Max Potion.',
+          );
+        }
+    }
+  }
+
+  void _requirePositiveBagHpHealAmount({
+    required String itemLabel,
+    required int healAmount,
+  }) {
+    // Validation runtime volontairement dupliquée par rapport aux `assert` du
+    // value object : les builds release désactivent les asserts, mais un soin
+    // plat nul ou négatif mentirait à la timeline et pourrait baisser les PV.
+    if (healAmount <= 0) {
+      throw ArgumentError.value(
+        healAmount,
+        'healAmount',
+        '$itemLabel healAmount must stay strictly positive.',
+      );
+    }
   }
 
   int? _firstUsableReserveIndex(List<BattleCombatant> reserve) {
