@@ -28,10 +28,13 @@ pubspec.lock
 /packages/generate_project_overview.sh
 /packages/project_overview.txt
 
+# Local OS/editor noise
+.DS_Store
+
 /pokemon-showdown-master/
 /pokemon-showdown-client-master/
-/pokemon-showdown-master/
 /sprites-master/
 /pokemonsdk-development/
-/pokémon_sdk_test_project/
-/pokémon_sdk_test_project/
+# Local Pokemon SDK fixture project. The wildcard avoids macOS Unicode
+# normalization issues between "pokemon", "pokémon", and "pokémon".
+/pok*mon_sdk_test_project/
