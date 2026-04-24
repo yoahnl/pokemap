@@ -16,6 +16,7 @@ import 'battle_combatant_gender_resolver.dart';
 import 'battle_animation_plan.dart';
 import 'battle_animation_runner.dart';
 import 'battle_background_resolver.dart';
+import 'battle_camera_rig.dart';
 import 'battle_debug_panel_component.dart';
 import 'battle_fx_bundle_cache.dart';
 import 'battle_fx_layer_component.dart';
@@ -499,6 +500,7 @@ class BattleOverlayComponent extends PositionComponent {
   BattleCombatant? _displayedEnemyCombatant;
   BattleCombatant? _displayedPlayerCombatant;
   int _presentationGeneration = 0;
+  final BattleCameraRig _battleCameraRig = BattleCameraRig();
 
   BattleCommandMenuMode _menuMode = BattleCommandMenuMode.root;
   int _selectedRootIndex = 0;
@@ -550,7 +552,31 @@ class BattleOverlayComponent extends PositionComponent {
   bool get isTurnPresentationActive => _animationRunner?.isActive ?? false;
 
   @visibleForTesting
-  int get activeBattleFxCount => _fxLayer?.activeFxCount ?? 0;
+  bool get isBattleCameraFocusActive => _battleCameraRig.isActive;
+
+  @visibleForTesting
+  bool get isBattleCameraActive =>
+      _battleCameraRig.isActive ||
+      _battleCameraRig.offset.length > 0 ||
+      _battleCameraRig.scale != 1.0;
+
+  @visibleForTesting
+  Vector2 get battleCameraOffset => _battleCameraRig.offset;
+
+  @visibleForTesting
+  double get battleCameraScale => _battleCameraRig.scale;
+
+  @visibleForTesting
+  int get activeBattleFxCount {
+    final fxLayer = _fxLayer;
+    if (fxLayer == null) {
+      return 0;
+    }
+    return fxLayer.activeFxCount +
+        fxLayer.activeSpriteSheetFxCount +
+        fxLayer.activeRmxpFxCount +
+        fxLayer.activeSdkParticleCount;
+  }
 
   @visibleForTesting
   bool get hasWeatherAmbient => _fxLayer?.hasWeatherAmbient ?? false;
@@ -637,6 +663,9 @@ class BattleOverlayComponent extends PositionComponent {
         viewportSize: Size(size.x, size.y),
       );
 
+  @visibleForTesting
+  Vector2 get currentRmxpAnimationViewportSize => _rmxpAnimationViewportSize();
+
   @override
   Future<void> onLoad() async {
     final overlayStopwatch = Stopwatch()..start();
@@ -706,6 +735,23 @@ class BattleOverlayComponent extends PositionComponent {
       onHudHpTween: _handleHudHpTweenStep,
       onBarrierPulse: _handleBarrierPulseStep,
       onSwapCombatantVisual: _handleSwapCombatantVisualStep,
+      onSpriteSheetFx: _handleSpriteSheetFxStep,
+      onSpriteSheetOnCombatant: _handleSpriteSheetOnCombatantStep,
+      onParticleBurst: _handleParticleBurstStep,
+      onSdkParticleSequence: _handleSdkParticleSequenceStep,
+      onSdkFallingParticles: _handleSdkFallingParticlesStep,
+      onSdkRadiusParticles: _handleSdkRadiusParticlesStep,
+      onSdkScalarParticle: _handleSdkScalarParticleStep,
+      onSdkParticleZoom: _handleSdkParticleZoomStep,
+      onWeatherParticles: _handleWeatherParticleStep,
+      onSceneTint: _handleSceneTintStep,
+      onCombatantTone: _handleCombatantToneStep,
+      onCombatantCompress: _handleCombatantCompressStep,
+      onCombatantEllipse: _handleCombatantEllipseStep,
+      onCameraFocus: _handleCameraFocusStep,
+      onBattleCameraMove: _handleBattleCameraMoveStep,
+      onBattleCameraReset: _handleBattleCameraResetStep,
+      onRmxpAnimation: _handleRmxpAnimationStep,
     );
 
     if (!_useFlutterCommandOverlay) {
@@ -895,6 +941,7 @@ class BattleOverlayComponent extends PositionComponent {
     _activeAnimationPlan = animationPlan;
     _presentationLockedCombatantSides =
         _lockedCombatantSidesFor(animationPlan).toSet();
+    _resetBattleCamera();
     _animationRunner?.cancel(
       clearMessage: animationPlan.isEmpty,
       notify: false,
@@ -920,6 +967,7 @@ class BattleOverlayComponent extends PositionComponent {
 
     _backdrop?.size = viewportSize.clone();
     _fxLayer?.size = viewportSize.clone();
+    _applyBattleCameraTransform();
     _syncFieldAmbientState();
     _enemyCombatant?.updateSceneGeometry(
       sceneSpriteRect: layout.enemySpriteRect,
@@ -951,6 +999,7 @@ class BattleOverlayComponent extends PositionComponent {
       modeOverride: layout.commandPanelLayoutMode,
     );
     _debugPanel?.position = Vector2(size.x - 248, 32);
+    _applyBattleCameraTransform();
     _syncOutcomeBanner();
     _syncPanelsOnly();
   }
@@ -1195,6 +1244,10 @@ class BattleOverlayComponent extends PositionComponent {
   @override
   void update(double dt) {
     _animationRunner?.update(dt);
+    if (isBattleCameraActive) {
+      _battleCameraRig.update(dt);
+      _applyBattleCameraTransform();
+    }
     super.update(dt);
   }
 
@@ -1258,6 +1311,16 @@ class BattleOverlayComponent extends PositionComponent {
         return;
       }
     }
+    _restoreAliveCombatantPoseAfterSync(
+      side: BattleSideId.enemy,
+      combatant: displayedEnemyCombatant,
+      preserveDisplayedCombatantSides: preserveDisplayedCombatantSides,
+    );
+    _restoreAliveCombatantPoseAfterSync(
+      side: BattleSideId.player,
+      combatant: displayedPlayerCombatant,
+      preserveDisplayedCombatantSides: preserveDisplayedCombatantSides,
+    );
     _enemyHud?.sync(
       combatant: displayedEnemyCombatant,
       genderSymbol: _resolveCombatantGenderSymbol(
@@ -1282,6 +1345,17 @@ class BattleOverlayComponent extends PositionComponent {
     );
     _syncPanelsOnly();
     _syncOutcomeBanner();
+  }
+
+  void _restoreAliveCombatantPoseAfterSync({
+    required BattleSideId side,
+    required BattleCombatant combatant,
+    required Set<BattleSideId> preserveDisplayedCombatantSides,
+  }) {
+    if (preserveDisplayedCombatantSides.contains(side) || combatant.isFainted) {
+      return;
+    }
+    _combatantForSide(side)?.snapToBattlePose();
   }
 
   Future<BattleCombatantSpriteSpec> _resolveCombatantSpriteSpec({
@@ -2165,6 +2239,7 @@ class BattleOverlayComponent extends PositionComponent {
     if (animationRunner == null || animationRunner.isActive) {
       return;
     }
+    _resetBattleCamera();
     _presentationLockedCombatantSides = <BattleSideId>{};
     _activeAnimationPlan =
         const BattleAnimationPlan(steps: <BattleAnimationStep>[]);
@@ -2175,6 +2250,14 @@ class BattleOverlayComponent extends PositionComponent {
     unawaited(_pendingVisualSync);
   }
 
+  BattleFxRuntimeContext _battleFxRuntimeContext({Vector2? sceneSize}) {
+    return BattleFxRuntimeContext(
+      sceneSize: sceneSize ?? size.clone(),
+      stageRect: currentSceneLayout.stageRect,
+      resolveAnchor: _resolveBattleVisualAnchor,
+    );
+  }
+
   void _handleSpawnFxStep(SpawnFxStep step) {
     final fxLayer = _fxLayer;
     if (fxLayer == null) {
@@ -2183,16 +2266,180 @@ class BattleOverlayComponent extends PositionComponent {
     unawaited(
       fxLayer.playFx(
         step,
-        BattleFxRuntimeContext(
-          sceneSize: size.clone(),
-          resolveAnchor: _resolveBattleVisualAnchor,
-        ),
+        _battleFxRuntimeContext(),
       ),
     );
   }
 
   void _handleScreenFlashStep(ScreenFlashStep step) {
     _fxLayer?.playScreenFlash(step);
+  }
+
+  void _handleSpriteSheetFxStep(PlaySpriteSheetFxStep step) {
+    final fxLayer = _fxLayer;
+    if (fxLayer == null) {
+      return;
+    }
+    unawaited(
+      fxLayer.playSpriteSheetFx(
+        step,
+        _battleFxRuntimeContext(),
+      ),
+    );
+  }
+
+  void _handleSpriteSheetOnCombatantStep(SpriteSheetOnCombatantStep step) {
+    final fxLayer = _fxLayer;
+    if (fxLayer == null) {
+      return;
+    }
+    unawaited(
+      fxLayer.playSpriteSheetOnCombatant(
+        step,
+        _battleFxRuntimeContext(),
+      ),
+    );
+  }
+
+  void _handleParticleBurstStep(ParticleBurstStep step) {
+    final fxLayer = _fxLayer;
+    if (fxLayer == null) {
+      return;
+    }
+    unawaited(
+      fxLayer.playParticleBurst(
+        step,
+        _battleFxRuntimeContext(),
+      ),
+    );
+  }
+
+  void _handleSdkParticleSequenceStep(PlaySdkParticleSequenceStep step) {
+    final fxLayer = _fxLayer;
+    if (fxLayer == null) {
+      return;
+    }
+    unawaited(
+      fxLayer.playSdkParticleSequence(
+        step,
+        _battleFxRuntimeContext(),
+      ),
+    );
+  }
+
+  void _handleSdkFallingParticlesStep(SdkFallingParticlesStep step) {
+    final fxLayer = _fxLayer;
+    if (fxLayer == null) {
+      return;
+    }
+    unawaited(
+      fxLayer.playSdkFallingParticles(
+        step,
+        _battleFxRuntimeContext(),
+      ),
+    );
+  }
+
+  void _handleSdkRadiusParticlesStep(SdkRadiusParticleStep step) {
+    final fxLayer = _fxLayer;
+    if (fxLayer == null) {
+      return;
+    }
+    unawaited(
+      fxLayer.playSdkRadiusParticles(
+        step,
+        _battleFxRuntimeContext(),
+      ),
+    );
+  }
+
+  void _handleSdkScalarParticleStep(SdkScalarParticleStep step) {
+    final fxLayer = _fxLayer;
+    if (fxLayer == null) {
+      return;
+    }
+    unawaited(
+      fxLayer.playSdkScalarParticle(
+        step,
+        _battleFxRuntimeContext(),
+      ),
+    );
+  }
+
+  void _handleSdkParticleZoomStep(SdkParticleZoomStep step) {
+    final fxLayer = _fxLayer;
+    if (fxLayer == null) {
+      return;
+    }
+    unawaited(
+      fxLayer.playSdkParticleZoom(
+        step,
+        _battleFxRuntimeContext(),
+      ),
+    );
+  }
+
+  void _handleWeatherParticleStep(WeatherParticleStep step) {
+    final fxLayer = _fxLayer;
+    if (fxLayer == null) {
+      return;
+    }
+    unawaited(fxLayer.playWeatherParticles(step));
+  }
+
+  void _handleRmxpAnimationStep(PlayRmxpAnimationStep step) {
+    final fxLayer = _fxLayer;
+    final combatant = _combatantForSide(step.subjectSide);
+    if (fxLayer == null) {
+      return;
+    }
+    unawaited(
+      fxLayer.playRmxpAnimation(
+        step,
+        _battleFxRuntimeContext(sceneSize: _rmxpAnimationViewportSize()),
+        onCombatantTransform: combatant == null
+            ? null
+            : (transform) {
+                combatant.applyRmxpTransform(
+                  offset: transform.offset,
+                  scale: transform.scale,
+                );
+              },
+        onCombatantTransformCleared: combatant?.clearRmxpTransform,
+        onPokemonFlash: (timing) {
+          combatant?.triggerHitFlash(
+            duration:
+                (timing.flashDuration * 2 / 60).clamp(0.05, 0.8).toDouble(),
+          );
+        },
+        onSceneFlash: (timing) {
+          fxLayer.playScreenFlash(
+            ScreenFlashStep(
+              colorArgb: Color.fromARGB(
+                timing.flashAlpha.clamp(0, 255).toInt(),
+                timing.flashRed.clamp(0, 255).toInt(),
+                timing.flashGreen.clamp(0, 255).toInt(),
+                timing.flashBlue.clamp(0, 255).toInt(),
+              ).toARGB32(),
+              durationSeconds:
+                  (timing.flashDuration * 2 / 60).clamp(0.05, 0.8).toDouble(),
+            ),
+          );
+        },
+        onVisibilityChanged: combatant?.setRmxpHidden,
+      ),
+    );
+  }
+
+  Vector2 _rmxpAnimationViewportSize() {
+    final layout = currentSceneLayout;
+    final battleViewportHeight =
+        layout.commandPanelRect.top.clamp(0.0, size.y).toDouble();
+    return Vector2(size.x, battleViewportHeight);
+  }
+
+  void _handleSceneTintStep(SceneTintStep step) {
+    _fxLayer?.playSceneTint(step);
   }
 
   void _handleCombatantMotionStep(CombatantMotionStep step) {
@@ -2246,6 +2493,100 @@ class BattleOverlayComponent extends PositionComponent {
     );
   }
 
+  void _handleCombatantToneStep(CombatantToneStep step) {
+    final combatant = _combatantForSide(step.side);
+    if (combatant == null) {
+      return;
+    }
+    unawaited(
+      combatant.playTone(
+        color: Color(step.colorArgb),
+        durationSeconds: step.durationSeconds,
+      ),
+    );
+  }
+
+  void _handleCombatantCompressStep(CombatantCompressStep step) {
+    final combatant = _combatantForSide(step.side);
+    if (combatant == null) {
+      return;
+    }
+    unawaited(
+      combatant.playCompress(
+        scaleX: step.scaleX,
+        scaleY: step.scaleY,
+        durationSeconds: step.durationSeconds,
+        iteration: step.iteration,
+      ),
+    );
+  }
+
+  void _handleCombatantEllipseStep(CombatantEllipseStep step) {
+    final combatant = _combatantForSide(step.side);
+    if (combatant == null) {
+      return;
+    }
+    unawaited(
+      combatant.playEllipse(
+        radiusX: step.radiusX,
+        radiusY: step.radiusY,
+        turns: step.turns,
+        durationSeconds: step.durationSeconds,
+      ),
+    );
+  }
+
+  void _handleCameraFocusStep(CameraFocusStep step) {
+    switch (step.target) {
+      case BattleCameraFocusTarget.user:
+        _battleCameraRig.focusUser(durationSeconds: step.durationSeconds);
+      case BattleCameraFocusTarget.target:
+        _battleCameraRig.focusTarget(durationSeconds: step.durationSeconds);
+      case BattleCameraFocusTarget.scene:
+        _battleCameraRig.centerScene(durationSeconds: step.durationSeconds);
+    }
+    _applyBattleCameraTransform();
+  }
+
+  void _handleBattleCameraMoveStep(BattleCameraMoveStep step) {
+    _battleCameraRig.moveTo(
+      offset: Vector2(step.offsetX, step.offsetY),
+      scale: step.scale,
+      durationSeconds: step.durationSeconds,
+      curve: step.curve,
+    );
+    _applyBattleCameraTransform();
+  }
+
+  void _handleBattleCameraResetStep(BattleCameraResetStep step) {
+    _battleCameraRig.reset(durationSeconds: step.durationSeconds);
+    _applyBattleCameraTransform();
+  }
+
+  void _resetBattleCamera() {
+    _battleCameraRig.cancel();
+    _applyBattleCameraTransform();
+  }
+
+  void _applyBattleCameraTransform() {
+    final offset = _battleCameraRig.offset;
+    final scale = _battleCameraRig.scale;
+    _backdrop
+      ?..position = offset.clone()
+      ..scale = Vector2.all(scale);
+    _fxLayer
+      ?..position = offset.clone()
+      ..scale = Vector2.all(scale);
+    _enemyCombatant?.applyBattleCameraTransform(
+      offset: offset,
+      scale: scale,
+    );
+    _playerCombatant?.applyBattleCameraTransform(
+      offset: offset,
+      scale: scale,
+    );
+  }
+
   void _handleFaintCombatantStep(FaintCombatantStep step) {
     final combatant = _combatantForSide(step.side);
     if (combatant == null) {
@@ -2292,7 +2633,7 @@ class BattleOverlayComponent extends PositionComponent {
   }
 
   Rect? _combatantRenderedRectForSide(BattleSideId side) {
-    return _combatantForSide(side)?.currentRenderedSpriteRect;
+    return _combatantForSide(side)?.currentCameraNeutralRenderedSpriteRect;
   }
 
   void _syncFieldAmbientState() {
@@ -2312,12 +2653,72 @@ class BattleOverlayComponent extends PositionComponent {
       return effectiveRect.center;
     }
 
+    Offset bodyFor(Rect? rect, Rect fallbackRect) {
+      final effectiveRect = rect ?? fallbackRect;
+      return Offset(
+        effectiveRect.center.dx,
+        effectiveRect.top + (effectiveRect.height * 0.55),
+      );
+    }
+
     Offset headFor(Rect? rect, Rect fallbackRect) {
       final effectiveRect = rect ?? fallbackRect;
       return Offset(
         effectiveRect.center.dx,
         effectiveRect.top + (effectiveRect.height * 0.18),
       );
+    }
+
+    double facingSign(Rect subjectRect, Rect opponentRect) {
+      return opponentRect.center.dx >= subjectRect.center.dx ? 1.0 : -1.0;
+    }
+
+    Offset mouthFor(Rect? rect, Rect fallbackRect, Rect opponentFallback) {
+      final effectiveRect = rect ?? fallbackRect;
+      final sign = facingSign(effectiveRect, opponentFallback);
+      return Offset(
+        effectiveRect.center.dx + (sign * effectiveRect.width * 0.28),
+        effectiveRect.top + (effectiveRect.height * 0.34),
+      );
+    }
+
+    Offset handFor(Rect? rect, Rect fallbackRect, Rect opponentFallback) {
+      final effectiveRect = rect ?? fallbackRect;
+      final sign = facingSign(effectiveRect, opponentFallback);
+      return Offset(
+        effectiveRect.center.dx + (sign * effectiveRect.width * 0.34),
+        effectiveRect.top + (effectiveRect.height * 0.58),
+      );
+    }
+
+    Offset impactFor({
+      required BattleSideId side,
+      required Rect? rect,
+      required Rect fallbackRect,
+      required Offset opponentCenter,
+    }) {
+      final combatant = _combatantForSide(side);
+      if (combatant != null) {
+        return combatant.currentCameraNeutralImpactAnchorToward(
+          opponentCenter: opponentCenter,
+        );
+      }
+      final effectiveRect = rect ?? fallbackRect;
+      final sign = opponentCenter.dx >= effectiveRect.center.dx ? 1.0 : -1.0;
+      return Offset(
+        effectiveRect.center.dx + (sign * effectiveRect.width * 0.16),
+        effectiveRect.top + (effectiveRect.height * 0.42),
+      );
+    }
+
+    Offset footFor(BattleSideId side, Rect? rect, Rect fallbackRect) {
+      final footAnchor =
+          _combatantForSide(side)?.currentCameraNeutralFootAnchor;
+      if (footAnchor != null) {
+        return footAnchor;
+      }
+      final effectiveRect = rect ?? fallbackRect;
+      return Offset(effectiveRect.center.dx, effectiveRect.bottom);
     }
 
     final layout = currentSceneLayout;
@@ -2329,16 +2730,43 @@ class BattleOverlayComponent extends PositionComponent {
     final defenderFallback = defenderSide == BattleSideId.player
         ? layout.playerCombatantBoundsRect
         : layout.enemyCombatantBoundsRect;
+    final stageRect = layout.stageRect;
 
     final offset = switch (anchor) {
       BattleVisualAnchor.attackerCenter =>
         centerFor(attackerRect, attackerFallback),
+      BattleVisualAnchor.attackerBody =>
+        bodyFor(attackerRect, attackerFallback),
       BattleVisualAnchor.attackerHead =>
         headFor(attackerRect, attackerFallback),
+      BattleVisualAnchor.attackerMouth =>
+        mouthFor(attackerRect, attackerFallback, defenderFallback),
+      BattleVisualAnchor.attackerHand =>
+        handFor(attackerRect, attackerFallback, defenderFallback),
+      BattleVisualAnchor.attackerFoot =>
+        footFor(attackerSide, attackerRect, attackerFallback),
       BattleVisualAnchor.defenderCenter =>
         centerFor(defenderRect, defenderFallback),
+      BattleVisualAnchor.defenderBody =>
+        bodyFor(defenderRect, defenderFallback),
       BattleVisualAnchor.defenderHead =>
         headFor(defenderRect, defenderFallback),
+      BattleVisualAnchor.defenderMouth =>
+        mouthFor(defenderRect, defenderFallback, attackerFallback),
+      BattleVisualAnchor.defenderHand =>
+        handFor(defenderRect, defenderFallback, attackerFallback),
+      BattleVisualAnchor.defenderImpact => impactFor(
+          side: defenderSide,
+          rect: defenderRect,
+          fallbackRect: defenderFallback,
+          opponentCenter: centerFor(attackerRect, attackerFallback),
+        ),
+      BattleVisualAnchor.defenderFoot =>
+        footFor(defenderSide, defenderRect, defenderFallback),
+      BattleVisualAnchor.stageCenter => stageRect.center,
+      BattleVisualAnchor.stageTop => Offset(stageRect.center.dx, stageRect.top),
+      BattleVisualAnchor.stageBottom =>
+        Offset(stageRect.center.dx, stageRect.bottom),
       BattleVisualAnchor.screenCenter => Offset(size.x / 2, size.y / 2),
     };
     return Vector2(offset.dx, offset.dy);

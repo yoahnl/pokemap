@@ -4,6 +4,7 @@ description: >-
   Loads a project.json, resolves tileset assets, and renders
   tile, terrain, path, entity and collision layers in a Flame scene.
 version: 0.1.0
+publish_to: none
 
 repository: https://git.yoahn.me/yoahn/pokemonProject.git
 
@@ -41,4 +42,4 @@ dev_dependencies:
 
 flutter:
   assets:
-    - assets/fx/
+    - assets/battle_animations/

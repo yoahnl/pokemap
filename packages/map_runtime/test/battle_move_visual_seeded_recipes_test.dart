@@ -19,7 +19,7 @@ BattleMoveVisualRecipeContext _seededContext(
   return BattleMoveVisualRecipeContext(
     resolvedMove: BattleResolvedMoveVisual(
       localMoveId: 'seeded_move',
-      showdownMoveId: 'seededmove',
+      sdkMoveId: 'seededmove',
       recipeId: recipeId,
       usesFallback: false,
       canonicalMove: null,
@@ -45,8 +45,8 @@ void main() {
   group('BattleMoveVisual seeded recipes', () {
     test('tackle follows a pure contact pattern without projectile fx', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownTackle,
-        _seededContext(BattleMoveVisualRecipeId.showdownTackle),
+        BattleMoveVisualRecipeId.sdkTackle,
+        _seededContext(BattleMoveVisualRecipeId.sdkTackle),
       );
 
       final plan = BattleAnimationPlan(steps: steps);
@@ -61,8 +61,8 @@ void main() {
 
     test('scratch uses a slash overlay after a contact approach', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownScratch,
-        _seededContext(BattleMoveVisualRecipeId.showdownScratch),
+        BattleMoveVisualRecipeId.sdkScratch,
+        _seededContext(BattleMoveVisualRecipeId.sdkScratch),
       );
 
       final slashes = steps
@@ -77,8 +77,8 @@ void main() {
     test('quick attack uses a fast dash plus two wisp bursts on the target',
         () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownQuickAttack,
-        _seededContext(BattleMoveVisualRecipeId.showdownQuickAttack),
+        BattleMoveVisualRecipeId.sdkQuickAttack,
+        _seededContext(BattleMoveVisualRecipeId.sdkQuickAttack),
       );
 
       final wisps = steps
@@ -93,11 +93,10 @@ void main() {
       expect(steps.whereType<CombatantFlashStep>(), isNotEmpty);
     });
 
-    test('thunderbolt uses defender lightning bursts like the Showdown recipe',
-        () {
+    test('thunderbolt uses defender lightning bursts like the SDK recipe', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownThunderbolt,
-        _seededContext(BattleMoveVisualRecipeId.showdownThunderbolt),
+        BattleMoveVisualRecipeId.sdkThunderbolt,
+        _seededContext(BattleMoveVisualRecipeId.sdkThunderbolt),
       );
 
       final plan = BattleAnimationPlan(steps: steps);
@@ -114,8 +113,8 @@ void main() {
 
     test('shadow ball charges before launching the orb', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownShadowBall,
-        _seededContext(BattleMoveVisualRecipeId.showdownShadowBall),
+        BattleMoveVisualRecipeId.sdkShadowBall,
+        _seededContext(BattleMoveVisualRecipeId.sdkShadowBall),
       );
 
       final plan = BattleAnimationPlan(steps: steps);
@@ -133,8 +132,8 @@ void main() {
 
     test('aura sphere builds a charge phase and an impact phase', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownAuraSphere,
-        _seededContext(BattleMoveVisualRecipeId.showdownAuraSphere),
+        BattleMoveVisualRecipeId.sdkAuraSphere,
+        _seededContext(BattleMoveVisualRecipeId.sdkAuraSphere),
       );
 
       final plan = BattleAnimationPlan(steps: steps);
@@ -149,8 +148,8 @@ void main() {
 
     test('close combat layers fists and impact accents around the target', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownCloseCombat,
-        _seededContext(BattleMoveVisualRecipeId.showdownCloseCombat),
+        BattleMoveVisualRecipeId.sdkCloseCombat,
+        _seededContext(BattleMoveVisualRecipeId.sdkCloseCombat),
       );
 
       final plan = BattleAnimationPlan(steps: steps);
@@ -168,8 +167,8 @@ void main() {
     test('stealth rock throws multiple rock projectiles into the hazard line',
         () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownStealthRock,
-        _seededContext(BattleMoveVisualRecipeId.showdownStealthRock),
+        BattleMoveVisualRecipeId.sdkStealthRock,
+        _seededContext(BattleMoveVisualRecipeId.sdkStealthRock),
       );
 
       final plan = BattleAnimationPlan(steps: steps);
@@ -179,8 +178,8 @@ void main() {
 
     test('spikes places a three-caltrop volley', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownSpikes,
-        _seededContext(BattleMoveVisualRecipeId.showdownSpikes),
+        BattleMoveVisualRecipeId.sdkSpikes,
+        _seededContext(BattleMoveVisualRecipeId.sdkSpikes),
       );
 
       final plan = BattleAnimationPlan(steps: steps);
@@ -195,8 +194,8 @@ void main() {
 
     test('growl uses repeated sound wisps centered on the attacker', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownGrowl,
-        _seededContext(BattleMoveVisualRecipeId.showdownGrowl),
+        BattleMoveVisualRecipeId.sdkGrowl,
+        _seededContext(BattleMoveVisualRecipeId.sdkGrowl),
       );
 
       final soundBursts = steps
@@ -218,8 +217,8 @@ void main() {
 
     test('thunder wave pulses around the attacker then tags the defender', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownThunderWave,
-        _seededContext(BattleMoveVisualRecipeId.showdownThunderWave),
+        BattleMoveVisualRecipeId.sdkThunderWave,
+        _seededContext(BattleMoveVisualRecipeId.sdkThunderWave),
       );
 
       final electricBursts = steps
@@ -238,8 +237,8 @@ void main() {
 
     test('quiver dance swirls three wisps around the user', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownQuiverDance,
-        _seededContext(BattleMoveVisualRecipeId.showdownQuiverDance),
+        BattleMoveVisualRecipeId.sdkQuiverDance,
+        _seededContext(BattleMoveVisualRecipeId.sdkQuiverDance),
       );
 
       final wisps = steps
@@ -255,8 +254,8 @@ void main() {
 
     test('focus blast builds a charge orb then detonates on the target', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownFocusBlast,
-        _seededContext(BattleMoveVisualRecipeId.showdownFocusBlast),
+        BattleMoveVisualRecipeId.sdkFocusBlast,
+        _seededContext(BattleMoveVisualRecipeId.sdkFocusBlast),
       );
 
       final electroballs = steps
@@ -270,8 +269,8 @@ void main() {
 
     test('volt switch sends an electroball into the defender then blooms', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownVoltSwitch,
-        _seededContext(BattleMoveVisualRecipeId.showdownVoltSwitch),
+        BattleMoveVisualRecipeId.sdkVoltSwitch,
+        _seededContext(BattleMoveVisualRecipeId.sdkVoltSwitch),
       );
 
       final electroballs = steps
@@ -284,8 +283,8 @@ void main() {
 
     test('explosion bursts from the attacker with multiple fireballs', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownExplosion,
-        _seededContext(BattleMoveVisualRecipeId.showdownExplosion),
+        BattleMoveVisualRecipeId.sdkExplosion,
+        _seededContext(BattleMoveVisualRecipeId.sdkExplosion),
       );
 
       final fireballs = steps
@@ -301,8 +300,8 @@ void main() {
 
     test('hurricane surrounds the target with repeated wind wisps', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownHurricane,
-        _seededContext(BattleMoveVisualRecipeId.showdownHurricane),
+        BattleMoveVisualRecipeId.sdkHurricane,
+        _seededContext(BattleMoveVisualRecipeId.sdkHurricane),
       );
 
       final wisps = steps
@@ -316,12 +315,12 @@ void main() {
 
     test('sunny day and hail use distinct weather accents around the user', () {
       final sunny = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownSunnyDay,
-        _seededContext(BattleMoveVisualRecipeId.showdownSunnyDay),
+        BattleMoveVisualRecipeId.sdkSunnyDay,
+        _seededContext(BattleMoveVisualRecipeId.sdkSunnyDay),
       );
       final hail = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownHail,
-        _seededContext(BattleMoveVisualRecipeId.showdownHail),
+        BattleMoveVisualRecipeId.sdkHail,
+        _seededContext(BattleMoveVisualRecipeId.sdkHail),
       );
 
       expect(
@@ -341,16 +340,16 @@ void main() {
     test('terrain casts keep dance-like motion with colored accent effects',
         () {
       final electric = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownElectricTerrain,
-        _seededContext(BattleMoveVisualRecipeId.showdownElectricTerrain),
+        BattleMoveVisualRecipeId.sdkElectricTerrain,
+        _seededContext(BattleMoveVisualRecipeId.sdkElectricTerrain),
       );
       final grassy = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownGrassyTerrain,
-        _seededContext(BattleMoveVisualRecipeId.showdownGrassyTerrain),
+        BattleMoveVisualRecipeId.sdkGrassyTerrain,
+        _seededContext(BattleMoveVisualRecipeId.sdkGrassyTerrain),
       );
       final misty = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownMistyTerrain,
-        _seededContext(BattleMoveVisualRecipeId.showdownMistyTerrain),
+        BattleMoveVisualRecipeId.sdkMistyTerrain,
+        _seededContext(BattleMoveVisualRecipeId.sdkMistyTerrain),
       );
 
       expect(
@@ -375,8 +374,8 @@ void main() {
 
     test('follow me keeps the pointer centered on the attacker', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownFollowMe,
-        _seededContext(BattleMoveVisualRecipeId.showdownFollowMe),
+        BattleMoveVisualRecipeId.sdkFollowMe,
+        _seededContext(BattleMoveVisualRecipeId.sdkFollowMe),
       );
 
       final pointers = steps
@@ -393,8 +392,8 @@ void main() {
     test('solar beam charges and then projects multiple energy orbs forward',
         () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownSolarBeam,
-        _seededContext(BattleMoveVisualRecipeId.showdownSolarBeam),
+        BattleMoveVisualRecipeId.sdkSolarBeam,
+        _seededContext(BattleMoveVisualRecipeId.sdkSolarBeam),
       );
 
       final energy = steps
@@ -407,8 +406,8 @@ void main() {
 
     test('thunder crashes repeated lightning down onto the defender', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownThunder,
-        _seededContext(BattleMoveVisualRecipeId.showdownThunder),
+        BattleMoveVisualRecipeId.sdkThunder,
+        _seededContext(BattleMoveVisualRecipeId.sdkThunder),
       );
 
       final lightning = steps
@@ -421,8 +420,8 @@ void main() {
 
     test('stored power swirls multiple poison wisps around the attacker', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownStoredPower,
-        _seededContext(BattleMoveVisualRecipeId.showdownStoredPower),
+        BattleMoveVisualRecipeId.sdkStoredPower,
+        _seededContext(BattleMoveVisualRecipeId.sdkStoredPower),
       );
 
       final wisps = steps
@@ -438,8 +437,8 @@ void main() {
 
     test('psychoboost charges mistball and poisonwisp before detonating', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownPsychoBoost,
-        _seededContext(BattleMoveVisualRecipeId.showdownPsychoBoost),
+        BattleMoveVisualRecipeId.sdkPsychoBoost,
+        _seededContext(BattleMoveVisualRecipeId.sdkPsychoBoost),
       );
 
       final mistballs = steps
@@ -457,8 +456,8 @@ void main() {
 
     test('psyshock bursts psychic energy directly on the defender', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownPsyshock,
-        _seededContext(BattleMoveVisualRecipeId.showdownPsyshock),
+        BattleMoveVisualRecipeId.sdkPsyshock,
+        _seededContext(BattleMoveVisualRecipeId.sdkPsyshock),
       );
 
       final poisonWisps = steps
@@ -479,8 +478,8 @@ void main() {
 
     test('hex stacks poison wisps with blue ghost fire over the defender', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownHex,
-        _seededContext(BattleMoveVisualRecipeId.showdownHex),
+        BattleMoveVisualRecipeId.sdkHex,
+        _seededContext(BattleMoveVisualRecipeId.sdkHex),
       );
 
       final poisonWisps = steps
@@ -498,8 +497,8 @@ void main() {
 
     test('will-o-wisp sends blue ghost fire to the target in three beats', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownWillOWisp,
-        _seededContext(BattleMoveVisualRecipeId.showdownWillOWisp),
+        BattleMoveVisualRecipeId.sdkWillOWisp,
+        _seededContext(BattleMoveVisualRecipeId.sdkWillOWisp),
       );
 
       final blueFire = steps
@@ -519,8 +518,8 @@ void main() {
 
     test('life dew throws repeated healing iceballs from the user', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownLifeDew,
-        _seededContext(BattleMoveVisualRecipeId.showdownLifeDew),
+        BattleMoveVisualRecipeId.sdkLifeDew,
+        _seededContext(BattleMoveVisualRecipeId.sdkLifeDew),
       );
 
       final iceballs = steps
@@ -538,8 +537,8 @@ void main() {
         'protect uses self-status wisps and leaves the barrier overlay to field events',
         () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownProtect,
-        _seededContext(BattleMoveVisualRecipeId.showdownProtect),
+        BattleMoveVisualRecipeId.sdkProtect,
+        _seededContext(BattleMoveVisualRecipeId.sdkProtect),
       );
 
       expect(
@@ -551,8 +550,8 @@ void main() {
 
     test('burning bulwark blooms two fire shields and a toxic ember', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownBurningBulwark,
-        _seededContext(BattleMoveVisualRecipeId.showdownBurningBulwark),
+        BattleMoveVisualRecipeId.sdkBurningBulwark,
+        _seededContext(BattleMoveVisualRecipeId.sdkBurningBulwark),
       );
 
       expect(
@@ -576,8 +575,8 @@ void main() {
 
     test('baneful bunker blooms shadow shields and a toxic core', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownBanefulBunker,
-        _seededContext(BattleMoveVisualRecipeId.showdownBanefulBunker),
+        BattleMoveVisualRecipeId.sdkBanefulBunker,
+        _seededContext(BattleMoveVisualRecipeId.sdkBanefulBunker),
       );
 
       expect(
@@ -603,16 +602,16 @@ void main() {
         'rain dance, sandstorm and trick room each animate the user before field effects',
         () {
       final rain = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownRainDance,
-        _seededContext(BattleMoveVisualRecipeId.showdownRainDance),
+        BattleMoveVisualRecipeId.sdkRainDance,
+        _seededContext(BattleMoveVisualRecipeId.sdkRainDance),
       );
       final sand = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownSandstorm,
-        _seededContext(BattleMoveVisualRecipeId.showdownSandstorm),
+        BattleMoveVisualRecipeId.sdkSandstorm,
+        _seededContext(BattleMoveVisualRecipeId.sdkSandstorm),
       );
       final trick = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownTrickRoom,
-        _seededContext(BattleMoveVisualRecipeId.showdownTrickRoom),
+        BattleMoveVisualRecipeId.sdkTrickRoom,
+        _seededContext(BattleMoveVisualRecipeId.sdkTrickRoom),
       );
 
       expect(rain.whereType<CombatantShakeStep>(), isNotEmpty);
@@ -624,20 +623,20 @@ void main() {
         () {
       final recipeLibrary = BattleMoveVisualRecipeLibrary();
       final reflect = recipeLibrary.build(
-        BattleMoveVisualRecipeId.showdownReflect,
-        _seededContext(BattleMoveVisualRecipeId.showdownReflect),
+        BattleMoveVisualRecipeId.sdkReflect,
+        _seededContext(BattleMoveVisualRecipeId.sdkReflect),
       );
       final lightScreen = recipeLibrary.build(
-        BattleMoveVisualRecipeId.showdownLightScreen,
-        _seededContext(BattleMoveVisualRecipeId.showdownLightScreen),
+        BattleMoveVisualRecipeId.sdkLightScreen,
+        _seededContext(BattleMoveVisualRecipeId.sdkLightScreen),
       );
       final mist = recipeLibrary.build(
-        BattleMoveVisualRecipeId.showdownMist,
-        _seededContext(BattleMoveVisualRecipeId.showdownMist),
+        BattleMoveVisualRecipeId.sdkMist,
+        _seededContext(BattleMoveVisualRecipeId.sdkMist),
       );
       final auroraVeil = recipeLibrary.build(
-        BattleMoveVisualRecipeId.showdownAuroraVeil,
-        _seededContext(BattleMoveVisualRecipeId.showdownAuroraVeil),
+        BattleMoveVisualRecipeId.sdkAuroraVeil,
+        _seededContext(BattleMoveVisualRecipeId.sdkAuroraVeil),
       );
 
       expect(
@@ -664,8 +663,8 @@ void main() {
 
     test('aqua jet adds water wisps to a fast dash contact pattern', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownAquaJet,
-        _seededContext(BattleMoveVisualRecipeId.showdownAquaJet),
+        BattleMoveVisualRecipeId.sdkAquaJet,
+        _seededContext(BattleMoveVisualRecipeId.sdkAquaJet),
       );
 
       expect(
@@ -682,8 +681,8 @@ void main() {
 
     test('extreme speed stacks several impacts around a fast dash strike', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownExtremeSpeed,
-        _seededContext(BattleMoveVisualRecipeId.showdownExtremeSpeed),
+        BattleMoveVisualRecipeId.sdkExtremeSpeed,
+        _seededContext(BattleMoveVisualRecipeId.sdkExtremeSpeed),
       );
 
       expect(
@@ -701,8 +700,8 @@ void main() {
     test('mach punch keeps the fast-attack body line and adds a fist accent',
         () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownMachPunch,
-        _seededContext(BattleMoveVisualRecipeId.showdownMachPunch),
+        BattleMoveVisualRecipeId.sdkMachPunch,
+        _seededContext(BattleMoveVisualRecipeId.sdkMachPunch),
       );
 
       expect(
@@ -734,8 +733,8 @@ void main() {
 
     test('shadow punch adds a dark flash with two wisps and a fist impact', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownShadowPunch,
-        _seededContext(BattleMoveVisualRecipeId.showdownShadowPunch),
+        BattleMoveVisualRecipeId.sdkShadowPunch,
+        _seededContext(BattleMoveVisualRecipeId.sdkShadowPunch),
       );
 
       expect(steps.whereType<ScreenFlashStep>(), isNotEmpty);
@@ -751,8 +750,8 @@ void main() {
 
     test('focus punch layers two impacts before the fist lands', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownFocusPunch,
-        _seededContext(BattleMoveVisualRecipeId.showdownFocusPunch),
+        BattleMoveVisualRecipeId.sdkFocusPunch,
+        _seededContext(BattleMoveVisualRecipeId.sdkFocusPunch),
       );
 
       expect(
@@ -770,8 +769,8 @@ void main() {
 
     test('drain punch keeps the punch finish and returns three drain orbs', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownDrainPunch,
-        _seededContext(BattleMoveVisualRecipeId.showdownDrainPunch),
+        BattleMoveVisualRecipeId.sdkDrainPunch,
+        _seededContext(BattleMoveVisualRecipeId.sdkDrainPunch),
       );
 
       expect(
@@ -788,8 +787,8 @@ void main() {
 
     test('dynamic punch detonates with three fireballs around the target', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownDynamicPunch,
-        _seededContext(BattleMoveVisualRecipeId.showdownDynamicPunch),
+        BattleMoveVisualRecipeId.sdkDynamicPunch,
+        _seededContext(BattleMoveVisualRecipeId.sdkDynamicPunch),
       );
 
       expect(steps.whereType<ScreenFlashStep>(), isNotEmpty);
@@ -807,8 +806,8 @@ void main() {
 
     test('comet punch repeats two quick fist accents', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownCometPunch,
-        _seededContext(BattleMoveVisualRecipeId.showdownCometPunch),
+        BattleMoveVisualRecipeId.sdkCometPunch,
+        _seededContext(BattleMoveVisualRecipeId.sdkCometPunch),
       );
 
       expect(
@@ -823,8 +822,8 @@ void main() {
 
     test('mega punch keeps one heavy fist and one impact ring', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownMegaPunch,
-        _seededContext(BattleMoveVisualRecipeId.showdownMegaPunch),
+        BattleMoveVisualRecipeId.sdkMegaPunch,
+        _seededContext(BattleMoveVisualRecipeId.sdkMegaPunch),
       );
 
       expect(
@@ -841,8 +840,8 @@ void main() {
 
     test('power-up punch adds a self charge orb after the hit', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownPowerUpPunch,
-        _seededContext(BattleMoveVisualRecipeId.showdownPowerUpPunch),
+        BattleMoveVisualRecipeId.sdkPowerUpPunch,
+        _seededContext(BattleMoveVisualRecipeId.sdkPowerUpPunch),
       );
 
       expect(
@@ -859,8 +858,8 @@ void main() {
 
     test('dizzy punch trails two wisps after the heavy hit', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownDizzyPunch,
-        _seededContext(BattleMoveVisualRecipeId.showdownDizzyPunch),
+        BattleMoveVisualRecipeId.sdkDizzyPunch,
+        _seededContext(BattleMoveVisualRecipeId.sdkDizzyPunch),
       );
 
       expect(
@@ -872,8 +871,8 @@ void main() {
 
     test('jet punch carries one fist through a six-wisp water burst', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownJetPunch,
-        _seededContext(BattleMoveVisualRecipeId.showdownJetPunch),
+        BattleMoveVisualRecipeId.sdkJetPunch,
+        _seededContext(BattleMoveVisualRecipeId.sdkJetPunch),
       );
 
       expect(
@@ -890,16 +889,16 @@ void main() {
 
     test('elemental punches keep their elemental burst signatures', () {
       final firePunch = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownFirePunch,
-        _seededContext(BattleMoveVisualRecipeId.showdownFirePunch),
+        BattleMoveVisualRecipeId.sdkFirePunch,
+        _seededContext(BattleMoveVisualRecipeId.sdkFirePunch),
       );
       final icePunch = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownIcePunch,
-        _seededContext(BattleMoveVisualRecipeId.showdownIcePunch),
+        BattleMoveVisualRecipeId.sdkIcePunch,
+        _seededContext(BattleMoveVisualRecipeId.sdkIcePunch),
       );
       final thunderPunch = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownThunderPunch,
-        _seededContext(BattleMoveVisualRecipeId.showdownThunderPunch),
+        BattleMoveVisualRecipeId.sdkThunderPunch,
+        _seededContext(BattleMoveVisualRecipeId.sdkThunderPunch),
       );
 
       expect(
@@ -930,8 +929,8 @@ void main() {
 
     test('blaze kick keeps the two fireball setup before the foot strike', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownBlazeKick,
-        _seededContext(BattleMoveVisualRecipeId.showdownBlazeKick),
+        BattleMoveVisualRecipeId.sdkBlazeKick,
+        _seededContext(BattleMoveVisualRecipeId.sdkBlazeKick),
       );
 
       expect(
@@ -948,8 +947,8 @@ void main() {
 
     test('thunderous kick blooms into a five-lightning electric burst', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownThunderousKick,
-        _seededContext(BattleMoveVisualRecipeId.showdownThunderousKick),
+        BattleMoveVisualRecipeId.sdkThunderousKick,
+        _seededContext(BattleMoveVisualRecipeId.sdkThunderousKick),
       );
 
       expect(steps.whereType<ScreenFlashStep>(), isNotEmpty);
@@ -969,8 +968,8 @@ void main() {
 
     test('trop kick blooms into a five-petal burst with two seed orbs', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownTropKick,
-        _seededContext(BattleMoveVisualRecipeId.showdownTropKick),
+        BattleMoveVisualRecipeId.sdkTropKick,
+        _seededContext(BattleMoveVisualRecipeId.sdkTropKick),
       );
 
       expect(
@@ -989,8 +988,8 @@ void main() {
 
     test('dual wingbeat hits twice with feather accents', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownDualWingBeat,
-        _seededContext(BattleMoveVisualRecipeId.showdownDualWingBeat),
+        BattleMoveVisualRecipeId.sdkDualWingBeat,
+        _seededContext(BattleMoveVisualRecipeId.sdkDualWingBeat),
       );
 
       expect(
@@ -1005,8 +1004,8 @@ void main() {
 
     test('bonemerang throws two bone projectiles across the lane', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownBoneMerang,
-        _seededContext(BattleMoveVisualRecipeId.showdownBoneMerang),
+        BattleMoveVisualRecipeId.sdkBoneMerang,
+        _seededContext(BattleMoveVisualRecipeId.sdkBoneMerang),
       );
 
       expect(
@@ -1023,8 +1022,8 @@ void main() {
 
     test('spark mixes a short electric burst into a contact finish', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownSpark,
-        _seededContext(BattleMoveVisualRecipeId.showdownSpark),
+        BattleMoveVisualRecipeId.sdkSpark,
+        _seededContext(BattleMoveVisualRecipeId.sdkSpark),
       );
 
       expect(
@@ -1041,8 +1040,8 @@ void main() {
 
     test('wild charge layers electric bursts around a fast dash impact', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownWildCharge,
-        _seededContext(BattleMoveVisualRecipeId.showdownWildCharge),
+        BattleMoveVisualRecipeId.sdkWildCharge,
+        _seededContext(BattleMoveVisualRecipeId.sdkWildCharge),
       );
 
       expect(
@@ -1065,8 +1064,8 @@ void main() {
 
     test('flare blitz uses repeated fire bursts around a fast dash impact', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownFlareBlitz,
-        _seededContext(BattleMoveVisualRecipeId.showdownFlareBlitz),
+        BattleMoveVisualRecipeId.sdkFlareBlitz,
+        _seededContext(BattleMoveVisualRecipeId.sdkFlareBlitz),
       );
 
       expect(
@@ -1083,8 +1082,8 @@ void main() {
 
     test('accelerock adds a rock burst on top of a fast attack impact', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownAccelerock,
-        _seededContext(BattleMoveVisualRecipeId.showdownAccelerock),
+        BattleMoveVisualRecipeId.sdkAccelerock,
+        _seededContext(BattleMoveVisualRecipeId.sdkAccelerock),
       );
 
       expect(
@@ -1101,8 +1100,8 @@ void main() {
 
     test('wicked blow darkens the screen around a fist-led fast strike', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownWickedBlow,
-        _seededContext(BattleMoveVisualRecipeId.showdownWickedBlow),
+        BattleMoveVisualRecipeId.sdkWickedBlow,
+        _seededContext(BattleMoveVisualRecipeId.sdkWickedBlow),
       );
 
       expect(steps.whereType<ScreenFlashStep>(), isNotEmpty);
@@ -1114,8 +1113,8 @@ void main() {
 
     test('double hit repeats compact impact accents around the target', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownDoubleHit,
-        _seededContext(BattleMoveVisualRecipeId.showdownDoubleHit),
+        BattleMoveVisualRecipeId.sdkDoubleHit,
+        _seededContext(BattleMoveVisualRecipeId.sdkDoubleHit),
       );
 
       expect(
@@ -1129,8 +1128,8 @@ void main() {
 
     test('crunch layers bite jaws with a dark accent around the target', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownCrunch,
-        _seededContext(BattleMoveVisualRecipeId.showdownCrunch),
+        BattleMoveVisualRecipeId.sdkCrunch,
+        _seededContext(BattleMoveVisualRecipeId.sdkCrunch),
       );
 
       expect(
@@ -1155,8 +1154,8 @@ void main() {
 
     test('flamethrower chains repeated fireballs through the lane', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownFlamethrower,
-        _seededContext(BattleMoveVisualRecipeId.showdownFlamethrower),
+        BattleMoveVisualRecipeId.sdkFlamethrower,
+        _seededContext(BattleMoveVisualRecipeId.sdkFlamethrower),
       );
 
       expect(
@@ -1176,8 +1175,8 @@ void main() {
 
     test('ice beam mixes iceball travel and icicle accents on impact', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownIceBeam,
-        _seededContext(BattleMoveVisualRecipeId.showdownIceBeam),
+        BattleMoveVisualRecipeId.sdkIceBeam,
+        _seededContext(BattleMoveVisualRecipeId.sdkIceBeam),
       );
 
       expect(
@@ -1197,8 +1196,8 @@ void main() {
     test('psychic uses mind pressure accents rather than a plain projectile',
         () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownPsychic,
-        _seededContext(BattleMoveVisualRecipeId.showdownPsychic),
+        BattleMoveVisualRecipeId.sdkPsychic,
+        _seededContext(BattleMoveVisualRecipeId.sdkPsychic),
       );
 
       expect(steps.whereType<ScreenFlashStep>(), isNotEmpty);
@@ -1218,8 +1217,8 @@ void main() {
 
     test('earthquake drives repeated ground bursts and target shake', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownEarthquake,
-        _seededContext(BattleMoveVisualRecipeId.showdownEarthquake),
+        BattleMoveVisualRecipeId.sdkEarthquake,
+        _seededContext(BattleMoveVisualRecipeId.sdkEarthquake),
       );
 
       expect(
@@ -1234,8 +1233,8 @@ void main() {
 
     test('energy ball charges then launches the green orb forward', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownEnergyBall,
-        _seededContext(BattleMoveVisualRecipeId.showdownEnergyBall),
+        BattleMoveVisualRecipeId.sdkEnergyBall,
+        _seededContext(BattleMoveVisualRecipeId.sdkEnergyBall),
       );
 
       expect(
@@ -1254,8 +1253,8 @@ void main() {
 
     test('night slash mixes a dark flash with multiple slash accents', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownNightSlash,
-        _seededContext(BattleMoveVisualRecipeId.showdownNightSlash),
+        BattleMoveVisualRecipeId.sdkNightSlash,
+        _seededContext(BattleMoveVisualRecipeId.sdkNightSlash),
       );
 
       expect(steps.whereType<ScreenFlashStep>(), isNotEmpty);
@@ -1276,8 +1275,8 @@ void main() {
 
     test('giga impact commits to a heavy fast dash and oversized impact', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownGigaImpact,
-        _seededContext(BattleMoveVisualRecipeId.showdownGigaImpact),
+        BattleMoveVisualRecipeId.sdkGigaImpact,
+        _seededContext(BattleMoveVisualRecipeId.sdkGigaImpact),
       );
 
       expect(steps.whereType<ScreenFlashStep>(), isNotEmpty);
@@ -1295,8 +1294,8 @@ void main() {
 
     test('power whip drives leaf accents into a contact finish', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownPowerWhip,
-        _seededContext(BattleMoveVisualRecipeId.showdownPowerWhip),
+        BattleMoveVisualRecipeId.sdkPowerWhip,
+        _seededContext(BattleMoveVisualRecipeId.sdkPowerWhip),
       );
 
       expect(
@@ -1310,8 +1309,8 @@ void main() {
 
     test('crabhammer mixes water bursts and claw accents', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownCrabHammer,
-        _seededContext(BattleMoveVisualRecipeId.showdownCrabHammer),
+        BattleMoveVisualRecipeId.sdkCrabHammer,
+        _seededContext(BattleMoveVisualRecipeId.sdkCrabHammer),
       );
 
       expect(
@@ -1331,8 +1330,8 @@ void main() {
 
     test('discharge blooms repeated electric bursts over the target', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownDischarge,
-        _seededContext(BattleMoveVisualRecipeId.showdownDischarge),
+        BattleMoveVisualRecipeId.sdkDischarge,
+        _seededContext(BattleMoveVisualRecipeId.sdkDischarge),
       );
 
       expect(steps.whereType<ScreenFlashStep>(), isNotEmpty);
@@ -1352,8 +1351,8 @@ void main() {
 
     test('smart strike keeps a sharp sword-led contact line', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownSmartStrike,
-        _seededContext(BattleMoveVisualRecipeId.showdownSmartStrike),
+        BattleMoveVisualRecipeId.sdkSmartStrike,
+        _seededContext(BattleMoveVisualRecipeId.sdkSmartStrike),
       );
 
       expect(
@@ -1368,8 +1367,8 @@ void main() {
     test('megahorn keeps a heavy rushing line with claw-like impact accents',
         () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownMegaHorn,
-        _seededContext(BattleMoveVisualRecipeId.showdownMegaHorn),
+        BattleMoveVisualRecipeId.sdkMegaHorn,
+        _seededContext(BattleMoveVisualRecipeId.sdkMegaHorn),
       );
 
       expect(
@@ -1387,8 +1386,8 @@ void main() {
 
     test('dragon claw layers paired claw cuts on the target', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownDragonClaw,
-        _seededContext(BattleMoveVisualRecipeId.showdownDragonClaw),
+        BattleMoveVisualRecipeId.sdkDragonClaw,
+        _seededContext(BattleMoveVisualRecipeId.sdkDragonClaw),
       );
 
       expect(
@@ -1403,8 +1402,8 @@ void main() {
 
     test('psycho cut mixes a psychic flash with a sharp slash accent', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownPsychoCut,
-        _seededContext(BattleMoveVisualRecipeId.showdownPsychoCut),
+        BattleMoveVisualRecipeId.sdkPsychoCut,
+        _seededContext(BattleMoveVisualRecipeId.sdkPsychoCut),
       );
 
       expect(steps.whereType<ScreenFlashStep>(), isNotEmpty);
@@ -1424,8 +1423,8 @@ void main() {
 
     test('water pulse launches a water orb then ripples over the target', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownWaterPulse,
-        _seededContext(BattleMoveVisualRecipeId.showdownWaterPulse),
+        BattleMoveVisualRecipeId.sdkWaterPulse,
+        _seededContext(BattleMoveVisualRecipeId.sdkWaterPulse),
       );
 
       expect(
@@ -1439,8 +1438,8 @@ void main() {
 
     test('power gem launches a jewel-like rock burst into the target', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownPowerGem,
-        _seededContext(BattleMoveVisualRecipeId.showdownPowerGem),
+        BattleMoveVisualRecipeId.sdkPowerGem,
+        _seededContext(BattleMoveVisualRecipeId.sdkPowerGem),
       );
 
       expect(
@@ -1457,8 +1456,8 @@ void main() {
 
     test('heat wave spreads repeated fire bursts across the target lane', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownHeatWave,
-        _seededContext(BattleMoveVisualRecipeId.showdownHeatWave),
+        BattleMoveVisualRecipeId.sdkHeatWave,
+        _seededContext(BattleMoveVisualRecipeId.sdkHeatWave),
       );
 
       expect(
@@ -1472,8 +1471,8 @@ void main() {
 
     test('muddy water mixes water and mud wisps around the target', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownMuddyWater,
-        _seededContext(BattleMoveVisualRecipeId.showdownMuddyWater),
+        BattleMoveVisualRecipeId.sdkMuddyWater,
+        _seededContext(BattleMoveVisualRecipeId.sdkMuddyWater),
       );
 
       expect(
@@ -1492,8 +1491,8 @@ void main() {
 
     test('earth power erupts the ground under the defender', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownEarthPower,
-        _seededContext(BattleMoveVisualRecipeId.showdownEarthPower),
+        BattleMoveVisualRecipeId.sdkEarthPower,
+        _seededContext(BattleMoveVisualRecipeId.sdkEarthPower),
       );
 
       expect(
@@ -1507,8 +1506,8 @@ void main() {
 
     test('bug buzz uses web-like and buzzing pulses on the target', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownBugBuzz,
-        _seededContext(BattleMoveVisualRecipeId.showdownBugBuzz),
+        BattleMoveVisualRecipeId.sdkBugBuzz,
+        _seededContext(BattleMoveVisualRecipeId.sdkBugBuzz),
       );
 
       expect(
@@ -1523,8 +1522,8 @@ void main() {
 
     test('play rough mixes fist, foot, mud wisps and hearts on the target', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownPlayRough,
-        _seededContext(BattleMoveVisualRecipeId.showdownPlayRough),
+        BattleMoveVisualRecipeId.sdkPlayRough,
+        _seededContext(BattleMoveVisualRecipeId.sdkPlayRough),
       );
 
       expect(
@@ -1551,8 +1550,8 @@ void main() {
 
     test('surf throws a three-lane water swell and shakes the target', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownSurf,
-        _seededContext(BattleMoveVisualRecipeId.showdownSurf),
+        BattleMoveVisualRecipeId.sdkSurf,
+        _seededContext(BattleMoveVisualRecipeId.sdkSurf),
       );
 
       expect(steps.whereType<ScreenFlashStep>(), isNotEmpty);
@@ -1568,8 +1567,8 @@ void main() {
     test('hydro pump uses a focused hydroshot lane and a strong target shake',
         () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownHydroPump,
-        _seededContext(BattleMoveVisualRecipeId.showdownHydroPump),
+        BattleMoveVisualRecipeId.sdkHydroPump,
+        _seededContext(BattleMoveVisualRecipeId.sdkHydroPump),
       );
 
       expect(steps.whereType<ScreenFlashStep>(), isNotEmpty);
@@ -1584,8 +1583,8 @@ void main() {
 
     test('leaf blade layers leaves, green energy, and paired slash cuts', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownLeafBlade,
-        _seededContext(BattleMoveVisualRecipeId.showdownLeafBlade),
+        BattleMoveVisualRecipeId.sdkLeafBlade,
+        _seededContext(BattleMoveVisualRecipeId.sdkLeafBlade),
       );
 
       expect(
@@ -1611,8 +1610,8 @@ void main() {
 
     test('x-scissor draws a crossing pair of slash impacts', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownXScissor,
-        _seededContext(BattleMoveVisualRecipeId.showdownXScissor),
+        BattleMoveVisualRecipeId.sdkXScissor,
+        _seededContext(BattleMoveVisualRecipeId.sdkXScissor),
       );
 
       expect(
@@ -1629,16 +1628,16 @@ void main() {
     test('elemental fang recipes keep bite jaws plus their elemental accent',
         () {
       final fire = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownFireFang,
-        _seededContext(BattleMoveVisualRecipeId.showdownFireFang),
+        BattleMoveVisualRecipeId.sdkFireFang,
+        _seededContext(BattleMoveVisualRecipeId.sdkFireFang),
       );
       final ice = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownIceFang,
-        _seededContext(BattleMoveVisualRecipeId.showdownIceFang),
+        BattleMoveVisualRecipeId.sdkIceFang,
+        _seededContext(BattleMoveVisualRecipeId.sdkIceFang),
       );
       final thunder = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownThunderFang,
-        _seededContext(BattleMoveVisualRecipeId.showdownThunderFang),
+        BattleMoveVisualRecipeId.sdkThunderFang,
+        _seededContext(BattleMoveVisualRecipeId.sdkThunderFang),
       );
 
       for (final steps in <List<BattleAnimationStep>>[fire, ice, thunder]) {
@@ -1678,8 +1677,8 @@ void main() {
 
     test('air slash sweeps repeated wisps diagonally across the target', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownAirSlash,
-        _seededContext(BattleMoveVisualRecipeId.showdownAirSlash),
+        BattleMoveVisualRecipeId.sdkAirSlash,
+        _seededContext(BattleMoveVisualRecipeId.sdkAirSlash),
       );
 
       expect(
@@ -1691,8 +1690,8 @@ void main() {
 
     test('draco meteor rains flareballs, rocks and a dark impact core', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownDracoMeteor,
-        _seededContext(BattleMoveVisualRecipeId.showdownDracoMeteor),
+        BattleMoveVisualRecipeId.sdkDracoMeteor,
+        _seededContext(BattleMoveVisualRecipeId.sdkDracoMeteor),
       );
 
       expect(steps.whereType<ScreenFlashStep>(), isNotEmpty);
@@ -1718,8 +1717,8 @@ void main() {
 
     test('hyper voice expands repeated sound rings around the attacker', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownHyperVoice,
-        _seededContext(BattleMoveVisualRecipeId.showdownHyperVoice),
+        BattleMoveVisualRecipeId.sdkHyperVoice,
+        _seededContext(BattleMoveVisualRecipeId.sdkHyperVoice),
       );
 
       expect(
@@ -1734,8 +1733,8 @@ void main() {
     test('flash cannon mixes bright wisps and water wisps into a beam lane',
         () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownFlashCannon,
-        _seededContext(BattleMoveVisualRecipeId.showdownFlashCannon),
+        BattleMoveVisualRecipeId.sdkFlashCannon,
+        _seededContext(BattleMoveVisualRecipeId.sdkFlashCannon),
       );
 
       expect(
@@ -1753,8 +1752,8 @@ void main() {
     test('dragon pulse builds a pulse lane then launches repeated shadow orbs',
         () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownDragonPulse,
-        _seededContext(BattleMoveVisualRecipeId.showdownDragonPulse),
+        BattleMoveVisualRecipeId.sdkDragonPulse,
+        _seededContext(BattleMoveVisualRecipeId.sdkDragonPulse),
       );
 
       expect(
@@ -1777,8 +1776,8 @@ void main() {
 
     test('sludge bomb hurls three poison bursts with ballistic spread', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownSludgeBomb,
-        _seededContext(BattleMoveVisualRecipeId.showdownSludgeBomb),
+        BattleMoveVisualRecipeId.sdkSludgeBomb,
+        _seededContext(BattleMoveVisualRecipeId.sdkSludgeBomb),
       );
 
       expect(
@@ -1797,8 +1796,8 @@ void main() {
 
     test('magical leaf fans repeated leaves into the target', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownMagicalLeaf,
-        _seededContext(BattleMoveVisualRecipeId.showdownMagicalLeaf),
+        BattleMoveVisualRecipeId.sdkMagicalLeaf,
+        _seededContext(BattleMoveVisualRecipeId.sdkMagicalLeaf),
       );
 
       expect(
@@ -1811,8 +1810,8 @@ void main() {
 
     test('electroweb throws repeated web projectiles into the target', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownElectroweb,
-        _seededContext(BattleMoveVisualRecipeId.showdownElectroweb),
+        BattleMoveVisualRecipeId.sdkElectroweb,
+        _seededContext(BattleMoveVisualRecipeId.sdkElectroweb),
       );
 
       expect(
@@ -1823,8 +1822,8 @@ void main() {
 
     test('bullet seed uses two rapid seed-like energy shots', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownBulletSeed,
-        _seededContext(BattleMoveVisualRecipeId.showdownBulletSeed),
+        BattleMoveVisualRecipeId.sdkBulletSeed,
+        _seededContext(BattleMoveVisualRecipeId.sdkBulletSeed),
       );
 
       expect(
@@ -1838,8 +1837,8 @@ void main() {
 
     test('slam keeps a heavy body-check line with impact confirmation', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownSlam,
-        _seededContext(BattleMoveVisualRecipeId.showdownSlam),
+        BattleMoveVisualRecipeId.sdkSlam,
+        _seededContext(BattleMoveVisualRecipeId.sdkSlam),
       );
 
       expect(
@@ -1857,8 +1856,8 @@ void main() {
 
     test('body slam throws twin wisps into a heavy body-check impact', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownBodySlam,
-        _seededContext(BattleMoveVisualRecipeId.showdownBodySlam),
+        BattleMoveVisualRecipeId.sdkBodySlam,
+        _seededContext(BattleMoveVisualRecipeId.sdkBodySlam),
       );
 
       expect(
@@ -1879,8 +1878,8 @@ void main() {
 
     test('high jump kick keeps a fast kick line with a foot accent', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownHighJumpKick,
-        _seededContext(BattleMoveVisualRecipeId.showdownHighJumpKick),
+        BattleMoveVisualRecipeId.sdkHighJumpKick,
+        _seededContext(BattleMoveVisualRecipeId.sdkHighJumpKick),
       );
 
       expect(
@@ -1896,8 +1895,8 @@ void main() {
 
     test('karate chop layers a chop arc over a contact strike', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownKarateChop,
-        _seededContext(BattleMoveVisualRecipeId.showdownKarateChop),
+        BattleMoveVisualRecipeId.sdkKarateChop,
+        _seededContext(BattleMoveVisualRecipeId.sdkKarateChop),
       );
 
       expect(
@@ -1920,8 +1919,8 @@ void main() {
 
     test('drill run tunnels into the target with twin wisps and an impact', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownDrillRun,
-        _seededContext(BattleMoveVisualRecipeId.showdownDrillRun),
+        BattleMoveVisualRecipeId.sdkDrillRun,
+        _seededContext(BattleMoveVisualRecipeId.sdkDrillRun),
       );
 
       expect(
@@ -1943,8 +1942,8 @@ void main() {
 
     test('gunk shot hurls repeated poison bursts onto the target lane', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownGunkShot,
-        _seededContext(BattleMoveVisualRecipeId.showdownGunkShot),
+        BattleMoveVisualRecipeId.sdkGunkShot,
+        _seededContext(BattleMoveVisualRecipeId.sdkGunkShot),
       );
 
       expect(
@@ -1957,8 +1956,8 @@ void main() {
 
     test('mud shot throws a muddy triple burst across the target lane', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownMudShot,
-        _seededContext(BattleMoveVisualRecipeId.showdownMudShot),
+        BattleMoveVisualRecipeId.sdkMudShot,
+        _seededContext(BattleMoveVisualRecipeId.sdkMudShot),
       );
 
       expect(
@@ -1971,8 +1970,8 @@ void main() {
 
     test('electro ball launches a single orb and rocks the defender', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownElectroBall,
-        _seededContext(BattleMoveVisualRecipeId.showdownElectroBall),
+        BattleMoveVisualRecipeId.sdkElectroBall,
+        _seededContext(BattleMoveVisualRecipeId.sdkElectroBall),
       );
 
       expect(
@@ -1986,8 +1985,8 @@ void main() {
 
     test('rock blast slings a single exploding rock into the target', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownRockBlast,
-        _seededContext(BattleMoveVisualRecipeId.showdownRockBlast),
+        BattleMoveVisualRecipeId.sdkRockBlast,
+        _seededContext(BattleMoveVisualRecipeId.sdkRockBlast),
       );
 
       expect(
@@ -2000,8 +1999,8 @@ void main() {
 
     test('whirlwind surrounds the target with repeated wind wisps', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownWhirlwind,
-        _seededContext(BattleMoveVisualRecipeId.showdownWhirlwind),
+        BattleMoveVisualRecipeId.sdkWhirlwind,
+        _seededContext(BattleMoveVisualRecipeId.sdkWhirlwind),
       );
 
       expect(
@@ -2012,8 +2011,8 @@ void main() {
 
     test('freeze dry throws a four-icicle volley with a cold follow-up', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownFreezeDry,
-        _seededContext(BattleMoveVisualRecipeId.showdownFreezeDry),
+        BattleMoveVisualRecipeId.sdkFreezeDry,
+        _seededContext(BattleMoveVisualRecipeId.sdkFreezeDry),
       );
 
       expect(
@@ -2030,8 +2029,8 @@ void main() {
 
     test('magma storm rings the target with repeated fireballs', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownMagmaStorm,
-        _seededContext(BattleMoveVisualRecipeId.showdownMagmaStorm),
+        BattleMoveVisualRecipeId.sdkMagmaStorm,
+        _seededContext(BattleMoveVisualRecipeId.sdkMagmaStorm),
       );
 
       expect(
@@ -2045,8 +2044,8 @@ void main() {
 
     test('origin pulse charges then throws a triple water burst', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownOriginPulse,
-        _seededContext(BattleMoveVisualRecipeId.showdownOriginPulse),
+        BattleMoveVisualRecipeId.sdkOriginPulse,
+        _seededContext(BattleMoveVisualRecipeId.sdkOriginPulse),
       );
 
       expect(
@@ -2065,8 +2064,8 @@ void main() {
 
     test('psybeam alternates mistball and poisonwisp down the lane', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownPsybeam,
-        _seededContext(BattleMoveVisualRecipeId.showdownPsybeam),
+        BattleMoveVisualRecipeId.sdkPsybeam,
+        _seededContext(BattleMoveVisualRecipeId.sdkPsybeam),
       );
 
       expect(
@@ -2085,8 +2084,8 @@ void main() {
 
     test('aeroblast builds a wind trail before ice impacts land', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownAeroblast,
-        _seededContext(BattleMoveVisualRecipeId.showdownAeroblast),
+        BattleMoveVisualRecipeId.sdkAeroblast,
+        _seededContext(BattleMoveVisualRecipeId.sdkAeroblast),
       );
 
       expect(
@@ -2104,8 +2103,8 @@ void main() {
     test('roar of time charges with giant iceballs then detonates on target',
         () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownRoarOfTime,
-        _seededContext(BattleMoveVisualRecipeId.showdownRoarOfTime),
+        BattleMoveVisualRecipeId.sdkRoarOfTime,
+        _seededContext(BattleMoveVisualRecipeId.sdkRoarOfTime),
       );
 
       expect(
@@ -2125,8 +2124,8 @@ void main() {
     test('revelation dance builds four electro notes before the impact bloom',
         () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownRevelationDance,
-        _seededContext(BattleMoveVisualRecipeId.showdownRevelationDance),
+        BattleMoveVisualRecipeId.sdkRevelationDance,
+        _seededContext(BattleMoveVisualRecipeId.sdkRevelationDance),
       );
 
       expect(
@@ -2143,8 +2142,8 @@ void main() {
 
     test('aromatherapy wraps the user in soothing wisps', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownAromatherapy,
-        _seededContext(BattleMoveVisualRecipeId.showdownAromatherapy),
+        BattleMoveVisualRecipeId.sdkAromatherapy,
+        _seededContext(BattleMoveVisualRecipeId.sdkAromatherapy),
       );
 
       expect(
@@ -2155,8 +2154,8 @@ void main() {
 
     test('rest lifts two wisps behind the attacker', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownRest,
-        _seededContext(BattleMoveVisualRecipeId.showdownRest),
+        BattleMoveVisualRecipeId.sdkRest,
+        _seededContext(BattleMoveVisualRecipeId.sdkRest),
       );
 
       expect(
@@ -2167,8 +2166,8 @@ void main() {
 
     test('ingrain seeds the user with layered leaves', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownIngrain,
-        _seededContext(BattleMoveVisualRecipeId.showdownIngrain),
+        BattleMoveVisualRecipeId.sdkIngrain,
+        _seededContext(BattleMoveVisualRecipeId.sdkIngrain),
       );
 
       expect(
@@ -2187,8 +2186,8 @@ void main() {
 
     test('morning sun combines a warm flash with falling wisps', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownMorningSun,
-        _seededContext(BattleMoveVisualRecipeId.showdownMorningSun),
+        BattleMoveVisualRecipeId.sdkMorningSun,
+        _seededContext(BattleMoveVisualRecipeId.sdkMorningSun),
       );
 
       expect(steps.whereType<ScreenFlashStep>(), isNotEmpty);
@@ -2200,8 +2199,8 @@ void main() {
 
     test('shore up uses earthy healing accents around the user', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownShoreUp,
-        _seededContext(BattleMoveVisualRecipeId.showdownShoreUp),
+        BattleMoveVisualRecipeId.sdkShoreUp,
+        _seededContext(BattleMoveVisualRecipeId.sdkShoreUp),
       );
 
       expect(
@@ -2214,8 +2213,8 @@ void main() {
 
     test('drain throws green siphon bursts back toward the attacker', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownDrain,
-        _seededContext(BattleMoveVisualRecipeId.showdownDrain),
+        BattleMoveVisualRecipeId.sdkDrain,
+        _seededContext(BattleMoveVisualRecipeId.sdkDrain),
       );
 
       expect(steps.whereType<ScreenFlashStep>(), isNotEmpty);
@@ -2229,8 +2228,8 @@ void main() {
 
     test('leech life bursts a wisp before draining electroballs home', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownLeechLife,
-        _seededContext(BattleMoveVisualRecipeId.showdownLeechLife),
+        BattleMoveVisualRecipeId.sdkLeechLife,
+        _seededContext(BattleMoveVisualRecipeId.sdkLeechLife),
       );
 
       expect(steps.whereType<ScreenFlashStep>(), isNotEmpty);
@@ -2248,8 +2247,8 @@ void main() {
 
     test('horn leech lunges in, blooms wisps, then draws energy back', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownHornLeech,
-        _seededContext(BattleMoveVisualRecipeId.showdownHornLeech),
+        BattleMoveVisualRecipeId.sdkHornLeech,
+        _seededContext(BattleMoveVisualRecipeId.sdkHornLeech),
       );
 
       expect(steps.whereType<CombatantMotionStep>(), isNotEmpty);
@@ -2267,8 +2266,8 @@ void main() {
 
     test('parabolic charge collapses two electro rings around the user', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownParabolicCharge,
-        _seededContext(BattleMoveVisualRecipeId.showdownParabolicCharge),
+        BattleMoveVisualRecipeId.sdkParabolicCharge,
+        _seededContext(BattleMoveVisualRecipeId.sdkParabolicCharge),
       );
 
       expect(steps.whereType<ScreenFlashStep>(), isNotEmpty);
@@ -2282,8 +2281,8 @@ void main() {
 
     test('draining kiss sends three mistballs back to the user', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownDrainingKiss,
-        _seededContext(BattleMoveVisualRecipeId.showdownDrainingKiss),
+        BattleMoveVisualRecipeId.sdkDrainingKiss,
+        _seededContext(BattleMoveVisualRecipeId.sdkDrainingKiss),
       );
 
       expect(
@@ -2296,8 +2295,8 @@ void main() {
 
     test('oblivion wing layers a dark screen with flare and black wisps', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownOblivionWing,
-        _seededContext(BattleMoveVisualRecipeId.showdownOblivionWing),
+        BattleMoveVisualRecipeId.sdkOblivionWing,
+        _seededContext(BattleMoveVisualRecipeId.sdkOblivionWing),
       );
 
       expect(steps.whereType<ScreenFlashStep>(), isNotEmpty);
@@ -2317,8 +2316,8 @@ void main() {
 
     test('leech seed peppers the target with three seeded energyballs', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownLeechSeed,
-        _seededContext(BattleMoveVisualRecipeId.showdownLeechSeed),
+        BattleMoveVisualRecipeId.sdkLeechSeed,
+        _seededContext(BattleMoveVisualRecipeId.sdkLeechSeed),
       );
 
       expect(
@@ -2331,8 +2330,8 @@ void main() {
 
     test('hyper beam chains six electro shots into twin shadowball blooms', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownHyperBeam,
-        _seededContext(BattleMoveVisualRecipeId.showdownHyperBeam),
+        BattleMoveVisualRecipeId.sdkHyperBeam,
+        _seededContext(BattleMoveVisualRecipeId.sdkHyperBeam),
       );
 
       expect(steps.whereType<ScreenFlashStep>(), isNotEmpty);
@@ -2352,8 +2351,8 @@ void main() {
 
     test('signal beam alternates energy and electric pulses down the lane', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownSignalBeam,
-        _seededContext(BattleMoveVisualRecipeId.showdownSignalBeam),
+        BattleMoveVisualRecipeId.sdkSignalBeam,
+        _seededContext(BattleMoveVisualRecipeId.sdkSignalBeam),
       );
 
       expect(
@@ -2372,8 +2371,8 @@ void main() {
 
     test('fleur cannon peppers the target with a pink mistball volley', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownFleurCannon,
-        _seededContext(BattleMoveVisualRecipeId.showdownFleurCannon),
+        BattleMoveVisualRecipeId.sdkFleurCannon,
+        _seededContext(BattleMoveVisualRecipeId.sdkFleurCannon),
       );
 
       expect(steps.whereType<ScreenFlashStep>(), isNotEmpty);
@@ -2387,8 +2386,8 @@ void main() {
 
     test('armor cannon charges flare cores before the main blast', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownArmorCannon,
-        _seededContext(BattleMoveVisualRecipeId.showdownArmorCannon),
+        BattleMoveVisualRecipeId.sdkArmorCannon,
+        _seededContext(BattleMoveVisualRecipeId.sdkArmorCannon),
       );
 
       expect(steps.whereType<ScreenFlashStep>(),
@@ -2409,8 +2408,8 @@ void main() {
 
     test('steel beam launches a triple steel-like ice volley', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownSteelBeam,
-        _seededContext(BattleMoveVisualRecipeId.showdownSteelBeam),
+        BattleMoveVisualRecipeId.sdkSteelBeam,
+        _seededContext(BattleMoveVisualRecipeId.sdkSteelBeam),
       );
 
       expect(
@@ -2423,8 +2422,8 @@ void main() {
 
     test('beak blast stores four fireballs before the detonation bloom', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownBeakBlast,
-        _seededContext(BattleMoveVisualRecipeId.showdownBeakBlast),
+        BattleMoveVisualRecipeId.sdkBeakBlast,
+        _seededContext(BattleMoveVisualRecipeId.sdkBeakBlast),
       );
 
       expect(steps.whereType<ScreenFlashStep>(), isNotEmpty);
@@ -2444,8 +2443,8 @@ void main() {
 
     test('twin beam alternates psychic and toxic pulses six times', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownTwinBeam,
-        _seededContext(BattleMoveVisualRecipeId.showdownTwinBeam),
+        BattleMoveVisualRecipeId.sdkTwinBeam,
+        _seededContext(BattleMoveVisualRecipeId.sdkTwinBeam),
       );
 
       expect(
@@ -2464,8 +2463,8 @@ void main() {
 
     test('spike cannon fires a tight double electro burst', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownSpikeCannon,
-        _seededContext(BattleMoveVisualRecipeId.showdownSpikeCannon),
+        BattleMoveVisualRecipeId.sdkSpikeCannon,
+        _seededContext(BattleMoveVisualRecipeId.sdkSpikeCannon),
       );
 
       expect(
@@ -2478,8 +2477,8 @@ void main() {
 
     test('hidden power radiates eight electro orbs around the attacker', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownHiddenPower,
-        _seededContext(BattleMoveVisualRecipeId.showdownHiddenPower),
+        BattleMoveVisualRecipeId.sdkHiddenPower,
+        _seededContext(BattleMoveVisualRecipeId.sdkHiddenPower),
       );
 
       final orbs = steps
@@ -2497,8 +2496,8 @@ void main() {
     test('watershuriken mixes three water blooms with three icicle strikes',
         () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownWaterShuriken,
-        _seededContext(BattleMoveVisualRecipeId.showdownWaterShuriken),
+        BattleMoveVisualRecipeId.sdkWaterShuriken,
+        _seededContext(BattleMoveVisualRecipeId.sdkWaterShuriken),
       );
 
       expect(_countFx(steps, 'waterwisp'), equals(3));
@@ -2506,10 +2505,10 @@ void main() {
       expect(steps.whereType<CombatantShakeStep>(), isNotEmpty);
     });
 
-    test('slash keeps the showdown slashattack feel with a fast dash cut', () {
+    test('slash keeps the sdk slashattack feel with a fast dash cut', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownSlash,
-        _seededContext(BattleMoveVisualRecipeId.showdownSlash),
+        BattleMoveVisualRecipeId.sdkSlash,
+        _seededContext(BattleMoveVisualRecipeId.sdkSlash),
       );
 
       expect(
@@ -2522,8 +2521,8 @@ void main() {
 
     test('terastar storm lifts a star core before six rainbow impacts', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownTerastarStorm,
-        _seededContext(BattleMoveVisualRecipeId.showdownTerastarStorm),
+        BattleMoveVisualRecipeId.sdkTerastarStorm,
+        _seededContext(BattleMoveVisualRecipeId.sdkTerastarStorm),
       );
 
       expect(steps.whereType<ScreenFlashStep>(), isNotEmpty);
@@ -2543,8 +2542,8 @@ void main() {
 
     test('meteor mash rushes in under a space flash before shadow impact', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownMeteorMash,
-        _seededContext(BattleMoveVisualRecipeId.showdownMeteorMash),
+        BattleMoveVisualRecipeId.sdkMeteorMash,
+        _seededContext(BattleMoveVisualRecipeId.sdkMeteorMash),
       );
 
       expect(steps.whereType<ScreenFlashStep>(), isNotEmpty);
@@ -2562,8 +2561,8 @@ void main() {
 
     test('toxic throws a single ballistic poison wisp onto the target', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownToxic,
-        _seededContext(BattleMoveVisualRecipeId.showdownToxic),
+        BattleMoveVisualRecipeId.sdkToxic,
+        _seededContext(BattleMoveVisualRecipeId.sdkToxic),
       );
 
       expect(
@@ -2576,8 +2575,8 @@ void main() {
 
     test('toxic spikes plants two poison caltrops on the defender side', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownToxicSpikes,
-        _seededContext(BattleMoveVisualRecipeId.showdownToxicSpikes),
+        BattleMoveVisualRecipeId.sdkToxicSpikes,
+        _seededContext(BattleMoveVisualRecipeId.sdkToxicSpikes),
       );
 
       expect(
@@ -2590,8 +2589,8 @@ void main() {
 
     test('poison gas drops three poison wisps over the target', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownPoisonGas,
-        _seededContext(BattleMoveVisualRecipeId.showdownPoisonGas),
+        BattleMoveVisualRecipeId.sdkPoisonGas,
+        _seededContext(BattleMoveVisualRecipeId.sdkPoisonGas),
       );
 
       expect(
@@ -2604,8 +2603,8 @@ void main() {
 
     test('smog layers three inbound and three lingering poison wisps', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownSmog,
-        _seededContext(BattleMoveVisualRecipeId.showdownSmog),
+        BattleMoveVisualRecipeId.sdkSmog,
+        _seededContext(BattleMoveVisualRecipeId.sdkSmog),
       );
 
       expect(
@@ -2618,8 +2617,8 @@ void main() {
 
     test('clear smog mirrors smog with neutral wisps instead of poison', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownClearSmog,
-        _seededContext(BattleMoveVisualRecipeId.showdownClearSmog),
+        BattleMoveVisualRecipeId.sdkClearSmog,
+        _seededContext(BattleMoveVisualRecipeId.sdkClearSmog),
       );
 
       expect(
@@ -2636,8 +2635,8 @@ void main() {
 
     test('poison fang stacks bite jaws with two toxic blooms', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownPoisonFang,
-        _seededContext(BattleMoveVisualRecipeId.showdownPoisonFang),
+        BattleMoveVisualRecipeId.sdkPoisonFang,
+        _seededContext(BattleMoveVisualRecipeId.sdkPoisonFang),
       );
 
       expect(
@@ -2662,8 +2661,8 @@ void main() {
 
     test('cross poison crosses slash accents with a toxic burst', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownCrossPoison,
-        _seededContext(BattleMoveVisualRecipeId.showdownCrossPoison),
+        BattleMoveVisualRecipeId.sdkCrossPoison,
+        _seededContext(BattleMoveVisualRecipeId.sdkCrossPoison),
       );
 
       expect(
@@ -2688,8 +2687,8 @@ void main() {
 
     test('dire claw adds a toxic bloom to a paired claw strike', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownDireClaw,
-        _seededContext(BattleMoveVisualRecipeId.showdownDireClaw),
+        BattleMoveVisualRecipeId.sdkDireClaw,
+        _seededContext(BattleMoveVisualRecipeId.sdkDireClaw),
       );
 
       expect(
@@ -2714,8 +2713,8 @@ void main() {
 
     test('spore rains poison wisps down onto the target', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownSpore,
-        _seededContext(BattleMoveVisualRecipeId.showdownSpore),
+        BattleMoveVisualRecipeId.sdkSpore,
+        _seededContext(BattleMoveVisualRecipeId.sdkSpore),
       );
 
       expect(
@@ -2734,8 +2733,8 @@ void main() {
 
     test('pain split mirrors repeated wisps on both battlers', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownPainSplit,
-        _seededContext(BattleMoveVisualRecipeId.showdownPainSplit),
+        BattleMoveVisualRecipeId.sdkPainSplit,
+        _seededContext(BattleMoveVisualRecipeId.sdkPainSplit),
       );
 
       final wisps = steps
@@ -2754,8 +2753,8 @@ void main() {
 
     test('skill swap trades repeated wisps between attacker and defender', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownSkillSwap,
-        _seededContext(BattleMoveVisualRecipeId.showdownSkillSwap),
+        BattleMoveVisualRecipeId.sdkSkillSwap,
+        _seededContext(BattleMoveVisualRecipeId.sdkSkillSwap),
       );
 
       final wisps = steps
@@ -2785,8 +2784,8 @@ void main() {
 
     test('doom desire charges a psychic core before the delayed hit lands', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownDoomDesire,
-        _seededContext(BattleMoveVisualRecipeId.showdownDoomDesire),
+        BattleMoveVisualRecipeId.sdkDoomDesire,
+        _seededContext(BattleMoveVisualRecipeId.sdkDoomDesire),
       );
 
       final flashes = steps.whereType<ScreenFlashStep>().toList();
@@ -2798,8 +2797,8 @@ void main() {
 
     test('seed flare fans repeated leaves into a bright burst', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownSeedFlare,
-        _seededContext(BattleMoveVisualRecipeId.showdownSeedFlare),
+        BattleMoveVisualRecipeId.sdkSeedFlare,
+        _seededContext(BattleMoveVisualRecipeId.sdkSeedFlare),
       );
 
       final plan = BattleAnimationPlan(steps: steps);
@@ -2818,8 +2817,8 @@ void main() {
 
     test('icy wind throws a short iceball volley with a cold shake', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownIcyWind,
-        _seededContext(BattleMoveVisualRecipeId.showdownIcyWind),
+        BattleMoveVisualRecipeId.sdkIcyWind,
+        _seededContext(BattleMoveVisualRecipeId.sdkIcyWind),
       );
 
       expect(
@@ -2834,8 +2833,8 @@ void main() {
 
     test('weather ball keeps a compact projectile lane', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownWeatherBall,
-        _seededContext(BattleMoveVisualRecipeId.showdownWeatherBall),
+        BattleMoveVisualRecipeId.sdkWeatherBall,
+        _seededContext(BattleMoveVisualRecipeId.sdkWeatherBall),
       );
 
       final plan = BattleAnimationPlan(steps: steps);
@@ -2851,8 +2850,8 @@ void main() {
 
     test('scald pushes repeated water wisps through the target', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownScald,
-        _seededContext(BattleMoveVisualRecipeId.showdownScald),
+        BattleMoveVisualRecipeId.sdkScald,
+        _seededContext(BattleMoveVisualRecipeId.sdkScald),
       );
 
       expect(
@@ -2870,8 +2869,8 @@ void main() {
 
     test('tri attack splits into elemental shots across the lane', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownTriAttack,
-        _seededContext(BattleMoveVisualRecipeId.showdownTriAttack),
+        BattleMoveVisualRecipeId.sdkTriAttack,
+        _seededContext(BattleMoveVisualRecipeId.sdkTriAttack),
       );
 
       final plan = BattleAnimationPlan(steps: steps);
@@ -2901,8 +2900,8 @@ void main() {
 
     test('clanging scales rings the user with repeated impact beats', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownClangingScales,
-        _seededContext(BattleMoveVisualRecipeId.showdownClangingScales),
+        BattleMoveVisualRecipeId.sdkClangingScales,
+        _seededContext(BattleMoveVisualRecipeId.sdkClangingScales),
       );
 
       expect(
@@ -2917,8 +2916,8 @@ void main() {
 
     test('flame burst blooms a short fireball burst with a flare finish', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownFlameBurst,
-        _seededContext(BattleMoveVisualRecipeId.showdownFlameBurst),
+        BattleMoveVisualRecipeId.sdkFlameBurst,
+        _seededContext(BattleMoveVisualRecipeId.sdkFlameBurst),
       );
 
       expect(
@@ -2936,8 +2935,8 @@ void main() {
 
     test('steam eruption drives a heavier water burst into the defender', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownSteamEruption,
-        _seededContext(BattleMoveVisualRecipeId.showdownSteamEruption),
+        BattleMoveVisualRecipeId.sdkSteamEruption,
+        _seededContext(BattleMoveVisualRecipeId.sdkSteamEruption),
       );
 
       expect(
@@ -2956,8 +2955,8 @@ void main() {
 
     test('water sport keeps the user wrapped in a small water aura', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownWaterSport,
-        _seededContext(BattleMoveVisualRecipeId.showdownWaterSport),
+        BattleMoveVisualRecipeId.sdkWaterSport,
+        _seededContext(BattleMoveVisualRecipeId.sdkWaterSport),
       );
 
       expect(
@@ -2971,24 +2970,24 @@ void main() {
 
     test('wood hammer and ivy cudgel keep the leaf-hammer signature', () {
       final woodHammer = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownWoodHammer,
-        _seededContext(BattleMoveVisualRecipeId.showdownWoodHammer),
+        BattleMoveVisualRecipeId.sdkWoodHammer,
+        _seededContext(BattleMoveVisualRecipeId.sdkWoodHammer),
       );
       final ivyCudgel = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownIvyCudgel,
-        _seededContext(BattleMoveVisualRecipeId.showdownIvyCudgel),
+        BattleMoveVisualRecipeId.sdkIvyCudgel,
+        _seededContext(BattleMoveVisualRecipeId.sdkIvyCudgel),
       );
       final ivyCudgelWater = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownIvyCudgelWater,
-        _seededContext(BattleMoveVisualRecipeId.showdownIvyCudgelWater),
+        BattleMoveVisualRecipeId.sdkIvyCudgelWater,
+        _seededContext(BattleMoveVisualRecipeId.sdkIvyCudgelWater),
       );
       final ivyCudgelFire = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownIvyCudgelFire,
-        _seededContext(BattleMoveVisualRecipeId.showdownIvyCudgelFire),
+        BattleMoveVisualRecipeId.sdkIvyCudgelFire,
+        _seededContext(BattleMoveVisualRecipeId.sdkIvyCudgelFire),
       );
       final ivyCudgelRock = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownIvyCudgelRock,
-        _seededContext(BattleMoveVisualRecipeId.showdownIvyCudgelRock),
+        BattleMoveVisualRecipeId.sdkIvyCudgelRock,
+        _seededContext(BattleMoveVisualRecipeId.sdkIvyCudgelRock),
       );
 
       for (final steps in <List<BattleAnimationStep>>[
@@ -3017,16 +3016,16 @@ void main() {
 
     test('slash and claw routes keep their dark impact accents', () {
       final cut = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownCut,
-        _seededContext(BattleMoveVisualRecipeId.showdownCut),
+        BattleMoveVisualRecipeId.sdkCut,
+        _seededContext(BattleMoveVisualRecipeId.sdkCut),
       );
       final shadowClaw = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownShadowClaw,
-        _seededContext(BattleMoveVisualRecipeId.showdownShadowClaw),
+        BattleMoveVisualRecipeId.sdkShadowClaw,
+        _seededContext(BattleMoveVisualRecipeId.sdkShadowClaw),
       );
       final multiAttack = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownMultiAttack,
-        _seededContext(BattleMoveVisualRecipeId.showdownMultiAttack),
+        BattleMoveVisualRecipeId.sdkMultiAttack,
+        _seededContext(BattleMoveVisualRecipeId.sdkMultiAttack),
       );
 
       expect(
@@ -3055,20 +3054,20 @@ void main() {
 
     test('bite and fang routes keep the jaw family with a psychic accent', () {
       final bite = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownBite,
-        _seededContext(BattleMoveVisualRecipeId.showdownBite),
+        BattleMoveVisualRecipeId.sdkBite,
+        _seededContext(BattleMoveVisualRecipeId.sdkBite),
       );
       final superFang = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownSuperFang,
-        _seededContext(BattleMoveVisualRecipeId.showdownSuperFang),
+        BattleMoveVisualRecipeId.sdkSuperFang,
+        _seededContext(BattleMoveVisualRecipeId.sdkSuperFang),
       );
       final bugBite = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownBugBite,
-        _seededContext(BattleMoveVisualRecipeId.showdownBugBite),
+        BattleMoveVisualRecipeId.sdkBugBite,
+        _seededContext(BattleMoveVisualRecipeId.sdkBugBite),
       );
       final psychicFangs = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownPsychicFangs,
-        _seededContext(BattleMoveVisualRecipeId.showdownPsychicFangs),
+        BattleMoveVisualRecipeId.sdkPsychicFangs,
+        _seededContext(BattleMoveVisualRecipeId.sdkPsychicFangs),
       );
 
       for (final steps in <List<BattleAnimationStep>>[
@@ -3087,36 +3086,36 @@ void main() {
     test('head impact and heavy fist routes stay grounded in contact beats',
         () {
       final ironHead = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownIronHead,
-        _seededContext(BattleMoveVisualRecipeId.showdownIronHead),
+        BattleMoveVisualRecipeId.sdkIronHead,
+        _seededContext(BattleMoveVisualRecipeId.sdkIronHead),
       );
       final headbutt = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownHeadbutt,
-        _seededContext(BattleMoveVisualRecipeId.showdownHeadbutt),
+        BattleMoveVisualRecipeId.sdkHeadbutt,
+        _seededContext(BattleMoveVisualRecipeId.sdkHeadbutt),
       );
       final stomp = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownStomp,
-        _seededContext(BattleMoveVisualRecipeId.showdownStomp),
+        BattleMoveVisualRecipeId.sdkStomp,
+        _seededContext(BattleMoveVisualRecipeId.sdkStomp),
       );
       final hammerArm = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownHammerArm,
-        _seededContext(BattleMoveVisualRecipeId.showdownHammerArm),
+        BattleMoveVisualRecipeId.sdkHammerArm,
+        _seededContext(BattleMoveVisualRecipeId.sdkHammerArm),
       );
       final iceHammer = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownIceHammer,
-        _seededContext(BattleMoveVisualRecipeId.showdownIceHammer),
+        BattleMoveVisualRecipeId.sdkIceHammer,
+        _seededContext(BattleMoveVisualRecipeId.sdkIceHammer),
       );
       final skyUppercut = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownSkyUppercut,
-        _seededContext(BattleMoveVisualRecipeId.showdownSkyUppercut),
+        BattleMoveVisualRecipeId.sdkSkyUppercut,
+        _seededContext(BattleMoveVisualRecipeId.sdkSkyUppercut),
       );
       final needleArm = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownNeedleArm,
-        _seededContext(BattleMoveVisualRecipeId.showdownNeedleArm),
+        BattleMoveVisualRecipeId.sdkNeedleArm,
+        _seededContext(BattleMoveVisualRecipeId.sdkNeedleArm),
       );
       final rockSmash = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownRockSmash,
-        _seededContext(BattleMoveVisualRecipeId.showdownRockSmash),
+        BattleMoveVisualRecipeId.sdkRockSmash,
+        _seededContext(BattleMoveVisualRecipeId.sdkRockSmash),
       );
 
       for (final steps in <List<BattleAnimationStep>>[
@@ -3149,8 +3148,8 @@ void main() {
 
     test('splash throws three water wisps around the attacker only', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownSplash,
-        _seededContext(BattleMoveVisualRecipeId.showdownSplash),
+        BattleMoveVisualRecipeId.sdkSplash,
+        _seededContext(BattleMoveVisualRecipeId.sdkSplash),
       );
 
       final splashes = steps
@@ -3166,8 +3165,8 @@ void main() {
 
     test('celebrate builds a self-only festive shine dance', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownCelebrate,
-        _seededContext(BattleMoveVisualRecipeId.showdownCelebrate),
+        BattleMoveVisualRecipeId.sdkCelebrate,
+        _seededContext(BattleMoveVisualRecipeId.sdkCelebrate),
       );
 
       expect(_countFx(steps, 'shine'), equals(3));
@@ -3182,8 +3181,8 @@ void main() {
         'order up lifts a Tatsugiri sprite under the defender and lets it linger',
         () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownOrderUp,
-        _seededContext(BattleMoveVisualRecipeId.showdownOrderUp),
+        BattleMoveVisualRecipeId.sdkOrderUp,
+        _seededContext(BattleMoveVisualRecipeId.sdkOrderUp),
       );
 
       final tatsugiri = steps
@@ -3206,8 +3205,8 @@ void main() {
 
     test('heart stamp expands a heart before the contact hit lands', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownHeartStamp,
-        _seededContext(BattleMoveVisualRecipeId.showdownHeartStamp),
+        BattleMoveVisualRecipeId.sdkHeartStamp,
+        _seededContext(BattleMoveVisualRecipeId.sdkHeartStamp),
       );
 
       expect(_countFx(steps, 'heart'), equals(1));
@@ -3217,8 +3216,8 @@ void main() {
 
     test('matcha gotcha showers energyballs before the target wisps fall', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownMatchaGotcha,
-        _seededContext(BattleMoveVisualRecipeId.showdownMatchaGotcha),
+        BattleMoveVisualRecipeId.sdkMatchaGotcha,
+        _seededContext(BattleMoveVisualRecipeId.sdkMatchaGotcha),
       );
 
       final energyBalls = steps
@@ -3237,8 +3236,8 @@ void main() {
 
     test('present keeps the single exploding iceball projectile shape', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownPresent,
-        _seededContext(BattleMoveVisualRecipeId.showdownPresent),
+        BattleMoveVisualRecipeId.sdkPresent,
+        _seededContext(BattleMoveVisualRecipeId.sdkPresent),
       );
 
       final projectile = steps.whereType<SpawnFxStep>().single;
@@ -3251,8 +3250,8 @@ void main() {
 
     test('pay day fans out a six-hit electroball volley', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownPayDay,
-        _seededContext(BattleMoveVisualRecipeId.showdownPayDay),
+        BattleMoveVisualRecipeId.sdkPayDay,
+        _seededContext(BattleMoveVisualRecipeId.sdkPayDay),
       );
 
       expect(_countFx(steps, 'electroball'), equals(6));
@@ -3265,8 +3264,8 @@ void main() {
 
     test('taunt now uses pointer harassment plus three angry bursts', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownTaunt,
-        _seededContext(BattleMoveVisualRecipeId.showdownTaunt),
+        BattleMoveVisualRecipeId.sdkTaunt,
+        _seededContext(BattleMoveVisualRecipeId.sdkTaunt),
       );
 
       expect(_countFx(steps, 'pointer'), equals(2));
@@ -3280,8 +3279,8 @@ void main() {
     test('instruct points first, then sends poison and white wisps forward',
         () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownInstruct,
-        _seededContext(BattleMoveVisualRecipeId.showdownInstruct),
+        BattleMoveVisualRecipeId.sdkInstruct,
+        _seededContext(BattleMoveVisualRecipeId.sdkInstruct),
       );
 
       expect(_countFx(steps, 'pointer'), equals(2));
@@ -3295,8 +3294,8 @@ void main() {
 
     test('quash uses a rush-in strike instead of generic growl particles', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownQuash,
-        _seededContext(BattleMoveVisualRecipeId.showdownQuash),
+        BattleMoveVisualRecipeId.sdkQuash,
+        _seededContext(BattleMoveVisualRecipeId.sdkQuash),
       );
 
       expect(_countFx(steps, 'rightchop'), equals(1));
@@ -3307,8 +3306,8 @@ void main() {
     test('swagger keeps the attacker shake and three angry puffs on target',
         () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownSwagger,
-        _seededContext(BattleMoveVisualRecipeId.showdownSwagger),
+        BattleMoveVisualRecipeId.sdkSwagger,
+        _seededContext(BattleMoveVisualRecipeId.sdkSwagger),
       );
 
       expect(_countFx(steps, 'angry'), equals(3));
@@ -3320,8 +3319,8 @@ void main() {
 
     test('encore is now a clean self-jitter without extra particles', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownEncore,
-        _seededContext(BattleMoveVisualRecipeId.showdownEncore),
+        BattleMoveVisualRecipeId.sdkEncore,
+        _seededContext(BattleMoveVisualRecipeId.sdkEncore),
       );
 
       expect(steps.whereType<SpawnFxStep>(), isEmpty);
@@ -3333,8 +3332,8 @@ void main() {
 
     test('baby-doll eyes now stays in a self-only dance family', () {
       final steps = BattleMoveVisualRecipeLibrary().build(
-        BattleMoveVisualRecipeId.showdownBabyDollEyes,
-        _seededContext(BattleMoveVisualRecipeId.showdownBabyDollEyes),
+        BattleMoveVisualRecipeId.sdkBabyDollEyes,
+        _seededContext(BattleMoveVisualRecipeId.sdkBabyDollEyes),
       );
 
       expect(_countFx(steps, 'heart'), equals(0));

@@ -30,8 +30,7 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
     required this.element,
     required this.tileImage,
     required Vector2 mapOriginPx,
-  })  : _mapOriginPx = mapOriginPx.clone(),
-        super(
+  }) : super(
           anchor: Anchor.topLeft,
           position: _computeTopLeft(
             bundle: bundle,
@@ -47,7 +46,6 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
     final mask = element.collisionProfile?.occlusionMask;
     final tw = bundle.manifest.settings.tileWidth;
     final th = bundle.manifest.settings.tileHeight;
-    final cw = bundle.cellWidth;
     final ch = bundle.cellHeight;
     if (mask != null && tw > 0 && th > 0) {
       final sy = ch / th;
@@ -63,7 +61,6 @@ class PlacedElementOcclusionPatchComponent extends PositionComponent {
   final MapPlacedElement instance;
   final ProjectElementEntry element;
   final ui.Image tileImage;
-  final Vector2 _mapOriginPx;
 
   static Vector2 _computeTopLeft({
     required RuntimeMapBundle bundle,

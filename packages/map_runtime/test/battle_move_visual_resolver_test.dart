@@ -40,7 +40,7 @@ PokemonMove _pokemonMove({
   List<PokemonMoveEffect> effects = const <PokemonMoveEffect>[],
   PokemonMoveEngineSupportLevel engineSupportLevel =
       PokemonMoveEngineSupportLevel.structuredSupported,
-  String? showdownMoveId,
+  String? sdkMoveId,
 }) {
   return PokemonMove(
     id: id,
@@ -52,19 +52,56 @@ PokemonMove _pokemonMove({
     flags: flags,
     effects: effects,
     engineSupportLevel: engineSupportLevel,
-    sourceRefs: PokemonMoveSourceRefs(showdownMoveId: showdownMoveId),
+    sourceRefs: PokemonMoveSourceRefs(showdownMoveId: sdkMoveId),
+  );
+}
+
+void _expectExactRmxp(BattleResolvedMoveVisual resolved) {
+  expect(
+    resolved.recipeId,
+    equals(BattleMoveVisualRecipeId.sdkRmxpMoveAnimation),
+  );
+  expect(resolved.visualSource, equals(BattleMoveVisualSource.exactRmxp));
+  expect(resolved.usesFallback, isFalse);
+  expect(
+    resolved.rmxpUserAnimationId != null ||
+        resolved.rmxpTargetAnimationId != null,
+    isTrue,
+  );
+}
+
+void _expectExactRuby(
+  BattleResolvedMoveVisual resolved,
+  BattleMoveVisualRecipeId recipeId,
+) {
+  expect(resolved.recipeId, equals(recipeId));
+  expect(resolved.visualSource, equals(BattleMoveVisualSource.exactRuby));
+  expect(resolved.usesFallback, isFalse);
+}
+
+void _expectAdapted(
+  BattleResolvedMoveVisual resolved,
+  BattleMoveVisualRecipeId recipeId,
+) {
+  expect(resolved.recipeId, equals(recipeId));
+  expect(resolved.visualSource, equals(BattleMoveVisualSource.adapted));
+  expect(resolved.usesFallback, isFalse);
+  expect(
+    resolved.rmxpUserAnimationId != null ||
+        resolved.rmxpTargetAnimationId != null,
+    isFalse,
   );
 }
 
 void main() {
   group('BattleMoveVisualResolver', () {
-    test('uses canonical showdownMoveId when available', () {
+    test('uses canonical sdkMoveId when available', () {
       final catalog = RuntimeMoveCatalog.fromEntries(<String, PokemonMove>{
         'thunderbolt_local': _pokemonMove(
           id: 'thunderbolt_local',
           type: 'electric',
           category: PokemonMoveCategory.special,
-          showdownMoveId: 'thunderbolt',
+          sdkMoveId: 'thunderbolt',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -77,12 +114,241 @@ void main() {
         ),
       );
 
-      expect(resolved.showdownMoveId, equals('thunderbolt'));
-      expect(
-        resolved.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownThunderbolt),
+      expect(resolved.sdkMoveId, equals('thunderbolt'));
+      _expectExactRmxp(resolved);
+    });
+
+    test('critical RMXP mapped moves stay exact RMXP instead of SDK family',
+        () {
+      final resolver = BattleMoveVisualResolver(
+        RuntimeMoveCatalog.fromEntries(<String, PokemonMove>{
+          for (final moveId in const <String>[
+            'swift',
+            'thundershock',
+            'shockwave',
+            'electroball',
+            'watergun',
+            'megapunch',
+          ])
+            moveId: _pokemonMove(id: moveId, sdkMoveId: moveId),
+        }),
       );
-      expect(resolved.usesFallback, isFalse);
+
+      for (final moveId in const <String>[
+        'swift',
+        'thundershock',
+        'shockwave',
+        'electroball',
+        'watergun',
+        'megapunch',
+      ]) {
+        final resolved = resolver.resolve(_battleMove(id: moveId));
+
+        _expectExactRmxp(resolved);
+      }
+    });
+
+    test('water gun and mega punch keep their SDK RMXP animation ids', () {
+      final resolver = BattleMoveVisualResolver(
+        RuntimeMoveCatalog.fromEntries(<String, PokemonMove>{
+          'watergun': _pokemonMove(id: 'watergun', sdkMoveId: 'watergun'),
+          'megapunch': _pokemonMove(id: 'megapunch', sdkMoveId: 'megapunch'),
+        }),
+      );
+
+      final waterGun = resolver.resolve(_battleMove(id: 'watergun'));
+      final megaPunch = resolver.resolve(_battleMove(id: 'megapunch'));
+
+      _expectExactRmxp(waterGun);
+      expect(waterGun.sdkNumericMoveId, equals(55));
+      expect(waterGun.rmxpUserAnimationId, isNull);
+      expect(waterGun.rmxpTargetAnimationId, equals(55));
+
+      _expectExactRmxp(megaPunch);
+      expect(megaPunch.sdkNumericMoveId, equals(5));
+      expect(megaPunch.rmxpUserAnimationId, equals(440));
+      expect(megaPunch.rmxpTargetAnimationId, equals(5));
+    });
+
+    test('critical Ruby overrides stay exact Ruby before RMXP mappings', () {
+      final expectedRecipes = <String, BattleMoveVisualRecipeId>{
+        'thunderwave': BattleMoveVisualRecipeId.sdkExactThunderWave,
+        'leechseed': BattleMoveVisualRecipeId.sdkExactLeechSeed,
+        'recover': BattleMoveVisualRecipeId.sdkExactRecover,
+        'poisonpowder': BattleMoveVisualRecipeId.sdkExactPoisonPowder,
+        'sleeppowder': BattleMoveVisualRecipeId.sdkExactSleepPowder,
+        'stunspore': BattleMoveVisualRecipeId.sdkExactStunSpore,
+        'karatechop': BattleMoveVisualRecipeId.sdkExactKarateChop,
+      };
+      final resolver = BattleMoveVisualResolver(
+        RuntimeMoveCatalog.fromEntries(<String, PokemonMove>{
+          for (final moveId in expectedRecipes.keys)
+            moveId: _pokemonMove(id: moveId, sdkMoveId: moveId),
+        }),
+      );
+
+      for (final entry in expectedRecipes.entries) {
+        final resolved = resolver.resolve(_battleMove(id: entry.key));
+
+        _expectExactRuby(resolved, entry.value);
+      }
+    });
+
+    test('retuned numeric sdk variants resolve as adapted visuals', () {
+      const expectedRecipes = <String, BattleMoveVisualRecipeId>{
+        'aciddownpour2': BattleMoveVisualRecipeId.sdkSludgeBomb,
+        'alloutpummeling2': BattleMoveVisualRecipeId.sdkCloseCombat,
+        'blackholeeclipse2': BattleMoveVisualRecipeId.sdkHex,
+        'bloomdoom2': BattleMoveVisualRecipeId.sdkMagicalLeaf,
+        'breakneckblitz2': BattleMoveVisualRecipeId.sdkGigaImpact,
+        'continentalcrush2': BattleMoveVisualRecipeId.sdkRockSlide,
+        'corkscrewcrash2': BattleMoveVisualRecipeId.sdkSmartStrike,
+        'devastatingdrake2': BattleMoveVisualRecipeId.sdkDragonPulse,
+        'gigavolthavoc2': BattleMoveVisualRecipeId.sdkThunderbolt,
+        'hydrovortex2': BattleMoveVisualRecipeId.sdkOriginPulse,
+        'infernooverdrive2': BattleMoveVisualRecipeId.sdkFireBlast,
+        'neverendingnightmare2': BattleMoveVisualRecipeId.sdkHex,
+        'savagespinout2': BattleMoveVisualRecipeId.sdkElectroweb,
+        'shatteredpsyche2': BattleMoveVisualRecipeId.sdkPsychic,
+        'subzeroslammer2': BattleMoveVisualRecipeId.sdkBlizzard,
+        'supersonicskystrike2': BattleMoveVisualRecipeId.sdkHurricane,
+        'tectonicrage2': BattleMoveVisualRecipeId.sdkEarthquake,
+        'twinkletackle2': BattleMoveVisualRecipeId.sdkPlayRough,
+        's10000000voltthunderbolt': BattleMoveVisualRecipeId.sdkThunderbolt,
+      };
+      final resolver = BattleMoveVisualResolver(
+        RuntimeMoveCatalog.fromEntries(<String, PokemonMove>{
+          for (final moveId in expectedRecipes.keys)
+            moveId: _pokemonMove(id: moveId, sdkMoveId: moveId),
+          '10000000voltthunderbolt': _pokemonMove(
+            id: '10000000voltthunderbolt',
+            sdkMoveId: '10000000voltthunderbolt',
+          ),
+        }),
+      );
+
+      for (final entry in expectedRecipes.entries) {
+        final resolved = resolver.resolve(_battleMove(id: entry.key));
+
+        _expectAdapted(resolved, entry.value);
+      }
+
+      final legacyAlias = resolver.resolve(
+        _battleMove(id: '10000000voltthunderbolt'),
+      );
+      _expectAdapted(legacyAlias, BattleMoveVisualRecipeId.sdkThunderbolt);
+      expect(
+        legacyAlias.recipeId,
+        isNot(BattleMoveVisualRecipeId.sdkTriAttack),
+      );
+    });
+
+    test('sdk ids without RMXP mappings resolve as adapted, not exact', () {
+      const expectedRecipes = <String, BattleMoveVisualRecipeId>{
+        'aciddownpour': BattleMoveVisualRecipeId.sdkSludgeBomb,
+        'alloutpummeling': BattleMoveVisualRecipeId.sdkCloseCombat,
+        'blackholeeclipse': BattleMoveVisualRecipeId.sdkHex,
+        'bloomdoom': BattleMoveVisualRecipeId.sdkMagicalLeaf,
+        'breakneckblitz': BattleMoveVisualRecipeId.sdkGigaImpact,
+        'catastropika': BattleMoveVisualRecipeId.sdkThunderbolt,
+        'clangoroussoulblaze': BattleMoveVisualRecipeId.sdkClangingScales,
+        'continentalcrush': BattleMoveVisualRecipeId.sdkRockSlide,
+        'corkscrewcrash': BattleMoveVisualRecipeId.sdkSmartStrike,
+        'devastatingdrake': BattleMoveVisualRecipeId.sdkDragonPulse,
+        'extremeevoboost': BattleMoveVisualRecipeId.sdkQuiverDance,
+        'genesissupernova': BattleMoveVisualRecipeId.sdkPsychoBoost,
+        'gigavolthavoc': BattleMoveVisualRecipeId.sdkThunderbolt,
+        'guardianofalola': BattleMoveVisualRecipeId.sdkMoonBlast,
+        'hydrovortex': BattleMoveVisualRecipeId.sdkOriginPulse,
+        'infernooverdrive': BattleMoveVisualRecipeId.sdkFireBlast,
+        'letssnuggleforever': BattleMoveVisualRecipeId.sdkPlayRough,
+        'lightthatburnsthesky': BattleMoveVisualRecipeId.sdkFireBlast,
+        'maliciousmoonsault': BattleMoveVisualRecipeId.sdkBodySlam,
+        'menacingmoonrazemaelstrom': BattleMoveVisualRecipeId.sdkHex,
+        'mindblown': BattleMoveVisualRecipeId.sdkExplosion,
+        'neverendingnightmare': BattleMoveVisualRecipeId.sdkHex,
+        'oceanicoperetta': BattleMoveVisualRecipeId.sdkOriginPulse,
+        'photongeyser': BattleMoveVisualRecipeId.sdkPsychic,
+        'plasmafists': BattleMoveVisualRecipeId.sdkThunderPunch,
+        'pulverizingpancake': BattleMoveVisualRecipeId.sdkBodySlam,
+        'savagespinout': BattleMoveVisualRecipeId.sdkElectroweb,
+        'searingsunrazesmash': BattleMoveVisualRecipeId.sdkFlareBlitz,
+        'shatteredpsyche': BattleMoveVisualRecipeId.sdkPsychic,
+        'sinisterarrowraid': BattleMoveVisualRecipeId.sdkNightSlash,
+        'soulstealing7starstrike': BattleMoveVisualRecipeId.sdkHex,
+        'splinteredstormshards': BattleMoveVisualRecipeId.sdkRockSlide,
+        'stokedsparksurfer': BattleMoveVisualRecipeId.sdkThunderbolt,
+        'subzeroslammer': BattleMoveVisualRecipeId.sdkBlizzard,
+        'supersonicskystrike': BattleMoveVisualRecipeId.sdkHurricane,
+        'tectonicrage': BattleMoveVisualRecipeId.sdkEarthquake,
+        'twinkletackle': BattleMoveVisualRecipeId.sdkPlayRough,
+      };
+      final resolver = BattleMoveVisualResolver(
+        RuntimeMoveCatalog.fromEntries(<String, PokemonMove>{
+          for (final moveId in expectedRecipes.keys)
+            moveId: _pokemonMove(id: moveId, sdkMoveId: moveId),
+        }),
+      );
+
+      for (final entry in expectedRecipes.entries) {
+        final resolved = resolver.resolve(_battleMove(id: entry.key));
+
+        _expectAdapted(resolved, entry.value);
+      }
+    });
+
+    test('aliases into exact Ruby recipes do not claim exact Ruby', () {
+      final resolver = BattleMoveVisualResolver(
+        RuntimeMoveCatalog.fromEntries(<String, PokemonMove>{
+          for (final moveId in const <String>[
+            'branchpoke',
+            'electrify',
+            'razorwind',
+            'synthesis',
+          ])
+            moveId: _pokemonMove(id: moveId, sdkMoveId: moveId),
+        }),
+      );
+
+      final branchPoke = resolver.resolve(_battleMove(id: 'branchpoke'));
+      expect(
+        branchPoke.recipeId,
+        equals(BattleMoveVisualRecipeId.sdkExactVineWhip),
+      );
+      expect(branchPoke.visualSource, equals(BattleMoveVisualSource.sdkFamily));
+      expect(branchPoke.usesFallback, isFalse);
+
+      for (final moveId in const <String>[
+        'electrify',
+        'razorwind',
+        'synthesis',
+      ]) {
+        _expectExactRmxp(resolver.resolve(_battleMove(id: moveId)));
+      }
+    });
+
+    test('aliases into adapted Z and Max routes inherit adapted source', () {
+      final expectedRecipes = <String, BattleMoveVisualRecipeId>{
+        'maxlightning': BattleMoveVisualRecipeId.sdkThunderbolt,
+        'maxphantasm': BattleMoveVisualRecipeId.sdkHex,
+        'gmaxvinelash': BattleMoveVisualRecipeId.sdkMagicalLeaf,
+        'gmaxdepletion': BattleMoveVisualRecipeId.sdkDragonPulse,
+        'maxstrike': BattleMoveVisualRecipeId.sdkGigaImpact,
+        'poltergeist': BattleMoveVisualRecipeId.sdkHex,
+      };
+      final resolver = BattleMoveVisualResolver(
+        RuntimeMoveCatalog.fromEntries(<String, PokemonMove>{
+          for (final moveId in expectedRecipes.keys)
+            moveId: _pokemonMove(id: moveId, sdkMoveId: moveId),
+        }),
+      );
+
+      for (final entry in expectedRecipes.entries) {
+        _expectAdapted(
+          resolver.resolve(_battleMove(id: entry.key)),
+          entry.value,
+        );
+      }
     });
 
     test('direct mapping wins over fallback', () {
@@ -92,7 +358,7 @@ void main() {
           type: 'electric',
           category: PokemonMoveCategory.special,
           flags: const <PokemonMoveFlag>[PokemonMoveFlag.slicing],
-          showdownMoveId: 'thunderbolt',
+          sdkMoveId: 'thunderbolt',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -105,11 +371,7 @@ void main() {
         ),
       );
 
-      expect(
-        resolved.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownThunderbolt),
-      );
-      expect(resolved.usesFallback, isFalse);
+      _expectExactRmxp(resolved);
     });
 
     test('alias is resolved transitively', () {
@@ -118,7 +380,7 @@ void main() {
           id: 'tidy_up',
           category: PokemonMoveCategory.status,
           target: PokemonMoveTarget.self,
-          showdownMoveId: 'tidyup',
+          sdkMoveId: 'tidyup',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -133,18 +395,18 @@ void main() {
 
       expect(
         resolved.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownBulkUp),
+        equals(BattleMoveVisualRecipeId.sdkBulkUp),
       );
       expect(resolved.usesFallback, isFalse);
     });
 
-    test('multi-hop showdown alias chain resolves through max move roots', () {
+    test('multi-hop sdk alias chain resolves through max move roots', () {
       final catalog = RuntimeMoveCatalog.fromEntries(<String, PokemonMove>{
         'storm_bolt_local': _pokemonMove(
           id: 'storm_bolt_local',
           type: 'electric',
           category: PokemonMoveCategory.special,
-          showdownMoveId: 'maxlightning',
+          sdkMoveId: 'maxlightning',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -157,27 +419,27 @@ void main() {
         ),
       );
 
-      expect(resolved.showdownMoveId, equals('maxlightning'));
+      expect(resolved.sdkMoveId, equals('maxlightning'));
       expect(
         resolved.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownThunderbolt),
+        equals(BattleMoveVisualRecipeId.sdkThunderbolt),
       );
       expect(resolved.usesFallback, isFalse);
     });
 
-    test('showdown alias roots can land on adapted elemental recipes', () {
+    test('sdk alias roots can land on adapted elemental recipes', () {
       final catalog = RuntimeMoveCatalog.fromEntries(<String, PokemonMove>{
         'mist_ball_local': _pokemonMove(
           id: 'mist_ball_local',
           type: 'ice',
           category: PokemonMoveCategory.special,
-          showdownMoveId: 'mistball',
+          sdkMoveId: 'mistball',
         ),
         'searing_shot_local': _pokemonMove(
           id: 'searing_shot_local',
           type: 'fire',
           category: PokemonMoveCategory.special,
-          showdownMoveId: 'searingshot',
+          sdkMoveId: 'searingshot',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -197,16 +459,8 @@ void main() {
         ),
       );
 
-      expect(
-        mistBall.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownFreezeDry),
-      );
-      expect(
-        searingShot.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownMagmaStorm),
-      );
-      expect(mistBall.usesFallback, isFalse);
-      expect(searingShot.usesFallback, isFalse);
+      _expectExactRmxp(mistBall);
+      _expectExactRmxp(searingShot);
     });
 
     test('direct fidelity-wave dark and sound routings resolve cleanly', () {
@@ -215,12 +469,12 @@ void main() {
           id: 'snarl_local',
           type: 'dark',
           category: PokemonMoveCategory.special,
-          showdownMoveId: 'snarl',
+          sdkMoveId: 'snarl',
         ),
         'sing_local': _pokemonMove(
           id: 'sing_local',
           category: PokemonMoveCategory.status,
-          showdownMoveId: 'sing',
+          sdkMoveId: 'sing',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -239,16 +493,8 @@ void main() {
         ),
       );
 
-      expect(
-        snarl.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownDarkPulse),
-      );
-      expect(
-        sing.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownHyperVoice),
-      );
-      expect(snarl.usesFallback, isFalse);
-      expect(sing.usesFallback, isFalse);
+      _expectExactRmxp(snarl);
+      _expectExactRmxp(sing);
     });
 
     test('direct fidelity-wave contact and trap routings resolve cleanly', () {
@@ -256,13 +502,13 @@ void main() {
         'fake_out_local': _pokemonMove(
           id: 'fake_out_local',
           category: PokemonMoveCategory.physical,
-          showdownMoveId: 'fakeout',
+          sdkMoveId: 'fakeout',
         ),
         'firespin_local': _pokemonMove(
           id: 'firespin_local',
           type: 'fire',
           category: PokemonMoveCategory.special,
-          showdownMoveId: 'firespin',
+          sdkMoveId: 'firespin',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -276,16 +522,8 @@ void main() {
         ),
       );
 
-      expect(
-        fakeOut.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownQuickAttack),
-      );
-      expect(
-        fireSpin.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownMagmaStorm),
-      );
-      expect(fakeOut.usesFallback, isFalse);
-      expect(fireSpin.usesFallback, isFalse);
+      _expectExactRmxp(fakeOut);
+      _expectExactRmxp(fireSpin);
     });
 
     test('second fidelity-wave setup and signature routings resolve cleanly',
@@ -295,13 +533,13 @@ void main() {
           id: 'shell_smash_local',
           category: PokemonMoveCategory.status,
           target: PokemonMoveTarget.self,
-          showdownMoveId: 'shellsmash',
+          sdkMoveId: 'shellsmash',
         ),
         'waterspout_local': _pokemonMove(
           id: 'waterspout_local',
           type: 'water',
           category: PokemonMoveCategory.special,
-          showdownMoveId: 'waterspout',
+          sdkMoveId: 'waterspout',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -321,16 +559,8 @@ void main() {
         ),
       );
 
-      expect(
-        shellSmash.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownQuiverDance),
-      );
-      expect(
-        waterSpout.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownOriginPulse),
-      );
-      expect(shellSmash.usesFallback, isFalse);
-      expect(waterSpout.usesFallback, isFalse);
+      _expectExactRmxp(shellSmash);
+      _expectExactRmxp(waterSpout);
     });
 
     test('third fidelity-wave finisher routings resolve cleanly', () {
@@ -339,13 +569,13 @@ void main() {
           id: 'fury_wrath_local',
           type: 'dark',
           category: PokemonMoveCategory.special,
-          showdownMoveId: 'fierywrath',
+          sdkMoveId: 'fierywrath',
         ),
         'torque_local': _pokemonMove(
           id: 'torque_local',
           type: 'fairy',
           category: PokemonMoveCategory.physical,
-          showdownMoveId: 'magicaltorque',
+          sdkMoveId: 'magicaltorque',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -367,11 +597,11 @@ void main() {
 
       expect(
         fieryWrath.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownDarkPulse),
+        equals(BattleMoveVisualRecipeId.sdkDarkPulse),
       );
       expect(
         magicalTorque.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownPlayRough),
+        equals(BattleMoveVisualRecipeId.sdkPlayRough),
       );
       expect(fieryWrath.usesFallback, isFalse);
       expect(magicalTorque.usesFallback, isFalse);
@@ -383,13 +613,13 @@ void main() {
           id: 'hidden_power_local',
           type: 'normal',
           category: PokemonMoveCategory.special,
-          showdownMoveId: 'hiddenpower',
+          sdkMoveId: 'hiddenpower',
         ),
         'guardian_local': _pokemonMove(
           id: 'guardian_local',
           type: 'fairy',
           category: PokemonMoveCategory.special,
-          showdownMoveId: 'guardianofalola',
+          sdkMoveId: 'guardianofalola',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -409,13 +639,10 @@ void main() {
         ),
       );
 
-      expect(
-        hiddenPower.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownHiddenPower),
-      );
+      _expectExactRmxp(hiddenPower);
       expect(
         guardian.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownMoonBlast),
+        equals(BattleMoveVisualRecipeId.sdkMoonBlast),
       );
       expect(hiddenPower.usesFallback, isFalse);
       expect(guardian.usesFallback, isFalse);
@@ -427,7 +654,7 @@ void main() {
           id: 'water_shuriken_local',
           type: 'water',
           category: PokemonMoveCategory.special,
-          showdownMoveId: 'watershuriken',
+          sdkMoveId: 'watershuriken',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -440,19 +667,15 @@ void main() {
         ),
       );
 
-      expect(
-        resolved.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownWaterShuriken),
-      );
-      expect(resolved.usesFallback, isFalse);
+      _expectExactRmxp(resolved);
     });
 
-    test('slash resolves to its dedicated showdown slash recipe', () {
+    test('slash resolves to its dedicated sdk slash recipe', () {
       final catalog = RuntimeMoveCatalog.fromEntries(<String, PokemonMove>{
         'slash_local': _pokemonMove(
           id: 'slash_local',
           category: PokemonMoveCategory.physical,
-          showdownMoveId: 'slash',
+          sdkMoveId: 'slash',
           flags: const <PokemonMoveFlag>[PokemonMoveFlag.slicing],
         ),
       });
@@ -465,11 +688,7 @@ void main() {
         ),
       );
 
-      expect(
-        resolved.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownSlash),
-      );
-      expect(resolved.usesFallback, isFalse);
+      _expectExactRmxp(resolved);
     });
 
     test('slicing flag falls back to slash recipe', () {
@@ -549,7 +768,7 @@ void main() {
           category: PokemonMoveCategory.status,
           target: PokemonMoveTarget.normal,
           flags: const <PokemonMoveFlag>[PokemonMoveFlag.sound],
-          showdownMoveId: 'growl',
+          sdkMoveId: 'growl',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -562,8 +781,7 @@ void main() {
         ),
       );
 
-      expect(resolved.recipeId, equals(BattleMoveVisualRecipeId.showdownGrowl));
-      expect(resolved.usesFallback, isFalse);
+      _expectExactRmxp(resolved);
     });
 
     test('direct seeded quick attack recipe wins over generic contact fallback',
@@ -573,7 +791,7 @@ void main() {
           id: 'quick_attack_local',
           category: PokemonMoveCategory.physical,
           target: PokemonMoveTarget.normal,
-          showdownMoveId: 'quickattack',
+          sdkMoveId: 'quickattack',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -586,11 +804,7 @@ void main() {
         ),
       );
 
-      expect(
-        resolved.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownQuickAttack),
-      );
-      expect(resolved.usesFallback, isFalse);
+      _expectExactRmxp(resolved);
     });
 
     test('weather effect maps to weather recipe', () {
@@ -644,7 +858,7 @@ void main() {
 
       expect(
         resolved.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownReflect),
+        equals(BattleMoveVisualRecipeId.sdkReflect),
       );
       expect(resolved.usesFallback, isTrue);
     });
@@ -655,7 +869,7 @@ void main() {
           id: 'waterfall_local',
           type: 'water',
           category: PokemonMoveCategory.physical,
-          showdownMoveId: 'waterfall',
+          sdkMoveId: 'waterfall',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -668,11 +882,7 @@ void main() {
         ),
       );
 
-      expect(
-        resolved.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownAquaJet),
-      );
-      expect(resolved.usesFallback, isFalse);
+      _expectExactRmxp(resolved);
     });
 
     test('volt tackle alias resolves to wild charge recipe', () {
@@ -681,7 +891,7 @@ void main() {
           id: 'volt_tackle_local',
           type: 'electric',
           category: PokemonMoveCategory.physical,
-          showdownMoveId: 'volttackle',
+          sdkMoveId: 'volttackle',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -694,18 +904,14 @@ void main() {
         ),
       );
 
-      expect(
-        resolved.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownWildCharge),
-      );
-      expect(resolved.usesFallback, isFalse);
+      _expectExactRmxp(resolved);
     });
 
     test('jaw lock alias resolves to crunch recipe', () {
       final catalog = RuntimeMoveCatalog.fromEntries(<String, PokemonMove>{
         'jaw_lock_local': _pokemonMove(
           id: 'jaw_lock_local',
-          showdownMoveId: 'jawlock',
+          sdkMoveId: 'jawlock',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -714,7 +920,7 @@ void main() {
 
       expect(
         resolved.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownCrunch),
+        equals(BattleMoveVisualRecipeId.sdkCrunch),
       );
       expect(resolved.usesFallback, isFalse);
     });
@@ -725,7 +931,7 @@ void main() {
           id: 'nuzzle_local',
           type: 'electric',
           category: PokemonMoveCategory.physical,
-          showdownMoveId: 'nuzzle',
+          sdkMoveId: 'nuzzle',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -738,11 +944,7 @@ void main() {
         ),
       );
 
-      expect(
-        resolved.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownSpark),
-      );
-      expect(resolved.usesFallback, isFalse);
+      _expectExactRmxp(resolved);
     });
 
     test('tera blast psychic alias resolves to psychic recipe', () {
@@ -751,7 +953,7 @@ void main() {
           id: 'tera_blast_psychic_local',
           category: PokemonMoveCategory.special,
           type: 'psychic',
-          showdownMoveId: 'terablastpsychic',
+          sdkMoveId: 'terablastpsychic',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -766,7 +968,7 @@ void main() {
 
       expect(
         resolved.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownPsychic),
+        equals(BattleMoveVisualRecipeId.sdkPsychic),
       );
       expect(resolved.usesFallback, isFalse);
     });
@@ -776,7 +978,7 @@ void main() {
         'ceaseless_edge_local': _pokemonMove(
           id: 'ceaseless_edge_local',
           category: PokemonMoveCategory.physical,
-          showdownMoveId: 'ceaselessedge',
+          sdkMoveId: 'ceaselessedge',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -790,7 +992,7 @@ void main() {
 
       expect(
         resolved.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownNightSlash),
+        equals(BattleMoveVisualRecipeId.sdkNightSlash),
       );
       expect(resolved.usesFallback, isFalse);
     });
@@ -800,7 +1002,7 @@ void main() {
         'behemoth_blade_local': _pokemonMove(
           id: 'behemoth_blade_local',
           category: PokemonMoveCategory.physical,
-          showdownMoveId: 'behemothblade',
+          sdkMoveId: 'behemothblade',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -814,7 +1016,7 @@ void main() {
 
       expect(
         resolved.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownSmartStrike),
+        equals(BattleMoveVisualRecipeId.sdkSmartStrike),
       );
       expect(resolved.usesFallback, isFalse);
     });
@@ -824,7 +1026,7 @@ void main() {
         'horn_attack_local': _pokemonMove(
           id: 'horn_attack_local',
           category: PokemonMoveCategory.physical,
-          showdownMoveId: 'hornattack',
+          sdkMoveId: 'hornattack',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -836,11 +1038,7 @@ void main() {
         ),
       );
 
-      expect(
-        resolved.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownMegaHorn),
-      );
-      expect(resolved.usesFallback, isFalse);
+      _expectExactRmxp(resolved);
     });
 
     test('psyblade alias resolves to psycho cut recipe', () {
@@ -848,7 +1046,7 @@ void main() {
         'psy_blade_local': _pokemonMove(
           id: 'psy_blade_local',
           category: PokemonMoveCategory.physical,
-          showdownMoveId: 'psyblade',
+          sdkMoveId: 'psyblade',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -862,7 +1060,7 @@ void main() {
 
       expect(
         resolved.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownPsychoCut),
+        equals(BattleMoveVisualRecipeId.sdkPsychoCut),
       );
       expect(resolved.usesFallback, isFalse);
     });
@@ -872,7 +1070,7 @@ void main() {
         'mountain_gale_local': _pokemonMove(
           id: 'mountain_gale_local',
           category: PokemonMoveCategory.special,
-          showdownMoveId: 'mountaingale',
+          sdkMoveId: 'mountaingale',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -887,7 +1085,7 @@ void main() {
 
       expect(
         resolved.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownPowerGem),
+        equals(BattleMoveVisualRecipeId.sdkPowerGem),
       );
       expect(resolved.usesFallback, isFalse);
     });
@@ -897,7 +1095,7 @@ void main() {
         'burning_jealousy_local': _pokemonMove(
           id: 'burning_jealousy_local',
           category: PokemonMoveCategory.special,
-          showdownMoveId: 'burningjealousy',
+          sdkMoveId: 'burningjealousy',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -912,7 +1110,7 @@ void main() {
 
       expect(
         resolved.recipeId,
-        equals(BattleMoveVisualRecipeId.showdownHeatWave),
+        equals(BattleMoveVisualRecipeId.sdkHeatWave),
       );
       expect(resolved.usesFallback, isFalse);
     });
@@ -922,38 +1120,38 @@ void main() {
         'splash_local': _pokemonMove(
           id: 'splash_local',
           category: PokemonMoveCategory.status,
-          showdownMoveId: 'splash',
+          sdkMoveId: 'splash',
         ),
         'celebrate_local': _pokemonMove(
           id: 'celebrate_local',
           category: PokemonMoveCategory.status,
-          showdownMoveId: 'celebrate',
+          sdkMoveId: 'celebrate',
         ),
         'order_up_local': _pokemonMove(
           id: 'order_up_local',
           category: PokemonMoveCategory.physical,
-          showdownMoveId: 'orderup',
+          sdkMoveId: 'orderup',
         ),
         'heart_stamp_local': _pokemonMove(
           id: 'heart_stamp_local',
           category: PokemonMoveCategory.physical,
-          showdownMoveId: 'heartstamp',
+          sdkMoveId: 'heartstamp',
         ),
         'matcha_gotcha_local': _pokemonMove(
           id: 'matcha_gotcha_local',
           category: PokemonMoveCategory.special,
           type: 'grass',
-          showdownMoveId: 'matchagotcha',
+          sdkMoveId: 'matchagotcha',
         ),
         'present_local': _pokemonMove(
           id: 'present_local',
           category: PokemonMoveCategory.physical,
-          showdownMoveId: 'present',
+          sdkMoveId: 'present',
         ),
         'payday_local': _pokemonMove(
           id: 'payday_local',
           category: PokemonMoveCategory.physical,
-          showdownMoveId: 'payday',
+          sdkMoveId: 'payday',
         ),
       });
       final resolver = BattleMoveVisualResolver(catalog);
@@ -968,43 +1166,43 @@ void main() {
           localId: 'splash_local',
           type: 'water',
           category: BattleMoveCategory.status,
-          recipeId: BattleMoveVisualRecipeId.showdownSplash,
+          recipeId: BattleMoveVisualRecipeId.sdkSplash,
         ),
         (
           localId: 'celebrate_local',
           type: 'normal',
           category: BattleMoveCategory.status,
-          recipeId: BattleMoveVisualRecipeId.showdownCelebrate,
+          recipeId: BattleMoveVisualRecipeId.sdkCelebrate,
         ),
         (
           localId: 'order_up_local',
           type: 'dragon',
           category: BattleMoveCategory.physical,
-          recipeId: BattleMoveVisualRecipeId.showdownOrderUp,
+          recipeId: BattleMoveVisualRecipeId.sdkOrderUp,
         ),
         (
           localId: 'heart_stamp_local',
           type: 'psychic',
           category: BattleMoveCategory.physical,
-          recipeId: BattleMoveVisualRecipeId.showdownHeartStamp,
+          recipeId: BattleMoveVisualRecipeId.sdkHeartStamp,
         ),
         (
           localId: 'matcha_gotcha_local',
           type: 'grass',
           category: BattleMoveCategory.special,
-          recipeId: BattleMoveVisualRecipeId.showdownMatchaGotcha,
+          recipeId: BattleMoveVisualRecipeId.sdkMatchaGotcha,
         ),
         (
           localId: 'present_local',
           type: 'normal',
           category: BattleMoveCategory.physical,
-          recipeId: BattleMoveVisualRecipeId.showdownPresent,
+          recipeId: BattleMoveVisualRecipeId.sdkPresent,
         ),
         (
           localId: 'payday_local',
           type: 'normal',
           category: BattleMoveCategory.physical,
-          recipeId: BattleMoveVisualRecipeId.showdownPayDay,
+          recipeId: BattleMoveVisualRecipeId.sdkPayDay,
         ),
       ];
 
@@ -1017,9 +1215,13 @@ void main() {
           ),
         );
 
-        expect(resolved.recipeId, equals(entry.recipeId),
-            reason: entry.localId);
-        expect(resolved.usesFallback, isFalse, reason: entry.localId);
+        if (resolved.visualSource == BattleMoveVisualSource.exactRmxp) {
+          _expectExactRmxp(resolved);
+        } else {
+          expect(resolved.recipeId, equals(entry.recipeId),
+              reason: entry.localId);
+          expect(resolved.usesFallback, isFalse, reason: entry.localId);
+        }
       }
     });
 

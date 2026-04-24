@@ -181,7 +181,7 @@ final class BattleTurnAnimationPlanner {
                   BattleMoveVisualRecipeContext(
                     resolvedMove: BattleResolvedMoveVisual(
                       localMoveId: event.sourceMoveId ?? 'charge',
-                      showdownMoveId: event.sourceMoveId,
+                      sdkMoveId: event.sourceMoveId,
                       recipeId: BattleMoveVisualRecipeId.chargeUp,
                       usesFallback: false,
                       canonicalMove: null,
@@ -207,7 +207,7 @@ final class BattleTurnAnimationPlanner {
                   BattleMoveVisualRecipeContext(
                     resolvedMove: const BattleResolvedMoveVisual(
                       localMoveId: 'recharge',
-                      showdownMoveId: 'recharge',
+                      sdkMoveId: 'recharge',
                       recipeId: BattleMoveVisualRecipeId.rechargePause,
                       usesFallback: false,
                       canonicalMove: null,
@@ -423,7 +423,7 @@ final class BattleTurnAnimationPlanner {
     return BattleMoveVisualRecipeContext(
       resolvedMove: BattleResolvedMoveVisual(
         localMoveId: recipeId.name,
-        showdownMoveId: recipeId.name,
+        sdkMoveId: recipeId.name,
         recipeId: recipeId,
         usesFallback: false,
         canonicalMove: null,

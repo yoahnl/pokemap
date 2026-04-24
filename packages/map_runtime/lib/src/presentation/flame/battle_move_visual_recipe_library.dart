@@ -1,8 +1,11 @@
 import 'package:map_battle/map_battle.dart';
 
 import 'battle_animation_plan.dart';
+import 'battle_fx_catalog.dart';
 import 'battle_move_visual_catalog.dart';
 import 'battle_move_visual_resolver.dart';
+import 'battle_rmxp_move_placement_catalog.dart';
+import 'battle_sdk_rmxp_animation_catalog.dart';
 
 class BattleMoveVisualRecipeContext {
   const BattleMoveVisualRecipeContext({
@@ -130,271 +133,372 @@ final class BattleMoveVisualRecipeLibrary {
       BattleMoveVisualRecipeId.rechargePause => const <BattleAnimationStep>[
           WaitStep(durationSeconds: 0.22),
         ],
-      BattleMoveVisualRecipeId.showdownTackle => _showdownTackle(ctx),
-      BattleMoveVisualRecipeId.showdownScratch => _showdownScratch(ctx),
-      BattleMoveVisualRecipeId.showdownQuickAttack => _showdownQuickAttack(ctx),
-      BattleMoveVisualRecipeId.showdownSlash => _showdownSlash(ctx),
-      BattleMoveVisualRecipeId.showdownAerialAce => _showdownAerialAce(ctx),
-      BattleMoveVisualRecipeId.showdownCloseCombat => _showdownCloseCombat(ctx),
-      BattleMoveVisualRecipeId.showdownBodySlam => _showdownBodySlam(ctx),
-      BattleMoveVisualRecipeId.showdownHighJumpKick =>
-        _showdownHighJumpKick(ctx),
-      BattleMoveVisualRecipeId.showdownShadowPunch => _showdownShadowPunch(ctx),
-      BattleMoveVisualRecipeId.showdownFocusPunch => _showdownFocusPunch(ctx),
-      BattleMoveVisualRecipeId.showdownDrainPunch => _showdownDrainPunch(ctx),
-      BattleMoveVisualRecipeId.showdownDynamicPunch =>
-        _showdownDynamicPunch(ctx),
-      BattleMoveVisualRecipeId.showdownCometPunch => _showdownCometPunch(ctx),
-      BattleMoveVisualRecipeId.showdownMegaPunch => _showdownMegaPunch(ctx),
-      BattleMoveVisualRecipeId.showdownPowerUpPunch =>
-        _showdownPowerUpPunch(ctx),
-      BattleMoveVisualRecipeId.showdownDizzyPunch => _showdownDizzyPunch(ctx),
-      BattleMoveVisualRecipeId.showdownJetPunch => _showdownJetPunch(ctx),
-      BattleMoveVisualRecipeId.showdownFirePunch => _showdownFirePunch(ctx),
-      BattleMoveVisualRecipeId.showdownIcePunch => _showdownIcePunch(ctx),
-      BattleMoveVisualRecipeId.showdownThunderPunch =>
-        _showdownThunderPunch(ctx),
-      BattleMoveVisualRecipeId.showdownBlazeKick => _showdownBlazeKick(ctx),
-      BattleMoveVisualRecipeId.showdownThunderousKick =>
-        _showdownThunderousKick(ctx),
-      BattleMoveVisualRecipeId.showdownTropKick => _showdownTropKick(ctx),
-      BattleMoveVisualRecipeId.showdownWoodHammer => _showdownWoodHammer(ctx),
-      BattleMoveVisualRecipeId.showdownIvyCudgel => _showdownIvyCudgel(ctx),
-      BattleMoveVisualRecipeId.showdownIvyCudgelWater =>
-        _showdownIvyCudgelWater(ctx),
-      BattleMoveVisualRecipeId.showdownIvyCudgelFire =>
-        _showdownIvyCudgelFire(ctx),
-      BattleMoveVisualRecipeId.showdownIvyCudgelRock =>
-        _showdownIvyCudgelRock(ctx),
-      BattleMoveVisualRecipeId.showdownCut => _showdownCut(ctx),
-      BattleMoveVisualRecipeId.showdownShadowClaw => _showdownShadowClaw(ctx),
-      BattleMoveVisualRecipeId.showdownMultiAttack => _showdownMultiAttack(ctx),
-      BattleMoveVisualRecipeId.showdownBite => _showdownBite(ctx),
-      BattleMoveVisualRecipeId.showdownSuperFang => _showdownSuperFang(ctx),
-      BattleMoveVisualRecipeId.showdownBugBite => _showdownBugBite(ctx),
-      BattleMoveVisualRecipeId.showdownPsychicFangs =>
-        _showdownPsychicFangs(ctx),
-      BattleMoveVisualRecipeId.showdownIronHead => _showdownIronHead(ctx),
-      BattleMoveVisualRecipeId.showdownHeadbutt => _showdownHeadbutt(ctx),
-      BattleMoveVisualRecipeId.showdownStomp => _showdownStomp(ctx),
-      BattleMoveVisualRecipeId.showdownHammerArm => _showdownHammerArm(ctx),
-      BattleMoveVisualRecipeId.showdownIceHammer => _showdownIceHammer(ctx),
-      BattleMoveVisualRecipeId.showdownSkyUppercut => _showdownSkyUppercut(ctx),
-      BattleMoveVisualRecipeId.showdownNeedleArm => _showdownNeedleArm(ctx),
-      BattleMoveVisualRecipeId.showdownRockSmash => _showdownRockSmash(ctx),
-      BattleMoveVisualRecipeId.showdownKarateChop => _showdownKarateChop(ctx),
-      BattleMoveVisualRecipeId.showdownDrillRun => _showdownDrillRun(ctx),
-      BattleMoveVisualRecipeId.showdownThunderbolt => _showdownThunderbolt(ctx),
-      BattleMoveVisualRecipeId.showdownChargeBeam => _showdownChargeBeam(ctx),
-      BattleMoveVisualRecipeId.showdownHiddenPower => _showdownHiddenPower(ctx),
-      BattleMoveVisualRecipeId.showdownElectroBall => _showdownElectroBall(ctx),
-      BattleMoveVisualRecipeId.showdownShadowBall => _showdownShadowBall(ctx),
-      BattleMoveVisualRecipeId.showdownDarkPulse => _showdownDarkPulse(ctx),
-      BattleMoveVisualRecipeId.showdownAuraSphere => _showdownAuraSphere(ctx),
-      BattleMoveVisualRecipeId.showdownBubbleBeam => _showdownBubbleBeam(ctx),
-      BattleMoveVisualRecipeId.showdownFireBlast => _showdownFireBlast(ctx),
-      BattleMoveVisualRecipeId.showdownBlizzard => _showdownBlizzard(ctx),
-      BattleMoveVisualRecipeId.showdownDazzlingGleam =>
-        _showdownDazzlingGleam(ctx),
-      BattleMoveVisualRecipeId.showdownCalmMind => _showdownCalmMind(ctx),
-      BattleMoveVisualRecipeId.showdownSwordsDance => _showdownSwordsDance(ctx),
-      BattleMoveVisualRecipeId.showdownAgility => _showdownAgility(ctx),
-      BattleMoveVisualRecipeId.showdownBulkUp => _showdownBulkUp(ctx),
-      BattleMoveVisualRecipeId.showdownCharm => _showdownCharm(ctx),
-      BattleMoveVisualRecipeId.showdownConfuseRay => _showdownConfuseRay(ctx),
-      BattleMoveVisualRecipeId.showdownGrowl => _showdownGrowl(ctx),
-      BattleMoveVisualRecipeId.showdownTaunt => _showdownTaunt(ctx),
-      BattleMoveVisualRecipeId.showdownInstruct => _showdownInstruct(ctx),
-      BattleMoveVisualRecipeId.showdownQuash => _showdownQuash(ctx),
-      BattleMoveVisualRecipeId.showdownSwagger => _showdownSwagger(ctx),
-      BattleMoveVisualRecipeId.showdownEncore => _showdownEncore(ctx),
-      BattleMoveVisualRecipeId.showdownBabyDollEyes =>
-        _showdownBabyDollEyes(ctx),
-      BattleMoveVisualRecipeId.showdownThunderWave => _showdownThunderWave(ctx),
-      BattleMoveVisualRecipeId.showdownProtect => _showdownProtect(ctx),
-      BattleMoveVisualRecipeId.showdownBurningBulwark =>
-        _showdownBurningBulwark(ctx),
-      BattleMoveVisualRecipeId.showdownBanefulBunker =>
-        _showdownBanefulBunker(ctx),
-      BattleMoveVisualRecipeId.showdownReflect => _showdownReflect(ctx),
-      BattleMoveVisualRecipeId.showdownLightScreen => _showdownLightScreen(ctx),
-      BattleMoveVisualRecipeId.showdownMist => _showdownMist(ctx),
-      BattleMoveVisualRecipeId.showdownAuroraVeil => _showdownAuroraVeil(ctx),
-      BattleMoveVisualRecipeId.showdownSafeguard => _showdownSafeguard(ctx),
-      BattleMoveVisualRecipeId.showdownQuickGuard => _showdownQuickGuard(ctx),
-      BattleMoveVisualRecipeId.showdownWideGuard => _showdownWideGuard(ctx),
-      BattleMoveVisualRecipeId.showdownTailwind => _showdownTailwind(ctx),
-      BattleMoveVisualRecipeId.showdownRainDance => _showdownRainDance(ctx),
-      BattleMoveVisualRecipeId.showdownSandstorm => _showdownSandstorm(ctx),
-      BattleMoveVisualRecipeId.showdownTrickRoom => _showdownTrickRoom(ctx),
-      BattleMoveVisualRecipeId.showdownStealthRock => _showdownStealthRock(ctx),
-      BattleMoveVisualRecipeId.showdownSpikes => _showdownSpikes(ctx),
-      BattleMoveVisualRecipeId.showdownAquaJet => _showdownAquaJet(ctx),
-      BattleMoveVisualRecipeId.showdownExtremeSpeed =>
-        _showdownExtremeSpeed(ctx),
-      BattleMoveVisualRecipeId.showdownMachPunch => _showdownMachPunch(ctx),
-      BattleMoveVisualRecipeId.showdownDoubleKick => _showdownDoubleKick(ctx),
-      BattleMoveVisualRecipeId.showdownDualWingBeat =>
-        _showdownDualWingBeat(ctx),
-      BattleMoveVisualRecipeId.showdownBoneMerang => _showdownBoneMerang(ctx),
-      BattleMoveVisualRecipeId.showdownSpark => _showdownSpark(ctx),
-      BattleMoveVisualRecipeId.showdownWildCharge => _showdownWildCharge(ctx),
-      BattleMoveVisualRecipeId.showdownFlareBlitz => _showdownFlareBlitz(ctx),
-      BattleMoveVisualRecipeId.showdownAccelerock => _showdownAccelerock(ctx),
-      BattleMoveVisualRecipeId.showdownWickedBlow => _showdownWickedBlow(ctx),
-      BattleMoveVisualRecipeId.showdownDoubleHit => _showdownDoubleHit(ctx),
-      BattleMoveVisualRecipeId.showdownCrunch => _showdownCrunch(ctx),
-      BattleMoveVisualRecipeId.showdownFlamethrower =>
-        _showdownFlamethrower(ctx),
-      BattleMoveVisualRecipeId.showdownIceBeam => _showdownIceBeam(ctx),
-      BattleMoveVisualRecipeId.showdownPsychic => _showdownPsychic(ctx),
-      BattleMoveVisualRecipeId.showdownMoonBlast => _showdownMoonBlast(ctx),
-      BattleMoveVisualRecipeId.showdownPoisonJab => _showdownPoisonJab(ctx),
-      BattleMoveVisualRecipeId.showdownEarthquake => _showdownEarthquake(ctx),
-      BattleMoveVisualRecipeId.showdownEnergyBall => _showdownEnergyBall(ctx),
-      BattleMoveVisualRecipeId.showdownRockSlide => _showdownRockSlide(ctx),
-      BattleMoveVisualRecipeId.showdownNightSlash => _showdownNightSlash(ctx),
-      BattleMoveVisualRecipeId.showdownGigaImpact => _showdownGigaImpact(ctx),
-      BattleMoveVisualRecipeId.showdownPowerWhip => _showdownPowerWhip(ctx),
-      BattleMoveVisualRecipeId.showdownCrabHammer => _showdownCrabHammer(ctx),
-      BattleMoveVisualRecipeId.showdownDischarge => _showdownDischarge(ctx),
-      BattleMoveVisualRecipeId.showdownSmartStrike => _showdownSmartStrike(ctx),
-      BattleMoveVisualRecipeId.showdownMegaHorn => _showdownMegaHorn(ctx),
-      BattleMoveVisualRecipeId.showdownDragonClaw => _showdownDragonClaw(ctx),
-      BattleMoveVisualRecipeId.showdownPsychoCut => _showdownPsychoCut(ctx),
-      BattleMoveVisualRecipeId.showdownWaterPulse => _showdownWaterPulse(ctx),
-      BattleMoveVisualRecipeId.showdownPowerGem => _showdownPowerGem(ctx),
-      BattleMoveVisualRecipeId.showdownHeatWave => _showdownHeatWave(ctx),
-      BattleMoveVisualRecipeId.showdownMuddyWater => _showdownMuddyWater(ctx),
-      BattleMoveVisualRecipeId.showdownEarthPower => _showdownEarthPower(ctx),
-      BattleMoveVisualRecipeId.showdownBugBuzz => _showdownBugBuzz(ctx),
-      BattleMoveVisualRecipeId.showdownHyperVoice => _showdownHyperVoice(ctx),
-      BattleMoveVisualRecipeId.showdownFlashCannon => _showdownFlashCannon(ctx),
-      BattleMoveVisualRecipeId.showdownDragonPulse => _showdownDragonPulse(ctx),
-      BattleMoveVisualRecipeId.showdownSludgeBomb => _showdownSludgeBomb(ctx),
-      BattleMoveVisualRecipeId.showdownDoomDesire => _showdownDoomDesire(ctx),
-      BattleMoveVisualRecipeId.showdownSeedFlare => _showdownSeedFlare(ctx),
-      BattleMoveVisualRecipeId.showdownIcyWind => _showdownIcyWind(ctx),
-      BattleMoveVisualRecipeId.showdownWeatherBall => _showdownWeatherBall(ctx),
-      BattleMoveVisualRecipeId.showdownFlameBurst => _showdownFlameBurst(ctx),
-      BattleMoveVisualRecipeId.showdownWaterSport => _showdownWaterSport(ctx),
-      BattleMoveVisualRecipeId.showdownScald => _showdownScald(ctx),
-      BattleMoveVisualRecipeId.showdownSteamEruption =>
-        _showdownSteamEruption(ctx),
-      BattleMoveVisualRecipeId.showdownTriAttack => _showdownTriAttack(ctx),
-      BattleMoveVisualRecipeId.showdownClangingScales =>
-        _showdownClangingScales(ctx),
-      BattleMoveVisualRecipeId.showdownGunkShot => _showdownGunkShot(ctx),
-      BattleMoveVisualRecipeId.showdownToxic => _showdownToxic(ctx),
-      BattleMoveVisualRecipeId.showdownToxicSpikes => _showdownToxicSpikes(ctx),
-      BattleMoveVisualRecipeId.showdownPoisonGas => _showdownPoisonGas(ctx),
-      BattleMoveVisualRecipeId.showdownSmog => _showdownSmog(ctx),
-      BattleMoveVisualRecipeId.showdownClearSmog => _showdownClearSmog(ctx),
-      BattleMoveVisualRecipeId.showdownPoisonFang => _showdownPoisonFang(ctx),
-      BattleMoveVisualRecipeId.showdownCrossPoison => _showdownCrossPoison(ctx),
-      BattleMoveVisualRecipeId.showdownDireClaw => _showdownDireClaw(ctx),
-      BattleMoveVisualRecipeId.showdownMudShot => _showdownMudShot(ctx),
-      BattleMoveVisualRecipeId.showdownRockBlast => _showdownRockBlast(ctx),
-      BattleMoveVisualRecipeId.showdownMagicalLeaf => _showdownMagicalLeaf(ctx),
-      BattleMoveVisualRecipeId.showdownElectroweb => _showdownElectroweb(ctx),
-      BattleMoveVisualRecipeId.showdownBulletSeed => _showdownBulletSeed(ctx),
-      BattleMoveVisualRecipeId.showdownSlam => _showdownSlam(ctx),
-      BattleMoveVisualRecipeId.showdownSpore => _showdownSpore(ctx),
-      BattleMoveVisualRecipeId.showdownPainSplit => _showdownPainSplit(ctx),
-      BattleMoveVisualRecipeId.showdownSkillSwap => _showdownSkillSwap(ctx),
-      BattleMoveVisualRecipeId.showdownPlayRough => _showdownPlayRough(ctx),
-      BattleMoveVisualRecipeId.showdownSurf => _showdownSurf(ctx),
-      BattleMoveVisualRecipeId.showdownHydroPump => _showdownHydroPump(ctx),
-      BattleMoveVisualRecipeId.showdownLeafBlade => _showdownLeafBlade(ctx),
-      BattleMoveVisualRecipeId.showdownXScissor => _showdownXScissor(ctx),
-      BattleMoveVisualRecipeId.showdownFireFang => _showdownFireFang(ctx),
-      BattleMoveVisualRecipeId.showdownIceFang => _showdownIceFang(ctx),
-      BattleMoveVisualRecipeId.showdownThunderFang => _showdownThunderFang(ctx),
-      BattleMoveVisualRecipeId.showdownAirSlash => _showdownAirSlash(ctx),
-      BattleMoveVisualRecipeId.showdownDracoMeteor => _showdownDracoMeteor(ctx),
-      BattleMoveVisualRecipeId.showdownQuiverDance => _showdownQuiverDance(ctx),
-      BattleMoveVisualRecipeId.showdownVictoryDance =>
-        _showdownVictoryDance(ctx),
-      BattleMoveVisualRecipeId.showdownDragonDance => _showdownDragonDance(ctx),
-      BattleMoveVisualRecipeId.showdownFeatherDance =>
-        _showdownFeatherDance(ctx),
-      BattleMoveVisualRecipeId.showdownFocusBlast => _showdownFocusBlast(ctx),
-      BattleMoveVisualRecipeId.showdownSpinAttack => _showdownSpinAttack(ctx),
-      BattleMoveVisualRecipeId.showdownVoltSwitch => _showdownVoltSwitch(ctx),
-      BattleMoveVisualRecipeId.showdownShockWave => _showdownShockWave(ctx),
-      BattleMoveVisualRecipeId.showdownExplosion => _showdownExplosion(ctx),
-      BattleMoveVisualRecipeId.showdownPopulationBomb =>
-        _showdownPopulationBomb(ctx),
-      BattleMoveVisualRecipeId.showdownAirCutter => _showdownAirCutter(ctx),
-      BattleMoveVisualRecipeId.showdownHurricane => _showdownHurricane(ctx),
-      BattleMoveVisualRecipeId.showdownWhirlwind => _showdownWhirlwind(ctx),
-      BattleMoveVisualRecipeId.showdownFreezeDry => _showdownFreezeDry(ctx),
-      BattleMoveVisualRecipeId.showdownMagmaStorm => _showdownMagmaStorm(ctx),
-      BattleMoveVisualRecipeId.showdownOriginPulse => _showdownOriginPulse(ctx),
-      BattleMoveVisualRecipeId.showdownPsybeam => _showdownPsybeam(ctx),
-      BattleMoveVisualRecipeId.showdownAeroblast => _showdownAeroblast(ctx),
-      BattleMoveVisualRecipeId.showdownRoarOfTime => _showdownRoarOfTime(ctx),
-      BattleMoveVisualRecipeId.showdownRevelationDance =>
-        _showdownRevelationDance(ctx),
-      BattleMoveVisualRecipeId.showdownSunnyDay => _showdownSunnyDay(ctx),
-      BattleMoveVisualRecipeId.showdownHail => _showdownHail(ctx),
-      BattleMoveVisualRecipeId.showdownElectricTerrain =>
-        _showdownElectricTerrain(ctx),
-      BattleMoveVisualRecipeId.showdownGrassyTerrain =>
-        _showdownGrassyTerrain(ctx),
-      BattleMoveVisualRecipeId.showdownMistyTerrain =>
-        _showdownMistyTerrain(ctx),
-      BattleMoveVisualRecipeId.showdownFollowMe => _showdownFollowMe(ctx),
-      BattleMoveVisualRecipeId.showdownKinesis => _showdownKinesis(ctx),
-      BattleMoveVisualRecipeId.showdownSolarBeam => _showdownSolarBeam(ctx),
-      BattleMoveVisualRecipeId.showdownThunder => _showdownThunder(ctx),
-      BattleMoveVisualRecipeId.showdownStoredPower => _showdownStoredPower(ctx),
-      BattleMoveVisualRecipeId.showdownPsychoBoost => _showdownPsychoBoost(ctx),
-      BattleMoveVisualRecipeId.showdownPsyshock => _showdownPsyshock(ctx),
-      BattleMoveVisualRecipeId.showdownHex => _showdownHex(ctx),
-      BattleMoveVisualRecipeId.showdownWillOWisp => _showdownWillOWisp(ctx),
-      BattleMoveVisualRecipeId.showdownLifeDew => _showdownLifeDew(ctx),
-      BattleMoveVisualRecipeId.showdownAromatherapy =>
-        _showdownAromatherapy(ctx),
-      BattleMoveVisualRecipeId.showdownRest => _showdownRest(ctx),
-      BattleMoveVisualRecipeId.showdownIngrain => _showdownIngrain(ctx),
-      BattleMoveVisualRecipeId.showdownMorningSun => _showdownMorningSun(ctx),
-      BattleMoveVisualRecipeId.showdownShoreUp => _showdownShoreUp(ctx),
-      BattleMoveVisualRecipeId.showdownDrain => _showdownDrain(ctx),
-      BattleMoveVisualRecipeId.showdownLeechLife => _showdownLeechLife(ctx),
-      BattleMoveVisualRecipeId.showdownHornLeech => _showdownHornLeech(ctx),
-      BattleMoveVisualRecipeId.showdownParabolicCharge =>
-        _showdownParabolicCharge(ctx),
-      BattleMoveVisualRecipeId.showdownDrainingKiss =>
-        _showdownDrainingKiss(ctx),
-      BattleMoveVisualRecipeId.showdownOblivionWing =>
-        _showdownOblivionWing(ctx),
-      BattleMoveVisualRecipeId.showdownLeechSeed => _showdownLeechSeed(ctx),
-      BattleMoveVisualRecipeId.showdownHyperBeam => _showdownHyperBeam(ctx),
-      BattleMoveVisualRecipeId.showdownSignalBeam => _showdownSignalBeam(ctx),
-      BattleMoveVisualRecipeId.showdownFleurCannon => _showdownFleurCannon(ctx),
-      BattleMoveVisualRecipeId.showdownArmorCannon => _showdownArmorCannon(ctx),
-      BattleMoveVisualRecipeId.showdownSteelBeam => _showdownSteelBeam(ctx),
-      BattleMoveVisualRecipeId.showdownBeakBlast => _showdownBeakBlast(ctx),
-      BattleMoveVisualRecipeId.showdownTwinBeam => _showdownTwinBeam(ctx),
-      BattleMoveVisualRecipeId.showdownSpikeCannon => _showdownSpikeCannon(ctx),
-      BattleMoveVisualRecipeId.showdownWaterShuriken =>
-        _showdownWaterShuriken(ctx),
-      BattleMoveVisualRecipeId.showdownTerastarStorm =>
-        _showdownTerastarStorm(ctx),
-      BattleMoveVisualRecipeId.showdownMeteorMash => _showdownMeteorMash(ctx),
-      BattleMoveVisualRecipeId.showdownSplash => _showdownSplash(ctx),
-      BattleMoveVisualRecipeId.showdownCelebrate => _showdownCelebrate(ctx),
-      BattleMoveVisualRecipeId.showdownOrderUp => _showdownOrderUp(ctx),
-      BattleMoveVisualRecipeId.showdownHeartStamp => _showdownHeartStamp(ctx),
-      BattleMoveVisualRecipeId.showdownMatchaGotcha =>
-        _showdownMatchaGotcha(ctx),
-      BattleMoveVisualRecipeId.showdownPresent => _showdownPresent(ctx),
-      BattleMoveVisualRecipeId.showdownPayDay => _showdownPayDay(ctx),
+      BattleMoveVisualRecipeId.sdkExactAcidArmor => _sdkExactSpriteOnUser(
+          ctx,
+          'acid_armor',
+          frameSeconds: 0.12,
+          frameSequence: const <int>[0, 1, 2, 3, 0, 1, 2, 3],
+        ),
+      BattleMoveVisualRecipeId.sdkExactAcrobatics => _sdkExactSpriteOnTarget(
+          ctx,
+          'acrobatics',
+          frameSeconds: 0.10,
+          initialWaitSeconds: 0.20,
+        ),
+      BattleMoveVisualRecipeId.sdkExactAerialAce =>
+        _sdkExactSpriteOnTarget(ctx, 'aerial_ace', frameSeconds: 0.055),
+      BattleMoveVisualRecipeId.sdkExactAirSlash =>
+        _sdkExactSpriteOnTarget(ctx, 'air_slash', frameSeconds: 0.055),
+      BattleMoveVisualRecipeId.sdkExactAquaRing => _sdkExactSpriteOnUser(
+          ctx,
+          'aqua_ring',
+          frameSeconds: 0.15,
+          frameSequence: const <int>[0, 1, 2, 0, 1, 2, 0, 1, 2],
+        ),
+      BattleMoveVisualRecipeId.sdkExactAquaTail => _sdkExactSpriteOnTarget(
+          ctx,
+          'aqua_tail',
+          frameSeconds: 0.07,
+          frameDurationsSeconds: const <double>[
+            0.065,
+            0.065,
+            0.065,
+            0.075,
+            0.075,
+            0.075,
+            0.075,
+          ],
+        ),
+      BattleMoveVisualRecipeId.sdkExactAssurance =>
+        _sdkExactSpriteOnTarget(ctx, 'assurance', frameSeconds: 0.15),
+      BattleMoveVisualRecipeId.sdkExactAstonish => _sdkExactSpriteOnTarget(
+          ctx,
+          'astonish',
+          frameSeconds: 0.09,
+          frameDurationsSeconds: const <double>[
+            0.085,
+            0.15,
+            0.085,
+            0.085,
+            0.085,
+          ],
+        ),
+      BattleMoveVisualRecipeId.sdkExactAvalanche =>
+        _sdkExactSpriteOnTarget(ctx, 'avalanche', frameSeconds: 0.10),
+      BattleMoveVisualRecipeId.sdkExactKarateChop => _sdkExactKarateChop(ctx),
+      BattleMoveVisualRecipeId.sdkExactLeechSeed => _sdkExactLeechSeed(ctx),
+      BattleMoveVisualRecipeId.sdkExactPoisonPowder => _sdkExactPowder(
+          ctx,
+          colorArgb: 0xCCB942F4,
+        ),
+      BattleMoveVisualRecipeId.sdkExactRecover => _sdkExactRecover(ctx),
+      BattleMoveVisualRecipeId.sdkExactSleepPowder => _sdkExactPowder(
+          ctx,
+          colorArgb: 0xCCC4D8FF,
+        ),
+      BattleMoveVisualRecipeId.sdkExactStunSpore => _sdkExactPowder(
+          ctx,
+          colorArgb: 0xCCEDE452,
+        ),
+      BattleMoveVisualRecipeId.sdkExactTailWhip => _sdkExactTailWhip(ctx),
+      BattleMoveVisualRecipeId.sdkExactThunderWave => _sdkExactThunderWave(ctx),
+      BattleMoveVisualRecipeId.sdkExactVineWhip => _sdkExactSpriteOnTarget(
+          ctx,
+          'vine_whip',
+          frameSeconds: 0.015,
+          initialWaitSeconds: 0.05,
+        ),
+      BattleMoveVisualRecipeId.sdkRmxpMoveAnimation =>
+        _sdkRmxpMoveAnimation(ctx),
+      BattleMoveVisualRecipeId.sdkTackle => _sdkTackle(ctx),
+      BattleMoveVisualRecipeId.sdkScratch => _sdkScratch(ctx),
+      BattleMoveVisualRecipeId.sdkQuickAttack => _sdkQuickAttack(ctx),
+      BattleMoveVisualRecipeId.sdkSlash => _sdkSlash(ctx),
+      BattleMoveVisualRecipeId.sdkAerialAce => _sdkAerialAce(ctx),
+      BattleMoveVisualRecipeId.sdkCloseCombat => _sdkCloseCombat(ctx),
+      BattleMoveVisualRecipeId.sdkBodySlam => _sdkBodySlam(ctx),
+      BattleMoveVisualRecipeId.sdkHighJumpKick => _sdkHighJumpKick(ctx),
+      BattleMoveVisualRecipeId.sdkShadowPunch => _sdkShadowPunch(ctx),
+      BattleMoveVisualRecipeId.sdkFocusPunch => _sdkFocusPunch(ctx),
+      BattleMoveVisualRecipeId.sdkDrainPunch => _sdkDrainPunch(ctx),
+      BattleMoveVisualRecipeId.sdkDynamicPunch => _sdkDynamicPunch(ctx),
+      BattleMoveVisualRecipeId.sdkCometPunch => _sdkCometPunch(ctx),
+      BattleMoveVisualRecipeId.sdkMegaPunch => _sdkMegaPunch(ctx),
+      BattleMoveVisualRecipeId.sdkPowerUpPunch => _sdkPowerUpPunch(ctx),
+      BattleMoveVisualRecipeId.sdkDizzyPunch => _sdkDizzyPunch(ctx),
+      BattleMoveVisualRecipeId.sdkJetPunch => _sdkJetPunch(ctx),
+      BattleMoveVisualRecipeId.sdkFirePunch => _sdkFirePunch(ctx),
+      BattleMoveVisualRecipeId.sdkIcePunch => _sdkIcePunch(ctx),
+      BattleMoveVisualRecipeId.sdkThunderPunch => _sdkThunderPunch(ctx),
+      BattleMoveVisualRecipeId.sdkBlazeKick => _sdkBlazeKick(ctx),
+      BattleMoveVisualRecipeId.sdkThunderousKick => _sdkThunderousKick(ctx),
+      BattleMoveVisualRecipeId.sdkTropKick => _sdkTropKick(ctx),
+      BattleMoveVisualRecipeId.sdkWoodHammer => _sdkWoodHammer(ctx),
+      BattleMoveVisualRecipeId.sdkIvyCudgel => _sdkIvyCudgel(ctx),
+      BattleMoveVisualRecipeId.sdkIvyCudgelWater => _sdkIvyCudgelWater(ctx),
+      BattleMoveVisualRecipeId.sdkIvyCudgelFire => _sdkIvyCudgelFire(ctx),
+      BattleMoveVisualRecipeId.sdkIvyCudgelRock => _sdkIvyCudgelRock(ctx),
+      BattleMoveVisualRecipeId.sdkCut => _sdkCut(ctx),
+      BattleMoveVisualRecipeId.sdkShadowClaw => _sdkShadowClaw(ctx),
+      BattleMoveVisualRecipeId.sdkMultiAttack => _sdkMultiAttack(ctx),
+      BattleMoveVisualRecipeId.sdkBite => _sdkBite(ctx),
+      BattleMoveVisualRecipeId.sdkSuperFang => _sdkSuperFang(ctx),
+      BattleMoveVisualRecipeId.sdkBugBite => _sdkBugBite(ctx),
+      BattleMoveVisualRecipeId.sdkPsychicFangs => _sdkPsychicFangs(ctx),
+      BattleMoveVisualRecipeId.sdkIronHead => _sdkIronHead(ctx),
+      BattleMoveVisualRecipeId.sdkHeadbutt => _sdkHeadbutt(ctx),
+      BattleMoveVisualRecipeId.sdkStomp => _sdkStomp(ctx),
+      BattleMoveVisualRecipeId.sdkHammerArm => _sdkHammerArm(ctx),
+      BattleMoveVisualRecipeId.sdkIceHammer => _sdkIceHammer(ctx),
+      BattleMoveVisualRecipeId.sdkSkyUppercut => _sdkSkyUppercut(ctx),
+      BattleMoveVisualRecipeId.sdkNeedleArm => _sdkNeedleArm(ctx),
+      BattleMoveVisualRecipeId.sdkRockSmash => _sdkRockSmash(ctx),
+      BattleMoveVisualRecipeId.sdkKarateChop => _sdkKarateChop(ctx),
+      BattleMoveVisualRecipeId.sdkDrillRun => _sdkDrillRun(ctx),
+      BattleMoveVisualRecipeId.sdkThunderbolt => _sdkThunderbolt(ctx),
+      BattleMoveVisualRecipeId.sdkChargeBeam => _sdkChargeBeam(ctx),
+      BattleMoveVisualRecipeId.sdkHiddenPower => _sdkHiddenPower(ctx),
+      BattleMoveVisualRecipeId.sdkElectroBall => _sdkElectroBall(ctx),
+      BattleMoveVisualRecipeId.sdkElectricShock => _sdkElectricShock(ctx),
+      BattleMoveVisualRecipeId.sdkShadowBall => _sdkShadowBall(ctx),
+      BattleMoveVisualRecipeId.sdkDarkPulse => _sdkDarkPulse(ctx),
+      BattleMoveVisualRecipeId.sdkAuraSphere => _sdkAuraSphere(ctx),
+      BattleMoveVisualRecipeId.sdkBubbleBeam => _sdkBubbleBeam(ctx),
+      BattleMoveVisualRecipeId.sdkFireBlast => _sdkFireBlast(ctx),
+      BattleMoveVisualRecipeId.sdkBlizzard => _sdkBlizzard(ctx),
+      BattleMoveVisualRecipeId.sdkDazzlingGleam => _sdkDazzlingGleam(ctx),
+      BattleMoveVisualRecipeId.sdkCalmMind => _sdkCalmMind(ctx),
+      BattleMoveVisualRecipeId.sdkSwordsDance => _sdkSwordsDance(ctx),
+      BattleMoveVisualRecipeId.sdkAgility => _sdkAgility(ctx),
+      BattleMoveVisualRecipeId.sdkBulkUp => _sdkBulkUp(ctx),
+      BattleMoveVisualRecipeId.sdkCharm => _sdkCharm(ctx),
+      BattleMoveVisualRecipeId.sdkConfuseRay => _sdkConfuseRay(ctx),
+      BattleMoveVisualRecipeId.sdkGrowl => _sdkGrowl(ctx),
+      BattleMoveVisualRecipeId.sdkTaunt => _sdkTaunt(ctx),
+      BattleMoveVisualRecipeId.sdkInstruct => _sdkInstruct(ctx),
+      BattleMoveVisualRecipeId.sdkQuash => _sdkQuash(ctx),
+      BattleMoveVisualRecipeId.sdkSwagger => _sdkSwagger(ctx),
+      BattleMoveVisualRecipeId.sdkEncore => _sdkEncore(ctx),
+      BattleMoveVisualRecipeId.sdkBabyDollEyes => _sdkBabyDollEyes(ctx),
+      BattleMoveVisualRecipeId.sdkThunderWave => _sdkThunderWave(ctx),
+      BattleMoveVisualRecipeId.sdkProtect => _sdkProtect(ctx),
+      BattleMoveVisualRecipeId.sdkBurningBulwark => _sdkBurningBulwark(ctx),
+      BattleMoveVisualRecipeId.sdkBanefulBunker => _sdkBanefulBunker(ctx),
+      BattleMoveVisualRecipeId.sdkReflect => _sdkReflect(ctx),
+      BattleMoveVisualRecipeId.sdkLightScreen => _sdkLightScreen(ctx),
+      BattleMoveVisualRecipeId.sdkMist => _sdkMist(ctx),
+      BattleMoveVisualRecipeId.sdkAuroraVeil => _sdkAuroraVeil(ctx),
+      BattleMoveVisualRecipeId.sdkSafeguard => _sdkSafeguard(ctx),
+      BattleMoveVisualRecipeId.sdkQuickGuard => _sdkQuickGuard(ctx),
+      BattleMoveVisualRecipeId.sdkWideGuard => _sdkWideGuard(ctx),
+      BattleMoveVisualRecipeId.sdkTailwind => _sdkTailwind(ctx),
+      BattleMoveVisualRecipeId.sdkRainDance => _sdkRainDance(ctx),
+      BattleMoveVisualRecipeId.sdkSandstorm => _sdkSandstorm(ctx),
+      BattleMoveVisualRecipeId.sdkTrickRoom => _sdkTrickRoom(ctx),
+      BattleMoveVisualRecipeId.sdkStealthRock => _sdkStealthRock(ctx),
+      BattleMoveVisualRecipeId.sdkSpikes => _sdkSpikes(ctx),
+      BattleMoveVisualRecipeId.sdkAquaJet => _sdkAquaJet(ctx),
+      BattleMoveVisualRecipeId.sdkExtremeSpeed => _sdkExtremeSpeed(ctx),
+      BattleMoveVisualRecipeId.sdkMachPunch => _sdkMachPunch(ctx),
+      BattleMoveVisualRecipeId.sdkDoubleKick => _sdkDoubleKick(ctx),
+      BattleMoveVisualRecipeId.sdkDualWingBeat => _sdkDualWingBeat(ctx),
+      BattleMoveVisualRecipeId.sdkBoneMerang => _sdkBoneMerang(ctx),
+      BattleMoveVisualRecipeId.sdkSpark => _sdkSpark(ctx),
+      BattleMoveVisualRecipeId.sdkWildCharge => _sdkWildCharge(ctx),
+      BattleMoveVisualRecipeId.sdkFlareBlitz => _sdkFlareBlitz(ctx),
+      BattleMoveVisualRecipeId.sdkAccelerock => _sdkAccelerock(ctx),
+      BattleMoveVisualRecipeId.sdkWickedBlow => _sdkWickedBlow(ctx),
+      BattleMoveVisualRecipeId.sdkDoubleHit => _sdkDoubleHit(ctx),
+      BattleMoveVisualRecipeId.sdkCrunch => _sdkCrunch(ctx),
+      BattleMoveVisualRecipeId.sdkFlamethrower => _sdkFlamethrower(ctx),
+      BattleMoveVisualRecipeId.sdkIceBeam => _sdkIceBeam(ctx),
+      BattleMoveVisualRecipeId.sdkPsychic => _sdkPsychic(ctx),
+      BattleMoveVisualRecipeId.sdkMoonBlast => _sdkMoonBlast(ctx),
+      BattleMoveVisualRecipeId.sdkPoisonJab => _sdkPoisonJab(ctx),
+      BattleMoveVisualRecipeId.sdkEarthquake => _sdkEarthquake(ctx),
+      BattleMoveVisualRecipeId.sdkEnergyBall => _sdkEnergyBall(ctx),
+      BattleMoveVisualRecipeId.sdkRockSlide => _sdkRockSlide(ctx),
+      BattleMoveVisualRecipeId.sdkNightSlash => _sdkNightSlash(ctx),
+      BattleMoveVisualRecipeId.sdkGigaImpact => _sdkGigaImpact(ctx),
+      BattleMoveVisualRecipeId.sdkPowerWhip => _sdkPowerWhip(ctx),
+      BattleMoveVisualRecipeId.sdkCrabHammer => _sdkCrabHammer(ctx),
+      BattleMoveVisualRecipeId.sdkDischarge => _sdkDischarge(ctx),
+      BattleMoveVisualRecipeId.sdkSmartStrike => _sdkSmartStrike(ctx),
+      BattleMoveVisualRecipeId.sdkMegaHorn => _sdkMegaHorn(ctx),
+      BattleMoveVisualRecipeId.sdkDragonClaw => _sdkDragonClaw(ctx),
+      BattleMoveVisualRecipeId.sdkPsychoCut => _sdkPsychoCut(ctx),
+      BattleMoveVisualRecipeId.sdkWaterPulse => _sdkWaterPulse(ctx),
+      BattleMoveVisualRecipeId.sdkPowerGem => _sdkPowerGem(ctx),
+      BattleMoveVisualRecipeId.sdkHeatWave => _sdkHeatWave(ctx),
+      BattleMoveVisualRecipeId.sdkMuddyWater => _sdkMuddyWater(ctx),
+      BattleMoveVisualRecipeId.sdkEarthPower => _sdkEarthPower(ctx),
+      BattleMoveVisualRecipeId.sdkBugBuzz => _sdkBugBuzz(ctx),
+      BattleMoveVisualRecipeId.sdkHyperVoice => _sdkHyperVoice(ctx),
+      BattleMoveVisualRecipeId.sdkFlashCannon => _sdkFlashCannon(ctx),
+      BattleMoveVisualRecipeId.sdkDragonPulse => _sdkDragonPulse(ctx),
+      BattleMoveVisualRecipeId.sdkSludgeBomb => _sdkSludgeBomb(ctx),
+      BattleMoveVisualRecipeId.sdkDoomDesire => _sdkDoomDesire(ctx),
+      BattleMoveVisualRecipeId.sdkSeedFlare => _sdkSeedFlare(ctx),
+      BattleMoveVisualRecipeId.sdkIcyWind => _sdkIcyWind(ctx),
+      BattleMoveVisualRecipeId.sdkWeatherBall => _sdkWeatherBall(ctx),
+      BattleMoveVisualRecipeId.sdkFlameBurst => _sdkFlameBurst(ctx),
+      BattleMoveVisualRecipeId.sdkWaterSport => _sdkWaterSport(ctx),
+      BattleMoveVisualRecipeId.sdkScald => _sdkScald(ctx),
+      BattleMoveVisualRecipeId.sdkSteamEruption => _sdkSteamEruption(ctx),
+      BattleMoveVisualRecipeId.sdkTriAttack => _sdkTriAttack(ctx),
+      BattleMoveVisualRecipeId.sdkClangingScales => _sdkClangingScales(ctx),
+      BattleMoveVisualRecipeId.sdkGunkShot => _sdkGunkShot(ctx),
+      BattleMoveVisualRecipeId.sdkToxic => _sdkToxic(ctx),
+      BattleMoveVisualRecipeId.sdkToxicSpikes => _sdkToxicSpikes(ctx),
+      BattleMoveVisualRecipeId.sdkPoisonGas => _sdkPoisonGas(ctx),
+      BattleMoveVisualRecipeId.sdkSmog => _sdkSmog(ctx),
+      BattleMoveVisualRecipeId.sdkClearSmog => _sdkClearSmog(ctx),
+      BattleMoveVisualRecipeId.sdkPoisonFang => _sdkPoisonFang(ctx),
+      BattleMoveVisualRecipeId.sdkCrossPoison => _sdkCrossPoison(ctx),
+      BattleMoveVisualRecipeId.sdkDireClaw => _sdkDireClaw(ctx),
+      BattleMoveVisualRecipeId.sdkMudShot => _sdkMudShot(ctx),
+      BattleMoveVisualRecipeId.sdkRockBlast => _sdkRockBlast(ctx),
+      BattleMoveVisualRecipeId.sdkMagicalLeaf => _sdkMagicalLeaf(ctx),
+      BattleMoveVisualRecipeId.sdkStarVolley => _sdkStarVolley(ctx),
+      BattleMoveVisualRecipeId.sdkElectroweb => _sdkElectroweb(ctx),
+      BattleMoveVisualRecipeId.sdkBulletSeed => _sdkBulletSeed(ctx),
+      BattleMoveVisualRecipeId.sdkSlam => _sdkSlam(ctx),
+      BattleMoveVisualRecipeId.sdkSpore => _sdkSpore(ctx),
+      BattleMoveVisualRecipeId.sdkPainSplit => _sdkPainSplit(ctx),
+      BattleMoveVisualRecipeId.sdkSkillSwap => _sdkSkillSwap(ctx),
+      BattleMoveVisualRecipeId.sdkPlayRough => _sdkPlayRough(ctx),
+      BattleMoveVisualRecipeId.sdkSurf => _sdkSurf(ctx),
+      BattleMoveVisualRecipeId.sdkHydroPump => _sdkHydroPump(ctx),
+      BattleMoveVisualRecipeId.sdkLeafBlade => _sdkLeafBlade(ctx),
+      BattleMoveVisualRecipeId.sdkXScissor => _sdkXScissor(ctx),
+      BattleMoveVisualRecipeId.sdkFireFang => _sdkFireFang(ctx),
+      BattleMoveVisualRecipeId.sdkIceFang => _sdkIceFang(ctx),
+      BattleMoveVisualRecipeId.sdkThunderFang => _sdkThunderFang(ctx),
+      BattleMoveVisualRecipeId.sdkAirSlash => _sdkAirSlash(ctx),
+      BattleMoveVisualRecipeId.sdkDracoMeteor => _sdkDracoMeteor(ctx),
+      BattleMoveVisualRecipeId.sdkQuiverDance => _sdkQuiverDance(ctx),
+      BattleMoveVisualRecipeId.sdkVictoryDance => _sdkVictoryDance(ctx),
+      BattleMoveVisualRecipeId.sdkDragonDance => _sdkDragonDance(ctx),
+      BattleMoveVisualRecipeId.sdkFeatherDance => _sdkFeatherDance(ctx),
+      BattleMoveVisualRecipeId.sdkFocusBlast => _sdkFocusBlast(ctx),
+      BattleMoveVisualRecipeId.sdkSpinAttack => _sdkSpinAttack(ctx),
+      BattleMoveVisualRecipeId.sdkVoltSwitch => _sdkVoltSwitch(ctx),
+      BattleMoveVisualRecipeId.sdkShockWave => _sdkShockWave(ctx),
+      BattleMoveVisualRecipeId.sdkExplosion => _sdkExplosion(ctx),
+      BattleMoveVisualRecipeId.sdkPopulationBomb => _sdkPopulationBomb(ctx),
+      BattleMoveVisualRecipeId.sdkAirCutter => _sdkAirCutter(ctx),
+      BattleMoveVisualRecipeId.sdkHurricane => _sdkHurricane(ctx),
+      BattleMoveVisualRecipeId.sdkWhirlwind => _sdkWhirlwind(ctx),
+      BattleMoveVisualRecipeId.sdkFreezeDry => _sdkFreezeDry(ctx),
+      BattleMoveVisualRecipeId.sdkMagmaStorm => _sdkMagmaStorm(ctx),
+      BattleMoveVisualRecipeId.sdkOriginPulse => _sdkOriginPulse(ctx),
+      BattleMoveVisualRecipeId.sdkPsybeam => _sdkPsybeam(ctx),
+      BattleMoveVisualRecipeId.sdkAeroblast => _sdkAeroblast(ctx),
+      BattleMoveVisualRecipeId.sdkRoarOfTime => _sdkRoarOfTime(ctx),
+      BattleMoveVisualRecipeId.sdkRevelationDance => _sdkRevelationDance(ctx),
+      BattleMoveVisualRecipeId.sdkSunnyDay => _sdkSunnyDay(ctx),
+      BattleMoveVisualRecipeId.sdkHail => _sdkHail(ctx),
+      BattleMoveVisualRecipeId.sdkElectricTerrain => _sdkElectricTerrain(ctx),
+      BattleMoveVisualRecipeId.sdkGrassyTerrain => _sdkGrassyTerrain(ctx),
+      BattleMoveVisualRecipeId.sdkMistyTerrain => _sdkMistyTerrain(ctx),
+      BattleMoveVisualRecipeId.sdkFollowMe => _sdkFollowMe(ctx),
+      BattleMoveVisualRecipeId.sdkKinesis => _sdkKinesis(ctx),
+      BattleMoveVisualRecipeId.sdkSolarBeam => _sdkSolarBeam(ctx),
+      BattleMoveVisualRecipeId.sdkThunder => _sdkThunder(ctx),
+      BattleMoveVisualRecipeId.sdkStoredPower => _sdkStoredPower(ctx),
+      BattleMoveVisualRecipeId.sdkPsychoBoost => _sdkPsychoBoost(ctx),
+      BattleMoveVisualRecipeId.sdkPsyshock => _sdkPsyshock(ctx),
+      BattleMoveVisualRecipeId.sdkHex => _sdkHex(ctx),
+      BattleMoveVisualRecipeId.sdkWillOWisp => _sdkWillOWisp(ctx),
+      BattleMoveVisualRecipeId.sdkLifeDew => _sdkLifeDew(ctx),
+      BattleMoveVisualRecipeId.sdkAromatherapy => _sdkAromatherapy(ctx),
+      BattleMoveVisualRecipeId.sdkRest => _sdkRest(ctx),
+      BattleMoveVisualRecipeId.sdkIngrain => _sdkIngrain(ctx),
+      BattleMoveVisualRecipeId.sdkMorningSun => _sdkMorningSun(ctx),
+      BattleMoveVisualRecipeId.sdkShoreUp => _sdkShoreUp(ctx),
+      BattleMoveVisualRecipeId.sdkDrain => _sdkDrain(ctx),
+      BattleMoveVisualRecipeId.sdkLeechLife => _sdkLeechLife(ctx),
+      BattleMoveVisualRecipeId.sdkHornLeech => _sdkHornLeech(ctx),
+      BattleMoveVisualRecipeId.sdkParabolicCharge => _sdkParabolicCharge(ctx),
+      BattleMoveVisualRecipeId.sdkDrainingKiss => _sdkDrainingKiss(ctx),
+      BattleMoveVisualRecipeId.sdkOblivionWing => _sdkOblivionWing(ctx),
+      BattleMoveVisualRecipeId.sdkLeechSeed => _sdkLeechSeed(ctx),
+      BattleMoveVisualRecipeId.sdkHyperBeam => _sdkHyperBeam(ctx),
+      BattleMoveVisualRecipeId.sdkSignalBeam => _sdkSignalBeam(ctx),
+      BattleMoveVisualRecipeId.sdkFleurCannon => _sdkFleurCannon(ctx),
+      BattleMoveVisualRecipeId.sdkArmorCannon => _sdkArmorCannon(ctx),
+      BattleMoveVisualRecipeId.sdkSteelBeam => _sdkSteelBeam(ctx),
+      BattleMoveVisualRecipeId.sdkBeakBlast => _sdkBeakBlast(ctx),
+      BattleMoveVisualRecipeId.sdkTwinBeam => _sdkTwinBeam(ctx),
+      BattleMoveVisualRecipeId.sdkSpikeCannon => _sdkSpikeCannon(ctx),
+      BattleMoveVisualRecipeId.sdkWaterShuriken => _sdkWaterShuriken(ctx),
+      BattleMoveVisualRecipeId.sdkTerastarStorm => _sdkTerastarStorm(ctx),
+      BattleMoveVisualRecipeId.sdkMeteorMash => _sdkMeteorMash(ctx),
+      BattleMoveVisualRecipeId.sdkSplash => _sdkSplash(ctx),
+      BattleMoveVisualRecipeId.sdkCelebrate => _sdkCelebrate(ctx),
+      BattleMoveVisualRecipeId.sdkOrderUp => _sdkOrderUp(ctx),
+      BattleMoveVisualRecipeId.sdkHeartStamp => _sdkHeartStamp(ctx),
+      BattleMoveVisualRecipeId.sdkMatchaGotcha => _sdkMatchaGotcha(ctx),
+      BattleMoveVisualRecipeId.sdkPresent => _sdkPresent(ctx),
+      BattleMoveVisualRecipeId.sdkPayDay => _sdkPayDay(ctx),
       BattleMoveVisualRecipeId.noAnimation => const <BattleAnimationStep>[
           WaitStep(durationSeconds: 0),
         ],
     };
+  }
+
+  List<BattleAnimationStep> _sdkRmxpMoveAnimation(
+    BattleMoveVisualRecipeContext ctx,
+  ) {
+    final defenderSide = ctx.targetSide ?? ctx.attackerSide;
+    final reverse = ctx.attackerSide == BattleSideId.enemy;
+    final steps = <BattleAnimationStep>[];
+    final userAnimationId = ctx.resolvedMove.rmxpUserAnimationId;
+    if (userAnimationId != null) {
+      final animation = BattleSdkRmxpAnimationCatalog.require(userAnimationId);
+      steps.add(
+        PlayRmxpAnimationStep(
+          animationId: userAnimationId,
+          sdkMoveId: ctx.resolvedMove.sdkMoveId,
+          subjectSide: ctx.attackerSide,
+          attackerSide: ctx.attackerSide,
+          defenderSide: defenderSide,
+          phase: RmxpPlacementPhase.user,
+          placementSpec: RmxpMovePlacementCatalog.resolve(
+            sdkMoveId: ctx.resolvedMove.sdkMoveId,
+            animationId: userAnimationId,
+            phase: RmxpPlacementPhase.user,
+            animation: animation,
+          ),
+          reverse: reverse,
+        ),
+      );
+    }
+    final targetAnimationId = ctx.resolvedMove.rmxpTargetAnimationId;
+    if (targetAnimationId != null) {
+      final animation =
+          BattleSdkRmxpAnimationCatalog.require(targetAnimationId);
+      steps.add(
+        PlayRmxpAnimationStep(
+          animationId: targetAnimationId,
+          sdkMoveId: ctx.resolvedMove.sdkMoveId,
+          subjectSide: defenderSide,
+          attackerSide: ctx.attackerSide,
+          defenderSide: defenderSide,
+          phase: RmxpPlacementPhase.target,
+          placementSpec: RmxpMovePlacementCatalog.resolve(
+            sdkMoveId: ctx.resolvedMove.sdkMoveId,
+            animationId: targetAnimationId,
+            phase: RmxpPlacementPhase.target,
+            animation: animation,
+          ),
+          reverse: reverse,
+        ),
+      );
+    }
+    return steps.isEmpty
+        ? const <BattleAnimationStep>[WaitStep(durationSeconds: 0)]
+        : steps;
   }
 
   List<BattleAnimationStep> _contactCombo({
@@ -612,7 +716,337 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownTackle(
+  // Source: Pokemon SDK 5 Battle/20 MoveAnimation/100 AerialAce.rb and
+  // sibling exact sprite-sheet scripts.
+  List<BattleAnimationStep> _sdkExactSpriteOnTarget(
+    BattleMoveVisualRecipeContext ctx,
+    String assetId, {
+    required double frameSeconds,
+    double initialWaitSeconds = 0.10,
+    List<int>? frameSequence,
+    List<double>? frameDurationsSeconds,
+  }) {
+    final spec = BattleFxCatalog.require(assetId);
+    final targetSide = ctx.targetSide ?? ctx.attackerSide;
+    return <BattleAnimationStep>[
+      WaitStep(durationSeconds: initialWaitSeconds),
+      PlaySpriteSheetFxStep(
+        assetId: assetId,
+        attackerSide: ctx.attackerSide,
+        defenderSide: targetSide,
+        anchor: BattleVisualAnchor.defenderCenter,
+        frameWidth: spec.frameWidth,
+        frameHeight: spec.frameHeight,
+        frameCount: spec.frameCount,
+        frameDurationSeconds: frameSeconds,
+        columns: spec.columns,
+        originX: spec.originX,
+        originY: spec.originY,
+        frameSequence: frameSequence,
+        frameDurationsSeconds: frameDurationsSeconds,
+      ),
+    ];
+  }
+
+  // Source: Pokemon SDK 5 Battle/20 MoveAnimation/100 AquaRing.rb and
+  // 100 AcidArmor.rb; both are anchored on the user sprite.
+  List<BattleAnimationStep> _sdkExactSpriteOnUser(
+    BattleMoveVisualRecipeContext ctx,
+    String assetId, {
+    required double frameSeconds,
+    List<int>? frameSequence,
+    List<double>? frameDurationsSeconds,
+  }) {
+    final spec = BattleFxCatalog.require(assetId);
+    return <BattleAnimationStep>[
+      const WaitStep(durationSeconds: 0.10),
+      PlaySpriteSheetFxStep(
+        assetId: assetId,
+        attackerSide: ctx.attackerSide,
+        defenderSide: ctx.targetSide ?? ctx.attackerSide,
+        anchor: BattleVisualAnchor.attackerCenter,
+        frameWidth: spec.frameWidth,
+        frameHeight: spec.frameHeight,
+        frameCount: spec.frameCount,
+        frameDurationSeconds: frameSeconds,
+        columns: spec.columns,
+        originX: spec.originX,
+        originY: spec.originY,
+        frameSequence: frameSequence,
+        frameDurationsSeconds: frameDurationsSeconds,
+      ),
+    ];
+  }
+
+  // Source: Pokemon SDK 5 Battle/20 MoveAnimation/100 KarateChop.rb.
+  List<BattleAnimationStep> _sdkExactKarateChop(
+    BattleMoveVisualRecipeContext ctx,
+  ) {
+    final targetSide = ctx.targetSide ?? ctx.attackerSide;
+    return <BattleAnimationStep>[
+      const CameraFocusStep(
+        target: BattleCameraFocusTarget.target,
+        durationSeconds: 1.10,
+      ),
+      SdkScalarParticleStep(
+        assetId: ctx.attackerSide == BattleSideId.player
+            ? 'hand_front_left'
+            : 'hand_front_right',
+        attackerSide: ctx.attackerSide,
+        defenderSide: targetSide,
+        anchor: BattleVisualAnchor.defenderHead,
+        offsetX: ctx.attackerSide == BattleSideId.player ? -16 : 16,
+        offsetY: -48,
+        endOffsetX: 0,
+        endOffsetY: 16,
+        startScaleX: 1.0,
+        startScaleY: 0.36,
+        endScaleX: 0.46,
+        endScaleY: 1.12,
+        startOpacity: 0.9,
+        endOpacity: 0,
+        durationSeconds: 0.58,
+        rotationTurns: ctx.attackerSide == BattleSideId.player ? 0.08 : -0.08,
+      ),
+      CombatantCompressStep(
+        side: targetSide,
+        scaleX: 0.2,
+        scaleY: -0.6,
+        durationSeconds: 0.30,
+      ),
+      SdkFallingParticlesStep(
+        assetId: 'circle_particle',
+        attackerSide: ctx.attackerSide,
+        defenderSide: targetSide,
+        anchor: BattleVisualAnchor.defenderCenter,
+        particleCount: 18,
+        durationSeconds: 0.34,
+        startAreaWidth: 84,
+        startOffsetY: -30,
+        fallDistanceY: 42,
+        driftX: 24,
+        startScaleX: 1.0,
+        startScaleY: 0.8,
+        endScaleX: 0.15,
+        endScaleY: 0.15,
+        intervalSeconds: 0.012,
+        colorArgb: 0xFFFFA638,
+      ),
+    ];
+  }
+
+  // Source: Pokemon SDK 5 Battle/20 MoveAnimation/100 LeechSeed.rb.
+  List<BattleAnimationStep> _sdkExactLeechSeed(
+    BattleMoveVisualRecipeContext ctx,
+  ) {
+    final targetSide = ctx.targetSide ?? ctx.attackerSide;
+    return <BattleAnimationStep>[
+      AnimationGroupStep(
+        mode: BattleAnimationGroupMode.parallel,
+        steps: <BattleAnimationStep>[
+          for (var i = 0; i < 6; i++)
+            SdkScalarParticleStep(
+              assetId: 'seed',
+              attackerSide: ctx.attackerSide,
+              defenderSide: targetSide,
+              anchor: BattleVisualAnchor.attackerHead,
+              offsetX: -12 + ((i % 3) * 12),
+              offsetY: -10 + ((i % 2) * 8),
+              endOffsetX: -32 + ((i % 3) * 32),
+              endOffsetY: 10 + ((i % 2) * 18),
+              startScaleX: 0.12,
+              startScaleY: 0.12,
+              endScaleX: 0.85,
+              endScaleY: 0.65,
+              startOpacity: 1,
+              endOpacity: 0,
+              delaySeconds: i * 0.08,
+              durationSeconds: 0.62,
+              rotationTurns: i.isEven ? 0.5 : -0.45,
+            ),
+          for (final entry in const <({double delay, double offset})>[
+            (delay: 0.32, offset: -22),
+            (delay: 0.42, offset: 0),
+            (delay: 0.52, offset: 22),
+          ])
+            SdkParticleZoomStep(
+              assetId: 'seed_growth',
+              attackerSide: ctx.attackerSide,
+              defenderSide: targetSide,
+              anchor: BattleVisualAnchor.defenderCenter,
+              offsetX: entry.offset,
+              offsetY: 16,
+              startScale: 0.12,
+              endScale: 1.05,
+              startOpacity: 0,
+              endOpacity: 0.95,
+              delaySeconds: entry.delay,
+              durationSeconds: 0.42,
+            ),
+        ],
+      ),
+    ];
+  }
+
+  // Source: Pokemon SDK powder scripts share Circle-blurry-M-2 particles.
+  List<BattleAnimationStep> _sdkExactPowder(
+    BattleMoveVisualRecipeContext ctx, {
+    required int colorArgb,
+  }) {
+    final targetSide = ctx.targetSide ?? ctx.attackerSide;
+    return <BattleAnimationStep>[
+      const CameraFocusStep(
+        target: BattleCameraFocusTarget.target,
+        durationSeconds: 1.20,
+      ),
+      SdkFallingParticlesStep(
+        assetId: 'circle_blurry_m_2',
+        attackerSide: ctx.attackerSide,
+        defenderSide: targetSide,
+        anchor: BattleVisualAnchor.defenderHead,
+        particleCount: 24,
+        durationSeconds: 0.82,
+        startAreaWidth: 144,
+        startOffsetY: -92,
+        fallDistanceY: 120,
+        driftX: 28,
+        startScaleX: 0.05,
+        startScaleY: 0.08,
+        endScaleX: 0.72,
+        endScaleY: 0.78,
+        intervalSeconds: 0.045,
+        colorArgb: colorArgb,
+      ),
+      CombatantToneStep(
+        side: targetSide,
+        colorArgb: colorArgb,
+        durationSeconds: 1.00,
+      ),
+      CombatantCompressStep(
+        side: targetSide,
+        scaleX: -0.2,
+        scaleY: 0.2,
+        durationSeconds: 0.75,
+        iteration: 5,
+      ),
+    ];
+  }
+
+  // Source: Pokemon SDK 5 Battle/20 MoveAnimation/100 Recover.rb.
+  List<BattleAnimationStep> _sdkExactRecover(
+    BattleMoveVisualRecipeContext ctx,
+  ) {
+    return <BattleAnimationStep>[
+      const CameraFocusStep(
+        target: BattleCameraFocusTarget.user,
+        durationSeconds: 1.20,
+      ),
+      CombatantCompressStep(
+        side: ctx.attackerSide,
+        scaleX: 0.15,
+        scaleY: -0.4,
+        durationSeconds: 0.30,
+      ),
+      AnimationGroupStep(
+        mode: BattleAnimationGroupMode.parallel,
+        steps: <BattleAnimationStep>[
+          SdkRadiusParticleStep(
+            assetId: 'circle_blurry_m_2',
+            attackerSide: ctx.attackerSide,
+            defenderSide: ctx.targetSide ?? ctx.attackerSide,
+            anchor: BattleVisualAnchor.attackerCenter,
+            particleCount: 18,
+            startRadiusPx: 18,
+            endRadiusPx: 72,
+            durationSeconds: 0.72,
+            startScale: 0.05,
+            endScale: 0.7,
+            intervalSeconds: 0.025,
+            colorArgb: 0xFFFFD56B,
+          ),
+          SdkRadiusParticleStep(
+            assetId: 'star_4_ring_l',
+            attackerSide: ctx.attackerSide,
+            defenderSide: ctx.targetSide ?? ctx.attackerSide,
+            anchor: BattleVisualAnchor.attackerHead,
+            particleCount: 10,
+            startRadiusPx: 14,
+            endRadiusPx: 54,
+            durationSeconds: 0.58,
+            startScale: 0.2,
+            endScale: 1.0,
+            startAngleTurns: 0.08,
+            intervalSeconds: 0.035,
+          ),
+          SdkParticleZoomStep(
+            assetId: 'star_4_ring_l',
+            attackerSide: ctx.attackerSide,
+            defenderSide: ctx.targetSide ?? ctx.attackerSide,
+            anchor: BattleVisualAnchor.attackerHead,
+            offsetY: -12,
+            startScale: 0.25,
+            endScale: 1.15,
+            delaySeconds: 0.16,
+            durationSeconds: 0.74,
+            rotationTurns: 0.33,
+          ),
+        ],
+      ),
+    ];
+  }
+
+  // Source: Pokemon SDK 5 Battle/20 MoveAnimation/100 Tail_Whip.rb.
+  List<BattleAnimationStep> _sdkExactTailWhip(
+    BattleMoveVisualRecipeContext ctx,
+  ) {
+    return <BattleAnimationStep>[
+      CombatantEllipseStep(
+        side: ctx.attackerSide,
+        radiusX: ctx.attackerSide == BattleSideId.player ? 18 : 11,
+        radiusY: ctx.attackerSide == BattleSideId.player ? 9 : -5,
+        turns: 2,
+        durationSeconds: 1.5,
+      ),
+    ];
+  }
+
+  // Source: Pokemon SDK 5 Battle/20 MoveAnimation/100 Thunder_wave.rb.
+  List<BattleAnimationStep> _sdkExactThunderWave(
+    BattleMoveVisualRecipeContext ctx,
+  ) {
+    final targetSide = ctx.targetSide ?? ctx.attackerSide;
+    final thunder = BattleFxCatalog.require('thunder_02');
+    return <BattleAnimationStep>[
+      PlaySpriteSheetFxStep(
+        assetId: 'thunder_02',
+        attackerSide: ctx.attackerSide,
+        defenderSide: targetSide,
+        anchor: BattleVisualAnchor.defenderCenter,
+        frameWidth: thunder.frameWidth,
+        frameHeight: thunder.frameHeight,
+        frameCount: thunder.frameCount,
+        frameDurationSeconds: 0.05,
+        columns: thunder.columns,
+        originX: thunder.originX,
+        originY: thunder.originY,
+        frameSequence: const <int>[1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+        frameDurationsSeconds: const <double>[
+          0.05,
+          0.05,
+          0.05,
+          0.05,
+          0.05,
+          0.05,
+          0.05,
+          0.05,
+          0.05,
+          0.05,
+        ],
+      ),
+    ];
+  }
+
+  List<BattleAnimationStep> _sdkTackle(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -635,7 +1069,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownScratch(
+  List<BattleAnimationStep> _sdkScratch(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -669,7 +1103,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownQuickAttack(
+  List<BattleAnimationStep> _sdkQuickAttack(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -720,7 +1154,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownSlash(
+  List<BattleAnimationStep> _sdkSlash(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -758,7 +1192,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownAerialAce(
+  List<BattleAnimationStep> _sdkAerialAce(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -820,7 +1254,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownCloseCombat(
+  List<BattleAnimationStep> _sdkCloseCombat(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -919,7 +1353,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownBodySlam(
+  List<BattleAnimationStep> _sdkBodySlam(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -977,7 +1411,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownHighJumpKick(
+  List<BattleAnimationStep> _sdkHighJumpKick(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -1025,7 +1459,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownKarateChop(
+  List<BattleAnimationStep> _sdkKarateChop(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -1072,7 +1506,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownDrillRun(
+  List<BattleAnimationStep> _sdkDrillRun(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -1128,7 +1562,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownThunderbolt(
+  List<BattleAnimationStep> _sdkThunderbolt(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -1197,7 +1631,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownHiddenPower(
+  List<BattleAnimationStep> _sdkHiddenPower(
     BattleMoveVisualRecipeContext ctx,
   ) {
     const diagonalBursts = <({double x, double y})>[
@@ -1246,7 +1680,7 @@ final class BattleMoveVisualRecipeLibrary {
     return steps;
   }
 
-  List<BattleAnimationStep> _showdownChargeBeam(
+  List<BattleAnimationStep> _sdkChargeBeam(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -1315,7 +1749,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownShadowBall(
+  List<BattleAnimationStep> _sdkShadowBall(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -1442,7 +1876,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownDarkPulse(
+  List<BattleAnimationStep> _sdkDarkPulse(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -1522,7 +1956,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownAuraSphere(
+  List<BattleAnimationStep> _sdkAuraSphere(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -1626,7 +2060,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownBubbleBeam(
+  List<BattleAnimationStep> _sdkBubbleBeam(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -1666,7 +2100,7 @@ final class BattleMoveVisualRecipeLibrary {
     return steps;
   }
 
-  List<BattleAnimationStep> _showdownFireBlast(
+  List<BattleAnimationStep> _sdkFireBlast(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -1749,7 +2183,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownBlizzard(
+  List<BattleAnimationStep> _sdkBlizzard(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -1801,7 +2235,7 @@ final class BattleMoveVisualRecipeLibrary {
     return steps;
   }
 
-  List<BattleAnimationStep> _showdownDazzlingGleam(
+  List<BattleAnimationStep> _sdkDazzlingGleam(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -1847,7 +2281,7 @@ final class BattleMoveVisualRecipeLibrary {
     return steps;
   }
 
-  List<BattleAnimationStep> _showdownCalmMind(
+  List<BattleAnimationStep> _sdkCalmMind(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -1877,7 +2311,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownSwordsDance(
+  List<BattleAnimationStep> _sdkSwordsDance(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final steps = <BattleAnimationStep>[
@@ -1920,7 +2354,7 @@ final class BattleMoveVisualRecipeLibrary {
     return steps;
   }
 
-  List<BattleAnimationStep> _showdownAgility(
+  List<BattleAnimationStep> _sdkAgility(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -1969,7 +2403,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownBulkUp(
+  List<BattleAnimationStep> _sdkBulkUp(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -1999,7 +2433,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownCharm(
+  List<BattleAnimationStep> _sdkCharm(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? BattleSideId.enemy;
@@ -2059,7 +2493,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownConfuseRay(
+  List<BattleAnimationStep> _sdkConfuseRay(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? BattleSideId.enemy;
@@ -2117,7 +2551,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownGrowl(
+  List<BattleAnimationStep> _sdkGrowl(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -2156,7 +2590,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownTaunt(
+  List<BattleAnimationStep> _sdkTaunt(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -2245,7 +2679,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownInstruct(
+  List<BattleAnimationStep> _sdkInstruct(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -2321,7 +2755,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownQuash(
+  List<BattleAnimationStep> _sdkQuash(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -2359,7 +2793,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownSwagger(
+  List<BattleAnimationStep> _sdkSwagger(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -2417,7 +2851,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownEncore(
+  List<BattleAnimationStep> _sdkEncore(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -2429,7 +2863,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownBabyDollEyes(
+  List<BattleAnimationStep> _sdkBabyDollEyes(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -2445,7 +2879,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownThunderWave(
+  List<BattleAnimationStep> _sdkThunderWave(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -2484,7 +2918,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownProtect(
+  List<BattleAnimationStep> _sdkProtect(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -2510,7 +2944,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownBurningBulwark(
+  List<BattleAnimationStep> _sdkBurningBulwark(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -2557,7 +2991,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownBanefulBunker(
+  List<BattleAnimationStep> _sdkBanefulBunker(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -2604,7 +3038,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownReflect(
+  List<BattleAnimationStep> _sdkReflect(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return _shieldCast(
@@ -2614,7 +3048,7 @@ final class BattleMoveVisualRecipeLibrary {
     );
   }
 
-  List<BattleAnimationStep> _showdownLightScreen(
+  List<BattleAnimationStep> _sdkLightScreen(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return _shieldCast(
@@ -2624,7 +3058,7 @@ final class BattleMoveVisualRecipeLibrary {
     );
   }
 
-  List<BattleAnimationStep> _showdownMist(
+  List<BattleAnimationStep> _sdkMist(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return _shieldCast(
@@ -2634,7 +3068,7 @@ final class BattleMoveVisualRecipeLibrary {
     );
   }
 
-  List<BattleAnimationStep> _showdownAuroraVeil(
+  List<BattleAnimationStep> _sdkAuroraVeil(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return _shieldCast(
@@ -2644,7 +3078,7 @@ final class BattleMoveVisualRecipeLibrary {
     );
   }
 
-  List<BattleAnimationStep> _showdownSafeguard(
+  List<BattleAnimationStep> _sdkSafeguard(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return _shieldCast(
@@ -2654,7 +3088,7 @@ final class BattleMoveVisualRecipeLibrary {
     );
   }
 
-  List<BattleAnimationStep> _showdownQuickGuard(
+  List<BattleAnimationStep> _sdkQuickGuard(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return _shieldCast(
@@ -2664,7 +3098,7 @@ final class BattleMoveVisualRecipeLibrary {
     );
   }
 
-  List<BattleAnimationStep> _showdownWideGuard(
+  List<BattleAnimationStep> _sdkWideGuard(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return _shieldCast(
@@ -2693,7 +3127,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownTailwind(
+  List<BattleAnimationStep> _sdkTailwind(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -2740,37 +3174,37 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownRainDance(
+  List<BattleAnimationStep> _sdkRainDance(
     BattleMoveVisualRecipeContext ctx,
   ) {
-    return _showdownDanceCast(
+    return _sdkDanceCast(
       ctx,
       accentFx: 'waterwisp',
       colorArgb: 0x223EA8FF,
     );
   }
 
-  List<BattleAnimationStep> _showdownSandstorm(
+  List<BattleAnimationStep> _sdkSandstorm(
     BattleMoveVisualRecipeContext ctx,
   ) {
-    return _showdownDanceCast(
+    return _sdkDanceCast(
       ctx,
       accentFx: 'mudwisp',
       colorArgb: 0x22D2A55A,
     );
   }
 
-  List<BattleAnimationStep> _showdownTrickRoom(
+  List<BattleAnimationStep> _sdkTrickRoom(
     BattleMoveVisualRecipeContext ctx,
   ) {
-    return _showdownDanceCast(
+    return _sdkDanceCast(
       ctx,
       accentFx: 'mistball',
       colorArgb: 0x229A5DFF,
     );
   }
 
-  List<BattleAnimationStep> _showdownDanceCast(
+  List<BattleAnimationStep> _sdkDanceCast(
     BattleMoveVisualRecipeContext ctx, {
     required String accentFx,
     required int colorArgb,
@@ -2819,7 +3253,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownAquaJet(
+  List<BattleAnimationStep> _sdkAquaJet(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -2888,7 +3322,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownExtremeSpeed(
+  List<BattleAnimationStep> _sdkExtremeSpeed(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -2986,7 +3420,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownMachPunch(
+  List<BattleAnimationStep> _sdkMachPunch(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -3023,7 +3457,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownShadowPunch(
+  List<BattleAnimationStep> _sdkShadowPunch(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -3077,7 +3511,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownFocusPunch(
+  List<BattleAnimationStep> _sdkFocusPunch(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -3134,12 +3568,12 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownDrainPunch(
+  List<BattleAnimationStep> _sdkDrainPunch(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
     return <BattleAnimationStep>[
-      ..._showdownMachPunch(ctx),
+      ..._sdkMachPunch(ctx),
       WaitStep(durationSeconds: 0.03),
       SpawnFxStep(
         effectId: 'electroball',
@@ -3183,7 +3617,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownDynamicPunch(
+  List<BattleAnimationStep> _sdkDynamicPunch(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -3253,7 +3687,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownCometPunch(
+  List<BattleAnimationStep> _sdkCometPunch(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -3293,7 +3727,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownMegaPunch(
+  List<BattleAnimationStep> _sdkMegaPunch(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -3334,11 +3768,11 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownPowerUpPunch(
+  List<BattleAnimationStep> _sdkPowerUpPunch(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
-      ..._showdownMegaPunch(ctx),
+      ..._sdkMegaPunch(ctx),
       WaitStep(durationSeconds: 0.04),
       _attackerChargeFx(
         ctx,
@@ -3353,12 +3787,12 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownDizzyPunch(
+  List<BattleAnimationStep> _sdkDizzyPunch(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
     return <BattleAnimationStep>[
-      ..._showdownMegaPunch(ctx),
+      ..._sdkMegaPunch(ctx),
       WaitStep(durationSeconds: 0.04),
       _targetFx(
         ctx,
@@ -3390,7 +3824,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownJetPunch(
+  List<BattleAnimationStep> _sdkJetPunch(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -3474,7 +3908,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownFirePunch(
+  List<BattleAnimationStep> _sdkFirePunch(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -3499,11 +3933,11 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 1.0,
         endOpacity: 0.0,
       ),
-      ..._showdownMegaPunch(ctx),
+      ..._sdkMegaPunch(ctx),
     ];
   }
 
-  List<BattleAnimationStep> _showdownIcePunch(
+  List<BattleAnimationStep> _sdkIcePunch(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -3528,11 +3962,11 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 1.0,
         endOpacity: 0.0,
       ),
-      ..._showdownMegaPunch(ctx),
+      ..._sdkMegaPunch(ctx),
     ];
   }
 
-  List<BattleAnimationStep> _showdownThunderPunch(
+  List<BattleAnimationStep> _sdkThunderPunch(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -3557,11 +3991,11 @@ final class BattleMoveVisualRecipeLibrary {
         startOpacity: 1.0,
         endOpacity: 0.0,
       ),
-      ..._showdownMegaPunch(ctx),
+      ..._sdkMegaPunch(ctx),
     ];
   }
 
-  List<BattleAnimationStep> _showdownBlazeKick(
+  List<BattleAnimationStep> _sdkBlazeKick(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -3615,12 +4049,12 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownThunderousKick(
+  List<BattleAnimationStep> _sdkThunderousKick(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
     return <BattleAnimationStep>[
-      ..._showdownDoubleKick(ctx),
+      ..._sdkDoubleKick(ctx),
       const ScreenFlashStep(
         colorArgb: 0x66FFFFFF,
         durationSeconds: 0.12,
@@ -3717,12 +4151,12 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownTropKick(
+  List<BattleAnimationStep> _sdkTropKick(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
     return <BattleAnimationStep>[
-      ..._showdownDoubleKick(ctx),
+      ..._sdkDoubleKick(ctx),
       const ScreenFlashStep(
         colorArgb: 0x449AB440,
         durationSeconds: 0.16,
@@ -3815,7 +4249,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownWoodHammer(
+  List<BattleAnimationStep> _sdkWoodHammer(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return _cudgelStrike(
@@ -3826,7 +4260,7 @@ final class BattleMoveVisualRecipeLibrary {
     );
   }
 
-  List<BattleAnimationStep> _showdownIvyCudgel(
+  List<BattleAnimationStep> _sdkIvyCudgel(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return _cudgelStrike(
@@ -3837,7 +4271,7 @@ final class BattleMoveVisualRecipeLibrary {
     );
   }
 
-  List<BattleAnimationStep> _showdownIvyCudgelWater(
+  List<BattleAnimationStep> _sdkIvyCudgelWater(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return _cudgelStrike(
@@ -3848,7 +4282,7 @@ final class BattleMoveVisualRecipeLibrary {
     );
   }
 
-  List<BattleAnimationStep> _showdownIvyCudgelFire(
+  List<BattleAnimationStep> _sdkIvyCudgelFire(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return _cudgelStrike(
@@ -3859,7 +4293,7 @@ final class BattleMoveVisualRecipeLibrary {
     );
   }
 
-  List<BattleAnimationStep> _showdownIvyCudgelRock(
+  List<BattleAnimationStep> _sdkIvyCudgelRock(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return _cudgelStrike(
@@ -3870,7 +4304,7 @@ final class BattleMoveVisualRecipeLibrary {
     );
   }
 
-  List<BattleAnimationStep> _showdownCut(BattleMoveVisualRecipeContext ctx) {
+  List<BattleAnimationStep> _sdkCut(BattleMoveVisualRecipeContext ctx) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
     return <BattleAnimationStep>[
       _targetFx(
@@ -3890,7 +4324,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownShadowClaw(
+  List<BattleAnimationStep> _sdkShadowClaw(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -3928,7 +4362,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownMultiAttack(
+  List<BattleAnimationStep> _sdkMultiAttack(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -3984,11 +4418,11 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownBite(BattleMoveVisualRecipeContext ctx) {
+  List<BattleAnimationStep> _sdkBite(BattleMoveVisualRecipeContext ctx) {
     return _biteStrike(ctx);
   }
 
-  List<BattleAnimationStep> _showdownSuperFang(
+  List<BattleAnimationStep> _sdkSuperFang(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -4000,7 +4434,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownBugBite(
+  List<BattleAnimationStep> _sdkBugBite(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -4018,7 +4452,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownPsychicFangs(
+  List<BattleAnimationStep> _sdkPsychicFangs(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -4050,7 +4484,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownIronHead(
+  List<BattleAnimationStep> _sdkIronHead(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return _contactCombo(
@@ -4059,7 +4493,7 @@ final class BattleMoveVisualRecipeLibrary {
     );
   }
 
-  List<BattleAnimationStep> _showdownHeadbutt(
+  List<BattleAnimationStep> _sdkHeadbutt(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return _contactCombo(
@@ -4068,14 +4502,14 @@ final class BattleMoveVisualRecipeLibrary {
     );
   }
 
-  List<BattleAnimationStep> _showdownStomp(BattleMoveVisualRecipeContext ctx) {
+  List<BattleAnimationStep> _sdkStomp(BattleMoveVisualRecipeContext ctx) {
     return _contactCombo(
       ctx: ctx,
       heavy: true,
     );
   }
 
-  List<BattleAnimationStep> _showdownHammerArm(
+  List<BattleAnimationStep> _sdkHammerArm(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return _hammerDropStrike(
@@ -4086,7 +4520,7 @@ final class BattleMoveVisualRecipeLibrary {
     );
   }
 
-  List<BattleAnimationStep> _showdownIceHammer(
+  List<BattleAnimationStep> _sdkIceHammer(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return _hammerDropStrike(
@@ -4097,7 +4531,7 @@ final class BattleMoveVisualRecipeLibrary {
     );
   }
 
-  List<BattleAnimationStep> _showdownSkyUppercut(
+  List<BattleAnimationStep> _sdkSkyUppercut(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -4153,7 +4587,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownNeedleArm(
+  List<BattleAnimationStep> _sdkNeedleArm(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -4197,11 +4631,11 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownRockSmash(
+  List<BattleAnimationStep> _sdkRockSmash(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
-      ..._showdownMegaPunch(ctx),
+      ..._sdkMegaPunch(ctx),
       _targetFx(
         ctx,
         effectId: 'rock3',
@@ -4415,7 +4849,7 @@ final class BattleMoveVisualRecipeLibrary {
     return steps;
   }
 
-  List<BattleAnimationStep> _showdownDoubleKick(
+  List<BattleAnimationStep> _sdkDoubleKick(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -4460,7 +4894,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownDualWingBeat(
+  List<BattleAnimationStep> _sdkDualWingBeat(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -4527,7 +4961,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownBoneMerang(
+  List<BattleAnimationStep> _sdkBoneMerang(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -4561,7 +4995,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownSpark(
+  List<BattleAnimationStep> _sdkSpark(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -4594,7 +5028,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownWildCharge(
+  List<BattleAnimationStep> _sdkWildCharge(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -4650,7 +5084,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownFlareBlitz(
+  List<BattleAnimationStep> _sdkFlareBlitz(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -4698,7 +5132,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownAccelerock(
+  List<BattleAnimationStep> _sdkAccelerock(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -4763,7 +5197,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownWickedBlow(
+  List<BattleAnimationStep> _sdkWickedBlow(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -4800,7 +5234,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownDoubleHit(
+  List<BattleAnimationStep> _sdkDoubleHit(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -4840,7 +5274,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownCrunch(
+  List<BattleAnimationStep> _sdkCrunch(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -4897,7 +5331,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownFlamethrower(
+  List<BattleAnimationStep> _sdkFlamethrower(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -4951,7 +5385,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownIceBeam(
+  List<BattleAnimationStep> _sdkIceBeam(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -4999,7 +5433,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownPsychic(
+  List<BattleAnimationStep> _sdkPsychic(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -5054,7 +5488,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownMoonBlast(
+  List<BattleAnimationStep> _sdkMoonBlast(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -5098,7 +5532,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownPoisonJab(
+  List<BattleAnimationStep> _sdkPoisonJab(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -5135,7 +5569,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownEarthquake(
+  List<BattleAnimationStep> _sdkEarthquake(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -5182,7 +5616,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownEnergyBall(
+  List<BattleAnimationStep> _sdkEnergyBall(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -5224,7 +5658,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownRockSlide(
+  List<BattleAnimationStep> _sdkRockSlide(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -5284,7 +5718,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownNightSlash(
+  List<BattleAnimationStep> _sdkNightSlash(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -5339,7 +5773,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownGigaImpact(
+  List<BattleAnimationStep> _sdkGigaImpact(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -5375,7 +5809,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownPowerWhip(
+  List<BattleAnimationStep> _sdkPowerWhip(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -5426,7 +5860,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownCrabHammer(
+  List<BattleAnimationStep> _sdkCrabHammer(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -5484,7 +5918,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownDischarge(
+  List<BattleAnimationStep> _sdkDischarge(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -5538,7 +5972,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownSmartStrike(
+  List<BattleAnimationStep> _sdkSmartStrike(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -5574,7 +6008,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownMegaHorn(
+  List<BattleAnimationStep> _sdkMegaHorn(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -5621,7 +6055,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownDragonClaw(
+  List<BattleAnimationStep> _sdkDragonClaw(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -5660,7 +6094,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownPsychoCut(
+  List<BattleAnimationStep> _sdkPsychoCut(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -5699,7 +6133,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownWaterPulse(
+  List<BattleAnimationStep> _sdkWaterPulse(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -5748,7 +6182,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownPowerGem(
+  List<BattleAnimationStep> _sdkPowerGem(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -5795,7 +6229,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownHeatWave(
+  List<BattleAnimationStep> _sdkHeatWave(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -5845,7 +6279,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownMuddyWater(
+  List<BattleAnimationStep> _sdkMuddyWater(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -5895,7 +6329,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownEarthPower(
+  List<BattleAnimationStep> _sdkEarthPower(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -5936,7 +6370,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownBugBuzz(
+  List<BattleAnimationStep> _sdkBugBuzz(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -5987,7 +6421,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownHyperVoice(
+  List<BattleAnimationStep> _sdkHyperVoice(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -6032,7 +6466,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownFlashCannon(
+  List<BattleAnimationStep> _sdkFlashCannon(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -6092,7 +6526,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownDragonPulse(
+  List<BattleAnimationStep> _sdkDragonPulse(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -6202,7 +6636,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownSludgeBomb(
+  List<BattleAnimationStep> _sdkSludgeBomb(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -6245,7 +6679,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownMagicalLeaf(
+  List<BattleAnimationStep> _sdkMagicalLeaf(
     BattleMoveVisualRecipeContext ctx,
   ) {
     const patterns = <({String effectId, double toX, double toY})>[
@@ -6280,7 +6714,46 @@ final class BattleMoveVisualRecipeLibrary {
     return steps;
   }
 
-  List<BattleAnimationStep> _showdownElectroweb(
+  List<BattleAnimationStep> _sdkStarVolley(
+    BattleMoveVisualRecipeContext ctx,
+  ) {
+    const patterns =
+        <({String effectId, double toX, double toY, double delay})>[
+      (effectId: 'star', toX: -28, toY: -20, delay: 0.00),
+      (effectId: 'star_1', toX: 20, toY: -36, delay: 0.04),
+      (effectId: 'star', toX: 34, toY: 2, delay: 0.08),
+      (effectId: 'star_1', toX: -14, toY: 22, delay: 0.12),
+      (effectId: 'star', toX: 10, toY: -10, delay: 0.16),
+    ];
+    return <BattleAnimationStep>[
+      const ScreenFlashStep(
+        colorArgb: 0x18FFF3A6,
+        durationSeconds: 0.10,
+      ),
+      for (final pattern in patterns)
+        _projectileToTarget(
+          ctx,
+          effectId: pattern.effectId,
+          durationSeconds: 0.30,
+          startDelaySeconds: pattern.delay,
+          curve: BattleFxMotionCurve.arcOver,
+          toOffsetX: pattern.toX,
+          toOffsetY: pattern.toY,
+          startScale: 0.25,
+          endScale: 0.95,
+          startOpacity: 0.95,
+          endOpacity: 1.0,
+          afterEffect: BattleFxAfterEffect.fade,
+          playAsAccent: true,
+        ),
+      CombatantFlashStep(
+        side: ctx.targetSide ?? ctx.attackerSide,
+        durationSeconds: 0.08,
+      ),
+    ];
+  }
+
+  List<BattleAnimationStep> _sdkElectroweb(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -6323,7 +6796,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownBulletSeed(
+  List<BattleAnimationStep> _sdkBulletSeed(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -6351,7 +6824,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownSlam(
+  List<BattleAnimationStep> _sdkSlam(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -6384,7 +6857,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownSpore(
+  List<BattleAnimationStep> _sdkSpore(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -6441,7 +6914,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownPainSplit(
+  List<BattleAnimationStep> _sdkPainSplit(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -6491,7 +6964,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownSkillSwap(
+  List<BattleAnimationStep> _sdkSkillSwap(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -6560,7 +7033,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownPlayRough(
+  List<BattleAnimationStep> _sdkPlayRough(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -6675,7 +7148,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownSurf(
+  List<BattleAnimationStep> _sdkSurf(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -6735,7 +7208,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownHydroPump(
+  List<BattleAnimationStep> _sdkHydroPump(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -6793,7 +7266,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownLeafBlade(
+  List<BattleAnimationStep> _sdkLeafBlade(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -6897,7 +7370,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownXScissor(
+  List<BattleAnimationStep> _sdkXScissor(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -6954,10 +7427,10 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownFireFang(
+  List<BattleAnimationStep> _sdkFireFang(
     BattleMoveVisualRecipeContext ctx,
   ) {
-    return _showdownElementalFang(
+    return _sdkElementalFang(
       ctx,
       accentSteps: <BattleAnimationStep>[
         _targetFx(
@@ -6987,10 +7460,10 @@ final class BattleMoveVisualRecipeLibrary {
     );
   }
 
-  List<BattleAnimationStep> _showdownIceFang(
+  List<BattleAnimationStep> _sdkIceFang(
     BattleMoveVisualRecipeContext ctx,
   ) {
-    return _showdownElementalFang(
+    return _sdkElementalFang(
       ctx,
       accentSteps: <BattleAnimationStep>[
         _targetFx(
@@ -7020,10 +7493,10 @@ final class BattleMoveVisualRecipeLibrary {
     );
   }
 
-  List<BattleAnimationStep> _showdownThunderFang(
+  List<BattleAnimationStep> _sdkThunderFang(
     BattleMoveVisualRecipeContext ctx,
   ) {
-    return _showdownElementalFang(
+    return _sdkElementalFang(
       ctx,
       accentSteps: <BattleAnimationStep>[
         _targetFx(
@@ -7053,7 +7526,7 @@ final class BattleMoveVisualRecipeLibrary {
     );
   }
 
-  List<BattleAnimationStep> _showdownElementalFang(
+  List<BattleAnimationStep> _sdkElementalFang(
     BattleMoveVisualRecipeContext ctx, {
     required List<BattleAnimationStep> accentSteps,
   }) {
@@ -7104,7 +7577,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownAirSlash(
+  List<BattleAnimationStep> _sdkAirSlash(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -7178,7 +7651,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownDracoMeteor(
+  List<BattleAnimationStep> _sdkDracoMeteor(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -7322,7 +7795,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownQuiverDance(
+  List<BattleAnimationStep> _sdkQuiverDance(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -7389,7 +7862,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownVictoryDance(
+  List<BattleAnimationStep> _sdkVictoryDance(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -7453,7 +7926,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownDragonDance(
+  List<BattleAnimationStep> _sdkDragonDance(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -7508,7 +7981,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownFeatherDance(
+  List<BattleAnimationStep> _sdkFeatherDance(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -7600,7 +8073,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownFocusBlast(
+  List<BattleAnimationStep> _sdkFocusBlast(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -7687,7 +8160,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownSpinAttack(
+  List<BattleAnimationStep> _sdkSpinAttack(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -7732,7 +8205,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownVoltSwitch(
+  List<BattleAnimationStep> _sdkVoltSwitch(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -7781,7 +8254,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownShockWave(
+  List<BattleAnimationStep> _sdkShockWave(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -7835,7 +8308,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownExplosion(
+  List<BattleAnimationStep> _sdkExplosion(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -7898,7 +8371,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownPopulationBomb(
+  List<BattleAnimationStep> _sdkPopulationBomb(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -7968,7 +8441,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownAirCutter(
+  List<BattleAnimationStep> _sdkAirCutter(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -8027,7 +8500,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownHurricane(
+  List<BattleAnimationStep> _sdkHurricane(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -8134,7 +8607,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownWhirlwind(
+  List<BattleAnimationStep> _sdkWhirlwind(
     BattleMoveVisualRecipeContext ctx,
   ) {
     const patterns = <({double x, double y})>[
@@ -8169,7 +8642,7 @@ final class BattleMoveVisualRecipeLibrary {
     return steps;
   }
 
-  List<BattleAnimationStep> _showdownFreezeDry(
+  List<BattleAnimationStep> _sdkFreezeDry(
     BattleMoveVisualRecipeContext ctx,
   ) {
     const patterns = <({double x, double y})>[
@@ -8214,7 +8687,7 @@ final class BattleMoveVisualRecipeLibrary {
     return steps;
   }
 
-  List<BattleAnimationStep> _showdownMagmaStorm(
+  List<BattleAnimationStep> _sdkMagmaStorm(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -8260,7 +8733,7 @@ final class BattleMoveVisualRecipeLibrary {
     return steps;
   }
 
-  List<BattleAnimationStep> _showdownOriginPulse(
+  List<BattleAnimationStep> _sdkOriginPulse(
     BattleMoveVisualRecipeContext ctx,
   ) {
     const patterns = <({double x, double y})>[
@@ -8304,7 +8777,7 @@ final class BattleMoveVisualRecipeLibrary {
     return steps;
   }
 
-  List<BattleAnimationStep> _showdownPsybeam(
+  List<BattleAnimationStep> _sdkPsybeam(
     BattleMoveVisualRecipeContext ctx,
   ) {
     const patterns = <({String effectId, double x, double y})>[
@@ -8337,7 +8810,7 @@ final class BattleMoveVisualRecipeLibrary {
     return steps;
   }
 
-  List<BattleAnimationStep> _showdownAeroblast(
+  List<BattleAnimationStep> _sdkAeroblast(
     BattleMoveVisualRecipeContext ctx,
   ) {
     const trailOffsets = <double>[-24, -12, 0, 12, 24];
@@ -8389,7 +8862,7 @@ final class BattleMoveVisualRecipeLibrary {
     return steps;
   }
 
-  List<BattleAnimationStep> _showdownRoarOfTime(
+  List<BattleAnimationStep> _sdkRoarOfTime(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -8472,7 +8945,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownRevelationDance(
+  List<BattleAnimationStep> _sdkRevelationDance(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -8558,37 +9031,37 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownSunnyDay(
+  List<BattleAnimationStep> _sdkSunnyDay(
     BattleMoveVisualRecipeContext ctx,
   ) {
-    return _showdownDanceCast(
+    return _sdkDanceCast(
       ctx,
       accentFx: 'fireball',
       colorArgb: 0x33F7A11A,
     );
   }
 
-  List<BattleAnimationStep> _showdownHail(
+  List<BattleAnimationStep> _sdkHail(
     BattleMoveVisualRecipeContext ctx,
   ) {
-    return _showdownDanceCast(
+    return _sdkDanceCast(
       ctx,
       accentFx: 'iceball',
       colorArgb: 0x33C7E7FF,
     );
   }
 
-  List<BattleAnimationStep> _showdownElectricTerrain(
+  List<BattleAnimationStep> _sdkElectricTerrain(
     BattleMoveVisualRecipeContext ctx,
   ) {
-    return _showdownDanceCast(
+    return _sdkDanceCast(
       ctx,
       accentFx: 'electroball',
       colorArgb: 0x33FFFF00,
     );
   }
 
-  List<BattleAnimationStep> _showdownGrassyTerrain(
+  List<BattleAnimationStep> _sdkGrassyTerrain(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -8635,17 +9108,17 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownMistyTerrain(
+  List<BattleAnimationStep> _sdkMistyTerrain(
     BattleMoveVisualRecipeContext ctx,
   ) {
-    return _showdownDanceCast(
+    return _sdkDanceCast(
       ctx,
       accentFx: 'mistball',
       colorArgb: 0x33FF99FF,
     );
   }
 
-  List<BattleAnimationStep> _showdownFollowMe(
+  List<BattleAnimationStep> _sdkFollowMe(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -8673,7 +9146,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownKinesis(
+  List<BattleAnimationStep> _sdkKinesis(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -8703,7 +9176,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownSolarBeam(
+  List<BattleAnimationStep> _sdkSolarBeam(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -8821,7 +9294,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownThunder(
+  List<BattleAnimationStep> _sdkThunder(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -8877,7 +9350,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownStoredPower(
+  List<BattleAnimationStep> _sdkStoredPower(
     BattleMoveVisualRecipeContext ctx,
   ) {
     const offsets = <(double, double)>[
@@ -8908,7 +9381,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownPsychoBoost(
+  List<BattleAnimationStep> _sdkPsychoBoost(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -9030,7 +9503,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownPsyshock(
+  List<BattleAnimationStep> _sdkPsyshock(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -9079,7 +9552,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownHex(
+  List<BattleAnimationStep> _sdkHex(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -9173,7 +9646,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownWillOWisp(
+  List<BattleAnimationStep> _sdkWillOWisp(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -9223,7 +9696,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownLifeDew(
+  List<BattleAnimationStep> _sdkLifeDew(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -9279,7 +9752,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownAromatherapy(
+  List<BattleAnimationStep> _sdkAromatherapy(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -9321,7 +9794,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownRest(
+  List<BattleAnimationStep> _sdkRest(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -9359,7 +9832,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownIngrain(
+  List<BattleAnimationStep> _sdkIngrain(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -9401,7 +9874,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownMorningSun(
+  List<BattleAnimationStep> _sdkMorningSun(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -9443,7 +9916,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownShoreUp(
+  List<BattleAnimationStep> _sdkShoreUp(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -9485,7 +9958,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownDrain(
+  List<BattleAnimationStep> _sdkDrain(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -9537,7 +10010,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownLeechLife(
+  List<BattleAnimationStep> _sdkLeechLife(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -9599,7 +10072,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownHornLeech(
+  List<BattleAnimationStep> _sdkHornLeech(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -9680,7 +10153,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownParabolicCharge(
+  List<BattleAnimationStep> _sdkParabolicCharge(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -9714,7 +10187,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownDrainingKiss(
+  List<BattleAnimationStep> _sdkDrainingKiss(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -9756,7 +10229,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownOblivionWing(
+  List<BattleAnimationStep> _sdkOblivionWing(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -9868,7 +10341,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownLeechSeed(
+  List<BattleAnimationStep> _sdkLeechSeed(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -9913,7 +10386,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownHyperBeam(
+  List<BattleAnimationStep> _sdkHyperBeam(
     BattleMoveVisualRecipeContext ctx,
   ) {
     const patterns = <({double x, double y})>[
@@ -9978,7 +10451,7 @@ final class BattleMoveVisualRecipeLibrary {
     return steps;
   }
 
-  List<BattleAnimationStep> _showdownSignalBeam(
+  List<BattleAnimationStep> _sdkSignalBeam(
     BattleMoveVisualRecipeContext ctx,
   ) {
     const patterns = <({String effectId, double x, double y})>[
@@ -10011,7 +10484,7 @@ final class BattleMoveVisualRecipeLibrary {
     return steps;
   }
 
-  List<BattleAnimationStep> _showdownFleurCannon(
+  List<BattleAnimationStep> _sdkFleurCannon(
     BattleMoveVisualRecipeContext ctx,
   ) {
     const patterns = <({double x, double y})>[
@@ -10050,7 +10523,7 @@ final class BattleMoveVisualRecipeLibrary {
     return steps;
   }
 
-  List<BattleAnimationStep> _showdownArmorCannon(
+  List<BattleAnimationStep> _sdkArmorCannon(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -10110,7 +10583,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownSteelBeam(
+  List<BattleAnimationStep> _sdkSteelBeam(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -10153,7 +10626,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownBeakBlast(
+  List<BattleAnimationStep> _sdkBeakBlast(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -10236,7 +10709,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownTwinBeam(
+  List<BattleAnimationStep> _sdkTwinBeam(
     BattleMoveVisualRecipeContext ctx,
   ) {
     const patterns = <({String effectId, double x, double y})>[
@@ -10271,7 +10744,7 @@ final class BattleMoveVisualRecipeLibrary {
     return steps;
   }
 
-  List<BattleAnimationStep> _showdownSpikeCannon(
+  List<BattleAnimationStep> _sdkSpikeCannon(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -10298,7 +10771,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownWaterShuriken(
+  List<BattleAnimationStep> _sdkWaterShuriken(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -10359,7 +10832,7 @@ final class BattleMoveVisualRecipeLibrary {
     return steps;
   }
 
-  List<BattleAnimationStep> _showdownTerastarStorm(
+  List<BattleAnimationStep> _sdkTerastarStorm(
     BattleMoveVisualRecipeContext ctx,
   ) {
     const impacts = <({double x, double y})>[
@@ -10425,7 +10898,7 @@ final class BattleMoveVisualRecipeLibrary {
     return steps;
   }
 
-  List<BattleAnimationStep> _showdownMeteorMash(
+  List<BattleAnimationStep> _sdkMeteorMash(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -10462,7 +10935,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownStealthRock(
+  List<BattleAnimationStep> _sdkStealthRock(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -10520,7 +10993,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownSpikes(
+  List<BattleAnimationStep> _sdkSpikes(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -10783,7 +11256,7 @@ final class BattleMoveVisualRecipeLibrary {
     );
   }
 
-  List<BattleAnimationStep> _showdownDoomDesire(
+  List<BattleAnimationStep> _sdkDoomDesire(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -10799,7 +11272,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownSeedFlare(
+  List<BattleAnimationStep> _sdkSeedFlare(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -10904,7 +11377,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownIcyWind(
+  List<BattleAnimationStep> _sdkIcyWind(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -10958,7 +11431,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownWeatherBall(
+  List<BattleAnimationStep> _sdkWeatherBall(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -10994,7 +11467,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownFlameBurst(
+  List<BattleAnimationStep> _sdkFlameBurst(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -11037,7 +11510,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownWaterSport(
+  List<BattleAnimationStep> _sdkWaterSport(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -11094,12 +11567,12 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownScald(
+  List<BattleAnimationStep> _sdkScald(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
     return <BattleAnimationStep>[
-      ..._showdownWaterSport(ctx),
+      ..._sdkWaterSport(ctx),
       _targetFx(
         ctx,
         effectId: 'wisp',
@@ -11156,7 +11629,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownSteamEruption(
+  List<BattleAnimationStep> _sdkSteamEruption(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -11165,7 +11638,7 @@ final class BattleMoveVisualRecipeLibrary {
         colorArgb: 0x330000DD,
         durationSeconds: 0.14,
       ),
-      ..._showdownWaterSport(ctx),
+      ..._sdkWaterSport(ctx),
       _targetFx(
         ctx,
         effectId: 'wisp',
@@ -11226,7 +11699,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownTriAttack(
+  List<BattleAnimationStep> _sdkTriAttack(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -11310,7 +11783,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownClangingScales(
+  List<BattleAnimationStep> _sdkClangingScales(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -11388,7 +11861,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownGunkShot(
+  List<BattleAnimationStep> _sdkGunkShot(
     BattleMoveVisualRecipeContext ctx,
   ) {
     const patterns = <({double toX, double toY, double wait})>[
@@ -11421,7 +11894,7 @@ final class BattleMoveVisualRecipeLibrary {
     return steps;
   }
 
-  List<BattleAnimationStep> _showdownToxic(
+  List<BattleAnimationStep> _sdkToxic(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -11447,7 +11920,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownToxicSpikes(
+  List<BattleAnimationStep> _sdkToxicSpikes(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -11479,7 +11952,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownPoisonGas(
+  List<BattleAnimationStep> _sdkPoisonGas(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -11534,22 +12007,22 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownSmog(
+  List<BattleAnimationStep> _sdkSmog(
     BattleMoveVisualRecipeContext ctx,
   ) {
-    return _showdownSmogBase(ctx, effectId: 'poisonwisp');
+    return _sdkSmogBase(ctx, effectId: 'poisonwisp');
   }
 
-  List<BattleAnimationStep> _showdownClearSmog(
+  List<BattleAnimationStep> _sdkClearSmog(
     BattleMoveVisualRecipeContext ctx,
   ) {
-    return _showdownSmogBase(ctx, effectId: 'wisp');
+    return _sdkSmogBase(ctx, effectId: 'wisp');
   }
 
-  List<BattleAnimationStep> _showdownPoisonFang(
+  List<BattleAnimationStep> _sdkPoisonFang(
     BattleMoveVisualRecipeContext ctx,
   ) {
-    return _showdownElementalFang(
+    return _sdkElementalFang(
       ctx,
       accentSteps: <BattleAnimationStep>[
         _targetFx(
@@ -11581,7 +12054,7 @@ final class BattleMoveVisualRecipeLibrary {
     );
   }
 
-  List<BattleAnimationStep> _showdownCrossPoison(
+  List<BattleAnimationStep> _sdkCrossPoison(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -11643,7 +12116,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownDireClaw(
+  List<BattleAnimationStep> _sdkDireClaw(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -11702,7 +12175,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownSmogBase(
+  List<BattleAnimationStep> _sdkSmogBase(
     BattleMoveVisualRecipeContext ctx, {
     required String effectId,
   }) {
@@ -11790,7 +12263,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownMudShot(
+  List<BattleAnimationStep> _sdkMudShot(
     BattleMoveVisualRecipeContext ctx,
   ) {
     const patterns = <({double toX, double toY, double wait})>[
@@ -11822,7 +12295,7 @@ final class BattleMoveVisualRecipeLibrary {
     return steps;
   }
 
-  List<BattleAnimationStep> _showdownElectroBall(
+  List<BattleAnimationStep> _sdkElectroBall(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -11845,7 +12318,62 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownRockBlast(
+  List<BattleAnimationStep> _sdkElectricShock(
+    BattleMoveVisualRecipeContext ctx,
+  ) {
+    final targetSide = ctx.targetSide ?? ctx.attackerSide;
+    final thunder = BattleFxCatalog.require('thunder_02');
+    return <BattleAnimationStep>[
+      const ScreenFlashStep(
+        colorArgb: 0x22FFF06A,
+        durationSeconds: 0.08,
+      ),
+      PlaySpriteSheetFxStep(
+        assetId: 'thunder_02',
+        attackerSide: ctx.attackerSide,
+        defenderSide: targetSide,
+        anchor: BattleVisualAnchor.defenderCenter,
+        frameWidth: thunder.frameWidth,
+        frameHeight: thunder.frameHeight,
+        frameCount: thunder.frameCount,
+        frameDurationSeconds: 0.04,
+        columns: thunder.columns,
+        originX: thunder.originX,
+        originY: thunder.originY,
+        frameSequence: const <int>[1, 0, 1, 0, 1, 0],
+        frameDurationsSeconds: const <double>[
+          0.04,
+          0.04,
+          0.04,
+          0.04,
+          0.04,
+          0.04,
+        ],
+      ),
+      _targetFx(
+        ctx,
+        effectId: 'shock_1',
+        durationSeconds: 0.18,
+        startScale: 0.35,
+        endScale: 0.55,
+        startOpacity: 0.75,
+        endOpacity: 0.0,
+        afterEffect: BattleFxAfterEffect.fade,
+      ),
+      CombatantToneStep(
+        side: targetSide,
+        colorArgb: 0xCCFFF06A,
+        durationSeconds: 0.18,
+      ),
+      CombatantShakeStep(
+        side: targetSide,
+        amplitudePx: 4,
+        durationSeconds: 0.12,
+      ),
+    ];
+  }
+
+  List<BattleAnimationStep> _sdkRockBlast(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -11862,7 +12390,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownSplash(
+  List<BattleAnimationStep> _sdkSplash(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -11916,7 +12444,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownCelebrate(
+  List<BattleAnimationStep> _sdkCelebrate(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -11983,7 +12511,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownOrderUp(
+  List<BattleAnimationStep> _sdkOrderUp(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -12019,7 +12547,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownHeartStamp(
+  List<BattleAnimationStep> _sdkHeartStamp(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -12060,7 +12588,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownMatchaGotcha(
+  List<BattleAnimationStep> _sdkMatchaGotcha(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;
@@ -12189,7 +12717,7 @@ final class BattleMoveVisualRecipeLibrary {
     return steps;
   }
 
-  List<BattleAnimationStep> _showdownPresent(
+  List<BattleAnimationStep> _sdkPresent(
     BattleMoveVisualRecipeContext ctx,
   ) {
     return <BattleAnimationStep>[
@@ -12207,7 +12735,7 @@ final class BattleMoveVisualRecipeLibrary {
     ];
   }
 
-  List<BattleAnimationStep> _showdownPayDay(
+  List<BattleAnimationStep> _sdkPayDay(
     BattleMoveVisualRecipeContext ctx,
   ) {
     final targetSide = ctx.targetSide ?? ctx.attackerSide;

@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flame/components.dart';
@@ -6,7 +7,12 @@ import 'package:map_battle/map_battle.dart';
 
 import 'battle_animation_plan.dart';
 import 'battle_fx_bundle_cache.dart';
+import 'battle_fx_catalog.dart';
 import 'battle_fx_sprite_component.dart';
+import 'battle_fx_sprite_sheet_component.dart';
+import 'battle_rmxp_animation_component.dart';
+import 'battle_sdk_particle_component.dart';
+import 'battle_sdk_rmxp_animation_catalog.dart';
 
 typedef BattleVisualAnchorResolver = Vector2 Function({
   required BattleVisualAnchor anchor,
@@ -18,9 +24,11 @@ final class BattleFxRuntimeContext {
   const BattleFxRuntimeContext({
     required this.sceneSize,
     required this.resolveAnchor,
+    this.stageRect,
   });
 
   final Vector2 sceneSize;
+  final Rect? stageRect;
   final BattleVisualAnchorResolver resolveAnchor;
 }
 
@@ -40,6 +48,21 @@ final class BattleFxLayerComponent extends PositionComponent {
 
   int get activeFxCount => children
       .whereType<BattleFxSpriteComponent>()
+      .where((component) => !component.isAnimationComplete)
+      .length;
+
+  int get activeSpriteSheetFxCount => children
+      .whereType<BattleFxSpriteSheetComponent>()
+      .where((component) => !component.isAnimationComplete)
+      .length;
+
+  int get activeRmxpFxCount => children
+      .whereType<BattleRmxpAnimationComponent>()
+      .where((component) => !component.isAnimationComplete)
+      .length;
+
+  int get activeSdkParticleCount => children
+      .whereType<BattleSdkParticleComponent>()
       .where((component) => !component.isAnimationComplete)
       .length;
 
@@ -70,6 +93,24 @@ final class BattleFxLayerComponent extends PositionComponent {
     }
     for (final component
         in children.whereType<BattleFxSpriteComponent>().toList()) {
+      if (component.isAnimationComplete) {
+        component.removeFromParent();
+      }
+    }
+    for (final component
+        in children.whereType<BattleFxSpriteSheetComponent>().toList()) {
+      if (component.isAnimationComplete) {
+        component.removeFromParent();
+      }
+    }
+    for (final component
+        in children.whereType<BattleRmxpAnimationComponent>().toList()) {
+      if (component.isAnimationComplete) {
+        component.removeFromParent();
+      }
+    }
+    for (final component
+        in children.whereType<BattleSdkParticleComponent>().toList()) {
       if (component.isAnimationComplete) {
         component.removeFromParent();
       }
@@ -133,11 +174,427 @@ final class BattleFxLayerComponent extends PositionComponent {
     await add(component);
   }
 
+  Future<void> playSpriteSheetFx(
+    PlaySpriteSheetFxStep step,
+    BattleFxRuntimeContext ctx,
+  ) async {
+    final spec = BattleFxCatalog.require(step.assetId);
+    final image = await fxBundleCache.loadImage(step.assetId);
+    final anchorPosition = ctx
+        .resolveAnchor(
+          anchor: step.anchor,
+          attackerSide: step.attackerSide,
+          defenderSide: step.defenderSide,
+        )
+        .clone()
+      ..add(Vector2(step.offsetX, step.offsetY));
+    await add(
+      BattleFxSpriteSheetComponent(
+        image: image,
+        anchorPosition: anchorPosition,
+        frameWidth: step.frameWidth,
+        frameHeight: step.frameHeight,
+        frameCount: step.frameCount,
+        frameDurationSeconds: step.frameDurationSeconds,
+        columns: step.columns ?? spec.columns,
+        originX: step.originX ?? spec.originX,
+        originY: step.originY ?? spec.originY,
+        displayScale: step.scale * spec.defaultScale,
+        opacity: step.opacity,
+        startDelaySeconds: step.startDelaySeconds,
+        frameSequence: step.frameSequence,
+        frameDurationsSeconds: step.frameDurationsSeconds,
+      ),
+    );
+  }
+
+  Future<void> playSpriteSheetOnCombatant(
+    SpriteSheetOnCombatantStep step,
+    BattleFxRuntimeContext ctx,
+  ) async {
+    final attackerSide = step.attackerSide ?? step.side;
+    final defenderSide = step.defenderSide ??
+        (step.side == BattleSideId.player
+            ? BattleSideId.enemy
+            : BattleSideId.player);
+    final anchor = step.side == attackerSide
+        ? BattleVisualAnchor.attackerCenter
+        : BattleVisualAnchor.defenderCenter;
+    await playSpriteSheetFx(
+      PlaySpriteSheetFxStep(
+        assetId: step.assetId,
+        attackerSide: attackerSide,
+        defenderSide: defenderSide,
+        anchor: anchor,
+        frameWidth: step.frameWidth,
+        frameHeight: step.frameHeight,
+        frameCount: step.frameCount,
+        frameDurationSeconds: step.frameDurationSeconds,
+        columns: step.columns,
+        originX: step.originX,
+        originY: step.originY,
+        scale: step.scale,
+        opacity: step.opacity,
+        offsetX: step.offsetX,
+        offsetY: step.offsetY,
+        startDelaySeconds: step.startDelaySeconds,
+        frameSequence: step.frameSequence,
+        frameDurationsSeconds: step.frameDurationsSeconds,
+      ),
+      ctx,
+    );
+  }
+
+  Future<void> playParticleBurst(
+    ParticleBurstStep step,
+    BattleFxRuntimeContext ctx,
+  ) async {
+    final sprite = await fxBundleCache.loadSprite(step.assetId);
+    final anchorSide = step.side == BattleSideId.player
+        ? BattleSideId.player
+        : BattleSideId.enemy;
+    final center = ctx
+        .resolveAnchor(
+          anchor: step.anchor,
+          attackerSide: anchorSide,
+          defenderSide: anchorSide,
+        )
+        .clone();
+    final count = step.particleCount.clamp(0, 160);
+    for (var i = 0; i < count; i++) {
+      final radius = step.radiusPx * (0.45 + ((i % 5) * 0.14));
+      final endPosition = center.clone()
+        ..add(Vector2(
+          radius * ui.lerpDouble(1, -1, i.isEven ? 0 : 1)! * (i % 3 + 1) / 3,
+          radius * (i % 2 == 0 ? -0.55 : 0.55),
+        ))
+        ..add(Vector2(radius * 0.22 * i / (count == 0 ? 1 : count), 0));
+      final startPosition = center.clone()
+        ..add(Vector2(
+          step.radiusPx * 0.18 * (i % 3 - 1),
+          step.radiusPx * 0.12 * (i % 5 - 2),
+        ));
+      await add(
+        BattleFxSpriteComponent(
+          sprite: sprite,
+          startPosition: startPosition,
+          endPosition: endPosition,
+          durationSeconds: step.durationSeconds,
+          startDelaySeconds: step.startDelaySeconds + (i * 0.015),
+          curve: BattleFxMotionCurve.easeOut,
+          afterEffect: BattleFxAfterEffect.fade,
+          startScale: step.startScale,
+          endScale: step.endScale,
+          startOpacity: step.startOpacity,
+          endOpacity: step.endOpacity,
+          tintColor: step.colorArgb == null ? null : Color(step.colorArgb!),
+        ),
+      );
+    }
+  }
+
+  Future<void> playSdkParticleSequence(
+    PlaySdkParticleSequenceStep step,
+    BattleFxRuntimeContext ctx,
+  ) async {
+    for (final particle in step.particles) {
+      final sprite = await fxBundleCache.loadSprite(particle.assetId);
+      final anchorPosition = ctx
+          .resolveAnchor(
+            anchor: particle.anchor,
+            attackerSide: step.attackerSide,
+            defenderSide: step.defenderSide,
+          )
+          .clone();
+      await add(
+        BattleSdkParticleComponent(
+          sprite: sprite,
+          startPosition: anchorPosition.clone()
+            ..add(Vector2(particle.startOffsetX, particle.startOffsetY)),
+          endPosition: anchorPosition.clone()
+            ..add(Vector2(particle.endOffsetX, particle.endOffsetY)),
+          startScaleX: particle.startScaleX,
+          startScaleY: particle.startScaleY,
+          endScaleX: particle.endScaleX,
+          endScaleY: particle.endScaleY,
+          startOpacity: particle.startOpacity,
+          endOpacity: particle.endOpacity,
+          delaySeconds: particle.delaySeconds,
+          durationSeconds: particle.durationSeconds,
+          rotationTurns: particle.rotationTurns,
+          tintColor:
+              particle.colorArgb == null ? null : Color(particle.colorArgb!),
+        ),
+      );
+    }
+  }
+
+  Future<void> playSdkFallingParticles(
+    SdkFallingParticlesStep step,
+    BattleFxRuntimeContext ctx,
+  ) async {
+    final sprite = await fxBundleCache.loadSprite(step.assetId);
+    final anchorPosition = ctx.resolveAnchor(
+      anchor: step.anchor,
+      attackerSide: step.attackerSide,
+      defenderSide: step.defenderSide,
+    );
+    final count = step.particleCount.clamp(0, 160);
+    for (var i = 0; i < count; i++) {
+      final spreadProgress = count <= 1 ? 0.5 : i / (count - 1);
+      final startX = (spreadProgress - 0.5) * step.startAreaWidth;
+      final driftDirection = i.isEven ? -1.0 : 1.0;
+      final drift = driftDirection * step.driftX * (0.35 + spreadProgress);
+      await add(
+        BattleSdkParticleComponent(
+          sprite: sprite,
+          startPosition: anchorPosition.clone()
+            ..add(Vector2(startX, step.startOffsetY - (i % 3) * 4)),
+          endPosition: anchorPosition.clone()
+            ..add(Vector2(
+                startX + drift, step.startOffsetY + step.fallDistanceY)),
+          startScaleX: step.startScaleX,
+          startScaleY: step.startScaleY,
+          endScaleX: step.endScaleX,
+          endScaleY: step.endScaleY,
+          startOpacity: step.startOpacity,
+          endOpacity: step.endOpacity,
+          delaySeconds: i * step.intervalSeconds,
+          durationSeconds: step.durationSeconds,
+          rotationTurns: (i.isEven ? -0.18 : 0.18) * (1 + (i % 3)),
+          tintColor: step.colorArgb == null ? null : Color(step.colorArgb!),
+        ),
+      );
+    }
+  }
+
+  Future<void> playSdkRadiusParticles(
+    SdkRadiusParticleStep step,
+    BattleFxRuntimeContext ctx,
+  ) async {
+    final sprite = await fxBundleCache.loadSprite(step.assetId);
+    final anchorPosition = ctx.resolveAnchor(
+      anchor: step.anchor,
+      attackerSide: step.attackerSide,
+      defenderSide: step.defenderSide,
+    );
+    final count = step.particleCount.clamp(0, 160);
+    for (var i = 0; i < count; i++) {
+      final angleTurns = step.startAngleTurns + (i / math.max(1, count));
+      final angleRadians = angleTurns * math.pi * 2;
+      final startOffset = Vector2(
+        math.cos(angleRadians) * step.startRadiusPx,
+        math.sin(angleRadians) * step.startRadiusPx,
+      );
+      final endOffset = Vector2(
+        math.cos(angleRadians) * step.endRadiusPx,
+        math.sin(angleRadians) * step.endRadiusPx,
+      );
+      await add(
+        BattleSdkParticleComponent(
+          sprite: sprite,
+          startPosition: anchorPosition.clone()..add(startOffset),
+          endPosition: anchorPosition.clone()..add(endOffset),
+          startScaleX: step.startScale,
+          startScaleY: step.startScale,
+          endScaleX: step.endScale,
+          endScaleY: step.endScale,
+          startOpacity: step.startOpacity,
+          endOpacity: step.endOpacity,
+          delaySeconds: i * step.intervalSeconds,
+          durationSeconds: step.durationSeconds,
+          rotationTurns: 0.2 + (i * 0.03),
+          tintColor: step.colorArgb == null ? null : Color(step.colorArgb!),
+        ),
+      );
+    }
+  }
+
+  Future<void> playSdkScalarParticle(
+    SdkScalarParticleStep step,
+    BattleFxRuntimeContext ctx,
+  ) async {
+    final sprite = await fxBundleCache.loadSprite(step.assetId);
+    final anchorPosition = ctx.resolveAnchor(
+      anchor: step.anchor,
+      attackerSide: step.attackerSide,
+      defenderSide: step.defenderSide,
+    );
+    await add(
+      BattleSdkParticleComponent(
+        sprite: sprite,
+        startPosition: anchorPosition.clone()
+          ..add(Vector2(step.offsetX, step.offsetY)),
+        endPosition: anchorPosition.clone()
+          ..add(Vector2(step.endOffsetX, step.endOffsetY)),
+        startScaleX: step.startScaleX,
+        startScaleY: step.startScaleY,
+        endScaleX: step.endScaleX,
+        endScaleY: step.endScaleY,
+        startOpacity: step.startOpacity,
+        endOpacity: step.endOpacity,
+        delaySeconds: step.delaySeconds,
+        durationSeconds: step.durationSeconds,
+        rotationTurns: step.rotationTurns,
+        tintColor: step.colorArgb == null ? null : Color(step.colorArgb!),
+      ),
+    );
+  }
+
+  Future<void> playSdkParticleZoom(
+    SdkParticleZoomStep step,
+    BattleFxRuntimeContext ctx,
+  ) async {
+    final sprite = await fxBundleCache.loadSprite(step.assetId);
+    final anchorPosition = ctx.resolveAnchor(
+      anchor: step.anchor,
+      attackerSide: step.attackerSide,
+      defenderSide: step.defenderSide,
+    );
+    await add(
+      BattleSdkParticleComponent(
+        sprite: sprite,
+        startPosition: anchorPosition.clone()
+          ..add(Vector2(step.offsetX, step.offsetY)),
+        endPosition: anchorPosition.clone()
+          ..add(Vector2(step.offsetX, step.offsetY)),
+        startScaleX: step.startScale,
+        startScaleY: step.startScale,
+        endScaleX: step.endScale,
+        endScaleY: step.endScale,
+        startOpacity: step.startOpacity,
+        endOpacity: step.endOpacity,
+        delaySeconds: step.delaySeconds,
+        durationSeconds: step.durationSeconds,
+        rotationTurns: step.rotationTurns,
+        tintColor: step.colorArgb == null ? null : Color(step.colorArgb!),
+      ),
+    );
+  }
+
+  Future<void> playRmxpAnimation(
+    PlayRmxpAnimationStep step,
+    BattleFxRuntimeContext ctx, {
+    RmxpCombatantTransformCallback? onCombatantTransform,
+    RmxpVoidCallback? onCombatantTransformCleared,
+    RmxpFlashCallback? onPokemonFlash,
+    RmxpFlashCallback? onSceneFlash,
+    RmxpVisibilityCallback? onVisibilityChanged,
+  }) async {
+    final animation = BattleSdkRmxpAnimationCatalog.require(step.animationId);
+    final image = await fxBundleCache.loadImage(animation.assetId);
+    final subjectAnchor = step.subjectSide == step.attackerSide
+        ? BattleVisualAnchor.attackerBody
+        : BattleVisualAnchor.defenderImpact;
+    final anchorPosition = ctx.resolveAnchor(
+      anchor: subjectAnchor,
+      attackerSide: step.attackerSide,
+      defenderSide: step.defenderSide,
+    );
+    final placementAnchorPosition = ctx.resolveAnchor(
+      anchor: step.placementSpec.anchor ??
+          _defaultAnchorForRmxpPlacement(step, subjectAnchor),
+      attackerSide: step.attackerSide,
+      defenderSide: step.defenderSide,
+    );
+    final projectileSourceAnchorPosition = ctx.resolveAnchor(
+      anchor:
+          step.placementSpec.sourceAnchor ?? BattleVisualAnchor.attackerMouth,
+      attackerSide: step.attackerSide,
+      defenderSide: step.defenderSide,
+    );
+    final projectileTargetAnchorPosition = ctx.resolveAnchor(
+      anchor:
+          step.placementSpec.targetAnchor ?? BattleVisualAnchor.defenderImpact,
+      attackerSide: step.attackerSide,
+      defenderSide: step.defenderSide,
+    );
+    final attackerAnchorPosition = ctx.resolveAnchor(
+      anchor: BattleVisualAnchor.attackerCenter,
+      attackerSide: step.attackerSide,
+      defenderSide: step.defenderSide,
+    );
+    final defenderAnchorPosition = ctx.resolveAnchor(
+      anchor: BattleVisualAnchor.defenderCenter,
+      attackerSide: step.attackerSide,
+      defenderSide: step.defenderSide,
+    );
+    await add(
+      BattleRmxpAnimationComponent(
+        image: image,
+        animation: animation,
+        sourceAnchorPosition: anchorPosition,
+        placementSpec: step.placementSpec,
+        placementAnchorPosition: placementAnchorPosition,
+        attackerAnchorPosition: attackerAnchorPosition,
+        defenderAnchorPosition: defenderAnchorPosition,
+        projectileSourceAnchorPosition: projectileSourceAnchorPosition,
+        projectileTargetAnchorPosition: projectileTargetAnchorPosition,
+        stageRect: ctx.stageRect,
+        sceneSize: ctx.sceneSize.clone(),
+        reverse: step.reverse && !animation.forceNoReverse,
+        onCombatantTransform: onCombatantTransform,
+        onCombatantTransformCleared: onCombatantTransformCleared,
+        onPokemonFlash: onPokemonFlash,
+        onSceneFlash: onSceneFlash,
+        onVisibilityChanged: onVisibilityChanged,
+      ),
+    );
+  }
+
+  BattleVisualAnchor _defaultAnchorForRmxpPlacement(
+    PlayRmxpAnimationStep step,
+    BattleVisualAnchor subjectAnchor,
+  ) {
+    return switch (step.placementSpec.policy) {
+      RmxpPlacementPolicy.targetImpact => BattleVisualAnchor.defenderImpact,
+      RmxpPlacementPolicy.attackerCast => BattleVisualAnchor.attackerBody,
+      RmxpPlacementPolicy.projectileLine => BattleVisualAnchor.attackerMouth,
+      RmxpPlacementPolicy.sdkStage ||
+      RmxpPlacementPolicy.screenGlobal =>
+        BattleVisualAnchor.stageCenter,
+      RmxpPlacementPolicy.subjectAttached => subjectAnchor,
+    };
+  }
+
+  Future<void> playWeatherParticles(WeatherParticleStep step) async {
+    final sprite = await fxBundleCache.loadSprite(step.assetId);
+    final count = step.particleCount.clamp(0, 240);
+    for (var i = 0; i < count; i++) {
+      final startX = ((i * 37.0) % (size.x + 80)) - 40;
+      final startY = -24.0 - ((i * 19.0) % size.y);
+      await add(
+        BattleFxSpriteComponent(
+          sprite: sprite,
+          startPosition: Vector2(startX, startY),
+          endPosition: Vector2(startX + 80, size.y + 48),
+          durationSeconds: step.durationSeconds,
+          startDelaySeconds: i * 0.01,
+          curve: BattleFxMotionCurve.linear,
+          afterEffect: BattleFxAfterEffect.fade,
+          startScale: 1,
+          endScale: 1,
+          startOpacity: 1,
+          endOpacity: 0.2,
+        ),
+      );
+    }
+  }
+
   void playScreenFlash(ScreenFlashStep step) {
     add(
       _BattleScreenFlashComponent(
         size: size.clone(),
         color: Color(step.colorArgb),
+        durationSeconds: step.durationSeconds,
+      ),
+    );
+  }
+
+  void playSceneTint(SceneTintStep step) {
+    playScreenFlash(
+      ScreenFlashStep(
+        colorArgb: step.colorArgb,
         durationSeconds: step.durationSeconds,
       ),
     );

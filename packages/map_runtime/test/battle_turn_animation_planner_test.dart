@@ -220,8 +220,7 @@ void main() {
 
       expect(plan.steps.whereType<ShowMessageStep>(), isNotEmpty);
       expect(plan.steps.whereType<HudHpTweenStep>(), hasLength(1));
-      expect(plan.steps.whereType<CombatantMotionStep>(), isNotEmpty);
-      expect(plan.steps.whereType<CombatantFlashStep>(), isNotEmpty);
+      expect(plan.steps.whereType<PlayRmxpAnimationStep>(), isNotEmpty);
     });
 
     test('damage that faints the target adds KO and victory narration', () {
