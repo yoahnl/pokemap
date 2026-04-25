@@ -1,28 +1,37 @@
 import '../battle/battle_slot.dart';
 import '../rng/battle_rng_streams.dart';
 import '../timeline/battle_timeline_event.dart';
+import '../../psdk/domain/psdk_battle_move.dart';
 import 'battle_accuracy_resolver.dart';
 import 'battle_move_execution.dart';
 import 'battle_move_prevention.dart';
+import 'battle_move_remapper.dart';
 import 'battle_target_resolver.dart';
 
 final class BattleMoveProcedure {
   const BattleMoveProcedure({
     BattleTargetResolver targetResolver = const BattleTargetResolver(),
     BattleAccuracyResolver accuracyResolver = const BattleAccuracyResolver(),
+    BattleMoveRemapper remapper = const NoopBattleMoveRemapper(),
     BattleMoveTargetPrecheck? targetPrecheck,
     BattleMoveProcedureHooks hooks = BattleMoveProcedureHooks.none,
+    bool traceStages = false,
   })  : _targetResolver = targetResolver,
         _accuracyResolver = accuracyResolver,
+        _remapper = remapper,
         _targetPrecheck = targetPrecheck,
-        _hooks = hooks;
+        _hooks = hooks,
+        _traceStages = traceStages;
 
   final BattleTargetResolver _targetResolver;
   final BattleAccuracyResolver _accuracyResolver;
+  final BattleMoveRemapper _remapper;
   final BattleMoveTargetPrecheck? _targetPrecheck;
   final BattleMoveProcedureHooks _hooks;
+  final bool _traceStages;
 
   BattleMoveProcedureResult prepare(BattleMoveProcedureExecution execution) {
+    _trace(execution, BattleMoveProcedureStage.userAlive);
     final user = execution.context.state.battlerAt(execution.context.user);
     if (user.isFainted) {
       _notifyFailure(
@@ -36,7 +45,16 @@ final class BattleMoveProcedure {
       );
     }
 
+    _trace(execution, BattleMoveProcedureStage.resolveTargets);
     final targets = _targetResolver.resolve(execution);
+
+    // In PSDK this stage also runs effect user-prevention and PP decrement.
+    // Dart currently performs those in BattleTurnRunner before dispatching the
+    // behavior. Keeping the stage visible here prevents later ports from
+    // accidentally moving declaration/pre-accuracy ahead of usability.
+    _trace(execution, BattleMoveProcedureStage.usableByUser);
+
+    _trace(execution, BattleMoveProcedureStage.usage);
     execution.timeline.add(
       BattleMoveDeclaredTimelineEvent(
         turn: execution.turn,
@@ -48,6 +66,7 @@ final class BattleMoveProcedure {
       ),
     );
 
+    _trace(execution, BattleMoveProcedureStage.preAccuracy);
     _hooks.notifyPreAccuracy(
       BattleMoveAccuracyHookContext(
         state: execution.context.state,
@@ -60,7 +79,8 @@ final class BattleMoveProcedure {
       ),
     );
 
-    if (targets.isEmpty) {
+    _trace(execution, BattleMoveProcedureStage.noTarget);
+    if (targets.isEmpty && execution.move.target.requiresBattlerTarget) {
       execution.timeline.add(
         BattleMoveFailedTimelineEvent(
           turn: execution.turn,
@@ -80,6 +100,49 @@ final class BattleMoveProcedure {
       );
     }
 
+    if (targets.isEmpty) {
+      execution.actualTargets = targets;
+      _trace(execution, BattleMoveProcedureStage.postAccuracy);
+      _hooks.notifyPostAccuracy(
+        BattleMoveAccuracyHookContext(
+          state: execution.context.state,
+          rng: execution.context.rng,
+          turn: execution.turn,
+          user: execution.user,
+          requestedTarget: execution.requestedTarget,
+          move: execution.move,
+          targets: targets,
+        ),
+      );
+      _trace(execution, BattleMoveProcedureStage.postAccuracyMove);
+      _hooks.notifyPostAccuracyMove(
+        BattleMoveAccuracyHookContext(
+          state: execution.context.state,
+          rng: execution.context.rng,
+          turn: execution.turn,
+          user: execution.user,
+          requestedTarget: execution.requestedTarget,
+          move: execution.move,
+          targets: targets,
+        ),
+      );
+      _trace(execution, BattleMoveProcedureStage.animation);
+      execution.timeline.add(
+        BattleAnimationCueTimelineEvent(
+          turn: execution.turn,
+          user: execution.user,
+          targets: targets,
+          moveId: execution.move.id,
+          animationId: execution.move.dbSymbol,
+        ),
+      );
+      return BattleMoveProcedureResult.ready(
+        rng: execution.context.rng,
+        targets: targets,
+      );
+    }
+
+    _trace(execution, BattleMoveProcedureStage.accuracy);
     final accuracy = _accuracyResolver.resolve(
       execution: execution,
       targets: targets,
@@ -108,6 +171,20 @@ final class BattleMoveProcedure {
       );
     }
 
+    _trace(execution, BattleMoveProcedureStage.remap);
+    final remapped = _remapper.remap(
+      BattleMoveRemapContext(
+        state: execution.context.state,
+        turn: execution.turn,
+        user: execution.user,
+        targets: actualTargets,
+        move: execution.move,
+      ),
+    );
+    execution.actualUser = remapped.user;
+    actualTargets = remapped.targets;
+
+    _trace(execution, BattleMoveProcedureStage.immunity);
     final targetPrecheck = _targetPrecheck;
     if (targetPrecheck != null) {
       final precheck = targetPrecheck(execution, actualTargets);
@@ -127,32 +204,35 @@ final class BattleMoveProcedure {
     }
 
     execution.actualTargets = actualTargets;
+    _trace(execution, BattleMoveProcedureStage.postAccuracy);
     _hooks.notifyPostAccuracy(
       BattleMoveAccuracyHookContext(
         state: execution.context.state,
         rng: accuracy.rng,
         turn: execution.turn,
-        user: execution.user,
+        user: execution.actualUser,
         requestedTarget: execution.requestedTarget,
         move: execution.move,
         targets: actualTargets,
       ),
     );
+    _trace(execution, BattleMoveProcedureStage.postAccuracyMove);
     _hooks.notifyPostAccuracyMove(
       BattleMoveAccuracyHookContext(
         state: execution.context.state,
         rng: accuracy.rng,
         turn: execution.turn,
-        user: execution.user,
+        user: execution.actualUser,
         requestedTarget: execution.requestedTarget,
         move: execution.move,
         targets: actualTargets,
       ),
     );
+    _trace(execution, BattleMoveProcedureStage.animation);
     execution.timeline.add(
       BattleAnimationCueTimelineEvent(
         turn: execution.turn,
-        user: execution.user,
+        user: execution.actualUser,
         targets: actualTargets,
         moveId: execution.move.id,
         animationId: execution.move.dbSymbol,
@@ -176,11 +256,27 @@ final class BattleMoveProcedure {
         state: execution.context.state,
         rng: rng,
         turn: execution.turn,
-        user: execution.user,
+        user: execution.actualUser,
         target: execution.requestedTarget,
         move: execution.move,
         reason: reason,
         targets: targets,
+      ),
+    );
+  }
+
+  void _trace(
+    BattleMoveProcedureExecution execution,
+    BattleMoveProcedureStage stage,
+  ) {
+    if (!_traceStages) {
+      return;
+    }
+    execution.timeline.add(
+      BattleMoveProcedureTraceEvent(
+        turn: execution.turn,
+        moveId: execution.move.id,
+        stage: stage,
       ),
     );
   }

@@ -11,18 +11,33 @@ final class BattleMoveProcedureExecution {
     required this.user,
     required this.move,
     required this.requestedTarget,
-  });
+  }) : actualUser = user;
 
   final BattleMoveBehaviorContext context;
   final BattleTimelineBuilder timeline;
   final BattlePositionRef user;
   final BattleMoveDefinition move;
   final BattlePositionRef? requestedTarget;
+
+  /// Effective user after the PSDK remap stage.
+  ///
+  /// Most moves keep the original user. Effects such as Snatch can steal a
+  /// move after accuracy, so FIGHT-11 keeps this mutable execution-local value
+  /// beside [actualTargets] instead of rewriting the selected action.
+  BattlePositionRef actualUser;
+
   List<BattlePositionRef> actualTargets = <BattlePositionRef>[];
 
   int get turn => context.turn;
 
   PsdkBattleSlotRef get psdkUser {
     return PsdkBattleSlotRef(bank: user.bank, position: user.position);
+  }
+
+  PsdkBattleSlotRef get psdkActualUser {
+    return PsdkBattleSlotRef(
+      bank: actualUser.bank,
+      position: actualUser.position,
+    );
   }
 }

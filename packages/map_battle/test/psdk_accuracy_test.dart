@@ -55,6 +55,23 @@ void main() {
       expect(result.missedTargets, isEmpty);
       expect(result.rng.seeds.moveAccuracy, isNot(0));
     });
+
+    test('a 100 accuracy move still consumes the accuracy stream', () {
+      final execution = _execution(
+        accuracy: 100,
+        moveAccuracySeed: 99,
+      );
+
+      final result = const BattleAccuracyResolver().resolve(
+        execution: execution,
+        targets: const <BattlePositionRef>[_opponent],
+      );
+
+      expect(result.bypassed, isFalse);
+      expect(result.hitTargets, <BattlePositionRef>[_opponent]);
+      expect(result.missedTargets, isEmpty);
+      expect(result.rng.seeds.moveAccuracy, isNot(99));
+    });
   });
 }
 

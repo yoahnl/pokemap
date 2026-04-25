@@ -89,7 +89,8 @@ void main() {
       final result = engine.submit(const BattleDecision.fight(moveSlot: 0));
 
       expect(result.state.rngSeeds.generic, isNot(_initialSeeds.generic));
-      expect(result.state.rngSeeds.moveAccuracy, _initialSeeds.moveAccuracy);
+      expect(result.state.rngSeeds.moveAccuracy,
+          isNot(_initialSeeds.moveAccuracy));
       expect(result.state.rngSeeds.moveDamage, _initialSeeds.moveDamage);
       expect(
         result.timeline.events.whereType<BattleStatusChangeTimelineEvent>(),

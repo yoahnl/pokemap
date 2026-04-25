@@ -153,7 +153,7 @@ void main() {
       expect(protectEvents.last.toJson()['reason'], 'unusable_by_user');
     });
 
-    test('Protect blocks before type immunity reports a misleading immune', () {
+    test('type immunity is reported before Protect target prevention', () {
       final engine = BattleEngine(
         setup: _setup(
           playerTypes: const PsdkBattleTypes(primary: 'ground'),
@@ -175,12 +175,11 @@ void main() {
       expect(opponentEvents.map((event) => event.kind), <String>[
         'move_pp_spent',
         'move_declared',
-        'move_failed',
+        'move_immune',
       ]);
-      expect(opponentEvents.last.toJson()['reason'], 'protected');
       expect(
         opponentEvents.map((event) => event.kind),
-        isNot(contains('move_immune')),
+        isNot(contains('move_failed')),
       );
     });
 

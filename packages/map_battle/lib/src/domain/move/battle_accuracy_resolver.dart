@@ -1,5 +1,7 @@
 import '../battle/battle_slot.dart';
+import '../effect/ability/ability_effect.dart';
 import '../rng/battle_rng_streams.dart';
+import '../../psdk/domain/psdk_battle_slots.dart';
 import 'battle_move_execution.dart';
 
 final class BattleAccuracyResolver {
@@ -9,7 +11,7 @@ final class BattleAccuracyResolver {
     required BattleMoveProcedureExecution execution,
     required List<BattlePositionRef> targets,
   }) {
-    if (_bypassAccuracy(execution)) {
+    if (_bypassAccuracy(execution, targets)) {
       return BattleAccuracyResult(
         rng: execution.context.rng,
         hitTargets: targets,
@@ -39,8 +41,27 @@ final class BattleAccuracyResolver {
     );
   }
 
-  bool _bypassAccuracy(BattleMoveProcedureExecution execution) {
-    return execution.move.accuracy <= 0 || execution.move.accuracy >= 100;
+  bool _bypassAccuracy(
+    BattleMoveProcedureExecution execution,
+    List<BattlePositionRef> targets,
+  ) {
+    if (execution.move.accuracy <= 0) {
+      return true;
+    }
+    for (final target in targets) {
+      final context = BattleAbilityMoveContext(
+        state: execution.context.state,
+        user: execution.psdkUser,
+        target: PsdkBattleSlotRef(bank: target.bank, position: target.position),
+        move: execution.move,
+      );
+      if (execution.context.state.activeAbilityEffects().any(
+            (effect) => effect.bypassesAccuracy(context),
+          )) {
+        return true;
+      }
+    }
+    return false;
   }
 }
 

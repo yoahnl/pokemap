@@ -1,3 +1,4 @@
+import '../../psdk/domain/psdk_battle_field.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
 import '../../psdk/domain/psdk_battle_outcome.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
@@ -96,6 +97,29 @@ sealed class BattleTimelineEvent {
         moveId: event.moveId,
       );
     }
+    if (event is PsdkBattleWeatherChangedEvent) {
+      return BattleWeatherChangedTimelineEvent(
+        turn: event.turn,
+        weatherId: event.weather?.jsonName,
+        remainingTurns: event.remainingTurns,
+        reason: event.reason,
+      );
+    }
+    if (event is PsdkBattleTerrainChangedEvent) {
+      return BattleTerrainChangedTimelineEvent(
+        turn: event.turn,
+        terrainId: event.terrain?.jsonName,
+        remainingTurns: event.remainingTurns,
+        reason: event.reason,
+      );
+    }
+    if (event is PsdkBattleItemEvent) {
+      return BattleItemTimelineEvent.consumed(
+        turn: event.turn,
+        user: _fromPsdkSlot(event.user),
+        itemId: event.itemId,
+      );
+    }
     if (event is PsdkBattleEndedEvent) {
       return BattleEndedTimelineEvent(outcome: event.outcome);
     }
@@ -108,6 +132,55 @@ sealed class BattleTimelineEvent {
       if (turn != null) 'turn': turn,
     };
   }
+}
+
+enum BattleMoveProcedureStage {
+  userAlive,
+  resolveTargets,
+  usableByUser,
+  usage,
+  preAccuracy,
+  noTarget,
+  accuracy,
+  remap,
+  immunity,
+  postAccuracy,
+  postAccuracyMove,
+  animation,
+  damage,
+  effectBody,
+  status,
+  stats,
+  effects,
+  history,
+  cleanup,
+}
+
+/// Optional trace event for validating the Dart order against Pokemon SDK.
+///
+/// The event deliberately does not convert to a PSDK event. It is a diagnostic
+/// guardrail for tests and future ports, not an animation/runtime contract.
+final class BattleMoveProcedureTraceEvent extends BattleTimelineEvent {
+  const BattleMoveProcedureTraceEvent({
+    required int turn,
+    required this.moveId,
+    required this.stage,
+  }) : super(kind: 'move_procedure_stage', turn: turn);
+
+  final String moveId;
+  final BattleMoveProcedureStage stage;
+
+  @override
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      ...baseJson(),
+      'moveId': moveId,
+      'stage': stage.name,
+    };
+  }
+
+  @override
+  PsdkBattleEvent? toPsdkEvent() => null;
 }
 
 final class BattleTurnStartedTimelineEvent extends BattleTimelineEvent {
@@ -714,40 +787,66 @@ final class BattleWeatherChangedTimelineEvent extends BattleTimelineEvent {
   const BattleWeatherChangedTimelineEvent({
     int? turn,
     required this.weatherId,
+    this.remainingTurns,
+    this.reason = 'set',
   }) : super(kind: 'weather_changed', turn: turn);
 
-  final String weatherId;
+  final String? weatherId;
+  final int? remainingTurns;
+  final String reason;
 
   @override
   Map<String, Object?> toJson() {
     return <String, Object?>{
       ...baseJson(),
       'weatherId': weatherId,
+      if (remainingTurns != null) 'remainingTurns': remainingTurns,
+      'reason': reason,
     };
   }
 
   @override
-  PsdkBattleEvent? toPsdkEvent() => null;
+  PsdkBattleEvent toPsdkEvent() {
+    return PsdkBattleWeatherChangedEvent(
+      turn: turn,
+      weather: _weatherFromJsonName(weatherId),
+      remainingTurns: remainingTurns,
+      reason: reason,
+    );
+  }
 }
 
 final class BattleTerrainChangedTimelineEvent extends BattleTimelineEvent {
   const BattleTerrainChangedTimelineEvent({
     int? turn,
     required this.terrainId,
+    this.remainingTurns,
+    this.reason = 'set',
   }) : super(kind: 'terrain_changed', turn: turn);
 
-  final String terrainId;
+  final String? terrainId;
+  final int? remainingTurns;
+  final String reason;
 
   @override
   Map<String, Object?> toJson() {
     return <String, Object?>{
       ...baseJson(),
       'terrainId': terrainId,
+      if (remainingTurns != null) 'remainingTurns': remainingTurns,
+      'reason': reason,
     };
   }
 
   @override
-  PsdkBattleEvent? toPsdkEvent() => null;
+  PsdkBattleEvent toPsdkEvent() {
+    return PsdkBattleTerrainChangedEvent(
+      turn: turn,
+      terrain: _terrainFromJsonName(terrainId),
+      remainingTurns: remainingTurns,
+      reason: reason,
+    );
+  }
 }
 
 final class BattleCaptureAttemptTimelineEvent extends BattleTimelineEvent {
@@ -841,4 +940,28 @@ Map<String, Object?> _slotJson(BattlePositionRef slot) {
 
 List<Map<String, Object?>> _slotsJson(Iterable<BattlePositionRef> slots) {
   return slots.map(_slotJson).toList(growable: false);
+}
+
+PsdkBattleWeatherId? _weatherFromJsonName(String? value) {
+  if (value == null) {
+    return null;
+  }
+  for (final weather in PsdkBattleWeatherId.values) {
+    if (weather.jsonName == value) {
+      return weather;
+    }
+  }
+  return null;
+}
+
+PsdkBattleTerrainId? _terrainFromJsonName(String? value) {
+  if (value == null) {
+    return null;
+  }
+  for (final terrain in PsdkBattleTerrainId.values) {
+    if (terrain.jsonName == value) {
+      return terrain;
+    }
+  }
+  return null;
 }
