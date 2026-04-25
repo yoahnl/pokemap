@@ -135,11 +135,168 @@ void main() {
       expect(heal['amount'], 50);
       expect(heal['remainingHp'], 85);
     });
+
+    test('s_heal_weather changes the heal ratio from active weather', () {
+      PsdkBattleTurnResult run(PsdkBattleFieldState field) {
+        return _runMove(
+          field: field,
+          playerCurrentHp: 10,
+          playerMove: _move(
+            id: 'moonlight',
+            battleEngineMethod: 's_heal_weather',
+            power: 0,
+            category: PsdkBattleMoveCategory.status,
+            target: PsdkBattleMoveTarget.user,
+          ),
+        );
+      }
+
+      final noWeather = run(const PsdkBattleFieldState());
+      final sunny = run(
+        const PsdkBattleFieldState(
+          weather: PsdkBattleWeatherState(
+            id: PsdkBattleWeatherId.sunny,
+            remainingTurns: 5,
+          ),
+        ),
+      );
+      final rain = run(
+        const PsdkBattleFieldState(
+          weather: PsdkBattleWeatherState(
+            id: PsdkBattleWeatherId.rain,
+            remainingTurns: 5,
+          ),
+        ),
+      );
+      final strongWinds = run(
+        const PsdkBattleFieldState(
+          weather: PsdkBattleWeatherState(
+            id: PsdkBattleWeatherId.strongWinds,
+            remainingTurns: 5,
+          ),
+        ),
+      );
+
+      expect(_healJson(noWeather, moveId: 'moonlight')['amount'], 50);
+      expect(_healJson(sunny, moveId: 'moonlight')['amount'], 66);
+      expect(_healJson(rain, moveId: 'moonlight')['amount'], 25);
+      expect(_healJson(strongWinds, moveId: 'moonlight')['amount'], 50);
+    });
+
+    test('s_floral_healing heals more on Grassy Terrain', () {
+      final noTerrain = _runMove(
+        playerCurrentHp: 10,
+        playerMove: _move(
+          id: 'floral_healing',
+          battleEngineMethod: 's_floral_healing',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          target: PsdkBattleMoveTarget.user,
+        ),
+      );
+      final grassyTerrain = _runMove(
+        field: const PsdkBattleFieldState(
+          terrain: PsdkBattleTerrainState(
+            id: PsdkBattleTerrainId.grassyTerrain,
+            remainingTurns: 5,
+          ),
+        ),
+        playerCurrentHp: 10,
+        playerMove: _move(
+          id: 'floral_healing',
+          battleEngineMethod: 's_floral_healing',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          target: PsdkBattleMoveTarget.user,
+        ),
+      );
+
+      expect(_healJson(noTerrain, moveId: 'floral_healing')['amount'], 50);
+      expect(_healJson(grassyTerrain, moveId: 'floral_healing')['amount'], 66);
+    });
+
+    test('s_roost heals half max HP while the Roost effect is pending', () {
+      final result = _runMove(
+        playerCurrentHp: 10,
+        playerMove: _move(
+          id: 'roost',
+          battleEngineMethod: 's_roost',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          target: PsdkBattleMoveTarget.user,
+        ),
+      );
+
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 60);
+      expect(_healJson(result, moveId: 'roost')['amount'], 50);
+    });
+
+    test('s_shore_up heals more in a sandstorm', () {
+      final noWeather = _runMove(
+        playerCurrentHp: 10,
+        playerMove: _move(
+          id: 'shore_up',
+          battleEngineMethod: 's_shore_up',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          target: PsdkBattleMoveTarget.user,
+        ),
+      );
+      final sandstorm = _runMove(
+        field: const PsdkBattleFieldState(
+          weather: PsdkBattleWeatherState(
+            id: PsdkBattleWeatherId.sandstorm,
+            remainingTurns: 5,
+          ),
+        ),
+        playerCurrentHp: 10,
+        playerMove: _move(
+          id: 'shore_up',
+          battleEngineMethod: 's_shore_up',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          target: PsdkBattleMoveTarget.user,
+        ),
+      );
+
+      expect(_healJson(noWeather, moveId: 'shore_up')['amount'], 50);
+      expect(_healJson(sandstorm, moveId: 'shore_up')['amount'], 66);
+    });
+
+    test('s_life_dew and s_jungle_healing heal one quarter max HP', () {
+      final lifeDew = _runMove(
+        playerCurrentHp: 10,
+        playerMove: _move(
+          id: 'life_dew',
+          battleEngineMethod: 's_life_dew',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          target: PsdkBattleMoveTarget.user,
+        ),
+      );
+      final jungleHealing = _runMove(
+        playerCurrentHp: 10,
+        playerMove: _move(
+          id: 'jungle_healing',
+          battleEngineMethod: 's_jungle_healing',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          target: PsdkBattleMoveTarget.user,
+        ),
+      );
+
+      expect(_healJson(lifeDew, moveId: 'life_dew')['amount'], 25);
+      expect(
+        _healJson(jungleHealing, moveId: 'jungle_healing')['amount'],
+        25,
+      );
+    });
   });
 }
 
 PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
+  PsdkBattleFieldState field = const PsdkBattleFieldState(),
   int playerCurrentHp = 100,
   String? playerHeldItemId,
   bool playerItemConsumed = false,
@@ -175,6 +332,7 @@ PsdkBattleTurnResult _runMove({
         moveAccuracy: 3,
         generic: 4,
       ),
+      field: field,
     ),
   );
   return engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));

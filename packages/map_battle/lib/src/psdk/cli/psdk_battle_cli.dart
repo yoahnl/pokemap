@@ -75,9 +75,9 @@ class PsdkBattleCli {
             'Unknown --scenario value "$value". Expected default, immunity, '
             'miss, super_effective, critical, secondary_effect, pp_empty, '
             'prevented, protect, fixed_damage, multi_hit, advanced_multi_hit, '
-            'basic_specialization, direct_hp, recoil, mind_blown, explosion, '
-            'terrain_boosting, variable_power, custom_stat, weight_power, '
-            'damp_ability, or loaded_dice.',
+            'basic_specialization, direct_hp, healing, recoil, mind_blown, '
+            'explosion, terrain_boosting, variable_power, custom_stat, '
+            'weight_power, damp_ability, or loaded_dice.',
           );
         }
         scenario = parsed;
@@ -156,6 +156,7 @@ enum _PsdkBattleCliScenario {
   advancedMultiHit,
   basicSpecialization,
   directHp,
+  healing,
   recoil,
   mindBlown,
   explosion,
@@ -206,6 +207,7 @@ _PsdkBattleCliScenario? _parseScenario(String value) {
     'basic-specialization' =>
       _PsdkBattleCliScenario.basicSpecialization,
     'direct_hp' || 'direct-hp' => _PsdkBattleCliScenario.directHp,
+    'healing' || 'heal' => _PsdkBattleCliScenario.healing,
     'recoil' => _PsdkBattleCliScenario.recoil,
     'mind_blown' || 'mind-blown' => _PsdkBattleCliScenario.mindBlown,
     'explosion' ||
@@ -579,6 +581,35 @@ _PsdkBattleCliScenarioConfig _scenarioConfig(
             category: PsdkBattleMoveCategory.status,
             power: 0,
             battleEngineMethod: 's_splash',
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+        ),
+        turnLimit: 1,
+        mustFinish: false,
+      ),
+    _PsdkBattleCliScenario.healing => _PsdkBattleCliScenarioConfig(
+        setup: _singleTurnSetup(
+          playerTypes: const PsdkBattleTypes(primary: 'fire'),
+          opponentTypes: const PsdkBattleTypes(primary: 'fire'),
+          playerCurrentHp: 10,
+          field: const PsdkBattleFieldState(
+            weather: PsdkBattleWeatherState(
+              id: PsdkBattleWeatherId.sunny,
+              remainingTurns: 5,
+            ),
+          ),
+          playerMove: _move(
+            id: 'moonlight',
+            type: 'normal',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            battleEngineMethod: 's_heal_weather',
+            target: PsdkBattleMoveTarget.user,
           ),
           rngSeeds: const PsdkBattleRngSeeds(
             moveDamage: 1,

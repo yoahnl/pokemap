@@ -7,8 +7,8 @@ Total registered methods: 330
 | Status | Count |
 | --- | ---: |
 | `ported` | 21 |
-| `partial` | 31 |
-| `missing` | 278 |
+| `partial` | 37 |
+| `missing` | 272 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
 | --- | --- | --- | --- | --- | --- |
@@ -100,7 +100,7 @@ Total registered methods: 330
 | `s_flail` | `Flail` | `10 Move/2 Definitions/300 Flail.rb` | `VariablePowerMoveBehavior.flail` | `ported` | `-` |
 | `s_flame_burst` | `FlameBurst` | `10 Move/2 Definitions/300 FlameBurst.rb` | `TODO` | `missing` | `-` |
 | `s_fling` | `Fling` | `10 Move/2 Definitions/300 Fling.rb` | `TODO` | `missing` | `-` |
-| `s_floral_healing` | `FloralHealing` | `10 Move/2 Definitions/300 FloralHealing.rb` | `TODO` | `missing` | `-` |
+| `s_floral_healing` | `FloralHealing` | `10 Move/2 Definitions/300 FloralHealing.rb` | `HealMoveBehavior.floralHealing` | `partial` | `handler_damage`, `terrain`, `effects`, `ability` |
 | `s_flower_shield` | `FlowerShield` | `10 Move/2 Definitions/300 FlowerShield.rb` | `TODO` | `missing` | `-` |
 | `s_flying_press` | `FlyingPress` | `10 Move/2 Definitions/300 FlyingPress.rb` | `TODO` | `missing` | `-` |
 | `s_focus_energy` | `FocusEnergy` | `10 Move/2 Definitions/300 FocusEnergy.rb` | `TODO` | `missing` | `-` |
@@ -136,7 +136,7 @@ Total registered methods: 330
 | `s_heal` | `HealMove` | `10 Move/1 Mechanics/105 Heal.rb` | `HealMoveBehavior` | `partial` | `handler_damage`, `effects`, `ability` |
 | `s_heal_bell` | `HealBell` | `10 Move/2 Definitions/300 HealBell.rb` | `TODO` | `missing` | `-` |
 | `s_heal_block` | `HealBlock` | `10 Move/2 Definitions/300 HealBlock.rb` | `TODO` | `missing` | `-` |
-| `s_heal_weather` | `HealWeather` | `10 Move/2 Definitions/300 HealWeather.rb` | `TODO` | `missing` | `-` |
+| `s_heal_weather` | `HealWeather` | `10 Move/2 Definitions/300 HealWeather.rb` | `HealMoveBehavior.weather` | `partial` | `handler_damage`, `weather`, `effects`, `ability` |
 | `s_healing_wish` | `HealingWish` | `10 Move/2 Definitions/300 HealingSacrifice.rb` | `TODO` | `missing` | `-` |
 | `s_heart_swap` | `HeartSwap` | `10 Move/2 Definitions/300 Stages swap moves.rb` | `TODO` | `missing` | `-` |
 | `s_heavy_slam` | `HeavySlam` | `10 Move/2 Definitions/300 HeavySlam.rb` | `WeightPowerMoveBehavior.heavySlam` | `partial` | `effects`, `ability` |
@@ -157,14 +157,14 @@ Total registered methods: 330
 | `s_jaw_lock` | `JawLock` | `10 Move/2 Definitions/300 JawLock.rb` | `TODO` | `missing` | `-` |
 | `s_judgment` | `Judgment` | `10 Move/2 Definitions/300 Judgment.rb` | `TODO` | `missing` | `-` |
 | `s_jump_kick` | `HighJumpKick` | `10 Move/2 Definitions/300 HighJumpKick.rb` | `TODO` | `missing` | `-` |
-| `s_jungle_healing` | `JungleHealing` | `10 Move/2 Definitions/300 LifeDew.rb` | `TODO` | `missing` | `-` |
+| `s_jungle_healing` | `JungleHealing` | `10 Move/2 Definitions/300 LifeDew.rb` | `HealMoveBehavior.jungleHealing` | `partial` | `handler_damage`, `handler_status`, `effects`, `targeting_multi` |
 | `s_knock_off` | `KnockOff` | `10 Move/2 Definitions/300 KnockOff.rb` | `TODO` | `missing` | `-` |
 | `s_laser_focus` | `LaserFocus` | `10 Move/2 Definitions/300 LaserFocus.rb` | `TODO` | `missing` | `-` |
 | `s_lash_out` | `LashOut` | `10 Move/2 Definitions/300 LashOut.rb` | `TODO` | `missing` | `-` |
 | `s_last_resort` | `LastResort` | `10 Move/2 Definitions/300 LastResort.rb` | `TODO` | `missing` | `-` |
 | `s_last_respects` | `LastRespects` | `10 Move/2 Definitions/300 LastRespects.rb` | `TODO` | `missing` | `-` |
 | `s_leech_seed` | `LeechSeed` | `10 Move/2 Definitions/300 LeechSeed.rb` | `TODO` | `missing` | `-` |
-| `s_life_dew` | `LifeDew` | `10 Move/2 Definitions/300 LifeDew.rb` | `TODO` | `missing` | `-` |
+| `s_life_dew` | `LifeDew` | `10 Move/2 Definitions/300 LifeDew.rb` | `HealMoveBehavior.lifeDew` | `partial` | `handler_damage`, `effects`, `targeting_multi` |
 | `s_lock_on` | `LockOn` | `10 Move/2 Definitions/300 LockOn.rb` | `TODO` | `missing` | `-` |
 | `s_low_kick` | `LowKick` | `10 Move/2 Definitions/300 LowKick.rb` | `WeightPowerMoveBehavior.lowKick` | `partial` | `effects`, `ability`, `grounded` |
 | `s_lucky_chant` | `LuckyChant` | `10 Move/2 Definitions/300 LuckyChant.rb` | `TODO` | `missing` | `-` |
@@ -246,7 +246,7 @@ Total registered methods: 330
 | `s_roar` | `ForceSwitch` | `10 Move/2 Definitions/300 ForceSwitch.rb` | `TODO` | `missing` | `-` |
 | `s_role_play` | `RolePlay` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `TODO` | `missing` | `-` |
 | `s_rollout` | `Rollout` | `10 Move/2 Definitions/300 Rollout.rb` | `TODO` | `missing` | `-` |
-| `s_roost` | `Roost` | `10 Move/2 Definitions/300 Roost.rb` | `TODO` | `missing` | `-` |
+| `s_roost` | `Roost` | `10 Move/2 Definitions/300 Roost.rb` | `HealMoveBehavior.roost` | `partial` | `handler_damage`, `effects` |
 | `s_rototiller` | `Rototiller` | `10 Move/2 Definitions/300 Rototiller.rb` | `TODO` | `missing` | `-` |
 | `s_round` | `Round` | `10 Move/2 Definitions/300 Round.rb` | `TODO` | `missing` | `-` |
 | `s_sacred_sword` | `SacredSword` | `10 Move/2 Definitions/300 SacredSword.rb` | `TODO` | `missing` | `-` |
@@ -260,7 +260,7 @@ Total registered methods: 330
 | `s_shed_tail` | `ShedTail` | `10 Move/2 Definitions/300 Substitute.rb` | `TODO` | `missing` | `-` |
 | `s_shell_side_arm` | `ShellSideArm` | `10 Move/2 Definitions/300 ShellSideArm.rb` | `TODO` | `missing` | `-` |
 | `s_shell_trap` | `ShellTrap` | `10 Move/2 Definitions/300 PreAttackMoves.rb` | `TODO` | `missing` | `-` |
-| `s_shore_up` | `ShoreUp` | `10 Move/2 Definitions/300 Shore Up.rb` | `TODO` | `missing` | `weather`, `handler_damage` |
+| `s_shore_up` | `ShoreUp` | `10 Move/2 Definitions/300 Shore Up.rb` | `HealMoveBehavior.shoreUp` | `partial` | `weather`, `handler_damage`, `effects` |
 | `s_simple_beam` | `SimpleBeam` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `TODO` | `missing` | `-` |
 | `s_sketch` | `Sketch` | `10 Move/2 Definitions/300 Sketch.rb` | `TODO` | `missing` | `-` |
 | `s_skill_swap` | `SkillSwap` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `TODO` | `missing` | `-` |

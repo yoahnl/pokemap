@@ -285,6 +285,50 @@ void main() {
 
       expect(byMethod['s_heal']!.status, PsdkPortStatus.partial);
       expect(byMethod['s_heal']!.dartBehavior, 'HealMoveBehavior');
+      expect(
+        byMethod['s_heal_weather']!.dartBehavior,
+        'HealMoveBehavior.weather',
+      );
+      expect(byMethod['s_heal_weather']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_heal_weather']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerDamage,
+          PsdkMoveDependency.weather,
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.ability,
+        ]),
+      );
+      expect(
+        byMethod['s_floral_healing']!.dartBehavior,
+        'HealMoveBehavior.floralHealing',
+      );
+      expect(byMethod['s_floral_healing']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_roost']!.dartBehavior,
+        'HealMoveBehavior.roost',
+      );
+      expect(
+        byMethod['s_shore_up']!.dartBehavior,
+        'HealMoveBehavior.shoreUp',
+      );
+      expect(
+        byMethod['s_life_dew']!.dartBehavior,
+        'HealMoveBehavior.lifeDew',
+      );
+      expect(
+        byMethod['s_jungle_healing']!.dartBehavior,
+        'HealMoveBehavior.jungleHealing',
+      );
+      expect(
+        byMethod['s_jungle_healing']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerDamage,
+          PsdkMoveDependency.handlerStatus,
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.targetingMulti,
+        ]),
+      );
       expect(byMethod['s_acrobatics']!.status, PsdkPortStatus.partial);
       expect(
         byMethod['s_acrobatics']!.dartBehavior,

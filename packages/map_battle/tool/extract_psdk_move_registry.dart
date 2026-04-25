@@ -111,6 +111,30 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'HealMoveBehavior',
     status: _PsdkPortStatus.partial,
   ),
+  's_heal_weather': _KnownDartBehavior(
+    dartBehavior: 'HealMoveBehavior.weather',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_floral_healing': _KnownDartBehavior(
+    dartBehavior: 'HealMoveBehavior.floralHealing',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_roost': _KnownDartBehavior(
+    dartBehavior: 'HealMoveBehavior.roost',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_shore_up': _KnownDartBehavior(
+    dartBehavior: 'HealMoveBehavior.shoreUp',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_life_dew': _KnownDartBehavior(
+    dartBehavior: 'HealMoveBehavior.lifeDew',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_jungle_healing': _KnownDartBehavior(
+    dartBehavior: 'HealMoveBehavior.jungleHealing',
+    status: _PsdkPortStatus.partial,
+  ),
   // Acrobatics' no-item branch is executable. Keep it partial until consumed
   // item and Gem item-effect parity is covered in the item hook matrix.
   's_acrobatics': _KnownDartBehavior(
@@ -312,6 +336,7 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
   's_shore_up': {
     _PsdkMoveDependency.weather,
     _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.effects,
   },
   // Multi-hit parity depends on ability/item hooks that can alter hit counts.
   's_multi_hit': {
@@ -385,6 +410,33 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
     _PsdkMoveDependency.handlerDamage,
     _PsdkMoveDependency.effects,
     _PsdkMoveDependency.ability,
+  },
+  's_heal_weather': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.weather,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.ability,
+  },
+  's_floral_healing': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.terrain,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.ability,
+  },
+  's_roost': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.effects,
+  },
+  's_life_dew': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.targetingMulti,
+  },
+  's_jungle_healing': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.handlerStatus,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.targetingMulti,
   },
   's_acrobatics': {
     _PsdkMoveDependency.item,

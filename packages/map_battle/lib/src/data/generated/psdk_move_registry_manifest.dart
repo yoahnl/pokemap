@@ -749,9 +749,14 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_floral_healing',
     rubyClass: 'FloralHealing',
     rubyPath: '10 Move/2 Definitions/300 FloralHealing.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'HealMoveBehavior.floralHealing',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerDamage,
+      PsdkMoveDependency.terrain,
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.ability
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_flower_shield',
@@ -1049,9 +1054,14 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_heal_weather',
     rubyClass: 'HealWeather',
     rubyPath: '10 Move/2 Definitions/300 HealWeather.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'HealMoveBehavior.weather',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerDamage,
+      PsdkMoveDependency.weather,
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.ability
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_healing_wish',
@@ -1223,9 +1233,14 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_jungle_healing',
     rubyClass: 'JungleHealing',
     rubyPath: '10 Move/2 Definitions/300 LifeDew.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'HealMoveBehavior.jungleHealing',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerDamage,
+      PsdkMoveDependency.handlerStatus,
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.targetingMulti
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_knock_off',
@@ -1279,9 +1294,13 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_life_dew',
     rubyClass: 'LifeDew',
     rubyPath: '10 Move/2 Definitions/300 LifeDew.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'HealMoveBehavior.lifeDew',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerDamage,
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.targetingMulti
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_lock_on',
@@ -1965,9 +1984,12 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_roost',
     rubyClass: 'Roost',
     rubyPath: '10 Move/2 Definitions/300 Roost.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'HealMoveBehavior.roost',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerDamage,
+      PsdkMoveDependency.effects
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_rototiller',
@@ -2077,11 +2099,12 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_shore_up',
     rubyClass: 'ShoreUp',
     rubyPath: '10 Move/2 Definitions/300 Shore Up.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
+    dartBehavior: 'HealMoveBehavior.shoreUp',
+    status: PsdkPortStatus.partial,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.weather,
-      PsdkMoveDependency.handlerDamage
+      PsdkMoveDependency.handlerDamage,
+      PsdkMoveDependency.effects
     ],
   ),
   PsdkMoveRegistryManifestEntry(

@@ -373,6 +373,34 @@ void main() {
       expect(splashKinds, isNot(contains('damage')));
     });
 
+    test('prints a healing scenario with weather-adjusted recovery', () async {
+      final lines = <String>[];
+      final exitCode = await PsdkBattleCli(
+        stdout: lines.add,
+        stderr: fail,
+      ).run(const <String>[
+        '--scenario',
+        'healing',
+        '--format',
+        'json',
+      ]);
+
+      expect(exitCode, 0);
+      final payload = jsonDecode(lines.single) as Map<String, dynamic>;
+      expect(payload['outcome'], 'ongoing');
+      expect(payload['playerHp'], 76);
+      expect(payload['weather'], 'sunny');
+
+      final healEvents = (payload['events'] as List<dynamic>)
+          .cast<Map<String, dynamic>>()
+          .where((event) => event['moveId'] == 'moonlight')
+          .where((event) => event['kind'] == 'heal')
+          .toList(growable: false);
+      expect(healEvents, hasLength(1));
+      expect(healEvents.single['amount'], 66);
+      expect(healEvents.single['remainingHp'], 76);
+    });
+
     test('prints a recoil scenario with target and user damage', () async {
       final lines = <String>[];
       final exitCode = await PsdkBattleCli(
