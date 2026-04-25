@@ -76,9 +76,10 @@ class PsdkBattleCli {
             'miss, super_effective, critical, secondary_effect, pp_empty, '
             'generic_status_stat, prevented, protect, fixed_damage, '
             'multi_hit, advanced_multi_hit, basic_specialization, direct_hp, '
-            'healing, status_cure, recovery_stat, advanced_stat, recoil, '
-            'mind_blown, explosion, terrain_boosting, variable_power, '
-            'custom_stat, weight_power, damp_ability, or loaded_dice.',
+            'healing, status_cure, recovery_stat, advanced_stat, '
+            'acupressure, recoil, mind_blown, explosion, terrain_boosting, '
+            'variable_power, custom_stat, weight_power, damp_ability, '
+            'or loaded_dice.',
           );
         }
         scenario = parsed;
@@ -162,6 +163,7 @@ enum _PsdkBattleCliScenario {
   statusCure,
   recoveryStat,
   advancedStat,
+  acupressure,
   recoil,
   mindBlown,
   explosion,
@@ -219,6 +221,7 @@ _PsdkBattleCliScenario? _parseScenario(String value) {
     'status_cure' || 'status-cure' => _PsdkBattleCliScenario.statusCure,
     'recovery_stat' || 'recovery-stat' => _PsdkBattleCliScenario.recoveryStat,
     'advanced_stat' || 'advanced-stat' => _PsdkBattleCliScenario.advancedStat,
+    'acupressure' => _PsdkBattleCliScenario.acupressure,
     'recoil' => _PsdkBattleCliScenario.recoil,
     'mind_blown' || 'mind-blown' => _PsdkBattleCliScenario.mindBlown,
     'explosion' ||
@@ -758,6 +761,29 @@ _PsdkBattleCliScenarioConfig _scenarioConfig(
             moveCritical: 99999,
             moveAccuracy: 3,
             generic: 4,
+          ),
+        ),
+        turnLimit: 1,
+        mustFinish: false,
+      ),
+    _PsdkBattleCliScenario.acupressure => _PsdkBattleCliScenarioConfig(
+        setup: _singleTurnSetup(
+          playerTypes: const PsdkBattleTypes(primary: 'normal'),
+          opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+          playerMove: _move(
+            id: 'acupressure',
+            type: 'normal',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            accuracy: 0,
+            battleEngineMethod: 's_acupressure',
+            target: PsdkBattleMoveTarget.user,
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 1,
           ),
         ),
         turnLimit: 1,

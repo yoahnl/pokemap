@@ -442,15 +442,45 @@ void main() {
           entry.battleEngineMethod: entry,
       };
 
+      expect(byMethod['s_acupressure']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_acupressure']!.dartBehavior,
+        'AdvancedStatMoveBehavior.acupressure',
+      );
+      expect(byMethod['s_clangorous_soul']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_clangorous_soul']!.dartBehavior,
+        'AdvancedStatMoveBehavior.clangorousSoul',
+      );
+      expect(byMethod['s_curse']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_curse']!.dartBehavior,
+        'AdvancedStatMoveBehavior.curse',
+      );
       expect(byMethod['s_growth']!.status, PsdkPortStatus.partial);
       expect(
         byMethod['s_growth']!.dartBehavior,
         'AdvancedStatMoveBehavior.growth',
       );
+      expect(byMethod['s_guard_swap']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_guard_swap']!.dartBehavior,
+        'AdvancedStatMoveBehavior.guardSwap',
+      );
       expect(byMethod['s_haze']!.status, PsdkPortStatus.partial);
       expect(
         byMethod['s_haze']!.dartBehavior,
         'AdvancedStatMoveBehavior.haze',
+      );
+      expect(byMethod['s_heart_swap']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_heart_swap']!.dartBehavior,
+        'AdvancedStatMoveBehavior.heartSwap',
+      );
+      expect(byMethod['s_power_swap']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_power_swap']!.dartBehavior,
+        'AdvancedStatMoveBehavior.powerSwap',
       );
       expect(byMethod['s_psych_up']!.status, PsdkPortStatus.partial);
       expect(

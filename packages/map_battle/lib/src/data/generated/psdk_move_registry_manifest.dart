@@ -66,9 +66,13 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_acupressure',
     rubyClass: 'Acupressure',
     rubyPath: '10 Move/2 Definitions/300 Acupressure.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'AdvancedStatMoveBehavior.acupressure',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerStat,
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.ability
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_add_type',
@@ -366,9 +370,14 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_clangorous_soul',
     rubyClass: 'ClangorousSoul',
     rubyPath: '10 Move/2 Definitions/300 ClangorousSoul.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'AdvancedStatMoveBehavior.clangorousSoul',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerDamage,
+      PsdkMoveDependency.handlerStat,
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.ability
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_conversion',
@@ -430,9 +439,14 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_curse',
     rubyClass: 'Curse',
     rubyPath: '10 Move/2 Definitions/300 Curse.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'AdvancedStatMoveBehavior.curse',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerDamage,
+      PsdkMoveDependency.handlerStat,
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.endTurn
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_custom_stats_based',
@@ -1001,9 +1015,13 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_guard_swap',
     rubyClass: 'GuardSwap',
     rubyPath: '10 Move/2 Definitions/300 Stages swap moves.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'AdvancedStatMoveBehavior.guardSwap',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerStat,
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.ability
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_gyro_ball',
@@ -1095,9 +1113,13 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_heart_swap',
     rubyClass: 'HeartSwap',
     rubyPath: '10 Move/2 Definitions/300 Stages swap moves.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'AdvancedStatMoveBehavior.heartSwap',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerStat,
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.ability
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_heavy_slam',
@@ -1728,9 +1750,13 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_power_swap',
     rubyClass: 'PowerSwap',
     rubyPath: '10 Move/2 Definitions/300 Stages swap moves.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'AdvancedStatMoveBehavior.powerSwap',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerStat,
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.ability
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_power_trick',

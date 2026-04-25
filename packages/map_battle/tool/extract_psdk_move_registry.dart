@@ -181,12 +181,36 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'RecoveryStatMoveBehavior.filletAway',
     status: _PsdkPortStatus.partial,
   ),
+  's_acupressure': _KnownDartBehavior(
+    dartBehavior: 'AdvancedStatMoveBehavior.acupressure',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_clangorous_soul': _KnownDartBehavior(
+    dartBehavior: 'AdvancedStatMoveBehavior.clangorousSoul',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_curse': _KnownDartBehavior(
+    dartBehavior: 'AdvancedStatMoveBehavior.curse',
+    status: _PsdkPortStatus.partial,
+  ),
   's_growth': _KnownDartBehavior(
     dartBehavior: 'AdvancedStatMoveBehavior.growth',
     status: _PsdkPortStatus.partial,
   ),
+  's_guard_swap': _KnownDartBehavior(
+    dartBehavior: 'AdvancedStatMoveBehavior.guardSwap',
+    status: _PsdkPortStatus.partial,
+  ),
   's_haze': _KnownDartBehavior(
     dartBehavior: 'AdvancedStatMoveBehavior.haze',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_heart_swap': _KnownDartBehavior(
+    dartBehavior: 'AdvancedStatMoveBehavior.heartSwap',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_power_swap': _KnownDartBehavior(
+    dartBehavior: 'AdvancedStatMoveBehavior.powerSwap',
     status: _PsdkPortStatus.partial,
   ),
   's_psych_up': _KnownDartBehavior(
@@ -567,9 +591,31 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
     _PsdkMoveDependency.ability,
     _PsdkMoveDependency.effects,
   },
+  's_acupressure': {
+    _PsdkMoveDependency.handlerStat,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.ability,
+  },
+  's_clangorous_soul': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.handlerStat,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.ability,
+  },
+  's_curse': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.handlerStat,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.endTurn,
+  },
   's_growth': {
     _PsdkMoveDependency.handlerStat,
     _PsdkMoveDependency.weather,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.ability,
+  },
+  's_guard_swap': {
+    _PsdkMoveDependency.handlerStat,
     _PsdkMoveDependency.effects,
     _PsdkMoveDependency.ability,
   },
@@ -578,6 +624,16 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
     _PsdkMoveDependency.effects,
     _PsdkMoveDependency.ability,
     _PsdkMoveDependency.targetingMulti,
+  },
+  's_heart_swap': {
+    _PsdkMoveDependency.handlerStat,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.ability,
+  },
+  's_power_swap': {
+    _PsdkMoveDependency.handlerStat,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.ability,
   },
   's_psych_up': {
     _PsdkMoveDependency.handlerStat,

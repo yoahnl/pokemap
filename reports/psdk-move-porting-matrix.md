@@ -7,8 +7,8 @@ Total registered methods: 330
 | Status | Count |
 | --- | ---: |
 | `ported` | 21 |
-| `partial` | 51 |
-| `missing` | 258 |
+| `partial` | 57 |
+| `missing` | 252 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
 | --- | --- | --- | --- | --- | --- |
@@ -18,7 +18,7 @@ Total registered methods: 330
 | `s_a_fang` | `Fangs` | `10 Move/2 Definitions/300 Fangs.rb` | `TODO` | `missing` | `-` |
 | `s_absorb` | `Absorb` | `10 Move/2 Definitions/300 Absorb.rb` | `DrainMoveBehavior.absorb` | `partial` | `handler_damage`, `effects`, `item`, `ability` |
 | `s_acrobatics` | `Acrobatics` | `10 Move/2 Definitions/300 Acrobatics.rb` | `SpecialPowerMoveBehavior.acrobatics` | `partial` | `item` |
-| `s_acupressure` | `Acupressure` | `10 Move/2 Definitions/300 Acupressure.rb` | `TODO` | `missing` | `-` |
+| `s_acupressure` | `Acupressure` | `10 Move/2 Definitions/300 Acupressure.rb` | `AdvancedStatMoveBehavior.acupressure` | `partial` | `handler_stat`, `effects`, `ability` |
 | `s_add_type` | `AddThirdType` | `10 Move/2 Definitions/300 AddThirdType.rb` | `TODO` | `missing` | `-` |
 | `s_after_you` | `AfterYou` | `10 Move/2 Definitions/300 After you.rb` | `TODO` | `missing` | `-` |
 | `s_alluring_voice` | `AlluringVoice` | `10 Move/2 Definitions/300 AlluringVoice.rb` | `TODO` | `missing` | `-` |
@@ -54,7 +54,7 @@ Total registered methods: 330
 | `s_charge` | `Charge` | `10 Move/2 Definitions/300 Charge.rb` | `TODO` | `missing` | `-` |
 | `s_chilly_reception` | `ChillyReception` | `10 Move/2 Definitions/300 ChillyReception.rb` | `TODO` | `missing` | `-` |
 | `s_chloroblast` | `MindBlown` | `10 Move/2 Definitions/300 MindBlown.rb` | `MindBlownMoveBehavior.chloroblast` | `partial` | `ability`, `faint_process` |
-| `s_clangorous_soul` | `ClangorousSoul` | `10 Move/2 Definitions/300 ClangorousSoul.rb` | `TODO` | `missing` | `-` |
+| `s_clangorous_soul` | `ClangorousSoul` | `10 Move/2 Definitions/300 ClangorousSoul.rb` | `AdvancedStatMoveBehavior.clangorousSoul` | `partial` | `handler_damage`, `handler_stat`, `effects`, `ability` |
 | `s_conversion` | `Conversion` | `10 Move/2 Definitions/300 Conversion.rb` | `TODO` | `missing` | `-` |
 | `s_conversion2` | `Conversion2` | `10 Move/2 Definitions/300 Conversion.rb` | `TODO` | `missing` | `-` |
 | `s_core_enforcer` | `CoreEnforcer` | `10 Move/2 Definitions/300 CoreEnforcer.rb` | `TODO` | `missing` | `-` |
@@ -62,7 +62,7 @@ Total registered methods: 330
 | `s_counter` | `Counter` | `10 Move/2 Definitions/300 Counter moves.rb` | `TODO` | `missing` | `-` |
 | `s_court_change` | `CourtChange` | `10 Move/2 Definitions/300 CourtChange.rb` | `TODO` | `missing` | `-` |
 | `s_crafty_shield` | `CraftyShield` | `10 Move/2 Definitions/300 CraftyShield.rb` | `TODO` | `missing` | `-` |
-| `s_curse` | `Curse` | `10 Move/2 Definitions/300 Curse.rb` | `TODO` | `missing` | `-` |
+| `s_curse` | `Curse` | `10 Move/2 Definitions/300 Curse.rb` | `AdvancedStatMoveBehavior.curse` | `partial` | `handler_damage`, `handler_stat`, `effects`, `end_turn` |
 | `s_custom_stats_based` | `CustomStatsBased` | `10 Move/2 Definitions/300 CustomStatsBased.rb` | `CustomStatSourceMoveBehavior.customStatsBased` | `partial` | `handler_damage`, `ability`, `item` |
 | `s_defog` | `Defog` | `10 Move/2 Definitions/300 Defog.rb` | `TODO` | `missing` | `-` |
 | `s_destiny_bond` | `DestinyBond` | `10 Move/2 Definitions/300 DestinyBond.rb` | `TODO` | `missing` | `-` |
@@ -128,7 +128,7 @@ Total registered methods: 330
 | `s_growth` | `Growth` | `10 Move/2 Definitions/300 Growth.rb` | `AdvancedStatMoveBehavior.growth` | `partial` | `handler_stat`, `weather`, `effects`, `ability` |
 | `s_grudge` | `Grudge` | `10 Move/2 Definitions/300 Grudge.rb` | `TODO` | `missing` | `-` |
 | `s_guard_split` | `GuardSplit` | `10 Move/2 Definitions/300 Stages split moves.rb` | `TODO` | `missing` | `-` |
-| `s_guard_swap` | `GuardSwap` | `10 Move/2 Definitions/300 Stages swap moves.rb` | `TODO` | `missing` | `-` |
+| `s_guard_swap` | `GuardSwap` | `10 Move/2 Definitions/300 Stages swap moves.rb` | `AdvancedStatMoveBehavior.guardSwap` | `partial` | `handler_stat`, `effects`, `ability` |
 | `s_gyro_ball` | `GyroBall` | `10 Move/2 Definitions/300 GyroBall.rb` | `VariablePowerMoveBehavior.gyroBall` | `partial` | `-` |
 | `s_happy_hour` | `HappyHour` | `10 Move/2 Definitions/300 HappyHour.rb` | `TODO` | `missing` | `-` |
 | `s_hard_press` | `HardPress` | `10 Move/2 Definitions/300 WringOut.rb` | `VariablePowerMoveBehavior.hardPress` | `ported` | `-` |
@@ -138,7 +138,7 @@ Total registered methods: 330
 | `s_heal_block` | `HealBlock` | `10 Move/2 Definitions/300 HealBlock.rb` | `TODO` | `missing` | `-` |
 | `s_heal_weather` | `HealWeather` | `10 Move/2 Definitions/300 HealWeather.rb` | `HealMoveBehavior.weather` | `partial` | `handler_damage`, `weather`, `effects`, `ability` |
 | `s_healing_wish` | `HealingWish` | `10 Move/2 Definitions/300 HealingSacrifice.rb` | `TODO` | `missing` | `-` |
-| `s_heart_swap` | `HeartSwap` | `10 Move/2 Definitions/300 Stages swap moves.rb` | `TODO` | `missing` | `-` |
+| `s_heart_swap` | `HeartSwap` | `10 Move/2 Definitions/300 Stages swap moves.rb` | `AdvancedStatMoveBehavior.heartSwap` | `partial` | `handler_stat`, `effects`, `ability` |
 | `s_heavy_slam` | `HeavySlam` | `10 Move/2 Definitions/300 HeavySlam.rb` | `WeightPowerMoveBehavior.heavySlam` | `partial` | `effects`, `ability` |
 | `s_helping_hand` | `HelpingHand` | `10 Move/2 Definitions/300 HelpingHand.rb` | `TODO` | `missing` | `-` |
 | `s_hex` | `Hex` | `10 Move/2 Definitions/300 Hex.rb` | `VariablePowerMoveBehavior.hex` | `partial` | `ability`, `handler_status` |
@@ -213,7 +213,7 @@ Total registered methods: 330
 | `s_population_bomb` | `PopulationBomb` | `10 Move/1 Mechanics/103 TwoHit MultiHit.rb` | `MultiHitMoveBehavior.populationBomb` | `partial` | `ability`, `item` |
 | `s_powder` | `Powder` | `10 Move/2 Definitions/300 Powder.rb` | `TODO` | `missing` | `-` |
 | `s_power_split` | `PowerSplit` | `10 Move/2 Definitions/300 Stages split moves.rb` | `TODO` | `missing` | `-` |
-| `s_power_swap` | `PowerSwap` | `10 Move/2 Definitions/300 Stages swap moves.rb` | `TODO` | `missing` | `-` |
+| `s_power_swap` | `PowerSwap` | `10 Move/2 Definitions/300 Stages swap moves.rb` | `AdvancedStatMoveBehavior.powerSwap` | `partial` | `handler_stat`, `effects`, `ability` |
 | `s_power_trick` | `PowerTrick` | `10 Move/2 Definitions/300 PowerTrick.rb` | `TODO` | `missing` | `-` |
 | `s_pre_attack_base` | `PreAttackBase` | `10 Move/2 Definitions/300 PreAttackMoves.rb` | `TODO` | `missing` | `-` |
 | `s_present` | `Present` | `10 Move/2 Definitions/300 Present.rb` | `TODO` | `missing` | `-` |

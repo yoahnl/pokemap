@@ -9,8 +9,14 @@ import '../battle_move_prevention.dart';
 import 'battle_move_behavior_support.dart';
 
 enum _AdvancedStatKind {
+  acupressure,
+  clangorousSoul,
+  curse,
   growth,
+  guardSwap,
   haze,
+  heartSwap,
+  powerSwap,
   psychUp,
   topsyTurvy,
 }
@@ -21,13 +27,37 @@ enum _AdvancedStatKind {
 /// and richer effect interactions can intercept the same paths as Ruby PSDK.
 final class AdvancedStatMoveBehavior
     implements BattleMoveUserPreventionBehavior {
+  const AdvancedStatMoveBehavior.acupressure()
+      : battleEngineMethod = 's_acupressure',
+        _kind = _AdvancedStatKind.acupressure;
+
+  const AdvancedStatMoveBehavior.clangorousSoul()
+      : battleEngineMethod = 's_clangorous_soul',
+        _kind = _AdvancedStatKind.clangorousSoul;
+
+  const AdvancedStatMoveBehavior.curse()
+      : battleEngineMethod = 's_curse',
+        _kind = _AdvancedStatKind.curse;
+
   const AdvancedStatMoveBehavior.growth()
       : battleEngineMethod = 's_growth',
         _kind = _AdvancedStatKind.growth;
 
+  const AdvancedStatMoveBehavior.guardSwap()
+      : battleEngineMethod = 's_guard_swap',
+        _kind = _AdvancedStatKind.guardSwap;
+
   const AdvancedStatMoveBehavior.haze()
       : battleEngineMethod = 's_haze',
         _kind = _AdvancedStatKind.haze;
+
+  const AdvancedStatMoveBehavior.heartSwap()
+      : battleEngineMethod = 's_heart_swap',
+        _kind = _AdvancedStatKind.heartSwap;
+
+  const AdvancedStatMoveBehavior.powerSwap()
+      : battleEngineMethod = 's_power_swap',
+        _kind = _AdvancedStatKind.powerSwap;
 
   const AdvancedStatMoveBehavior.psychUp()
       : battleEngineMethod = 's_psych_up',
@@ -47,6 +77,32 @@ final class AdvancedStatMoveBehavior
   ) {
     final state = context.state;
     return switch (_kind) {
+      _AdvancedStatKind.acupressure => !_hasIncreasableStage(
+          state.battlerAt(context.target),
+          _allStageStats,
+        )
+            ? const BattleMoveUserPreventionResult(
+                reason: BattleMoveFailureReason.unusableByUser,
+              )
+            : null,
+      _AdvancedStatKind.clangorousSoul =>
+        context.state.battlerAt(context.user).currentHp * 3 <=
+                    context.state.battlerAt(context.user).maxHp ||
+                !_hasIncreasableStage(
+                  state.battlerAt(context.user),
+                  _clangorousStats,
+                )
+            ? const BattleMoveUserPreventionResult(
+                reason: BattleMoveFailureReason.unusableByUser,
+              )
+            : null,
+      _AdvancedStatKind.curse =>
+        state.battlerAt(context.user).hasType('ghost') &&
+                state.battlerAt(context.target).effects.contains('curse')
+            ? const BattleMoveUserPreventionResult(
+                reason: BattleMoveFailureReason.unusableByUser,
+              )
+            : null,
       _AdvancedStatKind.haze => state.aliveSlots().every(
                 (slot) => state.battlerAt(slot).statStages.values.isEmpty,
               )
@@ -89,11 +145,195 @@ final class AdvancedStatMoveBehavior
     }
 
     return switch (_kind) {
+      _AdvancedStatKind.acupressure => _resolveAcupressure(context, prepared),
+      _AdvancedStatKind.clangorousSoul =>
+        _resolveClangorousSoul(context, prepared),
+      _AdvancedStatKind.curse => _resolveCurse(context, prepared),
       _AdvancedStatKind.growth => _resolveGrowth(context, prepared),
+      _AdvancedStatKind.guardSwap => _resolveStageSwap(
+          context,
+          prepared,
+          stats: _guardStats,
+        ),
       _AdvancedStatKind.haze => _resolveHaze(context, prepared),
+      _AdvancedStatKind.heartSwap => _resolveStageSwap(
+          context,
+          prepared,
+          stats: _allStageStats,
+        ),
+      _AdvancedStatKind.powerSwap => _resolveStageSwap(
+          context,
+          prepared,
+          stats: _powerStats,
+        ),
       _AdvancedStatKind.psychUp => _resolvePsychUp(context, prepared),
       _AdvancedStatKind.topsyTurvy => _resolveTopsyTurvy(context, prepared),
     };
+  }
+
+  BattleMoveBehaviorResolution _resolveAcupressure(
+    BattleMoveBehaviorContext context,
+    PreparedBattleMove prepared,
+  ) {
+    var state = prepared.state;
+    var rng = prepared.rng;
+    final events = <PsdkBattleEvent>[...prepared.events];
+    final targetSlot = prepared.psdkTargets.single;
+    final increasable = _increasableStats(state.battlerAt(targetSlot));
+    if (increasable.isEmpty) {
+      return BattleMoveBehaviorResolution(
+        state: state,
+        rng: rng,
+        events: <PsdkBattleEvent>[
+          ...events,
+          PsdkBattleMoveFailedEvent(
+            user: context.user,
+            target: targetSlot,
+            moveId: context.move.id,
+            reason: BattleMoveFailureReason.unusableByUser.jsonName,
+          ),
+        ],
+        successful: false,
+      );
+    }
+
+    final roll = rng.generic.nextIntInclusive(
+      min: 0,
+      max: increasable.length - 1,
+    );
+    rng = rng.copyWith(generic: roll.next);
+    final result = _setStageDelta(
+      state: state,
+      rng: rng,
+      turn: context.turn,
+      user: context.user,
+      target: targetSlot,
+      stat: increasable[roll.value],
+      delta: 2,
+    );
+    state = result.state;
+    rng = result.rng;
+    events.addAll(result.events);
+
+    return BattleMoveBehaviorResolution(
+      state: state,
+      rng: rng,
+      events: events,
+    );
+  }
+
+  BattleMoveBehaviorResolution _resolveClangorousSoul(
+    BattleMoveBehaviorContext context,
+    PreparedBattleMove prepared,
+  ) {
+    var state = prepared.state;
+    var rng = prepared.rng;
+    final events = <PsdkBattleEvent>[...prepared.events];
+    final user = state.battlerAt(context.user);
+    final damage = user.maxHp ~/ 3;
+    final damaged = applyDirectDamage(
+      state: state,
+      user: context.user,
+      target: context.user,
+      moveId: context.move.id,
+      rng: rng,
+      turn: context.turn,
+      amount: damage,
+    );
+    state = damaged.state;
+    rng = damaged.rng;
+    if (damaged.event != null) {
+      events.add(damaged.event!);
+    }
+
+    for (final stat in _clangorousStats) {
+      final result = _setStageDelta(
+        state: state,
+        rng: rng,
+        turn: context.turn,
+        user: context.user,
+        target: context.user,
+        stat: stat,
+        delta: 1,
+      );
+      state = result.state;
+      rng = result.rng;
+      events.addAll(result.events);
+    }
+
+    return BattleMoveBehaviorResolution(
+      state: state,
+      rng: rng,
+      events: events,
+    );
+  }
+
+  BattleMoveBehaviorResolution _resolveCurse(
+    BattleMoveBehaviorContext context,
+    PreparedBattleMove prepared,
+  ) {
+    final user = prepared.state.battlerAt(context.user);
+    if (!user.hasType('ghost')) {
+      return _resolveNonGhostCurse(context, prepared);
+    }
+
+    var state = prepared.state;
+    var rng = prepared.rng;
+    final events = <PsdkBattleEvent>[...prepared.events];
+    final targetSlot = prepared.psdkTargets.single;
+    final damage = (user.maxHp ~/ 2).clamp(1, user.currentHp).toInt();
+    final damaged = applyDirectDamage(
+      state: state,
+      user: context.user,
+      target: context.user,
+      moveId: context.move.id,
+      rng: rng,
+      turn: context.turn,
+      amount: damage,
+    );
+    state = damaged.state;
+    rng = damaged.rng;
+    if (damaged.event != null) {
+      events.add(damaged.event!);
+    }
+    state = state.updateBattler(
+      targetSlot,
+      (target) => target.copyWith(effects: target.effects.add('curse')),
+    );
+
+    return BattleMoveBehaviorResolution(
+      state: state,
+      rng: rng,
+      events: events,
+    );
+  }
+
+  BattleMoveBehaviorResolution _resolveNonGhostCurse(
+    BattleMoveBehaviorContext context,
+    PreparedBattleMove prepared,
+  ) {
+    var state = prepared.state;
+    var rng = prepared.rng;
+    final events = <PsdkBattleEvent>[...prepared.events];
+    for (final change in _nonGhostCurseStats.entries) {
+      final result = _setStageDelta(
+        state: state,
+        rng: rng,
+        turn: context.turn,
+        user: context.user,
+        target: context.user,
+        stat: change.key,
+        delta: change.value,
+      );
+      state = result.state;
+      rng = result.rng;
+      events.addAll(result.events);
+    }
+    return BattleMoveBehaviorResolution(
+      state: state,
+      rng: rng,
+      events: events,
+    );
   }
 
   BattleMoveBehaviorResolution _resolveGrowth(
@@ -218,6 +458,97 @@ final class AdvancedStatMoveBehavior
       events: events,
     );
   }
+
+  BattleMoveBehaviorResolution _resolveStageSwap(
+    BattleMoveBehaviorContext context,
+    PreparedBattleMove prepared, {
+    required List<String> stats,
+  }) {
+    var state = prepared.state;
+    var rng = prepared.rng;
+    final events = <PsdkBattleEvent>[...prepared.events];
+    final targetSlot = prepared.psdkTargets.single;
+    final userStages = state.battlerAt(context.user).statStages.values;
+    final targetStages = state.battlerAt(targetSlot).statStages.values;
+
+    for (final stat in stats) {
+      final normalized = _normalizeStat(stat);
+      final userStage = userStages[normalized] ?? 0;
+      final targetStage = targetStages[normalized] ?? 0;
+      final userResult = _setStageTo(
+        state: state,
+        rng: rng,
+        turn: context.turn,
+        user: context.user,
+        target: context.user,
+        stat: normalized,
+        desiredStage: targetStage,
+      );
+      state = userResult.state;
+      rng = userResult.rng;
+      events.addAll(userResult.events);
+
+      final targetResult = _setStageTo(
+        state: state,
+        rng: rng,
+        turn: context.turn,
+        user: context.user,
+        target: targetSlot,
+        stat: normalized,
+        desiredStage: userStage,
+      );
+      state = targetResult.state;
+      rng = targetResult.rng;
+      events.addAll(targetResult.events);
+    }
+
+    return BattleMoveBehaviorResolution(
+      state: state,
+      rng: rng,
+      events: events,
+    );
+  }
+}
+
+const _allStageStats = <String>[
+  'attack',
+  'defense',
+  'specialAttack',
+  'specialDefense',
+  'speed',
+  'accuracy',
+  'evasion',
+];
+
+const _clangorousStats = <String>[
+  'attack',
+  'defense',
+  'specialAttack',
+  'specialDefense',
+  'speed',
+];
+
+const _powerStats = <String>['attack', 'specialAttack'];
+const _guardStats = <String>['defense', 'specialDefense'];
+
+const _nonGhostCurseStats = <String, int>{
+  'speed': -1,
+  'attack': 1,
+  'defense': 1,
+};
+
+List<String> _increasableStats(PsdkBattleCombatant battler) {
+  return <String>[
+    for (final stat in _allStageStats)
+      if (battler.statStages.valueOf(stat) < 6) stat,
+  ];
+}
+
+bool _hasIncreasableStage(
+  PsdkBattleCombatant battler,
+  List<String> stats,
+) {
+  return stats.any((stat) => battler.statStages.valueOf(stat) < 6);
 }
 
 _StatStageMutation _setStageDelta({
@@ -306,6 +637,8 @@ String _normalizeStat(String stat) {
     'ats' || 'spa' || 'spatk' || 'specialattack' => 'specialAttack',
     'dfs' || 'spdef' || 'specialdefense' => 'specialDefense',
     'spd' || 'spe' || 'speed' => 'speed',
+    'acc' || 'accuracy' => 'accuracy',
+    'eva' || 'evasion' => 'evasion',
     _ => token,
   };
 }

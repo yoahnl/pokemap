@@ -784,6 +784,8 @@ String _normalizeStat(String stat) {
     // defense. The PSDK lane follows that vocabulary, while still accepting the
     // clearer `speed`/`spe` aliases from editor/runtime adapters.
     'spd' || 'spe' || 'speed' => 'speed',
+    'acc' || 'accuracy' => 'accuracy',
+    'eva' || 'evasion' => 'evasion',
     _ => token,
   };
 }

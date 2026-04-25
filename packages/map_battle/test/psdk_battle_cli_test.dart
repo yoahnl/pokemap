@@ -510,6 +510,31 @@ void main() {
       expect(statEvents.map((event) => event['amount']), everyElement(2));
     });
 
+    test('prints an Acupressure scenario for random stat boosts', () async {
+      final lines = <String>[];
+      final exitCode = await PsdkBattleCli(
+        stdout: lines.add,
+        stderr: fail,
+      ).run(const <String>[
+        '--scenario',
+        'acupressure',
+        '--format',
+        'json',
+      ]);
+
+      expect(exitCode, 0);
+      final payload = jsonDecode(lines.single) as Map<String, dynamic>;
+      expect(payload['outcome'], 'ongoing');
+
+      final statEvents = (payload['events'] as List<dynamic>)
+          .cast<Map<String, dynamic>>()
+          .where((event) => event['kind'] == 'stat_stage_change')
+          .toList(growable: false);
+      expect(statEvents, hasLength(1));
+      expect(statEvents.single['stat'], 'defense');
+      expect(statEvents.single['amount'], 2);
+    });
+
     test('prints a recoil scenario with target and user damage', () async {
       final lines = <String>[];
       final exitCode = await PsdkBattleCli(

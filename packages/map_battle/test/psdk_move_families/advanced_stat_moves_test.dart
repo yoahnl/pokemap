@@ -126,14 +126,204 @@ void main() {
       expect(opponent.statStages.valueOf('defense'), 3);
       expect(_statEvents(result), hasLength(2));
     });
+
+    test('s_acupressure raises one random increasable target stat by two', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'acupressure',
+          battleEngineMethod: 's_acupressure',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          target: PsdkBattleMoveTarget.user,
+        ),
+        genericSeed: 1,
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.statStages.valueOf('defense'), 2);
+      expect(_statEvents(result), hasLength(1));
+      expect(_statEvents(result).single.stat, 'defense');
+    });
+
+    test('s_clangorous_soul spends one third max HP and boosts five stats', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'clangorous_soul',
+          battleEngineMethod: 's_clangorous_soul',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          target: PsdkBattleMoveTarget.user,
+        ),
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.currentHp, 67);
+      expect(player.statStages.valueOf('attack'), 1);
+      expect(player.statStages.valueOf('defense'), 1);
+      expect(player.statStages.valueOf('specialAttack'), 1);
+      expect(player.statStages.valueOf('specialDefense'), 1);
+      expect(player.statStages.valueOf('speed'), 1);
+      expect(_damage(result, moveId: 'clangorous_soul'), 33);
+      expect(_statEvents(result), hasLength(5));
+    });
+
+    test('s_curse boosts non-ghost users and lowers speed', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'curse',
+          battleEngineMethod: 's_curse',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          target: PsdkBattleMoveTarget.user,
+        ),
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.statStages.valueOf('speed'), -1);
+      expect(player.statStages.valueOf('attack'), 1);
+      expect(player.statStages.valueOf('defense'), 1);
+      expect(_statEvents(result), hasLength(3));
+    });
+
+    test('s_curse spends half HP and marks the target for ghost users', () {
+      final result = _runMove(
+        playerTypes: const PsdkBattleTypes(primary: 'ghost'),
+        playerMove: _move(
+          id: 'curse',
+          battleEngineMethod: 's_curse',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+        ),
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+
+      expect(player.currentHp, 50);
+      expect(opponent.effects.contains('curse'), isTrue);
+      expect(_damage(result, moveId: 'curse'), 50);
+      expect(_statEvents(result), isEmpty);
+    });
+
+    test('s_power_swap swaps attack and special attack stages', () {
+      final result = _runMove(
+        playerStatStages: PsdkBattleStatStages(
+          values: const <String, int>{
+            'attack': 3,
+            'specialAttack': -2,
+            'defense': 1,
+          },
+        ),
+        opponentStatStages: PsdkBattleStatStages(
+          values: const <String, int>{
+            'attack': -1,
+            'specialAttack': 4,
+            'speed': 2,
+          },
+        ),
+        playerMove: _move(
+          id: 'power_swap',
+          battleEngineMethod: 's_power_swap',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+        ),
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+
+      expect(player.statStages.valueOf('attack'), -1);
+      expect(player.statStages.valueOf('specialAttack'), 4);
+      expect(player.statStages.valueOf('defense'), 1);
+      expect(opponent.statStages.valueOf('attack'), 3);
+      expect(opponent.statStages.valueOf('specialAttack'), -2);
+      expect(opponent.statStages.valueOf('speed'), 2);
+      expect(_statEvents(result), hasLength(4));
+    });
+
+    test('s_guard_swap swaps defense and special defense stages', () {
+      final result = _runMove(
+        playerStatStages: PsdkBattleStatStages(
+          values: const <String, int>{'defense': 2, 'specialDefense': -1},
+        ),
+        opponentStatStages: PsdkBattleStatStages(
+          values: const <String, int>{'defense': -3, 'specialDefense': 5},
+        ),
+        playerMove: _move(
+          id: 'guard_swap',
+          battleEngineMethod: 's_guard_swap',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+        ),
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+
+      expect(player.statStages.valueOf('defense'), -3);
+      expect(player.statStages.valueOf('specialDefense'), 5);
+      expect(opponent.statStages.valueOf('defense'), 2);
+      expect(opponent.statStages.valueOf('specialDefense'), -1);
+      expect(_statEvents(result), hasLength(4));
+    });
+
+    test('s_heart_swap swaps all stage stats', () {
+      final result = _runMove(
+        playerStatStages: PsdkBattleStatStages(
+          values: const <String, int>{
+            'attack': 1,
+            'defense': 2,
+            'specialAttack': 3,
+            'specialDefense': 4,
+            'speed': 5,
+            'accuracy': 6,
+            'evasion': -1,
+          },
+        ),
+        opponentStatStages: PsdkBattleStatStages(
+          values: const <String, int>{
+            'attack': -1,
+            'defense': -2,
+            'specialAttack': -3,
+            'specialDefense': -4,
+            'speed': -5,
+            'accuracy': -6,
+            'evasion': 1,
+          },
+        ),
+        playerMove: _move(
+          id: 'heart_swap',
+          battleEngineMethod: 's_heart_swap',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+        ),
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+
+      expect(player.statStages.valueOf('attack'), -1);
+      expect(player.statStages.valueOf('defense'), -2);
+      expect(player.statStages.valueOf('specialAttack'), -3);
+      expect(player.statStages.valueOf('specialDefense'), -4);
+      expect(player.statStages.valueOf('speed'), -5);
+      expect(player.statStages.valueOf('accuracy'), -6);
+      expect(player.statStages.valueOf('evasion'), 1);
+      expect(opponent.statStages.valueOf('attack'), 1);
+      expect(opponent.statStages.valueOf('defense'), 2);
+      expect(opponent.statStages.valueOf('specialAttack'), 3);
+      expect(opponent.statStages.valueOf('specialDefense'), 4);
+      expect(opponent.statStages.valueOf('speed'), 5);
+      expect(opponent.statStages.valueOf('accuracy'), 6);
+      expect(opponent.statStages.valueOf('evasion'), -1);
+      expect(_statEvents(result), hasLength(14));
+    });
   });
 }
 
 PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
+  PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
   PsdkBattleStatStages? playerStatStages,
   PsdkBattleStatStages? opponentStatStages,
+  int genericSeed = 4,
 }) {
   final engine = PsdkBattleEngine(
     setup: PsdkBattleSetup.singles(
@@ -141,6 +331,7 @@ PsdkBattleTurnResult _runMove({
         id: 'player',
         speed: 100,
         move: playerMove,
+        types: playerTypes,
         statStages: playerStatStages,
       ),
       opponent: _combatant(
@@ -153,11 +344,11 @@ PsdkBattleTurnResult _runMove({
         ),
         statStages: opponentStatStages,
       ),
-      rngSeeds: const PsdkBattleRngSeeds(
+      rngSeeds: PsdkBattleRngSeeds(
         moveDamage: 1,
         moveCritical: 99999,
         moveAccuracy: 3,
-        generic: 4,
+        generic: genericSeed,
       ),
       field: field,
     ),
@@ -169,6 +360,7 @@ PsdkBattleCombatantSetup _combatant({
   required String id,
   required int speed,
   required PsdkBattleMoveData move,
+  PsdkBattleTypes types = const PsdkBattleTypes(primary: 'normal'),
   PsdkBattleStatStages? statStages,
 }) {
   return PsdkBattleCombatantSetup(
@@ -178,7 +370,7 @@ PsdkBattleCombatantSetup _combatant({
     level: 20,
     maxHp: 100,
     currentHp: 100,
-    types: const PsdkBattleTypes(primary: 'normal'),
+    types: types,
     stats: PsdkBattleStats(
       attack: 50,
       defense: 50,
