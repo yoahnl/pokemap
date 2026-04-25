@@ -7,8 +7,8 @@ Total registered methods: 330
 | Status | Count |
 | --- | ---: |
 | `ported` | 21 |
-| `partial` | 46 |
-| `missing` | 263 |
+| `partial` | 51 |
+| `missing` | 258 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
 | --- | --- | --- | --- | --- | --- |
@@ -93,7 +93,7 @@ Total registered methods: 330
 | `s_feint` | `Feint` | `10 Move/2 Definitions/300 Feint.rb` | `TODO` | `missing` | `-` |
 | `s_fell_stinger` | `FellStinger` | `10 Move/2 Definitions/300 FellStinger.rb` | `TODO` | `missing` | `-` |
 | `s_fickle_beam` | `FickleBeam` | `10 Move/2 Definitions/300 FickleBeam.rb` | `TODO` | `missing` | `-` |
-| `s_fillet_away` | `FilletAway` | `10 Move/2 Definitions/300 BellyDrum.rb` | `TODO` | `missing` | `-` |
+| `s_fillet_away` | `FilletAway` | `10 Move/2 Definitions/300 BellyDrum.rb` | `RecoveryStatMoveBehavior.filletAway` | `partial` | `handler_damage`, `handler_stat`, `ability`, `effects` |
 | `s_final_gambit` | `FinalGambit` | `10 Move/2 Definitions/300 FinalGambit.rb` | `DirectHpMoveBehavior.finalGambit` | `partial` | `faint_process`, `history` |
 | `s_fishious_rend` | `FishiousRend` | `10 Move/2 Definitions/300 FishiousRend.rb` | `TODO` | `missing` | `-` |
 | `s_fixed_damage` | `FixedDamages` | `10 Move/2 Definitions/300 FixedDamages.rb` | `FixedDamageMoveBehavior.psdkFixedDamage` | `ported` | `-` |
@@ -125,14 +125,14 @@ Total registered methods: 330
 | `s_grassy_glide` | `GrassyGlide` | `10 Move/2 Definitions/300 TerrainDamageMoves.rb` | `TODO` | `missing` | `terrain`, `grounded`, `action_order` |
 | `s_grav_apple` | `GravApple` | `10 Move/2 Definitions/300 GravApple.rb` | `TODO` | `missing` | `-` |
 | `s_gravity` | `Gravity` | `10 Move/2 Definitions/300 Gravity.rb` | `TODO` | `missing` | `-` |
-| `s_growth` | `Growth` | `10 Move/2 Definitions/300 Growth.rb` | `TODO` | `missing` | `-` |
+| `s_growth` | `Growth` | `10 Move/2 Definitions/300 Growth.rb` | `AdvancedStatMoveBehavior.growth` | `partial` | `handler_stat`, `weather`, `effects`, `ability` |
 | `s_grudge` | `Grudge` | `10 Move/2 Definitions/300 Grudge.rb` | `TODO` | `missing` | `-` |
 | `s_guard_split` | `GuardSplit` | `10 Move/2 Definitions/300 Stages split moves.rb` | `TODO` | `missing` | `-` |
 | `s_guard_swap` | `GuardSwap` | `10 Move/2 Definitions/300 Stages swap moves.rb` | `TODO` | `missing` | `-` |
 | `s_gyro_ball` | `GyroBall` | `10 Move/2 Definitions/300 GyroBall.rb` | `VariablePowerMoveBehavior.gyroBall` | `partial` | `-` |
 | `s_happy_hour` | `HappyHour` | `10 Move/2 Definitions/300 HappyHour.rb` | `TODO` | `missing` | `-` |
 | `s_hard_press` | `HardPress` | `10 Move/2 Definitions/300 WringOut.rb` | `VariablePowerMoveBehavior.hardPress` | `ported` | `-` |
-| `s_haze` | `Haze` | `10 Move/2 Definitions/300 Haze.rb` | `TODO` | `missing` | `-` |
+| `s_haze` | `Haze` | `10 Move/2 Definitions/300 Haze.rb` | `AdvancedStatMoveBehavior.haze` | `partial` | `handler_stat`, `effects`, `ability`, `targeting_multi` |
 | `s_heal` | `HealMove` | `10 Move/1 Mechanics/105 Heal.rb` | `HealMoveBehavior` | `partial` | `handler_damage`, `effects`, `ability` |
 | `s_heal_bell` | `HealBell` | `10 Move/2 Definitions/300 HealBell.rb` | `TODO` | `missing` | `-` |
 | `s_heal_block` | `HealBlock` | `10 Move/2 Definitions/300 HealBlock.rb` | `TODO` | `missing` | `-` |
@@ -218,7 +218,7 @@ Total registered methods: 330
 | `s_pre_attack_base` | `PreAttackBase` | `10 Move/2 Definitions/300 PreAttackMoves.rb` | `TODO` | `missing` | `-` |
 | `s_present` | `Present` | `10 Move/2 Definitions/300 Present.rb` | `TODO` | `missing` | `-` |
 | `s_protect` | `Protect` | `10 Move/2 Definitions/300 Protect.rb` | `StaticBasicMoveRegistry.s_protect` | `partial` | `-` |
-| `s_psych_up` | `PsychUp` | `10 Move/2 Definitions/300 PsychUp.rb` | `TODO` | `missing` | `-` |
+| `s_psych_up` | `PsychUp` | `10 Move/2 Definitions/300 PsychUp.rb` | `AdvancedStatMoveBehavior.psychUp` | `partial` | `handler_stat`, `effects`, `ability` |
 | `s_psychic_noise` | `PsychicNoise` | `10 Move/2 Definitions/300 PsychicNoise.rb` | `TODO` | `missing` | `-` |
 | `s_psycho_shift` | `PsychoShift` | `10 Move/2 Definitions/300 PsychoShift.rb` | `TODO` | `missing` | `-` |
 | `s_psyshock` | `CustomStatsBased` | `10 Move/2 Definitions/300 CustomStatsBased.rb` | `CustomStatSourceMoveBehavior.psyshock` | `partial` | `handler_damage`, `ability`, `item` |
@@ -317,7 +317,7 @@ Total registered methods: 330
 | `s_throat_chop` | `ThroatChop` | `10 Move/2 Definitions/300 ThroatChop.rb` | `TODO` | `missing` | `-` |
 | `s_thunder` | `Thunder` | `10 Move/2 Definitions/300 Thunder.rb` | `TODO` | `missing` | `weather` |
 | `s_tidy_up` | `TidyUp` | `10 Move/2 Definitions/300 TidyUp.rb` | `TODO` | `missing` | `-` |
-| `s_topsy_turvy` | `TopsyTurvy` | `10 Move/2 Definitions/300 TopsyTurvy.rb` | `TODO` | `missing` | `-` |
+| `s_topsy_turvy` | `TopsyTurvy` | `10 Move/2 Definitions/300 TopsyTurvy.rb` | `AdvancedStatMoveBehavior.topsyTurvy` | `partial` | `handler_stat`, `effects`, `ability` |
 | `s_torment` | `Torment` | `10 Move/2 Definitions/300 Torment.rb` | `TODO` | `missing` | `-` |
 | `s_toxic_spike` | `ToxicSpikes` | `10 Move/2 Definitions/300 Toxic_Spikes.rb` | `TODO` | `missing` | `-` |
 | `s_toxic_thread` | `ToxicThread` | `10 Move/2 Definitions/300 ToxicThread.rb` | `TODO` | `missing` | `-` |

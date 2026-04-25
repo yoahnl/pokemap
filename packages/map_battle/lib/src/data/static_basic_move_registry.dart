@@ -1,3 +1,4 @@
+import '../domain/move/behaviors/advanced_stat_move_behavior.dart';
 import '../domain/move/behaviors/battle_move_behavior_support.dart';
 import '../domain/move/behaviors/basic_damage_specialization_move_behavior.dart';
 import '../domain/move/behaviors/custom_stat_source_move_behavior.dart';
@@ -80,7 +81,12 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     const HitThenCureStatusMoveBehavior.sparklingAria(),
     const RecoveryStatMoveBehavior.rest(),
     const RecoveryStatMoveBehavior.bellyDrum(),
+    const RecoveryStatMoveBehavior.filletAway(),
     const RecoveryStatMoveBehavior.strengthSap(),
+    const AdvancedStatMoveBehavior.growth(),
+    const AdvancedStatMoveBehavior.haze(),
+    const AdvancedStatMoveBehavior.psychUp(),
+    const AdvancedStatMoveBehavior.topsyTurvy(),
     const SpecialPowerMoveBehavior.acrobatics(),
     const SpecialPowerMoveBehavior.storedPower(),
     const MindBlownMoveBehavior.mindBlown(),

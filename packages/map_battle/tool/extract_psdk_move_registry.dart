@@ -177,6 +177,26 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'RecoveryStatMoveBehavior.strengthSap',
     status: _PsdkPortStatus.partial,
   ),
+  's_fillet_away': _KnownDartBehavior(
+    dartBehavior: 'RecoveryStatMoveBehavior.filletAway',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_growth': _KnownDartBehavior(
+    dartBehavior: 'AdvancedStatMoveBehavior.growth',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_haze': _KnownDartBehavior(
+    dartBehavior: 'AdvancedStatMoveBehavior.haze',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_psych_up': _KnownDartBehavior(
+    dartBehavior: 'AdvancedStatMoveBehavior.psychUp',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_topsy_turvy': _KnownDartBehavior(
+    dartBehavior: 'AdvancedStatMoveBehavior.topsyTurvy',
+    status: _PsdkPortStatus.partial,
+  ),
   // Acrobatics' no-item branch is executable. Keep it partial until consumed
   // item and Gem item-effect parity is covered in the item hook matrix.
   's_acrobatics': _KnownDartBehavior(
@@ -540,6 +560,34 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
     _PsdkMoveDependency.ability,
     _PsdkMoveDependency.item,
     _PsdkMoveDependency.effects,
+  },
+  's_fillet_away': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.handlerStat,
+    _PsdkMoveDependency.ability,
+    _PsdkMoveDependency.effects,
+  },
+  's_growth': {
+    _PsdkMoveDependency.handlerStat,
+    _PsdkMoveDependency.weather,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.ability,
+  },
+  's_haze': {
+    _PsdkMoveDependency.handlerStat,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.ability,
+    _PsdkMoveDependency.targetingMulti,
+  },
+  's_psych_up': {
+    _PsdkMoveDependency.handlerStat,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.ability,
+  },
+  's_topsy_turvy': {
+    _PsdkMoveDependency.handlerStat,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.ability,
   },
   's_acrobatics': {
     _PsdkMoveDependency.item,

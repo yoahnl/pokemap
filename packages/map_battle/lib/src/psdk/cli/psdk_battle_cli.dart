@@ -76,9 +76,9 @@ class PsdkBattleCli {
             'miss, super_effective, critical, secondary_effect, pp_empty, '
             'generic_status_stat, prevented, protect, fixed_damage, '
             'multi_hit, advanced_multi_hit, basic_specialization, direct_hp, '
-            'healing, status_cure, recovery_stat, recoil, mind_blown, '
-            'explosion, terrain_boosting, variable_power, custom_stat, '
-            'weight_power, damp_ability, or loaded_dice.',
+            'healing, status_cure, recovery_stat, advanced_stat, recoil, '
+            'mind_blown, explosion, terrain_boosting, variable_power, '
+            'custom_stat, weight_power, damp_ability, or loaded_dice.',
           );
         }
         scenario = parsed;
@@ -161,6 +161,7 @@ enum _PsdkBattleCliScenario {
   healing,
   statusCure,
   recoveryStat,
+  advancedStat,
   recoil,
   mindBlown,
   explosion,
@@ -217,6 +218,7 @@ _PsdkBattleCliScenario? _parseScenario(String value) {
     'healing' || 'heal' => _PsdkBattleCliScenario.healing,
     'status_cure' || 'status-cure' => _PsdkBattleCliScenario.statusCure,
     'recovery_stat' || 'recovery-stat' => _PsdkBattleCliScenario.recoveryStat,
+    'advanced_stat' || 'advanced-stat' => _PsdkBattleCliScenario.advancedStat,
     'recoil' => _PsdkBattleCliScenario.recoil,
     'mind_blown' || 'mind-blown' => _PsdkBattleCliScenario.mindBlown,
     'explosion' ||
@@ -707,6 +709,46 @@ _PsdkBattleCliScenarioConfig _scenarioConfig(
               PsdkBattleMoveStageMod(
                 stat: 'attack',
                 stages: -1,
+                chance: 100,
+              ),
+            ],
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+        ),
+        turnLimit: 1,
+        mustFinish: false,
+      ),
+    _PsdkBattleCliScenario.advancedStat => _PsdkBattleCliScenarioConfig(
+        setup: _singleTurnSetup(
+          playerTypes: const PsdkBattleTypes(primary: 'normal'),
+          opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+          field: const PsdkBattleFieldState(
+            weather: PsdkBattleWeatherState(
+              id: PsdkBattleWeatherId.sunny,
+              remainingTurns: 5,
+            ),
+          ),
+          playerMove: _move(
+            id: 'growth',
+            type: 'normal',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            battleEngineMethod: 's_growth',
+            target: PsdkBattleMoveTarget.user,
+            stageMods: const <PsdkBattleMoveStageMod>[
+              PsdkBattleMoveStageMod(
+                stat: 'attack',
+                stages: 1,
+                chance: 100,
+              ),
+              PsdkBattleMoveStageMod(
+                stat: 'specialAttack',
+                stages: 1,
                 chance: 100,
               ),
             ],

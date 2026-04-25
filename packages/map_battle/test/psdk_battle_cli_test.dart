@@ -483,6 +483,33 @@ void main() {
       );
     });
 
+    test('prints an advanced-stat scenario for weather-aware Growth', () async {
+      final lines = <String>[];
+      final exitCode = await PsdkBattleCli(
+        stdout: lines.add,
+        stderr: fail,
+      ).run(const <String>[
+        '--scenario',
+        'advanced_stat',
+        '--format',
+        'json',
+      ]);
+
+      expect(exitCode, 0);
+      final payload = jsonDecode(lines.single) as Map<String, dynamic>;
+      expect(payload['outcome'], 'ongoing');
+      expect(payload['weather'], 'sunny');
+      expect(payload['playerHp'], 100);
+      expect(payload['opponentHp'], 100);
+
+      final statEvents = (payload['events'] as List<dynamic>)
+          .cast<Map<String, dynamic>>()
+          .where((event) => event['kind'] == 'stat_stage_change')
+          .toList(growable: false);
+      expect(statEvents, hasLength(2));
+      expect(statEvents.map((event) => event['amount']), everyElement(2));
+    });
+
     test('prints a recoil scenario with target and user damage', () async {
       final lines = <String>[];
       final exitCode = await PsdkBattleCli(

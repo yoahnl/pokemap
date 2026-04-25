@@ -393,6 +393,11 @@ void main() {
         ]),
       );
       expect(
+        byMethod['s_fillet_away']!.dartBehavior,
+        'RecoveryStatMoveBehavior.filletAway',
+      );
+      expect(byMethod['s_fillet_away']!.status, PsdkPortStatus.partial);
+      expect(
         byMethod['s_smelling_salt']!.dartBehavior,
         'HitThenCureStatusMoveBehavior.smellingSalt',
       );
@@ -428,6 +433,43 @@ void main() {
       expect(
         byMethod['s_stored_power']!.dartBehavior,
         'SpecialPowerMoveBehavior.storedPower',
+      );
+    });
+
+    test('tracks the advanced stat-stage move slice', () {
+      final byMethod = {
+        for (final entry in psdkMoveRegistryManifest)
+          entry.battleEngineMethod: entry,
+      };
+
+      expect(byMethod['s_growth']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_growth']!.dartBehavior,
+        'AdvancedStatMoveBehavior.growth',
+      );
+      expect(byMethod['s_haze']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_haze']!.dartBehavior,
+        'AdvancedStatMoveBehavior.haze',
+      );
+      expect(byMethod['s_psych_up']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_psych_up']!.dartBehavior,
+        'AdvancedStatMoveBehavior.psychUp',
+      );
+      expect(byMethod['s_topsy_turvy']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_topsy_turvy']!.dartBehavior,
+        'AdvancedStatMoveBehavior.topsyTurvy',
+      );
+      expect(
+        byMethod['s_haze']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerStat,
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.ability,
+          PsdkMoveDependency.targetingMulti,
+        ]),
       );
     });
 

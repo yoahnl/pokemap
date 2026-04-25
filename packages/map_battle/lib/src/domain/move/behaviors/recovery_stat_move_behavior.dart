@@ -11,6 +11,7 @@ import 'battle_move_behavior_support.dart';
 enum _RecoveryStatKind {
   rest,
   bellyDrum,
+  filletAway,
   strengthSap,
 }
 
@@ -29,6 +30,10 @@ final class RecoveryStatMoveBehavior
   const RecoveryStatMoveBehavior.bellyDrum()
       : battleEngineMethod = 's_bellydrum',
         _kind = _RecoveryStatKind.bellyDrum;
+
+  const RecoveryStatMoveBehavior.filletAway()
+      : battleEngineMethod = 's_fillet_away',
+        _kind = _RecoveryStatKind.filletAway;
 
   const RecoveryStatMoveBehavior.strengthSap()
       : battleEngineMethod = 's_strength_sap',
@@ -65,6 +70,14 @@ final class RecoveryStatMoveBehavior
               reason: BattleMoveFailureReason.unusableByUser,
             )
           : null,
+      _RecoveryStatKind.filletAway => user.currentHp * 2 <= user.maxHp ||
+              _offensiveFilletStats.every(
+                (stat) => user.statStages.valueOf(stat) >= 6,
+              )
+          ? const BattleMoveUserPreventionResult(
+              reason: BattleMoveFailureReason.unusableByUser,
+            )
+          : null,
       _RecoveryStatKind.strengthSap =>
         context.state.battlerAt(context.target).statStages.valueOf('attack') <=
                 -6
@@ -85,6 +98,7 @@ final class RecoveryStatMoveBehavior
     return switch (_kind) {
       _RecoveryStatKind.rest => _resolveRest(context),
       _RecoveryStatKind.bellyDrum => _resolveBellyDrum(context),
+      _RecoveryStatKind.filletAway => _resolveFilletAway(context),
       _RecoveryStatKind.strengthSap => _resolveStrengthSap(context),
     };
   }
@@ -210,6 +224,60 @@ final class RecoveryStatMoveBehavior
     );
   }
 
+  BattleMoveBehaviorResolution _resolveFilletAway(
+    BattleMoveBehaviorContext context,
+  ) {
+    final prepared = prepareBattleMove(context);
+    if (!prepared.shouldExecuteBehavior) {
+      return prepared.toResolution();
+    }
+
+    var state = prepared.state;
+    var rng = prepared.rng;
+    final events = <PsdkBattleEvent>[...prepared.events];
+    final targetSlot = prepared.psdkTargets.single;
+    final target = state.battlerAt(targetSlot);
+    final damage = applyDirectDamage(
+      state: state,
+      user: context.user,
+      target: targetSlot,
+      moveId: context.move.id,
+      rng: rng,
+      turn: context.turn,
+      amount: target.maxHp ~/ 2,
+    );
+    state = damage.state;
+    rng = damage.rng;
+    if (damage.event != null) {
+      events.add(damage.event!);
+    }
+
+    for (final statName in _offensiveFilletStats) {
+      final stat = const BattleStatChangeHandler().applyStatChange(
+        context: BattleHandlerContext(
+          state: state,
+          rng: rng,
+          turn: context.turn,
+          user: context.user,
+        ),
+        target: targetSlot,
+        stat: statName,
+        stages: 2,
+      );
+      state = stat.state;
+      rng = stat.rng;
+      if (stat.applied) {
+        events.addAll(stat.events);
+      }
+    }
+
+    return BattleMoveBehaviorResolution(
+      state: state,
+      rng: rng,
+      events: events,
+    );
+  }
+
   BattleMoveBehaviorResolution _resolveStrengthSap(
     BattleMoveBehaviorContext context,
   ) {
@@ -276,6 +344,12 @@ final class RecoveryStatMoveBehavior
     );
   }
 }
+
+const _offensiveFilletStats = <String>[
+  'attack',
+  'specialAttack',
+  'speed',
+];
 
 bool _hasAbilityId(String? abilityId, Set<String> expectedIds) {
   if (abilityId == null) {

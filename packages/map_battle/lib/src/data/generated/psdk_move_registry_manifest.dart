@@ -695,9 +695,14 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_fillet_away',
     rubyClass: 'FilletAway',
     rubyPath: '10 Move/2 Definitions/300 BellyDrum.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'RecoveryStatMoveBehavior.filletAway',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerDamage,
+      PsdkMoveDependency.handlerStat,
+      PsdkMoveDependency.ability,
+      PsdkMoveDependency.effects
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_final_gambit',
@@ -967,9 +972,14 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_growth',
     rubyClass: 'Growth',
     rubyPath: '10 Move/2 Definitions/300 Growth.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'AdvancedStatMoveBehavior.growth',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerStat,
+      PsdkMoveDependency.weather,
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.ability
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_grudge',
@@ -1023,9 +1033,14 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_haze',
     rubyClass: 'Haze',
     rubyPath: '10 Move/2 Definitions/300 Haze.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'AdvancedStatMoveBehavior.haze',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerStat,
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.ability,
+      PsdkMoveDependency.targetingMulti
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_heal',
@@ -1753,9 +1768,13 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_psych_up',
     rubyClass: 'PsychUp',
     rubyPath: '10 Move/2 Definitions/300 PsychUp.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'AdvancedStatMoveBehavior.psychUp',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerStat,
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.ability
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_psychic_noise',
@@ -2619,9 +2638,13 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_topsy_turvy',
     rubyClass: 'TopsyTurvy',
     rubyPath: '10 Move/2 Definitions/300 TopsyTurvy.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'AdvancedStatMoveBehavior.topsyTurvy',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerStat,
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.ability
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_torment',
