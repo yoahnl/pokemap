@@ -51,7 +51,61 @@ void main() {
           next.isTerrainActive(PsdkBattleTerrainId.electricTerrain), isFalse);
     });
 
-    test('a regular move preserves the seeded field state', () {
+    test('clear and tick create new field snapshots', () {
+      const field = PsdkBattleFieldState(
+        terrain: PsdkBattleTerrainState(
+          id: PsdkBattleTerrainId.psychicTerrain,
+          remainingTurns: 2,
+        ),
+        weather: PsdkBattleWeatherState(
+          id: PsdkBattleWeatherId.rain,
+          remainingTurns: 1,
+        ),
+      );
+
+      final ticked = field.tickEndTurn();
+
+      expect(ticked.terrain?.id, PsdkBattleTerrainId.psychicTerrain);
+      expect(ticked.terrain?.remainingTurns, 1);
+      expect(ticked.weather, isNull);
+      expect(field.clearTerrain().terrain, isNull);
+      expect(field.clearWeather().weather, isNull);
+    });
+
+    test('Air Lock and Cloud Nine suppress weather effects without clearing it',
+        () {
+      final state = PsdkBattleState(
+        field: const PsdkBattleFieldState(
+          weather: PsdkBattleWeatherState(
+            id: PsdkBattleWeatherId.rain,
+            remainingTurns: 5,
+          ),
+        ),
+        combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+          psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'player',
+              speed: 100,
+              abilityId: 'air_lock',
+              move: _move(id: 'tackle', power: 40),
+            ),
+          ),
+          psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'opponent',
+              speed: 1,
+              move: _move(id: 'splash', power: 0),
+            ),
+          ),
+        },
+      );
+
+      expect(state.field.isWeatherActive(PsdkBattleWeatherId.rain), isTrue);
+      expect(state.weatherEffectsSuppressed, isTrue);
+      expect(state.isWeatherEffectActive(PsdkBattleWeatherId.rain), isFalse);
+    });
+
+    test('a regular move advances seeded field durations at end turn', () {
       final result = _submitPlayerMove(
         _move(
           id: 'tackle',
@@ -70,9 +124,9 @@ void main() {
       );
 
       expect(result.state.field.terrain?.id, PsdkBattleTerrainId.grassyTerrain);
-      expect(result.state.field.terrain?.remainingTurns, 3);
+      expect(result.state.field.terrain?.remainingTurns, 2);
       expect(result.state.field.weather?.id, PsdkBattleWeatherId.sandstorm);
-      expect(result.state.field.weather?.remainingTurns, 4);
+      expect(result.state.field.weather?.remainingTurns, 3);
     });
   });
 }
@@ -125,6 +179,7 @@ PsdkBattleCombatantSetup _combatant({
   required String id,
   required int speed,
   required PsdkBattleMoveData move,
+  String? abilityId,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -142,6 +197,7 @@ PsdkBattleCombatantSetup _combatant({
       speed: speed,
     ),
     moves: <PsdkBattleMoveData>[move],
+    abilityId: abilityId,
   );
 }
 

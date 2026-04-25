@@ -3,6 +3,7 @@ import 'psdk_battle_field.dart';
 import 'psdk_battle_outcome.dart';
 import 'psdk_battle_setup.dart';
 import 'psdk_battle_slots.dart';
+import '../../domain/effect/ability/ability_effect.dart';
 
 /// Current observable state for the PSDK lane.
 class PsdkBattleState {
@@ -11,14 +12,20 @@ class PsdkBattleState {
     this.field = const PsdkBattleFieldState(),
     this.outcome,
   }) : _combatants = Map<PsdkBattleSlotRef, PsdkBattleCombatant>.unmodifiable(
-          combatants,
+          _hydrateCombatantAbilityEffects(combatants),
         );
 
   factory PsdkBattleState.fromSetup(PsdkBattleSetup setup) {
     return PsdkBattleState(
       combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
-        psdkPlayerSlot: PsdkBattleCombatant.fromSetup(setup.player),
-        psdkOpponentSlot: PsdkBattleCombatant.fromSetup(setup.opponent),
+        psdkPlayerSlot:
+            PsdkBattleCombatant.fromSetup(setup.player).withAbilityEffect(
+          psdkPlayerSlot,
+        ),
+        psdkOpponentSlot:
+            PsdkBattleCombatant.fromSetup(setup.opponent).withAbilityEffect(
+          psdkOpponentSlot,
+        ),
       },
       field: setup.field,
     );
@@ -75,4 +82,56 @@ class PsdkBattleState {
       outcome: outcome ?? this.outcome,
     );
   }
+
+  List<PsdkBattleSlotRef> aliveSlots() {
+    final slots = <PsdkBattleSlotRef>[
+      for (final entry in _combatants.entries)
+        if (!entry.value.isFainted) entry.key,
+    ];
+    slots.sort(_compareSlots);
+    return List<PsdkBattleSlotRef>.unmodifiable(slots);
+  }
+
+  List<PsdkBattleSlotRef> foesOf(PsdkBattleSlotRef user) {
+    return List<PsdkBattleSlotRef>.unmodifiable(
+      aliveSlots().where((slot) => slot.bank != user.bank),
+    );
+  }
+
+  List<PsdkBattleSlotRef> alliesOf(PsdkBattleSlotRef user) {
+    return List<PsdkBattleSlotRef>.unmodifiable(
+      aliveSlots().where((slot) => slot.bank == user.bank && slot != user),
+    );
+  }
+
+  bool get weatherEffectsSuppressed {
+    return _combatants.values.any(
+      (battler) => !battler.isFainted && battler.abilityEffects.any(
+            (effect) => effect.suppressesWeatherEffects,
+          ),
+    );
+  }
+
+  bool isWeatherEffectActive(PsdkBattleWeatherId id) {
+    return !weatherEffectsSuppressed && field.isWeatherActive(id);
+  }
+}
+
+int _compareSlots(PsdkBattleSlotRef left, PsdkBattleSlotRef right) {
+  final bank = left.bank.compareTo(right.bank);
+  if (bank != 0) {
+    return bank;
+  }
+  return left.position.compareTo(right.position);
+}
+
+Map<PsdkBattleSlotRef, PsdkBattleCombatant> _hydrateCombatantAbilityEffects(
+  Map<PsdkBattleSlotRef, PsdkBattleCombatant> combatants,
+) {
+  return <PsdkBattleSlotRef, PsdkBattleCombatant>{
+    for (final entry in combatants.entries)
+      entry.key: entry.value
+          .withAbilityEffect(entry.key)
+          .withItemEffect(entry.key),
+  };
 }

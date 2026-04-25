@@ -1,3 +1,4 @@
+import 'psdk_battle_field.dart';
 import 'psdk_battle_move.dart';
 import 'psdk_battle_outcome.dart';
 import 'psdk_battle_slots.dart';
@@ -240,6 +241,75 @@ class PsdkBattleImmuneEvent extends PsdkBattleEvent {
         'user': user.toJson(),
         'target': target.toJson(),
         'moveId': moveId,
+      };
+}
+
+class PsdkBattleWeatherChangedEvent extends PsdkBattleEvent {
+  const PsdkBattleWeatherChangedEvent({
+    this.turn,
+    required this.weather,
+    this.remainingTurns,
+    this.reason = 'set',
+  }) : super(kind: 'weather_changed');
+
+  final int? turn;
+  final PsdkBattleWeatherId? weather;
+  final int? remainingTurns;
+  final String reason;
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+        'kind': kind,
+        if (turn != null) 'turn': turn,
+        'weather': weather?.jsonName,
+        if (remainingTurns != null) 'remainingTurns': remainingTurns,
+        'reason': reason,
+      };
+}
+
+class PsdkBattleTerrainChangedEvent extends PsdkBattleEvent {
+  const PsdkBattleTerrainChangedEvent({
+    this.turn,
+    required this.terrain,
+    this.remainingTurns,
+    this.reason = 'set',
+  }) : super(kind: 'terrain_changed');
+
+  final int? turn;
+  final PsdkBattleTerrainId? terrain;
+  final int? remainingTurns;
+  final String reason;
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+        'kind': kind,
+        if (turn != null) 'turn': turn,
+        'terrain': terrain?.jsonName,
+        if (remainingTurns != null) 'remainingTurns': remainingTurns,
+        'reason': reason,
+      };
+}
+
+class PsdkBattleItemEvent extends PsdkBattleEvent {
+  const PsdkBattleItemEvent.consumed({
+    this.turn,
+    required this.user,
+    required this.itemId,
+  })  : action = 'consumed',
+        super(kind: 'item_consumed');
+
+  final int? turn;
+  final PsdkBattleSlotRef user;
+  final String itemId;
+  final String action;
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+        'kind': kind,
+        if (turn != null) 'turn': turn,
+        'user': user.toJson(),
+        'itemId': itemId,
+        'action': action,
       };
 }
 

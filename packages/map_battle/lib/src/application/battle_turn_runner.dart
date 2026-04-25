@@ -1,14 +1,22 @@
 import '../domain/battle/battle_context.dart';
 import '../domain/battle/battle_outcome.dart';
 import '../domain/battle/battle_slot.dart';
+import '../domain/action/battle_action.dart';
+import '../domain/action/battle_action_decision_mapper.dart';
+import '../domain/action/battle_action_queue.dart';
 import '../domain/decision/battle_decision.dart';
+import '../domain/effect/ability/ability_effect.dart';
+import '../domain/handler/battle_end_turn_handler.dart';
+import '../domain/handler/battle_handler_context.dart';
+import '../domain/handler/battle_handler_result.dart';
+import '../domain/handler/battle_status_change_handler.dart';
 import '../domain/move/battle_move_data.dart';
+import '../domain/move/battle_move_history_recorder.dart';
 import '../domain/move/battle_move_prevention.dart';
 import '../domain/timeline/battle_timeline.dart';
 import '../domain/timeline/battle_timeline_builder.dart';
 import '../domain/timeline/battle_timeline_event.dart';
 import '../psdk/application/psdk_battle_move_behavior.dart';
-import '../psdk/domain/psdk_battle_move.dart';
 import '../psdk/domain/psdk_battle_slots.dart';
 
 /// Result of submitting one decision to [BattleTurnRunner].
@@ -42,6 +50,8 @@ final class BattleTurnRunner {
   final BattleContext _context;
   final PsdkBattleMoveBehaviorRegistry _moveBehaviorRegistry;
   final BattleMoveProcedureHooks _moveProcedureHooks;
+  static const BattleMoveHistoryRecorder _moveHistoryRecorder =
+      BattleMoveHistoryRecorder();
 
   BattleEngineTurnResult run(BattleDecision playerDecision) {
     if (!_context.canBattleContinue) {
@@ -57,16 +67,21 @@ final class BattleTurnRunner {
     final previousRng = _context.rng;
     final previousTurnNumber = _context.turnNumber;
 
-    final playerAction = _buildAction(
-      user: psdkPlayerSlot,
-      decision: playerDecision,
-    );
-    final opponentAction = _buildAction(
-      user: psdkOpponentSlot,
-      decision: const BattleDecision.fight(moveSlot: 0),
-    );
-    final actions = <_BattleResolvedAction>[playerAction, opponentAction]
-      ..sort(_compareActions);
+    const actionMapper = PsdkBattleActionDecisionMapper();
+    final actions = PsdkBattleActionQueue(
+      actions: <PsdkBattleAction>[
+        actionMapper.map(
+          state: _context.state,
+          user: psdkPlayerSlot,
+          decision: playerDecision,
+        ),
+        actionMapper.map(
+          state: _context.state,
+          user: psdkOpponentSlot,
+          decision: const BattleDecision.fight(moveSlot: 0),
+        ),
+      ],
+    ).ordered(rng: _context.rng);
 
     _context.beginTurn();
     final timeline = BattleTimelineBuilder()
@@ -75,6 +90,12 @@ final class BattleTurnRunner {
     try {
       for (var actionIndex = 0; actionIndex < actions.length; actionIndex++) {
         final action = actions[actionIndex];
+        if (action is! PsdkBattleFightAction) {
+          throw UnsupportedError(
+            'PSDK ${action.kind.name} actions need party/item topology before '
+            'they can execute.',
+          );
+        }
         if (!_context.canBattleContinue) {
           break;
         }
@@ -88,6 +109,67 @@ final class BattleTurnRunner {
         final moveBeforePp = user.moves[action.moveSlot];
         final historyTargets = <PsdkBattleSlotRef>[action.target];
         final cleanMoveBeforePp = BattleMoveDefinition.fromPsdk(moveBeforePp);
+        final statusPrevention = _resolveStatusUserPrevention(
+          action: action,
+          move: cleanMoveBeforePp,
+        );
+        if (statusPrevention != null) {
+          _context.applyStateAndRng(
+            nextState: statusPrevention.state,
+            nextRng: statusPrevention.rng,
+          );
+          timeline.addPsdkAll(statusPrevention.events);
+          if (statusPrevention.prevented) {
+            _recordMoveAttempt(
+              user: action.user,
+              moveId: moveBeforePp.id,
+              targets: historyTargets,
+            );
+            timeline.add(
+              BattleMoveFailedTimelineEvent(
+                turn: _context.turnNumber,
+                user: _fromPsdkSlot(action.user),
+                target: _fromPsdkSlot(action.target),
+                moveId: moveBeforePp.id,
+                reason: statusPrevention.reason.jsonName,
+              ),
+            );
+            _notifyMoveFailure(
+              user: action.user,
+              target: action.target,
+              move: cleanMoveBeforePp,
+              reason: statusPrevention.reason,
+            );
+            continue;
+          }
+        }
+        final abilityPrevention = _resolveAbilityUserPrevention(
+          action: action,
+          move: cleanMoveBeforePp,
+        );
+        if (abilityPrevention != null) {
+          _recordMoveAttempt(
+            user: action.user,
+            moveId: moveBeforePp.id,
+            targets: historyTargets,
+          );
+          timeline.add(
+            BattleMoveFailedTimelineEvent(
+              turn: _context.turnNumber,
+              user: _fromPsdkSlot(action.user),
+              target: _fromPsdkSlot(action.target),
+              moveId: moveBeforePp.id,
+              reason: abilityPrevention.jsonName,
+            ),
+          );
+          _notifyMoveFailure(
+            user: action.user,
+            target: action.target,
+            move: cleanMoveBeforePp,
+            reason: abilityPrevention,
+          );
+          continue;
+        }
         final userPrevention = _moveProcedureHooks.preventUser(
               BattleMoveUserPreventionContext(
                 state: _context.state,
@@ -233,7 +315,8 @@ final class BattleTurnRunner {
       rethrow;
     }
 
-    _clearTurnScopedEffects();
+    final endTurn = _resolveEndTurn();
+    timeline.addPsdkAll(endTurn.events);
     final publicState = BattlePublicState.fromContext(_context);
     return BattleEngineTurnResult(
       state: publicState,
@@ -245,38 +328,68 @@ final class BattleTurnRunner {
     );
   }
 
-  void _clearTurnScopedEffects() {
-    var nextState = _context.state;
-    var changed = false;
-    for (final entry in _context.state.combatants.entries) {
-      final battler = entry.value;
-      final clearedEffects = battler.effects.clearTurnScopedEffects();
-      if (identical(clearedEffects, battler.effects)) {
-        continue;
-      }
-      // Protect is intentionally the only turn-scoped PSDK effect in Lot 14.
-      // Clearing it here mirrors the legacy BE8 end-of-turn cleanup while still
-      // letting slower actions in this same turn observe the effect.
-      nextState = nextState.replaceBattler(
-        entry.key,
-        battler.copyWith(effects: clearedEffects),
-      );
-      changed = true;
-    }
-    if (changed) {
+  BattleHandlerResult _resolveEndTurn() {
+    final result = const BattleEndTurnHandler().resolveEndTurn(
+      BattleHandlerContext(
+        state: _context.state,
+        rng: _context.rng,
+        turn: _context.turnNumber,
+        user: psdkPlayerSlot,
+      ),
+    );
+    if (result.applied) {
       _context.applyStateAndRng(
-        nextState: nextState,
-        nextRng: _context.rng,
+        nextState: result.state,
+        nextRng: result.rng,
       );
     }
+    return result;
+  }
+
+  BattleStatusUserPreventionResult? _resolveStatusUserPrevention({
+    required PsdkBattleFightAction action,
+    required BattleMoveDefinition move,
+  }) {
+    return const BattleStatusChangeHandler().resolveUserPrevention(
+      context: BattleHandlerContext(
+        state: _context.state,
+        rng: _context.rng,
+        turn: _context.turnNumber,
+        user: action.user,
+      ),
+      user: action.user,
+      move: move,
+    );
+  }
+
+  BattleMoveFailureReason? _resolveAbilityUserPrevention({
+    required PsdkBattleFightAction action,
+    required BattleMoveDefinition move,
+  }) {
+    final context = BattleAbilityMoveContext(
+      state: _context.state,
+      user: action.user,
+      target: action.target,
+      move: move,
+    );
+    for (final effect in _context.state.activeAbilityEffects()) {
+      final reason = effect.onMovePreventionUser(context);
+      if (reason != null) {
+        return reason;
+      }
+    }
+    return null;
   }
 
   bool _hasRunnableActionAfter(
-    List<_BattleResolvedAction> actions,
+    List<PsdkBattleAction> actions,
     int actionIndex,
   ) {
     for (var index = actionIndex + 1; index < actions.length; index++) {
       final action = actions[index];
+      if (action is! PsdkBattleFightAction) {
+        continue;
+      }
       final user = _context.state.battlerAt(action.user);
       final target = _context.state.battlerAt(action.target);
       if (!user.isFainted && !target.isFainted) {
@@ -286,54 +399,18 @@ final class BattleTurnRunner {
     return false;
   }
 
-  _BattleResolvedAction _buildAction({
-    required PsdkBattleSlotRef user,
-    required BattleDecision decision,
-  }) {
-    return switch (decision) {
-      BattleFightDecision(:final moveSlot) => _buildFightAction(
-          user: user,
-          moveSlot: moveSlot,
-        ),
-    };
-  }
-
-  _BattleResolvedAction _buildFightAction({
-    required PsdkBattleSlotRef user,
-    required int moveSlot,
-  }) {
-    final battler = _context.state.battlerAt(user);
-    if (moveSlot < 0 || moveSlot >= battler.moves.length) {
-      throw RangeError.range(
-        moveSlot,
-        0,
-        battler.moves.length - 1,
-        'moveSlot',
-      );
-    }
-    final move = battler.moves[moveSlot];
-    return _BattleResolvedAction(
-      moveSlot: moveSlot,
-      user: user,
-      target: _targetFor(user: user, move: move),
-      move: move,
-      speed: battler.stats.speed,
-    );
-  }
-
   void _recordMoveAttempt({
     required PsdkBattleSlotRef user,
     required String moveId,
     required List<PsdkBattleSlotRef> targets,
   }) {
     _context.applyStateAndRng(
-      nextState: _context.state.updateBattler(
-        user,
-        (battler) => battler.recordMoveAttempt(
-          moveId: moveId,
-          turn: _context.turnNumber,
-          targets: targets,
-        ),
+      nextState: _moveHistoryRecorder.recordAttempt(
+        state: _context.state,
+        user: user,
+        moveId: moveId,
+        turn: _context.turnNumber,
+        targets: targets,
       ),
       nextRng: _context.rng,
     );
@@ -345,13 +422,12 @@ final class BattleTurnRunner {
     required List<PsdkBattleSlotRef> targets,
   }) {
     _context.applyStateAndRng(
-      nextState: _context.state.updateBattler(
-        user,
-        (battler) => battler.recordMoveSuccess(
-          moveId: moveId,
-          turn: _context.turnNumber,
-          targets: targets,
-        ),
+      nextState: _moveHistoryRecorder.recordSuccess(
+        state: _context.state,
+        user: user,
+        moveId: moveId,
+        turn: _context.turnNumber,
+        targets: targets,
       ),
       nextRng: _context.rng,
     );
@@ -380,42 +456,4 @@ final class BattleTurnRunner {
 
 BattlePositionRef _fromPsdkSlot(PsdkBattleSlotRef slot) {
   return BattlePositionRef(bank: slot.bank, position: slot.position);
-}
-
-PsdkBattleSlotRef _targetFor({
-  required PsdkBattleSlotRef user,
-  required PsdkBattleMoveData move,
-}) {
-  return switch (move.target) {
-    PsdkBattleMoveTarget.user => user,
-    PsdkBattleMoveTarget.adjacentFoe => psdkSinglesFoeOf(user),
-  };
-}
-
-int _compareActions(_BattleResolvedAction left, _BattleResolvedAction right) {
-  final priority = right.move.priority.compareTo(left.move.priority);
-  if (priority != 0) {
-    return priority;
-  }
-  final speed = right.speed.compareTo(left.speed);
-  if (speed != 0) {
-    return speed;
-  }
-  return left.user.bank.compareTo(right.user.bank);
-}
-
-final class _BattleResolvedAction {
-  const _BattleResolvedAction({
-    required this.moveSlot,
-    required this.user,
-    required this.target,
-    required this.move,
-    required this.speed,
-  });
-
-  final int moveSlot;
-  final PsdkBattleSlotRef user;
-  final PsdkBattleSlotRef target;
-  final PsdkBattleMoveData move;
-  final int speed;
 }

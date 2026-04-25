@@ -1,3 +1,14 @@
+import '../../domain/battler/battle_combatant_history.dart';
+import '../../domain/battler/battle_transform_state.dart';
+import '../../domain/battle/battle_slot.dart';
+import '../../domain/effect/battle_effect.dart';
+import '../../domain/effect/battle_effect_hooks.dart';
+import '../../domain/effect/ability/ability_effect_registry.dart';
+import '../../domain/effect/battle_effect_registry.dart';
+import '../../domain/effect/battle_effect_stack.dart';
+import '../../domain/effect/item/item_effect_registry.dart';
+import '../../domain/move/battle_move_data.dart';
+import '../../domain/move/battle_move_prevention.dart';
 import 'psdk_battle_move.dart';
 import 'psdk_battle_slots.dart';
 
@@ -15,6 +26,8 @@ class PsdkBattleTypes {
   final String primary;
   final String? secondary;
 }
+
+const Object _unchanged = Object();
 
 /// Resolved combat stats used by the first PSDK smoke engine.
 class PsdkBattleStats {
@@ -199,37 +212,88 @@ final class PsdkBattleEffectIds {
 class PsdkBattleEffectStack {
   PsdkBattleEffectStack({
     Iterable<String> values = const <String>[],
-  }) : _values = List<String>.unmodifiable(values.map(_requireEffectId));
+    Iterable<BattleEffect> effects = const <BattleEffect>[],
+  }) : _stack = BattleEffectObjectStack(
+          effects: <BattleEffect>[
+            ...effects,
+            for (final value in values)
+              const BattleEffectRegistry().fromId(_requireEffectId(value)),
+          ],
+        );
 
-  const PsdkBattleEffectStack.empty() : _values = const <String>[];
+  const PsdkBattleEffectStack.empty()
+      : _stack = const BattleEffectObjectStack.empty();
 
-  final List<String> _values;
+  final BattleEffectObjectStack _stack;
 
-  List<String> get values => List<String>.unmodifiable(_values);
+  List<String> get values {
+    return _stack.effects.map((effect) => effect.id).toList(growable: false);
+  }
 
-  bool contains(String effectId) =>
-      _values.contains(_requireEffectId(effectId));
+  List<BattleEffect> get effects => _stack.effects;
+
+  bool contains(String effectId) => _stack.contains(_requireEffectId(effectId));
 
   PsdkBattleEffectStack add(String effectId) {
     final normalized = _requireEffectId(effectId);
-    if (_values.contains(normalized)) {
+    return addEffect(BattleEffectRegistry().fromId(normalized));
+  }
+
+  PsdkBattleEffectStack addEffect(BattleEffect effect) {
+    final next = _stack.addOrReplace(effect);
+    if (identical(next, _stack)) {
       return this;
     }
-    return PsdkBattleEffectStack(values: <String>[..._values, normalized]);
+    return PsdkBattleEffectStack(effects: next.effects);
   }
 
   PsdkBattleEffectStack remove(String effectId) {
     final normalized = _requireEffectId(effectId);
-    if (!_values.contains(normalized)) {
+    if (!_stack.contains(normalized)) {
       return this;
     }
+    return PsdkBattleEffectStack(effects: _stack.remove(normalized).effects);
+  }
+
+  PsdkBattleEffectStack withoutAbilityEffects() {
     return PsdkBattleEffectStack(
-      values: _values.where((value) => value != normalized),
+      effects: _stack.effects.where(
+        (effect) => !effect.id.startsWith('ability:'),
+      ),
+    );
+  }
+
+  PsdkBattleEffectStack withoutItemEffects() {
+    return PsdkBattleEffectStack(
+      effects: _stack.effects.where(
+        (effect) => !effect.id.startsWith('item:'),
+      ),
     );
   }
 
   PsdkBattleEffectStack clearTurnScopedEffects() {
-    return remove(PsdkBattleEffectIds.protect);
+    return PsdkBattleEffectStack(
+      effects: _stack.clearTurnScopedEffects().effects,
+    );
+  }
+
+  BattleMoveFailureReason? targetMovePreventionReason({
+    required BattlePositionRef user,
+    required BattlePositionRef target,
+    required BattleMoveDefinition move,
+  }) {
+    final context = BattleEffectMoveContext(
+      user: user,
+      target: target,
+      move: move,
+    );
+    for (final effect in _stack.effects) {
+      final reason = effect.onMovePreventionTarget(context);
+      if (reason != null) {
+        return reason;
+      }
+    }
+    return null;
   }
 }
 
@@ -248,9 +312,27 @@ class PsdkBattleCombatantSetup {
     required this.types,
     required this.stats,
     required List<PsdkBattleMoveData> moves,
+    this.abilityId,
+    this.heldItemId,
+    this.consumedItemId,
+    this.itemConsumed = false,
+    this.sleepTurns = 0,
+    this.toxicCounter = 0,
+    this.battleTurnCount = 0,
+    this.lastBattleTurn,
+    this.lastSentTurn,
+    this.lastHitByMoveId,
+    this.koCount = 0,
+    this.switching = false,
+    this.hasJustShifted = false,
+    this.type3,
+    List<String> temporaryTypes = const <String>[],
+    this.transformState = const PsdkBattleTransformState(),
     this.majorStatus,
     this.statStages,
     this.moveHistory,
+    this.damageHistory = const PsdkBattleDamageHistory.empty(),
+    this.statHistory = const PsdkBattleStatHistory.empty(),
     double baseWeightKg = 1,
     double? currentWeightKg,
     PsdkBattleEffectStack? effects,
@@ -258,6 +340,9 @@ class PsdkBattleCombatantSetup {
         currentWeightKg = _requirePositiveWeight(
           currentWeightKg ?? baseWeightKg,
           'currentWeightKg',
+        ),
+        temporaryTypes = List<String>.unmodifiable(
+          temporaryTypes.map((type) => _requireNonBlank(type, 'type')),
         ),
         effects = effects ?? const PsdkBattleEffectStack.empty(),
         _moves = List<PsdkBattleMoveData>.unmodifiable(moves);
@@ -270,9 +355,27 @@ class PsdkBattleCombatantSetup {
   final int currentHp;
   final PsdkBattleTypes types;
   final PsdkBattleStats stats;
+  final String? abilityId;
+  final String? heldItemId;
+  final String? consumedItemId;
+  final bool itemConsumed;
+  final int sleepTurns;
+  final int toxicCounter;
+  final int battleTurnCount;
+  final int? lastBattleTurn;
+  final int? lastSentTurn;
+  final String? lastHitByMoveId;
+  final int koCount;
+  final bool switching;
+  final bool hasJustShifted;
+  final String? type3;
+  final List<String> temporaryTypes;
+  final PsdkBattleTransformState transformState;
   final PsdkBattleMajorStatus? majorStatus;
   final PsdkBattleStatStages? statStages;
   final PsdkBattleMoveHistory? moveHistory;
+  final PsdkBattleDamageHistory damageHistory;
+  final PsdkBattleStatHistory statHistory;
 
   /// Species/base weight in kilograms for PSDK weight-sensitive moves.
   ///
@@ -315,9 +418,27 @@ class PsdkBattleCombatant {
     required this.types,
     required this.stats,
     required List<PsdkBattleMoveData> moves,
+    this.abilityId,
+    this.heldItemId,
+    this.consumedItemId,
+    this.itemConsumed = false,
+    this.sleepTurns = 0,
+    this.toxicCounter = 0,
+    this.battleTurnCount = 0,
+    this.lastBattleTurn,
+    this.lastSentTurn,
+    this.lastHitByMoveId,
+    this.koCount = 0,
+    this.switching = false,
+    this.hasJustShifted = false,
+    this.type3,
+    List<String> temporaryTypes = const <String>[],
+    this.transformState = const PsdkBattleTransformState(),
     this.majorStatus,
     PsdkBattleStatStages? statStages,
     PsdkBattleMoveHistory? moveHistory,
+    PsdkBattleDamageHistory? damageHistory,
+    PsdkBattleStatHistory? statHistory,
     double baseWeightKg = 1,
     double? currentWeightKg,
     PsdkBattleEffectStack? effects,
@@ -328,6 +449,11 @@ class PsdkBattleCombatant {
         ),
         statStages = statStages ?? PsdkBattleStatStages.neutral(),
         moveHistory = moveHistory ?? PsdkBattleMoveHistory.empty(),
+        damageHistory = damageHistory ?? const PsdkBattleDamageHistory.empty(),
+        statHistory = statHistory ?? const PsdkBattleStatHistory.empty(),
+        temporaryTypes = List<String>.unmodifiable(
+          temporaryTypes.map((type) => _requireNonBlank(type, 'type')),
+        ),
         effects = effects ?? const PsdkBattleEffectStack.empty(),
         _moves = List<PsdkBattleMoveData>.unmodifiable(moves);
 
@@ -343,6 +469,22 @@ class PsdkBattleCombatant {
       types: setup.types,
       stats: setup.stats,
       moves: setup.moves,
+      abilityId: setup.abilityId,
+      heldItemId: setup.heldItemId,
+      consumedItemId: setup.consumedItemId,
+      itemConsumed: setup.itemConsumed,
+      sleepTurns: setup.sleepTurns,
+      toxicCounter: setup.toxicCounter,
+      battleTurnCount: setup.battleTurnCount,
+      lastBattleTurn: setup.lastBattleTurn,
+      lastSentTurn: setup.lastSentTurn,
+      lastHitByMoveId: setup.lastHitByMoveId,
+      koCount: setup.koCount,
+      switching: setup.switching,
+      hasJustShifted: setup.hasJustShifted,
+      type3: setup.type3,
+      temporaryTypes: setup.temporaryTypes,
+      transformState: setup.transformState,
       // Some Pokemon SDK move formulas are status-sensitive before the first
       // action resolves (Facade, Hex, Venoshock). The setup bridge must carry
       // imported save/runtime status into the immutable battle snapshot instead
@@ -350,6 +492,8 @@ class PsdkBattleCombatant {
       majorStatus: setup.majorStatus,
       statStages: setup.statStages,
       moveHistory: setup.moveHistory,
+      damageHistory: setup.damageHistory,
+      statHistory: setup.statHistory,
       baseWeightKg: setup.baseWeightKg,
       currentWeightKg: setup.currentWeightKg,
       effects: setup.effects,
@@ -364,8 +508,26 @@ class PsdkBattleCombatant {
   final int currentHp;
   final PsdkBattleTypes types;
   final PsdkBattleStats stats;
+  final String? abilityId;
+  final String? heldItemId;
+  final String? consumedItemId;
+  final bool itemConsumed;
+  final int sleepTurns;
+  final int toxicCounter;
+  final int battleTurnCount;
+  final int? lastBattleTurn;
+  final int? lastSentTurn;
+  final String? lastHitByMoveId;
+  final int koCount;
+  final bool switching;
+  final bool hasJustShifted;
+  final String? type3;
+  final List<String> temporaryTypes;
+  final PsdkBattleTransformState transformState;
   final PsdkBattleStatStages statStages;
   final PsdkBattleMoveHistory moveHistory;
+  final PsdkBattleDamageHistory damageHistory;
+  final PsdkBattleStatHistory statHistory;
   final double baseWeightKg;
   final double currentWeightKg;
   final PsdkBattleEffectStack effects;
@@ -379,6 +541,38 @@ class PsdkBattleCombatant {
   List<PsdkBattleMoveData> get moves => _moves;
 
   bool get isFainted => currentHp <= 0;
+
+  PsdkBattleCombatant withAbilityEffect(PsdkBattleSlotRef owner) {
+    return copyWith(
+      effects: AbilityEffectRegistry().hydrateEffects(
+        effects: effects,
+        abilityId: abilityId,
+        owner: owner,
+      ),
+    );
+  }
+
+  PsdkBattleCombatant withItemEffect(PsdkBattleSlotRef owner) {
+    return copyWith(
+      effects: ItemEffectRegistry().hydrateEffects(
+        effects: effects,
+        itemId: heldItemId,
+        owner: owner,
+        itemConsumed: itemConsumed,
+      ),
+    );
+  }
+
+  bool hasType(String type) {
+    final normalized = type.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return false;
+    }
+    return types.primary.toLowerCase() == normalized ||
+        types.secondary?.toLowerCase() == normalized ||
+        type3?.toLowerCase() == normalized ||
+        temporaryTypes.any((value) => value.toLowerCase() == normalized);
+  }
 
   int effectiveStat(
     String stat, {
@@ -401,10 +595,28 @@ class PsdkBattleCombatant {
 
   PsdkBattleCombatant copyWith({
     int? currentHp,
+    Object? abilityId = _unchanged,
+    Object? heldItemId = _unchanged,
+    Object? consumedItemId = _unchanged,
+    bool? itemConsumed,
+    int? sleepTurns,
+    int? toxicCounter,
+    int? battleTurnCount,
+    Object? lastBattleTurn = _unchanged,
+    Object? lastSentTurn = _unchanged,
+    Object? lastHitByMoveId = _unchanged,
+    int? koCount,
+    bool? switching,
+    bool? hasJustShifted,
+    Object? type3 = _unchanged,
+    List<String>? temporaryTypes,
+    PsdkBattleTransformState? transformState,
     PsdkBattleMajorStatus? majorStatus,
     bool clearMajorStatus = false,
     PsdkBattleStatStages? statStages,
     PsdkBattleMoveHistory? moveHistory,
+    PsdkBattleDamageHistory? damageHistory,
+    PsdkBattleStatHistory? statHistory,
     double? baseWeightKg,
     double? currentWeightKg,
     PsdkBattleEffectStack? effects,
@@ -427,12 +639,42 @@ class PsdkBattleCombatant {
       types: types,
       stats: stats,
       moves: moves ?? this.moves,
+      abilityId: identical(abilityId, _unchanged)
+          ? this.abilityId
+          : abilityId as String?,
+      heldItemId: identical(heldItemId, _unchanged)
+          ? this.heldItemId
+          : heldItemId as String?,
+      consumedItemId: identical(consumedItemId, _unchanged)
+          ? this.consumedItemId
+          : consumedItemId as String?,
+      itemConsumed: itemConsumed ?? this.itemConsumed,
+      sleepTurns: sleepTurns ?? this.sleepTurns,
+      toxicCounter: toxicCounter ?? this.toxicCounter,
+      battleTurnCount: battleTurnCount ?? this.battleTurnCount,
+      lastBattleTurn: identical(lastBattleTurn, _unchanged)
+          ? this.lastBattleTurn
+          : lastBattleTurn as int?,
+      lastSentTurn: identical(lastSentTurn, _unchanged)
+          ? this.lastSentTurn
+          : lastSentTurn as int?,
+      lastHitByMoveId: identical(lastHitByMoveId, _unchanged)
+          ? this.lastHitByMoveId
+          : lastHitByMoveId as String?,
+      koCount: koCount ?? this.koCount,
+      switching: switching ?? this.switching,
+      hasJustShifted: hasJustShifted ?? this.hasJustShifted,
+      type3: identical(type3, _unchanged) ? this.type3 : type3 as String?,
+      temporaryTypes: temporaryTypes ?? this.temporaryTypes,
+      transformState: transformState ?? this.transformState,
       // Nullable copyWith parameters cannot distinguish "leave unchanged" from
       // "clear the value". Keep the common setter terse, and expose an explicit
       // clear flag for future cure/status-removal effects.
       majorStatus: clearMajorStatus ? null : (majorStatus ?? this.majorStatus),
       statStages: statStages ?? this.statStages,
       moveHistory: moveHistory ?? this.moveHistory,
+      damageHistory: damageHistory ?? this.damageHistory,
+      statHistory: statHistory ?? this.statHistory,
       baseWeightKg: baseWeightKg ?? this.baseWeightKg,
       currentWeightKg: currentWeightKg ?? this.currentWeightKg,
       effects: effects ?? this.effects,
@@ -472,6 +714,45 @@ class PsdkBattleCombatant {
         moveId: moveId,
         turn: turn,
         targets: targets,
+      ),
+    );
+  }
+
+  PsdkBattleCombatant recordDamage({
+    required int turn,
+    required PsdkBattleSlotRef source,
+    required String moveId,
+    required int damage,
+    required int remainingHp,
+  }) {
+    return copyWith(
+      lastHitByMoveId: moveId,
+      damageHistory: damageHistory.record(
+        PsdkBattleDamageHistoryEntry(
+          turn: turn,
+          source: source,
+          moveId: moveId,
+          damage: damage,
+          remainingHp: remainingHp,
+        ),
+      ),
+    );
+  }
+
+  PsdkBattleCombatant recordStatChange({
+    required int turn,
+    required String stat,
+    required int delta,
+    required int currentStage,
+  }) {
+    return copyWith(
+      statHistory: statHistory.record(
+        PsdkBattleStatHistoryEntry(
+          turn: turn,
+          stat: stat,
+          delta: delta,
+          currentStage: currentStage,
+        ),
       ),
     );
   }

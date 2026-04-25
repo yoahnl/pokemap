@@ -5,6 +5,8 @@
 /// Showdown-era assumptions. Lot 24 only stores observable field state.
 /// Application, expiration, prevention hooks and duration-extending items stay
 /// future work.
+const _unchanged = Object();
+
 class PsdkBattleFieldState {
   const PsdkBattleFieldState({
     this.terrain,
@@ -44,13 +46,28 @@ class PsdkBattleFieldState {
     );
   }
 
+  PsdkBattleFieldState clearTerrain() => copyWith(terrain: null);
+
+  PsdkBattleFieldState clearWeather() => copyWith(weather: null);
+
+  PsdkBattleFieldState tickEndTurn() {
+    return copyWith(
+      terrain: terrain?.tickEndTurn(),
+      weather: weather?.tickEndTurn(),
+    );
+  }
+
   PsdkBattleFieldState copyWith({
-    PsdkBattleTerrainState? terrain,
-    PsdkBattleWeatherState? weather,
+    Object? terrain = _unchanged,
+    Object? weather = _unchanged,
   }) {
     return PsdkBattleFieldState(
-      terrain: terrain ?? this.terrain,
-      weather: weather ?? this.weather,
+      terrain: identical(terrain, _unchanged)
+          ? this.terrain
+          : terrain as PsdkBattleTerrainState?,
+      weather: identical(weather, _unchanged)
+          ? this.weather
+          : weather as PsdkBattleWeatherState?,
     );
   }
 }
@@ -63,6 +80,16 @@ class PsdkBattleTerrainState {
 
   final PsdkBattleTerrainId id;
   final int remainingTurns;
+
+  PsdkBattleTerrainState? tickEndTurn() {
+    if (remainingTurns <= 1) {
+      return null;
+    }
+    return PsdkBattleTerrainState(
+      id: id,
+      remainingTurns: remainingTurns - 1,
+    );
+  }
 }
 
 class PsdkBattleWeatherState {
@@ -73,6 +100,16 @@ class PsdkBattleWeatherState {
 
   final PsdkBattleWeatherId id;
   final int remainingTurns;
+
+  PsdkBattleWeatherState? tickEndTurn() {
+    if (remainingTurns <= 1) {
+      return null;
+    }
+    return PsdkBattleWeatherState(
+      id: id,
+      remainingTurns: remainingTurns - 1,
+    );
+  }
 }
 
 enum PsdkBattleTerrainId {
@@ -117,6 +154,16 @@ extension PsdkBattleWeatherIdSymbol on PsdkBattleWeatherId {
       PsdkBattleWeatherId.hardrain => 'hardrain',
       PsdkBattleWeatherId.hardsun => 'hardsun',
       PsdkBattleWeatherId.strongWinds => 'strong_winds',
+    };
+  }
+
+  bool get isHardWeather {
+    return switch (this) {
+      PsdkBattleWeatherId.hardrain ||
+      PsdkBattleWeatherId.hardsun ||
+      PsdkBattleWeatherId.strongWinds =>
+        true,
+      _ => false,
     };
   }
 }

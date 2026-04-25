@@ -52,6 +52,49 @@ void main() {
           <String>['bank0-left', 'bank0-right']);
     });
 
+    test('PSDK state exposes alive allies and foes in stable slot order', () {
+      const user = PsdkBattleSlotRef(bank: 0, position: 0);
+      const ally = PsdkBattleSlotRef(bank: 0, position: 1);
+      const foe = PsdkBattleSlotRef(bank: 1, position: 0);
+      const faintedFoe = PsdkBattleSlotRef(bank: 1, position: 1);
+      final state = PsdkBattleState(
+        combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+          user: PsdkBattleCombatant.fromSetup(
+            _combatantSetup(
+              id: 'user',
+              speciesId: 'user',
+              moves: <PsdkBattleMoveData>[_move(power: 40)],
+            ),
+          ),
+          ally: PsdkBattleCombatant.fromSetup(
+            _combatantSetup(
+              id: 'ally',
+              speciesId: 'ally',
+              moves: <PsdkBattleMoveData>[_move(power: 40)],
+            ),
+          ),
+          foe: PsdkBattleCombatant.fromSetup(
+            _combatantSetup(
+              id: 'foe',
+              speciesId: 'foe',
+              moves: <PsdkBattleMoveData>[_move(power: 40)],
+            ),
+          ),
+          faintedFoe: PsdkBattleCombatant.fromSetup(
+            _combatantSetup(
+              id: 'fainted-foe',
+              speciesId: 'fainted-foe',
+              moves: <PsdkBattleMoveData>[_move(power: 40)],
+            ),
+          ).copyWith(currentHp: 0),
+        },
+      );
+
+      expect(state.aliveSlots(), <PsdkBattleSlotRef>[user, ally, foe]);
+      expect(state.alliesOf(user), <PsdkBattleSlotRef>[ally]);
+      expect(state.foesOf(user), <PsdkBattleSlotRef>[foe]);
+    });
+
     test('resolves allies foes and adjacent foes by bank and position', () {
       final topology = BattleTopology(
         banks: <BattleBank>[

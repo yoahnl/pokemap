@@ -12,15 +12,30 @@ sealed class BattleDecision {
 
   const factory BattleDecision.fight({
     required int moveSlot,
+    PsdkBattleSlotRef? target,
   }) = BattleFightDecision;
+
+  const factory BattleDecision.switchPokemon({
+    required int partyIndex,
+  }) = BattleSwitchDecision;
 }
 
 final class BattleFightDecision extends BattleDecision {
   const BattleFightDecision({
     required this.moveSlot,
+    this.target,
   });
 
   final int moveSlot;
+  final PsdkBattleSlotRef? target;
+}
+
+final class BattleSwitchDecision extends BattleDecision {
+  const BattleSwitchDecision({
+    required this.partyIndex,
+  });
+
+  final int partyIndex;
 }
 
 enum BattleEngineDecisionRequestKind {
@@ -102,6 +117,7 @@ final class BattleEngineDecisionRequest {
     return switch (decision) {
       BattleFightDecision(:final moveSlot) =>
         fightChoices.any((choice) => choice.moveSlot == moveSlot),
+      BattleSwitchDecision() => false,
     };
   }
 }
