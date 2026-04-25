@@ -329,6 +329,51 @@ void main() {
           PsdkMoveDependency.targetingMulti,
         ]),
       );
+      expect(byMethod['s_rest']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_rest']!.dartBehavior,
+        'RecoveryStatMoveBehavior.rest',
+      );
+      expect(
+        byMethod['s_rest']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerStatus,
+          PsdkMoveDependency.handlerDamage,
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.ability,
+          PsdkMoveDependency.terrain,
+          PsdkMoveDependency.item,
+        ]),
+      );
+      expect(byMethod['s_bellydrum']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_bellydrum']!.dartBehavior,
+        'RecoveryStatMoveBehavior.bellyDrum',
+      );
+      expect(
+        byMethod['s_bellydrum']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerDamage,
+          PsdkMoveDependency.handlerStat,
+          PsdkMoveDependency.ability,
+          PsdkMoveDependency.effects,
+        ]),
+      );
+      expect(byMethod['s_strength_sap']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_strength_sap']!.dartBehavior,
+        'RecoveryStatMoveBehavior.strengthSap',
+      );
+      expect(
+        byMethod['s_strength_sap']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerDamage,
+          PsdkMoveDependency.handlerStat,
+          PsdkMoveDependency.ability,
+          PsdkMoveDependency.item,
+          PsdkMoveDependency.effects,
+        ]),
+      );
       expect(
         byMethod['s_smelling_salt']!.dartBehavior,
         'HitThenCureStatusMoveBehavior.smellingSalt',

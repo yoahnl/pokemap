@@ -7,8 +7,8 @@ Total registered methods: 330
 | Status | Count |
 | --- | ---: |
 | `ported` | 21 |
-| `partial` | 40 |
-| `missing` | 269 |
+| `partial` | 43 |
+| `missing` | 266 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
 | --- | --- | --- | --- | --- | --- |
@@ -36,7 +36,7 @@ Total registered methods: 330
 | `s_beak_blast` | `BeakBlast` | `10 Move/2 Definitions/300 PreAttackMoves.rb` | `TODO` | `missing` | `-` |
 | `s_beat_up` | `BeatUp` | `10 Move/2 Definitions/300 BeatUp.rb` | `TODO` | `missing` | `-` |
 | `s_belch` | `Belch` | `10 Move/2 Definitions/300 Belch.rb` | `TODO` | `missing` | `-` |
-| `s_bellydrum` | `BellyDrum` | `10 Move/2 Definitions/300 BellyDrum.rb` | `TODO` | `missing` | `-` |
+| `s_bellydrum` | `BellyDrum` | `10 Move/2 Definitions/300 BellyDrum.rb` | `RecoveryStatMoveBehavior.bellyDrum` | `partial` | `handler_damage`, `handler_stat`, `ability`, `effects` |
 | `s_bestow` | `Bestow` | `10 Move/2 Definitions/300 Bestow.rb` | `TODO` | `missing` | `-` |
 | `s_bide` | `Bide` | `10 Move/2 Definitions/300 Bide.rb` | `TODO` | `missing` | `-` |
 | `s_bind` | `Bind` | `10 Move/2 Definitions/300 Bind.rb` | `TODO` | `missing` | `-` |
@@ -236,7 +236,7 @@ Total registered methods: 330
 | `s_reflect_type` | `ReflectType` | `10 Move/2 Definitions/300 ReflectType.rb` | `TODO` | `missing` | `-` |
 | `s_relic_song` | `RelicSong` | `10 Move/2 Definitions/300 RelicSong.rb` | `TODO` | `missing` | `-` |
 | `s_reload` | `Reload` | `10 Move/2 Definitions/300 Reload.rb` | `TODO` | `missing` | `-` |
-| `s_rest` | `Rest` | `10 Move/2 Definitions/300 Rest.rb` | `TODO` | `missing` | `-` |
+| `s_rest` | `Rest` | `10 Move/2 Definitions/300 Rest.rb` | `RecoveryStatMoveBehavior.rest` | `partial` | `handler_status`, `handler_damage`, `effects`, `ability`, `terrain`, `item` |
 | `s_retaliate` | `Retaliate` | `10 Move/2 Definitions/300 Retaliate.rb` | `TODO` | `missing` | `-` |
 | `s_return` | `Return` | `10 Move/2 Definitions/300 Return.rb` | `TODO` | `missing` | `-` |
 | `s_revelation_dance` | `RevelationDance` | `10 Move/2 Definitions/300 RevelationDance.rb` | `TODO` | `missing` | `-` |
@@ -290,7 +290,7 @@ Total registered methods: 330
 | `s_stomping_tantrum` | `StompingTantrum` | `10 Move/2 Definitions/300 StompingTantrum.rb` | `TODO` | `missing` | `-` |
 | `s_stone_axe` | `StoneAxe` | `10 Move/2 Definitions/300 HazardsSetting.rb` | `TODO` | `missing` | `-` |
 | `s_stored_power` | `StoredPower` | `10 Move/2 Definitions/300 StoredPower.rb` | `SpecialPowerMoveBehavior.storedPower` | `ported` | `-` |
-| `s_strength_sap` | `StrengthSap` | `10 Move/2 Definitions/300 StrengthSap.rb` | `TODO` | `missing` | `-` |
+| `s_strength_sap` | `StrengthSap` | `10 Move/2 Definitions/300 StrengthSap.rb` | `RecoveryStatMoveBehavior.strengthSap` | `partial` | `handler_damage`, `handler_stat`, `ability`, `item`, `effects` |
 | `s_struggle` | `Struggle` | `10 Move/2 Definitions/300 RecoilMove.rb` | `TODO` | `missing` | `-` |
 | `s_stuff_cheeks` | `StuffCheeks` | `10 Move/2 Definitions/300 StuffCheeks.rb` | `TODO` | `missing` | `-` |
 | `s_substitute` | `Substitute` | `10 Move/2 Definitions/300 Substitute.rb` | `TODO` | `missing` | `-` |

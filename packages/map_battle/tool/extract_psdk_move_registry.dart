@@ -150,6 +150,21 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'HitThenCureStatusMoveBehavior.sparklingAria',
     status: _PsdkPortStatus.partial,
   ),
+  // Recovery/stat moves execute their local HP/status/stat formulas. They stay
+  // partial until terrain grounding, Chesto Berry/Big Root/Liquid Ooze,
+  // Contrary and Heal Block style hooks are represented in the battle lane.
+  's_rest': _KnownDartBehavior(
+    dartBehavior: 'RecoveryStatMoveBehavior.rest',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_bellydrum': _KnownDartBehavior(
+    dartBehavior: 'RecoveryStatMoveBehavior.bellyDrum',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_strength_sap': _KnownDartBehavior(
+    dartBehavior: 'RecoveryStatMoveBehavior.strengthSap',
+    status: _PsdkPortStatus.partial,
+  ),
   // Acrobatics' no-item branch is executable. Keep it partial until consumed
   // item and Gem item-effect parity is covered in the item hook matrix.
   's_acrobatics': _KnownDartBehavior(
@@ -467,6 +482,27 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
   's_sparkling_aria': {
     _PsdkMoveDependency.handlerDamage,
     _PsdkMoveDependency.handlerStatus,
+    _PsdkMoveDependency.effects,
+  },
+  's_rest': {
+    _PsdkMoveDependency.handlerStatus,
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.ability,
+    _PsdkMoveDependency.terrain,
+    _PsdkMoveDependency.item,
+  },
+  's_bellydrum': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.handlerStat,
+    _PsdkMoveDependency.ability,
+    _PsdkMoveDependency.effects,
+  },
+  's_strength_sap': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.handlerStat,
+    _PsdkMoveDependency.ability,
+    _PsdkMoveDependency.item,
     _PsdkMoveDependency.effects,
   },
   's_acrobatics': {

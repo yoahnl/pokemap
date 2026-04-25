@@ -426,6 +426,35 @@ void main() {
       expect(kinds, containsAllInOrder(<String>['damage', 'status_cure']));
     });
 
+    test('prints a recovery-stat scenario for Rest-family local rules',
+        () async {
+      final lines = <String>[];
+      final exitCode = await PsdkBattleCli(
+        stdout: lines.add,
+        stderr: fail,
+      ).run(const <String>[
+        '--scenario',
+        'recovery_stat',
+        '--format',
+        'json',
+      ]);
+
+      expect(exitCode, 0);
+      final payload = jsonDecode(lines.single) as Map<String, dynamic>;
+      expect(payload['outcome'], 'ongoing');
+      expect(payload['playerHp'], 80);
+      expect(payload['opponentHp'], 100);
+
+      final kinds = (payload['events'] as List<dynamic>)
+          .cast<Map<String, dynamic>>()
+          .map((event) => event['kind'])
+          .toList(growable: false);
+      expect(
+        kinds,
+        containsAllInOrder(<String>['heal', 'stat_stage_change']),
+      );
+    });
+
     test('prints a recoil scenario with target and user damage', () async {
       final lines = <String>[];
       final exitCode = await PsdkBattleCli(
