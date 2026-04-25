@@ -780,20 +780,22 @@ _PsdkBattleCliScenarioConfig _scenarioConfig(
         setup: _singleTurnSetup(
           playerTypes: const PsdkBattleTypes(primary: 'normal'),
           opponentTypes: const PsdkBattleTypes(primary: 'normal'),
-          playerEffects: PsdkBattleEffectStack(
-            values: const <String>[PsdkBattleEffectIds.confusion],
-          ),
           playerMove: _move(
-            id: 'confused_splash',
+            id: 'confuse_ray',
             type: 'normal',
             category: PsdkBattleMoveCategory.status,
             power: 0,
             accuracy: 0,
-            battleEngineMethod: 's_splash',
-            target: PsdkBattleMoveTarget.none,
+            battleEngineMethod: 's_status',
+            statuses: <PsdkBattleMoveStatus>[
+              PsdkBattleMoveStatus.volatile(
+                status: PsdkBattleVolatileStatus.confusion,
+                chance: 100,
+              ),
+            ],
           ),
           opponentMove: _move(
-            id: 'splash',
+            id: 'opponent_splash',
             type: 'normal',
             category: PsdkBattleMoveCategory.status,
             power: 0,
@@ -805,7 +807,7 @@ _PsdkBattleCliScenarioConfig _scenarioConfig(
             moveDamage: 1,
             moveCritical: 99999,
             moveAccuracy: 3,
-            generic: 2,
+            generic: 1,
           ),
         ),
         turnLimit: 1,

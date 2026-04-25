@@ -527,21 +527,28 @@ void main() {
       expect(exitCode, 0);
       final payload = jsonDecode(lines.single) as Map<String, dynamic>;
       expect(payload['outcome'], 'ongoing');
-      expect(payload['playerHp'], 92);
-      expect(payload['opponentHp'], 100);
+      expect(payload['playerHp'], 100);
+      expect(payload['opponentHp'], 92);
 
-      final effectEvents = (payload['events'] as List<dynamic>)
+      final scenarioEvents = (payload['events'] as List<dynamic>)
           .cast<Map<String, dynamic>>()
           .where((event) =>
+              event['moveId'] == 'confuse_ray' ||
               event['moveId'] == 'effect:confusion' ||
-              event['moveId'] == 'confused_splash')
+              event['moveId'] == 'opponent_splash')
           .toList(growable: false);
       expect(
-        effectEvents.map((event) => event['kind']),
-        containsAllInOrder(<String>['damage', 'move_failed']),
+        scenarioEvents.map((event) => event['kind']),
+        containsAllInOrder(<String>[
+          'move_pp_spent',
+          'move_declared',
+          'animation_cue',
+          'damage',
+          'move_failed',
+        ]),
       );
-      expect(effectEvents.first['damage'], 8);
-      expect(effectEvents.last['reason'], 'unusable_by_user');
+      expect(scenarioEvents[3]['damage'], 8);
+      expect(scenarioEvents.last['reason'], 'unusable_by_user');
     });
 
     test('prints a status-cure scenario for hit-then-cure moves', () async {

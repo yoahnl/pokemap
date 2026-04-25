@@ -47,19 +47,46 @@ enum PsdkBattleMajorStatus {
   freeze,
 }
 
+/// Volatile statuses carried by PSDK move data.
+enum PsdkBattleVolatileStatus {
+  confusion,
+}
+
 /// Status rider carried by a PSDK move import.
 ///
 /// The engine currently consumes deterministic or chance-gated major status
-/// application. Other PSDK effects should become explicit contracts later,
-/// rather than being squeezed into this small status rider.
+/// application plus the first explicit volatile rider needed by Studio data.
 class PsdkBattleMoveStatus {
   PsdkBattleMoveStatus({
-    required this.status,
+    required PsdkBattleMajorStatus status,
     required int chance,
-  }) : chance = _checkRange(chance, min: 1, max: 100, name: 'chance');
+  })  : majorStatus = status,
+        volatileStatus = null,
+        chance = _checkRange(chance, min: 1, max: 100, name: 'chance');
 
-  final PsdkBattleMajorStatus status;
+  PsdkBattleMoveStatus.volatile({
+    required PsdkBattleVolatileStatus status,
+    required int chance,
+  })  : majorStatus = null,
+        volatileStatus = status,
+        chance = _checkRange(chance, min: 1, max: 100, name: 'chance');
+
+  /// Non-volatile status, when this rider represents a major status.
+  ///
+  /// Kept nullable so Studio volatile statuses such as `CONFUSED` can travel
+  /// through the same ordered status rider list without lying as a major
+  /// condition.
+  final PsdkBattleMajorStatus? majorStatus;
+  final PsdkBattleVolatileStatus? volatileStatus;
   final int chance;
+
+  PsdkBattleMajorStatus get status {
+    final value = majorStatus;
+    if (value == null) {
+      throw StateError('This PSDK move status is volatile, not major.');
+    }
+    return value;
+  }
 }
 
 class PsdkBattleMoveStageMod {

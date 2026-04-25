@@ -61,6 +61,50 @@ void main() {
       expect(_eventKinds(result), isNot(contains('damage')));
     });
 
+    test('s_status applies target Confusion as a volatile effect', () {
+      final result = _runMove(
+        genericSeed: 1,
+        playerMove: _move(
+          id: 'confuse_ray',
+          battleEngineMethod: 's_status',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          statuses: <PsdkBattleMoveStatus>[
+            PsdkBattleMoveStatus.volatile(
+              status: PsdkBattleVolatileStatus.confusion,
+              chance: 100,
+            ),
+          ],
+        ),
+        opponentMove: _move(
+          id: 'opponent_splash',
+          battleEngineMethod: 's_splash',
+          power: 0,
+          accuracy: 0,
+          category: PsdkBattleMoveCategory.status,
+          target: PsdkBattleMoveTarget.none,
+        ),
+      );
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+      final confusion = opponent.effects.effects.whereType<ConfusionEffect>();
+
+      expect(opponent.currentHp, 92);
+      expect(opponent.moves.single.currentPp, 35);
+      expect(opponent.effects.contains(PsdkBattleEffectIds.confusion), isTrue);
+      expect(confusion.single.remainingConfusionTurns, 2);
+      expect(
+        result.timeline.events.whereType<PsdkBattleDamageEvent>().single.moveId,
+        'effect:confusion',
+      );
+      expect(
+        result.timeline.events
+            .whereType<PsdkBattleMoveFailedEvent>()
+            .single
+            .moveId,
+        'opponent_splash',
+      );
+    });
+
     test('s_self_stat damages the target and applies stages to the user', () {
       final result = _runMove(
         playerMove: _move(
@@ -129,6 +173,8 @@ void main() {
 
 PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
+  PsdkBattleMoveData? opponentMove,
+  int genericSeed = 4,
 }) {
   final engine = PsdkBattleEngine(
     setup: PsdkBattleSetup.singles(
@@ -140,17 +186,18 @@ PsdkBattleTurnResult _runMove({
       opponent: _combatant(
         id: 'opponent',
         speed: 1,
-        move: _move(
-          id: 'opponent_wait',
-          power: 0,
-          accuracy: 1,
-        ),
+        move: opponentMove ??
+            _move(
+              id: 'opponent_wait',
+              power: 0,
+              accuracy: 1,
+            ),
       ),
-      rngSeeds: const PsdkBattleRngSeeds(
+      rngSeeds: PsdkBattleRngSeeds(
         moveDamage: 1,
         moveCritical: 99999,
         moveAccuracy: 3,
-        generic: 4,
+        generic: genericSeed,
       ),
     ),
   );
@@ -188,6 +235,7 @@ PsdkBattleMoveData _move({
   required int power,
   int accuracy = 100,
   String battleEngineMethod = 's_basic',
+  PsdkBattleMoveTarget target = PsdkBattleMoveTarget.adjacentFoe,
   List<PsdkBattleMoveStatus> statuses = const <PsdkBattleMoveStatus>[],
   List<PsdkBattleMoveStageMod> stageMods = const <PsdkBattleMoveStageMod>[],
 }) {
@@ -203,7 +251,7 @@ PsdkBattleMoveData _move({
     priority: 0,
     criticalRate: 1,
     battleEngineMethod: battleEngineMethod,
-    target: PsdkBattleMoveTarget.adjacentFoe,
+    target: target,
     statuses: statuses,
     stageMods: stageMods,
   );

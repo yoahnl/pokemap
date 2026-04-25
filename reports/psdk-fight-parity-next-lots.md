@@ -149,6 +149,10 @@ Done so far:
   the generated effect matrix.
 - Added a CLI smoke scenario `--scenario confusion` that emits the self-hit
   damage and `move_failed` JSON events for behavior checks.
+- Added `PsdkBattleVolatileStatus.confusion` and a `PsdkBattleMoveStatus`
+  volatile constructor so PSDK move data can apply `CONFUSED` directly through
+  `s_status`. The CLI `confusion` scenario now goes through a `confuse_ray`
+  move status before the slower target self-hits.
 
 Still remaining in this lot:
 
@@ -158,9 +162,10 @@ Still remaining in this lot:
   volatile effects. `Confusion` is intentionally not treated as Baton Pass
   transferable here because the inspected PSDK `Confusion.rb` file does not
   expose a Baton Pass transfer override.
-- Wire Studio `CONFUSED` move statuses (`Confuse Ray`, `Supersonic`, etc.) to
-  `ConfusionEffect`, including randomized PSDK duration and immunity/cure
-  interactions such as Own Tempo/Persim-style behavior.
+- Finish the outer Studio/runtime catalog bridge for `CONFUSED`
+  (`Confuse Ray`, `Supersonic`, etc.) if the source enters the engine through
+  `map_core`/runtime models instead of direct `PsdkBattleMoveData`.
+- Complete immunity/cure interactions such as Own Tempo/Persim-style behavior.
 - Complete the PSDK edge cases for `Ingrain` and `LeechSeed`: Ghost/Teleport
   switch exceptions, forced-switch handling, Liquid Ooze, explicit
   `LeechSeed::Mark` modeling and full origin cleanup.

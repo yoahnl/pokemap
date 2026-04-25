@@ -1,6 +1,10 @@
+import '../../psdk/domain/psdk_battle_combatant.dart';
+import '../../psdk/domain/psdk_battle_move.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 import '../../psdk/domain/psdk_battle_state.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
+import '../effect/battle_effect_scope.dart';
+import '../effect/move/confusion_effect.dart';
 import '../handler/battle_handler_context.dart';
 import '../handler/battle_stat_change_handler.dart';
 import '../handler/battle_status_change_handler.dart';
@@ -52,21 +56,45 @@ final class BattleMoveSecondaryEffectResolver {
         }
       }
 
-      final result = const BattleStatusChangeHandler().applyMajorStatus(
-        context: BattleHandlerContext(
-          state: nextState,
-          rng: nextRng,
-          turn: turn,
-          user: user,
-        ),
-        target: target,
-        moveId: move.id,
-        status: status.status,
-      );
-      nextState = result.state;
-      nextRng = result.rng;
-      if (result.applied) {
-        events.addAll(result.events);
+      final majorStatus = status.majorStatus;
+      if (majorStatus != null) {
+        final result = const BattleStatusChangeHandler().applyMajorStatus(
+          context: BattleHandlerContext(
+            state: nextState,
+            rng: nextRng,
+            turn: turn,
+            user: user,
+          ),
+          target: target,
+          moveId: move.id,
+          status: majorStatus,
+        );
+        nextState = result.state;
+        nextRng = result.rng;
+        if (result.applied) {
+          events.addAll(result.events);
+        }
+        continue;
+      }
+
+      if (status.volatileStatus == PsdkBattleVolatileStatus.confusion &&
+          !nextState
+              .battlerAt(target)
+              .effects
+              .contains(PsdkBattleEffectIds.confusion)) {
+        final durationRoll = nextRng.generic.nextIntInclusive(min: 1, max: 4);
+        nextRng = nextRng.copyWith(generic: durationRoll.next);
+        nextState = nextState.updateBattler(
+          target,
+          (battler) => battler.copyWith(
+            effects: battler.effects.addEffect(
+              ConfusionEffect(
+                scope: BattlerBattleEffectScope(target),
+                remainingConfusionTurns: durationRoll.value + 1,
+              ),
+            ),
+          ),
+        );
       }
     }
 
