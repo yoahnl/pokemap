@@ -46,6 +46,7 @@ export '../domain/effect/item/terrain_extender_effect.dart';
 export '../domain/effect/item/weather_rock_effect.dart';
 export '../domain/effect/move/aqua_ring_effect.dart';
 export '../domain/effect/move/baton_pass_effect.dart';
+export '../domain/effect/move/confusion_effect.dart';
 export '../domain/effect/move/curse_effect.dart';
 export '../domain/effect/move/ingrain_effect.dart';
 export '../domain/effect/move/leech_seed_effect.dart';

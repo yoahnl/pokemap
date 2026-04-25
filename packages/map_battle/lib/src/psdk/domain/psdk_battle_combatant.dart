@@ -202,6 +202,7 @@ final class PsdkBattleEffectIds {
 
   static const String aquaRing = 'aqua_ring';
   static const String batonPass = 'baton_pass';
+  static const String confusion = 'confusion';
   static const String curse = 'curse';
   static const String ingrain = 'ingrain';
   static const String leechSeed = 'leech_seed';
@@ -334,6 +335,18 @@ class PsdkBattleEffectStack {
       final reason = effect.onMovePreventionTarget(context);
       if (reason != null) {
         return reason;
+      }
+    }
+    return null;
+  }
+
+  BattleEffectUserMovePreventionResult? userMovePrevention(
+    BattleEffectUserMovePreventionContext context,
+  ) {
+    for (final effect in _stack.effects) {
+      final result = effect.onUserMovePrevention(context);
+      if (result != null) {
+        return result;
       }
     }
     return null;

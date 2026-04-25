@@ -281,6 +281,8 @@ String _notesFor(String effectName) {
       'Object-backed AquaRingEffect heals at end turn and transfers through Baton Pass; Big Root branch is local.',
     'BatonPass' =>
       'Object-backed BatonPassEffect marks switch transfer; the current handler transfers stat stages and transferable effects, while full party switch action remains future work.',
+    'Confusion' =>
+      'Object-backed ConfusionEffect runs the PSDK user-prevention lifecycle: countdown, last-turn cleanup, 50% self-hit roll and typeless 40-power self damage; Studio CONFUSED status application, Own Tempo/Persim-style cures and battle messages remain future work.',
     'Curse' =>
       'Object-backed CurseEffect applies end-turn damage and transfers through Baton Pass; Magic Guard is checked by id.',
     'Ingrain' =>
@@ -322,6 +324,7 @@ _PsdkPortStatus _statusFor(String effectName) {
   return switch (effectName) {
     'AquaRing' ||
     'BatonPass' ||
+    'Confusion' ||
     'Curse' ||
     'Ingrain' ||
     'LeechSeed' ||

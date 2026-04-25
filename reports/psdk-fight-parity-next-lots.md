@@ -22,8 +22,8 @@ Current measured state:
 | Move methods missing | 248 |
 | PSDK effect classes | 482 |
 | Effect classes ported | 0 |
-| Effect classes partial | 6 |
-| Effect classes missing | 476 |
+| Effect classes partial | 7 |
+| Effect classes missing | 475 |
 | Studio attacks in local source | 728 |
 | Studio attacks fait | 29 |
 | Studio attacks partiel | 429 |
@@ -143,13 +143,24 @@ Done so far:
   `IngrainEffect`.
 - Added CLI smoke scenarios for `ingrain` and `leech_seed` so the new
   persistent-effect behavior can be checked from `psdk_battle_cli.dart`.
+- Added the object-effect user-prevention hook and `ConfusionEffect`:
+  the PSDK countdown, final cleanup, 50% self-hit roll and typeless 40-power
+  self damage now execute before PP is spent. `Confusion` is now `partial` in
+  the generated effect matrix.
+- Added a CLI smoke scenario `--scenario confusion` that emits the self-hit
+  damage and `move_failed` JSON events for behavior checks.
 
 Still remaining in this lot:
 
 - Add explicit deletion/switch-out lifecycle hooks for effects that need PSDK
   cleanup behavior beyond Baton Pass transfer.
-- Port the remaining transferable effects: `Substitute`, `Confusion`, and any
-  PSDK edge case tied to these effects.
+- Port `Substitute` and any remaining PSDK edge case tied to copied/deleted
+  volatile effects. `Confusion` is intentionally not treated as Baton Pass
+  transferable here because the inspected PSDK `Confusion.rb` file does not
+  expose a Baton Pass transfer override.
+- Wire Studio `CONFUSED` move statuses (`Confuse Ray`, `Supersonic`, etc.) to
+  `ConfusionEffect`, including randomized PSDK duration and immunity/cure
+  interactions such as Own Tempo/Persim-style behavior.
 - Complete the PSDK edge cases for `Ingrain` and `LeechSeed`: Ghost/Teleport
   switch exceptions, forced-switch handling, Liquid Ooze, explicit
   `LeechSeed::Mark` modeling and full origin cleanup.

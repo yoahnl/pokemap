@@ -2,6 +2,7 @@ import 'battle_effect.dart';
 import 'battle_effect_scope.dart';
 import 'move/aqua_ring_effect.dart';
 import 'move/baton_pass_effect.dart';
+import 'move/confusion_effect.dart';
 import 'move/curse_effect.dart';
 import 'move/ingrain_effect.dart';
 import 'move/protect_effect.dart';
@@ -19,6 +20,7 @@ final class BattleEffectRegistry {
     return switch (id) {
       'aqua_ring' => const AquaRingEffect(scope: LocalBattleEffectScope()),
       'baton_pass' => const BatonPassEffect(scope: LocalBattleEffectScope()),
+      'confusion' => const ConfusionEffect(scope: LocalBattleEffectScope()),
       'curse' => const CurseEffect(scope: LocalBattleEffectScope()),
       'ingrain' => const IngrainEffect(scope: LocalBattleEffectScope()),
       'protect' => const ProtectEffect(scope: LocalBattleEffectScope()),

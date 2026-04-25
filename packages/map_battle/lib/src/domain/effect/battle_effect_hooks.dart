@@ -31,6 +31,42 @@ final class BattleEffectPreventionResult {
   final BattleMoveFailureReason reason;
 }
 
+/// Hook result for effects that can stop their owner before a move executes.
+final class BattleEffectUserMovePreventionResult {
+  const BattleEffectUserMovePreventionResult({
+    required this.state,
+    required this.rng,
+    required this.prevented,
+    required this.reason,
+    this.events = const <PsdkBattleEvent>[],
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final bool prevented;
+  final BattleMoveFailureReason reason;
+  final List<PsdkBattleEvent> events;
+}
+
+/// Hook context for effects tied to the move user.
+final class BattleEffectUserMovePreventionContext {
+  const BattleEffectUserMovePreventionContext({
+    required this.state,
+    required this.rng,
+    required this.turn,
+    required this.user,
+    required this.target,
+    required this.move,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int turn;
+  final PsdkBattleSlotRef user;
+  final PsdkBattleSlotRef target;
+  final BattleMoveDefinition move;
+}
+
 /// Hook context for effects that tick during the PSDK end-turn phase.
 final class BattleEffectEndTurnContext {
   const BattleEffectEndTurnContext({

@@ -512,6 +512,38 @@ void main() {
       );
     });
 
+    test('prints a Confusion scenario with self-hit prevention', () async {
+      final lines = <String>[];
+      final exitCode = await PsdkBattleCli(
+        stdout: lines.add,
+        stderr: fail,
+      ).run(const <String>[
+        '--scenario',
+        'confusion',
+        '--format',
+        'json',
+      ]);
+
+      expect(exitCode, 0);
+      final payload = jsonDecode(lines.single) as Map<String, dynamic>;
+      expect(payload['outcome'], 'ongoing');
+      expect(payload['playerHp'], 92);
+      expect(payload['opponentHp'], 100);
+
+      final effectEvents = (payload['events'] as List<dynamic>)
+          .cast<Map<String, dynamic>>()
+          .where((event) =>
+              event['moveId'] == 'effect:confusion' ||
+              event['moveId'] == 'confused_splash')
+          .toList(growable: false);
+      expect(
+        effectEvents.map((event) => event['kind']),
+        containsAllInOrder(<String>['damage', 'move_failed']),
+      );
+      expect(effectEvents.first['damage'], 8);
+      expect(effectEvents.last['reason'], 'unusable_by_user');
+    });
+
     test('prints a status-cure scenario for hit-then-cure moves', () async {
       final lines = <String>[];
       final exitCode = await PsdkBattleCli(

@@ -6,6 +6,7 @@ import '../domain/action/battle_action_decision_mapper.dart';
 import '../domain/action/battle_action_queue.dart';
 import '../domain/decision/battle_decision.dart';
 import '../domain/effect/ability/ability_effect.dart';
+import '../domain/effect/battle_effect_hooks.dart';
 import '../domain/handler/battle_end_turn_handler.dart';
 import '../domain/handler/battle_handler_context.dart';
 import '../domain/handler/battle_handler_result.dart';
@@ -169,6 +170,40 @@ final class BattleTurnRunner {
             reason: abilityPrevention,
           );
           continue;
+        }
+        final effectPrevention = _resolveEffectUserPrevention(
+          action: action,
+          move: cleanMoveBeforePp,
+        );
+        if (effectPrevention != null) {
+          _context.applyStateAndRng(
+            nextState: effectPrevention.state,
+            nextRng: effectPrevention.rng,
+          );
+          timeline.addPsdkAll(effectPrevention.events);
+          if (effectPrevention.prevented) {
+            _recordMoveAttempt(
+              user: action.user,
+              moveId: moveBeforePp.id,
+              targets: historyTargets,
+            );
+            timeline.add(
+              BattleMoveFailedTimelineEvent(
+                turn: _context.turnNumber,
+                user: _fromPsdkSlot(action.user),
+                target: _fromPsdkSlot(action.target),
+                moveId: moveBeforePp.id,
+                reason: effectPrevention.reason.jsonName,
+              ),
+            );
+            _notifyMoveFailure(
+              user: action.user,
+              target: action.target,
+              move: cleanMoveBeforePp,
+              reason: effectPrevention.reason,
+            );
+            continue;
+          }
         }
         final userPrevention = _moveProcedureHooks.preventUser(
               BattleMoveUserPreventionContext(
@@ -379,6 +414,22 @@ final class BattleTurnRunner {
       }
     }
     return null;
+  }
+
+  BattleEffectUserMovePreventionResult? _resolveEffectUserPrevention({
+    required PsdkBattleFightAction action,
+    required BattleMoveDefinition move,
+  }) {
+    return _context.state.battlerAt(action.user).effects.userMovePrevention(
+          BattleEffectUserMovePreventionContext(
+            state: _context.state,
+            rng: _context.rng,
+            turn: _context.turnNumber,
+            user: action.user,
+            target: action.target,
+            move: move,
+          ),
+        );
   }
 
   bool _hasRunnableActionAfter(

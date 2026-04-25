@@ -34,6 +34,12 @@ abstract class BattleEffect {
     return null;
   }
 
+  BattleEffectUserMovePreventionResult? onUserMovePrevention(
+    BattleEffectUserMovePreventionContext context,
+  ) {
+    return null;
+  }
+
   BattleEffectEndTurnResult? onEndTurn(BattleEffectEndTurnContext context) {
     return null;
   }

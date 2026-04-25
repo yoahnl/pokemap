@@ -77,7 +77,7 @@ class PsdkBattleCli {
             'generic_status_stat, prevented, protect, fixed_damage, '
             'multi_hit, advanced_multi_hit, basic_specialization, direct_hp, '
             'healing, status_cure, recovery_stat, advanced_stat, '
-            'acupressure, aqua_ring, ingrain, leech_seed, recoil, '
+            'acupressure, aqua_ring, ingrain, leech_seed, confusion, recoil, '
             'mind_blown, explosion, terrain_boosting, variable_power, '
             'custom_stat, weight_power, damp_ability, or loaded_dice.',
           );
@@ -163,6 +163,7 @@ enum _PsdkBattleCliScenario {
   aquaRing,
   ingrain,
   leechSeed,
+  confusion,
   statusCure,
   recoveryStat,
   advancedStat,
@@ -224,6 +225,7 @@ _PsdkBattleCliScenario? _parseScenario(String value) {
     'aqua_ring' || 'aqua-ring' => _PsdkBattleCliScenario.aquaRing,
     'ingrain' => _PsdkBattleCliScenario.ingrain,
     'leech_seed' || 'leech-seed' => _PsdkBattleCliScenario.leechSeed,
+    'confusion' => _PsdkBattleCliScenario.confusion,
     'status_cure' || 'status-cure' => _PsdkBattleCliScenario.statusCure,
     'recovery_stat' || 'recovery-stat' => _PsdkBattleCliScenario.recoveryStat,
     'advanced_stat' || 'advanced-stat' => _PsdkBattleCliScenario.advancedStat,
@@ -774,6 +776,41 @@ _PsdkBattleCliScenarioConfig _scenarioConfig(
         turnLimit: 1,
         mustFinish: false,
       ),
+    _PsdkBattleCliScenario.confusion => _PsdkBattleCliScenarioConfig(
+        setup: _singleTurnSetup(
+          playerTypes: const PsdkBattleTypes(primary: 'normal'),
+          opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+          playerEffects: PsdkBattleEffectStack(
+            values: const <String>[PsdkBattleEffectIds.confusion],
+          ),
+          playerMove: _move(
+            id: 'confused_splash',
+            type: 'normal',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            accuracy: 0,
+            battleEngineMethod: 's_splash',
+            target: PsdkBattleMoveTarget.none,
+          ),
+          opponentMove: _move(
+            id: 'splash',
+            type: 'normal',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            accuracy: 0,
+            battleEngineMethod: 's_splash',
+            target: PsdkBattleMoveTarget.none,
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 2,
+          ),
+        ),
+        turnLimit: 1,
+        mustFinish: false,
+      ),
     _PsdkBattleCliScenario.statusCure => _PsdkBattleCliScenarioConfig(
         setup: _singleTurnSetup(
           playerTypes: const PsdkBattleTypes(primary: 'normal'),
@@ -1192,6 +1229,8 @@ PsdkBattleSetup _singleTurnSetup({
   PsdkBattleMajorStatus? opponentMajorStatus,
   String? playerHeldItemId,
   String? opponentHeldItemId,
+  PsdkBattleEffectStack playerEffects = const PsdkBattleEffectStack.empty(),
+  PsdkBattleEffectStack opponentEffects = const PsdkBattleEffectStack.empty(),
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
   PsdkBattleStats playerStats = const PsdkBattleStats(
     attack: 50,
@@ -1223,6 +1262,7 @@ PsdkBattleSetup _singleTurnSetup({
       majorStatus: playerMajorStatus,
       heldItemId: playerHeldItemId,
       baseWeightKg: playerWeightKg,
+      effects: playerEffects,
       moves: <PsdkBattleMoveData>[playerMove],
     ),
     opponent: PsdkBattleCombatantSetup(
@@ -1238,6 +1278,7 @@ PsdkBattleSetup _singleTurnSetup({
       majorStatus: opponentMajorStatus,
       heldItemId: opponentHeldItemId,
       baseWeightKg: opponentWeightKg,
+      effects: opponentEffects,
       moves: <PsdkBattleMoveData>[
         opponentMove ??
             _move(

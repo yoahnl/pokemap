@@ -10,8 +10,8 @@ Date: 2026-04-25
 | Move methods missing | 248 |
 | PSDK effect classes | 482 |
 | Effect classes ported | 0 |
-| Effect classes partial | 6 |
-| Effect classes missing | 476 |
+| Effect classes partial | 7 |
+| Effect classes missing | 475 |
 
 This status file is intentionally small. The source of truth for detailed rows
 is still:

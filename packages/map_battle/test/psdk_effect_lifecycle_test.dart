@@ -186,6 +186,85 @@ void main() {
           result.events.whereType<PsdkBattleDamageEvent>().single.damage, 12);
       expect(result.events.whereType<PsdkBattleHealEvent>().single.amount, 12);
     });
+
+    test('Confusion can self-hit and prevent the user before PP is spent', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          player: _combatant(
+            id: 'confused',
+            effects: PsdkBattleEffectStack(
+              values: const <String>[PsdkBattleEffectIds.confusion],
+            ),
+          ),
+          genericSeed: 2,
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      final damageEvents =
+          result.timeline.events.whereType<PsdkBattleDamageEvent>();
+      final failedEvents =
+          result.timeline.events.whereType<PsdkBattleMoveFailedEvent>();
+
+      expect(player.currentHp, 92);
+      expect(player.moves.single.currentPp, 35);
+      expect(player.effects.contains(PsdkBattleEffectIds.confusion), isTrue);
+      expect(damageEvents.single.moveId, 'effect:confusion');
+      expect(damageEvents.single.user, psdkPlayerSlot);
+      expect(damageEvents.single.target, psdkPlayerSlot);
+      expect(damageEvents.single.damage, 8);
+      expect(failedEvents.single.moveId, 'splash');
+      expect(failedEvents.single.reason, 'unusable_by_user');
+    });
+
+    test('Confusion decrements on clean action then clears on its last turn',
+        () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          player: _combatant(
+            id: 'confused',
+            effects: PsdkBattleEffectStack(
+              values: const <String>[PsdkBattleEffectIds.confusion],
+            ),
+          ),
+          genericSeed: 1,
+        ),
+      );
+
+      final first = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final second = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(first.state.battlerAt(psdkPlayerSlot).currentHp, 100);
+      expect(first.state.battlerAt(psdkPlayerSlot).moves.single.currentPp, 34);
+      expect(
+        first.state
+            .battlerAt(psdkPlayerSlot)
+            .effects
+            .contains(PsdkBattleEffectIds.confusion),
+        isTrue,
+      );
+      expect(
+        first.timeline.events
+            .whereType<PsdkBattleMoveFailedEvent>()
+            .where((event) => event.user == psdkPlayerSlot),
+        isEmpty,
+      );
+      expect(second.state.battlerAt(psdkPlayerSlot).currentHp, 100);
+      expect(
+        second.state
+            .battlerAt(psdkPlayerSlot)
+            .effects
+            .contains(PsdkBattleEffectIds.confusion),
+        isFalse,
+      );
+      expect(
+        second.timeline.events
+            .whereType<PsdkBattleDamageEvent>()
+            .where((event) => event.moveId == 'effect:confusion'),
+        isEmpty,
+      );
+    });
   });
 }
 
@@ -241,5 +320,22 @@ BattleRngStreams _rng() {
     moveCriticalSeed: 2,
     moveAccuracySeed: 3,
     genericSeed: 4,
+  );
+}
+
+PsdkBattleSetup _setup({
+  PsdkBattleCombatantSetup? player,
+  PsdkBattleCombatantSetup? opponent,
+  int genericSeed = 4,
+}) {
+  return PsdkBattleSetup.singles(
+    player: player ?? _combatant(id: 'player'),
+    opponent: opponent ?? _combatant(id: 'opponent'),
+    rngSeeds: PsdkBattleRngSeeds(
+      moveDamage: 1,
+      moveCritical: 2,
+      moveAccuracy: 3,
+      generic: genericSeed,
+    ),
   );
 }
