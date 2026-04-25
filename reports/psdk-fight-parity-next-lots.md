@@ -18,16 +18,16 @@ Current measured state:
 | --- | ---: |
 | PSDK move methods | 330 |
 | Move methods ported | 21 |
-| Move methods partial | 59 |
-| Move methods missing | 250 |
+| Move methods partial | 61 |
+| Move methods missing | 248 |
 | PSDK effect classes | 482 |
 | Effect classes ported | 0 |
-| Effect classes partial | 4 |
-| Effect classes missing | 478 |
+| Effect classes partial | 6 |
+| Effect classes missing | 476 |
 | Studio attacks in local source | 728 |
 | Studio attacks fait | 29 |
-| Studio attacks partiel | 427 |
-| Studio attacks pas_fait | 272 |
+| Studio attacks partiel | 429 |
+| Studio attacks pas_fait | 270 |
 
 Goal: move from isolated move-family behavior to real Pokemon SDK parity by
 porting the shared PSDK effect/handler/action surfaces first, then using those
@@ -135,13 +135,24 @@ Done so far:
 - Updated generated move/effect/attack parity reports:
   `s_baton_pass` is now `partial`, `BatonPass` is now `partial`, and the
   Studio attack coverage moved one attack from `pas_fait` to `partiel`.
+- Added `IngrainEffect` and `LeechSeedEffect` object hooks:
+  `s_ingrain` and `s_leech_seed` are now `partial`, `Ingrain` and
+  `LeechSeed` are now `partial`, and the Studio attack coverage moved two more
+  attacks from `pas_fait` to `partiel`.
+- Added switch-prevention plumbing for object effects, currently exercised by
+  `IngrainEffect`.
+- Added CLI smoke scenarios for `ingrain` and `leech_seed` so the new
+  persistent-effect behavior can be checked from `psdk_battle_cli.dart`.
 
 Still remaining in this lot:
 
 - Add explicit deletion/switch-out lifecycle hooks for effects that need PSDK
   cleanup behavior beyond Baton Pass transfer.
-- Port the remaining transferable effects: `Substitute`, `Confusion`,
-  `LeechSeed`, `Ingrain`, and any PSDK edge case tied to these effects.
+- Port the remaining transferable effects: `Substitute`, `Confusion`, and any
+  PSDK edge case tied to these effects.
+- Complete the PSDK edge cases for `Ingrain` and `LeechSeed`: Ghost/Teleport
+  switch exceptions, forced-switch handling, Liquid Ooze, explicit
+  `LeechSeed::Mark` modeling and full origin cleanup.
 - Wire Baton Pass into a full party switch action, including replacement
   selection, invalid-switch handling and battle events/messages.
 - Promote `s_baton_pass` from `partial` only after the full switch action

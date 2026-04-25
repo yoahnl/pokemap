@@ -517,6 +517,48 @@ void main() {
       );
     });
 
+    test('tracks the persistent effect move slice', () {
+      final byMethod = {
+        for (final entry in psdkMoveRegistryManifest)
+          entry.battleEngineMethod: entry,
+      };
+
+      expect(byMethod['s_aqua_ring']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_aqua_ring']!.dartBehavior,
+        'PersistentEffectMoveBehavior.aquaRing',
+      );
+      expect(byMethod['s_ingrain']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_ingrain']!.dartBehavior,
+        'PersistentEffectMoveBehavior.ingrain',
+      );
+      expect(byMethod['s_leech_seed']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_leech_seed']!.dartBehavior,
+        'PersistentEffectMoveBehavior.leechSeed',
+      );
+      expect(
+        byMethod['s_ingrain']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerDamage,
+          PsdkMoveDependency.handlerSwitch,
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.endTurn,
+          PsdkMoveDependency.item,
+        ]),
+      );
+      expect(
+        byMethod['s_leech_seed']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerDamage,
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.endTurn,
+          PsdkMoveDependency.ability,
+        ]),
+      );
+    });
+
     test('tracks the switch-effect move slice', () {
       final byMethod = {
         for (final entry in psdkMoveRegistryManifest)

@@ -283,6 +283,10 @@ String _notesFor(String effectName) {
       'Object-backed BatonPassEffect marks switch transfer; the current handler transfers stat stages and transferable effects, while full party switch action remains future work.',
     'Curse' =>
       'Object-backed CurseEffect applies end-turn damage and transfers through Baton Pass; Magic Guard is checked by id.',
+    'Ingrain' =>
+      'Object-backed IngrainEffect heals at end turn, grounds the user, prevents regular switch-out and transfers through Baton Pass; Ghost/Teleport/forced-switch exceptions remain future work.',
+    'LeechSeed' =>
+      'Object-backed LeechSeedEffect drains at end turn, checks Grass/Substitute duplicate immunity in the move behavior, skips Magic Guard and transfers through Baton Pass; Liquid Ooze and full mark/origin cleanup remain future work.',
     'Protect' =>
       'Object-backed ProtectEffect ported for common target prevention; variants, success-rate decay and Unseen Fist bypass remain future work.',
     _ => '',
@@ -319,6 +323,8 @@ _PsdkPortStatus _statusFor(String effectName) {
     'AquaRing' ||
     'BatonPass' ||
     'Curse' ||
+    'Ingrain' ||
+    'LeechSeed' ||
     'Protect' =>
       _PsdkPortStatus.partial,
     _ => _PsdkPortStatus.missing,

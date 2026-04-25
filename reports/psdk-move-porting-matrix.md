@@ -7,8 +7,8 @@ Total registered methods: 330
 | Status | Count |
 | --- | ---: |
 | `ported` | 21 |
-| `partial` | 59 |
-| `missing` | 250 |
+| `partial` | 61 |
+| `missing` | 248 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
 | --- | --- | --- | --- | --- | --- |
@@ -150,7 +150,7 @@ Total registered methods: 330
 | `s_imprison` | `Imprison` | `10 Move/2 Definitions/300 Imprison.rb` | `TODO` | `missing` | `-` |
 | `s_incinerate` | `Incinerate` | `10 Move/2 Definitions/300 Incinerate.rb` | `TODO` | `missing` | `-` |
 | `s_infernal_parade` | `InfernalParade` | `10 Move/2 Definitions/300 StatusBoostedMove.rb` | `VariablePowerMoveBehavior.infernalParade` | `ported` | `-` |
-| `s_ingrain` | `Ingrain` | `10 Move/2 Definitions/300 Ingrain.rb` | `TODO` | `missing` | `-` |
+| `s_ingrain` | `Ingrain` | `10 Move/2 Definitions/300 Ingrain.rb` | `PersistentEffectMoveBehavior.ingrain` | `partial` | `handler_damage`, `handler_switch`, `effects`, `end_turn`, `item` |
 | `s_instruct` | `Instruct` | `10 Move/2 Definitions/300 Instruct.rb` | `TODO` | `missing` | `-` |
 | `s_ion_deluge` | `IonDeluge` | `10 Move/2 Definitions/300 Ion Deluge.rb` | `TODO` | `missing` | `-` |
 | `s_ivy_cudgel` | `IvyCudgel` | `10 Move/2 Definitions/300 IvyCudgel.rb` | `TODO` | `missing` | `-` |
@@ -163,7 +163,7 @@ Total registered methods: 330
 | `s_lash_out` | `LashOut` | `10 Move/2 Definitions/300 LashOut.rb` | `TODO` | `missing` | `-` |
 | `s_last_resort` | `LastResort` | `10 Move/2 Definitions/300 LastResort.rb` | `TODO` | `missing` | `-` |
 | `s_last_respects` | `LastRespects` | `10 Move/2 Definitions/300 LastRespects.rb` | `TODO` | `missing` | `-` |
-| `s_leech_seed` | `LeechSeed` | `10 Move/2 Definitions/300 LeechSeed.rb` | `TODO` | `missing` | `-` |
+| `s_leech_seed` | `LeechSeed` | `10 Move/2 Definitions/300 LeechSeed.rb` | `PersistentEffectMoveBehavior.leechSeed` | `partial` | `handler_damage`, `effects`, `end_turn`, `ability` |
 | `s_life_dew` | `LifeDew` | `10 Move/2 Definitions/300 LifeDew.rb` | `HealMoveBehavior.lifeDew` | `partial` | `handler_damage`, `effects`, `targeting_multi` |
 | `s_lock_on` | `LockOn` | `10 Move/2 Definitions/300 LockOn.rb` | `TODO` | `missing` | `-` |
 | `s_low_kick` | `LowKick` | `10 Move/2 Definitions/300 LowKick.rb` | `WeightPowerMoveBehavior.lowKick` | `partial` | `effects`, `ability`, `grounded` |

@@ -56,6 +56,66 @@ void main() {
       expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 66);
     });
 
+    test('s_ingrain adds a healing grounded effect to the user', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          playerCurrentHp: 60,
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'ingrain',
+              battleEngineMethod: 's_ingrain',
+              target: PsdkBattleMoveTarget.user,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.effects.contains('ingrain'), isTrue);
+      expect(
+        player.effects.effects.singleWhere(
+          (effect) => effect.id == 'ingrain',
+        ),
+        isA<IngrainEffect>(),
+      );
+      expect(player.currentHp, 66);
+      expect(_heal(result, moveId: 'effect:ingrain').amount, 6);
+      expect(const BattleGroundingResolver().isGrounded(player), isTrue);
+    });
+
+    test('s_leech_seed adds a draining effect to the target', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          playerCurrentHp: 50,
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'leech_seed',
+              battleEngineMethod: 's_leech_seed',
+              target: PsdkBattleMoveTarget.adjacentFoe,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+
+      expect(opponent.effects.contains('leech_seed'), isTrue);
+      expect(
+        opponent.effects.effects.singleWhere(
+          (effect) => effect.id == 'leech_seed',
+        ),
+        isA<LeechSeedEffect>(),
+      );
+      expect(opponent.currentHp, 88);
+      expect(player.currentHp, 62);
+      expect(_damage(result, moveId: 'effect:leech_seed').damage, 12);
+      expect(_heal(result, moveId: 'effect:leech_seed').amount, 12);
+    });
+
     test('ghost s_curse creates a CurseEffect that damages the target later',
         () {
       final engine = PsdkBattleEngine(

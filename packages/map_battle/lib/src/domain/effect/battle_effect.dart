@@ -41,6 +41,10 @@ abstract class BattleEffect {
   BattleEffect? onBatonPassTransfer(BattleEffectBatonPassContext context) {
     return null;
   }
+
+  String? onSwitchPrevention(BattleEffectSwitchPreventionContext context) {
+    return null;
+  }
 }
 
 /// Passive effect used when legacy/setup code only knows an effect id.

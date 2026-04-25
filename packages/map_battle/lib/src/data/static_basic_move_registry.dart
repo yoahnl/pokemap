@@ -86,6 +86,8 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     const RecoveryStatMoveBehavior.filletAway(),
     const RecoveryStatMoveBehavior.strengthSap(),
     const PersistentEffectMoveBehavior.aquaRing(),
+    const PersistentEffectMoveBehavior.ingrain(),
+    const PersistentEffectMoveBehavior.leechSeed(),
     const AdvancedStatMoveBehavior.acupressure(),
     const AdvancedStatMoveBehavior.clangorousSoul(),
     const AdvancedStatMoveBehavior.curse(),

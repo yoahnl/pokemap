@@ -69,3 +69,17 @@ final class BattleEffectBatonPassContext {
   final PsdkBattleSlotRef source;
   final PsdkBattleSlotRef target;
 }
+
+final class BattleEffectSwitchPreventionContext {
+  const BattleEffectSwitchPreventionContext({
+    required this.state,
+    required this.rng,
+    required this.turn,
+    required this.target,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int turn;
+  final PsdkBattleSlotRef target;
+}

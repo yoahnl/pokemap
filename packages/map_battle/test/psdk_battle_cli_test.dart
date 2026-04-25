@@ -457,6 +457,61 @@ void main() {
       expect(healEvents.single['remainingHp'], 66);
     });
 
+    test('prints an Ingrain scenario for healing and grounding', () async {
+      final lines = <String>[];
+      final exitCode = await PsdkBattleCli(
+        stdout: lines.add,
+        stderr: fail,
+      ).run(const <String>[
+        '--scenario',
+        'ingrain',
+        '--format',
+        'json',
+      ]);
+
+      expect(exitCode, 0);
+      final payload = jsonDecode(lines.single) as Map<String, dynamic>;
+      expect(payload['outcome'], 'ongoing');
+      expect(payload['playerHp'], 66);
+
+      final healEvents = (payload['events'] as List<dynamic>)
+          .cast<Map<String, dynamic>>()
+          .where((event) => event['moveId'] == 'effect:ingrain')
+          .where((event) => event['kind'] == 'heal')
+          .toList(growable: false);
+      expect(healEvents, hasLength(1));
+      expect(healEvents.single['amount'], 6);
+      expect(healEvents.single['remainingHp'], 66);
+    });
+
+    test('prints a Leech Seed scenario for end-turn drain', () async {
+      final lines = <String>[];
+      final exitCode = await PsdkBattleCli(
+        stdout: lines.add,
+        stderr: fail,
+      ).run(const <String>[
+        '--scenario',
+        'leech_seed',
+        '--format',
+        'json',
+      ]);
+
+      expect(exitCode, 0);
+      final payload = jsonDecode(lines.single) as Map<String, dynamic>;
+      expect(payload['outcome'], 'ongoing');
+      expect(payload['playerHp'], 62);
+      expect(payload['opponentHp'], 88);
+
+      final effectEvents = (payload['events'] as List<dynamic>)
+          .cast<Map<String, dynamic>>()
+          .where((event) => event['moveId'] == 'effect:leech_seed')
+          .toList(growable: false);
+      expect(
+        effectEvents.map((event) => event['kind']),
+        containsAllInOrder(<String>['damage', 'heal']),
+      );
+    });
+
     test('prints a status-cure scenario for hit-then-cure moves', () async {
       final lines = <String>[];
       final exitCode = await PsdkBattleCli(

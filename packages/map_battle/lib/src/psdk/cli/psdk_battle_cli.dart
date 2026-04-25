@@ -77,9 +77,9 @@ class PsdkBattleCli {
             'generic_status_stat, prevented, protect, fixed_damage, '
             'multi_hit, advanced_multi_hit, basic_specialization, direct_hp, '
             'healing, status_cure, recovery_stat, advanced_stat, '
-            'acupressure, aqua_ring, recoil, mind_blown, explosion, '
-            'terrain_boosting, variable_power, custom_stat, weight_power, '
-            'damp_ability, or loaded_dice.',
+            'acupressure, aqua_ring, ingrain, leech_seed, recoil, '
+            'mind_blown, explosion, terrain_boosting, variable_power, '
+            'custom_stat, weight_power, damp_ability, or loaded_dice.',
           );
         }
         scenario = parsed;
@@ -161,6 +161,8 @@ enum _PsdkBattleCliScenario {
   directHp,
   healing,
   aquaRing,
+  ingrain,
+  leechSeed,
   statusCure,
   recoveryStat,
   advancedStat,
@@ -220,6 +222,8 @@ _PsdkBattleCliScenario? _parseScenario(String value) {
     'direct_hp' || 'direct-hp' => _PsdkBattleCliScenario.directHp,
     'healing' || 'heal' => _PsdkBattleCliScenario.healing,
     'aqua_ring' || 'aqua-ring' => _PsdkBattleCliScenario.aquaRing,
+    'ingrain' => _PsdkBattleCliScenario.ingrain,
+    'leech_seed' || 'leech-seed' => _PsdkBattleCliScenario.leechSeed,
     'status_cure' || 'status-cure' => _PsdkBattleCliScenario.statusCure,
     'recovery_stat' || 'recovery-stat' => _PsdkBattleCliScenario.recoveryStat,
     'advanced_stat' || 'advanced-stat' => _PsdkBattleCliScenario.advancedStat,
@@ -684,6 +688,72 @@ _PsdkBattleCliScenarioConfig _scenarioConfig(
             accuracy: 0,
             battleEngineMethod: 's_aqua_ring',
             target: PsdkBattleMoveTarget.user,
+          ),
+          opponentMove: _move(
+            id: 'splash',
+            type: 'normal',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            accuracy: 0,
+            battleEngineMethod: 's_splash',
+            target: PsdkBattleMoveTarget.none,
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+        ),
+        turnLimit: 1,
+        mustFinish: false,
+      ),
+    _PsdkBattleCliScenario.ingrain => _PsdkBattleCliScenarioConfig(
+        setup: _singleTurnSetup(
+          playerTypes: const PsdkBattleTypes(primary: 'grass'),
+          opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+          playerCurrentHp: 60,
+          playerMove: _move(
+            id: 'ingrain',
+            type: 'grass',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            accuracy: 0,
+            battleEngineMethod: 's_ingrain',
+            target: PsdkBattleMoveTarget.user,
+          ),
+          opponentMove: _move(
+            id: 'splash',
+            type: 'normal',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            accuracy: 0,
+            battleEngineMethod: 's_splash',
+            target: PsdkBattleMoveTarget.none,
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+        ),
+        turnLimit: 1,
+        mustFinish: false,
+      ),
+    _PsdkBattleCliScenario.leechSeed => _PsdkBattleCliScenarioConfig(
+        setup: _singleTurnSetup(
+          playerTypes: const PsdkBattleTypes(primary: 'grass'),
+          opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+          playerCurrentHp: 50,
+          playerMove: _move(
+            id: 'leech_seed',
+            type: 'grass',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            accuracy: 90,
+            battleEngineMethod: 's_leech_seed',
+            target: PsdkBattleMoveTarget.adjacentFoe,
           ),
           opponentMove: _move(
             id: 'splash',

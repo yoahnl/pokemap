@@ -16,8 +16,8 @@ Coverage semantics:
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
 | fait | 29 |
-| partiel | 427 |
-| pas_fait | 272 |
+| partiel | 429 |
+| pas_fait | 270 |
 | unknown_methods | 18 |
 
 | Fait ? | Attack | Battle method | Method status | Dart behavior | Type | Category | Power | Accuracy | PP | Source file |
@@ -346,7 +346,7 @@ Coverage semantics:
 | partiel | inferno_overdrive | s_basic | partial | StaticBasicMoveRegistry.s_basic | fire | physical | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/inferno_overdrive.json |
 | partiel | inferno_overdrive2 | s_basic | partial | StaticBasicMoveRegistry.s_basic | fire | special | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/inferno_overdrive2.json |
 | pas_fait | infestation | s_bind | missing | TODO | bug | special | 20 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/infestation.json |
-| pas_fait | ingrain | s_ingrain | missing | TODO | grass | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/ingrain.json |
+| partiel | ingrain | s_ingrain | partial | PersistentEffectMoveBehavior.ingrain | grass | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/ingrain.json |
 | pas_fait | instruct | s_instruct | missing | TODO | psychic | status | 0 | 0 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/instruct.json |
 | pas_fait | ion_deluge | s_ion_deluge | missing | TODO | electric | status | 0 | 0 | 25 | ../../pokémon_sdk_test_project/Data/Studio/moves/ion_deluge.json |
 | partiel | iron_defense | s_self_stat | partial | StatusStatMoveBehavior.selfStat | steel | status | 0 | 0 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/iron_defense.json |
@@ -367,7 +367,7 @@ Coverage semantics:
 | partiel | leaf_tornado | s_basic | partial | StaticBasicMoveRegistry.s_basic | grass | special | 65 | 90 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/leaf_tornado.json |
 | partiel | leafage | s_basic | partial | StaticBasicMoveRegistry.s_basic | grass | physical | 40 | 100 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/leafage.json |
 | partiel | leech_life | s_absorb | partial | DrainMoveBehavior.absorb | bug | physical | 80 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/leech_life.json |
-| pas_fait | leech_seed | s_leech_seed | missing | TODO | grass | status | 0 | 90 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/leech_seed.json |
+| partiel | leech_seed | s_leech_seed | partial | PersistentEffectMoveBehavior.leechSeed | grass | status | 0 | 90 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/leech_seed.json |
 | partiel | leer | s_stat | partial | StatusStatMoveBehavior.stat | normal | status | 0 | 100 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/leer.json |
 | pas_fait | let_s_snuggle_forever | s_z_move | unknown_method | TODO | fairy | physical | 190 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/let_s_snuggle_forever.json |
 | partiel | lick | s_basic | partial | StaticBasicMoveRegistry.s_basic | ghost | physical | 30 | 100 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/lick.json |

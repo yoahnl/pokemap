@@ -69,4 +69,14 @@ final class BattleEffectObjectStack {
       ),
     );
   }
+
+  String? switchPreventionReason(BattleEffectSwitchPreventionContext context) {
+    for (final effect in _effects) {
+      final reason = effect.onSwitchPrevention(context);
+      if (reason != null) {
+        return reason;
+      }
+    }
+    return null;
+  }
 }

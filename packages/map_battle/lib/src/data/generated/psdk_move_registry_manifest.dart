@@ -1227,9 +1227,15 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_ingrain',
     rubyClass: 'Ingrain',
     rubyPath: '10 Move/2 Definitions/300 Ingrain.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'PersistentEffectMoveBehavior.ingrain',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerDamage,
+      PsdkMoveDependency.handlerSwitch,
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.endTurn,
+      PsdkMoveDependency.item
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_instruct',
@@ -1336,9 +1342,14 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_leech_seed',
     rubyClass: 'LeechSeed',
     rubyPath: '10 Move/2 Definitions/300 LeechSeed.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'PersistentEffectMoveBehavior.leechSeed',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerDamage,
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.endTurn,
+      PsdkMoveDependency.ability
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_life_dew',

@@ -1,5 +1,6 @@
 import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
+import '../effect/battle_effect_hooks.dart';
 import 'battle_handler_context.dart';
 import 'battle_handler_result.dart';
 
@@ -16,6 +17,33 @@ final class BattleSwitchHandler {
         target,
         (battler) => battler.copyWith(switching: switching),
       ),
+      rng: context.rng,
+    );
+  }
+
+  BattleHandlerResult resolveSwitchPrevention({
+    required BattleHandlerContext context,
+    required PsdkBattleSlotRef target,
+  }) {
+    final reason =
+        context.state.battlerAt(target).effects.switchPreventionReason(
+              BattleEffectSwitchPreventionContext(
+                state: context.state,
+                rng: context.rng,
+                turn: context.turn,
+                target: target,
+              ),
+            );
+    if (reason != null) {
+      return BattleHandlerResult(
+        state: context.state,
+        rng: context.rng,
+        applied: false,
+        reason: reason,
+      );
+    }
+    return BattleHandlerResult(
+      state: context.state,
       rng: context.rng,
     );
   }

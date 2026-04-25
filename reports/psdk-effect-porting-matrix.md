@@ -7,8 +7,8 @@ Total effect classes: 482
 | Status | Count |
 | --- | ---: |
 | `ported` | 0 |
-| `partial` | 4 |
-| `missing` | 478 |
+| `partial` | 6 |
+| `missing` | 476 |
 
 | Effect | Ruby base | Family | Hooks | Hook families | Ruby path | Dart target | Status | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -201,7 +201,7 @@ Total effect classes: 482
 | `Immunity` | `NonVolatileStatusImmunityBase` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb` | `lib/src/domain/effect/ability/immunity_effect.dart` | `missing` | `-` |
 | `Imposter` | `Ability` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/100 Imposter.rb` | `lib/src/domain/effect/ability/imposter_effect.dart` | `missing` | `-` |
 | `Imprison` | `PokemonTiedEffectBase` | `move` | `on_move_disabled_check`, `on_move_prevention_user` | `move_prevention` | `06 Effects/02 Move Effects/001 Imprison.rb` | `lib/src/domain/effect/move/imprison_effect.dart` | `missing` | `-` |
-| `Ingrain` | `CantSwitch` | `move` | `on_end_turn_event`, `on_switch_prevention` | `end_turn`, `switch` | `06 Effects/02 Move Effects/001 Ingrain.rb` | `lib/src/domain/effect/move/ingrain_effect.dart` | `missing` | `-` |
+| `Ingrain` | `CantSwitch` | `move` | `on_end_turn_event`, `on_switch_prevention` | `end_turn`, `switch` | `06 Effects/02 Move Effects/001 Ingrain.rb` | `lib/src/domain/effect/move/ingrain_effect.dart` | `partial` | Object-backed IngrainEffect heals at end turn, grounds the user, prevents regular switch-out and transfers through Baton Pass; Ghost/Teleport/forced-switch exceptions remain future work. |
 | `InnardsOut` | `Ability` | `ability` | `on_post_damage`, `on_post_damage_death` | `post_damage` | `06 Effects/04 Ability Effects/100 Innards Out.rb` | `lib/src/domain/effect/ability/innards_out_effect.dart` | `missing` | `-` |
 | `InnerFocus` | `Ability` | `ability` | `on_status_prevention` | `status_prevention` | `06 Effects/04 Ability Effects/100 Inner Focus.rb` | `lib/src/domain/effect/ability/inner_focus_effect.dart` | `missing` | `-` |
 | `Insomnia` | `NonVolatileStatusImmunityBase` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb` | `lib/src/domain/effect/ability/insomnia_effect.dart` | `missing` | `-` |
@@ -223,7 +223,7 @@ Total effect classes: 482
 | `LaserFocus` | `PokemonTiedEffectBase` | `move` | `-` | `-` | `06 Effects/02 Move Effects/001 LaserFocus.rb` | `lib/src/domain/effect/move/laser_focus_effect.dart` | `missing` | `-` |
 | `LaxIncense` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Lax Incense.rb` | `lib/src/domain/effect/item/lax_incense_effect.dart` | `missing` | `-` |
 | `LeafGuard` | `Ability` | `ability` | `on_status_prevention` | `status_prevention` | `06 Effects/04 Ability Effects/100 Leaf Guard.rb` | `lib/src/domain/effect/ability/leaf_guard_effect.dart` | `missing` | `-` |
-| `LeechSeed` | `PositionTiedEffectBase` | `move` | `-` | `-` | `06 Effects/02 Move Effects/001 LeechSeed.rb` | `lib/src/domain/effect/move/leech_seed_effect.dart` | `missing` | `-` |
+| `LeechSeed` | `PositionTiedEffectBase` | `move` | `-` | `-` | `06 Effects/02 Move Effects/001 LeechSeed.rb` | `lib/src/domain/effect/move/leech_seed_effect.dart` | `partial` | Object-backed LeechSeedEffect drains at end turn, checks Grass/Substitute duplicate immunity in the move behavior, skips Magic Guard and transfers through Baton Pass; Liquid Ooze and full mark/origin cleanup remain future work. |
 | `Leftovers` | `Item` | `item` | `on_end_turn_event` | `end_turn` | `06 Effects/05 Item Effects/100 Leftovers.rb` | `lib/src/domain/effect/item/leftovers_effect.dart` | `missing` | `-` |
 | `LeppaBerry` | `Berry` | `item` | `on_end_turn_event` | `end_turn` | `06 Effects/05 Item Effects/100 Leppa Berry.rb` | `lib/src/domain/effect/item/leppa_berry_effect.dart` | `missing` | `-` |
 | `Libero` | `Ability` | `ability` | `on_pre_accuracy_check` | `accuracy` | `06 Effects/04 Ability Effects/100 Libero - Protean.rb` | `lib/src/domain/effect/ability/libero_effect.dart` | `missing` | `-` |

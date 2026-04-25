@@ -16,6 +16,17 @@ void main() {
             ),
           )
           .addEffect(
+            const IngrainEffect(
+              scope: BattlerBattleEffectScope(psdkPlayerSlot),
+            ),
+          )
+          .addEffect(
+            const LeechSeedEffect(
+              scope: BattlerBattleEffectScope(psdkPlayerSlot),
+              source: psdkOpponentSlot,
+            ),
+          )
+          .addEffect(
             const ProtectEffect(
               scope: BattlerBattleEffectScope(psdkPlayerSlot),
             ),
@@ -31,7 +42,10 @@ void main() {
         target: _benchSlot,
       );
 
-      expect(transferred.values, <String>['aqua_ring', 'curse']);
+      expect(
+        transferred.values,
+        <String>['aqua_ring', 'curse', 'ingrain', 'leech_seed'],
+      );
       expect(
         transferred.effects
             .map((effect) => (effect.scope as BattlerBattleEffectScope).slot),
@@ -64,6 +78,11 @@ void main() {
                     ),
                   )
                   .addEffect(
+                    const IngrainEffect(
+                      scope: BattlerBattleEffectScope(psdkPlayerSlot),
+                    ),
+                  )
+                  .addEffect(
                     const ProtectEffect(
                       scope: BattlerBattleEffectScope(psdkPlayerSlot),
                     ),
@@ -91,10 +110,81 @@ void main() {
       expect(source.statStages.values, isEmpty);
       expect(source.effects.contains('baton_pass'), isFalse);
       expect(source.effects.contains('aqua_ring'), isFalse);
+      expect(source.effects.contains('ingrain'), isFalse);
       expect(replacement.statStages.valueOf('attack'), 2);
       expect(replacement.statStages.valueOf('speed'), -1);
       expect(replacement.effects.contains('aqua_ring'), isTrue);
+      expect(replacement.effects.contains('ingrain'), isTrue);
       expect(replacement.effects.contains('protect'), isFalse);
+    });
+
+    test('Ingrain prevents regular switch-out attempts', () {
+      final state = PsdkBattleState(
+        combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+          psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'source',
+              effects: const PsdkBattleEffectStack.empty().addEffect(
+                const IngrainEffect(
+                  scope: BattlerBattleEffectScope(psdkPlayerSlot),
+                ),
+              ),
+            ),
+          ),
+          psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(id: 'opponent'),
+          ),
+        },
+      );
+
+      final result = const BattleSwitchHandler().resolveSwitchPrevention(
+        context: BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 4,
+          user: psdkPlayerSlot,
+        ),
+        target: psdkPlayerSlot,
+      );
+
+      expect(result.applied, isFalse);
+      expect(result.reason, 'ingrain');
+    });
+
+    test('Leech Seed drains the seeded target and heals the source', () {
+      final state = PsdkBattleState(
+        combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+          psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(id: 'source', currentHp: 40),
+          ),
+          psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'seeded',
+              effects: const PsdkBattleEffectStack.empty().addEffect(
+                const LeechSeedEffect(
+                  scope: BattlerBattleEffectScope(psdkOpponentSlot),
+                  source: psdkPlayerSlot,
+                ),
+              ),
+            ),
+          ),
+        },
+      );
+
+      final result = const BattleEndTurnHandler().tickEndTurnEffects(
+        BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 4,
+          user: psdkPlayerSlot,
+        ),
+      );
+
+      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 88);
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 52);
+      expect(
+          result.events.whereType<PsdkBattleDamageEvent>().single.damage, 12);
+      expect(result.events.whereType<PsdkBattleHealEvent>().single.amount, 12);
     });
   });
 }
@@ -103,6 +193,7 @@ const _benchSlot = PsdkBattleSlotRef(bank: 0, position: -1);
 
 PsdkBattleCombatantSetup _combatant({
   required String id,
+  int currentHp = 100,
   PsdkBattleStatStages? statStages,
   PsdkBattleEffectStack effects = const PsdkBattleEffectStack.empty(),
 }) {
@@ -112,7 +203,7 @@ PsdkBattleCombatantSetup _combatant({
     displayName: id,
     level: 20,
     maxHp: 100,
-    currentHp: 100,
+    currentHp: currentHp,
     types: const PsdkBattleTypes(primary: 'normal'),
     stats: const PsdkBattleStats(
       attack: 50,

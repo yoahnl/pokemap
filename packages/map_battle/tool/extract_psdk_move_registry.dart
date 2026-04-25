@@ -151,6 +151,14 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'PersistentEffectMoveBehavior.aquaRing',
     status: _PsdkPortStatus.partial,
   ),
+  's_ingrain': _KnownDartBehavior(
+    dartBehavior: 'PersistentEffectMoveBehavior.ingrain',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_leech_seed': _KnownDartBehavior(
+    dartBehavior: 'PersistentEffectMoveBehavior.leechSeed',
+    status: _PsdkPortStatus.partial,
+  ),
   's_baton_pass': _KnownDartBehavior(
     dartBehavior: 'SwitchEffectMoveBehavior.batonPass',
     status: _PsdkPortStatus.partial,
@@ -561,6 +569,19 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
     _PsdkMoveDependency.effects,
     _PsdkMoveDependency.endTurn,
     _PsdkMoveDependency.item,
+  },
+  's_ingrain': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.handlerSwitch,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.endTurn,
+    _PsdkMoveDependency.item,
+  },
+  's_leech_seed': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.endTurn,
+    _PsdkMoveDependency.ability,
   },
   's_baton_pass': {
     _PsdkMoveDependency.handlerSwitch,

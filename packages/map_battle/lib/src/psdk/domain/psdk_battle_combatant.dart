@@ -203,6 +203,8 @@ final class PsdkBattleEffectIds {
   static const String aquaRing = 'aqua_ring';
   static const String batonPass = 'baton_pass';
   static const String curse = 'curse';
+  static const String ingrain = 'ingrain';
+  static const String leechSeed = 'leech_seed';
   static const String protect = 'protect';
 }
 
@@ -312,6 +314,10 @@ class PsdkBattleEffectStack {
           )
           .effects,
     );
+  }
+
+  String? switchPreventionReason(BattleEffectSwitchPreventionContext context) {
+    return _stack.switchPreventionReason(context);
   }
 
   BattleMoveFailureReason? targetMovePreventionReason({
