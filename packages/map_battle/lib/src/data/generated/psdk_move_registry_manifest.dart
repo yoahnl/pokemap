@@ -2159,9 +2159,13 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_smelling_salt',
     rubyClass: 'SmellingSalts',
     rubyPath: '10 Move/2 Definitions/300 HitThenCureStatus.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'HitThenCureStatusMoveBehavior.smellingSalt',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerDamage,
+      PsdkMoveDependency.handlerStatus,
+      PsdkMoveDependency.effects
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_snatch',
@@ -2194,9 +2198,13 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_sparkling_aria',
     rubyClass: 'SparklingAria',
     rubyPath: '10 Move/2 Definitions/300 SparklingAria.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'HitThenCureStatusMoveBehavior.sparklingAria',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerDamage,
+      PsdkMoveDependency.handlerStatus,
+      PsdkMoveDependency.effects
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_sparkly_swirl',
@@ -2705,9 +2713,14 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_wakeup_slap',
     rubyClass: 'WakeUpSlap',
     rubyPath: '10 Move/2 Definitions/300 HitThenCureStatus.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'HitThenCureStatusMoveBehavior.wakeUpSlap',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerDamage,
+      PsdkMoveDependency.handlerStatus,
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.ability
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_water_shuriken',

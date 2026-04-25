@@ -207,6 +207,29 @@ class PsdkBattleStatusEvent extends PsdkBattleEvent {
       };
 }
 
+class PsdkBattleStatusCureEvent extends PsdkBattleEvent {
+  const PsdkBattleStatusCureEvent({
+    required this.user,
+    required this.target,
+    required this.moveId,
+    required this.status,
+  }) : super(kind: 'status_cure');
+
+  final PsdkBattleSlotRef user;
+  final PsdkBattleSlotRef target;
+  final String moveId;
+  final PsdkBattleMajorStatus status;
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+        'kind': kind,
+        'user': user.toJson(),
+        'target': target.toJson(),
+        'moveId': moveId,
+        'status': status.name,
+      };
+}
+
 class PsdkBattleStatStageEvent extends PsdkBattleEvent {
   const PsdkBattleStatStageEvent({
     required this.target,

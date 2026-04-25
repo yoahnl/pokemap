@@ -5,6 +5,7 @@ import '../domain/move/behaviors/direct_hp_move_behavior.dart';
 import '../domain/move/behaviors/drain_move_behavior.dart';
 import '../domain/move/behaviors/fixed_damage_move_behavior.dart';
 import '../domain/move/behaviors/heal_move_behavior.dart';
+import '../domain/move/behaviors/hit_then_cure_status_move_behavior.dart';
 import '../domain/move/behaviors/mind_blown_move_behavior.dart';
 import '../domain/move/behaviors/multi_hit_move_behavior.dart';
 import '../domain/move/behaviors/no_effect_move_behavior.dart';
@@ -74,6 +75,9 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     const HealMoveBehavior.shoreUp(),
     const HealMoveBehavior.lifeDew(),
     const HealMoveBehavior.jungleHealing(),
+    const HitThenCureStatusMoveBehavior.smellingSalt(),
+    const HitThenCureStatusMoveBehavior.wakeUpSlap(),
+    const HitThenCureStatusMoveBehavior.sparklingAria(),
     const SpecialPowerMoveBehavior.acrobatics(),
     const SpecialPowerMoveBehavior.storedPower(),
     const MindBlownMoveBehavior.mindBlown(),

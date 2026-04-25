@@ -75,9 +75,9 @@ class PsdkBattleCli {
             'Unknown --scenario value "$value". Expected default, immunity, '
             'miss, super_effective, critical, secondary_effect, pp_empty, '
             'prevented, protect, fixed_damage, multi_hit, advanced_multi_hit, '
-            'basic_specialization, direct_hp, healing, recoil, mind_blown, '
-            'explosion, terrain_boosting, variable_power, custom_stat, '
-            'weight_power, damp_ability, or loaded_dice.',
+            'basic_specialization, direct_hp, healing, status_cure, recoil, '
+            'mind_blown, explosion, terrain_boosting, variable_power, '
+            'custom_stat, weight_power, damp_ability, or loaded_dice.',
           );
         }
         scenario = parsed;
@@ -157,6 +157,7 @@ enum _PsdkBattleCliScenario {
   basicSpecialization,
   directHp,
   healing,
+  statusCure,
   recoil,
   mindBlown,
   explosion,
@@ -208,6 +209,7 @@ _PsdkBattleCliScenario? _parseScenario(String value) {
       _PsdkBattleCliScenario.basicSpecialization,
     'direct_hp' || 'direct-hp' => _PsdkBattleCliScenario.directHp,
     'healing' || 'heal' => _PsdkBattleCliScenario.healing,
+    'status_cure' || 'status-cure' => _PsdkBattleCliScenario.statusCure,
     'recoil' => _PsdkBattleCliScenario.recoil,
     'mind_blown' || 'mind-blown' => _PsdkBattleCliScenario.mindBlown,
     'explosion' ||
@@ -621,6 +623,27 @@ _PsdkBattleCliScenarioConfig _scenarioConfig(
         turnLimit: 1,
         mustFinish: false,
       ),
+    _PsdkBattleCliScenario.statusCure => _PsdkBattleCliScenarioConfig(
+        setup: _singleTurnSetup(
+          playerTypes: const PsdkBattleTypes(primary: 'normal'),
+          opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+          opponentMajorStatus: PsdkBattleMajorStatus.paralysis,
+          playerMove: _move(
+            id: 'smelling_salt',
+            type: 'normal',
+            power: 70,
+            battleEngineMethod: 's_smelling_salt',
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+        ),
+        turnLimit: 1,
+        mustFinish: false,
+      ),
     _PsdkBattleCliScenario.recoil => _PsdkBattleCliScenarioConfig(
         setup: _singleTurnSetup(
           playerTypes: const PsdkBattleTypes(primary: 'fire'),
@@ -915,6 +938,8 @@ PsdkBattleSetup _singleTurnSetup({
   double opponentWeightKg = 50,
   String? playerAbilityId,
   String? opponentAbilityId,
+  PsdkBattleMajorStatus? playerMajorStatus,
+  PsdkBattleMajorStatus? opponentMajorStatus,
   String? playerHeldItemId,
   String? opponentHeldItemId,
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
@@ -938,6 +963,7 @@ PsdkBattleSetup _singleTurnSetup({
       types: playerTypes,
       stats: playerStats,
       abilityId: playerAbilityId,
+      majorStatus: playerMajorStatus,
       heldItemId: playerHeldItemId,
       baseWeightKg: playerWeightKg,
       moves: <PsdkBattleMoveData>[playerMove],
@@ -958,6 +984,7 @@ PsdkBattleSetup _singleTurnSetup({
         speed: 1,
       ),
       abilityId: opponentAbilityId,
+      majorStatus: opponentMajorStatus,
       heldItemId: opponentHeldItemId,
       baseWeightKg: opponentWeightKg,
       moves: <PsdkBattleMoveData>[

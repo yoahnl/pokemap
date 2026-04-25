@@ -84,6 +84,14 @@ sealed class BattleTimelineEvent {
         status: event.status,
       );
     }
+    if (event is PsdkBattleStatusCureEvent) {
+      return BattleStatusCureTimelineEvent(
+        user: _fromPsdkSlot(event.user),
+        target: _fromPsdkSlot(event.target),
+        moveId: event.moveId,
+        status: event.status,
+      );
+    }
     if (event is PsdkBattleStatStageEvent) {
       return BattleStatStageChangeTimelineEvent(
         target: _fromPsdkSlot(event.target),
@@ -636,6 +644,42 @@ final class BattleStatusChangeTimelineEvent extends BattleTimelineEvent {
   @override
   PsdkBattleEvent toPsdkEvent() {
     return PsdkBattleStatusEvent(
+      user: _toPsdkSlot(user),
+      target: _toPsdkSlot(target),
+      moveId: moveId,
+      status: status,
+    );
+  }
+}
+
+final class BattleStatusCureTimelineEvent extends BattleTimelineEvent {
+  const BattleStatusCureTimelineEvent({
+    int? turn,
+    required this.user,
+    required this.target,
+    required this.moveId,
+    required this.status,
+  }) : super(kind: 'status_cure', turn: turn);
+
+  final BattlePositionRef user;
+  final BattlePositionRef target;
+  final String moveId;
+  final PsdkBattleMajorStatus status;
+
+  @override
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      ...baseJson(),
+      'user': _slotJson(user),
+      'target': _slotJson(target),
+      'moveId': moveId,
+      'status': status.name,
+    };
+  }
+
+  @override
+  PsdkBattleEvent toPsdkEvent() {
+    return PsdkBattleStatusCureEvent(
       user: _toPsdkSlot(user),
       target: _toPsdkSlot(target),
       moveId: moveId,

@@ -68,6 +68,46 @@ final class BattleStatusChangeHandler {
     );
   }
 
+  BattleHandlerResult cureMajorStatus({
+    required BattleHandlerContext context,
+    required PsdkBattleSlotRef target,
+    required String moveId,
+  }) {
+    final targetBattler = context.state.battlerAt(target);
+    final status = targetBattler.majorStatus;
+    if (status == null) {
+      return BattleHandlerResult(
+        state: context.state,
+        rng: context.rng,
+        applied: false,
+        reason: 'no_major_status',
+      );
+    }
+
+    return BattleHandlerResult(
+      state: context.state.updateBattler(
+        target,
+        (battler) => battler.copyWith(
+          clearMajorStatus: true,
+          sleepTurns:
+              status == PsdkBattleMajorStatus.sleep ? 0 : battler.sleepTurns,
+          toxicCounter:
+              status == PsdkBattleMajorStatus.toxic ? 0 : battler.toxicCounter,
+          effects: battler.effects.remove(status.name),
+        ),
+      ),
+      rng: context.rng,
+      events: <PsdkBattleEvent>[
+        PsdkBattleStatusCureEvent(
+          user: context.user,
+          target: target,
+          moveId: moveId,
+          status: status,
+        ),
+      ],
+    );
+  }
+
   BattleStatusUserPreventionResult? resolveUserPrevention({
     required BattleHandlerContext context,
     required PsdkBattleSlotRef user,

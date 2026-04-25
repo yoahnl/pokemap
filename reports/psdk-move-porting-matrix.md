@@ -7,8 +7,8 @@ Total registered methods: 330
 | Status | Count |
 | --- | ---: |
 | `ported` | 21 |
-| `partial` | 37 |
-| `missing` | 272 |
+| `partial` | 40 |
+| `missing` | 269 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
 | --- | --- | --- | --- | --- | --- |
@@ -267,11 +267,11 @@ Total registered methods: 330
 | `s_sky_drop` | `SkyDrop` | `10 Move/2 Definitions/300 SkyDrop.rb` | `TODO` | `missing` | `-` |
 | `s_sleep_talk` | `SleepTalk` | `10 Move/2 Definitions/300 SleepTalk.rb` | `TODO` | `missing` | `-` |
 | `s_smack_down` | `SmackDown` | `10 Move/2 Definitions/300 SmackDown.rb` | `TODO` | `missing` | `-` |
-| `s_smelling_salt` | `SmellingSalts` | `10 Move/2 Definitions/300 HitThenCureStatus.rb` | `TODO` | `missing` | `-` |
+| `s_smelling_salt` | `SmellingSalts` | `10 Move/2 Definitions/300 HitThenCureStatus.rb` | `HitThenCureStatusMoveBehavior.smellingSalt` | `partial` | `handler_damage`, `handler_status`, `effects` |
 | `s_snatch` | `Snatch` | `10 Move/2 Definitions/300 Snatch.rb` | `TODO` | `missing` | `-` |
 | `s_snore` | `Snore` | `10 Move/2 Definitions/300 Snore.rb` | `TODO` | `missing` | `-` |
 | `s_solar_beam` | `SolarBeam` | `10 Move/2 Definitions/300 SolarBeam.rb` | `TODO` | `missing` | `weather`, `effects` |
-| `s_sparkling_aria` | `SparklingAria` | `10 Move/2 Definitions/300 SparklingAria.rb` | `TODO` | `missing` | `-` |
+| `s_sparkling_aria` | `SparklingAria` | `10 Move/2 Definitions/300 SparklingAria.rb` | `HitThenCureStatusMoveBehavior.sparklingAria` | `partial` | `handler_damage`, `handler_status`, `effects` |
 | `s_sparkly_swirl` | `SparklySwirl` | `10 Move/2 Definitions/300 SparklySwirl.rb` | `TODO` | `missing` | `-` |
 | `s_spectral_thief` | `SpectralThief` | `10 Move/2 Definitions/300 SpectralThief.rb` | `TODO` | `missing` | `-` |
 | `s_speed_swap` | `SpeedSwap` | `10 Move/2 Definitions/300 Stages swap moves.rb` | `TODO` | `missing` | `-` |
@@ -333,7 +333,7 @@ Total registered methods: 330
 | `s_uproar` | `UpRoar` | `10 Move/2 Definitions/300 UpRoar.rb` | `TODO` | `missing` | `-` |
 | `s_venom_drench` | `VenomDrench` | `10 Move/2 Definitions/300 VenomDrench.rb` | `TODO` | `missing` | `-` |
 | `s_venoshock` | `Venoshock` | `10 Move/2 Definitions/300 Venoshock.rb` | `VariablePowerMoveBehavior.venoshock` | `ported` | `-` |
-| `s_wakeup_slap` | `WakeUpSlap` | `10 Move/2 Definitions/300 HitThenCureStatus.rb` | `TODO` | `missing` | `-` |
+| `s_wakeup_slap` | `WakeUpSlap` | `10 Move/2 Definitions/300 HitThenCureStatus.rb` | `HitThenCureStatusMoveBehavior.wakeUpSlap` | `partial` | `handler_damage`, `handler_status`, `effects`, `ability` |
 | `s_water_shuriken` | `WaterShuriken` | `10 Move/1 Mechanics/103 TwoHit MultiHit.rb` | `MultiHitMoveBehavior.waterShuriken` | `partial` | `ability`, `item` |
 | `s_weather` | `WeatherMove` | `10 Move/2 Definitions/300 WeatherMove.rb` | `WeatherMoveBehavior` | `partial` | `handler_weather`, `weather`, `effects`, `item` |
 | `s_weather_ball` | `WeatherBall` | `10 Move/2 Definitions/300 WeatherBall.rb` | `WeatherPowerMoveBehavior.weatherBall` | `partial` | `weather`, `ability` |

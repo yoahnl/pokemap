@@ -401,6 +401,31 @@ void main() {
       expect(healEvents.single['remainingHp'], 76);
     });
 
+    test('prints a status-cure scenario for hit-then-cure moves', () async {
+      final lines = <String>[];
+      final exitCode = await PsdkBattleCli(
+        stdout: lines.add,
+        stderr: fail,
+      ).run(const <String>[
+        '--scenario',
+        'status_cure',
+        '--format',
+        'json',
+      ]);
+
+      expect(exitCode, 0);
+      final payload = jsonDecode(lines.single) as Map<String, dynamic>;
+      expect(payload['outcome'], 'ongoing');
+      expect(payload['opponentHp'], lessThan(100));
+
+      final kinds = (payload['events'] as List<dynamic>)
+          .cast<Map<String, dynamic>>()
+          .where((event) => event['moveId'] == 'smelling_salt')
+          .map((event) => event['kind'])
+          .toList(growable: false);
+      expect(kinds, containsAllInOrder(<String>['damage', 'status_cure']));
+    });
+
     test('prints a recoil scenario with target and user damage', () async {
       final lines = <String>[];
       final exitCode = await PsdkBattleCli(

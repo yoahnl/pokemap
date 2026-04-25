@@ -135,6 +135,21 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'HealMoveBehavior.jungleHealing',
     status: _PsdkPortStatus.partial,
   ),
+  // Hit-then-cure moves execute their local power/cure rules. They stay
+  // partial until status cure process hooks and Substitute-style effect
+  // interception can mirror Ruby PSDK completely.
+  's_smelling_salt': _KnownDartBehavior(
+    dartBehavior: 'HitThenCureStatusMoveBehavior.smellingSalt',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_wakeup_slap': _KnownDartBehavior(
+    dartBehavior: 'HitThenCureStatusMoveBehavior.wakeUpSlap',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_sparkling_aria': _KnownDartBehavior(
+    dartBehavior: 'HitThenCureStatusMoveBehavior.sparklingAria',
+    status: _PsdkPortStatus.partial,
+  ),
   // Acrobatics' no-item branch is executable. Keep it partial until consumed
   // item and Gem item-effect parity is covered in the item hook matrix.
   's_acrobatics': _KnownDartBehavior(
@@ -437,6 +452,22 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
     _PsdkMoveDependency.handlerStatus,
     _PsdkMoveDependency.effects,
     _PsdkMoveDependency.targetingMulti,
+  },
+  's_smelling_salt': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.handlerStatus,
+    _PsdkMoveDependency.effects,
+  },
+  's_wakeup_slap': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.handlerStatus,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.ability,
+  },
+  's_sparkling_aria': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.handlerStatus,
+    _PsdkMoveDependency.effects,
   },
   's_acrobatics': {
     _PsdkMoveDependency.item,

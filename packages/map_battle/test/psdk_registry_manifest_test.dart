@@ -329,6 +329,33 @@ void main() {
           PsdkMoveDependency.targetingMulti,
         ]),
       );
+      expect(
+        byMethod['s_smelling_salt']!.dartBehavior,
+        'HitThenCureStatusMoveBehavior.smellingSalt',
+      );
+      expect(byMethod['s_smelling_salt']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_smelling_salt']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerDamage,
+          PsdkMoveDependency.handlerStatus,
+          PsdkMoveDependency.effects,
+        ]),
+      );
+      expect(
+        byMethod['s_wakeup_slap']!.dartBehavior,
+        'HitThenCureStatusMoveBehavior.wakeUpSlap',
+      );
+      expect(byMethod['s_wakeup_slap']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_wakeup_slap']!.dependencies,
+        contains(PsdkMoveDependency.ability),
+      );
+      expect(
+        byMethod['s_sparkling_aria']!.dartBehavior,
+        'HitThenCureStatusMoveBehavior.sparklingAria',
+      );
+      expect(byMethod['s_sparkling_aria']!.status, PsdkPortStatus.partial);
       expect(byMethod['s_acrobatics']!.status, PsdkPortStatus.partial);
       expect(
         byMethod['s_acrobatics']!.dartBehavior,
