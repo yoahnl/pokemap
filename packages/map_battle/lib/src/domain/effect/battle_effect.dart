@@ -37,6 +37,10 @@ abstract class BattleEffect {
   BattleEffectEndTurnResult? onEndTurn(BattleEffectEndTurnContext context) {
     return null;
   }
+
+  BattleEffect? onBatonPassTransfer(BattleEffectBatonPassContext context) {
+    return null;
+  }
 }
 
 /// Passive effect used when legacy/setup code only knows an effect id.

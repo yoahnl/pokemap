@@ -278,9 +278,11 @@ String _dartTargetPath(String effectName, String rubyPath) {
 String _notesFor(String effectName) {
   return switch (effectName) {
     'AquaRing' =>
-      'Object-backed AquaRingEffect heals at end turn; Big Root branch is local, Baton Pass transfer remains future lifecycle work.',
+      'Object-backed AquaRingEffect heals at end turn and transfers through Baton Pass; Big Root branch is local.',
+    'BatonPass' =>
+      'Object-backed BatonPassEffect marks switch transfer; the current handler transfers stat stages and transferable effects, while full party switch action remains future work.',
     'Curse' =>
-      'Object-backed CurseEffect applies end-turn damage; Magic Guard is checked by id, Baton Pass transfer remains future lifecycle work.',
+      'Object-backed CurseEffect applies end-turn damage and transfers through Baton Pass; Magic Guard is checked by id.',
     'Protect' =>
       'Object-backed ProtectEffect ported for common target prevention; variants, success-rate decay and Unseen Fist bypass remain future work.',
     _ => '',
@@ -314,7 +316,11 @@ _PsdkPortStatus _statusFor(String effectName) {
   // PSDK EffectBase hook object. Mark it partial and keep everything else
   // missing until the dedicated effect-system lots port them explicitly.
   return switch (effectName) {
-    'AquaRing' || 'Curse' || 'Protect' => _PsdkPortStatus.partial,
+    'AquaRing' ||
+    'BatonPass' ||
+    'Curse' ||
+    'Protect' =>
+      _PsdkPortStatus.partial,
     _ => _PsdkPortStatus.missing,
   };
 }

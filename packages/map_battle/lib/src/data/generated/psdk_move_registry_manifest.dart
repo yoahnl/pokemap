@@ -187,9 +187,12 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_baton_pass',
     rubyClass: 'BatonPass',
     rubyPath: '10 Move/2 Definitions/300 BatonPass.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'SwitchEffectMoveBehavior.batonPass',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerSwitch,
+      PsdkMoveDependency.effects
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_beak_blast',

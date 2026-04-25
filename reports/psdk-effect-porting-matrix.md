@@ -7,8 +7,8 @@ Total effect classes: 482
 | Status | Count |
 | --- | ---: |
 | `ported` | 0 |
-| `partial` | 3 |
-| `missing` | 479 |
+| `partial` | 4 |
+| `missing` | 478 |
 
 | Effect | Ruby base | Family | Hooks | Hook families | Ruby path | Dart target | Status | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -24,7 +24,7 @@ Total effect classes: 482
 | `Anticipation` | `Ability` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/100 Anticipation.rb` | `lib/src/domain/effect/ability/anticipation_effect.dart` | `missing` | `-` |
 | `Apicot` | `HpTriggeredStatBerries` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb` | `lib/src/domain/effect/item/apicot_effect.dart` | `missing` | `-` |
 | `ApplyStatusToMoveTarget` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 ApplyStatusToMoveTarget.rb` | `lib/src/domain/effect/ability/apply_status_to_move_target_effect.dart` | `missing` | `-` |
-| `AquaRing` | `PokemonTiedEffectBase` | `move` | `on_end_turn_event` | `end_turn` | `06 Effects/02 Move Effects/001 AquaRing.rb` | `lib/src/domain/effect/move/aqua_ring_effect.dart` | `partial` | Object-backed AquaRingEffect heals at end turn; Big Root branch is local, Baton Pass transfer remains future lifecycle work. |
+| `AquaRing` | `PokemonTiedEffectBase` | `move` | `on_end_turn_event` | `end_turn` | `06 Effects/02 Move Effects/001 AquaRing.rb` | `lib/src/domain/effect/move/aqua_ring_effect.dart` | `partial` | Object-backed AquaRingEffect heals at end turn and transfers through Baton Pass; Big Root branch is local. |
 | `ArenaTrap` | `ShadowTag` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb` | `lib/src/domain/effect/ability/arena_trap_effect.dart` | `missing` | `-` |
 | `ArmorTail` | `Ability` | `ability` | `on_move_prevention_user` | `move_prevention` | `06 Effects/04 Ability Effects/100 Armor Tail.rb` | `lib/src/domain/effect/ability/armor_tail_effect.dart` | `missing` | `-` |
 | `AromaVeil` | `MentalImmunityBase` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Mental Immunity.rb` | `lib/src/domain/effect/ability/aroma_veil_effect.dart` | `missing` | `-` |
@@ -40,7 +40,7 @@ Total effect classes: 482
 | `BallFetch` | `Ability` | `ability` | `on_end_turn_event` | `end_turn` | `06 Effects/04 Ability Effects/100 BallFetch.rb` | `lib/src/domain/effect/ability/ball_fetch_effect.dart` | `missing` | `-` |
 | `BanefulBunker` | `Protect` | `move` | `-` | `-` | `06 Effects/02 Move Effects/001 Protect.rb` | `lib/src/domain/effect/move/baneful_bunker_effect.dart` | `missing` | `-` |
 | `BasePowerMultiplier` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 ItemBasePowerMultiplier.rb` | `lib/src/domain/effect/item/base_power_multiplier_effect.dart` | `missing` | `-` |
-| `BatonPass` | `PokemonTiedEffectBase` | `move` | `on_switch_event` | `switch` | `06 Effects/02 Move Effects/001 BatonPass.rb` | `lib/src/domain/effect/move/baton_pass_effect.dart` | `missing` | `-` |
+| `BatonPass` | `PokemonTiedEffectBase` | `move` | `on_switch_event` | `switch` | `06 Effects/02 Move Effects/001 BatonPass.rb` | `lib/src/domain/effect/move/baton_pass_effect.dart` | `partial` | Object-backed BatonPassEffect marks switch transfer; the current handler transfers stat stages and transferable effects, while full party switch action remains future work. |
 | `Battery` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Battery.rb` | `lib/src/domain/effect/ability/battery_effect.dart` | `missing` | `-` |
 | `BattleBond` | `Ability` | `ability` | `on_post_damage_death` | `post_damage` | `06 Effects/04 Ability Effects/100 Battle Bond.rb` | `lib/src/domain/effect/ability/battle_bond_effect.dart` | `missing` | `-` |
 | `BeadsOfRuin` | `TabletsOfRuin` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 TabletsOfRuin.rb` | `lib/src/domain/effect/ability/beads_of_ruin_effect.dart` | `missing` | `-` |
@@ -95,7 +95,7 @@ Total effect classes: 482
 | `CudChew` | `Ability` | `ability` | `on_pre_item_change` | `item_change` | `06 Effects/04 Ability Effects/100 Cud Chew.rb` | `lib/src/domain/effect/ability/cud_chew_effect.dart` | `missing` | `-` |
 | `CudChewEffect` | `PokemonTiedEffectBase` | `ability` | `on_end_turn_event` | `end_turn` | `06 Effects/04 Ability Effects/101 Cud Chew Effect.rb` | `lib/src/domain/effect/ability/cud_chew_effect_effect.dart` | `missing` | `-` |
 | `CuriousMedicine` | `Ability` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/100 Curious Medicine.rb` | `lib/src/domain/effect/ability/curious_medicine_effect.dart` | `missing` | `-` |
-| `Curse` | `PokemonTiedEffectBase` | `move` | `on_end_turn_event` | `end_turn` | `06 Effects/02 Move Effects/001 Curse.rb` | `lib/src/domain/effect/move/curse_effect.dart` | `partial` | Object-backed CurseEffect applies end-turn damage; Magic Guard is checked by id, Baton Pass transfer remains future lifecycle work. |
+| `Curse` | `PokemonTiedEffectBase` | `move` | `on_end_turn_event` | `end_turn` | `06 Effects/02 Move Effects/001 Curse.rb` | `lib/src/domain/effect/move/curse_effect.dart` | `partial` | Object-backed CurseEffect applies end-turn damage and transfers through Baton Pass; Magic Guard is checked by id. |
 | `CursedBody` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 Cursed Body.rb` | `lib/src/domain/effect/ability/cursed_body_effect.dart` | `missing` | `-` |
 | `CuteCharm` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 Cute Charm.rb` | `lib/src/domain/effect/ability/cute_charm_effect.dart` | `missing` | `-` |
 | `Dancer` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Dancer.rb` | `lib/src/domain/effect/ability/dancer_effect.dart` | `missing` | `-` |

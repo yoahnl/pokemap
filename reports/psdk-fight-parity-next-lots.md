@@ -18,16 +18,16 @@ Current measured state:
 | --- | ---: |
 | PSDK move methods | 330 |
 | Move methods ported | 21 |
-| Move methods partial | 58 |
-| Move methods missing | 251 |
+| Move methods partial | 59 |
+| Move methods missing | 250 |
 | PSDK effect classes | 482 |
 | Effect classes ported | 0 |
-| Effect classes partial | 3 |
-| Effect classes missing | 479 |
+| Effect classes partial | 4 |
+| Effect classes missing | 478 |
 | Studio attacks in local source | 728 |
 | Studio attacks fait | 29 |
-| Studio attacks partiel | 426 |
-| Studio attacks pas_fait | 273 |
+| Studio attacks partiel | 427 |
+| Studio attacks pas_fait | 272 |
 
 Goal: move from isolated move-family behavior to real Pokemon SDK parity by
 porting the shared PSDK effect/handler/action surfaces first, then using those
@@ -97,6 +97,8 @@ Expected parity movement:
 
 ## Lot PSDK-PARITY-02 - Effect Lifecycle And Transfer
 
+Status: in progress in `codex/psdk-fight-next-move-wave`.
+
 Purpose: model PSDK effect deletion, turn counters and Baton Pass transfer.
 
 Files to modify/create:
@@ -116,6 +118,34 @@ Logic:
   `Substitute`, `Confusion`, `LeechSeed`, `Ingrain` where applicable.
 - Implement `s_baton_pass` enough to transfer stat stages and transferable
   effects to the incoming combatant.
+
+Done so far:
+
+- Added `BattleEffectBatonPassContext` and the object-effect
+  `onBatonPassTransfer` hook.
+- Added object-stack helpers to collect transferable effects and remove them
+  from the source combatant.
+- Added `BatonPassEffect` plus registry/export wiring.
+- Made `AquaRingEffect` and `CurseEffect` transfer to the incoming combatant
+  with the new target scope.
+- Added `BattleSwitchHandler.batonPassTransfer` to move stat stages and
+  transferable effects from source to replacement, then clear source stat
+  stages and the one-shot `baton_pass` marker.
+- Added `SwitchEffectMoveBehavior.batonPass` and registered `s_baton_pass`.
+- Updated generated move/effect/attack parity reports:
+  `s_baton_pass` is now `partial`, `BatonPass` is now `partial`, and the
+  Studio attack coverage moved one attack from `pas_fait` to `partiel`.
+
+Still remaining in this lot:
+
+- Add explicit deletion/switch-out lifecycle hooks for effects that need PSDK
+  cleanup behavior beyond Baton Pass transfer.
+- Port the remaining transferable effects: `Substitute`, `Confusion`,
+  `LeechSeed`, `Ingrain`, and any PSDK edge case tied to these effects.
+- Wire Baton Pass into a full party switch action, including replacement
+  selection, invalid-switch handling and battle events/messages.
+- Promote `s_baton_pass` from `partial` only after the full switch action
+  matches PSDK behavior.
 
 ## Lot PSDK-PARITY-03 - Screens, Barriers And Protection Variants
 

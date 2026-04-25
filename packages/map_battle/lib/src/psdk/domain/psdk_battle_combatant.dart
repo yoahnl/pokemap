@@ -200,6 +200,9 @@ class PsdkBattleMoveHistory {
 final class PsdkBattleEffectIds {
   const PsdkBattleEffectIds._();
 
+  static const String aquaRing = 'aqua_ring';
+  static const String batonPass = 'baton_pass';
+  static const String curse = 'curse';
   static const String protect = 'protect';
 }
 
@@ -247,6 +250,14 @@ class PsdkBattleEffectStack {
     return PsdkBattleEffectStack(effects: next.effects);
   }
 
+  PsdkBattleEffectStack addEffects(Iterable<BattleEffect> effects) {
+    final next = _stack.addAll(effects);
+    if (identical(next, _stack)) {
+      return this;
+    }
+    return PsdkBattleEffectStack(effects: next.effects);
+  }
+
   PsdkBattleEffectStack remove(String effectId) {
     final normalized = _requireEffectId(effectId);
     if (!_stack.contains(normalized)) {
@@ -274,6 +285,32 @@ class PsdkBattleEffectStack {
   PsdkBattleEffectStack clearTurnScopedEffects() {
     return PsdkBattleEffectStack(
       effects: _stack.clearTurnScopedEffects().effects,
+    );
+  }
+
+  PsdkBattleEffectStack batonPassTransferEffects({
+    required PsdkBattleSlotRef source,
+    required PsdkBattleSlotRef target,
+  }) {
+    return PsdkBattleEffectStack(
+      effects: _stack
+          .batonPassTransferEffects(
+            BattleEffectBatonPassContext(source: source, target: target),
+          )
+          .effects,
+    );
+  }
+
+  PsdkBattleEffectStack withoutBatonPassTransferableEffects({
+    required PsdkBattleSlotRef source,
+    required PsdkBattleSlotRef target,
+  }) {
+    return PsdkBattleEffectStack(
+      effects: _stack
+          .withoutBatonPassTransferableEffects(
+            BattleEffectBatonPassContext(source: source, target: target),
+          )
+          .effects,
     );
   }
 

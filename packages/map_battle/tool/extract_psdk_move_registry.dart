@@ -151,6 +151,10 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'PersistentEffectMoveBehavior.aquaRing',
     status: _PsdkPortStatus.partial,
   ),
+  's_baton_pass': _KnownDartBehavior(
+    dartBehavior: 'SwitchEffectMoveBehavior.batonPass',
+    status: _PsdkPortStatus.partial,
+  ),
   // Hit-then-cure moves execute their local power/cure rules. They stay
   // partial until status cure process hooks and Substitute-style effect
   // interception can mirror Ruby PSDK completely.
@@ -557,6 +561,10 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
     _PsdkMoveDependency.effects,
     _PsdkMoveDependency.endTurn,
     _PsdkMoveDependency.item,
+  },
+  's_baton_pass': {
+    _PsdkMoveDependency.handlerSwitch,
+    _PsdkMoveDependency.effects,
   },
   's_smelling_salt': {
     _PsdkMoveDependency.handlerDamage,

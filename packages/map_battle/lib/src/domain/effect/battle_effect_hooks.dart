@@ -59,3 +59,13 @@ final class BattleEffectEndTurnResult {
   final List<PsdkBattleEvent> events;
   final bool applied;
 }
+
+final class BattleEffectBatonPassContext {
+  const BattleEffectBatonPassContext({
+    required this.source,
+    required this.target,
+  });
+
+  final PsdkBattleSlotRef source;
+  final PsdkBattleSlotRef target;
+}

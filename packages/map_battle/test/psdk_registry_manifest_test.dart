@@ -517,6 +517,26 @@ void main() {
       );
     });
 
+    test('tracks the switch-effect move slice', () {
+      final byMethod = {
+        for (final entry in psdkMoveRegistryManifest)
+          entry.battleEngineMethod: entry,
+      };
+
+      expect(byMethod['s_baton_pass']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_baton_pass']!.dartBehavior,
+        'SwitchEffectMoveBehavior.batonPass',
+      );
+      expect(
+        byMethod['s_baton_pass']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerSwitch,
+          PsdkMoveDependency.effects,
+        ]),
+      );
+    });
+
     test('records PSDK dependencies that block partial move promotion', () {
       final byMethod = {
         for (final entry in psdkMoveRegistryManifest)

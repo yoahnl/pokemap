@@ -1,4 +1,5 @@
 import 'battle_effect.dart';
+import 'battle_effect_hooks.dart';
 
 /// Immutable object-backed effect collection for the PSDK lane.
 ///
@@ -29,6 +30,14 @@ final class BattleEffectObjectStack {
     return BattleEffectObjectStack(effects: next);
   }
 
+  BattleEffectObjectStack addAll(Iterable<BattleEffect> effects) {
+    var next = this;
+    for (final effect in effects) {
+      next = next.addOrReplace(effect);
+    }
+    return next;
+  }
+
   BattleEffectObjectStack remove(String effectId) {
     return BattleEffectObjectStack(
       effects: _effects.where((effect) => effect.id != effectId),
@@ -38,6 +47,26 @@ final class BattleEffectObjectStack {
   BattleEffectObjectStack clearTurnScopedEffects() {
     return BattleEffectObjectStack(
       effects: _effects.where((effect) => !effect.isTurnScoped),
+    );
+  }
+
+  BattleEffectObjectStack batonPassTransferEffects(
+    BattleEffectBatonPassContext context,
+  ) {
+    return BattleEffectObjectStack(
+      effects: _effects
+          .map((effect) => effect.onBatonPassTransfer(context))
+          .whereType<BattleEffect>(),
+    );
+  }
+
+  BattleEffectObjectStack withoutBatonPassTransferableEffects(
+    BattleEffectBatonPassContext context,
+  ) {
+    return BattleEffectObjectStack(
+      effects: _effects.where(
+        (effect) => effect.onBatonPassTransfer(context) == null,
+      ),
     );
   }
 }

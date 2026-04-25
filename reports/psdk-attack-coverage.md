@@ -16,8 +16,8 @@ Coverage semantics:
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
 | fait | 29 |
-| partiel | 426 |
-| pas_fait | 273 |
+| partiel | 427 |
+| pas_fait | 272 |
 | unknown_methods | 18 |
 
 | Fait ? | Attack | Battle method | Method status | Dart behavior | Type | Category | Power | Accuracy | PP | Source file |
@@ -63,7 +63,7 @@ Coverage semantics:
 | partiel | baneful_bunker | s_protect | partial | StaticBasicMoveRegistry.s_protect | poison | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/baneful_bunker.json |
 | partiel | barrage | s_multi_hit | partial | MultiHitMoveBehavior.psdkRandom | normal | physical | 15 | 85 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/barrage.json |
 | partiel | barrier | s_self_stat | partial | StatusStatMoveBehavior.selfStat | psychic | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/barrier.json |
-| pas_fait | baton_pass | s_baton_pass | missing | TODO | normal | status | 0 | 0 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/baton_pass.json |
+| partiel | baton_pass | s_baton_pass | partial | SwitchEffectMoveBehavior.batonPass | normal | status | 0 | 0 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/baton_pass.json |
 | pas_fait | beak_blast | s_beak_blast | missing | TODO | flying | physical | 100 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/beak_blast.json |
 | pas_fait | beat_up | s_beat_up | missing | TODO | dark | physical | 0 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/beat_up.json |
 | pas_fait | belch | s_belch | missing | TODO | poison | special | 120 | 90 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/belch.json |

@@ -18,6 +18,11 @@ final class CurseEffect extends BattleEffect {
   }
 
   @override
+  BattleEffect? onBatonPassTransfer(BattleEffectBatonPassContext context) {
+    return CurseEffect(scope: BattlerBattleEffectScope(context.target));
+  }
+
+  @override
   BattleEffectEndTurnResult? onEndTurn(BattleEffectEndTurnContext context) {
     final owner = context.owner;
     final battler = context.state.battlerAt(owner);

@@ -7,8 +7,8 @@ Total registered methods: 330
 | Status | Count |
 | --- | ---: |
 | `ported` | 21 |
-| `partial` | 58 |
-| `missing` | 251 |
+| `partial` | 59 |
+| `missing` | 250 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
 | --- | --- | --- | --- | --- | --- |
@@ -32,7 +32,7 @@ Total registered methods: 330
 | `s_avalanche` | `Avalanche` | `10 Move/2 Definitions/300 Avalanche.rb` | `TODO` | `missing` | `-` |
 | `s_baddy_bad` | `BaddyBad` | `10 Move/2 Definitions/300 GlitzyGlow.rb` | `TODO` | `missing` | `-` |
 | `s_basic` | `Basic` | `10 Move/1 Mechanics/100 Basic.rb` | `StaticBasicMoveRegistry.s_basic` | `partial` | `-` |
-| `s_baton_pass` | `BatonPass` | `10 Move/2 Definitions/300 BatonPass.rb` | `TODO` | `missing` | `-` |
+| `s_baton_pass` | `BatonPass` | `10 Move/2 Definitions/300 BatonPass.rb` | `SwitchEffectMoveBehavior.batonPass` | `partial` | `handler_switch`, `effects` |
 | `s_beak_blast` | `BeakBlast` | `10 Move/2 Definitions/300 PreAttackMoves.rb` | `TODO` | `missing` | `-` |
 | `s_beat_up` | `BeatUp` | `10 Move/2 Definitions/300 BeatUp.rb` | `TODO` | `missing` | `-` |
 | `s_belch` | `Belch` | `10 Move/2 Definitions/300 Belch.rb` | `TODO` | `missing` | `-` |

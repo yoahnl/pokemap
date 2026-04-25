@@ -1,6 +1,7 @@
 import 'battle_effect.dart';
 import 'battle_effect_scope.dart';
 import 'move/aqua_ring_effect.dart';
+import 'move/baton_pass_effect.dart';
 import 'move/curse_effect.dart';
 import 'move/protect_effect.dart';
 
@@ -16,6 +17,7 @@ final class BattleEffectRegistry {
   BattleEffect fromId(String id) {
     return switch (id) {
       'aqua_ring' => const AquaRingEffect(scope: LocalBattleEffectScope()),
+      'baton_pass' => const BatonPassEffect(scope: LocalBattleEffectScope()),
       'curse' => const CurseEffect(scope: LocalBattleEffectScope()),
       'protect' => const ProtectEffect(scope: LocalBattleEffectScope()),
       final value => GenericBattleEffect(id: value),
