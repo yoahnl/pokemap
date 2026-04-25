@@ -5,9 +5,9 @@ Date: 2026-04-25
 | Axis | Current |
 | --- | ---: |
 | PSDK move methods | 330 |
-| Move methods ported | 20 |
-| Move methods partial | 24 |
-| Move methods missing | 286 |
+| Move methods ported | 21 |
+| Move methods partial | 31 |
+| Move methods missing | 278 |
 | PSDK effect classes | 482 |
 | Effect classes ported | 0 |
 | Effect classes partial | 1 |

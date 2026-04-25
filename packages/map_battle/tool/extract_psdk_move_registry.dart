@@ -96,6 +96,31 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'DirectHpMoveBehavior.finalGambit',
     status: _PsdkPortStatus.partial,
   ),
+  // Drain/heal families are executable for their local HP transfer rules, but
+  // stay partial until PSDK's Heal Block, drain-prevention and item/ability
+  // hooks are represented as full effects.
+  's_absorb': _KnownDartBehavior(
+    dartBehavior: 'DrainMoveBehavior.absorb',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_dream_eater': _KnownDartBehavior(
+    dartBehavior: 'DrainMoveBehavior.dreamEater',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_heal': _KnownDartBehavior(
+    dartBehavior: 'HealMoveBehavior',
+    status: _PsdkPortStatus.partial,
+  ),
+  // Acrobatics' no-item branch is executable. Keep it partial until consumed
+  // item and Gem item-effect parity is covered in the item hook matrix.
+  's_acrobatics': _KnownDartBehavior(
+    dartBehavior: 'SpecialPowerMoveBehavior.acrobatics',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_stored_power': _KnownDartBehavior(
+    dartBehavior: 'SpecialPowerMoveBehavior.storedPower',
+    status: _PsdkPortStatus.ported,
+  ),
   // PSDK registers all three methods on `Move::MindBlown`. The Dart behavior
   // ports the half-max-HP crash on hit, miss, type immunity and Protect-style
   // target blocking, but remains partial until Damp/Wonder Guard ability gates
@@ -342,6 +367,27 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
   's_final_gambit': {
     _PsdkMoveDependency.faintProcess,
     _PsdkMoveDependency.history,
+  },
+  's_absorb': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.item,
+    _PsdkMoveDependency.ability,
+  },
+  's_dream_eater': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.handlerStatus,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.item,
+    _PsdkMoveDependency.ability,
+  },
+  's_heal': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.ability,
+  },
+  's_acrobatics': {
+    _PsdkMoveDependency.item,
   },
   's_hex': {
     _PsdkMoveDependency.ability,

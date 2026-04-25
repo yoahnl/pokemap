@@ -67,6 +67,15 @@ sealed class BattleTimelineEvent {
         remainingHp: event.remainingHp,
       );
     }
+    if (event is PsdkBattleHealEvent) {
+      return BattleHealTimelineEvent(
+        user: _fromPsdkSlot(event.user),
+        target: _fromPsdkSlot(event.target),
+        moveId: event.moveId,
+        amount: event.amount,
+        remainingHp: event.remainingHp,
+      );
+    }
     if (event is PsdkBattleStatusEvent) {
       return BattleStatusChangeTimelineEvent(
         user: _fromPsdkSlot(event.user),
@@ -551,14 +560,18 @@ final class BattleDamageTimelineEvent extends BattleTimelineEvent {
 final class BattleHealTimelineEvent extends BattleTimelineEvent {
   const BattleHealTimelineEvent({
     int? turn,
+    this.user,
     required this.target,
+    this.moveId,
     required this.amount,
     required this.remainingHp,
     this.maxHp,
     this.source,
   }) : super(kind: 'heal', turn: turn);
 
+  final BattlePositionRef? user;
   final BattlePositionRef target;
+  final String? moveId;
   final int amount;
   final int remainingHp;
   final int? maxHp;
@@ -568,7 +581,9 @@ final class BattleHealTimelineEvent extends BattleTimelineEvent {
   Map<String, Object?> toJson() {
     return <String, Object?>{
       ...baseJson(),
+      if (user != null) 'user': _slotJson(user!),
       'target': _slotJson(target),
+      if (moveId != null) 'moveId': moveId,
       'amount': amount,
       'remainingHp': remainingHp,
       if (maxHp != null) 'maxHp': maxHp,
@@ -577,7 +592,20 @@ final class BattleHealTimelineEvent extends BattleTimelineEvent {
   }
 
   @override
-  PsdkBattleEvent? toPsdkEvent() => null;
+  PsdkBattleEvent? toPsdkEvent() {
+    final user = this.user;
+    final moveId = this.moveId;
+    if (user == null || moveId == null) {
+      return null;
+    }
+    return PsdkBattleHealEvent(
+      user: _toPsdkSlot(user),
+      target: _toPsdkSlot(target),
+      moveId: moveId,
+      amount: amount,
+      remainingHp: remainingHp,
+    );
+  }
 }
 
 final class BattleStatusChangeTimelineEvent extends BattleTimelineEvent {

@@ -4,6 +4,7 @@ import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../battle/battle_slot.dart';
 import '../../handler/battle_damage_handler.dart';
+import '../../handler/battle_heal_handler.dart';
 import '../../handler/battle_handler_context.dart';
 import '../../rng/battle_rng_streams.dart';
 import '../../timeline/battle_timeline_builder.dart';
@@ -77,6 +78,43 @@ BattleDirectDamageResult applyDirectDamage({
   );
 }
 
+BattleDirectHealResult applyDirectHeal({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef user,
+  required PsdkBattleSlotRef target,
+  required String moveId,
+  required BattleRngStreams rng,
+  required int turn,
+  required int amount,
+}) {
+  final result = const BattleHealHandler().heal(
+    context: BattleHandlerContext(
+      state: state,
+      rng: rng,
+      turn: turn,
+      user: user,
+    ),
+    target: target,
+    amount: amount,
+  );
+  final healedBattler = result.state.battlerAt(target);
+  return BattleDirectHealResult(
+    state: result.state,
+    rng: result.rng,
+    amount: result.amount,
+    target: healedBattler,
+    event: result.applied
+        ? PsdkBattleHealEvent(
+            user: user,
+            target: target,
+            moveId: moveId,
+            amount: result.amount,
+            remainingHp: healedBattler.currentHp,
+          )
+        : null,
+  );
+}
+
 BattleMoveTargetPrecheckResult precheckTypeImmunityAndProtect(
   BattleMoveProcedureExecution execution,
   List<BattlePositionRef> targets,
@@ -137,4 +175,20 @@ final class BattleDirectDamageResult {
   final int damage;
   final PsdkBattleCombatant target;
   final PsdkBattleDamageEvent? event;
+}
+
+final class BattleDirectHealResult {
+  const BattleDirectHealResult({
+    required this.state,
+    required this.rng,
+    required this.amount,
+    required this.target,
+    this.event,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int amount;
+  final PsdkBattleCombatant target;
+  final PsdkBattleHealEvent? event;
 }

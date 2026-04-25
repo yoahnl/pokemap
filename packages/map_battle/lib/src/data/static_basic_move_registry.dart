@@ -2,12 +2,15 @@ import '../domain/move/behaviors/battle_move_behavior_support.dart';
 import '../domain/move/behaviors/basic_damage_specialization_move_behavior.dart';
 import '../domain/move/behaviors/custom_stat_source_move_behavior.dart';
 import '../domain/move/behaviors/direct_hp_move_behavior.dart';
+import '../domain/move/behaviors/drain_move_behavior.dart';
 import '../domain/move/behaviors/fixed_damage_move_behavior.dart';
+import '../domain/move/behaviors/heal_move_behavior.dart';
 import '../domain/move/behaviors/mind_blown_move_behavior.dart';
 import '../domain/move/behaviors/multi_hit_move_behavior.dart';
 import '../domain/move/behaviors/no_effect_move_behavior.dart';
 import '../domain/move/behaviors/recoil_move_behavior.dart';
 import '../domain/move/behaviors/self_destruct_move_behavior.dart';
+import '../domain/move/behaviors/special_power_move_behavior.dart';
 import '../domain/move/behaviors/terrain_power_move_behavior.dart';
 import '../domain/move/behaviors/terrain_move_behavior.dart';
 import '../domain/move/behaviors/variable_power_move_behavior.dart';
@@ -62,6 +65,11 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     const NoEffectMoveBehavior.splash(),
     const DirectHpMoveBehavior.endeavor(),
     const DirectHpMoveBehavior.finalGambit(),
+    const DrainMoveBehavior.absorb(),
+    const DrainMoveBehavior.dreamEater(),
+    const HealMoveBehavior(),
+    const SpecialPowerMoveBehavior.acrobatics(),
+    const SpecialPowerMoveBehavior.storedPower(),
     const MindBlownMoveBehavior.mindBlown(),
     const MindBlownMoveBehavior.steelBeam(),
     const MindBlownMoveBehavior.chloroblast(),

@@ -246,6 +246,57 @@ void main() {
       );
     });
 
+    test('tracks the drain heal and local power slice', () {
+      final byMethod = {
+        for (final entry in psdkMoveRegistryManifest)
+          entry.battleEngineMethod: entry,
+      };
+
+      expect(byMethod['s_absorb']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_absorb']!.dartBehavior,
+        'DrainMoveBehavior.absorb',
+      );
+      expect(
+        byMethod['s_absorb']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerDamage,
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.item,
+          PsdkMoveDependency.ability,
+        ]),
+      );
+
+      expect(byMethod['s_dream_eater']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_dream_eater']!.dartBehavior,
+        'DrainMoveBehavior.dreamEater',
+      );
+      expect(
+        byMethod['s_dream_eater']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerDamage,
+          PsdkMoveDependency.handlerStatus,
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.item,
+          PsdkMoveDependency.ability,
+        ]),
+      );
+
+      expect(byMethod['s_heal']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_heal']!.dartBehavior, 'HealMoveBehavior');
+      expect(byMethod['s_acrobatics']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_acrobatics']!.dartBehavior,
+        'SpecialPowerMoveBehavior.acrobatics',
+      );
+      expect(byMethod['s_stored_power']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_stored_power']!.dartBehavior,
+        'SpecialPowerMoveBehavior.storedPower',
+      );
+    });
+
     test('records PSDK dependencies that block partial move promotion', () {
       final byMethod = {
         for (final entry in psdkMoveRegistryManifest)

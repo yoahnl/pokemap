@@ -6,9 +6,9 @@ Total registered methods: 330
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 20 |
-| `partial` | 27 |
-| `missing` | 283 |
+| `ported` | 21 |
+| `partial` | 31 |
+| `missing` | 278 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
 | --- | --- | --- | --- | --- | --- |
@@ -16,8 +16,8 @@ Total registered methods: 330
 | `s_2turns` | `TwoTurnBase` | `10 Move/1 Mechanics/110 TwoTurnBase.rb` | `TODO` | `missing` | `-` |
 | `s_3hits` | `ThreeHit` | `10 Move/1 Mechanics/103 TwoHit MultiHit.rb` | `MultiHitMoveBehavior.fixed(3)` | `ported` | `-` |
 | `s_a_fang` | `Fangs` | `10 Move/2 Definitions/300 Fangs.rb` | `TODO` | `missing` | `-` |
-| `s_absorb` | `Absorb` | `10 Move/2 Definitions/300 Absorb.rb` | `TODO` | `missing` | `-` |
-| `s_acrobatics` | `Acrobatics` | `10 Move/2 Definitions/300 Acrobatics.rb` | `TODO` | `missing` | `-` |
+| `s_absorb` | `Absorb` | `10 Move/2 Definitions/300 Absorb.rb` | `DrainMoveBehavior.absorb` | `partial` | `handler_damage`, `effects`, `item`, `ability` |
+| `s_acrobatics` | `Acrobatics` | `10 Move/2 Definitions/300 Acrobatics.rb` | `SpecialPowerMoveBehavior.acrobatics` | `partial` | `item` |
 | `s_acupressure` | `Acupressure` | `10 Move/2 Definitions/300 Acupressure.rb` | `TODO` | `missing` | `-` |
 | `s_add_type` | `AddThirdType` | `10 Move/2 Definitions/300 AddThirdType.rb` | `TODO` | `missing` | `-` |
 | `s_after_you` | `AfterYou` | `10 Move/2 Definitions/300 After you.rb` | `TODO` | `missing` | `-` |
@@ -73,7 +73,7 @@ Total registered methods: 330
 | `s_dragon_cheer` | `DragonCheer` | `10 Move/2 Definitions/300 DragonCheer.rb` | `TODO` | `missing` | `-` |
 | `s_dragon_darts` | `DragonDarts` | `10 Move/2 Definitions/300 DragonDarts.rb` | `TODO` | `missing` | `-` |
 | `s_dragon_tail` | `ForceSwitch` | `10 Move/2 Definitions/300 ForceSwitch.rb` | `TODO` | `missing` | `-` |
-| `s_dream_eater` | `Absorb` | `10 Move/2 Definitions/300 Absorb.rb` | `TODO` | `missing` | `-` |
+| `s_dream_eater` | `Absorb` | `10 Move/2 Definitions/300 Absorb.rb` | `DrainMoveBehavior.dreamEater` | `partial` | `handler_damage`, `handler_status`, `effects`, `item`, `ability` |
 | `s_echo` | `EchoedVoice` | `10 Move/2 Definitions/300 EchoedVoice.rb` | `TODO` | `missing` | `-` |
 | `s_eerie_spell` | `EerieSpell` | `10 Move/2 Definitions/300 EerieSpell.rb` | `TODO` | `missing` | `-` |
 | `s_electrify` | `Electrify` | `10 Move/2 Definitions/300 Electrify.rb` | `TODO` | `missing` | `-` |
@@ -133,7 +133,7 @@ Total registered methods: 330
 | `s_happy_hour` | `HappyHour` | `10 Move/2 Definitions/300 HappyHour.rb` | `TODO` | `missing` | `-` |
 | `s_hard_press` | `HardPress` | `10 Move/2 Definitions/300 WringOut.rb` | `VariablePowerMoveBehavior.hardPress` | `ported` | `-` |
 | `s_haze` | `Haze` | `10 Move/2 Definitions/300 Haze.rb` | `TODO` | `missing` | `-` |
-| `s_heal` | `HealMove` | `10 Move/1 Mechanics/105 Heal.rb` | `TODO` | `missing` | `-` |
+| `s_heal` | `HealMove` | `10 Move/1 Mechanics/105 Heal.rb` | `HealMoveBehavior` | `partial` | `handler_damage`, `effects`, `ability` |
 | `s_heal_bell` | `HealBell` | `10 Move/2 Definitions/300 HealBell.rb` | `TODO` | `missing` | `-` |
 | `s_heal_block` | `HealBlock` | `10 Move/2 Definitions/300 HealBlock.rb` | `TODO` | `missing` | `-` |
 | `s_heal_weather` | `HealWeather` | `10 Move/2 Definitions/300 HealWeather.rb` | `TODO` | `missing` | `-` |
@@ -289,7 +289,7 @@ Total registered methods: 330
 | `s_stomp` | `Stomp` | `10 Move/2 Definitions/300 Stomp.rb` | `TODO` | `missing` | `-` |
 | `s_stomping_tantrum` | `StompingTantrum` | `10 Move/2 Definitions/300 StompingTantrum.rb` | `TODO` | `missing` | `-` |
 | `s_stone_axe` | `StoneAxe` | `10 Move/2 Definitions/300 HazardsSetting.rb` | `TODO` | `missing` | `-` |
-| `s_stored_power` | `StoredPower` | `10 Move/2 Definitions/300 StoredPower.rb` | `TODO` | `missing` | `-` |
+| `s_stored_power` | `StoredPower` | `10 Move/2 Definitions/300 StoredPower.rb` | `SpecialPowerMoveBehavior.storedPower` | `ported` | `-` |
 | `s_strength_sap` | `StrengthSap` | `10 Move/2 Definitions/300 StrengthSap.rb` | `TODO` | `missing` | `-` |
 | `s_struggle` | `Struggle` | `10 Move/2 Definitions/300 RecoilMove.rb` | `TODO` | `missing` | `-` |
 | `s_stuff_cheeks` | `StuffCheeks` | `10 Move/2 Definitions/300 StuffCheeks.rb` | `TODO` | `missing` | `-` |
