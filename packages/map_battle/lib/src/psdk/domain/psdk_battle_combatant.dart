@@ -1,0 +1,522 @@
+import 'psdk_battle_move.dart';
+import 'psdk_battle_slots.dart';
+
+/// Minimal type pair carried by the PSDK lane.
+///
+/// Types are present because PSDK data has them, but this foundation lot does
+/// not yet claim type effectiveness parity. Damage currently uses raw stats and
+/// power only; type processing belongs to a later explicit lot.
+class PsdkBattleTypes {
+  const PsdkBattleTypes({
+    required this.primary,
+    this.secondary,
+  });
+
+  final String primary;
+  final String? secondary;
+}
+
+/// Resolved combat stats used by the first PSDK smoke engine.
+class PsdkBattleStats {
+  const PsdkBattleStats({
+    required this.attack,
+    required this.defense,
+    required this.specialAttack,
+    required this.specialDefense,
+    required this.speed,
+  });
+
+  final int attack;
+  final int defense;
+  final int specialAttack;
+  final int specialDefense;
+  final int speed;
+
+  int valueOf(String stat) {
+    return switch (_normalizeStat(stat)) {
+      'attack' => attack,
+      'defense' => defense,
+      'specialAttack' => specialAttack,
+      'specialDefense' => specialDefense,
+      'speed' => speed,
+      final normalized => throw ArgumentError.value(
+          stat,
+          'stat',
+          'unsupported PSDK stat "$normalized"',
+        ),
+    };
+  }
+}
+
+class PsdkBattleStatStages {
+  PsdkBattleStatStages({
+    Map<String, int> values = const <String, int>{},
+  }) : _values = Map<String, int>.unmodifiable(
+          values.map(
+            (key, value) => MapEntry(
+              _normalizeStat(key),
+              value.clamp(-6, 6).toInt(),
+            ),
+          ),
+        );
+
+  factory PsdkBattleStatStages.neutral() {
+    return PsdkBattleStatStages();
+  }
+
+  final Map<String, int> _values;
+
+  int valueOf(String stat) {
+    return _values[_normalizeStat(stat)] ?? 0;
+  }
+
+  PsdkBattleStatStages apply({
+    required String stat,
+    required int stages,
+  }) {
+    final normalized = _normalizeStat(stat);
+    final next = Map<String, int>.from(_values);
+    next[normalized] = (valueOf(normalized) + stages).clamp(-6, 6).toInt();
+    return PsdkBattleStatStages(values: next);
+  }
+
+  Map<String, int> get values => Map<String, int>.unmodifiable(_values);
+
+  int effectiveValue({
+    required String stat,
+    required int baseValue,
+    bool ignorePositiveStage = false,
+    bool ignoreNegativeStage = false,
+    bool ignoreAllStages = false,
+  }) {
+    var stage = valueOf(stat);
+    if (ignoreAllStages ||
+        (stage > 0 && ignorePositiveStage) ||
+        (stage < 0 && ignoreNegativeStage)) {
+      stage = 0;
+    }
+    return _applyRegularStageMultiplier(baseValue, stage);
+  }
+}
+
+class PsdkBattleMoveHistoryEntry {
+  PsdkBattleMoveHistoryEntry({
+    required String moveId,
+    required this.turn,
+    required List<PsdkBattleSlotRef> targets,
+  })  : moveId = _requireNonBlank(moveId, 'moveId'),
+        targets = List<PsdkBattleSlotRef>.unmodifiable(targets);
+
+  final String moveId;
+  final int turn;
+  final List<PsdkBattleSlotRef> targets;
+}
+
+class PsdkBattleMoveHistory {
+  PsdkBattleMoveHistory({
+    List<PsdkBattleMoveHistoryEntry> attempts =
+        const <PsdkBattleMoveHistoryEntry>[],
+    List<PsdkBattleMoveHistoryEntry> successes =
+        const <PsdkBattleMoveHistoryEntry>[],
+  })  : _attempts = List<PsdkBattleMoveHistoryEntry>.unmodifiable(attempts),
+        _successes = List<PsdkBattleMoveHistoryEntry>.unmodifiable(successes);
+
+  factory PsdkBattleMoveHistory.empty() {
+    return PsdkBattleMoveHistory();
+  }
+
+  final List<PsdkBattleMoveHistoryEntry> _attempts;
+  final List<PsdkBattleMoveHistoryEntry> _successes;
+
+  List<PsdkBattleMoveHistoryEntry> get attempts =>
+      List<PsdkBattleMoveHistoryEntry>.unmodifiable(_attempts);
+
+  List<PsdkBattleMoveHistoryEntry> get successes =>
+      List<PsdkBattleMoveHistoryEntry>.unmodifiable(_successes);
+
+  String? get lastMoveId => _attempts.isEmpty ? null : _attempts.last.moveId;
+
+  String? get lastSuccessfulMoveId =>
+      _successes.isEmpty ? null : _successes.last.moveId;
+
+  List<String> get usedMoveIds {
+    return _attempts.map((entry) => entry.moveId).toList(growable: false);
+  }
+
+  List<String> get successfulMoveIds {
+    return _successes.map((entry) => entry.moveId).toList(growable: false);
+  }
+
+  PsdkBattleMoveHistory recordAttempt({
+    required String moveId,
+    required int turn,
+    required List<PsdkBattleSlotRef> targets,
+  }) {
+    return PsdkBattleMoveHistory(
+      attempts: <PsdkBattleMoveHistoryEntry>[
+        ..._attempts,
+        PsdkBattleMoveHistoryEntry(
+          moveId: moveId,
+          turn: turn,
+          targets: targets,
+        ),
+      ],
+      successes: _successes,
+    );
+  }
+
+  PsdkBattleMoveHistory recordSuccess({
+    required String moveId,
+    required int turn,
+    required List<PsdkBattleSlotRef> targets,
+  }) {
+    return PsdkBattleMoveHistory(
+      attempts: _attempts,
+      successes: <PsdkBattleMoveHistoryEntry>[
+        ..._successes,
+        PsdkBattleMoveHistoryEntry(
+          moveId: moveId,
+          turn: turn,
+          targets: targets,
+        ),
+      ],
+    );
+  }
+}
+
+final class PsdkBattleEffectIds {
+  const PsdkBattleEffectIds._();
+
+  static const String protect = 'protect';
+}
+
+/// Immutable PSDK-lane effect id stack owned by one combatant.
+///
+/// This is intentionally still just ids, not arbitrary effect objects. Lot 14
+/// only needs a stable place for `Protect` to live between two actions of the
+/// same turn; richer counters, owners and callbacks should become explicit
+/// contracts when those Pokemon SDK effects are ported.
+class PsdkBattleEffectStack {
+  PsdkBattleEffectStack({
+    Iterable<String> values = const <String>[],
+  }) : _values = List<String>.unmodifiable(values.map(_requireEffectId));
+
+  const PsdkBattleEffectStack.empty() : _values = const <String>[];
+
+  final List<String> _values;
+
+  List<String> get values => List<String>.unmodifiable(_values);
+
+  bool contains(String effectId) =>
+      _values.contains(_requireEffectId(effectId));
+
+  PsdkBattleEffectStack add(String effectId) {
+    final normalized = _requireEffectId(effectId);
+    if (_values.contains(normalized)) {
+      return this;
+    }
+    return PsdkBattleEffectStack(values: <String>[..._values, normalized]);
+  }
+
+  PsdkBattleEffectStack remove(String effectId) {
+    final normalized = _requireEffectId(effectId);
+    if (!_values.contains(normalized)) {
+      return this;
+    }
+    return PsdkBattleEffectStack(
+      values: _values.where((value) => value != normalized),
+    );
+  }
+
+  PsdkBattleEffectStack clearTurnScopedEffects() {
+    return remove(PsdkBattleEffectIds.protect);
+  }
+}
+
+/// Setup-time combatant DTO for the PSDK lane.
+///
+/// This mirrors PSDK import vocabulary where useful while staying a pure battle
+/// contract. No runtime asset lookup or editor authoring behavior belongs here.
+class PsdkBattleCombatantSetup {
+  PsdkBattleCombatantSetup({
+    required this.id,
+    required this.speciesId,
+    required this.displayName,
+    required this.level,
+    required this.maxHp,
+    required this.currentHp,
+    required this.types,
+    required this.stats,
+    required List<PsdkBattleMoveData> moves,
+    this.majorStatus,
+    this.statStages,
+    this.moveHistory,
+    double baseWeightKg = 1,
+    double? currentWeightKg,
+    PsdkBattleEffectStack? effects,
+  })  : baseWeightKg = _requirePositiveWeight(baseWeightKg, 'baseWeightKg'),
+        currentWeightKg = _requirePositiveWeight(
+          currentWeightKg ?? baseWeightKg,
+          'currentWeightKg',
+        ),
+        effects = effects ?? const PsdkBattleEffectStack.empty(),
+        _moves = List<PsdkBattleMoveData>.unmodifiable(moves);
+
+  final String id;
+  final String speciesId;
+  final String displayName;
+  final int level;
+  final int maxHp;
+  final int currentHp;
+  final PsdkBattleTypes types;
+  final PsdkBattleStats stats;
+  final PsdkBattleMajorStatus? majorStatus;
+  final PsdkBattleStatStages? statStages;
+  final PsdkBattleMoveHistory? moveHistory;
+
+  /// Species/base weight in kilograms for PSDK weight-sensitive moves.
+  ///
+  /// This stays in the battle package snapshot instead of `map_core` for now:
+  /// the migration lot only needs combat-time data, while editor/runtime
+  /// import contracts can be wired later without changing this formula seam.
+  final double baseWeightKg;
+
+  /// Current battle weight in kilograms after temporary PSDK effects.
+  ///
+  /// It defaults to [baseWeightKg]. Low Kick and Heavy Slam currently use this
+  /// neutral value; future weight-modifying effects can update it through
+  /// `copyWith` without changing move formulas.
+  final double currentWeightKg;
+
+  final PsdkBattleEffectStack effects;
+  final List<PsdkBattleMoveData> _moves;
+
+  /// Immutable view of setup moves.
+  ///
+  /// Setup objects may be assembled by editor/runtime adapters later, but the
+  /// engine must not share a mutable move list with those callers.
+  List<PsdkBattleMoveData> get moves =>
+      List<PsdkBattleMoveData>.unmodifiable(_moves);
+}
+
+/// Current mutable-in-engine combatant state for the PSDK lane.
+///
+/// The object itself is immutable from the outside: state changes produce new
+/// instances. This keeps the engine locally simple while preventing external
+/// mutation from corrupting a turn between calls.
+class PsdkBattleCombatant {
+  PsdkBattleCombatant({
+    required this.id,
+    required this.speciesId,
+    required this.displayName,
+    required this.level,
+    required this.maxHp,
+    required this.currentHp,
+    required this.types,
+    required this.stats,
+    required List<PsdkBattleMoveData> moves,
+    this.majorStatus,
+    PsdkBattleStatStages? statStages,
+    PsdkBattleMoveHistory? moveHistory,
+    double baseWeightKg = 1,
+    double? currentWeightKg,
+    PsdkBattleEffectStack? effects,
+  })  : baseWeightKg = _requirePositiveWeight(baseWeightKg, 'baseWeightKg'),
+        currentWeightKg = _requirePositiveWeight(
+          currentWeightKg ?? baseWeightKg,
+          'currentWeightKg',
+        ),
+        statStages = statStages ?? PsdkBattleStatStages.neutral(),
+        moveHistory = moveHistory ?? PsdkBattleMoveHistory.empty(),
+        effects = effects ?? const PsdkBattleEffectStack.empty(),
+        _moves = List<PsdkBattleMoveData>.unmodifiable(moves);
+
+  factory PsdkBattleCombatant.fromSetup(PsdkBattleCombatantSetup setup) {
+    final hp = setup.currentHp.clamp(0, setup.maxHp).toInt();
+    return PsdkBattleCombatant(
+      id: setup.id,
+      speciesId: setup.speciesId,
+      displayName: setup.displayName,
+      level: setup.level,
+      maxHp: setup.maxHp,
+      currentHp: hp,
+      types: setup.types,
+      stats: setup.stats,
+      moves: setup.moves,
+      // Some Pokemon SDK move formulas are status-sensitive before the first
+      // action resolves (Facade, Hex, Venoshock). The setup bridge must carry
+      // imported save/runtime status into the immutable battle snapshot instead
+      // of forcing tests or adapters to fake a previous status move.
+      majorStatus: setup.majorStatus,
+      statStages: setup.statStages,
+      moveHistory: setup.moveHistory,
+      baseWeightKg: setup.baseWeightKg,
+      currentWeightKg: setup.currentWeightKg,
+      effects: setup.effects,
+    );
+  }
+
+  final String id;
+  final String speciesId;
+  final String displayName;
+  final int level;
+  final int maxHp;
+  final int currentHp;
+  final PsdkBattleTypes types;
+  final PsdkBattleStats stats;
+  final PsdkBattleStatStages statStages;
+  final PsdkBattleMoveHistory moveHistory;
+  final double baseWeightKg;
+  final double currentWeightKg;
+  final PsdkBattleEffectStack effects;
+  final List<PsdkBattleMoveData> _moves;
+  final PsdkBattleMajorStatus? majorStatus;
+
+  /// Immutable observable move list.
+  ///
+  /// PP changes replace move DTOs through [replaceMoveAt]; callers still cannot
+  /// mutate the stored list behind a state snapshot.
+  List<PsdkBattleMoveData> get moves => _moves;
+
+  bool get isFainted => currentHp <= 0;
+
+  int effectiveStat(
+    String stat, {
+    bool ignorePositiveStage = false,
+    bool ignoreNegativeStage = false,
+    bool ignoreAllStages = false,
+  }) {
+    // PSDK custom stat-source moves override only the stat chosen by the
+    // formula; the regular stage table still belongs to the battler state.
+    // Keeping this helper here prevents each move family from duplicating the
+    // PSDK stage aliases and multiplier math.
+    return statStages.effectiveValue(
+      stat: stat,
+      baseValue: stats.valueOf(stat),
+      ignorePositiveStage: ignorePositiveStage,
+      ignoreNegativeStage: ignoreNegativeStage,
+      ignoreAllStages: ignoreAllStages,
+    );
+  }
+
+  PsdkBattleCombatant copyWith({
+    int? currentHp,
+    PsdkBattleMajorStatus? majorStatus,
+    bool clearMajorStatus = false,
+    PsdkBattleStatStages? statStages,
+    PsdkBattleMoveHistory? moveHistory,
+    double? baseWeightKg,
+    double? currentWeightKg,
+    PsdkBattleEffectStack? effects,
+    List<PsdkBattleMoveData>? moves,
+  }) {
+    if (clearMajorStatus && majorStatus != null) {
+      throw ArgumentError.value(
+        majorStatus,
+        'majorStatus',
+        'cannot be set while clearMajorStatus is true',
+      );
+    }
+    return PsdkBattleCombatant(
+      id: id,
+      speciesId: speciesId,
+      displayName: displayName,
+      level: level,
+      maxHp: maxHp,
+      currentHp: currentHp ?? this.currentHp,
+      types: types,
+      stats: stats,
+      moves: moves ?? this.moves,
+      // Nullable copyWith parameters cannot distinguish "leave unchanged" from
+      // "clear the value". Keep the common setter terse, and expose an explicit
+      // clear flag for future cure/status-removal effects.
+      majorStatus: clearMajorStatus ? null : (majorStatus ?? this.majorStatus),
+      statStages: statStages ?? this.statStages,
+      moveHistory: moveHistory ?? this.moveHistory,
+      baseWeightKg: baseWeightKg ?? this.baseWeightKg,
+      currentWeightKg: currentWeightKg ?? this.currentWeightKg,
+      effects: effects ?? this.effects,
+    );
+  }
+
+  PsdkBattleCombatant replaceMoveAt(int index, PsdkBattleMoveData move) {
+    if (index < 0 || index >= _moves.length) {
+      throw RangeError.range(index, 0, _moves.length - 1, 'index');
+    }
+    final nextMoves = <PsdkBattleMoveData>[..._moves];
+    nextMoves[index] = move;
+    return copyWith(moves: nextMoves);
+  }
+
+  PsdkBattleCombatant recordMoveAttempt({
+    required String moveId,
+    required int turn,
+    required List<PsdkBattleSlotRef> targets,
+  }) {
+    return copyWith(
+      moveHistory: moveHistory.recordAttempt(
+        moveId: moveId,
+        turn: turn,
+        targets: targets,
+      ),
+    );
+  }
+
+  PsdkBattleCombatant recordMoveSuccess({
+    required String moveId,
+    required int turn,
+    required List<PsdkBattleSlotRef> targets,
+  }) {
+    return copyWith(
+      moveHistory: moveHistory.recordSuccess(
+        moveId: moveId,
+        turn: turn,
+        targets: targets,
+      ),
+    );
+  }
+}
+
+String _requireEffectId(String value) {
+  return _requireNonBlank(value, 'effectId');
+}
+
+double _requirePositiveWeight(double value, String name) {
+  if (!value.isFinite || value <= 0) {
+    throw ArgumentError.value(value, name, 'must be a finite positive weight');
+  }
+  return value;
+}
+
+String _normalizeStat(String stat) {
+  final token = stat.trim();
+  if (token.isEmpty) {
+    throw ArgumentError.value(stat, 'stat', 'must not be blank');
+  }
+  final normalized = token.replaceAll(RegExp(r'[\s_-]'), '').toLowerCase();
+  return switch (normalized) {
+    'atk' || 'attack' => 'attack',
+    'def' || 'dfe' || 'defense' => 'defense',
+    'ats' || 'spa' || 'spatk' || 'specialattack' => 'specialAttack',
+    'dfs' || 'spdef' || 'specialdefense' => 'specialDefense',
+    // Pokemon SDK's battler scripts use `spd` for speed and `dfs` for special
+    // defense. The PSDK lane follows that vocabulary, while still accepting the
+    // clearer `speed`/`spe` aliases from editor/runtime adapters.
+    'spd' || 'spe' || 'speed' => 'speed',
+    _ => token,
+  };
+}
+
+int _applyRegularStageMultiplier(int baseValue, int stage) {
+  final base = baseValue < 1 ? 1 : baseValue;
+  final value =
+      stage >= 0 ? (base * (2 + stage)) ~/ 2 : (base * 2) ~/ (2 - stage);
+  return value < 1 ? 1 : value;
+}
+
+String _requireNonBlank(String value, String name) {
+  if (value.trim().isEmpty) {
+    throw ArgumentError.value(value, name, 'must not be blank');
+  }
+  return value;
+}

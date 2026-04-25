@@ -1,0 +1,496 @@
+# PSDK Effect Porting Matrix
+
+Source: `../../pokemonsdk-development/scripts/5 Battle`
+
+Total effect classes: 482
+
+| Status | Count |
+| --- | ---: |
+| `ported` | 0 |
+| `partial` | 1 |
+| `missing` | 481 |
+
+| Effect | Ruby base | Family | Hooks | Ruby path | Dart target | Status | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `Ability` | `EffectBase` | `ability` | `-` | `06 Effects/04 Ability Effects/001 AbilityBase.rb` | `lib/src/domain/effect/ability/ability_effect.dart` | `missing` | `-` |
+| `AbilitySuppressed` | `PokemonTiedEffectBase` | `move` | `-` | `06 Effects/02 Move Effects/001 AbilitySuppressed.rb` | `lib/src/domain/effect/move/ability_suppressed_effect.dart` | `missing` | `-` |
+| `AbsorbBulb` | `LuminousMoss` | `item` | `-` | `06 Effects/05 Item Effects/100 Luminous Moss - Snowball.rb` | `lib/src/domain/effect/item/absorb_bulb_effect.dart` | `missing` | `-` |
+| `Aftermath` | `Ability` | `ability` | `on_post_damage_death` | `06 Effects/04 Ability Effects/100 Aftermath.rb` | `lib/src/domain/effect/ability/aftermath_effect.dart` | `missing` | `-` |
+| `AirBalloon` | `Item` | `item` | `on_post_damage`, `on_switch_event` | `06 Effects/05 Item Effects/100 Air Balloon.rb` | `lib/src/domain/effect/item/air_balloon_effect.dart` | `missing` | `-` |
+| `AirLock` | `Ability` | `ability` | `on_switch_event`, `on_weather_prevention` | `06 Effects/04 Ability Effects/100 Air Lock - Cloud Nine.rb` | `lib/src/domain/effect/ability/air_lock_effect.dart` | `missing` | `-` |
+| `Analytic` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Analytic.rb` | `lib/src/domain/effect/ability/analytic_effect.dart` | `missing` | `-` |
+| `AngerPoint` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Anger Point.rb` | `lib/src/domain/effect/ability/anger_point_effect.dart` | `missing` | `-` |
+| `AngerShell` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Anger Shell.rb` | `lib/src/domain/effect/ability/anger_shell_effect.dart` | `missing` | `-` |
+| `Anticipation` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 Anticipation.rb` | `lib/src/domain/effect/ability/anticipation_effect.dart` | `missing` | `-` |
+| `Apicot` | `HpTriggeredStatBerries` | `item` | `-` | `06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb` | `lib/src/domain/effect/item/apicot_effect.dart` | `missing` | `-` |
+| `ApplyStatusToMoveTarget` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 ApplyStatusToMoveTarget.rb` | `lib/src/domain/effect/ability/apply_status_to_move_target_effect.dart` | `missing` | `-` |
+| `AquaRing` | `PokemonTiedEffectBase` | `move` | `on_end_turn_event` | `06 Effects/02 Move Effects/001 AquaRing.rb` | `lib/src/domain/effect/move/aqua_ring_effect.dart` | `missing` | `-` |
+| `ArenaTrap` | `ShadowTag` | `ability` | `-` | `06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb` | `lib/src/domain/effect/ability/arena_trap_effect.dart` | `missing` | `-` |
+| `ArmorTail` | `Ability` | `ability` | `on_move_prevention_user` | `06 Effects/04 Ability Effects/100 Armor Tail.rb` | `lib/src/domain/effect/ability/armor_tail_effect.dart` | `missing` | `-` |
+| `AromaVeil` | `MentalImmunityBase` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Mental Immunity.rb` | `lib/src/domain/effect/ability/aroma_veil_effect.dart` | `missing` | `-` |
+| `AsOne` | `Moxie` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/101 AsOne.rb` | `lib/src/domain/effect/ability/as_one_effect.dart` | `missing` | `-` |
+| `Asleep` | `Status` | `status` | `on_move_prevention_user`, `on_status_prevention` | `06 Effects/03 Status Effects/104 Asleep.rb` | `lib/src/domain/effect/status/asleep_effect.dart` | `missing` | `-` |
+| `AssaultVest` | `ChoiceItemMultiplier` | `item` | `-` | `06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb` | `lib/src/domain/effect/item/assault_vest_effect.dart` | `missing` | `-` |
+| `AttackMultiplier` | `Item` | `item` | `-` | `06 Effects/05 Item Effects/050 ItemAttackMultiplier.rb` | `lib/src/domain/effect/item/attack_multiplier_effect.dart` | `missing` | `-` |
+| `Attract` | `PokemonTiedEffectBase` | `move` | `on_delete`, `on_move_prevention_user` | `06 Effects/02 Move Effects/001 Attract.rb` | `lib/src/domain/effect/move/attract_effect.dart` | `missing` | `-` |
+| `Auras` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 Auras.rb` | `lib/src/domain/effect/ability/auras_effect.dart` | `missing` | `-` |
+| `AuroraVeil` | `LightScreen` | `move` | `-` | `06 Effects/02 Move Effects/001 LightScreen Reflect.rb` | `lib/src/domain/effect/move/aurora_veil_effect.dart` | `missing` | `-` |
+| `Autotomize` | `PokemonTiedEffectBase` | `move` | `on_delete` | `06 Effects/02 Move Effects/001 Autotomize.rb` | `lib/src/domain/effect/move/autotomize_effect.dart` | `missing` | `-` |
+| `BadDreams` | `Ability` | `ability` | `on_end_turn_event` | `06 Effects/04 Ability Effects/100 Bad Dreams.rb` | `lib/src/domain/effect/ability/bad_dreams_effect.dart` | `missing` | `-` |
+| `BallFetch` | `Ability` | `ability` | `on_end_turn_event` | `06 Effects/04 Ability Effects/100 BallFetch.rb` | `lib/src/domain/effect/ability/ball_fetch_effect.dart` | `missing` | `-` |
+| `BanefulBunker` | `Protect` | `move` | `-` | `06 Effects/02 Move Effects/001 Protect.rb` | `lib/src/domain/effect/move/baneful_bunker_effect.dart` | `missing` | `-` |
+| `BasePowerMultiplier` | `Item` | `item` | `-` | `06 Effects/05 Item Effects/050 ItemBasePowerMultiplier.rb` | `lib/src/domain/effect/item/base_power_multiplier_effect.dart` | `missing` | `-` |
+| `BatonPass` | `PokemonTiedEffectBase` | `move` | `on_switch_event` | `06 Effects/02 Move Effects/001 BatonPass.rb` | `lib/src/domain/effect/move/baton_pass_effect.dart` | `missing` | `-` |
+| `Battery` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Battery.rb` | `lib/src/domain/effect/ability/battery_effect.dart` | `missing` | `-` |
+| `BattleBond` | `Ability` | `ability` | `on_post_damage_death` | `06 Effects/04 Ability Effects/100 Battle Bond.rb` | `lib/src/domain/effect/ability/battle_bond_effect.dart` | `missing` | `-` |
+| `BeadsOfRuin` | `TabletsOfRuin` | `ability` | `-` | `06 Effects/04 Ability Effects/100 TabletsOfRuin.rb` | `lib/src/domain/effect/ability/beads_of_ruin_effect.dart` | `missing` | `-` |
+| `BeadsOfRuin` | `EffectBase` | `ability` | `-` | `06 Effects/04 Ability Effects/101 TabletsOfRuin.rb` | `lib/src/domain/effect/ability/beads_of_ruin_effect.dart` | `missing` | `-` |
+| `BeakBlast` | `PokemonTiedEffectBase` | `move` | `on_post_damage` | `06 Effects/02 Move Effects/001 BeakBlast.rb` | `lib/src/domain/effect/move/beak_blast_effect.dart` | `missing` | `-` |
+| `BeastBoost` | `Ability` | `ability` | `on_post_damage_death` | `06 Effects/04 Ability Effects/100 Beast Boost.rb` | `lib/src/domain/effect/ability/beast_boost_effect.dart` | `missing` | `-` |
+| `Berry` | `Item` | `item` | `-` | `06 Effects/05 Item Effects/002 Berry.rb` | `lib/src/domain/effect/item/berry_effect.dart` | `missing` | `-` |
+| `BerryJuice` | `OranBerry` | `item` | `-` | `06 Effects/05 Item Effects/050 HpTriggered Healing Berries.rb` | `lib/src/domain/effect/item/berry_juice_effect.dart` | `missing` | `-` |
+| `Berserk` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Berserk.rb` | `lib/src/domain/effect/ability/berserk_effect.dart` | `missing` | `-` |
+| `BerserkGene` | `Item` | `item` | `on_switch_event` | `06 Effects/05 Item Effects/100 Berserk Gene.rb` | `lib/src/domain/effect/item/berserk_gene_effect.dart` | `missing` | `-` |
+| `Bestow` | `EffectBase` | `move` | `-` | `06 Effects/02 Move Effects/001 Bestow.rb` | `lib/src/domain/effect/move/bestow_effect.dart` | `missing` | `-` |
+| `Bide` | `PokemonTiedEffectBase` | `move` | `on_post_damage` | `06 Effects/02 Move Effects/001 ForceNextMove effects.rb` | `lib/src/domain/effect/move/bide_effect.dart` | `missing` | `-` |
+| `BigPecks` | `Ability` | `ability` | `on_stat_decrease_prevention` | `06 Effects/04 Ability Effects/100 Big Pecks.rb` | `lib/src/domain/effect/ability/big_pecks_effect.dart` | `missing` | `-` |
+| `BigRoot` | `Item` | `item` | `on_pre_drain` | `06 Effects/05 Item Effects/100 Big Root.rb` | `lib/src/domain/effect/item/big_root_effect.dart` | `missing` | `-` |
+| `Bind` | `PokemonTiedEffectBase` | `move` | `on_delete`, `on_end_turn_event`, `on_switch_event`, `on_switch_prevention` | `06 Effects/02 Move Effects/001 Bind.rb` | `lib/src/domain/effect/move/bind_effect.dart` | `missing` | `-` |
+| `BlackSludge` | `Item` | `item` | `on_end_turn_event` | `06 Effects/05 Item Effects/100 Black Sludge.rb` | `lib/src/domain/effect/item/black_sludge_effect.dart` | `missing` | `-` |
+| `BlueOrb` | `RedOrb` | `item` | `-` | `06 Effects/05 Item Effects/100 PrimalOrbs.rb` | `lib/src/domain/effect/item/blue_orb_effect.dart` | `missing` | `-` |
+| `BoostingMoveType` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/050 BoostingMoveType.rb` | `lib/src/domain/effect/ability/boosting_move_type_effect.dart` | `missing` | `-` |
+| `Bulletproof` | `Ability` | `ability` | `on_move_ability_immunity` | `06 Effects/04 Ability Effects/100 Bulletproof.rb` | `lib/src/domain/effect/ability/bulletproof_effect.dart` | `missing` | `-` |
+| `Burn` | `Status` | `status` | `on_end_turn_event`, `on_status_prevention` | `06 Effects/03 Status Effects/103 Burn.rb` | `lib/src/domain/effect/status/burn_effect.dart` | `missing` | `-` |
+| `BurnDrive` | `Drives` | `item` | `-` | `06 Effects/05 Item Effects/050 Drives.rb` | `lib/src/domain/effect/item/burn_drive_effect.dart` | `missing` | `-` |
+| `BurnUp` | `PokemonTiedEffectBase` | `move` | `-` | `06 Effects/02 Move Effects/001 BurnUp.rb` | `lib/src/domain/effect/move/burn_up_effect.dart` | `missing` | `-` |
+| `BurningBulwark` | `KingsShield` | `move` | `-` | `06 Effects/02 Move Effects/001 Protect.rb` | `lib/src/domain/effect/move/burning_bulwark_effect.dart` | `missing` | `-` |
+| `CantSwitch` | `PokemonTiedEffectBase` | `move` | `on_switch_event`, `on_switch_prevention` | `06 Effects/02 Move Effects/001 CantSwitch.rb` | `lib/src/domain/effect/move/cant_switch_effect.dart` | `missing` | `-` |
+| `CellBattery` | `LuminousMoss` | `item` | `-` | `06 Effects/05 Item Effects/100 Luminous Moss - Snowball.rb` | `lib/src/domain/effect/item/cell_battery_effect.dart` | `missing` | `-` |
+| `CenterOfAttention` | `PokemonTiedEffectBase` | `move` | `-` | `06 Effects/02 Move Effects/001 CenterOfAttention.rb` | `lib/src/domain/effect/move/center_of_attention_effect.dart` | `missing` | `-` |
+| `ChangeType` | `PokemonTiedEffectBase` | `move` | `on_transform_event` | `06 Effects/02 Move Effects/001 ChangeType.rb` | `lib/src/domain/effect/move/change_type_effect.dart` | `missing` | `-` |
+| `ChangingMoveType` | `BoostingMoveType` | `ability` | `on_move_type_change` | `06 Effects/04 Ability Effects/051 ChangingMoveType.rb` | `lib/src/domain/effect/ability/changing_move_type_effect.dart` | `missing` | `-` |
+| `Charge` | `PokemonTiedEffectBase` | `move` | `-` | `06 Effects/02 Move Effects/001 Charge.rb` | `lib/src/domain/effect/move/charge_effect.dart` | `missing` | `-` |
+| `Cheri` | `StatusBerry` | `item` | `-` | `06 Effects/05 Item Effects/050 StatusBerry.rb` | `lib/src/domain/effect/item/cheri_effect.dart` | `missing` | `-` |
+| `Chesto` | `StatusBerry` | `item` | `-` | `06 Effects/05 Item Effects/050 StatusBerry.rb` | `lib/src/domain/effect/item/chesto_effect.dart` | `missing` | `-` |
+| `ChillDrive` | `Drives` | `item` | `-` | `06 Effects/05 Item Effects/050 Drives.rb` | `lib/src/domain/effect/item/chill_drive_effect.dart` | `missing` | `-` |
+| `Chlorophyll` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Chlorophyll.rb` | `lib/src/domain/effect/ability/chlorophyll_effect.dart` | `missing` | `-` |
+| `ChoiceBand` | `ChoiceItemMultiplier` | `item` | `-` | `06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb` | `lib/src/domain/effect/item/choice_band_effect.dart` | `missing` | `-` |
+| `ChoiceItemMultiplier` | `Item` | `item` | `on_move_disabled_check`, `on_move_prevention_user` | `06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb` | `lib/src/domain/effect/item/choice_item_multiplier_effect.dart` | `missing` | `-` |
+| `ChoiceScarf` | `ChoiceItemMultiplier` | `item` | `-` | `06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb` | `lib/src/domain/effect/item/choice_scarf_effect.dart` | `missing` | `-` |
+| `ChoiceSpecs` | `ChoiceItemMultiplier` | `item` | `-` | `06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb` | `lib/src/domain/effect/item/choice_specs_effect.dart` | `missing` | `-` |
+| `ClearBody` | `Ability` | `ability` | `on_stat_decrease_prevention` | `06 Effects/04 Ability Effects/100 Clear Body.rb` | `lib/src/domain/effect/ability/clear_body_effect.dart` | `missing` | `-` |
+| `ColorChange` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Color Change.rb` | `lib/src/domain/effect/ability/color_change_effect.dart` | `missing` | `-` |
+| `Comatose` | `Ability` | `ability` | `on_status_prevention` | `06 Effects/04 Ability Effects/100 Comatose.rb` | `lib/src/domain/effect/ability/comatose_effect.dart` | `missing` | `-` |
+| `Commanded` | `PokemonTiedEffectBase` | `ability` | `on_post_damage_death`, `on_switch_prevention` | `06 Effects/04 Ability Effects/101 Commander Effects.rb` | `lib/src/domain/effect/ability/commanded_effect.dart` | `missing` | `-` |
+| `Commander` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 Commander.rb` | `lib/src/domain/effect/ability/commander_effect.dart` | `missing` | `-` |
+| `Commanding` | `OutOfReachBase` | `ability` | `on_move_prevention_user`, `on_switch_prevention` | `06 Effects/04 Ability Effects/101 Commander Effects.rb` | `lib/src/domain/effect/ability/commanding_effect.dart` | `missing` | `-` |
+| `Competitive` | `Defiant` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Defiant.rb` | `lib/src/domain/effect/ability/competitive_effect.dart` | `missing` | `-` |
+| `CompoundEyes` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Compound Eyes.rb` | `lib/src/domain/effect/ability/compound_eyes_effect.dart` | `missing` | `-` |
+| `ConfusingBerries` | `OranBerry` | `item` | `-` | `06 Effects/05 Item Effects/050 HpTriggered Healing Berries.rb` | `lib/src/domain/effect/item/confusing_berries_effect.dart` | `missing` | `-` |
+| `Confusion` | `PokemonTiedEffectBase` | `move` | `on_move_prevention_user` | `06 Effects/02 Move Effects/001 Confusion.rb` | `lib/src/domain/effect/move/confusion_effect.dart` | `missing` | `-` |
+| `Contrary` | `Ability` | `ability` | `on_stat_change` | `06 Effects/04 Ability Effects/100 Contrary.rb` | `lib/src/domain/effect/ability/contrary_effect.dart` | `missing` | `-` |
+| `Costar` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 Costar.rb` | `lib/src/domain/effect/ability/costar_effect.dart` | `missing` | `-` |
+| `CottonDown` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Cotton Down.rb` | `lib/src/domain/effect/ability/cotton_down_effect.dart` | `missing` | `-` |
+| `CraftyShield` | `PokemonTiedEffectBase` | `move` | `on_move_prevention_target` | `06 Effects/02 Move Effects/001 CraftyShield.rb` | `lib/src/domain/effect/move/crafty_shield_effect.dart` | `missing` | `-` |
+| `CudChew` | `Ability` | `ability` | `on_pre_item_change` | `06 Effects/04 Ability Effects/100 Cud Chew.rb` | `lib/src/domain/effect/ability/cud_chew_effect.dart` | `missing` | `-` |
+| `CudChewEffect` | `PokemonTiedEffectBase` | `ability` | `on_end_turn_event` | `06 Effects/04 Ability Effects/101 Cud Chew Effect.rb` | `lib/src/domain/effect/ability/cud_chew_effect_effect.dart` | `missing` | `-` |
+| `CuriousMedicine` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 Curious Medicine.rb` | `lib/src/domain/effect/ability/curious_medicine_effect.dart` | `missing` | `-` |
+| `Curse` | `PokemonTiedEffectBase` | `move` | `on_end_turn_event` | `06 Effects/02 Move Effects/001 Curse.rb` | `lib/src/domain/effect/move/curse_effect.dart` | `missing` | `-` |
+| `CursedBody` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Cursed Body.rb` | `lib/src/domain/effect/ability/cursed_body_effect.dart` | `missing` | `-` |
+| `CuteCharm` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Cute Charm.rb` | `lib/src/domain/effect/ability/cute_charm_effect.dart` | `missing` | `-` |
+| `Dancer` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Dancer.rb` | `lib/src/domain/effect/ability/dancer_effect.dart` | `missing` | `-` |
+| `DauntlessShield` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 Dauntless Shield.rb` | `lib/src/domain/effect/ability/dauntless_shield_effect.dart` | `missing` | `-` |
+| `DeepSeaScale` | `Item` | `item` | `-` | `06 Effects/05 Item Effects/100 Deep Sea Scale.rb` | `lib/src/domain/effect/item/deep_sea_scale_effect.dart` | `missing` | `-` |
+| `DeepSeaTooth` | `Item` | `item` | `-` | `06 Effects/05 Item Effects/100 Deep Sea Tooth.rb` | `lib/src/domain/effect/item/deep_sea_tooth_effect.dart` | `missing` | `-` |
+| `Defeatist` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Defeatist.rb` | `lib/src/domain/effect/ability/defeatist_effect.dart` | `missing` | `-` |
+| `DefenseMultiplier` | `Item` | `item` | `-` | `06 Effects/05 Item Effects/050 ItemDefenseMultiplier.rb` | `lib/src/domain/effect/item/defense_multiplier_effect.dart` | `missing` | `-` |
+| `Defiant` | `Ability` | `ability` | `on_stat_change_post` | `06 Effects/04 Ability Effects/100 Defiant.rb` | `lib/src/domain/effect/ability/defiant_effect.dart` | `missing` | `-` |
+| `DeltaStream` | `DesolateLand` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Primal Weathers.rb` | `lib/src/domain/effect/ability/delta_stream_effect.dart` | `missing` | `-` |
+| `DesolateLand` | `Ability` | `ability` | `on_post_damage_death`, `on_post_weather_change`, `on_pre_ability_change`, `on_switch_event` | `06 Effects/04 Ability Effects/100 Primal Weathers.rb` | `lib/src/domain/effect/ability/desolate_land_effect.dart` | `missing` | `-` |
+| `DestinyBond` | `PokemonTiedEffectBase` | `move` | `on_move_prevention_user`, `on_post_damage_death` | `06 Effects/02 Move Effects/001 DestinyBond.rb` | `lib/src/domain/effect/move/destiny_bond_effect.dart` | `missing` | `-` |
+| `Disable` | `PokemonTiedEffectBase` | `move` | `on_delete`, `on_move_disabled_check`, `on_move_prevention_user` | `06 Effects/02 Move Effects/001 Disable.rb` | `lib/src/domain/effect/move/disable_effect.dart` | `missing` | `-` |
+| `Disguise` | `Ability` | `ability` | `on_damage_prevention`, `on_post_damage_death` | `06 Effects/04 Ability Effects/100 Disguise.rb` | `lib/src/domain/effect/ability/disguise_effect.dart` | `missing` | `-` |
+| `Download` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 Download.rb` | `lib/src/domain/effect/ability/download_effect.dart` | `missing` | `-` |
+| `DragonCheer` | `PokemonTiedEffectBase` | `move` | `-` | `06 Effects/02 Move Effects/001 DragonCheer.rb` | `lib/src/domain/effect/move/dragon_cheer_effect.dart` | `missing` | `-` |
+| `Drives` | `Item` | `item` | `on_move_type_change` | `06 Effects/05 Item Effects/050 Drives.rb` | `lib/src/domain/effect/item/drives_effect.dart` | `missing` | `-` |
+| `Drizzle` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb` | `lib/src/domain/effect/ability/drizzle_effect.dart` | `missing` | `-` |
+| `Drought` | `Drizzle` | `ability` | `-` | `06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb` | `lib/src/domain/effect/ability/drought_effect.dart` | `missing` | `-` |
+| `Drowsiness` | `PokemonTiedEffectBase` | `move` | `on_end_turn_event`, `on_switch_event` | `06 Effects/02 Move Effects/001 Drowsiness.rb` | `lib/src/domain/effect/move/drowsiness_effect.dart` | `missing` | `-` |
+| `DrySkin` | `Ability` | `ability` | `on_damage_prevention`, `on_end_turn_event` | `06 Effects/04 Ability Effects/100 Dry Skin.rb` | `lib/src/domain/effect/ability/dry_skin_effect.dart` | `missing` | `-` |
+| `EarthEater` | `VoltAbsorb` | `ability` | `-` | `06 Effects/04 Ability Effects/100 TypeAbsorb.rb` | `lib/src/domain/effect/ability/earth_eater_effect.dart` | `missing` | `-` |
+| `EchoedVoice` | `EffectBase` | `move` | `on_end_turn_event` | `06 Effects/02 Move Effects/001 EchoedVoice.rb` | `lib/src/domain/effect/move/echoed_voice_effect.dart` | `missing` | `-` |
+| `EffectBase` | `` | `mechanics` | `on_ability_change_prevention`, `on_damage_prevention`, `on_delete`, `on_drain_prevention`, `on_end_turn_event`, `on_flee_passthrough`, `on_flee_prevention`, `on_fterrain_prevention`, `on_held_item_use_prevention`, `on_move_ability_immunity`, `on_move_disabled_check`, `on_move_failure`, `on_move_prevention_target`, `on_move_prevention_user`, `on_move_priority_change`, `on_move_type_change`, `on_post_ability_change`, `on_post_accuracy_check`, `on_post_action_event`, `on_post_damage`, `on_post_damage_death`, `on_post_fterrain_change`, `on_post_item_change`, `on_post_status_change`, `on_post_weather_change`, `on_pre_ability_change`, `on_pre_accuracy_check`, `on_pre_drain`, `on_pre_item_change`, `on_single_type_multiplier_overwrite`, `on_stat_change`, `on_stat_change_post`, `on_stat_decrease_prevention`, `on_stat_increase_prevention`, `on_status_prevention`, `on_switch_event`, `on_switch_passthrough`, `on_switch_prevention`, `on_transform_event`, `on_two_turn_shortcut`, `on_weather_prevention` | `06 Effects/100 EffectBase.rb` | `lib/src/domain/effect/mechanics/effect_base_effect.dart` | `missing` | `-` |
+| `EffectSpore` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Effect Spore.rb` | `lib/src/domain/effect/ability/effect_spore_effect.dart` | `missing` | `-` |
+| `EffectsHandler` | `` | `mechanics` | `-` | `06 Effects/001 EffectsHandler.rb` | `lib/src/domain/effect/mechanics/effects_handler_effect.dart` | `missing` | `-` |
+| `EjectButton` | `Item` | `item` | `on_post_damage` | `06 Effects/05 Item Effects/100 Eject Button.rb` | `lib/src/domain/effect/item/eject_button_effect.dart` | `missing` | `-` |
+| `Electric` | `FieldTerrain` | `field` | `on_end_turn_event`, `on_move_prevention_target`, `on_status_prevention` | `06 Effects/07 Field Terrain Effects/100 Electric.rb` | `lib/src/domain/effect/field/electric_effect.dart` | `missing` | `-` |
+| `ElectricSurge` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb` | `lib/src/domain/effect/ability/electric_surge_effect.dart` | `missing` | `-` |
+| `Electrify` | `PokemonTiedEffectBase` | `move` | `on_move_type_change` | `06 Effects/02 Move Effects/001 Electrify.rb` | `lib/src/domain/effect/move/electrify_effect.dart` | `missing` | `-` |
+| `Electromorphosis` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Electromorphosis.rb` | `lib/src/domain/effect/ability/electromorphosis_effect.dart` | `missing` | `-` |
+| `Embargo` | `PokemonTiedEffectBase` | `move` | `on_delete` | `06 Effects/02 Move Effects/001 Embargo.rb` | `lib/src/domain/effect/move/embargo_effect.dart` | `missing` | `-` |
+| `EmbodyAspect` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 Embody Aspect.rb` | `lib/src/domain/effect/ability/embody_aspect_effect.dart` | `missing` | `-` |
+| `EmergencyExit` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Emergency Exit - Wimp Out.rb` | `lib/src/domain/effect/ability/emergency_exit_effect.dart` | `missing` | `-` |
+| `Encore` | `PokemonTiedEffectBase` | `move` | `on_delete` | `06 Effects/02 Move Effects/001 ForceNextMove effects.rb` | `lib/src/domain/effect/move/encore_effect.dart` | `missing` | `-` |
+| `Endure` | `PokemonTiedEffectBase` | `move` | `on_damage_prevention`, `on_post_damage` | `06 Effects/02 Move Effects/001 Protect.rb` | `lib/src/domain/effect/move/endure_effect.dart` | `missing` | `-` |
+| `EnigmaBerry` | `Berry` | `item` | `on_post_damage` | `06 Effects/05 Item Effects/100 Enigma Berry.rb` | `lib/src/domain/effect/item/enigma_berry_effect.dart` | `missing` | `-` |
+| `Eviolite` | `Item` | `item` | `-` | `06 Effects/05 Item Effects/100 Eviolite.rb` | `lib/src/domain/effect/item/eviolite_effect.dart` | `missing` | `-` |
+| `ExpertBelt` | `Item` | `item` | `-` | `06 Effects/05 Item Effects/100 Expert Belt.rb` | `lib/src/domain/effect/item/expert_belt_effect.dart` | `missing` | `-` |
+| `FairyLock` | `EffectBase` | `move` | `on_switch_prevention` | `06 Effects/02 Move Effects/001 FairyLock.rb` | `lib/src/domain/effect/move/fairy_lock_effect.dart` | `missing` | `-` |
+| `FieldTerrain` | `EffectBase` | `field` | `-` | `06 Effects/07 Field Terrain Effects/001 FieldTerrainBase.rb` | `lib/src/domain/effect/field/field_terrain_effect.dart` | `missing` | `-` |
+| `FlameBody` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Flame Body.rb` | `lib/src/domain/effect/ability/flame_body_effect.dart` | `missing` | `-` |
+| `FlameOrb` | `Item` | `item` | `on_end_turn_event` | `06 Effects/05 Item Effects/100 Flame Orb.rb` | `lib/src/domain/effect/item/flame_orb_effect.dart` | `missing` | `-` |
+| `FlareBoost` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Flare Boost.rb` | `lib/src/domain/effect/ability/flare_boost_effect.dart` | `missing` | `-` |
+| `FlashFire` | `Ability` | `ability` | `on_damage_prevention`, `on_reset_states`, `on_stat_decrease_prevention`, `on_stat_increase_prevention`, `on_status_prevention` | `06 Effects/04 Ability Effects/100 Flash Fire.rb` | `lib/src/domain/effect/ability/flash_fire_effect.dart` | `missing` | `-` |
+| `Flinch` | `PokemonTiedEffectBase` | `move` | `on_move_prevention_user`, `on_status_prevention` | `06 Effects/02 Move Effects/001 Flinch.rb` | `lib/src/domain/effect/move/flinch_effect.dart` | `missing` | `-` |
+| `FlowerGift` | `Ability` | `ability` | `on_post_weather_change`, `on_pre_ability_change`, `on_switch_event` | `06 Effects/04 Ability Effects/100 Flower Gift.rb` | `lib/src/domain/effect/ability/flower_gift_effect.dart` | `missing` | `-` |
+| `FlowerVeil` | `Ability` | `ability` | `on_stat_decrease_prevention`, `on_status_prevention` | `06 Effects/04 Ability Effects/100 Flower Veil.rb` | `lib/src/domain/effect/ability/flower_veil_effect.dart` | `missing` | `-` |
+| `Fluffy` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Fluffy.rb` | `lib/src/domain/effect/ability/fluffy_effect.dart` | `missing` | `-` |
+| `FocusBand` | `Item` | `item` | `on_damage_prevention` | `06 Effects/05 Item Effects/100 Focus Band.rb` | `lib/src/domain/effect/item/focus_band_effect.dart` | `missing` | `-` |
+| `FocusEnergy` | `PokemonTiedEffectBase` | `move` | `-` | `06 Effects/02 Move Effects/001 FocusEnergy.rb` | `lib/src/domain/effect/move/focus_energy_effect.dart` | `missing` | `-` |
+| `FocusPunch` | `PokemonTiedEffectBase` | `move` | `-` | `06 Effects/02 Move Effects/001 FocusPunch.rb` | `lib/src/domain/effect/move/focus_punch_effect.dart` | `missing` | `-` |
+| `FocusSash` | `Item` | `item` | `on_damage_prevention`, `on_post_damage` | `06 Effects/05 Item Effects/100 Focus Sash.rb` | `lib/src/domain/effect/item/focus_sash_effect.dart` | `missing` | `-` |
+| `Fog` | `Weather` | `field` | `on_end_turn_event` | `06 Effects/06 Weather Effects/100 Fog.rb` | `lib/src/domain/effect/field/fog_effect.dart` | `missing` | `-` |
+| `ForceNextMoveBase` | `PokemonTiedEffectBase` | `move` | `-` | `06 Effects/02 Move Effects/001 ForceNextMove effects.rb` | `lib/src/domain/effect/move/force_next_move_base_effect.dart` | `missing` | `-` |
+| `Forecast` | `Ability` | `ability` | `on_post_weather_change`, `on_pre_ability_change`, `on_switch_event` | `06 Effects/04 Ability Effects/100 Forecast.rb` | `lib/src/domain/effect/ability/forecast_effect.dart` | `missing` | `-` |
+| `Foresight` | `PokemonTiedEffectBase` | `move` | `on_single_type_multiplier_overwrite` | `06 Effects/02 Move Effects/001 Foresight.rb` | `lib/src/domain/effect/move/foresight_effect.dart` | `missing` | `-` |
+| `Forewarn` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 Forewarn.rb` | `lib/src/domain/effect/ability/forewarn_effect.dart` | `missing` | `-` |
+| `FriendGuard` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Friend Guard.rb` | `lib/src/domain/effect/ability/friend_guard_effect.dart` | `missing` | `-` |
+| `Frisk` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 Frisk.rb` | `lib/src/domain/effect/ability/frisk_effect.dart` | `missing` | `-` |
+| `Frozen` | `Status` | `status` | `on_move_prevention_user`, `on_status_prevention` | `06 Effects/03 Status Effects/105 Frozen.rb` | `lib/src/domain/effect/status/frozen_effect.dart` | `missing` | `-` |
+| `FullMetalBody` | `Ability` | `ability` | `on_stat_decrease_prevention` | `06 Effects/04 Ability Effects/100 Full Metal Body.rb` | `lib/src/domain/effect/ability/full_metal_body_effect.dart` | `missing` | `-` |
+| `FurCoat` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Fur Coat.rb` | `lib/src/domain/effect/ability/fur_coat_effect.dart` | `missing` | `-` |
+| `FuryCutter` | `PokemonTiedEffectBase` | `move` | `-` | `06 Effects/02 Move Effects/001 FuryCutter.rb` | `lib/src/domain/effect/move/fury_cutter_effect.dart` | `missing` | `-` |
+| `FutureSight` | `PositionTiedEffectBase` | `move` | `on_delete` | `06 Effects/02 Move Effects/001 FutureSight.rb` | `lib/src/domain/effect/move/future_sight_effect.dart` | `missing` | `-` |
+| `GaleWings` | `Ability` | `ability` | `on_move_priority_change` | `06 Effects/04 Ability Effects/100 Gale Wings.rb` | `lib/src/domain/effect/ability/gale_wings_effect.dart` | `missing` | `-` |
+| `Ganlon` | `HpTriggeredStatBerries` | `item` | `-` | `06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb` | `lib/src/domain/effect/item/ganlon_effect.dart` | `missing` | `-` |
+| `Gems` | `Item` | `item` | `on_pre_accuracy_check` | `06 Effects/05 Item Effects/050 Gems.rb` | `lib/src/domain/effect/item/gems_effect.dart` | `missing` | `-` |
+| `GlaiveRush` | `PokemonTiedEffectBase` | `move` | `on_post_action_event` | `06 Effects/02 Move Effects/001 GlaiveRush.rb` | `lib/src/domain/effect/move/glaive_rush_effect.dart` | `missing` | `-` |
+| `GoodAsGold` | `Ability` | `ability` | `on_move_prevention_target`, `on_move_prevention_user` | `06 Effects/04 Ability Effects/100 GoodAsGold.rb` | `lib/src/domain/effect/ability/good_as_gold_effect.dart` | `missing` | `-` |
+| `Gooey` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Gooey.rb` | `lib/src/domain/effect/ability/gooey_effect.dart` | `missing` | `-` |
+| `GorillaTactics` | `Ability` | `ability` | `on_move_disabled_check`, `on_move_prevention_user` | `06 Effects/04 Ability Effects/100 Gorilla Tactics.rb` | `lib/src/domain/effect/ability/gorilla_tactics_effect.dart` | `missing` | `-` |
+| `GrassPelt` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Grass Pelt.rb` | `lib/src/domain/effect/ability/grass_pelt_effect.dart` | `missing` | `-` |
+| `Grassy` | `FieldTerrain` | `field` | `on_end_turn_event` | `06 Effects/07 Field Terrain Effects/100 Grassy.rb` | `lib/src/domain/effect/field/grassy_effect.dart` | `missing` | `-` |
+| `GrassySurge` | `ElectricSurge` | `ability` | `-` | `06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb` | `lib/src/domain/effect/ability/grassy_surge_effect.dart` | `missing` | `-` |
+| `Gravity` | `EffectBase` | `move` | `on_delete`, `on_move_disabled_check`, `on_move_prevention_user` | `06 Effects/02 Move Effects/001 Gravity.rb` | `lib/src/domain/effect/move/gravity_effect.dart` | `missing` | `-` |
+| `GrimNeigh` | `Moxie` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Moxie.rb` | `lib/src/domain/effect/ability/grim_neigh_effect.dart` | `missing` | `-` |
+| `Grudge` | `PokemonTiedEffectBase` | `move` | `on_end_turn_event`, `on_post_damage_death`, `on_switch_event` | `06 Effects/02 Move Effects/001 Grudge.rb` | `lib/src/domain/effect/move/grudge_effect.dart` | `missing` | `-` |
+| `GuardDog` | `Ability` | `ability` | `on_stat_change` | `06 Effects/04 Ability Effects/100 GuardDog.rb` | `lib/src/domain/effect/ability/guard_dog_effect.dart` | `missing` | `-` |
+| `GulpMissile` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 GulpMissile.rb` | `lib/src/domain/effect/ability/gulp_missile_effect.dart` | `missing` | `-` |
+| `Guts` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Guts.rb` | `lib/src/domain/effect/ability/guts_effect.dart` | `missing` | `-` |
+| `HadronEngine` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 HadronEngine.rb` | `lib/src/domain/effect/ability/hadron_engine_effect.dart` | `missing` | `-` |
+| `Hail` | `Weather` | `field` | `on_end_turn_event` | `06 Effects/06 Weather Effects/100 Hail.rb` | `lib/src/domain/effect/field/hail_effect.dart` | `missing` | `-` |
+| `HalfSpeed` | `Item` | `item` | `-` | `06 Effects/05 Item Effects/050 HalfSpeedItems.rb` | `lib/src/domain/effect/item/half_speed_effect.dart` | `missing` | `-` |
+| `HappyHour` | `EffectBase` | `move` | `-` | `06 Effects/02 Move Effects/001 HappyHour.rb` | `lib/src/domain/effect/move/happy_hour_effect.dart` | `missing` | `-` |
+| `Hardrain` | `Weather` | `field` | `on_end_turn_event`, `on_move_prevention_target`, `on_weather_prevention` | `06 Effects/06 Weather Effects/100 Hardrain.rb` | `lib/src/domain/effect/field/hardrain_effect.dart` | `missing` | `-` |
+| `Hardsun` | `Weather` | `field` | `on_end_turn_event`, `on_move_prevention_target`, `on_weather_prevention` | `06 Effects/06 Weather Effects/100 Hardsun.rb` | `lib/src/domain/effect/field/hardsun_effect.dart` | `missing` | `-` |
+| `Harvest` | `Ability` | `ability` | `on_end_turn_event` | `06 Effects/04 Ability Effects/100 Harvest.rb` | `lib/src/domain/effect/ability/harvest_effect.dart` | `missing` | `-` |
+| `HealBlock` | `PokemonTiedEffectBase` | `move` | `on_move_disabled_check`, `on_move_prevention_user` | `06 Effects/02 Move Effects/001 HealBlock.rb` | `lib/src/domain/effect/move/heal_block_effect.dart` | `missing` | `-` |
+| `Healer` | `Ability` | `ability` | `on_end_turn_event` | `06 Effects/04 Ability Effects/100 Healer.rb` | `lib/src/domain/effect/ability/healer_effect.dart` | `missing` | `-` |
+| `HealingWish` | `PokemonTiedEffectBase` | `move` | `on_switch_event` | `06 Effects/02 Move Effects/001 HealingWish.rb` | `lib/src/domain/effect/move/healing_wish_effect.dart` | `missing` | `-` |
+| `Heatproof` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Heatproof.rb` | `lib/src/domain/effect/ability/heatproof_effect.dart` | `missing` | `-` |
+| `HelpingHand` | `PokemonTiedEffectBase` | `move` | `-` | `06 Effects/02 Move Effects/001 HelpingHand.rb` | `lib/src/domain/effect/move/helping_hand_effect.dart` | `missing` | `-` |
+| `Hospitality` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 Hospitality.rb` | `lib/src/domain/effect/ability/hospitality_effect.dart` | `missing` | `-` |
+| `HpTriggeredStatBerries` | `Berry` | `item` | `on_end_turn_event`, `on_post_damage` | `06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb` | `lib/src/domain/effect/item/hp_triggered_stat_berries_effect.dart` | `missing` | `-` |
+| `HungerSwitch` | `Ability` | `ability` | `on_end_turn_event`, `on_post_damage_death`, `on_switch_event` | `06 Effects/04 Ability Effects/100 Hunger Switch.rb` | `lib/src/domain/effect/ability/hunger_switch_effect.dart` | `missing` | `-` |
+| `Hustle` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Hustle.rb` | `lib/src/domain/effect/ability/hustle_effect.dart` | `missing` | `-` |
+| `Hydration` | `Ability` | `ability` | `on_end_turn_event` | `06 Effects/04 Ability Effects/100 Hydration.rb` | `lib/src/domain/effect/ability/hydration_effect.dart` | `missing` | `-` |
+| `HyperCutter` | `Ability` | `ability` | `on_stat_decrease_prevention` | `06 Effects/04 Ability Effects/100 Hyper Cutter.rb` | `lib/src/domain/effect/ability/hyper_cutter_effect.dart` | `missing` | `-` |
+| `IceBody` | `Ability` | `ability` | `on_end_turn_event` | `06 Effects/04 Ability Effects/100 Ice Body.rb` | `lib/src/domain/effect/ability/ice_body_effect.dart` | `missing` | `-` |
+| `IceFace` | `Ability` | `ability` | `on_damage_prevention`, `on_post_damage_death`, `on_post_weather_change`, `on_switch_event` | `06 Effects/04 Ability Effects/100 Ice Face.rb` | `lib/src/domain/effect/ability/ice_face_effect.dart` | `missing` | `-` |
+| `IceScales` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Ice Scales.rb` | `lib/src/domain/effect/ability/ice_scales_effect.dart` | `missing` | `-` |
+| `Immunity` | `NonVolatileStatusImmunityBase` | `ability` | `-` | `06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb` | `lib/src/domain/effect/ability/immunity_effect.dart` | `missing` | `-` |
+| `Imposter` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 Imposter.rb` | `lib/src/domain/effect/ability/imposter_effect.dart` | `missing` | `-` |
+| `Imprison` | `PokemonTiedEffectBase` | `move` | `on_move_disabled_check`, `on_move_prevention_user` | `06 Effects/02 Move Effects/001 Imprison.rb` | `lib/src/domain/effect/move/imprison_effect.dart` | `missing` | `-` |
+| `Ingrain` | `CantSwitch` | `move` | `on_end_turn_event`, `on_switch_prevention` | `06 Effects/02 Move Effects/001 Ingrain.rb` | `lib/src/domain/effect/move/ingrain_effect.dart` | `missing` | `-` |
+| `InnardsOut` | `Ability` | `ability` | `on_post_damage`, `on_post_damage_death` | `06 Effects/04 Ability Effects/100 Innards Out.rb` | `lib/src/domain/effect/ability/innards_out_effect.dart` | `missing` | `-` |
+| `InnerFocus` | `Ability` | `ability` | `on_status_prevention` | `06 Effects/04 Ability Effects/100 Inner Focus.rb` | `lib/src/domain/effect/ability/inner_focus_effect.dart` | `missing` | `-` |
+| `Insomnia` | `NonVolatileStatusImmunityBase` | `ability` | `-` | `06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb` | `lib/src/domain/effect/ability/insomnia_effect.dart` | `missing` | `-` |
+| `Instruct` | `PokemonTiedEffectBase` | `move` | `on_post_action_event` | `06 Effects/02 Move Effects/001 Instruct.rb` | `lib/src/domain/effect/move/instruct_effect.dart` | `missing` | `-` |
+| `Intimidate` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 Intimidate.rb` | `lib/src/domain/effect/ability/intimidate_effect.dart` | `missing` | `-` |
+| `IntrepidSword` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 Intrepid Sword.rb` | `lib/src/domain/effect/ability/intrepid_sword_effect.dart` | `missing` | `-` |
+| `IonDeluge` | `EffectBase` | `move` | `on_move_type_change` | `06 Effects/02 Move Effects/001 Ion Deluge.rb` | `lib/src/domain/effect/move/ion_deluge_effect.dart` | `missing` | `-` |
+| `IronFist` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Iron Fist.rb` | `lib/src/domain/effect/ability/iron_fist_effect.dart` | `missing` | `-` |
+| `Item` | `EffectBase` | `item` | `-` | `06 Effects/05 Item Effects/001 ItemBase.rb` | `lib/src/domain/effect/item/item_effect.dart` | `missing` | `-` |
+| `ItemBurnt` | `PokemonTiedEffectBase` | `move` | `-` | `06 Effects/02 Move Effects/001 ItemBurnt.rb` | `lib/src/domain/effect/move/item_burnt_effect.dart` | `missing` | `-` |
+| `ItemStolen` | `PokemonTiedEffectBase` | `move` | `on_post_item_change` | `06 Effects/02 Move Effects/001 ItemStolen.rb` | `lib/src/domain/effect/move/item_stolen_effect.dart` | `missing` | `-` |
+| `JabocaBerry` | `Berry` | `item` | `on_post_damage` | `06 Effects/05 Item Effects/100 Jaboca Berry.rb` | `lib/src/domain/effect/item/jaboca_berry_effect.dart` | `missing` | `-` |
+| `Justified` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Justified.rb` | `lib/src/domain/effect/ability/justified_effect.dart` | `missing` | `-` |
+| `KeeBerry` | `Berry` | `item` | `on_post_damage` | `06 Effects/05 Item Effects/100 Kee Berry - Maranga Berry.rb` | `lib/src/domain/effect/item/kee_berry_effect.dart` | `missing` | `-` |
+| `KeenEye` | `Ability` | `ability` | `on_stat_decrease_prevention` | `06 Effects/04 Ability Effects/100 Keen Eye.rb` | `lib/src/domain/effect/ability/keen_eye_effect.dart` | `missing` | `-` |
+| `KingsRock` | `Item` | `item` | `on_post_damage` | `06 Effects/05 Item Effects/100 Kings Rock - Razor Fang.rb` | `lib/src/domain/effect/item/kings_rock_effect.dart` | `missing` | `-` |
+| `KingsShield` | `Protect` | `move` | `-` | `06 Effects/02 Move Effects/001 Protect.rb` | `lib/src/domain/effect/move/kings_shield_effect.dart` | `missing` | `-` |
+| `LansatBerry` | `Berry` | `item` | `on_end_turn_event`, `on_post_damage` | `06 Effects/05 Item Effects/100 Lansat Berry.rb` | `lib/src/domain/effect/item/lansat_berry_effect.dart` | `missing` | `-` |
+| `LaserFocus` | `PokemonTiedEffectBase` | `move` | `-` | `06 Effects/02 Move Effects/001 LaserFocus.rb` | `lib/src/domain/effect/move/laser_focus_effect.dart` | `missing` | `-` |
+| `LaxIncense` | `Item` | `item` | `-` | `06 Effects/05 Item Effects/100 Lax Incense.rb` | `lib/src/domain/effect/item/lax_incense_effect.dart` | `missing` | `-` |
+| `LeafGuard` | `Ability` | `ability` | `on_status_prevention` | `06 Effects/04 Ability Effects/100 Leaf Guard.rb` | `lib/src/domain/effect/ability/leaf_guard_effect.dart` | `missing` | `-` |
+| `LeechSeed` | `PositionTiedEffectBase` | `move` | `-` | `06 Effects/02 Move Effects/001 LeechSeed.rb` | `lib/src/domain/effect/move/leech_seed_effect.dart` | `missing` | `-` |
+| `Leftovers` | `Item` | `item` | `on_end_turn_event` | `06 Effects/05 Item Effects/100 Leftovers.rb` | `lib/src/domain/effect/item/leftovers_effect.dart` | `missing` | `-` |
+| `LeppaBerry` | `Berry` | `item` | `on_end_turn_event` | `06 Effects/05 Item Effects/100 Leppa Berry.rb` | `lib/src/domain/effect/item/leppa_berry_effect.dart` | `missing` | `-` |
+| `Libero` | `Ability` | `ability` | `on_pre_accuracy_check` | `06 Effects/04 Ability Effects/100 Libero - Protean.rb` | `lib/src/domain/effect/ability/libero_effect.dart` | `missing` | `-` |
+| `LifeOrb` | `Item` | `item` | `on_end_turn_event`, `on_post_action_event`, `on_post_damage` | `06 Effects/05 Item Effects/100 Life Orb.rb` | `lib/src/domain/effect/item/life_orb_effect.dart` | `missing` | `-` |
+| `LightBall` | `Item` | `item` | `-` | `06 Effects/05 Item Effects/100 LightBall.rb` | `lib/src/domain/effect/item/light_ball_effect.dart` | `missing` | `-` |
+| `LightScreen` | `PositionTiedEffectBase` | `move` | `on_delete` | `06 Effects/02 Move Effects/001 LightScreen Reflect.rb` | `lib/src/domain/effect/move/light_screen_effect.dart` | `missing` | `-` |
+| `LightningRod` | `Ability` | `ability` | `on_damage_prevention` | `06 Effects/04 Ability Effects/100 Lightning Rod - Storm Drain.rb` | `lib/src/domain/effect/ability/lightning_rod_effect.dart` | `missing` | `-` |
+| `Limber` | `NonVolatileStatusImmunityBase` | `ability` | `-` | `06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb` | `lib/src/domain/effect/ability/limber_effect.dart` | `missing` | `-` |
+| `LingeringAroma` | `Mummy` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Mummy.rb` | `lib/src/domain/effect/ability/lingering_aroma_effect.dart` | `missing` | `-` |
+| `LiquidOoze` | `Ability` | `ability` | `on_drain_prevention` | `06 Effects/04 Ability Effects/100 Liquid Ooze.rb` | `lib/src/domain/effect/ability/liquid_ooze_effect.dart` | `missing` | `-` |
+| `LiquidVoice` | `Ability` | `ability` | `on_move_type_change` | `06 Effects/04 Ability Effects/100 Liquid Voice.rb` | `lib/src/domain/effect/ability/liquid_voice_effect.dart` | `missing` | `-` |
+| `LockOn` | `PokemonTiedEffectBase` | `move` | `-` | `06 Effects/02 Move Effects/001 LockOn.rb` | `lib/src/domain/effect/move/lock_on_effect.dart` | `missing` | `-` |
+| `LuckyChant` | `PositionTiedEffectBase` | `move` | `on_delete` | `06 Effects/02 Move Effects/001 LuckyChant.rb` | `lib/src/domain/effect/move/lucky_chant_effect.dart` | `missing` | `-` |
+| `LumBerry` | `Berry` | `item` | `on_post_status_change` | `06 Effects/05 Item Effects/100 Lum Berry.rb` | `lib/src/domain/effect/item/lum_berry_effect.dart` | `missing` | `-` |
+| `LuminousMoss` | `Item` | `item` | `on_post_damage` | `06 Effects/05 Item Effects/100 Luminous Moss - Snowball.rb` | `lib/src/domain/effect/item/luminous_moss_effect.dart` | `missing` | `-` |
+| `LunarDance` | `PokemonTiedEffectBase` | `move` | `on_switch_event` | `06 Effects/02 Move Effects/001 LunarDance.rb` | `lib/src/domain/effect/move/lunar_dance_effect.dart` | `missing` | `-` |
+| `MagicCoat` | `PokemonTiedEffectBase` | `move` | `-` | `06 Effects/02 Move Effects/001 MagicCoat.rb` | `lib/src/domain/effect/move/magic_coat_effect.dart` | `missing` | `-` |
+| `MagicRoom` | `EffectBase` | `move` | `on_delete`, `on_held_item_use_prevention` | `06 Effects/02 Move Effects/001 MagicRoom.rb` | `lib/src/domain/effect/move/magic_room_effect.dart` | `missing` | `-` |
+| `Magician` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Pickpocket - Magician.rb` | `lib/src/domain/effect/ability/magician_effect.dart` | `missing` | `-` |
+| `MagmaArmor` | `NonVolatileStatusImmunityBase` | `ability` | `-` | `06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb` | `lib/src/domain/effect/ability/magma_armor_effect.dart` | `missing` | `-` |
+| `MagnetPull` | `ShadowTag` | `ability` | `-` | `06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb` | `lib/src/domain/effect/ability/magnet_pull_effect.dart` | `missing` | `-` |
+| `MagnetRise` | `PokemonTiedEffectBase` | `move` | `on_delete_message` | `06 Effects/02 Move Effects/001 MagnetRise.rb` | `lib/src/domain/effect/move/magnet_rise_effect.dart` | `missing` | `-` |
+| `MarangaBerry` | `KeeBerry` | `item` | `-` | `06 Effects/05 Item Effects/100 Kee Berry - Maranga Berry.rb` | `lib/src/domain/effect/item/maranga_berry_effect.dart` | `missing` | `-` |
+| `Mark` | `PokemonTiedEffectBase` | `move` | `-` | `06 Effects/02 Move Effects/001 HelpingHand.rb` | `lib/src/domain/effect/move/mark_effect.dart` | `missing` | `-` |
+| `Mark` | `PokemonTiedEffectBase` | `move` | `on_end_turn_event` | `06 Effects/02 Move Effects/001 LeechSeed.rb` | `lib/src/domain/effect/move/mark_effect.dart` | `missing` | `-` |
+| `MarvelScale` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Marvel Scale.rb` | `lib/src/domain/effect/ability/marvel_scale_effect.dart` | `missing` | `-` |
+| `MatBlock` | `Protect` | `move` | `-` | `06 Effects/02 Move Effects/001 Protect.rb` | `lib/src/domain/effect/move/mat_block_effect.dart` | `missing` | `-` |
+| `MegaLauncher` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Mega Launcher.rb` | `lib/src/domain/effect/ability/mega_launcher_effect.dart` | `missing` | `-` |
+| `MentalHerb` | `Item` | `item` | `on_post_action_event` | `06 Effects/05 Item Effects/100 MentalHerb.rb` | `lib/src/domain/effect/item/mental_herb_effect.dart` | `missing` | `-` |
+| `MentalImmunityBase` | `Ability` | `ability` | `on_move_ability_immunity` | `06 Effects/04 Ability Effects/100 Mental Immunity.rb` | `lib/src/domain/effect/ability/mental_immunity_base_effect.dart` | `missing` | `-` |
+| `MetalPowder` | `Item` | `item` | `-` | `06 Effects/05 Item Effects/100 Metal Powder.rb` | `lib/src/domain/effect/item/metal_powder_effect.dart` | `missing` | `-` |
+| `Metronome` | `Item` | `item` | `-` | `06 Effects/05 Item Effects/100 Metronome.rb` | `lib/src/domain/effect/item/metronome_effect.dart` | `missing` | `-` |
+| `MicleBerry` | `Berry` | `item` | `-` | `06 Effects/05 Item Effects/100 Micle Berry.rb` | `lib/src/domain/effect/item/micle_berry_effect.dart` | `missing` | `-` |
+| `Mimicry` | `Ability` | `ability` | `on_post_fterrain_change`, `on_switch_event` | `06 Effects/04 Ability Effects/100 Mimicry.rb` | `lib/src/domain/effect/ability/mimicry_effect.dart` | `missing` | `-` |
+| `Minimize` | `PokemonTiedEffectBase` | `move` | `-` | `06 Effects/02 Move Effects/001 Minimize.rb` | `lib/src/domain/effect/move/minimize_effect.dart` | `missing` | `-` |
+| `MiracleEye` | `PokemonTiedEffectBase` | `move` | `on_single_type_multiplier_overwrite` | `06 Effects/02 Move Effects/001 MiracleEye.rb` | `lib/src/domain/effect/move/miracle_eye_effect.dart` | `missing` | `-` |
+| `MirrorArmor` | `Ability` | `ability` | `on_stat_change` | `06 Effects/04 Ability Effects/100 Mirror Armor.rb` | `lib/src/domain/effect/ability/mirror_armor_effect.dart` | `missing` | `-` |
+| `MirrorHerb` | `Item` | `item` | `on_post_action_event`, `on_stat_change_post` | `06 Effects/05 Item Effects/100 MirrorHerb.rb` | `lib/src/domain/effect/item/mirror_herb_effect.dart` | `missing` | `-` |
+| `Mist` | `PositionTiedEffectBase` | `move` | `on_delete`, `on_stat_decrease_prevention` | `06 Effects/02 Move Effects/001 Mist.rb` | `lib/src/domain/effect/move/mist_effect.dart` | `missing` | `-` |
+| `Misty` | `FieldTerrain` | `field` | `on_end_turn_event`, `on_move_prevention_target`, `on_status_prevention` | `06 Effects/07 Field Terrain Effects/100 Misty.rb` | `lib/src/domain/effect/field/misty_effect.dart` | `missing` | `-` |
+| `MistySurge` | `ElectricSurge` | `ability` | `-` | `06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb` | `lib/src/domain/effect/ability/misty_surge_effect.dart` | `missing` | `-` |
+| `MoldBreaker` | `Ability` | `ability` | `on_move_prevention_user`, `on_switch_event` | `06 Effects/04 Ability Effects/100 Mold Breaker.rb` | `lib/src/domain/effect/ability/mold_breaker_effect.dart` | `missing` | `-` |
+| `Moody` | `Ability` | `ability` | `on_end_turn_event` | `06 Effects/04 Ability Effects/100 Moody.rb` | `lib/src/domain/effect/ability/moody_effect.dart` | `missing` | `-` |
+| `MotorDrive` | `Ability` | `ability` | `on_damage_prevention` | `06 Effects/04 Ability Effects/100 Motor Drive.rb` | `lib/src/domain/effect/ability/motor_drive_effect.dart` | `missing` | `-` |
+| `Moxie` | `Ability` | `ability` | `on_post_damage_death` | `06 Effects/04 Ability Effects/100 Moxie.rb` | `lib/src/domain/effect/ability/moxie_effect.dart` | `missing` | `-` |
+| `MudSport` | `EffectBase` | `move` | `on_delete` | `06 Effects/02 Move Effects/001 MudSport.rb` | `lib/src/domain/effect/move/mud_sport_effect.dart` | `missing` | `-` |
+| `Multiscale` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Multiscale - Shadow Shield.rb` | `lib/src/domain/effect/ability/multiscale_effect.dart` | `missing` | `-` |
+| `Mummy` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Mummy.rb` | `lib/src/domain/effect/ability/mummy_effect.dart` | `missing` | `-` |
+| `NaturalCure` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 Natural Cure.rb` | `lib/src/domain/effect/ability/natural_cure_effect.dart` | `missing` | `-` |
+| `Neuroforce` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Neuroforce.rb` | `lib/src/domain/effect/ability/neuroforce_effect.dart` | `missing` | `-` |
+| `NeutralizingGas` | `Ability` | `ability` | `on_post_damage_death`, `on_pre_ability_change`, `on_switch_event` | `06 Effects/04 Ability Effects/100 NeutralizingGas.rb` | `lib/src/domain/effect/ability/neutralizing_gas_effect.dart` | `missing` | `-` |
+| `Nightmare` | `PokemonTiedEffectBase` | `move` | `on_end_turn_event` | `06 Effects/02 Move Effects/001 Nightmare.rb` | `lib/src/domain/effect/move/nightmare_effect.dart` | `missing` | `-` |
+| `NoRetreat` | `CantSwitch` | `move` | `-` | `06 Effects/02 Move Effects/001 NoRetreat.rb` | `lib/src/domain/effect/move/no_retreat_effect.dart` | `missing` | `-` |
+| `NonVolatileStatusImmunityBase` | `Ability` | `ability` | `on_post_action_event`, `on_status_prevention`, `on_switch_event` | `06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb` | `lib/src/domain/effect/ability/non_volatile_status_immunity_base_effect.dart` | `missing` | `-` |
+| `Normalize` | `Ability` | `ability` | `on_move_type_change` | `06 Effects/04 Ability Effects/100 Normalize.rb` | `lib/src/domain/effect/ability/normalize_effect.dart` | `missing` | `-` |
+| `Oblivious` | `MentalImmunityBase` | `ability` | `on_post_action_event` | `06 Effects/04 Ability Effects/100 Mental Immunity.rb` | `lib/src/domain/effect/ability/oblivious_effect.dart` | `missing` | `-` |
+| `Obstruct` | `KingsShield` | `move` | `-` | `06 Effects/02 Move Effects/001 Protect.rb` | `lib/src/domain/effect/move/obstruct_effect.dart` | `missing` | `-` |
+| `Octolock` | `Bind` | `move` | `on_end_turn_event` | `06 Effects/02 Move Effects/001 Octolock.rb` | `lib/src/domain/effect/move/octolock_effect.dart` | `missing` | `-` |
+| `Opportunist` | `Ability` | `ability` | `on_post_action_event`, `on_stat_change_post` | `06 Effects/04 Ability Effects/100 Opportunist.rb` | `lib/src/domain/effect/ability/opportunist_effect.dart` | `missing` | `-` |
+| `OranBerry` | `Berry` | `item` | `on_end_turn_event`, `on_post_damage` | `06 Effects/05 Item Effects/050 HpTriggered Healing Berries.rb` | `lib/src/domain/effect/item/oran_berry_effect.dart` | `missing` | `-` |
+| `OrichalcumPulse` | `Drought` | `ability` | `-` | `06 Effects/04 Ability Effects/100 OrichalcumPulse.rb` | `lib/src/domain/effect/ability/orichalcum_pulse_effect.dart` | `missing` | `-` |
+| `OutOfReachBase` | `PokemonTiedEffectBase` | `move` | `on_delete` | `06 Effects/02 Move Effects/001 OutOfReachBase.rb` | `lib/src/domain/effect/move/out_of_reach_base_effect.dart` | `missing` | `-` |
+| `Overcoat` | `Ability` | `ability` | `on_move_ability_immunity` | `06 Effects/04 Ability Effects/100 Overcoat.rb` | `lib/src/domain/effect/ability/overcoat_effect.dart` | `missing` | `-` |
+| `OwnTempo` | `Ability` | `ability` | `on_status_prevention` | `06 Effects/04 Ability Effects/100 Own Tempo.rb` | `lib/src/domain/effect/ability/own_tempo_effect.dart` | `missing` | `-` |
+| `Paralysis` | `Status` | `status` | `on_move_prevention_user`, `on_status_prevention` | `06 Effects/03 Status Effects/102 Paralysis.rb` | `lib/src/domain/effect/status/paralysis_effect.dart` | `missing` | `-` |
+| `ParentalBond` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Parental Bond.rb` | `lib/src/domain/effect/ability/parental_bond_effect.dart` | `missing` | `-` |
+| `PastelVeil` | `Ability` | `ability` | `on_status_prevention`, `on_switch_event` | `06 Effects/04 Ability Effects/100 Pastel Veil.rb` | `lib/src/domain/effect/ability/pastel_veil_effect.dart` | `missing` | `-` |
+| `Pecha` | `StatusBerry` | `item` | `-` | `06 Effects/05 Item Effects/050 StatusBerry.rb` | `lib/src/domain/effect/item/pecha_effect.dart` | `missing` | `-` |
+| `PerishBody` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Perish Body.rb` | `lib/src/domain/effect/ability/perish_body_effect.dart` | `missing` | `-` |
+| `PerishSong` | `EffectBase` | `move` | `on_end_turn_event` | `06 Effects/02 Move Effects/001 PerishSong.rb` | `lib/src/domain/effect/move/perish_song_effect.dart` | `missing` | `-` |
+| `PersimBerry` | `Berry` | `item` | `on_post_status_change` | `06 Effects/05 Item Effects/100 Persim Berry.rb` | `lib/src/domain/effect/item/persim_berry_effect.dart` | `missing` | `-` |
+| `Petaya` | `HpTriggeredStatBerries` | `item` | `-` | `06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb` | `lib/src/domain/effect/item/petaya_effect.dart` | `missing` | `-` |
+| `Pickpocket` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Pickpocket - Magician.rb` | `lib/src/domain/effect/ability/pickpocket_effect.dart` | `missing` | `-` |
+| `Plus` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Plus - Minus.rb` | `lib/src/domain/effect/ability/plus_effect.dart` | `missing` | `-` |
+| `Poison` | `Status` | `status` | `on_end_turn_event`, `on_status_prevention` | `06 Effects/03 Status Effects/101 Poison.rb` | `lib/src/domain/effect/status/poison_effect.dart` | `missing` | `-` |
+| `PoisonBarb` | `Item` | `item` | `-` | `06 Effects/05 Item Effects/100 PoisonBarb.rb` | `lib/src/domain/effect/item/poison_barb_effect.dart` | `missing` | `-` |
+| `PoisonPoint` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Poison Point.rb` | `lib/src/domain/effect/ability/poison_point_effect.dart` | `missing` | `-` |
+| `PoisonPuppeteer` | `Ability` | `ability` | `on_post_status_change` | `06 Effects/04 Ability Effects/100 Poison Puppeteer.rb` | `lib/src/domain/effect/ability/poison_puppeteer_effect.dart` | `missing` | `-` |
+| `PoisonTouch` | `ApplyStatusToMoveTarget` | `ability` | `-` | `06 Effects/04 Ability Effects/100 ApplyStatusToMoveTarget.rb` | `lib/src/domain/effect/ability/poison_touch_effect.dart` | `missing` | `-` |
+| `PokemonTiedEffectBase` | `EffectBase` | `mechanics` | `on_baton_pass_switch` | `06 Effects/200 PokemonTiedEffectBase.rb` | `lib/src/domain/effect/mechanics/pokemon_tied_effect_base_effect.dart` | `missing` | `-` |
+| `PositionTiedEffectBase` | `EffectBase` | `mechanics` | `-` | `06 Effects/200 PositionTiedEffectBase.rb` | `lib/src/domain/effect/mechanics/position_tied_effect_base_effect.dart` | `missing` | `-` |
+| `Powder` | `PokemonTiedEffectBase` | `move` | `on_move_prevention_user` | `06 Effects/02 Move Effects/001 Powder.rb` | `lib/src/domain/effect/move/powder_effect.dart` | `missing` | `-` |
+| `PowerConstruct` | `Ability` | `ability` | `on_end_turn_event`, `on_post_damage_death` | `06 Effects/04 Ability Effects/100 Power Construct.rb` | `lib/src/domain/effect/ability/power_construct_effect.dart` | `missing` | `-` |
+| `PowerHerb` | `Item` | `item` | `on_two_turn_shortcut` | `06 Effects/05 Item Effects/100 PowerHerb.rb` | `lib/src/domain/effect/item/power_herb_effect.dart` | `missing` | `-` |
+| `PowerOfAlchemy` | `Ability` | `ability` | `on_post_damage_death` | `06 Effects/04 Ability Effects/100 Power of Alchemy - Receiver.rb` | `lib/src/domain/effect/ability/power_of_alchemy_effect.dart` | `missing` | `-` |
+| `PowerSpot` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 PowerSpot.rb` | `lib/src/domain/effect/ability/power_spot_effect.dart` | `missing` | `-` |
+| `Prankster` | `Ability` | `ability` | `on_move_priority_change` | `06 Effects/04 Ability Effects/100 Prankster.rb` | `lib/src/domain/effect/ability/prankster_effect.dart` | `missing` | `-` |
+| `Pressure` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 Pressure.rb` | `lib/src/domain/effect/ability/pressure_effect.dart` | `missing` | `-` |
+| `PreventTargetsMove` | `PokemonTiedEffectBase` | `move` | `on_move_prevention_user` | `06 Effects/02 Move Effects/001 PreventTargetsMove.rb` | `lib/src/domain/effect/move/prevent_targets_move_effect.dart` | `missing` | `-` |
+| `PrimordialSea` | `DesolateLand` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Primal Weathers.rb` | `lib/src/domain/effect/ability/primordial_sea_effect.dart` | `missing` | `-` |
+| `Protect` | `PokemonTiedEffectBase` | `move` | `on_move_ability_immunity`, `on_move_prevention_target` | `06 Effects/02 Move Effects/001 Protect.rb` | `lib/src/domain/effect/move/protect_effect.dart` | `partial` | Minimal inline Protect bridge in static_basic_move_registry.dart + PsdkBattleEffectIds.protect; full effect object not ported yet. |
+| `Protosynthesis` | `Ability` | `ability` | `on_post_weather_change`, `on_switch_event` | `06 Effects/04 Ability Effects/100 Protosynthesis.rb` | `lib/src/domain/effect/ability/protosynthesis_effect.dart` | `missing` | `-` |
+| `Psychic` | `FieldTerrain` | `field` | `on_end_turn_event`, `on_move_prevention_target` | `06 Effects/07 Field Terrain Effects/100 Psychic.rb` | `lib/src/domain/effect/field/psychic_effect.dart` | `missing` | `-` |
+| `PsychicSurge` | `ElectricSurge` | `ability` | `-` | `06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb` | `lib/src/domain/effect/ability/psychic_surge_effect.dart` | `missing` | `-` |
+| `PunkRock` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Punk Rock.rb` | `lib/src/domain/effect/ability/punk_rock_effect.dart` | `missing` | `-` |
+| `PurePower` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Pure Power - Huge Power.rb` | `lib/src/domain/effect/ability/pure_power_effect.dart` | `missing` | `-` |
+| `PurifyingSalt` | `Ability` | `ability` | `on_move_ability_immunity`, `on_status_prevention` | `06 Effects/04 Ability Effects/100 PurifyingSalt.rb` | `lib/src/domain/effect/ability/purifying_salt_effect.dart` | `missing` | `-` |
+| `QuarkDrive` | `Ability` | `ability` | `on_post_fterrain_change`, `on_switch_event` | `06 Effects/04 Ability Effects/100 QuarkDrive.rb` | `lib/src/domain/effect/ability/quark_drive_effect.dart` | `missing` | `-` |
+| `QueenlyMajesty` | `Ability` | `ability` | `on_move_prevention_target` | `06 Effects/04 Ability Effects/100 Queenly Majesty - Dazzling.rb` | `lib/src/domain/effect/ability/queenly_majesty_effect.dart` | `missing` | `-` |
+| `QuickFeet` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Quick Feet.rb` | `lib/src/domain/effect/ability/quick_feet_effect.dart` | `missing` | `-` |
+| `QuickGuard` | `Protect` | `move` | `on_move_prevention_target` | `06 Effects/02 Move Effects/001 Protect.rb` | `lib/src/domain/effect/move/quick_guard_effect.dart` | `missing` | `-` |
+| `QuickPowder` | `Item` | `item` | `-` | `06 Effects/05 Item Effects/100 Quick Powder.rb` | `lib/src/domain/effect/item/quick_powder_effect.dart` | `missing` | `-` |
+| `Rage` | `PokemonTiedEffectBase` | `move` | `on_post_damage` | `06 Effects/02 Move Effects/001 Rage.rb` | `lib/src/domain/effect/move/rage_effect.dart` | `missing` | `-` |
+| `Rain` | `Weather` | `field` | `on_end_turn_event` | `06 Effects/06 Weather Effects/100 Rain.rb` | `lib/src/domain/effect/field/rain_effect.dart` | `missing` | `-` |
+| `RainDish` | `Ability` | `ability` | `on_end_turn_event` | `06 Effects/04 Ability Effects/100 Rain Dish.rb` | `lib/src/domain/effect/ability/rain_dish_effect.dart` | `missing` | `-` |
+| `Rainbow` | `PositionTiedEffectBase` | `move` | `on_delete` | `06 Effects/02 Move Effects/001 Pledge Effects/001 Rainbow.rb` | `lib/src/domain/effect/move/rainbow_effect.dart` | `missing` | `-` |
+| `Rattled` | `Ability` | `ability` | `on_post_damage`, `on_stat_change_post` | `06 Effects/04 Ability Effects/100 Rattled.rb` | `lib/src/domain/effect/ability/rattled_effect.dart` | `missing` | `-` |
+| `Rawst` | `StatusBerry` | `item` | `-` | `06 Effects/05 Item Effects/050 StatusBerry.rb` | `lib/src/domain/effect/item/rawst_effect.dart` | `missing` | `-` |
+| `Reckless` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Reckless.rb` | `lib/src/domain/effect/ability/reckless_effect.dart` | `missing` | `-` |
+| `RedCard` | `Item` | `item` | `on_post_damage` | `06 Effects/05 Item Effects/100 Red Card.rb` | `lib/src/domain/effect/item/red_card_effect.dart` | `missing` | `-` |
+| `RedOrb` | `Item` | `item` | `on_switch_event` | `06 Effects/05 Item Effects/100 PrimalOrbs.rb` | `lib/src/domain/effect/item/red_orb_effect.dart` | `missing` | `-` |
+| `Reflect` | `LightScreen` | `move` | `-` | `06 Effects/02 Move Effects/001 LightScreen Reflect.rb` | `lib/src/domain/effect/move/reflect_effect.dart` | `missing` | `-` |
+| `Regenerator` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 Regenerator.rb` | `lib/src/domain/effect/ability/regenerator_effect.dart` | `missing` | `-` |
+| `Ripen` | `Ability` | `ability` | `on_pre_item_change` | `06 Effects/04 Ability Effects/100 Ripen.rb` | `lib/src/domain/effect/ability/ripen_effect.dart` | `missing` | `-` |
+| `Rivalry` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Rivalry.rb` | `lib/src/domain/effect/ability/rivalry_effect.dart` | `missing` | `-` |
+| `RockyHelmet` | `Item` | `item` | `on_post_damage` | `06 Effects/05 Item Effects/100 Rocky Helmet.rb` | `lib/src/domain/effect/item/rocky_helmet_effect.dart` | `missing` | `-` |
+| `Rollout` | `PokemonTiedEffectBase` | `move` | `-` | `06 Effects/02 Move Effects/001 ForceNextMove effects.rb` | `lib/src/domain/effect/move/rollout_effect.dart` | `missing` | `-` |
+| `Roost` | `PokemonTiedEffectBase` | `move` | `-` | `06 Effects/02 Move Effects/001 Roost.rb` | `lib/src/domain/effect/move/roost_effect.dart` | `missing` | `-` |
+| `RoughSkin` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Rough Skin - Iron Barbs.rb` | `lib/src/domain/effect/ability/rough_skin_effect.dart` | `missing` | `-` |
+| `RowapBerry` | `JabocaBerry` | `item` | `-` | `06 Effects/05 Item Effects/100 Jaboca Berry.rb` | `lib/src/domain/effect/item/rowap_berry_effect.dart` | `missing` | `-` |
+| `RunAway` | `Ability` | `ability` | `on_flee_passthrough` | `06 Effects/04 Ability Effects/100 RunAway.rb` | `lib/src/domain/effect/ability/run_away_effect.dart` | `missing` | `-` |
+| `Safeguard` | `PositionTiedEffectBase` | `move` | `on_delete`, `on_status_prevention` | `06 Effects/02 Move Effects/001 Safeguard.rb` | `lib/src/domain/effect/move/safeguard_effect.dart` | `missing` | `-` |
+| `SafetyGoggles` | `Item` | `item` | `on_move_prevention_target` | `06 Effects/05 Item Effects/100 SafetyGoggles.rb` | `lib/src/domain/effect/item/safety_goggles_effect.dart` | `missing` | `-` |
+| `Salac` | `HpTriggeredStatBerries` | `item` | `-` | `06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb` | `lib/src/domain/effect/item/salac_effect.dart` | `missing` | `-` |
+| `SaltCure` | `PokemonTiedEffectBase` | `move` | `on_end_turn_event` | `06 Effects/02 Move Effects/001 SaltCure.rb` | `lib/src/domain/effect/move/salt_cure_effect.dart` | `missing` | `-` |
+| `SandForce` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Sand Force.rb` | `lib/src/domain/effect/ability/sand_force_effect.dart` | `missing` | `-` |
+| `SandRush` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Sand Rush.rb` | `lib/src/domain/effect/ability/sand_rush_effect.dart` | `missing` | `-` |
+| `SandSpit` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Sand Spit.rb` | `lib/src/domain/effect/ability/sand_spit_effect.dart` | `missing` | `-` |
+| `SandStream` | `Drizzle` | `ability` | `-` | `06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb` | `lib/src/domain/effect/ability/sand_stream_effect.dart` | `missing` | `-` |
+| `SandVeil` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 SandVeil.rb` | `lib/src/domain/effect/ability/sand_veil_effect.dart` | `missing` | `-` |
+| `Sandstorm` | `Weather` | `field` | `on_end_turn_event` | `06 Effects/06 Weather Effects/100 Sandstorm.rb` | `lib/src/domain/effect/field/sandstorm_effect.dart` | `missing` | `-` |
+| `SapSipper` | `Ability` | `ability` | `on_move_prevention_target` | `06 Effects/04 Ability Effects/100 Sap Sipper.rb` | `lib/src/domain/effect/ability/sap_sipper_effect.dart` | `missing` | `-` |
+| `Schooling` | `ZenMode` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Zen Mode.rb` | `lib/src/domain/effect/ability/schooling_effect.dart` | `missing` | `-` |
+| `ScreenCleaner` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 ScreenCleaner.rb` | `lib/src/domain/effect/ability/screen_cleaner_effect.dart` | `missing` | `-` |
+| `SeaOfFire` | `PositionTiedEffectBase` | `move` | `on_delete`, `on_end_turn_event` | `06 Effects/02 Move Effects/001 Pledge Effects/001 SeaOfFire.rb` | `lib/src/domain/effect/move/sea_of_fire_effect.dart` | `missing` | `-` |
+| `SeedSower` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 SeedSower.rb` | `lib/src/domain/effect/ability/seed_sower_effect.dart` | `missing` | `-` |
+| `SereneGrace` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 SereneGrace.rb` | `lib/src/domain/effect/ability/serene_grace_effect.dart` | `missing` | `-` |
+| `ShadowTag` | `Ability` | `ability` | `on_switch_prevention` | `06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb` | `lib/src/domain/effect/ability/shadow_tag_effect.dart` | `missing` | `-` |
+| `Sharpness` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Sharpness.rb` | `lib/src/domain/effect/ability/sharpness_effect.dart` | `missing` | `-` |
+| `ShedShell` | `Item` | `item` | `on_switch_passthrough` | `06 Effects/05 Item Effects/100 Shed Shell.rb` | `lib/src/domain/effect/item/shed_shell_effect.dart` | `missing` | `-` |
+| `ShedSkin` | `Ability` | `ability` | `on_end_turn_event` | `06 Effects/04 Ability Effects/100 Shed Skin.rb` | `lib/src/domain/effect/ability/shed_skin_effect.dart` | `missing` | `-` |
+| `ShedTail` | `PokemonTiedEffectBase` | `move` | `on_switch_event` | `06 Effects/02 Move Effects/001 ShedTail.rb` | `lib/src/domain/effect/move/shed_tail_effect.dart` | `missing` | `-` |
+| `SheerForce` | `Ability` | `ability` | `on_stat_decrease_prevention`, `on_stat_increase_prevention`, `on_status_prevention` | `06 Effects/04 Ability Effects/100 SheerForce.rb` | `lib/src/domain/effect/ability/sheer_force_effect.dart` | `missing` | `-` |
+| `ShellBell` | `Item` | `item` | `on_post_damage` | `06 Effects/05 Item Effects/100 Shell Bell.rb` | `lib/src/domain/effect/item/shell_bell_effect.dart` | `missing` | `-` |
+| `ShellTrap` | `PokemonTiedEffectBase` | `move` | `on_post_damage` | `06 Effects/02 Move Effects/001 ShellTrap.rb` | `lib/src/domain/effect/move/shell_trap_effect.dart` | `missing` | `-` |
+| `ShieldDust` | `Ability` | `ability` | `on_stat_decrease_prevention`, `on_status_prevention` | `06 Effects/04 Ability Effects/100 ShieldDust.rb` | `lib/src/domain/effect/ability/shield_dust_effect.dart` | `missing` | `-` |
+| `ShieldsDown` | `ZenMode` | `ability` | `on_status_prevention` | `06 Effects/04 Ability Effects/100 Zen Mode.rb` | `lib/src/domain/effect/ability/shields_down_effect.dart` | `missing` | `-` |
+| `ShockDrive` | `Drives` | `item` | `-` | `06 Effects/05 Item Effects/050 Drives.rb` | `lib/src/domain/effect/item/shock_drive_effect.dart` | `missing` | `-` |
+| `SilkTrap` | `KingsShield` | `move` | `-` | `06 Effects/02 Move Effects/001 Protect.rb` | `lib/src/domain/effect/move/silk_trap_effect.dart` | `missing` | `-` |
+| `Simple` | `Ability` | `ability` | `on_stat_change` | `06 Effects/04 Ability Effects/100 Simple.rb` | `lib/src/domain/effect/ability/simple_effect.dart` | `missing` | `-` |
+| `SitrusBerry` | `OranBerry` | `item` | `-` | `06 Effects/05 Item Effects/050 HpTriggered Healing Berries.rb` | `lib/src/domain/effect/item/sitrus_berry_effect.dart` | `missing` | `-` |
+| `SleepPrevention` | `EffectBase` | `move` | `on_status_prevention` | `06 Effects/02 Move Effects/001 UpRoar.rb` | `lib/src/domain/effect/move/sleep_prevention_effect.dart` | `missing` | `-` |
+| `SlowStart` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Slow Start.rb` | `lib/src/domain/effect/ability/slow_start_effect.dart` | `missing` | `-` |
+| `SlushRush` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Slush Rush.rb` | `lib/src/domain/effect/ability/slush_rush_effect.dart` | `missing` | `-` |
+| `SmackDown` | `PokemonTiedEffectBase` | `move` | `on_single_type_multiplier_overwrite` | `06 Effects/02 Move Effects/001 SmackDown.rb` | `lib/src/domain/effect/move/smack_down_effect.dart` | `missing` | `-` |
+| `SmokeBall` | `Item` | `item` | `on_flee_passthrough` | `06 Effects/05 Item Effects/100 SmokeBall.rb` | `lib/src/domain/effect/item/smoke_ball_effect.dart` | `missing` | `-` |
+| `Snatch` | `PokemonTiedEffectBase` | `move` | `-` | `06 Effects/02 Move Effects/001 Snatch.rb` | `lib/src/domain/effect/move/snatch_effect.dart` | `missing` | `-` |
+| `Snatched` | `Snatch` | `move` | `-` | `06 Effects/02 Move Effects/001 Snatch.rb` | `lib/src/domain/effect/move/snatched_effect.dart` | `missing` | `-` |
+| `Snow` | `Weather` | `field` | `on_end_turn_event` | `06 Effects/06 Weather Effects/100 Snow.rb` | `lib/src/domain/effect/field/snow_effect.dart` | `missing` | `-` |
+| `SnowCloak` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Snow Cloak.rb` | `lib/src/domain/effect/ability/snow_cloak_effect.dart` | `missing` | `-` |
+| `SnowWarning` | `Drizzle` | `ability` | `-` | `06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb` | `lib/src/domain/effect/ability/snow_warning_effect.dart` | `missing` | `-` |
+| `Snowball` | `LuminousMoss` | `item` | `-` | `06 Effects/05 Item Effects/100 Luminous Moss - Snowball.rb` | `lib/src/domain/effect/item/snowball_effect.dart` | `missing` | `-` |
+| `SolarPower` | `Ability` | `ability` | `on_end_turn_event` | `06 Effects/04 Ability Effects/100 Solar Power.rb` | `lib/src/domain/effect/ability/solar_power_effect.dart` | `missing` | `-` |
+| `SoulHeart` | `Ability` | `ability` | `on_post_damage_death` | `06 Effects/04 Ability Effects/100 Soul-Heart.rb` | `lib/src/domain/effect/ability/soul_heart_effect.dart` | `missing` | `-` |
+| `Soundproof` | `Ability` | `ability` | `on_move_ability_immunity` | `06 Effects/04 Ability Effects/100 Soundproof.rb` | `lib/src/domain/effect/ability/soundproof_effect.dart` | `missing` | `-` |
+| `SpeedBoost` | `Ability` | `ability` | `on_end_turn_event`, `on_switch_event` | `06 Effects/04 Ability Effects/100 Speed Boost.rb` | `lib/src/domain/effect/ability/speed_boost_effect.dart` | `missing` | `-` |
+| `Spikes` | `PositionTiedEffectBase` | `move` | `on_delete`, `on_switch_event` | `06 Effects/02 Move Effects/001 Spikes.rb` | `lib/src/domain/effect/move/spikes_effect.dart` | `missing` | `-` |
+| `SpikyShield` | `Protect` | `move` | `-` | `06 Effects/02 Move Effects/001 Protect.rb` | `lib/src/domain/effect/move/spiky_shield_effect.dart` | `missing` | `-` |
+| `Stakeout` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Stakeout.rb` | `lib/src/domain/effect/ability/stakeout_effect.dart` | `missing` | `-` |
+| `Stalwart` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Stalwart.rb` | `lib/src/domain/effect/ability/stalwart_effect.dart` | `missing` | `-` |
+| `Stamina` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Stamina.rb` | `lib/src/domain/effect/ability/stamina_effect.dart` | `missing` | `-` |
+| `StanceChange` | `Ability` | `ability` | `on_move_prevention_user` | `06 Effects/04 Ability Effects/100 Stance Change.rb` | `lib/src/domain/effect/ability/stance_change_effect.dart` | `missing` | `-` |
+| `Starf` | `HpTriggeredStatBerries` | `item` | `-` | `06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb` | `lib/src/domain/effect/item/starf_effect.dart` | `missing` | `-` |
+| `Static` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Static.rb` | `lib/src/domain/effect/ability/static_effect.dart` | `missing` | `-` |
+| `Status` | `EffectBase` | `status` | `-` | `06 Effects/03 Status Effects/001 StatusBase.rb` | `lib/src/domain/effect/status/status_effect.dart` | `missing` | `-` |
+| `StatusBerry` | `Berry` | `item` | `on_post_status_change` | `06 Effects/05 Item Effects/050 StatusBerry.rb` | `lib/src/domain/effect/item/status_berry_effect.dart` | `missing` | `-` |
+| `Steadfast` | `Ability` | `ability` | `on_post_status_change` | `06 Effects/04 Ability Effects/100 Steadfast.rb` | `lib/src/domain/effect/ability/steadfast_effect.dart` | `missing` | `-` |
+| `StealthRock` | `PositionTiedEffectBase` | `move` | `on_delete`, `on_switch_event` | `06 Effects/02 Move Effects/001 StealthRock.rb` | `lib/src/domain/effect/move/stealth_rock_effect.dart` | `missing` | `-` |
+| `SteamEngine` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Steam Engine.rb` | `lib/src/domain/effect/ability/steam_engine_effect.dart` | `missing` | `-` |
+| `SteelySpirit` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Steely Spirit.rb` | `lib/src/domain/effect/ability/steely_spirit_effect.dart` | `missing` | `-` |
+| `Stench` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Stench.rb` | `lib/src/domain/effect/ability/stench_effect.dart` | `missing` | `-` |
+| `StickyBarb` | `Item` | `item` | `on_end_turn_event`, `on_post_damage` | `06 Effects/05 Item Effects/100 Sticky Barb.rb` | `lib/src/domain/effect/item/sticky_barb_effect.dart` | `missing` | `-` |
+| `StickyWeb` | `PositionTiedEffectBase` | `move` | `on_delete`, `on_switch_event` | `06 Effects/02 Move Effects/001 StickyWeb.rb` | `lib/src/domain/effect/move/sticky_web_effect.dart` | `missing` | `-` |
+| `Stockpile` | `PokemonTiedEffectBase` | `move` | `on_clear_message`, `on_increase_message` | `06 Effects/02 Move Effects/001 Stockpile.rb` | `lib/src/domain/effect/move/stockpile_effect.dart` | `missing` | `-` |
+| `StormDrain` | `LightningRod` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Lightning Rod - Storm Drain.rb` | `lib/src/domain/effect/ability/storm_drain_effect.dart` | `missing` | `-` |
+| `StrongJaw` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Strong Jaw.rb` | `lib/src/domain/effect/ability/strong_jaw_effect.dart` | `missing` | `-` |
+| `StrongWinds` | `Weather` | `field` | `on_end_turn_event`, `on_post_accuracy_check`, `on_single_type_multiplier_overwrite`, `on_weather_prevention` | `06 Effects/06 Weather Effects/100 StrongWinds.rb` | `lib/src/domain/effect/field/strong_winds_effect.dart` | `missing` | `-` |
+| `Sturdy` | `Ability` | `ability` | `on_damage_prevention`, `on_move_ability_immunity`, `on_post_damage` | `06 Effects/04 Ability Effects/100 Sturdy.rb` | `lib/src/domain/effect/ability/sturdy_effect.dart` | `missing` | `-` |
+| `Substitute` | `PokemonTiedEffectBase` | `move` | `on_damage_prevention`, `on_delete`, `on_post_action_event`, `on_stat_decrease_prevention`, `on_stat_increase_prevention`, `on_status_prevention`, `on_switch_event` | `06 Effects/02 Move Effects/001 Substitute.rb` | `lib/src/domain/effect/move/substitute_effect.dart` | `missing` | `-` |
+| `SuctionCups` | `ShadowTag` | `ability` | `-` | `06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb` | `lib/src/domain/effect/ability/suction_cups_effect.dart` | `missing` | `-` |
+| `Sunny` | `Weather` | `field` | `on_end_turn_event` | `06 Effects/06 Weather Effects/100 Sunny.rb` | `lib/src/domain/effect/field/sunny_effect.dart` | `missing` | `-` |
+| `SuperEffectivePowerReduction` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/050 SuperEffectivePowerReduction.rb` | `lib/src/domain/effect/ability/super_effective_power_reduction_effect.dart` | `missing` | `-` |
+| `SupersweetSyrup` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 Supersweet Syrup.rb` | `lib/src/domain/effect/ability/supersweet_syrup_effect.dart` | `missing` | `-` |
+| `SupremeOverlord` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 SupremeOverlord.rb` | `lib/src/domain/effect/ability/supreme_overlord_effect.dart` | `missing` | `-` |
+| `SurgeSurfer` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Surge Surfer.rb` | `lib/src/domain/effect/ability/surge_surfer_effect.dart` | `missing` | `-` |
+| `Swamp` | `PositionTiedEffectBase` | `move` | `on_delete` | `06 Effects/02 Move Effects/001 Pledge Effects/001 Swamp.rb` | `lib/src/domain/effect/move/swamp_effect.dart` | `missing` | `-` |
+| `SweetVeil` | `Ability` | `ability` | `on_status_prevention` | `06 Effects/04 Ability Effects/100 Sweet Veil.rb` | `lib/src/domain/effect/ability/sweet_veil_effect.dart` | `missing` | `-` |
+| `SwiftSwim` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Swift Swim.rb` | `lib/src/domain/effect/ability/swift_swim_effect.dart` | `missing` | `-` |
+| `SwordOfRuin` | `VesselOfRuin` | `ability` | `-` | `06 Effects/04 Ability Effects/100 TabletsOfRuin.rb` | `lib/src/domain/effect/ability/sword_of_ruin_effect.dart` | `missing` | `-` |
+| `SwordOfRuin` | `EffectBase` | `ability` | `-` | `06 Effects/04 Ability Effects/101 TabletsOfRuin.rb` | `lib/src/domain/effect/ability/sword_of_ruin_effect.dart` | `missing` | `-` |
+| `Symbiosis` | `Ability` | `ability` | `on_post_damage`, `on_post_item_change`, `on_pre_item_change` | `06 Effects/04 Ability Effects/100 Symbiosis.rb` | `lib/src/domain/effect/ability/symbiosis_effect.dart` | `missing` | `-` |
+| `Synchronize` | `Ability` | `ability` | `on_post_status_change` | `06 Effects/04 Ability Effects/100 Synchronize.rb` | `lib/src/domain/effect/ability/synchronize_effect.dart` | `missing` | `-` |
+| `SyrupBomb` | `PokemonTiedEffectBase` | `move` | `on_end_turn_event` | `06 Effects/02 Move Effects/001 SyrupBomb.rb` | `lib/src/domain/effect/move/syrup_bomb_effect.dart` | `missing` | `-` |
+| `TabletsOfRuin` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 TabletsOfRuin.rb` | `lib/src/domain/effect/ability/tablets_of_ruin_effect.dart` | `missing` | `-` |
+| `TabletsOfRuin` | `EffectBase` | `ability` | `-` | `06 Effects/04 Ability Effects/101 TabletsOfRuin.rb` | `lib/src/domain/effect/ability/tablets_of_ruin_effect.dart` | `missing` | `-` |
+| `Tailwind` | `PositionTiedEffectBase` | `move` | `on_delete` | `06 Effects/02 Move Effects/001 Tailwind.rb` | `lib/src/domain/effect/move/tailwind_effect.dart` | `missing` | `-` |
+| `TangledFeet` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Tangled Feet.rb` | `lib/src/domain/effect/ability/tangled_feet_effect.dart` | `missing` | `-` |
+| `TarShot` | `PokemonTiedEffectBase` | `move` | `on_single_type_multiplier_overwrite` | `06 Effects/02 Move Effects/001 TarShot.rb` | `lib/src/domain/effect/move/tar_shot_effect.dart` | `missing` | `-` |
+| `Taunt` | `PokemonTiedEffectBase` | `move` | `on_delete`, `on_move_disabled_check`, `on_move_prevention_user` | `06 Effects/02 Move Effects/001 Taunt.rb` | `lib/src/domain/effect/move/taunt_effect.dart` | `missing` | `-` |
+| `Technician` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Technician.rb` | `lib/src/domain/effect/ability/technician_effect.dart` | `missing` | `-` |
+| `Telekinesis` | `PokemonTiedEffectBase` | `move` | `on_delete_message`, `on_post_action_event` | `06 Effects/02 Move Effects/001 Telekinesis.rb` | `lib/src/domain/effect/move/telekinesis_effect.dart` | `missing` | `-` |
+| `Telepathy` | `Ability` | `ability` | `on_damage_prevention` | `06 Effects/04 Ability Effects/100 Telepathy.rb` | `lib/src/domain/effect/ability/telepathy_effect.dart` | `missing` | `-` |
+| `TeraShell` | `Ability` | `ability` | `on_single_type_multiplier_overwrite` | `06 Effects/04 Ability Effects/100 TeraShell.rb` | `lib/src/domain/effect/ability/tera_shell_effect.dart` | `missing` | `-` |
+| `TeraShift` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 Tera Shift.rb` | `lib/src/domain/effect/ability/tera_shift_effect.dart` | `missing` | `-` |
+| `TeraformZero` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 Teraform Zero.rb` | `lib/src/domain/effect/ability/teraform_zero_effect.dart` | `missing` | `-` |
+| `Teravolt` | `MoldBreaker` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Mold Breaker.rb` | `lib/src/domain/effect/ability/teravolt_effect.dart` | `missing` | `-` |
+| `TerrainSeeds` | `Item` | `item` | `on_post_fterrain_change`, `on_switch_event` | `06 Effects/05 Item Effects/050 TerrainSeeds.rb` | `lib/src/domain/effect/item/terrain_seeds_effect.dart` | `missing` | `-` |
+| `ThermalExchange` | `Ability` | `ability` | `on_post_action_event`, `on_post_damage`, `on_status_prevention` | `06 Effects/04 Ability Effects/100 ThermalExchange.rb` | `lib/src/domain/effect/ability/thermal_exchange_effect.dart` | `missing` | `-` |
+| `ThickClub` | `Item` | `item` | `-` | `06 Effects/05 Item Effects/100 Thick Club.rb` | `lib/src/domain/effect/item/thick_club_effect.dart` | `missing` | `-` |
+| `ThickFat` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Thick Fat.rb` | `lib/src/domain/effect/ability/thick_fat_effect.dart` | `missing` | `-` |
+| `ThroatChop` | `PokemonTiedEffectBase` | `move` | `on_move_disabled_check`, `on_move_prevention_user` | `06 Effects/02 Move Effects/001 ThroatChop.rb` | `lib/src/domain/effect/move/throat_chop_effect.dart` | `missing` | `-` |
+| `ThroatSpray` | `Item` | `item` | `on_post_action_event` | `06 Effects/05 Item Effects/100 Throat Spray.rb` | `lib/src/domain/effect/item/throat_spray_effect.dart` | `missing` | `-` |
+| `TintedLens` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Tinted Lens.rb` | `lib/src/domain/effect/ability/tinted_lens_effect.dart` | `missing` | `-` |
+| `Torment` | `PokemonTiedEffectBase` | `move` | `on_move_disabled_check`, `on_move_prevention_user` | `06 Effects/02 Move Effects/001 Torment.rb` | `lib/src/domain/effect/move/torment_effect.dart` | `missing` | `-` |
+| `ToughClaws` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Tough Claws.rb` | `lib/src/domain/effect/ability/tough_claws_effect.dart` | `missing` | `-` |
+| `Toxic` | `Status` | `status` | `on_end_turn_event`, `on_reset_states`, `on_status_prevention` | `06 Effects/03 Status Effects/108 Toxic.rb` | `lib/src/domain/effect/status/toxic_effect.dart` | `missing` | `-` |
+| `ToxicBoost` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Toxic Boost.rb` | `lib/src/domain/effect/ability/toxic_boost_effect.dart` | `missing` | `-` |
+| `ToxicChain` | `ApplyStatusToMoveTarget` | `ability` | `-` | `06 Effects/04 Ability Effects/100 ApplyStatusToMoveTarget.rb` | `lib/src/domain/effect/ability/toxic_chain_effect.dart` | `missing` | `-` |
+| `ToxicDebris` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 ToxicDebris.rb` | `lib/src/domain/effect/ability/toxic_debris_effect.dart` | `missing` | `-` |
+| `ToxicOrb` | `Item` | `item` | `on_end_turn_event` | `06 Effects/05 Item Effects/100 Toxic Orb.rb` | `lib/src/domain/effect/item/toxic_orb_effect.dart` | `missing` | `-` |
+| `ToxicSpikes` | `PositionTiedEffectBase` | `move` | `on_delete`, `on_switch_event` | `06 Effects/02 Move Effects/001 ToxicSpikes.rb` | `lib/src/domain/effect/move/toxic_spikes_effect.dart` | `missing` | `-` |
+| `Trace` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 Trace.rb` | `lib/src/domain/effect/ability/trace_effect.dart` | `missing` | `-` |
+| `Transform` | `PokemonTiedEffectBase` | `move` | `on_switch_event` | `06 Effects/02 Move Effects/001 Transform.rb` | `lib/src/domain/effect/move/transform_effect.dart` | `missing` | `-` |
+| `Triage` | `Ability` | `ability` | `on_move_priority_change` | `06 Effects/04 Ability Effects/100 Triage.rb` | `lib/src/domain/effect/ability/triage_effect.dart` | `missing` | `-` |
+| `TrickRoom` | `EffectBase` | `move` | `on_delete` | `06 Effects/02 Move Effects/001 TrickRoom.rb` | `lib/src/domain/effect/move/trick_room_effect.dart` | `missing` | `-` |
+| `TripleArrows` | `PokemonTiedEffectBase` | `move` | `-` | `06 Effects/02 Move Effects/001 Triple Arrows.rb` | `lib/src/domain/effect/move/triple_arrows_effect.dart` | `missing` | `-` |
+| `Truant` | `Ability` | `ability` | `on_move_prevention_user`, `on_switch_event` | `06 Effects/04 Ability Effects/100 Truant.rb` | `lib/src/domain/effect/ability/truant_effect.dart` | `missing` | `-` |
+| `Turboblaze` | `MoldBreaker` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Mold Breaker.rb` | `lib/src/domain/effect/ability/turboblaze_effect.dart` | `missing` | `-` |
+| `TypeResistingBerry` | `Berry` | `item` | `-` | `06 Effects/05 Item Effects/050 TypeResistingBerry.rb` | `lib/src/domain/effect/item/type_resisting_berry_effect.dart` | `missing` | `-` |
+| `Unaware` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Unaware.rb` | `lib/src/domain/effect/ability/unaware_effect.dart` | `missing` | `-` |
+| `Unburden` | `Ability` | `ability` | `on_post_item_change`, `on_reset_states` | `06 Effects/04 Ability Effects/100 Unburden.rb` | `lib/src/domain/effect/ability/unburden_effect.dart` | `missing` | `-` |
+| `Unnerve` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 Unnerve.rb` | `lib/src/domain/effect/ability/unnerve_effect.dart` | `missing` | `-` |
+| `UpRoar` | `PokemonTiedEffectBase` | `move` | `on_end_turn_event` | `06 Effects/02 Move Effects/001 UpRoar.rb` | `lib/src/domain/effect/move/up_roar_effect.dart` | `missing` | `-` |
+| `VesselOfRuin` | `TabletsOfRuin` | `ability` | `-` | `06 Effects/04 Ability Effects/100 TabletsOfRuin.rb` | `lib/src/domain/effect/ability/vessel_of_ruin_effect.dart` | `missing` | `-` |
+| `VesselOfRuin` | `EffectBase` | `ability` | `-` | `06 Effects/04 Ability Effects/101 TabletsOfRuin.rb` | `lib/src/domain/effect/ability/vessel_of_ruin_effect.dart` | `missing` | `-` |
+| `VictoryStar` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Victory Star.rb` | `lib/src/domain/effect/ability/victory_star_effect.dart` | `missing` | `-` |
+| `VoltAbsorb` | `Ability` | `ability` | `on_move_prevention_target` | `06 Effects/04 Ability Effects/100 TypeAbsorb.rb` | `lib/src/domain/effect/ability/volt_absorb_effect.dart` | `missing` | `-` |
+| `WanderingSpirit` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Wandering Spirit.rb` | `lib/src/domain/effect/ability/wandering_spirit_effect.dart` | `missing` | `-` |
+| `WaterAbsorb` | `VoltAbsorb` | `ability` | `-` | `06 Effects/04 Ability Effects/100 TypeAbsorb.rb` | `lib/src/domain/effect/ability/water_absorb_effect.dart` | `missing` | `-` |
+| `WaterBubble` | `Ability` | `ability` | `on_status_prevention` | `06 Effects/04 Ability Effects/100 Water Bubble.rb` | `lib/src/domain/effect/ability/water_bubble_effect.dart` | `missing` | `-` |
+| `WaterCompaction` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Water Compaction.rb` | `lib/src/domain/effect/ability/water_compaction_effect.dart` | `missing` | `-` |
+| `WaterSport` | `MudSport` | `move` | `on_delete` | `06 Effects/02 Move Effects/001 MudSport.rb` | `lib/src/domain/effect/move/water_sport_effect.dart` | `missing` | `-` |
+| `WaterVeil` | `NonVolatileStatusImmunityBase` | `ability` | `-` | `06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb` | `lib/src/domain/effect/ability/water_veil_effect.dart` | `missing` | `-` |
+| `WeakArmor` | `Ability` | `ability` | `on_post_damage` | `06 Effects/04 Ability Effects/100 Weak Armor.rb` | `lib/src/domain/effect/ability/weak_armor_effect.dart` | `missing` | `-` |
+| `WeaknessPolicy` | `Item` | `item` | `on_post_damage` | `06 Effects/05 Item Effects/100 Weakness Policy.rb` | `lib/src/domain/effect/item/weakness_policy_effect.dart` | `missing` | `-` |
+| `Weather` | `EffectBase` | `field` | `-` | `06 Effects/06 Weather Effects/001 WeatherBase.rb` | `lib/src/domain/effect/field/weather_effect.dart` | `missing` | `-` |
+| `WellBakedBody` | `Ability` | `ability` | `on_damage_prevention` | `06 Effects/04 Ability Effects/100 WellBaked Body.rb` | `lib/src/domain/effect/ability/well_baked_body_effect.dart` | `missing` | `-` |
+| `WhiteHerb` | `Item` | `item` | `on_post_action_event` | `06 Effects/05 Item Effects/100 White Herb.rb` | `lib/src/domain/effect/item/white_herb_effect.dart` | `missing` | `-` |
+| `WhiteSmoke` | `Ability` | `ability` | `on_stat_decrease_prevention` | `06 Effects/04 Ability Effects/100 White Smoke.rb` | `lib/src/domain/effect/ability/white_smoke_effect.dart` | `missing` | `-` |
+| `WideGuard` | `Protect` | `move` | `on_move_prevention_target` | `06 Effects/02 Move Effects/001 Protect.rb` | `lib/src/domain/effect/move/wide_guard_effect.dart` | `missing` | `-` |
+| `WideLens` | `Item` | `item` | `-` | `06 Effects/05 Item Effects/100 Wide Lens.rb` | `lib/src/domain/effect/item/wide_lens_effect.dart` | `missing` | `-` |
+| `WindPower` | `Ability` | `ability` | `on_post_action_event`, `on_post_damage` | `06 Effects/04 Ability Effects/100 WindPower.rb` | `lib/src/domain/effect/ability/wind_power_effect.dart` | `missing` | `-` |
+| `WindRider` | `Ability` | `ability` | `on_move_prevention_target`, `on_post_action_event`, `on_switch_event` | `06 Effects/04 Ability Effects/100 WindRider.rb` | `lib/src/domain/effect/ability/wind_rider_effect.dart` | `missing` | `-` |
+| `Wish` | `PositionTiedEffectBase` | `move` | `on_delete` | `06 Effects/02 Move Effects/001 Wish.rb` | `lib/src/domain/effect/move/wish_effect.dart` | `missing` | `-` |
+| `WonderGuard` | `Ability` | `ability` | `on_move_ability_immunity` | `06 Effects/04 Ability Effects/100 Wonder Guard.rb` | `lib/src/domain/effect/ability/wonder_guard_effect.dart` | `missing` | `-` |
+| `WonderRoom` | `EffectBase` | `move` | `on_delete` | `06 Effects/02 Move Effects/001 WonderRoom.rb` | `lib/src/domain/effect/move/wonder_room_effect.dart` | `missing` | `-` |
+| `WonderSkin` | `Ability` | `ability` | `-` | `06 Effects/04 Ability Effects/100 Wonder Skin.rb` | `lib/src/domain/effect/ability/wonder_skin_effect.dart` | `missing` | `-` |
+| `ZenMode` | `Ability` | `ability` | `on_end_turn_event`, `on_switch_event` | `06 Effects/04 Ability Effects/100 Zen Mode.rb` | `lib/src/domain/effect/ability/zen_mode_effect.dart` | `missing` | `-` |
+| `ZeroToHero` | `Ability` | `ability` | `on_switch_event` | `06 Effects/04 Ability Effects/100 ZeroToHero.rb` | `lib/src/domain/effect/ability/zero_to_hero_effect.dart` | `missing` | `-` |
+| `ZoomLens` | `Item` | `item` | `-` | `06 Effects/05 Item Effects/100 Zoom Lens.rb` | `lib/src/domain/effect/item/zoom_lens_effect.dart` | `missing` | `-` |
