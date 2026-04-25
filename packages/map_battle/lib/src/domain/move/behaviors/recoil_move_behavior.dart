@@ -1,5 +1,6 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../effect/ability/ability_effect.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_damage_calculator.dart';
 import '../battle_move_secondary_effect_resolver.dart';
@@ -56,12 +57,24 @@ final class RecoilMoveBehavior implements BattleMoveBehavior {
     final targetSlot = prepared.psdkTargets.single;
     final user = prepared.state.battlerAt(context.user);
     final target = prepared.state.battlerAt(targetSlot);
+    final abilityContext = BattleAbilityMoveContext(
+      state: prepared.state,
+      user: context.user,
+      target: targetSlot,
+      move: context.move,
+    );
+    final resolvedPower = _resolvePowerWithAbility(
+      user: user,
+      context: abilityContext,
+      movePower: context.move.power,
+    );
     final damageResult = const BattleMoveDamageCalculator().calculate(
       BattleMoveDamageContext(
         user: user,
         target: target,
         move: context.move,
         rng: prepared.rng,
+        overrides: BattleMoveDamageOverrides(power: resolvedPower),
       ),
     );
     if (damageResult.damage <= 0) {
@@ -77,6 +90,8 @@ final class RecoilMoveBehavior implements BattleMoveBehavior {
       user: context.user,
       target: targetSlot,
       moveId: context.move.id,
+      rng: damageResult.rng,
+      turn: context.turn,
       amount: damageResult.damage,
     );
     var state = targetDamage.state;
@@ -101,11 +116,31 @@ final class RecoilMoveBehavior implements BattleMoveBehavior {
       baseDamage: recoilBase,
       factor: _recoilFactor(context.move.dbSymbol),
     );
+    if (_preventsRecoil(user: user, context: abilityContext)) {
+      final secondary = const BattleMoveSecondaryEffectResolver().resolve(
+        state: state,
+        rng: targetDamage.rng,
+        user: context.user,
+        target: targetSlot,
+        move: context.move,
+        turn: context.turn,
+      );
+      return BattleMoveBehaviorResolution(
+        state: secondary.state,
+        rng: secondary.rng,
+        events: <PsdkBattleEvent>[
+          ...events,
+          ...secondary.events,
+        ],
+      );
+    }
     final recoil = applyDirectDamage(
       state: state,
       user: context.user,
       target: context.user,
       moveId: context.move.id,
+      rng: targetDamage.rng,
+      turn: context.turn,
       amount: recoilDamage,
     );
     state = recoil.state;
@@ -118,10 +153,11 @@ final class RecoilMoveBehavior implements BattleMoveBehavior {
     // preserves that order for animation consumers and tests.
     final secondary = const BattleMoveSecondaryEffectResolver().resolve(
       state: state,
-      rng: damageResult.rng,
+      rng: recoil.rng,
       user: context.user,
       target: targetSlot,
       move: context.move,
+      turn: context.turn,
     );
     state = secondary.state;
     events.addAll(secondary.events);
@@ -160,5 +196,25 @@ final class RecoilMoveBehavior implements BattleMoveBehavior {
   }) {
     final damage = baseDamage ~/ factor;
     return damage < 1 ? 1 : damage;
+  }
+
+  int _resolvePowerWithAbility({
+    required PsdkBattleCombatant user,
+    required BattleAbilityMoveContext context,
+    required int movePower,
+  }) {
+    var multiplier = 1.0;
+    for (final effect in user.abilityEffects) {
+      multiplier *= effect.basePowerMultiplier(context);
+    }
+    final resolvedPower = (movePower * multiplier).floor();
+    return resolvedPower < 1 ? 1 : resolvedPower;
+  }
+
+  bool _preventsRecoil({
+    required PsdkBattleCombatant user,
+    required BattleAbilityMoveContext context,
+  }) {
+    return user.abilityEffects.any((effect) => effect.preventsRecoil(context));
   }
 }

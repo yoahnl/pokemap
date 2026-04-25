@@ -1,17 +1,17 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
-import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../battle/battle_slot.dart';
+import '../../handler/battle_damage_handler.dart';
+import '../../handler/battle_handler_context.dart';
 import '../../rng/battle_rng_streams.dart';
 import '../../timeline/battle_timeline_builder.dart';
-import '../../timeline/battle_timeline_event.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_execution.dart';
+import '../battle_move_immunity_resolver.dart';
 import '../battle_move_prevention.dart';
 import '../battle_move_procedure.dart';
-import '../battle_move_type_processor.dart';
 
 /// Shared PSDK move pipeline used by concrete move families.
 ///
@@ -52,32 +52,28 @@ BattleDirectDamageResult applyDirectDamage({
   required PsdkBattleSlotRef user,
   required PsdkBattleSlotRef target,
   required String moveId,
+  required BattleRngStreams rng,
+  required int turn,
   required int amount,
 }) {
-  final targetBattler = state.battlerAt(target);
-  final damage = amount.clamp(0, targetBattler.currentHp).toInt();
-  if (damage <= 0) {
-    return BattleDirectDamageResult(
+  final result = const BattleDamageHandler().applyDamage(
+    context: BattleHandlerContext(
       state: state,
-      damage: 0,
-      target: targetBattler,
-    );
-  }
-
-  final nextTarget = targetBattler.copyWith(
-    currentHp: targetBattler.currentHp - damage,
-  );
-  return BattleDirectDamageResult(
-    state: state.replaceBattler(target, nextTarget),
-    damage: damage,
-    target: nextTarget,
-    event: PsdkBattleDamageEvent(
+      rng: rng,
+      turn: turn,
       user: user,
-      target: target,
-      moveId: moveId,
-      damage: damage,
-      remainingHp: nextTarget.currentHp,
     ),
+    target: target,
+    moveId: moveId,
+    rawDamage: amount,
+  );
+  final damageEvents = result.events.whereType<PsdkBattleDamageEvent>();
+  return BattleDirectDamageResult(
+    state: result.state,
+    rng: result.rng,
+    damage: result.amount,
+    target: result.state.battlerAt(target),
+    event: damageEvents.isEmpty ? null : damageEvents.single,
   );
 }
 
@@ -85,54 +81,7 @@ BattleMoveTargetPrecheckResult precheckTypeImmunityAndProtect(
   BattleMoveProcedureExecution execution,
   List<BattlePositionRef> targets,
 ) {
-  final unblockedTargets = <BattlePositionRef>[];
-  var failureReason = BattleMoveFailureReason.immunity;
-  const typeProcessor = BattleMoveTypeProcessor();
-  final shouldCheckTypeImmunity =
-      execution.move.category != PsdkBattleMoveCategory.status &&
-          execution.move.power > 0;
-
-  for (final targetRef in targets) {
-    if (_isBlockedByProtect(execution, targetRef)) {
-      failureReason = BattleMoveFailureReason.protected;
-      execution.timeline.add(
-        BattleMoveFailedTimelineEvent(
-          turn: execution.turn,
-          user: execution.user,
-          target: targetRef,
-          moveId: execution.move.id,
-          reason: BattleMoveFailureReason.protected.jsonName,
-        ),
-      );
-      continue;
-    }
-    if (shouldCheckTypeImmunity) {
-      final target = execution.context.state.battlerAt(
-        psdkSlotFromBattlePosition(targetRef),
-      );
-      final effectiveness = typeProcessor.resolveEffectiveness(
-        moveType: execution.move.type,
-        targetTypes: target.types,
-      );
-      if (effectiveness.isImmune) {
-        execution.timeline.add(
-          BattleMoveImmuneTimelineEvent(
-            turn: execution.turn,
-            user: execution.user,
-            target: targetRef,
-            moveId: execution.move.id,
-          ),
-        );
-        continue;
-      }
-    }
-    unblockedTargets.add(targetRef);
-  }
-
-  return BattleMoveTargetPrecheckResult(
-    targets: unblockedTargets,
-    reason: failureReason,
-  );
+  return const BattleMoveImmunityResolver().precheck(execution, targets);
 }
 
 BattlePositionRef battlePositionFromPsdkSlot(PsdkBattleSlotRef slot) {
@@ -141,19 +90,6 @@ BattlePositionRef battlePositionFromPsdkSlot(PsdkBattleSlotRef slot) {
 
 PsdkBattleSlotRef psdkSlotFromBattlePosition(BattlePositionRef slot) {
   return PsdkBattleSlotRef(bank: slot.bank, position: slot.position);
-}
-
-bool _isBlockedByProtect(
-  BattleMoveProcedureExecution execution,
-  BattlePositionRef targetRef,
-) {
-  if (targetRef == execution.user || !execution.move.flags.protectable) {
-    return false;
-  }
-  final target = execution.context.state.battlerAt(
-    psdkSlotFromBattlePosition(targetRef),
-  );
-  return target.effects.contains(PsdkBattleEffectIds.protect);
 }
 
 final class PreparedBattleMove {
@@ -190,12 +126,14 @@ final class PreparedBattleMove {
 final class BattleDirectDamageResult {
   const BattleDirectDamageResult({
     required this.state,
+    required this.rng,
     required this.damage,
     required this.target,
     this.event,
   });
 
   final PsdkBattleState state;
+  final BattleRngStreams rng;
   final int damage;
   final PsdkBattleCombatant target;
   final PsdkBattleDamageEvent? event;

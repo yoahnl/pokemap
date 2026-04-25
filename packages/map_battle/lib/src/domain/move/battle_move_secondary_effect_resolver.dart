@@ -1,6 +1,9 @@
 import '../../psdk/domain/psdk_battle_slots.dart';
 import '../../psdk/domain/psdk_battle_state.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
+import '../handler/battle_handler_context.dart';
+import '../handler/battle_stat_change_handler.dart';
+import '../handler/battle_status_change_handler.dart';
 import '../rng/battle_rng_streams.dart';
 import 'battle_move_data.dart';
 
@@ -13,6 +16,7 @@ final class BattleMoveSecondaryEffectResolver {
     required PsdkBattleSlotRef user,
     required PsdkBattleSlotRef target,
     required BattleMoveDefinition move,
+    required int turn,
   }) {
     if (move.statuses.isEmpty && move.stageMods.isEmpty) {
       return BattleMoveSecondaryEffectResult(
@@ -48,22 +52,22 @@ final class BattleMoveSecondaryEffectResolver {
         }
       }
 
-      final battler = nextState.battlerAt(target);
-      if (battler.majorStatus != null) {
-        continue;
-      }
-      nextState = nextState.replaceBattler(
-        target,
-        battler.copyWith(majorStatus: status.status),
-      );
-      events.add(
-        PsdkBattleStatusEvent(
+      final result = const BattleStatusChangeHandler().applyMajorStatus(
+        context: BattleHandlerContext(
+          state: nextState,
+          rng: nextRng,
+          turn: turn,
           user: user,
-          target: target,
-          moveId: move.id,
-          status: status.status,
         ),
+        target: target,
+        moveId: move.id,
+        status: status.status,
       );
+      nextState = result.state;
+      nextRng = result.rng;
+      if (result.applied) {
+        events.addAll(result.events);
+      }
     }
 
     for (final mod in move.stageMods) {
@@ -78,21 +82,22 @@ final class BattleMoveSecondaryEffectResolver {
         }
       }
 
-      final battler = nextState.battlerAt(target);
-      final statStages = battler.statStages.apply(
+      final result = const BattleStatChangeHandler().applyStatChange(
+        context: BattleHandlerContext(
+          state: nextState,
+          rng: nextRng,
+          turn: turn,
+          user: user,
+        ),
+        target: target,
         stat: mod.stat,
         stages: mod.stages,
       );
-      final nextBattler = battler.copyWith(statStages: statStages);
-      nextState = nextState.replaceBattler(target, nextBattler);
-      events.add(
-        PsdkBattleStatStageEvent(
-          target: target,
-          stat: mod.stat,
-          amount: mod.stages,
-          currentStage: statStages.valueOf(mod.stat),
-        ),
-      );
+      nextState = result.state;
+      nextRng = result.rng;
+      if (result.applied) {
+        events.addAll(result.events);
+      }
     }
 
     return BattleMoveSecondaryEffectResult(

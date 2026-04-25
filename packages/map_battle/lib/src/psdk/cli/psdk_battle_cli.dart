@@ -76,7 +76,8 @@ class PsdkBattleCli {
             'miss, super_effective, critical, secondary_effect, pp_empty, '
             'prevented, protect, fixed_damage, multi_hit, advanced_multi_hit, '
             'basic_specialization, direct_hp, recoil, mind_blown, explosion, '
-            'terrain_boosting, variable_power, custom_stat, or weight_power.',
+            'terrain_boosting, variable_power, custom_stat, weight_power, '
+            'damp_ability, or loaded_dice.',
           );
         }
         scenario = parsed;
@@ -162,6 +163,8 @@ enum _PsdkBattleCliScenario {
   variablePower,
   customStat,
   weightPower,
+  dampAbility,
+  loadedDice,
 }
 
 class _PsdkBattleCliParseResult {
@@ -217,6 +220,8 @@ _PsdkBattleCliScenario? _parseScenario(String value) {
       _PsdkBattleCliScenario.variablePower,
     'custom_stat' || 'custom-stat' => _PsdkBattleCliScenario.customStat,
     'weight_power' || 'weight-power' => _PsdkBattleCliScenario.weightPower,
+    'damp_ability' || 'damp-ability' => _PsdkBattleCliScenario.dampAbility,
+    'loaded_dice' || 'loaded-dice' => _PsdkBattleCliScenario.loadedDice,
     _ => null,
   };
 }
@@ -749,6 +754,49 @@ _PsdkBattleCliScenarioConfig _scenarioConfig(
         turnLimit: 1,
         mustFinish: false,
       ),
+    _PsdkBattleCliScenario.dampAbility => _PsdkBattleCliScenarioConfig(
+        setup: _singleTurnSetup(
+          playerTypes: const PsdkBattleTypes(primary: 'normal'),
+          opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+          opponentAbilityId: 'damp',
+          playerMove: _move(
+            id: 'explosion',
+            type: 'normal',
+            power: 250,
+            battleEngineMethod: 's_explosion',
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+        ),
+        turnLimit: 1,
+        mustFinish: false,
+      ),
+    _PsdkBattleCliScenario.loadedDice => _PsdkBattleCliScenarioConfig(
+        setup: _singleTurnSetup(
+          playerTypes: const PsdkBattleTypes(primary: 'normal'),
+          opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+          opponentCurrentHp: 200,
+          playerHeldItemId: 'loaded_dice',
+          playerMove: _move(
+            id: 'double_slap',
+            type: 'normal',
+            power: 25,
+            battleEngineMethod: 's_multi_hit',
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 0,
+          ),
+        ),
+        turnLimit: 1,
+        mustFinish: false,
+      ),
   };
 }
 
@@ -834,6 +882,10 @@ PsdkBattleSetup _singleTurnSetup({
   int opponentCurrentHp = 100,
   double playerWeightKg = 50,
   double opponentWeightKg = 50,
+  String? playerAbilityId,
+  String? opponentAbilityId,
+  String? playerHeldItemId,
+  String? opponentHeldItemId,
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
   PsdkBattleStats playerStats = const PsdkBattleStats(
     attack: 50,
@@ -854,6 +906,8 @@ PsdkBattleSetup _singleTurnSetup({
       currentHp: playerCurrentHp,
       types: playerTypes,
       stats: playerStats,
+      abilityId: playerAbilityId,
+      heldItemId: playerHeldItemId,
       baseWeightKg: playerWeightKg,
       moves: <PsdkBattleMoveData>[playerMove],
     ),
@@ -872,6 +926,8 @@ PsdkBattleSetup _singleTurnSetup({
         specialDefense: 50,
         speed: 1,
       ),
+      abilityId: opponentAbilityId,
+      heldItemId: opponentHeldItemId,
       baseWeightKg: opponentWeightKg,
       moves: <PsdkBattleMoveData>[
         opponentMove ??

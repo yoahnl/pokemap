@@ -67,6 +67,8 @@ final class MindBlownMoveBehavior implements BattleMoveBehavior {
       user: context.user,
       target: targetSlot,
       moveId: context.move.id,
+      rng: damageResult.rng,
+      turn: context.turn,
       amount: damageResult.damage,
     );
     var state = targetDamage.state;
@@ -80,10 +82,11 @@ final class MindBlownMoveBehavior implements BattleMoveBehavior {
     // prevents the self-crash from hiding riders when the user faints.
     final secondary = const BattleMoveSecondaryEffectResolver().resolve(
       state: state,
-      rng: damageResult.rng,
+      rng: targetDamage.rng,
       user: context.user,
       target: targetSlot,
       move: context.move,
+      turn: context.turn,
     );
     state = secondary.state;
     events.addAll(secondary.events);
@@ -123,12 +126,14 @@ final class MindBlownMoveBehavior implements BattleMoveBehavior {
       user: context.user,
       target: context.user,
       moveId: context.move.id,
+      rng: rng,
+      turn: context.turn,
       amount: user.maxHp ~/ 2,
     );
 
     return BattleMoveBehaviorResolution(
       state: crash.state,
-      rng: rng,
+      rng: crash.rng,
       events: <PsdkBattleEvent>[
         ...events,
         if (crash.event != null) crash.event!,

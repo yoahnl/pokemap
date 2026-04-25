@@ -86,6 +86,8 @@ final class SelfDestructMoveBehavior implements BattleMoveBehavior {
       user: context.user,
       target: targetSlot,
       moveId: context.move.id,
+      rng: damageResult.rng,
+      turn: context.turn,
       amount: damageResult.damage,
     );
     var state = targetDamage.state;
@@ -99,10 +101,11 @@ final class SelfDestructMoveBehavior implements BattleMoveBehavior {
     // future faint-process layer from masking successful secondary effects.
     final secondary = const BattleMoveSecondaryEffectResolver().resolve(
       state: state,
-      rng: damageResult.rng,
+      rng: targetDamage.rng,
       user: context.user,
       target: targetSlot,
       move: context.move,
+      turn: context.turn,
     );
     state = secondary.state;
     events.addAll(secondary.events);
@@ -149,12 +152,14 @@ final class SelfDestructMoveBehavior implements BattleMoveBehavior {
       user: context.user,
       target: context.user,
       moveId: context.move.id,
+      rng: rng,
+      turn: context.turn,
       amount: user.currentHp,
     );
 
     return BattleMoveBehaviorResolution(
       state: selfDamage.state,
-      rng: rng,
+      rng: selfDamage.rng,
       events: <PsdkBattleEvent>[
         ...events,
         if (selfDamage.event != null) selfDamage.event!,

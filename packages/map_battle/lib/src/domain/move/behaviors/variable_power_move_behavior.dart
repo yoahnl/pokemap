@@ -121,14 +121,17 @@ final class VariablePowerMoveBehavior implements BattleMoveBehavior {
       user: context.user,
       target: targetSlot,
       moveId: context.move.id,
+      rng: damageResult.rng,
+      turn: context.turn,
       amount: finalDamage,
     );
     final secondary = const BattleMoveSecondaryEffectResolver().resolve(
       state: applied.state,
-      rng: damageResult.rng,
+      rng: applied.rng,
       user: context.user,
       target: targetSlot,
       move: context.move,
+      turn: context.turn,
     );
 
     return BattleMoveBehaviorResolution(
@@ -249,7 +252,12 @@ final class VariablePowerMoveBehavior implements BattleMoveBehavior {
 
   int _positiveSpeed(PsdkBattleCombatant battler) {
     final speed = battler.stats.speed;
-    return speed < 1 ? 1 : speed;
+    if (battler.majorStatus != PsdkBattleMajorStatus.paralysis ||
+        battler.abilityId == 'quick_feet') {
+      return speed < 1 ? 1 : speed;
+    }
+    final paralyzedSpeed = (speed * 0.25).floor();
+    return paralyzedSpeed < 1 ? 1 : paralyzedSpeed;
   }
 
   bool _isFacadeBoostingStatus(PsdkBattleMajorStatus? status) {

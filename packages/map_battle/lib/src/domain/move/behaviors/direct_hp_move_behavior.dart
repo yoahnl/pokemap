@@ -91,12 +91,14 @@ final class DirectHpMoveBehavior implements BattleMoveUserPreventionBehavior {
       user: context.user,
       target: target,
       moveId: context.move.id,
+      rng: prepared.rng,
+      turn: context.turn,
       amount: amount,
     );
 
     return BattleMoveBehaviorResolution(
       state: applied.state,
-      rng: prepared.rng,
+      rng: applied.rng,
       events: <PsdkBattleEvent>[
         ...prepared.events,
         if (applied.event != null) applied.event!,
@@ -110,6 +112,7 @@ final class DirectHpMoveBehavior implements BattleMoveUserPreventionBehavior {
   }) {
     final hpDealt = prepared.state.battlerAt(context.user).currentHp;
     var nextState = prepared.state;
+    var rng = prepared.rng;
     final events = <PsdkBattleEvent>[...prepared.events];
 
     // PSDK first removes the user's current HP, then applies that captured
@@ -120,9 +123,12 @@ final class DirectHpMoveBehavior implements BattleMoveUserPreventionBehavior {
       user: context.user,
       target: context.user,
       moveId: context.move.id,
+      rng: rng,
+      turn: context.turn,
       amount: hpDealt,
     );
     nextState = selfDamage.state;
+    rng = selfDamage.rng;
     if (selfDamage.event != null) {
       events.add(selfDamage.event!);
     }
@@ -133,9 +139,12 @@ final class DirectHpMoveBehavior implements BattleMoveUserPreventionBehavior {
         user: context.user,
         target: target,
         moveId: context.move.id,
+        rng: rng,
+        turn: context.turn,
         amount: hpDealt,
       );
       nextState = targetDamage.state;
+      rng = targetDamage.rng;
       if (targetDamage.event != null) {
         events.add(targetDamage.event!);
       }
@@ -143,7 +152,7 @@ final class DirectHpMoveBehavior implements BattleMoveUserPreventionBehavior {
 
     return BattleMoveBehaviorResolution(
       state: nextState,
-      rng: prepared.rng,
+      rng: rng,
       events: events,
     );
   }

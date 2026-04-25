@@ -1,3 +1,5 @@
+import '../../../psdk/domain/psdk_battle_field.dart';
+import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_damage_calculator.dart';
@@ -5,32 +7,28 @@ import '../battle_move_data.dart';
 import '../battle_move_secondary_effect_resolver.dart';
 import 'battle_move_behavior_support.dart';
 
-enum _BasicDamageSpecializationKind {
-  falseSwipe,
-  fullCrit,
-}
-
-/// Ports small PSDK `Basic` descendants that only specialize damage inputs.
-///
-/// `FalseSwipe` remains partial until Substitute exists in the PSDK combatant
-/// effects. `FullCrit` is a direct port of Ruby's `critical_rate = 100`.
-final class BasicDamageSpecializationMoveBehavior
-    implements BattleMoveBehavior {
-  const BasicDamageSpecializationMoveBehavior.falseSwipe()
-      : battleEngineMethod = 's_false_swipe',
-        _kind = _BasicDamageSpecializationKind.falseSwipe;
-
-  const BasicDamageSpecializationMoveBehavior.fullCrit()
-      : battleEngineMethod = 's_full_crit',
-        _kind = _BasicDamageSpecializationKind.fullCrit;
+final class WeatherPowerMoveBehavior implements BattleMoveBehavior {
+  const WeatherPowerMoveBehavior.weatherBall()
+      : battleEngineMethod = 's_weather_ball';
 
   @override
   final String battleEngineMethod;
-  final _BasicDamageSpecializationKind _kind;
 
   @override
   BattleMoveBehaviorResolution resolve(BattleMoveBehaviorContext context) {
-    final prepared = prepareBattleMove(context);
+    final effectiveMove = _weatherBallMove(context.state, context.move);
+    final prepared = prepareBattleMove(
+      BattleMoveBehaviorContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        user: context.user,
+        target: context.target,
+        move: effectiveMove,
+        isLastActionOfTurn: context.isLastActionOfTurn,
+        moveProcedureHooks: context.moveProcedureHooks,
+      ),
+    );
     if (!prepared.shouldExecuteBehavior) {
       return prepared.toResolution();
     }
@@ -38,20 +36,15 @@ final class BasicDamageSpecializationMoveBehavior
     final targetSlot = prepared.psdkTargets.single;
     final user = prepared.state.battlerAt(context.user);
     final target = prepared.state.battlerAt(targetSlot);
-    final move = _damageMove(context.move);
     final damageResult = const BattleMoveDamageCalculator().calculate(
       BattleMoveDamageContext(
         user: user,
         target: target,
-        move: move,
+        move: effectiveMove,
         rng: prepared.rng,
       ),
     );
-    final damage = _damageAmount(
-      calculatedDamage: damageResult.damage,
-      targetCurrentHp: target.currentHp,
-    );
-    if (damage <= 0) {
+    if (damageResult.damage <= 0) {
       return BattleMoveBehaviorResolution(
         state: prepared.state,
         rng: damageResult.rng,
@@ -66,14 +59,14 @@ final class BasicDamageSpecializationMoveBehavior
       moveId: context.move.id,
       rng: damageResult.rng,
       turn: context.turn,
-      amount: damage,
+      amount: damageResult.damage,
     );
     final secondary = const BattleMoveSecondaryEffectResolver().resolve(
       state: applied.state,
       rng: applied.rng,
       user: context.user,
       target: targetSlot,
-      move: move,
+      move: effectiveMove,
       turn: context.turn,
     );
 
@@ -87,47 +80,49 @@ final class BasicDamageSpecializationMoveBehavior
       ],
     );
   }
-
-  BattleMoveDefinition _damageMove(BattleMoveDefinition move) {
-    return switch (_kind) {
-      _BasicDamageSpecializationKind.falseSwipe => move,
-      _BasicDamageSpecializationKind.fullCrit => _moveWithCriticalRate(
-          move,
-          criticalRate: 100,
-        ),
-    };
-  }
-
-  int _damageAmount({
-    required int calculatedDamage,
-    required int targetCurrentHp,
-  }) {
-    return switch (_kind) {
-      _BasicDamageSpecializationKind.falseSwipe =>
-        calculatedDamage >= targetCurrentHp
-            ? targetCurrentHp - 1
-            : calculatedDamage,
-      _BasicDamageSpecializationKind.fullCrit => calculatedDamage,
-    };
-  }
 }
 
-BattleMoveDefinition _moveWithCriticalRate(
+BattleMoveDefinition _weatherBallMove(
+  PsdkBattleState state,
+  BattleMoveDefinition move,
+) {
+  final weather = state.field.weather?.id;
+  return _copyMove(
+    move,
+    type: state.weatherEffectsSuppressed
+        ? move.type
+        : _weatherBallType(weather, move.type),
+    power: weather == null ? move.power : 100,
+  );
+}
+
+String _weatherBallType(PsdkBattleWeatherId? weather, String fallback) {
+  return switch (weather) {
+    PsdkBattleWeatherId.rain || PsdkBattleWeatherId.hardrain => 'water',
+    PsdkBattleWeatherId.sunny || PsdkBattleWeatherId.hardsun => 'fire',
+    PsdkBattleWeatherId.hail || PsdkBattleWeatherId.snow => 'ice',
+    PsdkBattleWeatherId.sandstorm => 'rock',
+    _ => fallback,
+  };
+}
+
+BattleMoveDefinition _copyMove(
   BattleMoveDefinition move, {
-  required int criticalRate,
+  required String type,
+  required int power,
 }) {
   return BattleMoveDefinition(
     id: move.id,
     dbSymbol: move.dbSymbol,
     name: move.name,
-    type: move.type,
+    type: type,
     category: move.category,
-    power: move.power,
+    power: power,
     accuracy: move.accuracy,
     pp: move.pp,
     currentPp: move.currentPp,
     priority: move.priority,
-    criticalRate: criticalRate,
+    criticalRate: move.criticalRate,
     effectChance: move.effectChance,
     battleEngineMethod: move.battleEngineMethod,
     target: move.target,

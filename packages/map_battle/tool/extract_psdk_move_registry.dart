@@ -131,6 +131,23 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'TerrainPowerMoveBehavior.terrainBoosting',
     status: _PsdkPortStatus.ported,
   ),
+  // Field setters now execute through PSDK-style handlers, including item
+  // duration extension and hard-weather blocking. They stay partial until the
+  // full field effect hook surface is ported.
+  's_weather': _KnownDartBehavior(
+    dartBehavior: 'WeatherMoveBehavior',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_terrain': _KnownDartBehavior(
+    dartBehavior: 'TerrainMoveBehavior',
+    status: _PsdkPortStatus.partial,
+  ),
+  // Weather Ball has executable weather power/type behavior. Keep it partial
+  // until every weather effect and suppression hook has parity coverage.
+  's_weather_ball': _KnownDartBehavior(
+    dartBehavior: 'WeatherPowerMoveBehavior.weatherBall',
+    status: _PsdkPortStatus.partial,
+  ),
   // The base recoil damage is executable. Keep the status partial until Rock
   // Head, Parental Bond/Reckless style ability hooks, item callbacks and
   // Basculin evolution bookkeeping exist in the PSDK lane.
@@ -221,6 +238,146 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
 };
 
+const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
+  // Weather and terrain families need handlers/effects before their move class
+  // can be considered truly ported. PSDK delegates most of that behavior to
+  // WeatherChangeHandler, FTerrainChangeHandler, item duration hooks and field
+  // effects, so the matrix must not present these as isolated move work.
+  's_weather': {
+    _PsdkMoveDependency.handlerWeather,
+    _PsdkMoveDependency.weather,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.item,
+  },
+  's_terrain': {
+    _PsdkMoveDependency.handlerTerrain,
+    _PsdkMoveDependency.terrain,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.item,
+  },
+  's_weather_ball': {
+    _PsdkMoveDependency.weather,
+    _PsdkMoveDependency.ability,
+  },
+  's_terrain_pulse': {
+    _PsdkMoveDependency.terrain,
+    _PsdkMoveDependency.grounded,
+  },
+  's_rising_voltage': {
+    _PsdkMoveDependency.terrain,
+    _PsdkMoveDependency.grounded,
+  },
+  's_expanding_force': {
+    _PsdkMoveDependency.terrain,
+    _PsdkMoveDependency.grounded,
+    _PsdkMoveDependency.targetingMulti,
+  },
+  's_grassy_glide': {
+    _PsdkMoveDependency.terrain,
+    _PsdkMoveDependency.grounded,
+    _PsdkMoveDependency.actionOrder,
+  },
+  's_solar_beam': {
+    _PsdkMoveDependency.weather,
+    _PsdkMoveDependency.effects,
+  },
+  's_thunder': {
+    _PsdkMoveDependency.weather,
+  },
+  's_shore_up': {
+    _PsdkMoveDependency.weather,
+    _PsdkMoveDependency.handlerDamage,
+  },
+  // Multi-hit parity depends on ability/item hooks that can alter hit counts.
+  's_multi_hit': {
+    _PsdkMoveDependency.ability,
+    _PsdkMoveDependency.item,
+  },
+  's_triple_kick': {
+    _PsdkMoveDependency.ability,
+    _PsdkMoveDependency.item,
+    _PsdkMoveDependency.history,
+  },
+  's_population_bomb': {
+    _PsdkMoveDependency.ability,
+    _PsdkMoveDependency.item,
+  },
+  's_water_shuriken': {
+    _PsdkMoveDependency.ability,
+    _PsdkMoveDependency.item,
+  },
+  // Existing local implementations remain partial until common handlers and
+  // effect hooks can intercept the same situations as Ruby PSDK.
+  's_recoil': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.ability,
+    _PsdkMoveDependency.item,
+    _PsdkMoveDependency.history,
+  },
+  's_explosion': {
+    _PsdkMoveDependency.ability,
+    _PsdkMoveDependency.faintProcess,
+  },
+  's_misty_explosion': {
+    _PsdkMoveDependency.ability,
+    _PsdkMoveDependency.faintProcess,
+    _PsdkMoveDependency.terrain,
+    _PsdkMoveDependency.grounded,
+  },
+  's_mind_blown': {
+    _PsdkMoveDependency.ability,
+    _PsdkMoveDependency.faintProcess,
+  },
+  's_chloroblast': {
+    _PsdkMoveDependency.ability,
+    _PsdkMoveDependency.faintProcess,
+  },
+  's_steel_beam': {
+    _PsdkMoveDependency.ability,
+    _PsdkMoveDependency.faintProcess,
+  },
+  's_false_swipe': {
+    _PsdkMoveDependency.effects,
+  },
+  's_final_gambit': {
+    _PsdkMoveDependency.faintProcess,
+    _PsdkMoveDependency.history,
+  },
+  's_hex': {
+    _PsdkMoveDependency.ability,
+    _PsdkMoveDependency.handlerStatus,
+  },
+  's_low_kick': {
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.ability,
+    _PsdkMoveDependency.grounded,
+  },
+  's_heavy_slam': {
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.ability,
+  },
+  's_body_press': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.ability,
+    _PsdkMoveDependency.item,
+  },
+  's_foul_play': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.ability,
+    _PsdkMoveDependency.item,
+  },
+  's_psyshock': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.ability,
+    _PsdkMoveDependency.item,
+  },
+  's_custom_stats_based': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.ability,
+    _PsdkMoveDependency.item,
+  },
+};
+
 Future<void> main(List<String> args) async {
   final parsed = _MoveExtractorArgs.parse(args);
   if (parsed == null) {
@@ -263,6 +420,7 @@ Future<List<_MoveRegistryRow>> _extractRows(Directory root) async {
           rubyPath: _relativePath(root, file),
           dartBehavior: known?.dartBehavior ?? 'TODO',
           status: known?.status ?? _PsdkPortStatus.missing,
+          dependencies: _dependenciesFor(method),
         ),
       );
     }
@@ -290,15 +448,18 @@ String _renderMoveMatrix(Directory root, List<_MoveRegistryRow> rows) {
   }
   buffer
     ..writeln()
-    ..writeln('| Method | Ruby class | Ruby path | Dart behavior | Status |')
-    ..writeln('| --- | --- | --- | --- | --- |');
+    ..writeln(
+      '| Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |',
+    )
+    ..writeln('| --- | --- | --- | --- | --- | --- |');
   for (final row in rows) {
     buffer.writeln(
       '| `${_markdownEscape(row.method)}` '
       '| `${_markdownEscape(row.rubyClass)}` '
       '| `${_markdownEscape(row.rubyPath)}` '
       '| `${_markdownEscape(row.dartBehavior)}` '
-      '| `${row.status.name}` |',
+      '| `${row.status.name}` '
+      '| ${_renderDependencies(row.dependencies)} |',
     );
   }
   return buffer.toString();
@@ -328,6 +489,9 @@ String _renderDartManifest(List<_MoveRegistryRow> rows) {
       ..writeln("    rubyPath: '${_dartEscape(row.rubyPath)}',")
       ..writeln("    dartBehavior: '${_dartEscape(row.dartBehavior)}',")
       ..writeln('    status: PsdkPortStatus.${row.status.name},')
+      ..writeln(
+        '    dependencies: ${_renderDartDependencies(row.dependencies)},',
+      )
       ..writeln('  ),');
   }
   buffer
@@ -340,6 +504,7 @@ String _renderDartManifest(List<_MoveRegistryRow> rows) {
     ..writeln('    required this.rubyPath,')
     ..writeln('    required this.dartBehavior,')
     ..writeln('    required this.status,')
+    ..writeln('    this.dependencies = const <PsdkMoveDependency>[],')
     ..writeln('  });')
     ..writeln()
     ..writeln('  final String battleEngineMethod;')
@@ -347,14 +512,46 @@ String _renderDartManifest(List<_MoveRegistryRow> rows) {
     ..writeln('  final String rubyPath;')
     ..writeln('  final String dartBehavior;')
     ..writeln('  final PsdkPortStatus status;')
+    ..writeln('  final List<PsdkMoveDependency> dependencies;')
     ..writeln('}')
     ..writeln()
     ..writeln('enum PsdkPortStatus {')
     ..writeln('  ported,')
     ..writeln('  partial,')
     ..writeln('  missing,')
-    ..writeln('}');
+    ..writeln('}')
+    ..writeln()
+    ..writeln('enum PsdkMoveDependency {');
+  for (final dependency in _PsdkMoveDependency.values) {
+    buffer.writeln('  ${dependency.dartName},');
+  }
+  buffer..writeln('}');
   return buffer.toString();
+}
+
+String _renderDependencies(Set<_PsdkMoveDependency> dependencies) {
+  if (dependencies.isEmpty) {
+    return '`-`';
+  }
+  return dependencies.map((dependency) => '`${dependency.token}`').join(', ');
+}
+
+String _renderDartDependencies(Set<_PsdkMoveDependency> dependencies) {
+  if (dependencies.isEmpty) {
+    return 'const <PsdkMoveDependency>[]';
+  }
+  final values = dependencies
+      .map((dependency) => 'PsdkMoveDependency.${dependency.dartName}')
+      .join(', ');
+  return 'const <PsdkMoveDependency>[$values]';
+}
+
+Set<_PsdkMoveDependency> _dependenciesFor(String method) {
+  final dependencies = _manualDependencies[method];
+  if (dependencies == null) {
+    return const <_PsdkMoveDependency>{};
+  }
+  return Set<_PsdkMoveDependency>.unmodifiable(dependencies);
 }
 
 List<_MoveRegistryRow> _dedupeByMethod(List<_MoveRegistryRow> rows) {
@@ -445,6 +642,7 @@ final class _MoveRegistryRow {
     required this.rubyPath,
     required this.dartBehavior,
     required this.status,
+    required this.dependencies,
   });
 
   final String method;
@@ -452,6 +650,7 @@ final class _MoveRegistryRow {
   final String rubyPath;
   final String dartBehavior;
   final _PsdkPortStatus status;
+  final Set<_PsdkMoveDependency> dependencies;
 }
 
 final class _KnownDartBehavior {
@@ -468,4 +667,32 @@ enum _PsdkPortStatus {
   ported,
   partial,
   missing,
+}
+
+enum _PsdkMoveDependency {
+  effects('effects', 'effects'),
+  handlerDamage('handler_damage', 'handlerDamage'),
+  handlerStatus('handler_status', 'handlerStatus'),
+  handlerStat('handler_stat', 'handlerStat'),
+  handlerItem('handler_item', 'handlerItem'),
+  handlerSwitch('handler_switch', 'handlerSwitch'),
+  handlerWeather('handler_weather', 'handlerWeather'),
+  handlerTerrain('handler_terrain', 'handlerTerrain'),
+  endTurn('end_turn', 'endTurn'),
+  field('field', 'field'),
+  weather('weather', 'weather'),
+  terrain('terrain', 'terrain'),
+  targetingMulti('targeting_multi', 'targetingMulti'),
+  ability('ability', 'ability'),
+  item('item', 'item'),
+  history('history', 'history'),
+  grounded('grounded', 'grounded'),
+  faintProcess('faint_process', 'faintProcess'),
+  runtimeBridge('runtime_bridge', 'runtimeBridge'),
+  actionOrder('action_order', 'actionOrder');
+
+  const _PsdkMoveDependency(this.token, this.dartName);
+
+  final String token;
+  final String dartName;
 }

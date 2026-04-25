@@ -62,14 +62,17 @@ final class FixedDamageMoveBehavior implements BattleMoveBehavior {
       user: context.user,
       target: target,
       moveId: context.move.id,
+      rng: damage.rng,
+      turn: context.turn,
       amount: damage.amount,
     );
     final secondary = const BattleMoveSecondaryEffectResolver().resolve(
       state: applied.state,
-      rng: damage.rng,
+      rng: applied.rng,
       user: context.user,
       target: target,
       move: context.move,
+      turn: context.turn,
     );
 
     return BattleMoveBehaviorResolution(

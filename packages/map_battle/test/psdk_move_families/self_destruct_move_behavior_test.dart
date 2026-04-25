@@ -28,6 +28,7 @@ void main() {
 
     test('s_explosion does not self-KO when accuracy misses', () {
       final result = _runMove(
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
         playerMove: _move(
           id: 'explosion',
           power: 40,
@@ -137,6 +138,7 @@ void main() {
 
     test('s_explosion applies secondary effects before successful self-KO', () {
       final result = _runMove(
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
         playerMove: _move(
           id: 'explosion',
           power: 40,

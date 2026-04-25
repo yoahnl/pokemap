@@ -84,6 +84,11 @@ void main() {
 
       final opponent = result.state.battlerAt(psdkOpponentSlot);
       expect(opponent.statStages.valueOf('defense'), -1);
+      expect(opponent.statHistory.entries, hasLength(1));
+      expect(opponent.statHistory.entries.single.turn, 1);
+      expect(opponent.statHistory.entries.single.stat, 'defense');
+      expect(opponent.statHistory.entries.single.delta, -1);
+      expect(opponent.statHistory.entries.single.currentStage, -1);
       expect(
         result.timeline.events
             .whereType<BattleStatStageChangeTimelineEvent>()

@@ -172,10 +172,21 @@ final class BattleMoveDamageResult {
 
 int _offensiveStat(BattleMoveDamageContext context) {
   return switch (context.move.category) {
-    PsdkBattleMoveCategory.physical => context.user.stats.attack,
+    PsdkBattleMoveCategory.physical => _physicalAttack(context),
     PsdkBattleMoveCategory.special => context.user.stats.specialAttack,
     PsdkBattleMoveCategory.status => context.user.stats.attack,
   };
+}
+
+int _physicalAttack(BattleMoveDamageContext context) {
+  final attack = context.user.stats.attack;
+  if (context.user.majorStatus != PsdkBattleMajorStatus.burn ||
+      context.user.abilityId == 'guts' ||
+      context.move.battleEngineMethod == 's_facade') {
+    return attack;
+  }
+  final burnedAttack = (attack * 0.5).floor();
+  return burnedAttack < 1 ? 1 : burnedAttack;
 }
 
 int _defensiveStat(BattleMoveDamageContext context) {

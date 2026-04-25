@@ -149,6 +149,7 @@ void main() {
 
     test('s_recoil applies secondary effects after recoil damage', () {
       final result = _runMove(
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
         playerMove: _move(
           id: 'flare_blitz',
           type: 'fire',

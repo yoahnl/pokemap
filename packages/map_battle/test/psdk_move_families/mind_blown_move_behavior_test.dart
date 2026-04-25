@@ -143,6 +143,7 @@ void main() {
 
     test('s_mind_blown does not crash when PP prevents move execution', () {
       final result = _runMove(
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
         playerMove: _move(
           id: 'mind_blown',
           power: 40,
@@ -162,6 +163,7 @@ void main() {
 
     test('s_mind_blown applies secondary effects before successful crash', () {
       final result = _runMove(
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
         playerMove: _move(
           id: 'mind_blown',
           power: 40,

@@ -61,14 +61,17 @@ final class TerrainPowerMoveBehavior implements BattleMoveBehavior {
       user: context.user,
       target: targetSlot,
       moveId: context.move.id,
+      rng: damageResult.rng,
+      turn: context.turn,
       amount: damageResult.damage,
     );
     final secondary = const BattleMoveSecondaryEffectResolver().resolve(
       state: applied.state,
-      rng: damageResult.rng,
+      rng: applied.rng,
       user: context.user,
       target: targetSlot,
       move: context.move,
+      turn: context.turn,
     );
 
     return BattleMoveBehaviorResolution(

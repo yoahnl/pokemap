@@ -5,14 +5,36 @@ enum PsdkBattleMoveCategory {
   status,
 }
 
-/// Target shapes supported by the first PSDK foundation slice.
-///
-/// Only `adjacentFoe` and `user` are exposed because they are consumed by the
-/// resolver today. Adding a target here must come with resolver behavior and
-/// tests, otherwise the public API would overstate engine support.
 enum PsdkBattleMoveTarget {
+  adjacentAlly,
+  adjacentAllyOrSelf,
   adjacentFoe,
+  allAdjacent,
+  allAdjacentFoes,
+  allBattlers,
+  allFoes,
+  allAllies,
+  anyFoe,
+  bank,
+  randomFoe,
+  self,
   user,
+  userSide,
+  foeSide,
+  none,
+}
+
+extension PsdkBattleMoveTargetSemantics on PsdkBattleMoveTarget {
+  bool get requiresBattlerTarget {
+    return switch (this) {
+      PsdkBattleMoveTarget.bank ||
+      PsdkBattleMoveTarget.userSide ||
+      PsdkBattleMoveTarget.foeSide ||
+      PsdkBattleMoveTarget.none =>
+        false,
+      _ => true,
+    };
+  }
 }
 
 /// Major statuses that the first PSDK status behavior can represent.

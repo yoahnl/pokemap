@@ -9,14 +9,21 @@ import '../domain/move/behaviors/no_effect_move_behavior.dart';
 import '../domain/move/behaviors/recoil_move_behavior.dart';
 import '../domain/move/behaviors/self_destruct_move_behavior.dart';
 import '../domain/move/behaviors/terrain_power_move_behavior.dart';
+import '../domain/move/behaviors/terrain_move_behavior.dart';
 import '../domain/move/behaviors/variable_power_move_behavior.dart';
+import '../domain/move/behaviors/weather_move_behavior.dart';
+import '../domain/move/behaviors/weather_power_move_behavior.dart';
 import '../domain/move/behaviors/weight_power_move_behavior.dart';
 import '../domain/move/battle_move_behavior.dart';
 import '../domain/move/battle_move_damage_calculator.dart';
 import '../domain/move/battle_move_prevention.dart';
 import '../domain/move/battle_move_registry.dart';
 import '../domain/move/battle_move_secondary_effect_resolver.dart';
-import '../psdk/domain/psdk_battle_combatant.dart';
+import '../domain/effect/battle_effect_scope.dart';
+import '../domain/effect/move/protect_effect.dart';
+import '../domain/handler/battle_handler_context.dart';
+import '../domain/handler/battle_status_change_handler.dart';
+import '../psdk/domain/psdk_battle_slots.dart';
 import '../psdk/domain/psdk_battle_timeline.dart';
 
 BattleMoveRegistry createStaticBasicMoveRegistry() {
@@ -60,7 +67,10 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     const MindBlownMoveBehavior.chloroblast(),
     const SelfDestructMoveBehavior.explosion(),
     const SelfDestructMoveBehavior.mistyExplosion(),
+    const WeatherMoveBehavior(),
+    const TerrainMoveBehavior(),
     const TerrainPowerMoveBehavior.terrainBoosting(),
+    const WeatherPowerMoveBehavior.weatherBall(),
     const RecoilMoveBehavior.psdkRecoil(),
     const VariablePowerMoveBehavior.brine(),
     const VariablePowerMoveBehavior.eruption(),
@@ -113,14 +123,17 @@ BattleMoveBehaviorResolution _resolveBasic(BattleMoveBehaviorContext context) {
     user: context.user,
     target: targetSlot,
     moveId: context.move.id,
+    rng: damageResult.rng,
+    turn: context.turn,
     amount: damageResult.damage,
   );
   final secondary = const BattleMoveSecondaryEffectResolver().resolve(
     state: applied.state,
-    rng: damageResult.rng,
+    rng: applied.rng,
     user: context.user,
     target: targetSlot,
     move: context.move,
+    turn: context.turn,
   );
 
   return BattleMoveBehaviorResolution(
@@ -158,29 +171,31 @@ BattleMoveBehaviorResolution _resolveStatus(BattleMoveBehaviorContext context) {
   }
 
   final targetSlot = common.psdkTargets.single;
-  final target = common.state.battlerAt(targetSlot);
-  if (target.majorStatus != null) {
-    // Major statuses are exclusive. Until the richer PSDK condition stack is
-    // ported, refusing to overwrite keeps this first slice honest and stable.
-    return BattleMoveBehaviorResolution(
+  final result = const BattleStatusChangeHandler().applyMajorStatus(
+    context: BattleHandlerContext(
       state: common.state,
       rng: rng,
+      turn: context.turn,
+      user: context.user,
+    ),
+    target: targetSlot,
+    moveId: context.move.id,
+    status: status.status,
+  );
+  if (!result.applied) {
+    return BattleMoveBehaviorResolution(
+      state: result.state,
+      rng: result.rng,
       events: common.events,
     );
   }
 
-  final nextTarget = target.copyWith(majorStatus: status.status);
   return BattleMoveBehaviorResolution(
-    state: common.state.replaceBattler(targetSlot, nextTarget),
-    rng: rng,
+    state: result.state,
+    rng: result.rng,
     events: <PsdkBattleEvent>[
       ...common.events,
-      PsdkBattleStatusEvent(
-        user: context.user,
-        target: targetSlot,
-        moveId: context.move.id,
-        status: status.status,
-      ),
+      ...result.events,
     ],
   );
 }
@@ -217,7 +232,16 @@ BattleMoveBehaviorResolution _resolveProtect(
   final nextState = common.state.replaceBattler(
     protectedSlot,
     protectedBattler.copyWith(
-      effects: protectedBattler.effects.add(PsdkBattleEffectIds.protect),
+      effects: protectedBattler.effects.addEffect(
+        ProtectEffect(
+          scope: BattlerBattleEffectScope(
+            PsdkBattleSlotRef(
+              bank: protectedSlot.bank,
+              position: protectedSlot.position,
+            ),
+          ),
+        ),
+      ),
     ),
   );
 

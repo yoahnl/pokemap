@@ -234,10 +234,51 @@ void main() {
       expect(byMethod['s_expanding_force']!.status, PsdkPortStatus.missing);
       expect(byMethod['s_grassy_glide']!.status, PsdkPortStatus.missing);
       expect(byMethod['s_rising_voltage']!.status, PsdkPortStatus.missing);
-      expect(byMethod['s_terrain']!.status, PsdkPortStatus.missing);
+      expect(byMethod['s_terrain']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_terrain']!.dartBehavior, 'TerrainMoveBehavior');
       expect(byMethod['s_terrain_pulse']!.status, PsdkPortStatus.missing);
-      expect(byMethod['s_weather']!.status, PsdkPortStatus.missing);
-      expect(byMethod['s_weather_ball']!.status, PsdkPortStatus.missing);
+      expect(byMethod['s_weather']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_weather']!.dartBehavior, 'WeatherMoveBehavior');
+      expect(byMethod['s_weather_ball']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_weather_ball']!.dartBehavior,
+        'WeatherPowerMoveBehavior.weatherBall',
+      );
+    });
+
+    test('records PSDK dependencies that block partial move promotion', () {
+      final byMethod = {
+        for (final entry in psdkMoveRegistryManifest)
+          entry.battleEngineMethod: entry,
+      };
+
+      expect(
+        byMethod['s_weather']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerWeather,
+          PsdkMoveDependency.weather,
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.item,
+        ]),
+      );
+      expect(
+        byMethod['s_expanding_force']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.terrain,
+          PsdkMoveDependency.grounded,
+          PsdkMoveDependency.targetingMulti,
+        ]),
+      );
+      expect(
+        byMethod['s_recoil']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerDamage,
+          PsdkMoveDependency.ability,
+          PsdkMoveDependency.item,
+          PsdkMoveDependency.history,
+        ]),
+      );
+      expect(byMethod['s_basic']!.dependencies, isEmpty);
     });
 
     test('does not contain duplicate battleEngineMethod entries', () {
@@ -302,16 +343,17 @@ end
       expect(
           markdown,
           contains(
-              '| `s_basic` | `Basic` | `10 Move/1 Mechanics/100 Basic.rb` | `StaticBasicMoveRegistry.s_basic` | `partial` |'));
+              '| `s_basic` | `Basic` | `10 Move/1 Mechanics/100 Basic.rb` | `StaticBasicMoveRegistry.s_basic` | `partial` | `-` |'));
       expect(
           markdown,
           contains(
-              '| `s_custom_move` | `CustomMove` | `10 Move/1 Mechanics/300 Custom.rb` | `TODO` | `missing` |'));
+              '| `s_custom_move` | `CustomMove` | `10 Move/1 Mechanics/300 Custom.rb` | `TODO` | `missing` | `-` |'));
 
       final dart = manifest.readAsStringSync();
       expect(dart, contains('const psdkMoveRegistryManifest'));
       expect(dart, contains("battleEngineMethod: 's_basic'"));
       expect(dart, contains('PsdkPortStatus.partial'));
+      expect(dart, contains('dependencies: const <PsdkMoveDependency>[]'));
       expect(dart, contains("battleEngineMethod: 's_custom_move'"));
       expect(dart, contains('PsdkPortStatus.missing'));
     });
@@ -391,7 +433,7 @@ end
       expect(
         markdown,
         contains(
-          '| Effect | Ruby base | Family | Hooks | Ruby path | Dart target | Status | Notes |',
+          '| Effect | Ruby base | Family | Hooks | Hook families | Ruby path | Dart target | Status | Notes |',
         ),
       );
       expect(markdown, contains('| `Protect` | `EffectBase` |'));
@@ -401,9 +443,13 @@ end
       );
       expect(
         markdown,
+        contains('`end_turn`, `move_prevention`'),
+      );
+      expect(
+        markdown,
         contains('`lib/src/domain/effect/move/protect_effect.dart`'),
       );
-      expect(markdown, contains('Minimal inline Protect bridge'));
+      expect(markdown, contains('Object-backed ProtectEffect'));
       expect(markdown, contains('| `partial` |'));
     });
 
@@ -615,8 +661,10 @@ end
           rows.singleWhere((line) => line.startsWith('| `SpikyShield` |'));
 
       expect(protectRow, contains('`on_move_prevention_target`'));
+      expect(protectRow, contains('`move_prevention`'));
       expect(protectRow, isNot(contains('`on_post_damage`')));
       expect(spikyShieldRow, contains('`on_post_damage`'));
+      expect(spikyShieldRow, contains('`post_damage`'));
       expect(spikyShieldRow, isNot(contains('`on_move_prevention_target`')));
     });
   });

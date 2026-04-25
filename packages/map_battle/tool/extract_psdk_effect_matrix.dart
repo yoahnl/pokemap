@@ -47,6 +47,7 @@ Future<List<_EffectMatrixRow>> _extractRows(Directory root) async {
           rubyBaseClass: parsedClass.baseClass,
           family: _effectFamily(relativePath),
           hooks: parsedClass.sortedHooks,
+          hookFamilies: _hookFamiliesFor(parsedClass.sortedHooks),
           rubyPath: relativePath,
           dartTargetPath: _dartTargetPath(parsedClass.name, relativePath),
           status: _statusFor(parsedClass.name),
@@ -159,15 +160,16 @@ String _renderEffectMatrix(Directory root, List<_EffectMatrixRow> rows) {
   buffer
     ..writeln()
     ..writeln(
-      '| Effect | Ruby base | Family | Hooks | Ruby path | Dart target | Status | Notes |',
+      '| Effect | Ruby base | Family | Hooks | Hook families | Ruby path | Dart target | Status | Notes |',
     )
-    ..writeln('| --- | --- | --- | --- | --- | --- | --- | --- |');
+    ..writeln('| --- | --- | --- | --- | --- | --- | --- | --- | --- |');
   for (final row in rows) {
     buffer.writeln(
       '| `${_markdownEscape(row.effectName)}` '
       '| `${_markdownEscape(row.rubyBaseClass)}` '
       '| `${row.family}` '
       '| ${_renderHooks(row.hooks)} '
+      '| ${_renderHooks(row.hookFamilies)} '
       '| `${_markdownEscape(row.rubyPath)}` '
       '| `${_markdownEscape(row.dartTargetPath)}` '
       '| `${row.status.name}` '
@@ -184,6 +186,89 @@ String _renderHooks(List<String> hooks) {
   return hooks.map((hook) => '`$hook`').join(', ');
 }
 
+List<String> _hookFamiliesFor(List<String> hooks) {
+  final families = <String>{};
+  for (final hook in hooks) {
+    final family = _hookFamilyFor(hook);
+    if (family != null) {
+      families.add(family);
+    }
+  }
+  return families.toList()..sort();
+}
+
+String? _hookFamilyFor(String hook) {
+  if (hook == 'on_move_ability_immunity') {
+    return 'ability_immunity';
+  }
+  if (hook == 'on_move_priority_change') {
+    return 'action_order';
+  }
+  if (hook == 'on_move_type_change') {
+    return 'move_type_change';
+  }
+  if (hook == 'on_pre_accuracy_check' || hook == 'on_post_accuracy_check') {
+    return 'accuracy';
+  }
+  if (hook == 'on_two_turn_shortcut') {
+    return 'two_turn_shortcut';
+  }
+  if (hook == 'on_move_disabled_check' ||
+      hook == 'on_move_failure' ||
+      hook.startsWith('on_move_prevention')) {
+    return 'move_prevention';
+  }
+  if (hook == 'on_damage_prevention') {
+    return 'damage_prevention';
+  }
+  if (hook == 'on_post_damage' || hook == 'on_post_damage_death') {
+    return 'post_damage';
+  }
+  if (hook == 'on_drain_prevention' || hook == 'on_pre_drain') {
+    return 'drain';
+  }
+  if (hook.contains('status')) {
+    return 'status_prevention';
+  }
+  if (hook.contains('stat')) {
+    return 'stat_change';
+  }
+  if (hook.contains('weather')) {
+    return 'weather_change';
+  }
+  if (hook.contains('fterrain')) {
+    return 'terrain_change';
+  }
+  if (hook.contains('item')) {
+    return 'item_change';
+  }
+  if (hook.contains('ability_change')) {
+    return 'ability_change';
+  }
+  if (hook.contains('switch') || hook.contains('flee')) {
+    return 'switch';
+  }
+  if (hook == 'on_end_turn_event') {
+    return 'end_turn';
+  }
+  if (hook == 'on_post_action_event') {
+    return 'action_order';
+  }
+  if (hook == 'on_transform_event') {
+    return 'transform';
+  }
+  if (hook == 'on_single_type_multiplier_overwrite') {
+    return 'damage_change';
+  }
+  if (hook.startsWith('on_delete') ||
+      hook == 'on_reset_states' ||
+      hook == 'on_clear_message' ||
+      hook == 'on_increase_message') {
+    return 'lifecycle';
+  }
+  return null;
+}
+
 String _dartTargetPath(String effectName, String rubyPath) {
   final family = _effectFamily(rubyPath);
   final fileName = '${_snakeCase(effectName)}_effect.dart';
@@ -192,7 +277,7 @@ String _dartTargetPath(String effectName, String rubyPath) {
 
 String _notesFor(String effectName) {
   if (effectName == 'Protect') {
-    return 'Minimal inline Protect bridge in static_basic_move_registry.dart + PsdkBattleEffectIds.protect; full effect object not ported yet.';
+    return 'Object-backed ProtectEffect ported for common target prevention; variants, success-rate decay and Unseen Fist bypass remain future work.';
   }
   return '';
 }
@@ -284,6 +369,7 @@ final class _EffectMatrixRow {
     required this.rubyBaseClass,
     required this.family,
     required this.hooks,
+    required this.hookFamilies,
     required this.rubyPath,
     required this.dartTargetPath,
     required this.status,
@@ -294,6 +380,7 @@ final class _EffectMatrixRow {
   final String rubyBaseClass;
   final String family;
   final List<String> hooks;
+  final List<String> hookFamilies;
   final String rubyPath;
   final String dartTargetPath;
   final _PsdkPortStatus status;

@@ -1,7 +1,12 @@
+import '../../../psdk/domain/psdk_battle_slots.dart';
+import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../effect/ability/ability_effect.dart';
+import '../../effect/item/item_effect.dart';
 import '../../rng/battle_rng_streams.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_damage_calculator.dart';
+import '../battle_move_data.dart';
 import '../battle_move_secondary_effect_resolver.dart';
 import 'battle_move_behavior_support.dart';
 
@@ -60,7 +65,7 @@ final class MultiHitMoveBehavior implements BattleMoveBehavior {
     }
 
     final target = prepared.psdkTargets.single;
-    final hitPlan = _resolveHitCount(prepared);
+    final hitPlan = _resolveHitCount(context, prepared, target);
     var state = prepared.state;
     var rng = hitPlan.rng;
     var dealtDamage = false;
@@ -75,6 +80,10 @@ final class MultiHitMoveBehavior implements BattleMoveBehavior {
 
       if (_rechecksAccuracy && hitIndex > 0) {
         final accuracy = _resolveExtraHitAccuracy(
+          state: state,
+          user: context.user,
+          target: target,
+          move: context.move,
           rng: rng,
           moveAccuracy: context.move.accuracy,
         );
@@ -124,9 +133,12 @@ final class MultiHitMoveBehavior implements BattleMoveBehavior {
         user: context.user,
         target: target,
         moveId: context.move.id,
+        rng: rng,
+        turn: context.turn,
         amount: damage.damage,
       );
       state = applied.state;
+      rng = applied.rng;
       if (applied.event != null) {
         dealtDamage = true;
         events.add(applied.event!);
@@ -140,6 +152,7 @@ final class MultiHitMoveBehavior implements BattleMoveBehavior {
         user: context.user,
         target: target,
         move: context.move,
+        turn: context.turn,
       );
       state = secondary.state;
       rng = secondary.rng;
@@ -153,14 +166,27 @@ final class MultiHitMoveBehavior implements BattleMoveBehavior {
     );
   }
 
-  _ResolvedHitCount _resolveHitCount(PreparedBattleMove prepared) {
+  _ResolvedHitCount _resolveHitCount(
+    BattleMoveBehaviorContext context,
+    PreparedBattleMove prepared,
+    PsdkBattleSlotRef target,
+  ) {
+    final forced = _forcedHitCount(
+      context: context,
+      state: prepared.state,
+      target: target,
+    );
+    if (forced != null) {
+      return _ResolvedHitCount(hitCount: forced, rng: prepared.rng);
+    }
     return switch (_kind) {
       _MultiHitKind.fixed => _ResolvedHitCount(
           hitCount: _hitCount!,
           rng: prepared.rng,
         ),
       _MultiHitKind.psdkRandomTwoToFive => _resolvePsdkRandomHitCount(
-          prepared,
+          context: context,
+          prepared: prepared,
         ),
       _MultiHitKind.tripleKick ||
       _MultiHitKind.populationBomb =>
@@ -171,13 +197,20 @@ final class MultiHitMoveBehavior implements BattleMoveBehavior {
     };
   }
 
-  _ResolvedHitCount _resolvePsdkRandomHitCount(PreparedBattleMove prepared) {
+  _ResolvedHitCount _resolvePsdkRandomHitCount({
+    required BattleMoveBehaviorContext context,
+    required PreparedBattleMove prepared,
+  }) {
     final roll = prepared.rng.generic.nextIntInclusive(
       min: 0,
       max: _psdkMultiHitChances.length - 1,
     );
+    final rolledHitCount = _psdkMultiHitChances[roll.value];
+    final minimumHitCount = _minimumHitCount(context);
     return _ResolvedHitCount(
-      hitCount: _psdkMultiHitChances[roll.value],
+      hitCount: minimumHitCount == null || rolledHitCount >= minimumHitCount
+          ? rolledHitCount
+          : minimumHitCount,
       rng: prepared.rng.copyWith(generic: roll.next),
     );
   }
@@ -197,10 +230,29 @@ final class MultiHitMoveBehavior implements BattleMoveBehavior {
   }
 
   _ExtraHitAccuracy _resolveExtraHitAccuracy({
+    required PsdkBattleState state,
+    required PsdkBattleSlotRef user,
+    required PsdkBattleSlotRef target,
+    required BattleMoveDefinition move,
     required BattleRngStreams rng,
     required int moveAccuracy,
   }) {
-    if (moveAccuracy <= 0 || moveAccuracy >= 100) {
+    final abilityContext = BattleAbilityMoveContext(
+      state: state,
+      user: user,
+      target: target,
+      move: move,
+    );
+    if (moveAccuracy <= 0 ||
+        moveAccuracy >= 100 ||
+        state.activeAbilityEffects().any(
+              (effect) => effect.bypassesAccuracy(abilityContext),
+            ) ||
+        state.battlerAt(user).abilityEffects.any(
+              (effect) => effect.bypassesMultiHitAccuracyRecheck(
+                abilityContext,
+              ),
+            )) {
       return _ExtraHitAccuracy(didHit: true, rng: rng);
     }
     final roll = rng.moveAccuracy.nextPercent();
@@ -209,6 +261,36 @@ final class MultiHitMoveBehavior implements BattleMoveBehavior {
       rng: rng.copyWith(moveAccuracy: roll.next),
     );
   }
+}
+
+int? _forcedHitCount({
+  required BattleMoveBehaviorContext context,
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef target,
+}) {
+  final abilityContext = BattleAbilityMoveContext(
+    state: state,
+    user: context.user,
+    target: target,
+    move: context.move,
+  );
+  for (final effect in state.battlerAt(context.user).abilityEffects) {
+    final hitCount = effect.forcedHitCount(abilityContext);
+    if (hitCount != null) {
+      return hitCount;
+    }
+  }
+  return null;
+}
+
+int? _minimumHitCount(BattleMoveBehaviorContext context) {
+  for (final effect in context.state.battlerAt(context.user).itemEffects) {
+    final minimum = effect.minimumHitCount(context.move);
+    if (minimum != null) {
+      return minimum;
+    }
+  }
+  return null;
 }
 
 final class _ResolvedHitCount {
