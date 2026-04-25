@@ -276,10 +276,15 @@ String _dartTargetPath(String effectName, String rubyPath) {
 }
 
 String _notesFor(String effectName) {
-  if (effectName == 'Protect') {
-    return 'Object-backed ProtectEffect ported for common target prevention; variants, success-rate decay and Unseen Fist bypass remain future work.';
-  }
-  return '';
+  return switch (effectName) {
+    'AquaRing' =>
+      'Object-backed AquaRingEffect heals at end turn; Big Root branch is local, Baton Pass transfer remains future lifecycle work.',
+    'Curse' =>
+      'Object-backed CurseEffect applies end-turn damage; Magic Guard is checked by id, Baton Pass transfer remains future lifecycle work.',
+    'Protect' =>
+      'Object-backed ProtectEffect ported for common target prevention; variants, success-rate decay and Unseen Fist bypass remain future work.',
+    _ => '',
+  };
 }
 
 String _effectFamily(String rubyPath) {
@@ -308,9 +313,10 @@ _PsdkPortStatus _statusFor(String effectName) {
   // Lot 14 has only a minimal Protect id/effect bridge, not the full generic
   // PSDK EffectBase hook object. Mark it partial and keep everything else
   // missing until the dedicated effect-system lots port them explicitly.
-  return effectName == 'Protect'
-      ? _PsdkPortStatus.partial
-      : _PsdkPortStatus.missing;
+  return switch (effectName) {
+    'AquaRing' || 'Curse' || 'Protect' => _PsdkPortStatus.partial,
+    _ => _PsdkPortStatus.missing,
+  };
 }
 
 String _snakeCase(String value) {

@@ -7,8 +7,8 @@ Total registered methods: 330
 | Status | Count |
 | --- | ---: |
 | `ported` | 21 |
-| `partial` | 57 |
-| `missing` | 252 |
+| `partial` | 58 |
+| `missing` | 251 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
 | --- | --- | --- | --- | --- | --- |
@@ -23,7 +23,7 @@ Total registered methods: 330
 | `s_after_you` | `AfterYou` | `10 Move/2 Definitions/300 After you.rb` | `TODO` | `missing` | `-` |
 | `s_alluring_voice` | `AlluringVoice` | `10 Move/2 Definitions/300 AlluringVoice.rb` | `TODO` | `missing` | `-` |
 | `s_ally_switch` | `AllySwitch` | `10 Move/2 Definitions/300 AllySwitch.rb` | `TODO` | `missing` | `-` |
-| `s_aqua_ring` | `AquaRing` | `10 Move/2 Definitions/300 AquaRing.rb` | `TODO` | `missing` | `-` |
+| `s_aqua_ring` | `AquaRing` | `10 Move/2 Definitions/300 AquaRing.rb` | `PersistentEffectMoveBehavior.aquaRing` | `partial` | `handler_damage`, `effects`, `end_turn`, `item` |
 | `s_assist` | `Assist` | `10 Move/2 Definitions/300 Assist.rb` | `TODO` | `missing` | `-` |
 | `s_assurance` | `Assurance` | `10 Move/2 Definitions/300 Assurance.rb` | `TODO` | `missing` | `-` |
 | `s_attract` | `Attract` | `10 Move/2 Definitions/300 Attract.rb` | `TODO` | `missing` | `-` |

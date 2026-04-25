@@ -1,6 +1,10 @@
 import '../battle/battle_slot.dart';
 import '../move/battle_move_data.dart';
 import '../move/battle_move_prevention.dart';
+import '../rng/battle_rng_streams.dart';
+import '../../psdk/domain/psdk_battle_slots.dart';
+import '../../psdk/domain/psdk_battle_state.dart';
+import '../../psdk/domain/psdk_battle_timeline.dart';
 
 /// Minimal hook context for move-target prevention.
 ///
@@ -25,4 +29,33 @@ final class BattleEffectPreventionResult {
   });
 
   final BattleMoveFailureReason reason;
+}
+
+/// Hook context for effects that tick during the PSDK end-turn phase.
+final class BattleEffectEndTurnContext {
+  const BattleEffectEndTurnContext({
+    required this.state,
+    required this.rng,
+    required this.turn,
+    required this.owner,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int turn;
+  final PsdkBattleSlotRef owner;
+}
+
+final class BattleEffectEndTurnResult {
+  const BattleEffectEndTurnResult({
+    required this.state,
+    required this.rng,
+    this.events = const <PsdkBattleEvent>[],
+    this.applied = true,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
+  final bool applied;
 }

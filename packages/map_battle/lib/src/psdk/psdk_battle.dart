@@ -44,6 +44,8 @@ export '../domain/effect/item/item_effect_registry.dart';
 export '../domain/effect/item/loaded_dice_effect.dart';
 export '../domain/effect/item/terrain_extender_effect.dart';
 export '../domain/effect/item/weather_rock_effect.dart';
+export '../domain/effect/move/aqua_ring_effect.dart';
+export '../domain/effect/move/curse_effect.dart';
 export '../domain/effect/move/protect_effect.dart';
 export '../domain/effect/status/burn_effect.dart';
 export '../domain/effect/status/freeze_effect.dart';

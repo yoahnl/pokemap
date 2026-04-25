@@ -1,4 +1,5 @@
 import '../../psdk/domain/psdk_battle_timeline.dart';
+import '../effect/battle_effect_hooks.dart';
 import 'battle_handler_context.dart';
 import 'battle_handler_result.dart';
 import 'battle_status_change_handler.dart';
@@ -16,10 +17,18 @@ final class BattleEndTurnHandler {
         user: context.user,
       ),
     );
-    final fieldProgression = tickField(
+    final effects = tickEndTurnEffects(
       BattleHandlerContext(
         state: statuses.state,
         rng: statuses.rng,
+        turn: context.turn,
+        user: context.user,
+      ),
+    );
+    final fieldProgression = tickField(
+      BattleHandlerContext(
+        state: effects.state,
+        rng: effects.rng,
         turn: context.turn,
         user: context.user,
       ),
@@ -30,10 +39,17 @@ final class BattleEndTurnHandler {
       events: <PsdkBattleEvent>[
         ...cleared.events,
         ...statuses.events,
+        ...effects.events,
         ...fieldProgression.events,
       ],
-      applied: cleared.applied || statuses.applied || fieldProgression.applied,
-      reason: cleared.applied || statuses.applied || fieldProgression.applied
+      applied: cleared.applied ||
+          statuses.applied ||
+          effects.applied ||
+          fieldProgression.applied,
+      reason: cleared.applied ||
+              statuses.applied ||
+              effects.applied ||
+              fieldProgression.applied
           ? null
           : 'no_end_turn_changes',
     );
@@ -59,6 +75,42 @@ final class BattleEndTurnHandler {
       rng: context.rng,
       applied: changed,
       reason: changed ? null : 'no_turn_scoped_effects',
+    );
+  }
+
+  BattleHandlerResult tickEndTurnEffects(BattleHandlerContext context) {
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+
+    for (final slot in context.state.aliveSlots()) {
+      final effects = nextState.battlerAt(slot).effects.effects;
+      for (final effect in effects) {
+        final result = effect.onEndTurn(
+          BattleEffectEndTurnContext(
+            state: nextState,
+            rng: nextRng,
+            turn: context.turn,
+            owner: slot,
+          ),
+        );
+        if (result == null) {
+          continue;
+        }
+        nextState = result.state;
+        nextRng = result.rng;
+        events.addAll(result.events);
+        changed = changed || result.applied || result.events.isNotEmpty;
+      }
+    }
+
+    return BattleHandlerResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: changed,
+      reason: changed ? null : 'no_effect_progression',
     );
   }
 

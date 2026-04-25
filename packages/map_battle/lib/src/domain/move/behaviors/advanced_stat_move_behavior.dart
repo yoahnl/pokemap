@@ -3,6 +3,8 @@ import '../../../psdk/domain/psdk_battle_field.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../effect/battle_effect_scope.dart';
+import '../../effect/move/curse_effect.dart';
 import '../../rng/battle_rng_streams.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_prevention.dart';
@@ -298,7 +300,11 @@ final class AdvancedStatMoveBehavior
     }
     state = state.updateBattler(
       targetSlot,
-      (target) => target.copyWith(effects: target.effects.add('curse')),
+      (target) => target.copyWith(
+        effects: target.effects.addEffect(
+          CurseEffect(scope: BattlerBattleEffectScope(targetSlot)),
+        ),
+      ),
     );
 
     return BattleMoveBehaviorResolution(

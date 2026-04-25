@@ -429,6 +429,34 @@ void main() {
       expect(healEvents.single['remainingHp'], 76);
     });
 
+    test('prints an Aqua Ring scenario for persistent end-turn healing',
+        () async {
+      final lines = <String>[];
+      final exitCode = await PsdkBattleCli(
+        stdout: lines.add,
+        stderr: fail,
+      ).run(const <String>[
+        '--scenario',
+        'aqua_ring',
+        '--format',
+        'json',
+      ]);
+
+      expect(exitCode, 0);
+      final payload = jsonDecode(lines.single) as Map<String, dynamic>;
+      expect(payload['outcome'], 'ongoing');
+      expect(payload['playerHp'], 66);
+
+      final healEvents = (payload['events'] as List<dynamic>)
+          .cast<Map<String, dynamic>>()
+          .where((event) => event['moveId'] == 'effect:aqua_ring')
+          .where((event) => event['kind'] == 'heal')
+          .toList(growable: false);
+      expect(healEvents, hasLength(1));
+      expect(healEvents.single['amount'], 6);
+      expect(healEvents.single['remainingHp'], 66);
+    });
+
     test('prints a status-cure scenario for hit-then-cure moves', () async {
       final lines = <String>[];
       final exitCode = await PsdkBattleCli(

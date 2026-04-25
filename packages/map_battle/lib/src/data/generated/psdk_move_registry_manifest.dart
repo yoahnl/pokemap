@@ -110,9 +110,14 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_aqua_ring',
     rubyClass: 'AquaRing',
     rubyPath: '10 Move/2 Definitions/300 AquaRing.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'PersistentEffectMoveBehavior.aquaRing',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerDamage,
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.endTurn,
+      PsdkMoveDependency.item
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_assist',

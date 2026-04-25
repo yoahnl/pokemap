@@ -347,6 +347,20 @@ void main() {
           PsdkMoveDependency.targetingMulti,
         ]),
       );
+      expect(byMethod['s_aqua_ring']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_aqua_ring']!.dartBehavior,
+        'PersistentEffectMoveBehavior.aquaRing',
+      );
+      expect(
+        byMethod['s_aqua_ring']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerDamage,
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.endTurn,
+          PsdkMoveDependency.item,
+        ]),
+      );
       expect(byMethod['s_rest']!.status, PsdkPortStatus.partial);
       expect(
         byMethod['s_rest']!.dartBehavior,
@@ -672,6 +686,16 @@ module Battle
   end
 end
 ''');
+      File('${effectDir.path}/101 AquaRing.rb').writeAsStringSync('''
+module Battle
+  module Effects
+    class AquaRing < PokemonTiedEffectBase
+      def on_end_turn_event(logic, scene, battlers)
+      end
+    end
+  end
+end
+''');
 
       final output = File('${temp.path}/effect-matrix.md');
       final result = await Process.run(
@@ -706,6 +730,12 @@ end
         markdown,
         contains('`lib/src/domain/effect/move/protect_effect.dart`'),
       );
+      expect(markdown, contains('| `AquaRing` | `PokemonTiedEffectBase` |'));
+      expect(
+        markdown,
+        contains('`lib/src/domain/effect/move/aqua_ring_effect.dart`'),
+      );
+      expect(markdown, contains('Object-backed AquaRingEffect'));
       expect(markdown, contains('Object-backed ProtectEffect'));
       expect(markdown, contains('| `partial` |'));
     });

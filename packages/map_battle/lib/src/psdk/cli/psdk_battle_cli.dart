@@ -77,9 +77,9 @@ class PsdkBattleCli {
             'generic_status_stat, prevented, protect, fixed_damage, '
             'multi_hit, advanced_multi_hit, basic_specialization, direct_hp, '
             'healing, status_cure, recovery_stat, advanced_stat, '
-            'acupressure, recoil, mind_blown, explosion, terrain_boosting, '
-            'variable_power, custom_stat, weight_power, damp_ability, '
-            'or loaded_dice.',
+            'acupressure, aqua_ring, recoil, mind_blown, explosion, '
+            'terrain_boosting, variable_power, custom_stat, weight_power, '
+            'damp_ability, or loaded_dice.',
           );
         }
         scenario = parsed;
@@ -160,6 +160,7 @@ enum _PsdkBattleCliScenario {
   basicSpecialization,
   directHp,
   healing,
+  aquaRing,
   statusCure,
   recoveryStat,
   advancedStat,
@@ -218,6 +219,7 @@ _PsdkBattleCliScenario? _parseScenario(String value) {
       _PsdkBattleCliScenario.basicSpecialization,
     'direct_hp' || 'direct-hp' => _PsdkBattleCliScenario.directHp,
     'healing' || 'heal' => _PsdkBattleCliScenario.healing,
+    'aqua_ring' || 'aqua-ring' => _PsdkBattleCliScenario.aquaRing,
     'status_cure' || 'status-cure' => _PsdkBattleCliScenario.statusCure,
     'recovery_stat' || 'recovery-stat' => _PsdkBattleCliScenario.recoveryStat,
     'advanced_stat' || 'advanced-stat' => _PsdkBattleCliScenario.advancedStat,
@@ -658,6 +660,39 @@ _PsdkBattleCliScenarioConfig _scenarioConfig(
             power: 0,
             battleEngineMethod: 's_heal_weather',
             target: PsdkBattleMoveTarget.user,
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+        ),
+        turnLimit: 1,
+        mustFinish: false,
+      ),
+    _PsdkBattleCliScenario.aquaRing => _PsdkBattleCliScenarioConfig(
+        setup: _singleTurnSetup(
+          playerTypes: const PsdkBattleTypes(primary: 'water'),
+          opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+          playerCurrentHp: 60,
+          playerMove: _move(
+            id: 'aqua_ring',
+            type: 'water',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            accuracy: 0,
+            battleEngineMethod: 's_aqua_ring',
+            target: PsdkBattleMoveTarget.user,
+          ),
+          opponentMove: _move(
+            id: 'splash',
+            type: 'normal',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            accuracy: 0,
+            battleEngineMethod: 's_splash',
+            target: PsdkBattleMoveTarget.none,
           ),
           rngSeeds: const PsdkBattleRngSeeds(
             moveDamage: 1,

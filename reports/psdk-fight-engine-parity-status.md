@@ -6,12 +6,12 @@ Date: 2026-04-25
 | --- | ---: |
 | PSDK move methods | 330 |
 | Move methods ported | 21 |
-| Move methods partial | 57 |
-| Move methods missing | 252 |
+| Move methods partial | 58 |
+| Move methods missing | 251 |
 | PSDK effect classes | 482 |
 | Effect classes ported | 0 |
-| Effect classes partial | 1 |
-| Effect classes missing | 481 |
+| Effect classes partial | 3 |
+| Effect classes missing | 479 |
 
 This status file is intentionally small. The source of truth for detailed rows
 is still:

@@ -16,8 +16,8 @@ Coverage semantics:
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
 | fait | 29 |
-| partiel | 425 |
-| pas_fait | 274 |
+| partiel | 426 |
+| pas_fait | 273 |
 | unknown_methods | 18 |
 
 | Fait ? | Attack | Battle method | Method status | Dart behavior | Type | Category | Power | Accuracy | PP | Source file |
@@ -44,7 +44,7 @@ Coverage semantics:
 | pas_fait | anchor_shot | s_cantflee | missing | TODO | steel | physical | 80 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/anchor_shot.json |
 | partiel | ancient_power | s_self_stat | partial | StatusStatMoveBehavior.selfStat | rock | special | 60 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/ancient_power.json |
 | partiel | aqua_jet | s_basic | partial | StaticBasicMoveRegistry.s_basic | water | physical | 40 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/aqua_jet.json |
-| pas_fait | aqua_ring | s_aqua_ring | missing | TODO | water | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/aqua_ring.json |
+| partiel | aqua_ring | s_aqua_ring | partial | PersistentEffectMoveBehavior.aquaRing | water | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/aqua_ring.json |
 | partiel | aqua_tail | s_basic | partial | StaticBasicMoveRegistry.s_basic | water | physical | 90 | 90 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/aqua_tail.json |
 | partiel | arm_thrust | s_multi_hit | partial | MultiHitMoveBehavior.psdkRandom | fighting | physical | 15 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/arm_thrust.json |
 | pas_fait | aromatherapy | s_heal_bell | missing | TODO | grass | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/aromatherapy.json |

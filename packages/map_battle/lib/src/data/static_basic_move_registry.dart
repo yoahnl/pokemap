@@ -10,6 +10,7 @@ import '../domain/move/behaviors/hit_then_cure_status_move_behavior.dart';
 import '../domain/move/behaviors/mind_blown_move_behavior.dart';
 import '../domain/move/behaviors/multi_hit_move_behavior.dart';
 import '../domain/move/behaviors/no_effect_move_behavior.dart';
+import '../domain/move/behaviors/persistent_effect_move_behavior.dart';
 import '../domain/move/behaviors/recovery_stat_move_behavior.dart';
 import '../domain/move/behaviors/recoil_move_behavior.dart';
 import '../domain/move/behaviors/self_destruct_move_behavior.dart';
@@ -83,6 +84,7 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     const RecoveryStatMoveBehavior.bellyDrum(),
     const RecoveryStatMoveBehavior.filletAway(),
     const RecoveryStatMoveBehavior.strengthSap(),
+    const PersistentEffectMoveBehavior.aquaRing(),
     const AdvancedStatMoveBehavior.acupressure(),
     const AdvancedStatMoveBehavior.clangorousSoul(),
     const AdvancedStatMoveBehavior.curse(),
