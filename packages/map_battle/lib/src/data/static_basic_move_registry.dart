@@ -13,6 +13,7 @@ import '../domain/move/behaviors/recovery_stat_move_behavior.dart';
 import '../domain/move/behaviors/recoil_move_behavior.dart';
 import '../domain/move/behaviors/self_destruct_move_behavior.dart';
 import '../domain/move/behaviors/special_power_move_behavior.dart';
+import '../domain/move/behaviors/status_stat_move_behavior.dart';
 import '../domain/move/behaviors/terrain_power_move_behavior.dart';
 import '../domain/move/behaviors/terrain_move_behavior.dart';
 import '../domain/move/behaviors/variable_power_move_behavior.dart';
@@ -26,8 +27,6 @@ import '../domain/move/battle_move_registry.dart';
 import '../domain/move/battle_move_secondary_effect_resolver.dart';
 import '../domain/effect/battle_effect_scope.dart';
 import '../domain/effect/move/protect_effect.dart';
-import '../domain/handler/battle_handler_context.dart';
-import '../domain/handler/battle_status_change_handler.dart';
 import '../psdk/domain/psdk_battle_slots.dart';
 import '../psdk/domain/psdk_battle_timeline.dart';
 
@@ -37,10 +36,10 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       battleEngineMethod: 's_basic',
       resolve: _resolveBasic,
     ),
-    CallbackBattleMoveBehavior(
-      battleEngineMethod: 's_status',
-      resolve: _resolveStatus,
-    ),
+    const StatusStatMoveBehavior.status(),
+    const StatusStatMoveBehavior.stat(),
+    const StatusStatMoveBehavior.selfStat(),
+    const StatusStatMoveBehavior.selfStatus(),
     CallbackBattleMoveBehavior(
       battleEngineMethod: 's_protect',
       resolve: _resolveProtect,
@@ -165,59 +164,6 @@ BattleMoveBehaviorResolution _resolveBasic(BattleMoveBehaviorContext context) {
       ...common.events,
       if (applied.event != null) applied.event!,
       ...secondary.events,
-    ],
-  );
-}
-
-BattleMoveBehaviorResolution _resolveStatus(BattleMoveBehaviorContext context) {
-  final common = prepareBattleMove(context);
-  if (!common.shouldExecuteBehavior) {
-    return common.toResolution();
-  }
-  if (context.move.statuses.isEmpty) {
-    return common.toResolution(successful: true);
-  }
-
-  var rng = common.rng;
-  final status = context.move.statuses.first;
-  if (status.chance < 100) {
-    final roll = rng.generic.nextPercent();
-    rng = rng.copyWith(generic: roll.next);
-    if (roll.value > status.chance) {
-      return BattleMoveBehaviorResolution(
-        state: common.state,
-        rng: rng,
-        events: common.events,
-      );
-    }
-  }
-
-  final targetSlot = common.psdkTargets.single;
-  final result = const BattleStatusChangeHandler().applyMajorStatus(
-    context: BattleHandlerContext(
-      state: common.state,
-      rng: rng,
-      turn: context.turn,
-      user: context.user,
-    ),
-    target: targetSlot,
-    moveId: context.move.id,
-    status: status.status,
-  );
-  if (!result.applied) {
-    return BattleMoveBehaviorResolution(
-      state: result.state,
-      rng: result.rng,
-      events: common.events,
-    );
-  }
-
-  return BattleMoveBehaviorResolution(
-    state: result.state,
-    rng: result.rng,
-    events: <PsdkBattleEvent>[
-      ...common.events,
-      ...result.events,
     ],
   );
 }

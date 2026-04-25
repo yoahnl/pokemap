@@ -13,7 +13,19 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_status': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.s_status',
+    dartBehavior: 'StatusStatMoveBehavior.status',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_stat': _KnownDartBehavior(
+    dartBehavior: 'StatusStatMoveBehavior.stat',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_self_stat': _KnownDartBehavior(
+    dartBehavior: 'StatusStatMoveBehavior.selfStat',
+    status: _PsdkPortStatus.partial,
+  ),
+  's_self_status': _KnownDartBehavior(
+    dartBehavior: 'StatusStatMoveBehavior.selfStatus',
     status: _PsdkPortStatus.partial,
   ),
   's_protect': _KnownDartBehavior(
@@ -318,6 +330,30 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
 };
 
 const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
+  's_status': {
+    _PsdkMoveDependency.handlerStatus,
+    _PsdkMoveDependency.handlerStat,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.ability,
+  },
+  's_stat': {
+    _PsdkMoveDependency.handlerStatus,
+    _PsdkMoveDependency.handlerStat,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.ability,
+  },
+  's_self_stat': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.handlerStat,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.ability,
+  },
+  's_self_status': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.handlerStatus,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.ability,
+  },
   // Weather and terrain families need handlers/effects before their move class
   // can be considered truly ported. PSDK delegates most of that behavior to
   // WeatherChangeHandler, FTerrainChangeHandler, item duration hooks and field

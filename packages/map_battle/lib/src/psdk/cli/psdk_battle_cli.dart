@@ -74,11 +74,11 @@ class PsdkBattleCli {
           return _PsdkBattleCliParseResult.error(
             'Unknown --scenario value "$value". Expected default, immunity, '
             'miss, super_effective, critical, secondary_effect, pp_empty, '
-            'prevented, protect, fixed_damage, multi_hit, advanced_multi_hit, '
-            'basic_specialization, direct_hp, healing, status_cure, '
-            'recovery_stat, recoil, mind_blown, explosion, terrain_boosting, '
-            'variable_power, custom_stat, weight_power, damp_ability, or '
-            'loaded_dice.',
+            'generic_status_stat, prevented, protect, fixed_damage, '
+            'multi_hit, advanced_multi_hit, basic_specialization, direct_hp, '
+            'healing, status_cure, recovery_stat, recoil, mind_blown, '
+            'explosion, terrain_boosting, variable_power, custom_stat, '
+            'weight_power, damp_ability, or loaded_dice.',
           );
         }
         scenario = parsed;
@@ -149,6 +149,7 @@ enum _PsdkBattleCliScenario {
   superEffective,
   critical,
   secondaryEffect,
+  genericStatusStat,
   ppEmpty,
   prevented,
   protect,
@@ -198,6 +199,9 @@ _PsdkBattleCliScenario? _parseScenario(String value) {
     'secondary_effect' ||
     'secondary-effect' =>
       _PsdkBattleCliScenario.secondaryEffect,
+    'generic_status_stat' ||
+    'generic-status-stat' =>
+      _PsdkBattleCliScenario.genericStatusStat,
     'pp_empty' || 'pp-empty' => _PsdkBattleCliScenario.ppEmpty,
     'prevented' => _PsdkBattleCliScenario.prevented,
     'protect' => _PsdkBattleCliScenario.protect,
@@ -385,6 +389,40 @@ _PsdkBattleCliScenarioConfig _scenarioConfig(
             stageMods: const <PsdkBattleMoveStageMod>[
               PsdkBattleMoveStageMod(
                 stat: 'defense',
+                stages: -1,
+                chance: 100,
+              ),
+            ],
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+        ),
+        turnLimit: 1,
+        mustFinish: false,
+      ),
+    _PsdkBattleCliScenario.genericStatusStat => _PsdkBattleCliScenarioConfig(
+        setup: _singleTurnSetup(
+          playerTypes: const PsdkBattleTypes(primary: 'normal'),
+          opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+          playerMove: _move(
+            id: 'scary_wave',
+            type: 'normal',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            battleEngineMethod: 's_stat',
+            statuses: <PsdkBattleMoveStatus>[
+              PsdkBattleMoveStatus(
+                status: PsdkBattleMajorStatus.paralysis,
+                chance: 100,
+              ),
+            ],
+            stageMods: const <PsdkBattleMoveStageMod>[
+              PsdkBattleMoveStageMod(
+                stat: 'attack',
                 stages: -1,
                 chance: 100,
               ),

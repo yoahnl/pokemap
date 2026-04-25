@@ -2071,17 +2071,27 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_self_stat',
     rubyClass: 'SelfStat',
     rubyPath: '10 Move/1 Mechanics/101 Self.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StatusStatMoveBehavior.selfStat',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerDamage,
+      PsdkMoveDependency.handlerStat,
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.ability
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_self_status',
     rubyClass: 'SelfStatus',
     rubyPath: '10 Move/1 Mechanics/101 Self.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StatusStatMoveBehavior.selfStatus',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerDamage,
+      PsdkMoveDependency.handlerStatus,
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.ability
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_shed_tail',
@@ -2278,17 +2288,27 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_stat',
     rubyClass: 'StatusStat',
     rubyPath: '10 Move/1 Mechanics/102 Status Stat.rb',
-    dartBehavior: 'TODO',
-    status: PsdkPortStatus.missing,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StatusStatMoveBehavior.stat',
+    status: PsdkPortStatus.partial,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerStatus,
+      PsdkMoveDependency.handlerStat,
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.ability
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_status',
     rubyClass: 'StatusStat',
     rubyPath: '10 Move/1 Mechanics/102 Status Stat.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.s_status',
+    dartBehavior: 'StatusStatMoveBehavior.status',
     status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.handlerStatus,
+      PsdkMoveDependency.handlerStat,
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.ability
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_stealth_rock',

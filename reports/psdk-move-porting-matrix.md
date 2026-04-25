@@ -7,8 +7,8 @@ Total registered methods: 330
 | Status | Count |
 | --- | ---: |
 | `ported` | 21 |
-| `partial` | 43 |
-| `missing` | 266 |
+| `partial` | 46 |
+| `missing` | 263 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
 | --- | --- | --- | --- | --- | --- |
@@ -255,8 +255,8 @@ Total registered methods: 330
 | `s_sappy_seed` | `SappySeed` | `10 Move/2 Definitions/300 SappySeed.rb` | `TODO` | `missing` | `-` |
 | `s_scale_shot` | `ScaleShot` | `10 Move/2 Definitions/300 ScaleShot.rb` | `TODO` | `missing` | `-` |
 | `s_secret_power` | `SecretPower` | `10 Move/2 Definitions/300 SecretPower.rb` | `TODO` | `missing` | `-` |
-| `s_self_stat` | `SelfStat` | `10 Move/1 Mechanics/101 Self.rb` | `TODO` | `missing` | `-` |
-| `s_self_status` | `SelfStatus` | `10 Move/1 Mechanics/101 Self.rb` | `TODO` | `missing` | `-` |
+| `s_self_stat` | `SelfStat` | `10 Move/1 Mechanics/101 Self.rb` | `StatusStatMoveBehavior.selfStat` | `partial` | `handler_damage`, `handler_stat`, `effects`, `ability` |
+| `s_self_status` | `SelfStatus` | `10 Move/1 Mechanics/101 Self.rb` | `StatusStatMoveBehavior.selfStatus` | `partial` | `handler_damage`, `handler_status`, `effects`, `ability` |
 | `s_shed_tail` | `ShedTail` | `10 Move/2 Definitions/300 Substitute.rb` | `TODO` | `missing` | `-` |
 | `s_shell_side_arm` | `ShellSideArm` | `10 Move/2 Definitions/300 ShellSideArm.rb` | `TODO` | `missing` | `-` |
 | `s_shell_trap` | `ShellTrap` | `10 Move/2 Definitions/300 PreAttackMoves.rb` | `TODO` | `missing` | `-` |
@@ -279,8 +279,8 @@ Total registered methods: 330
 | `s_spite` | `Spite` | `10 Move/2 Definitions/300 Spite.rb` | `TODO` | `missing` | `-` |
 | `s_splash` | `Splash` | `10 Move/2 Definitions/300 Splash.rb` | `NoEffectMoveBehavior.splash` | `partial` | `-` |
 | `s_split_up` | `SpitUp` | `10 Move/2 Definitions/300 SpitUp.rb` | `TODO` | `missing` | `-` |
-| `s_stat` | `StatusStat` | `10 Move/1 Mechanics/102 Status Stat.rb` | `TODO` | `missing` | `-` |
-| `s_status` | `StatusStat` | `10 Move/1 Mechanics/102 Status Stat.rb` | `StaticBasicMoveRegistry.s_status` | `partial` | `-` |
+| `s_stat` | `StatusStat` | `10 Move/1 Mechanics/102 Status Stat.rb` | `StatusStatMoveBehavior.stat` | `partial` | `handler_status`, `handler_stat`, `effects`, `ability` |
+| `s_status` | `StatusStat` | `10 Move/1 Mechanics/102 Status Stat.rb` | `StatusStatMoveBehavior.status` | `partial` | `handler_status`, `handler_stat`, `effects`, `ability` |
 | `s_stealth_rock` | `StealthRock` | `10 Move/2 Definitions/300 StealthRock.rb` | `TODO` | `missing` | `-` |
 | `s_steel_beam` | `MindBlown` | `10 Move/2 Definitions/300 MindBlown.rb` | `MindBlownMoveBehavior.steelBeam` | `partial` | `ability`, `faint_process` |
 | `s_steel_roller` | `SteelRoller` | `10 Move/2 Definitions/300 IceSpinner SteelRoller.rb` | `TODO` | `missing` | `-` |

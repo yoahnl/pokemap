@@ -123,6 +123,34 @@ void main() {
       );
     });
 
+    test('prints a generic status/stat scenario without damage', () async {
+      final lines = <String>[];
+      final exitCode = await PsdkBattleCli(
+        stdout: lines.add,
+        stderr: fail,
+      ).run(const <String>[
+        '--scenario',
+        'generic_status_stat',
+        '--format',
+        'json',
+      ]);
+
+      expect(exitCode, 0);
+      final payload = jsonDecode(lines.single) as Map<String, dynamic>;
+      expect(payload['outcome'], 'ongoing');
+      expect(payload['opponentHp'], 100);
+
+      final kinds = (payload['events'] as List<dynamic>)
+          .cast<Map<String, dynamic>>()
+          .map((event) => event['kind'])
+          .toList(growable: false);
+      expect(
+        kinds,
+        containsAllInOrder(<String>['status', 'stat_stage_change']),
+      );
+      expect(kinds, isNot(contains('damage')));
+    });
+
     test('prints a zero PP scenario as a move failure', () async {
       final lines = <String>[];
       final exitCode = await PsdkBattleCli(

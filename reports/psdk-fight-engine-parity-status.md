@@ -6,8 +6,8 @@ Date: 2026-04-25
 | --- | ---: |
 | PSDK move methods | 330 |
 | Move methods ported | 21 |
-| Move methods partial | 43 |
-| Move methods missing | 266 |
+| Move methods partial | 46 |
+| Move methods missing | 263 |
 | PSDK effect classes | 482 |
 | Effect classes ported | 0 |
 | Effect classes partial | 1 |
