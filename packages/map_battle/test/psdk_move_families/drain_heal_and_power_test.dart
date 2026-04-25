@@ -108,11 +108,14 @@ void main() {
         ),
       );
 
+      final awakeKinds = awake.timeline.events
+          .where((event) => event.toJson()['moveId'] == 'dream_eater')
+          .map((event) => event.kind)
+          .toList(growable: false);
       expect(_damageEvents(awake, moveId: 'dream_eater'), isEmpty);
-      expect(
-        awake.timeline.events.map((event) => event.kind),
-        contains('move_immune'),
-      );
+      expect(awakeKinds, contains('move_immune'));
+      expect(awakeKinds, isNot(contains('animation_cue')));
+      expect(awakeKinds, isNot(contains('damage')));
       expect(_damage(asleep, moveId: 'dream_eater'), greaterThan(0));
       expect(_healJson(asleep, moveId: 'dream_eater')['amount'],
           _damage(asleep, moveId: 'dream_eater') ~/ 2);

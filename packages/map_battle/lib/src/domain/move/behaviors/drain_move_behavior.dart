@@ -1,8 +1,13 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../battle/battle_slot.dart';
+import '../../timeline/battle_timeline_event.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_damage_calculator.dart';
+import '../battle_move_execution.dart';
+import '../battle_move_prevention.dart';
+import '../battle_move_procedure.dart';
 import '../battle_move_secondary_effect_resolver.dart';
 import 'battle_move_behavior_support.dart';
 
@@ -32,29 +37,18 @@ final class DrainMoveBehavior implements BattleMoveBehavior {
 
   @override
   BattleMoveBehaviorResolution resolve(BattleMoveBehaviorContext context) {
-    final prepared = prepareBattleMove(context);
+    final prepared = prepareBattleMove(
+      context,
+      targetPrecheck: _kind == _DrainMoveKind.dreamEater
+          ? _precheckDreamEaterTarget
+          : precheckTypeImmunityAndProtect,
+    );
     if (!prepared.shouldExecuteBehavior) {
       return prepared.toResolution();
     }
 
     final targetSlot = prepared.psdkTargets.single;
     final target = prepared.state.battlerAt(targetSlot);
-    if (_kind == _DrainMoveKind.dreamEater && !_canDreamEaterAffect(target)) {
-      return BattleMoveBehaviorResolution(
-        state: prepared.state,
-        rng: prepared.rng,
-        events: <PsdkBattleEvent>[
-          ...prepared.events,
-          PsdkBattleImmuneEvent(
-            user: context.user,
-            target: targetSlot,
-            moveId: context.move.id,
-          ),
-        ],
-        successful: false,
-      );
-    }
-
     final user = prepared.state.battlerAt(context.user);
     final damageResult = const BattleMoveDamageCalculator().calculate(
       BattleMoveDamageContext(
@@ -114,6 +108,40 @@ final class DrainMoveBehavior implements BattleMoveBehavior {
       ],
     );
   }
+}
+
+BattleMoveTargetPrecheckResult _precheckDreamEaterTarget(
+  BattleMoveProcedureExecution execution,
+  List<BattlePositionRef> targets,
+) {
+  final base = precheckTypeImmunityAndProtect(execution, targets);
+  final affectedTargets = <BattlePositionRef>[];
+  var reason = base.reason;
+
+  for (final targetRef in base.targets) {
+    final target = execution.context.state.battlerAt(
+      psdkSlotFromBattlePosition(targetRef),
+    );
+    if (!_canDreamEaterAffect(target)) {
+      reason = BattleMoveFailureReason.immunity;
+      execution.timeline.add(
+        BattleMoveImmuneTimelineEvent(
+          turn: execution.turn,
+          user: execution.actualUser,
+          target: targetRef,
+          moveId: execution.move.id,
+        ),
+      );
+      continue;
+    }
+
+    affectedTargets.add(targetRef);
+  }
+
+  return BattleMoveTargetPrecheckResult(
+    targets: affectedTargets,
+    reason: reason,
+  );
 }
 
 bool _canDreamEaterAffect(PsdkBattleCombatant target) {

@@ -20,7 +20,10 @@ import '../battle_move_procedure.dart';
 /// going through the same declaration, target, accuracy, Protect and immunity
 /// checks. This helper keeps that contract in one place so Lot 16 families do
 /// not fork subtly different pre-hit behavior.
-PreparedBattleMove prepareBattleMove(BattleMoveBehaviorContext context) {
+PreparedBattleMove prepareBattleMove(
+  BattleMoveBehaviorContext context, {
+  BattleMoveTargetPrecheck targetPrecheck = precheckTypeImmunityAndProtect,
+}) {
   final timeline = BattleTimelineBuilder();
   final execution = BattleMoveProcedureExecution(
     context: context,
@@ -31,7 +34,7 @@ PreparedBattleMove prepareBattleMove(BattleMoveBehaviorContext context) {
   );
   final result = BattleMoveProcedure(
     hooks: context.moveProcedureHooks,
-    targetPrecheck: precheckTypeImmunityAndProtect,
+    targetPrecheck: targetPrecheck,
   ).prepare(execution);
   return PreparedBattleMove(
     state: context.state,
