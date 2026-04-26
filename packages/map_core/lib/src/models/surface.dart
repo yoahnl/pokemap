@@ -1,7 +1,7 @@
-// Fichier d’entrée Surface (map_core) : pas de persistance, pas de JSON ici.
-// Les types ci-dessous décrivent seulement une **géométrie d’atlas** (tailles, grille,
-// convention de layout) pour une future intégration (ex. `ProjectSurfaceAtlas`, hors
-// scope des lots actuels).
+// Fichier d’entrée Surface (map_core) : pas de persistance JSON, pas de `toJson` ici.
+// Contient l’[enum] de layout, les value objects de géométrie d’atlas, et
+// [ProjectSurfaceAtlas] (métadonnées d’atlas) — raccrochage manifest dans des lots
+// ultérieurs.
 
 import 'package:meta/meta.dart' show immutable;
 
@@ -150,4 +150,83 @@ final class SurfaceAtlasGeometry {
 
   @override
   int get hashCode => Object.hash(tileSize, gridSize, layout);
+}
+
+/// Métadonnées d’un **atlas Surface** auteur : identifiant, libellé, tileset
+/// source, et [geometry] (convention d’atlas, pas d’image chargée ici).
+///
+/// * N’est **pas** encore rattaché à un [ProjectManifest] (aucune liste
+///   `surfaceAtlases` dans ce lot) : modèle de domaine seul, sans persistance
+///   JSON.
+/// * Ne fait **pas** de [toJson] / [fromJson] ; ne crée **pas** de preset
+///   runtime ni d’[SurfaceLayer].
+/// * Ne valide **pas** l’existence d’un enregistrement de tileset dans le
+///   manifeste, ni la taille d’un fichier image — seulement la cohérence
+///   minimale des champs texte requis.
+@immutable
+final class ProjectSurfaceAtlas {
+  ProjectSurfaceAtlas({
+    required this.id,
+    required this.name,
+    required this.tilesetId,
+    required this.geometry,
+    this.categoryId,
+    this.sortOrder = 0,
+  }) {
+    if (id.trim().isEmpty) {
+      throw const ValidationException('ProjectSurfaceAtlas.id must be non-empty');
+    }
+    if (name.trim().isEmpty) {
+      throw const ValidationException('ProjectSurfaceAtlas.name must be non-empty');
+    }
+    if (tilesetId.trim().isEmpty) {
+      throw const ValidationException('ProjectSurfaceAtlas.tilesetId must be non-empty');
+    }
+  }
+
+  /// Identifiant stable, unique côté auteur. Stocké **tel quel** (pas de trim
+  /// appliqué à la chaîne mémorisée) ; on rejette seulement les « vides » via
+  /// `trim` dans le constructeur.
+  final String id;
+
+  /// Nom d’affichage ; mêmes règles de stockage et de garde qu’[id].
+  final String name;
+
+  /// Clé de tileset (référence logique) ; même principe de stockage.
+  final String tilesetId;
+
+  /// Découpage d’atlas (les dimensions sont déjà validées par les value objects
+  /// [SurfaceAtlasTileSize] / [SurfaceAtlasGridSize] ; pas de revalidation ici).
+  final SurfaceAtlasGeometry geometry;
+
+  /// Dossier / catégorie optionnelle (comme [ProjectPathPreset.categoryId]) :
+  /// ce lot **n’impose** pas de forme (chaîne vide autorisée si l’appelant la
+  /// transmet, pour ne pas sur-valider en l’absence de convention unique sur
+  /// les champs optionnels de ce type dans le monorepo).
+  final String? categoryId;
+
+  /// Ordre d’affichage (classement) ; toute valeur entière est acceptée, comme
+  /// [ProjectPathPreset.sortOrder] sans borne documentée ici.
+  final int sortOrder;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ProjectSurfaceAtlas &&
+          other.id == id &&
+          other.name == name &&
+          other.tilesetId == tilesetId &&
+          other.geometry == geometry &&
+          other.categoryId == categoryId &&
+          other.sortOrder == sortOrder;
+
+  @override
+  int get hashCode => Object.hash(
+        id,
+        name,
+        tilesetId,
+        geometry,
+        categoryId,
+        sortOrder,
+      );
 }
