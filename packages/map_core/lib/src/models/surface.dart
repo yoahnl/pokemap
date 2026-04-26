@@ -333,3 +333,80 @@ final class SurfaceAnimationFrame {
   @override
   int get hashCode => Object.hash(tileRef, durationMs);
 }
+
+/// Comparaison **ordonnée** de deux listes de frames (même longueur et égalité
+/// élément par élément) — utile à [SurfaceAnimationTimeline] pour [operator ==]
+/// sans dépendre d’un utilitaire de collection externe.
+bool _surfaceAnimationFramesEqualInOrder(
+  List<SurfaceAnimationFrame> a,
+  List<SurfaceAnimationFrame> b,
+) {
+  if (a.length != b.length) {
+    return false;
+  }
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/// Timeline d’animation Surface côté **domaine** : une liste **ordonnée** et
+/// **immuable** de [SurfaceAnimationFrame].
+///
+/// * Pas de [toJson] / [fromJson] ; ne constitue **pas** [ProjectSurfaceAnimation]
+///   ni d’enregistrement de projet.
+/// * Aucun **temps courant**, **frame courante** ou moteur de lecture : c’est
+///   seulement la séquence et les durées **déclarées** ; [totalDurationMs] est
+///   la somme de ces durées, pas une exécution.
+/// * [isInside] n’agit qu’en validation **géométrique** (toutes les frames
+///   [SurfaceAnimationFrame.isInside]) : pas d’[atlasId] résolu, pas de manifest,
+///   pas de texture, pas de runtime.
+/// * La liste passée au constructeur est **copiée** puis enrobée en non modifiable
+///   (une mutation de la source après construction ne change **pas** la timeline).
+@immutable
+final class SurfaceAnimationTimeline {
+  SurfaceAnimationTimeline({
+    required List<SurfaceAnimationFrame> frames,
+  }) {
+    if (frames.isEmpty) {
+      throw const ValidationException(
+        'SurfaceAnimationTimeline.frames must be non-empty',
+      );
+    }
+    _frames = List<SurfaceAnimationFrame>.unmodifiable(
+      List<SurfaceAnimationFrame>.from(frames),
+    );
+  }
+
+  late final List<SurfaceAnimationFrame> _frames;
+
+  /// Frames dans l’**ordre** d’enchaînement (liste **non modifiable**).
+  List<SurfaceAnimationFrame> get frames => _frames;
+
+  /// Nombre de frames.
+  int get frameCount => _frames.length;
+
+  /// Somme des [SurfaceAnimationFrame.durationMs] (millisecondes déclarées).
+  int get totalDurationMs {
+    var sum = 0;
+    for (final frame in _frames) {
+      sum += frame.durationMs;
+    }
+    return sum;
+  }
+
+  /// Vrai si **chaque** frame tient dans [geometry] (même règles qu’en Lot 25).
+  bool isInside(SurfaceAtlasGeometry geometry) =>
+      _frames.every((frame) => frame.isInside(geometry));
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SurfaceAnimationTimeline &&
+          _surfaceAnimationFramesEqualInOrder(frames, other.frames);
+
+  @override
+  int get hashCode => Object.hashAll(_frames);
+}
