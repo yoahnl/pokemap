@@ -286,3 +286,50 @@ final class SurfaceAtlasTileRef {
   @override
   int get hashCode => Object.hash(atlasId, column, row);
 }
+
+/// **Une** frame d’animation Surface côté domaine : [tileRef] (tuile d’atlas) +
+/// [durationMs] (durée d’affichage en millisecondes).
+///
+/// * Modèle pur : **aucun** [toJson] / [fromJson] ; ne constitue **pas** une
+///   timeline, une liste de frames ni un moteur d’animation.
+/// * [durationMs] n’est qu’une **donnée** (pas d’horloge, pas de « temps
+///   courant », pas d’exécution runtime).
+/// * [tileRef] reste une [SurfaceAtlasTileRef] logique, **non résolue** vers un
+///   [ProjectSurfaceAtlas] ou un manifest — pas de chargement de texture, pas
+///   de vérification de fichier image ici.
+/// * [isInside] se contente de déléguer à [SurfaceAtlasTileRef.isInside] (la
+///   [SurfaceAtlasTileRef] a déjà validé `atlasId` / `column` / `row`) ; ce
+///   constructeur ne re-valide pas ces champs.
+@immutable
+final class SurfaceAnimationFrame {
+  SurfaceAnimationFrame({
+    required this.tileRef,
+    required this.durationMs,
+  }) {
+    if (durationMs <= 0) {
+      throw const ValidationException(
+        'SurfaceAnimationFrame.durationMs must be > 0',
+      );
+    }
+  }
+
+  /// Référence de la tuile à afficher (instance conservée telle quelle).
+  final SurfaceAtlasTileRef tileRef;
+
+  /// Durée d’affichage de la frame, en millisecondes (strictement positive).
+  final int durationMs;
+
+  /// Vérifie que la [tileRef] tient dans [geometry] (délègue, sans autre
+  /// sémantique d’animation).
+  bool isInside(SurfaceAtlasGeometry geometry) => tileRef.isInside(geometry);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SurfaceAnimationFrame &&
+          other.tileRef == tileRef &&
+          other.durationMs == durationMs;
+
+  @override
+  int get hashCode => Object.hash(tileRef, durationMs);
+}
