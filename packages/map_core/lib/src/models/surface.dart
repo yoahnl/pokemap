@@ -230,3 +230,59 @@ final class ProjectSurfaceAtlas {
         sortOrder,
       );
 }
+
+/// Adresse logique d’une **cellule** dans un atlas identifié par [atlasId]
+/// (pas de chargement d’image, pas de jointure [ProjectSurfaceAtlas] ou
+/// manifest dans ce lot — [atlasId] est un libellé auteur, non résolu ici).
+///
+/// * [column] et [row] sont des **indices de grille** 0-based (même
+///   convention que [SurfaceAtlasGeometry.containsGridCoordinate]), **pas** des
+///   pixels dans la texture.
+/// * [isInside] s’appuie uniquement sur la [SurfaceAtlasGeometry] passée (elle
+///   n’impose pas que l’on connaisse un `ProjectSurfaceAtlas` concret) ; elle ne
+///   vérifie **pas** qu’un enregistrement d’atlas portant cet [atlasId] existe.
+@immutable
+final class SurfaceAtlasTileRef {
+  SurfaceAtlasTileRef({
+    required this.atlasId,
+    required this.column,
+    required this.row,
+  }) {
+    if (atlasId.trim().isEmpty) {
+      throw const ValidationException('SurfaceAtlasTileRef.atlasId must be non-empty');
+    }
+    if (column < 0) {
+      throw const ValidationException('SurfaceAtlasTileRef.column must be >= 0');
+    }
+    if (row < 0) {
+      throw const ValidationException('SurfaceAtlasTileRef.row must be >= 0');
+    }
+  }
+
+  /// Clé d’atlas côté domaine. Stockage **brut** (comme [ProjectSurfaceAtlas.id]) ;
+  /// l’irrecevabilité seulement quand, après [trim], il ne reste rien.
+  final String atlasId;
+
+  /// Colonne (axe X de la **grille d’atlas**), indice 0-based.
+  final int column;
+
+  /// Ligne (axe Y de la **grille d’atlas**), indice 0-based.
+  final int row;
+
+  /// Vérifie si ce couple (column,row) tient dans [geometry] (indépendant du
+  /// [SurfaceAtlasLayout] pour la seule **taille** de grille, cf.
+  /// [SurfaceAtlasGeometry.containsGridCoordinate]).
+  bool isInside(SurfaceAtlasGeometry geometry) =>
+      geometry.containsGridCoordinate(column: column, row: row);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SurfaceAtlasTileRef &&
+          other.atlasId == atlasId &&
+          other.column == column &&
+          other.row == row;
+
+  @override
+  int get hashCode => Object.hash(atlasId, column, row);
+}
