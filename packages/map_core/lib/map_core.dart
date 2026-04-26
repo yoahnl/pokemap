@@ -29,6 +29,7 @@ export 'src/operations/map_path.dart';
 export 'src/operations/map_terrain.dart';
 export 'src/operations/map_terrain_autotile.dart';
 export 'src/operations/tile_visual_frame_timeline.dart';
+export 'src/operations/tile_visual_frame_vertical_atlas.dart';
 export 'src/operations/legacy_path_surface_view.dart';
 export 'src/operations/legacy_terrain_surface_view.dart';
 export 'src/operations/legacy_project_surface_catalog_view.dart';
