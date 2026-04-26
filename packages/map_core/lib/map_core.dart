@@ -42,6 +42,7 @@ export 'src/operations/standard_ice_path_preset_vertical_atlas_builder.dart';
 export 'src/operations/standard_tall_grass_path_preset_vertical_atlas_builder.dart';
 export 'src/operations/standard_surface_preset_builder.dart';
 export 'src/operations/surface_catalog_diagnostics.dart';
+export 'src/operations/surface_catalog_authoring_diagnostics.dart';
 export 'src/operations/legacy_path_surface_view.dart';
 export 'src/operations/legacy_terrain_surface_view.dart';
 export 'src/operations/legacy_project_surface_catalog_view.dart';
