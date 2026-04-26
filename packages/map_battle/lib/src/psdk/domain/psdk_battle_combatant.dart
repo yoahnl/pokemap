@@ -650,6 +650,10 @@ class PsdkBattleCombatant {
   }
 
   PsdkBattleCombatant copyWith({
+    String? speciesId,
+    String? displayName,
+    PsdkBattleTypes? types,
+    PsdkBattleStats? stats,
     int? currentHp,
     Object? abilityId = _unchanged,
     Object? heldItemId = _unchanged,
@@ -687,13 +691,13 @@ class PsdkBattleCombatant {
     }
     return PsdkBattleCombatant(
       id: id,
-      speciesId: speciesId,
-      displayName: displayName,
+      speciesId: speciesId ?? this.speciesId,
+      displayName: displayName ?? this.displayName,
       level: level,
       maxHp: maxHp,
       currentHp: currentHp ?? this.currentHp,
-      types: types,
-      stats: stats,
+      types: types ?? this.types,
+      stats: stats ?? this.stats,
       moves: moves ?? this.moves,
       abilityId: identical(abilityId, _unchanged)
           ? this.abilityId

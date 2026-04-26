@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 const kRuntimeDemoSeedLevel = 25;
 const kRuntimeDemoSeedCurrentHp = 60;
 const kRuntimeDemoSeedSaveId = 'runtime-host-demo-save';
+const kRuntimeDemoMaxPartySize = 6;
 const _runtimeDemoSeedBagEntries = <BagEntry>[
   BagEntry(itemId: 'poke-ball', categoryId: 'items', quantity: 5),
   BagEntry(itemId: 'potion', categoryId: 'medicine', quantity: 3),
@@ -48,6 +49,31 @@ class RuntimeDemoPartyPokemonSeed {
   final List<String> knownMoveIds;
 }
 
+class RuntimePartyBuilderPokemonOption {
+  const RuntimePartyBuilderPokemonOption({
+    required this.speciesId,
+    required this.displayName,
+    required this.abilityId,
+    required this.gender,
+    required this.availableMoveIds,
+    required this.suggestedMoveIds,
+  });
+
+  final String speciesId;
+  final String displayName;
+  final String abilityId;
+  final String? gender;
+  final List<String> availableMoveIds;
+  final List<String> suggestedMoveIds;
+
+  String get label {
+    if (displayName.trim().isEmpty || displayName == speciesId) {
+      return speciesId;
+    }
+    return '$displayName ($speciesId)';
+  }
+}
+
 SaveData buildRuntimeHostLaunchDemoSaveData({
   required String mapId,
   required RuntimeDemoPartySeed seed,
@@ -73,6 +99,46 @@ SaveData buildRuntimeHostLaunchDemoSaveData({
     trainerProfile: const TrainerProfile(name: 'Demo'),
     bag: const Bag(entries: _runtimeDemoSeedBagEntries),
   );
+}
+
+Future<List<RuntimePartyBuilderPokemonOption>>
+    loadRuntimeHostPartyBuilderOptions({
+  required String projectFilePath,
+  int suggestedLevel = kRuntimeDemoSeedLevel,
+}) async {
+  final projectFile = File(projectFilePath);
+  final projectJson =
+      jsonDecode(await projectFile.readAsString()) as Map<String, dynamic>;
+  final projectRootUri = projectFile.parent.uri;
+  final pokemonConfig = _readPokemonConfig(projectJson);
+  final speciesJsonEntries = await _readSpeciesEntries(
+    projectRootUri: projectRootUri,
+    speciesDir: pokemonConfig.speciesDir,
+  );
+
+  final options = <RuntimePartyBuilderPokemonOption>[];
+  for (final speciesEntry in speciesJsonEntries) {
+    final option = await _tryBuildPartyBuilderOption(
+      projectRootUri: projectRootUri,
+      pokemonConfig: pokemonConfig,
+      speciesEntry: speciesEntry,
+      suggestedLevel: suggestedLevel,
+    );
+    if (option != null) {
+      options.add(option);
+    }
+  }
+
+  options.sort((left, right) {
+    final byName = left.displayName
+        .toLowerCase()
+        .compareTo(right.displayName.toLowerCase());
+    if (byName != 0) {
+      return byName;
+    }
+    return left.speciesId.compareTo(right.speciesId);
+  });
+  return List<RuntimePartyBuilderPokemonOption>.unmodifiable(options);
 }
 
 Future<RuntimeDemoPartySeed?> buildRuntimeHostLaunchDemoPartySeed({
@@ -300,6 +366,46 @@ Future<RuntimeDemoPartyPokemonSeed?> _tryBuildPartySeedMember({
   );
 }
 
+Future<RuntimePartyBuilderPokemonOption?> _tryBuildPartyBuilderOption({
+  required Uri projectRootUri,
+  required _RuntimeHostPokemonConfig pokemonConfig,
+  required _RuntimeHostSpeciesJsonEntry speciesEntry,
+  required int suggestedLevel,
+}) async {
+  final speciesJson = speciesEntry.json;
+  final learnsetId = _readLearnsetId(speciesJson, speciesEntry.id);
+  final learnsetJson = await _tryReadJsonMap(
+    projectRootUri.resolve('${pokemonConfig.learnsetsDir}/$learnsetId.json'),
+  );
+  if (learnsetJson == null) {
+    return null;
+  }
+
+  final availableMoveIds = _deriveAvailableMoveIds(
+    learnsetJson,
+    maxLevel: 100,
+  );
+  if (availableMoveIds.isEmpty) {
+    return null;
+  }
+
+  final suggestedMoveIds = _deriveKnownMoveIds(
+    learnsetJson,
+    level: suggestedLevel.clamp(1, 100).toInt(),
+  );
+
+  return RuntimePartyBuilderPokemonOption(
+    speciesId: speciesEntry.id,
+    displayName: _readSpeciesDisplayName(speciesJson, speciesEntry.id),
+    abilityId: _readPrimaryAbilityId(speciesJson) ?? 'unknown',
+    gender: _resolveSeedGender(speciesJson, speciesEntry.id),
+    availableMoveIds: availableMoveIds,
+    suggestedMoveIds: suggestedMoveIds.isEmpty
+        ? List<String>.unmodifiable(availableMoveIds.take(4))
+        : suggestedMoveIds,
+  );
+}
+
 String _readLearnsetId(
   Map<String, dynamic> speciesJson,
   String fallbackSpeciesId,
@@ -315,6 +421,33 @@ String _readLearnsetId(
   if (legacy != null && legacy.isNotEmpty) {
     return legacy;
   }
+  return fallbackSpeciesId;
+}
+
+String _readSpeciesDisplayName(
+  Map<String, dynamic> speciesJson,
+  String fallbackSpeciesId,
+) {
+  final names = speciesJson['names'];
+  if (names is Map) {
+    for (final locale in const <String>['fr', 'en']) {
+      final value = names[locale];
+      if (value is String && value.trim().isNotEmpty) {
+        return value.trim();
+      }
+    }
+    for (final value in names.values) {
+      if (value is String && value.trim().isNotEmpty) {
+        return value.trim();
+      }
+    }
+  }
+
+  final name = speciesJson['name'];
+  if (name is String && name.trim().isNotEmpty) {
+    return name.trim();
+  }
+
   return fallbackSpeciesId;
 }
 
@@ -375,6 +508,28 @@ List<String> _deriveKnownMoveIds(
     ..._readLevelUpMoveIds(learnsetJson['levelUp'], level: level),
   ];
 
+  final unique = _uniqueMoveIds(ordered);
+
+  if (unique.length <= 4) {
+    return List<String>.unmodifiable(unique);
+  }
+  return List<String>.unmodifiable(unique.sublist(unique.length - 4));
+}
+
+List<String> _deriveAvailableMoveIds(
+  Map<String, dynamic> learnsetJson, {
+  required int maxLevel,
+}) {
+  return List<String>.unmodifiable(
+    _uniqueMoveIds(<String>[
+      ..._readStringList(learnsetJson['startingMoves']),
+      ..._readStringList(learnsetJson['relearnMoves']),
+      ..._readLevelUpMoveIds(learnsetJson['levelUp'], level: maxLevel),
+    ]),
+  );
+}
+
+List<String> _uniqueMoveIds(Iterable<String> ordered) {
   final unique = <String>[];
   final seen = <String>{};
   for (final moveId in ordered) {
@@ -384,11 +539,7 @@ List<String> _deriveKnownMoveIds(
     }
     unique.add(trimmed);
   }
-
-  if (unique.length <= 4) {
-    return List<String>.unmodifiable(unique);
-  }
-  return List<String>.unmodifiable(unique.sublist(unique.length - 4));
+  return unique;
 }
 
 List<String> _readStringList(Object? raw) {

@@ -23,6 +23,7 @@ import '../battle_move_procedure.dart';
 PreparedBattleMove prepareBattleMove(
   BattleMoveBehaviorContext context, {
   BattleMoveTargetPrecheck targetPrecheck = precheckTypeImmunityAndProtect,
+  bool forceAccuracyBypass = false,
 }) {
   final timeline = BattleTimelineBuilder();
   final execution = BattleMoveProcedureExecution(
@@ -35,6 +36,7 @@ PreparedBattleMove prepareBattleMove(
   final result = BattleMoveProcedure(
     hooks: context.moveProcedureHooks,
     targetPrecheck: targetPrecheck,
+    forceAccuracyBypass: forceAccuracyBypass,
   ).prepare(execution);
   return PreparedBattleMove(
     state: context.state,

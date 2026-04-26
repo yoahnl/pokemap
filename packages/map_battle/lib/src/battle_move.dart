@@ -130,7 +130,8 @@ class BattleStatStageEffect {
   const BattleStatStageEffect({
     required this.changes,
     this.chancePercent,
-  }) : assert(chancePercent == null || (chancePercent >= 1 && chancePercent <= 100));
+  }) : assert(chancePercent == null ||
+            (chancePercent >= 1 && chancePercent <= 100));
 
   final List<BattleStatStageChange> changes;
   final int? chancePercent;
@@ -181,6 +182,8 @@ final class BattleMove {
   ///   une exécution réussie.
   /// [chargeThenStrikeEffect] - Porte le petit contrat local d'un move qui
   ///   charge un tour puis frappe le tour suivant sans repayer les PP.
+  /// [copiesTargetOnHit] - Copie la forme battle active de la cible en touchant
+  ///   (`Transform`).
   /// [selfStatStageChanges] - Boosts / baisses appliqués au lanceur.
   /// [targetStatStageChanges] - Boosts / baisses appliqués à la cible.
   /// [selfStatStageRider] - Rider de stats probabiliste appliqué au lanceur
@@ -226,6 +229,7 @@ final class BattleMove {
     this.breaksProtect = false,
     this.requiresRecharge = false,
     this.chargeThenStrikeEffect,
+    this.copiesTargetOnHit = false,
     this.selfStatStageChanges = const <BattleStatStageChange>[],
     this.targetStatStageChanges = const <BattleStatStageChange>[],
     this.selfStatStageRider,
@@ -435,6 +439,14 @@ final class BattleMove {
   ///   spéciaux hors scope.
   final BattleChargeThenStrikeEffect? chargeThenStrikeEffect;
 
+  /// true si ce move copie la forme battle active de sa cible en touchant.
+  ///
+  /// Ce booléen est le plus petit pont honnête pour `Transform` dans le moteur
+  /// legacy encore utilisé par le runtime. Il ne remplace pas la voie PSDK :
+  /// il évite seulement que l'overworld bloque Ditto avant même d'entrer en
+  /// combat.
+  final bool copiesTargetOnHit;
+
   /// Changements d'étages de stats appliqués au lanceur.
   final List<BattleStatStageChange> selfStatStageChanges;
 
@@ -497,6 +509,44 @@ final class BattleMove {
       breaksProtect: breaksProtect,
       requiresRecharge: requiresRecharge,
       chargeThenStrikeEffect: chargeThenStrikeEffect,
+      copiesTargetOnHit: copiesTargetOnHit,
+      selfStatStageChanges: selfStatStageChanges,
+      targetStatStageChanges: targetStatStageChanges,
+      selfStatStageRider: selfStatStageRider,
+      targetStatStageRider: targetStatStageRider,
+    );
+  }
+
+  /// Retourne une copie avec un état PP explicite.
+  ///
+  /// `Transform` l'utilise pour copier les moves visibles de la cible avec
+  /// 5 PP chacun, sans inventer un second modèle de move runtime.
+  BattleMove withPpState({
+    required int pp,
+    required int currentPp,
+  }) {
+    return BattleMove(
+      id: id,
+      name: name,
+      power: power,
+      type: type,
+      category: category,
+      target: target,
+      accuracy: accuracy,
+      pp: pp,
+      currentPp: currentPp,
+      priority: priority,
+      critRatio: critRatio,
+      majorStatusEffect: majorStatusEffect,
+      selfVolatileStatus: selfVolatileStatus,
+      weatherEffect: weatherEffect,
+      pseudoWeatherEffect: pseudoWeatherEffect,
+      setsStealthRock: setsStealthRock,
+      setsSpikes: setsSpikes,
+      breaksProtect: breaksProtect,
+      requiresRecharge: requiresRecharge,
+      chargeThenStrikeEffect: chargeThenStrikeEffect,
+      copiesTargetOnHit: copiesTargetOnHit,
       selfStatStageChanges: selfStatStageChanges,
       targetStatStageChanges: targetStatStageChanges,
       selfStatStageRider: selfStatStageRider,

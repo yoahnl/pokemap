@@ -255,6 +255,8 @@ final class BattleMoveData {
   ///   lanceur.
   /// [chargeThenStrikeEffect] - Le move charge un tour puis frappe le tour
   ///   suivant sans repayer les PP.
+  /// [copiesTargetOnHit] - Le move copie la forme battle active de la cible
+  ///   lorsqu'il touche (`Transform`).
   /// [selfStatStageChanges] - Boosts / baisses appliqués au lanceur.
   /// [targetStatStageChanges] - Boosts / baisses appliqués à la cible.
   /// [selfStatStageRider] - Rider de stats probabiliste appliqué au lanceur
@@ -299,6 +301,7 @@ final class BattleMoveData {
     this.breaksProtect = false,
     this.requiresRecharge = false,
     this.chargeThenStrikeEffect,
+    this.copiesTargetOnHit = false,
     this.selfStatStageChanges = const <BattleStatStageChange>[],
     this.targetStatStageChanges = const <BattleStatStageChange>[],
     this.selfStatStageRider,
@@ -473,6 +476,16 @@ final class BattleMoveData {
 
   /// Payload battle minimal d'un move à charge sur deux tours.
   final BattleChargeThenStrikeEffect? chargeThenStrikeEffect;
+
+  /// true si ce move copie la forme battle active de sa cible en touchant.
+  ///
+  /// Ce champ reste volontairement spécifique :
+  /// - il existe pour brancher `Transform` sans importer le modèle PSDK dans
+  ///   le moteur legacy encore utilisé par le runtime ;
+  /// - il ne devient pas un conteneur générique d'effets spéciaux ;
+  /// - le bridge runtime ne doit le poser que pour l'attaque canonique
+  ///   `transform`.
+  final bool copiesTargetOnHit;
 
   /// Changements d'étages de stats appliqués au lanceur.
   final List<BattleStatStageChange> selfStatStageChanges;

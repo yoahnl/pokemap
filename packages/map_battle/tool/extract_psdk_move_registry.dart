@@ -108,6 +108,12 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'DirectHpMoveBehavior.finalGambit',
     status: _PsdkPortStatus.partial,
   ),
+  // Pain Split shares current HP locally and bypasses accuracy like PSDK. It
+  // stays partial until Substitute/authentic effect handling is available.
+  's_pain_split': _KnownDartBehavior(
+    dartBehavior: 'DirectHpMoveBehavior.painSplit',
+    status: _PsdkPortStatus.partial,
+  ),
   // Drain/heal families are executable for their local HP transfer rules, but
   // stay partial until PSDK's Heal Block, drain-prevention and item/ability
   // hooks are represented as full effects.
@@ -163,6 +169,13 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'SwitchEffectMoveBehavior.batonPass',
     status: _PsdkPortStatus.partial,
   ),
+  // Transform copies target battle-visible form, stats, ability, stages and
+  // moves. It stays partial until switch-out cleanup, Imposter and Illusion
+  // initialization hooks are fully ported.
+  's_transform': _KnownDartBehavior(
+    dartBehavior: 'TransformMoveBehavior',
+    status: _PsdkPortStatus.partial,
+  ),
   // Hit-then-cure moves execute their local power/cure rules. They stay
   // partial until status cure process hooks and Substitute-style effect
   // interception can mirror Ruby PSDK completely.
@@ -176,6 +189,20 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_sparkling_aria': _KnownDartBehavior(
     dartBehavior: 'HitThenCureStatusMoveBehavior.sparklingAria',
+    status: _PsdkPortStatus.partial,
+  ),
+  // Psycho Shift transfers the user's major status through the local status
+  // handler. It remains partial until status target-immunity events,
+  // Substitute/effect interception and multi-target process hooks match PSDK.
+  's_psycho_shift': _KnownDartBehavior(
+    dartBehavior: 'PsychoShiftMoveBehavior',
+    status: _PsdkPortStatus.partial,
+  ),
+  // Purify executes its local cure + half-max user heal. It stays partial
+  // until status cure process hooks, Substitute interception and multi-target
+  // status checks match Ruby PSDK.
+  's_purify': _KnownDartBehavior(
+    dartBehavior: 'PurifyMoveBehavior',
     status: _PsdkPortStatus.partial,
   ),
   // Recovery/stat moves execute their local HP/status/stat formulas. They stay
@@ -236,6 +263,22 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   's_topsy_turvy': _KnownDartBehavior(
     dartBehavior: 'AdvancedStatMoveBehavior.topsyTurvy',
     status: _PsdkPortStatus.partial,
+  ),
+  's_power_split': _KnownDartBehavior(
+    dartBehavior: 'StatSplitMoveBehavior.power',
+    status: _PsdkPortStatus.ported,
+  ),
+  's_guard_split': _KnownDartBehavior(
+    dartBehavior: 'StatSplitMoveBehavior.guard',
+    status: _PsdkPortStatus.ported,
+  ),
+  's_power_trick': _KnownDartBehavior(
+    dartBehavior: 'PowerTrickMoveBehavior',
+    status: _PsdkPortStatus.ported,
+  ),
+  's_speed_swap': _KnownDartBehavior(
+    dartBehavior: 'SpeedSwapMoveBehavior',
+    status: _PsdkPortStatus.ported,
   ),
   // Acrobatics' no-item branch is executable. Keep it partial until consumed
   // item and Gem item-effect parity is covered in the item hook matrix.
@@ -452,6 +495,11 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
     _PsdkMoveDependency.grounded,
     _PsdkMoveDependency.actionOrder,
   },
+  's_transform': {
+    _PsdkMoveDependency.handlerSwitch,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.ability,
+  },
   's_solar_beam': {
     _PsdkMoveDependency.weather,
     _PsdkMoveDependency.effects,
@@ -549,6 +597,10 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
     _PsdkMoveDependency.effects,
     _PsdkMoveDependency.ability,
   },
+  's_pain_split': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.effects,
+  },
   's_roost': {
     _PsdkMoveDependency.handlerDamage,
     _PsdkMoveDependency.effects,
@@ -602,6 +654,18 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
     _PsdkMoveDependency.handlerDamage,
     _PsdkMoveDependency.handlerStatus,
     _PsdkMoveDependency.effects,
+  },
+  's_psycho_shift': {
+    _PsdkMoveDependency.handlerStatus,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.ability,
+    _PsdkMoveDependency.targetingMulti,
+  },
+  's_purify': {
+    _PsdkMoveDependency.handlerDamage,
+    _PsdkMoveDependency.handlerStatus,
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.targetingMulti,
   },
   's_rest': {
     _PsdkMoveDependency.handlerStatus,

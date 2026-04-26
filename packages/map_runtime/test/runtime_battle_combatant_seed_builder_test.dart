@@ -343,6 +343,31 @@ void main() {
       );
     });
 
+    test('keeps Transform when it is the only explicit known move', () async {
+      await _writePokemonFixtures(tempProjectRoot);
+      final movesCatalog = await moveCatalogLoader.load(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+      );
+
+      final seed = await builder.buildPlayerCombatantSeed(
+        projectRootDirectory: tempProjectRoot.path,
+        pokemonConfig: _pokemonConfig(),
+        movesCatalog: movesCatalog,
+        playerPokemon: const PlayerPokemon(
+          speciesId: 'sproutle',
+          natureId: 'bold',
+          abilityId: 'overgrow',
+          level: 12,
+          knownMoveIds: <String>['transform'],
+          currentHp: 23,
+        ),
+      );
+
+      expect(seed.moves.single.id, equals('transform'));
+      expect(seed.moves.single.copiesTargetOnHit, isTrue);
+    });
+
     test(
         'fails explicitly when explicit known moves leave no bridgeable move after filtering',
         () async {
@@ -836,6 +861,14 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
         _moveEntry('quick_attack', 'Quick Attack', 40, priority: 1),
         _moveEntry('mud_slap', 'Mud-Slap', 20, type: 'ground', accuracy: 85),
         _moveEntry('tail_whip', 'Tail Whip', 0),
+        _moveEntry(
+          'transform',
+          'Transform',
+          0,
+          pp: 10,
+          engineSupportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+          unsupportedReasons: const <String>['psdk_method:s_transform'],
+        ),
         _moveEntry('ember', 'Ember', 40, type: 'fire'),
         _moveEntry('flame_wheel', 'Flame Wheel', 60, type: 'fire'),
         _moveEntry('water_gun', 'Water Gun', 40, type: 'water'),

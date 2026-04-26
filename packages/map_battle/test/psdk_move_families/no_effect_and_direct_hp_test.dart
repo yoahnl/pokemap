@@ -152,6 +152,41 @@ void main() {
       expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 40);
       expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 100);
     });
+
+    test('s_pain_split shares current HP and bypasses accuracy', () {
+      final result = _runMove(
+        playerCurrentHp: 20,
+        opponentCurrentHp: 90,
+        playerMove: _move(
+          id: 'pain_split',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 1,
+          battleEngineMethod: 's_pain_split',
+        ),
+        rngSeeds: const BattleRngSeeds(
+          moveDamage: 1,
+          moveCritical: 99999,
+          moveAccuracy: 99,
+          generic: 4,
+        ),
+      );
+
+      final heal = _healEvents(result, moveId: 'pain_split');
+      final damage = _damageEvents(result, moveId: 'pain_split');
+      expect(heal, hasLength(1));
+      expect(heal.single.target, psdkPlayerSlot);
+      expect(heal.single.amount, 35);
+      expect(damage, hasLength(1));
+      expect(damage.single.target, psdkOpponentSlot);
+      expect(damage.single.damage, 35);
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 55);
+      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 55);
+      expect(
+        _eventsFor(result, moveId: 'pain_split').map((event) => event.kind),
+        isNot(contains('miss')),
+      );
+    });
   });
 }
 
@@ -257,6 +292,16 @@ List<PsdkBattleDamageEvent> _damageEvents(
 }) {
   return result.timeline.events
       .whereType<PsdkBattleDamageEvent>()
+      .where((event) => event.moveId == moveId)
+      .toList(growable: false);
+}
+
+List<PsdkBattleHealEvent> _healEvents(
+  PsdkBattleTurnResult result, {
+  required String moveId,
+}) {
+  return result.timeline.events
+      .whereType<PsdkBattleHealEvent>()
       .where((event) => event.moveId == moveId)
       .toList(growable: false);
 }

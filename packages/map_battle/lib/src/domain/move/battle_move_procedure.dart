@@ -16,12 +16,14 @@ final class BattleMoveProcedure {
     BattleMoveTargetPrecheck? targetPrecheck,
     BattleMoveProcedureHooks hooks = BattleMoveProcedureHooks.none,
     bool traceStages = false,
+    bool forceAccuracyBypass = false,
   })  : _targetResolver = targetResolver,
         _accuracyResolver = accuracyResolver,
         _remapper = remapper,
         _targetPrecheck = targetPrecheck,
         _hooks = hooks,
-        _traceStages = traceStages;
+        _traceStages = traceStages,
+        _forceAccuracyBypass = forceAccuracyBypass;
 
   final BattleTargetResolver _targetResolver;
   final BattleAccuracyResolver _accuracyResolver;
@@ -29,6 +31,7 @@ final class BattleMoveProcedure {
   final BattleMoveTargetPrecheck? _targetPrecheck;
   final BattleMoveProcedureHooks _hooks;
   final bool _traceStages;
+  final bool _forceAccuracyBypass;
 
   BattleMoveProcedureResult prepare(BattleMoveProcedureExecution execution) {
     _trace(execution, BattleMoveProcedureStage.userAlive);
@@ -143,10 +146,17 @@ final class BattleMoveProcedure {
     }
 
     _trace(execution, BattleMoveProcedureStage.accuracy);
-    final accuracy = _accuracyResolver.resolve(
-      execution: execution,
-      targets: targets,
-    );
+    final accuracy = _forceAccuracyBypass
+        ? BattleAccuracyResult(
+            rng: execution.context.rng,
+            hitTargets: targets,
+            missedTargets: const <BattlePositionRef>[],
+            bypassed: true,
+          )
+        : _accuracyResolver.resolve(
+            execution: execution,
+            targets: targets,
+          );
     for (final missedTarget in accuracy.missedTargets) {
       execution.timeline.add(
         BattleMoveMissedTimelineEvent(

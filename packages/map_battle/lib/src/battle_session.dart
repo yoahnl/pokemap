@@ -126,6 +126,7 @@ BattleCombatant _buildBattleCombatantFromData(
             breaksProtect: m.breaksProtect,
             requiresRecharge: m.requiresRecharge,
             chargeThenStrikeEffect: m.chargeThenStrikeEffect,
+            copiesTargetOnHit: m.copiesTargetOnHit,
             selfStatStageChanges: m.selfStatStageChanges,
             targetStatStageChanges: m.targetStatStageChanges,
             selfStatStageRider: m.selfStatStageRider,
@@ -1319,6 +1320,50 @@ class BattleSession {
         timeline: _buildMoveTimeline(
           preExecutionVolatileEvents: preHitVolatileEvents,
           execution: blockedExecution,
+        ),
+      );
+    }
+
+    if (move.copiesTargetOnHit) {
+      final transformedAttacker =
+          hitInterception.attacker.withTransformedBattleFormFrom(
+        hitInterception.defender,
+      );
+      final resolvedExecution = BattleMoveExecution(
+        attackerSlot: attackerSlot,
+        move: hitInterception.attacker.moves[moveIndex],
+        targetKind: _resolveExecutionTargetKind(move),
+        targetSlot: _resolveExecutionTargetSlot(
+          move: move,
+          attackerSlot: attackerSlot,
+          opponentSlot: targetSlot,
+        ),
+        targetSideRef: _resolveExecutionTargetSide(
+          move: move,
+          opponentSlot: targetSlot,
+        ),
+        damage: 0,
+        didHit: true,
+        didCrit: false,
+        criticalMultiplier: 1.0,
+        stabMultiplier: 1.0,
+        typeEffectivenessMultiplier: 1.0,
+      );
+
+      return _ResolvedMoveExecution(
+        attacker: transformedAttacker,
+        defender: hitInterception.defender,
+        field: field,
+        rng: hitCheck.nextRng,
+        execution: resolvedExecution,
+        statusEvents: const <BattleStatusEvent>[],
+        volatileEvents: List<BattleVolatileEvent>.unmodifiable(
+          preHitVolatileEvents,
+        ),
+        fieldEvents: const <BattleFieldEvent>[],
+        timeline: _buildMoveTimeline(
+          preExecutionVolatileEvents: preHitVolatileEvents,
+          execution: resolvedExecution,
         ),
       );
     }

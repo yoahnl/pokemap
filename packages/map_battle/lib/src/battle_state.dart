@@ -7,6 +7,8 @@ import 'battle_volatile.dart';
 import 'battle_stats.dart';
 import 'battle_typing.dart';
 
+const int _transformCopiedMovePp = 5;
+
 /// Phase du combat.
 ///
 /// Représente l'état actuel du cycle de combat.
@@ -433,6 +435,37 @@ class BattleCombatant {
       abilityId: abilityId,
       moves: moves,
       statStages: statStages,
+    );
+  }
+
+  /// Copie la forme battle visible d'une cible pour `Transform`.
+  ///
+  /// Le slice legacy reste volontairement borné :
+  /// - PV max/courants, statut majeur, volatiles et identité de lineup restent
+  ///   ceux du lanceur ;
+  /// - espèce, stats, typing, ability, stages et moves viennent de la cible ;
+  /// - chaque move copié reçoit 5 PP, comme le comportement PSDK déjà porté.
+  BattleCombatant withTransformedBattleFormFrom(BattleCombatant target) {
+    return BattleCombatant(
+      speciesId: target.speciesId,
+      lineupIndex: lineupIndex,
+      level: level,
+      currentHp: currentHp,
+      maxHp: maxHp,
+      stats: target.stats,
+      typing: target.typing,
+      majorStatus: majorStatus,
+      volatileState: volatileState,
+      abilityId: target.abilityId,
+      moves: List<BattleMove>.unmodifiable(
+        target.moves.map(
+          (move) => move.withPpState(
+            pp: _transformCopiedMovePp,
+            currentPp: _transformCopiedMovePp,
+          ),
+        ),
+      ),
+      statStages: target.statStages,
     );
   }
 

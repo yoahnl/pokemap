@@ -20,6 +20,7 @@ import 'src/runtime_ios_project_picker.dart';
 import 'src/runtime_battle_command_overlay_visibility.dart';
 import 'src/runtime_launch_save.dart';
 import 'src/runtime_launch_options.dart';
+import 'src/runtime_party_builder.dart';
 import 'src/runtime_pokedex_loader.dart';
 import 'src/runtime_project_picker.dart';
 import 'src/runtime_touch_controls.dart';
@@ -60,6 +61,9 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
   bool _hasConnectedGamepad = false;
   bool _surfingEnabled = false;
   bool _seedDemoPokemon = true;
+  List<RuntimePartyBuilderPokemonOption> _partyBuilderOptions = const [];
+  List<RuntimeDemoPartyPokemonSeed> _manualPartyMembers = const [];
+  String? _partyBuilderError;
   bool _saveLoadBusy = false;
   String? _saveLoadStatus;
   String? _saveLoadError;
@@ -211,6 +215,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         savedProjectPath,
         preferredMapId: savedMapId,
       );
+      await _loadPartyBuilderOptions(savedProjectPath);
     } catch (_) {
       // Restauration best-effort: on ignore silencieusement les prefs invalides.
     }
@@ -276,6 +281,62 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
         _availableMaps = const [];
       });
     }
+  }
+
+  Future<void> _loadPartyBuilderOptions(String projectFilePath) async {
+    try {
+      final options = await loadRuntimeHostPartyBuilderOptions(
+        projectFilePath: projectFilePath,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _partyBuilderOptions = options;
+        _partyBuilderError = null;
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _partyBuilderOptions = const [];
+        _partyBuilderError = 'Pokemon indisponibles: $e';
+      });
+    }
+  }
+
+  void _addManualPartyMember(RuntimeDemoPartyPokemonSeed member) {
+    if (_manualPartyMembers.length >= kRuntimeDemoMaxPartySize) {
+      return;
+    }
+    setState(() {
+      _manualPartyMembers = <RuntimeDemoPartyPokemonSeed>[
+        ..._manualPartyMembers,
+        member,
+      ];
+    });
+  }
+
+  void _removeManualPartyMember(int index) {
+    if (index < 0 || index >= _manualPartyMembers.length) {
+      return;
+    }
+    final nextMembers = List<RuntimeDemoPartyPokemonSeed>.of(
+      _manualPartyMembers,
+    )..removeAt(index);
+    setState(() => _manualPartyMembers = List.unmodifiable(nextMembers));
+  }
+
+  RuntimeDemoPartySeed? _buildManualPartySeed() {
+    if (_manualPartyMembers.isEmpty) {
+      return null;
+    }
+    return RuntimeDemoPartySeed(
+      members: List<RuntimeDemoPartyPokemonSeed>.unmodifiable(
+        _manualPartyMembers.take(kRuntimeDemoMaxPartySize),
+      ),
+    );
   }
 
   // Le ticker force un refresh léger de l'overlay runtime pour afficher
@@ -384,8 +445,12 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       setState(() {
         _projectFilePath = projectJsonPath;
         _error = null;
+        _partyBuilderOptions = const [];
+        _manualPartyMembers = const [];
+        _partyBuilderError = null;
       });
       await _loadProjectMapsFromManifest(projectJsonPath);
+      await _loadPartyBuilderOptions(projectJsonPath);
       await _persistLastSession();
     } catch (e) {
       if (!mounted) {
@@ -431,15 +496,25 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
       final launchSaveData = await loadRuntimeHostLaunchSaveData(
         projectFilePath: projectFilePath,
       );
-      final launchDemoSeed = await buildRuntimeHostLaunchDemoPartySeed(
-        seedDemoPokemon: launchSaveData == null && _seedDemoPokemon,
-        projectFilePath: projectFilePath,
-      );
+      final manualPartySeed = _buildManualPartySeed();
+      final launchDemoSeed = manualPartySeed == null
+          ? await buildRuntimeHostLaunchDemoPartySeed(
+              seedDemoPokemon: launchSaveData == null && _seedDemoPokemon,
+              projectFilePath: projectFilePath,
+            )
+          : null;
       if (!mounted) return;
+      final launchSaveOverride = manualPartySeed == null
+          ? null
+          : buildRuntimeHostLaunchDemoSaveData(
+              mapId: mapId,
+              seed: manualPartySeed,
+            );
       final nextGame = PlayableMapGame(
         bundle: bundle,
         projectFilePath: projectFilePath,
-        saveData: launchSaveData ??
+        saveData: launchSaveOverride ??
+            launchSaveData ??
             (launchDemoSeed == null
                 ? null
                 : buildRuntimeHostLaunchDemoSaveData(
@@ -613,13 +688,14 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
     return switch (snapshot.mode) {
       BattleCommandOverlayMode.root => game.selectBattleRootEntry(index),
       BattleCommandOverlayMode.fight ||
-      BattleCommandOverlayMode.continueOnly => game.selectBattleChoiceEntry(
+      BattleCommandOverlayMode.continueOnly =>
+        game.selectBattleChoiceEntry(
           index,
         ),
       BattleCommandOverlayMode.bag => game.selectBattleBagEntry(index),
       BattleCommandOverlayMode.pokemon => game.selectBattlePartyEntry(index),
-      BattleCommandOverlayMode.bagMedicineTarget => game
-          .selectBattleMedicineTargetEntry(index),
+      BattleCommandOverlayMode.bagMedicineTarget =>
+        game.selectBattleMedicineTargetEntry(index),
     };
   }
 
@@ -880,7 +956,7 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Playable Runtime Host')),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -931,6 +1007,18 @@ class _ProjectLoaderPageState extends State<_ProjectLoaderPage> {
                   ? null
                   : (value) => setState(() => _seedDemoPokemon = value),
             ),
+            const SizedBox(height: 16),
+            RuntimePartyBuilderPanel(
+              options: _partyBuilderOptions,
+              members: _manualPartyMembers,
+              enabled: !_loading,
+              onAdd: _addManualPartyMember,
+              onRemove: _removeManualPartyMember,
+            ),
+            if (_partyBuilderError != null) ...[
+              const SizedBox(height: 8),
+              _ErrorBanner(message: _partyBuilderError!),
+            ],
             const SizedBox(height: 16),
             FilledButton(
               onPressed: _loading ? null : _load,

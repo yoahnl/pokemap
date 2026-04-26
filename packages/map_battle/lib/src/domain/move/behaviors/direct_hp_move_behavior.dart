@@ -1,3 +1,4 @@
+import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_prevention.dart';
@@ -6,6 +7,7 @@ import 'battle_move_behavior_support.dart';
 enum _DirectHpMoveKind {
   endeavor,
   finalGambit,
+  painSplit,
 }
 
 /// Ports PSDK moves that assign HP loss directly instead of using the normal
@@ -23,6 +25,10 @@ final class DirectHpMoveBehavior implements BattleMoveUserPreventionBehavior {
   const DirectHpMoveBehavior.finalGambit()
       : battleEngineMethod = 's_final_gambit',
         _kind = _DirectHpMoveKind.finalGambit;
+
+  const DirectHpMoveBehavior.painSplit()
+      : battleEngineMethod = 's_pain_split',
+        _kind = _DirectHpMoveKind.painSplit;
 
   @override
   final String battleEngineMethod;
@@ -57,7 +63,10 @@ final class DirectHpMoveBehavior implements BattleMoveUserPreventionBehavior {
       return _failedBeforeProcedure(context, prevention);
     }
 
-    final prepared = prepareBattleMove(context);
+    final prepared = prepareBattleMove(
+      context,
+      forceAccuracyBypass: _kind == _DirectHpMoveKind.painSplit,
+    );
     if (!prepared.shouldExecuteBehavior) {
       return prepared.toResolution();
     }
@@ -68,6 +77,10 @@ final class DirectHpMoveBehavior implements BattleMoveUserPreventionBehavior {
           prepared: prepared,
         ),
       _DirectHpMoveKind.finalGambit => _resolveFinalGambit(
+          context: context,
+          prepared: prepared,
+        ),
+      _DirectHpMoveKind.painSplit => _resolvePainSplit(
           context: context,
           prepared: prepared,
         ),
@@ -147,6 +160,66 @@ final class DirectHpMoveBehavior implements BattleMoveUserPreventionBehavior {
       rng = targetDamage.rng;
       if (targetDamage.event != null) {
         events.add(targetDamage.event!);
+      }
+    }
+
+    return BattleMoveBehaviorResolution(
+      state: nextState,
+      rng: rng,
+      events: events,
+    );
+  }
+
+  BattleMoveBehaviorResolution _resolvePainSplit({
+    required BattleMoveBehaviorContext context,
+    required PreparedBattleMove prepared,
+  }) {
+    var nextState = prepared.state;
+    var rng = prepared.rng;
+    final events = <PsdkBattleEvent>[...prepared.events];
+    final affectedSlots = <PsdkBattleSlotRef>[
+      context.user,
+      ...prepared.psdkTargets,
+    ];
+    final totalHp = affectedSlots.fold<int>(
+      0,
+      (sum, slot) => sum + nextState.battlerAt(slot).currentHp,
+    );
+    final averageHp = totalHp ~/ affectedSlots.length;
+
+    for (final slot in affectedSlots) {
+      final battler = nextState.battlerAt(slot);
+      final delta = averageHp - battler.currentHp;
+      if (delta > 0) {
+        final healed = applyDirectHeal(
+          state: nextState,
+          user: context.user,
+          target: slot,
+          moveId: context.move.id,
+          rng: rng,
+          turn: context.turn,
+          amount: delta,
+        );
+        nextState = healed.state;
+        rng = healed.rng;
+        if (healed.event != null) {
+          events.add(healed.event!);
+        }
+      } else if (delta < 0) {
+        final damaged = applyDirectDamage(
+          state: nextState,
+          user: context.user,
+          target: slot,
+          moveId: context.move.id,
+          rng: rng,
+          turn: context.turn,
+          amount: -delta,
+        );
+        nextState = damaged.state;
+        rng = damaged.rng;
+        if (damaged.event != null) {
+          events.add(damaged.event!);
+        }
       }
     }
 

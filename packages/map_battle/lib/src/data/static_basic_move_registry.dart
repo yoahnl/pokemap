@@ -11,14 +11,20 @@ import '../domain/move/behaviors/mind_blown_move_behavior.dart';
 import '../domain/move/behaviors/multi_hit_move_behavior.dart';
 import '../domain/move/behaviors/no_effect_move_behavior.dart';
 import '../domain/move/behaviors/persistent_effect_move_behavior.dart';
+import '../domain/move/behaviors/power_trick_move_behavior.dart';
+import '../domain/move/behaviors/psycho_shift_move_behavior.dart';
+import '../domain/move/behaviors/purify_move_behavior.dart';
 import '../domain/move/behaviors/recovery_stat_move_behavior.dart';
 import '../domain/move/behaviors/recoil_move_behavior.dart';
 import '../domain/move/behaviors/self_destruct_move_behavior.dart';
 import '../domain/move/behaviors/special_power_move_behavior.dart';
+import '../domain/move/behaviors/speed_swap_move_behavior.dart';
+import '../domain/move/behaviors/stat_split_move_behavior.dart';
 import '../domain/move/behaviors/status_stat_move_behavior.dart';
 import '../domain/move/behaviors/switch_effect_move_behavior.dart';
 import '../domain/move/behaviors/terrain_power_move_behavior.dart';
 import '../domain/move/behaviors/terrain_move_behavior.dart';
+import '../domain/move/behaviors/transform_move_behavior.dart';
 import '../domain/move/behaviors/variable_power_move_behavior.dart';
 import '../domain/move/behaviors/weather_move_behavior.dart';
 import '../domain/move/behaviors/weather_power_move_behavior.dart';
@@ -69,6 +75,7 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     const NoEffectMoveBehavior.splash(),
     const DirectHpMoveBehavior.endeavor(),
     const DirectHpMoveBehavior.finalGambit(),
+    const DirectHpMoveBehavior.painSplit(),
     const DrainMoveBehavior.absorb(),
     const DrainMoveBehavior.dreamEater(),
     const HealMoveBehavior(),
@@ -81,6 +88,8 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     const HitThenCureStatusMoveBehavior.smellingSalt(),
     const HitThenCureStatusMoveBehavior.wakeUpSlap(),
     const HitThenCureStatusMoveBehavior.sparklingAria(),
+    const PsychoShiftMoveBehavior(),
+    const PurifyMoveBehavior(),
     const RecoveryStatMoveBehavior.rest(),
     const RecoveryStatMoveBehavior.bellyDrum(),
     const RecoveryStatMoveBehavior.filletAway(),
@@ -98,6 +107,10 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     const AdvancedStatMoveBehavior.powerSwap(),
     const AdvancedStatMoveBehavior.psychUp(),
     const AdvancedStatMoveBehavior.topsyTurvy(),
+    const StatSplitMoveBehavior.power(),
+    const StatSplitMoveBehavior.guard(),
+    const PowerTrickMoveBehavior(),
+    const SpeedSwapMoveBehavior(),
     const SwitchEffectMoveBehavior.batonPass(),
     const SpecialPowerMoveBehavior.acrobatics(),
     const SpecialPowerMoveBehavior.storedPower(),
@@ -110,6 +123,7 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     const TerrainMoveBehavior(),
     const TerrainPowerMoveBehavior.terrainBoosting(),
     const WeatherPowerMoveBehavior.weatherBall(),
+    const TransformMoveBehavior(),
     const RecoilMoveBehavior.psdkRecoil(),
     const VariablePowerMoveBehavior.brine(),
     const VariablePowerMoveBehavior.eruption(),

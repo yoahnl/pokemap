@@ -176,6 +176,18 @@ void main() {
         byMethod['s_final_gambit']!.dartBehavior,
         'DirectHpMoveBehavior.finalGambit',
       );
+      expect(byMethod['s_pain_split']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_pain_split']!.dartBehavior,
+        'DirectHpMoveBehavior.painSplit',
+      );
+      expect(
+        byMethod['s_pain_split']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerDamage,
+          PsdkMoveDependency.effects,
+        ]),
+      );
     });
 
     test('tracks the Lot 21 recoil slice', () {
@@ -438,6 +450,31 @@ void main() {
         'HitThenCureStatusMoveBehavior.sparklingAria',
       );
       expect(byMethod['s_sparkling_aria']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_psycho_shift']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_psycho_shift']!.dartBehavior,
+        'PsychoShiftMoveBehavior',
+      );
+      expect(
+        byMethod['s_psycho_shift']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerStatus,
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.ability,
+          PsdkMoveDependency.targetingMulti,
+        ]),
+      );
+      expect(byMethod['s_purify']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_purify']!.dartBehavior, 'PurifyMoveBehavior');
+      expect(
+        byMethod['s_purify']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerDamage,
+          PsdkMoveDependency.handlerStatus,
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.targetingMulti,
+        ]),
+      );
       expect(byMethod['s_acrobatics']!.status, PsdkPortStatus.partial);
       expect(
         byMethod['s_acrobatics']!.dartBehavior,
@@ -505,6 +542,26 @@ void main() {
       expect(
         byMethod['s_topsy_turvy']!.dartBehavior,
         'AdvancedStatMoveBehavior.topsyTurvy',
+      );
+      expect(byMethod['s_power_split']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_power_split']!.dartBehavior,
+        'StatSplitMoveBehavior.power',
+      );
+      expect(byMethod['s_guard_split']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_guard_split']!.dartBehavior,
+        'StatSplitMoveBehavior.guard',
+      );
+      expect(byMethod['s_power_trick']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_power_trick']!.dartBehavior,
+        'PowerTrickMoveBehavior',
+      );
+      expect(byMethod['s_speed_swap']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_speed_swap']!.dartBehavior,
+        'SpeedSwapMoveBehavior',
       );
       expect(
         byMethod['s_haze']!.dependencies,
@@ -575,6 +632,19 @@ void main() {
         containsAll(<PsdkMoveDependency>[
           PsdkMoveDependency.handlerSwitch,
           PsdkMoveDependency.effects,
+        ]),
+      );
+      expect(byMethod['s_transform']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_transform']!.dartBehavior,
+        'TransformMoveBehavior',
+      );
+      expect(
+        byMethod['s_transform']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerSwitch,
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.ability,
         ]),
       );
     });

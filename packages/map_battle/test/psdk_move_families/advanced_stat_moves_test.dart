@@ -264,6 +264,158 @@ void main() {
       expect(_statEvents(result), hasLength(4));
     });
 
+    test('s_power_split averages attack and special attack bases', () {
+      final result = _runMove(
+        playerStats: const PsdkBattleStats(
+          attack: 121,
+          defense: 53,
+          specialAttack: 89,
+          specialDefense: 47,
+          speed: 100,
+        ),
+        opponentStats: const PsdkBattleStats(
+          attack: 80,
+          defense: 197,
+          specialAttack: 40,
+          specialDefense: 211,
+          speed: 1,
+        ),
+        playerMove: _move(
+          id: 'power_split',
+          battleEngineMethod: 's_power_split',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+        ),
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+
+      expect(player.stats.attack, 100);
+      expect(opponent.stats.attack, 100);
+      expect(player.stats.specialAttack, 64);
+      expect(opponent.stats.specialAttack, 64);
+      expect(player.stats.defense, 53);
+      expect(opponent.stats.defense, 197);
+      expect(_eventKinds(result), isNot(contains('damage')));
+      expect(_statEvents(result), isEmpty);
+    });
+
+    test('s_guard_split averages defense and special defense bases', () {
+      final result = _runMove(
+        playerStats: const PsdkBattleStats(
+          attack: 33,
+          defense: 121,
+          specialAttack: 44,
+          specialDefense: 89,
+          speed: 100,
+        ),
+        opponentStats: const PsdkBattleStats(
+          attack: 77,
+          defense: 80,
+          specialAttack: 22,
+          specialDefense: 40,
+          speed: 1,
+        ),
+        playerMove: _move(
+          id: 'guard_split',
+          battleEngineMethod: 's_guard_split',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+        ),
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+
+      expect(player.stats.defense, 100);
+      expect(opponent.stats.defense, 100);
+      expect(player.stats.specialDefense, 64);
+      expect(opponent.stats.specialDefense, 64);
+      expect(player.stats.attack, 33);
+      expect(opponent.stats.attack, 77);
+      expect(_eventKinds(result), isNot(contains('damage')));
+      expect(_statEvents(result), isEmpty);
+    });
+
+    test('s_power_trick swaps the target attack and defense bases only', () {
+      final result = _runMove(
+        playerStats: const PsdkBattleStats(
+          attack: 38,
+          defense: 142,
+          specialAttack: 71,
+          specialDefense: 64,
+          speed: 100,
+        ),
+        playerStatStages: PsdkBattleStatStages(
+          values: const <String, int>{'attack': 2, 'defense': -1},
+        ),
+        playerMove: _move(
+          id: 'power_trick',
+          battleEngineMethod: 's_power_trick',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          target: PsdkBattleMoveTarget.user,
+        ),
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.stats.attack, 142);
+      expect(player.stats.defense, 38);
+      expect(player.stats.specialAttack, 71);
+      expect(player.stats.specialDefense, 64);
+      expect(player.statStages.valueOf('attack'), 2);
+      expect(player.statStages.valueOf('defense'), -1);
+      expect(_eventKinds(result), isNot(contains('damage')));
+      expect(_statEvents(result), isEmpty);
+    });
+
+    test('s_speed_swap exchanges user and target speed bases', () {
+      final result = _runMove(
+        playerStats: const PsdkBattleStats(
+          attack: 50,
+          defense: 60,
+          specialAttack: 70,
+          specialDefense: 80,
+          speed: 121,
+        ),
+        opponentStats: const PsdkBattleStats(
+          attack: 90,
+          defense: 100,
+          specialAttack: 110,
+          specialDefense: 120,
+          speed: 34,
+        ),
+        playerStatStages: PsdkBattleStatStages(
+          values: const <String, int>{'speed': 2},
+        ),
+        opponentStatStages: PsdkBattleStatStages(
+          values: const <String, int>{'speed': -3},
+        ),
+        playerMove: _move(
+          id: 'speed_swap',
+          battleEngineMethod: 's_speed_swap',
+          power: 0,
+          accuracy: 1,
+          category: PsdkBattleMoveCategory.status,
+        ),
+        moveAccuracySeed: 99,
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+
+      expect(player.stats.speed, 34);
+      expect(opponent.stats.speed, 121);
+      expect(player.stats.attack, 50);
+      expect(opponent.stats.specialDefense, 120);
+      expect(player.statStages.valueOf('speed'), 2);
+      expect(opponent.statStages.valueOf('speed'), -3);
+      expect(
+        _eventsFor(result, moveId: 'speed_swap').map((event) => event.kind),
+        isNot(contains('miss')),
+      );
+      expect(_eventKinds(result), isNot(contains('damage')));
+      expect(_statEvents(result), isEmpty);
+    });
+
     test('s_heart_swap swaps all stage stats', () {
       final result = _runMove(
         playerStatStages: PsdkBattleStatStages(
@@ -321,8 +473,11 @@ PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
   PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
+  PsdkBattleStats? playerStats,
+  PsdkBattleStats? opponentStats,
   PsdkBattleStatStages? playerStatStages,
   PsdkBattleStatStages? opponentStatStages,
+  int moveAccuracySeed = 3,
   int genericSeed = 4,
 }) {
   final engine = PsdkBattleEngine(
@@ -332,6 +487,7 @@ PsdkBattleTurnResult _runMove({
         speed: 100,
         move: playerMove,
         types: playerTypes,
+        stats: playerStats,
         statStages: playerStatStages,
       ),
       opponent: _combatant(
@@ -342,12 +498,13 @@ PsdkBattleTurnResult _runMove({
           power: 0,
           accuracy: 1,
         ),
+        stats: opponentStats,
         statStages: opponentStatStages,
       ),
       rngSeeds: PsdkBattleRngSeeds(
         moveDamage: 1,
         moveCritical: 99999,
-        moveAccuracy: 3,
+        moveAccuracy: moveAccuracySeed,
         generic: genericSeed,
       ),
       field: field,
@@ -361,6 +518,7 @@ PsdkBattleCombatantSetup _combatant({
   required int speed,
   required PsdkBattleMoveData move,
   PsdkBattleTypes types = const PsdkBattleTypes(primary: 'normal'),
+  PsdkBattleStats? stats,
   PsdkBattleStatStages? statStages,
 }) {
   return PsdkBattleCombatantSetup(
@@ -371,13 +529,14 @@ PsdkBattleCombatantSetup _combatant({
     maxHp: 100,
     currentHp: 100,
     types: types,
-    stats: PsdkBattleStats(
-      attack: 50,
-      defense: 50,
-      specialAttack: 50,
-      specialDefense: 50,
-      speed: speed,
-    ),
+    stats: stats ??
+        PsdkBattleStats(
+          attack: 50,
+          defense: 50,
+          specialAttack: 50,
+          specialDefense: 50,
+          speed: speed,
+        ),
     moves: <PsdkBattleMoveData>[move],
     statStages: statStages,
   );
@@ -412,6 +571,15 @@ PsdkBattleMoveData _move({
 
 List<String> _eventKinds(PsdkBattleTurnResult result) {
   return result.timeline.events.map((event) => event.kind).toList();
+}
+
+List<PsdkBattleEvent> _eventsFor(
+  PsdkBattleTurnResult result, {
+  required String moveId,
+}) {
+  return result.timeline.events
+      .where((event) => event.toJson()['moveId'] == moveId)
+      .toList(growable: false);
 }
 
 List<PsdkBattleStatStageEvent> _statEvents(PsdkBattleTurnResult result) {

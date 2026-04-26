@@ -15,9 +15,9 @@ Coverage semantics:
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 29 |
-| partiel | 429 |
-| pas_fait | 270 |
+| fait | 33 |
+| partiel | 433 |
+| pas_fait | 262 |
 | unknown_methods | 18 |
 
 | Fait ? | Attack | Battle method | Method status | Dart behavior | Type | Category | Power | Accuracy | PP | Source file |
@@ -282,7 +282,7 @@ Coverage semantics:
 | partiel | growl | s_stat | partial | StatusStatMoveBehavior.stat | normal | status | 0 | 100 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/growl.json |
 | partiel | growth | s_growth | partial | AdvancedStatMoveBehavior.growth | normal | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/growth.json |
 | pas_fait | grudge | s_grudge | missing | TODO | ghost | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/grudge.json |
-| pas_fait | guard_split | s_guard_split | missing | TODO | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/guard_split.json |
+| fait | guard_split | s_guard_split | ported | StatSplitMoveBehavior.guard | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/guard_split.json |
 | partiel | guard_swap | s_guard_swap | partial | AdvancedStatMoveBehavior.guardSwap | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/guard_swap.json |
 | pas_fait | guardian_of_alola | s_guardian_of_alola | unknown_method | TODO | fairy | special | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/guardian_of_alola.json |
 | pas_fait | guillotine | s_ohko | missing | TODO | normal | physical | 0 | 30 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/guillotine.json |
@@ -452,7 +452,7 @@ Coverage semantics:
 | partiel | origin_pulse | s_basic | partial | StaticBasicMoveRegistry.s_basic | water | special | 110 | 85 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/origin_pulse.json |
 | pas_fait | outrage | s_outrage | missing | TODO | dragon | physical | 120 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/outrage.json |
 | partiel | overheat | s_self_stat | partial | StatusStatMoveBehavior.selfStat | fire | special | 130 | 90 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/overheat.json |
-| pas_fait | pain_split | s_pain_split | missing | TODO | normal | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/pain_split.json |
+| partiel | pain_split | s_pain_split | partial | DirectHpMoveBehavior.painSplit | normal | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/pain_split.json |
 | partiel | parabolic_charge | s_absorb | partial | DrainMoveBehavior.absorb | electric | special | 65 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/parabolic_charge.json |
 | pas_fait | parting_shot | s_parting_shot | missing | TODO | dark | status | 0 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/parting_shot.json |
 | pas_fait | pay_day | s_payday | missing | TODO | normal | physical | 40 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/pay_day.json |
@@ -479,9 +479,9 @@ Coverage semantics:
 | pas_fait | powder | s_powder | missing | TODO | bug | status | 0 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/powder.json |
 | partiel | powder_snow | s_basic | partial | StaticBasicMoveRegistry.s_basic | ice | special | 40 | 100 | 25 | ../../pokémon_sdk_test_project/Data/Studio/moves/powder_snow.json |
 | partiel | power_gem | s_basic | partial | StaticBasicMoveRegistry.s_basic | rock | special | 80 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/power_gem.json |
-| pas_fait | power_split | s_power_split | missing | TODO | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/power_split.json |
+| fait | power_split | s_power_split | ported | StatSplitMoveBehavior.power | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/power_split.json |
 | partiel | power_swap | s_power_swap | partial | AdvancedStatMoveBehavior.powerSwap | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/power_swap.json |
-| pas_fait | power_trick | s_power_trick | missing | TODO | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/power_trick.json |
+| fait | power_trick | s_power_trick | ported | PowerTrickMoveBehavior | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/power_trick.json |
 | fait | power_trip | s_stored_power | ported | SpecialPowerMoveBehavior.storedPower | dark | physical | 20 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/power_trip.json |
 | partiel | power_up_punch | s_self_stat | partial | StatusStatMoveBehavior.selfStat | fighting | physical | 40 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/power_up_punch.json |
 | partiel | power_whip | s_basic | partial | StaticBasicMoveRegistry.s_basic | grass | physical | 120 | 85 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/power_whip.json |
@@ -496,13 +496,13 @@ Coverage semantics:
 | partiel | psychic_terrain | s_terrain | partial | TerrainMoveBehavior | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/psychic_terrain.json |
 | partiel | psycho_boost | s_self_stat | partial | StatusStatMoveBehavior.selfStat | psychic | special | 140 | 90 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/psycho_boost.json |
 | partiel | psycho_cut | s_basic | partial | StaticBasicMoveRegistry.s_basic | psychic | physical | 70 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/psycho_cut.json |
-| pas_fait | psycho_shift | s_psycho_shift | missing | TODO | psychic | status | 0 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/psycho_shift.json |
+| partiel | psycho_shift | s_psycho_shift | partial | PsychoShiftMoveBehavior | psychic | status | 0 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/psycho_shift.json |
 | partiel | psyshock | s_psyshock | partial | CustomStatSourceMoveBehavior.psyshock | psychic | special | 80 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/psyshock.json |
 | partiel | psystrike | s_psyshock | partial | CustomStatSourceMoveBehavior.psyshock | psychic | special | 100 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/psystrike.json |
 | fait | psywave | s_psywave | ported | FixedDamageMoveBehavior.psywave | psychic | special | 0 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/psywave.json |
 | pas_fait | pulverizing_pancake | s_z_move | unknown_method | TODO | normal | physical | 210 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/pulverizing_pancake.json |
 | fait | punishment | s_stored_power | ported | SpecialPowerMoveBehavior.storedPower | dark | physical | 0 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/punishment.json |
-| pas_fait | purify | s_purify | missing | TODO | poison | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/purify.json |
+| partiel | purify | s_purify | partial | PurifyMoveBehavior | poison | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/purify.json |
 | pas_fait | pursuit | s_pursuit | missing | TODO | dark | physical | 40 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/pursuit.json |
 | pas_fait | quash | s_quash | missing | TODO | dark | status | 0 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/quash.json |
 | partiel | quick_attack | s_basic | partial | StaticBasicMoveRegistry.s_basic | normal | physical | 40 | 100 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/quick_attack.json |
@@ -616,7 +616,7 @@ Coverage semantics:
 | partiel | spark | s_basic | partial | StaticBasicMoveRegistry.s_basic | electric | physical | 65 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/spark.json |
 | partiel | sparkling_aria | s_sparkling_aria | partial | HitThenCureStatusMoveBehavior.sparklingAria | water | special | 90 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/sparkling_aria.json |
 | pas_fait | spectral_thief | s_spectral_thief | missing | TODO | ghost | physical | 90 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/spectral_thief.json |
-| pas_fait | speed_swap | s_speed_swap | missing | TODO | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/speed_swap.json |
+| fait | speed_swap | s_speed_swap | ported | SpeedSwapMoveBehavior | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/speed_swap.json |
 | pas_fait | spider_web | s_cantflee | missing | TODO | bug | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/spider_web.json |
 | partiel | spike_cannon | s_multi_hit | partial | MultiHitMoveBehavior.psdkRandom | normal | physical | 20 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/spike_cannon.json |
 | pas_fait | spikes | s_spike | missing | TODO | ground | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/spikes.json |
@@ -699,7 +699,7 @@ Coverage semantics:
 | partiel | toxic | s_status | partial | StatusStatMoveBehavior.status | poison | status | 0 | 90 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/toxic.json |
 | pas_fait | toxic_spikes | s_toxic_spike | missing | TODO | poison | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/toxic_spikes.json |
 | pas_fait | toxic_thread | s_toxic_thread | missing | TODO | poison | status | 0 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/toxic_thread.json |
-| pas_fait | transform | s_transform | missing | TODO | normal | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/transform.json |
+| partiel | transform | s_transform | partial | TransformMoveBehavior | normal | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/transform.json |
 | pas_fait | tri_attack | s_tri_attack | missing | TODO | normal | special | 80 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/tri_attack.json |
 | pas_fait | trick | s_trick | missing | TODO | psychic | status | 0 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/trick.json |
 | pas_fait | trick_or_treat | s_add_type | missing | TODO | ghost | status | 0 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/trick_or_treat.json |

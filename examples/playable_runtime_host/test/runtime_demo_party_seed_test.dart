@@ -184,6 +184,36 @@ void main() {
             ),
           ]));
     });
+
+    test('loads selectable pokemon options with display names and moves',
+        () async {
+      await _writeProjectFixture(
+        root,
+        includeSquirtle: true,
+      );
+
+      final options = await loadRuntimeHostPartyBuilderOptions(
+        projectFilePath: '${root.path}/project.json',
+      );
+
+      expect(options.map((option) => option.speciesId), contains('bulbasaur'));
+      expect(options.map((option) => option.speciesId), contains('squirtle'));
+
+      final bulbasaur = options.singleWhere(
+        (option) => option.speciesId == 'bulbasaur',
+      );
+      expect(bulbasaur.displayName, equals('Bulbasaur'));
+      expect(bulbasaur.label, equals('Bulbasaur (bulbasaur)'));
+      expect(bulbasaur.abilityId, equals('overgrow'));
+      expect(
+        bulbasaur.availableMoveIds,
+        equals(<String>['tackle', 'growl', 'vine_whip', 'razor_leaf']),
+      );
+      expect(
+        bulbasaur.suggestedMoveIds,
+        equals(<String>['tackle', 'growl', 'vine_whip', 'razor_leaf']),
+      );
+    });
   });
 }
 

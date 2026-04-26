@@ -62,5 +62,40 @@ class ElementCollisionProfile with _$ElementCollisionProfile {
   }) = _ElementCollisionProfile;
 
   factory ElementCollisionProfile.fromJson(Map<String, dynamic> json) =>
-      _$ElementCollisionProfileFromJson(json);
+      _$ElementCollisionProfileFromJson(
+        _normalizeElementCollisionProfileJson(json),
+      );
+}
+
+Map<String, dynamic> _normalizeElementCollisionProfileJson(
+  Map<String, dynamic> json,
+) {
+  final normalized = Map<String, dynamic>.from(json);
+
+  // Older editor payloads may contain mask keys with legacy shapes that are no
+  // longer compatible with ElementCollisionPixelMask JSON. Keep the cleanup
+  // narrowly scoped to those known mask fields so unrelated malformed payloads
+  // still fail loudly through the generated parser.
+  for (final key in const <String>[
+    'visualMask',
+    'pixelMask',
+    'occlusionMask',
+  ]) {
+    if (!normalized.containsKey(key)) {
+      continue;
+    }
+    final value = normalized[key];
+    if (value == null) {
+      continue;
+    }
+    if (value is Map) {
+      normalized[key] = <String, dynamic>{
+        for (final entry in value.entries) entry.key.toString(): entry.value,
+      };
+      continue;
+    }
+    normalized.remove(key);
+  }
+
+  return normalized;
 }

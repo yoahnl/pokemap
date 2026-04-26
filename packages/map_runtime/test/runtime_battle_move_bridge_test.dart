@@ -261,6 +261,41 @@ void main() {
       );
     });
 
+    test('projects Transform as an executable target-copy move', () {
+      const move = PokemonMove(
+        id: 'transform',
+        name: 'Transform',
+        names: <String, String>{'en': 'Transform'},
+        generation: 1,
+        source: 'test',
+        type: 'normal',
+        category: PokemonMoveCategory.status,
+        target: PokemonMoveTarget.normal,
+        basePower: 0,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+        pp: 10,
+        engineSupportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+        unsupportedReasons: <String>['psdk_method:s_transform'],
+      );
+
+      final battleMove = bridge.toBattleMoveData(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(battleMove.id, equals('transform'));
+      expect(battleMove.power, equals(0));
+      expect(battleMove.type, equals('normal'));
+      expect(battleMove.category, equals(BattleMoveCategory.status));
+      expect(battleMove.target, equals(BattleMoveTarget.opponent));
+      expect(
+        battleMove.accuracy.kind,
+        equals(BattleMoveAccuracyKind.alwaysHits),
+      );
+      expect(battleMove.pp, equals(10));
+      expect(battleMove.copiesTargetOnHit, isTrue);
+    });
+
     test(
         'still rejects a probabilistic stat rider move when another real unsupported reason remains',
         () {

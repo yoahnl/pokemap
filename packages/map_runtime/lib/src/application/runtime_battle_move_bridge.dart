@@ -76,6 +76,7 @@ class RuntimeBattleMoveBridge {
     var setsSpikes = false;
     var breaksProtect = false;
     var requiresRecharge = false;
+    final copiesTargetOnHit = _isTransformMoveCandidate(move);
     BattleChargeThenStrikeEffect? chargeThenStrikeEffect;
 
     for (final effect in move.effects) {
@@ -588,6 +589,13 @@ class RuntimeBattleMoveBridge {
         bridgeLimit: 'unsupported_combined_side_condition_move',
       );
     }
+    if (copiesTargetOnHit && target != BattleMoveTarget.opponent) {
+      _rejectMove(
+        move: move,
+        combatantLabel: combatantLabel,
+        bridgeLimit: 'unsupported_transform_target:${target.name}',
+      );
+    }
 
     // Un move battle exécutable doit avoir au moins un chemin d'exécution
     // réel pour le moteur actuel :
@@ -605,7 +613,8 @@ class RuntimeBattleMoveBridge {
         weatherEffect == null &&
         pseudoWeatherEffect == null &&
         !setsStealthRock &&
-        !setsSpikes) {
+        !setsSpikes &&
+        !copiesTargetOnHit) {
       _rejectMove(
         move: move,
         combatantLabel: combatantLabel,
@@ -651,6 +660,7 @@ class RuntimeBattleMoveBridge {
       breaksProtect: breaksProtect,
       requiresRecharge: requiresRecharge,
       chargeThenStrikeEffect: chargeThenStrikeEffect,
+      copiesTargetOnHit: copiesTargetOnHit,
       selfStatStageChanges:
           List<BattleStatStageChange>.unmodifiable(selfChanges),
       targetStatStageChanges:
@@ -666,6 +676,7 @@ class RuntimeBattleMoveBridge {
   }) {
     if (move.engineSupportLevel ==
             PokemonMoveEngineSupportLevel.structuredSupported ||
+        _isTransformMoveCandidate(move) ||
         _allowsBridgeableStructuredPartialMove(move)) {
       return;
     }
@@ -921,6 +932,19 @@ class RuntimeBattleMoveBridge {
     // - tout autre `structuredPartial` continue à être refusé par défaut.
     return _allowsStructuredPartialFieldMove(move) ||
         _allowsStructuredPartialMetadataOnlyMove(move);
+  }
+
+  bool _isTransformMoveCandidate(PokemonMove move) {
+    final normalizedMoveId = move.id.trim().toLowerCase();
+    final normalizedShowdownMoveId =
+        move.sourceRefs.showdownMoveId?.trim().toLowerCase();
+    final isTransformId = normalizedMoveId == 'transform' ||
+        normalizedShowdownMoveId == 'transform';
+
+    return isTransformId &&
+        move.category == PokemonMoveCategory.status &&
+        move.basePower <= 0 &&
+        move.effects.isEmpty;
   }
 
   bool _allowsStructuredPartialFieldMove(PokemonMove move) {
