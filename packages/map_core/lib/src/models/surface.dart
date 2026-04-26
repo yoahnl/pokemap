@@ -606,3 +606,109 @@ final class SurfaceVariantAnimationRef {
   @override
   int get hashCode => Object.hash(role, animationId);
 }
+
+/// Comparaison **ordonnée** de deux listes de [SurfaceVariantAnimationRef] pour
+/// [SurfaceVariantAnimationRefSet] (même principe que
+/// [_surfaceAnimationFramesEqualInOrder] côté timeline).
+bool _surfaceVariantAnimationRefListsEqualInOrder(
+  List<SurfaceVariantAnimationRef> a,
+  List<SurfaceVariantAnimationRef> b,
+) {
+  if (a.length != b.length) {
+    return false;
+  }
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/// Ensemble **ordonné** et **immuable** de [SurfaceVariantAnimationRef] (au plus
+/// une ref par [SurfaceVariantRole]).
+///
+/// * Modèle de domaine pur : **aucun** [toJson], **ni** [ProjectSurfacePreset] ni
+///   enregistrement manifest ; n’**en résout** pas les [animationId] vers
+///   [ProjectSurfaceAnimation].
+/// * L’**unicité** porte sur le **rôle** : le même `animationId` sur plusieurs
+///   rôles est autorisé (ex. un clip partagé) ; deux entrées **même rôle** sont
+///   rejetées.
+/// * L’**ordre d’entrée** est conservé (pas de tri sur
+///   [standardSurfaceVariantRoleOrder]).
+/// * [coversAllRoles] vérifie seulement que les rôles **demandés** sont présents
+///   (n’impose **pas** la liste complète des 20 rôles).
+@immutable
+final class SurfaceVariantAnimationRefSet {
+  SurfaceVariantAnimationRefSet({
+    required List<SurfaceVariantAnimationRef> refs,
+  }) {
+    if (refs.isEmpty) {
+      throw const ValidationException(
+        'SurfaceVariantAnimationRefSet.refs must be non-empty',
+      );
+    }
+    final seen = <SurfaceVariantRole>{};
+    for (final r in refs) {
+      if (!seen.add(r.role)) {
+        throw const ValidationException(
+          'SurfaceVariantAnimationRefSet.refs must not contain duplicate SurfaceVariantRole',
+        );
+      }
+    }
+    _refs = List<SurfaceVariantAnimationRef>.unmodifiable(
+      List<SurfaceVariantAnimationRef>.from(refs),
+    );
+  }
+
+  late final List<SurfaceVariantAnimationRef> _refs;
+
+  /// Refs dans l’**ordre** fourni (liste **non modifiable**).
+  List<SurfaceVariantAnimationRef> get refs => _refs;
+
+  int get length => _refs.length;
+
+  /// Après construction valide, toujours `false` (le set n’est jamais vide).
+  bool get isEmpty => _refs.isEmpty;
+
+  /// Après construction valide, toujours `true`.
+  bool get isNotEmpty => _refs.isNotEmpty;
+
+  /// Vrai s’il existe une ref de ce [role].
+  bool containsRole(SurfaceVariantRole role) {
+    for (final r in _refs) {
+      if (r.role == role) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// La ref pour [role] si présente, sinon `null`.
+  SurfaceVariantAnimationRef? refForRole(SurfaceVariantRole role) {
+    for (final r in _refs) {
+      if (r.role == role) {
+        return r;
+      }
+    }
+    return null;
+  }
+
+  /// L’[SurfaceVariantAnimationRef.animationId] pour [role] si présent.
+  String? animationIdForRole(SurfaceVariantRole role) =>
+      refForRole(role)?.animationId;
+
+  /// Vrai si **chaque** rôle de [roles] est couvert (pour un [Iterable] vide :
+  /// vrai, comme `every` sur collection vide en Dart).
+  bool coversAllRoles(Iterable<SurfaceVariantRole> roles) =>
+      roles.every(containsRole);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SurfaceVariantAnimationRefSet &&
+          _surfaceVariantAnimationRefListsEqualInOrder(refs, other.refs);
+
+  @override
+  int get hashCode => Object.hashAll(_refs);
+}
