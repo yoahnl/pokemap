@@ -1,7 +1,7 @@
 // Fichier d’entrée Surface (map_core) : pas de persistance JSON, pas de `toJson` ici.
 // Contient les enums (layout, rôles de variante d’autotile), les value objects
-// de géométrie d’atlas, [ProjectSurfaceAtlas] / [ProjectSurfaceAnimation] —
-// raccrochage manifest dans des lots ultérieurs.
+// de géométrie d’atlas, [ProjectSurfaceAtlas] / [ProjectSurfaceAnimation] /
+// [ProjectSurfacePreset] — raccrochage manifest dans des lots ultérieurs.
 
 import 'package:meta/meta.dart' show immutable;
 
@@ -711,4 +711,93 @@ final class SurfaceVariantAnimationRefSet {
 
   @override
   int get hashCode => Object.hashAll(_refs);
+}
+
+/// **Preset Surface** côté auteur : définition visuelle **réutilisable** qui
+/// associe des [SurfaceVariantRole] à des identifiants d’animation (`animationId`)
+/// via un [SurfaceVariantAnimationRefSet].
+///
+/// * Modèle de **domaine pur** : **aucun** [toJson] / [fromJson] ; **n’est pas**
+///   rattaché à un [ProjectManifest] (aucune liste `surfacePresets` à ce
+///   stade).
+/// * Ne **résout** pas les [animationId] vers des [ProjectSurfaceAnimation],
+///   ne connaît **pas** de [ProjectSurfaceAtlas], pas de frames, pas de runtime.
+/// * Les recherches par rôle ([containsRole], [refForRole], [animationIdForRole],
+///   [coversAllRoles]) **délèguent** à [variantAnimations], source de vérité pour
+///   les rôles couverts et l’**ordre** des refs.
+/// * Pas de [SurfacePresetKind], pas de gameplay / eau / herbe / lave ici : V0
+///   strictement **visuel** (assemblage de refs de variantes).
+@immutable
+final class ProjectSurfacePreset {
+  ProjectSurfacePreset({
+    required this.id,
+    required this.name,
+    required this.variantAnimations,
+    this.categoryId,
+    this.sortOrder = 0,
+  }) {
+    if (id.trim().isEmpty) {
+      throw const ValidationException('ProjectSurfacePreset.id must be non-empty');
+    }
+    if (name.trim().isEmpty) {
+      throw const ValidationException('ProjectSurfacePreset.name must be non-empty');
+    }
+  }
+
+  /// Identifiant stable du preset, stocké **tel quel** (invalidité seulement si,
+  /// après [trim], il ne reste rien). Pas de résolution d’animations.
+  final String id;
+
+  /// Libellé auteur ; mêmes règles de stockage / garde qu’[id].
+  final String name;
+
+  /// Set de refs (non vide, rôles uniques) : **même instance** que celle passée
+  /// au constructeur (pas de copie, pas de revalidation ici).
+  final SurfaceVariantAnimationRefSet variantAnimations;
+
+  /// Catégorie d’UI optionnelle ; pas de forme imposée (comme
+  /// [ProjectSurfaceAtlas.categoryId] / [ProjectSurfaceAnimation.categoryId]).
+  final String? categoryId;
+
+  /// Classement d’affichage futur ; toute valeur entière acceptée (y compris
+  /// négative), comme [ProjectSurfaceAtlas.sortOrder] / [ProjectSurfaceAnimation.sortOrder].
+  final int sortOrder;
+
+  /// Délègue à [SurfaceVariantAnimationRefSet.length] : nombre de rôles couverts.
+  int get variantCount => variantAnimations.length;
+
+  /// Délègue à [SurfaceVariantAnimationRefSet.containsRole].
+  bool containsRole(SurfaceVariantRole role) =>
+      variantAnimations.containsRole(role);
+
+  /// Délègue à [SurfaceVariantAnimationRefSet.refForRole].
+  SurfaceVariantAnimationRef? refForRole(SurfaceVariantRole role) =>
+      variantAnimations.refForRole(role);
+
+  /// Délègue à [SurfaceVariantAnimationRefSet.animationIdForRole].
+  String? animationIdForRole(SurfaceVariantRole role) =>
+      variantAnimations.animationIdForRole(role);
+
+  /// Délègue à [SurfaceVariantAnimationRefSet.coversAllRoles].
+  bool coversAllRoles(Iterable<SurfaceVariantRole> roles) =>
+      variantAnimations.coversAllRoles(roles);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ProjectSurfacePreset &&
+          other.id == id &&
+          other.name == name &&
+          other.variantAnimations == variantAnimations &&
+          other.categoryId == categoryId &&
+          other.sortOrder == sortOrder;
+
+  @override
+  int get hashCode => Object.hash(
+        id,
+        name,
+        variantAnimations,
+        categoryId,
+        sortOrder,
+      );
 }
