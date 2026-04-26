@@ -20,10 +20,13 @@ bool _diagnosticsEqualInOrder(
   return true;
 }
 
-/// Niveau de sévérité d’un [SurfaceCatalogDiagnostic] (V0 : **error** seulement
-/// — pas de warning dans ce lot).
+/// Niveau de sévérité d’un [SurfaceCatalogDiagnostic] :
+/// * [error] : références invalides (Lot 34, [diagnoseProjectSurfaceCatalog]) ;
+/// * [warning] : ressources non référencées (Lot 35,
+///   [diagnoseProjectSurfaceCatalogUnusedResources]).
 enum SurfaceCatalogDiagnosticSeverity {
   error,
+  warning,
 }
 
 /// Catégorie de problème constaté dans un [ProjectSurfaceCatalog] (références
@@ -40,6 +43,18 @@ enum SurfaceCatalogDiagnosticKind {
   /// Frame dont les coordonnées de grille ne sont pas dans
   /// [ProjectSurfaceAtlas.geometry] (l’atlas **existe** dans le catalogue).
   animationFrameOutsideAtlasGeometry,
+
+  /// Aucune frame d’[ProjectSurfaceAnimation] ne référence cet
+  /// [ProjectSurfaceAtlas.id] (comparaison de chaînes **exacte**).
+  /// Lot 35 — [diagnoseProjectSurfaceCatalogUnusedResources] seulement.
+  unusedAtlas,
+
+  /// Aucun [ProjectSurfacePreset] ne référence cet [ProjectSurfaceAnimation.id]
+  /// dans une [SurfaceVariantAnimationRef] (exact).
+  /// Lot 35 — [diagnoseProjectSurfaceCatalogUnusedResources] seulement.
+  /// Le kind `unusedPreset` n’existe **pas** : aucun autre type du projet ne
+  /// référence encore un preset par id (pas de consommateur fiable).
+  unusedAnimation,
 }
 
 /// Un problème constaté sur un [ProjectSurfaceCatalog] en **lecture seule** ;
@@ -93,8 +108,11 @@ final class SurfaceCatalogDiagnostic {
 }
 
 /// Rapport de diagnostics sur un [ProjectSurfaceCatalog] : **mémoire uniquement**,
-/// ordre des entrées **déterministe** (presets d’abord, puis animations), pas de
-/// tri par message ni remplacement d’un **validateur projet** complet.
+/// ordre des entrées **déterministe** selon la fonction appelée
+/// ([diagnoseProjectSurfaceCatalog] : presets puis animations+frames ;
+/// [diagnoseProjectSurfaceCatalogUnusedResources] : atlases inutilisés puis
+/// animations inutilisées) ; pas de tri par message ; ne remplace pas un
+/// **validateur projet** complet.
 @immutable
 final class SurfaceCatalogDiagnosticsReport {
   SurfaceCatalogDiagnosticsReport({
@@ -218,6 +236,74 @@ SurfaceCatalogDiagnosticsReport diagnoseProjectSurfaceCatalog(
         }
       }
       fi++;
+    }
+  }
+
+  return SurfaceCatalogDiagnosticsReport(diagnostics: out);
+}
+
+/// Détecte les ressources **non référencées** dans [catalog] (avertissements
+/// seulement), **séparé** de [diagnoseProjectSurfaceCatalog] (erreurs Lot 34).
+/// Ne valide **pas** les frames, la géométrie ni l’existence d’atlas côté erreur
+/// — seulement : atlas cité par au moins une frame ? animation citée par au moins
+/// un preset ? Comparaison d’[String] **stricte** (pas de [trim]).
+/// Ne remplace **pas** un validateur projet complet ; le kind `unusedPreset` n’est
+/// pas proposé tant qu’il n’y a pas de consommateur de presets Surface ailleurs.
+///
+/// * Ordre : d’abord chaque [SurfaceCatalogDiagnosticKind.unusedAtlas] pour
+///   chaque [ProjectSurfaceCatalog.atlases] ; puis chaque
+///   [SurfaceCatalogDiagnosticKind.unusedAnimation] pour chaque
+///   [ProjectSurfaceCatalog.animations].
+SurfaceCatalogDiagnosticsReport diagnoseProjectSurfaceCatalogUnusedResources(
+  ProjectSurfaceCatalog catalog,
+) {
+  final out = <SurfaceCatalogDiagnostic>[];
+
+  final atlasIdsUsedByAnyFrame = <String>{};
+  for (final animation in catalog.animations) {
+    for (final frame in animation.timeline.frames) {
+      atlasIdsUsedByAnyFrame.add(frame.tileRef.atlasId);
+    }
+  }
+
+  for (final atlas in catalog.atlases) {
+    if (!atlasIdsUsedByAnyFrame.contains(atlas.id)) {
+      out.add(
+        SurfaceCatalogDiagnostic(
+          severity: SurfaceCatalogDiagnosticSeverity.warning,
+          kind: SurfaceCatalogDiagnosticKind.unusedAtlas,
+          message: "Atlas '${atlas.id}' is not referenced by any animation frame",
+          presetId: null,
+          animationId: null,
+          atlasId: atlas.id,
+          role: null,
+          frameIndex: null,
+        ),
+      );
+    }
+  }
+
+  final animationIdsUsedByAnyPreset = <String>{};
+  for (final preset in catalog.presets) {
+    for (final ref in preset.variantAnimations.refs) {
+      animationIdsUsedByAnyPreset.add(ref.animationId);
+    }
+  }
+
+  for (final animation in catalog.animations) {
+    if (!animationIdsUsedByAnyPreset.contains(animation.id)) {
+      out.add(
+        SurfaceCatalogDiagnostic(
+          severity: SurfaceCatalogDiagnosticSeverity.warning,
+          kind: SurfaceCatalogDiagnosticKind.unusedAnimation,
+          message: "Animation '${animation.id}' is not referenced by any preset",
+          presetId: null,
+          animationId: animation.id,
+          atlasId: null,
+          role: null,
+          frameIndex: null,
+        ),
+      );
     }
   }
 
