@@ -410,3 +410,100 @@ final class SurfaceAnimationTimeline {
   @override
   int get hashCode => Object.hashAll(_frames);
 }
+
+/// **Animation Surface** côté domaine : identifiant, libellé, et
+/// [SurfaceAnimationTimeline] (source de vérité pour **frames** et **durées**).
+///
+/// * Modèle pur : **aucun** [toJson] / [fromJson] ; **n’est pas** rattaché à un
+///   [ProjectManifest] (aucun champ `surfaceAnimations` à ce stade) — miroir
+///   d’intention de [ProjectSurfaceAtlas] (Lot 23) pour l’**animation** nommée.
+/// * Aucun **horloge** ni **frame courante** : ne lit **pas** le temps ; ne
+///   implémente **pas** de moteur, playback ou horloge Surface.
+/// * [isInside] se délègue à [timeline] seule (pas de résolution d’[atlasId],
+///   pas de vérification de tileset, pas de texture, pas de runtime).
+/// * [syncGroupId] prépare une **synchronisation future** entre instances (eau,
+///   lave, etc.) côté runtime : **inerte** dans ce lot (aucun effet, aucune
+///   clé lue ici ailleurs).
+/// * [categoryId] suit la même marge de manœuvre qu’[ProjectSurfaceAtlas] :
+///   chaînes vides / espaces autorisées si l’appelant les transmet, pour ne pas
+///   sur-valider l’**optionnel** en l’absence d’unicité de convention dans le
+///   monorepo.
+@immutable
+final class ProjectSurfaceAnimation {
+  ProjectSurfaceAnimation({
+    required this.id,
+    required this.name,
+    required this.timeline,
+    this.syncGroupId,
+    this.categoryId,
+    this.sortOrder = 0,
+  }) {
+    if (id.trim().isEmpty) {
+      throw const ValidationException('ProjectSurfaceAnimation.id must be non-empty');
+    }
+    if (name.trim().isEmpty) {
+      throw const ValidationException('ProjectSurfaceAnimation.name must be non-empty');
+    }
+    // Promotion sur champ public : copie locale (cf. règles d’analyse Dart).
+    final sync = syncGroupId;
+    if (sync != null && sync.trim().isEmpty) {
+      throw const ValidationException(
+        'ProjectSurfaceAnimation.syncGroupId must be null or have non-empty content',
+      );
+    }
+  }
+
+  /// Identifiant auteur, stocké **tel quel** (invalidité seulement si, après
+  /// [trim], il ne reste rien). Pas de raccrochage manifest dans ce lot.
+  final String id;
+
+  /// Nom d’affichage ; mêmes règles de stockage / garde qu’[id].
+  final String name;
+
+  /// La timeline est conservée **identique** (référence d’objet) ; on ne
+  /// re-valide ni les frames, ni les durées, ni la copie (déjà
+  /// [SurfaceAnimationTimeline]).
+  final SurfaceAnimationTimeline timeline;
+
+  /// Synchronisation future (ex. eau / lave partagés) : **préparé ici, inerte**
+  /// tant qu’il n’y a pas de moteur.
+  final String? syncGroupId;
+
+  /// Dossier / catégorie optionnelle (comme [ProjectSurfaceAtlas.categoryId]) :
+  /// pas de forme imposée sur les chaînes vides ici.
+  final String? categoryId;
+
+  /// Classement (affichage), comme [ProjectSurfaceAtlas.sortOrder] ; toute
+  /// valeur entière est acceptée, y compris négative.
+  final int sortOrder;
+
+  /// Délègue à [SurfaceAnimationTimeline.frameCount].
+  int get frameCount => timeline.frameCount;
+
+  /// Délègue à [SurfaceAnimationTimeline.totalDurationMs].
+  int get totalDurationMs => timeline.totalDurationMs;
+
+  /// Délègue à [SurfaceAnimationTimeline.isInside].
+  bool isInside(SurfaceAtlasGeometry geometry) => timeline.isInside(geometry);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ProjectSurfaceAnimation &&
+          other.id == id &&
+          other.name == name &&
+          other.timeline == timeline &&
+          other.syncGroupId == syncGroupId &&
+          other.categoryId == categoryId &&
+          other.sortOrder == sortOrder;
+
+  @override
+  int get hashCode => Object.hash(
+        id,
+        name,
+        timeline,
+        syncGroupId,
+        categoryId,
+        sortOrder,
+      );
+}
