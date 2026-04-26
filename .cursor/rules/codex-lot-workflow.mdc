@@ -5,6 +5,8 @@ alwaysApply: true
 
 # Rituel Obligatoire De Lot
 
+Le détail des obligations (remise en cause du prompt, contenu du rapport, etc.) est dans le fichier racine **`codex_rule.md`**. Cette règle résume le rituel pour Cursor.
+
 Quand une demande correspond a un lot de travail, appliquer ce rituel avant de modifier le repo.
 
 ## Audit Et Remise En Cause

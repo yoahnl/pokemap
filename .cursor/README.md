@@ -1,6 +1,17 @@
 # Dossier `.cursor/` — mémoire projet PokeMap
 
-Ce répertoire est une **mémoire locale** pour les interventions sur le dépôt (humains et assistants). Il complète `AGENTS.md` à la racine : `AGENTS.md` oriente l’exécution générale du monorepo ; `.cursor/` fixe la **vision produit**, la **discipline d’architecture**, et des **garde-fous** réutilisables.
+Ce répertoire est une **mémoire locale** pour les interventions sur le dépôt (humains et assistants). Il ne remplace **pas** les sources obligatoires à la racine du dépôt.
+
+## Sources canoniques (racine)
+
+| Fichier | Rôle |
+|---------|------|
+| [`AGENTS.md`](../AGENTS.md) | **Référence du monorepo** : graphique des packages, frontières d’architecture, contexte Surface Engine, matrice de tests/analyse, génération de code, compétences agents. |
+| [`codex_rule.md`](../codex_rule.md) | **Règles Codex pour les lots** : audit, remise en cause du prompt, sub-agents, rapport, tests, build, honnêteté. |
+
+La règle Cursor **`.cursor/rules/repository-instructions.mdc`** (`alwaysApply: true`) rappelle cette hiérarchie et oblige l’agent à s’y aligner. Les tâches « lot » s’appuient aussi sur **`.cursor/rules/codex-lot-workflow.mdc`**.
+
+`AGENTS.md` oriente l’exécution générale du monorepo ; `codex_rule.md` cadre le travail par lots. Le dossier `.cursor/` (hors `rules/`) fixe en complément la **vision produit**, la **discipline d’architecture**, et des **garde-fous** réutilisables.
 
 ## Contenu
 
@@ -12,6 +23,13 @@ Ce répertoire est une **mémoire locale** pour les interventions sur le dépôt
 | [ui_ux_rules.md](ui_ux_rules.md) | Principes UI/UX desktop no-code. |
 | [scope_rules.md](scope_rules.md) | Discipline de périmètre des changements. |
 | [code_generation_rules.md](code_generation_rules.md) | Attentes pour le code et la documentation générés. |
+
+### Règles Cursor (`.cursor/rules/`)
+
+| Fichier | Rôle |
+|---------|------|
+| [rules/repository-instructions.mdc](rules/repository-instructions.mdc) | Rappelle `AGENTS.md` + `codex_rule.md` comme sources obligatoires (`alwaysApply`). |
+| [rules/codex-lot-workflow.mdc](rules/codex-lot-workflow.mdc) | Rituel lot (audit, tests, rapport, honnêteté) — complète `codex_rule.md`. |
 
 ## Usage
 
