@@ -33,6 +33,7 @@ export 'src/operations/tile_visual_frame_vertical_atlas.dart';
 export 'src/operations/path_variant_vertical_atlas_mapping.dart';
 export 'src/operations/path_preset_vertical_atlas_builder.dart';
 export 'src/operations/terrain_path_variant_vertical_atlas_layout.dart';
+export 'src/operations/standard_path_preset_vertical_atlas_builder.dart';
 export 'src/operations/legacy_path_surface_view.dart';
 export 'src/operations/legacy_terrain_surface_view.dart';
 export 'src/operations/legacy_project_surface_catalog_view.dart';
