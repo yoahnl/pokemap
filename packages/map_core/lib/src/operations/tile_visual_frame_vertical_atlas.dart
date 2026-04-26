@@ -1,4 +1,3 @@
-// ignore_for_file: invalid_annotation_target
 
 import '../exceptions/map_exceptions.dart';
 import '../models/project_manifest.dart';

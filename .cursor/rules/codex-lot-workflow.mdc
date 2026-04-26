@@ -1,0 +1,51 @@
+---
+description: Rituel obligatoire pour les lots de travail Codex/Cursor
+alwaysApply: true
+---
+
+# Rituel Obligatoire De Lot
+
+Quand une demande correspond a un lot de travail, appliquer ce rituel avant de modifier le repo.
+
+## Audit Et Remise En Cause
+
+- Auditer le prompt avant de coder. Remettre en cause toute incoherence avec le repo, mauvaise continuite de lot, scope trop large, instruction dangereuse, contradiction architecturale ou strategie inutilement risquee.
+- Si le prompt est remis en cause, expliquer l'instruction problematique, les preuves trouvees dans le repo, l'alternative proposee et l'interpretation retenue.
+- Commencer par auditer le code existant: fichiers concernes, contrats existants, tests, rapports precedents pertinents, risques principaux et limites de scope a preserver.
+
+## Organisation Du Travail
+
+- Utiliser des sub-agents quand c'est possible, ou des passes separees clairement nommees:
+  - Audit / Architecture
+  - Implementation
+  - Tests
+  - Build / Validation
+  - Critique finale
+- Garder les changements strictement limites au lot. Ne pas modifier un autre chantier sans justification claire.
+- Ajouter des commentaires utiles dans le code modifie ou ajoute quand ils clarifient le pourquoi, les invariants, les frontieres du lot, les garde-fous ou le hors-scope volontaire.
+
+## Tests Et Validation
+
+- Creer ou modifier des tests pour couvrir le lot quand le changement touche un comportement.
+- Couvrir le comportement positif, les cas negatifs, les garde-fous et au moins une non-regression pertinente.
+- Lancer les tests cibles. Si possible, lancer aussi la suite complete du package concerne.
+- Verifier le build ou, si le build complet n'est pas applicable, expliquer pourquoi et lancer la meilleure validation alternative.
+- Ne jamais pretendre qu'une suite est verte si elle echoue. Donner la commande, le resultat exact et, si pertinent, le test isole relance.
+
+## Rapport Final
+
+Le rapport final doit inclure, de facon concise mais verifiable:
+
+- nom exact du lot, resume executif, scope confirme et audit initial;
+- etat git initial et final;
+- fichiers modifies, zones touchees, raison et impact attendu;
+- tests crees ou modifies;
+- commandes de test, analyse et build lancees avec resultats exacts;
+- limites conservees, risques restants, auto-critique finale et prochaines etapes non implementees;
+- verdict des passes ou sub-agents Audit / Architecture, Implementation, Tests, Build / Validation et Critique finale.
+
+## Honnetete
+
+- Ne jamais maquiller un resultat.
+- Ne jamais dire qu'un comportement est supporte si le moteur ne le consomme pas reellement.
+- Ne jamais elargir le scope sans le signaler.

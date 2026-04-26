@@ -65,7 +65,7 @@ Cette convention permet de mapper directement les atlas Pokémon SDK vers le mod
 
 ### Tests
 - `packages/map_core/test/tile_visual_frame_vertical_atlas_test.dart` (11,254 octets)
-  - 24 tests couvrant tous les cas obligatoires
+  - 23 tests couvrant tous les cas obligatoires
   - Tests de compatibilité avec `resolveTileVisualFrameTimeline`
   - Tests d'immutabilité et de non-mutation
   - Documentation des conventions Pokémon SDK
@@ -271,7 +271,7 @@ Le design permet une progression progressive :
 cd packages/map_core
 /opt/homebrew/bin/dart test test/tile_visual_frame_vertical_atlas_test.dart
 ```
-**Résultat** : 24/24 tests passés ✅
+**Résultat** : 23/23 tests passés ✅
 
 ### Tests des lots précédents
 ```bash
@@ -300,7 +300,7 @@ cd packages/map_core
 ## Résultats exacts des tests
 
 ### Nouveau fichier testé
-- `test/tile_visual_frame_vertical_atlas_test.dart` : 24 tests couvrant les cas obligatoires du lot
+- `test/tile_visual_frame_vertical_atlas_test.dart` : 23 tests couvrant les cas obligatoires du lot
 - Temps d'exécution : ~0.8s
 
 ### Tests existants préservés
@@ -317,7 +317,7 @@ cd packages/map_core
 ### Points forts
 ✅ **Respect strict du périmètre** : Helper pur, pas de modèle persistant
 ✅ **Design immutable** : Liste non mutable, aucune mutation
-✅ **Tests exhaustifs** : 24 tests couvrant tous les cas obligatoires
+✅ **Tests exhaustifs** : 23 tests couvrant tous les cas obligatoires
 ✅ **Validation stricte** : Toutes les validations testées
 ✅ **Compatibilité Lot 2** : Intégration parfaite avec la timeline
 ✅ **Documentation complète** : Commentaires utiles, limitations explicites
@@ -371,10 +371,10 @@ En tant que reviewer indépendant, je réponds aux questions critiques :
 - **Validations strictes et testées** : Oui, 8 tests de validation spécifiques
 - **Liste retournée non mutable** : Oui, List.unmodifiable utilisé
 - **Compatible avec resolveTileVisualFrameTimeline** : Oui, test d'intégration passe
-- **Tests documentent le comportement actuel** : Oui, 24 tests exhaustifs
+- **Tests documentent le comportement actuel** : Oui, 23 tests exhaustifs
 
 ### ✅ Qualité du code
-- **Tests exhaustifs** : 24 tests couvrant tous les cas obligatoires
+- **Tests exhaustifs** : 23 tests couvrant tous les cas obligatoires
 - **Documentation** : Commentaires utiles dans code et tests
 - **Style cohérent** : Match le style existant du projet
 - **Analyse statique clean** : Aucune erreur, aucun warning
