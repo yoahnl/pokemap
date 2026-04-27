@@ -270,6 +270,18 @@ class _SurfaceStudioVerticalAtlasAnimationPreviewState
     }
   }
 
+  /// Fond du menu : assez sombre pour garder [widget.label] lisible (évite chips M3 clairs).
+  Color _columnPickerMenuBackground(BuildContext context) =>
+      Color.alphaBlend(
+        Colors.black.withValues(alpha: 0.42),
+        EditorChrome.islandFillElevated(context),
+      );
+
+  Color _columnPickerFieldFill(BuildContext context) => Color.alphaBlend(
+        Colors.black.withValues(alpha: 0.28),
+        EditorChrome.islandFillElevated(context),
+      );
+
   void _togglePlay() {
     if (_playing) {
       _playTimer?.cancel();
@@ -388,10 +400,6 @@ class _SurfaceStudioVerticalAtlasAnimationPreviewState
           style: TextStyle(color: widget.label, fontSize: 11.5, height: 1.35),
         ),
         Text(
-          'Colonne : $sel',
-          style: TextStyle(color: widget.label, fontSize: 11.5, height: 1.35),
-        ),
-        Text(
           'Frames : ${summary.frameCount}',
           style: TextStyle(color: widget.label, fontSize: 11.5, height: 1.35),
         ),
@@ -405,40 +413,63 @@ class _SurfaceStudioVerticalAtlasAnimationPreviewState
         ),
         const SizedBox(height: 6),
         Text(
-          'Colonne affichée',
-          style: TextStyle(color: widget.subtle, fontSize: 10.5),
+          'Colonne à prévisualiser',
+          style: TextStyle(color: widget.label, fontSize: 11, fontWeight: FontWeight.w600),
         ),
-        const SizedBox(height: 4),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 120),
-          child: SingleChildScrollView(
-            child: Wrap(
-              spacing: 6,
-              runSpacing: 4,
-              children: [
+        const SizedBox(height: 2),
+        Text(
+          'Choisissez une colonne déjà reliée à un rôle (liste déroulante).',
+          style: TextStyle(color: widget.subtle, fontSize: 10, height: 1.3),
+        ),
+        const SizedBox(height: 6),
+        InputDecorator(
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: _columnPickerFieldFill(context),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(
+                color: widget.label.withValues(alpha: 0.35),
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(
+                color: widget.label.withValues(alpha: 0.28),
+              ),
+            ),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<int>(
+              value: sel,
+              isExpanded: true,
+              isDense: true,
+              dropdownColor: _columnPickerMenuBackground(context),
+              iconEnabledColor: widget.label,
+              iconDisabledColor: widget.subtle,
+              style: TextStyle(color: widget.label, fontSize: 12, height: 1.25),
+              items: [
                 for (final a in assigned)
-                  ChoiceChip(
-                    label: Text(
+                  DropdownMenuItem<int>(
+                    value: a.columnIndex,
+                    child: Text(
                       'Colonne ${a.columnIndex} — ${SurfaceStudioRoleLabels.labelForRole(a.role!)}',
-                      style: TextStyle(
-                        color: _selectedColumn == a.columnIndex
-                            ? Colors.white
-                            : widget.label,
-                        fontSize: 11,
-                      ),
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: widget.label, fontSize: 12),
                     ),
-                    selected: _selectedColumn == a.columnIndex,
-                    onSelected: (selected) {
-                      if (!selected) {
-                        return;
-                      }
-                      setState(() {
-                        _selectedColumn = a.columnIndex;
-                        _frameIndex = 0;
-                      });
-                    },
                   ),
               ],
+              onChanged: (v) {
+                if (v == null) {
+                  return;
+                }
+                setState(() {
+                  _selectedColumn = v;
+                  _frameIndex = 0;
+                });
+              },
             ),
           ),
         ),
