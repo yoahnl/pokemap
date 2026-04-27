@@ -204,6 +204,7 @@ class SurfaceStudioAtlasAuthoringPrep extends StatefulWidget {
     required this.readModel,
     required this.selection,
     this.onSurfaceCatalogChanged,
+    this.onWorkCatalogAnimationsCreated,
     this.requestEditSignal = 0,
     this.projectTilesets,
     this.projectRootPath,
@@ -212,6 +213,7 @@ class SurfaceStudioAtlasAuthoringPrep extends StatefulWidget {
   final SurfaceStudioReadModel readModel;
   final SurfaceStudioSelection selection;
   final ValueChanged<ProjectSurfaceCatalog>? onSurfaceCatalogChanged;
+  final ValueChanged<List<String>>? onWorkCatalogAnimationsCreated;
   final int requestEditSignal;
   final List<ProjectTilesetEntry>? projectTilesets;
 
@@ -863,11 +865,17 @@ class _SurfaceStudioAtlasAuthoringPrepState
             subtle: subtle,
             readModel: widget.readModel,
             atlasIdDraft: _id.text.trim(),
+            atlasDisplayName: _name.text,
+            atlasCategoryDraft: _categoryId.text.trim().isEmpty
+                ? null
+                : _categoryId.text.trim(),
             mappingDraft: _columnRoleMappingDraft,
             tileWidth: previewTileWidth,
             tileHeight: previewTileHeight,
             columns: previewColumns,
             rows: previewRows,
+            onWorkCatalogChanged: widget.onSurfaceCatalogChanged,
+            onWorkCatalogAnimationsCreated: widget.onWorkCatalogAnimationsCreated,
           ),
           const SizedBox(height: 10),
           SurfaceStudioAtlasImagePreview(

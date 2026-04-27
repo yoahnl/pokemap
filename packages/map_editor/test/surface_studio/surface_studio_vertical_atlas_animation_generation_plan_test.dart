@@ -168,6 +168,7 @@ void main() {
               subtle: Colors.grey,
               readModel: rm,
               atlasIdDraft: 'eau',
+              atlasDisplayName: 'Eau',
               mappingDraft: draft,
               tileWidth: 32,
               tileHeight: 32,
@@ -211,6 +212,7 @@ void main() {
               subtle: Colors.grey,
               readModel: rm,
               atlasIdDraft: 'eau',
+              atlasDisplayName: 'Eau',
               mappingDraft: SurfaceStudioColumnRoleMappingDraft.suggested(1),
               tileWidth: 32,
               tileHeight: 32,
@@ -229,6 +231,41 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('surface_studio_gen_plan_preview')));
       await tester.pump();
       expect(rm.catalog.animations.length, before);
+    });
+
+    testWidgets('ajout animations prêtes via callback', (tester) async {
+      ProjectSurfaceCatalog? updated;
+      final rm = buildSurfaceStudioReadModelFromCatalog(ProjectSurfaceCatalog());
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SurfaceStudioVerticalAtlasAnimationGenerationPlanSection(
+              label: Colors.white,
+              subtle: Colors.grey,
+              readModel: rm,
+              atlasIdDraft: 'eau',
+              atlasDisplayName: 'Eau',
+              mappingDraft: SurfaceStudioColumnRoleMappingDraft.suggested(1),
+              tileWidth: 32,
+              tileHeight: 32,
+              columns: 1,
+              rows: 4,
+              onWorkCatalogChanged: (c) => updated = c,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_gen_plan_append_ready')),
+      );
+      await tester.pump();
+      expect(updated, isNotNull);
+      expect(updated!.animations.length, 1);
+      expect(updated!.animations.single.id, 'eau-plein-loop');
+      expect(updated!.animations.single.timeline.frameCount, 4);
+      expect(updated!.presets, isEmpty);
+      expect(updated!.atlases, isEmpty);
     });
   });
 }

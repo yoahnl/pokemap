@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../ui/shared/cupertino_editor_widgets.dart';
 import 'surface_studio_atlas_grid_overlay.dart';
+import 'surface_studio_vertical_atlas_animation_generator.dart';
 import 'surface_studio_vertical_atlas_role_mapping.dart';
 
 /// Rectangle source (atlas) pour une frame — plan local uniquement.
@@ -350,11 +351,15 @@ class SurfaceStudioVerticalAtlasAnimationGenerationPlanSection
     required this.subtle,
     required this.readModel,
     required this.atlasIdDraft,
+    required this.atlasDisplayName,
+    this.atlasCategoryDraft,
     required this.mappingDraft,
     required this.tileWidth,
     required this.tileHeight,
     required this.columns,
     required this.rows,
+    this.onWorkCatalogChanged,
+    this.onWorkCatalogAnimationsCreated,
   });
 
   static const ValueKey<String> sectionKey =
@@ -364,11 +369,15 @@ class SurfaceStudioVerticalAtlasAnimationGenerationPlanSection
   final Color subtle;
   final SurfaceStudioReadModel readModel;
   final String atlasIdDraft;
+  final String atlasDisplayName;
+  final String? atlasCategoryDraft;
   final SurfaceStudioColumnRoleMappingDraft mappingDraft;
   final int? tileWidth;
   final int? tileHeight;
   final int? columns;
   final int? rows;
+  final ValueChanged<ProjectSurfaceCatalog>? onWorkCatalogChanged;
+  final ValueChanged<List<String>>? onWorkCatalogAnimationsCreated;
 
   @override
   State<SurfaceStudioVerticalAtlasAnimationGenerationPlanSection>
@@ -383,6 +392,22 @@ class _SurfaceStudioVerticalAtlasAnimationGenerationPlanSectionState
   late final TextEditingController _durationMs =
       TextEditingController(text: '$_defaultDurationMs');
   bool _showDetails = false;
+  String? _appendFeedback;
+
+  @override
+  void didUpdateWidget(
+    covariant SurfaceStudioVerticalAtlasAnimationGenerationPlanSection oldWidget,
+  ) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.mappingDraft != oldWidget.mappingDraft ||
+        widget.atlasIdDraft != oldWidget.atlasIdDraft ||
+        widget.rows != oldWidget.rows ||
+        widget.columns != oldWidget.columns ||
+        widget.tileWidth != oldWidget.tileWidth ||
+        widget.tileHeight != oldWidget.tileHeight) {
+      _appendFeedback = null;
+    }
+  }
 
   @override
   void dispose() {
@@ -398,6 +423,75 @@ class _SurfaceStudioVerticalAtlasAnimationGenerationPlanSectionState
     setState(() {
       _durationMs.text = '$_defaultDurationMs';
     });
+  }
+
+  void _tryAppendAnimations(SurfaceStudioVerticalAtlasAnimationGenerationPlan plan) {
+    final cb = widget.onWorkCatalogChanged;
+    if (cb == null) {
+      return;
+    }
+    if (plan.summary.readyAnimationCount == 0) {
+      setState(() {
+        _appendFeedback = 'Aucune animation prête à créer.';
+      });
+      return;
+    }
+    final atlasId = widget.atlasIdDraft.trim();
+    if (atlasId.isEmpty) {
+      setState(() {
+        _appendFeedback =
+            'Définissez un identifiant d’atlas avant de créer des animations.';
+      });
+      return;
+    }
+    String? catId;
+    final atl = widget.readModel.catalog.atlasById(atlasId);
+    if (atl != null) {
+      final c = atl.categoryId?.trim();
+      if (c != null && c.isNotEmpty) {
+        catId = c;
+      }
+    }
+    final draftCat = widget.atlasCategoryDraft?.trim();
+    catId ??= (draftCat == null || draftCat.isEmpty) ? null : draftCat;
+    final baseSort = widget.readModel.catalog.animations.length;
+    final outcome = surfaceStudioCollectNewAnimationsFromReadyPlan(
+      plan: plan,
+      atlasIdForTileRefs: atlasId,
+      animationDisplayNamePrefix: widget.atlasDisplayName,
+      categoryId: catId,
+      sortOrderBase: baseSort,
+    );
+    if (outcome.newAnimations.isEmpty) {
+      setState(() {
+        _appendFeedback = 'Aucune animation prête à créer.';
+      });
+      return;
+    }
+    try {
+      final next = surfaceStudioAppendAnimationsToWorkCatalog(
+        catalog: widget.readModel.catalog,
+        newAnimations: outcome.newAnimations,
+      );
+      cb(next);
+      widget.onWorkCatalogAnimationsCreated?.call(
+        outcome.newAnimations.map((a) => a.id).toList(),
+      );
+      final n = outcome.newAnimations.length;
+      final ign = outcome.ignoredReadyCount;
+      setState(() {
+        _appendFeedback = ign > 0
+            ? 'Animations créées dans le catalogue de travail ($n). $ign ignorée(s). '
+                'Aucun preset créé. Pensez à appliquer au manifest puis sauvegarder le projet.'
+            : 'Animations créées dans le catalogue de travail ($n). '
+                'Aucun preset créé. Pensez à appliquer au manifest puis sauvegarder le projet.';
+      });
+    } on ValidationException {
+      setState(() {
+        _appendFeedback =
+            'Impossible d’ajouter les animations (validation du catalogue).';
+      });
+    }
   }
 
   @override
@@ -458,7 +552,12 @@ class _SurfaceStudioVerticalAtlasAnimationGenerationPlanSectionState
             ),
             const SizedBox(height: 4),
             Text(
-              'Plan de génération uniquement · aucune animation n’est encore créée',
+              'Plan de génération uniquement. Aucun preset n’est créé à cette étape.',
+              style:
+                  TextStyle(color: widget.subtle, fontSize: 10.5, height: 1.35),
+            ),
+            Text(
+              'Les animations ne sont pas encore dans le catalogue tant que vous ne les ajoutez pas.',
               style:
                   TextStyle(color: widget.subtle, fontSize: 10.5, height: 1.35),
             ),
@@ -536,6 +635,32 @@ class _SurfaceStudioVerticalAtlasAnimationGenerationPlanSectionState
                 ),
               ],
             ),
+            const SizedBox(height: 10),
+            if (summary.readyAnimationCount == 0)
+              Text(
+                'Aucune animation prête à créer.',
+                style: TextStyle(color: widget.subtle, fontSize: 10.5, height: 1.35),
+              ),
+            const SizedBox(height: 8),
+            FilledButton(
+              key: const ValueKey('surface_studio_gen_plan_append_ready'),
+              onPressed: widget.onWorkCatalogChanged != null &&
+                      summary.readyAnimationCount > 0 &&
+                      summary.durationFieldValid &&
+                      widget.atlasIdDraft.trim().isNotEmpty
+                  ? () => _tryAppendAnimations(plan)
+                  : null,
+              child: const Text(
+                'Ajouter les animations prêtes au catalogue de travail',
+              ),
+            ),
+            if (_appendFeedback != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _appendFeedback!,
+                style: TextStyle(color: widget.label, fontSize: 11, height: 1.35),
+              ),
+            ],
             if (_showDetails) ...[
               const SizedBox(height: 10),
               ConstrainedBox(
