@@ -10,6 +10,7 @@ import 'surface_studio_atlas_image_preview.dart';
 import 'surface_studio_atlas_source_picker.dart';
 import 'surface_studio_column_role_mapping_block.dart';
 import 'surface_studio_selection.dart';
+import 'surface_studio_vertical_atlas_animation_generation_plan.dart';
 import 'surface_studio_vertical_atlas_animation_preview.dart';
 import 'surface_studio_vertical_atlas_assistant.dart';
 import 'surface_studio_vertical_atlas_role_mapping.dart';
@@ -855,6 +856,18 @@ class _SurfaceStudioAtlasAuthoringPrepState
                     SurfaceStudioAtlasImagePreviewResolveStatus.resolved
                 ? imagePreviewResolution.resolvedAbsolutePath
                 : null,
+          ),
+          const SizedBox(height: 10),
+          SurfaceStudioVerticalAtlasAnimationGenerationPlanSection(
+            label: label,
+            subtle: subtle,
+            readModel: widget.readModel,
+            atlasIdDraft: _id.text.trim(),
+            mappingDraft: _columnRoleMappingDraft,
+            tileWidth: previewTileWidth,
+            tileHeight: previewTileHeight,
+            columns: previewColumns,
+            rows: previewRows,
           ),
           const SizedBox(height: 10),
           SurfaceStudioAtlasImagePreview(
