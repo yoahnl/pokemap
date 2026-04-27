@@ -107,7 +107,8 @@ void main() {
       await tester.tap(find.byKey(const Key('surface-studio-workspace-entry')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Lecture seule'), findsNWidgets(2));
+      expect(find.text('Lecture seule'), findsNWidgets(1));
+      expect(find.text('Édition partielle'), findsOneWidget);
       expect(find.text('Inspecteur Surface'), findsOneWidget);
       expect(find.byType(SurfaceStudioPanel), findsOneWidget);
       expect(find.text('Catalogue Surface'), findsOneWidget);
@@ -165,7 +166,8 @@ void main() {
       await tester.tap(find.byKey(const Key('surface-studio-workspace-entry')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Lecture seule'), findsNWidgets(2));
+      expect(find.text('Lecture seule'), findsNWidgets(1));
+      expect(find.text('Édition partielle'), findsOneWidget);
     });
 
     testWidgets('panel shows 1/1/1 from manifest when catalog is minimal', (

@@ -425,15 +425,16 @@ class _SurfaceStudioAtlasAuthoringPrepState
         children: [
           Text(
             'Préparation atlas',
+            key: const ValueKey('surface_studio_authoring_main_title'),
             style: TextStyle(
               color: label,
               fontSize: 16,
               fontWeight: FontWeight.w800,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
-            'Brouillon local non sauvegardé sur disque',
+            'Brouillon : rien n’est écrit sur le disque tant que le projet n’est pas sauvegardé.',
             style: TextStyle(
               color: subtle,
               fontSize: 12,
@@ -442,35 +443,12 @@ class _SurfaceStudioAtlasAuthoringPrepState
           ),
           const SizedBox(height: 4),
           Text(
-            'Création locale : le projet n’est pas sauvegardé sur disque.',
+            'Brouillon local · non sauvegardé · en mémoire seulement',
             style: TextStyle(
-              color: subtle.withValues(alpha: 0.95),
+              color: accent.withValues(alpha: 0.95),
               fontSize: 11,
+              fontWeight: FontWeight.w600,
             ),
-          ),
-          const SizedBox(height: 6),
-          Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            children: [
-              _localBadge(context, 'Brouillon local', label, accent),
-              const SizedBox(width: 6),
-              _localBadge(context, 'Non sauvegardé', label, accent),
-              const SizedBox(width: 6),
-              _localBadge(
-                context,
-                'Validation locale uniquement',
-                label,
-                accent,
-              ),
-              const SizedBox(width: 6),
-              _localBadge(
-                context,
-                'Catalogue de travail (mémoire)',
-                label,
-                accent,
-              ),
-            ],
           ),
           if (contextNote != null) ...[
             const SizedBox(height: 8),
@@ -483,20 +461,20 @@ class _SurfaceStudioAtlasAuthoringPrepState
               ),
             ),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Wrap(
-            spacing: 8,
-            runSpacing: 6,
+            spacing: 6,
+            runSpacing: 4,
             children: [
               CupertinoButton(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 onPressed: _resetToDefaults,
                 child: const Text('Réinitialiser le brouillon'),
               ),
               CupertinoButton(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 onPressed: _loadFromSelection,
                 child: const Text('Charger la sélection dans le brouillon'),
               ),
@@ -504,7 +482,7 @@ class _SurfaceStudioAtlasAuthoringPrepState
                 CupertinoButton(
                   key: const ValueKey('surface_studio_create_atlas_work_catalog'),
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   onPressed: isValid ? _addToWorkCatalog : null,
                   child: const Text('Créer l’atlas dans le catalogue de travail'),
                 ),
@@ -520,7 +498,9 @@ class _SurfaceStudioAtlasAuthoringPrepState
               ).copyWith(color: accent),
             ),
           ],
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
+          _formGroupTitle('Identité', label),
+          const SizedBox(height: 4),
           material.TextField(
             key: const ValueKey('atlas_draft_id'),
             controller: _id,
@@ -531,7 +511,7 @@ class _SurfaceStudioAtlasAuthoringPrepState
               isDense: true,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 5),
           material.TextField(
             key: const ValueKey('atlas_draft_name'),
             controller: _name,
@@ -542,18 +522,20 @@ class _SurfaceStudioAtlasAuthoringPrepState
               isDense: true,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 5),
           material.TextField(
             key: const ValueKey('atlas_draft_tileset'),
             controller: _tilesetId,
             onChanged: (_) => setState(() {}),
             style: TextStyle(color: label, fontSize: 13),
             decoration: const material.InputDecoration(
-              labelText: 'Identifiant tileset',
+              labelText: 'ID du jeu d’images (tileset)',
               isDense: true,
             ),
           ),
           const SizedBox(height: 6),
+          _formGroupTitle('Grille', label),
+          const SizedBox(height: 4),
           Row(
             children: [
               Expanded(
@@ -617,7 +599,7 @@ class _SurfaceStudioAtlasAuthoringPrepState
               ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 5),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -649,6 +631,8 @@ class _SurfaceStudioAtlasAuthoringPrepState
             ],
           ),
           const SizedBox(height: 6),
+          _formGroupTitle('Métadonnées', label),
+          const SizedBox(height: 4),
           material.TextField(
             key: const ValueKey('atlas_draft_category'),
             controller: _categoryId,
@@ -659,7 +643,7 @@ class _SurfaceStudioAtlasAuthoringPrepState
               isDense: true,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 5),
           material.TextField(
             key: const ValueKey('atlas_draft_sort'),
             controller: _sort,
@@ -732,30 +716,14 @@ class _SurfaceStudioAtlasAuthoringPrepState
   }
 }
 
-Widget _localBadge(
-  BuildContext context,
-  String text,
-  Color labelColor,
-  Color accent,
-) {
-  return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-    decoration: BoxDecoration(
-      color: Color.lerp(
-        EditorChrome.islandFillElevated(context),
-        accent,
-        0.1,
-      ),
-      borderRadius: BorderRadius.circular(6),
-      border: Border.all(color: accent.withValues(alpha: 0.4)),
-    ),
-    child: Text(
-      text,
-      style: TextStyle(
-        color: labelColor,
-        fontSize: 10,
-        fontWeight: FontWeight.w600,
-      ),
+Widget _formGroupTitle(String t, Color label) {
+  return Text(
+    t,
+    style: TextStyle(
+      color: label.withValues(alpha: 0.85),
+      fontSize: 11,
+      fontWeight: FontWeight.w800,
+      letterSpacing: 0.35,
     ),
   );
 }

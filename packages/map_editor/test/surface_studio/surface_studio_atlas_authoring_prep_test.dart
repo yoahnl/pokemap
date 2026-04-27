@@ -18,11 +18,13 @@ void main() {
       );
       expect(find.text('Préparation atlas'), findsOneWidget);
       expect(
-        find.text('Brouillon local non sauvegardé sur disque'),
+        find.textContaining('Brouillon : rien n’est écrit sur le disque'),
         findsOneWidget,
       );
-      expect(find.text('Brouillon local'), findsOneWidget);
-      expect(find.text('Non sauvegardé'), findsOneWidget);
+      expect(
+        find.text('Brouillon local · non sauvegardé · en mémoire seulement'),
+        findsOneWidget,
+      );
       final w = find.byKey(const ValueKey('atlas_draft_tile_w'));
       final h = find.byKey(const ValueKey('atlas_draft_tile_h'));
       final c = find.byKey(const ValueKey('atlas_draft_cols'));

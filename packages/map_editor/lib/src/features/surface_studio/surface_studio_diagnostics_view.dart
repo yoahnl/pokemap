@@ -62,25 +62,26 @@ class SurfaceStudioDiagnosticsView extends StatelessWidget {
     final sum = p.summary;
 
     return Column(
+      key: const ValueKey('surface_studio_diagnostics_block'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
           SurfaceStudioDiagnosticsViewLabels.title,
           style: TextStyle(
             color: label,
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.2,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 6),
         _SummaryCounts(
           errorCount: sum.errorCount,
           warningCount: sum.warningCount,
           totalCount: sum.totalCount,
           labelColor: label,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         if (p.isClean) ...[
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -137,7 +138,7 @@ class SurfaceStudioDiagnosticsView extends StatelessWidget {
           else
             ...p.errors.map(
               (d) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.only(bottom: 6),
                 child: _DiagnosticCard(
                   diagnostic: d,
                   isError: true,
@@ -146,12 +147,12 @@ class SurfaceStudioDiagnosticsView extends StatelessWidget {
                 ),
               ),
             ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 10),
           _SectionTitle(
             text: SurfaceStudioDiagnosticsViewLabels.sectionWarnings,
             subtle: subtle,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           if (p.warnings.isEmpty)
             Text(
               SurfaceStudioDiagnosticsViewLabels.noWarnings,
@@ -222,7 +223,7 @@ class _SummaryCounts extends StatelessWidget {
       '$k : $v',
       style: TextStyle(
         color: c,
-        fontSize: 13,
+        fontSize: 12,
         fontWeight: FontWeight.w600,
       ),
     );
@@ -270,7 +271,7 @@ class _DiagnosticCard extends StatelessWidget {
     final accent =
         isError ? EditorChrome.inspectorJoyCoral : EditorChrome.accentWarm;
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
         color: EditorChrome.elevatedPanelBackground(context),
         borderRadius: BorderRadius.circular(14),
@@ -296,13 +297,13 @@ class _DiagnosticCard extends StatelessWidget {
             diagnostic.message,
             style: TextStyle(
               color: labelColor,
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: FontWeight.w500,
-              height: 1.35,
+              height: 1.3,
             ),
           ),
           if (_contextLines(diagnostic).isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             ..._contextLines(diagnostic).map(
               (line) => Padding(
                 padding: const EdgeInsets.only(top: 2),
@@ -317,15 +318,6 @@ class _DiagnosticCard extends StatelessWidget {
               ),
             ),
           ],
-          const SizedBox(height: 6),
-          Text(
-            'Type : ${diagnostic.kind.name}',
-            style: TextStyle(
-              color: subtle.withValues(alpha: 0.85),
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
         ],
       ),
     );

@@ -59,8 +59,11 @@ class SurfaceStudioPanel extends StatefulWidget {
 
   static const String titleText = 'Surface Studio';
   static const String readOnlyBadgeText = 'Lecture seule';
+  static const String partialAuthoringBadgeText = 'Édition partielle';
+  static const String workflowStepsHintText =
+      'Étapes : état → nouvel atlas → inspection → contenu → signaux';
   static const String productDescriptionText =
-      'Préparez et contrôlez les surfaces animées du projet : eau, lave, glace, hautes herbes.';
+      'Surfaces animées : eau, lave, glace, hautes herbes — ici, sans code.';
   static const String placeholderActionsTitle = 'Actions auteur';
   static const String placeholderSoonText = 'Bientôt';
   static const String actionImportVerticalAtlasLabel =
@@ -157,82 +160,78 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
     final s = _workReadModel.summary;
     final label = EditorChrome.primaryLabel(context);
     final subtle = EditorChrome.subtleLabel(context);
+    final isPartial =
+        widget.onSurfaceCatalogSaveRequested != null;
+    final authoring = SurfaceStudioAtlasAuthoringPrep(
+      readModel: _workReadModel,
+      selection: _selection,
+      onSurfaceCatalogChanged: (cat) {
+        final newId = cat.atlases.isNotEmpty ? cat.atlases.last.id : '';
+        setState(() {
+          _saveFlowPrepNote = null;
+          _workReadModel = buildSurfaceStudioReadModelFromCatalog(cat);
+          if (newId.isNotEmpty) {
+            _selection = SurfaceStudioSelection.atlas(newId);
+          }
+        });
+      },
+    );
+    final inspection = Column(
+      key: const ValueKey('surface_studio_inspection_column'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SurfaceStudioSelectionSummary(selection: _selection),
+        const SizedBox(height: 10),
+        SurfaceStudioSelectionInspector(
+          readModel: _workReadModel,
+          selection: _selection,
+        ),
+      ],
+    );
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
+      key: const ValueKey('surface_studio_root_scroll'),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const _StudioHeaderIcon(accent: _surfaceStudioAccent),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  SurfaceStudioPanel.titleText,
-                  style: TextStyle(
-                    color: label,
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.35,
-                  ),
-                ),
-              ),
-              const _ReadOnlyBadge(label: SurfaceStudioPanel.readOnlyBadgeText),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            SurfaceStudioPanel.productDescriptionText,
-            style: TextStyle(
-              color: subtle,
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              height: 1.35,
-            ),
+          _CompactStudioHeader(
+            key: const ValueKey('surface_studio_workflow_header'),
+            label: label,
+            subtle: subtle,
+            summary: s,
+            readOnly: !isPartial,
           ),
           const SizedBox(height: 8),
           Text(
-            'Vous pouvez ajouter un atlas au catalogue de travail en mémoire. '
-            'L’enregistrement disque du manifeste projet passe par l’action dédiée ci-dessous, sans écriture ad hoc dans ce panneau. '
-            'Pas d’édition ni suppression d’atlas existant.',
+            SurfaceStudioPanel.workflowStepsHintText,
+            key: const ValueKey('surface_studio_workflow_steps'),
             style: TextStyle(
-              color: subtle.withValues(alpha: 0.92),
-              fontSize: 12,
+              color: subtle.withValues(alpha: 0.88),
+              fontSize: 11,
               fontWeight: FontWeight.w500,
-              height: 1.35,
+              height: 1.25,
             ),
           ),
           if (_hasWorkCatalogChanges) ...[
             const SizedBox(height: 10),
-            Text(
-              SurfaceStudioPanel.workCatalogDirtyStateText,
-              key: const ValueKey('surface_studio_work_catalog_dirty_state'),
-              style: TextStyle(
-                color: _surfaceStudioAccent.withValues(alpha: 0.95),
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
+            _CatalogStateStrip(
+              key: const ValueKey('surface_studio_catalog_status_strip'),
+              subtle: subtle,
+              workCatalogNote: SurfaceStudioPanel.workCatalogDirtyStateText,
+              onSurfaceSavePrep: widget.onSurfaceCatalogSaveRequested != null
+                  ? _onSurfaceCatalogSavePrep
+                  : null,
+              onResetWorkCatalog: () {
+                setState(() {
+                  _workReadModel = widget.readModel;
+                  _selection =
+                      _selectionValidInReadModel(_workReadModel, _selection);
+                  _saveFlowPrepNote = null;
+                });
+              },
             ),
-            const SizedBox(height: 4),
-            Text(
-              SurfaceStudioPanel.savePrepNoDiskNote,
-              style: TextStyle(
-                color: subtle.withValues(alpha: 0.9),
-                fontSize: 11,
-              ),
-            ),
-            const SizedBox(height: 6),
-            if (widget.onSurfaceCatalogSaveRequested != null) ...[
-              CupertinoButton(
-                key: const ValueKey('surface_studio_save_prep_catalog'),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                onPressed: _onSurfaceCatalogSavePrep,
-                child: const Text(SurfaceStudioPanel.savePrepActionLabel),
-              ),
-            ] else ...[
+            if (widget.onSurfaceCatalogSaveRequested == null)
               Text(
                 key: const ValueKey('surface_studio_save_prep_not_connected'),
                 SurfaceStudioPanel.savePrepNotConnectedNote,
@@ -242,46 +241,41 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
                   fontStyle: FontStyle.italic,
                 ),
               ),
-            ],
-            const SizedBox(height: 6),
-            CupertinoButton(
-              key: const ValueKey('surface_studio_reset_work_catalog'),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              onPressed: () {
-                setState(() {
-                  _workReadModel = widget.readModel;
-                  _selection =
-                      _selectionValidInReadModel(_workReadModel, _selection);
-                  _saveFlowPrepNote = null;
-                });
-              },
-              child: const Text('Réinitialiser le catalogue de travail'),
-            ),
-          ],
-          if (_saveFlowPrepNote != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              _saveFlowPrepNote!,
-              key: const ValueKey('surface_studio_save_prep_transmitted'),
-              style: TextStyle(
-                color: _surfaceStudioAccent.withValues(alpha: 0.9),
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
+            if (widget.onRequestProjectSave != null) ...[
+              const SizedBox(height: 6),
+              CupertinoButton(
+                key: const ValueKey(
+                    'surface_studio_project_save_via_official_flow'),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                onPressed: _onRequestProjectSave,
+                child: const Text(
+                  SurfaceStudioPanel.projectSaveViaExistingFlowButtonLabel,
+                ),
               ),
-            ),
-          ],
-          if (widget.onRequestProjectSave != null) ...[
-            const SizedBox(height: 14),
+              if (_projectSaveDiskNote != null)
+                Text(
+                  _projectSaveDiskNote!,
+                  key: const ValueKey('surface_studio_project_save_disk_note'),
+                  style: TextStyle(
+                    color: _surfaceStudioAccent.withValues(alpha: 0.88),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+            ],
+          ] else if (widget.onRequestProjectSave != null) ...[
+            const SizedBox(height: 8),
             CupertinoButton(
-              key: const ValueKey('surface_studio_project_save_via_official_flow'),
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              key: const ValueKey(
+                  'surface_studio_project_save_via_official_flow'),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               onPressed: _onRequestProjectSave,
               child: const Text(
                 SurfaceStudioPanel.projectSaveViaExistingFlowButtonLabel,
               ),
             ),
             if (_projectSaveDiskNote != null) ...[
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Text(
                 _projectSaveDiskNote!,
                 key: const ValueKey('surface_studio_project_save_disk_note'),
@@ -293,18 +287,48 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
               ),
             ],
           ],
-          const SizedBox(height: 20),
-          _CounterRow(
-            atlas: s.atlasCount,
-            animations: s.animationCount,
-            presets: s.presetCount,
-          ),
+          if (_saveFlowPrepNote != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              _saveFlowPrepNote!,
+              key: const ValueKey('surface_studio_save_prep_transmitted'),
+              style: TextStyle(
+                color: _surfaceStudioAccent.withValues(alpha: 0.9),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
           const SizedBox(height: 12),
-          SurfaceStudioSelectionSummary(selection: _selection),
-          const SizedBox(height: 12),
-          SurfaceStudioSelectionInspector(
-            readModel: _workReadModel,
-            selection: _selection,
+          LayoutBuilder(
+            builder: (context, c) {
+              if (c.maxWidth >= 820) {
+                return Row(
+                  key: const ValueKey('surface_studio_main_two_column'),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 58,
+                      child: authoring,
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      flex: 42,
+                      child: inspection,
+                    ),
+                  ],
+                );
+              }
+              return Column(
+                key: const ValueKey('surface_studio_main_stacked'),
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  authoring,
+                  const SizedBox(height: 12),
+                  inspection,
+                ],
+              );
+            },
           ),
           const SizedBox(height: 12),
           SurfaceStudioCatalogBrowser(
@@ -314,32 +338,178 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
               setState(() => _selection = v);
             },
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           SurfaceStudioDiagnosticsView(readModel: _workReadModel),
-          const SizedBox(height: 20),
-          SurfaceStudioAtlasAuthoringPrep(
-            readModel: _workReadModel,
-            selection: _selection,
-            onSurfaceCatalogChanged: (cat) {
-              final newId = cat.atlases.isNotEmpty
-                  ? cat.atlases.last.id
-                  : '';
-              setState(() {
-                _saveFlowPrepNote = null;
-                _workReadModel = buildSurfaceStudioReadModelFromCatalog(cat);
-                if (newId.isNotEmpty) {
-                  _selection = SurfaceStudioSelection.atlas(newId);
-                }
-              });
-            },
-          ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           const _FutureActions(
             onImportVertical: null,
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 10),
           const _SectionPlaceholder(
             title: SurfaceStudioPanel.placeholderActionsTitle,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CompactStudioHeader extends StatelessWidget {
+  const _CompactStudioHeader({
+    super.key,
+    required this.label,
+    required this.subtle,
+    required this.summary,
+    required this.readOnly,
+  });
+
+  final Color label;
+  final Color subtle;
+  final SurfaceStudioCatalogSummaryReadModel summary;
+  final bool readOnly;
+
+  @override
+  Widget build(BuildContext context) {
+    final titleRow = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _StudioHeaderIcon(accent: _surfaceStudioAccent),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      SurfaceStudioPanel.titleText,
+                      style: TextStyle(
+                        color: label,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                  ),
+                  if (readOnly)
+                    const _ReadOnlyBadge(
+                      label: SurfaceStudioPanel.readOnlyBadgeText,
+                    )
+                  else
+                    const _ReadOnlyBadge(
+                      label: SurfaceStudioPanel.partialAuthoringBadgeText,
+                    ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                SurfaceStudioPanel.productDescriptionText,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: subtle,
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
+                  height: 1.3,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+    final counters = _CounterRow(
+      atlas: summary.atlasCount,
+      animations: summary.animationCount,
+      presets: summary.presetCount,
+      compact: true,
+    );
+    return LayoutBuilder(
+      builder: (context, c) {
+        if (c.maxWidth < 520) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              titleRow,
+              const SizedBox(height: 8),
+              counters,
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: titleRow),
+            const SizedBox(width: 6),
+            counters,
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _CatalogStateStrip extends StatelessWidget {
+  const _CatalogStateStrip({
+    super.key,
+    required this.subtle,
+    required this.workCatalogNote,
+    required this.onResetWorkCatalog,
+    this.onSurfaceSavePrep,
+  });
+
+  final Color subtle;
+  final String workCatalogNote;
+  final VoidCallback onResetWorkCatalog;
+  final void Function()? onSurfaceSavePrep;
+
+  @override
+  Widget build(BuildContext context) {
+    return _StudioCard(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            workCatalogNote,
+            key: const ValueKey('surface_studio_work_catalog_dirty_state'),
+            style: TextStyle(
+              color: _surfaceStudioAccent.withValues(alpha: 0.95),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            SurfaceStudioPanel.savePrepNoDiskNote,
+            style: TextStyle(
+              color: subtle.withValues(alpha: 0.88),
+              fontSize: 10.5,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (onSurfaceSavePrep != null)
+                CupertinoButton(
+                  key: const ValueKey('surface_studio_save_prep_catalog'),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  onPressed: onSurfaceSavePrep,
+                  child: const Text(SurfaceStudioPanel.savePrepActionLabel),
+                ),
+              CupertinoButton(
+                key: const ValueKey('surface_studio_reset_work_catalog'),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                onPressed: onResetWorkCatalog,
+                child: const Text('Réinitialiser le catalogue de travail'),
+              ),
+            ],
           ),
         ],
       ),
@@ -428,32 +598,39 @@ class _CounterRow extends StatelessWidget {
     required this.atlas,
     required this.animations,
     required this.presets,
+    this.compact = false,
   });
 
   final int atlas;
   final int animations;
   final int presets;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Wrap(
       key: const ValueKey('surface_studio_header_counters'),
-      spacing: 12,
-      runSpacing: 10,
+      spacing: compact ? 6 : 12,
+      runSpacing: compact ? 6 : 10,
       children: [
-        _CounterChip(label: 'Atlas', value: atlas),
-        _CounterChip(label: 'Animations', value: animations),
-        _CounterChip(label: 'Presets', value: presets),
+        _CounterChip(label: 'Atlas', value: atlas, compact: compact),
+        _CounterChip(label: 'Animations', value: animations, compact: compact),
+        _CounterChip(label: 'Presets', value: presets, compact: compact),
       ],
     );
   }
 }
 
 class _CounterChip extends StatelessWidget {
-  const _CounterChip({required this.label, required this.value});
+  const _CounterChip({
+    required this.label,
+    required this.value,
+    this.compact = false,
+  });
 
   final String label;
   final int value;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -461,7 +638,10 @@ class _CounterChip extends StatelessWidget {
     final labelColor = EditorChrome.primaryLabel(context);
 
     return _StudioCard(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 9 : 16,
+        vertical: compact ? 7 : 12,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -470,17 +650,17 @@ class _CounterChip extends StatelessWidget {
             label,
             style: TextStyle(
               color: subtle,
-              fontSize: 11,
+              fontSize: compact ? 10 : 11,
               fontWeight: FontWeight.w700,
               letterSpacing: 0.3,
             ),
           ),
-          const SizedBox(height: 6),
+          SizedBox(height: compact ? 3 : 6),
           Text(
             '$value',
             style: TextStyle(
               color: labelColor,
-              fontSize: 22,
+              fontSize: compact ? 16 : 22,
               fontWeight: FontWeight.w700,
               letterSpacing: -0.4,
             ),

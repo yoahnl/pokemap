@@ -54,7 +54,7 @@ class SurfaceStudioSelectionInspector extends StatelessWidget {
     const accent = _kInspectorAccent;
     return Container(
       key: kSurfaceStudioSelectionInspectorKey,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: EditorChrome.elevatedPanelBackground(context),
         borderRadius: BorderRadius.circular(14),

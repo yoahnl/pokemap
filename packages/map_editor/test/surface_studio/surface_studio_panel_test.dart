@@ -598,7 +598,7 @@ void main() {
       await tester.ensureVisible(find.text('Préparation atlas'));
       expect(find.text('Préparation atlas'), findsOneWidget);
       expect(
-        find.text('Brouillon local non sauvegardé sur disque'),
+        find.textContaining('Brouillon : rien n’est écrit sur le disque'),
         findsOneWidget,
       );
     });
@@ -1227,6 +1227,81 @@ void main() {
         find.text(SurfaceStudioPanel.workCatalogDirtyStateText),
         findsOneWidget,
       );
+    });
+
+    testWidgets('66.1 — header compact et repères workflow visibles', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      expect(
+        find.byKey(const ValueKey('surface_studio_workflow_header')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('surface_studio_workflow_steps')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('66.2 — préparation atlas au-dessus du catalogue (ordre vertical)',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      final yPrep = tester.getTopLeft(find.text('Préparation atlas')).dy;
+      final yCat = tester.getTopLeft(find.text('Catalogue Surface')).dy;
+      expect(yPrep, lessThan(yCat));
+    });
+
+    testWidgets('66.3 — bandeau dirty visible si catalogue de travail modifié',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioPanel(
+            readModel: _emptyReadModel(),
+            onSurfaceCatalogSaveRequested: (_) {},
+          ),
+        ),
+      );
+      final idF = find.byKey(const ValueKey('atlas_draft_id'));
+      final nameF = find.byKey(const ValueKey('atlas_draft_name'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      await tester.ensureVisible(idF);
+      await tester.enterText(idF, 'x');
+      await tester.enterText(nameF, 'N');
+      await tester.enterText(tsF, 't');
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey('surface_studio_catalog_status_strip')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('66.4 — inspecteur, catalogue, diagnostics toujours présents',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      expect(find.text('Inspecteur Surface'), findsOneWidget);
+      expect(find.text('Catalogue Surface'), findsOneWidget);
+      expect(find.text('Diagnostics Surface'), findsOneWidget);
+    });
+
+    testWidgets('66.5 — pas de libellés techniques dans l’UI principale', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      expect(find.textContaining('ProjectSurfaceAtlas'), findsNothing);
+      expect(find.textContaining('ProjectSurfaceCatalog'), findsNothing);
+      expect(find.textContaining('SurfaceStudioReadModel'), findsNothing);
+      expect(find.textContaining('copyWith'), findsNothing);
     });
   });
 

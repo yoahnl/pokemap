@@ -103,12 +103,12 @@ class SurfaceStudioCatalogBrowser extends StatelessWidget {
           SurfaceStudioCatalogBrowserLabels.title,
           style: TextStyle(
             color: label,
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: FontWeight.w800,
             letterSpacing: -0.2,
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 6),
         if (readModel.isEmpty) ...[
           Text(
             SurfaceStudioCatalogBrowserLabels.emptyGlobal,
@@ -141,7 +141,7 @@ class SurfaceStudioCatalogBrowser extends StatelessWidget {
           selection: selection,
           onSelectionChanged: onSelectionChanged,
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 10),
         SurfaceStudioPresetDetailView(
           readModel: readModel,
           selection: selection,
