@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/surface_studio/surface_studio_atlas_authoring_prep.dart';
 import 'package:map_editor/src/features/surface_studio/surface_studio_panel.dart';
+import 'package:map_editor/src/features/surface_studio/surface_studio_selection_inspector.dart';
 import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
 
 import '../shell_chrome_test_harness.dart';
@@ -177,17 +179,19 @@ void main() {
 
       await tester.pumpAndSettle();
 
+      final counters =
+          find.descendant(
+        of: find.byType(SurfaceStudioPanel),
+        matching: find.byKey(const ValueKey('surface_studio_header_counters')),
+      );
       expect(
-        find.descendant(
-          of: find.byType(SurfaceStudioPanel),
-          matching: find.text('1'),
-        ),
+        find.descendant(of: counters, matching: find.text('1')),
         findsNWidgets(3),
       );
     });
 
     testWidgets(
-        'read-only: future action CupertinoButtons are disabled, no TextField',
+        'read-only: actions désactivées; TextField seulement brouillon Lot 60',
         (tester) async {
       await pumpEditorShellPage(
         tester,
@@ -202,7 +206,20 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.byType(TextField), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byKey(kSurfaceStudioSelectionInspectorKey),
+          matching: find.byType(TextField),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(kSurfaceStudioAtlasAuthoringPrepKey),
+          matching: find.byType(TextField),
+        ),
+        findsWidgets,
+      );
       expect(
         find.text(SurfaceStudioPanel.actionCreateAtlasLabel),
         findsOneWidget,

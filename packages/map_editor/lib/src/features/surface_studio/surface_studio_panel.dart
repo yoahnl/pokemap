@@ -13,6 +13,7 @@ import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../ui/shared/cupertino_editor_widgets.dart';
+import 'surface_studio_atlas_authoring_prep.dart';
 import 'surface_studio_catalog_browser.dart';
 import 'surface_studio_diagnostics_view.dart';
 import 'surface_studio_selection.dart';
@@ -124,6 +125,11 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
           const SizedBox(height: 16),
           SurfaceStudioDiagnosticsView(readModel: widget.readModel),
           const SizedBox(height: 20),
+          SurfaceStudioAtlasAuthoringPrep(
+            readModel: widget.readModel,
+            selection: _selection,
+          ),
+          const SizedBox(height: 20),
           const _FutureActions(
             onCreateAtlas: null,
             onImportVertical: null,
@@ -228,6 +234,7 @@ class _CounterRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
+      key: const ValueKey('surface_studio_header_counters'),
       spacing: 12,
       runSpacing: 10,
       children: [

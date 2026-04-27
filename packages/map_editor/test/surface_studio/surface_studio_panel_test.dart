@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/surface_studio/surface_studio_atlas_authoring_prep.dart';
 import 'package:map_editor/src/features/surface_studio/surface_studio_panel.dart';
 import 'package:map_editor/src/features/surface_studio/surface_studio_selection_inspector.dart';
 
@@ -30,8 +31,12 @@ void main() {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
       );
-      // Trois compteurs à 0
-      expect(find.text('0'), findsNWidgets(3));
+      final counters =
+          find.byKey(const ValueKey('surface_studio_header_counters'));
+      expect(
+        find.descendant(of: counters, matching: find.text('0')),
+        findsNWidgets(3),
+      );
     });
 
     testWidgets('4. empty catalog shows empty state copy', (tester) async {
@@ -48,7 +53,12 @@ void main() {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
       );
-      expect(find.text('1'), findsNWidgets(3));
+      final counters =
+          find.byKey(const ValueKey('surface_studio_header_counters'));
+      expect(
+        find.descendant(of: counters, matching: find.text('1')),
+        findsNWidgets(3),
+      );
     });
 
     testWidgets('6. non-empty shows catalog browser content', (tester) async {
@@ -138,7 +148,12 @@ void main() {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanelFromManifest(manifest: manifest)),
       );
-      expect(find.text('1'), findsNWidgets(3));
+      final counters =
+          find.byKey(const ValueKey('surface_studio_header_counters'));
+      expect(
+        find.descendant(of: counters, matching: find.text('1')),
+        findsNWidgets(3),
+      );
     });
 
     testWidgets('14. manifest is not mutated after pump', (tester) async {
@@ -209,11 +224,25 @@ void main() {
       expect(rm.summary.presetCount, 1);
     });
 
-    testWidgets('22. no TextField in panel', (tester) async {
+    testWidgets('22. TextField seulement zone brouillon (Lot 60), pas dans inspecteur',
+        (tester) async {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
       );
-      expect(find.byType(TextField), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byKey(kSurfaceStudioSelectionInspectorKey),
+          matching: find.byType(TextField),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(kSurfaceStudioAtlasAuthoringPrepKey),
+          matching: find.byType(TextField),
+        ),
+        findsWidgets,
+      );
     });
 
     testWidgets('23. no save affordances', (tester) async {
@@ -367,14 +396,22 @@ void main() {
       expect(identical(manifest.surfaceCatalog, before), isTrue);
     });
 
-    testWidgets('58.27 — pas de TextField après sélections', (tester) async {
+    testWidgets('58.27 — pas de TextField dans inspecteur après sélections', (
+        tester,
+    ) async {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
       );
       await tester.ensureVisible(find.text('Water Atlas'));
       await tester.tap(find.text('Water Atlas'));
       await tester.pump();
-      expect(find.byType(TextField), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byKey(kSurfaceStudioSelectionInspectorKey),
+          matching: find.byType(TextField),
+        ),
+        findsNothing,
+      );
     });
 
     testWidgets('58.28 — pas de libellés édition/save actifs', (tester) async {
@@ -507,16 +544,22 @@ void main() {
       expect(identical(manifest.surfaceCatalog, before), isTrue);
     });
 
-    testWidgets('59.26 — toujours aucun TextField après sélections', (
-      tester,
-    ) async {
+    testWidgets(
+        '59.26 — inspecteur read-only : aucun TextField (Lot 60 brouillon ok)',
+        (tester) async {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
       );
       await tester.ensureVisible(find.text('Water Atlas'));
       await tester.tap(find.text('Water Atlas'));
       await tester.pump();
-      expect(find.byType(TextField), findsNothing);
+      expect(
+        find.descendant(
+          of: find.byKey(kSurfaceStudioSelectionInspectorKey),
+          matching: find.byType(TextField),
+        ),
+        findsNothing,
+      );
     });
 
     testWidgets('59.27 — pas de libellés édition/save (Lot 59)',
@@ -549,6 +592,15 @@ void main() {
         _wrap(SurfaceStudioPanelFromManifest(manifest: manifest)),
       );
       expect(identical(manifest.surfaceCatalog, before), isTrue);
+    });
+
+    testWidgets('60.1 — Préparation atlas (brouillon) visible', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
+      );
+      await tester.ensureVisible(find.text('Préparation atlas'));
+      expect(find.text('Préparation atlas'), findsOneWidget);
+      expect(find.text('Brouillon local non sauvegardé'), findsOneWidget);
     });
   });
 }
