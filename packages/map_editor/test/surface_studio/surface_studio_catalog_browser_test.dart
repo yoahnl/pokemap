@@ -35,7 +35,7 @@ void main() {
       await tester.pumpWidget(
         _wrap(SurfaceStudioCatalogBrowser(readModel: _minimalWaterReadModel())),
       );
-      expect(find.text('Atlas'), findsOneWidget);
+      expect(find.text('Atlas Surface'), findsOneWidget);
       expect(find.text('Animations'), findsOneWidget);
       expect(find.text('Presets'), findsOneWidget);
     });
@@ -52,12 +52,17 @@ void main() {
           ),
         ),
       );
+      expect(find.text('Atlas Surface'), findsOneWidget);
       expect(find.text('Water Atlas'), findsOneWidget);
       expect(find.textContaining('Identifiant : water-atlas'), findsOneWidget);
       expect(find.textContaining('Tileset : nature-tileset'), findsOneWidget);
       expect(find.textContaining('32×32'), findsWidgets);
       expect(find.textContaining('23×32'), findsOneWidget);
-      expect(find.textContaining('736'), findsOneWidget);
+      expect(find.textContaining('736 tuiles'), findsOneWidget);
+      expect(
+        find.textContaining('Colonnes = variantes, lignes = frames'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('6. minimal catalog: animation details', (tester) async {

@@ -267,6 +267,7 @@ void main() {
         _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
       );
       expect(find.text('Catalogue Surface'), findsOneWidget);
+      expect(find.text('Atlas Surface'), findsOneWidget);
       expect(find.text('Diagnostics Surface'), findsOneWidget);
       expect(find.text('Water Atlas'), findsOneWidget);
     });

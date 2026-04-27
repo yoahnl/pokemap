@@ -103,6 +103,7 @@ void main() {
       expect(find.text('Lecture seule'), findsOneWidget);
       expect(find.byType(SurfaceStudioPanel), findsOneWidget);
       expect(find.text('Catalogue Surface'), findsOneWidget);
+      expect(find.text('Atlas Surface'), findsOneWidget);
       expect(find.text('Water Atlas'), findsOneWidget);
       expect(find.text('Diagnostics Surface'), findsOneWidget);
     });

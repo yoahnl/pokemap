@@ -8,6 +8,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../ui/shared/cupertino_editor_widgets.dart';
+import 'surface_studio_atlas_detail_view.dart';
 
 /// Libellés visibles (aucun nom de type Dart interne).
 class SurfaceStudioCatalogBrowserLabels {
@@ -119,23 +120,7 @@ class SurfaceStudioCatalogBrowser extends StatelessWidget {
           ),
           const SizedBox(height: 16),
         ],
-        _SectionHeader(
-          title: SurfaceStudioCatalogBrowserLabels.sectionAtlas,
-          subtle: subtle,
-        ),
-        const SizedBox(height: 8),
-        if (readModel.atlases.isEmpty)
-          _EmptyLine(
-            text: SurfaceStudioCatalogBrowserLabels.emptyAtlas,
-            subtle: subtle,
-          )
-        else
-          ...readModel.atlases.map(
-            (row) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _AtlasCard(row: row, label: label),
-            ),
-          ),
+        SurfaceStudioAtlasDetailView(readModel: readModel),
         const SizedBox(height: 18),
         _SectionHeader(
           title: SurfaceStudioCatalogBrowserLabels.sectionAnimations,
@@ -266,71 +251,6 @@ class _KeyVal extends StatelessWidget {
           fontWeight: FontWeight.w500,
           height: 1.3,
         ),
-      ),
-    );
-  }
-}
-
-class _AtlasCard extends StatelessWidget {
-  const _AtlasCard({
-    required this.row,
-    required this.label,
-  });
-
-  final SurfaceStudioAtlasReadModel row;
-  final Color label;
-
-  @override
-  Widget build(BuildContext context) {
-    final n = row.usedByAnimationIds.length;
-    return _BrowserCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            row.name,
-            style: TextStyle(
-              color: label,
-              fontSize: 15,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          _KeyVal(
-            k: SurfaceStudioCatalogBrowserLabels.labelId,
-            v: row.id,
-            valueColor: label,
-          ),
-          _KeyVal(
-            k: SurfaceStudioCatalogBrowserLabels.labelTileset,
-            v: row.tilesetId,
-            valueColor: label,
-          ),
-          _KeyVal(
-            k: SurfaceStudioCatalogBrowserLabels.labelTile,
-            v: '${row.tileWidth}×${row.tileHeight}',
-            valueColor: label,
-          ),
-          _KeyVal(
-            k: SurfaceStudioCatalogBrowserLabels.labelGrid,
-            v: '${row.columns}×${row.rows}',
-            valueColor: label,
-          ),
-          _KeyVal(
-            k: 'Tuiles',
-            v: '${row.tileCount} tiles',
-            valueColor: label,
-          ),
-          _KeyVal(
-            k: SurfaceStudioCatalogBrowserLabels.labelLayout,
-            v: row.layout.name,
-            valueColor: label,
-          ),
-          _KeyVal(
-            k: SurfaceStudioCatalogBrowserLabels.labelUsedBy,
-            v: SurfaceStudioCatalogBrowserLabels.usedByAnimations(n),
-            valueColor: label,
-          ),
-        ],
       ),
     );
   }
