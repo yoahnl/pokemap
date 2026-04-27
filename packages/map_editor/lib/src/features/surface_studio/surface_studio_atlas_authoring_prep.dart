@@ -791,6 +791,11 @@ class _SurfaceStudioAtlasAuthoringPrepState
             resolution: imagePreviewResolution,
             label: label,
             subtle: subtle,
+            draftTileWidth: previewTileWidth,
+            draftTileHeight: previewTileHeight,
+            draftColumns: previewColumns,
+            draftRows: previewRows,
+            draftLayoutLabel: _layoutMenuLabel(_layout),
           ),
           const SizedBox(height: 10),
           material.TextField(

@@ -669,6 +669,24 @@ void main() {
     );
   });
 
+  group('SurfaceStudioAtlasAuthoringPrep (Lot 73)', () {
+    testWidgets('sans image résolue : pas de libellé Grille superposée', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioAtlasAuthoringPrep(
+            readModel: _emptyReadModel(),
+            selection: const SurfaceStudioSelection.none(),
+          ),
+        ),
+      );
+      expect(find.text('Grille superposée'), findsNothing);
+      expect(
+        find.text('Corrigez les dimensions de grille pour afficher l’overlay.'),
+        findsNothing,
+      );
+    });
+  });
+
   group('SurfaceStudioAtlasAuthoringPrep (Lot 72)', () {
     testWidgets('section aperçu image source présente', (tester) async {
       await tester.pumpWidget(
