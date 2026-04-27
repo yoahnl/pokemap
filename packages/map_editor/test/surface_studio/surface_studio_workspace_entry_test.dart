@@ -220,17 +220,18 @@ void main() {
         ),
         findsWidgets,
       );
+      expect(find.text('Créer un atlas'), findsNothing);
       expect(
-        find.text(SurfaceStudioPanel.actionCreateAtlasLabel),
+        find.text(SurfaceStudioPanel.actionImportVerticalAtlasLabel),
         findsOneWidget,
       );
-      final createButton = tester.widget<CupertinoButton>(
+      final importButton = tester.widget<CupertinoButton>(
         find.ancestor(
-          of: find.text(SurfaceStudioPanel.actionCreateAtlasLabel),
+          of: find.text(SurfaceStudioPanel.actionImportVerticalAtlasLabel),
           matching: find.byType(CupertinoButton),
         ),
       );
-      expect(createButton.onPressed, isNull);
+      expect(importButton.onPressed, isNull);
     });
 
     testWidgets('no Surface save button labels', (tester) async {

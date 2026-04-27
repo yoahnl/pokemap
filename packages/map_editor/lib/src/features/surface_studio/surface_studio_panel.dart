@@ -20,6 +20,27 @@ import 'surface_studio_selection.dart';
 import 'surface_studio_selection_inspector.dart';
 import 'surface_studio_selection_summary.dart';
 
+SurfaceStudioSelection _selectionValidInReadModel(
+  SurfaceStudioReadModel rm,
+  SurfaceStudioSelection sel,
+) {
+  if (sel.isNone) return sel;
+  if (sel.isAtlas) {
+    for (final row in rm.atlases) {
+      if (row.id == sel.id) return sel;
+    }
+  } else if (sel.isAnimation) {
+    for (final row in rm.animations) {
+      if (row.id == sel.id) return sel;
+    }
+  } else if (sel.isPreset) {
+    for (final row in rm.presets) {
+      if (row.id == sel.id) return sel;
+    }
+  }
+  return const SurfaceStudioSelection.none();
+}
+
 /// Accent produit Surface Studio (même base que la tuile World Explorer).
 const Color _surfaceStudioAccent = Color(0xFF2DD4BF);
 
@@ -38,9 +59,10 @@ class SurfaceStudioPanel extends StatefulWidget {
       'Préparez et contrôlez les surfaces animées du projet : eau, lave, glace, hautes herbes.';
   static const String placeholderActionsTitle = 'Actions auteur';
   static const String placeholderSoonText = 'Bientôt';
-  static const String actionCreateAtlasLabel = 'Créer un atlas';
   static const String actionImportVerticalAtlasLabel =
       'Importer un atlas vertical';
+  static const String workCatalogDirtyStateText =
+      'Catalogue de travail modifié — sauvegarde projet non effectuée.';
 
   @override
   State<SurfaceStudioPanel> createState() => _SurfaceStudioPanelState();
@@ -49,25 +71,30 @@ class SurfaceStudioPanel extends StatefulWidget {
 class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
   /// Sélection d’inspection : locale au widget, jamais écrite dans le manifest.
   SurfaceStudioSelection _selection = const SurfaceStudioSelection.none();
-  late SurfaceStudioReadModel _readModel;
+  late SurfaceStudioReadModel _workReadModel;
 
   @override
   void initState() {
     super.initState();
-    _readModel = widget.readModel;
+    _workReadModel = widget.readModel;
   }
 
   @override
   void didUpdateWidget(covariant SurfaceStudioPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.readModel != oldWidget.readModel) {
-      _readModel = widget.readModel;
+      setState(() {
+        _workReadModel = widget.readModel;
+        _selection = _selectionValidInReadModel(_workReadModel, _selection);
+      });
     }
   }
 
+  bool get _hasWorkCatalogChanges => _workReadModel != widget.readModel;
+
   @override
   Widget build(BuildContext context) {
-    final s = _readModel.summary;
+    final s = _workReadModel.summary;
     final label = EditorChrome.primaryLabel(context);
     final subtle = EditorChrome.subtleLabel(context);
 
@@ -116,6 +143,31 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
               height: 1.35,
             ),
           ),
+          if (_hasWorkCatalogChanges) ...[
+            const SizedBox(height: 10),
+            Text(
+              SurfaceStudioPanel.workCatalogDirtyStateText,
+              key: const ValueKey('surface_studio_work_catalog_dirty_state'),
+              style: TextStyle(
+                color: _surfaceStudioAccent.withValues(alpha: 0.95),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 6),
+            CupertinoButton(
+              key: const ValueKey('surface_studio_reset_work_catalog'),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              onPressed: () {
+                setState(() {
+                  _workReadModel = widget.readModel;
+                  _selection =
+                      _selectionValidInReadModel(_workReadModel, _selection);
+                });
+              },
+              child: const Text('Réinitialiser le catalogue de travail'),
+            ),
+          ],
           const SizedBox(height: 20),
           _CounterRow(
             atlas: s.atlasCount,
@@ -126,29 +178,29 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
           SurfaceStudioSelectionSummary(selection: _selection),
           const SizedBox(height: 12),
           SurfaceStudioSelectionInspector(
-            readModel: _readModel,
+            readModel: _workReadModel,
             selection: _selection,
           ),
           const SizedBox(height: 12),
           SurfaceStudioCatalogBrowser(
-            readModel: _readModel,
+            readModel: _workReadModel,
             selection: _selection,
             onSelectionChanged: (v) {
               setState(() => _selection = v);
             },
           ),
           const SizedBox(height: 16),
-          SurfaceStudioDiagnosticsView(readModel: _readModel),
+          SurfaceStudioDiagnosticsView(readModel: _workReadModel),
           const SizedBox(height: 20),
           SurfaceStudioAtlasAuthoringPrep(
-            readModel: _readModel,
+            readModel: _workReadModel,
             selection: _selection,
             onSurfaceCatalogChanged: (cat) {
               final newId = cat.atlases.isNotEmpty
                   ? cat.atlases.last.id
                   : '';
               setState(() {
-                _readModel = buildSurfaceStudioReadModelFromCatalog(cat);
+                _workReadModel = buildSurfaceStudioReadModelFromCatalog(cat);
                 if (newId.isNotEmpty) {
                   _selection = SurfaceStudioSelection.atlas(newId);
                 }
@@ -157,7 +209,6 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
           ),
           const SizedBox(height: 20),
           const _FutureActions(
-            onCreateAtlas: null,
             onImportVertical: null,
           ),
           const SizedBox(height: 20),
@@ -344,11 +395,9 @@ class _StudioCard extends StatelessWidget {
 
 class _FutureActions extends StatelessWidget {
   const _FutureActions({
-    required this.onCreateAtlas,
     required this.onImportVertical,
   });
 
-  final VoidCallback? onCreateAtlas;
   final VoidCallback? onImportVertical;
 
   @override
@@ -359,7 +408,7 @@ class _FutureActions extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Actions (non disponibles dans ce lot)',
+          'Actions futures (non disponibles)',
           style: TextStyle(
             color: subtle,
             fontSize: 12,
@@ -369,11 +418,6 @@ class _FutureActions extends StatelessWidget {
         const SizedBox(height: 10),
         Row(
           children: [
-            _GhostAction(
-              label: SurfaceStudioPanel.actionCreateAtlasLabel,
-              onPressed: onCreateAtlas,
-            ),
-            const SizedBox(width: 12),
             _GhostAction(
               label: SurfaceStudioPanel.actionImportVerticalAtlasLabel,
               onPressed: onImportVertical,

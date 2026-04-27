@@ -104,33 +104,30 @@ void main() {
       );
     });
 
-    testWidgets('10. future action labels are visible', (tester) async {
-      await tester.pumpWidget(
-        _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
-      );
-      expect(find.text('Créer un atlas'), findsOneWidget);
-      expect(find.text('Importer un atlas vertical'), findsOneWidget);
-    });
-
-    testWidgets('11. future actions are disabled (onPressed null)',
+    testWidgets('10. future action label import visible (pas Créer un atlas)',
         (tester) async {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
       );
-      final b1 = tester.widget<CupertinoButton>(
+      expect(find.text('Créer un atlas'), findsNothing);
+      expect(
+        find.text(SurfaceStudioPanel.actionImportVerticalAtlasLabel),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('11. future import action disabled (onPressed null)',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
+      );
+      final b = tester.widget<CupertinoButton>(
         find.ancestor(
-          of: find.text('Créer un atlas'),
+          of: find.text(SurfaceStudioPanel.actionImportVerticalAtlasLabel),
           matching: find.byType(CupertinoButton),
         ),
       );
-      final b2 = tester.widget<CupertinoButton>(
-        find.ancestor(
-          of: find.text('Importer un atlas vertical'),
-          matching: find.byType(CupertinoButton),
-        ),
-      );
-      expect(b1.onPressed, isNull);
-      expect(b2.onPressed, isNull);
+      expect(b.onPressed, isNull);
     });
 
     testWidgets('12. section placeholder titles are visible', (tester) async {
@@ -691,6 +688,284 @@ void main() {
       expect(find.text('Water Isolated Loop'), findsOneWidget);
       expect(find.text('Water Surface'), findsOneWidget);
       expect(find.text('grass-a'), findsWidgets);
+    });
+
+    testWidgets('62.0 — pas de dirty au départ (vide + minimal)', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
+      );
+      expect(
+        find.text(SurfaceStudioPanel.workCatalogDirtyStateText),
+        findsNothing,
+      );
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      expect(
+        find.text(SurfaceStudioPanel.workCatalogDirtyStateText),
+        findsNothing,
+      );
+    });
+
+    testWidgets('62.1 — dirty après création locale', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
+      );
+      final idF = find.byKey(const ValueKey('atlas_draft_id'));
+      final nameF = find.byKey(const ValueKey('atlas_draft_name'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      await tester.ensureVisible(idF);
+      await tester.enterText(idF, 'dirty-a');
+      await tester.enterText(nameF, 'D');
+      await tester.enterText(tsF, 't');
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.pump();
+      expect(
+        find.text(SurfaceStudioPanel.workCatalogDirtyStateText),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('sauvegarde projet non effectuée'),
+        findsWidgets,
+      );
+    });
+
+    testWidgets(
+        '62.2 — reset depuis catalogue vide : compteur 0, atlas absent, dirty off',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
+      );
+      final idF = find.byKey(const ValueKey('atlas_draft_id'));
+      final nameF = find.byKey(const ValueKey('atlas_draft_name'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      await tester.ensureVisible(idF);
+      await tester.enterText(idF, 'rs-a');
+      await tester.enterText(nameF, 'R');
+      await tester.enterText(tsF, 't');
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.pump();
+      var counters = find.byKey(const ValueKey('surface_studio_header_counters'));
+      expect(
+        find.descendant(of: counters, matching: find.text('1')),
+        findsOneWidget,
+      );
+      expect(find.text('rs-a'), findsWidgets);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_reset_work_catalog')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_reset_work_catalog')),
+      );
+      await tester.pump();
+      counters = find.byKey(const ValueKey('surface_studio_header_counters'));
+      expect(
+        find.descendant(of: counters, matching: find.text('0')),
+        findsNWidgets(3),
+      );
+      expect(
+        find.text('Le catalogue Surface est vide'),
+        findsOneWidget,
+      );
+      expect(
+        find.text(SurfaceStudioPanel.workCatalogDirtyStateText),
+        findsNothing,
+      );
+      expect(find.text('Aucune sélection'), findsOneWidget);
+    });
+
+    testWidgets(
+        '62.3 — reset depuis minimal : revient à Water, Grass absent, 1/1/1',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      final idF = find.byKey(const ValueKey('atlas_draft_id'));
+      final nameF = find.byKey(const ValueKey('atlas_draft_name'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      await tester.ensureVisible(idF);
+      await tester.enterText(idF, 'grass-x');
+      await tester.enterText(nameF, 'Grass');
+      await tester.enterText(tsF, 'ts');
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.pump();
+      var counters = find.byKey(const ValueKey('surface_studio_header_counters'));
+      expect(
+        find.descendant(of: counters, matching: find.text('2')),
+        findsOneWidget,
+      );
+      expect(find.text('Water Atlas'), findsOneWidget);
+      expect(find.text('grass-x'), findsWidgets);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_reset_work_catalog')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_reset_work_catalog')),
+      );
+      await tester.pump();
+      counters = find.byKey(const ValueKey('surface_studio_header_counters'));
+      expect(
+        find.descendant(of: counters, matching: find.text('1')),
+        findsNWidgets(3),
+      );
+      expect(find.text('Water Atlas'), findsOneWidget);
+      expect(
+        find.text(SurfaceStudioPanel.workCatalogDirtyStateText),
+        findsNothing,
+      );
+      expect(find.text('Water Isolated Loop'), findsOneWidget);
+      expect(find.text('Water Surface'), findsOneWidget);
+    });
+
+    testWidgets('62.4 — A puis B puis reset (source vide)', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
+      );
+      for (final row in <String>['lot62-a', 'lot62-b']) {
+        final idF = find.byKey(const ValueKey('atlas_draft_id'));
+        final nameF = find.byKey(const ValueKey('atlas_draft_name'));
+        final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+        await tester.ensureVisible(idF);
+        await tester.enterText(idF, row);
+        await tester.enterText(nameF, row);
+        await tester.enterText(tsF, 't');
+        await tester.pump();
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+        );
+        await tester.tap(
+          find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+        );
+        await tester.pump();
+      }
+      var counters = find.byKey(const ValueKey('surface_studio_header_counters'));
+      expect(
+        find.descendant(of: counters, matching: find.text('2')),
+        findsOneWidget,
+      );
+      expect(find.text('lot62-a'), findsWidgets);
+      expect(find.text('lot62-b'), findsWidgets);
+      expect(find.text('Aucune sélection'), findsNothing);
+      expect(find.text('Atlas sélectionné'), findsWidgets);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_reset_work_catalog')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_reset_work_catalog')),
+      );
+      await tester.pump();
+      counters = find.byKey(const ValueKey('surface_studio_header_counters'));
+      expect(
+        find.descendant(of: counters, matching: find.text('0')),
+        findsNWidgets(3),
+      );
+      expect(
+        find.text('Le catalogue Surface est vide'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('62.5 — readModel parent change : resync, dirty off, X absent',
+        (tester) async {
+      final w = _wrap(
+        SurfaceStudioPanel(readModel: _emptyReadModel()),
+      );
+      await tester.pumpWidget(w);
+      final idF = find.byKey(const ValueKey('atlas_draft_id'));
+      final nameF = find.byKey(const ValueKey('atlas_draft_name'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      await tester.ensureVisible(idF);
+      await tester.enterText(idF, 'ext-x');
+      await tester.enterText(nameF, 'X');
+      await tester.enterText(tsF, 't');
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.pump();
+      expect(
+        find.text(SurfaceStudioPanel.workCatalogDirtyStateText),
+        findsOneWidget,
+      );
+      expect(find.text('ext-x'), findsWidgets);
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioPanel(readModel: _minimalWaterReadModel()),
+        ),
+      );
+      await tester.pump();
+      expect(
+        find.text(SurfaceStudioPanel.workCatalogDirtyStateText),
+        findsNothing,
+      );
+      expect(find.text('Water Atlas'), findsOneWidget);
+      expect(find.text('Aucune sélection'), findsOneWidget);
+    });
+
+    testWidgets(
+        '62.6 — pas d’action fantôme Créer un atlas, vraie action présente',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
+      );
+      expect(find.text('Créer un atlas'), findsNothing);
+      expect(
+        find.text('Créer l’atlas dans le catalogue de travail'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('62.7 — no save flow libellés interdits', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
+      );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('atlas_draft_id')),
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('atlas_draft_id')),
+        'z',
+      );
+      await tester.enterText(find.byKey(const ValueKey('atlas_draft_name')), 'N');
+      await tester.enterText(find.byKey(const ValueKey('atlas_draft_tileset')), 'T');
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.pump();
+      for (final s in <String>[
+        'Sauvegarder le projet',
+        'Enregistrer le projet',
+        'Save project',
+        'Write to disk',
+        'Écrire sur disque',
+      ]) {
+        expect(find.text(s), findsNothing);
+      }
     });
   });
 }
