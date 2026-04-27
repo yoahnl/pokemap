@@ -104,7 +104,11 @@ void main() {
       expect(find.byType(SurfaceStudioPanel), findsOneWidget);
       expect(find.text('Catalogue Surface'), findsOneWidget);
       expect(find.text('Atlas Surface'), findsOneWidget);
+      expect(find.text('Animations Surface'), findsOneWidget);
+      expect(find.text('Presets Surface'), findsOneWidget);
       expect(find.text('Water Atlas'), findsOneWidget);
+      expect(find.text('Water Isolated Loop'), findsOneWidget);
+      expect(find.text('Water Surface'), findsOneWidget);
       expect(find.text('Diagnostics Surface'), findsOneWidget);
     });
 

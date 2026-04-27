@@ -230,6 +230,9 @@ void main() {
         _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
       );
       expect(find.text('Catalogue Surface'), findsOneWidget);
+      expect(find.text('Atlas Surface'), findsOneWidget);
+      expect(find.text('Animations Surface'), findsOneWidget);
+      expect(find.text('Presets Surface'), findsOneWidget);
       expect(find.text('Water Atlas'), findsOneWidget);
       expect(find.text('Water Isolated Loop'), findsOneWidget);
       expect(find.text('Water Surface'), findsOneWidget);
@@ -268,8 +271,22 @@ void main() {
       );
       expect(find.text('Catalogue Surface'), findsOneWidget);
       expect(find.text('Atlas Surface'), findsOneWidget);
+      expect(find.text('Animations Surface'), findsOneWidget);
+      expect(find.text('Presets Surface'), findsOneWidget);
       expect(find.text('Diagnostics Surface'), findsOneWidget);
       expect(find.text('Water Atlas'), findsOneWidget);
+    });
+
+    testWidgets(
+        '48. Lot 57 — panel shows Atlas / Animations / Presets / Diagnostics',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      expect(find.text('Atlas Surface'), findsOneWidget);
+      expect(find.text('Animations Surface'), findsOneWidget);
+      expect(find.text('Presets Surface'), findsOneWidget);
+      expect(find.text('Diagnostics Surface'), findsOneWidget);
     });
 
     testWidgets('30. Lot 55 — surfaceCatalog unchanged after panel pump',

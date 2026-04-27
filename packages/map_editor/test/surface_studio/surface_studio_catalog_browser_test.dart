@@ -36,8 +36,8 @@ void main() {
         _wrap(SurfaceStudioCatalogBrowser(readModel: _minimalWaterReadModel())),
       );
       expect(find.text('Atlas Surface'), findsOneWidget);
-      expect(find.text('Animations'), findsOneWidget);
-      expect(find.text('Presets'), findsOneWidget);
+      expect(find.text('Animations Surface'), findsOneWidget);
+      expect(find.text('Presets Surface'), findsOneWidget);
     });
 
     testWidgets('5. minimal catalog: atlas details (736-tile grid)', (
@@ -74,8 +74,8 @@ void main() {
         find.textContaining('Identifiant : water-isolated-loop'),
         findsOneWidget,
       );
-      expect(find.textContaining('1 frame'), findsOneWidget);
-      expect(find.textContaining('120 ms'), findsOneWidget);
+      expect(find.textContaining('Frames : 1 frame'), findsOneWidget);
+      expect(find.textContaining('Durée totale : 120 ms'), findsOneWidget);
       expect(find.textContaining('water-atlas'), findsWidgets);
     });
 
@@ -89,15 +89,12 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('Variantes : 1 variante'), findsOneWidget);
-      expect(find.textContaining('Rôles : isolated'), findsOneWidget);
-      expect(
-        find.textContaining('Animations liées : water-isolated-loop'),
-        findsOneWidget,
-      );
-      expect(
-        find.textContaining('Couverture standard : Rôles standards incomplets'),
-        findsOneWidget,
-      );
+      expect(find.text('Isolé'), findsOneWidget);
+      expect(find.text('Animations liées'), findsOneWidget);
+      expect(find.text('1 animation liée'), findsOneWidget);
+      // Id visible dans la fiche atlas (utilisé par …) et dans le preset.
+      expect(find.text('water-isolated-loop'), findsNWidgets(2));
+      expect(find.text('Rôles standards incomplets'), findsOneWidget);
     });
 
     testWidgets('8. full animation: sync group and category', (tester) async {
@@ -153,7 +150,12 @@ void main() {
           ),
         ),
       );
-      expect(find.textContaining('atlas-b atlas-a'), findsOneWidget);
+      // Ordre visible dans la fiche animation (pas le blob texte global : les ids
+      // apparaissent aussi dans les fiches atlas).
+      expect(
+        tester.getTopLeft(find.text('atlas-b')).dy,
+        lessThan(tester.getTopLeft(find.text('atlas-a')).dy),
+      );
     });
 
     testWidgets('12. preset referenced animation ids deduped order', (
@@ -168,7 +170,10 @@ void main() {
           ),
         ),
       );
-      expect(find.textContaining('anim-b anim-a'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('anim-b').first).dy,
+        lessThan(tester.getTopLeft(find.text('anim-a').first).dy),
+      );
     });
 
     testWidgets('13. preset roles source order', (tester) async {
@@ -182,8 +187,12 @@ void main() {
         ),
       );
       expect(
-        find.textContaining('Rôles : cross isolated horizontal'),
-        findsOneWidget,
+        tester.getTopLeft(find.text('Croix')).dy,
+        lessThan(tester.getTopLeft(find.text('Isolé')).dy),
+      );
+      expect(
+        tester.getTopLeft(find.text('Isolé')).dy,
+        lessThan(tester.getTopLeft(find.text('Horizontal')).dy),
       );
     });
 
@@ -354,6 +363,35 @@ void main() {
         _wrap(SurfaceStudioCatalogBrowser(readModel: _emptyReadModel())),
       );
       expect(find.text('Catalogue Surface'), findsOneWidget);
+    });
+
+    testWidgets('45. Lot 57 — browser integrates Animation Detail', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioCatalogBrowser(readModel: _minimalWaterReadModel())),
+      );
+      expect(find.text('Animations Surface'), findsOneWidget);
+      expect(find.text('Water Isolated Loop'), findsOneWidget);
+      expect(find.textContaining('Durée totale'), findsOneWidget);
+    });
+
+    testWidgets('46. Lot 57 — browser integrates Preset Detail',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioCatalogBrowser(readModel: _minimalWaterReadModel())),
+      );
+      expect(find.text('Presets Surface'), findsOneWidget);
+      expect(find.text('Water Surface'), findsOneWidget);
+      expect(find.text('Rôles standards incomplets'), findsOneWidget);
+    });
+
+    testWidgets('47. Lot 57 — browser keeps Atlas Detail', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioCatalogBrowser(readModel: _minimalWaterReadModel())),
+      );
+      expect(find.text('Atlas Surface'), findsOneWidget);
+      expect(find.text('Water Atlas'), findsOneWidget);
     });
   });
 }
