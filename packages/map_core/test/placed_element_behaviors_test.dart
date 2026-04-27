@@ -444,5 +444,5 @@ ProjectManifest _project() {
         ],
       ),
     ],
-  );
+        surfaceCatalog: ProjectSurfaceCatalog(),);
 }

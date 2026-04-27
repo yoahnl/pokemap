@@ -180,7 +180,7 @@ void main() {
           maps: [],
           tilesets: [],
           pathPresets: [preset],
-        );
+        surfaceCatalog: ProjectSurfaceCatalog(),);
 
         final catalog = createLegacyProjectSurfaceCatalogView(manifest);
 

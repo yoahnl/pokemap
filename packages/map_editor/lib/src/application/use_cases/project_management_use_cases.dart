@@ -22,6 +22,7 @@ class CreateProjectUseCase {
       terrainPresets: const [],
       pathPresets: const [],
       settings: const ProjectSettings(),
+      surfaceCatalog: const ProjectSurfaceCatalog(),
     );
     final workspace = _workspaceFactory.create(directory);
     final projectFile = workspace.projectManifestPath;

@@ -286,5 +286,5 @@ ProjectManifest _projectWithScenario(ScenarioAsset scenario) {
       ),
     ],
     scenarios: [scenario],
-  );
+        surfaceCatalog: ProjectSurfaceCatalog(),);
 }

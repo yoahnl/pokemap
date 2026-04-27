@@ -111,7 +111,7 @@ void main() {
         maps: const [],
         tilesets: const [],
         scripts: const [],
-      );
+        surfaceCatalog: ProjectSurfaceCatalog(),);
       expect(
         () => MapValidator.validate(map, projectDialogueContext: project),
         throwsA(isA<ValidationException>()),

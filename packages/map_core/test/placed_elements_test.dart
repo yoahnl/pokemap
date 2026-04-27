@@ -194,5 +194,5 @@ ProjectManifest _projectWithElement({
         ],
       ),
     ],
-  );
+        surfaceCatalog: ProjectSurfaceCatalog(),);
 }

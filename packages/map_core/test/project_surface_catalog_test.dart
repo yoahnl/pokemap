@@ -363,8 +363,8 @@ void main() {
       expect(catalog, isA<ProjectSurfaceCatalog>());
     });
 
-    test('31. ProjectManifest still has no Surface persistence keys (Lot 33)', () {
-      const manifest = ProjectManifest(
+    test('31. ProjectManifest: surfaceCatalog key; no split surface keys (Lot 33 → 49)', () {
+      final manifest = ProjectManifest(
         name: 'L33',
         maps: [
           ProjectMapEntry(
@@ -374,8 +374,10 @@ void main() {
           ),
         ],
         tilesets: [],
+        surfaceCatalog: ProjectSurfaceCatalog(),
       );
       final map = manifest.toJson();
+      expect(map.containsKey('surfaceCatalog'), isTrue);
       const forbidden = <String>[
         'surfaceDefinitions',
         'surfaceAtlases',

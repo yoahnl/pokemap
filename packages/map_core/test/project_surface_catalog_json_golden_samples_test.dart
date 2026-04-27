@@ -287,8 +287,8 @@ void main() {
       expect(encodeProjectSurfaceCatalog(_minimalWaterCatalog()), isA<Map<String, Object?>>());
     });
 
-    test('25. ProjectManifest has no surface persistence keys (Lot 47)', () {
-      const manifest = ProjectManifest(
+    test('25. ProjectManifest: surfaceCatalog key; no split surface keys (Lot 49)', () {
+      final manifest = ProjectManifest(
         name: 'L47',
         maps: [
           ProjectMapEntry(
@@ -298,10 +298,15 @@ void main() {
           ),
         ],
         tilesets: [],
+        surfaceCatalog: ProjectSurfaceCatalog(),
       );
       final ju = manifest.toJson();
+      expect(ju.containsKey('surfaceCatalog'), isTrue);
+      expect(
+        ju['surfaceCatalog'],
+        encodeProjectSurfaceCatalog(manifest.surfaceCatalog),
+      );
       for (final k in const [
-        'surfaceCatalog',
         'surfaceDefinitions',
         'surfaceAtlases',
         'surfaceAnimations',

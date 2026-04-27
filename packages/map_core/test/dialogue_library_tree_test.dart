@@ -28,7 +28,7 @@ void main() {
         tilesets: const [],
         dialogueFolders: [fRoot, fChild],
         dialogues: [dInChild, dRoot],
-      );
+        surfaceCatalog: ProjectSurfaceCatalog(),);
 
       final tree = buildDialogueLibraryTree(manifest);
       expect(tree.rootFolders, hasLength(1));
@@ -56,7 +56,7 @@ void main() {
           ),
         ],
         dialogues: const [],
-      );
+        surfaceCatalog: ProjectSurfaceCatalog(),);
       final flat = flattenDialogueFoldersForPicker(manifest);
       expect(flat.map((e) => e.id).toList(), ['a', 'b']);
       expect(flat.last.label, contains('A'));

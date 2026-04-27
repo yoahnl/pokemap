@@ -201,7 +201,7 @@ void main() {
     });
 
     test('ProjectManifest toJson() still has no surface* top-level keys', () {
-      const manifest = ProjectManifest(
+      final manifest = ProjectManifest(
         name: 'L22',
         maps: [
           ProjectMapEntry(
@@ -211,8 +211,9 @@ void main() {
           ),
         ],
         tilesets: [],
-      );
+        surfaceCatalog: ProjectSurfaceCatalog(),);
       final map = manifest.toJson();
+      expect(map.containsKey('surfaceCatalog'), isTrue);
       for (final key in <String>[
         'surfaceDefinitions',
         'surfaceAtlases',

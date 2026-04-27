@@ -52,6 +52,12 @@ mixin _$ProjectManifest {
   ProjectPokemonConfig get pokemon => throw _privateConstructorUsedError;
   Map<String, dynamic> get globalProperties =>
       throw _privateConstructorUsedError;
+  @JsonKey(
+      name: 'surfaceCatalog',
+      fromJson: _projectSurfaceCatalogFromJson,
+      toJson: _projectSurfaceCatalogToJson)
+  ProjectSurfaceCatalog get surfaceCatalog =>
+      throw _privateConstructorUsedError;
 
   /// Serializes this ProjectManifest to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
@@ -91,7 +97,12 @@ abstract class $ProjectManifestCopyWith<$Res> {
       List<ProjectCharacterEntry> characters,
       ProjectSettings settings,
       ProjectPokemonConfig pokemon,
-      Map<String, dynamic> globalProperties});
+      Map<String, dynamic> globalProperties,
+      @JsonKey(
+          name: 'surfaceCatalog',
+          fromJson: _projectSurfaceCatalogFromJson,
+          toJson: _projectSurfaceCatalogToJson)
+      ProjectSurfaceCatalog surfaceCatalog});
 
   $ProjectSettingsCopyWith<$Res> get settings;
   $ProjectPokemonConfigCopyWith<$Res> get pokemon;
@@ -134,6 +145,7 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? settings = null,
     Object? pokemon = null,
     Object? globalProperties = null,
+    Object? surfaceCatalog = null,
   }) {
     return _then(_value.copyWith(
       name: null == name
@@ -224,6 +236,10 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.globalProperties
           : globalProperties // ignore: cast_nullable_to_non_nullable
               as Map<String, dynamic>,
+      surfaceCatalog: null == surfaceCatalog
+          ? _value.surfaceCatalog
+          : surfaceCatalog // ignore: cast_nullable_to_non_nullable
+              as ProjectSurfaceCatalog,
     ) as $Val);
   }
 
@@ -278,7 +294,12 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       List<ProjectCharacterEntry> characters,
       ProjectSettings settings,
       ProjectPokemonConfig pokemon,
-      Map<String, dynamic> globalProperties});
+      Map<String, dynamic> globalProperties,
+      @JsonKey(
+          name: 'surfaceCatalog',
+          fromJson: _projectSurfaceCatalogFromJson,
+          toJson: _projectSurfaceCatalogToJson)
+      ProjectSurfaceCatalog surfaceCatalog});
 
   @override
   $ProjectSettingsCopyWith<$Res> get settings;
@@ -321,6 +342,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? settings = null,
     Object? pokemon = null,
     Object? globalProperties = null,
+    Object? surfaceCatalog = null,
   }) {
     return _then(_$ProjectManifestImpl(
       name: null == name
@@ -411,6 +433,10 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value._globalProperties
           : globalProperties // ignore: cast_nullable_to_non_nullable
               as Map<String, dynamic>,
+      surfaceCatalog: null == surfaceCatalog
+          ? _value.surfaceCatalog
+          : surfaceCatalog // ignore: cast_nullable_to_non_nullable
+              as ProjectSurfaceCatalog,
     ));
   }
 }
@@ -419,7 +445,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
 
 @JsonSerializable(explicitToJson: true)
 class _$ProjectManifestImpl implements _ProjectManifest {
-  const _$ProjectManifestImpl(
+  _$ProjectManifestImpl(
       {required this.name,
       this.version = ProjectVersion.v1,
       required final List<ProjectMapEntry> maps,
@@ -441,7 +467,12 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       final List<ProjectCharacterEntry> characters = const [],
       this.settings = const ProjectSettings(),
       this.pokemon = const ProjectPokemonConfig(),
-      final Map<String, dynamic> globalProperties = const {}})
+      final Map<String, dynamic> globalProperties = const {},
+      @JsonKey(
+          name: 'surfaceCatalog',
+          fromJson: _projectSurfaceCatalogFromJson,
+          toJson: _projectSurfaceCatalogToJson)
+      required this.surfaceCatalog})
       : _maps = maps,
         _groups = groups,
         _tilesetFolders = tilesetFolders,
@@ -638,8 +669,15 @@ class _$ProjectManifestImpl implements _ProjectManifest {
   }
 
   @override
+  @JsonKey(
+      name: 'surfaceCatalog',
+      fromJson: _projectSurfaceCatalogFromJson,
+      toJson: _projectSurfaceCatalogToJson)
+  final ProjectSurfaceCatalog surfaceCatalog;
+
+  @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, globalProperties: $globalProperties)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, globalProperties: $globalProperties, surfaceCatalog: $surfaceCatalog)';
   }
 
   @override
@@ -681,7 +719,9 @@ class _$ProjectManifestImpl implements _ProjectManifest {
                 other.settings == settings) &&
             (identical(other.pokemon, pokemon) || other.pokemon == pokemon) &&
             const DeepCollectionEquality()
-                .equals(other._globalProperties, _globalProperties));
+                .equals(other._globalProperties, _globalProperties) &&
+            (identical(other.surfaceCatalog, surfaceCatalog) ||
+                other.surfaceCatalog == surfaceCatalog));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
@@ -709,7 +749,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         const DeepCollectionEquality().hash(_characters),
         settings,
         pokemon,
-        const DeepCollectionEquality().hash(_globalProperties)
+        const DeepCollectionEquality().hash(_globalProperties),
+        surfaceCatalog
       ]);
 
   /// Create a copy of ProjectManifest
@@ -730,29 +771,35 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 }
 
 abstract class _ProjectManifest implements ProjectManifest {
-  const factory _ProjectManifest(
-      {required final String name,
-      final ProjectVersion version,
-      required final List<ProjectMapEntry> maps,
-      final List<ProjectMapGroup> groups,
-      final List<ProjectTilesetFolder> tilesetFolders,
-      required final List<ProjectTilesetEntry> tilesets,
-      final List<ProjectElementCategory> elementCategories,
-      final List<ProjectElementEntry> elements,
-      final List<ProjectPresetCategory> terrainCategories,
-      final List<ProjectPresetCategory> pathCategories,
-      final List<ProjectTerrainPreset> terrainPresets,
-      final List<ProjectPathPreset> pathPresets,
-      final List<ProjectEncounterTable> encounterTables,
-      final List<ProjectDialogueFolder> dialogueFolders,
-      final List<ProjectDialogueEntry> dialogues,
-      final List<ProjectScriptEntry> scripts,
-      final List<ScenarioAsset> scenarios,
-      final List<ProjectTrainerEntry> trainers,
-      final List<ProjectCharacterEntry> characters,
-      final ProjectSettings settings,
-      final ProjectPokemonConfig pokemon,
-      final Map<String, dynamic> globalProperties}) = _$ProjectManifestImpl;
+  factory _ProjectManifest(
+          {required final String name,
+          final ProjectVersion version,
+          required final List<ProjectMapEntry> maps,
+          final List<ProjectMapGroup> groups,
+          final List<ProjectTilesetFolder> tilesetFolders,
+          required final List<ProjectTilesetEntry> tilesets,
+          final List<ProjectElementCategory> elementCategories,
+          final List<ProjectElementEntry> elements,
+          final List<ProjectPresetCategory> terrainCategories,
+          final List<ProjectPresetCategory> pathCategories,
+          final List<ProjectTerrainPreset> terrainPresets,
+          final List<ProjectPathPreset> pathPresets,
+          final List<ProjectEncounterTable> encounterTables,
+          final List<ProjectDialogueFolder> dialogueFolders,
+          final List<ProjectDialogueEntry> dialogues,
+          final List<ProjectScriptEntry> scripts,
+          final List<ScenarioAsset> scenarios,
+          final List<ProjectTrainerEntry> trainers,
+          final List<ProjectCharacterEntry> characters,
+          final ProjectSettings settings,
+          final ProjectPokemonConfig pokemon,
+          final Map<String, dynamic> globalProperties,
+          @JsonKey(
+              name: 'surfaceCatalog',
+              fromJson: _projectSurfaceCatalogFromJson,
+              toJson: _projectSurfaceCatalogToJson)
+          required final ProjectSurfaceCatalog surfaceCatalog}) =
+      _$ProjectManifestImpl;
 
   factory _ProjectManifest.fromJson(Map<String, dynamic> json) =
       _$ProjectManifestImpl.fromJson;
@@ -801,6 +848,12 @@ abstract class _ProjectManifest implements ProjectManifest {
   ProjectPokemonConfig get pokemon;
   @override
   Map<String, dynamic> get globalProperties;
+  @override
+  @JsonKey(
+      name: 'surfaceCatalog',
+      fromJson: _projectSurfaceCatalogFromJson,
+      toJson: _projectSurfaceCatalogToJson)
+  ProjectSurfaceCatalog get surfaceCatalog;
 
   /// Create a copy of ProjectManifest
   /// with the given fields replaced by the non-null parameter values.

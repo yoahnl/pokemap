@@ -22,7 +22,7 @@ void main() {
               id: 'm1', name: 'Map2', relativePath: 'm2.json'),
         ],
         tilesets: [],
-      );
+        surfaceCatalog: ProjectSurfaceCatalog(),);
 
       expect(() => ProjectValidator.validate(project),
           throwsA(isA<ValidationException>()));

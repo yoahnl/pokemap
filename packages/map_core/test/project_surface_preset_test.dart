@@ -370,7 +370,7 @@ void main() {
     });
 
     test('23. ProjectManifest still has no Surface persistence keys (Lot 21–31)', () {
-      const manifest = ProjectManifest(
+      final manifest = ProjectManifest(
         name: 'L31 smoke',
         maps: [
           ProjectMapEntry(
@@ -380,7 +380,7 @@ void main() {
           ),
         ],
         tilesets: [],
-      );
+        surfaceCatalog: ProjectSurfaceCatalog(),);
       final map = manifest.toJson();
       const forbidden = <String>[
         'surfaceDefinitions',

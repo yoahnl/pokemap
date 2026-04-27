@@ -6,10 +6,34 @@ import 'enums.dart';
 import 'project_trainer.dart';
 import 'scenario_asset.dart';
 import 'script_asset.dart';
+import 'surface_catalog.dart';
 import 'visual_frame_json.dart';
+
+import '../exceptions/map_exceptions.dart';
+import '../operations/project_surface_catalog_json_codec.dart';
 
 part 'project_manifest.freezed.dart';
 part 'project_manifest.g.dart';
+
+/// JSON → [ProjectSurfaceCatalog] pour [ProjectManifest.surfaceCatalog] (Lot 49).
+/// Clé absente ou `null` : catalogue vide. Non-map : [ValidationException].
+ProjectSurfaceCatalog _projectSurfaceCatalogFromJson(Object? json) {
+  if (json == null) {
+    return ProjectSurfaceCatalog();
+  }
+  if (json is! Map) {
+    throw const ValidationException('surfaceCatalog must be a JSON object');
+  }
+  return decodeProjectSurfaceCatalog(
+    Map<String, Object?>.from(json),
+  );
+}
+
+Map<String, Object?> _projectSurfaceCatalogToJson(
+  ProjectSurfaceCatalog catalog,
+) {
+  return encodeProjectSurfaceCatalog(catalog);
+}
 
 Object? _readDefaultPlayerCharacterId(Map json, String _) {
   return json['defaultPlayerCharacterId'] ?? json['playerCharacterId'];
@@ -32,7 +56,7 @@ const Map<String, String> _defaultPokemonCatalogFiles = <String, String>{
 @freezed
 class ProjectManifest with _$ProjectManifest {
   @JsonSerializable(explicitToJson: true)
-  const factory ProjectManifest({
+  factory ProjectManifest({
     required String name,
     @Default(ProjectVersion.v1) ProjectVersion version,
     required List<ProjectMapEntry> maps,
@@ -55,6 +79,12 @@ class ProjectManifest with _$ProjectManifest {
     @Default(ProjectSettings()) ProjectSettings settings,
     @Default(ProjectPokemonConfig()) ProjectPokemonConfig pokemon,
     @Default({}) Map<String, dynamic> globalProperties,
+    @JsonKey(
+      name: 'surfaceCatalog',
+      fromJson: _projectSurfaceCatalogFromJson,
+      toJson: _projectSurfaceCatalogToJson,
+    )
+    required ProjectSurfaceCatalog surfaceCatalog,
   }) = _ProjectManifest;
 
   factory ProjectManifest.fromJson(Map<String, dynamic> json) =>

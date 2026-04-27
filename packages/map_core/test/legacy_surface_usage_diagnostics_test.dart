@@ -13,7 +13,7 @@ ProjectManifest projectManifest({
     tilesets: const [],
     terrainPresets: terrainPresets,
     pathPresets: pathPresets,
-  );
+        surfaceCatalog: ProjectSurfaceCatalog(),);
 }
 
 ProjectTerrainPreset terrainPreset({

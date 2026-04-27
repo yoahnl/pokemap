@@ -450,7 +450,7 @@ void main() {
     });
 
     test('30. ProjectManifest has no surface persistence keys (Lot 45)', () {
-      const manifest = ProjectManifest(
+      final manifest = ProjectManifest(
         name: 'L45',
         maps: [
           ProjectMapEntry(
@@ -460,8 +460,9 @@ void main() {
           ),
         ],
         tilesets: [],
-      );
+        surfaceCatalog: ProjectSurfaceCatalog(),);
       final ju = manifest.toJson();
+      expect(ju.containsKey('surfaceCatalog'), isTrue);
       for (final k in const [
         'surfaceDefinitions',
         'surfaceAtlases',

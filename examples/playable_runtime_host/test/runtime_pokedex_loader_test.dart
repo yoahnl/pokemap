@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:PokeMap_Loader/src/runtime_pokedex_loader.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
-import 'package:PokeMap_Loader/src/runtime_pokedex_loader.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -25,7 +25,7 @@ void main() {
     final speciesDirectory = Directory('${root.path}/data/pokemon/species');
     await speciesDirectory.create(recursive: true);
 
-    const manifest = ProjectManifest(
+    final manifest = ProjectManifest(
       name: 'Runtime Test',
       maps: [
         ProjectMapEntry(
@@ -35,6 +35,7 @@ void main() {
         ),
       ],
       tilesets: [],
+      surfaceCatalog: ProjectSurfaceCatalog(),
     );
     await projectFile.writeAsString(jsonEncode(manifest.toJson()));
 

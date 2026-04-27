@@ -554,8 +554,8 @@ void main() {
       expect(encodeProjectSurfaceCatalog(_catalog()), isA<Map<String, Object?>>());
     });
 
-    test('40. ProjectManifest has no surface persistence keys (Lot 46)', () {
-      const manifest = ProjectManifest(
+    test('40. ProjectManifest: surfaceCatalog key; no split surface keys (Lot 49)', () {
+      final manifest = ProjectManifest(
         name: 'L46',
         maps: [
           ProjectMapEntry(
@@ -565,10 +565,15 @@ void main() {
           ),
         ],
         tilesets: [],
+        surfaceCatalog: ProjectSurfaceCatalog(),
       );
       final ju = manifest.toJson();
+      expect(ju.containsKey('surfaceCatalog'), isTrue);
+      expect(
+        ju['surfaceCatalog'],
+        encodeProjectSurfaceCatalog(manifest.surfaceCatalog),
+      );
       for (final k in const [
-        'surfaceCatalog',
         'surfaceDefinitions',
         'surfaceAtlases',
         'surfaceAnimations',
@@ -588,7 +593,7 @@ void main() {
       },
     );
 
-    test('42. manifest surface integration remains out of scope (no manifest codec)', () {
+    test('42. catalog encode still independent of manifest (Lot 49 uses same encode)', () {
       final m = encodeProjectSurfaceCatalog(_catalog());
       expect(m['atlases'], isA<List>());
     });

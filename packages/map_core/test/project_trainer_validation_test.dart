@@ -17,7 +17,7 @@ void main() {
             battleDifficulty: 11,
           ),
         ],
-      );
+        surfaceCatalog: ProjectSurfaceCatalog(),);
 
       expect(
         () => ProjectValidator.validate(manifest),
@@ -44,7 +44,7 @@ void main() {
             battleBackgroundRelativePath: '../outside.png',
           ),
         ],
-      );
+        surfaceCatalog: ProjectSurfaceCatalog(),);
 
       expect(
         () => ProjectValidator.validate(manifest),

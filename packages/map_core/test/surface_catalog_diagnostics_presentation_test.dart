@@ -599,7 +599,7 @@ void main() {
     });
 
     test('22. ProjectManifest: no Surface keys (Lot 38)', () {
-      const manifest = ProjectManifest(
+      final manifest = ProjectManifest(
         name: 'L38',
         maps: [
           ProjectMapEntry(
@@ -609,7 +609,7 @@ void main() {
           ),
         ],
         tilesets: [],
-      );
+        surfaceCatalog: ProjectSurfaceCatalog(),);
       final j = manifest.toJson();
       for (final k in const [
         'surfaceDefinitions',

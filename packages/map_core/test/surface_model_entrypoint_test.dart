@@ -12,8 +12,8 @@ void main() {
       ]);
     });
 
-    test('ProjectManifest JSON has no surface engine manifest keys yet', () {
-      const manifest = ProjectManifest(
+    test('ProjectManifest has surfaceCatalog; split surface keys stay absent', () {
+      final manifest = ProjectManifest(
         name: 'L21 smoke',
         maps: [
           ProjectMapEntry(
@@ -23,8 +23,10 @@ void main() {
           ),
         ],
         tilesets: [],
+        surfaceCatalog: ProjectSurfaceCatalog(),
       );
       final map = manifest.toJson();
+      expect(map.containsKey('surfaceCatalog'), isTrue);
       const forbidden = <String>[
         'surfaceDefinitions',
         'surfaceAtlases',

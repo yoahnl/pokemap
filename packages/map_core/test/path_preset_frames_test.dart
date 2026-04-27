@@ -56,7 +56,7 @@ void main() {
     });
 
     test('validator rejects non-positive path frame durations', () {
-      const manifest = ProjectManifest(
+      final manifest = ProjectManifest(
         name: 'project',
         maps: [],
         tilesets: [
@@ -85,7 +85,7 @@ void main() {
             ],
           ),
         ],
-      );
+        surfaceCatalog: ProjectSurfaceCatalog(),);
 
       expect(
         () => ProjectValidator.validate(manifest),

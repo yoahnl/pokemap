@@ -54,7 +54,7 @@ void main() {
             ],
           ),
         ],
-      );
+        surfaceCatalog: ProjectSurfaceCatalog(),);
       expect(
         () => ProjectValidator.validate(manifest),
         throwsA(isA<ValidationException>()),

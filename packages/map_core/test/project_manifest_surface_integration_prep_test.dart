@@ -4,20 +4,10 @@ import 'dart:io';
 import 'package:map_core/map_core.dart';
 import 'package:test/test.dart';
 
-/// ProjectManifest Surface integration prep (Lot 48).
-///
-/// [Lot 49] will likely break test 3 (unknown `surfaceCatalog` currently dropped on write).
-
-const _manifestSurfaceKeyCandidates = <String>[
-  'surfaceCatalog',
-  'surfaceDefinitions',
-  'surfaceAtlases',
-  'surfaceAnimations',
-  'surfacePresets',
-  'surfaceCategories',
-];
-
-const _discouragedTopLevelNames = <String>[
+/// ProjectManifest Surface integration prep (Lot 48) — comportement remplacé
+/// en Lot 49 : [surfaceCatalog] est désormais un champ [ProjectManifest]
+/// persisté (voir [surface_engine_lot_49] dans les rapports).
+const _manifestSplitSurfaceKeyCandidates = <String>[
   'surfaceDefinitions',
   'surfaceAtlases',
   'surfaceAnimations',
@@ -26,24 +16,35 @@ const _discouragedTopLevelNames = <String>[
 ];
 
 void main() {
-  group('ProjectManifest Surface Integration Prep (Lot 48)', () {
-    test('1. current manifest toJson has no Surface persistence keys', () {
-      final manifest = _minimalManifest();
-      _expectNoSurfaceKeys(
-        _asObjectMap(manifest.toJson()),
-      );
-    });
+  group(
+    'ProjectManifest Surface Integration Prep: Lot 48 → Lot 49 transition',
+    () {
+    test(
+      '1. Lot 48: no top-level surface keys; Lot 49: surfaceCatalog + no split',
+      () {
+        final manifest = _minimalManifest();
+        final o = _asObjectMap(manifest.toJson());
+        expect(o.containsKey('surfaceCatalog'), isTrue);
+        expect(
+          o['surfaceCatalog'],
+          encodeProjectSurfaceCatalog(manifest.surfaceCatalog),
+        );
+        for (final k in _manifestSplitSurfaceKeyCandidates) {
+          expect(o.containsKey(k), isFalse, reason: k);
+        }
+      },
+    );
 
-    test('2. current manifest round-trips without Surface', () {
+    test('2. manifest round-trips with default empty surface catalog', () {
       final manifest = _minimalManifest();
       final decoded = ProjectManifest.fromJson(manifest.toJson());
       expect(decoded, manifest);
     });
 
     test(
-      '3. current manifest ignores unknown surfaceCatalog (dropped on toJson) — will change in Lot 49',
+      '3. Lot 48 dropped unknown surfaceCatalog on write — Lot 49 persists it',
       () {
-        final withCatalog = _withFutureSurfaceCatalog(
+        final withCatalog = _withSurfaceCatalog(
           _manifestJson(),
           <String, Object?>{
             'atlases': <Object?>[],
@@ -55,42 +56,59 @@ void main() {
           Map<String, dynamic>.from(withCatalog),
         );
         final out = _asObjectMap(manifest.toJson());
-        expect(out.containsKey('surfaceCatalog'), isFalse);
+        expect(out.containsKey('surfaceCatalog'), isTrue);
+        expect(
+          out['surfaceCatalog'],
+          encodeProjectSurfaceCatalog(manifest.surfaceCatalog),
+        );
+        expect(manifest.surfaceCatalog.isEmpty, isTrue);
         expect(manifest.name, 'Lot 48 Prep');
       },
     );
 
     test(
-      '4. current manifest ignores Lot 47 minimal water surfaceCatalog (dropped on toJson)',
+      '4. Lot 47 minimal water: Lot 49 keeps catalog on manifest (was dropped in 48)',
       () {
         final surface = _readSurfaceCatalogFixtureJson(
           'minimal_water_surface_catalog_v0.json',
         );
-        final withCatalog = _withFutureSurfaceCatalog(_manifestJson(), surface);
+        final withCatalog = _withSurfaceCatalog(_manifestJson(), surface);
         final manifest = ProjectManifest.fromJson(
           Map<String, dynamic>.from(withCatalog),
         );
         final out = _asObjectMap(manifest.toJson());
-        expect(out.containsKey('surfaceCatalog'), isFalse);
+        expect(out.containsKey('surfaceCatalog'), isTrue);
+        expect(
+          out['surfaceCatalog'],
+          encodeProjectSurfaceCatalog(manifest.surfaceCatalog),
+        );
         expect(manifest.name, 'Lot 48 Prep');
         expect(manifest.maps, isEmpty);
         expect(manifest.tilesets, isEmpty);
+        expect(manifest.surfaceCatalog.atlasCount, 1);
+        expect(manifest.surfaceCatalog.animationCount, 1);
+        expect(manifest.surfaceCatalog.presetCount, 1);
       },
     );
 
     test(
-      '5. current manifest ignores Lot 47 full water surfaceCatalog (dropped on toJson)',
+      '5. Lot 47 full water: Lot 49 keeps catalog on manifest (was dropped in 48)',
       () {
         final surface = _readSurfaceCatalogFixtureJson(
           'full_water_surface_catalog_v0.json',
         );
-        final withCatalog = _withFutureSurfaceCatalog(_manifestJson(), surface);
+        final withCatalog = _withSurfaceCatalog(_manifestJson(), surface);
         final manifest = ProjectManifest.fromJson(
           Map<String, dynamic>.from(withCatalog),
         );
         final out = _asObjectMap(manifest.toJson());
-        expect(out.containsKey('surfaceCatalog'), isFalse);
+        expect(out.containsKey('surfaceCatalog'), isTrue);
+        expect(
+          out['surfaceCatalog'],
+          encodeProjectSurfaceCatalog(manifest.surfaceCatalog),
+        );
         expect(manifest.name, 'Lot 48 Prep');
+        expect(manifest.surfaceCatalog.atlasCount, 1);
       },
     );
 
@@ -134,30 +152,24 @@ void main() {
       );
     });
 
-    test('8. recommended future manifest field name is surfaceCatalog', () {
+    test('8. recommended manifest field name is surfaceCatalog', () {
       const recommendedFutureManifestField = 'surfaceCatalog';
       expect(recommendedFutureManifestField, 'surfaceCatalog');
     });
 
     test('9. discouraged split Surface key names are absent from toJson', () {
       final json = _minimalManifest().toJson();
-      for (final k in _discouragedTopLevelNames) {
+      for (final k in _manifestSplitSurfaceKeyCandidates) {
         expect(json.containsKey(k), isFalse, reason: k);
       }
     });
 
-    test(
-      '10. surfaceCatalog is not yet a ProjectManifest field in Lot 48',
-      () {
-        expect(
-          _minimalManifest().toJson().containsKey('surfaceCatalog'),
-          isFalse,
-        );
-      },
-    );
+    test('10. Lot 49: surfaceCatalog is always in toJson', () {
+      expect(_minimalManifest().toJson().containsKey('surfaceCatalog'), isTrue);
+    });
 
     test(
-      '11. root unknown Surface keys do not break decode; not re-emitted on toJson',
+      '11. split + legacy root keys ignored; surfaceCatalog re-emitted; split not',
       () {
         final merged = <String, Object?>{
           ..._manifestJson(),
@@ -176,13 +188,14 @@ void main() {
           Map<String, dynamic>.from(merged),
         );
         final out = m.toJson();
-        for (final k in _manifestSurfaceKeyCandidates) {
+        expect(out.containsKey('surfaceCatalog'), isTrue);
+        for (final k in _manifestSplitSurfaceKeyCandidates) {
           expect(out.containsKey(k), isFalse, reason: k);
         }
       },
     );
 
-    test('12. Lot 47 fixtures are still valid JSON (unchanged by Lot 48)', () {
+    test('12. Lot 47 fixtures are still valid JSON (unchanged by Lot 48/49 tests)', () {
       for (final name in const <String>[
         'empty_surface_catalog_v0.json',
         'minimal_water_surface_catalog_v0.json',
@@ -219,16 +232,10 @@ void main() {
     );
 
     test(
-      '15. Lot 48 does not add generated manifest Surface members — no new .g.dart contract in tests',
+      '15. Lot 49 adds surfaceCatalog to manifest wire (Lot 48 had none)',
       () {
-        // Assertions above use only toJson / fromJson and decodeProjectSurfaceCatalog;
-        // report confirms no lib/ or generated file edits in this lot.
-        expect(
-          _minimalManifest().toJson().keys.where(
-                (k) => k.contains('urface'),
-              ),
-          isEmpty,
-        );
+        final keys = _minimalManifest().toJson().keys.toList();
+        expect(keys.contains('surfaceCatalog'), isTrue);
       },
     );
   });
@@ -240,17 +247,12 @@ Map<String, Object?> _asObjectMap(Map<String, dynamic> m) {
   return Map<String, Object?>.from(m);
 }
 
-void _expectNoSurfaceKeys(Map<String, Object?> json) {
-  for (final k in _manifestSurfaceKeyCandidates) {
-    expect(json.containsKey(k), isFalse, reason: 'unexpected key: $k');
-  }
-}
-
 ProjectManifest _minimalManifest() {
-  return const ProjectManifest(
+  return ProjectManifest(
     name: 'Lot 48 Prep',
     maps: [],
     tilesets: [],
+    surfaceCatalog: ProjectSurfaceCatalog(),
   );
 }
 
@@ -271,7 +273,7 @@ Map<String, Object?> _readSurfaceCatalogFixtureJson(String name) {
   return jsonDecode(s) as Map<String, Object?>;
 }
 
-Map<String, Object?> _withFutureSurfaceCatalog(
+Map<String, Object?> _withSurfaceCatalog(
   Map<String, Object?> manifestJson,
   Map<String, Object?> surfaceCatalogJson,
 ) {

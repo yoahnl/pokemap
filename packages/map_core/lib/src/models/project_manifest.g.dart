@@ -100,6 +100,7 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
               json['pokemon'] as Map<String, dynamic>),
       globalProperties:
           json['globalProperties'] as Map<String, dynamic>? ?? const {},
+      surfaceCatalog: _projectSurfaceCatalogFromJson(json['surfaceCatalog']),
     );
 
 Map<String, dynamic> _$$ProjectManifestImplToJson(
@@ -131,6 +132,7 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
       'settings': instance.settings.toJson(),
       'pokemon': instance.pokemon.toJson(),
       'globalProperties': instance.globalProperties,
+      'surfaceCatalog': _projectSurfaceCatalogToJson(instance.surfaceCatalog),
     };
 
 const _$ProjectVersionEnumMap = {

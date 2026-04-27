@@ -30,8 +30,14 @@ void main() {
       expect(manifest.scenarios, isEmpty);
       expect(manifest.trainers, isEmpty);
       expect(manifest.characters, isEmpty);
+      expect(manifest.surfaceCatalog.isEmpty, isTrue);
       expect(manifest.settings.tileWidth, 16);
       expect(manifest.settings.tileHeight, 16);
+      expect(json.containsKey('surfaceCatalog'), isTrue);
+      expect(
+        json['surfaceCatalog'],
+        encodeProjectSurfaceCatalog(manifest.surfaceCatalog),
+      );
       expect(json, isNot(contains('surfaceDefinitions')));
       expect(json['settings'], containsPair('tileWidth', 16));
       expect(json['settings'], containsPair('tileHeight', 16));
