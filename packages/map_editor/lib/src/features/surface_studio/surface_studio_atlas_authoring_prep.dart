@@ -8,8 +8,11 @@ import 'surface_studio_atlas_editing.dart';
 import 'surface_studio_atlas_grid_preview.dart';
 import 'surface_studio_atlas_image_preview.dart';
 import 'surface_studio_atlas_source_picker.dart';
+import 'surface_studio_column_role_mapping_block.dart';
 import 'surface_studio_selection.dart';
+import 'surface_studio_vertical_atlas_animation_preview.dart';
 import 'surface_studio_vertical_atlas_assistant.dart';
+import 'surface_studio_vertical_atlas_role_mapping.dart';
 
 const ValueKey<String> kSurfaceStudioAtlasAuthoringPrepKey =
     ValueKey<String>('SurfaceStudioAtlasAuthoringPrep');
@@ -237,6 +240,8 @@ class _SurfaceStudioAtlasAuthoringPrepState
   bool _isEditMode = false;
   String? _editingAtlasId;
   bool _userEditedId = false;
+  SurfaceStudioColumnRoleMappingDraft _columnRoleMappingDraft =
+      const SurfaceStudioColumnRoleMappingDraft.empty(0);
 
   @override
   void dispose() {
@@ -268,7 +273,24 @@ class _SurfaceStudioAtlasAuthoringPrepState
       _isEditMode = false;
       _editingAtlasId = null;
       _userEditedId = false;
+      _columnRoleMappingDraft =
+          const SurfaceStudioColumnRoleMappingDraft.empty(0);
     });
+  }
+
+  void _updateColumnRoleMappingDraft() {
+    final newColumns = int.tryParse(_cols.text.trim());
+    if (newColumns == null || newColumns <= 0) {
+      return;
+    }
+
+    // Si le nombre de colonnes a changé, on réinitialise le mapping
+    if (newColumns != _columnRoleMappingDraft.columnCount) {
+      setState(() {
+        _columnRoleMappingDraft =
+            SurfaceStudioColumnRoleMappingDraft.empty(newColumns);
+      });
+    }
   }
 
   @override
@@ -294,6 +316,8 @@ class _SurfaceStudioAtlasAuthoringPrepState
           _categoryId.clear();
           _layout = SurfaceAtlasLayout.grid;
           _creationNote = null;
+          _columnRoleMappingDraft =
+              const SurfaceStudioColumnRoleMappingDraft.empty(0);
         });
       }
     }
@@ -328,6 +352,8 @@ class _SurfaceStudioAtlasAuthoringPrepState
       _categoryId.clear();
       _layout = SurfaceAtlasLayout.grid;
       _creationNote = null;
+      _columnRoleMappingDraft =
+          const SurfaceStudioColumnRoleMappingDraft.empty(0);
     });
   }
 
@@ -361,6 +387,8 @@ class _SurfaceStudioAtlasAuthoringPrepState
       _layout = row.atlas.geometry.layout;
       _categoryId.text = row.categoryId ?? '';
       _creationNote = null;
+      _columnRoleMappingDraft =
+          const SurfaceStudioColumnRoleMappingDraft.empty(0);
     });
   }
 
@@ -394,6 +422,8 @@ class _SurfaceStudioAtlasAuthoringPrepState
       _layout = row.atlas.geometry.layout;
       _categoryId.text = row.categoryId ?? '';
       _creationNote = null;
+      _columnRoleMappingDraft =
+          const SurfaceStudioColumnRoleMappingDraft.empty(0);
     });
   }
 
@@ -798,6 +828,35 @@ class _SurfaceStudioAtlasAuthoringPrepState
             draftRows: previewRows,
           ),
           const SizedBox(height: 10),
+          SurfaceStudioColumnRoleMappingBlock(
+            label: label,
+            subtle: subtle,
+            draft: _columnRoleMappingDraft,
+            onDraftChanged: (newDraft) {
+              setState(() {
+                _columnRoleMappingDraft = newDraft;
+              });
+            },
+            draftTileWidth: previewTileWidth,
+            draftTileHeight: previewTileHeight,
+            draftColumns: previewColumns,
+            draftRows: previewRows,
+          ),
+          const SizedBox(height: 10),
+          SurfaceStudioVerticalAtlasAnimationPreview(
+            label: label,
+            subtle: subtle,
+            mappingDraft: _columnRoleMappingDraft,
+            tileWidth: previewTileWidth,
+            tileHeight: previewTileHeight,
+            columns: previewColumns,
+            rows: previewRows,
+            resolvedImagePath: imagePreviewResolution.status ==
+                    SurfaceStudioAtlasImagePreviewResolveStatus.resolved
+                ? imagePreviewResolution.resolvedAbsolutePath
+                : null,
+          ),
+          const SizedBox(height: 10),
           SurfaceStudioAtlasImagePreview(
             resolution: imagePreviewResolution,
             label: label,
@@ -850,7 +909,10 @@ class _SurfaceStudioAtlasAuthoringPrepState
                 child: material.TextField(
                   key: const ValueKey('atlas_draft_cols'),
                   controller: _cols,
-                  onChanged: (_) => setState(() {}),
+                  onChanged: (_) {
+                    _updateColumnRoleMappingDraft();
+                    setState(() {});
+                  },
                   keyboardType: TextInputType.number,
                   style: TextStyle(color: label, fontSize: 13),
                   decoration: const material.InputDecoration(
@@ -864,7 +926,10 @@ class _SurfaceStudioAtlasAuthoringPrepState
                 child: material.TextField(
                   key: const ValueKey('atlas_draft_rows'),
                   controller: _rows,
-                  onChanged: (_) => setState(() {}),
+                  onChanged: (_) {
+                    _updateColumnRoleMappingDraft();
+                    setState(() {});
+                  },
                   keyboardType: TextInputType.number,
                   style: TextStyle(color: label, fontSize: 13),
                   decoration: const material.InputDecoration(

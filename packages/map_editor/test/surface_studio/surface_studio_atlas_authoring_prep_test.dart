@@ -825,6 +825,83 @@ void main() {
       expect(find.text('Total : 40 cases'), findsOneWidget);
     });
   });
+
+  testWidgets('section Mapping des colonnes visible pour atlas 23×32',
+      (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        SurfaceStudioAtlasAuthoringPrep(
+          readModel: _minimalRead(),
+          selection: const SurfaceStudioSelection.none(),
+        ),
+      ),
+    );
+
+    // Modifier les colonnes pour avoir 23 colonnes
+    final cF = find.byKey(const ValueKey('atlas_draft_cols'));
+    await tester.enterText(cF, '23');
+    await tester.pump();
+
+    // Vérifier que la section Mapping des colonnes est visible
+    expect(find.text('Mapping des colonnes'), findsOneWidget);
+    expect(find.text('Assignées'), findsOneWidget);
+    expect(find.text('Non assignées'), findsOneWidget);
+    expect(find.text('Doublons'), findsOneWidget);
+  });
+
+  testWidgets('section Mapping des colonnes affiche Atlas simple pour 1×1',
+      (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        SurfaceStudioAtlasAuthoringPrep(
+          readModel: _minimalRead(),
+          selection: const SurfaceStudioSelection.none(),
+        ),
+      ),
+    );
+
+    // Vérifier que la section affiche Atlas simple
+    expect(find.text('Mapping des colonnes'), findsOneWidget);
+    expect(
+      find.text('Atlas simple : mapping de colonnes non nécessaire.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('Lot 76 : section Aperçu animation par colonne visible',
+      (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        SurfaceStudioAtlasAuthoringPrep(
+          readModel: _minimalRead(),
+          selection: const SurfaceStudioSelection.none(),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('Aperçu animation par colonne'), findsOneWidget);
+  });
+
+  testWidgets('boutons Suggérer et Réinitialiser fonctionnent',
+      (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        SurfaceStudioAtlasAuthoringPrep(
+          readModel: _minimalRead(),
+          selection: const SurfaceStudioSelection.none(),
+        ),
+      ),
+    );
+
+    // Modifier les colonnes pour avoir 23 colonnes
+    final cF = find.byKey(const ValueKey('atlas_draft_cols'));
+    await tester.enterText(cF, '23');
+    await tester.pump();
+
+    // Vérifier que les boutons sont présents
+    expect(find.text('Suggérer un mapping standard'), findsOneWidget);
+    expect(find.text('Réinitialiser le mapping des colonnes'), findsOneWidget);
+  });
 }
 
 Widget _wrap(Widget child) {
