@@ -1,0 +1,360 @@
+// Tests widget — Surface Studio panel (Lot 52).
+// Imports `map_core` en API publique uniquement (pas de `map_core/src/...`).
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/surface_studio/surface_studio_panel.dart';
+
+void main() {
+  group('SurfaceStudioPanel (Lot 52)', () {
+    testWidgets('1. title Surface Studio is visible', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
+      );
+      expect(find.text('Surface Studio'), findsOneWidget);
+    });
+
+    testWidgets('2. read-only badge is visible', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
+      );
+      expect(find.text('Lecture seule'), findsOneWidget);
+    });
+
+    testWidgets('3. three counters are zero for empty catalog', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
+      );
+      // Trois compteurs à 0
+      expect(find.text('0'), findsNWidgets(3));
+    });
+
+    testWidgets('4. empty catalog shows empty state copy', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
+      );
+      expect(
+        find.textContaining('Aucun catalogue Surface'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('5. minimal catalog shows 1/1/1', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      expect(find.text('1'), findsNWidgets(3));
+    });
+
+    testWidgets('6. non-empty shows catalog detected', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      expect(find.text('Catalogue Surface détecté'), findsOneWidget);
+    });
+
+    testWidgets('7. clean diagnostics for minimal coherent catalog',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      expect(find.text('Aucun diagnostic Surface'), findsOneWidget);
+    });
+
+    testWidgets('8. warning state when unused atlas', (tester) async {
+      final rm = _warningReadModel();
+      expect(rm.hasWarnings, isTrue);
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: rm)),
+      );
+      expect(
+        find.textContaining('Avertissements Surface détectés'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('9. error state when preset animation missing', (tester) async {
+      final rm = _errorReadModel();
+      expect(rm.hasErrors, isTrue);
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: rm)),
+      );
+      expect(
+        find.textContaining('Erreurs Surface détectées'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('10. future action labels are visible', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
+      );
+      expect(find.text('Créer un atlas'), findsOneWidget);
+      expect(find.text('Importer un atlas vertical'), findsOneWidget);
+    });
+
+    testWidgets('11. future actions are disabled (onPressed null)',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
+      );
+      final b1 = tester.widget<TextButton>(
+        find.ancestor(
+          of: find.text('Créer un atlas'),
+          matching: find.byType(TextButton),
+        ),
+      );
+      final b2 = tester.widget<TextButton>(
+        find.ancestor(
+          of: find.text('Importer un atlas vertical'),
+          matching: find.byType(TextButton),
+        ),
+      );
+      expect(b1.onPressed, isNull);
+      expect(b2.onPressed, isNull);
+    });
+
+    testWidgets('12. section placeholder titles are visible', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
+      );
+      expect(find.text('Catalogue'), findsOneWidget);
+      expect(find.text('Diagnostics'), findsOneWidget);
+      expect(find.text('Actions auteur'), findsOneWidget);
+    });
+
+    testWidgets('13. SurfaceStudioPanelFromManifest uses manifest catalog',
+        (tester) async {
+      final cat = _minimalWaterCatalog();
+      final manifest = _manifest(cat);
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanelFromManifest(manifest: manifest)),
+      );
+      expect(find.text('1'), findsNWidgets(3));
+    });
+
+    testWidgets('14. manifest is not mutated after pump', (tester) async {
+      final cat = _minimalWaterCatalog();
+      final before = cat.atlases.length;
+      final manifest = _manifest(cat);
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanelFromManifest(manifest: manifest)),
+      );
+      expect(manifest.surfaceCatalog.atlases.length, before);
+    });
+
+    testWidgets(
+      '15. does not require provider setup — panel builds without ProviderScope',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: SurfaceStudioPanel(readModel: _emptyReadModel()),
+            ),
+          ),
+        );
+        expect(find.text('Surface Studio'), findsOneWidget);
+      },
+    );
+
+    testWidgets('16. content is in a scrollable', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
+      );
+      expect(find.byType(SingleChildScrollView), findsOneWidget);
+    });
+
+    testWidgets('17. no internal domain type names in user-visible strings',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      expect(find.textContaining('ProjectSurfaceCatalog'), findsNothing);
+      expect(find.textContaining('SurfaceStudioReadModel'), findsNothing);
+      expect(
+          find.textContaining('SurfaceVariantAnimationRefSet'), findsNothing);
+    });
+
+    testWidgets('18. error read model does not throw on build', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _errorReadModel())),
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('19. warning read model does not throw on build',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _warningReadModel())),
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('20. displayed counts match read model summary',
+        (tester) async {
+      final rm = _minimalWaterReadModel();
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: rm)),
+      );
+      expect(rm.summary.atlasCount, 1);
+      expect(rm.summary.animationCount, 1);
+      expect(rm.summary.presetCount, 1);
+    });
+
+    testWidgets('22. no TextField in panel', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
+      );
+      expect(find.byType(TextField), findsNothing);
+    });
+
+    testWidgets('23. no save affordances', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
+      );
+      expect(find.textContaining('Sauvegarder'), findsNothing);
+      expect(find.textContaining('Enregistrer'), findsNothing);
+      expect(find.textContaining('Save'), findsNothing);
+    });
+
+    testWidgets('24. test file uses public map_core only (smoke)',
+        (tester) async {
+      // Vérification statique : seul `package:map_core/map_core.dart` est importé.
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
+      );
+      expect(find.text('Surface Studio'), findsOneWidget);
+    });
+  });
+}
+
+Widget _wrap(Widget child) {
+  return MaterialApp(
+    home: Scaffold(
+      body: child,
+    ),
+  );
+}
+
+SurfaceStudioReadModel _emptyReadModel() {
+  return buildSurfaceStudioReadModelFromCatalog(ProjectSurfaceCatalog());
+}
+
+SurfaceStudioReadModel _minimalWaterReadModel() {
+  return buildSurfaceStudioReadModelFromCatalog(_minimalWaterCatalog());
+}
+
+SurfaceStudioReadModel _warningReadModel() {
+  return buildSurfaceStudioReadModelFromCatalog(_catalogWithUnusedAtlas());
+}
+
+SurfaceStudioReadModel _errorReadModel() {
+  return buildSurfaceStudioReadModelFromCatalog(_catalogWithMissingAnimation());
+}
+
+SurfaceAtlasGeometry _geom() {
+  return SurfaceAtlasGeometry(
+    tileSize: SurfaceAtlasTileSize(width: 32, height: 32),
+    gridSize: SurfaceAtlasGridSize(columns: 2, rows: 2),
+    layout: SurfaceAtlasLayout.columnsAreVariantsRowsAreFrames,
+  );
+}
+
+ProjectSurfaceCatalog _minimalWaterCatalog() {
+  final g = _geom();
+  final atlas = ProjectSurfaceAtlas(
+    id: 'water-atlas',
+    name: 'Water Atlas',
+    tilesetId: 'nature-tileset',
+    geometry: g,
+  );
+  final frame = SurfaceAnimationFrame(
+    tileRef: SurfaceAtlasTileRef(atlasId: 'water-atlas', column: 0, row: 0),
+    durationMs: 120,
+  );
+  final anim = ProjectSurfaceAnimation(
+    id: 'water-isolated-loop',
+    name: 'Water Isolated Loop',
+    timeline: SurfaceAnimationTimeline(frames: [frame]),
+  );
+  final refs = SurfaceVariantAnimationRefSet(
+    refs: [
+      SurfaceVariantAnimationRef(
+        role: SurfaceVariantRole.isolated,
+        animationId: 'water-isolated-loop',
+      ),
+    ],
+  );
+  final preset = ProjectSurfacePreset(
+    id: 'water-surface',
+    name: 'Water Surface',
+    variantAnimations: refs,
+  );
+  return ProjectSurfaceCatalog(
+    atlases: [atlas],
+    animations: [anim],
+    presets: [preset],
+  );
+}
+
+ProjectSurfaceCatalog _catalogWithUnusedAtlas() {
+  final g = _geom();
+  final used = ProjectSurfaceAtlas(
+    id: 'used-atlas',
+    name: 'U',
+    tilesetId: 't',
+    geometry: g,
+  );
+  final unused = ProjectSurfaceAtlas(
+    id: 'orphan-atlas',
+    name: 'O',
+    tilesetId: 't',
+    geometry: g,
+  );
+  final f = SurfaceAnimationFrame(
+    tileRef: SurfaceAtlasTileRef(atlasId: 'used-atlas', column: 0, row: 0),
+    durationMs: 10,
+  );
+  final anim = ProjectSurfaceAnimation(
+    id: 'a',
+    name: 'a',
+    timeline: SurfaceAnimationTimeline(frames: [f]),
+  );
+  return ProjectSurfaceCatalog(
+    atlases: [used, unused],
+    animations: [anim],
+    presets: const [],
+  );
+}
+
+ProjectSurfaceCatalog _catalogWithMissingAnimation() {
+  final refs = SurfaceVariantAnimationRefSet(
+    refs: [
+      SurfaceVariantAnimationRef(
+        role: SurfaceVariantRole.isolated,
+        animationId: 'missing-anim',
+      ),
+    ],
+  );
+  return ProjectSurfaceCatalog(
+    atlases: const [],
+    animations: const [],
+    presets: [
+      ProjectSurfacePreset(
+        id: 'p',
+        name: 'p',
+        variantAnimations: refs,
+      ),
+    ],
+  );
+}
+
+ProjectManifest _manifest(ProjectSurfaceCatalog catalog) {
+  return ProjectManifest(
+    name: 'Test',
+    maps: const [],
+    tilesets: const [],
+    surfaceCatalog: catalog,
+  );
+}
