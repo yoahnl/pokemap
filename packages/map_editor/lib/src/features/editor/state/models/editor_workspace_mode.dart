@@ -36,4 +36,7 @@ enum EditorWorkspaceMode {
 
   /// Studio de conversation (dialogues `.yarn` en blocs visuels).
   dialogue,
+
+  /// Surface animées (eau, lave, herbes) — vue catalogue lecture seule (Lot 52+).
+  surfaceStudio,
 }

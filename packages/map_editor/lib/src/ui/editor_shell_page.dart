@@ -318,6 +318,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                       EditorChrome.islandWarmTint,
                                     EditorWorkspaceMode.pokedex =>
                                       EditorChrome.islandWarmTint,
+                                    EditorWorkspaceMode.surfaceStudio =>
+                                      EditorChrome.islandCoolTint,
                                     EditorWorkspaceMode.globalStory =>
                                       EditorChrome.islandCoolTint,
                                     EditorWorkspaceMode.step =>
@@ -342,6 +344,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                     // structure latérale ou une fausse logique.
                                     EditorWorkspaceMode.pokedex =>
                                       const _EmptyWorkspaceInspector(),
+                                    EditorWorkspaceMode.surfaceStudio =>
+                                      const _SurfaceWorkspaceInspector(),
                                     EditorWorkspaceMode.globalStory ||
                                     EditorWorkspaceMode.step ||
                                     EditorWorkspaceMode.cutscene ||
@@ -474,6 +478,7 @@ class _WorkspaceStageHeader extends StatelessWidget {
       EditorWorkspaceMode.tileset => EditorChrome.inspectorJoyLilac,
       EditorWorkspaceMode.trainer => EditorChrome.accentCoral,
       EditorWorkspaceMode.pokedex => EditorChrome.inspectorJoyAmber,
+      EditorWorkspaceMode.surfaceStudio => EditorChrome.inspectorJoyCyan,
       EditorWorkspaceMode.globalStory => EditorChrome.inspectorJoyCyan,
       EditorWorkspaceMode.step => EditorChrome.inspectorJoyMint,
       EditorWorkspaceMode.cutscene => EditorChrome.inspectorJoyCoral,
@@ -484,6 +489,7 @@ class _WorkspaceStageHeader extends StatelessWidget {
       EditorWorkspaceMode.tileset => EditorChrome.inspectorJoyPlum,
       EditorWorkspaceMode.trainer => EditorChrome.inspectorJoyCoral,
       EditorWorkspaceMode.pokedex => EditorChrome.accentWarm,
+      EditorWorkspaceMode.surfaceStudio => EditorChrome.accentJade,
       EditorWorkspaceMode.globalStory => EditorChrome.inspectorJoyBlue,
       EditorWorkspaceMode.step => EditorChrome.accentJade,
       EditorWorkspaceMode.cutscene => EditorChrome.inspectorJoyCoral,
@@ -517,6 +523,7 @@ class _WorkspaceStageHeader extends StatelessWidget {
               EditorWorkspaceMode.tileset => CupertinoIcons.square_grid_2x2,
               EditorWorkspaceMode.trainer => CupertinoIcons.person_3_fill,
               EditorWorkspaceMode.pokedex => CupertinoIcons.book,
+              EditorWorkspaceMode.surfaceStudio => Icons.auto_awesome_motion,
               EditorWorkspaceMode.globalStory => CupertinoIcons.link,
               EditorWorkspaceMode.step => CupertinoIcons.flag,
               EditorWorkspaceMode.cutscene => CupertinoIcons.play_rectangle,
@@ -598,6 +605,7 @@ class _WorkspaceStageHeader extends StatelessWidget {
               EditorWorkspaceMode.tileset => 'Library',
               EditorWorkspaceMode.trainer => 'Trainer',
               EditorWorkspaceMode.pokedex => 'Catalogues',
+              EditorWorkspaceMode.surfaceStudio => 'Surface',
               EditorWorkspaceMode.globalStory => 'Global',
               EditorWorkspaceMode.step => 'Step',
               EditorWorkspaceMode.cutscene => 'Cutscene',
@@ -642,6 +650,29 @@ class _AmbientGlow extends StatelessWidget {
               color.withValues(alpha: 0),
             ],
             stops: const [0.0, 0.38, 1.0],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Rappel produit côté inspecteur (Surface Studio est surtout au centre).
+class _SurfaceWorkspaceInspector extends StatelessWidget {
+  const _SurfaceWorkspaceInspector();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Text(
+          'Ouvrez Surface Studio pour parcourir le catalogue de surfaces animées et les diagnostics (vue centrale).',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: CupertinoColors.placeholderText.resolveFrom(context),
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),

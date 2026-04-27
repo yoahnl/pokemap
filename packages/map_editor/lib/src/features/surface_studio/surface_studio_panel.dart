@@ -3,9 +3,19 @@
 // Consomme un [SurfaceStudioReadModel] déjà construit côté [map_core] : pas de
 // re-diagnostic, pas de mutation manifest, pas d’I/O. Les actions futures sont
 // désactivées ; les sections listées sont des placeholders pour les Lots 53+.
+//
+// Style : aligné sur [EditorChrome] / îlots de l’éditeur (pas de Card Material
+// clair isolé) — cohérent avec World Explorer et le shell macOS.
 
-import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show Icons;
+import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
+
+import '../../ui/shared/cupertino_editor_widgets.dart';
+
+/// Accent produit Surface Studio (même base que la tuile World Explorer).
+const Color _surfaceStudioAccent = Color(0xFF2DD4BF);
 
 /// Panneau présentationnel **lecture seule** pour Surface Studio.
 class SurfaceStudioPanel extends StatelessWidget {
@@ -39,40 +49,53 @@ class SurfaceStudioPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final s = readModel.summary;
+    final label = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(18, 16, 18, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                titleText,
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
+              const _StudioHeaderIcon(accent: _surfaceStudioAccent),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  titleText,
+                  style: TextStyle(
+                    color: label,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.35,
+                  ),
                 ),
               ),
-              const SizedBox(width: 12),
               const _ReadOnlyBadge(label: readOnlyBadgeText),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
             productDescriptionText,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+            style: TextStyle(
+              color: subtle,
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              height: 1.35,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             'Dans ce lot, il s’agit d’une vue de lecture et de préparation '
             'uniquement : aucune création, édition, suppression ou sauvegarde.',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.outline,
+            style: TextStyle(
+              color: subtle.withValues(alpha: 0.92),
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              height: 1.35,
             ),
           ),
           const SizedBox(height: 20),
@@ -83,42 +106,104 @@ class SurfaceStudioPanel extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           if (readModel.isEmpty) ...[
-            const _EmptyStateCard(
-              title: emptyStateTitle,
-              subtitle: emptyStateHint,
+            _StudioCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    emptyStateTitle,
+                    style: TextStyle(
+                      color: label,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    emptyStateHint,
+                    style: TextStyle(
+                      color: subtle,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ] else ...[
             Text(
               catalogDetectedText,
-              style: theme.textTheme.titleMedium,
+              style: TextStyle(
+                color: label,
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ],
           const SizedBox(height: 16),
           _DiagnosticsSummary(
             readModel: readModel,
-            theme: theme,
           ),
           const SizedBox(height: 20),
           const _FutureActions(
             onCreateAtlas: null,
             onImportVertical: null,
           ),
-          const SizedBox(height: 24),
-          _SectionPlaceholder(
-            title: placeholderCatalogTitle,
-            theme: theme,
+          const SizedBox(height: 20),
+          const _SectionPlaceholder(
+            title: SurfaceStudioPanel.placeholderCatalogTitle,
           ),
-          const SizedBox(height: 12),
-          _SectionPlaceholder(
-            title: placeholderDiagnosticsTitle,
-            theme: theme,
+          const SizedBox(height: 10),
+          const _SectionPlaceholder(
+            title: SurfaceStudioPanel.placeholderDiagnosticsTitle,
           ),
-          const SizedBox(height: 12),
-          _SectionPlaceholder(
-            title: placeholderActionsTitle,
-            theme: theme,
+          const SizedBox(height: 10),
+          const _SectionPlaceholder(
+            title: SurfaceStudioPanel.placeholderActionsTitle,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _StudioHeaderIcon extends StatelessWidget {
+  const _StudioHeaderIcon({required this.accent});
+
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    const hi = Color(0xFFFFFFFF);
+    const lo = Color(0xFF120808);
+    final onAccent =
+        accent.computeLuminance() > 0.55 ? const Color(0xFF1A0A08) : hi;
+
+    return Container(
+      width: 42,
+      height: 42,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.lerp(hi, accent, 0.72)!,
+            Color.lerp(accent, lo, 0.38)!,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: accent.withValues(alpha: 0.88),
+          width: 1.2,
+        ),
+        boxShadow: EditorChrome.toolbarCapsuleShadows(context),
+      ),
+      alignment: Alignment.center,
+      child: MacosIcon(
+        Icons.auto_awesome_motion,
+        color: onAccent,
+        size: 22,
       ),
     );
   }
@@ -131,17 +216,28 @@ class _ReadOnlyBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Theme.of(context).colorScheme.secondaryContainer,
-      borderRadius: BorderRadius.circular(6),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        child: Text(
-          label,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSecondaryContainer,
-                fontWeight: FontWeight.w500,
-              ),
+    const accent = _surfaceStudioAccent;
+    final fill = Color.lerp(
+      EditorChrome.islandFillElevated(context),
+      accent,
+      0.14,
+    )!;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: accent.withValues(alpha: 0.65)),
+        boxShadow: EditorChrome.toolbarCapsuleShadows(context),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: _surfaceStudioAccent,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 0.2,
         ),
       ),
     );
@@ -162,8 +258,8 @@ class _CounterRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: 16,
-      runSpacing: 8,
+      spacing: 12,
+      runSpacing: 10,
       children: [
         _CounterChip(label: 'Atlas', value: atlas),
         _CounterChip(label: 'Animations', value: animations),
@@ -181,64 +277,64 @@ class _CounterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context);
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: t.textTheme.labelMedium?.copyWith(
-                color: t.colorScheme.onSurfaceVariant,
-              ),
+    final subtle = EditorChrome.subtleLabel(context);
+    final labelColor = EditorChrome.primaryLabel(context);
+
+    return _StudioCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: subtle,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.3,
             ),
-            const SizedBox(height: 4),
-            Text(
-              '$value',
-              style: t.textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '$value',
+            style: TextStyle(
+              color: labelColor,
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              letterSpacing: -0.4,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _EmptyStateCard extends StatelessWidget {
-  const _EmptyStateCard({
-    required this.title,
-    required this.subtitle,
+/// Carte interne : même relief que les tuiles inspecteur / sections.
+class _StudioCard extends StatelessWidget {
+  const _StudioCard({
+    required this.child,
+    this.padding = const EdgeInsets.all(16),
   });
 
-  final String title;
-  final String subtitle;
+  final Widget child;
+  final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
-    final t = Theme.of(context);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: t.textTheme.titleMedium),
-            const SizedBox(height: 6),
-            Text(
-              subtitle,
-              style: t.textTheme.bodySmall?.copyWith(
-                color: t.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: EditorChrome.elevatedPanelBackground(context),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: EditorChrome.editorIslandRim(context),
+          width: 1,
         ),
+        boxShadow: EditorChrome.sectionCardShadows(context),
       ),
+      child: child,
     );
   }
 }
@@ -246,11 +342,9 @@ class _EmptyStateCard extends StatelessWidget {
 class _DiagnosticsSummary extends StatelessWidget {
   const _DiagnosticsSummary({
     required this.readModel,
-    required this.theme,
   });
 
   final SurfaceStudioReadModel readModel;
-  final ThemeData theme;
 
   @override
   Widget build(BuildContext context) {
@@ -262,11 +356,27 @@ class _DiagnosticsSummary extends StatelessWidget {
 
     if (d.isClean) {
       children.add(
-        Text(
-          SurfaceStudioPanel.diagnosticsCleanText,
-          style: theme.textTheme.bodyLarge?.copyWith(
-            color: theme.colorScheme.primary,
-          ),
+        const Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            MacosIcon(
+              CupertinoIcons.check_mark_circled_solid,
+              color: EditorChrome.inspectorJoyCyan,
+              size: 18,
+            ),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                SurfaceStudioPanel.diagnosticsCleanText,
+                style: TextStyle(
+                  color: EditorChrome.inspectorJoyCyan,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  height: 1.3,
+                ),
+              ),
+            ),
+          ],
         ),
       );
     } else {
@@ -274,8 +384,10 @@ class _DiagnosticsSummary extends StatelessWidget {
         children.add(
           Text(
             '$err — ${SurfaceStudioPanel.diagnosticsErrorsText}',
-            style: theme.textTheme.bodyLarge?.copyWith(
-              color: theme.colorScheme.error,
+            style: const TextStyle(
+              color: EditorChrome.inspectorJoyCoral,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
             ),
           ),
         );
@@ -283,11 +395,13 @@ class _DiagnosticsSummary extends StatelessWidget {
       if (readModel.hasWarnings) {
         children.add(
           Padding(
-            padding: EdgeInsets.only(top: readModel.hasErrors ? 6 : 0),
+            padding: EdgeInsets.only(top: readModel.hasErrors ? 8 : 0),
             child: Text(
               '$warn — ${SurfaceStudioPanel.diagnosticsWarningsText}',
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.tertiary,
+              style: const TextStyle(
+                color: EditorChrome.accentWarm,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
@@ -295,13 +409,11 @@ class _DiagnosticsSummary extends StatelessWidget {
       }
     }
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: children,
-        ),
+    return _StudioCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
       ),
     );
   }
@@ -318,26 +430,30 @@ class _FutureActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final subtle = EditorChrome.subtleLabel(context);
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Actions (non disponibles dans ce lot)',
-          style: Theme.of(context).textTheme.labelLarge,
+          style: TextStyle(
+            color: subtle,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Row(
           children: [
-            TextButton(
+            _GhostAction(
+              label: SurfaceStudioPanel.actionCreateAtlasLabel,
               onPressed: onCreateAtlas,
-              child: const Text(SurfaceStudioPanel.actionCreateAtlasLabel),
             ),
-            const SizedBox(width: 8),
-            TextButton(
+            const SizedBox(width: 12),
+            _GhostAction(
+              label: SurfaceStudioPanel.actionImportVerticalAtlasLabel,
               onPressed: onImportVertical,
-              child: const Text(
-                SurfaceStudioPanel.actionImportVerticalAtlasLabel,
-              ),
             ),
           ],
         ),
@@ -346,22 +462,84 @@ class _FutureActions extends StatelessWidget {
   }
 }
 
-class _SectionPlaceholder extends StatelessWidget {
-  const _SectionPlaceholder({
-    required this.title,
-    required this.theme,
+class _GhostAction extends StatelessWidget {
+  const _GhostAction({
+    required this.label,
+    required this.onPressed,
   });
 
-  final String title;
-  final ThemeData theme;
+  final String label;
+  final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        title: Text(title, style: theme.textTheme.titleSmall),
-        subtitle: const Text(SurfaceStudioPanel.placeholderSoonText),
-        trailing: const Icon(Icons.layers_outlined),
+    final subtle = EditorChrome.subtleLabel(context);
+    final enabled = onPressed != null;
+
+    return Opacity(
+      opacity: enabled ? 1.0 : 0.48,
+      child: CupertinoButton(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        minimumSize: Size.zero,
+        onPressed: onPressed,
+        child: Text(
+          label,
+          style: TextStyle(
+            color: enabled ? EditorChrome.inspectorJoyCyan : subtle,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            decoration: TextDecoration.none,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionPlaceholder extends StatelessWidget {
+  const _SectionPlaceholder({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
+
+    return _StudioCard(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: label,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  SurfaceStudioPanel.placeholderSoonText,
+                  style: TextStyle(
+                    color: subtle,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          MacosIcon(
+            CupertinoIcons.chevron_right,
+            size: 16,
+            color: subtle,
+          ),
+        ],
       ),
     );
   }

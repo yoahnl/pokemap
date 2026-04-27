@@ -18,6 +18,7 @@ ProjectManifest buildShellChromeProject({
     name: name,
     maps: maps,
     tilesets: tilesets,
+    surfaceCatalog: ProjectSurfaceCatalog(),
   );
 }
 

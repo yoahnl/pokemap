@@ -42,7 +42,7 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      container.read(editorNotifierProvider.notifier).state = const EditorState(
+      container.read(editorNotifierProvider.notifier).state = EditorState(
         project: ProjectManifest(
           name: 'demo',
           maps: <ProjectMapEntry>[],
@@ -53,6 +53,7 @@ void main() {
               relativePath: 'tilesets/world.json',
             ),
           ],
+          surfaceCatalog: ProjectSurfaceCatalog(),
         ),
         activeMap: MapData(
           id: 'town',
@@ -80,13 +81,14 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      container.read(editorNotifierProvider.notifier).state = const EditorState(
+      container.read(editorNotifierProvider.notifier).state = EditorState(
         workspaceMode: EditorWorkspaceMode.pokedex,
         pokemonCatalogSection: PokemonCatalogSection.items,
         project: ProjectManifest(
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
+          surfaceCatalog: ProjectSurfaceCatalog(),
         ),
         activeMap: MapData(
           id: 'town',
@@ -107,12 +109,13 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      container.read(editorNotifierProvider.notifier).state = const EditorState(
+      container.read(editorNotifierProvider.notifier).state = EditorState(
         workspaceMode: EditorWorkspaceMode.trainer,
         project: ProjectManifest(
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
+          surfaceCatalog: ProjectSurfaceCatalog(),
         ),
       );
 
@@ -128,12 +131,13 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      container.read(editorNotifierProvider.notifier).state = const EditorState(
+      container.read(editorNotifierProvider.notifier).state = EditorState(
         workspaceMode: EditorWorkspaceMode.pokedex,
         project: ProjectManifest(
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
+          surfaceCatalog: ProjectSurfaceCatalog(),
         ),
       );
 
@@ -142,12 +146,34 @@ void main() {
       expect(shell.workspaceSubtitle, contains('Pokédex, Moves et Items'));
     });
 
+    test('editorShellSnapshotProvider exposes Surface Studio labels', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        workspaceMode: EditorWorkspaceMode.surfaceStudio,
+        project: ProjectManifest(
+          name: 'demo',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+          surfaceCatalog: ProjectSurfaceCatalog(),
+        ),
+      );
+
+      final shell = container.read(editorShellSnapshotProvider);
+      expect(shell.workspaceTitle, 'Surface Studio');
+      expect(
+        shell.workspaceSubtitle,
+        contains('surfaces animées'),
+      );
+    });
+
     test('editorTerrainLibrarySnapshotProvider exposes preset selection inputs',
         () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      container.read(editorNotifierProvider.notifier).state = const EditorState(
+      container.read(editorNotifierProvider.notifier).state = EditorState(
         project: ProjectManifest(
           name: 'demo',
           maps: <ProjectMapEntry>[],
@@ -158,6 +184,7 @@ void main() {
               relativePath: 'tilesets/world.json',
             ),
           ],
+          surfaceCatalog: ProjectSurfaceCatalog(),
         ),
         selectedTerrainType: TerrainType.grass,
         selectedTerrainPresetId: 'terrain.grass',
@@ -176,7 +203,7 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
-      container.read(editorNotifierProvider.notifier).state = const EditorState(
+      container.read(editorNotifierProvider.notifier).state = EditorState(
         projectRootPath: '/tmp/project',
         project: ProjectManifest(
           name: 'demo',
@@ -188,6 +215,7 @@ void main() {
               relativePath: 'tilesets/world.json',
             ),
           ],
+          surfaceCatalog: ProjectSurfaceCatalog(),
         ),
         activeMap: MapData(
           id: 'town',

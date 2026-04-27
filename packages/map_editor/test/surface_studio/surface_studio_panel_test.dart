@@ -1,8 +1,10 @@
 // Tests widget — Surface Studio panel (Lot 52).
 // Imports `map_core` en API publique uniquement (pas de `map_core/src/...`).
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/surface_studio/surface_studio_panel.dart';
 
@@ -99,16 +101,16 @@ void main() {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
       );
-      final b1 = tester.widget<TextButton>(
+      final b1 = tester.widget<CupertinoButton>(
         find.ancestor(
           of: find.text('Créer un atlas'),
-          matching: find.byType(TextButton),
+          matching: find.byType(CupertinoButton),
         ),
       );
-      final b2 = tester.widget<TextButton>(
+      final b2 = tester.widget<CupertinoButton>(
         find.ancestor(
           of: find.text('Importer un atlas vertical'),
-          matching: find.byType(TextButton),
+          matching: find.byType(CupertinoButton),
         ),
       );
       expect(b1.onPressed, isNull);
@@ -230,9 +232,12 @@ void main() {
 }
 
 Widget _wrap(Widget child) {
-  return MaterialApp(
-    home: Scaffold(
-      body: child,
+  // MacosApp + thème sombre : même [EditorChrome] que l’éditeur réel.
+  return MacosApp(
+    theme: MacosThemeData.dark(),
+    home: ColoredBox(
+      color: const Color(0xFF0F1218),
+      child: child,
     ),
   );
 }

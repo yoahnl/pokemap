@@ -47,7 +47,8 @@ void main() {
       expect(next.workspaceMode, EditorWorkspaceMode.dialogue);
     });
 
-    test('selectPokemonCatalogSection opens the parent workspace and stores the section',
+    test(
+        'selectPokemonCatalogSection opens the parent workspace and stores the section',
         () {
       const current = EditorState(
         workspaceMode: EditorWorkspaceMode.map,
@@ -61,6 +62,19 @@ void main() {
 
       expect(next.workspaceMode, EditorWorkspaceMode.pokedex);
       expect(next.pokemonCatalogSection, PokemonCatalogSection.items);
+      expect(next.errorMessage, isNull);
+    });
+
+    test('selectSurfaceStudioWorkspace switches mode and clears stale errors',
+        () {
+      const current = EditorState(
+        workspaceMode: EditorWorkspaceMode.map,
+        errorMessage: 'Old failure',
+      );
+
+      final next = controller.selectSurfaceStudioWorkspace(current);
+
+      expect(next.workspaceMode, EditorWorkspaceMode.surfaceStudio);
       expect(next.errorMessage, isNull);
     });
   });

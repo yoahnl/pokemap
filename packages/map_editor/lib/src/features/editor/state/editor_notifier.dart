@@ -1394,6 +1394,14 @@ class EditorNotifier extends _$EditorNotifier {
     state = _editorWorkspaceController.selectDialogueWorkspace(state);
   }
 
+  /// Ouvre le workspace central Surface Studio (lecture seule, Lot 52+).
+  void selectSurfaceStudioWorkspace() {
+    if (state.project == null) {
+      return;
+    }
+    state = _editorWorkspaceController.selectSurfaceStudioWorkspace(state);
+  }
+
   /// Écrit uniquement le fichier `.yarn` (le manifest projet reste inchangé).
   Future<void> saveProjectDialogueYarnBody({
     required String dialogueId,
