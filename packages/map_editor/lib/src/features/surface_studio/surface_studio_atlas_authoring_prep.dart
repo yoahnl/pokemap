@@ -19,7 +19,6 @@ List<String> validateSurfaceStudioAtlasDraft({
   required String rowsRaw,
   required String sortOrderRaw,
   required String? categoryIdRaw,
-  String? duplicateIdExemption,
 }) {
   final errors = <String>[];
   final id = idRaw.trim();
@@ -71,22 +70,42 @@ List<String> validateSurfaceStudioAtlasDraft({
   }
 
   if (id.isNotEmpty) {
-    var collides = false;
     for (final a in readModel.atlases) {
       if (a.id == id) {
-        if (duplicateIdExemption != null && duplicateIdExemption == id) {
-          continue;
-        }
-        collides = true;
+        errors.add('Un atlas existe déjà avec cet id.');
         break;
       }
-    }
-    if (collides) {
-      errors.add('Cet identifiant existe déjà dans le catalogue');
     }
   }
 
   return errors;
+}
+
+ProjectSurfaceAtlas? tryBuildProjectSurfaceAtlasFromDraft(
+  SurfaceStudioAtlasDraft draft,
+) {
+  try {
+    return ProjectSurfaceAtlas(
+      id: draft.id,
+      name: draft.name,
+      tilesetId: draft.tilesetId,
+      geometry: SurfaceAtlasGeometry(
+        tileSize: SurfaceAtlasTileSize(
+          width: draft.tileWidth,
+          height: draft.tileHeight,
+        ),
+        gridSize: SurfaceAtlasGridSize(
+          columns: draft.columns,
+          rows: draft.rows,
+        ),
+        layout: draft.layout,
+      ),
+      categoryId: draft.categoryId,
+      sortOrder: draft.sortOrder,
+    );
+  } on ValidationException {
+    return null;
+  }
 }
 
 class SurfaceStudioAtlasDraft {
@@ -170,10 +189,12 @@ class SurfaceStudioAtlasAuthoringPrep extends StatefulWidget {
     super.key,
     required this.readModel,
     required this.selection,
+    this.onSurfaceCatalogChanged,
   });
 
   final SurfaceStudioReadModel readModel;
   final SurfaceStudioSelection selection;
+  final ValueChanged<ProjectSurfaceCatalog>? onSurfaceCatalogChanged;
 
   @override
   State<SurfaceStudioAtlasAuthoringPrep> createState() =>
@@ -194,7 +215,7 @@ class _SurfaceStudioAtlasAuthoringPrepState
 
   SurfaceAtlasLayout _layout = SurfaceAtlasLayout.grid;
   bool _showPreview = false;
-  String? _duplicateExemption;
+  String? _creationNote;
 
   @override
   void dispose() {
@@ -222,7 +243,7 @@ class _SurfaceStudioAtlasAuthoringPrepState
       _sort.text = '0';
       _categoryId.clear();
       _layout = SurfaceAtlasLayout.grid;
-      _duplicateExemption = null;
+      _creationNote = null;
     });
   }
 
@@ -252,8 +273,73 @@ class _SurfaceStudioAtlasAuthoringPrepState
       _sort.text = '${row.sortOrder}';
       _layout = row.atlas.geometry.layout;
       _categoryId.text = row.categoryId ?? '';
-      _duplicateExemption = row.id;
+      _creationNote = null;
     });
+  }
+
+  void _addToWorkCatalog() {
+    final callback = widget.onSurfaceCatalogChanged;
+    if (callback == null) {
+      return;
+    }
+    setState(() => _creationNote = null);
+    final errs = validateSurfaceStudioAtlasDraft(
+      readModel: widget.readModel,
+      idRaw: _id.text,
+      nameRaw: _name.text,
+      tilesetIdRaw: _tilesetId.text,
+      tileWidthRaw: _tileW.text,
+      tileHeightRaw: _tileH.text,
+      columnsRaw: _cols.text,
+      rowsRaw: _rows.text,
+      sortOrderRaw: _sort.text,
+      categoryIdRaw: _categoryId.text,
+    );
+    if (errs.isNotEmpty) {
+      return;
+    }
+    final draft = tryBuildDraftFromForm(
+      idRaw: _id.text,
+      nameRaw: _name.text,
+      tilesetIdRaw: _tilesetId.text,
+      tileWidthRaw: _tileW.text,
+      tileHeightRaw: _tileH.text,
+      columnsRaw: _cols.text,
+      rowsRaw: _rows.text,
+      sortOrderRaw: _sort.text,
+      categoryIdRaw: _categoryId.text,
+      layout: _layout,
+    );
+    if (draft == null) {
+      return;
+    }
+    final atlas = tryBuildProjectSurfaceAtlasFromDraft(draft);
+    if (atlas == null) {
+      return;
+    }
+    try {
+      final next = ProjectSurfaceCatalog(
+        atlases: [
+          ...widget.readModel.catalog.atlases,
+          atlas,
+        ],
+        animations: List<ProjectSurfaceAnimation>.from(
+          widget.readModel.catalog.animations,
+        ),
+        presets: List<ProjectSurfacePreset>.from(
+          widget.readModel.catalog.presets,
+        ),
+      );
+      callback(next);
+      setState(() {
+        _creationNote =
+            'Atlas créé dans le catalogue de travail. Sauvegarde projet non effectuée.';
+      });
+    } on ValidationException {
+      setState(() {
+        _creationNote = 'Un atlas existe déjà avec cet id.';
+      });
+    }
   }
 
   String _layoutMenuLabel(SurfaceAtlasLayout l) {
@@ -284,7 +370,6 @@ class _SurfaceStudioAtlasAuthoringPrepState
       rowsRaw: _rows.text,
       sortOrderRaw: _sort.text,
       categoryIdRaw: _categoryId.text,
-      duplicateIdExemption: _duplicateExemption,
     );
     final isValid = errs.isEmpty;
     final draft = tryBuildDraftFromForm(
@@ -348,11 +433,19 @@ class _SurfaceStudioAtlasAuthoringPrepState
           ),
           const SizedBox(height: 4),
           Text(
-            'Brouillon local non sauvegardé',
+            'Brouillon local non sauvegardé sur disque',
             style: TextStyle(
               color: subtle,
               fontSize: 12,
               fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Création locale : le projet n’est pas sauvegardé sur disque.',
+            style: TextStyle(
+              color: subtle.withValues(alpha: 0.95),
+              fontSize: 11,
             ),
           ),
           const SizedBox(height: 6),
@@ -373,7 +466,7 @@ class _SurfaceStudioAtlasAuthoringPrepState
               const SizedBox(width: 6),
               _localBadge(
                 context,
-                'Aucune modification du catalogue',
+                'Catalogue de travail (mémoire)',
                 label,
                 accent,
               ),
@@ -407,8 +500,26 @@ class _SurfaceStudioAtlasAuthoringPrepState
                 onPressed: _loadFromSelection,
                 child: const Text('Charger la sélection dans le brouillon'),
               ),
+              if (widget.onSurfaceCatalogChanged != null)
+                CupertinoButton(
+                  key: const ValueKey('surface_studio_create_atlas_work_catalog'),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  onPressed: isValid ? _addToWorkCatalog : null,
+                  child: const Text('Créer l’atlas dans le catalogue de travail'),
+                ),
             ],
           ),
+          if (_creationNote != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _creationNote!,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ).copyWith(color: accent),
+            ),
+          ],
           const SizedBox(height: 8),
           material.TextField(
             key: const ValueKey('atlas_draft_id'),

@@ -49,10 +49,25 @@ class SurfaceStudioPanel extends StatefulWidget {
 class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
   /// Sélection d’inspection : locale au widget, jamais écrite dans le manifest.
   SurfaceStudioSelection _selection = const SurfaceStudioSelection.none();
+  late SurfaceStudioReadModel _readModel;
+
+  @override
+  void initState() {
+    super.initState();
+    _readModel = widget.readModel;
+  }
+
+  @override
+  void didUpdateWidget(covariant SurfaceStudioPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.readModel != oldWidget.readModel) {
+      _readModel = widget.readModel;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final s = widget.readModel.summary;
+    final s = _readModel.summary;
     final label = EditorChrome.primaryLabel(context);
     final subtle = EditorChrome.subtleLabel(context);
 
@@ -92,8 +107,8 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Dans ce lot, il s’agit d’une vue de lecture et de préparation '
-            'uniquement : aucune création, édition, suppression ou sauvegarde.',
+            'Vous pouvez ajouter un atlas au catalogue de travail en mémoire. '
+            'Aucune sauvegarde projet sur disque, pas d’édition ni suppression d’atlas existant.',
             style: TextStyle(
               color: subtle.withValues(alpha: 0.92),
               fontSize: 12,
@@ -111,23 +126,34 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
           SurfaceStudioSelectionSummary(selection: _selection),
           const SizedBox(height: 12),
           SurfaceStudioSelectionInspector(
-            readModel: widget.readModel,
+            readModel: _readModel,
             selection: _selection,
           ),
           const SizedBox(height: 12),
           SurfaceStudioCatalogBrowser(
-            readModel: widget.readModel,
+            readModel: _readModel,
             selection: _selection,
             onSelectionChanged: (v) {
               setState(() => _selection = v);
             },
           ),
           const SizedBox(height: 16),
-          SurfaceStudioDiagnosticsView(readModel: widget.readModel),
+          SurfaceStudioDiagnosticsView(readModel: _readModel),
           const SizedBox(height: 20),
           SurfaceStudioAtlasAuthoringPrep(
-            readModel: widget.readModel,
+            readModel: _readModel,
             selection: _selection,
+            onSurfaceCatalogChanged: (cat) {
+              final newId = cat.atlases.isNotEmpty
+                  ? cat.atlases.last.id
+                  : '';
+              setState(() {
+                _readModel = buildSurfaceStudioReadModelFromCatalog(cat);
+                if (newId.isNotEmpty) {
+                  _selection = SurfaceStudioSelection.atlas(newId);
+                }
+              });
+            },
           ),
           const SizedBox(height: 20),
           const _FutureActions(

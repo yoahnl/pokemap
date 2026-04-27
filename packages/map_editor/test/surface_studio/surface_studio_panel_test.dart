@@ -600,7 +600,97 @@ void main() {
       );
       await tester.ensureVisible(find.text('Préparation atlas'));
       expect(find.text('Préparation atlas'), findsOneWidget);
-      expect(find.text('Brouillon local non sauvegardé'), findsOneWidget);
+      expect(
+        find.text('Brouillon local non sauvegardé sur disque'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('61.1 — action création atlas dans le catalogue de travail',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
+      );
+      await tester.ensureVisible(
+        find.text('Créer l’atlas dans le catalogue de travail'),
+      );
+      expect(
+        find.text('Créer l’atlas dans le catalogue de travail'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+        '61.2 — créer atlas (catalogue vide) : compteur atlas 1, browser, '
+        'inspecteur',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
+      );
+      final idF = find.byKey(const ValueKey('atlas_draft_id'));
+      final nameF = find.byKey(const ValueKey('atlas_draft_name'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      await tester.ensureVisible(idF);
+      await tester.enterText(idF, 'lot61-a');
+      await tester.enterText(nameF, 'Lot61 A');
+      await tester.enterText(tsF, 'tileset-x');
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.pump();
+      final counters =
+          find.byKey(const ValueKey('surface_studio_header_counters'));
+      expect(
+        find.descendant(of: counters, matching: find.text('1')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: counters, matching: find.text('0')),
+        findsNWidgets(2),
+      );
+      expect(find.text('Lot61 A'), findsWidgets);
+      expect(find.text('Diagnostics Surface'), findsOneWidget);
+    });
+
+    testWidgets(
+        '61.3 — créer second atlas : compteur 2, animations/presets inchangés',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      final idF = find.byKey(const ValueKey('atlas_draft_id'));
+      final nameF = find.byKey(const ValueKey('atlas_draft_name'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      await tester.ensureVisible(idF);
+      await tester.enterText(idF, 'grass-a');
+      await tester.enterText(nameF, 'Grass');
+      await tester.enterText(tsF, 'ts-g');
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.pump();
+      final counters =
+          find.byKey(const ValueKey('surface_studio_header_counters'));
+      expect(
+        find.descendant(of: counters, matching: find.text('2')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: counters, matching: find.text('1')),
+        findsNWidgets(2),
+      );
+      expect(find.text('Water Atlas'), findsOneWidget);
+      expect(find.text('Water Isolated Loop'), findsOneWidget);
+      expect(find.text('Water Surface'), findsOneWidget);
+      expect(find.text('grass-a'), findsWidgets);
     });
   });
 }

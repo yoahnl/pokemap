@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
@@ -16,7 +17,10 @@ void main() {
         ),
       );
       expect(find.text('Préparation atlas'), findsOneWidget);
-      expect(find.text('Brouillon local non sauvegardé'), findsOneWidget);
+      expect(
+        find.text('Brouillon local non sauvegardé sur disque'),
+        findsOneWidget,
+      );
       expect(find.text('Brouillon local'), findsOneWidget);
       expect(find.text('Non sauvegardé'), findsOneWidget);
       final w = find.byKey(const ValueKey('atlas_draft_tile_w'));
@@ -136,7 +140,7 @@ void main() {
       );
     });
 
-    testWidgets('id dupliqué cat sans exemption: erreur', (tester) async {
+    testWidgets('id dupliqué dans le catalogue: erreur', (tester) async {
       await tester.pumpWidget(
         _wrap(
           SurfaceStudioAtlasAuthoringPrep(
@@ -153,7 +157,7 @@ void main() {
       await tester.enterText(tsF, 't');
       await tester.pump();
       expect(
-        find.text('Cet identifiant existe déjà dans le catalogue'),
+        find.text('Un atlas existe déjà avec cet id.'),
         findsOneWidget,
       );
     });
@@ -291,6 +295,195 @@ void main() {
       await tester.tap(swFinder);
       await tester.pump();
       expect(find.textContaining('Aperçu : 32×32'), findsOneWidget);
+    });
+  });
+
+  group('SurfaceStudioAtlasAuthoringPrep (Lot 61)', () {
+    testWidgets('création brouillon valide émet le catalogue + atlas', (tester) async {
+      final out = <ProjectSurfaceCatalog>[];
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioAtlasAuthoringPrep(
+            readModel: _emptyReadModel(),
+            selection: const SurfaceStudioSelection.none(),
+            onSurfaceCatalogChanged: out.add,
+          ),
+        ),
+      );
+      final idF = find.byKey(const ValueKey('atlas_draft_id'));
+      final nameF = find.byKey(const ValueKey('atlas_draft_name'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      await tester.enterText(idF, 'a-new');
+      await tester.enterText(nameF, 'My');
+      await tester.enterText(tsF, 'tset');
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.pump();
+      expect(out, hasLength(1));
+      final c = out.single;
+      expect(c.atlases, hasLength(1));
+      expect(c.animations, isEmpty);
+      expect(c.presets, isEmpty);
+      final a = c.atlases.single;
+      expect(a.id, 'a-new');
+      expect(a.name, 'My');
+      expect(a.tilesetId, 'tset');
+      expect(a.sortOrder, 0);
+      expect(a.categoryId, isNull);
+      expect(a.geometry.tileSize.width, 32);
+      expect(a.geometry.tileSize.height, 32);
+      expect(a.geometry.gridSize.columns, 1);
+      expect(a.geometry.gridSize.rows, 1);
+      expect(a.geometry.layout, SurfaceAtlasLayout.grid);
+      expect(
+        find.text(
+          'Atlas créé dans le catalogue de travail. Sauvegarde projet non effectuée.',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('création refusée si brouillon invalide (pas de callback)',
+        (tester) async {
+      final out = <ProjectSurfaceCatalog>[];
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioAtlasAuthoringPrep(
+            readModel: _emptyReadModel(),
+            selection: const SurfaceStudioSelection.none(),
+            onSurfaceCatalogChanged: out.add,
+          ),
+        ),
+      );
+      final create = find.descendant(
+        of: find.byKey(kSurfaceStudioAtlasAuthoringPrepKey),
+        matching: find.byKey(
+          const ValueKey('surface_studio_create_atlas_work_catalog'),
+        ),
+      );
+      final btn = tester.widget<CupertinoButton>(create);
+      expect(btn.onPressed, isNull);
+      expect(out, isEmpty);
+    });
+
+    testWidgets('id vide: pas d’appel callback en tap (bouton inactif)',
+        (tester) async {
+      final out = <ProjectSurfaceCatalog>[];
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioAtlasAuthoringPrep(
+            readModel: _emptyReadModel(),
+            selection: const SurfaceStudioSelection.none(),
+            onSurfaceCatalogChanged: out.add,
+          ),
+        ),
+      );
+      final nameF = find.byKey(const ValueKey('atlas_draft_name'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      await tester.enterText(nameF, 'N');
+      await tester.enterText(tsF, 't');
+      await tester.pump();
+      final create = find.descendant(
+        of: find.byKey(kSurfaceStudioAtlasAuthoringPrepKey),
+        matching: find.byKey(
+          const ValueKey('surface_studio_create_atlas_work_catalog'),
+        ),
+      );
+      expect(tester.widget<CupertinoButton>(create).onPressed, isNull);
+    });
+
+    testWidgets('dupliquer id: création inactivable', (tester) async {
+      final out = <ProjectSurfaceCatalog>[];
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioAtlasAuthoringPrep(
+            readModel: _minimalRead(),
+            selection: const SurfaceStudioSelection.none(),
+            onSurfaceCatalogChanged: out.add,
+          ),
+        ),
+      );
+      final idF = find.byKey(const ValueKey('atlas_draft_id'));
+      final nameF = find.byKey(const ValueKey('atlas_draft_name'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      await tester.enterText(idF, 'water-atlas');
+      await tester.enterText(nameF, 'X');
+      await tester.enterText(tsF, 't');
+      await tester.pump();
+      final create = find.descendant(
+        of: find.byKey(kSurfaceStudioAtlasAuthoringPrepKey),
+        matching: find.byKey(
+          const ValueKey('surface_studio_create_atlas_work_catalog'),
+        ),
+      );
+      expect(tester.widget<CupertinoButton>(create).onPressed, isNull);
+      expect(out, isEmpty);
+    });
+
+    testWidgets('chargé depuis sélection: même id = doublon; nouvel id = ajout',
+        (tester) async {
+      final out = <ProjectSurfaceCatalog>[];
+      var rm = _minimalRead();
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioAtlasAuthoringPrep(
+            readModel: rm,
+            selection: SurfaceStudioSelection.atlas('water-atlas'),
+            onSurfaceCatalogChanged: out.add,
+          ),
+        ),
+      );
+      await tester.tap(
+        find.text('Charger la sélection dans le brouillon'),
+      );
+      await tester.pump();
+      var create = find.descendant(
+        of: find.byKey(kSurfaceStudioAtlasAuthoringPrepKey),
+        matching: find.byKey(
+          const ValueKey('surface_studio_create_atlas_work_catalog'),
+        ),
+      );
+      expect(tester.widget<CupertinoButton>(create).onPressed, isNull);
+      final idF = find.byKey(const ValueKey('atlas_draft_id'));
+      await tester.enterText(idF, 'water-bis');
+      await tester.pump();
+      expect(tester.widget<CupertinoButton>(create).onPressed, isNotNull);
+      final beforeAtlas = rm.catalog.atlases.single;
+      await tester.tap(create);
+      await tester.pump();
+      expect(out, hasLength(1));
+      expect(out.single.atlases, hasLength(2));
+      expect(
+        out.single.atlases.map((a) => a.id).toList(),
+        ['water-atlas', 'water-bis'],
+      );
+      expect(
+        out.single.atlases.first,
+        beforeAtlas,
+      );
+    });
+
+    testWidgets('interdits save projet (libellés)', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioAtlasAuthoringPrep(
+            readModel: _minimalRead(),
+            selection: const SurfaceStudioSelection.none(),
+            onSurfaceCatalogChanged: (_) {},
+          ),
+        ),
+      );
+      for (final s in <String>[
+        'Sauvegarder le projet',
+        'Enregistrer le projet',
+        'Écrire sur disque',
+        'Save project',
+        'Write to disk',
+      ]) {
+        expect(find.text(s), findsNothing);
+      }
     });
   });
 }
