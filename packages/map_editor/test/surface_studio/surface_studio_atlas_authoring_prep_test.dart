@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/surface_studio/surface_studio_atlas_authoring_prep.dart';
+import 'package:map_editor/src/features/surface_studio/surface_studio_atlas_grid_preview.dart';
 import 'package:map_editor/src/features/surface_studio/surface_studio_selection.dart';
 
 void main() {
@@ -663,6 +664,98 @@ void main() {
         );
       },
     );
+  });
+
+  group('SurfaceStudioAtlasAuthoringPrep (Lot 71)', () {
+    testWidgets('section aperçu grille visible avec métriques', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioAtlasAuthoringPrep(
+            readModel: _emptyReadModel(),
+            selection: const SurfaceStudioSelection.none(),
+          ),
+        ),
+      );
+      final idF = find.byKey(const ValueKey('atlas_draft_id'));
+      final nameF = find.byKey(const ValueKey('atlas_draft_name'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset_advanced'));
+      final cF = find.byKey(const ValueKey('atlas_draft_cols'));
+      final rF = find.byKey(const ValueKey('atlas_draft_rows'));
+      await tester.enterText(idF, 'a');
+      await tester.enterText(nameF, 'Atlas');
+      await tester.enterText(tsF, 'eau_atlas');
+      await tester.enterText(cF, '4');
+      await tester.enterText(rF, '8');
+      await tester.pump();
+
+      expect(
+        find.byKey(kSurfaceStudioAtlasGridPreviewSectionKey),
+        findsOneWidget,
+      );
+      expect(find.text('Aperçu de la grille atlas'), findsOneWidget);
+      expect(find.text('Source : eau_atlas'), findsOneWidget);
+      expect(find.text('Tile : 32×32 px'), findsOneWidget);
+      expect(find.text('Grille : 4 colonnes × 8 lignes'), findsOneWidget);
+      expect(find.text('Total : 32 cases'), findsOneWidget);
+      expect(find.text('Disposition : Grille libre'), findsOneWidget);
+    });
+
+    testWidgets('aperçu état vide sans source', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioAtlasAuthoringPrep(
+            readModel: _emptyReadModel(),
+            selection: const SurfaceStudioSelection.none(),
+          ),
+        ),
+      );
+      expect(
+        find.text('Choisissez une image source pour prévisualiser la grille.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('aperçu état invalide dimensions', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioAtlasAuthoringPrep(
+            readModel: _emptyReadModel(),
+            selection: const SurfaceStudioSelection.none(),
+          ),
+        ),
+      );
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset_advanced'));
+      final wF = find.byKey(const ValueKey('atlas_draft_tile_w'));
+      await tester.enterText(tsF, 'eau_atlas');
+      await tester.enterText(wF, '0');
+      await tester.pump();
+      expect(
+        find.text('Corrigez les dimensions de grille pour afficher la preview.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('aperçu mis à jour en mode édition', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioAtlasAuthoringPrep(
+            readModel: _minimalRead(),
+            selection: SurfaceStudioSelection.atlas('water-atlas'),
+            onSurfaceCatalogChanged: (_) {},
+          ),
+        ),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_start_edit_atlas')),
+      );
+      await tester.pump();
+      expect(find.text('Source : nature-tileset'), findsOneWidget);
+      final cF = find.byKey(const ValueKey('atlas_draft_cols'));
+      await tester.enterText(cF, '20');
+      await tester.pump();
+      expect(find.text('Aperçu réduit'), findsOneWidget);
+      expect(find.text('Total : 40 cases'), findsOneWidget);
+    });
   });
 }
 

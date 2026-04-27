@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../ui/shared/cupertino_editor_widgets.dart';
 import 'surface_studio_atlas_editing.dart';
+import 'surface_studio_atlas_grid_preview.dart';
 import 'surface_studio_atlas_source_picker.dart';
 import 'surface_studio_selection.dart';
 
@@ -573,6 +574,11 @@ class _SurfaceStudioAtlasAuthoringPrepState
           : List<ProjectTilesetEntry>.from(rawTilesets),
     );
     final hasImagePicker = sortedTilesets.isNotEmpty;
+    final sourceLabel = _tilesetId.text.trim().isEmpty ? null : _tilesetId.text.trim();
+    final previewTileWidth = int.tryParse(_tileW.text.trim());
+    final previewTileHeight = int.tryParse(_tileH.text.trim());
+    final previewColumns = int.tryParse(_cols.text.trim());
+    final previewRows = int.tryParse(_rows.text.trim());
 
     final sel = widget.selection;
     String? contextNote;
@@ -882,6 +888,15 @@ class _SurfaceStudioAtlasAuthoringPrepState
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          SurfaceStudioAtlasGridPreview(
+            sourceLabel: sourceLabel,
+            tileWidth: previewTileWidth,
+            tileHeight: previewTileHeight,
+            columns: previewColumns,
+            rows: previewRows,
+            layoutLabel: _layoutMenuLabel(_layout),
           ),
           const SizedBox(height: 8),
           _formGroupTitle('Options avancées', label),
