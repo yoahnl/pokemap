@@ -488,6 +488,113 @@ void main() {
       }
     });
   });
+
+  group('SurfaceStudioAtlasAuthoringPrep (Lot 67–68)', () {
+    testWidgets('mode édition : libellé, id readOnly, pas Créer', (tester) async {
+      final out = <ProjectSurfaceCatalog>[];
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioAtlasAuthoringPrep(
+            readModel: _minimalRead(),
+            selection: SurfaceStudioSelection.atlas('water-atlas'),
+            onSurfaceCatalogChanged: out.add,
+          ),
+        ),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_start_edit_atlas')),
+      );
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey('surface_studio_atlas_edit_mode_label')),
+        findsOneWidget,
+      );
+      final idF = find.byKey(const ValueKey('atlas_draft_id'));
+      expect((tester.widget(idF) as TextField).readOnly, isTrue);
+      expect(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('surface_studio_apply_atlas_edit')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('édition : renommer et appliquer, ordre et animations', (
+        tester,
+      ) async {
+      final out = <ProjectSurfaceCatalog>[];
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioAtlasAuthoringPrep(
+            readModel: _minimalRead(),
+            selection: SurfaceStudioSelection.atlas('water-atlas'),
+            onSurfaceCatalogChanged: out.add,
+          ),
+        ),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_start_edit_atlas')),
+      );
+      await tester.pump();
+      final nameF = find.byKey(const ValueKey('atlas_draft_name'));
+      await tester.enterText(nameF, 'Eau v2');
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_apply_atlas_edit')),
+      );
+      await tester.pump();
+      expect(out, hasLength(1));
+      expect(out.single.atlases.length, 1);
+      expect(out.single.atlases.single.id, 'water-atlas');
+      expect(out.single.atlases.single.name, 'Eau v2');
+      expect(out.single.animations.length, 1);
+      expect(out.single.presets.length, 1);
+    });
+
+    testWidgets('annuler l’édition : sortie mode édition', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioAtlasAuthoringPrep(
+            readModel: _minimalRead(),
+            selection: SurfaceStudioSelection.atlas('water-atlas'),
+            onSurfaceCatalogChanged: (_) {},
+          ),
+        ),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_start_edit_atlas')),
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_cancel_atlas_edit')),
+      );
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey('surface_studio_atlas_edit_mode_label')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('pas d’action Renommer id / Changer l’id', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioAtlasAuthoringPrep(
+            readModel: _minimalRead(),
+            selection: SurfaceStudioSelection.atlas('water-atlas'),
+            onSurfaceCatalogChanged: (_) {},
+          ),
+        ),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_start_edit_atlas')),
+      );
+      await tester.pump();
+      expect(find.textContaining('Changer l’id'), findsNothing);
+      expect(find.textContaining('Renommer l’atlas'), findsNothing);
+    });
+  });
 }
 
 Widget _wrap(Widget child) {

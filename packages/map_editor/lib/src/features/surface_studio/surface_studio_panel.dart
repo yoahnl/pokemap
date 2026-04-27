@@ -13,6 +13,7 @@ import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../ui/shared/cupertino_editor_widgets.dart';
+import 'surface_studio_atlas_editing.dart';
 import 'surface_studio_atlas_authoring_prep.dart';
 import 'surface_studio_catalog_browser.dart';
 import 'surface_studio_diagnostics_view.dart';
@@ -98,6 +99,7 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
   late SurfaceStudioReadModel _workReadModel;
   String? _saveFlowPrepNote;
   String? _projectSaveDiskNote;
+  int _atlasEditSignal = 0;
 
   @override
   void initState() {
@@ -124,6 +126,69 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
   }
 
   bool get _hasWorkCatalogChanges => _workReadModel != widget.readModel;
+
+  void _bumpAtlasEditSignal() {
+    setState(() => _atlasEditSignal += 1);
+  }
+
+  void _onConfirmDeleteSelectedAtlas() {
+    final id = _selection.id;
+    if (id == null || !_selection.isAtlas) {
+      return;
+    }
+    try {
+      final next = removeAtlasIdFromWorkCatalog(_workReadModel.catalog, id);
+      setState(() {
+        _saveFlowPrepNote = null;
+        _workReadModel = buildSurfaceStudioReadModelFromCatalog(next);
+        _selection = const SurfaceStudioSelection.none();
+      });
+    } on StateError {
+      return;
+    }
+  }
+
+  SurfaceStudioSelection _selectionAfterCatalogChanged(
+    ProjectSurfaceCatalog cat,
+  ) {
+    if (_selection.isAtlas) {
+      final sid = _selection.id;
+      if (sid != null) {
+        for (final a in cat.atlases) {
+          if (a.id == sid) {
+            return SurfaceStudioSelection.atlas(sid);
+          }
+        }
+        return const SurfaceStudioSelection.none();
+      }
+    }
+    if (_selection.isAnimation) {
+      final sid = _selection.id;
+      if (sid != null) {
+        for (final a in cat.animations) {
+          if (a.id == sid) {
+            return SurfaceStudioSelection.animation(sid);
+          }
+        }
+        return const SurfaceStudioSelection.none();
+      }
+    }
+    if (_selection.isPreset) {
+      final sid = _selection.id;
+      if (sid != null) {
+        for (final p in cat.presets) {
+          if (p.id == sid) {
+            return SurfaceStudioSelection.preset(sid);
+          }
+        }
+        return const SurfaceStudioSelection.none();
+      }
+    }
+    if (cat.atlases.isNotEmpty) {
+      return SurfaceStudioSelection.atlas(cat.atlases.last.id);
+    }
+    return const SurfaceStudioSelection.none();
+  }
 
   void _onSurfaceCatalogSavePrep() {
     final cb = widget.onSurfaceCatalogSaveRequested;
@@ -162,17 +227,16 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
     final subtle = EditorChrome.subtleLabel(context);
     final isPartial =
         widget.onSurfaceCatalogSaveRequested != null;
+    final canMutateCatalog = widget.onSurfaceCatalogSaveRequested != null;
     final authoring = SurfaceStudioAtlasAuthoringPrep(
       readModel: _workReadModel,
       selection: _selection,
+      requestEditSignal: _atlasEditSignal,
       onSurfaceCatalogChanged: (cat) {
-        final newId = cat.atlases.isNotEmpty ? cat.atlases.last.id : '';
         setState(() {
           _saveFlowPrepNote = null;
           _workReadModel = buildSurfaceStudioReadModelFromCatalog(cat);
-          if (newId.isNotEmpty) {
-            _selection = SurfaceStudioSelection.atlas(newId);
-          }
+          _selection = _selectionAfterCatalogChanged(cat);
         });
       },
     );
@@ -185,6 +249,10 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
         SurfaceStudioSelectionInspector(
           readModel: _workReadModel,
           selection: _selection,
+          onRequestEditSelectedAtlas:
+              canMutateCatalog ? _bumpAtlasEditSignal : null,
+          onConfirmDeleteSelectedAtlas:
+              canMutateCatalog ? _onConfirmDeleteSelectedAtlas : null,
         ),
       ],
     );

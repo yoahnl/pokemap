@@ -297,6 +297,89 @@ void main() {
         findsNothing,
       );
     });
+
+    testWidgets('20. Lot 67 — callback édition : bouton inspecteur', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioSelectionInspector(
+            readModel: _minimalRead(),
+            selection: SurfaceStudioSelection.atlas('water-atlas'),
+            onRequestEditSelectedAtlas: () {},
+          ),
+        ),
+      );
+      expect(
+        find.byKey(const ValueKey('surface_studio_inspector_edit_atlas')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('21. Lot 67 — sans callback : pas d’edit inspecteur', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioSelectionInspector(
+            readModel: _minimalRead(),
+            selection: SurfaceStudioSelection.atlas('water-atlas'),
+          ),
+        ),
+      );
+      expect(
+        find.byKey(const ValueKey('surface_studio_inspector_edit_atlas')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('22. Lot 69 — atlas référencé : préparer suppression absent', (
+        tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioSelectionInspector(
+            readModel: buildSurfaceStudioReadModelFromCatalog(
+              _catalogWithUnusedAtlas(),
+            ),
+            selection: SurfaceStudioSelection.atlas('used-atlas'),
+            onConfirmDeleteSelectedAtlas: () {},
+          ),
+        ),
+      );
+      expect(
+        find.byKey(const ValueKey('surface_studio_inspector_delete_blocked')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('surface_studio_inspector_prepare_delete')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('23. Lot 69 — atlas inutilisé : confirmation en deux étapes', (
+        tester) async {
+      var del = 0;
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioSelectionInspector(
+            readModel: buildSurfaceStudioReadModelFromCatalog(
+              _catalogWithUnusedAtlas(),
+            ),
+            selection: SurfaceStudioSelection.atlas('orphan-atlas'),
+            onConfirmDeleteSelectedAtlas: () => del++,
+          ),
+        ),
+      );
+      expect(
+        find.byKey(const ValueKey('surface_studio_inspector_delete_allowed')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_inspector_prepare_delete')),
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_inspector_confirm_delete')),
+      );
+      await tester.pump();
+      expect(del, 1);
+    });
   });
 }
 

@@ -1305,6 +1305,133 @@ void main() {
     });
   });
 
+  group('SurfaceStudioPanel (Lot 67–69)', () {
+    testWidgets('67–68.1 — édition nom atlas, dirty, compteurs stables', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioPanel(
+            readModel: _minimalWaterReadModel(),
+            onSurfaceCatalogSaveRequested: (_) {},
+          ),
+        ),
+      );
+      await tester.ensureVisible(find.text('Water Atlas'));
+      await tester.tap(find.text('Water Atlas'));
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_start_edit_atlas')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_start_edit_atlas')),
+      );
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey('atlas_draft_name')),
+        'Renamed Water',
+      );
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_apply_atlas_edit')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_apply_atlas_edit')),
+      );
+      await tester.pump();
+      expect(find.text('Renamed Water'), findsWidgets);
+      expect(
+        find.text(SurfaceStudioPanel.workCatalogDirtyStateText),
+        findsOneWidget,
+      );
+      final counters = find.byKey(const ValueKey('surface_studio_header_counters'));
+      expect(
+        find.descendant(of: counters, matching: find.text('1')),
+        findsNWidgets(3),
+      );
+    });
+
+    testWidgets('67–68.2 — création atlas avec sélection animation : sélection inchangée',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioPanel(
+            readModel: _minimalWaterReadModel(),
+            onSurfaceCatalogSaveRequested: (_) {},
+          ),
+        ),
+      );
+      await tester.ensureVisible(find.text('Water Isolated Loop'));
+      await tester.tap(find.text('Water Isolated Loop'));
+      await tester.pump();
+      expect(find.text('Animation sélectionnée'), findsWidgets);
+      final idF = find.byKey(const ValueKey('atlas_draft_id'));
+      final nameF = find.byKey(const ValueKey('atlas_draft_name'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      await tester.ensureVisible(idF);
+      await tester.enterText(idF, 'z2');
+      await tester.enterText(nameF, 'Z2');
+      await tester.enterText(tsF, 't2');
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.pump();
+      expect(find.text('Animation sélectionnée'), findsWidgets);
+    });
+
+    testWidgets('69.1 — atlas utilisé : pas de préparation suppression', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioPanel(
+            readModel: _warningReadModel(),
+            onSurfaceCatalogSaveRequested: (_) {},
+          ),
+        ),
+      );
+      final usedLine = find.textContaining('used-atlas');
+      await tester.ensureVisible(usedLine.first);
+      await tester.tap(usedLine.first);
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey('surface_studio_inspector_prepare_delete')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('69.2 — atlas inutilisé : supprimer et sélection nettoyée', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioPanel(
+            readModel: _warningReadModel(),
+            onSurfaceCatalogSaveRequested: (_) {},
+          ),
+        ),
+      );
+      final orphanLine = find.textContaining('orphan-atlas');
+      await tester.ensureVisible(orphanLine.first);
+      await tester.tap(orphanLine.first);
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_inspector_prepare_delete')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_inspector_prepare_delete')),
+      );
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_inspector_confirm_delete')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_inspector_confirm_delete')),
+      );
+      await tester.pump();
+      expect(find.textContaining('orphan-atlas'), findsNothing);
+      expect(find.text('Aucune sélection'), findsOneWidget);
+    });
+  });
+
   group('SurfaceStudioPanel (Lot 64)', () {
     testWidgets(
         '64.1 — FromManifest : préparer sauvegarde, manifest mémoire, dirty off',

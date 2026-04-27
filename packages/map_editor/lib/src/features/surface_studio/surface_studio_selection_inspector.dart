@@ -36,16 +36,37 @@ const ValueKey<String> kSurfaceStudioSelectionInspectorKey =
 
 /// Bloc d’inspection : résout la ligne de catalogue à partir de [selection] et
 /// affiche les champs dérivés tels qu’exposés par le read model.
-class SurfaceStudioSelectionInspector extends StatelessWidget {
+class SurfaceStudioSelectionInspector extends StatefulWidget {
   const SurfaceStudioSelectionInspector({
     super.key,
     required this.readModel,
     required this.selection,
+    this.onRequestEditSelectedAtlas,
+    this.onConfirmDeleteSelectedAtlas,
   });
 
   final SurfaceStudioReadModel readModel;
 
   final SurfaceStudioSelection selection;
+  final VoidCallback? onRequestEditSelectedAtlas;
+  final VoidCallback? onConfirmDeleteSelectedAtlas;
+
+  @override
+  State<SurfaceStudioSelectionInspector> createState() =>
+      _SurfaceStudioSelectionInspectorState();
+}
+
+class _SurfaceStudioSelectionInspectorState
+    extends State<SurfaceStudioSelectionInspector> {
+  bool _deleteAtlasPrepared = false;
+
+  @override
+  void didUpdateWidget(covariant SurfaceStudioSelectionInspector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selection != widget.selection) {
+      _deleteAtlasPrepared = false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -59,14 +80,14 @@ class SurfaceStudioSelectionInspector extends StatelessWidget {
         color: EditorChrome.elevatedPanelBackground(context),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: selection.isNone
+          color: widget.selection.isNone
               ? EditorChrome.editorIslandRim(context)
               : Color.lerp(
                   EditorChrome.editorIslandRim(context),
                   accent,
                   0.4,
                 )!,
-          width: selection.isNone ? 1 : 1.15,
+          width: widget.selection.isNone ? 1 : 1.15,
         ),
         boxShadow: EditorChrome.sectionCardShadows(context),
       ),
@@ -114,7 +135,7 @@ class SurfaceStudioSelectionInspector extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          if (selection.isNone) ...[
+          if (widget.selection.isNone) ...[
             Text(
               SurfaceStudioSelectionInspectorLabels.noneTitle,
               style: TextStyle(
@@ -136,11 +157,17 @@ class SurfaceStudioSelectionInspector extends StatelessWidget {
             ),
           ] else
             _InspectorBody(
-              readModel: readModel,
-              selection: selection,
+              readModel: widget.readModel,
+              selection: widget.selection,
               label: label,
               subtle: subtle,
               accent: accent,
+              onRequestEditSelectedAtlas: widget.onRequestEditSelectedAtlas,
+              onConfirmDeleteSelectedAtlas: widget.onConfirmDeleteSelectedAtlas,
+              deleteAtlasPrepared: _deleteAtlasPrepared,
+              onDeleteAtlasPreparedChanged: (v) {
+                setState(() => _deleteAtlasPrepared = v);
+              },
             ),
         ],
       ),
@@ -155,6 +182,10 @@ class _InspectorBody extends StatelessWidget {
     required this.label,
     required this.subtle,
     required this.accent,
+    this.onRequestEditSelectedAtlas,
+    this.onConfirmDeleteSelectedAtlas,
+    this.deleteAtlasPrepared = false,
+    this.onDeleteAtlasPreparedChanged,
   });
 
   final SurfaceStudioReadModel readModel;
@@ -162,6 +193,10 @@ class _InspectorBody extends StatelessWidget {
   final Color label;
   final Color subtle;
   final Color accent;
+  final VoidCallback? onRequestEditSelectedAtlas;
+  final VoidCallback? onConfirmDeleteSelectedAtlas;
+  final bool deleteAtlasPrepared;
+  final ValueChanged<bool>? onDeleteAtlasPreparedChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -176,6 +211,10 @@ class _InspectorBody extends StatelessWidget {
         label: label,
         subtle: subtle,
         accent: accent,
+        onRequestEditSelectedAtlas: onRequestEditSelectedAtlas,
+        onConfirmDeleteSelectedAtlas: onConfirmDeleteSelectedAtlas,
+        deletePrepared: deleteAtlasPrepared,
+        onDeletePreparedChanged: onDeleteAtlasPreparedChanged,
       );
     }
     if (selection.isAnimation) {
@@ -322,12 +361,20 @@ class _AtlasInspect extends StatelessWidget {
     required this.label,
     required this.subtle,
     required this.accent,
+    this.onRequestEditSelectedAtlas,
+    this.onConfirmDeleteSelectedAtlas,
+    this.deletePrepared = false,
+    this.onDeletePreparedChanged,
   });
 
   final SurfaceStudioAtlasReadModel row;
   final Color label;
   final Color subtle;
   final Color accent;
+  final VoidCallback? onRequestEditSelectedAtlas;
+  final VoidCallback? onConfirmDeleteSelectedAtlas;
+  final bool deletePrepared;
+  final ValueChanged<bool>? onDeletePreparedChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -424,6 +471,72 @@ class _AtlasInspect extends StatelessWidget {
               ),
             ),
           ),
+        ],
+        if (onRequestEditSelectedAtlas != null) ...[
+          const SizedBox(height: 10),
+          CupertinoButton(
+            key: const ValueKey('surface_studio_inspector_edit_atlas'),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            onPressed: onRequestEditSelectedAtlas,
+            child: const Text('Modifier cet atlas'),
+          ),
+        ],
+        if (onConfirmDeleteSelectedAtlas != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            'Suppression',
+            style: TextStyle(
+              color: subtle,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.4,
+            ),
+          ),
+          const SizedBox(height: 4),
+          if (nAnim > 0)
+            Text(
+              nAnim == 1
+                  ? 'Suppression impossible : cet atlas est utilisé par 1 animation.'
+                  : 'Suppression impossible : cet atlas est utilisé par $nAnim animation(s).',
+              key: const ValueKey('surface_studio_inspector_delete_blocked'),
+              style: const TextStyle(
+                color: Color(0xFFC2410C),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            )
+          else ...[
+            Text(
+              'Atlas inutilisé — suppression possible.',
+              key: const ValueKey('surface_studio_inspector_delete_allowed'),
+              style: TextStyle(
+                color: subtle,
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 6),
+            if (!deletePrepared)
+              CupertinoButton(
+                key: const ValueKey('surface_studio_inspector_prepare_delete'),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                onPressed: () => onDeletePreparedChanged?.call(true),
+                child: const Text('Préparer la suppression de l’atlas'),
+              )
+            else
+              CupertinoButton(
+                key: const ValueKey('surface_studio_inspector_confirm_delete'),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                onPressed: onConfirmDeleteSelectedAtlas,
+                child: const Text(
+                  'Confirmer la suppression de l’atlas',
+                  style: TextStyle(
+                    color: Color(0xFFB91C1C),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+          ],
         ],
       ],
     );
