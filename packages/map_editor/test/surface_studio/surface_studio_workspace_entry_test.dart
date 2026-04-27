@@ -68,7 +68,8 @@ void main() {
 
       final terrain = find.text('Terrain Library');
       final path = find.text('Path Library');
-      final surfaceEntry = find.byKey(const Key('surface-studio-workspace-entry'));
+      final surfaceEntry =
+          find.byKey(const Key('surface-studio-workspace-entry'));
       expect(terrain, findsOneWidget);
       expect(path, findsOneWidget);
       expect(surfaceEntry, findsOneWidget);
@@ -101,6 +102,8 @@ void main() {
 
       expect(find.text('Lecture seule'), findsOneWidget);
       expect(find.byType(SurfaceStudioPanel), findsOneWidget);
+      expect(find.text('Catalogue Surface'), findsOneWidget);
+      expect(find.text('Water Atlas'), findsOneWidget);
     });
 
     testWidgets('EditorCanvasHost builds SurfaceStudioPanel in surface mode', (

@@ -13,6 +13,7 @@ import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../ui/shared/cupertino_editor_widgets.dart';
+import 'surface_studio_catalog_browser.dart';
 
 /// Accent produit Surface Studio (même base que la tuile World Explorer).
 const Color _surfaceStudioAccent = Color(0xFF2DD4BF);
@@ -30,16 +31,10 @@ class SurfaceStudioPanel extends StatelessWidget {
   static const String readOnlyBadgeText = 'Lecture seule';
   static const String productDescriptionText =
       'Préparez et contrôlez les surfaces animées du projet : eau, lave, glace, hautes herbes.';
-  static const String emptyStateTitle =
-      'Aucun catalogue Surface pour le moment';
-  static const String emptyStateHint =
-      'Les prochains lots permettront de créer des atlas, animations et presets.';
-  static const String catalogDetectedText = 'Catalogue Surface détecté';
   static const String diagnosticsCleanText = 'Aucun diagnostic Surface';
   static const String diagnosticsErrorsText = 'Erreurs Surface détectées';
   static const String diagnosticsWarningsText =
       'Avertissements Surface détectés';
-  static const String placeholderCatalogTitle = 'Catalogue';
   static const String placeholderDiagnosticsTitle = 'Diagnostics';
   static const String placeholderActionsTitle = 'Actions auteur';
   static const String placeholderSoonText = 'Bientôt';
@@ -105,42 +100,7 @@ class SurfaceStudioPanel extends StatelessWidget {
             presets: s.presetCount,
           ),
           const SizedBox(height: 16),
-          if (readModel.isEmpty) ...[
-            _StudioCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    emptyStateTitle,
-                    style: TextStyle(
-                      color: label,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    emptyStateHint,
-                    style: TextStyle(
-                      color: subtle,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      height: 1.35,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ] else ...[
-            Text(
-              catalogDetectedText,
-              style: TextStyle(
-                color: label,
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
+          SurfaceStudioCatalogBrowser(readModel: readModel),
           const SizedBox(height: 16),
           _DiagnosticsSummary(
             readModel: readModel,
@@ -151,10 +111,6 @@ class SurfaceStudioPanel extends StatelessWidget {
             onImportVertical: null,
           ),
           const SizedBox(height: 20),
-          const _SectionPlaceholder(
-            title: SurfaceStudioPanel.placeholderCatalogTitle,
-          ),
-          const SizedBox(height: 10),
           const _SectionPlaceholder(
             title: SurfaceStudioPanel.placeholderDiagnosticsTitle,
           ),

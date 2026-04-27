@@ -37,7 +37,7 @@ void main() {
         _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
       );
       expect(
-        find.textContaining('Aucun catalogue Surface'),
+        find.text('Le catalogue Surface est vide'),
         findsOneWidget,
       );
     });
@@ -49,11 +49,12 @@ void main() {
       expect(find.text('1'), findsNWidgets(3));
     });
 
-    testWidgets('6. non-empty shows catalog detected', (tester) async {
+    testWidgets('6. non-empty shows catalog browser content', (tester) async {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
       );
-      expect(find.text('Catalogue Surface détecté'), findsOneWidget);
+      expect(find.text('Catalogue Surface'), findsOneWidget);
+      expect(find.text('Water Atlas'), findsOneWidget);
     });
 
     testWidgets('7. clean diagnostics for minimal coherent catalog',
@@ -121,8 +122,7 @@ void main() {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
       );
-      expect(find.text('Catalogue'), findsOneWidget);
-      expect(find.text('Diagnostics'), findsOneWidget);
+      expect(find.text('Diagnostics'), findsWidgets);
       expect(find.text('Actions auteur'), findsOneWidget);
     });
 
@@ -218,6 +218,18 @@ void main() {
       expect(find.textContaining('Sauvegarder'), findsNothing);
       expect(find.textContaining('Enregistrer'), findsNothing);
       expect(find.textContaining('Save'), findsNothing);
+    });
+
+    testWidgets('22. panel shows catalog browser for minimal catalog', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      expect(find.text('Catalogue Surface'), findsOneWidget);
+      expect(find.text('Water Atlas'), findsOneWidget);
+      expect(find.text('Water Isolated Loop'), findsOneWidget);
+      expect(find.text('Water Surface'), findsOneWidget);
     });
 
     testWidgets('24. test file uses public map_core only (smoke)',
