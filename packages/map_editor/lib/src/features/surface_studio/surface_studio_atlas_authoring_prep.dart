@@ -9,6 +9,7 @@ import 'surface_studio_atlas_grid_preview.dart';
 import 'surface_studio_atlas_image_preview.dart';
 import 'surface_studio_atlas_source_picker.dart';
 import 'surface_studio_selection.dart';
+import 'surface_studio_vertical_atlas_assistant.dart';
 
 const ValueKey<String> kSurfaceStudioAtlasAuthoringPrepKey =
     ValueKey<String>('SurfaceStudioAtlasAuthoringPrep');
@@ -655,9 +656,10 @@ class _SurfaceStudioAtlasAuthoringPrepState
         ),
         child: material.Theme(
           data: _surfaceStudioAuthoringMaterialTheme(context, label, subtle),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
           Text(
             'Préparation atlas',
             key: const ValueKey('surface_studio_authoring_main_title'),
@@ -787,6 +789,15 @@ class _SurfaceStudioAtlasAuthoringPrepState
             subtle: subtle,
           ),
           const SizedBox(height: 10),
+          SurfaceStudioVerticalAtlasAssistant(
+            label: label,
+            subtle: subtle,
+            draftTileWidth: previewTileWidth,
+            draftTileHeight: previewTileHeight,
+            draftColumns: previewColumns,
+            draftRows: previewRows,
+          ),
+          const SizedBox(height: 10),
           SurfaceStudioAtlasImagePreview(
             resolution: imagePreviewResolution,
             label: label,
@@ -796,49 +807,9 @@ class _SurfaceStudioAtlasAuthoringPrepState
             draftColumns: previewColumns,
             draftRows: previewRows,
             draftLayoutLabel: _layoutMenuLabel(_layout),
+            largeFormat: true,
           ),
           const SizedBox(height: 10),
-          material.TextField(
-            key: const ValueKey('atlas_draft_name'),
-            controller: _name,
-            onChanged: (_) {
-              if (!_isEditMode && !_userEditedId) {
-                final t = _name.text;
-                if (t.trim().isEmpty) {
-                  _id.clear();
-                } else {
-                  _id.text = suggestInternalAtlasIdFromName(t);
-                }
-              }
-              setState(() {});
-            },
-            style: TextStyle(color: label, fontSize: 13),
-            decoration: const material.InputDecoration(
-              labelText: 'Nom affiché',
-              isDense: true,
-            ),
-          ),
-          const SizedBox(height: 5),
-          material.TextField(
-            key: const ValueKey('atlas_draft_id'),
-            controller: _id,
-            readOnly: _isEditMode,
-            onChanged: (_) {
-              _userEditedId = true;
-              setState(() {});
-            },
-            style: TextStyle(color: label, fontSize: 13),
-            decoration: material.InputDecoration(
-              labelText: 'Identifiant interne',
-              isDense: true,
-              helperText: _isEditMode
-                  ? 'ID verrouillé pour préserver les références'
-                  : (_userEditedId
-                      ? null
-                      : 'Identifiant interne proposé à partir du nom'),
-            ),
-          ),
-          const SizedBox(height: 8),
           _formGroupTitle('Grille de l’image', label),
           const SizedBox(height: 4),
           Row(
@@ -948,6 +919,47 @@ class _SurfaceStudioAtlasAuthoringPrepState
             rows: previewRows,
             layoutLabel: _layoutMenuLabel(_layout),
           ),
+          const SizedBox(height: 10),
+          material.TextField(
+            key: const ValueKey('atlas_draft_name'),
+            controller: _name,
+            onChanged: (_) {
+              if (!_isEditMode && !_userEditedId) {
+                final t = _name.text;
+                if (t.trim().isEmpty) {
+                  _id.clear();
+                } else {
+                  _id.text = suggestInternalAtlasIdFromName(t);
+                }
+              }
+              setState(() {});
+            },
+            style: TextStyle(color: label, fontSize: 13),
+            decoration: const material.InputDecoration(
+              labelText: 'Nom affiché',
+              isDense: true,
+            ),
+          ),
+          const SizedBox(height: 5),
+          material.TextField(
+            key: const ValueKey('atlas_draft_id'),
+            controller: _id,
+            readOnly: _isEditMode,
+            onChanged: (_) {
+              _userEditedId = true;
+              setState(() {});
+            },
+            style: TextStyle(color: label, fontSize: 13),
+            decoration: material.InputDecoration(
+              labelText: 'Identifiant interne',
+              isDense: true,
+              helperText: _isEditMode
+                  ? 'ID verrouillé pour préserver les références'
+                  : (_userEditedId
+                      ? null
+                      : 'Identifiant interne proposé à partir du nom'),
+            ),
+          ),
           const SizedBox(height: 8),
           _formGroupTitle('Options avancées', label),
           const SizedBox(height: 4),
@@ -1043,9 +1055,10 @@ class _SurfaceStudioAtlasAuthoringPrepState
             ),
           ],
         ],
+              ),
+            ),
           ),
         ),
-      ),
     );
   }
 }

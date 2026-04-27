@@ -181,7 +181,7 @@ void main() {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
       );
-      expect(find.byType(SingleChildScrollView), findsOneWidget);
+      expect(find.byType(SingleChildScrollView), findsAtLeastNWidgets(1));
     });
 
     testWidgets('17. no internal domain type names in user-visible strings',

@@ -10,6 +10,34 @@ import 'package:path/path.dart' as p;
 import '../../ui/shared/cupertino_editor_widgets.dart';
 import 'surface_studio_atlas_grid_overlay.dart';
 
+enum SurfaceStudioAtlasImagePreviewFitMode {
+  fitWidth,
+  pixel100,
+  fitHeight,
+}
+
+Size _surfaceStudioAtlasImageFitDisplaySize({
+  required int nw,
+  required int nh,
+  required double maxW,
+  required double maxH,
+  required SurfaceStudioAtlasImagePreviewFitMode mode,
+}) {
+  if (nw <= 0 || nh <= 0 || maxW <= 0 || maxH <= 0) {
+    return Size(maxW.clamp(1, 1e9), maxH.clamp(1, 1e9));
+  }
+  switch (mode) {
+    case SurfaceStudioAtlasImagePreviewFitMode.fitWidth:
+      final s = maxW / nw;
+      return Size(maxW, nh * s);
+    case SurfaceStudioAtlasImagePreviewFitMode.fitHeight:
+      final s = maxH / nh;
+      return Size(nw * s, maxH);
+    case SurfaceStudioAtlasImagePreviewFitMode.pixel100:
+      return Size(nw.toDouble(), nh.toDouble());
+  }
+}
+
 /// Statut de résolution du fichier image pour l’aperçu Surface Studio (Lot 72).
 enum SurfaceStudioAtlasImagePreviewResolveStatus {
   empty,
@@ -140,6 +168,7 @@ class SurfaceStudioAtlasImagePreview extends StatefulWidget {
     this.draftColumns,
     this.draftRows,
     this.draftLayoutLabel,
+    this.largeFormat = false,
   });
 
   final SurfaceStudioAtlasImagePreviewResolution resolution;
@@ -152,6 +181,7 @@ class SurfaceStudioAtlasImagePreview extends StatefulWidget {
   final int? draftColumns;
   final int? draftRows;
   final String? draftLayoutLabel;
+  final bool largeFormat;
 
   @override
   State<SurfaceStudioAtlasImagePreview> createState() =>
@@ -162,6 +192,9 @@ class _SurfaceStudioAtlasImagePreviewState
     extends State<SurfaceStudioAtlasImagePreview> {
   static const double _maxImageHeight = 160;
 
+  SurfaceStudioAtlasImagePreviewFitMode _fitMode =
+      SurfaceStudioAtlasImagePreviewFitMode.fitWidth;
+
   String? _cachedPath;
   Uint8List? _cachedBytes;
   bool _cacheReadFailed = false;
@@ -171,6 +204,9 @@ class _SurfaceStudioAtlasImagePreviewState
   @override
   void didUpdateWidget(covariant SurfaceStudioAtlasImagePreview oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.largeFormat != oldWidget.largeFormat) {
+      _fitMode = SurfaceStudioAtlasImagePreviewFitMode.fitWidth;
+    }
     _syncCacheFromResolution();
   }
 
@@ -233,7 +269,9 @@ class _SurfaceStudioAtlasImagePreviewState
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Aperçu de l’image source',
+            widget.largeFormat
+                ? 'Aperçu grand format de l’image source'
+                : 'Aperçu de l’image source',
             style: TextStyle(
               color: widget.label,
               fontSize: 12,
@@ -465,71 +503,210 @@ class _SurfaceStudioAtlasImagePreviewState
       const SizedBox(height: 8),
     ];
 
-    final imageStack = naturalKnown
-        ? LayoutBuilder(
-            builder: (context, constraints) {
-              final maxW = constraints.maxWidth.isFinite && constraints.maxWidth > 0
-                  ? constraints.maxWidth
-                  : 360.0;
-              const maxH = _maxImageHeight;
-              final scale = math.min(maxW / nw, maxH / nh);
-              final dw = nw * scale;
-              final dh = nh * scale;
-              return Center(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: SizedBox(
-                    width: dw,
-                    height: dh,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        material.Image.memory(
-                          _cachedBytes!,
-                          key: const ValueKey(
-                            'surface_studio_atlas_image_preview_file',
-                          ),
-                          fit: material.BoxFit.fill,
-                          gaplessPlayback: true,
-                          errorBuilder: (_, __, ___) => Center(
-                            child: Text(
-                              'Impossible de charger l’image (format ou fichier).',
-                              style: TextStyle(color: widget.subtle, fontSize: 11),
-                            ),
+    Widget imageStack;
+    if (widget.largeFormat && naturalKnown) {
+      imageStack = LayoutBuilder(
+        builder: (context, constraints) {
+          final maxW = constraints.maxWidth.isFinite && constraints.maxWidth > 0
+              ? constraints.maxWidth
+              : 560.0;
+          final outerH = constraints.maxHeight;
+          final viewH = outerH.isFinite && outerH >= 360
+              ? outerH.clamp(360.0, 560.0)
+              : 480.0;
+          final sz = _surfaceStudioAtlasImageFitDisplaySize(
+            nw: nw,
+            nh: nh,
+            maxW: maxW,
+            maxH: viewH,
+            mode: _fitMode,
+          );
+          final dw = sz.width;
+          final dh = sz.height;
+          Widget fitBtn(
+            String t,
+            SurfaceStudioAtlasImagePreviewFitMode m,
+          ) {
+            final on = _fitMode == m;
+            return material.TextButton(
+              onPressed: () => setState(() => _fitMode = m),
+              child: Text(
+                t,
+                style: TextStyle(
+                  color: widget.label,
+                  fontSize: 11,
+                  fontWeight: on ? FontWeight.w800 : FontWeight.w500,
+                ),
+              ),
+            );
+          }
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Wrap(
+                key: const ValueKey('surface_studio_atlas_image_fit_controls'),
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  fitBtn('Ajuster à la largeur', SurfaceStudioAtlasImagePreviewFitMode.fitWidth),
+                  fitBtn('Taille réelle 100 %', SurfaceStudioAtlasImagePreviewFitMode.pixel100),
+                  fitBtn('Ajuster à la hauteur', SurfaceStudioAtlasImagePreviewFitMode.fitHeight),
+                ],
+              ),
+              const SizedBox(height: 6),
+              SizedBox(
+                height: viewH,
+                width: maxW,
+                child: material.Scrollbar(
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.vertical,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SizedBox(
+                        width: dw,
+                        height: dh,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              material.Image.memory(
+                                _cachedBytes!,
+                                key: const ValueKey(
+                                  'surface_studio_atlas_image_preview_file',
+                                ),
+                                fit: material.BoxFit.fill,
+                                gaplessPlayback: true,
+                                errorBuilder: (_, __, ___) => Center(
+                                  child: Text(
+                                    'Impossible de charger l’image (format ou fichier).',
+                                    style: TextStyle(
+                                      color: widget.subtle,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              if (showOverlay)
+                                material.CustomPaint(
+                                  key: kSurfaceStudioAtlasImageGridOverlayKey,
+                                  painter: SurfaceStudioAtlasImageGridPainter(
+                                    columns: overlayColumns,
+                                    rows: overlayRows,
+                                    lineColor: gridLineColor,
+                                    stepX: stepX,
+                                    stepY: stepY,
+                                  ),
+                                ),
+                            ],
                           ),
                         ),
-                        if (showOverlay)
-                          material.CustomPaint(
-                            key: kSurfaceStudioAtlasImageGridOverlayKey,
-                            painter: SurfaceStudioAtlasImageGridPainter(
-                              columns: overlayColumns,
-                              rows: overlayRows,
-                              lineColor: gridLineColor,
-                              stepX: stepX,
-                              stepY: stepY,
-                            ),
-                          ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-              );
-            },
-          )
-        : ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: material.Image.memory(
-              _cachedBytes!,
-              key: const ValueKey('surface_studio_atlas_image_preview_file'),
-              fit: material.BoxFit.contain,
-              height: _maxImageHeight,
-              width: double.infinity,
-              errorBuilder: (_, __, ___) => Text(
-                'Impossible de charger l’image (format ou fichier).',
-                style: TextStyle(color: widget.subtle, fontSize: 11),
+              ),
+            ],
+          );
+        },
+      );
+    } else if (widget.largeFormat && !naturalKnown) {
+      imageStack = SizedBox(
+        height: 480,
+        width: double.infinity,
+        child: material.Scrollbar(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.vertical,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 1),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: material.Image.memory(
+                    _cachedBytes!,
+                    key: const ValueKey('surface_studio_atlas_image_preview_file'),
+                    fit: material.BoxFit.contain,
+                    height: 480,
+                    errorBuilder: (_, __, ___) => Text(
+                      'Impossible de charger l’image (format ou fichier).',
+                      style: TextStyle(color: widget.subtle, fontSize: 11),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    } else if (naturalKnown) {
+      imageStack = LayoutBuilder(
+        builder: (context, constraints) {
+          final maxW = constraints.maxWidth.isFinite && constraints.maxWidth > 0
+              ? constraints.maxWidth
+              : 360.0;
+          const maxH = _maxImageHeight;
+          final scale = math.min(maxW / nw, maxH / nh);
+          final dw = nw * scale;
+          final dh = nh * scale;
+          return Center(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: SizedBox(
+                width: dw,
+                height: dh,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    material.Image.memory(
+                      _cachedBytes!,
+                      key: const ValueKey(
+                        'surface_studio_atlas_image_preview_file',
+                      ),
+                      fit: material.BoxFit.fill,
+                      gaplessPlayback: true,
+                      errorBuilder: (_, __, ___) => Center(
+                        child: Text(
+                          'Impossible de charger l’image (format ou fichier).',
+                          style: TextStyle(color: widget.subtle, fontSize: 11),
+                        ),
+                      ),
+                    ),
+                    if (showOverlay)
+                      material.CustomPaint(
+                        key: kSurfaceStudioAtlasImageGridOverlayKey,
+                        painter: SurfaceStudioAtlasImageGridPainter(
+                          columns: overlayColumns,
+                          rows: overlayRows,
+                          lineColor: gridLineColor,
+                          stepX: stepX,
+                          stepY: stepY,
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
           );
+        },
+      );
+    } else {
+      imageStack = ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: material.Image.memory(
+          _cachedBytes!,
+          key: const ValueKey('surface_studio_atlas_image_preview_file'),
+          fit: material.BoxFit.contain,
+          height: _maxImageHeight,
+          width: double.infinity,
+          errorBuilder: (_, __, ___) => Text(
+            'Impossible de charger l’image (format ou fichier).',
+            style: TextStyle(color: widget.subtle, fontSize: 11),
+          ),
+        ),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

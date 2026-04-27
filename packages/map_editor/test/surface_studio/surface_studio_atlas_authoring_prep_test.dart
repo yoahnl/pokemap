@@ -6,6 +6,7 @@ import 'package:map_editor/src/features/surface_studio/surface_studio_atlas_auth
 import 'package:map_editor/src/features/surface_studio/surface_studio_atlas_grid_preview.dart';
 import 'package:map_editor/src/features/surface_studio/surface_studio_atlas_image_preview.dart';
 import 'package:map_editor/src/features/surface_studio/surface_studio_selection.dart';
+import 'package:map_editor/src/features/surface_studio/surface_studio_vertical_atlas_assistant.dart';
 
 void main() {
   group('SurfaceStudioAtlasAuthoringPrep (Lot 60)', () {
@@ -552,9 +553,10 @@ void main() {
       final nameF = find.byKey(const ValueKey('atlas_draft_name'));
       await tester.enterText(nameF, 'Eau v2');
       await tester.pump();
-      await tester.tap(
-        find.byKey(const ValueKey('surface_studio_apply_atlas_edit')),
-      );
+      final applyBtn = find.byKey(const ValueKey('surface_studio_apply_atlas_edit'));
+      await tester.ensureVisible(applyBtn);
+      await tester.pump();
+      await tester.tap(applyBtn);
       await tester.pump();
       expect(out, hasLength(1));
       expect(out.single.atlases.length, 1);
@@ -669,6 +671,21 @@ void main() {
     );
   });
 
+  group('SurfaceStudioAtlasAuthoringPrep (Lot 74)', () {
+    testWidgets('assistant vertical visible dans la préparation', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioAtlasAuthoringPrep(
+            readModel: _emptyReadModel(),
+            selection: const SurfaceStudioSelection.none(),
+          ),
+        ),
+      );
+      expect(find.byKey(SurfaceStudioVerticalAtlasAssistant.sectionKey), findsOneWidget);
+      expect(find.text('Assistant atlas vertical'), findsOneWidget);
+    });
+  });
+
   group('SurfaceStudioAtlasAuthoringPrep (Lot 73)', () {
     testWidgets('sans image résolue : pas de libellé Grille superposée', (tester) async {
       await tester.pumpWidget(
@@ -698,7 +715,7 @@ void main() {
         ),
       );
       expect(find.byKey(kSurfaceStudioAtlasImagePreviewSectionKey), findsOneWidget);
-      expect(find.text('Aperçu de l’image source'), findsOneWidget);
+      expect(find.text('Aperçu grand format de l’image source'), findsOneWidget);
       expect(
         find.text('Choisissez une image source pour afficher l’aperçu.'),
         findsOneWidget,
