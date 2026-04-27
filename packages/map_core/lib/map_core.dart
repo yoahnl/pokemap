@@ -53,6 +53,7 @@ export 'src/operations/surface_variant_animation_ref_json_codec.dart';
 export 'src/operations/surface_variant_animation_ref_set_json_codec.dart';
 export 'src/operations/project_surface_preset_json_codec.dart';
 export 'src/operations/project_surface_catalog_json_codec.dart';
+export 'src/operations/project_manifest_surface_catalog_operations.dart';
 export 'src/operations/legacy_path_surface_view.dart';
 export 'src/operations/legacy_terrain_surface_view.dart';
 export 'src/operations/legacy_project_surface_catalog_view.dart';
