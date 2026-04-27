@@ -37,6 +37,9 @@ class EditorCanvasHost extends ConsumerWidget {
                     .read(editorNotifierProvider.notifier)
                     .applyInMemoryProjectManifest(m);
               },
+              onRequestProjectSave: () => ref
+                  .read(editorNotifierProvider.notifier)
+                  .saveProjectManifest(),
             ),
       EditorWorkspaceMode.globalStory ||
       EditorWorkspaceMode.step ||

@@ -413,6 +413,35 @@ class EditorNotifier extends _$EditorNotifier {
     state = state.copyWith(project: manifest);
   }
 
+  Future<bool> saveProjectManifest() async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) {
+      state = state.copyWith(
+        errorMessage: 'No project open to save.',
+      );
+      return false;
+    }
+    debugPrint('EditorNotifier: saveProjectManifest()');
+    try {
+      await ref.read(projectRepositoryProvider).saveProject(
+            project,
+            fs.projectManifestPath,
+          );
+      state = state.copyWith(
+        statusMessage: 'Projet sauvegardé via le flux projet existant.',
+        errorMessage: null,
+      );
+      return true;
+    } catch (e) {
+      debugPrint('EditorNotifier: Error saving project manifest: $e');
+      state = state.copyWith(
+        errorMessage: 'Failed to save project: $e',
+      );
+      return false;
+    }
+  }
+
   Future<void> saveActiveMap() async {
     endMapStroke();
     final map = state.activeMap;

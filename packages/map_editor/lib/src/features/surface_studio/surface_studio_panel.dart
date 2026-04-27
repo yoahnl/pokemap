@@ -50,10 +50,12 @@ class SurfaceStudioPanel extends StatefulWidget {
     super.key,
     required this.readModel,
     this.onSurfaceCatalogSaveRequested,
+    this.onRequestProjectSave,
   });
 
   final SurfaceStudioReadModel readModel;
   final ValueChanged<ProjectSurfaceCatalog>? onSurfaceCatalogSaveRequested;
+  final Future<bool> Function()? onRequestProjectSave;
 
   static const String titleText = 'Surface Studio';
   static const String readOnlyBadgeText = 'Lecture seule';
@@ -75,6 +77,13 @@ class SurfaceStudioPanel extends StatefulWidget {
       'Aucune écriture disque ne sera effectuée par Surface Studio.';
   static const String manifestMemoryUpdatedNote =
       'Manifest projet mis à jour en mémoire — écriture disque non effectuée.';
+  static const String projectSaveViaExistingFlowButtonLabel =
+      'Sauvegarder le projet via le flux existant';
+  static const String projectDiskSaveResultSuccessNote =
+      'Projet sauvegardé via le flux projet existant.';
+  static const String projectDiskSaveRequestedNote = 'Sauvegarde projet demandée.';
+  static const String projectDiskSaveFailureNote =
+      'Échec de sauvegarde projet — voir la barre d’état.';
 
   @override
   State<SurfaceStudioPanel> createState() => _SurfaceStudioPanelState();
@@ -85,6 +94,7 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
   SurfaceStudioSelection _selection = const SurfaceStudioSelection.none();
   late SurfaceStudioReadModel _workReadModel;
   String? _saveFlowPrepNote;
+  String? _projectSaveDiskNote;
 
   @override
   void initState() {
@@ -120,6 +130,25 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
     cb(_workReadModel.catalog);
     setState(() {
       _saveFlowPrepNote = SurfaceStudioPanel.savePrepTransmittedNote;
+    });
+  }
+
+  Future<void> _onRequestProjectSave() async {
+    final fn = widget.onRequestProjectSave;
+    if (fn == null) {
+      return;
+    }
+    setState(() {
+      _projectSaveDiskNote = SurfaceStudioPanel.projectDiskSaveRequestedNote;
+    });
+    final ok = await fn();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _projectSaveDiskNote = ok
+          ? SurfaceStudioPanel.projectDiskSaveResultSuccessNote
+          : SurfaceStudioPanel.projectDiskSaveFailureNote;
     });
   }
 
@@ -166,7 +195,8 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
           const SizedBox(height: 8),
           Text(
             'Vous pouvez ajouter un atlas au catalogue de travail en mémoire. '
-            'Aucune sauvegarde projet sur disque, pas d’édition ni suppression d’atlas existant.',
+            'L’enregistrement disque du manifeste projet passe par l’action dédiée ci-dessous, sans écriture ad hoc dans ce panneau. '
+            'Pas d’édition ni suppression d’atlas existant.',
             style: TextStyle(
               color: subtle.withValues(alpha: 0.92),
               fontSize: 12,
@@ -239,6 +269,29 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
                 fontWeight: FontWeight.w600,
               ),
             ),
+          ],
+          if (widget.onRequestProjectSave != null) ...[
+            const SizedBox(height: 14),
+            CupertinoButton(
+              key: const ValueKey('surface_studio_project_save_via_official_flow'),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              onPressed: _onRequestProjectSave,
+              child: const Text(
+                SurfaceStudioPanel.projectSaveViaExistingFlowButtonLabel,
+              ),
+            ),
+            if (_projectSaveDiskNote != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                _projectSaveDiskNote!,
+                key: const ValueKey('surface_studio_project_save_disk_note'),
+                style: TextStyle(
+                  color: _surfaceStudioAccent.withValues(alpha: 0.88),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ],
           const SizedBox(height: 20),
           _CounterRow(
@@ -591,10 +644,12 @@ class SurfaceStudioPanelFromManifest extends StatefulWidget {
     super.key,
     required this.manifest,
     this.onProjectManifestChanged,
+    this.onRequestProjectSave,
   });
 
   final ProjectManifest manifest;
   final ValueChanged<ProjectManifest>? onProjectManifestChanged;
+  final Future<bool> Function()? onRequestProjectSave;
 
   @override
   State<SurfaceStudioPanelFromManifest> createState() =>
@@ -632,6 +687,7 @@ class _SurfaceStudioPanelFromManifestState
         });
         widget.onProjectManifestChanged?.call(n);
       },
+      onRequestProjectSave: widget.onRequestProjectSave,
     );
   }
 }

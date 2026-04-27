@@ -1,5 +1,8 @@
 // Tests widget — entrée workspace Surface Studio (Lot 53).
 
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +13,7 @@ import 'package:map_editor/src/features/surface_studio/surface_studio_atlas_auth
 import 'package:map_editor/src/features/surface_studio/surface_studio_panel.dart';
 import 'package:map_editor/src/features/surface_studio/surface_studio_selection_inspector.dart';
 import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
+import 'package:path/path.dart' as p;
 
 import '../shell_chrome_test_harness.dart';
 
@@ -342,6 +346,178 @@ void main() {
         expect(find.text(s), findsNothing);
       }
     });
+
+    testWidgets('Lot 65 — project.json on disk before official save: no new atlas', (
+      tester,
+    ) async {
+      final temp = Directory.systemTemp.createTempSync('map_editor_lot65_');
+      addTearDown(() {
+        if (temp.existsSync()) {
+          temp.deleteSync(recursive: true);
+        }
+      });
+      final empty = _buildProjectWithSurfaceCatalog(ProjectSurfaceCatalog());
+      final manifestPath = p.join(temp.path, 'project.json');
+      File(manifestPath).writeAsStringSync(
+        const JsonEncoder.withIndent('  ').convert(empty.toJson()),
+      );
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: temp.path,
+          project: empty,
+          workspaceMode: EditorWorkspaceMode.surfaceStudio,
+        ),
+      );
+      await tester.pumpAndSettle();
+      final idF = find.byKey(const ValueKey('atlas_draft_id'));
+      final nameF = find.byKey(const ValueKey('atlas_draft_name'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      await tester.ensureVisible(idF);
+      await tester.enterText(idF, 'lot65a');
+      await tester.enterText(nameF, 'N');
+      await tester.enterText(tsF, 't');
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_save_prep_catalog')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_save_prep_catalog')),
+      );
+      await tester.pumpAndSettle(const Duration(milliseconds: 200));
+      final onDisk = File(manifestPath).readAsStringSync();
+      final decoded =
+          jsonDecode(onDisk) as Map<String, dynamic>;
+      final sc = (decoded['surfaceCatalog'] as Map<String, dynamic>?) ?? {};
+      final atl = sc['atlases'] as List<dynamic>? ?? [];
+      expect(atl, isEmpty);
+    });
+
+    testWidgets(
+        'Lot 65 — apply manifest + saveProjectManifest écrit surfaceCatalog (sans UI prep)',
+        (tester) async {
+      final temp = Directory.systemTemp.createTempSync('map_editor_lot65_prog_');
+      addTearDown(() {
+        if (temp.existsSync()) {
+          temp.deleteSync(recursive: true);
+        }
+      });
+      final empty = _buildProjectWithSurfaceCatalog(ProjectSurfaceCatalog());
+      final manifestPath = p.join(temp.path, 'project.json');
+      File(manifestPath).writeAsStringSync(
+        const JsonEncoder.withIndent('  ').convert(empty.toJson()),
+      );
+      final withCat = replaceProjectManifestSurfaceCatalog(
+        empty,
+        _minimalCoherentSurfaceCatalog(),
+      );
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: temp.path,
+          project: empty,
+          workspaceMode: EditorWorkspaceMode.surfaceStudio,
+        ),
+      );
+      await tester.pumpAndSettle();
+      container
+          .read(editorNotifierProvider.notifier)
+          .applyInMemoryProjectManifest(withCat);
+      await tester.pumpAndSettle();
+      expect(
+        container.read(editorNotifierProvider).project!.surfaceCatalog.atlases
+            .length,
+        1,
+      );
+      var ok = false;
+      await tester.runAsync(() async {
+        ok = await container
+            .read(editorNotifierProvider.notifier)
+            .saveProjectManifest();
+      });
+      expect(ok, isTrue);
+      final onDisk = File(manifestPath).readAsStringSync();
+      final loaded = ProjectManifest.fromJson(
+        jsonDecode(onDisk) as Map<String, dynamic>,
+      );
+      expect(loaded.name, empty.name);
+      expect(loaded.surfaceCatalog.atlases.length, 1);
+      expect(loaded.surfaceCatalog.atlases.first.id, 'water-atlas');
+    });
+
+    testWidgets(
+        'Lot 65 — UI prep puis saveProjectManifest écrit surfaceCatalog',
+        (tester) async {
+      final temp = Directory.systemTemp.createTempSync('map_editor_lot65_ui_');
+      addTearDown(() {
+        if (temp.existsSync()) {
+          temp.deleteSync(recursive: true);
+        }
+      });
+      final empty = _buildProjectWithSurfaceCatalog(ProjectSurfaceCatalog());
+      final manifestPath = p.join(temp.path, 'project.json');
+      File(manifestPath).writeAsStringSync(
+        const JsonEncoder.withIndent('  ').convert(empty.toJson()),
+      );
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: temp.path,
+          project: empty,
+          workspaceMode: EditorWorkspaceMode.surfaceStudio,
+        ),
+      );
+      await tester.pumpAndSettle();
+      final idF = find.byKey(const ValueKey('atlas_draft_id'));
+      final nameF = find.byKey(const ValueKey('atlas_draft_name'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      await tester.ensureVisible(idF);
+      await tester.enterText(idF, 'lot65save');
+      await tester.enterText(nameF, 'N');
+      await tester.enterText(tsF, 't');
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_save_prep_catalog')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_save_prep_catalog')),
+      );
+      await tester.pumpAndSettle(const Duration(milliseconds: 200));
+      expect(
+        container.read(editorNotifierProvider).project!.surfaceCatalog.atlases
+            .length,
+        1,
+      );
+      var ok = false;
+      await tester.runAsync(() async {
+        ok = await container
+            .read(editorNotifierProvider.notifier)
+            .saveProjectManifest();
+      });
+      expect(ok, isTrue);
+      final onDisk = File(manifestPath).readAsStringSync();
+      final loaded = ProjectManifest.fromJson(
+        jsonDecode(onDisk) as Map<String, dynamic>,
+      );
+      expect(loaded.name, empty.name);
+      expect(loaded.surfaceCatalog.atlases.length, 1);
+      expect(loaded.surfaceCatalog.atlases.first.id, 'lot65save');
+    });
+
   });
 }
 
