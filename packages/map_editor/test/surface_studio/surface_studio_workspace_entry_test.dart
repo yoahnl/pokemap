@@ -104,6 +104,7 @@ void main() {
       expect(find.byType(SurfaceStudioPanel), findsOneWidget);
       expect(find.text('Catalogue Surface'), findsOneWidget);
       expect(find.text('Water Atlas'), findsOneWidget);
+      expect(find.text('Diagnostics Surface'), findsOneWidget);
     });
 
     testWidgets('EditorCanvasHost builds SurfaceStudioPanel in surface mode', (

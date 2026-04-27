@@ -2,7 +2,7 @@
 //
 // Consomme un [SurfaceStudioReadModel] déjà construit côté [map_core] : pas de
 // re-diagnostic, pas de mutation manifest, pas d’I/O. Les actions futures sont
-// désactivées ; les sections listées sont des placeholders pour les Lots 53+.
+// désactivées ; seul le placeholder « Actions auteur » reste pour un lot ultérieur.
 //
 // Style : aligné sur [EditorChrome] / îlots de l’éditeur (pas de Card Material
 // clair isolé) — cohérent avec World Explorer et le shell macOS.
@@ -14,6 +14,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../ui/shared/cupertino_editor_widgets.dart';
 import 'surface_studio_catalog_browser.dart';
+import 'surface_studio_diagnostics_view.dart';
 
 /// Accent produit Surface Studio (même base que la tuile World Explorer).
 const Color _surfaceStudioAccent = Color(0xFF2DD4BF);
@@ -31,11 +32,6 @@ class SurfaceStudioPanel extends StatelessWidget {
   static const String readOnlyBadgeText = 'Lecture seule';
   static const String productDescriptionText =
       'Préparez et contrôlez les surfaces animées du projet : eau, lave, glace, hautes herbes.';
-  static const String diagnosticsCleanText = 'Aucun diagnostic Surface';
-  static const String diagnosticsErrorsText = 'Erreurs Surface détectées';
-  static const String diagnosticsWarningsText =
-      'Avertissements Surface détectés';
-  static const String placeholderDiagnosticsTitle = 'Diagnostics';
   static const String placeholderActionsTitle = 'Actions auteur';
   static const String placeholderSoonText = 'Bientôt';
   static const String actionCreateAtlasLabel = 'Créer un atlas';
@@ -102,19 +98,13 @@ class SurfaceStudioPanel extends StatelessWidget {
           const SizedBox(height: 16),
           SurfaceStudioCatalogBrowser(readModel: readModel),
           const SizedBox(height: 16),
-          _DiagnosticsSummary(
-            readModel: readModel,
-          ),
+          SurfaceStudioDiagnosticsView(readModel: readModel),
           const SizedBox(height: 20),
           const _FutureActions(
             onCreateAtlas: null,
             onImportVertical: null,
           ),
           const SizedBox(height: 20),
-          const _SectionPlaceholder(
-            title: SurfaceStudioPanel.placeholderDiagnosticsTitle,
-          ),
-          const SizedBox(height: 10),
           const _SectionPlaceholder(
             title: SurfaceStudioPanel.placeholderActionsTitle,
           ),
@@ -291,86 +281,6 @@ class _StudioCard extends StatelessWidget {
         boxShadow: EditorChrome.sectionCardShadows(context),
       ),
       child: child,
-    );
-  }
-}
-
-class _DiagnosticsSummary extends StatelessWidget {
-  const _DiagnosticsSummary({
-    required this.readModel,
-  });
-
-  final SurfaceStudioReadModel readModel;
-
-  @override
-  Widget build(BuildContext context) {
-    final d = readModel.diagnostics;
-    final err = d.summary.errorCount;
-    final warn = d.summary.warningCount;
-
-    final children = <Widget>[];
-
-    if (d.isClean) {
-      children.add(
-        const Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            MacosIcon(
-              CupertinoIcons.check_mark_circled_solid,
-              color: EditorChrome.inspectorJoyCyan,
-              size: 18,
-            ),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                SurfaceStudioPanel.diagnosticsCleanText,
-                style: TextStyle(
-                  color: EditorChrome.inspectorJoyCyan,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  height: 1.3,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    } else {
-      if (readModel.hasErrors) {
-        children.add(
-          Text(
-            '$err — ${SurfaceStudioPanel.diagnosticsErrorsText}',
-            style: const TextStyle(
-              color: EditorChrome.inspectorJoyCoral,
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        );
-      }
-      if (readModel.hasWarnings) {
-        children.add(
-          Padding(
-            padding: EdgeInsets.only(top: readModel.hasErrors ? 8 : 0),
-            child: Text(
-              '$warn — ${SurfaceStudioPanel.diagnosticsWarningsText}',
-              style: const TextStyle(
-                color: EditorChrome.accentWarm,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        );
-      }
-    }
-
-    return _StudioCard(
-      padding: const EdgeInsets.all(14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: children,
-      ),
     );
   }
 }

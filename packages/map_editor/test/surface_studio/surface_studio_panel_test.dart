@@ -71,10 +71,11 @@ void main() {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: rm)),
       );
-      expect(
-        find.textContaining('Avertissements Surface détectés'),
-        findsOneWidget,
-      );
+      expect(find.text('Diagnostics Surface'), findsOneWidget);
+      // Atlas orphelin + animation non référencée par un preset (presets vides)
+      expect(find.textContaining('Avertissements : 2'), findsOneWidget);
+      expect(find.text('Atlas inutilisé'), findsOneWidget);
+      expect(find.text('Animation inutilisée'), findsOneWidget);
     });
 
     testWidgets('9. error state when preset animation missing', (tester) async {
@@ -83,8 +84,10 @@ void main() {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: rm)),
       );
+      expect(find.text('Diagnostics Surface'), findsOneWidget);
+      expect(find.textContaining('Erreurs : 1'), findsOneWidget);
       expect(
-        find.textContaining('Erreurs Surface détectées'),
+        find.text('Animation manquante dans un preset'),
         findsOneWidget,
       );
     });
@@ -122,7 +125,7 @@ void main() {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
       );
-      expect(find.text('Diagnostics'), findsWidgets);
+      expect(find.text('Diagnostics Surface'), findsOneWidget);
       expect(find.text('Actions auteur'), findsOneWidget);
     });
 
@@ -239,6 +242,44 @@ void main() {
         _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
       );
       expect(find.text('Surface Studio'), findsOneWidget);
+    });
+
+    testWidgets('25. Lot 55 — clean diagnostics view in panel', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      expect(find.text('Diagnostics Surface'), findsOneWidget);
+      expect(find.text('Aucun diagnostic Surface'), findsOneWidget);
+    });
+
+    testWidgets('26. Lot 55 — error diagnostics visible in panel',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _errorReadModel())),
+      );
+      expect(find.text('Diagnostics Surface'), findsOneWidget);
+      expect(find.text('Erreurs'), findsOneWidget);
+    });
+
+    testWidgets('27. Lot 55 — browser and diagnostics cohabit (minimal cat)',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      expect(find.text('Catalogue Surface'), findsOneWidget);
+      expect(find.text('Diagnostics Surface'), findsOneWidget);
+      expect(find.text('Water Atlas'), findsOneWidget);
+    });
+
+    testWidgets('30. Lot 55 — surfaceCatalog unchanged after panel pump',
+        (tester) async {
+      final cat = _minimalWaterCatalog();
+      final manifest = _manifest(cat);
+      final before = manifest.surfaceCatalog;
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanelFromManifest(manifest: manifest)),
+      );
+      expect(identical(manifest.surfaceCatalog, before), isTrue);
     });
   });
 }
