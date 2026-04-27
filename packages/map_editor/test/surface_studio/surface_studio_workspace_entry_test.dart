@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/surface_studio/surface_studio_atlas_authoring_prep.dart';
 import 'package:map_editor/src/features/surface_studio/surface_studio_panel.dart';
@@ -286,6 +287,60 @@ void main() {
       expect(find.textContaining('SurfaceStudioReadModel'), findsNothing);
       expect(
           find.textContaining('SurfaceVariantAnimationRefSet'), findsNothing);
+    });
+
+    testWidgets(
+        'Lot 64 — préparer sauvegarde : manifest en mémoire (notifier) sans disque',
+        (tester) async {
+      final empty = _buildProjectWithSurfaceCatalog(
+        ProjectSurfaceCatalog(),
+      );
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/surface_lot64',
+          project: empty,
+          workspaceMode: EditorWorkspaceMode.surfaceStudio,
+        ),
+      );
+      await tester.pumpAndSettle();
+      final idF = find.byKey(const ValueKey('atlas_draft_id'));
+      final nameF = find.byKey(const ValueKey('atlas_draft_name'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      await tester.ensureVisible(idF);
+      await tester.enterText(idF, 'shell64');
+      await tester.enterText(nameF, 'S');
+      await tester.enterText(tsF, 't');
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_save_prep_catalog')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_save_prep_catalog')),
+      );
+      await tester.pumpAndSettle(const Duration(milliseconds: 100));
+      final p = container.read(editorNotifierProvider).project;
+      expect(p, isNotNull);
+      expect(p!.surfaceCatalog.atlases.length, 1);
+      expect(p.surfaceCatalog.atlases.first.id, 'shell64');
+      expect(
+        find.text(SurfaceStudioPanel.manifestMemoryUpdatedNote),
+        findsOneWidget,
+      );
+      for (final s in <String>[
+        'Sauvegarder le projet',
+        'Projet sauvegardé',
+        'Save project',
+      ]) {
+        expect(find.text(s), findsNothing);
+      }
     });
   });
 }

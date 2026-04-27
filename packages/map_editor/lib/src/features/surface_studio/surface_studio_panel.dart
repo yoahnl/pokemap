@@ -73,6 +73,8 @@ class SurfaceStudioPanel extends StatefulWidget {
       'Sauvegarde non connectée dans ce contexte.';
   static const String savePrepNoDiskNote =
       'Aucune écriture disque ne sera effectuée par Surface Studio.';
+  static const String manifestMemoryUpdatedNote =
+      'Manifest projet mis à jour en mémoire — écriture disque non effectuée.';
 
   @override
   State<SurfaceStudioPanel> createState() => _SurfaceStudioPanelState();
@@ -94,10 +96,16 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
   void didUpdateWidget(covariant SurfaceStudioPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.readModel != oldWidget.readModel) {
+      final hadDirty = _workReadModel != oldWidget.readModel;
+      final absNow = widget.readModel ==
+          buildSurfaceStudioReadModelFromCatalog(_workReadModel.catalog);
+      final wasAbsorbed = hadDirty && absNow;
       setState(() {
         _workReadModel = widget.readModel;
         _selection = _selectionValidInReadModel(_workReadModel, _selection);
-        _saveFlowPrepNote = null;
+        _saveFlowPrepNote = wasAbsorbed
+            ? SurfaceStudioPanel.manifestMemoryUpdatedNote
+            : null;
       });
     }
   }
@@ -205,18 +213,6 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
                 ),
               ),
             ],
-            if (_saveFlowPrepNote != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                _saveFlowPrepNote!,
-                key: const ValueKey('surface_studio_save_prep_transmitted'),
-                style: TextStyle(
-                  color: _surfaceStudioAccent.withValues(alpha: 0.9),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
             const SizedBox(height: 6),
             CupertinoButton(
               key: const ValueKey('surface_studio_reset_work_catalog'),
@@ -230,6 +226,18 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
                 });
               },
               child: const Text('Réinitialiser le catalogue de travail'),
+            ),
+          ],
+          if (_saveFlowPrepNote != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              _saveFlowPrepNote!,
+              key: const ValueKey('surface_studio_save_prep_transmitted'),
+              style: TextStyle(
+                color: _surfaceStudioAccent.withValues(alpha: 0.9),
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ],
           const SizedBox(height: 20),
@@ -578,18 +586,52 @@ class _SectionPlaceholder extends StatelessWidget {
 }
 
 /// Adaptateur : construit le read model **sans** I/O à partir d’un [ProjectManifest].
-class SurfaceStudioPanelFromManifest extends StatelessWidget {
+class SurfaceStudioPanelFromManifest extends StatefulWidget {
   const SurfaceStudioPanelFromManifest({
     super.key,
     required this.manifest,
+    this.onProjectManifestChanged,
   });
 
   final ProjectManifest manifest;
+  final ValueChanged<ProjectManifest>? onProjectManifestChanged;
+
+  @override
+  State<SurfaceStudioPanelFromManifest> createState() =>
+      _SurfaceStudioPanelFromManifestState();
+}
+
+class _SurfaceStudioPanelFromManifestState
+    extends State<SurfaceStudioPanelFromManifest> {
+  late ProjectManifest _manifest;
+
+  @override
+  void initState() {
+    super.initState();
+    _manifest = widget.manifest;
+  }
+
+  @override
+  void didUpdateWidget(covariant SurfaceStudioPanelFromManifest oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.manifest != oldWidget.manifest) {
+      setState(() {
+        _manifest = widget.manifest;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return SurfaceStudioPanel(
-      readModel: buildSurfaceStudioReadModel(manifest),
+      readModel: buildSurfaceStudioReadModel(_manifest),
+      onSurfaceCatalogSaveRequested: (c) {
+        final n = replaceProjectManifestSurfaceCatalog(_manifest, c);
+        setState(() {
+          _manifest = n;
+        });
+        widget.onProjectManifestChanged?.call(n);
+      },
     );
   }
 }

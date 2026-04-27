@@ -1229,6 +1229,187 @@ void main() {
       );
     });
   });
+
+  group('SurfaceStudioPanel (Lot 64)', () {
+    testWidgets(
+        '64.1 — FromManifest : préparer sauvegarde, manifest mémoire, dirty off',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioPanelFromManifest(
+            manifest: _manifest(ProjectSurfaceCatalog()),
+          ),
+        ),
+      );
+      final idF = find.byKey(const ValueKey('atlas_draft_id'));
+      final nameF = find.byKey(const ValueKey('atlas_draft_name'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      await tester.ensureVisible(idF);
+      await tester.enterText(idF, 'lot64-a');
+      await tester.enterText(nameF, 'L');
+      await tester.enterText(tsF, 't');
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.pump();
+      expect(
+        find.text(SurfaceStudioPanel.workCatalogDirtyStateText),
+        findsOneWidget,
+      );
+      final prep = find.byKey(const ValueKey('surface_studio_save_prep_catalog'));
+      await tester.ensureVisible(prep);
+      await tester.tap(prep);
+      await tester.pump();
+      expect(
+        find.text(SurfaceStudioPanel.workCatalogDirtyStateText),
+        findsNothing,
+      );
+      expect(
+        find.text(SurfaceStudioPanel.manifestMemoryUpdatedNote),
+        findsOneWidget,
+      );
+      expect(find.text('lot64-a'), findsWidgets);
+      final counters = find.byKey(const ValueKey('surface_studio_header_counters'));
+      expect(
+        find.descendant(of: counters, matching: find.text('1')),
+        findsWidgets,
+      );
+    });
+
+    testWidgets('64.2 — onProjectManifestChanged une fois, atlas dans manifest',
+        (tester) async {
+      var calls = 0;
+      late ProjectManifest out;
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioPanelFromManifest(
+            manifest: _manifest(
+              ProjectSurfaceCatalog(),
+            ),
+            onProjectManifestChanged: (m) {
+              calls++;
+              out = m;
+            },
+          ),
+        ),
+      );
+      final idF = find.byKey(const ValueKey('atlas_draft_id'));
+      final nameF = find.byKey(const ValueKey('atlas_draft_name'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      await tester.ensureVisible(idF);
+      await tester.enterText(idF, 'cb-one');
+      await tester.enterText(nameF, 'C');
+      await tester.enterText(tsF, 't');
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_save_prep_catalog')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_save_prep_catalog')),
+      );
+      await tester.pump();
+      expect(calls, 1);
+      expect(out.surfaceCatalog.atlases.length, 1);
+      expect(out.surfaceCatalog.atlases.first.id, 'cb-one');
+      expect(out.name, 'Test');
+    });
+
+    testWidgets('64.3 — onProjectManifestChanged absent : pas d’exception',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioPanelFromManifest(
+            manifest: _manifest(ProjectSurfaceCatalog()),
+          ),
+        ),
+      );
+      final idF = find.byKey(const ValueKey('atlas_draft_id'));
+      final nameF = find.byKey(const ValueKey('atlas_draft_name'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      await tester.ensureVisible(idF);
+      await tester.enterText(idF, 'nccb64');
+      await tester.enterText(nameF, 'N');
+      await tester.enterText(tsF, 't');
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_save_prep_catalog')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_save_prep_catalog')),
+      );
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets(
+        '64.4 — changement de manifest parent externe (FromManifest) : resync',
+        (tester) async {
+      const extKey = ValueKey<String>('lot64_from_manifest');
+      final a = _manifest(ProjectSurfaceCatalog());
+      final b = _manifest(
+        _minimalWaterCatalog(),
+      );
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioPanelFromManifest(
+            key: extKey,
+            manifest: a,
+          ),
+        ),
+      );
+      final idF = find.byKey(const ValueKey('atlas_draft_id'));
+      final nameF = find.byKey(const ValueKey('atlas_draft_name'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      await tester.ensureVisible(idF);
+      await tester.enterText(idF, 'orph');
+      await tester.enterText(nameF, 'O');
+      await tester.enterText(tsF, 't');
+      await tester.pump();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      );
+      await tester.pump();
+      expect(
+        find.text(SurfaceStudioPanel.workCatalogDirtyStateText),
+        findsOneWidget,
+      );
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioPanelFromManifest(
+            key: extKey,
+            manifest: b,
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(
+        find.text(SurfaceStudioPanel.workCatalogDirtyStateText),
+        findsNothing,
+      );
+      expect(find.text('Water Atlas'), findsOneWidget);
+    });
+  });
 }
 
 Widget _wrap(Widget child) {

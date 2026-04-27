@@ -30,7 +30,14 @@ class EditorCanvasHost extends ConsumerWidget {
           ? const Center(
               child: Text('Open a project to browse Surface Studio.'),
             )
-          : SurfaceStudioPanelFromManifest(manifest: project),
+          : SurfaceStudioPanelFromManifest(
+              manifest: project,
+              onProjectManifestChanged: (m) {
+                ref
+                    .read(editorNotifierProvider.notifier)
+                    .applyInMemoryProjectManifest(m);
+              },
+            ),
       EditorWorkspaceMode.globalStory ||
       EditorWorkspaceMode.step ||
       EditorWorkspaceMode.cutscene ||

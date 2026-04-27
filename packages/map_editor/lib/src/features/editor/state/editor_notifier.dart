@@ -409,6 +409,10 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  void applyInMemoryProjectManifest(ProjectManifest manifest) {
+    state = state.copyWith(project: manifest);
+  }
+
   Future<void> saveActiveMap() async {
     endMapStroke();
     final map = state.activeMap;
