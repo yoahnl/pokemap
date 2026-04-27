@@ -1,0 +1,55 @@
+{
+  "atlases": [
+    {
+      "id": "water-atlas",
+      "name": "Water Atlas",
+      "tilesetId": "nature-tileset",
+      "geometry": {
+        "tileSize": {
+          "width": 32,
+          "height": 32
+        },
+        "gridSize": {
+          "columns": 23,
+          "rows": 32
+        },
+        "layout": "columnsAreVariantsRowsAreFrames"
+      },
+      "sortOrder": 0
+    }
+  ],
+  "animations": [
+    {
+      "id": "water-isolated-loop",
+      "name": "Water Isolated Loop",
+      "timeline": {
+        "frames": [
+          {
+            "tileRef": {
+              "atlasId": "water-atlas",
+              "column": 0,
+              "row": 0
+            },
+            "durationMs": 120
+          }
+        ]
+      },
+      "sortOrder": 0
+    }
+  ],
+  "presets": [
+    {
+      "id": "water-surface",
+      "name": "Water Surface",
+      "variantAnimations": {
+        "refs": [
+          {
+            "role": "isolated",
+            "animationId": "water-isolated-loop"
+          }
+        ]
+      },
+      "sortOrder": 0
+    }
+  ]
+}

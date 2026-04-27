@@ -1,0 +1,75 @@
+{
+  "atlases": [
+    {
+      "id": "water-atlas",
+      "name": "Water Atlas",
+      "tilesetId": "nature-tileset",
+      "geometry": {
+        "tileSize": {
+          "width": 32,
+          "height": 32
+        },
+        "gridSize": {
+          "columns": 23,
+          "rows": 32
+        },
+        "layout": "columnsAreVariantsRowsAreFrames"
+      },
+      "sortOrder": 10,
+      "categoryId": "animated-surfaces"
+    }
+  ],
+  "animations": [
+    {
+      "id": "water-loop",
+      "name": "Water Loop",
+      "timeline": {
+        "frames": [
+          {
+            "tileRef": {
+              "atlasId": "water-atlas",
+              "column": 0,
+              "row": 0
+            },
+            "durationMs": 120
+          },
+          {
+            "tileRef": {
+              "atlasId": "water-atlas",
+              "column": 0,
+              "row": 1
+            },
+            "durationMs": 120
+          }
+        ]
+      },
+      "syncGroupId": "water",
+      "categoryId": "animated-surfaces",
+      "sortOrder": 20
+    }
+  ],
+  "presets": [
+    {
+      "id": "water-surface",
+      "name": "Water Surface",
+      "variantAnimations": {
+        "refs": [
+          {
+            "role": "cross",
+            "animationId": "water-loop"
+          },
+          {
+            "role": "isolated",
+            "animationId": "water-loop"
+          },
+          {
+            "role": "horizontal",
+            "animationId": "water-loop"
+          }
+        ]
+      },
+      "categoryId": "animated-surfaces",
+      "sortOrder": 30
+    }
+  ]
+}
