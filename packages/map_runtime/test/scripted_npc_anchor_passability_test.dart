@@ -186,7 +186,7 @@ void main() {
             cells: waterCells,
           ),
         ],
-        project: const ProjectManifest(
+        project: ProjectManifest(
           name: 'project',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[
@@ -196,6 +196,7 @@ void main() {
               relativePath: 'tileset.png',
             ),
           ],
+          surfaceCatalog: ProjectSurfaceCatalog(),
           pathPresets: <ProjectPathPreset>[
             ProjectPathPreset(
               id: 'water_path',

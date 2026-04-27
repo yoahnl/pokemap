@@ -71,7 +71,7 @@ void main() {
 
 RuntimeMapBundle _bundle() {
   return RuntimeMapBundle(
-    manifest: const ProjectManifest(
+    manifest: ProjectManifest(
       name: 'Whiteout Lite Runtime Test',
       maps: <ProjectMapEntry>[
         ProjectMapEntry(
@@ -81,6 +81,7 @@ RuntimeMapBundle _bundle() {
         ),
       ],
       tilesets: <ProjectTilesetEntry>[],
+      surfaceCatalog: ProjectSurfaceCatalog(),
     ),
     map: const MapData(
       id: 'test_field',

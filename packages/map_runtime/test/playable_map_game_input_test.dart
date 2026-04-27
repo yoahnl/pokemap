@@ -2207,13 +2207,15 @@ class _TestPlayableMapGame extends PlayableMapGame {
 
 RuntimeMapBundle _baseBundle() {
   return RuntimeMapBundle(
-    manifest: const ProjectManifest(
+    manifest: ProjectManifest(
       name: 'Test Project',
       maps: [
         ProjectMapEntry(
           id: 'test_map',
           name: 'Test Map',
           relativePath: 'maps/test_map.json',
+      ],
+      surfaceCatalog: ProjectSurfaceCatalog(),
         ),
       ],
       tilesets: [],
@@ -2441,6 +2443,7 @@ Future<String> _writeRuntimeProject(
     dialogues: dialogues,
     characters: characters,
     pokemon: pokemonConfig,
+    surfaceCatalog: ProjectSurfaceCatalog(),
   );
   final mapsDir = Directory(p.join(root.path, 'maps'));
   await mapsDir.create(recursive: true);

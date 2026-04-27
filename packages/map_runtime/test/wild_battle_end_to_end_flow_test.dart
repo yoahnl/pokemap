@@ -1192,6 +1192,8 @@ Future<ProjectManifest> _writeProjectManifest(Directory projectRoot) async {
         id: 'field_map',
         name: 'Field Map',
         relativePath: 'maps/field_map.json',
+      ],
+      surfaceCatalog: ProjectSurfaceCatalog(),
       ),
     ],
     tilesets: <ProjectTilesetEntry>[],

@@ -62,6 +62,7 @@ void main() {
         tilesets: [],
         scripts: [scriptEntry],
         dialogues: [],
+        surfaceCatalog: ProjectSurfaceCatalog(),
       );
 
       var gameState = GameState(saveId: 'test-save');
@@ -297,6 +298,7 @@ void main() {
         tilesets: [],
         scripts: [],
         dialogues: [],
+        surfaceCatalog: ProjectSurfaceCatalog(),
       );
 
       expect(
@@ -320,6 +322,7 @@ void main() {
         name: 'Test Project',
         maps: [],
         tilesets: [],
+        surfaceCatalog: ProjectSurfaceCatalog(),
         scripts: [],
         dialogues: [dialogueEntry],
       );
@@ -361,6 +364,7 @@ void main() {
         tilesets: [],
         scripts: [],
         dialogues: [dialogueEntry],
+        surfaceCatalog: ProjectSurfaceCatalog(),
       );
 
       final resolved = resolveDialogue(
@@ -387,6 +391,7 @@ void main() {
       final manifest = ProjectManifest(
         name: 'Test Project',
         maps: [],
+        surfaceCatalog: ProjectSurfaceCatalog(),
         tilesets: [],
         scripts: [],
         dialogues: [],

@@ -46,6 +46,7 @@ void main() {
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
         scenarios: <ScenarioAsset>[scenario],
+        surfaceCatalog: ProjectSurfaceCatalog(),
       );
 
       final index = buildStepCompletionCutsceneIndex(manifest.scenarios);

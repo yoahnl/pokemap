@@ -71,7 +71,7 @@ void main() {
 
 RuntimeMapBundle _baseBundle() {
   return RuntimeMapBundle(
-    manifest: const ProjectManifest(
+    manifest: ProjectManifest(
       name: 'Test Project',
       maps: [
         ProjectMapEntry(
@@ -81,6 +81,7 @@ RuntimeMapBundle _baseBundle() {
         ),
       ],
       tilesets: [],
+      surfaceCatalog: ProjectSurfaceCatalog(),
     ),
     map: const MapData(
       id: 'test_map',

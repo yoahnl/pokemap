@@ -230,6 +230,8 @@ RuntimeMapBundle _runtimeBundle({
           id: 'field_map',
           name: 'Field Map',
           relativePath: 'maps/field_map.json',
+      ],
+      surfaceCatalog: ProjectSurfaceCatalog(),
           role: mapRole,
         ),
       ],

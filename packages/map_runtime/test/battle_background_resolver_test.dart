@@ -24,6 +24,7 @@ RuntimeMapBundle _runtimeBundle({
       ],
       tilesets: const <ProjectTilesetEntry>[],
       trainers: trainers,
+      surfaceCatalog: ProjectSurfaceCatalog(),
     ),
     map: MapData(
       id: 'field_map',
