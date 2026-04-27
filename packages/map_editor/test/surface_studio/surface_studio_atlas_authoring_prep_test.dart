@@ -58,7 +58,10 @@ void main() {
       );
       expect(find.text('Identifiant requis'), findsOneWidget);
       expect(find.text('Nom requis'), findsOneWidget);
-      expect(find.text('Identifiant tileset requis'), findsOneWidget);
+      expect(
+        find.text('Une source d’image (jeu d’images) est requise'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('taille tuile x non entier: erreur', (tester) async {
@@ -87,7 +90,7 @@ void main() {
       );
       final idF = find.byKey(const ValueKey('atlas_draft_id'));
       final nameF = find.byKey(const ValueKey('atlas_draft_name'));
-      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset_advanced'));
       final hF = find.byKey(const ValueKey('atlas_draft_tile_h'));
       final cF = find.byKey(const ValueKey('atlas_draft_cols'));
       final rF = find.byKey(const ValueKey('atlas_draft_rows'));
@@ -129,7 +132,7 @@ void main() {
       );
       final idF = find.byKey(const ValueKey('atlas_draft_id'));
       final nameF = find.byKey(const ValueKey('atlas_draft_name'));
-      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset_advanced'));
       final sF = find.byKey(const ValueKey('atlas_draft_sort'));
       await tester.enterText(idF, 'n');
       await tester.enterText(nameF, 'N');
@@ -153,7 +156,7 @@ void main() {
       );
       final idF = find.byKey(const ValueKey('atlas_draft_id'));
       final nameF = find.byKey(const ValueKey('atlas_draft_name'));
-      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset_advanced'));
       await tester.enterText(idF, 'water-atlas');
       await tester.enterText(nameF, 'X');
       await tester.enterText(tsF, 't');
@@ -191,7 +194,7 @@ void main() {
         (tester.widget(nameF) as TextField).controller!.text,
         'Water Atlas',
       );
-      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset_advanced'));
       expect(
         (tester.widget(tsF) as TextField).controller!.text,
         'nature-tileset',
@@ -287,7 +290,7 @@ void main() {
       );
       final idF = find.byKey(const ValueKey('atlas_draft_id'));
       final nameF = find.byKey(const ValueKey('atlas_draft_name'));
-      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset_advanced'));
       await tester.enterText(idF, 'new-a');
       await tester.enterText(nameF, 'New');
       await tester.enterText(tsF, 'ts');
@@ -314,14 +317,16 @@ void main() {
       );
       final idF = find.byKey(const ValueKey('atlas_draft_id'));
       final nameF = find.byKey(const ValueKey('atlas_draft_name'));
-      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset_advanced'));
       await tester.enterText(idF, 'a-new');
       await tester.enterText(nameF, 'My');
       await tester.enterText(tsF, 'tset');
       await tester.pump();
-      await tester.tap(
-        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+      final createBtn = find.byKey(
+        const ValueKey('surface_studio_create_atlas_work_catalog'),
       );
+      await tester.ensureVisible(createBtn);
+      await tester.tap(createBtn);
       await tester.pump();
       expect(out, hasLength(1));
       final c = out.single;
@@ -382,10 +387,12 @@ void main() {
           ),
         ),
       );
+      final idF = find.byKey(const ValueKey('atlas_draft_id'));
       final nameF = find.byKey(const ValueKey('atlas_draft_name'));
-      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset_advanced'));
       await tester.enterText(nameF, 'N');
       await tester.enterText(tsF, 't');
+      await tester.enterText(idF, '');
       await tester.pump();
       final create = find.descendant(
         of: find.byKey(kSurfaceStudioAtlasAuthoringPrepKey),
@@ -409,7 +416,7 @@ void main() {
       );
       final idF = find.byKey(const ValueKey('atlas_draft_id'));
       final nameF = find.byKey(const ValueKey('atlas_draft_name'));
-      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset_advanced'));
       await tester.enterText(idF, 'water-atlas');
       await tester.enterText(nameF, 'X');
       await tester.enterText(tsF, 't');
@@ -594,6 +601,68 @@ void main() {
       expect(find.textContaining('Changer l’id'), findsNothing);
       expect(find.textContaining('Renommer l’atlas'), findsNothing);
     });
+  });
+
+  group('SurfaceStudioAtlasAuthoringPrep (Lot 70)', () {
+    testWidgets(
+      'section image source, pas d’ancien label tileset principal, fallback',
+      (tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            SurfaceStudioAtlasAuthoringPrep(
+              readModel: _emptyReadModel(),
+              selection: const SurfaceStudioSelection.none(),
+            ),
+          ),
+        );
+        expect(
+          find.byKey(const ValueKey('surface_studio_atlas_image_source_section')),
+          findsOneWidget,
+        );
+        expect(find.text('Image source de l’atlas'), findsOneWidget);
+        expect(find.text('ID du jeu d’images (tileset)'), findsNothing);
+        expect(find.text('Options avancées'), findsOneWidget);
+        expect(
+          find.text('Identifiant technique du jeu d’images'),
+          findsOneWidget,
+        );
+        expect(
+          find.textContaining('Temporaire : ce champ sera remplacé'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets(
+      'tilesets projet : menu déroulant, pas de champ avancé tileset',
+      (tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            SurfaceStudioAtlasAuthoringPrep(
+              readModel: _emptyReadModel(),
+              selection: const SurfaceStudioSelection.none(),
+              projectTilesets: const [
+                ProjectTilesetEntry(
+                  id: 'nature',
+                  name: 'Nature',
+                  relativePath: 'art/nature.png',
+                  sortOrder: 0,
+                ),
+              ],
+            ),
+          ),
+        );
+        expect(
+          find.byKey(const ValueKey('surface_studio_atlas_tileset_picker')),
+          findsOneWidget,
+        );
+        expect(find.text('Choisir une image'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('atlas_draft_tileset_advanced')),
+          findsNothing,
+        );
+      },
+    );
   });
 }
 

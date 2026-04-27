@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../ui/shared/cupertino_editor_widgets.dart';
 import 'surface_studio_atlas_editing.dart';
+import 'surface_studio_atlas_source_picker.dart';
 import 'surface_studio_selection.dart';
 
 const ValueKey<String> kSurfaceStudioAtlasAuthoringPrepKey =
@@ -33,7 +34,7 @@ List<String> validateSurfaceStudioAtlasDraft({
     errors.add('Nom requis');
   }
   if (tilesetId.isEmpty) {
-    errors.add('Identifiant tileset requis');
+    errors.add('Une source d’image (jeu d’images) est requise');
   }
 
   int? tw = int.tryParse(tileWidthRaw.trim());
@@ -196,12 +197,14 @@ class SurfaceStudioAtlasAuthoringPrep extends StatefulWidget {
     required this.selection,
     this.onSurfaceCatalogChanged,
     this.requestEditSignal = 0,
+    this.projectTilesets,
   });
 
   final SurfaceStudioReadModel readModel;
   final SurfaceStudioSelection selection;
   final ValueChanged<ProjectSurfaceCatalog>? onSurfaceCatalogChanged;
   final int requestEditSignal;
+  final List<ProjectTilesetEntry>? projectTilesets;
 
   @override
   State<SurfaceStudioAtlasAuthoringPrep> createState() =>
@@ -225,6 +228,7 @@ class _SurfaceStudioAtlasAuthoringPrepState
   String? _creationNote;
   bool _isEditMode = false;
   String? _editingAtlasId;
+  bool _userEditedId = false;
 
   @override
   void dispose() {
@@ -255,6 +259,7 @@ class _SurfaceStudioAtlasAuthoringPrepState
       _creationNote = null;
       _isEditMode = false;
       _editingAtlasId = null;
+      _userEditedId = false;
     });
   }
 
@@ -269,6 +274,7 @@ class _SurfaceStudioAtlasAuthoringPrepState
         setState(() {
           _isEditMode = false;
           _editingAtlasId = null;
+          _userEditedId = false;
           _id.clear();
           _name.clear();
           _tilesetId.clear();
@@ -302,6 +308,7 @@ class _SurfaceStudioAtlasAuthoringPrepState
     setState(() {
       _isEditMode = false;
       _editingAtlasId = null;
+      _userEditedId = false;
       _id.clear();
       _name.clear();
       _tilesetId.clear();
@@ -333,6 +340,7 @@ class _SurfaceStudioAtlasAuthoringPrepState
     }
     setState(() {
       _isEditMode = true;
+      _userEditedId = true;
       _editingAtlasId = row!.atlas.id;
       _id.text = row.atlas.id;
       _name.text = row.atlas.name;
@@ -366,6 +374,7 @@ class _SurfaceStudioAtlasAuthoringPrepState
     setState(() {
       _isEditMode = false;
       _editingAtlasId = null;
+      _userEditedId = true;
       _id.text = row!.atlas.id;
       _name.text = row.atlas.name;
       _tilesetId.text = row.atlas.tilesetId;
@@ -557,6 +566,14 @@ class _SurfaceStudioAtlasAuthoringPrepState
       layout: _layout,
     );
 
+    final rawTilesets = widget.projectTilesets;
+    final sortedTilesets = sortedTilesetChoices(
+      rawTilesets == null
+          ? const <ProjectTilesetEntry>[]
+          : List<ProjectTilesetEntry>.from(rawTilesets),
+    );
+    final hasImagePicker = sortedTilesets.isNotEmpty;
+
     final sel = widget.selection;
     String? contextNote;
     if (sel.isAnimation || sel.isPreset) {
@@ -709,44 +726,63 @@ class _SurfaceStudioAtlasAuthoringPrepState
             ),
           ],
           const SizedBox(height: 6),
-          _formGroupTitle('Identité', label),
-          const SizedBox(height: 4),
+          SurfaceStudioAtlasImageSourceBlock(
+            hasPicker: hasImagePicker,
+            sortedTilesets: sortedTilesets,
+            selectedTilesetId: _tilesetId.text.trim().isEmpty
+                ? null
+                : _tilesetId.text.trim(),
+            onSelectTilesetId: (v) {
+              setState(() {
+                _tilesetId.text = v ?? '';
+              });
+            },
+            label: label,
+            subtle: subtle,
+          ),
+          const SizedBox(height: 10),
+          material.TextField(
+            key: const ValueKey('atlas_draft_name'),
+            controller: _name,
+            onChanged: (_) {
+              if (!_isEditMode && !_userEditedId) {
+                final t = _name.text;
+                if (t.trim().isEmpty) {
+                  _id.clear();
+                } else {
+                  _id.text = suggestInternalAtlasIdFromName(t);
+                }
+              }
+              setState(() {});
+            },
+            style: TextStyle(color: label, fontSize: 13),
+            decoration: const material.InputDecoration(
+              labelText: 'Nom affiché',
+              isDense: true,
+            ),
+          ),
+          const SizedBox(height: 5),
           material.TextField(
             key: const ValueKey('atlas_draft_id'),
             controller: _id,
             readOnly: _isEditMode,
-            onChanged: (_) => setState(() {}),
+            onChanged: (_) {
+              _userEditedId = true;
+              setState(() {});
+            },
             style: TextStyle(color: label, fontSize: 13),
             decoration: material.InputDecoration(
-              labelText: 'Identifiant',
+              labelText: 'Identifiant interne',
               isDense: true,
-              helperText: _isEditMode ? 'ID verrouillé pour préserver les références' : null,
+              helperText: _isEditMode
+                  ? 'ID verrouillé pour préserver les références'
+                  : (_userEditedId
+                      ? null
+                      : 'Identifiant interne proposé à partir du nom'),
             ),
           ),
-          const SizedBox(height: 5),
-          material.TextField(
-            key: const ValueKey('atlas_draft_name'),
-            controller: _name,
-            onChanged: (_) => setState(() {}),
-            style: TextStyle(color: label, fontSize: 13),
-            decoration: const material.InputDecoration(
-              labelText: 'Nom',
-              isDense: true,
-            ),
-          ),
-          const SizedBox(height: 5),
-          material.TextField(
-            key: const ValueKey('atlas_draft_tileset'),
-            controller: _tilesetId,
-            onChanged: (_) => setState(() {}),
-            style: TextStyle(color: label, fontSize: 13),
-            decoration: const material.InputDecoration(
-              labelText: 'ID du jeu d’images (tileset)',
-              isDense: true,
-            ),
-          ),
-          const SizedBox(height: 6),
-          _formGroupTitle('Grille', label),
+          const SizedBox(height: 8),
+          _formGroupTitle('Grille de l’image', label),
           const SizedBox(height: 4),
           Row(
             children: [
@@ -842,9 +878,24 @@ class _SurfaceStudioAtlasAuthoringPrepState
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          _formGroupTitle('Métadonnées', label),
+          const SizedBox(height: 8),
+          _formGroupTitle('Options avancées', label),
           const SizedBox(height: 4),
+          if (!hasImagePicker) ...[
+            material.TextField(
+              key: const ValueKey('atlas_draft_tileset_advanced'),
+              controller: _tilesetId,
+              onChanged: (_) => setState(() {}),
+              style: TextStyle(color: label, fontSize: 13),
+              decoration: const material.InputDecoration(
+                labelText: 'Identifiant technique du jeu d’images',
+                helperText:
+                    'Temporaire : ce champ sera remplacé par un sélecteur d’image.',
+                isDense: true,
+              ),
+            ),
+            const SizedBox(height: 6),
+          ],
           material.TextField(
             key: const ValueKey('atlas_draft_category'),
             controller: _categoryId,

@@ -52,11 +52,13 @@ class SurfaceStudioPanel extends StatefulWidget {
     required this.readModel,
     this.onSurfaceCatalogSaveRequested,
     this.onRequestProjectSave,
+    this.projectTilesets,
   });
 
   final SurfaceStudioReadModel readModel;
   final ValueChanged<ProjectSurfaceCatalog>? onSurfaceCatalogSaveRequested;
   final Future<bool> Function()? onRequestProjectSave;
+  final List<ProjectTilesetEntry>? projectTilesets;
 
   static const String titleText = 'Surface Studio';
   static const String readOnlyBadgeText = 'Lecture seule';
@@ -232,6 +234,7 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
       readModel: _workReadModel,
       selection: _selection,
       requestEditSignal: _atlasEditSignal,
+      projectTilesets: widget.projectTilesets,
       onSurfaceCatalogChanged: (cat) {
         setState(() {
           _saveFlowPrepNote = null;
@@ -928,6 +931,7 @@ class _SurfaceStudioPanelFromManifestState
   Widget build(BuildContext context) {
     return SurfaceStudioPanel(
       readModel: buildSurfaceStudioReadModel(_manifest),
+      projectTilesets: _manifest.tilesets,
       onSurfaceCatalogSaveRequested: (c) {
         final n = replaceProjectManifestSurfaceCatalog(_manifest, c);
         setState(() {

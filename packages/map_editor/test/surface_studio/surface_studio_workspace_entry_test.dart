@@ -312,7 +312,7 @@ void main() {
       await tester.pumpAndSettle();
       final idF = find.byKey(const ValueKey('atlas_draft_id'));
       final nameF = find.byKey(const ValueKey('atlas_draft_name'));
-      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset_advanced'));
       await tester.ensureVisible(idF);
       await tester.enterText(idF, 'shell64');
       await tester.enterText(nameF, 'S');
@@ -374,7 +374,7 @@ void main() {
       await tester.pumpAndSettle();
       final idF = find.byKey(const ValueKey('atlas_draft_id'));
       final nameF = find.byKey(const ValueKey('atlas_draft_name'));
-      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset_advanced'));
       await tester.ensureVisible(idF);
       await tester.enterText(idF, 'lot65a');
       await tester.enterText(nameF, 'N');
@@ -479,7 +479,7 @@ void main() {
       await tester.pumpAndSettle();
       final idF = find.byKey(const ValueKey('atlas_draft_id'));
       final nameF = find.byKey(const ValueKey('atlas_draft_name'));
-      final tsF = find.byKey(const ValueKey('atlas_draft_tileset'));
+      final tsF = find.byKey(const ValueKey('atlas_draft_tileset_advanced'));
       await tester.ensureVisible(idF);
       await tester.enterText(idF, 'lot65save');
       await tester.enterText(nameF, 'N');
