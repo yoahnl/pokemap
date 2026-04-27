@@ -2,6 +2,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' as material;
 import 'package:map_core/map_core.dart';
 
+import '../../ui/shared/cupertino_editor_widgets.dart';
+
 String suggestInternalAtlasIdFromName(String name) {
   var s = name.trim().toLowerCase();
   s = s.replaceAll(RegExp(r'[àáâäã]'), 'a');
@@ -76,6 +78,10 @@ class SurfaceStudioAtlasImageSourceBlock extends StatelessWidget {
               key: const ValueKey('surface_studio_atlas_tileset_picker'),
               isExpanded: true,
               value: _valueForDropdown,
+              style: TextStyle(color: label, fontSize: 13),
+              iconEnabledColor: label,
+              iconDisabledColor: subtle,
+              dropdownColor: EditorChrome.elevatedPanelBackground(context),
               hint: Text(
                 'Choisir une image',
                 style: TextStyle(color: subtle, fontSize: 13),

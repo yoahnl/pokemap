@@ -609,9 +609,11 @@ class _SurfaceStudioAtlasAuthoringPrepState
           ),
           boxShadow: EditorChrome.sectionCardShadows(context),
         ),
-        child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+        child: material.Theme(
+          data: _surfaceStudioAuthoringMaterialTheme(context, label, subtle),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
           Text(
             'Préparation atlas',
             key: const ValueKey('surface_studio_authoring_main_title'),
@@ -857,6 +859,9 @@ class _SurfaceStudioAtlasAuthoringPrepState
                 child: material.DropdownButton<SurfaceAtlasLayout>(
                   isExpanded: true,
                   value: _layout,
+                  style: TextStyle(color: label, fontSize: 12),
+                  iconEnabledColor: label,
+                  dropdownColor: EditorChrome.elevatedPanelBackground(context),
                   items: SurfaceAtlasLayout.values
                       .map(
                         (e) => material.DropdownMenuItem(
@@ -973,10 +978,34 @@ class _SurfaceStudioAtlasAuthoringPrepState
             ),
           ],
         ],
+          ),
+        ),
       ),
+    );
+  }
+}
+
+material.ThemeData _surfaceStudioAuthoringMaterialTheme(
+  BuildContext context,
+  Color label,
+  Color subtle,
+) {
+  final base = material.Theme.of(context);
+  final surface = EditorChrome.elevatedPanelBackground(context);
+  return base.copyWith(
+    colorScheme: base.colorScheme.copyWith(
+      surface: surface,
+      onSurface: label,
+      onSurfaceVariant: subtle,
+    ),
+    inputDecorationTheme: material.InputDecorationTheme(
+      isDense: true,
+      labelStyle: TextStyle(color: label, fontSize: 13),
+      floatingLabelStyle: TextStyle(color: label, fontSize: 12),
+      hintStyle: TextStyle(color: subtle, fontSize: 12),
+      helperStyle: TextStyle(color: subtle, fontSize: 11),
     ),
   );
-  }
 }
 
 Widget _formGroupTitle(String t, Color label) {
