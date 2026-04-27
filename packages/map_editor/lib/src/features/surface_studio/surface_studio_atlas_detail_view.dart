@@ -9,6 +9,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../ui/shared/cupertino_editor_widgets.dart';
+import 'surface_studio_selection.dart';
 
 /// Textes visibles (aucun nom de type de la couche domaine dans l’UI).
 class SurfaceStudioAtlasDetailViewLabels {
@@ -30,6 +31,8 @@ class SurfaceStudioAtlasDetailViewLabels {
   static const String labelOrdre = 'Ordre';
   static const String labelUtilisation = 'Utilisation';
   static const String labelAnimationsUtilisatrices = 'Animations utilisatrices';
+
+  static const String badgeSelected = 'Atlas sélectionné';
 
   static const String categorieAucune = 'Aucune catégorie';
 
@@ -68,9 +71,16 @@ class SurfaceStudioAtlasDetailView extends StatelessWidget {
   const SurfaceStudioAtlasDetailView({
     super.key,
     required this.readModel,
+    this.selection = const SurfaceStudioSelection.none(),
+    this.onSelectionChanged,
   });
 
   final SurfaceStudioReadModel readModel;
+
+  /// État d’inspection local (panneau) ; ne notifie pas le catalogue.
+  final SurfaceStudioSelection selection;
+
+  final ValueChanged<SurfaceStudioSelection>? onSelectionChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -117,6 +127,12 @@ class SurfaceStudioAtlasDetailView extends StatelessWidget {
                 row: row,
                 label: label,
                 subtle: subtle,
+                selected: selection.matchesAtlas(row.id),
+                onSelect: onSelectionChanged == null
+                    ? null
+                    : () => onSelectionChanged!(
+                          SurfaceStudioSelection.atlas(row.id),
+                        ),
               ),
             ),
           ),
@@ -125,25 +141,43 @@ class SurfaceStudioAtlasDetailView extends StatelessWidget {
   }
 }
 
+const Color _kSelectionAccent = Color(0xFF2DD4BF);
+
 class _DetailCard extends StatelessWidget {
-  const _DetailCard({required this.child});
+  const _DetailCard({
+    required this.child,
+    this.selected = false,
+    this.onTap,
+  });
 
   final Widget child;
+  final bool selected;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final baseBg = EditorChrome.elevatedPanelBackground(context);
+    final rim = EditorChrome.editorIslandRim(context);
+    final box = Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: EditorChrome.elevatedPanelBackground(context),
+        color: selected ? Color.lerp(baseBg, _kSelectionAccent, 0.07)! : baseBg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: EditorChrome.editorIslandRim(context),
-          width: 1,
+          color: selected ? Color.lerp(rim, _kSelectionAccent, 0.45)! : rim,
+          width: selected ? 1.2 : 1,
         ),
         boxShadow: EditorChrome.sectionCardShadows(context),
       ),
       child: child,
+    );
+    if (onTap == null) {
+      return box;
+    }
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: box,
     );
   }
 }
@@ -181,19 +215,37 @@ class _AtlasFiche extends StatelessWidget {
     required this.row,
     required this.label,
     required this.subtle,
+    this.selected = false,
+    this.onSelect,
   });
 
   final SurfaceStudioAtlasReadModel row;
   final Color label;
   final Color subtle;
+  final bool selected;
+  final VoidCallback? onSelect;
 
   @override
   Widget build(BuildContext context) {
     final nAnim = row.usedByAnimationIds.length;
     return _DetailCard(
+      selected: selected,
+      onTap: onSelect,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (selected) ...[
+            const Text(
+              SurfaceStudioAtlasDetailViewLabels.badgeSelected,
+              style: TextStyle(
+                color: _kSelectionAccent,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.3,
+              ),
+            ),
+            const SizedBox(height: 6),
+          ],
           Text(
             row.name,
             style: TextStyle(

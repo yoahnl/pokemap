@@ -100,7 +100,8 @@ void main() {
       await tester.tap(find.byKey(const Key('surface-studio-workspace-entry')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Lecture seule'), findsOneWidget);
+      expect(find.text('Lecture seule'), findsNWidgets(2));
+      expect(find.text('Inspecteur Surface'), findsOneWidget);
       expect(find.byType(SurfaceStudioPanel), findsOneWidget);
       expect(find.text('Catalogue Surface'), findsOneWidget);
       expect(find.text('Atlas Surface'), findsOneWidget);
@@ -157,7 +158,7 @@ void main() {
       await tester.tap(find.byKey(const Key('surface-studio-workspace-entry')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Lecture seule'), findsOneWidget);
+      expect(find.text('Lecture seule'), findsNWidgets(2));
     });
 
     testWidgets('panel shows 1/1/1 from manifest when catalog is minimal', (
@@ -231,6 +232,23 @@ void main() {
       expect(find.textContaining('Sauvegarder Surface'), findsNothing);
       expect(find.textContaining('Enregistrer Surface'), findsNothing);
       expect(find.textContaining('Save Surface'), findsNothing);
+    });
+
+    testWidgets('Lot 59 — Inspecteur Surface visible en mode workspace', (
+      tester,
+    ) async {
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/surface_lot59_insp',
+          project: _buildProjectWithSurfaceCatalog(
+            _minimalCoherentSurfaceCatalog(),
+          ),
+          workspaceMode: EditorWorkspaceMode.surfaceStudio,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Inspecteur Surface'), findsOneWidget);
     });
 
     testWidgets('no internal type names in visible shell copy', (tester) async {

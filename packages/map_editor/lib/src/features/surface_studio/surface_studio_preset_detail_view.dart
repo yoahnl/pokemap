@@ -9,6 +9,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../ui/shared/cupertino_editor_widgets.dart';
+import 'surface_studio_selection.dart';
 
 /// Libellé français pour [SurfaceVariantRole] (affichage auteur, pas le nom d’énum brut).
 String surfaceStudioSurfaceVariantRoleLabel(SurfaceVariantRole role) {
@@ -78,6 +79,8 @@ class SurfaceStudioPresetDetailViewLabels {
   static const String couverturePartielle = 'Rôles standards incomplets';
   static const String aucuneAnimLiee = 'Aucune animation liée';
 
+  static const String badgeSelected = 'Preset sélectionné';
+
   static String variantesLigne(int n) {
     if (n <= 1) {
       return '1 variante';
@@ -101,9 +104,15 @@ class SurfaceStudioPresetDetailView extends StatelessWidget {
   const SurfaceStudioPresetDetailView({
     super.key,
     required this.readModel,
+    this.selection = const SurfaceStudioSelection.none(),
+    this.onSelectionChanged,
   });
 
   final SurfaceStudioReadModel readModel;
+
+  final SurfaceStudioSelection selection;
+
+  final ValueChanged<SurfaceStudioSelection>? onSelectionChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -150,6 +159,12 @@ class SurfaceStudioPresetDetailView extends StatelessWidget {
                 row: row,
                 label: label,
                 subtle: subtle,
+                selected: selection.matchesPreset(row.id),
+                onSelect: onSelectionChanged == null
+                    ? null
+                    : () => onSelectionChanged!(
+                          SurfaceStudioSelection.preset(row.id),
+                        ),
               ),
             ),
           ),
@@ -158,25 +173,43 @@ class SurfaceStudioPresetDetailView extends StatelessWidget {
   }
 }
 
+const Color _kSelectionAccent = Color(0xFF2DD4BF);
+
 class _DetailCard extends StatelessWidget {
-  const _DetailCard({required this.child});
+  const _DetailCard({
+    required this.child,
+    this.selected = false,
+    this.onTap,
+  });
 
   final Widget child;
+  final bool selected;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final baseBg = EditorChrome.elevatedPanelBackground(context);
+    final rim = EditorChrome.editorIslandRim(context);
+    final box = Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: EditorChrome.elevatedPanelBackground(context),
+        color: selected ? Color.lerp(baseBg, _kSelectionAccent, 0.07)! : baseBg,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: EditorChrome.editorIslandRim(context),
-          width: 1,
+          color: selected ? Color.lerp(rim, _kSelectionAccent, 0.45)! : rim,
+          width: selected ? 1.2 : 1,
         ),
         boxShadow: EditorChrome.sectionCardShadows(context),
       ),
       child: child,
+    );
+    if (onTap == null) {
+      return box;
+    }
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: box,
     );
   }
 }
@@ -214,11 +247,15 @@ class _PresetFiche extends StatelessWidget {
     required this.row,
     required this.label,
     required this.subtle,
+    this.selected = false,
+    this.onSelect,
   });
 
   final SurfaceStudioPresetReadModel row;
   final Color label;
   final Color subtle;
+  final bool selected;
+  final VoidCallback? onSelect;
 
   @override
   Widget build(BuildContext context) {
@@ -226,9 +263,23 @@ class _PresetFiche extends StatelessWidget {
     final nAnim = animIds.length;
     final roleLabels = row.roles.map(surfaceStudioSurfaceVariantRoleLabel);
     return _DetailCard(
+      selected: selected,
+      onTap: onSelect,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (selected) ...[
+            const Text(
+              SurfaceStudioPresetDetailViewLabels.badgeSelected,
+              style: TextStyle(
+                color: _kSelectionAccent,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.3,
+              ),
+            ),
+            const SizedBox(height: 6),
+          ],
           Text(
             row.name,
             style: TextStyle(

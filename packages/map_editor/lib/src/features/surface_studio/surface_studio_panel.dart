@@ -15,12 +15,15 @@ import 'package:map_core/map_core.dart';
 import '../../ui/shared/cupertino_editor_widgets.dart';
 import 'surface_studio_catalog_browser.dart';
 import 'surface_studio_diagnostics_view.dart';
+import 'surface_studio_selection.dart';
+import 'surface_studio_selection_inspector.dart';
+import 'surface_studio_selection_summary.dart';
 
 /// Accent produit Surface Studio (même base que la tuile World Explorer).
 const Color _surfaceStudioAccent = Color(0xFF2DD4BF);
 
 /// Panneau présentationnel **lecture seule** pour Surface Studio.
-class SurfaceStudioPanel extends StatelessWidget {
+class SurfaceStudioPanel extends StatefulWidget {
   const SurfaceStudioPanel({
     super.key,
     required this.readModel,
@@ -39,8 +42,16 @@ class SurfaceStudioPanel extends StatelessWidget {
       'Importer un atlas vertical';
 
   @override
+  State<SurfaceStudioPanel> createState() => _SurfaceStudioPanelState();
+}
+
+class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
+  /// Sélection d’inspection : locale au widget, jamais écrite dans le manifest.
+  SurfaceStudioSelection _selection = const SurfaceStudioSelection.none();
+
+  @override
   Widget build(BuildContext context) {
-    final s = readModel.summary;
+    final s = widget.readModel.summary;
     final label = EditorChrome.primaryLabel(context);
     final subtle = EditorChrome.subtleLabel(context);
 
@@ -56,7 +67,7 @@ class SurfaceStudioPanel extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  titleText,
+                  SurfaceStudioPanel.titleText,
                   style: TextStyle(
                     color: label,
                     fontSize: 22,
@@ -65,12 +76,12 @@ class SurfaceStudioPanel extends StatelessWidget {
                   ),
                 ),
               ),
-              const _ReadOnlyBadge(label: readOnlyBadgeText),
+              const _ReadOnlyBadge(label: SurfaceStudioPanel.readOnlyBadgeText),
             ],
           ),
           const SizedBox(height: 12),
           Text(
-            productDescriptionText,
+            SurfaceStudioPanel.productDescriptionText,
             style: TextStyle(
               color: subtle,
               fontSize: 13,
@@ -95,10 +106,23 @@ class SurfaceStudioPanel extends StatelessWidget {
             animations: s.animationCount,
             presets: s.presetCount,
           ),
+          const SizedBox(height: 12),
+          SurfaceStudioSelectionSummary(selection: _selection),
+          const SizedBox(height: 12),
+          SurfaceStudioSelectionInspector(
+            readModel: widget.readModel,
+            selection: _selection,
+          ),
+          const SizedBox(height: 12),
+          SurfaceStudioCatalogBrowser(
+            readModel: widget.readModel,
+            selection: _selection,
+            onSelectionChanged: (v) {
+              setState(() => _selection = v);
+            },
+          ),
           const SizedBox(height: 16),
-          SurfaceStudioCatalogBrowser(readModel: readModel),
-          const SizedBox(height: 16),
-          SurfaceStudioDiagnosticsView(readModel: readModel),
+          SurfaceStudioDiagnosticsView(readModel: widget.readModel),
           const SizedBox(height: 20),
           const _FutureActions(
             onCreateAtlas: null,

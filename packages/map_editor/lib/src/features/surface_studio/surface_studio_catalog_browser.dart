@@ -11,6 +11,7 @@ import '../../ui/shared/cupertino_editor_widgets.dart';
 import 'surface_studio_animation_detail_view.dart';
 import 'surface_studio_atlas_detail_view.dart';
 import 'surface_studio_preset_detail_view.dart';
+import 'surface_studio_selection.dart';
 
 /// Libellés visibles (aucun nom de type Dart interne).
 class SurfaceStudioCatalogBrowserLabels {
@@ -80,9 +81,16 @@ class SurfaceStudioCatalogBrowser extends StatelessWidget {
   const SurfaceStudioCatalogBrowser({
     super.key,
     required this.readModel,
+    this.selection = const SurfaceStudioSelection.none(),
+    this.onSelectionChanged,
   });
 
   final SurfaceStudioReadModel readModel;
+
+  /// Sélection d’inspection locale ; propagée aux fiches sans toucher au read model.
+  final SurfaceStudioSelection selection;
+
+  final ValueChanged<SurfaceStudioSelection>? onSelectionChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -122,11 +130,23 @@ class SurfaceStudioCatalogBrowser extends StatelessWidget {
           ),
           const SizedBox(height: 16),
         ],
-        SurfaceStudioAtlasDetailView(readModel: readModel),
+        SurfaceStudioAtlasDetailView(
+          readModel: readModel,
+          selection: selection,
+          onSelectionChanged: onSelectionChanged,
+        ),
         const SizedBox(height: 18),
-        SurfaceStudioAnimationDetailView(readModel: readModel),
+        SurfaceStudioAnimationDetailView(
+          readModel: readModel,
+          selection: selection,
+          onSelectionChanged: onSelectionChanged,
+        ),
         const SizedBox(height: 18),
-        SurfaceStudioPresetDetailView(readModel: readModel),
+        SurfaceStudioPresetDetailView(
+          readModel: readModel,
+          selection: selection,
+          onSelectionChanged: onSelectionChanged,
+        ),
       ],
     );
   }

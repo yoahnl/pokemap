@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/surface_studio/surface_studio_panel.dart';
+import 'package:map_editor/src/features/surface_studio/surface_studio_selection_inspector.dart';
 
 void main() {
   group('SurfaceStudioPanel (Lot 52)', () {
@@ -21,7 +22,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
       );
-      expect(find.text('Lecture seule'), findsOneWidget);
+      // Bandeau panneau + inspecteur (Lot 59).
+      expect(find.text('Lecture seule'), findsNWidgets(2));
     });
 
     testWidgets('3. three counters are zero for empty catalog', (tester) async {
@@ -287,6 +289,255 @@ void main() {
       expect(find.text('Animations Surface'), findsOneWidget);
       expect(find.text('Presets Surface'), findsOneWidget);
       expect(find.text('Diagnostics Surface'), findsOneWidget);
+    });
+
+    testWidgets('58.21 — Aucune sélection au départ (catalogue minimal)',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      expect(find.text('Aucune sélection'), findsOneWidget);
+    });
+
+    testWidgets('58.22 — sélection atlas après tap', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      await tester.ensureVisible(find.text('Water Atlas'));
+      await tester.tap(find.text('Water Atlas'));
+      await tester.pump();
+      expect(find.text('Atlas sélectionné'), findsWidgets);
+      expect(find.text('water-atlas'), findsWidgets);
+    });
+
+    testWidgets('58.23 — sélection animation après tap', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      await tester.ensureVisible(find.text('Water Isolated Loop'));
+      await tester.tap(find.text('Water Isolated Loop'));
+      await tester.pump();
+      expect(find.text('Animation sélectionnée'), findsWidgets);
+      expect(find.text('water-isolated-loop'), findsWidgets);
+    });
+
+    testWidgets('58.24 — sélection preset après tap', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      await tester.ensureVisible(find.text('Water Surface'));
+      await tester.tap(find.text('Water Surface'));
+      await tester.pump();
+      expect(find.text('Preset sélectionné'), findsWidgets);
+      expect(find.text('water-surface'), findsWidgets);
+    });
+
+    testWidgets('58.25 — changement de sélection remplace la précédente',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      await tester.ensureVisible(find.text('Water Atlas'));
+      await tester.tap(find.text('Water Atlas'));
+      await tester.pump();
+      await tester.ensureVisible(find.text('Water Isolated Loop'));
+      await tester.tap(find.text('Water Isolated Loop'));
+      await tester.pump();
+      expect(find.text('Animation sélectionnée'), findsWidgets);
+      final t = tester
+          .widgetList<Text>(find.byType(Text))
+          .map((e) => e.data ?? '')
+          .join('\n');
+      expect(t.contains('Atlas sélectionné'), isFalse);
+    });
+
+    testWidgets('58.26 — sélection ne mute pas surfaceCatalog', (tester) async {
+      final cat = _minimalWaterCatalog();
+      final manifest = _manifest(cat);
+      final before = manifest.surfaceCatalog;
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanelFromManifest(manifest: manifest)),
+      );
+      await tester.ensureVisible(find.text('Water Atlas'));
+      await tester.tap(find.text('Water Atlas'));
+      await tester.pump();
+      await tester.ensureVisible(find.text('Water Surface'));
+      await tester.tap(find.text('Water Surface'));
+      await tester.pump();
+      expect(identical(manifest.surfaceCatalog, before), isTrue);
+    });
+
+    testWidgets('58.27 — pas de TextField après sélections', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      await tester.ensureVisible(find.text('Water Atlas'));
+      await tester.tap(find.text('Water Atlas'));
+      await tester.pump();
+      expect(find.byType(TextField), findsNothing);
+    });
+
+    testWidgets('58.28 — pas de libellés édition/save actifs', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      await tester.ensureVisible(find.text('Water Atlas'));
+      await tester.tap(find.text('Water Atlas'));
+      await tester.pump();
+      for (final s in <String>[
+        'Sauvegarder',
+        'Enregistrer',
+        'Modifier',
+        'Supprimer',
+        'Save',
+        'Edit',
+        'Delete',
+      ]) {
+        expect(find.text(s), findsNothing);
+      }
+    });
+
+    testWidgets('59.20 — inspecteur none au départ', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      expect(find.text('Inspecteur Surface'), findsOneWidget);
+      expect(find.text('Aucune sélection à inspecter'), findsOneWidget);
+    });
+
+    testWidgets('59.21 — inspecteur atlas après tap', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      await tester.ensureVisible(find.text('Water Atlas'));
+      await tester.tap(find.text('Water Atlas'));
+      await tester.pump();
+      final insp = find.byKey(kSurfaceStudioSelectionInspectorKey);
+      expect(
+          find.descendant(of: insp, matching: find.text('Inspecteur Surface')),
+          findsOneWidget);
+      expect(
+        find.descendant(of: insp, matching: find.text('Atlas sélectionné')),
+        findsWidgets,
+      );
+      expect(
+        find.descendant(
+          of: insp,
+          matching: find.textContaining('Identifiant : water-atlas'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('59.22 — inspecteur animation après tap', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      await tester.ensureVisible(find.text('Water Isolated Loop'));
+      await tester.tap(find.text('Water Isolated Loop'));
+      await tester.pump();
+      final insp = find.byKey(kSurfaceStudioSelectionInspectorKey);
+      expect(
+        find.descendant(
+          of: insp,
+          matching: find.textContaining('Identifiant : water-isolated-loop'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('59.23 — inspecteur preset après tap', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      await tester.ensureVisible(find.text('Water Surface'));
+      await tester.tap(find.text('Water Surface'));
+      await tester.pump();
+      final insp = find.byKey(kSurfaceStudioSelectionInspectorKey);
+      expect(
+        find.descendant(
+          of: insp,
+          matching: find.textContaining('Identifiant : water-surface'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('59.24 — changement de sélection met l’inspecteur à jour',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      await tester.ensureVisible(find.text('Water Atlas'));
+      await tester.tap(find.text('Water Atlas'));
+      await tester.pump();
+      await tester.ensureVisible(find.text('Water Isolated Loop'));
+      await tester.tap(find.text('Water Isolated Loop'));
+      await tester.pump();
+      final insp = find.byKey(kSurfaceStudioSelectionInspectorKey);
+      expect(
+        find.descendant(
+          of: insp,
+          matching: find.textContaining('Identifiant : water-isolated-loop'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: insp,
+          matching: find.text('Atlas sélectionné'),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('59.25 — inspecteur ne mute pas le manifest', (tester) async {
+      final cat = _minimalWaterCatalog();
+      final manifest = _manifest(cat);
+      final before = manifest.surfaceCatalog;
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanelFromManifest(manifest: manifest)),
+      );
+      await tester.ensureVisible(find.text('Water Atlas'));
+      await tester.tap(find.text('Water Atlas'));
+      await tester.pump();
+      await tester.ensureVisible(find.text('Water Surface'));
+      await tester.tap(find.text('Water Surface'));
+      await tester.pump();
+      expect(identical(manifest.surfaceCatalog, before), isTrue);
+    });
+
+    testWidgets('59.26 — toujours aucun TextField après sélections', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      await tester.ensureVisible(find.text('Water Atlas'));
+      await tester.tap(find.text('Water Atlas'));
+      await tester.pump();
+      expect(find.byType(TextField), findsNothing);
+    });
+
+    testWidgets('59.27 — pas de libellés édition/save (Lot 59)',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+      await tester.ensureVisible(find.text('Water Surface'));
+      await tester.tap(find.text('Water Surface'));
+      await tester.pump();
+      for (final s in <String>[
+        'Sauvegarder',
+        'Enregistrer',
+        'Modifier',
+        'Supprimer',
+        'Save',
+        'Edit',
+        'Delete',
+      ]) {
+        expect(find.text(s), findsNothing);
+      }
     });
 
     testWidgets('30. Lot 55 — surfaceCatalog unchanged after panel pump',
