@@ -53,12 +53,16 @@ class SurfaceStudioPanel extends StatefulWidget {
     this.onSurfaceCatalogSaveRequested,
     this.onRequestProjectSave,
     this.projectTilesets,
+    this.projectRootPath,
   });
 
   final SurfaceStudioReadModel readModel;
   final ValueChanged<ProjectSurfaceCatalog>? onSurfaceCatalogSaveRequested;
   final Future<bool> Function()? onRequestProjectSave;
   final List<ProjectTilesetEntry>? projectTilesets;
+
+  /// Racine projet sur disque pour résoudre les chemins d’images tileset (aperçu Lot 72).
+  final String? projectRootPath;
 
   static const String titleText = 'Surface Studio';
   static const String readOnlyBadgeText = 'Lecture seule';
@@ -235,6 +239,7 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
       selection: _selection,
       requestEditSignal: _atlasEditSignal,
       projectTilesets: widget.projectTilesets,
+      projectRootPath: widget.projectRootPath,
       onSurfaceCatalogChanged: (cat) {
         setState(() {
           _saveFlowPrepNote = null;
@@ -896,11 +901,15 @@ class SurfaceStudioPanelFromManifest extends StatefulWidget {
     required this.manifest,
     this.onProjectManifestChanged,
     this.onRequestProjectSave,
+    this.projectRootPath,
   });
 
   final ProjectManifest manifest;
   final ValueChanged<ProjectManifest>? onProjectManifestChanged;
   final Future<bool> Function()? onRequestProjectSave;
+
+  /// Dossier projet ouvert (même source que l’éditeur) pour résoudre les fichiers image.
+  final String? projectRootPath;
 
   @override
   State<SurfaceStudioPanelFromManifest> createState() =>
@@ -932,6 +941,7 @@ class _SurfaceStudioPanelFromManifestState
     return SurfaceStudioPanel(
       readModel: buildSurfaceStudioReadModel(_manifest),
       projectTilesets: _manifest.tilesets,
+      projectRootPath: widget.projectRootPath,
       onSurfaceCatalogSaveRequested: (c) {
         final n = replaceProjectManifestSurfaceCatalog(_manifest, c);
         setState(() {

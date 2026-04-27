@@ -20,6 +20,9 @@ class EditorCanvasHost extends ConsumerWidget {
     final project = ref.watch(
       editorNotifierProvider.select((s) => s.project),
     );
+    final projectRootPath = ref.watch(
+      editorNotifierProvider.select((s) => s.projectRootPath),
+    );
 
     return switch (workspaceMode) {
       EditorWorkspaceMode.map => const MapCanvas(),
@@ -32,6 +35,7 @@ class EditorCanvasHost extends ConsumerWidget {
             )
           : SurfaceStudioPanelFromManifest(
               manifest: project,
+              projectRootPath: projectRootPath,
               onProjectManifestChanged: (m) {
                 ref
                     .read(editorNotifierProvider.notifier)

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/surface_studio/surface_studio_atlas_authoring_prep.dart';
 import 'package:map_editor/src/features/surface_studio/surface_studio_atlas_grid_preview.dart';
+import 'package:map_editor/src/features/surface_studio/surface_studio_atlas_image_preview.dart';
 import 'package:map_editor/src/features/surface_studio/surface_studio_selection.dart';
 
 void main() {
@@ -461,6 +462,8 @@ void main() {
       await tester.pump();
       expect(tester.widget<CupertinoButton>(create).onPressed, isNotNull);
       final beforeAtlas = rm.catalog.atlases.single;
+      await tester.ensureVisible(create);
+      await tester.pump();
       await tester.tap(create);
       await tester.pump();
       expect(out, hasLength(1));
@@ -666,6 +669,25 @@ void main() {
     );
   });
 
+  group('SurfaceStudioAtlasAuthoringPrep (Lot 72)', () {
+    testWidgets('section aperçu image source présente', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioAtlasAuthoringPrep(
+            readModel: _emptyReadModel(),
+            selection: const SurfaceStudioSelection.none(),
+          ),
+        ),
+      );
+      expect(find.byKey(kSurfaceStudioAtlasImagePreviewSectionKey), findsOneWidget);
+      expect(find.text('Aperçu de l’image source'), findsOneWidget);
+      expect(
+        find.text('Choisissez une image source pour afficher l’aperçu.'),
+        findsOneWidget,
+      );
+    });
+  });
+
   group('SurfaceStudioAtlasAuthoringPrep (Lot 71)', () {
     testWidgets('section aperçu grille visible avec métriques', (tester) async {
       await tester.pumpWidget(
@@ -693,7 +715,10 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('Aperçu de la grille atlas'), findsOneWidget);
-      expect(find.text('Source : eau_atlas'), findsOneWidget);
+      expect(
+        find.text('Source : Saisie technique (options avancées)'),
+        findsOneWidget,
+      );
       expect(find.text('Tile : 32×32 px'), findsOneWidget);
       expect(find.text('Grille : 4 colonnes × 8 lignes'), findsOneWidget);
       expect(find.text('Total : 32 cases'), findsOneWidget);
@@ -742,6 +767,14 @@ void main() {
             readModel: _minimalRead(),
             selection: SurfaceStudioSelection.atlas('water-atlas'),
             onSurfaceCatalogChanged: (_) {},
+            projectTilesets: const [
+              ProjectTilesetEntry(
+                id: 'nature-tileset',
+                name: 'Jeu Nature HD',
+                relativePath: 'art/nature.png',
+                sortOrder: 0,
+              ),
+            ],
           ),
         ),
       );
@@ -749,7 +782,7 @@ void main() {
         find.byKey(const ValueKey('surface_studio_start_edit_atlas')),
       );
       await tester.pump();
-      expect(find.text('Source : nature-tileset'), findsOneWidget);
+      expect(find.text('Source : Jeu Nature HD'), findsOneWidget);
       final cF = find.byKey(const ValueKey('atlas_draft_cols'));
       await tester.enterText(cF, '20');
       await tester.pump();

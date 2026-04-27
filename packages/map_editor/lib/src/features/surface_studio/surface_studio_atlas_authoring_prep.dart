@@ -1,10 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' as material;
 import 'package:map_core/map_core.dart';
+import 'package:path/path.dart' as p;
 
 import '../../ui/shared/cupertino_editor_widgets.dart';
 import 'surface_studio_atlas_editing.dart';
 import 'surface_studio_atlas_grid_preview.dart';
+import 'surface_studio_atlas_image_preview.dart';
 import 'surface_studio_atlas_source_picker.dart';
 import 'surface_studio_selection.dart';
 
@@ -199,6 +201,7 @@ class SurfaceStudioAtlasAuthoringPrep extends StatefulWidget {
     this.onSurfaceCatalogChanged,
     this.requestEditSignal = 0,
     this.projectTilesets,
+    this.projectRootPath,
   });
 
   final SurfaceStudioReadModel readModel;
@@ -206,6 +209,9 @@ class SurfaceStudioAtlasAuthoringPrep extends StatefulWidget {
   final ValueChanged<ProjectSurfaceCatalog>? onSurfaceCatalogChanged;
   final int requestEditSignal;
   final List<ProjectTilesetEntry>? projectTilesets;
+
+  /// Dossier projet sur disque (optionnel) — utilisé pour résoudre [ProjectTilesetEntry.relativePath].
+  final String? projectRootPath;
 
   @override
   State<SurfaceStudioAtlasAuthoringPrep> createState() =>
@@ -574,7 +580,39 @@ class _SurfaceStudioAtlasAuthoringPrepState
           : List<ProjectTilesetEntry>.from(rawTilesets),
     );
     final hasImagePicker = sortedTilesets.isNotEmpty;
-    final sourceLabel = _tilesetId.text.trim().isEmpty ? null : _tilesetId.text.trim();
+    final tilesetIdTrim = _tilesetId.text.trim();
+    final sourceLabel =
+        tilesetIdTrim.isEmpty ? null : tilesetIdTrim;
+    ProjectTilesetEntry? selectedTilesetEntry;
+    if (tilesetIdTrim.isNotEmpty) {
+      for (final e in sortedTilesets) {
+        if (e.id == tilesetIdTrim) {
+          selectedTilesetEntry = e;
+          break;
+        }
+      }
+    }
+    String? gridSourceDisplayForUi;
+    if (tilesetIdTrim.isNotEmpty) {
+      if (selectedTilesetEntry != null) {
+        final n = selectedTilesetEntry.name.trim();
+        if (n.isNotEmpty) {
+          gridSourceDisplayForUi = n;
+        } else {
+          final rp = selectedTilesetEntry.relativePath.trim();
+          gridSourceDisplayForUi =
+              rp.isNotEmpty ? p.basename(rp) : 'Jeu d’images sans nom';
+        }
+      } else {
+        gridSourceDisplayForUi = 'Saisie technique (options avancées)';
+      }
+    }
+
+    final imagePreviewResolution = resolveSurfaceStudioAtlasImagePreview(
+      projectRootPath: widget.projectRootPath,
+      projectTilesets: rawTilesets,
+      technicalTilesetId: tilesetIdTrim.isEmpty ? null : tilesetIdTrim,
+    );
     final previewTileWidth = int.tryParse(_tileW.text.trim());
     final previewTileHeight = int.tryParse(_tileH.text.trim());
     final previewColumns = int.tryParse(_cols.text.trim());
@@ -749,6 +787,12 @@ class _SurfaceStudioAtlasAuthoringPrepState
             subtle: subtle,
           ),
           const SizedBox(height: 10),
+          SurfaceStudioAtlasImagePreview(
+            resolution: imagePreviewResolution,
+            label: label,
+            subtle: subtle,
+          ),
+          const SizedBox(height: 10),
           material.TextField(
             key: const ValueKey('atlas_draft_name'),
             controller: _name,
@@ -892,6 +936,7 @@ class _SurfaceStudioAtlasAuthoringPrepState
           const SizedBox(height: 8),
           SurfaceStudioAtlasGridPreview(
             sourceLabel: sourceLabel,
+            sourceDisplayForUi: gridSourceDisplayForUi,
             tileWidth: previewTileWidth,
             tileHeight: previewTileHeight,
             columns: previewColumns,

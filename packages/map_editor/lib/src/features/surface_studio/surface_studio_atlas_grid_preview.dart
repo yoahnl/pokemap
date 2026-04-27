@@ -9,6 +9,7 @@ class SurfaceStudioAtlasGridPreview extends StatelessWidget {
   const SurfaceStudioAtlasGridPreview({
     super.key,
     required this.sourceLabel,
+    this.sourceDisplayForUi,
     required this.tileWidth,
     required this.tileHeight,
     required this.columns,
@@ -17,6 +18,9 @@ class SurfaceStudioAtlasGridPreview extends StatelessWidget {
   });
 
   final String? sourceLabel;
+
+  /// Libellé « humain » pour la ligne Source (ex. nom manifeste) ; si null, [sourceLabel] est utilisé.
+  final String? sourceDisplayForUi;
   final int? tileWidth;
   final int? tileHeight;
   final int? columns;
@@ -32,6 +36,10 @@ class SurfaceStudioAtlasGridPreview extends StatelessWidget {
     final subtle = EditorChrome.subtleLabel(context);
     final source = sourceLabel?.trim();
     final hasSource = source != null && source.isNotEmpty;
+    final displaySource = (sourceDisplayForUi != null &&
+            sourceDisplayForUi!.trim().isNotEmpty)
+        ? sourceDisplayForUi!.trim()
+        : source;
     final hasValidGrid = _isPositive(tileWidth) &&
         _isPositive(tileHeight) &&
         _isPositive(columns) &&
@@ -77,7 +85,7 @@ class SurfaceStudioAtlasGridPreview extends StatelessWidget {
             )
           else ...[
             Text(
-              'Source : $source',
+              'Source : $displaySource',
               style: TextStyle(color: label, fontSize: 11.5),
             ),
             const SizedBox(height: 2),
