@@ -49,9 +49,11 @@ class SurfaceStudioPanel extends StatefulWidget {
   const SurfaceStudioPanel({
     super.key,
     required this.readModel,
+    this.onSurfaceCatalogSaveRequested,
   });
 
   final SurfaceStudioReadModel readModel;
+  final ValueChanged<ProjectSurfaceCatalog>? onSurfaceCatalogSaveRequested;
 
   static const String titleText = 'Surface Studio';
   static const String readOnlyBadgeText = 'Lecture seule';
@@ -63,6 +65,14 @@ class SurfaceStudioPanel extends StatefulWidget {
       'Importer un atlas vertical';
   static const String workCatalogDirtyStateText =
       'Catalogue de travail modifié — sauvegarde projet non effectuée.';
+  static const String savePrepActionLabel =
+      'Préparer la sauvegarde du catalogue Surface';
+  static const String savePrepTransmittedNote =
+      'Catalogue de travail transmis au parent.';
+  static const String savePrepNotConnectedNote =
+      'Sauvegarde non connectée dans ce contexte.';
+  static const String savePrepNoDiskNote =
+      'Aucune écriture disque ne sera effectuée par Surface Studio.';
 
   @override
   State<SurfaceStudioPanel> createState() => _SurfaceStudioPanelState();
@@ -72,6 +82,7 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
   /// Sélection d’inspection : locale au widget, jamais écrite dans le manifest.
   SurfaceStudioSelection _selection = const SurfaceStudioSelection.none();
   late SurfaceStudioReadModel _workReadModel;
+  String? _saveFlowPrepNote;
 
   @override
   void initState() {
@@ -86,11 +97,23 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
       setState(() {
         _workReadModel = widget.readModel;
         _selection = _selectionValidInReadModel(_workReadModel, _selection);
+        _saveFlowPrepNote = null;
       });
     }
   }
 
   bool get _hasWorkCatalogChanges => _workReadModel != widget.readModel;
+
+  void _onSurfaceCatalogSavePrep() {
+    final cb = widget.onSurfaceCatalogSaveRequested;
+    if (cb == null) {
+      return;
+    }
+    cb(_workReadModel.catalog);
+    setState(() {
+      _saveFlowPrepNote = SurfaceStudioPanel.savePrepTransmittedNote;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -154,6 +177,46 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
                 fontWeight: FontWeight.w600,
               ),
             ),
+            const SizedBox(height: 4),
+            Text(
+              SurfaceStudioPanel.savePrepNoDiskNote,
+              style: TextStyle(
+                color: subtle.withValues(alpha: 0.9),
+                fontSize: 11,
+              ),
+            ),
+            const SizedBox(height: 6),
+            if (widget.onSurfaceCatalogSaveRequested != null) ...[
+              CupertinoButton(
+                key: const ValueKey('surface_studio_save_prep_catalog'),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                onPressed: _onSurfaceCatalogSavePrep,
+                child: const Text(SurfaceStudioPanel.savePrepActionLabel),
+              ),
+            ] else ...[
+              Text(
+                key: const ValueKey('surface_studio_save_prep_not_connected'),
+                SurfaceStudioPanel.savePrepNotConnectedNote,
+                style: TextStyle(
+                  color: subtle.withValues(alpha: 0.95),
+                  fontSize: 11,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+            if (_saveFlowPrepNote != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                _saveFlowPrepNote!,
+                key: const ValueKey('surface_studio_save_prep_transmitted'),
+                style: TextStyle(
+                  color: _surfaceStudioAccent.withValues(alpha: 0.9),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
             const SizedBox(height: 6),
             CupertinoButton(
               key: const ValueKey('surface_studio_reset_work_catalog'),
@@ -163,6 +226,7 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
                   _workReadModel = widget.readModel;
                   _selection =
                       _selectionValidInReadModel(_workReadModel, _selection);
+                  _saveFlowPrepNote = null;
                 });
               },
               child: const Text('Réinitialiser le catalogue de travail'),
@@ -200,6 +264,7 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
                   ? cat.atlases.last.id
                   : '';
               setState(() {
+                _saveFlowPrepNote = null;
                 _workReadModel = buildSurfaceStudioReadModelFromCatalog(cat);
                 if (newId.isNotEmpty) {
                   _selection = SurfaceStudioSelection.atlas(newId);
