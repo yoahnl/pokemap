@@ -143,6 +143,94 @@ class _SurfaceToGameplayZoneDialogState
   }
 }
 
+class SurfableWaterSurfaceGameplayZoneDialog extends StatelessWidget {
+  const SurfableWaterSurfaceGameplayZoneDialog({
+    super.key,
+    required this.map,
+    required this.surfaceLayer,
+    required this.surfacePresetId,
+    required this.presets,
+    required this.onConfirm,
+    this.onCancel,
+  });
+
+  final MapData? map;
+  final SurfaceLayer? surfaceLayer;
+  final String? surfacePresetId;
+  final List<ProjectSurfacePreset> presets;
+  final ValueChanged<SurfaceGameplayZoneGenerationPlan> onConfirm;
+  final VoidCallback? onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final preview = buildSurfableWaterSurfaceGameplayZonePreview(
+      map: map,
+      surfaceLayer: surfaceLayer,
+      surfacePresetId: surfacePresetId,
+      presets: presets,
+    );
+
+    return CupertinoAlertDialog(
+      title: const Text('Rendre cette eau surfable'),
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 10),
+          _InfoLine(label: 'Surface', value: preview.surfaceLabel),
+          _InfoLine(label: 'Cellules', value: '${preview.sourceCellCount}'),
+          const _InfoLine(label: 'Mode', value: 'Surf'),
+          _InfoLine(label: 'Zones', value: '${preview.generatedZoneCount}'),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              preview.summaryTitle,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(preview.summaryDescription),
+          ),
+          const SizedBox(height: 8),
+          for (final message in preview.messages) ...[
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text('• ${message.title}'),
+            ),
+            const SizedBox(height: 3),
+          ],
+          if (preview.assessment != null) ...[
+            const SizedBox(height: 8),
+            _InfoLine(
+              label: 'Couverture',
+              value:
+                  '${(preview.assessment!.coveragePercent * 100).toStringAsFixed(1)}%',
+            ),
+            _InfoLine(
+              label: 'Hors surface',
+              value:
+                  '${(preview.assessment!.extraCellRatio * 100).toStringAsFixed(1)}%',
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        CupertinoDialogAction(
+          onPressed: onCancel ?? () => Navigator.of(context).pop(),
+          child: const Text('Annuler'),
+        ),
+        CupertinoDialogAction(
+          isDefaultAction: true,
+          onPressed: preview.canConfirm ? () => onConfirm(preview.plan!) : null,
+          child: const Text('Créer la zone Surf'),
+        ),
+      ],
+    );
+  }
+}
+
 class _InfoLine extends StatelessWidget {
   const _InfoLine({
     required this.label,

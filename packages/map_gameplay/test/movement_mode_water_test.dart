@@ -149,14 +149,14 @@ MapData _baseMap({
 }
 
 ProjectManifest _projectWithWaterPreset() {
-  return const ProjectManifest(
+  return ProjectManifest(
     name: 'project',
-    maps: [],
-    tilesets: [
+    maps: const [],
+    tilesets: const [
       ProjectTilesetEntry(
           id: 'ts', name: 'Tileset', relativePath: 'tileset.png'),
     ],
-    pathPresets: [
+    pathPresets: const [
       ProjectPathPreset(
         id: 'water_path',
         name: 'Water',
@@ -164,18 +164,19 @@ ProjectManifest _projectWithWaterPreset() {
         tilesetId: 'ts',
       ),
     ],
+    surfaceCatalog: ProjectSurfaceCatalog(),
   );
 }
 
 ProjectManifest _projectWithRoadPreset() {
-  return const ProjectManifest(
+  return ProjectManifest(
     name: 'project',
-    maps: [],
-    tilesets: [
+    maps: const [],
+    tilesets: const [
       ProjectTilesetEntry(
           id: 'ts', name: 'Tileset', relativePath: 'tileset.png'),
     ],
-    pathPresets: [
+    pathPresets: const [
       ProjectPathPreset(
         id: 'water_path',
         name: 'Road',
@@ -183,5 +184,6 @@ ProjectManifest _projectWithRoadPreset() {
         tilesetId: 'ts',
       ),
     ],
+    surfaceCatalog: ProjectSurfaceCatalog(),
   );
 }

@@ -89,6 +89,63 @@ void main() {
     });
   });
 
+  group('Surfable water surface to gameplay zone presenter', () {
+    test('builds a greedy movement/surf generation preview from painted cells',
+        () {
+      final preview = buildSurfableWaterSurfaceGameplayZonePreview(
+        map: _mapWithWaterSurface(),
+        surfaceLayer: _waterLayer(),
+        surfacePresetId: 'water',
+        presets: [_surfacePreset(id: 'water', name: 'Water')],
+      );
+
+      expect(preview.canConfirm, isTrue);
+      expect(
+        preview.status,
+        SurfaceGameplayZoneGenerationAssessmentStatus.ready,
+      );
+      expect(preview.plan, isNotNull);
+      expect(
+        preview.plan!.strategy,
+        SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+      );
+      expect(preview.plan!.generatedZones, hasLength(2));
+      expect(
+        preview.plan!.generatedZones.every(
+          (zone) =>
+              zone.kind == GameplayZoneKind.movement &&
+              zone.movement?.requiredMode == MovementMode.surf &&
+              zone.movement?.allowedModes.isEmpty == true,
+        ),
+        isTrue,
+      );
+      expect(preview.assessment!.coveragePercent, 1);
+      expect(preview.assessment!.extraCellRatio, 0);
+    });
+
+    test('blocks when selected water surface has no painted placement', () {
+      final preview = buildSurfableWaterSurfaceGameplayZonePreview(
+        map: _mapWithWaterSurface(),
+        surfaceLayer: _waterLayer(),
+        surfacePresetId: 'tall_grass',
+        presets: [
+          _surfacePreset(id: 'water', name: 'Water'),
+          _surfacePreset(id: 'tall_grass', name: 'Tall Grass'),
+        ],
+      );
+
+      expect(preview.canConfirm, isFalse);
+      expect(
+        preview.status,
+        SurfaceGameplayZoneGenerationAssessmentStatus.blocked,
+      );
+      expect(
+        preview.messages.map((message) => message.title),
+        contains('Aucune cellule peinte'),
+      );
+    });
+  });
+
   group('SurfaceToGameplayZoneDialog', () {
     testWidgets('requires an encounter table id before confirming',
         (tester) async {
@@ -143,6 +200,71 @@ void main() {
     });
   });
 
+  group('SurfableWaterSurfaceGameplayZoneDialog', () {
+    testWidgets('confirms a ready surfable water plan', (tester) async {
+      SurfaceGameplayZoneGenerationPlan? confirmedPlan;
+
+      await tester.pumpWidget(
+        CupertinoApp(
+          home: CupertinoPageScaffold(
+            child: SurfableWaterSurfaceGameplayZoneDialog(
+              map: _mapWithWaterSurface(),
+              surfaceLayer: _waterLayer(),
+              surfacePresetId: 'water',
+              presets: [_surfacePreset(id: 'water', name: 'Water')],
+              onConfirm: (plan) => confirmedPlan = plan,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Rendre cette eau surfable'), findsOneWidget);
+      expect(find.text('Mode : '), findsOneWidget);
+      expect(find.text('Surf'), findsOneWidget);
+      expect(find.text('Plan prêt à appliquer'), findsOneWidget);
+
+      final createAction = tester.widget<CupertinoDialogAction>(
+        find.widgetWithText(CupertinoDialogAction, 'Créer la zone Surf'),
+      );
+      expect(createAction.onPressed, isNotNull);
+      createAction.onPressed!();
+
+      expect(confirmedPlan, isNotNull);
+      expect(confirmedPlan!.generatedZones, hasLength(2));
+    });
+
+    testWidgets('disables confirmation when the water plan is blocked',
+        (tester) async {
+      await tester.pumpWidget(
+        CupertinoApp(
+          home: CupertinoPageScaffold(
+            child: SurfableWaterSurfaceGameplayZoneDialog(
+              map: _mapWithWaterSurface(),
+              surfaceLayer: _waterLayer(),
+              surfacePresetId: 'tall_grass',
+              presets: [_surfacePreset(id: 'tall_grass', name: 'Tall Grass')],
+              onConfirm: (_) {},
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Rendre cette eau surfable'), findsOneWidget);
+      expect(find.text('Aucune cellule peinte'), findsOneWidget);
+      expect(
+        tester
+            .widget<CupertinoDialogAction>(
+              find.widgetWithText(
+                CupertinoDialogAction,
+                'Créer la zone Surf',
+              ),
+            )
+            .onPressed,
+        isNull,
+      );
+    });
+  });
+
   group('SurfacePainterPanel action entry', () {
     testWidgets('opens the encounter generation dialog from the surface panel',
         (tester) async {
@@ -177,6 +299,41 @@ void main() {
         find.text('Créer une zone de rencontre depuis cette surface'),
         findsOneWidget,
       );
+      expect(find.text('Plan prêt à appliquer'), findsOneWidget);
+    });
+
+    testWidgets('opens the surfable water generation dialog from the panel',
+        (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final keepAlive = container.listen(editorNotifierProvider, (_, __) {});
+      addTearDown(keepAlive.close);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        project: _projectManifest(
+          surfacePresets: [_surfacePreset(id: 'water', name: 'Water')],
+        ),
+        activeMap: _mapWithWaterSurface(),
+        activeLayerId: 'surface-main',
+        selectedSurfacePresetId: 'water',
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const CupertinoApp(
+            home: CupertinoPageScaffold(
+              child: SurfacePainterPanel(embedded: true),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Rendre cette eau surfable'), findsOneWidget);
+
+      await tester.tap(find.text('Rendre cette eau surfable'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Rendre cette eau surfable'), findsWidgets);
       expect(find.text('Plan prêt à appliquer'), findsOneWidget);
     });
   });
@@ -297,6 +454,129 @@ void main() {
       expect(state.isDirty, isFalse);
     });
   });
+
+  group('EditorNotifier surfable water surface generation', () {
+    test(
+        'adds multiple movement surf gameplay zones in one mutation and selects first',
+        () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final initialMap = _mapWithWaterSurface();
+      notifier.state = EditorState(
+        project: _projectManifest(
+          surfacePresets: [_surfacePreset(id: 'water', name: 'Water')],
+        ),
+        activeMap: initialMap,
+        activeLayerId: 'surface-main',
+        selectedSurfacePresetId: 'water',
+        savedMapSnapshot: initialMap,
+      );
+      final preview = buildSurfableWaterSurfaceGameplayZonePreview(
+        map: initialMap,
+        surfaceLayer: _waterLayer(),
+        surfacePresetId: 'water',
+        presets: [_surfacePreset(id: 'water', name: 'Water')],
+      );
+
+      final applied = applySurfableWaterGameplayZonePlan(
+        notifier: notifier,
+        plan: preview.plan!,
+      );
+
+      final state = container.read(editorNotifierProvider);
+      final updatedMap = state.activeMap!;
+      expect(applied, isTrue);
+      expect(updatedMap.gameplayZones, hasLength(2));
+      expect(
+        updatedMap.gameplayZones.every(
+          (zone) =>
+              zone.kind == GameplayZoneKind.movement &&
+              zone.movement?.requiredMode == MovementMode.surf &&
+              zone.movement?.allowedModes.isEmpty == true,
+        ),
+        isTrue,
+      );
+      expect(state.selectedGameplayZoneId, updatedMap.gameplayZones.first.id);
+      expect(state.isDirty, isTrue);
+      expect(state.mapUndoStack, hasLength(1));
+      expect(state.canUndoMap, isTrue);
+      expect(
+        updatedMap.layers.whereType<SurfaceLayer>().single.placements,
+        initialMap.layers.whereType<SurfaceLayer>().single.placements,
+      );
+    });
+
+    test('rejects non-movement plans without mutating the map', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final initialMap = _mapWithWaterSurface();
+      notifier.state = EditorState(
+        project: _projectManifest(
+          surfacePresets: [_surfacePreset(id: 'water', name: 'Water')],
+        ),
+        activeMap: initialMap,
+        activeLayerId: 'surface-main',
+        selectedSurfacePresetId: 'water',
+        savedMapSnapshot: initialMap,
+      );
+
+      final applied = applySurfableWaterGameplayZonePlan(
+        notifier: notifier,
+        plan: _planForBehavior(
+          const SurfaceGameplayZoneBehaviorDraft.encounter(
+            EncounterZonePayload(
+              encounterTableId: 'route_1_grass',
+              encounterKind: EncounterKind.walk,
+            ),
+          ),
+        ),
+      );
+
+      final state = container.read(editorNotifierProvider);
+      expect(applied, isFalse);
+      expect(state.activeMap, initialMap);
+      expect(state.activeMap!.gameplayZones, isEmpty);
+      expect(state.mapUndoStack, isEmpty);
+      expect(state.selectedGameplayZoneId, isNull);
+      expect(state.isDirty, isFalse);
+    });
+
+    test('rejects movement plans that do not require surf without mutating',
+        () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final initialMap = _mapWithWaterSurface();
+      notifier.state = EditorState(
+        project: _projectManifest(
+          surfacePresets: [_surfacePreset(id: 'water', name: 'Water')],
+        ),
+        activeMap: initialMap,
+        activeLayerId: 'surface-main',
+        selectedSurfacePresetId: 'water',
+        savedMapSnapshot: initialMap,
+      );
+
+      final applied = applySurfableWaterGameplayZonePlan(
+        notifier: notifier,
+        plan: _planForBehavior(
+          const SurfaceGameplayZoneBehaviorDraft.movement(
+            MovementZonePayload(requiredMode: MovementMode.walk),
+          ),
+        ),
+      );
+
+      final state = container.read(editorNotifierProvider);
+      expect(applied, isFalse);
+      expect(state.activeMap, initialMap);
+      expect(state.activeMap!.gameplayZones, isEmpty);
+      expect(state.mapUndoStack, isEmpty);
+      expect(state.selectedGameplayZoneId, isNull);
+      expect(state.isDirty, isFalse);
+    });
+  });
 }
 
 SurfaceGameplayZoneGenerationPlan _planForBehavior(
@@ -329,6 +609,15 @@ MapData _mapWithTallGrassSurface() {
   );
 }
 
+MapData _mapWithWaterSurface() {
+  return MapData(
+    id: 'route_1',
+    name: 'Route 1',
+    size: const GridSize(width: 8, height: 8),
+    layers: [_waterLayer()],
+  );
+}
+
 SurfaceLayer _tallGrassLayer() {
   return const SurfaceLayer(
     id: 'surface-main',
@@ -353,7 +642,33 @@ SurfaceLayer _tallGrassLayer() {
   );
 }
 
-ProjectManifest _projectManifest() {
+SurfaceLayer _waterLayer() {
+  return const SurfaceLayer(
+    id: 'surface-main',
+    name: 'Surfaces',
+    placements: [
+      SurfaceCellPlacement(
+        x: 2,
+        y: 0,
+        surfacePresetId: 'water',
+      ),
+      SurfaceCellPlacement(
+        x: 3,
+        y: 0,
+        surfacePresetId: 'water',
+      ),
+      SurfaceCellPlacement(
+        x: 2,
+        y: 1,
+        surfacePresetId: 'water',
+      ),
+    ],
+  );
+}
+
+ProjectManifest _projectManifest({
+  List<ProjectSurfacePreset>? surfacePresets,
+}) {
   return ProjectManifest(
     name: 'Demo',
     maps: const [],
@@ -366,7 +681,8 @@ ProjectManifest _projectManifest() {
       ),
     ],
     surfaceCatalog: ProjectSurfaceCatalog(
-      presets: [_surfacePreset(id: 'tall_grass', name: 'Tall Grass')],
+      presets: surfacePresets ??
+          [_surfacePreset(id: 'tall_grass', name: 'Tall Grass')],
     ),
   );
 }

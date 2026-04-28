@@ -150,103 +150,140 @@ class SurfacePainterPanel extends ConsumerWidget {
                 createIfMissing: true,
               ),
             ),
-          const SizedBox(height: 12),
-          SurfacePalettePanel(
-            availability: availability,
-            presets: presets,
-            selectedSurfacePresetId: state.selectedSurfacePresetId,
-            onPresetSelected: notifier.selectSurfacePreset,
-            onOpenSurfaceStudio: notifier.selectSurfaceStudioWorkspace,
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              CupertinoButton.filled(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                onPressed: canPaint ? notifier.selectSurfacePaintMode : null,
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(CupertinoIcons.paintbrush, size: 16),
-                    SizedBox(width: 6),
-                    Text('Peindre Surface'),
-                  ],
-                ),
-              ),
-              CupertinoButton(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                onPressed: activeLayer == null
-                    ? null
-                    : () => notifier.selectTool(EditorToolType.eraser),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(CupertinoIcons.delete_left, size: 16),
-                    SizedBox(width: 6),
-                    Text('Effacer Surface'),
-                  ],
-                ),
-              ),
-              CupertinoButton(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                onPressed: map == null
-                    ? null
-                    : () async {
-                        final plan = await showCupertinoDialog<
-                            SurfaceGameplayZoneGenerationPlan>(
-                          context: context,
-                          builder: (dialogContext) {
-                            return SurfaceToGameplayZoneDialog(
-                              map: map,
-                              surfaceLayer: generationLayer,
-                              surfacePresetId: state.selectedSurfacePresetId,
-                              presets: presets,
-                              encounterTables:
-                                  state.project?.encounterTables ?? const [],
-                              onConfirm: (plan) =>
-                                  Navigator.of(dialogContext).pop(plan),
-                            );
-                          },
-                        );
-                        if (plan == null) return;
-                        applyTallGrassEncounterGameplayZonePlan(
-                          notifier: notifier,
-                          plan: plan,
-                        );
-                      },
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(CupertinoIcons.add_circled, size: 16),
-                    SizedBox(width: 4),
-                    Flexible(
-                      child: Text('Créer une zone de rencontre'),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            _statusLine(
-              activeLayer: activeLayer,
-              hasSurfaceLayer: surfaceLayers.isNotEmpty,
-              presetSelected:
-                  state.selectedSurfacePresetId?.trim().isNotEmpty ?? false,
+            const SizedBox(height: 12),
+            SurfacePalettePanel(
               availability: availability,
+              presets: presets,
+              selectedSurfacePresetId: state.selectedSurfacePresetId,
+              onPresetSelected: notifier.selectSurfacePreset,
+              onOpenSurfaceStudio: notifier.selectSurfaceStudioWorkspace,
             ),
-            style: TextStyle(color: subtle, fontSize: 12),
-          ),
-        ],
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                CupertinoButton.filled(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  onPressed: canPaint ? notifier.selectSurfacePaintMode : null,
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(CupertinoIcons.paintbrush, size: 16),
+                      SizedBox(width: 6),
+                      Text('Peindre Surface'),
+                    ],
+                  ),
+                ),
+                CupertinoButton(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  onPressed: activeLayer == null
+                      ? null
+                      : () => notifier.selectTool(EditorToolType.eraser),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(CupertinoIcons.delete_left, size: 16),
+                      SizedBox(width: 6),
+                      Text('Effacer Surface'),
+                    ],
+                  ),
+                ),
+                CupertinoButton(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  onPressed: map == null
+                      ? null
+                      : () async {
+                          final plan = await showCupertinoDialog<
+                              SurfaceGameplayZoneGenerationPlan>(
+                            context: context,
+                            builder: (dialogContext) {
+                              return SurfaceToGameplayZoneDialog(
+                                map: map,
+                                surfaceLayer: generationLayer,
+                                surfacePresetId: state.selectedSurfacePresetId,
+                                presets: presets,
+                                encounterTables:
+                                    state.project?.encounterTables ?? const [],
+                                onConfirm: (plan) =>
+                                    Navigator.of(dialogContext).pop(plan),
+                              );
+                            },
+                          );
+                          if (plan == null) return;
+                          applyTallGrassEncounterGameplayZonePlan(
+                            notifier: notifier,
+                            plan: plan,
+                          );
+                        },
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(CupertinoIcons.add_circled, size: 16),
+                      SizedBox(width: 4),
+                      Flexible(
+                        child: Text('Créer une zone de rencontre'),
+                      ),
+                    ],
+                  ),
+                ),
+                CupertinoButton(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  onPressed: map == null
+                      ? null
+                      : () async {
+                          final plan = await showCupertinoDialog<
+                              SurfaceGameplayZoneGenerationPlan>(
+                            context: context,
+                            builder: (dialogContext) {
+                              return SurfableWaterSurfaceGameplayZoneDialog(
+                                map: map,
+                                surfaceLayer: generationLayer,
+                                surfacePresetId: state.selectedSurfacePresetId,
+                                presets: presets,
+                                onConfirm: (plan) =>
+                                    Navigator.of(dialogContext).pop(plan),
+                              );
+                            },
+                          );
+                          if (plan == null) return;
+                          applySurfableWaterGameplayZonePlan(
+                            notifier: notifier,
+                            plan: plan,
+                          );
+                        },
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(CupertinoIcons.drop, size: 16),
+                      SizedBox(width: 4),
+                      Flexible(
+                        child: Text('Rendre cette eau surfable'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              _statusLine(
+                activeLayer: activeLayer,
+                hasSurfaceLayer: surfaceLayers.isNotEmpty,
+                presetSelected:
+                    state.selectedSurfacePresetId?.trim().isNotEmpty ?? false,
+                availability: availability,
+              ),
+              style: TextStyle(color: subtle, fontSize: 12),
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
 
     if (embedded) {
       return content;
