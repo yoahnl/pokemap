@@ -1,3 +1,239 @@
+# Lot 90 — Runtime Surface Flame Renderer V0
+
+## 1. Résumé exécutif honnête
+Lot 90 consomme les instructions runtime Surface du Lot 89 et dessine maintenant les vraies tiles Surface dans `MapLayersComponent`.
+
+Implémenté :
+- rendu des `SurfaceLayer` visibles dans le background pass ;
+- appel à `resolveSurfaceRuntimeRenderInstructions(...)` ;
+- passage de `elapsedMs: (_animElapsed * 1000).toInt()` ;
+- récupération de `RuntimeTilesetImage` par `instruction.tilesetId` ;
+- calcul `sourceRect` depuis `instruction.sourceX/sourceY/sourceTileWidth/sourceTileHeight` ;
+- calcul destination depuis `instruction.x/y` et `bundle.cellWidth/cellHeight` ;
+- dessin via `RuntimeTilesetImage.drawImageRect(...)` ;
+- respect de `layer.opacity` ;
+- skip sans crash pour image manquante, source hors image, layer invisible/opacité zéro.
+
+Non implémenté volontairement : gameplay surf, tall grass encounters, collision Surface, migration legacy, nouvelle clock runtime, changement JSON, Surface Studio/Surface Painter.
+
+## 2. Périmètre
+Modifié uniquement :
+- `packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart`
+
+Créé :
+- `packages/map_runtime/test/surface/surface_runtime_renderer_test.dart`
+- ce rapport.
+
+Aucun changement dans `map_core`, `map_editor`, `map_gameplay`, `map_battle`.
+
+## 3. Gate 0 — status initial
+Gate 0 capturé après commit du Lot 89 et avant toute modification Lot 90.
+
+```text
+pwd
+/Users/karim/Project/pokemonProject
+
+git branch --show-current
+main
+
+git status --short --untracked-files=all
+# no output, clean
+
+git diff --stat
+# no output
+
+git log --oneline -n 10
+da2b244d feat(map_runtime): add surface runtime resolver
+32fbb0b5 feat(map_editor): improve surface mapping editor
+d5561df7 feat(map_editor): edit surface role animation mapping
+935a0036 feat(map_editor): animate surface editor previews
+fe03b827 feat(map_editor): render surface atlas tile previews
+5814f6e9 feat(map): add surface role resolver preview
+f8859a06 feat(map_editor): improve surface painter and studio workflow ux
+b20287da feat(map_editor): redesign surface studio workflow
+f3a37532 feat(map_editor): add surface painter entry flow
+d2a3ca2e feat(map): add surface layer model and placement ops
+```
+
+Changements préexistants : aucun.
+
+## 4. Audit MapLayersComponent
+Commandes d’audit lancées :
+
+```bash
+rg -n "SurfaceRuntimeRenderInstruction|resolveSurfaceRuntimeRenderInstructions|collectSurfaceRuntimeTilesetIds|SurfaceLayer|MapLayer.surface" packages/map_runtime packages/map_core
+rg -n "_paintPathLayer|_paintTerrainLayer|_paintTileLayer|MapLayersComponent|renderPass|_animElapsed|drawImageRect|RuntimeTilesetImage" packages/map_runtime/lib/src/presentation/flame packages/map_runtime/lib/src
+rg -n "map_layers_component_render_pass_test|RuntimeTilesetImage|containsSourceRect|drawImageRect|surface_runtime" packages/map_runtime/test packages/map_runtime/lib
+```
+
+Constats :
+- `MapLayersComponent.render` peint déjà le background pass en trois séquences : terrain, path, tile, puis entities et overlay collision optionnel.
+- Le foreground pass peint uniquement les tile layers de foreground puis entities de foreground.
+- `_animElapsed` est déjà incrémenté dans `update(dt)` et utilisé pour les animations existantes.
+- Les tile/path/terrain paths utilisent déjà `RuntimeTilesetImage.containsSourceRect` et `RuntimeTilesetImage.drawImageRect`.
+
+## 5. Audit RuntimeTilesetImage / drawImageRect
+`RuntimeTilesetImage` fournit :
+- `containsSourceRect(ui.Rect)` pour éviter les sources invalides ;
+- `drawImageRect(ui.Canvas, ui.Rect sourceRect, ui.Rect destinationRect, ui.Paint)` qui découpe si nécessaire via les chunks internes.
+
+Donc le renderer Surface n’a pas besoin de charger d’image ni de connaître les chunks ; il reçoit un `RuntimeTilesetImage` déjà chargé via le pipeline Lot 89.
+
+## 6. Architecture retenue
+Choix retenu : méthode privée bornée `_paintSurfaceLayer(Canvas, SurfaceLayer)` dans `MapLayersComponent`.
+
+Raisons :
+- le rendu dépend de `bundle`, `tileImagesByTilesetId`, `_animElapsed`, `cellWidth/cellHeight` déjà présents dans le composant ;
+- créer une architecture séparée serait plus lourd que nécessaire pour V0 ;
+- les tests pixel valident le comportement sans mock complexe.
+
+## 7. Ordre de rendu choisi
+Ordre background final :
+
+```text
+terrain
+→ path
+→ surface
+→ tile
+→ entities
+→ collision overlay éventuel
+```
+
+Les surfaces sont donc au-dessus du sol/path de base, mais sous les tile layers décoratifs/buildings et sous les entités. Aucun rendu Surface en foreground pass V0.
+
+## 8. Implémentation Surface renderer
+`_paintSurfaceLayer` :
+- résout les instructions via le resolver runtime Lot 89 ;
+- construit un `Paint` pixel-art (`isAntiAlias=false`, `FilterQuality.none`) ;
+- applique `Colors.white.withValues(alpha: layer.opacity.clamp(0.0, 1.0))` ;
+- skip si `instructions.isEmpty`, alpha zéro, image manquante, source rect hors image ;
+- dessine via `RuntimeTilesetImage.drawImageRect`.
+
+## 9. Animation via _animElapsed
+Le renderer passe :
+
+```dart
+elapsedMs: (_animElapsed * 1000).toInt()
+```
+
+Aucune nouvelle clock runtime n’a été créée. Le test `uses _animElapsed to render the current Surface animation frame` appelle `component.update(0.1)` et vérifie que la deuxième frame est dessinée.
+
+## 10. Fallbacks
+- `SurfaceLayer.isVisible == false` : pas dessiné via le filtre `visible` et le resolver.
+- `SurfaceLayer.opacity <= 0` : pas dessiné.
+- Image manquante : skip.
+- Source rect hors image : skip.
+- Catalogue incomplet : le resolver retourne zéro instruction ou skippe les instructions invalides.
+- Aucun fallback debug jaune runtime : volontaire, pour éviter des artefacts de production.
+
+## 11. Tests lancés
+### TDD rouge initial
+```text
+cd packages/map_runtime && flutter test test/surface/surface_runtime_renderer_test.dart
+Résultat attendu : échec avant implémentation.
+Échecs clés :
+Expected: [255, 0, 0, 255]
+Actual: [0, 0, 0, 0]
+Expected: [0, 0, 255, 255]
+Actual: [0, 0, 0, 0]
+```
+
+### Tests finaux
+```text
+cd packages/map_runtime && flutter test test/surface/surface_runtime_renderer_test.dart
+00:01 +5: All tests passed!
+
+cd packages/map_runtime && flutter test test/surface
+00:01 +16: All tests passed!
+
+cd packages/map_runtime && flutter test test/runtime_manifest_tilesets_surface_layer_test.dart
+00:01 +1: All tests passed!
+
+cd packages/map_runtime && flutter test test/map_layers_component_render_pass_test.dart
+00:01 +2: All tests passed!
+```
+
+## 12. Résultats
+- Surface visible dessinée en background pass : oui, test pixel rouge.
+- Animation via `_animElapsed` : oui, test pixel bleu après `update(0.1)`.
+- Foreground pass ne rend pas SurfaceLayer : oui, pixel transparent.
+- Missing image et source rect invalide : skip sans crash.
+- Invisible/opacité zéro : skip.
+- Tests Lot 89 non régressés : `test/surface` et `runtime_manifest_tilesets_surface_layer_test` verts.
+
+## 13. Fichiers créés
+```text
+packages/map_runtime/test/surface/surface_runtime_renderer_test.dart
+reports/surface/surface_engine_lot_90_runtime_surface_flame_renderer.md
+```
+
+## 14. Fichiers modifiés
+```text
+packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart
+```
+
+## 15. Fichiers supprimés
+Aucun.
+
+## 16. Evidence Pack
+### Analyse ciblée
+```text
+cd packages/map_runtime && flutter analyze lib/src/presentation/flame/map_layers_component.dart test/surface/surface_runtime_renderer_test.dart
+Analyzing 2 items...
+No issues found! (ran in 1.3s)
+```
+
+### Notes commandes
+Le Lot 90 n’a utilisé aucune commande Git d’écriture après son Gate 0. Le commit réalisé en début de tour concernait explicitement le Lot 89, autorisé par l’utilisateur avant l’entrée dans le Gate 0 du Lot 90.
+
+## 17. Git status final
+```text
+ M packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart
+?? packages/map_runtime/test/surface/surface_runtime_renderer_test.dart
+?? reports/surface/surface_engine_lot_90_runtime_surface_flame_renderer.md
+```
+
+### Diff stat final
+```text
+ .../presentation/flame/map_layers_component.dart   | 54 +++++++++++++++++++++-
+ 1 file changed, 52 insertions(+), 2 deletions(-)
+```
+
+Note : `git diff --stat` ne liste pas les nouveaux fichiers non trackés. Ils sont listés dans le status final et les sections fichiers créés/modifiés.
+
+### Fichiers temporaires
+```text
+find . -type f \( -name '_gen_*.py' -o -name 'build_*.py' -o -name '*.tmp' \) -print
+# no output
+```
+
+### Whitespace check
+```text
+git diff --check
+# no output
+```
+
+## 18. Périmètre explicitement non touché
+- `map_core` non modifié.
+- `map_editor` non modifié.
+- `map_gameplay` non modifié.
+- `map_battle` non modifié.
+- `ProjectManifest` non modifié.
+- `surface.dart` non modifié.
+- `surface_catalog.dart` non modifié.
+- Codecs Surface non modifiés.
+- Aucune migration legacy.
+- Aucun gameplay surf.
+- Aucun tall grass encounter.
+- Aucune nouvelle clock runtime.
+- Aucun changement JSON.
+
+## 19. Contenu complet des fichiers modifiés/créés/supprimés
+Le rapport lui-même est exclu pour éviter une récursion infinie. Tous les autres fichiers créés/modifiés par le Lot 90 sont inclus en entier ci-dessous.
+
+#### `packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart`
+
+````dart
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
@@ -1731,3 +1967,376 @@ Color _terrainBorderColor(TerrainType terrain) {
     TerrainType.none => Colors.transparent,
   };
 }
+
+````
+
+#### `packages/map_runtime/test/surface/surface_runtime_renderer_test.dart`
+
+````dart
+import 'dart:ui' as ui;
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_runtime/src/application/runtime_map_bundle.dart';
+import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
+import 'package:map_runtime/src/presentation/flame/map_layers_component.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('MapLayersComponent Surface runtime rendering', () {
+    test('draws a visible SurfaceLayer in the background pass', () async {
+      final component = MapLayersComponent(
+        bundle: _bundle(
+          layer: const SurfaceLayer(
+            id: 'surface',
+            name: 'Surfaces',
+            placements: [
+              SurfaceCellPlacement(x: 0, y: 0, surfacePresetId: 'water'),
+            ],
+          ),
+        ),
+        tileImagesByTilesetId: {
+          'surface-water': await _runtimeTilesetImage([
+            const Color(0xFFFF0000),
+            const Color(0xFF0000FF),
+          ]),
+        },
+      );
+
+      final image = await _renderComponent(component);
+
+      expect(await _pixelAt(image, 16, 16), _rgba(255, 0, 0, 255));
+    });
+
+    test('uses _animElapsed to render the current Surface animation frame',
+        () async {
+      final component = MapLayersComponent(
+        bundle: _bundle(
+          layer: const SurfaceLayer(
+            id: 'surface',
+            name: 'Surfaces',
+            placements: [
+              SurfaceCellPlacement(x: 0, y: 0, surfacePresetId: 'water'),
+            ],
+          ),
+        ),
+        tileImagesByTilesetId: {
+          'surface-water': await _runtimeTilesetImage([
+            const Color(0xFFFF0000),
+            const Color(0xFF0000FF),
+          ]),
+        },
+      )..update(0.1);
+
+      final image = await _renderComponent(component);
+
+      expect(await _pixelAt(image, 16, 16), _rgba(0, 0, 255, 255));
+    });
+
+    test('does not draw SurfaceLayer in the foreground pass', () async {
+      final component = MapLayersComponent(
+        bundle: _bundle(
+          layer: const SurfaceLayer(
+            id: 'surface',
+            name: 'Surfaces',
+            placements: [
+              SurfaceCellPlacement(x: 0, y: 0, surfacePresetId: 'water'),
+            ],
+          ),
+        ),
+        tileImagesByTilesetId: {
+          'surface-water': await _runtimeTilesetImage([
+            const Color(0xFFFF0000),
+            const Color(0xFF0000FF),
+          ]),
+        },
+        renderPass: MapLayerRenderPass.foreground,
+      );
+
+      final image = await _renderComponent(component);
+
+      expect(await _pixelAt(image, 16, 16), _rgba(0, 0, 0, 0));
+    });
+
+    test('skips missing tileset images and invalid source rects without crash',
+        () async {
+      final missingImage = MapLayersComponent(
+        bundle: _bundle(
+          layer: const SurfaceLayer(
+            id: 'surface',
+            name: 'Surfaces',
+            placements: [
+              SurfaceCellPlacement(x: 0, y: 0, surfacePresetId: 'water'),
+            ],
+          ),
+        ),
+        tileImagesByTilesetId: const {},
+      );
+
+      final missingImageFrame = await _renderComponent(missingImage);
+      expect(await _pixelAt(missingImageFrame, 16, 16), _rgba(0, 0, 0, 0));
+
+      final invalidSource = MapLayersComponent(
+        bundle: _bundle(
+          layer: const SurfaceLayer(
+            id: 'surface',
+            name: 'Surfaces',
+            placements: [
+              SurfaceCellPlacement(x: 0, y: 0, surfacePresetId: 'outside'),
+            ],
+          ),
+        ),
+        tileImagesByTilesetId: {
+          'surface-water':
+              await _runtimeTilesetImage([const Color(0xFFFF0000)]),
+        },
+      );
+
+      final invalidSourceFrame = await _renderComponent(invalidSource);
+      expect(await _pixelAt(invalidSourceFrame, 16, 16), _rgba(0, 0, 0, 0));
+    });
+
+    test('skips invisible SurfaceLayer and opacity zero SurfaceLayer',
+        () async {
+      final invisible = MapLayersComponent(
+        bundle: _bundle(
+          layer: const SurfaceLayer(
+            id: 'surface',
+            name: 'Surfaces',
+            isVisible: false,
+            placements: [
+              SurfaceCellPlacement(x: 0, y: 0, surfacePresetId: 'water'),
+            ],
+          ),
+        ),
+        tileImagesByTilesetId: {
+          'surface-water':
+              await _runtimeTilesetImage([const Color(0xFFFF0000)]),
+        },
+      );
+      expect(
+        await _pixelAt(await _renderComponent(invisible), 16, 16),
+        _rgba(0, 0, 0, 0),
+      );
+
+      final transparent = MapLayersComponent(
+        bundle: _bundle(
+          layer: const SurfaceLayer(
+            id: 'surface',
+            name: 'Surfaces',
+            opacity: 0,
+            placements: [
+              SurfaceCellPlacement(x: 0, y: 0, surfacePresetId: 'water'),
+            ],
+          ),
+        ),
+        tileImagesByTilesetId: {
+          'surface-water':
+              await _runtimeTilesetImage([const Color(0xFFFF0000)]),
+        },
+      );
+      expect(
+        await _pixelAt(await _renderComponent(transparent), 16, 16),
+        _rgba(0, 0, 0, 0),
+      );
+    });
+  });
+}
+
+RuntimeMapBundle _bundle({required SurfaceLayer layer}) {
+  return RuntimeMapBundle(
+    manifest: ProjectManifest(
+      name: 'Surface Runtime',
+      maps: const [],
+      tilesets: const [
+        ProjectTilesetEntry(
+          id: 'surface-water',
+          name: 'Surface Water',
+          relativePath: 'tilesets/water.png',
+        ),
+      ],
+      settings: const ProjectSettings(
+        tileWidth: 32,
+        tileHeight: 32,
+        displayScale: 1,
+      ),
+      surfaceCatalog: ProjectSurfaceCatalog(
+        atlases: [
+          _atlas(
+            id: 'water-atlas',
+            tilesetId: 'surface-water',
+            columns: 2,
+          ),
+        ],
+        animations: [
+          _animation(
+            id: 'water-loop',
+            frames: [
+              _frame(atlasId: 'water-atlas', column: 0, durationMs: 100),
+              _frame(atlasId: 'water-atlas', column: 1, durationMs: 100),
+            ],
+          ),
+          _animation(
+            id: 'outside-loop',
+            frames: [
+              _frame(atlasId: 'water-atlas', column: 3, durationMs: 100),
+            ],
+          ),
+        ],
+        presets: [
+          _preset(id: 'water', animationId: 'water-loop'),
+          _preset(id: 'outside', animationId: 'outside-loop'),
+        ],
+      ),
+    ),
+    map: MapData(
+      id: 'route-1',
+      name: 'Route 1',
+      size: const GridSize(width: 1, height: 1),
+      layers: [layer],
+    ),
+    projectRootDirectory: '/tmp/project',
+    tilesetAbsolutePathsById: const {},
+  );
+}
+
+ProjectSurfaceAtlas _atlas({
+  required String id,
+  required String tilesetId,
+  int columns = 1,
+}) {
+  return ProjectSurfaceAtlas(
+    id: id,
+    name: id,
+    tilesetId: tilesetId,
+    geometry: SurfaceAtlasGeometry(
+      tileSize: SurfaceAtlasTileSize(width: 32, height: 32),
+      gridSize: SurfaceAtlasGridSize(columns: columns, rows: 1),
+    ),
+  );
+}
+
+ProjectSurfaceAnimation _animation({
+  required String id,
+  required List<SurfaceAnimationFrame> frames,
+}) {
+  return ProjectSurfaceAnimation(
+    id: id,
+    name: id,
+    timeline: SurfaceAnimationTimeline(frames: frames),
+  );
+}
+
+SurfaceAnimationFrame _frame({
+  required String atlasId,
+  required int column,
+  required int durationMs,
+}) {
+  return SurfaceAnimationFrame(
+    tileRef: SurfaceAtlasTileRef(atlasId: atlasId, column: column, row: 0),
+    durationMs: durationMs,
+  );
+}
+
+ProjectSurfacePreset _preset({
+  required String id,
+  required String animationId,
+}) {
+  return ProjectSurfacePreset(
+    id: id,
+    name: id,
+    variantAnimations: SurfaceVariantAnimationRefSet(
+      refs: [
+        SurfaceVariantAnimationRef(
+          role: SurfaceVariantRole.isolated,
+          animationId: animationId,
+        ),
+      ],
+    ),
+  );
+}
+
+Future<RuntimeTilesetImage> _runtimeTilesetImage(List<Color> colors) async {
+  final image = await _tilesetImage(colors);
+  return RuntimeTilesetImage(
+    images: [image],
+    chunks: [
+      RuntimeTilesetChunk(top: 0, height: 32, width: colors.length * 32),
+    ],
+    width: colors.length * 32,
+    height: 32,
+  );
+}
+
+Future<ui.Image> _tilesetImage(List<Color> colors) {
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  for (var i = 0; i < colors.length; i++) {
+    canvas.drawRect(
+      Rect.fromLTWH((i * 32).toDouble(), 0, 32, 32),
+      Paint()..color = colors[i],
+    );
+  }
+  return recorder.endRecording().toImage(colors.length * 32, 32);
+}
+
+Future<ui.Image> _renderComponent(MapLayersComponent component) {
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  component.render(canvas);
+  return recorder.endRecording().toImage(32, 32);
+}
+
+Future<List<int>> _pixelAt(ui.Image image, int x, int y) async {
+  final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+  final offset = (y * image.width + x) * 4;
+  return [
+    data!.getUint8(offset),
+    data.getUint8(offset + 1),
+    data.getUint8(offset + 2),
+    data.getUint8(offset + 3),
+  ];
+}
+
+List<int> _rgba(int red, int green, int blue, int alpha) {
+  return [red, green, blue, alpha];
+}
+
+````
+
+
+## 20. Limites restantes
+- Pas de z-index Surface avancé : V0 place les surfaces entre path et tile layers.
+- Pas de synchronisation Surface dédiée : `_animElapsed` suffit pour V0.
+- Pas de test d’intégration complet `PlayableMapGame` avec un projet disque réel Surface ; les tests couvrent le composant de rendu directement.
+- Pas de gameplay/collision Surface.
+
+## 21. Auto-critique
+- Le test pixel est robuste pour le renderer, mais il ne vérifie pas un runtime end-to-end chargé depuis fichiers projet. Ce serait utile quand un golden Surface runtime sera demandé.
+- Le renderer est dans `MapLayersComponent`; c’est simple et borné, mais si Surface grossit beaucoup, un helper dédié deviendra préférable.
+- Le rapport reste volumineux parce que `map_layers_component.dart` est un gros fichier inclus intégralement.
+
+## 22. Regard critique sur le prompt
+- Le prompt est bon sur le séquençage : utiliser le resolver Lot 89 avant tout renderer évite une implémentation ad hoc.
+- L’exigence de contenu complet de gros fichiers rend le rapport plus lourd que nécessaire ; un diff complet ciblé serait plus lisible.
+- Dire “pas de renderer séparé complexe” est utile : cela évite une architecture prématurée.
+
+## 23. Auto-review obligatoire
+- Est-ce que les surfaces sont dessinées dans le runtime Flame ? Oui.
+- Est-ce que le renderer consomme `SurfaceRuntimeRenderInstruction` ? Oui, via `resolveSurfaceRuntimeRenderInstructions`.
+- Est-ce que le renderer utilise `RuntimeTilesetImage.drawImageRect` ? Oui.
+- Est-ce que `sourceRect` est calculé depuis `instruction.sourceX/sourceY` ? Oui.
+- Est-ce que destination rect utilise `x/y + cellWidth/cellHeight` ? Oui.
+- Est-ce que `layer.opacity` est respectée ? Oui.
+- Est-ce que `elapsedMs` vient de `_animElapsed` ? Oui.
+- Est-ce qu’une nouvelle clock runtime a été créée ? Non.
+- Est-ce que les surfaces sont rendues uniquement en background pass ? Oui.
+- Est-ce que missing image / invalid sourceRect ne crashe pas ? Oui.
+- Est-ce que terrain/path/tile ne régressent pas ? Oui, tests ciblés verts.
+- Est-ce que map_core est inchangé ? Oui.
+- Est-ce que map_editor est inchangé ? Oui.
+- Est-ce que les tests ciblés passent ? Oui.
+- Est-ce que l’analyse ciblée passe ? Oui.
+- Est-ce qu’un Lot 90-bis est nécessaire ? Non pour le renderer V0 ; le prochain vrai lot serait plutôt un golden runtime Surface ou gameplay/collision selon priorité.
