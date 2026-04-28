@@ -264,10 +264,12 @@ class MapGridPainter extends CustomPainter {
     for (var index = visibleLayers.length - 1; index >= 0; index--) {
       final layer = visibleLayers[index];
       if (layer is SurfaceLayer) {
-        paintSurfaceLayerStaticPreview(
+        paintSurfaceLayerAtlasTilePreview(
           canvas: canvas,
           layer: layer,
           mapSize: map.size,
+          project: project,
+          tilesetImagesById: tilesetImagesById,
           tileWidth: tileWidth,
           tileHeight: tileHeight,
           zoom: zoom,

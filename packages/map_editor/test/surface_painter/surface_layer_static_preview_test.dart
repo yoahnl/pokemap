@@ -123,5 +123,113 @@ void main() {
       final picture = recorder.endRecording();
       picture.dispose();
     });
+
+    test('paintSurfaceLayerAtlasTilePreview draws the resolved first frame',
+        () async {
+      const layer = SurfaceLayer(
+        id: 'surface-main',
+        name: 'Surfaces',
+        placements: [
+          SurfaceCellPlacement(x: 1, y: 1, surfacePresetId: 'water-surface'),
+        ],
+      );
+      final project = ProjectManifest(
+        name: 'editor',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[],
+        surfaceCatalog: _surfaceCatalog(),
+      );
+      final tilesetImage = await _testTilesetImage();
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+
+      paintSurfaceLayerAtlasTilePreview(
+        canvas: canvas,
+        layer: layer,
+        mapSize: const GridSize(width: 3, height: 3),
+        project: project,
+        tilesetImagesById: {'water-tileset': tilesetImage},
+        tileWidth: 32,
+        tileHeight: 32,
+        zoom: 1,
+      );
+
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(96, 96);
+      final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      final offset = ((48 * image.width) + 48) * 4;
+      expect(pixels!.getUint8(offset), greaterThan(220));
+      expect(pixels.getUint8(offset + 1), lessThan(40));
+      expect(pixels.getUint8(offset + 2), lessThan(40));
+      picture.dispose();
+      image.dispose();
+      tilesetImage.dispose();
+    });
   });
+}
+
+ProjectSurfaceCatalog _surfaceCatalog() {
+  return ProjectSurfaceCatalog(
+    atlases: [
+      ProjectSurfaceAtlas(
+        id: 'water-atlas',
+        name: 'Water Atlas',
+        tilesetId: 'water-tileset',
+        geometry: SurfaceAtlasGeometry(
+          tileSize: SurfaceAtlasTileSize(width: 32, height: 32),
+          gridSize: SurfaceAtlasGridSize(columns: 4, rows: 4),
+          layout: SurfaceAtlasLayout.columnsAreVariantsRowsAreFrames,
+        ),
+      ),
+    ],
+    animations: [
+      ProjectSurfaceAnimation(
+        id: 'water-isolated-loop',
+        name: 'Water Isolated',
+        timeline: SurfaceAnimationTimeline(
+          frames: [
+            SurfaceAnimationFrame(
+              tileRef: SurfaceAtlasTileRef(
+                atlasId: 'water-atlas',
+                column: 2,
+                row: 0,
+              ),
+              durationMs: 120,
+            ),
+          ],
+        ),
+      ),
+    ],
+    presets: [
+      ProjectSurfacePreset(
+        id: 'water-surface',
+        name: 'Water',
+        variantAnimations: SurfaceVariantAnimationRefSet(
+          refs: [
+            SurfaceVariantAnimationRef(
+              role: SurfaceVariantRole.isolated,
+              animationId: 'water-isolated-loop',
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
+Future<ui.Image> _testTilesetImage() async {
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  canvas.drawRect(
+    const Rect.fromLTWH(0, 0, 128, 128),
+    Paint()..color = Colors.transparent,
+  );
+  canvas.drawRect(
+    const Rect.fromLTWH(64, 0, 32, 32),
+    Paint()..color = const Color(0xFFFF0000),
+  );
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(128, 128);
+  picture.dispose();
+  return image;
 }

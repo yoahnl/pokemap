@@ -1,7 +1,10 @@
-import 'dart:ui' show Canvas, Color, Paint, PaintingStyle, Rect;
+import 'dart:ui'
+    show Canvas, Color, FilterQuality, Image, Paint, PaintingStyle, Rect;
 
 import 'package:flutter/painting.dart' show HSVColor;
 import 'package:map_core/map_core.dart';
+
+import 'surface_tile_preview_resolver.dart';
 
 /// One editor-only preview cell for a sparse Surface placement.
 ///
@@ -100,39 +103,157 @@ void paintSurfaceLayerStaticPreview({
 
   final alphaScale = layer.opacity.clamp(0.0, 1.0).toDouble();
   for (final cell in cells) {
-    final rect = Rect.fromLTWH(
-      cell.placement.x * tileWidth,
-      cell.placement.y * tileHeight,
-      tileWidth,
-      tileHeight,
-    ).deflate(1.0 / zoom);
-    final fillAlpha = 0.28 * alphaScale;
-    final borderAlpha = 0.86 * alphaScale;
-    final markerAlpha = 0.72 * alphaScale;
-
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..color = cell.color.withValues(alpha: fillAlpha)
-        ..style = PaintingStyle.fill,
-    );
-    canvas.drawRect(
-      rect,
-      Paint()
-        ..color = cell.color.withValues(alpha: borderAlpha)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.4 / zoom,
-    );
-
-    final markerRadius = _roleMarkerRadius(cell.role, tileWidth, tileHeight);
-    canvas.drawCircle(
-      rect.center,
-      markerRadius,
-      Paint()
-        ..color = cell.color.withValues(alpha: markerAlpha)
-        ..style = PaintingStyle.fill,
+    _paintSurfaceDebugCell(
+      canvas,
+      cell: cell,
+      rect: _surfaceCellRect(
+        cell,
+        tileWidth: tileWidth,
+        tileHeight: tileHeight,
+        zoom: zoom,
+      ),
+      alphaScale: alphaScale,
+      zoom: zoom,
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
     );
   }
+}
+
+/// Paints real atlas tiles for Surface placements when the editor already has
+/// the referenced tileset image loaded; otherwise it keeps the Lot 86 debug
+/// overlay so every painted Surface remains visible.
+void paintSurfaceLayerAtlasTilePreview({
+  required Canvas canvas,
+  required SurfaceLayer layer,
+  required GridSize mapSize,
+  required ProjectManifest? project,
+  required Map<String, Image?> tilesetImagesById,
+  required double tileWidth,
+  required double tileHeight,
+  required double zoom,
+}) {
+  if (tileWidth <= 0 || tileHeight <= 0 || zoom <= 0) {
+    return;
+  }
+
+  final cells = buildSurfaceLayerStaticPreviewCells(
+    layer: layer,
+    mapSize: mapSize,
+  );
+  if (cells.isEmpty) {
+    return;
+  }
+
+  final availableTilesetIds = <String>{
+    for (final entry in tilesetImagesById.entries)
+      if (entry.value != null) entry.key,
+  };
+  final catalog = project?.surfaceCatalog;
+  final alphaScale = layer.opacity.clamp(0.0, 1.0).toDouble();
+
+  for (final cell in cells) {
+    final rect = _surfaceCellRect(
+      cell,
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
+      zoom: zoom,
+    );
+    SurfaceTilePreviewInstruction? instruction;
+    if (catalog != null) {
+      instruction = resolveSurfaceTilePreviewInstruction(
+        layer: layer,
+        placement: cell.placement,
+        catalog: catalog,
+        availableTilesetIds: availableTilesetIds,
+      );
+    }
+    final image =
+        instruction == null ? null : tilesetImagesById[instruction.tilesetId];
+    if (instruction != null &&
+        image != null &&
+        _sourceRectFitsImage(instruction.sourceRect, image)) {
+      canvas.drawImageRect(
+        image,
+        instruction.sourceRect,
+        rect,
+        Paint()
+          ..filterQuality = FilterQuality.none
+          ..color = const Color(0xFFFFFFFF).withValues(alpha: alphaScale),
+      );
+      continue;
+    }
+
+    _paintSurfaceDebugCell(
+      canvas,
+      cell: cell,
+      rect: rect,
+      alphaScale: alphaScale,
+      zoom: zoom,
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
+    );
+  }
+}
+
+Rect _surfaceCellRect(
+  SurfaceLayerStaticPreviewCell cell, {
+  required double tileWidth,
+  required double tileHeight,
+  required double zoom,
+}) {
+  return Rect.fromLTWH(
+    cell.placement.x * tileWidth,
+    cell.placement.y * tileHeight,
+    tileWidth,
+    tileHeight,
+  ).deflate(1.0 / zoom);
+}
+
+void _paintSurfaceDebugCell(
+  Canvas canvas, {
+  required SurfaceLayerStaticPreviewCell cell,
+  required Rect rect,
+  required double alphaScale,
+  required double zoom,
+  required double tileWidth,
+  required double tileHeight,
+}) {
+  final fillAlpha = 0.28 * alphaScale;
+  final borderAlpha = 0.86 * alphaScale;
+  final markerAlpha = 0.72 * alphaScale;
+
+  canvas.drawRect(
+    rect,
+    Paint()
+      ..color = cell.color.withValues(alpha: fillAlpha)
+      ..style = PaintingStyle.fill,
+  );
+  canvas.drawRect(
+    rect,
+    Paint()
+      ..color = cell.color.withValues(alpha: borderAlpha)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.4 / zoom,
+  );
+
+  final markerRadius = _roleMarkerRadius(cell.role, tileWidth, tileHeight);
+  canvas.drawCircle(
+    rect.center,
+    markerRadius,
+    Paint()
+      ..color = cell.color.withValues(alpha: markerAlpha)
+      ..style = PaintingStyle.fill,
+  );
+}
+
+bool _sourceRectFitsImage(Rect sourceRect, Image image) {
+  return sourceRect.left >= 0 &&
+      sourceRect.top >= 0 &&
+      sourceRect.width > 0 &&
+      sourceRect.height > 0 &&
+      sourceRect.right <= image.width &&
+      sourceRect.bottom <= image.height;
 }
 
 double _roleMarkerRadius(

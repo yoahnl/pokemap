@@ -15,6 +15,7 @@ import '../../application/models/path_autotile_set.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../../features/surface_painter/surface_layer_static_preview.dart';
+import '../../features/surface_painter/surface_tile_preview_resolver.dart';
 import 'entity_editor_element_visual.dart';
 
 // Le shell du canvas garde uniquement le widget, l'interaction et la
@@ -522,6 +523,21 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
         final path = notifier.getTilesetAbsolutePathById(tilesetId);
         if (path == null || path.isEmpty) continue;
         result[tilesetId] = path;
+      }
+      final surfaceCatalog = project?.surfaceCatalog;
+      if (surfaceCatalog != null) {
+        for (final tilesetId in collectSurfaceTilePreviewTilesetIds(
+          map: map,
+          catalog: surfaceCatalog,
+        )) {
+          if (result.containsKey(tilesetId)) {
+            continue;
+          }
+          final path = notifier.getTilesetAbsolutePathById(tilesetId);
+          if (path != null && path.isNotEmpty) {
+            result[tilesetId] = path;
+          }
+        }
       }
     }
     final brushTilesetId = notifier.getActiveBrushTilesetId();

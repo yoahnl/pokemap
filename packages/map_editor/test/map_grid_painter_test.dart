@@ -200,5 +200,131 @@ void main() {
       final picture = recorder.endRecording();
       picture.dispose();
     });
+
+    test('paints SurfaceLayer with resolved atlas tile image when available',
+        () async {
+      const map = MapData(
+        id: 'pond',
+        name: 'Pond',
+        size: GridSize(width: 3, height: 3),
+        layers: <MapLayer>[
+          SurfaceLayer(
+            id: 'surface-main',
+            name: 'Surfaces',
+            placements: <SurfaceCellPlacement>[
+              SurfaceCellPlacement(
+                x: 1,
+                y: 1,
+                surfacePresetId: 'water-surface',
+              ),
+            ],
+          ),
+        ],
+      );
+      final project = ProjectManifest(
+        name: 'editor',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[],
+        surfaceCatalog: _surfaceCatalog(),
+      );
+      final tilesetImage = await _testTilesetImage();
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder);
+
+      MapGridPainter(
+        map: map,
+        zoom: 1,
+        offset: ui.Offset.zero,
+        tileWidth: 32,
+        tileHeight: 32,
+        tilesetImagesById: {'water-tileset': tilesetImage},
+        sourceTileWidth: 32,
+        sourceTileHeight: 32,
+        tilesPerRowById: const <String, int>{},
+        warps: const <MapWarp>[],
+        gameplayZones: const <MapGameplayZone>[],
+        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
+        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
+        project: project,
+      ).paint(canvas, const ui.Size(96, 96));
+
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(96, 96);
+      final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      final offset = ((48 * image.width) + 48) * 4;
+      expect(pixels!.getUint8(offset), greaterThan(220));
+      expect(pixels.getUint8(offset + 1), lessThan(40));
+      expect(pixels.getUint8(offset + 2), lessThan(40));
+      picture.dispose();
+      image.dispose();
+      tilesetImage.dispose();
+    });
   });
+}
+
+ProjectSurfaceCatalog _surfaceCatalog() {
+  return ProjectSurfaceCatalog(
+    atlases: [
+      ProjectSurfaceAtlas(
+        id: 'water-atlas',
+        name: 'Water Atlas',
+        tilesetId: 'water-tileset',
+        geometry: SurfaceAtlasGeometry(
+          tileSize: SurfaceAtlasTileSize(width: 32, height: 32),
+          gridSize: SurfaceAtlasGridSize(columns: 4, rows: 4),
+          layout: SurfaceAtlasLayout.columnsAreVariantsRowsAreFrames,
+        ),
+      ),
+    ],
+    animations: [
+      ProjectSurfaceAnimation(
+        id: 'water-isolated-loop',
+        name: 'Water Isolated',
+        timeline: SurfaceAnimationTimeline(
+          frames: [
+            SurfaceAnimationFrame(
+              tileRef: SurfaceAtlasTileRef(
+                atlasId: 'water-atlas',
+                column: 2,
+                row: 0,
+              ),
+              durationMs: 120,
+            ),
+          ],
+        ),
+      ),
+    ],
+    presets: [
+      ProjectSurfacePreset(
+        id: 'water-surface',
+        name: 'Water',
+        variantAnimations: SurfaceVariantAnimationRefSet(
+          refs: [
+            SurfaceVariantAnimationRef(
+              role: SurfaceVariantRole.isolated,
+              animationId: 'water-isolated-loop',
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
+Future<ui.Image> _testTilesetImage() async {
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(0, 0, 128, 128),
+    ui.Paint()..color = const ui.Color(0x00000000),
+  );
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(64, 0, 32, 32),
+    ui.Paint()..color = const ui.Color(0xFFFF0000),
+  );
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(128, 128);
+  picture.dispose();
+  return image;
 }
