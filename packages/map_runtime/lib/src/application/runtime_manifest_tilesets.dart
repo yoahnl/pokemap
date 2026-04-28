@@ -1,5 +1,6 @@
 import 'package:map_core/map_core.dart';
 
+import '../surface/surface_runtime_tileset_collector.dart';
 import 'runtime_character_refs.dart';
 
 Map<TerrainType, ProjectTerrainPreset> runtimeTerrainPresetsByType(
@@ -103,8 +104,8 @@ void addTerrainAndPathPresetTilesetIds(
           }
         }
       },
-      // Surface layers are intentionally ignored for now so the runtime can
-      // load maps before the Surface renderer and tileset collector exist.
+      // Surface render work stays out of this file, but Lot 89 now collects the
+      // atlas tilesets used by placed Surface presets below.
       surface: (id, name, isVisible, opacity, placements, properties) {},
       object: (id, name, isVisible, opacity) {},
     );
@@ -154,6 +155,12 @@ void addCharacterTilesetIds(
 Set<String> collectAllRuntimeTilesetIds(MapData map, ProjectManifest manifest) {
   final ids = collectTilesetIdsReferencedOnMap(map);
   addTerrainAndPathPresetTilesetIds(ids, map, manifest);
+  ids.addAll(
+    collectSurfaceRuntimeTilesetIds(
+      map: map,
+      catalog: manifest.surfaceCatalog,
+    ),
+  );
   addEntityVisualTilesetIds(ids, map, manifest);
   addCharacterTilesetIds(ids, map, manifest);
   return ids;

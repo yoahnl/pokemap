@@ -1,3 +1,431 @@
+# Lot 89 — Runtime Surface Tileset Collection + Resolver V0
+
+## 1. Résumé exécutif honnête
+Lot 89 ajoute la première brique runtime Surface sans dessiner dans Flame.
+
+Implémenté :
+- collecte runtime des tilesets Surface nécessaires depuis les `SurfaceLayer` placés ;
+- scan de toutes les frames des animations référencées par les presets placés ;
+- resolver runtime pur `SurfaceLayer -> SurfaceRuntimeRenderInstruction` ;
+- fallback par skip sans crash pour références incomplètes ;
+- intégration de la collecte dans `collectAllRuntimeTilesetIds` ;
+- commentaire no-op explicite dans `MapLayersComponent`, sans rendu.
+
+Non implémenté volontairement : rendu Flame, `drawImageRect`, `SpriteBatch`, clock runtime, gameplay surf/tall grass, migration legacy.
+
+Verdict : lot validable comme fondation pour le Lot 90. Le rendu réel reste à faire.
+
+## 2. Périmètre
+Modifié uniquement dans `packages/map_runtime` et création du rapport sous `reports/surface`.
+
+Aucun changement `map_core`, `map_editor`, `map_gameplay`, `map_battle`, JSON, `ProjectManifest`, runtime renderer Flame.
+
+## 3. Gate 0 — status initial
+Commandes lancées avant modification depuis `/Users/karim/Project/pokemonProject` :
+
+```text
+pwd
+/Users/karim/Project/pokemonProject
+
+git branch --show-current
+main
+
+git status --short --untracked-files=all
+# no output, clean
+
+git diff --stat
+# no output
+
+git log --oneline -n 10
+32fbb0b5 feat(map_editor): improve surface mapping editor
+d5561df7 feat(map_editor): edit surface role animation mapping
+935a0036 feat(map_editor): animate surface editor previews
+fe03b827 feat(map_editor): render surface atlas tile previews
+5814f6e9 feat(map): add surface role resolver preview
+f8859a06 feat(map_editor): improve surface painter and studio workflow ux
+b20287da feat(map_editor): redesign surface studio workflow
+f3a37532 feat(map_editor): add surface painter entry flow
+d2a3ca2e feat(map): add surface layer model and placement ops
+6cc7fafa docs: update agent workflow guidance
+```
+
+Changements préexistants : aucun.
+
+## 4. Audit runtime tilesets
+Audits obligatoires lancés :
+
+```bash
+rg -n "SurfaceLayer|surfacePresetId|MapLayer.surface|runtime_manifest_tilesets|tileset|tilesets|ProjectTilesetEntry|ProjectManifest|MapLayer" packages/map_runtime packages/map_core packages/map_gameplay packages/map_editor
+rg -n "resolveSurfaceVariantRoleForPlacement|SurfaceTilePreviewInstruction|surface_tile_preview|SurfaceLayer|SurfaceCellPlacement" packages/map_core packages/map_editor packages/map_runtime
+rg -n "MapLayersComponent|TileLayer|TerrainLayer|PathLayer|Flame|SpriteBatch|drawImage|Image|images|load" packages/map_runtime packages/map_gameplay
+```
+
+Constats :
+- `loadRuntimeMapBundle` charge manifest + map, appelle `collectAllRuntimeTilesetIds`, puis résout les chemins absolus via `manifest.tilesets`.
+- `collectAllRuntimeTilesetIds` agrégeait déjà map/tile layers, terrain/path presets, éléments, personnages.
+- `SurfaceLayer` était explicitement ignoré dans `runtime_manifest_tilesets.dart`.
+- `RuntimeMapBundle.tilesetAbsolutePathsById` est ensuite utilisé par `RuntimeMapGame` / `PlayableMapGame` pour charger les images.
+- Le bon point d’insertion pour les surfaces est donc la collecte de tilesets, pas `MapLayersComponent`.
+
+## 5. Audit SurfaceLayer runtime no-op actuel
+`MapLayersComponent` ne rend pas les `SurfaceLayer` ; il possède seulement un commentaire de tolérance no-op. Le lot conserve ce comportement : aucun composant Flame Surface, aucun `drawImageRect`, aucune image chargée spécifiquement dans ce composant.
+
+## 6. Architecture retenue
+Trois helpers runtime-only :
+- `surface_runtime_tileset_collector.dart` : collecte de `tilesetId` à partir des placements Surface et du catalogue.
+- `surface_runtime_render_instruction.dart` : modèle pur d’instruction de rendu futur.
+- `surface_runtime_resolver.dart` : résolution `placement -> rôle -> animation -> frame -> atlas -> instruction`.
+
+Le resolver est pur : pas de Flame, pas d’image, pas de mutation, pas de persistance du rôle calculé.
+
+## 7. Collecte tilesets Surface
+Pipeline :
+
+```text
+MapData.layers.whereType<SurfaceLayer>()
+→ placements surfacePresetId distincts
+→ ProjectSurfaceCatalog.presets
+→ variantAnimations refs
+→ ProjectSurfaceCatalog.animations
+→ toutes les frames
+→ frame.tileRef.atlasId
+→ ProjectSurfaceCatalog.atlases
+→ atlas.tilesetId
+```
+
+Toutes les frames sont scannées, pas seulement la première. Les ids sont dédupliqués dans un `Set<String>`. Les références manquantes sont ignorées sans crash.
+
+## 8. Resolver runtime Surface
+Pipeline :
+
+```text
+SurfaceLayer placement
+→ resolveSurfaceVariantRoleForPlacement(...)
+→ ProjectSurfacePreset
+→ animationId exact, sinon isolated, sinon première ref
+→ ProjectSurfaceAnimation
+→ frame à elapsedMs optionnel, défaut 0
+→ ProjectSurfaceAtlas
+→ SurfaceRuntimeRenderInstruction
+```
+
+`elapsedMs` existe déjà comme paramètre optionnel, mais aucun clock runtime n’est créé. Le Lot 90 pourra brancher une clock ou un renderer.
+
+## 9. Fallbacks
+- Preset manquant : skip.
+- Animation manquante : skip.
+- Atlas manquant : skip.
+- Frame hors géométrie atlas : skip.
+- SurfaceLayer invisible ou opacité <= 0 : resolver vide.
+- Placement avec coordonnées négatives ou `surfacePresetId` vide : ignoré par le resolver.
+
+Choix : ignorer les instructions non résolubles plutôt que créer des diagnostics runtime lourds. C’est volontairement V0.
+
+## 10. Intégration no-op MapLayersComponent
+`MapLayersComponent` reste sans rendu Surface. Le commentaire a été mis à jour pour indiquer que Lot 89 ne fait que du planning/résolution et que le rendu Flame est reporté.
+
+## 11. Tests lancés
+### TDD rouge initial
+```text
+flutter test test/surface/surface_runtime_tileset_collector_test.dart
+Résultat attendu : échec de compilation, helper absent.
+Erreur clé : Error when reading 'lib/src/surface/surface_runtime_tileset_collector.dart': No such file or directory
+
+flutter test test/surface/surface_runtime_resolver_test.dart
+Résultat attendu : échec de compilation, helper absent.
+Erreur clé : Error when reading 'lib/src/surface/surface_runtime_resolver.dart': No such file or directory
+
+flutter test test/runtime_manifest_tilesets_surface_layer_test.dart
+Résultat attendu : échec comportemental.
+Erreur clé : Expected Set:['base-world', 'surface-water']; Actual Set:['base-world']
+```
+
+### Tests verts finaux
+```text
+cd packages/map_runtime && flutter test test/surface
+00:01 +11: All tests passed!
+
+cd packages/map_runtime && flutter test test/runtime_manifest_tilesets_surface_layer_test.dart
+00:01 +1: All tests passed!
+
+cd packages/map_runtime && flutter test test/map_layers_component_render_pass_test.dart
+00:01 +2: All tests passed!
+
+cd packages/map_core && dart test test/surface_variant_role_resolver_test.dart
+00:00 +7: All tests passed!
+
+cd packages/map_core && dart test test/surface_layer_placements_test.dart
+00:00 +14: All tests passed!
+```
+
+## 12. Analyse lancée
+```text
+cd packages/map_runtime && flutter analyze lib/src/surface/surface_runtime_render_instruction.dart lib/src/surface/surface_runtime_resolver.dart lib/src/surface/surface_runtime_tileset_collector.dart lib/src/application/runtime_manifest_tilesets.dart lib/src/presentation/flame/map_layers_component.dart test/surface/surface_runtime_tileset_collector_test.dart test/surface/surface_runtime_resolver_test.dart test/runtime_manifest_tilesets_surface_layer_test.dart
+Analyzing 8 items...
+No issues found! (ran in 1.7s)
+```
+
+Analyse globale optionnelle non lancée ; le lot est ciblé et l’analyse ciblée couvre tous les Dart créés/modifiés.
+
+## 13. Résultats
+- Les tilesets Surface placés sont collectés via `collectAllRuntimeTilesetIds`.
+- Le collecteur Surface déduplique et scanne toutes les frames.
+- Le resolver produit des instructions pures testables.
+- Les rôles sont résolus avec le resolver `map_core` existant.
+- Les surfaces différentes ne se connectent pas.
+- Les catalogues incomplets ne crashent pas.
+- Aucun rendu Flame n’a été ajouté.
+
+## 14. Fichiers créés
+```text
+packages/map_runtime/lib/src/surface/surface_runtime_render_instruction.dart
+packages/map_runtime/lib/src/surface/surface_runtime_resolver.dart
+packages/map_runtime/lib/src/surface/surface_runtime_tileset_collector.dart
+packages/map_runtime/test/surface/surface_runtime_resolver_test.dart
+packages/map_runtime/test/surface/surface_runtime_tileset_collector_test.dart
+reports/surface/surface_engine_lot_89_runtime_surface_tileset_collection_resolver.md
+```
+
+## 15. Fichiers modifiés
+```text
+packages/map_runtime/lib/src/application/runtime_manifest_tilesets.dart
+packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart
+packages/map_runtime/test/runtime_manifest_tilesets_surface_layer_test.dart
+```
+
+## 16. Fichiers supprimés
+Aucun.
+
+## 17. Evidence Pack
+### Git status final
+```text
+ M packages/map_runtime/lib/src/application/runtime_manifest_tilesets.dart
+ M packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart
+ M packages/map_runtime/test/runtime_manifest_tilesets_surface_layer_test.dart
+?? packages/map_runtime/lib/src/surface/surface_runtime_render_instruction.dart
+?? packages/map_runtime/lib/src/surface/surface_runtime_resolver.dart
+?? packages/map_runtime/lib/src/surface/surface_runtime_tileset_collector.dart
+?? packages/map_runtime/test/surface/surface_runtime_resolver_test.dart
+?? packages/map_runtime/test/surface/surface_runtime_tileset_collector_test.dart
+?? reports/surface/surface_engine_lot_89_runtime_surface_tileset_collection_resolver.md
+```
+
+### Diff stat final
+```text
+ .../src/application/runtime_manifest_tilesets.dart | 11 ++-
+ .../presentation/flame/map_layers_component.dart   |  4 +-
+ ...ntime_manifest_tilesets_surface_layer_test.dart | 88 ++++++++++++++++++++--
+ 3 files changed, 94 insertions(+), 9 deletions(-)
+```
+
+Note : `git diff --stat` ne liste pas les nouveaux fichiers non trackés. Ils sont listés dans `Git status final` et `Fichiers créés`.
+
+### Fichiers temporaires
+```text
+find . -type f \( -name '_gen_*.py' -o -name 'build_*.py' -o -name '*.tmp' \) -print
+# no output
+```
+
+### Whitespace check
+```text
+git diff --check
+# no output
+```
+
+## 18. Périmètre explicitement non touché
+- `map_editor` non modifié.
+- `map_gameplay` non modifié.
+- `map_battle` non modifié.
+- `map_core` non modifié.
+- `ProjectManifest` non modifié.
+- `surface.dart` non modifié.
+- `surface_catalog.dart` non modifié.
+- Codecs Surface non modifiés.
+- Aucun renderer Flame créé.
+- Aucune animation clock runtime créée.
+- Aucun gameplay surf/tallGrass créé.
+- Aucune migration legacy.
+- Aucun changement JSON.
+
+## 19. Contenu complet des fichiers modifiés/créés/supprimés
+Le rapport lui-même est exclu de cette section pour éviter une récursion infinie. Tous les autres fichiers créés ou modifiés par le lot sont inclus en entier ci-dessous.
+
+#### `packages/map_runtime/lib/src/application/runtime_manifest_tilesets.dart`
+
+````dart
+import 'package:map_core/map_core.dart';
+
+import '../surface/surface_runtime_tileset_collector.dart';
+import 'runtime_character_refs.dart';
+
+Map<TerrainType, ProjectTerrainPreset> runtimeTerrainPresetsByType(
+  ProjectManifest manifest,
+) {
+  final sorted = List<ProjectTerrainPreset>.from(manifest.terrainPresets)
+    ..sort((a, b) {
+      final c = a.sortOrder.compareTo(b.sortOrder);
+      if (c != 0) {
+        return c;
+      }
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
+    });
+  final out = <TerrainType, ProjectTerrainPreset>{};
+  for (final p in sorted) {
+    out.putIfAbsent(p.terrainType, () => p);
+  }
+  return out;
+}
+
+Set<String> collectTilesetIdsReferencedOnMap(MapData map) {
+  final ids = <String>{};
+  void add(String? raw) {
+    final t = raw?.trim() ?? '';
+    if (t.isNotEmpty) {
+      ids.add(t);
+    }
+  }
+
+  add(map.tilesetId);
+  for (final layer in map.layers) {
+    layer.when(
+      tile: (id, name, tilesetId, isVisible, opacity, tiles) => add(tilesetId),
+      collision: (id, name, isVisible, opacity, collisions) {},
+      terrain: (id, name, isVisible, opacity, terrains) {},
+      path: (id, name, isVisible, opacity, presetId, cells, properties,
+          animationMode, animationTriggers) {},
+      // Surface layers are no-op in runtime V0; a later runtime Surface lot
+      // will resolve placed preset ids into catalog atlas/tileset references.
+      surface: (id, name, isVisible, opacity, placements, properties) {},
+      object: (id, name, isVisible, opacity) {},
+    );
+  }
+  return ids;
+}
+
+void addTerrainAndPathPresetTilesetIds(
+  Set<String> ids,
+  MapData map,
+  ProjectManifest manifest,
+) {
+  final terrainByType = runtimeTerrainPresetsByType(manifest);
+  for (final layer in map.layers) {
+    layer.when(
+      tile: (id, name, tilesetId, isVisible, opacity, tiles) {},
+      collision: (id, name, isVisible, opacity, collisions) {},
+      terrain: (id, name, isVisible, opacity, terrains) {
+        for (final t in terrains) {
+          if (t == TerrainType.none) {
+            continue;
+          }
+          final preset = terrainByType[t];
+          if (preset == null) {
+            continue;
+          }
+          final presetTilesetId = preset.tilesetId.trim();
+          if (presetTilesetId.isNotEmpty) {
+            ids.add(presetTilesetId);
+          }
+          for (final variant in preset.variants) {
+            for (final frame in variant.frames) {
+              final overrideTilesetId = frame.tilesetId.trim();
+              if (overrideTilesetId.isNotEmpty) {
+                ids.add(overrideTilesetId);
+              }
+            }
+          }
+        }
+      },
+      path: (id, name, isVisible, opacity, presetId, cells, properties,
+          animationMode, animationTriggers) {
+        final pid = presetId.trim();
+        if (pid.isEmpty) {
+          return;
+        }
+        for (final p in manifest.pathPresets) {
+          if (p.id == pid) {
+            final presetTilesetId = p.tilesetId.trim();
+            if (presetTilesetId.isNotEmpty) {
+              ids.add(presetTilesetId);
+            }
+            for (final mapping in p.variants) {
+              for (final frame in mapping.frames) {
+                final overrideTilesetId = frame.tilesetId.trim();
+                if (overrideTilesetId.isNotEmpty) {
+                  ids.add(overrideTilesetId);
+                }
+              }
+            }
+            return;
+          }
+        }
+      },
+      // Surface render work stays out of this file, but Lot 89 now collects the
+      // atlas tilesets used by placed Surface presets below.
+      surface: (id, name, isVisible, opacity, placements, properties) {},
+      object: (id, name, isVisible, opacity) {},
+    );
+  }
+}
+
+void addEntityVisualTilesetIds(
+  Set<String> ids,
+  MapData map,
+  ProjectManifest manifest,
+) {
+  final elementById = {for (final e in manifest.elements) e.id: e};
+  for (final entity in map.entities) {
+    final elementId = entity.resolvedProjectElementIdForEditor?.trim();
+    if (elementId == null || elementId.isEmpty) continue;
+    final entry = elementById[elementId];
+    if (entry == null || entry.frames.isEmpty) continue;
+    for (final frame in entry.frames) {
+      final tid = frame.tilesetId.trim().isNotEmpty
+          ? frame.tilesetId.trim()
+          : entry.tilesetId.trim();
+      if (tid.isNotEmpty) ids.add(tid);
+    }
+  }
+}
+
+void addCharacterTilesetIds(
+  Set<String> ids,
+  MapData map,
+  ProjectManifest manifest,
+) {
+  final charById = {for (final c in manifest.characters) c.id: c};
+  final playerCharId = manifest.settings.defaultPlayerCharacterId?.trim();
+  if (playerCharId != null && playerCharId.isNotEmpty) {
+    final tid = charById[playerCharId]?.tilesetId.trim() ?? '';
+    if (tid.isNotEmpty) ids.add(tid);
+  }
+  for (final entity in map.entities) {
+    if (entity.kind != MapEntityKind.npc) continue;
+    final charId = resolveNpcCharacterId(entity, manifest);
+    if (charId == null || charId.isEmpty) continue;
+    final tid = charById[charId]?.tilesetId.trim() ?? '';
+    if (tid.isNotEmpty) ids.add(tid);
+  }
+}
+
+Set<String> collectAllRuntimeTilesetIds(MapData map, ProjectManifest manifest) {
+  final ids = collectTilesetIdsReferencedOnMap(map);
+  addTerrainAndPathPresetTilesetIds(ids, map, manifest);
+  ids.addAll(
+    collectSurfaceRuntimeTilesetIds(
+      map: map,
+      catalog: manifest.surfaceCatalog,
+    ),
+  );
+  addEntityVisualTilesetIds(ids, map, manifest);
+  addCharacterTilesetIds(ids, map, manifest);
+  return ids;
+}
+
+````
+
+#### `packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart`
+
+````dart
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
@@ -1681,3 +2109,1018 @@ Color _terrainBorderColor(TerrainType terrain) {
     TerrainType.none => Colors.transparent,
   };
 }
+
+````
+
+#### `packages/map_runtime/test/runtime_manifest_tilesets_surface_layer_test.dart`
+
+````dart
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_runtime/src/application/runtime_manifest_tilesets.dart';
+
+void main() {
+  group('runtime manifest tileset collection with SurfaceLayer', () {
+    test('collects Surface atlas tilesets through the runtime manifest path',
+        () {
+      const map = MapData(
+        id: 'route-1',
+        name: 'Route 1',
+        tilesetId: 'base-world',
+        size: GridSize(width: 4, height: 4),
+        layers: [
+          MapLayer.surface(
+            id: 'surfaces',
+            name: 'Surfaces',
+            placements: [
+              SurfaceCellPlacement(x: 1, y: 1, surfacePresetId: 'water'),
+            ],
+          ),
+        ],
+      );
+      final manifest = ProjectManifest(
+        name: 'Surface Runtime',
+        maps: const [],
+        tilesets: const [
+          ProjectTilesetEntry(
+            id: 'base-world',
+            name: 'Base World',
+            relativePath: 'tilesets/base.png',
+          ),
+          ProjectTilesetEntry(
+            id: 'surface-water',
+            name: 'Surface Water',
+            relativePath: 'tilesets/water.png',
+          ),
+        ],
+        surfaceCatalog: ProjectSurfaceCatalog(
+          atlases: [_atlas(id: 'water-atlas', tilesetId: 'surface-water')],
+          animations: [
+            _animation(
+              id: 'water-isolated',
+              frames: [_frame(atlasId: 'water-atlas')],
+            ),
+          ],
+          presets: [_preset(id: 'water', animationId: 'water-isolated')],
+        ),
+      );
+
+      expect(collectAllRuntimeTilesetIds(map, manifest), {
+        'base-world',
+        'surface-water',
+      });
+    });
+  });
+}
+
+ProjectSurfaceAtlas _atlas({
+  required String id,
+  required String tilesetId,
+}) {
+  return ProjectSurfaceAtlas(
+    id: id,
+    name: id,
+    tilesetId: tilesetId,
+    geometry: SurfaceAtlasGeometry(
+      tileSize: SurfaceAtlasTileSize(width: 32, height: 32),
+      gridSize: SurfaceAtlasGridSize(columns: 4, rows: 4),
+    ),
+  );
+}
+
+ProjectSurfaceAnimation _animation({
+  required String id,
+  required List<SurfaceAnimationFrame> frames,
+}) {
+  return ProjectSurfaceAnimation(
+    id: id,
+    name: id,
+    timeline: SurfaceAnimationTimeline(frames: frames),
+  );
+}
+
+SurfaceAnimationFrame _frame({required String atlasId}) {
+  return SurfaceAnimationFrame(
+    tileRef: SurfaceAtlasTileRef(atlasId: atlasId, column: 0, row: 0),
+    durationMs: 100,
+  );
+}
+
+ProjectSurfacePreset _preset({
+  required String id,
+  required String animationId,
+}) {
+  return ProjectSurfacePreset(
+    id: id,
+    name: id,
+    variantAnimations: SurfaceVariantAnimationRefSet(
+      refs: [
+        SurfaceVariantAnimationRef(
+          role: SurfaceVariantRole.isolated,
+          animationId: animationId,
+        ),
+      ],
+    ),
+  );
+}
+
+````
+
+#### `packages/map_runtime/lib/src/surface/surface_runtime_render_instruction.dart`
+
+````dart
+import 'package:map_core/map_core.dart';
+
+/// Pure runtime draw plan for one placed Surface cell.
+///
+/// Lot 89 deliberately stops at this data object: it carries enough catalog and
+/// atlas coordinates for a future Flame renderer, but it does not load images
+/// and does not draw.
+final class SurfaceRuntimeRenderInstruction {
+  const SurfaceRuntimeRenderInstruction({
+    required this.x,
+    required this.y,
+    required this.surfacePresetId,
+    required this.resolvedRole,
+    required this.animationId,
+    required this.atlasId,
+    required this.tilesetId,
+    required this.sourceColumn,
+    required this.sourceRow,
+    required this.sourceTileWidth,
+    required this.sourceTileHeight,
+  });
+
+  final int x;
+  final int y;
+  final String surfacePresetId;
+  final SurfaceVariantRole resolvedRole;
+  final String animationId;
+  final String atlasId;
+  final String tilesetId;
+  final int sourceColumn;
+  final int sourceRow;
+  final int sourceTileWidth;
+  final int sourceTileHeight;
+
+  int get sourceX => sourceColumn * sourceTileWidth;
+
+  int get sourceY => sourceRow * sourceTileHeight;
+}
+
+````
+
+#### `packages/map_runtime/lib/src/surface/surface_runtime_resolver.dart`
+
+````dart
+import 'package:map_core/map_core.dart';
+
+import 'surface_runtime_render_instruction.dart';
+
+/// Resolves Surface placements into pure runtime render instructions.
+///
+/// This is the runtime counterpart of the editor preview resolver, minus any
+/// image cache or Flame dependency. Missing catalog references are skipped so a
+/// partially-authored project can still load the rest of the map.
+List<SurfaceRuntimeRenderInstruction> resolveSurfaceRuntimeRenderInstructions({
+  required SurfaceLayer layer,
+  required ProjectSurfaceCatalog catalog,
+  int elapsedMs = 0,
+}) {
+  if (!layer.isVisible || layer.opacity <= 0) {
+    return const <SurfaceRuntimeRenderInstruction>[];
+  }
+
+  final placements = _runtimeResolvablePlacements(layer.placements);
+  if (placements.isEmpty) {
+    return const <SurfaceRuntimeRenderInstruction>[];
+  }
+
+  final instructions = <SurfaceRuntimeRenderInstruction>[];
+  for (final placement in placements) {
+    final presetId = placement.surfacePresetId.trim();
+    final preset = catalog.presetById(presetId);
+    if (preset == null) {
+      continue;
+    }
+
+    final role = resolveSurfaceVariantRoleForPlacement(
+      placements: placements,
+      x: placement.x,
+      y: placement.y,
+      surfacePresetId: presetId,
+    );
+    final animationId = _resolveAnimationId(preset, role);
+    if (animationId == null) {
+      continue;
+    }
+
+    final animation = catalog.animationById(animationId);
+    if (animation == null) {
+      continue;
+    }
+
+    final frame = _resolveSurfaceAnimationFrameAtElapsedMs(
+      timeline: animation.timeline,
+      elapsedMs: elapsedMs,
+    );
+    final atlasId = frame.tileRef.atlasId.trim();
+    final atlas = catalog.atlasById(atlasId);
+    if (atlas == null || !frame.tileRef.isInside(atlas.geometry)) {
+      continue;
+    }
+
+    final tilesetId = atlas.tilesetId.trim();
+    if (tilesetId.isEmpty) {
+      continue;
+    }
+
+    instructions.add(
+      SurfaceRuntimeRenderInstruction(
+        x: placement.x,
+        y: placement.y,
+        surfacePresetId: presetId,
+        resolvedRole: role,
+        animationId: animationId,
+        atlasId: atlas.id,
+        tilesetId: tilesetId,
+        sourceColumn: frame.tileRef.column,
+        sourceRow: frame.tileRef.row,
+        sourceTileWidth: atlas.geometry.tileSize.width,
+        sourceTileHeight: atlas.geometry.tileSize.height,
+      ),
+    );
+  }
+
+  return List<SurfaceRuntimeRenderInstruction>.unmodifiable(instructions);
+}
+
+List<SurfaceCellPlacement> _runtimeResolvablePlacements(
+  Iterable<SurfaceCellPlacement> placements,
+) {
+  final out = <SurfaceCellPlacement>[
+    for (final placement in placements)
+      if (placement.x >= 0 &&
+          placement.y >= 0 &&
+          placement.surfacePresetId.trim().isNotEmpty)
+        placement,
+  ]..sort((a, b) {
+      final yComparison = a.y.compareTo(b.y);
+      if (yComparison != 0) return yComparison;
+      final xComparison = a.x.compareTo(b.x);
+      if (xComparison != 0) return xComparison;
+      return a.surfacePresetId.compareTo(b.surfacePresetId);
+    });
+  return List<SurfaceCellPlacement>.unmodifiable(out);
+}
+
+String? _resolveAnimationId(
+  ProjectSurfacePreset preset,
+  SurfaceVariantRole resolvedRole,
+) {
+  final exact = preset.animationIdForRole(resolvedRole)?.trim();
+  if (exact != null && exact.isNotEmpty) {
+    return exact;
+  }
+
+  final isolated =
+      preset.animationIdForRole(SurfaceVariantRole.isolated)?.trim();
+  if (isolated != null && isolated.isNotEmpty) {
+    return isolated;
+  }
+
+  for (final ref in preset.variantAnimations.refs) {
+    final animationId = ref.animationId.trim();
+    if (animationId.isNotEmpty) {
+      return animationId;
+    }
+  }
+  return null;
+}
+
+SurfaceAnimationFrame _resolveSurfaceAnimationFrameAtElapsedMs({
+  required SurfaceAnimationTimeline timeline,
+  required int elapsedMs,
+}) {
+  if (timeline.frames.length == 1) {
+    return timeline.frames.single;
+  }
+
+  final normalizedElapsedMs = elapsedMs < 0 ? 0 : elapsedMs;
+  final totalDurationMs = timeline.totalDurationMs;
+  if (totalDurationMs <= 0) {
+    return timeline.frames.first;
+  }
+
+  var t = normalizedElapsedMs % totalDurationMs;
+  for (final frame in timeline.frames) {
+    if (t < frame.durationMs) {
+      return frame;
+    }
+    t -= frame.durationMs;
+  }
+  return timeline.frames.first;
+}
+
+````
+
+#### `packages/map_runtime/lib/src/surface/surface_runtime_tileset_collector.dart`
+
+````dart
+import 'package:map_core/map_core.dart';
+
+/// Collects Surface atlas tilesets required by placed Surface presets.
+///
+/// The collector scans every frame referenced by each placed preset. That is a
+/// little broader than the Lot 89 resolver, but it keeps runtime loading ready
+/// for animations that hop across multiple atlases or tilesets.
+Set<String> collectSurfaceRuntimeTilesetIds({
+  required MapData map,
+  required ProjectSurfaceCatalog catalog,
+}) {
+  final presetIds = <String>{};
+  for (final layer in map.layers.whereType<SurfaceLayer>()) {
+    for (final placement in layer.placements) {
+      final presetId = placement.surfacePresetId.trim();
+      if (presetId.isNotEmpty) {
+        presetIds.add(presetId);
+      }
+    }
+  }
+  if (presetIds.isEmpty) {
+    return const <String>{};
+  }
+
+  final tilesetIds = <String>{};
+  for (final presetId in presetIds) {
+    final preset = catalog.presetById(presetId);
+    if (preset == null) {
+      continue;
+    }
+    for (final ref in preset.variantAnimations.refs) {
+      final animation = catalog.animationById(ref.animationId.trim());
+      if (animation == null) {
+        continue;
+      }
+      for (final frame in animation.timeline.frames) {
+        final atlas = catalog.atlasById(frame.tileRef.atlasId.trim());
+        final tilesetId = atlas?.tilesetId.trim();
+        if (tilesetId != null && tilesetId.isNotEmpty) {
+          tilesetIds.add(tilesetId);
+        }
+      }
+    }
+  }
+
+  return Set<String>.unmodifiable(tilesetIds);
+}
+
+````
+
+#### `packages/map_runtime/test/surface/surface_runtime_resolver_test.dart`
+
+````dart
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_runtime/src/surface/surface_runtime_resolver.dart';
+
+void main() {
+  group('resolveSurfaceRuntimeRenderInstructions', () {
+    test('resolves one isolated placement into a runtime instruction', () {
+      const layer = SurfaceLayer(
+        id: 'surface',
+        name: 'Surfaces',
+        placements: [
+          SurfaceCellPlacement(x: 4, y: 5, surfacePresetId: 'water'),
+        ],
+      );
+      final catalog = _catalog(
+        atlases: [_atlas(id: 'water-atlas', tilesetId: 'water-tiles')],
+        animations: [
+          _animation(
+            id: 'water-isolated',
+            frames: [_frame(atlasId: 'water-atlas', column: 2, row: 1)],
+          ),
+        ],
+        presets: [
+          _preset(
+            id: 'water',
+            refs: {
+              SurfaceVariantRole.isolated: 'water-isolated',
+            },
+          ),
+        ],
+      );
+
+      final instructions = resolveSurfaceRuntimeRenderInstructions(
+        layer: layer,
+        catalog: catalog,
+      );
+
+      expect(instructions, hasLength(1));
+      final instruction = instructions.single;
+      expect(instruction.x, 4);
+      expect(instruction.y, 5);
+      expect(instruction.surfacePresetId, 'water');
+      expect(instruction.resolvedRole, SurfaceVariantRole.isolated);
+      expect(instruction.animationId, 'water-isolated');
+      expect(instruction.atlasId, 'water-atlas');
+      expect(instruction.tilesetId, 'water-tiles');
+      expect(instruction.sourceColumn, 2);
+      expect(instruction.sourceRow, 1);
+      expect(instruction.sourceTileWidth, 32);
+      expect(instruction.sourceTileHeight, 32);
+      expect(instruction.sourceX, 64);
+      expect(instruction.sourceY, 32);
+    });
+
+    test('uses same-preset neighbors to resolve the role', () {
+      const layer = SurfaceLayer(
+        id: 'surface',
+        name: 'Surfaces',
+        placements: [
+          SurfaceCellPlacement(x: 0, y: 1, surfacePresetId: 'water'),
+          SurfaceCellPlacement(x: 1, y: 1, surfacePresetId: 'water'),
+          SurfaceCellPlacement(x: 2, y: 1, surfacePresetId: 'water'),
+        ],
+      );
+      final catalog = _catalog(
+        atlases: [_atlas(id: 'water-atlas', tilesetId: 'water-tiles')],
+        animations: [
+          _animation(
+            id: 'water-isolated',
+            frames: [_frame(atlasId: 'water-atlas', column: 0)],
+          ),
+          _animation(
+            id: 'water-horizontal',
+            frames: [_frame(atlasId: 'water-atlas', column: 5)],
+          ),
+        ],
+        presets: [
+          _preset(
+            id: 'water',
+            refs: {
+              SurfaceVariantRole.isolated: 'water-isolated',
+              SurfaceVariantRole.horizontal: 'water-horizontal',
+            },
+          ),
+        ],
+      );
+
+      final center = resolveSurfaceRuntimeRenderInstructions(
+        layer: layer,
+        catalog: catalog,
+      ).singleWhere((instruction) => instruction.x == 1);
+
+      expect(center.resolvedRole, SurfaceVariantRole.horizontal);
+      expect(center.animationId, 'water-horizontal');
+      expect(center.sourceColumn, 5);
+    });
+
+    test('does not connect adjacent placements from different Surface presets',
+        () {
+      const layer = SurfaceLayer(
+        id: 'surface',
+        name: 'Surfaces',
+        placements: [
+          SurfaceCellPlacement(x: 0, y: 1, surfacePresetId: 'lava'),
+          SurfaceCellPlacement(x: 1, y: 1, surfacePresetId: 'water'),
+          SurfaceCellPlacement(x: 2, y: 1, surfacePresetId: 'mud'),
+        ],
+      );
+      final catalog = _catalog(
+        atlases: [_atlas(id: 'water-atlas', tilesetId: 'water-tiles')],
+        animations: [
+          _animation(
+            id: 'water-isolated',
+            frames: [_frame(atlasId: 'water-atlas')],
+          ),
+        ],
+        presets: [
+          _preset(
+            id: 'water',
+            refs: {
+              SurfaceVariantRole.isolated: 'water-isolated',
+            },
+          ),
+        ],
+      );
+
+      final instruction = resolveSurfaceRuntimeRenderInstructions(
+        layer: layer,
+        catalog: catalog,
+      ).single;
+
+      expect(instruction.surfacePresetId, 'water');
+      expect(instruction.resolvedRole, SurfaceVariantRole.isolated);
+    });
+
+    test('falls back to isolated animation when the resolved role is uncovered',
+        () {
+      const layer = SurfaceLayer(
+        id: 'surface',
+        name: 'Surfaces',
+        placements: [
+          SurfaceCellPlacement(x: 0, y: 1, surfacePresetId: 'water'),
+          SurfaceCellPlacement(x: 1, y: 1, surfacePresetId: 'water'),
+          SurfaceCellPlacement(x: 2, y: 1, surfacePresetId: 'water'),
+        ],
+      );
+      final catalog = _catalog(
+        atlases: [_atlas(id: 'water-atlas', tilesetId: 'water-tiles')],
+        animations: [
+          _animation(
+            id: 'water-isolated',
+            frames: [_frame(atlasId: 'water-atlas', column: 3)],
+          ),
+        ],
+        presets: [
+          _preset(
+            id: 'water',
+            refs: {
+              SurfaceVariantRole.isolated: 'water-isolated',
+            },
+          ),
+        ],
+      );
+
+      final center = resolveSurfaceRuntimeRenderInstructions(
+        layer: layer,
+        catalog: catalog,
+      ).singleWhere((instruction) => instruction.x == 1);
+
+      expect(center.resolvedRole, SurfaceVariantRole.horizontal);
+      expect(center.animationId, 'water-isolated');
+      expect(center.sourceColumn, 3);
+    });
+
+    test('uses elapsedMs to select a frame without owning a runtime clock', () {
+      const layer = SurfaceLayer(
+        id: 'surface',
+        name: 'Surfaces',
+        placements: [
+          SurfaceCellPlacement(x: 1, y: 1, surfacePresetId: 'water'),
+        ],
+      );
+      final catalog = _catalog(
+        atlases: [_atlas(id: 'water-atlas', tilesetId: 'water-tiles')],
+        animations: [
+          _animation(
+            id: 'water-loop',
+            frames: [
+              _frame(atlasId: 'water-atlas', column: 0, durationMs: 100),
+              _frame(atlasId: 'water-atlas', column: 1, durationMs: 100),
+            ],
+          ),
+        ],
+        presets: [
+          _preset(
+            id: 'water',
+            refs: {
+              SurfaceVariantRole.isolated: 'water-loop',
+            },
+          ),
+        ],
+      );
+
+      final current = resolveSurfaceRuntimeRenderInstructions(
+        layer: layer,
+        catalog: catalog,
+        elapsedMs: 100,
+      ).single;
+
+      expect(current.sourceColumn, 1);
+    });
+
+    test('skips unresolved preset animation atlas and out-of-atlas frames', () {
+      const layer = SurfaceLayer(
+        id: 'surface',
+        name: 'Surfaces',
+        placements: [
+          SurfaceCellPlacement(x: 0, y: 0, surfacePresetId: 'missing-preset'),
+          SurfaceCellPlacement(
+              x: 1, y: 0, surfacePresetId: 'missing-animation'),
+          SurfaceCellPlacement(x: 2, y: 0, surfacePresetId: 'missing-atlas'),
+          SurfaceCellPlacement(x: 3, y: 0, surfacePresetId: 'outside-atlas'),
+        ],
+      );
+      final catalog = _catalog(
+        atlases: [
+          _atlas(
+            id: 'small-atlas',
+            tilesetId: 'water-tiles',
+            columns: 1,
+            rows: 1,
+          ),
+        ],
+        animations: [
+          _animation(
+            id: 'anim-with-missing-atlas',
+            frames: [_frame(atlasId: 'missing-atlas')],
+          ),
+          _animation(
+            id: 'anim-outside-atlas',
+            frames: [_frame(atlasId: 'small-atlas', column: 2)],
+          ),
+        ],
+        presets: [
+          _preset(
+            id: 'missing-animation',
+            refs: {
+              SurfaceVariantRole.isolated: 'does-not-exist',
+            },
+          ),
+          _preset(
+            id: 'missing-atlas',
+            refs: {
+              SurfaceVariantRole.isolated: 'anim-with-missing-atlas',
+            },
+          ),
+          _preset(
+            id: 'outside-atlas',
+            refs: {
+              SurfaceVariantRole.isolated: 'anim-outside-atlas',
+            },
+          ),
+        ],
+      );
+
+      expect(
+        resolveSurfaceRuntimeRenderInstructions(layer: layer, catalog: catalog),
+        isEmpty,
+      );
+    });
+
+    test('returns stable y/x/preset order and ignores hidden layers', () {
+      const hiddenLayer = SurfaceLayer(
+        id: 'hidden',
+        name: 'Hidden',
+        isVisible: false,
+        placements: [
+          SurfaceCellPlacement(x: 0, y: 0, surfacePresetId: 'water'),
+        ],
+      );
+      expect(
+        resolveSurfaceRuntimeRenderInstructions(
+          layer: hiddenLayer,
+          catalog: _simpleWaterCatalog(),
+        ),
+        isEmpty,
+      );
+
+      const layer = SurfaceLayer(
+        id: 'surface',
+        name: 'Surfaces',
+        placements: [
+          SurfaceCellPlacement(x: 2, y: 1, surfacePresetId: 'water'),
+          SurfaceCellPlacement(x: 0, y: 0, surfacePresetId: 'water'),
+          SurfaceCellPlacement(x: 1, y: 0, surfacePresetId: 'water'),
+        ],
+      );
+
+      final keys = resolveSurfaceRuntimeRenderInstructions(
+        layer: layer,
+        catalog: _simpleWaterCatalog(),
+      ).map((instruction) => '${instruction.x}:${instruction.y}').toList();
+
+      expect(keys, ['0:0', '1:0', '2:1']);
+    });
+  });
+}
+
+ProjectSurfaceCatalog _simpleWaterCatalog() {
+  return _catalog(
+    atlases: [_atlas(id: 'water-atlas', tilesetId: 'water-tiles')],
+    animations: [
+      _animation(
+        id: 'water-isolated',
+        frames: [_frame(atlasId: 'water-atlas')],
+      ),
+    ],
+    presets: [
+      _preset(
+        id: 'water',
+        refs: {
+          SurfaceVariantRole.isolated: 'water-isolated',
+        },
+      ),
+    ],
+  );
+}
+
+ProjectSurfaceCatalog _catalog({
+  List<ProjectSurfaceAtlas> atlases = const [],
+  List<ProjectSurfaceAnimation> animations = const [],
+  List<ProjectSurfacePreset> presets = const [],
+}) {
+  return ProjectSurfaceCatalog(
+    atlases: atlases,
+    animations: animations,
+    presets: presets,
+  );
+}
+
+ProjectSurfaceAtlas _atlas({
+  required String id,
+  required String tilesetId,
+  int columns = 8,
+  int rows = 8,
+}) {
+  return ProjectSurfaceAtlas(
+    id: id,
+    name: id,
+    tilesetId: tilesetId,
+    geometry: SurfaceAtlasGeometry(
+      tileSize: SurfaceAtlasTileSize(width: 32, height: 32),
+      gridSize: SurfaceAtlasGridSize(columns: columns, rows: rows),
+      layout: SurfaceAtlasLayout.columnsAreVariantsRowsAreFrames,
+    ),
+  );
+}
+
+ProjectSurfaceAnimation _animation({
+  required String id,
+  required List<SurfaceAnimationFrame> frames,
+}) {
+  return ProjectSurfaceAnimation(
+    id: id,
+    name: id,
+    timeline: SurfaceAnimationTimeline(frames: frames),
+  );
+}
+
+SurfaceAnimationFrame _frame({
+  required String atlasId,
+  int column = 0,
+  int row = 0,
+  int durationMs = 100,
+}) {
+  return SurfaceAnimationFrame(
+    tileRef: SurfaceAtlasTileRef(
+      atlasId: atlasId,
+      column: column,
+      row: row,
+    ),
+    durationMs: durationMs,
+  );
+}
+
+ProjectSurfacePreset _preset({
+  required String id,
+  required Map<SurfaceVariantRole, String> refs,
+}) {
+  return ProjectSurfacePreset(
+    id: id,
+    name: id,
+    variantAnimations: SurfaceVariantAnimationRefSet(
+      refs: [
+        for (final entry in refs.entries)
+          SurfaceVariantAnimationRef(
+            role: entry.key,
+            animationId: entry.value,
+          ),
+      ],
+    ),
+  );
+}
+
+````
+
+#### `packages/map_runtime/test/surface/surface_runtime_tileset_collector_test.dart`
+
+````dart
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_runtime/src/surface/surface_runtime_tileset_collector.dart';
+
+void main() {
+  group('collectSurfaceRuntimeTilesetIds', () {
+    test('collects the tileset used by a placed Surface preset', () {
+      final map = _mapWithSurfacePlacements([
+        const SurfaceCellPlacement(x: 1, y: 1, surfacePresetId: 'water'),
+      ]);
+      final catalog = _catalog(
+        atlases: [_atlas(id: 'water-atlas', tilesetId: 'water-tiles')],
+        animations: [
+          _animation(
+            id: 'water-isolated',
+            frames: [_frame(atlasId: 'water-atlas')],
+          ),
+        ],
+        presets: [_preset(id: 'water', animationId: 'water-isolated')],
+      );
+
+      expect(
+        collectSurfaceRuntimeTilesetIds(map: map, catalog: catalog),
+        {'water-tiles'},
+      );
+    });
+
+    test('deduplicates tilesets while scanning every animation frame', () {
+      final map = _mapWithSurfacePlacements([
+        const SurfaceCellPlacement(x: 0, y: 0, surfacePresetId: 'water'),
+      ]);
+      final catalog = _catalog(
+        atlases: [
+          _atlas(id: 'atlas-a', tilesetId: 'shared-water-tiles'),
+          _atlas(id: 'atlas-b', tilesetId: 'foam-tiles'),
+          _atlas(id: 'atlas-c', tilesetId: 'shared-water-tiles'),
+        ],
+        animations: [
+          _animation(
+            id: 'water-loop',
+            frames: [
+              _frame(atlasId: 'atlas-a', column: 0),
+              _frame(atlasId: 'atlas-b', column: 1),
+              _frame(atlasId: 'atlas-c', column: 2),
+            ],
+          ),
+        ],
+        presets: [_preset(id: 'water', animationId: 'water-loop')],
+      );
+
+      expect(
+        collectSurfaceRuntimeTilesetIds(map: map, catalog: catalog),
+        {'shared-water-tiles', 'foam-tiles'},
+      );
+    });
+
+    test('ignores missing preset animation and atlas references without crash',
+        () {
+      final map = _mapWithSurfacePlacements([
+        const SurfaceCellPlacement(x: 0, y: 0, surfacePresetId: 'missing'),
+        const SurfaceCellPlacement(x: 1, y: 0, surfacePresetId: 'broken'),
+        const SurfaceCellPlacement(x: 2, y: 0, surfacePresetId: 'no-atlas'),
+      ]);
+      final catalog = _catalog(
+        animations: [
+          _animation(
+            id: 'anim-with-missing-atlas',
+            frames: [_frame(atlasId: 'missing-atlas')],
+          ),
+        ],
+        presets: [
+          _preset(id: 'broken', animationId: 'missing-animation'),
+          _preset(id: 'no-atlas', animationId: 'anim-with-missing-atlas'),
+        ],
+      );
+
+      expect(
+        collectSurfaceRuntimeTilesetIds(map: map, catalog: catalog),
+        isEmpty,
+      );
+    });
+
+    test('ignores empty SurfaceLayer and non-Surface layers', () {
+      const map = MapData(
+        id: 'route-1',
+        name: 'Route 1',
+        tilesetId: 'base-world',
+        size: GridSize(width: 4, height: 4),
+        layers: [
+          MapLayer.surface(id: 'surface-empty', name: 'Surfaces'),
+          MapLayer.terrain(
+            id: 'terrain',
+            name: 'Terrain',
+            terrains: [TerrainType.grass],
+          ),
+          MapLayer.path(
+            id: 'path',
+            name: 'Path',
+            presetId: 'road',
+            cells: [true],
+          ),
+        ],
+      );
+
+      expect(
+        collectSurfaceRuntimeTilesetIds(
+            map: map, catalog: ProjectSurfaceCatalog()),
+        isEmpty,
+      );
+    });
+  });
+}
+
+MapData _mapWithSurfacePlacements(List<SurfaceCellPlacement> placements) {
+  return MapData(
+    id: 'route-1',
+    name: 'Route 1',
+    tilesetId: 'base-world',
+    size: const GridSize(width: 8, height: 8),
+    layers: [
+      MapLayer.surface(
+        id: 'surface',
+        name: 'Surfaces',
+        placements: placements,
+      ),
+    ],
+  );
+}
+
+ProjectSurfaceCatalog _catalog({
+  List<ProjectSurfaceAtlas> atlases = const [],
+  List<ProjectSurfaceAnimation> animations = const [],
+  List<ProjectSurfacePreset> presets = const [],
+}) {
+  return ProjectSurfaceCatalog(
+    atlases: atlases,
+    animations: animations,
+    presets: presets,
+  );
+}
+
+ProjectSurfaceAtlas _atlas({
+  required String id,
+  required String tilesetId,
+}) {
+  return ProjectSurfaceAtlas(
+    id: id,
+    name: id,
+    tilesetId: tilesetId,
+    geometry: SurfaceAtlasGeometry(
+      tileSize: SurfaceAtlasTileSize(width: 32, height: 32),
+      gridSize: SurfaceAtlasGridSize(columns: 8, rows: 8),
+      layout: SurfaceAtlasLayout.columnsAreVariantsRowsAreFrames,
+    ),
+  );
+}
+
+ProjectSurfaceAnimation _animation({
+  required String id,
+  required List<SurfaceAnimationFrame> frames,
+}) {
+  return ProjectSurfaceAnimation(
+    id: id,
+    name: id,
+    timeline: SurfaceAnimationTimeline(frames: frames),
+  );
+}
+
+SurfaceAnimationFrame _frame({
+  required String atlasId,
+  int column = 0,
+  int row = 0,
+}) {
+  return SurfaceAnimationFrame(
+    tileRef: SurfaceAtlasTileRef(
+      atlasId: atlasId,
+      column: column,
+      row: row,
+    ),
+    durationMs: 100,
+  );
+}
+
+ProjectSurfacePreset _preset({
+  required String id,
+  required String animationId,
+}) {
+  return ProjectSurfacePreset(
+    id: id,
+    name: id,
+    variantAnimations: SurfaceVariantAnimationRefSet(
+      refs: [
+        SurfaceVariantAnimationRef(
+          role: SurfaceVariantRole.isolated,
+          animationId: animationId,
+        ),
+      ],
+    ),
+  );
+}
+
+````
+
+
+## 20. Limites restantes
+- Pas de rendu Flame Surface : le Lot 90 devra consommer `SurfaceRuntimeRenderInstruction`.
+- Pas de clock runtime Surface : `elapsedMs` est prêt, mais aucun tick global n’est branché.
+- Pas de diagnostics structurés des références manquantes : les refs incomplètes sont simplement ignorées.
+- Le resolver est V0 : il ne résout pas des variantes avancées au-delà du rôle produit par `map_core`.
+
+## 21. Auto-critique
+- Le choix de dupliquer une petite résolution temporelle côté runtime évite de toucher `map_core`, mais il faudra éviter une divergence future avec l’éditeur.
+- Le collecteur scanne toutes les refs du preset placé, pas seulement les rôles réellement atteints sur la map. C’est volontaire pour charger toutes les frames, mais peut charger quelques textures non visibles dans un cas extrême.
+- Le rapport est très lourd à cause de l’exigence de contenu complet, surtout `map_layers_component.dart`.
+
+## 22. Regard critique sur le prompt
+- Demander le contenu complet de gros fichiers modifiés rend les rapports difficiles à relire et gonfle le diff ; une preuve par diff ciblé serait souvent plus efficace.
+- Le lot demande un resolver avec `elapsedMs` tout en interdisant la clock runtime : c’est cohérent, mais cela anticipe déjà un peu le Lot 90/91.
+- Le périmètre est bon : commencer par collecte + instructions avant de dessiner est la bonne marche d’escalier.
+
+## 23. Auto-review obligatoire
+- Est-ce que map_runtime collecte les tilesets Surface nécessaires ? Oui.
+- Est-ce que les tilesets sont dédupliqués ? Oui.
+- Est-ce que toutes les frames sont prises en compte pour la collecte ? Oui.
+- Est-ce qu’un resolver runtime Surface existe ? Oui.
+- Est-ce que le resolver produit des instructions sans dessiner ? Oui.
+- Est-ce que le rôle est résolu via les voisins même surfacePresetId ? Oui.
+- Est-ce que les surfaces différentes ne se connectent pas ? Oui.
+- Est-ce que les catalogues incomplets ne crashent pas ? Oui.
+- Est-ce que Flame est inchangé côté rendu ? Oui.
+- Est-ce que map_runtime reste sans renderer Surface ? Oui.
+- Est-ce que Surface Painter reste non régressé si testé ? Non lancé, car `map_editor` et `map_core` exports n’ont pas été modifiés.
+- Est-ce que les tests ciblés passent ? Oui.
+- Est-ce que l’analyse ciblée passe ? Oui.
+- Est-ce qu’un Lot 89-bis est nécessaire ? Non pour cette fondation ; le prochain lot logique est le renderer runtime Surface.
