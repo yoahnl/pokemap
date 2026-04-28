@@ -258,6 +258,79 @@ void main() {
         <String>['grassy_glide', 'opponent_tackle'],
       );
     });
+
+    test('s_ice_spinner clears active terrain after a successful hit', () {
+      final result = _runMove(
+        field: const PsdkBattleFieldState(
+          terrain: PsdkBattleTerrainState(
+            id: PsdkBattleTerrainId.electricTerrain,
+            remainingTurns: 5,
+          ),
+        ),
+        playerMove: _move(
+          id: 'ice_spinner',
+          type: 'ice',
+          power: 80,
+          battleEngineMethod: 's_ice_spinner',
+        ),
+      );
+
+      expect(_damage(result, moveId: 'ice_spinner'), greaterThan(0));
+      expect(result.state.field.terrain, isNull);
+      expect(
+        result.timeline.events
+            .whereType<PsdkBattleTerrainChangedEvent>()
+            .map((event) => event.terrain),
+        contains(null),
+      );
+    });
+
+    test('s_steel_roller fails before damage when no terrain is active', () {
+      final result = _runMove(
+        field: const PsdkBattleFieldState(),
+        playerMove: _move(
+          id: 'steel_roller',
+          type: 'steel',
+          power: 130,
+          battleEngineMethod: 's_steel_roller',
+        ),
+      );
+
+      expect(
+        result.timeline.events.whereType<PsdkBattleDamageEvent>(),
+        isEmpty,
+      );
+      expect(
+        result.timeline.events.whereType<PsdkBattleMoveFailedEvent>(),
+        isNotEmpty,
+      );
+    });
+
+    test('s_steel_roller clears active terrain after a successful hit', () {
+      final result = _runMove(
+        field: const PsdkBattleFieldState(
+          terrain: PsdkBattleTerrainState(
+            id: PsdkBattleTerrainId.grassyTerrain,
+            remainingTurns: 5,
+          ),
+        ),
+        playerMove: _move(
+          id: 'steel_roller',
+          type: 'steel',
+          power: 130,
+          battleEngineMethod: 's_steel_roller',
+        ),
+      );
+
+      expect(_damage(result, moveId: 'steel_roller'), greaterThan(0));
+      expect(result.state.field.terrain, isNull);
+      expect(
+        result.timeline.events
+            .whereType<PsdkBattleTerrainChangedEvent>()
+            .map((event) => event.terrain),
+        contains(null),
+      );
+    });
   });
 }
 

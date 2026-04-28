@@ -105,6 +105,57 @@ void main() {
       );
     });
 
+    test('s_baddy_bad damages then installs Reflect on the user bank', () {
+      final result = _runTurn(
+        playerMove: _move(
+          id: 'baddy_bad',
+          category: PsdkBattleMoveCategory.special,
+          power: 80,
+          battleEngineMethod: 's_baddy_bad',
+        ),
+        opponentMove: _move(
+          id: 'opponent_wait',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+        ),
+      );
+
+      expect(_damage(result, moveId: 'baddy_bad'), greaterThan(0));
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).effects.contains('reflect'),
+        isTrue,
+      );
+    });
+
+    test('s_glitzy_glow damages then installs Light Screen with Light Clay',
+        () {
+      final result = _runTurn(
+        playerHeldItemId: 'light_clay',
+        playerMove: _move(
+          id: 'glitzy_glow',
+          category: PsdkBattleMoveCategory.special,
+          power: 80,
+          battleEngineMethod: 's_glitzy_glow',
+        ),
+        opponentMove: _move(
+          id: 'opponent_wait',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+        ),
+      );
+
+      final lightScreen = result.state
+          .battlerAt(psdkPlayerSlot)
+          .effects
+          .effects
+          .singleWhere((effect) => effect.id == 'light_screen');
+
+      expect(_damage(result, moveId: 'glitzy_glow'), greaterThan(0));
+      expect(lightScreen.remainingTurns, 7);
+    });
+
     test('Aurora Veil fails without active snow or hail', () {
       final result = _runTurn(
         playerMove: _move(

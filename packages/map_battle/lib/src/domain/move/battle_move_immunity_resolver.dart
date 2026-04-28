@@ -27,9 +27,8 @@ final class BattleMoveImmunityResolver {
   final BattleGroundingResolver _groundingResolver;
 
   BattleMoveTargetPrecheckResult precheck(
-    BattleMoveProcedureExecution execution,
-    List<BattlePositionRef> targets,
-  ) {
+      BattleMoveProcedureExecution execution, List<BattlePositionRef> targets,
+      {bool ignoreProtect = false}) {
     final unblockedTargets = <BattlePositionRef>[];
     var failureReason = BattleMoveFailureReason.immunity;
     final shouldCheckTypeImmunity =
@@ -49,7 +48,7 @@ final class BattleMoveImmunityResolver {
         continue;
       }
 
-      if (_isBlockedByProtect(execution, targetRef)) {
+      if (!ignoreProtect && _isBlockedByProtect(execution, targetRef)) {
         failureReason = BattleMoveFailureReason.protected;
         execution.timeline.add(
           BattleMoveFailedTimelineEvent(
@@ -79,24 +78,27 @@ final class BattleMoveImmunityResolver {
     final target = execution.context.state.battlerAt(
       _psdkSlotFromBattlePosition(targetRef),
     );
-    if (_isGroundMoveBlockedByGrounding(execution, target)) {
+    final moveType = _effectiveMoveType(execution);
+    if (_isGroundMoveBlockedByGrounding(moveType, target)) {
       return true;
     }
 
     final effectiveness = _typeProcessor.resolveEffectiveness(
-      moveType: execution.move.type,
+      moveType: moveType,
       targetTypes: target.types,
+      extraTargetTypes: _extraTypes(target),
       forceGrounded: target.effects.contains('smack_down'),
+      foresight: target.effects.contains('foresight'),
+      miracleEye: target.effects.contains('miracle_eye'),
     );
     return effectiveness.isImmune;
   }
 
   bool _isGroundMoveBlockedByGrounding(
-    BattleMoveProcedureExecution execution,
+    String moveType,
     PsdkBattleCombatant target,
   ) {
-    return execution.move.type.toLowerCase() == 'ground' &&
-        !_groundingResolver.isGrounded(target);
+    return moveType == 'ground' && !_groundingResolver.isGrounded(target);
   }
 
   bool _isBlockedByProtect(
@@ -117,6 +119,25 @@ final class BattleMoveImmunityResolver {
         ) ==
         BattleMoveFailureReason.protected;
   }
+}
+
+String _effectiveMoveType(BattleMoveProcedureExecution execution) {
+  final user = execution.context.state.battlerAt(execution.psdkActualUser);
+  final moveType = execution.move.type.toLowerCase();
+  if (user.effects.contains('electrify')) {
+    return 'electric';
+  }
+  if (user.effects.contains('ion_deluge') && moveType == 'normal') {
+    return 'electric';
+  }
+  return moveType;
+}
+
+Iterable<String> _extraTypes(PsdkBattleCombatant battler) {
+  return <String>[
+    if (battler.type3 != null) battler.type3!,
+    ...battler.temporaryTypes,
+  ];
 }
 
 PsdkBattleSlotRef _psdkSlotFromBattlePosition(BattlePositionRef slot) {

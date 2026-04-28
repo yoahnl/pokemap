@@ -72,6 +72,11 @@ void main() {
       expect(byMethod['s_2hits']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_3hits']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_multi_hit']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_double_iron_bash']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_double_iron_bash']!.dartBehavior,
+        'MultiHitMoveBehavior.doubleIronBash',
+      );
       expect(byMethod['s_triple_kick']!.status, PsdkPortStatus.partial);
       expect(
         byMethod['s_triple_kick']!.dartBehavior,
@@ -86,6 +91,11 @@ void main() {
       expect(
         byMethod['s_water_shuriken']!.dartBehavior,
         'MultiHitMoveBehavior.waterShuriken',
+      );
+      expect(byMethod['s_scale_shot']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_scale_shot']!.dartBehavior,
+        'MultiHitMoveBehavior.scaleShot',
       );
     });
 
@@ -289,27 +299,19 @@ void main() {
       for (final method in <String>[
         's_beak_blast',
         's_core_enforcer',
-        's_fake_out',
-        's_feint',
-        's_fell_stinger',
         's_flame_burst',
         's_flying_press',
         's_focus_punch',
         's_fusion_bolt',
         's_fusion_flare',
         's_hidden_power',
-        's_jump_kick',
         's_last_resort',
         's_payday',
         's_photon_geyser',
         's_pollen_puff',
         's_pursuit',
-        's_rage',
         's_round',
         's_shell_trap',
-        's_spectral_thief',
-        's_stomp',
-        's_u_turn',
       ]) {
         expect(byMethod[method]!.status, PsdkPortStatus.partial);
         expect(
@@ -317,7 +319,29 @@ void main() {
           'StaticBasicMoveRegistry.partialBasic($method)',
         );
       }
+      expect(byMethod['s_u_turn']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_u_turn']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_u_turn',
+      );
+      expect(byMethod['s_rage']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_rage']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_rage',
+      );
+      expect(
+        byMethod['s_ice_spinner']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_ice_spinner',
+      );
+      expect(
+        byMethod['s_steel_roller']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_steel_roller',
+      );
       expect(byMethod['s_sky_drop']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_jump_kick']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_jump_kick',
+      );
       expect(
         byMethod['s_sky_drop']!.dartBehavior,
         'StaticBasicMoveRegistry.s_sky_drop',
@@ -327,10 +351,128 @@ void main() {
         byMethod['s_rapid_spin']!.dartBehavior,
         'StaticBasicMoveRegistry.s_rapid_spin',
       );
+      expect(byMethod['s_spectral_thief']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_spectral_thief']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_spectral_thief',
+      );
+      expect(byMethod['s_make_it_rain']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_make_it_rain']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_make_it_rain',
+      );
+      expect(byMethod['s_eerie_spell']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_eerie_spell']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_eerie_spell',
+      );
+      expect(byMethod['s_electro_shot']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_electro_shot']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_electro_shot',
+      );
+      expect(byMethod['s_fickle_beam']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_fickle_beam']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_fickle_beam',
+      );
+      expect(byMethod['s_magnitude']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_magnitude']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_magnitude',
+      );
+      expect(byMethod['s_present']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_present']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_present',
+      );
+      expect(byMethod['s_glaive_rush']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_glaive_rush']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_glaive_rush',
+      );
+      expect(byMethod['s_last_respects']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_last_respects']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_last_respects',
+      );
+      expect(byMethod['s_shell_side_arm']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_shell_side_arm']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_shell_side_arm',
+      );
+      expect(byMethod['s_triple_arrows']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_triple_arrows']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_triple_arrows',
+      );
+      expect(
+        byMethod['s_super_duper_effective']!.status,
+        PsdkPortStatus.partial,
+      );
+      expect(
+        byMethod['s_super_duper_effective']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_super_duper_effective',
+      );
       expect(byMethod['s_brick_break']!.status, PsdkPortStatus.partial);
       expect(
         byMethod['s_brick_break']!.dartBehavior,
         'StaticBasicMoveRegistry.s_brick_break',
+      );
+      expect(byMethod['s_raging_bull']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_raging_bull']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_raging_bull',
+      );
+      expect(byMethod['s_feint']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_feint']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_feint',
+      );
+      expect(byMethod['s_fell_stinger']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_fell_stinger']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_fell_stinger',
+      );
+      expect(byMethod['s_poltergeist']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_poltergeist']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_poltergeist',
+      );
+      expect(byMethod['s_stomp']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_stomp']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_stomp',
+      );
+      expect(byMethod['s_jaw_lock']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_jaw_lock']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_jaw_lock',
+      );
+      expect(byMethod['s_sappy_seed']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_sappy_seed']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_sappy_seed',
+      );
+      expect(byMethod['s_baddy_bad']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_baddy_bad']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_baddy_bad',
+      );
+      expect(byMethod['s_glitzy_glow']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_glitzy_glow']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_glitzy_glow',
+      );
+      expect(byMethod['s_grav_apple']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_grav_apple']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_grav_apple',
+      );
+      expect(byMethod['s_freezy_frost']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_freezy_frost']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_freezy_frost',
       );
       expect(byMethod['s_ceaseless_edge']!.status, PsdkPortStatus.partial);
       expect(
@@ -357,10 +499,20 @@ void main() {
         byMethod['s_sucker_punch']!.dartBehavior,
         'ActionGatedMoveBehavior.suckerPunch',
       );
+      expect(byMethod['s_fake_out']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_fake_out']!.dartBehavior,
+        'ActionGatedMoveBehavior.fakeOut',
+      );
       expect(byMethod['s_hurricane']!.status, PsdkPortStatus.partial);
       expect(
         byMethod['s_hurricane']!.dartBehavior,
         'WeatherPowerMoveBehavior.hurricane',
+      );
+      expect(byMethod['s_genies_storm']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_genies_storm']!.dartBehavior,
+        'WeatherPowerMoveBehavior.geniesStorm',
       );
       expect(byMethod['s_solar_beam']!.status, PsdkPortStatus.partial);
       expect(
@@ -849,13 +1001,6 @@ void main() {
         ]),
       );
       expect(
-        byMethod['s_stomp']!.dependencies,
-        containsAll(<PsdkMoveDependency>[
-          PsdkMoveDependency.effects,
-          PsdkMoveDependency.accuracy,
-        ]),
-      );
-      expect(
         byMethod['s_follow_me']!.dependencies,
         containsAll(<PsdkMoveDependency>[
           PsdkMoveDependency.effects,
@@ -951,14 +1096,6 @@ void main() {
           PsdkMoveDependency.handlerSwitch,
           PsdkMoveDependency.effects,
           PsdkMoveDependency.ability,
-        ]),
-      );
-      expect(
-        byMethod['s_jump_kick']!.dependencies,
-        containsAll(<PsdkMoveDependency>[
-          PsdkMoveDependency.handlerDamage,
-          PsdkMoveDependency.accuracy,
-          PsdkMoveDependency.effects,
         ]),
       );
       expect(

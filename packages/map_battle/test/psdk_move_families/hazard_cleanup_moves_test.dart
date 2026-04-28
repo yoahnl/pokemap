@@ -97,6 +97,50 @@ void main() {
           -1);
     });
 
+    test('s_defog clears fog weather only', () {
+      final fog = PsdkBattleEngine(
+        setup: _setup(
+          field: const PsdkBattleFieldState(
+            weather: PsdkBattleWeatherState(
+              id: PsdkBattleWeatherId.fog,
+              remainingTurns: 5,
+            ),
+          ),
+          playerMove: _move(
+            id: 'defog',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            battleEngineMethod: 's_defog',
+            target: PsdkBattleMoveTarget.adjacentFoe,
+          ),
+        ),
+      );
+      final rain = PsdkBattleEngine(
+        setup: _setup(
+          field: const PsdkBattleFieldState(
+            weather: PsdkBattleWeatherState(
+              id: PsdkBattleWeatherId.rain,
+              remainingTurns: 5,
+            ),
+          ),
+          playerMove: _move(
+            id: 'defog',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            battleEngineMethod: 's_defog',
+            target: PsdkBattleMoveTarget.adjacentFoe,
+          ),
+        ),
+      );
+
+      final fogResult = fog.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final rainResult =
+          rain.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(fogResult.state.field.weather, isNull);
+      expect(rainResult.state.field.weather?.id, PsdkBattleWeatherId.rain);
+    });
+
     test('s_brick_break damages then clears opposing screen markers', () {
       final engine = PsdkBattleEngine(
         setup: _setup(
@@ -133,6 +177,45 @@ void main() {
       expect(_damageEvents(result, moveId: 'brick_break'), hasLength(1));
       expect(_hasBankEffect(result.state, 'reflect', bank: 1), isFalse);
       expect(_hasBankEffect(result.state, 'light_screen', bank: 1), isFalse);
+      expect(_hasBankEffect(result.state, 'tailwind', bank: 1), isTrue);
+    });
+
+    test('s_raging_bull inherits Brick Break screen cleanup', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          playerMove: _move(
+            id: 'raging_bull',
+            type: 'normal',
+            power: 90,
+            battleEngineMethod: 's_raging_bull',
+          ),
+          opponentEffects: const PsdkBattleEffectStack.empty()
+              .addEffect(
+                const GenericBattleEffect(
+                  id: 'reflect',
+                  scope: BankBattleEffectScope(1),
+                ),
+              )
+              .addEffect(
+                const GenericBattleEffect(
+                  id: 'aurora_veil',
+                  scope: BankBattleEffectScope(1),
+                ),
+              )
+              .addEffect(
+                const GenericBattleEffect(
+                  id: 'tailwind',
+                  scope: BankBattleEffectScope(1),
+                ),
+              ),
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(_damageEvents(result, moveId: 'raging_bull'), hasLength(1));
+      expect(_hasBankEffect(result.state, 'reflect', bank: 1), isFalse);
+      expect(_hasBankEffect(result.state, 'aurora_veil', bank: 1), isFalse);
       expect(_hasBankEffect(result.state, 'tailwind', bank: 1), isTrue);
     });
 
@@ -477,6 +560,7 @@ void main() {
 PsdkBattleSetup _setup({
   required PsdkBattleMoveData playerMove,
   PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
+  PsdkBattleFieldState field = const PsdkBattleFieldState(),
   String? playerAbilityId,
   String? playerHeldItemId,
   PsdkBattleEffectStack playerEffects = const PsdkBattleEffectStack.empty(),
@@ -510,6 +594,7 @@ PsdkBattleSetup _setup({
       moveAccuracy: 3,
       generic: 0,
     ),
+    field: field,
   );
 }
 

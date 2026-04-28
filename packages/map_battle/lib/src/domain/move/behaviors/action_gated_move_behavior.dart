@@ -1,6 +1,8 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../effect/battle_effect_scope.dart';
+import '../../effect/move/flinch_effect.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_damage_calculator.dart';
 import '../battle_move_prevention.dart';
@@ -8,6 +10,7 @@ import '../battle_move_secondary_effect_resolver.dart';
 import 'battle_move_behavior_support.dart';
 
 enum _ActionGatedKind {
+  fakeOut,
   snore,
   suckerPunch,
 }
@@ -18,6 +21,10 @@ enum _ActionGatedKind {
 /// current clean move context does not yet expose the full ordered action queue.
 final class ActionGatedMoveBehavior
     implements BattleMoveUserPreventionBehavior {
+  const ActionGatedMoveBehavior.fakeOut()
+      : battleEngineMethod = 's_fake_out',
+        _kind = _ActionGatedKind.fakeOut;
+
   const ActionGatedMoveBehavior.snore()
       : battleEngineMethod = 's_snore',
         _kind = _ActionGatedKind.snore;
@@ -37,6 +44,11 @@ final class ActionGatedMoveBehavior
     final user = context.state.battlerAt(context.user);
     final target = context.state.battlerAt(context.target);
     return switch (_kind) {
+      _ActionGatedKind.fakeOut => _canUseFakeOut(user)
+          ? null
+          : const BattleMoveUserPreventionResult(
+              reason: BattleMoveFailureReason.unusableByUser,
+            ),
       _ActionGatedKind.snore => _canUseSnore(user)
           ? null
           : const BattleMoveUserPreventionResult(
@@ -113,9 +125,19 @@ final class ActionGatedMoveBehavior
       move: context.move,
       turn: context.turn,
     );
+    final flinched = _kind == _ActionGatedKind.fakeOut
+        ? secondary.state.updateBattler(
+            targetSlot,
+            (battler) => battler.copyWith(
+              effects: battler.effects.addEffect(
+                FlinchEffect(scope: BattlerBattleEffectScope(targetSlot)),
+              ),
+            ),
+          )
+        : secondary.state;
 
     return BattleMoveBehaviorResolution(
-      state: secondary.state,
+      state: flinched,
       rng: secondary.rng,
       events: <PsdkBattleEvent>[
         ...prepared.events,
@@ -123,6 +145,10 @@ final class ActionGatedMoveBehavior
         ...secondary.events,
       ],
     );
+  }
+
+  bool _canUseFakeOut(PsdkBattleCombatant user) {
+    return user.battleTurnCount <= 1 && !user.effects.contains('instruct');
   }
 
   bool _canUseSnore(PsdkBattleCombatant user) {

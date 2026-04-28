@@ -51,6 +51,7 @@ export '../domain/effect/move/bind_effect.dart';
 export '../domain/effect/move/cant_switch_effect.dart';
 export '../domain/effect/move/confusion_effect.dart';
 export '../domain/effect/move/curse_effect.dart';
+export '../domain/effect/move/flinch_effect.dart';
 export '../domain/effect/move/ingrain_effect.dart';
 export '../domain/effect/move/leech_seed_effect.dart';
 export '../domain/effect/move/protect_effect.dart';

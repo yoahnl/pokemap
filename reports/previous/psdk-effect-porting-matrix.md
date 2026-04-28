@@ -7,8 +7,8 @@ Total effect classes: 482
 | Status | Count |
 | --- | ---: |
 | `ported` | 0 |
-| `partial` | 24 |
-| `missing` | 458 |
+| `partial` | 25 |
+| `missing` | 457 |
 
 | Effect | Ruby base | Family | Hooks | Hook families | Ruby path | Dart target | Status | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -141,7 +141,7 @@ Total effect classes: 482
 | `FlameOrb` | `Item` | `item` | `on_end_turn_event` | `end_turn` | `06 Effects/05 Item Effects/100 Flame Orb.rb` | `lib/src/domain/effect/item/flame_orb_effect.dart` | `missing` | `-` |
 | `FlareBoost` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Flare Boost.rb` | `lib/src/domain/effect/ability/flare_boost_effect.dart` | `missing` | `-` |
 | `FlashFire` | `Ability` | `ability` | `on_damage_prevention`, `on_reset_states`, `on_stat_decrease_prevention`, `on_stat_increase_prevention`, `on_status_prevention` | `damage_prevention`, `stat_change`, `status_prevention` | `06 Effects/04 Ability Effects/100 Flash Fire.rb` | `lib/src/domain/effect/ability/flash_fire_effect.dart` | `missing` | `-` |
-| `Flinch` | `PokemonTiedEffectBase` | `move` | `on_move_prevention_user`, `on_status_prevention` | `move_prevention`, `status_prevention` | `06 Effects/02 Move Effects/001 Flinch.rb` | `lib/src/domain/effect/move/flinch_effect.dart` | `missing` | `-` |
+| `Flinch` | `PokemonTiedEffectBase` | `move` | `on_move_prevention_user`, `on_status_prevention` | `move_prevention`, `status_prevention` | `06 Effects/02 Move Effects/001 Flinch.rb` | `lib/src/domain/effect/move/flinch_effect.dart` | `partial` | Object-backed FlinchEffect blocks the target next action through the user-prevention hook and clears at end turn; messaging and Steadfast-style side effects remain future work. |
 | `FlowerGift` | `Ability` | `ability` | `on_post_weather_change`, `on_pre_ability_change`, `on_switch_event` | `ability_change`, `switch`, `weather_change` | `06 Effects/04 Ability Effects/100 Flower Gift.rb` | `lib/src/domain/effect/ability/flower_gift_effect.dart` | `missing` | `-` |
 | `FlowerVeil` | `Ability` | `ability` | `on_stat_decrease_prevention`, `on_status_prevention` | `stat_change`, `status_prevention` | `06 Effects/04 Ability Effects/100 Flower Veil.rb` | `lib/src/domain/effect/ability/flower_veil_effect.dart` | `missing` | `-` |
 | `Fluffy` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Fluffy.rb` | `lib/src/domain/effect/ability/fluffy_effect.dart` | `missing` | `-` |

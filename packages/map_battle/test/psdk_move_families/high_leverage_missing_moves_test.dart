@@ -296,6 +296,85 @@ void main() {
       );
     });
 
+    test('s_electro_shot boosts Sp. Atk while charging then strikes', () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            types: const PsdkBattleTypes(primary: 'electric'),
+            speed: 100,
+            move: _move(
+              id: 'electro_shot',
+              type: 'electric',
+              category: PsdkBattleMoveCategory.special,
+              power: 130,
+              battleEngineMethod: 's_electro_shot',
+            ),
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            types: const PsdkBattleTypes(primary: 'water'),
+            speed: 1,
+            move: _move(
+              id: 'opponent_wait',
+              power: 0,
+              accuracy: 1,
+            ),
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 0,
+          ),
+        ),
+      );
+
+      final charge = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final chargingPlayer = charge.state.battlerAt(psdkPlayerSlot);
+      expect(_damageEvents(charge, moveId: 'electro_shot'), isEmpty);
+      expect(chargingPlayer.statStages.valueOf('specialAttack'), 1);
+      expect(
+        chargingPlayer.effects.contains(PsdkBattleEffectIds.twoTurnCharge),
+        isTrue,
+      );
+
+      final strike = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      expect(_damageEvents(strike, moveId: 'electro_shot'), hasLength(1));
+      expect(
+        strike.state
+            .battlerAt(psdkPlayerSlot)
+            .effects
+            .contains(PsdkBattleEffectIds.twoTurnCharge),
+        isFalse,
+      );
+    });
+
+    test('s_electro_shot skips charge under rain but still boosts Sp. Atk', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'electro_shot',
+          type: 'electric',
+          category: PsdkBattleMoveCategory.special,
+          power: 130,
+          battleEngineMethod: 's_electro_shot',
+        ),
+        opponentTypes: const PsdkBattleTypes(primary: 'water'),
+        field: const PsdkBattleFieldState(
+          weather: PsdkBattleWeatherState(
+            id: PsdkBattleWeatherId.rain,
+            remainingTurns: 5,
+          ),
+        ),
+      );
+
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      expect(_damageEvents(result, moveId: 'electro_shot'), hasLength(1));
+      expect(player.statStages.valueOf('specialAttack'), 1);
+      expect(
+          player.effects.contains(PsdkBattleEffectIds.twoTurnCharge), isFalse);
+    });
+
     test('s_foresight installs a target marker through the status pipeline',
         () {
       final result = _runMove(
@@ -951,8 +1030,10 @@ void main() {
       expect(player.statStages.valueOf('specialDefense'), 1);
     });
 
-    test('s_autotomize installs a marker and applies its Speed boost', () {
+    test('s_autotomize installs a marker, boosts Speed and lowers weight', () {
       final result = _runMove(
+        playerBaseWeightKg: 250,
+        playerCurrentWeightKg: 250,
         playerMove: _move(
           id: 'autotomize',
           category: PsdkBattleMoveCategory.status,
@@ -973,6 +1054,37 @@ void main() {
       final player = result.state.battlerAt(psdkPlayerSlot);
       expect(player.effects.contains('autotomize'), isTrue);
       expect(player.statStages.valueOf('speed'), 2);
+      expect(player.baseWeightKg, 250);
+      expect(player.currentWeightKg, 150);
+    });
+
+    test('s_autotomize does not lower weight when Speed cannot rise', () {
+      final result = _runMove(
+        playerBaseWeightKg: 250,
+        playerCurrentWeightKg: 250,
+        playerStages: PsdkBattleStatStages(values: const <String, int>{
+          'speed': 6,
+        }),
+        playerMove: _move(
+          id: 'autotomize',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          battleEngineMethod: 's_autotomize',
+          target: PsdkBattleMoveTarget.self,
+          stageMods: const <PsdkBattleMoveStageMod>[
+            PsdkBattleMoveStageMod(
+              stat: 'speed',
+              stages: 2,
+              chance: 100,
+            ),
+          ],
+        ),
+      );
+
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      expect(player.statStages.valueOf('speed'), 6);
+      expect(player.currentWeightKg, 250);
     });
 
     test('s_gastro_acid installs an ability suppression marker on the target',
@@ -1366,15 +1478,400 @@ void main() {
       expect(_damageEvents(second, moveId: 'sky_drop'), hasLength(1));
     });
 
+    test('s_rage deals damage and installs the Rage marker on the user', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'rage',
+          power: 20,
+          battleEngineMethod: 's_rage',
+        ),
+      );
+
+      expect(_damageEvents(result, moveId: 'rage'), hasLength(1));
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).effects.contains('rage'),
+        isTrue,
+      );
+    });
+
+    test('s_glaive_rush deals damage and installs its marker on the user', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'glaive_rush',
+          type: 'dragon',
+          power: 120,
+          battleEngineMethod: 's_glaive_rush',
+        ),
+      );
+
+      expect(_damageEvents(result, moveId: 'glaive_rush'), hasLength(1));
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).effects.contains('glaive_rush'),
+        isTrue,
+      );
+    });
+
+    test('s_glaive_rush doubles incoming damage while its marker is active',
+        () {
+      final normalIncoming = _runMove(
+        playerMove: _move(id: 'basic_hit', power: 40),
+        opponentMove: _move(id: 'opponent_tackle', power: 40),
+      );
+      final glaiveIncoming = _runMove(
+        playerMove: _move(
+          id: 'glaive_rush',
+          type: 'dragon',
+          power: 120,
+          battleEngineMethod: 's_glaive_rush',
+        ),
+        opponentMove: _move(id: 'opponent_tackle', power: 40),
+      );
+
+      final normalDamage =
+          _damageEvents(normalIncoming, moveId: 'opponent_tackle')
+              .single
+              .damage;
+      final glaiveDamage =
+          _damageEvents(glaiveIncoming, moveId: 'opponent_tackle')
+              .single
+              .damage;
+      expect(glaiveDamage, normalDamage * 2);
+    });
+
+    test('s_fickle_beam can double its base power after accuracy', () {
+      final regular = _runMove(
+        playerMove: _move(
+          id: 'fickle_beam',
+          power: 80,
+          battleEngineMethod: 's_fickle_beam',
+        ),
+        genericSeed: 30,
+      );
+      final empowered = _runMove(
+        playerMove: _move(
+          id: 'fickle_beam',
+          power: 80,
+          battleEngineMethod: 's_fickle_beam',
+        ),
+        genericSeed: 0,
+      );
+
+      final regularDamage =
+          _damageEvents(regular, moveId: 'fickle_beam').single.damage;
+      final empoweredDamage =
+          _damageEvents(empowered, moveId: 'fickle_beam').single.damage;
+      expect(empoweredDamage, greaterThan(regularDamage));
+    });
+
+    test('s_super_duper_effective boosts super-effective damage', () {
+      final regular = _runMove(
+        playerMove: _move(
+          id: 'electric_hit',
+          type: 'electric',
+          power: 80,
+        ),
+        opponentTypes: const PsdkBattleTypes(primary: 'water'),
+      );
+      final boosted = _runMove(
+        playerMove: _move(
+          id: 'super_duper_effective',
+          type: 'electric',
+          power: 80,
+          battleEngineMethod: 's_super_duper_effective',
+        ),
+        opponentTypes: const PsdkBattleTypes(primary: 'water'),
+      );
+
+      final regularDamage =
+          _damageEvents(regular, moveId: 'electric_hit').single.damage;
+      final boostedDamage =
+          _damageEvents(boosted, moveId: 'super_duper_effective').single.damage;
+      expect(boostedDamage, greaterThan(regularDamage));
+    });
+
+    test('s_present can roll a 120-power damage branch', () {
+      final regular = _runMove(
+        playerMove: _move(
+          id: 'normal_hit',
+          power: 80,
+        ),
+      );
+      final present = _runMove(
+        playerMove: _move(
+          id: 'present',
+          power: 1,
+          battleEngineMethod: 's_present',
+        ),
+        genericSeed: 79,
+      );
+
+      final regularDamage =
+          _damageEvents(regular, moveId: 'normal_hit').single.damage;
+      final presentDamage =
+          _damageEvents(present, moveId: 'present').single.damage;
+      expect(presentDamage, greaterThan(regularDamage));
+    });
+
+    test('s_present can heal the target for a quarter of max HP', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'present',
+          power: 1,
+          battleEngineMethod: 's_present',
+        ),
+        opponentCurrentHp: 50,
+        genericSeed: 80,
+      );
+
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+      expect(_damageEvents(result, moveId: 'present'), isEmpty);
+      expect(opponent.currentHp, 75);
+    });
+
+    test('s_triple_arrows installs a user crit marker after damage', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'triple_arrows',
+          type: 'fighting',
+          power: 90,
+          battleEngineMethod: 's_triple_arrows',
+        ),
+      );
+
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      expect(_damageEvents(result, moveId: 'triple_arrows'), hasLength(1));
+      expect(player.effects.contains('triple_arrows'), isTrue);
+    });
+
+    test('s_genies_storm bypasses accuracy during rain', () {
+      final dryMiss = _runMove(
+        playerMove: _move(
+          id: 'bleakwind_storm',
+          type: 'flying',
+          category: PsdkBattleMoveCategory.special,
+          power: 100,
+          accuracy: 80,
+          battleEngineMethod: 's_genies_storm',
+        ),
+        moveAccuracySeed: 99,
+      );
+      final rainHit = _runMove(
+        playerMove: _move(
+          id: 'bleakwind_storm',
+          type: 'flying',
+          category: PsdkBattleMoveCategory.special,
+          power: 100,
+          accuracy: 80,
+          battleEngineMethod: 's_genies_storm',
+        ),
+        field: const PsdkBattleFieldState(
+          weather: PsdkBattleWeatherState(
+            id: PsdkBattleWeatherId.rain,
+            remainingTurns: 5,
+          ),
+        ),
+        moveAccuracySeed: 99,
+      );
+
+      expect(_damageEvents(dryMiss, moveId: 'bleakwind_storm'), isEmpty);
+      expect(_damageEvents(rainHit, moveId: 'bleakwind_storm'), hasLength(1));
+    });
+
+    test('s_eerie_spell removes 3 PP from the target last used move', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'eerie_spell',
+          type: 'psychic',
+          category: PsdkBattleMoveCategory.special,
+          power: 80,
+          battleEngineMethod: 's_eerie_spell',
+        ),
+        opponentMove: _move(
+          id: 'opponent_tackle',
+          power: 40,
+          currentPp: 5,
+        ),
+        opponentMoveHistory: PsdkBattleMoveHistory(
+          attempts: <PsdkBattleMoveHistoryEntry>[
+            PsdkBattleMoveHistoryEntry(
+              moveId: 'opponent_tackle',
+              turn: 0,
+              targets: const <PsdkBattleSlotRef>[psdkPlayerSlot],
+            ),
+          ],
+        ),
+        playerSpeed: 1,
+        opponentSpeed: 100,
+      );
+
+      final targetMove = result.state.battlerAt(psdkOpponentSlot).moves.single;
+      expect(_damageEvents(result, moveId: 'eerie_spell'), hasLength(1));
+      expect(targetMove.currentPp, 1);
+    });
+
+    test('s_last_respects scales power with local KO count', () {
+      final regular = _runMove(
+        playerMove: _move(
+          id: 'ghost_hit',
+          type: 'ghost',
+          power: 50,
+        ),
+        opponentTypes: const PsdkBattleTypes(primary: 'psychic'),
+      );
+      final boosted = _runMove(
+        playerMove: _move(
+          id: 'last_respects',
+          type: 'ghost',
+          power: 50,
+          battleEngineMethod: 's_last_respects',
+        ),
+        opponentTypes: const PsdkBattleTypes(primary: 'psychic'),
+        playerKoCount: 2,
+      );
+
+      final regularDamage =
+          _damageEvents(regular, moveId: 'ghost_hit').single.damage;
+      final boostedDamage =
+          _damageEvents(boosted, moveId: 'last_respects').single.damage;
+      expect(boostedDamage, greaterThan(regularDamage));
+    });
+
+    test('s_shell_side_arm chooses the stronger damage category', () {
+      const playerStats = PsdkBattleStats(
+        attack: 120,
+        defense: 50,
+        specialAttack: 40,
+        specialDefense: 50,
+        speed: 100,
+      );
+      const opponentStats = PsdkBattleStats(
+        attack: 50,
+        defense: 40,
+        specialAttack: 50,
+        specialDefense: 120,
+        speed: 1,
+      );
+      final specialOnly = _runMove(
+        playerMove: _move(
+          id: 'poison_hit',
+          type: 'poison',
+          category: PsdkBattleMoveCategory.special,
+          power: 90,
+        ),
+        playerStats: playerStats,
+        opponentStats: opponentStats,
+      );
+      final shellSideArm = _runMove(
+        playerMove: _move(
+          id: 'shell_side_arm',
+          type: 'poison',
+          category: PsdkBattleMoveCategory.special,
+          power: 90,
+          battleEngineMethod: 's_shell_side_arm',
+        ),
+        playerStats: playerStats,
+        opponentStats: opponentStats,
+      );
+
+      final specialDamage =
+          _damageEvents(specialOnly, moveId: 'poison_hit').single.damage;
+      final shellSideArmDamage =
+          _damageEvents(shellSideArm, moveId: 'shell_side_arm').single.damage;
+      expect(shellSideArmDamage, greaterThan(specialDamage));
+    });
+
+    test('s_spectral_thief steals positive target stat stages after damage',
+        () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'spectral_thief',
+          type: 'ghost',
+          power: 90,
+          battleEngineMethod: 's_spectral_thief',
+        ),
+        opponentTypes: const PsdkBattleTypes(primary: 'psychic'),
+        opponentStages: PsdkBattleStatStages(
+          values: const <String, int>{
+            'attack': 2,
+            'defense': -1,
+            'speed': 3,
+          },
+        ),
+      );
+
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+      expect(_damageEvents(result, moveId: 'spectral_thief'), hasLength(1));
+      expect(player.statStages.valueOf('attack'), 2);
+      expect(player.statStages.valueOf('speed'), 3);
+      expect(opponent.statStages.valueOf('attack'), 0);
+      expect(opponent.statStages.valueOf('speed'), 0);
+      expect(opponent.statStages.valueOf('defense'), -1);
+    });
+
+    test('s_make_it_rain deals damage and applies stat drops to the user', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'make_it_rain',
+          type: 'steel',
+          category: PsdkBattleMoveCategory.special,
+          power: 120,
+          battleEngineMethod: 's_make_it_rain',
+          stageMods: const <PsdkBattleMoveStageMod>[
+            PsdkBattleMoveStageMod(stat: 'specialAttack', stages: -1),
+          ],
+        ),
+      );
+
+      expect(_damageEvents(result, moveId: 'make_it_rain'), hasLength(1));
+      expect(
+        result.state
+            .battlerAt(psdkPlayerSlot)
+            .statStages
+            .valueOf('specialAttack'),
+        -1,
+      );
+      expect(
+        result.state
+            .battlerAt(psdkOpponentSlot)
+            .statStages
+            .valueOf('specialAttack'),
+        0,
+      );
+    });
+
+    test('s_magnitude uses the PSDK random magnitude power table', () {
+      final magnitude = _runMove(
+        playerMove: _move(
+          id: 'magnitude',
+          type: 'ground',
+          power: 70,
+          battleEngineMethod: 's_magnitude',
+        ),
+        opponentTypes: const PsdkBattleTypes(primary: 'fire'),
+      );
+      final basic = _runMove(
+        playerMove: _move(
+          id: 'basic_ground',
+          type: 'ground',
+          power: 70,
+        ),
+        opponentTypes: const PsdkBattleTypes(primary: 'fire'),
+      );
+
+      expect(_damageEvents(magnitude, moveId: 'magnitude'), hasLength(1));
+      expect(
+        _damage(magnitude, moveId: 'magnitude'),
+        lessThan(_damage(basic, moveId: 'basic_ground')),
+      );
+    });
+
     for (final method in <String>[
       's_avalanche',
       's_assurance',
       's_beak_blast',
       's_brick_break',
       's_core_enforcer',
-      's_fake_out',
-      's_feint',
-      's_fell_stinger',
       's_flame_burst',
       's_flying_press',
       's_focus_punch',
@@ -1382,7 +1879,6 @@ void main() {
       's_fusion_flare',
       's_hidden_power',
       's_judgment',
-      's_jump_kick',
       's_last_resort',
       's_multi_attack',
       's_payback',
@@ -1390,16 +1886,12 @@ void main() {
       's_photon_geyser',
       's_pollen_puff',
       's_pursuit',
-      's_rage',
       's_rapid_spin',
       's_revenge',
       's_revelation_dance',
       's_round',
       's_shell_trap',
-      's_spectral_thief',
-      's_stomp',
       's_stomping_tantrum',
-      's_u_turn',
     ]) {
       test('$method executes its Basic hit while extra PSDK effects stay open',
           () {
@@ -1485,12 +1977,6 @@ void main() {
           power: 0,
         ),
         (
-          method: 's_magnitude',
-          moveId: 'magnitude',
-          category: PsdkBattleMoveCategory.physical,
-          power: 70,
-        ),
-        (
           method: 's_metronome',
           moveId: 'metronome',
           category: PsdkBattleMoveCategory.status,
@@ -1560,12 +2046,6 @@ void main() {
           power: 110,
         ),
         (
-          method: 's_baddy_bad',
-          moveId: 'baddy_bad',
-          category: PsdkBattleMoveCategory.special,
-          power: 80,
-        ),
-        (
           method: 's_chilly_reception',
           moveId: 'chilly_reception',
           category: PsdkBattleMoveCategory.status,
@@ -1588,12 +2068,6 @@ void main() {
           moveId: 'doodle',
           category: PsdkBattleMoveCategory.status,
           power: 0,
-        ),
-        (
-          method: 's_double_iron_bash',
-          moveId: 'double_iron_bash',
-          category: PsdkBattleMoveCategory.physical,
-          power: 60,
         ),
         (
           method: 's_dragon_cheer',
@@ -1644,12 +2118,6 @@ void main() {
           power: 85,
         ),
         (
-          method: 's_freezy_frost',
-          moveId: 'freezy_frost',
-          category: PsdkBattleMoveCategory.special,
-          power: 100,
-        ),
-        (
           method: 's_genies_storm',
           moveId: 'bleakwind_storm',
           category: PsdkBattleMoveCategory.special,
@@ -1668,40 +2136,16 @@ void main() {
           power: 120,
         ),
         (
-          method: 's_glitzy_glow',
-          moveId: 'glitzy_glow',
-          category: PsdkBattleMoveCategory.special,
-          power: 80,
-        ),
-        (
           method: 's_grassy_glide',
           moveId: 'grassy_glide',
           category: PsdkBattleMoveCategory.physical,
           power: 55,
         ),
         (
-          method: 's_grav_apple',
-          moveId: 'grav_apple',
-          category: PsdkBattleMoveCategory.physical,
-          power: 80,
-        ),
-        (
-          method: 's_ice_spinner',
-          moveId: 'ice_spinner',
-          category: PsdkBattleMoveCategory.physical,
-          power: 80,
-        ),
-        (
           method: 's_ivy_cudgel',
           moveId: 'ivy_cudgel',
           category: PsdkBattleMoveCategory.physical,
           power: 100,
-        ),
-        (
-          method: 's_jaw_lock',
-          moveId: 'jaw_lock',
-          category: PsdkBattleMoveCategory.physical,
-          power: 80,
         ),
         (
           method: 's_lash_out',
@@ -1722,12 +2166,6 @@ void main() {
           power: 0,
         ),
         (
-          method: 's_make_it_rain',
-          moveId: 'make_it_rain',
-          category: PsdkBattleMoveCategory.special,
-          power: 120,
-        ),
-        (
           method: 's_no_retreat',
           moveId: 'no_retreat',
           category: PsdkBattleMoveCategory.status,
@@ -1746,12 +2184,6 @@ void main() {
           power: 80,
         ),
         (
-          method: 's_poltergeist',
-          moveId: 'poltergeist',
-          category: PsdkBattleMoveCategory.physical,
-          power: 110,
-        ),
-        (
           method: 's_pre_attack_base',
           moveId: 'beak_blast_base',
           category: PsdkBattleMoveCategory.physical,
@@ -1762,12 +2194,6 @@ void main() {
           moveId: 'rage_fist',
           category: PsdkBattleMoveCategory.physical,
           power: 50,
-        ),
-        (
-          method: 's_raging_bull',
-          moveId: 'raging_bull',
-          category: PsdkBattleMoveCategory.physical,
-          power: 90,
         ),
         (
           method: 's_revival_blessing',
@@ -1782,18 +2208,6 @@ void main() {
           power: 70,
         ),
         (
-          method: 's_sappy_seed',
-          moveId: 'sappy_seed',
-          category: PsdkBattleMoveCategory.physical,
-          power: 100,
-        ),
-        (
-          method: 's_scale_shot',
-          moveId: 'scale_shot',
-          category: PsdkBattleMoveCategory.physical,
-          power: 25,
-        ),
-        (
           method: 's_shed_tail',
           moveId: 'shed_tail',
           category: PsdkBattleMoveCategory.status,
@@ -1804,12 +2218,6 @@ void main() {
           moveId: 'shell_side_arm',
           category: PsdkBattleMoveCategory.special,
           power: 90,
-        ),
-        (
-          method: 's_steel_roller',
-          moveId: 'steel_roller',
-          category: PsdkBattleMoveCategory.physical,
-          power: 130,
         ),
         (
           method: 's_stuff_cheeks',
@@ -1884,8 +2292,22 @@ PsdkBattleTurnResult _runMove({
   String? opponentAbilityId,
   PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'fire'),
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
+  PsdkBattleMoveData? opponentMove,
+  int genericSeed = 0,
+  int moveAccuracySeed = 3,
+  PsdkBattleFieldState field = const PsdkBattleFieldState(),
+  int playerSpeed = 100,
+  int opponentSpeed = 1,
+  int playerCurrentHp = 100,
+  int opponentCurrentHp = 100,
+  int playerKoCount = 0,
+  int opponentKoCount = 0,
+  double playerBaseWeightKg = 1,
+  double? playerCurrentWeightKg,
   PsdkBattleStatStages? playerStages,
   PsdkBattleStatStages? opponentStages,
+  PsdkBattleStats? playerStats,
+  PsdkBattleStats? opponentStats,
   PsdkBattleMoveHistory? opponentMoveHistory,
 }) {
   final engine = PsdkBattleEngine(
@@ -1893,32 +2315,42 @@ PsdkBattleTurnResult _runMove({
       player: _combatant(
         id: 'player',
         types: playerTypes,
-        speed: 100,
+        speed: playerSpeed,
+        currentHp: playerCurrentHp,
         move: playerMove,
+        stats: playerStats,
         statStages: playerStages,
         majorStatus: playerMajorStatus,
         heldItemId: playerHeldItemId,
         abilityId: playerAbilityId,
+        koCount: playerKoCount,
+        baseWeightKg: playerBaseWeightKg,
+        currentWeightKg: playerCurrentWeightKg,
       ),
       opponent: _combatant(
         id: 'opponent',
         types: opponentTypes,
-        speed: 1,
-        move: _move(
-          id: 'opponent_wait',
-          power: 0,
-          accuracy: 1,
-        ),
+        speed: opponentSpeed,
+        currentHp: opponentCurrentHp,
+        move: opponentMove ??
+            _move(
+              id: 'opponent_wait',
+              power: 0,
+              accuracy: 1,
+            ),
+        stats: opponentStats,
         statStages: opponentStages,
         heldItemId: opponentHeldItemId,
         abilityId: opponentAbilityId,
         moveHistory: opponentMoveHistory,
+        koCount: opponentKoCount,
       ),
-      rngSeeds: const PsdkBattleRngSeeds(
+      field: field,
+      rngSeeds: PsdkBattleRngSeeds(
         moveDamage: 1,
         moveCritical: 99999,
-        moveAccuracy: 3,
-        generic: 0,
+        moveAccuracy: moveAccuracySeed,
+        generic: genericSeed,
       ),
     ),
   );
@@ -1929,12 +2361,17 @@ PsdkBattleCombatantSetup _combatant({
   required String id,
   required PsdkBattleTypes types,
   required int speed,
+  int currentHp = 100,
   required PsdkBattleMoveData move,
+  PsdkBattleStats? stats,
   PsdkBattleStatStages? statStages,
   PsdkBattleMajorStatus? majorStatus,
   String? heldItemId,
   String? abilityId,
   PsdkBattleMoveHistory? moveHistory,
+  int koCount = 0,
+  double baseWeightKg = 1,
+  double? currentWeightKg,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -1942,21 +2379,25 @@ PsdkBattleCombatantSetup _combatant({
     displayName: id,
     level: 20,
     maxHp: 100,
-    currentHp: 100,
+    currentHp: currentHp,
     types: types,
-    stats: PsdkBattleStats(
-      attack: 50,
-      defense: 50,
-      specialAttack: 50,
-      specialDefense: 50,
-      speed: speed,
-    ),
+    stats: stats ??
+        PsdkBattleStats(
+          attack: 50,
+          defense: 50,
+          specialAttack: 50,
+          specialDefense: 50,
+          speed: speed,
+        ),
     statStages: statStages,
     moves: <PsdkBattleMoveData>[move],
     majorStatus: majorStatus,
     heldItemId: heldItemId,
     abilityId: abilityId,
     moveHistory: moveHistory,
+    koCount: koCount,
+    baseWeightKg: baseWeightKg,
+    currentWeightKg: currentWeightKg,
   );
 }
 
@@ -1966,6 +2407,7 @@ PsdkBattleMoveData _move({
   PsdkBattleMoveCategory category = PsdkBattleMoveCategory.physical,
   required int power,
   int accuracy = 100,
+  int? currentPp,
   int? effectChance,
   String battleEngineMethod = 's_basic',
   PsdkBattleMoveTarget target = PsdkBattleMoveTarget.adjacentFoe,
@@ -1981,6 +2423,7 @@ PsdkBattleMoveData _move({
     power: power,
     accuracy: accuracy,
     pp: 35,
+    currentPp: currentPp,
     priority: 0,
     criticalRate: 1,
     effectChance: effectChance,

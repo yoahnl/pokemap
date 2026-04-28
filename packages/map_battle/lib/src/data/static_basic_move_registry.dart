@@ -44,10 +44,16 @@ import '../domain/move/behaviors/weight_power_move_behavior.dart';
 import '../domain/move/battle_move_behavior.dart';
 import '../domain/move/battle_move_data.dart';
 import '../domain/move/battle_move_damage_calculator.dart';
+import '../domain/move/battle_move_immunity_resolver.dart';
 import '../domain/move/battle_move_prevention.dart';
 import '../domain/move/battle_move_registry.dart';
 import '../domain/move/battle_move_secondary_effect_resolver.dart';
+import '../domain/move/battle_move_type_processor.dart';
 import '../domain/rng/battle_rng_streams.dart';
+import '../domain/handler/battle_handler_context.dart';
+import '../domain/handler/battle_stat_change_handler.dart';
+import '../domain/handler/battle_switch_handler.dart';
+import '../domain/handler/battle_terrain_change_handler.dart';
 import '../domain/effect/battle_effect.dart';
 import '../domain/effect/battle_effect_scope.dart';
 import '../domain/effect/move/attract_effect.dart';
@@ -58,6 +64,7 @@ import '../domain/effect/move/encore_effect.dart';
 import '../domain/effect/move/force_next_move_base_effect.dart';
 import '../domain/effect/move/heal_block_effect.dart';
 import '../domain/effect/move/imprison_effect.dart';
+import '../domain/effect/move/leech_seed_effect.dart';
 import '../domain/effect/move/protect_effect.dart';
 import '../domain/effect/move/taunt_effect.dart';
 import '../domain/effect/move/torment_effect.dart';
@@ -120,6 +127,10 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       resolve: _resolveMemento,
     ),
     CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_make_it_rain',
+      resolve: _resolveBasicThenSelfStages,
+    ),
+    CallbackBattleMoveBehavior(
       battleEngineMethod: 's_thing_sport',
       resolve: _resolveThingSport,
     ),
@@ -153,8 +164,108 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       resolve: _resolveBrickBreak,
     ),
     CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_raging_bull',
+      resolve: _resolveBrickBreak,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_baddy_bad',
+      resolve: _resolveScreenSettingHit,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_feint',
+      resolve: _resolveFeint,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_fell_stinger',
+      resolve: _resolveFellStinger,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_freezy_frost',
+      resolve: _resolveFreezyFrost,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_eerie_spell',
+      resolve: _resolveEerieSpell,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_electro_shot',
+      resolve: _resolveElectroShot,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_fickle_beam',
+      resolve: _resolveFickleBeam,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_glitzy_glow',
+      resolve: _resolveScreenSettingHit,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_grav_apple',
+      resolve: _resolveGravApple,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_glaive_rush',
+      resolve: _resolveGlaiveRush,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_last_respects',
+      resolve: _resolveLastRespects,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_shell_side_arm',
+      resolve: _resolveShellSideArm,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_magnitude',
+      resolve: _resolveMagnitude,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_present',
+      resolve: _resolvePresent,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_triple_arrows',
+      resolve: _resolveTripleArrows,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_poltergeist',
+      resolve: _resolvePoltergeist,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_stomp',
+      resolve: _resolveStomp,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_super_duper_effective',
+      resolve: _resolveSuperDuperEffective,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_jump_kick',
+      resolve: _resolveJumpKick,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_ice_spinner',
+      resolve: _resolveTerrainClearingHit,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_sappy_seed',
+      resolve: _resolveSappySeed,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_steel_roller',
+      resolve: _resolveTerrainClearingHit,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_u_turn',
+      resolve: _resolveUTurn,
+    ),
+    CallbackBattleMoveBehavior(
       battleEngineMethod: 's_cantflee',
       resolve: _resolveCantFlee,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_jaw_lock',
+      resolve: _resolveJawLock,
     ),
     CallbackBattleMoveBehavior(
       battleEngineMethod: 's_disable',
@@ -181,6 +292,10 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       resolve: _resolveRapidSpin,
     ),
     CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_rage',
+      resolve: _resolveRage,
+    ),
+    CallbackBattleMoveBehavior(
       battleEngineMethod: 's_defog',
       resolve: _resolveDefog,
     ),
@@ -196,8 +311,13 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       battleEngineMethod: 's_roar',
       resolve: _resolveForceSwitch,
     ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_spectral_thief',
+      resolve: _resolveSpectralThief,
+    ),
     const ActionGatedMoveBehavior.snore(),
     const ActionGatedMoveBehavior.suckerPunch(),
+    const ActionGatedMoveBehavior.fakeOut(),
     const FieldLocationMoveBehavior.camouflage(),
     const FieldLocationMoveBehavior.naturePower(),
     for (final method in _partialTargetMarkerMethods.keys)
@@ -263,9 +383,11 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       hitCount: 3,
     ),
     const MultiHitMoveBehavior.psdkRandom(),
+    const MultiHitMoveBehavior.doubleIronBash(),
     const MultiHitMoveBehavior.tripleKick(),
     const MultiHitMoveBehavior.populationBomb(),
     const MultiHitMoveBehavior.waterShuriken(),
+    const MultiHitMoveBehavior.scaleShot(),
     const BasicDamageSpecializationMoveBehavior.fangs(),
     const BasicDamageSpecializationMoveBehavior.falseSwipe(),
     const BasicDamageSpecializationMoveBehavior.fullCrit(),
@@ -340,6 +462,7 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     const WeatherPowerMoveBehavior.weatherBall(),
     const WeatherPowerMoveBehavior.thunder(),
     const WeatherPowerMoveBehavior.hurricane(),
+    const WeatherPowerMoveBehavior.geniesStorm(),
     const WeatherPowerMoveBehavior.solarBeam(),
     const ConsecutivePowerMoveBehavior.echoedVoice(),
     const ConsecutivePowerMoveBehavior.furyCutter(),
@@ -411,9 +534,6 @@ const _partialBasicDescendantMethods = <String>[
   's_beak_blast',
   's_beat_up',
   's_core_enforcer',
-  's_fake_out',
-  's_feint',
-  's_fell_stinger',
   's_flame_burst',
   's_flying_press',
   's_focus_punch',
@@ -424,50 +544,22 @@ const _partialBasicDescendantMethods = <String>[
   's_guardian_of_alola',
   's_hidden_power',
   's_hyperspace_hole',
-  's_jump_kick',
   's_last_resort',
   's_light_that_burns_the_sky',
-  's_magnitude',
   's_malicious_moonsault',
   's_payday',
   's_photon_geyser',
   's_pollen_puff',
   's_pursuit',
-  's_rage',
   's_return',
   's_round',
   's_shell_trap',
   's_split_up',
   's_splintered_stormshards',
-  's_spectral_thief',
-  's_stomp',
-  's_u_turn',
   's_aura_wheel',
-  's_baddy_bad',
-  's_double_iron_bash',
   's_dragon_darts',
-  's_eerie_spell',
-  's_electro_shot',
-  's_fickle_beam',
-  's_freezy_frost',
-  's_genies_storm',
-  's_glaive_rush',
-  's_glitzy_glow',
-  's_grav_apple',
-  's_ice_spinner',
-  's_jaw_lock',
-  's_last_respects',
-  's_make_it_rain',
   's_order_up',
-  's_poltergeist',
   's_pre_attack_base',
-  's_raging_bull',
-  's_sappy_seed',
-  's_scale_shot',
-  's_shell_side_arm',
-  's_steel_roller',
-  's_super_duper_effective',
-  's_triple_arrows',
   's_upper_hand',
 ];
 
@@ -482,7 +574,7 @@ const _partialTargetMarkerMethods = <String, String>{
   's_corrosive_gas': 'corrosive_gas',
   's_doodle': 'doodle',
   's_destiny_bond': 'destiny_bond',
-  's_electrify': 'change_type',
+  's_electrify': 'electrify',
   's_embargo': 'embargo',
   's_focus_energy': 'focus_energy',
   's_gastro_acid': 'ability_suppressed',
@@ -751,6 +843,64 @@ BattleMoveBehaviorResolution _resolveRapidSpin(
   );
 }
 
+BattleMoveBehaviorResolution _resolveRage(BattleMoveBehaviorContext context) {
+  final basic = _resolveBasic(context);
+  final hit = basic.events
+      .whereType<PsdkBattleDamageEvent>()
+      .any((event) => event.moveId == context.move.id);
+  if (!hit || basic.state.battlerAt(context.user).effects.contains('rage')) {
+    return basic;
+  }
+
+  return BattleMoveBehaviorResolution(
+    state: basic.state.updateBattler(
+      context.user,
+      (battler) => battler.copyWith(
+        effects: battler.effects.addEffect(
+          GenericBattleEffect(
+            id: 'rage',
+            scope: BattlerBattleEffectScope(context.user),
+          ),
+        ),
+      ),
+    ),
+    rng: basic.rng,
+    successful: basic.successful,
+    events: basic.events,
+  );
+}
+
+BattleMoveBehaviorResolution _resolveGlaiveRush(
+  BattleMoveBehaviorContext context,
+) {
+  final basic = _resolveBasic(context);
+  final hit = basic.events
+      .whereType<PsdkBattleDamageEvent>()
+      .any((event) => event.moveId == context.move.id);
+  if (!hit ||
+      basic.state.battlerAt(context.user).effects.contains('glaive_rush')) {
+    return basic;
+  }
+
+  return BattleMoveBehaviorResolution(
+    state: basic.state.updateBattler(
+      context.user,
+      (battler) => battler.copyWith(
+        effects: battler.effects.addEffect(
+          GenericBattleEffect(
+            id: 'glaive_rush',
+            scope: BattlerBattleEffectScope(context.user),
+            remainingTurns: 2,
+          ),
+        ),
+      ),
+    ),
+    rng: basic.rng,
+    successful: basic.successful,
+    events: basic.events,
+  );
+}
+
 BattleMoveBehaviorResolution _resolveBrickBreak(
   BattleMoveBehaviorContext context,
 ) {
@@ -771,6 +921,1386 @@ BattleMoveBehaviorResolution _resolveBrickBreak(
     rng: basic.rng,
     events: basic.events,
   );
+}
+
+BattleMoveBehaviorResolution _resolveSpectralThief(
+  BattleMoveBehaviorContext context,
+) {
+  final basic = _resolveBasic(context);
+  final hit = basic.events.whereType<PsdkBattleDamageEvent>().where(
+        (event) => event.moveId == context.move.id,
+      );
+  if (hit.isEmpty) {
+    return basic;
+  }
+
+  final targetSlot = hit.first.target;
+  final target = basic.state.battlerAt(targetSlot);
+  final stolenStages = Map<String, int>.fromEntries(
+    target.statStages.values.entries.where((entry) => entry.value > 0),
+  );
+  if (stolenStages.isEmpty) {
+    return basic;
+  }
+
+  var userStages = Map<String, int>.from(
+    basic.state.battlerAt(context.user).statStages.values,
+  );
+  final targetStages = Map<String, int>.from(target.statStages.values);
+  for (final entry in stolenStages.entries) {
+    userStages[entry.key] = entry.value;
+    targetStages.remove(entry.key);
+  }
+
+  var nextState = basic.state.updateBattler(
+    context.user,
+    (battler) => battler.copyWith(
+      statStages: PsdkBattleStatStages(values: userStages),
+    ),
+  );
+  nextState = nextState.updateBattler(
+    targetSlot,
+    (battler) => battler.copyWith(
+      statStages: PsdkBattleStatStages(values: targetStages),
+    ),
+  );
+
+  return BattleMoveBehaviorResolution(
+    state: nextState,
+    rng: basic.rng,
+    successful: basic.successful,
+    events: basic.events,
+  );
+}
+
+BattleMoveBehaviorResolution _resolveBasicThenSelfStages(
+  BattleMoveBehaviorContext context,
+) {
+  final basic = _resolveBasic(
+    BattleMoveBehaviorContext(
+      state: context.state,
+      rng: context.rng,
+      turn: context.turn,
+      user: context.user,
+      target: context.target,
+      move: BattleMoveDefinition.fromPsdk(
+        context.move.psdkMove.copyWith(
+          stageMods: const <PsdkBattleMoveStageMod>[],
+        ),
+      ),
+      isLastActionOfTurn: context.isLastActionOfTurn,
+      moveProcedureHooks: context.moveProcedureHooks,
+    ),
+  );
+  final hit = basic.events
+      .whereType<PsdkBattleDamageEvent>()
+      .any((event) => event.moveId == context.move.id);
+  if (!hit) {
+    return basic;
+  }
+
+  var state = basic.state;
+  var rng = basic.rng;
+  final events = <PsdkBattleEvent>[...basic.events];
+  for (final mod in context.move.stageMods) {
+    final changed = const BattleStatChangeHandler().applyStatChange(
+      context: BattleHandlerContext(
+        state: state,
+        rng: rng,
+        turn: context.turn,
+        user: context.user,
+      ),
+      target: context.user,
+      stat: mod.stat,
+      stages: mod.stages,
+    );
+    state = changed.state;
+    rng = changed.rng;
+    events.addAll(changed.events);
+  }
+
+  return BattleMoveBehaviorResolution(
+    state: state,
+    rng: rng,
+    successful: basic.successful,
+    events: events,
+  );
+}
+
+BattleMoveBehaviorResolution _resolveScreenSettingHit(
+  BattleMoveBehaviorContext context,
+) {
+  final basic = _resolveBasic(context);
+  final hit = basic.events.whereType<PsdkBattleDamageEvent>().any(
+        (event) => event.moveId == context.move.id,
+      );
+  if (!hit) {
+    return basic;
+  }
+
+  final effectId = switch (context.move.battleEngineMethod) {
+    's_baddy_bad' => 'reflect',
+    _ => 'light_screen',
+  };
+  if (_bankHasEffect(basic.state, context.user.bank, effectId)) {
+    return basic;
+  }
+
+  final user = basic.state.battlerAt(context.user);
+  final duration =
+      _normalizedId(user.heldItemId) == 'light_clay' && !user.itemConsumed
+          ? 8
+          : 5;
+  return _addEffectToUser(
+    context: context,
+    state: basic.state,
+    rng: basic.rng,
+    events: basic.events,
+    effect: GenericBattleEffect(
+      id: effectId,
+      scope: BattlerBattleEffectScope(context.user),
+      remainingTurns: duration,
+    ),
+  );
+}
+
+BattleMoveBehaviorResolution _resolveFeint(BattleMoveBehaviorContext context) {
+  final prepared = prepareBattleMove(
+    context,
+    targetPrecheck: (execution, targets) {
+      return const BattleMoveImmunityResolver().precheck(
+        execution,
+        targets,
+        ignoreProtect: true,
+      );
+    },
+  );
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final targetSlot = prepared.psdkTargets.single;
+  final user = prepared.state.battlerAt(context.user);
+  final target = prepared.state.battlerAt(targetSlot);
+  final damageResult = const BattleMoveDamageCalculator().calculate(
+    BattleMoveDamageContext(
+      user: user,
+      target: target,
+      move: context.move,
+      rng: prepared.rng,
+      overrides: _targetProtectedThisTurn(target, context.turn)
+          ? const BattleMoveDamageOverrides(power: 50)
+          : null,
+    ),
+  );
+  if (damageResult.damage <= 0) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: damageResult.rng,
+      events: prepared.events,
+    );
+  }
+  final damage = _screenAdjustedDamage(
+    state: prepared.state,
+    user: user,
+    target: targetSlot,
+    move: context.move,
+    damage: damageResult.damage,
+    isCritical: damageResult.isCritical,
+  );
+  final applied = applyDirectDamage(
+    state: prepared.state,
+    user: context.user,
+    target: targetSlot,
+    moveId: context.move.id,
+    rng: damageResult.rng,
+    turn: context.turn,
+    amount: damage,
+  );
+  final secondary = const BattleMoveSecondaryEffectResolver().resolve(
+    state: applied.state,
+    rng: applied.rng,
+    user: context.user,
+    target: targetSlot,
+    move: context.move,
+    turn: context.turn,
+  );
+  final lifted = secondary.state.updateBattler(
+    targetSlot,
+    (battler) => battler.copyWith(
+      effects: battler.effects.remove('protect').remove('crafty_shield'),
+    ),
+  );
+
+  return BattleMoveBehaviorResolution(
+    state: lifted,
+    rng: secondary.rng,
+    events: <PsdkBattleEvent>[
+      ...prepared.events,
+      if (applied.event != null) applied.event!,
+      ...secondary.events,
+    ],
+  );
+}
+
+BattleMoveBehaviorResolution _resolveFellStinger(
+  BattleMoveBehaviorContext context,
+) {
+  final basic = _resolveBasic(context);
+  final knockedOutTarget = basic.events.whereType<PsdkBattleDamageEvent>().any(
+        (event) =>
+            event.moveId == context.move.id &&
+            basic.state.battlerAt(event.target).isFainted,
+      );
+  if (!knockedOutTarget) {
+    return basic;
+  }
+
+  final boosted = const BattleStatChangeHandler().applyStatChange(
+    context: BattleHandlerContext(
+      state: basic.state,
+      rng: basic.rng,
+      turn: context.turn,
+      user: context.user,
+    ),
+    target: context.user,
+    stat: 'attack',
+    stages: 3,
+  );
+
+  return BattleMoveBehaviorResolution(
+    state: boosted.state,
+    rng: boosted.rng,
+    successful: basic.successful,
+    events: <PsdkBattleEvent>[
+      ...basic.events,
+      ...boosted.events,
+    ],
+  );
+}
+
+BattleMoveBehaviorResolution _resolveFreezyFrost(
+  BattleMoveBehaviorContext context,
+) {
+  final basic = _resolveBasic(context);
+  final hit = basic.events.whereType<PsdkBattleDamageEvent>().any(
+        (event) => event.moveId == context.move.id,
+      );
+  if (!hit) {
+    return basic;
+  }
+
+  var state = basic.state;
+  for (final slot in state.aliveSlots()) {
+    final battler = state.battlerAt(slot);
+    if (battler.statStages.values.isEmpty) {
+      continue;
+    }
+    state = state.updateBattler(
+      slot,
+      (current) => current.copyWith(
+        statStages: PsdkBattleStatStages.neutral(),
+      ),
+    );
+  }
+
+  return BattleMoveBehaviorResolution(
+    state: state,
+    rng: basic.rng,
+    successful: basic.successful,
+    events: basic.events,
+  );
+}
+
+BattleMoveBehaviorResolution _resolvePoltergeist(
+  BattleMoveBehaviorContext context,
+) {
+  final target = context.state.battlerAt(context.target);
+  if (target.heldItemId == null) {
+    return BattleMoveBehaviorResolution(
+      state: context.state,
+      rng: context.rng,
+      events: <PsdkBattleEvent>[
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.target,
+          moveId: context.move.id,
+          reason: 'no_held_item',
+        ),
+      ],
+      successful: false,
+    );
+  }
+
+  return _resolveBasic(context);
+}
+
+BattleMoveBehaviorResolution _resolveSappySeed(
+  BattleMoveBehaviorContext context,
+) {
+  final basic = _resolveBasic(context);
+  final hit = basic.events.whereType<PsdkBattleDamageEvent>().any(
+        (event) => event.moveId == context.move.id,
+      );
+  if (!hit) {
+    return basic;
+  }
+
+  final targetSlot = context.target;
+  final target = basic.state.battlerAt(targetSlot);
+  if (target.isFainted ||
+      target.hasType('grass') ||
+      target.effects.contains('leech_seed') ||
+      target.effects.contains('substitute')) {
+    return basic;
+  }
+
+  return BattleMoveBehaviorResolution(
+    state: basic.state.updateBattler(
+      targetSlot,
+      (battler) => battler.copyWith(
+        effects: battler.effects.addEffect(
+          LeechSeedEffect(
+            scope: BattlerBattleEffectScope(targetSlot),
+            source: context.user,
+          ),
+        ),
+      ),
+    ),
+    rng: basic.rng,
+    successful: basic.successful,
+    events: basic.events,
+  );
+}
+
+BattleMoveBehaviorResolution _resolveStomp(BattleMoveBehaviorContext context) {
+  final isMinimized = context.state.battlerAt(context.target).effects.contains(
+        'minimize',
+      );
+  final prepared = prepareBattleMove(
+    context,
+    forceAccuracyBypass: isMinimized,
+  );
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final targetSlot = prepared.psdkTargets.single;
+  final user = prepared.state.battlerAt(context.user);
+  final target = prepared.state.battlerAt(targetSlot);
+  final damageResult = const BattleMoveDamageCalculator().calculate(
+    BattleMoveDamageContext(
+      user: user,
+      target: target,
+      move: context.move,
+      rng: prepared.rng,
+      overrides: isMinimized
+          ? BattleMoveDamageOverrides(power: context.move.power * 2)
+          : null,
+    ),
+  );
+  if (damageResult.damage <= 0) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: damageResult.rng,
+      events: prepared.events,
+    );
+  }
+  final damage = _screenAdjustedDamage(
+    state: prepared.state,
+    user: user,
+    target: targetSlot,
+    move: context.move,
+    damage: damageResult.damage,
+    isCritical: damageResult.isCritical,
+  );
+  final applied = applyDirectDamage(
+    state: prepared.state,
+    user: context.user,
+    target: targetSlot,
+    moveId: context.move.id,
+    rng: damageResult.rng,
+    turn: context.turn,
+    amount: damage,
+  );
+  final secondary = const BattleMoveSecondaryEffectResolver().resolve(
+    state: applied.state,
+    rng: applied.rng,
+    user: context.user,
+    target: targetSlot,
+    move: context.move,
+    turn: context.turn,
+  );
+
+  return BattleMoveBehaviorResolution(
+    state: secondary.state,
+    rng: secondary.rng,
+    events: <PsdkBattleEvent>[
+      ...prepared.events,
+      if (applied.event != null) applied.event!,
+      ...secondary.events,
+    ],
+  );
+}
+
+BattleMoveBehaviorResolution _resolveGravApple(
+  BattleMoveBehaviorContext context,
+) {
+  final gravityActive = _isGravityActive(context.state);
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final targetSlot = prepared.psdkTargets.single;
+  final user = prepared.state.battlerAt(context.user);
+  final target = prepared.state.battlerAt(targetSlot);
+  final damageResult = const BattleMoveDamageCalculator().calculate(
+    BattleMoveDamageContext(
+      user: user,
+      target: target,
+      move: context.move,
+      rng: prepared.rng,
+      overrides: gravityActive
+          ? BattleMoveDamageOverrides(power: (context.move.power * 3) ~/ 2)
+          : null,
+    ),
+  );
+  if (damageResult.damage <= 0) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: damageResult.rng,
+      events: prepared.events,
+    );
+  }
+  final damage = _screenAdjustedDamage(
+    state: prepared.state,
+    user: user,
+    target: targetSlot,
+    move: context.move,
+    damage: damageResult.damage,
+    isCritical: damageResult.isCritical,
+  );
+  final applied = applyDirectDamage(
+    state: prepared.state,
+    user: context.user,
+    target: targetSlot,
+    moveId: context.move.id,
+    rng: damageResult.rng,
+    turn: context.turn,
+    amount: damage,
+  );
+  final secondary = const BattleMoveSecondaryEffectResolver().resolve(
+    state: applied.state,
+    rng: applied.rng,
+    user: context.user,
+    target: targetSlot,
+    move: context.move,
+    turn: context.turn,
+  );
+
+  return BattleMoveBehaviorResolution(
+    state: secondary.state,
+    rng: secondary.rng,
+    events: <PsdkBattleEvent>[
+      ...prepared.events,
+      if (applied.event != null) applied.event!,
+      ...secondary.events,
+    ],
+  );
+}
+
+bool _isGravityActive(PsdkBattleState state) {
+  return state.combatants.values.any(
+    (battler) => battler.effects.contains('gravity'),
+  );
+}
+
+BattleMoveBehaviorResolution _resolveMagnitude(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final magnitudeRoll = prepared.rng.generic.nextPercent();
+  final resolvedPower = _magnitudePowerForDice(magnitudeRoll.value - 1);
+  final rngAfterMagnitude = prepared.rng.copyWith(generic: magnitudeRoll.next);
+  final targetSlot = prepared.psdkTargets.single;
+  final user = prepared.state.battlerAt(context.user);
+  final target = prepared.state.battlerAt(targetSlot);
+  final damageResult = const BattleMoveDamageCalculator().calculate(
+    BattleMoveDamageContext(
+      user: user,
+      target: target,
+      move: context.move,
+      rng: rngAfterMagnitude,
+      overrides: BattleMoveDamageOverrides(power: resolvedPower),
+    ),
+  );
+  if (damageResult.damage <= 0) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: damageResult.rng,
+      events: prepared.events,
+    );
+  }
+  final damage = _screenAdjustedDamage(
+    state: prepared.state,
+    user: user,
+    target: targetSlot,
+    move: context.move,
+    damage: damageResult.damage,
+    isCritical: damageResult.isCritical,
+  );
+  final applied = applyDirectDamage(
+    state: prepared.state,
+    user: context.user,
+    target: targetSlot,
+    moveId: context.move.id,
+    rng: damageResult.rng,
+    turn: context.turn,
+    amount: damage,
+  );
+  final secondary = const BattleMoveSecondaryEffectResolver().resolve(
+    state: applied.state,
+    rng: applied.rng,
+    user: context.user,
+    target: targetSlot,
+    move: context.move,
+    turn: context.turn,
+  );
+
+  return BattleMoveBehaviorResolution(
+    state: secondary.state,
+    rng: secondary.rng,
+    events: <PsdkBattleEvent>[
+      ...prepared.events,
+      if (applied.event != null) applied.event!,
+      ...secondary.events,
+    ],
+  );
+}
+
+BattleMoveBehaviorResolution _resolvePresent(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final powerRoll = prepared.rng.generic.nextPercent();
+  final resolvedPower = _presentPowerForRoll(powerRoll.value);
+  final rngAfterPower = prepared.rng.copyWith(generic: powerRoll.next);
+  final targetSlot = prepared.psdkTargets.single;
+  final target = prepared.state.battlerAt(targetSlot);
+  if (resolvedPower == 0) {
+    final healAmount = target.maxHp ~/ 4;
+    if (healAmount <= 0 ||
+        target.currentHp >= target.maxHp ||
+        target.effects.contains('heal_block')) {
+      return BattleMoveBehaviorResolution(
+        state: prepared.state,
+        rng: rngAfterPower,
+        events: prepared.events,
+      );
+    }
+    final healed = applyDirectHeal(
+      state: prepared.state,
+      user: context.user,
+      target: targetSlot,
+      moveId: context.move.id,
+      rng: rngAfterPower,
+      turn: context.turn,
+      amount: healAmount,
+    );
+    return BattleMoveBehaviorResolution(
+      state: healed.state,
+      rng: healed.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        if (healed.event != null) healed.event!,
+      ],
+    );
+  }
+
+  final user = prepared.state.battlerAt(context.user);
+  final damageResult = const BattleMoveDamageCalculator().calculate(
+    BattleMoveDamageContext(
+      user: user,
+      target: target,
+      move: context.move,
+      rng: rngAfterPower,
+      overrides: BattleMoveDamageOverrides(power: resolvedPower),
+    ),
+  );
+  if (damageResult.damage <= 0) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: damageResult.rng,
+      events: prepared.events,
+    );
+  }
+  final damage = _screenAdjustedDamage(
+    state: prepared.state,
+    user: user,
+    target: targetSlot,
+    move: context.move,
+    damage: damageResult.damage,
+    isCritical: damageResult.isCritical,
+  );
+  final applied = applyDirectDamage(
+    state: prepared.state,
+    user: context.user,
+    target: targetSlot,
+    moveId: context.move.id,
+    rng: damageResult.rng,
+    turn: context.turn,
+    amount: damage,
+  );
+  final secondary = const BattleMoveSecondaryEffectResolver().resolve(
+    state: applied.state,
+    rng: applied.rng,
+    user: context.user,
+    target: targetSlot,
+    move: context.move,
+    turn: context.turn,
+  );
+
+  return BattleMoveBehaviorResolution(
+    state: secondary.state,
+    rng: secondary.rng,
+    events: <PsdkBattleEvent>[
+      ...prepared.events,
+      if (applied.event != null) applied.event!,
+      ...secondary.events,
+    ],
+  );
+}
+
+BattleMoveBehaviorResolution _resolveTripleArrows(
+  BattleMoveBehaviorContext context,
+) {
+  final basic = _resolveBasic(context);
+  final hit = basic.events.whereType<PsdkBattleDamageEvent>().any(
+        (event) => event.moveId == context.move.id,
+      );
+  if (!hit) {
+    return basic;
+  }
+
+  final user = basic.state.battlerAt(context.user);
+  if (_tripleArrowsUnstackableEffects.any(user.effects.contains)) {
+    return basic;
+  }
+  return _addEffectToUser(
+    context: context,
+    state: basic.state,
+    rng: basic.rng,
+    events: basic.events,
+    effect: GenericBattleEffect(
+      id: 'triple_arrows',
+      scope: BattlerBattleEffectScope(context.user),
+      remainingTurns: 4,
+    ),
+  );
+}
+
+BattleMoveBehaviorResolution _resolveFickleBeam(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final empoweredRoll = prepared.rng.generic.nextPercent();
+  final empowered = empoweredRoll.value <= 30;
+  final rngAfterEmpowerment =
+      prepared.rng.copyWith(generic: empoweredRoll.next);
+  final targetSlot = prepared.psdkTargets.single;
+  final user = prepared.state.battlerAt(context.user);
+  final target = prepared.state.battlerAt(targetSlot);
+  final damageResult = const BattleMoveDamageCalculator().calculate(
+    BattleMoveDamageContext(
+      user: user,
+      target: target,
+      move: context.move,
+      rng: rngAfterEmpowerment,
+      overrides: empowered
+          ? BattleMoveDamageOverrides(power: context.move.power * 2)
+          : null,
+    ),
+  );
+  if (damageResult.damage <= 0) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: damageResult.rng,
+      events: prepared.events,
+    );
+  }
+  final damage = _screenAdjustedDamage(
+    state: prepared.state,
+    user: user,
+    target: targetSlot,
+    move: context.move,
+    damage: damageResult.damage,
+    isCritical: damageResult.isCritical,
+  );
+  final applied = applyDirectDamage(
+    state: prepared.state,
+    user: context.user,
+    target: targetSlot,
+    moveId: context.move.id,
+    rng: damageResult.rng,
+    turn: context.turn,
+    amount: damage,
+  );
+  final secondary = const BattleMoveSecondaryEffectResolver().resolve(
+    state: applied.state,
+    rng: applied.rng,
+    user: context.user,
+    target: targetSlot,
+    move: context.move,
+    turn: context.turn,
+  );
+
+  return BattleMoveBehaviorResolution(
+    state: secondary.state,
+    rng: secondary.rng,
+    events: <PsdkBattleEvent>[
+      ...prepared.events,
+      if (applied.event != null) applied.event!,
+      ...secondary.events,
+    ],
+  );
+}
+
+BattleMoveBehaviorResolution _resolveShellSideArm(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final targetSlot = prepared.psdkTargets.single;
+  final user = prepared.state.battlerAt(context.user);
+  final target = prepared.state.battlerAt(targetSlot);
+  final physicalMove = BattleMoveDefinition.fromPsdk(
+    context.move.psdkMove.copyWith(category: PsdkBattleMoveCategory.physical),
+  );
+  final specialMove = BattleMoveDefinition.fromPsdk(
+    context.move.psdkMove.copyWith(category: PsdkBattleMoveCategory.special),
+  );
+  const calculator = BattleMoveDamageCalculator();
+  final physicalResult = calculator.calculate(
+    BattleMoveDamageContext(
+      user: user,
+      target: target,
+      move: physicalMove,
+      rng: prepared.rng,
+    ),
+  );
+  final specialResult = calculator.calculate(
+    BattleMoveDamageContext(
+      user: user,
+      target: target,
+      move: specialMove,
+      rng: prepared.rng,
+    ),
+  );
+  final physicalDamage = _screenAdjustedDamage(
+    state: prepared.state,
+    user: user,
+    target: targetSlot,
+    move: physicalMove,
+    damage: physicalResult.damage,
+    isCritical: physicalResult.isCritical,
+  );
+  final specialDamage = _screenAdjustedDamage(
+    state: prepared.state,
+    user: user,
+    target: targetSlot,
+    move: specialMove,
+    damage: specialResult.damage,
+    isCritical: specialResult.isCritical,
+  );
+  final usePhysical = physicalDamage > specialDamage;
+  final chosenMove = usePhysical ? physicalMove : specialMove;
+  final chosenResult = usePhysical ? physicalResult : specialResult;
+  final damage = usePhysical ? physicalDamage : specialDamage;
+  if (damage <= 0) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: chosenResult.rng,
+      events: prepared.events,
+    );
+  }
+
+  final applied = applyDirectDamage(
+    state: prepared.state,
+    user: context.user,
+    target: targetSlot,
+    moveId: context.move.id,
+    rng: chosenResult.rng,
+    turn: context.turn,
+    amount: damage,
+  );
+  final secondary = const BattleMoveSecondaryEffectResolver().resolve(
+    state: applied.state,
+    rng: applied.rng,
+    user: context.user,
+    target: targetSlot,
+    move: chosenMove,
+    turn: context.turn,
+  );
+
+  return BattleMoveBehaviorResolution(
+    state: secondary.state,
+    rng: secondary.rng,
+    events: <PsdkBattleEvent>[
+      ...prepared.events,
+      if (applied.event != null) applied.event!,
+      ...secondary.events,
+    ],
+  );
+}
+
+BattleMoveBehaviorResolution _resolveElectroShot(
+  BattleMoveBehaviorContext context,
+) {
+  final user = context.state.battlerAt(context.user);
+  if (user.effects.contains(PsdkBattleEffectIds.twoTurnCharge)) {
+    final releasedState = context.state.updateBattler(
+      context.user,
+      (battler) => battler.copyWith(
+        effects: battler.effects.remove(PsdkBattleEffectIds.twoTurnCharge),
+      ),
+    );
+    return _resolveBasic(
+      BattleMoveBehaviorContext(
+        state: releasedState,
+        rng: context.rng,
+        turn: context.turn,
+        user: context.user,
+        target: context.target,
+        move: context.move,
+        isLastActionOfTurn: context.isLastActionOfTurn,
+        moveProcedureHooks: context.moveProcedureHooks,
+      ),
+    );
+  }
+
+  final prepared = prepareBattleMove(context, forceAccuracyBypass: true);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final boosted = const BattleStatChangeHandler().applyStatChange(
+    context: BattleHandlerContext(
+      state: prepared.state,
+      rng: prepared.rng,
+      turn: context.turn,
+      user: context.user,
+    ),
+    target: context.user,
+    stat: 'specialAttack',
+    stages: 1,
+  );
+  final events = <PsdkBattleEvent>[
+    ...prepared.events,
+    ...boosted.events,
+  ];
+  if (!_isRainActive(boosted.state)) {
+    return _addEffectToUser(
+      context: context,
+      state: boosted.state,
+      rng: boosted.rng,
+      events: events,
+      effect: GenericBattleEffect(
+        id: PsdkBattleEffectIds.twoTurnCharge,
+        scope: BattlerBattleEffectScope(context.user),
+      ),
+    );
+  }
+
+  final targetSlot = prepared.psdkTargets.single;
+  final boostedUser = boosted.state.battlerAt(context.user);
+  final target = boosted.state.battlerAt(targetSlot);
+  final damageResult = const BattleMoveDamageCalculator().calculate(
+    BattleMoveDamageContext(
+      user: boostedUser,
+      target: target,
+      move: context.move,
+      rng: boosted.rng,
+    ),
+  );
+  if (damageResult.damage <= 0) {
+    return BattleMoveBehaviorResolution(
+      state: boosted.state,
+      rng: damageResult.rng,
+      events: events,
+    );
+  }
+  final damage = _screenAdjustedDamage(
+    state: boosted.state,
+    user: boostedUser,
+    target: targetSlot,
+    move: context.move,
+    damage: damageResult.damage,
+    isCritical: damageResult.isCritical,
+  );
+  final applied = applyDirectDamage(
+    state: boosted.state,
+    user: context.user,
+    target: targetSlot,
+    moveId: context.move.id,
+    rng: damageResult.rng,
+    turn: context.turn,
+    amount: damage,
+  );
+  final secondary = const BattleMoveSecondaryEffectResolver().resolve(
+    state: applied.state,
+    rng: applied.rng,
+    user: context.user,
+    target: targetSlot,
+    move: context.move,
+    turn: context.turn,
+  );
+
+  return BattleMoveBehaviorResolution(
+    state: secondary.state,
+    rng: secondary.rng,
+    events: <PsdkBattleEvent>[
+      ...events,
+      if (applied.event != null) applied.event!,
+      ...secondary.events,
+    ],
+  );
+}
+
+BattleMoveBehaviorResolution _resolveEerieSpell(
+  BattleMoveBehaviorContext context,
+) {
+  final basic = _resolveBasic(context);
+  final hit = basic.events
+      .whereType<PsdkBattleDamageEvent>()
+      .any((event) => event.moveId == context.move.id);
+  if (!hit) {
+    return basic;
+  }
+
+  final targetSlot = context.target;
+  final target = basic.state.battlerAt(targetSlot);
+  final lastMoveId = target.moveHistory.lastMoveId;
+  if (lastMoveId == null) {
+    return basic;
+  }
+  final moveIndex = target.moves.indexWhere((move) => move.id == lastMoveId);
+  if (moveIndex < 0) {
+    return basic;
+  }
+  final move = target.moves[moveIndex];
+  if (move.currentPp <= 0) {
+    return basic;
+  }
+  final ppLoss = move.currentPp < 3 ? move.currentPp : 3;
+
+  return BattleMoveBehaviorResolution(
+    state: basic.state.updateBattler(
+      targetSlot,
+      (battler) => battler.replaceMoveAt(
+        moveIndex,
+        move.spendPp(ppLoss),
+      ),
+    ),
+    rng: basic.rng,
+    successful: basic.successful,
+    events: basic.events,
+  );
+}
+
+BattleMoveBehaviorResolution _resolveLastRespects(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final targetSlot = prepared.psdkTargets.single;
+  final user = prepared.state.battlerAt(context.user);
+  final target = prepared.state.battlerAt(targetSlot);
+  final multiplier = (user.koCount + 1).clamp(1, 101).toInt();
+  final damageResult = const BattleMoveDamageCalculator().calculate(
+    BattleMoveDamageContext(
+      user: user,
+      target: target,
+      move: context.move,
+      rng: prepared.rng,
+      overrides: BattleMoveDamageOverrides(
+        power: context.move.power * multiplier,
+      ),
+    ),
+  );
+  if (damageResult.damage <= 0) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: damageResult.rng,
+      events: prepared.events,
+    );
+  }
+  final damage = _screenAdjustedDamage(
+    state: prepared.state,
+    user: user,
+    target: targetSlot,
+    move: context.move,
+    damage: damageResult.damage,
+    isCritical: damageResult.isCritical,
+  );
+  final applied = applyDirectDamage(
+    state: prepared.state,
+    user: context.user,
+    target: targetSlot,
+    moveId: context.move.id,
+    rng: damageResult.rng,
+    turn: context.turn,
+    amount: damage,
+  );
+  final secondary = const BattleMoveSecondaryEffectResolver().resolve(
+    state: applied.state,
+    rng: applied.rng,
+    user: context.user,
+    target: targetSlot,
+    move: context.move,
+    turn: context.turn,
+  );
+
+  return BattleMoveBehaviorResolution(
+    state: secondary.state,
+    rng: secondary.rng,
+    events: <PsdkBattleEvent>[
+      ...prepared.events,
+      if (applied.event != null) applied.event!,
+      ...secondary.events,
+    ],
+  );
+}
+
+BattleMoveBehaviorResolution _resolveSuperDuperEffective(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final targetSlot = prepared.psdkTargets.single;
+  final user = prepared.state.battlerAt(context.user);
+  final target = prepared.state.battlerAt(targetSlot);
+  final damageResult = const BattleMoveDamageCalculator().calculate(
+    BattleMoveDamageContext(
+      user: user,
+      target: target,
+      move: context.move,
+      rng: prepared.rng,
+    ),
+  );
+  if (damageResult.damage <= 0) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: damageResult.rng,
+      events: prepared.events,
+    );
+  }
+  final baseDamage = _screenAdjustedDamage(
+    state: prepared.state,
+    user: user,
+    target: targetSlot,
+    move: context.move,
+    damage: damageResult.damage,
+    isCritical: damageResult.isCritical,
+  );
+  final superEffective = const BattleMoveTypeProcessor()
+          .resolveEffectiveness(
+            moveType: context.move.type,
+            targetTypes: target.types,
+            forceGrounded: target.effects.contains('smack_down'),
+          )
+          .multiplier >
+      1.0;
+  final damage = superEffective ? (baseDamage * 5461) ~/ 4096 : baseDamage;
+  final applied = applyDirectDamage(
+    state: prepared.state,
+    user: context.user,
+    target: targetSlot,
+    moveId: context.move.id,
+    rng: damageResult.rng,
+    turn: context.turn,
+    amount: damage,
+  );
+  final secondary = const BattleMoveSecondaryEffectResolver().resolve(
+    state: applied.state,
+    rng: applied.rng,
+    user: context.user,
+    target: targetSlot,
+    move: context.move,
+    turn: context.turn,
+  );
+
+  return BattleMoveBehaviorResolution(
+    state: secondary.state,
+    rng: secondary.rng,
+    events: <PsdkBattleEvent>[
+      ...prepared.events,
+      if (applied.event != null) applied.event!,
+      ...secondary.events,
+    ],
+  );
+}
+
+int _magnitudePowerForDice(int dice) {
+  if (dice < 5) {
+    return 10;
+  }
+  if (dice < 15) {
+    return 30;
+  }
+  if (dice < 35) {
+    return 50;
+  }
+  if (dice < 65) {
+    return 70;
+  }
+  if (dice < 85) {
+    return 90;
+  }
+  if (dice < 95) {
+    return 110;
+  }
+  return 150;
+}
+
+int _presentPowerForRoll(int roll) {
+  if (roll <= 40) {
+    return 40;
+  }
+  if (roll <= 70) {
+    return 80;
+  }
+  if (roll <= 80) {
+    return 120;
+  }
+  return 0;
+}
+
+const _tripleArrowsUnstackableEffects = <String>{
+  'dragon_cheer',
+  'focus_energy',
+  'triple_arrows',
+};
+
+BattleMoveBehaviorResolution _resolveUTurn(BattleMoveBehaviorContext context) {
+  final basic = _resolveBasic(context);
+  final hit = basic.events.whereType<PsdkBattleDamageEvent>().any(
+        (event) =>
+            event.moveId == context.move.id && event.target != context.user,
+      );
+  if (!hit) {
+    return basic;
+  }
+
+  final switching = const BattleSwitchHandler().markSwitching(
+    context: BattleHandlerContext(
+      state: basic.state,
+      rng: basic.rng,
+      turn: context.turn,
+      user: context.user,
+    ),
+    target: context.user,
+    switching: true,
+  );
+  return BattleMoveBehaviorResolution(
+    state: switching.state,
+    rng: switching.rng,
+    events: basic.events,
+  );
+}
+
+BattleMoveBehaviorResolution _resolveJumpKick(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    if (_shouldJumpKickCrash(prepared.failureReason)) {
+      return _crashUserForJumpKick(
+        context: context,
+        state: prepared.state,
+        rng: prepared.rng,
+        events: prepared.events,
+        successful: false,
+      );
+    }
+    return prepared.toResolution();
+  }
+
+  final targetSlot = prepared.psdkTargets.single;
+  final user = prepared.state.battlerAt(context.user);
+  final target = prepared.state.battlerAt(targetSlot);
+  final damageResult = const BattleMoveDamageCalculator().calculate(
+    BattleMoveDamageContext(
+      user: user,
+      target: target,
+      move: context.move,
+      rng: prepared.rng,
+    ),
+  );
+  if (damageResult.damage <= 0) {
+    return _crashUserForJumpKick(
+      context: context,
+      state: prepared.state,
+      rng: damageResult.rng,
+      events: prepared.events,
+    );
+  }
+  final damage = _screenAdjustedDamage(
+    state: prepared.state,
+    user: user,
+    target: targetSlot,
+    move: context.move,
+    damage: damageResult.damage,
+    isCritical: damageResult.isCritical,
+  );
+  final applied = applyDirectDamage(
+    state: prepared.state,
+    user: context.user,
+    target: targetSlot,
+    moveId: context.move.id,
+    rng: damageResult.rng,
+    turn: context.turn,
+    amount: damage,
+  );
+  final secondary = const BattleMoveSecondaryEffectResolver().resolve(
+    state: applied.state,
+    rng: applied.rng,
+    user: context.user,
+    target: targetSlot,
+    move: context.move,
+    turn: context.turn,
+  );
+
+  return BattleMoveBehaviorResolution(
+    state: secondary.state,
+    rng: secondary.rng,
+    events: <PsdkBattleEvent>[
+      ...prepared.events,
+      if (applied.event != null) applied.event!,
+      ...secondary.events,
+    ],
+  );
+}
+
+BattleMoveBehaviorResolution _resolveTerrainClearingHit(
+  BattleMoveBehaviorContext context,
+) {
+  if (context.move.battleEngineMethod == 's_steel_roller' &&
+      context.state.field.terrain == null) {
+    return BattleMoveBehaviorResolution(
+      state: context.state,
+      rng: context.rng,
+      events: <PsdkBattleEvent>[
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.target,
+          moveId: context.move.id,
+          reason: 'no_terrain',
+        ),
+      ],
+      successful: false,
+    );
+  }
+
+  final basic = _resolveBasic(context);
+  final hit = basic.events.whereType<PsdkBattleDamageEvent>().any(
+        (event) => event.moveId == context.move.id,
+      );
+  if (!hit || basic.state.field.terrain == null) {
+    return basic;
+  }
+
+  final cleared = const BattleTerrainChangeHandler().clearTerrain(
+    context: BattleHandlerContext(
+      state: basic.state,
+      rng: basic.rng,
+      turn: context.turn,
+      user: context.user,
+    ),
+    reason: context.move.id,
+  );
+  return BattleMoveBehaviorResolution(
+    state: cleared.state,
+    rng: cleared.rng,
+    events: <PsdkBattleEvent>[
+      ...basic.events,
+      ...cleared.events,
+    ],
+    successful: basic.successful,
+  );
+}
+
+bool _shouldJumpKickCrash(BattleMoveFailureReason? reason) {
+  return switch (reason) {
+    BattleMoveFailureReason.accuracy ||
+    BattleMoveFailureReason.immunity ||
+    BattleMoveFailureReason.protected =>
+      true,
+    _ => false,
+  };
+}
+
+BattleMoveBehaviorResolution _crashUserForJumpKick({
+  required BattleMoveBehaviorContext context,
+  required PsdkBattleState state,
+  required BattleRngStreams rng,
+  required List<PsdkBattleEvent> events,
+  bool successful = true,
+}) {
+  final user = state.battlerAt(context.user);
+  final crash = applyDirectDamage(
+    state: state,
+    user: context.user,
+    target: context.user,
+    moveId: context.move.id,
+    rng: rng,
+    turn: context.turn,
+    amount: user.maxHp ~/ 2,
+  );
+
+  return BattleMoveBehaviorResolution(
+    state: crash.state,
+    rng: crash.rng,
+    events: <PsdkBattleEvent>[
+      ...events,
+      if (crash.event != null) crash.event!,
+    ],
+    successful: successful,
+  );
+}
+
+bool _targetProtectedThisTurn(PsdkBattleCombatant target, int turn) {
+  return target.moveHistory.successes.any((entry) {
+    if (entry.turn != turn) {
+      return false;
+    }
+    final moveId = _normalizedId(entry.moveId);
+    return moveId == 'protect' ||
+        moveId == 's_protect' ||
+        moveId == 'crafty_shield' ||
+        moveId == 's_crafty_shield';
+  });
 }
 
 BattleMoveBehaviorResolution _resolveHazardSettingBasic(
@@ -821,13 +2351,18 @@ BattleMoveBehaviorResolution _resolveDefog(
     return secondary;
   }
 
+  final cleaned = _clearRapidSpinAffectedEffects(
+    state: secondary.state,
+    user: context.user,
+    includeAllBanks: true,
+    clearOpposingScreens: true,
+  );
+  final state = cleaned.field.weather?.id == PsdkBattleWeatherId.fog
+      ? cleaned.copyWith(field: cleaned.field.clearWeather())
+      : cleaned;
+
   return BattleMoveBehaviorResolution(
-    state: _clearRapidSpinAffectedEffects(
-      state: secondary.state,
-      user: context.user,
-      includeAllBanks: true,
-      clearOpposingScreens: true,
-    ),
+    state: state,
     rng: secondary.rng,
     events: secondary.events,
   );
@@ -1020,6 +2555,54 @@ BattleMoveBehaviorResolution _resolveCantFlee(
       ),
     ),
     rng: basic.rng,
+    events: basic.events,
+  );
+}
+
+BattleMoveBehaviorResolution _resolveJawLock(
+  BattleMoveBehaviorContext context,
+) {
+  final basic = _resolveBasic(context);
+  if (!basic.successful) {
+    return basic;
+  }
+
+  final user = basic.state.battlerAt(context.user);
+  final target = basic.state.battlerAt(context.target);
+  if (user.effects.contains(PsdkBattleEffectIds.cantSwitch) ||
+      target.effects.contains(PsdkBattleEffectIds.cantSwitch) ||
+      target.isFainted) {
+    return basic;
+  }
+
+  final state = basic.state
+      .updateBattler(
+        context.user,
+        (battler) => battler.copyWith(
+          effects: battler.effects.addEffect(
+            CantSwitchEffect(
+              scope: BattlerBattleEffectScope(context.user),
+              origin: context.user,
+            ),
+          ),
+        ),
+      )
+      .updateBattler(
+        context.target,
+        (battler) => battler.copyWith(
+          effects: battler.effects.addEffect(
+            CantSwitchEffect(
+              scope: BattlerBattleEffectScope(context.target),
+              origin: context.user,
+            ),
+          ),
+        ),
+      );
+
+  return BattleMoveBehaviorResolution(
+    state: state,
+    rng: basic.rng,
+    successful: basic.successful,
     events: basic.events,
   );
 }
@@ -1229,6 +2812,7 @@ BattleMoveBehaviorResolution _resolveTargetMarker(
   var rng = prepared.rng;
   final events = <PsdkBattleEvent>[...prepared.events];
   for (final targetSlot in prepared.psdkTargets) {
+    final targetBefore = state.battlerAt(targetSlot);
     state = state.updateBattler(
       targetSlot,
       (battler) => battler.copyWith(
@@ -1252,6 +2836,13 @@ BattleMoveBehaviorResolution _resolveTargetMarker(
     state = secondary.state;
     rng = secondary.rng;
     events.addAll(secondary.events);
+    if (context.move.battleEngineMethod == 's_autotomize') {
+      state = _applyAutotomizeWeightLoss(
+        state: state,
+        target: targetSlot,
+        before: targetBefore,
+      );
+    }
   }
 
   return BattleMoveBehaviorResolution(
@@ -1259,6 +2850,44 @@ BattleMoveBehaviorResolution _resolveTargetMarker(
     rng: rng,
     events: events,
   );
+}
+
+PsdkBattleState _applyAutotomizeWeightLoss({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef target,
+  required PsdkBattleCombatant before,
+}) {
+  final after = state.battlerAt(target);
+  if (!_statStagesChanged(before.statStages, after.statStages)) {
+    return state;
+  }
+  return state.updateBattler(
+    target,
+    (battler) => battler.copyWith(
+      currentWeightKg: (battler.currentWeightKg - 100)
+          .clamp(
+            0.1,
+            double.infinity,
+          )
+          .toDouble(),
+    ),
+  );
+}
+
+bool _statStagesChanged(
+  PsdkBattleStatStages before,
+  PsdkBattleStatStages after,
+) {
+  const stats = <String>{
+    'attack',
+    'defense',
+    'specialAttack',
+    'specialDefense',
+    'speed',
+    'evasion',
+    'accuracy',
+  };
+  return stats.any((stat) => before.valueOf(stat) != after.valueOf(stat));
 }
 
 BattleMoveBehaviorResolution _resolveUserBankMarker(
@@ -1531,6 +3160,16 @@ BattleMoveBehaviorResolution _resolveTwoTurns(
   );
 }
 
+bool _isRainActive(PsdkBattleState state) {
+  if (state.weatherEffectsSuppressed) {
+    return false;
+  }
+  return switch (state.field.weather?.id) {
+    PsdkBattleWeatherId.rain || PsdkBattleWeatherId.hardrain => true,
+    _ => false,
+  };
+}
+
 BattleMoveBehaviorResolution _resolveTrick(BattleMoveBehaviorContext context) {
   final prepared = prepareBattleMove(context);
   if (!prepared.shouldExecuteBehavior) {
@@ -1630,6 +3269,17 @@ BattleMoveBehaviorResolution _resolveSecondaryOnly(
     state = secondary.state;
     rng = secondary.rng;
     events.addAll(secondary.events);
+    if (context.move.battleEngineMethod == 's_toxic_thread' &&
+        secondary.events.isEmpty) {
+      events.add(
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: targetSlot,
+          moveId: context.move.id,
+          reason: 'toxic_thread_blocked',
+        ),
+      );
+    }
   }
 
   return BattleMoveBehaviorResolution(

@@ -297,6 +297,8 @@ String _notesFor(String effectName) {
       'Object-backed DisableEffect blocks the target last successful non-Struggle move through the user-prevention hook; UI disabled checks and deletion messages remain future work.',
     'Encore' =>
       'Object-backed EncoreEffect blocks choosing a different move than the encored last successful move; PP forcing, UI selection forcing and deletion messages remain future work.',
+    'Flinch' =>
+      'Object-backed FlinchEffect blocks the target next action through the user-prevention hook and clears at end turn; messaging and Steadfast-style side effects remain future work.',
     'HealBlock' =>
       'Object-backed HealBlockEffect blocks local healing battle methods through the user-prevention hook; Studio heal flags, messages and all item/ability exceptions remain future work.',
     'Imprison' =>
@@ -366,6 +368,7 @@ _PsdkPortStatus _statusFor(String effectName) {
     'Curse' ||
     'Disable' ||
     'Encore' ||
+    'Flinch' ||
     'HealBlock' ||
     'Imprison' ||
     'Ingrain' ||

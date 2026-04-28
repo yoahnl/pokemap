@@ -208,6 +208,26 @@ void main() {
       expect(_damageEvents(result, moveId: 'double_slap'), hasLength(5));
     });
 
+    test('Skill Link forces Scale Shot to five hits', () {
+      final result = _runMove(
+        playerAbilityId: 'skill_link',
+        playerMove: _move(
+          id: 'scale_shot',
+          power: 25,
+          battleEngineMethod: 's_scale_shot',
+        ),
+        opponentCurrentHp: 200,
+        rngSeeds: const BattleRngSeeds(
+          moveDamage: 1,
+          moveCritical: 99999,
+          moveAccuracy: 3,
+          generic: 0,
+        ),
+      );
+
+      expect(_damageEvents(result, moveId: 'scale_shot'), hasLength(5));
+    });
+
     test('Skill Link keeps Triple Kick at three hits and skips rechecks', () {
       final result = _runMove(
         playerAbilityId: 'skill_link',

@@ -28,6 +28,57 @@ void main() {
         isA<BatonPassEffect>(),
       );
     });
+
+    test('s_u_turn damages the target then marks the user for switch', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'u_turn',
+              battleEngineMethod: 's_u_turn',
+              target: PsdkBattleMoveTarget.adjacentFoe,
+              category: PsdkBattleMoveCategory.physical,
+              power: 70,
+              accuracy: 100,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final damage =
+          result.timeline.events.whereType<PsdkBattleDamageEvent>().toList();
+
+      expect(damage, hasLength(1));
+      expect(damage.single.target, psdkOpponentSlot);
+      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, lessThan(100));
+      expect(result.state.battlerAt(psdkPlayerSlot).switching, isTrue);
+    });
+
+    test('s_u_turn does not mark the user for switch when it misses', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'u_turn',
+              battleEngineMethod: 's_u_turn',
+              target: PsdkBattleMoveTarget.adjacentFoe,
+              category: PsdkBattleMoveCategory.physical,
+              power: 70,
+              accuracy: 1,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(
+        result.timeline.events.whereType<PsdkBattleDamageEvent>(),
+        isEmpty,
+      );
+      expect(result.state.battlerAt(psdkPlayerSlot).switching, isFalse);
+    });
   });
 }
 
@@ -88,15 +139,18 @@ PsdkBattleMoveData _move({
   required String id,
   required String battleEngineMethod,
   required PsdkBattleMoveTarget target,
+  PsdkBattleMoveCategory category = PsdkBattleMoveCategory.status,
+  int power = 0,
+  int accuracy = 0,
 }) {
   return PsdkBattleMoveData(
     id: id,
     dbSymbol: id,
     name: id,
     type: 'normal',
-    category: PsdkBattleMoveCategory.status,
-    power: 0,
-    accuracy: 0,
+    category: category,
+    power: power,
+    accuracy: accuracy,
     pp: 35,
     priority: 0,
     criticalRate: 1,

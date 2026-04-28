@@ -15,8 +15,10 @@ const List<int> _psdkMultiHitChances = <int>[2, 2, 2, 3, 3, 5, 4, 3];
 enum _MultiHitKind {
   fixed,
   psdkRandomTwoToFive,
+  doubleIronBash,
   tripleKick,
   populationBomb,
+  scaleShot,
 }
 
 /// Ports the first deterministic slice of PSDK multi-hit moves.
@@ -52,6 +54,16 @@ final class MultiHitMoveBehavior implements BattleMoveBehavior {
         _hitCount = null,
         _kind = _MultiHitKind.psdkRandomTwoToFive;
 
+  const MultiHitMoveBehavior.doubleIronBash()
+      : battleEngineMethod = 's_double_iron_bash',
+        _hitCount = 2,
+        _kind = _MultiHitKind.doubleIronBash;
+
+  const MultiHitMoveBehavior.scaleShot()
+      : battleEngineMethod = 's_scale_shot',
+        _hitCount = null,
+        _kind = _MultiHitKind.scaleShot;
+
   @override
   final String battleEngineMethod;
   final int? _hitCount;
@@ -59,7 +71,14 @@ final class MultiHitMoveBehavior implements BattleMoveBehavior {
 
   @override
   BattleMoveBehaviorResolution resolve(BattleMoveBehaviorContext context) {
-    final prepared = prepareBattleMove(context);
+    final targetIsMinimized = _kind == _MultiHitKind.doubleIronBash &&
+        context.state.battlerAt(context.target).effects.contains(
+              'minimize',
+            );
+    final prepared = prepareBattleMove(
+      context,
+      forceAccuracyBypass: targetIsMinimized,
+    );
     if (!prepared.shouldExecuteBehavior) {
       return prepared.toResolution();
     }
@@ -119,7 +138,11 @@ final class MultiHitMoveBehavior implements BattleMoveBehavior {
           move: context.move,
           rng: rng,
           overrides: BattleMoveDamageOverrides(
-            power: _powerForHit(context.move.power, hitIndex),
+            power: _powerForHit(
+              movePower: context.move.power,
+              hitIndex: hitIndex,
+              targetIsMinimized: targetIsMinimized,
+            ),
           ),
         ),
       );
@@ -146,11 +169,13 @@ final class MultiHitMoveBehavior implements BattleMoveBehavior {
     }
 
     if (dealtDamage) {
+      final secondaryTarget =
+          _kind == _MultiHitKind.scaleShot ? context.user : target;
       final secondary = const BattleMoveSecondaryEffectResolver().resolve(
         state: state,
         rng: rng,
         user: context.user,
-        target: target,
+        target: secondaryTarget,
         move: context.move,
         turn: context.turn,
       );
@@ -180,11 +205,13 @@ final class MultiHitMoveBehavior implements BattleMoveBehavior {
       return _ResolvedHitCount(hitCount: forced, rng: prepared.rng);
     }
     return switch (_kind) {
-      _MultiHitKind.fixed => _ResolvedHitCount(
+      _MultiHitKind.fixed || _MultiHitKind.doubleIronBash => _ResolvedHitCount(
           hitCount: _hitCount!,
           rng: prepared.rng,
         ),
-      _MultiHitKind.psdkRandomTwoToFive => _resolvePsdkRandomHitCount(
+      _MultiHitKind.psdkRandomTwoToFive ||
+      _MultiHitKind.scaleShot =>
+        _resolvePsdkRandomHitCount(
           context: context,
           prepared: prepared,
         ),
@@ -222,8 +249,13 @@ final class MultiHitMoveBehavior implements BattleMoveBehavior {
     };
   }
 
-  int _powerForHit(int movePower, int hitIndex) {
+  int _powerForHit({
+    required int movePower,
+    required int hitIndex,
+    required bool targetIsMinimized,
+  }) {
     return switch (_kind) {
+      _MultiHitKind.doubleIronBash when targetIsMinimized => movePower * 2,
       _MultiHitKind.tripleKick => movePower * (hitIndex + 1),
       _ => movePower,
     };

@@ -18,7 +18,8 @@ final class BattleMoveDamageCalculator {
 
   BattleMoveDamageResult calculate(BattleMoveDamageContext context) {
     final move = context.move;
-    final resolvedPower = context.overrides?.power ?? move.power;
+    final moveType = _effectiveMoveType(context);
+    final resolvedPower = _effectivePower(context);
     if (move.category == PsdkBattleMoveCategory.status || resolvedPower <= 0) {
       return BattleMoveDamageResult.zero(
         rng: context.rng,
@@ -28,13 +29,17 @@ final class BattleMoveDamageCalculator {
     }
 
     final stabMultiplier = _typeProcessor.resolveStabMultiplier(
-      moveType: move.type,
+      moveType: moveType,
       userTypes: context.user.types,
+      extraUserTypes: _extraTypes(context.user),
     );
     final effectiveness = _typeProcessor.resolveEffectiveness(
-      moveType: move.type,
+      moveType: moveType,
       targetTypes: context.target.types,
+      extraTargetTypes: _extraTypes(context.target),
       forceGrounded: context.target.effects.contains('smack_down'),
+      foresight: context.target.effects.contains('foresight'),
+      miracleEye: context.target.effects.contains('miracle_eye'),
     );
     if (effectiveness.isImmune) {
       return BattleMoveDamageResult.zero(
@@ -47,6 +52,7 @@ final class BattleMoveDamageCalculator {
     final critical = _criticalResolver.resolve(
       move: move,
       rng: context.rng,
+      criticalRate: _effectiveCriticalRate(context),
     );
     final damageRoll = critical.rng.moveDamage.nextDamagePercent();
     final rng = critical.rng.copyWith(moveDamage: damageRoll.next);
@@ -74,6 +80,7 @@ final class BattleMoveDamageCalculator {
     final typeEffectivenessMultiplier = _applyLocalEffectivenessModifiers(
       effectiveness.multiplier,
       context,
+      moveType,
     );
     final typedDamage = (stabDamage * typeEffectivenessMultiplier).floor();
     final damage = typedDamage < 1 ? 1 : typedDamage;
@@ -89,12 +96,103 @@ final class BattleMoveDamageCalculator {
   }
 }
 
+int _effectivePower(BattleMoveDamageContext context) {
+  var power = context.overrides?.power ?? context.move.power;
+  final moveType = _effectiveMoveType(context);
+  if (context.user.effects.contains('charge') && moveType == 'electric') {
+    power *= 2;
+  }
+  if (_hasBattleEffect(context, 'mud_sport') && moveType == 'electric') {
+    power ~/= 2;
+  }
+  if (_hasBattleEffect(context, 'water_sport') && moveType == 'fire') {
+    power ~/= 2;
+  }
+  return power;
+}
+
+String _effectiveMoveType(BattleMoveDamageContext context) {
+  final moveType = context.move.type.toLowerCase();
+  if (context.user.effects.contains('electrify')) {
+    return 'electric';
+  }
+  if (_hasBattleEffect(context, 'ion_deluge') && moveType == 'normal') {
+    return 'electric';
+  }
+  return moveType;
+}
+
+bool _hasBattleEffect(BattleMoveDamageContext context, String id) {
+  return context.user.effects.contains(id) ||
+      context.target.effects.contains(id);
+}
+
+Iterable<String> _extraTypes(PsdkBattleCombatant battler) {
+  return <String>[
+    if (battler.type3 != null) battler.type3!,
+    ...battler.temporaryTypes,
+  ];
+}
+
+int _effectiveCriticalRate(BattleMoveDamageContext context) {
+  final user = context.user;
+  final target = context.target;
+  if (target.effects.contains('lucky_chant')) {
+    return 0;
+  }
+  if (user.abilityId == 'merciless' && _hasPoisonStatus(target)) {
+    return 4;
+  }
+  if (user.effects.contains('laser_focus')) {
+    return 4;
+  }
+  if (target.abilityId == 'battle_armor' || target.abilityId == 'shell_armor') {
+    return 0;
+  }
+
+  var criticalRate = context.move.criticalRate;
+  if (user.effects.contains('focus_energy')) {
+    criticalRate += 2;
+  }
+  if (user.effects.contains('dragon_cheer')) {
+    criticalRate += user.hasType('dragon') ? 2 : 1;
+  }
+  if (user.effects.contains('triple_arrows')) {
+    criticalRate += 2;
+  }
+  if (user.abilityId == 'super_luck') {
+    criticalRate += 1;
+  }
+  if (_hasCriticalItem(user)) {
+    criticalRate += 1;
+  }
+  if (user.effects.contains('lansat_berry')) {
+    criticalRate += 1;
+  }
+  return criticalRate;
+}
+
+bool _hasPoisonStatus(PsdkBattleCombatant battler) {
+  return battler.majorStatus == PsdkBattleMajorStatus.poison ||
+      battler.majorStatus == PsdkBattleMajorStatus.toxic;
+}
+
+bool _hasCriticalItem(PsdkBattleCombatant battler) {
+  return battler.heldItemId == 'razor_claw' ||
+      battler.heldItemId == 'scope_lens' ||
+      (battler.heldItemId == 'leek' && battler.speciesId == 'farfetch_d') ||
+      (battler.heldItemId == 'lucky_punch' && battler.speciesId == 'chansey');
+}
+
 double _applyLocalEffectivenessModifiers(
   double multiplier,
   BattleMoveDamageContext context,
+  String moveType,
 ) {
-  if (context.move.type.toLowerCase() == 'fire' &&
-      context.target.effects.contains('tar_shot')) {
+  if (moveType == 'fire' && context.target.effects.contains('tar_shot')) {
+    return multiplier * 2;
+  }
+  if (context.target.effects.contains('glaive_rush')) {
     return multiplier * 2;
   }
   return multiplier;

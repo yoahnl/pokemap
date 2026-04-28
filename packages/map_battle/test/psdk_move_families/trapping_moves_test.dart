@@ -33,6 +33,37 @@ void main() {
       expect(prevention.reason, 'cant_switch');
     });
 
+    test('s_jaw_lock installs switch-prevention effects on user and target',
+        () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'jaw_lock',
+              battleEngineMethod: 's_jaw_lock',
+              target: PsdkBattleMoveTarget.adjacentFoe,
+              category: PsdkBattleMoveCategory.physical,
+              power: 80,
+              accuracy: 100,
+            ),
+          ],
+        ),
+      );
+
+      final turn = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final player = turn.state.battlerAt(psdkPlayerSlot);
+      final opponent = turn.state.battlerAt(psdkOpponentSlot);
+
+      expect(_damageEvents(turn, moveId: 'jaw_lock'), hasLength(1));
+      expect(player.effects.contains('cant_switch'), isTrue);
+      expect(opponent.effects.contains('cant_switch'), isTrue);
+      expect(player.effects.effects.whereType<CantSwitchEffect>().single.origin,
+          psdkPlayerSlot);
+      expect(
+          opponent.effects.effects.whereType<CantSwitchEffect>().single.origin,
+          psdkPlayerSlot);
+    });
+
     test('CantSwitch transfers through Baton Pass', () {
       const benchSlot = PsdkBattleSlotRef(bank: 1, position: -1);
       final stack = const PsdkBattleEffectStack.empty()

@@ -205,6 +205,69 @@ void main() {
       expect(_psdkDamageEvents(threeHits, moveId: 'triple_hit'), hasLength(3));
     });
 
+    test('s_double_iron_bash emits two successful hits', () {
+      final result = _runPsdkMove(
+        playerMove: _move(
+          id: 'double_iron_bash',
+          dbSymbol: 'double_iron_bash',
+          battleEngineMethod: 's_double_iron_bash',
+          power: 60,
+        ),
+        opponentHp: 200,
+      );
+
+      expect(
+        _psdkDamageEvents(result, moveId: 'double_iron_bash'),
+        hasLength(2),
+      );
+    });
+
+    test('s_double_iron_bash doubles power and bypasses accuracy on Minimize',
+        () {
+      final minimized = _runPsdkMove(
+        playerMove: _move(
+          id: 'double_iron_bash',
+          dbSymbol: 'double_iron_bash',
+          battleEngineMethod: 's_double_iron_bash',
+          power: 60,
+          accuracy: 1,
+        ),
+        opponentHp: 300,
+        opponentEffects: const <String>['minimize'],
+        rngSeeds: const BattleRngSeeds(
+          moveDamage: 1,
+          moveCritical: 99999,
+          moveAccuracy: 99,
+          generic: 4,
+        ),
+      );
+      final regular = _runPsdkMove(
+        playerMove: _move(
+          id: 'double_iron_bash',
+          dbSymbol: 'double_iron_bash',
+          battleEngineMethod: 's_double_iron_bash',
+          power: 60,
+        ),
+        opponentHp: 300,
+      );
+
+      final minimizedDamage =
+          _psdkDamageEvents(minimized, moveId: 'double_iron_bash');
+      final regularDamage =
+          _psdkDamageEvents(regular, moveId: 'double_iron_bash');
+
+      expect(minimizedDamage, hasLength(2));
+      expect(regularDamage, hasLength(2));
+      for (var index = 0; index < minimizedDamage.length; index += 1) {
+        expect(minimizedDamage[index].damage,
+            greaterThan(regularDamage[index].damage));
+      }
+      expect(
+        minimized.timeline.events.map((event) => event.kind),
+        isNot(contains('miss')),
+      );
+    });
+
     test('s_multi_hit uses the PSDK 2-5 hit distribution on generic RNG', () {
       final result = _runPsdkMove(
         playerMove: _move(
@@ -223,6 +286,54 @@ void main() {
       );
 
       expect(_psdkDamageEvents(result, moveId: 'double_slap'), hasLength(5));
+    });
+
+    test('s_scale_shot multi-hits then applies stat changes to the user', () {
+      final result = _runPsdkMove(
+        playerMove: _move(
+          id: 'scale_shot',
+          dbSymbol: 'scale_shot',
+          battleEngineMethod: 's_scale_shot',
+          power: 25,
+          stageMods: const <PsdkBattleMoveStageMod>[
+            PsdkBattleMoveStageMod(
+              stat: 'defense',
+              stages: -1,
+              chance: 100,
+            ),
+            PsdkBattleMoveStageMod(
+              stat: 'speed',
+              stages: 1,
+              chance: 100,
+            ),
+          ],
+        ),
+        opponentHp: 200,
+        rngSeeds: const BattleRngSeeds(
+          moveDamage: 1,
+          moveCritical: 99999,
+          moveAccuracy: 3,
+          generic: 5,
+        ),
+      );
+
+      final damage = _psdkDamageEvents(result, moveId: 'scale_shot');
+      final statStages = result.timeline.events
+          .whereType<PsdkBattleStatStageEvent>()
+          .toList(growable: false);
+
+      expect(damage, hasLength(5));
+      expect(statStages.map((event) => event.target),
+          everyElement(psdkPlayerSlot));
+      expect(
+          result.state.battlerAt(psdkPlayerSlot).statStages.valueOf('defense'),
+          -1);
+      expect(result.state.battlerAt(psdkPlayerSlot).statStages.valueOf('speed'),
+          1);
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).statStages.values,
+        isEmpty,
+      );
     });
 
     test('multi-hit stops before scheduling extra hits once the target faints',
@@ -442,6 +553,7 @@ PsdkBattleTurnResult _runPsdkMove({
   int playerLevel = 20,
   int opponentHp = 100,
   int? opponentCurrentHp,
+  List<String> opponentEffects = const <String>[],
   BattleRngSeeds rngSeeds = const BattleRngSeeds(
     moveDamage: 1,
     moveCritical: 99999,
@@ -455,6 +567,7 @@ PsdkBattleTurnResult _runPsdkMove({
       playerLevel: playerLevel,
       opponentHp: opponentHp,
       opponentCurrentHp: opponentCurrentHp,
+      opponentEffects: opponentEffects,
       rngSeeds: rngSeeds,
     ).psdkSetup,
   );
@@ -466,6 +579,7 @@ BattleEngineSetup _setup({
   int playerLevel = 20,
   int opponentHp = 100,
   int? opponentCurrentHp,
+  List<String> opponentEffects = const <String>[],
   BattleRngSeeds rngSeeds = const BattleRngSeeds(
     moveDamage: 1,
     moveCritical: 99999,
@@ -488,6 +602,7 @@ BattleEngineSetup _setup({
       maxHp: opponentHp,
       currentHp: opponentCurrentHp ?? opponentHp,
       speed: 1,
+      effects: opponentEffects,
       move: _move(
         id: 'opponent_wait',
         dbSymbol: 'opponent_wait',
@@ -505,6 +620,7 @@ PsdkBattleCombatantSetup _combatant({
   required int currentHp,
   required int speed,
   required PsdkBattleMoveData move,
+  List<String> effects = const <String>[],
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -521,6 +637,7 @@ PsdkBattleCombatantSetup _combatant({
       specialDefense: 50,
       speed: speed,
     ),
+    effects: PsdkBattleEffectStack(values: effects),
     moves: <PsdkBattleMoveData>[move],
   );
 }

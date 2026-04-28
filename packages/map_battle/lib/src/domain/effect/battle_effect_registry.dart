@@ -9,6 +9,7 @@ import 'move/confusion_effect.dart';
 import 'move/curse_effect.dart';
 import 'move/disable_effect.dart';
 import 'move/encore_effect.dart';
+import 'move/flinch_effect.dart';
 import 'move/force_next_move_base_effect.dart';
 import 'move/heal_block_effect.dart';
 import 'move/imprison_effect.dart';
@@ -55,6 +56,7 @@ final class BattleEffectRegistry {
           scope: LocalBattleEffectScope(),
           encoredMoveId: '',
         ),
+      'flinch' => const FlinchEffect(scope: LocalBattleEffectScope()),
       'force_next_move_base' =>
         const ForceNextMoveBaseEffect(scope: LocalBattleEffectScope()),
       'heal_block' => const HealBlockEffect(scope: LocalBattleEffectScope()),

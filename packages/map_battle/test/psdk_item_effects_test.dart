@@ -102,6 +102,26 @@ void main() {
 
       expect(_damageEvents(result, moveId: 'double_slap'), hasLength(4));
     });
+
+    test('Loaded Dice raises Scale Shot to at least four hits', () {
+      final result = _runMove(
+        playerHeldItemId: 'loaded_dice',
+        opponentCurrentHp: 200,
+        playerMove: _move(
+          id: 'scale_shot',
+          power: 25,
+          battleEngineMethod: 's_scale_shot',
+        ),
+        rngSeeds: const BattleRngSeeds(
+          moveDamage: 1,
+          moveCritical: 99999,
+          moveAccuracy: 3,
+          generic: 0,
+        ),
+      );
+
+      expect(_damageEvents(result, moveId: 'scale_shot'), hasLength(4));
+    });
   });
 }
 

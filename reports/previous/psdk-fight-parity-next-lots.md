@@ -22,8 +22,8 @@ Current measured state:
 | Move methods missing | 0 |
 | PSDK effect classes | 482 |
 | Effect classes ported | 0 |
-| Effect classes partial | 24 |
-| Effect classes missing | 458 |
+| Effect classes partial | 25 |
+| Effect classes missing | 457 |
 | Studio attacks in local source | 728 |
 | Studio attacks fait | 33 |
 | Studio attacks partiel | 695 |
@@ -34,9 +34,8 @@ Latest completed wave:
 - `s_a_fang`, `s_ohko`, `s_sacred_sword`, `s_heal_bell`,
   `s_take_heart`, `s_sparkly_swirl` are now wired in the Dart registry and
   marked `partial`.
-- Basic-descendant methods `s_brick_break`,
-  `s_stomp`, `s_u_turn` are now wired as partial Basic hits; their
-  PSDK-specific effects remain explicit dependencies.
+- Basic-descendant method `s_brick_break` is now wired as a partial Basic hit;
+  its PSDK-specific effects remain explicit dependencies.
 - `s_bind` is now wired as a dedicated partial Bind resolver with timed
   trapping and residual end-turn damage.
 - `s_cantflee` is now wired as a dedicated partial CantSwitch resolver instead
@@ -50,7 +49,7 @@ Latest completed wave:
   as partial Basic hits. Singles fallback targeting now handles `randomFoe`
   and `allAdjacentFoes`.
 - Additional partial Basic fallback wave: `s_dragon_tail`, `s_ice_ball`,
-  `s_jump_kick`, `s_revenge`, `s_roar`, `s_rollout`,
+  `s_revenge`, `s_roar`, `s_rollout`,
   `s_round`, `s_secret_power`, `s_synchronoise`, `s_trump_card`, `s_uproar`.
 - Recharge/screen/attention wave: `s_reload` now has a minimal
   `force_next_move_base` recharge effect, `s_reflect` now carries timed local
@@ -61,11 +60,13 @@ Latest completed wave:
   marker. All three remain `partial`.
 - Two-turn wave: `s_2turns` now charges first and releases its Basic hit on
   the next submission. It remains `partial`.
-- State-marker/item/Z wave: `s_foresight` installs a target marker,
-  `s_add_type` writes the target `type3`, `s_thing_sport` installs timed
-  sport markers, `s_trick` swaps held items, and Studio-only offensive
-  `s_z_move` entries now execute through the Basic damage path. They remain
-  `partial`.
+- State-marker/item/Z wave: `s_foresight` installs a target marker and now
+  feeds Normal/Fighting-vs-Ghost immunity overwrites, `s_add_type` writes the
+  target `type3` and that third type now participates in STAB/effectiveness,
+  `s_thing_sport` installs timed sport markers and those markers now dampen
+  matching Electric/Fire base power, `s_trick` swaps held items, and
+  Studio-only offensive `s_z_move` entries now execute through the Basic damage
+  path. They remain `partial`.
 - Marker wave: `s_yawn`, `s_taunt`, `s_torment`, `s_future_sight`,
   `s_wish`, `s_tailwind`, `s_safe_guard`, `s_spike`, `s_stealth_rock`,
   `s_sticky_web`, `s_toxic_spike`, `s_trick_room` and `s_wonder_room` now
@@ -76,13 +77,14 @@ Latest completed wave:
 - Marker/secondary wave: `s_minimize`, `s_miracle_eye`, `s_mist`,
   `s_perish_song`, `s_telekinesis`, `s_toxic_thread` and `s_plasma_fists`
   now execute through local PSDK marker, secondary-status/stat or Basic+Ion
-  Deluge paths. They remain `partial`.
+  Deluge paths. `miracle_eye` now also feeds Psychic-vs-Dark immunity
+  overwrites. They remain `partial`.
 - Turn-marker wave: `s_destiny_bond`, `s_disable`, `s_electrify`,
   `s_embargo`, `s_encore`, `s_grudge`, `s_heal_block`, `s_ion_deluge`,
   `s_lucky_chant`, `s_magnet_rise`, `s_powder` and `s_snatch` now execute
   through local PSDK marker paths. They remain `partial`.
-- Basic fallback wave: `s_burn_up`, `s_fake_out`, `s_feint`,
-  `s_fell_stinger`, `s_flame_burst`, `s_fury_cutter`, `s_fusion_bolt`,
+- Basic fallback wave: `s_burn_up`,
+  `s_flame_burst`, `s_fury_cutter`, `s_fusion_bolt`,
   `s_fusion_flare`, `s_hidden_power`, `s_incinerate`,
   `s_last_resort`, `s_payday`,
   `s_photon_geyser`, `s_pollen_puff`, `s_pursuit`, `s_rage`,
@@ -156,18 +158,18 @@ Latest completed wave:
   through Basic fallbacks where they can at least execute their imported
   damage data; non-damaging or rule-heavy methods are wired as local
   target/user/field markers. This wave covers `s_alluring_voice`,
-  `s_aura_wheel`, `s_baddy_bad`, `s_burning_jealousy`,
+  `s_aura_wheel`, `s_burning_jealousy`,
   `s_chilly_reception`, `s_corrosive_gas`, `s_court_change`, `s_doodle`,
-  `s_double_iron_bash`, `s_dragon_cheer`, `s_dragon_darts`,
+  `s_dragon_cheer`, `s_dragon_darts`,
   `s_eerie_spell`, `s_electro_shot`, `s_expanding_force`, `s_fairy_lock`,
-  `s_fickle_beam`, `s_freezy_frost`, `s_genies_storm`,
-  `s_geomancy`, `s_gigaton_hammer`, `s_glaive_rush`, `s_glitzy_glow`,
-  `s_grassy_glide`, `s_grav_apple`, `s_ice_spinner`, `s_jaw_lock`,
+  `s_fickle_beam`, `s_genies_storm`,
+  `s_geomancy`, `s_gigaton_hammer`, `s_glaive_rush`,
+  `s_grassy_glide`, `s_ice_spinner`,
   `s_last_respects`, `s_magic_powder`,
   `s_make_it_rain`, `s_no_retreat`, `s_octolock`, `s_order_up`,
-  `s_poltergeist`, `s_pre_attack_base`, `s_rage_fist`, `s_raging_bull`,
+  `s_pre_attack_base`, `s_rage_fist`, `s_raging_bull`,
   `s_revival_blessing`, `s_rising_voltage`, `s_salt_cure`,
-  `s_sappy_seed`, `s_scale_shot`, `s_shed_tail`, `s_shell_side_arm`,
+  `s_shed_tail`, `s_shell_side_arm`,
   `s_steel_roller`, `s_stuff_cheeks`, `s_super_duper_effective`,
   `s_syrup_bomb`, `s_tar_shot`, `s_teatime`, `s_terrain_pulse`,
   `s_tidy_up`, `s_triple_arrows` and `s_upper_hand`.
@@ -177,6 +179,107 @@ Latest completed wave:
   the local singles slice for terrain-driven power changes, Terrain Pulse type
   changes and Grassy Glide priority under Grassy Terrain while keeping the
   methods `partial` for the remaining targeting/action-order edge cases.
+- Freezy Frost promotion wave: `s_freezy_frost` now uses a dedicated static
+  resolver instead of the generic Basic fallback. It keeps Basic damage and
+  resets every alive battler's stat stages to neutral after a successful hit.
+  It remains `partial` for exact PSDK messages and richer multi-battler event
+  ordering.
+- Scale Shot promotion wave: `s_scale_shot` now uses
+  `MultiHitMoveBehavior.scaleShot` instead of the generic Basic fallback. It
+  reuses PSDK 2-5 multi-hit selection, Skill Link and Loaded Dice hooks, then
+  redirects stage mods to the user after successful damage. It remains
+  `partial` for exact PSDK messages and richer multi-target ordering.
+- Double Iron Bash promotion wave: `s_double_iron_bash` now uses
+  `MultiHitMoveBehavior.doubleIronBash` instead of the generic Basic fallback.
+  It executes two hits and ports the Minimize branch that bypasses accuracy and
+  doubles base power. It remains `partial` for exact PSDK messages, flinch
+  timing parity and richer multi-target ordering.
+- Grav Apple promotion wave: `s_grav_apple` now uses a dedicated static
+  resolver instead of the generic Basic fallback. It keeps Basic damage and
+  imported secondary stat drops, then raises base power by 1.5x while Gravity
+  is active. It remains `partial` for exact PSDK messages and the full Gravity
+  field-effect lifecycle.
+- Rage promotion wave: `s_rage` now uses a dedicated static resolver instead
+  of the generic Basic fallback. It keeps the successful Basic hit and installs
+  a battler-scoped `rage` marker on the user after a successful damage event.
+  It remains `partial` until the full Rage attack-raise lifecycle and exact
+  PSDK messages are represented.
+- Raging Bull promotion wave: `s_raging_bull` now reuses the Brick Break static
+  cleanup path instead of the generic Basic fallback. It keeps the successful
+  hit and clears opposing `reflect`, `light_screen` and `aurora_veil` markers.
+  It remains `partial` until Tauros form-based type changes and exact PSDK
+  messages are represented.
+- Spectral Thief promotion wave: `s_spectral_thief` now uses a dedicated
+  static resolver instead of the generic Basic fallback. It keeps the
+  successful hit, copies positive target stat stages to the user and clears
+  those positive stages from the target. It remains `partial` until exact PSDK
+  messages and multi-target ordering are represented.
+- Make It Rain promotion wave: `s_make_it_rain` now uses a dedicated static
+  resolver instead of the generic Basic fallback. It keeps the successful hit
+  and applies imported stat-stage drops to the user, matching the PSDK
+  `SelfStat` inheritance slice. It remains `partial` until battle-info money
+  rewards and exact PSDK messages are represented.
+- Magnitude promotion wave: `s_magnitude` now uses a dedicated static resolver
+  instead of the generic Basic fallback. It samples the PSDK magnitude table
+  from the generic RNG stream and uses the selected base power for damage. It
+  remains `partial` until exact PSDK messages and the Dig/out-of-reach doubled
+  damage branch are represented.
+- Glaive Rush promotion wave: `s_glaive_rush` now uses a dedicated static
+  resolver instead of the generic Basic fallback. It keeps the successful Basic
+  hit, installs a battler-scoped `glaive_rush` marker and doubles incoming
+  damage while the marker is active. It remains `partial` until exact PSDK
+  messages and the full action-order cleanup semantics are represented.
+- Fickle Beam promotion wave: `s_fickle_beam` now uses a dedicated static
+  resolver instead of the generic Basic fallback. It consumes the generic RNG
+  after prechecks/accuracy and doubles base power on PSDK's `bchance?(0.3)`
+  empowerment roll. It remains `partial` until exact PSDK empowerment messages
+  are represented.
+- Super Duper Effective promotion wave: `s_super_duper_effective` now uses a
+  dedicated static resolver instead of the generic Basic fallback. It keeps the
+  regular Basic hit and applies PSDK's `5461 / 4096` damage boost when the raw
+  type effectiveness is super effective. It remains `partial` until exact PSDK
+  message/event timing and fuller damage-modifier hook ordering are represented.
+- Genies Storm promotion wave: `s_genies_storm` now resolves through
+  `WeatherPowerMoveBehavior.geniesStorm` instead of the generic Basic fallback.
+  It bypasses accuracy under rain/hard rain while preserving weather
+  suppression semantics. It remains `partial` until exact PSDK messages and
+  richer weather/ability/item exceptions are represented.
+- Eerie Spell promotion wave: `s_eerie_spell` now uses a dedicated static
+  resolver instead of the generic Basic fallback. After a successful hit, it
+  removes up to 3 PP from the target's last attempted move. It remains
+  `partial` until exact PSDK messages and richer multi-target behavior are
+  represented.
+- Last Respects promotion wave: `s_last_respects` now uses a dedicated static
+  resolver instead of the generic Basic fallback. It scales base power from the
+  local clean-lane `koCount` snapshot with PSDK's `(ko_count + 1).clamp(1, 101)`
+  formula shape. It remains `partial` until full party-side KO aggregation and
+  exact PSDK messages are represented.
+- Shell Side Arm promotion wave: `s_shell_side_arm` now uses a dedicated static
+  resolver instead of the generic Basic fallback. It evaluates the physical and
+  special damage lanes against the current target, applies local screen
+  adjustment per lane and keeps physical only when it is strictly stronger,
+  matching PSDK's tie-to-special branch. It remains `partial` until the physical
+  lane's `direct?`/contact override is represented.
+- Electro Shot promotion wave: `s_electro_shot` now uses a dedicated static
+  resolver instead of the generic Basic fallback. It raises Special Attack on
+  the charge turn, stores the local two-turn marker, releases on the next
+  submission and shortcuts to same-turn damage under rain/hard rain. It remains
+  `partial` until exact charge messages, forced-next-move metadata and fuller
+  accuracy shortcut semantics are represented.
+- Present promotion wave: `s_present` now uses a dedicated static resolver. It
+  samples the PSDK 40/80/120/heal RNG table, routes damage branches through the
+  normal calculator and heals the target by one quarter of max HP on the heal
+  branch when the target is not full or locally Heal Blocked. It remains
+  `partial` until exact messages and richer heal-block display semantics are
+  represented.
+- Triple Arrows promotion wave: `s_triple_arrows` now uses a dedicated static
+  resolver instead of the generic Basic fallback. It keeps the Basic hit and
+  installs a four-turn user-scoped `triple_arrows` marker after successful
+  damage, skipping it when `dragon_cheer`, `focus_energy` or `triple_arrows`
+  already exists on the user. The critical-hit calculator now consumes
+  `triple_arrows`, `focus_energy`, `dragon_cheer` and `laser_focus` markers
+  with PSDK's critical-count rules. It remains `partial` until exact messages
+  are represented.
 - History power promotion wave: `s_assurance`, `s_avalanche`,
   `s_fishious_rend`, `s_lash_out`, `s_payback`, `s_rage_fist`,
   `s_retaliate`, `s_revenge` and `s_stomping_tantrum` now use
@@ -196,6 +299,62 @@ Latest completed wave:
   singles slice ports Snore sleep/Comatose gating and Sucker Punch
   pending-action checks. They remain `partial` for full PSDK action-queue,
   doubles and Me First edge-case parity.
+- Fake Out/flinch promotion wave: `s_fake_out` now uses
+  `ActionGatedMoveBehavior.fakeOut` instead of a generic Basic fallback. The
+  local singles slice ports the first-active-turn/Instruct gate and applies an
+  object-backed `FlinchEffect` after a successful hit so a slower target is
+  prevented before moving. It remains `partial` for message parity and
+  secondary ability/item side effects such as Steadfast-style hooks.
+- Feint/Protect-breaking promotion wave: `s_feint` now uses a dedicated static
+  Feint path instead of a generic Basic fallback. The local singles slice keeps
+  type-immunity checks while bypassing local Protect prevention, lifts
+  `protect`/`crafty_shield` target markers after a successful hit, and uses
+  the PSDK 50-power branch when the target successfully used Protect or Crafty
+  Shield earlier in the same turn. It remains `partial` for message parity and
+  richer Protect-variant coverage.
+- Fell Stinger KO-boost promotion wave: `s_fell_stinger` now uses a dedicated
+  static Fell Stinger path instead of a generic Basic fallback. The local
+  singles slice keeps the normal Basic hit and raises the user's Attack by
+  three stages when that hit leaves a target fainted. It remains `partial` for
+  richer multi-target ordering and Moxie post-damage-death chaining.
+- Stomp/Minimize promotion wave: `s_stomp` now uses a dedicated static Stomp
+  path instead of a generic Basic fallback. The local singles slice doubles
+  Stomp power and bypasses accuracy when the target carries the local
+  `minimize` effect marker. It remains `partial` for fully object-backed
+  Minimize effect parity and wider multi-target accuracy semantics.
+- U-turn pivot promotion wave: `s_u_turn` now uses a dedicated static U-turn
+  path instead of a generic Basic fallback. The local singles slice keeps the
+  normal Basic hit and marks the user as switching after a successful damage
+  hit. It remains `partial` for full reserve/switch-handler integration and
+  Red Card, Eject Button and Emergency Exit ordering.
+- High Jump Kick crash promotion wave: `s_jump_kick` now uses a dedicated
+  static High Jump Kick path instead of a generic Basic fallback. The local
+  singles slice keeps the normal Basic hit and applies half-max-HP crash
+  damage to the user on accuracy, immunity or Protect-style failure. It
+  remains `partial` for exact message and broader faint-process ordering.
+- Terrain-clearing hit promotion wave: `s_ice_spinner` and `s_steel_roller`
+  now use dedicated static terrain-clearing paths instead of generic Basic
+  fallbacks. The local singles slice clears active terrain after a successful
+  hit; `s_steel_roller` also fails before damage when no terrain is active.
+  They remain `partial` for exact PSDK messages and richer terrain-effect
+  hook ordering.
+- Trap/item-gated Basic promotion wave: `s_jaw_lock` and `s_poltergeist` now
+  use dedicated static paths instead of generic Basic fallbacks. The local
+  singles slice installs mutual `CantSwitchEffect` for Jaw Lock after a
+  successful hit and makes Poltergeist fail before damage when its target has
+  no held item. They remain `partial` for exact PSDK reveal-item messages,
+  multi-target display ordering and full switch-prevention cleanup semantics.
+- Persistent-hit promotion wave: `s_sappy_seed` now uses a dedicated static
+  path instead of a generic Basic fallback. The local singles slice keeps the
+  Basic damage hit and applies `LeechSeedEffect` when the target can be seeded.
+  It remains `partial` for exact PSDK messages, position-effect modelling and
+  richer Substitute/ability interactions.
+- Screen-setting hit promotion wave: `s_baddy_bad` and `s_glitzy_glow` now use
+  dedicated static paths instead of generic Basic fallbacks. The local singles
+  slice keeps their Basic damage hits and applies user-bank `reflect` or
+  `light_screen` after successful damage, reusing the existing Light Clay
+  duration convention. They remain `partial` for exact PSDK messages,
+  richer bank-effect modelling and full screen ordering hooks.
 - Weather-conditional move promotion wave: `s_thunder`, `s_hurricane` and
   `s_solar_beam` now use `WeatherPowerMoveBehavior` instead of generic Basic
   fallbacks. The local singles slice ports rain/sun accuracy overrides, Solar
@@ -259,12 +418,11 @@ Latest completed wave:
 - Remaining limitations in this wave: Fang flinch choice, OHKO level accuracy
   and Sheer Cold Ice immunity, Heal Bell party reserves/Soundproof, and full
   multi-target process hooks. The Basic-descendant wave still needs Bind/Cant
-  Switch effects, Brick Break wall removal, Stomp/Minimize accuracy-power
-  handling and U-turn switch requests.
+  Switch effects and Brick Break wall removal.
   The latest Basic wave still needs Pledge combo fields,
   Thunder/Hurricane weather accuracy and Thrash/Outrage lock-in/confusion.
-  The newest fallback wave still needs force-switch requests, Jump Kick crash
-  damage, Round ordering/power combo,
+  The newest fallback wave still needs force-switch requests,
+  Round ordering/power combo,
   Secret Power location effects, Synchronoise shared-type filtering and Uproar
   lock-in.
   The recharge/screen/attention wave still needs full PSDK forced-action
@@ -274,10 +432,9 @@ Latest completed wave:
   The two-turn wave still needs Power Herb, weather shortcuts, out-of-reach
   targeting/immunity, first-turn stat boosts, forced second-turn action, and
   spread targeting for moves such as Razor Wind.
-  The state-marker/item/Z wave still needs Foresight type-multiplier hooks,
-  full third-type damage/effect propagation, Mud/Water Sport base-power
-  multipliers, item-change handler restrictions and Z-Crystal/once-per-battle
-  validation.
+  The state-marker/item/Z wave still needs item-change handler restrictions,
+  full Z-Crystal/once-per-battle validation, exact Sport marker lifecycle and
+  richer type-change cleanup.
   The marker wave still needs actual end-turn/switch-in/action-order hooks:
   Yawn sleep application, Future Sight delayed damage, Wish healing, Tailwind
   and Trick Room speed-order changes, Safeguard status prevention, hazard
@@ -286,30 +443,25 @@ Latest completed wave:
   forbidden abilities/species, ability-change events and Reflect Type failure
   checks.
   The newest marker/secondary wave still needs the full effect hooks:
-  Minimize power/accuracy interactions, Miracle Eye/Foresight type-immunity
-  bypass, Mist stat-drop prevention, Perish Song end-turn fainting and Baton
-  Pass transfer, Telekinesis grounding/immunity rules, Toxic Thread target
-  blocking when both status and stat drop fail, and Ion Deluge move-type
-  rewriting during the same turn.
+  Perish Song end-turn fainting and Baton Pass transfer, richer Telekinesis
+  out-of-reach/target guards, and exact Mist/Telekinesis/Toxic Thread/Ion
+  Deluge cleanup messages. Toxic Thread target blocking when both status and
+  stat drop fail is now covered.
   The turn-marker wave still needs method-specific hooks: Destiny Bond KO
   retaliation, Disable/Encore move-history selection and move prevention,
-  Electrify and Ion Deluge type-change hooks, Embargo item prevention and
-  Baton Pass transfer, Grudge PP depletion on user death, Heal Block move
-  prevention, Lucky Chant critical prevention, Magnet Rise force-flying rules,
-  Powder fire-move interruption/damage, and Snatch status-move interception.
+  broader Embargo item prevention and Baton Pass transfer, Grudge PP depletion
+  on user death, Heal Block move prevention, Powder fire-move
+  interruption/damage, and Snatch status-move interception. Magnet Rise
+  force-flying and the first Embargo held-item grounding slice are now covered.
   The newest Basic fallback wave still needs method-specific hooks such as
-  Fake Out
-  first-turn gating/flinch, Feint Protect breaking, Fell Stinger KO boost,
   Flame Burst adjacent damage, Fury Cutter/Rage counters, Fusion combo power,
   Hidden Power/Judgment type resolution, Knock Off item mutation,
   Last Resort move-history gating, Photon Geyser stat source selection,
   Pollen Puff ally healing, Pursuit switch interception, Rapid Spin speed
   boost, Relic Song form hooks and Spectral Thief stat
   stealing.
-  The marker/secondary status wave still needs critical-hit hooks for Focus
-  Energy/Laser Focus, Charge's Electric base-power multiplier, Autotomize
-  weight mutation/restoration, Gastro Acid ability-change guards and active
-  ability suppression, and Defog fog-weather cancellation.
+  The marker/secondary status wave still needs Autotomize weight restoration
+  on effect removal and Gastro Acid ability-change guards.
   The mixed fallback wave still needs Assurance/Core Enforcer action-history
   checks, Belch berry-consumption validation, Beak Blast/Focus Punch/Shell
   Trap pre-attack interruption hooks, Flying Press dual-type damage,
@@ -345,13 +497,13 @@ Latest completed wave:
   hooks before it can be promoted beyond `partial`: move-history power or
   restrictions (`Fishious Rend`, `Gigaton Hammer`, `Glaive Rush`, `Lash Out`,
   `Last Respects`, `Upper Hand`), multi-hit or multi-target
-  rules (`Double Iron Bash`, `Dragon Darts`, `Scale Shot`), item/berry
+  rules (`Dragon Darts`), item/berry
   interactions (`Poltergeist`, `Corrosive Gas`, `Stuff Cheeks`, `Teatime`),
   side/field swaps or cleanup (`Court Change`, `Fairy Lock`, `Tidy Up`),
   weather/two-turn/switch behavior (`Chilly Reception`, `Electro Shot`,
   `Geomancy`, `Shed Tail`), ability/type/stat mutation (`Doodle`,
   `Dragon Cheer`, `Magic Powder`, `No Retreat`, `Octolock`) and
-  modern signature-move effects (`Sappy Seed`, `Raging Bull`, `Freezy Frost`,
+  modern signature-move effects (`Sappy Seed`, `Raging Bull`,
   `Glitzy Glow`, `Baddy Bad`, `Ivy Cudgel`, `Shell Side Arm`, `Order Up`,
   `Make It Rain`, `Revival Blessing`).
   The terrain damage promotion wave still needs Expanding Force doubles spread

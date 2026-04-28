@@ -14,6 +14,7 @@ enum _WeatherPowerKind {
   weatherBall,
   thunder,
   hurricane,
+  geniesStorm,
   solarBeam,
 }
 
@@ -29,6 +30,10 @@ final class WeatherPowerMoveBehavior implements BattleMoveBehavior {
   const WeatherPowerMoveBehavior.hurricane()
       : battleEngineMethod = 's_hurricane',
         _kind = _WeatherPowerKind.hurricane;
+
+  const WeatherPowerMoveBehavior.geniesStorm()
+      : battleEngineMethod = 's_genies_storm',
+        _kind = _WeatherPowerKind.geniesStorm;
 
   const WeatherPowerMoveBehavior.solarBeam()
       : battleEngineMethod = 's_solar_beam',
@@ -50,6 +55,8 @@ final class WeatherPowerMoveBehavior implements BattleMoveBehavior {
       _WeatherPowerKind.thunder ||
       _WeatherPowerKind.hurricane =>
         _weatherAccuracyMove(context.state, context.move),
+      _WeatherPowerKind.geniesStorm =>
+        _geniesStormAccuracyMove(context.state, context.move),
       _WeatherPowerKind.solarBeam => context.move,
     };
     return _resolveDamage(context, effectiveMove);
@@ -187,6 +194,18 @@ BattleMoveDefinition _weatherAccuracyMove(
     PsdkBattleWeatherId.sunny ||
     PsdkBattleWeatherId.hardsun =>
       _copyMove(move, accuracy: 50),
+    _ => move,
+  };
+}
+
+BattleMoveDefinition _geniesStormAccuracyMove(
+  PsdkBattleState state,
+  BattleMoveDefinition move,
+) {
+  return switch (_effectiveWeather(state)) {
+    PsdkBattleWeatherId.rain ||
+    PsdkBattleWeatherId.hardrain =>
+      _copyMove(move, accuracy: 0),
     _ => move,
   };
 }
