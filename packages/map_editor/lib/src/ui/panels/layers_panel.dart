@@ -465,21 +465,21 @@ class _LayerList extends StatelessWidget {
                                 minimumSize: Size.zero,
                                 onPressed: () =>
                                     notifier.setActiveLayer(layer.id),
-                                child: Row(
-                                  clipBehavior: Clip.hardEdge,
-                                  children: [
-                                    MacosIcon(
-                                      _iconForLayer(layer),
-                                      size: 16,
-                                      color: isActive
-                                          ? layerAccent
-                                          : Color.lerp(
-                                              secondary,
-                                              layerAccent,
-                                              0.55,
-                                            )!,
-                                    ),
-                                    const SizedBox(width: 7),
+                                child: ClipRect(
+                                  child: Row(
+                                    children: [
+                                      MacosIcon(
+                                        _iconForLayer(layer),
+                                        size: 16,
+                                        color: isActive
+                                            ? layerAccent
+                                            : Color.lerp(
+                                                secondary,
+                                                layerAccent,
+                                                0.55,
+                                              )!,
+                                      ),
+                                      const SizedBox(width: 7),
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment:
@@ -581,6 +581,7 @@ class _LayerList extends StatelessWidget {
                                   ],
                                 ),
                               ),
+                            ),
                             ],
                           ),
                         ),

@@ -143,13 +143,13 @@ class SurfacePainterPanel extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             _SurfaceLayerTargetBlock(
-            surfaceLayers: surfaceLayers,
-            activeLayer: activeLayer,
-            onSelect: notifier.setActiveLayer,
-            onCreate: () => notifier.activateFirstSurfaceLayer(
-              createIfMissing: true,
+              surfaceLayers: surfaceLayers,
+              activeLayer: activeLayer,
+              onSelect: notifier.setActiveLayer,
+              onCreate: () => notifier.activateFirstSurfaceLayer(
+                createIfMissing: true,
+              ),
             ),
-          ),
           const SizedBox(height: 12),
           SurfacePalettePanel(
             availability: availability,
@@ -248,7 +248,8 @@ class SurfacePainterPanel extends ConsumerWidget {
           ),
         ],
       ),
-    );
+    ),
+  );
 
     if (embedded) {
       return content;
