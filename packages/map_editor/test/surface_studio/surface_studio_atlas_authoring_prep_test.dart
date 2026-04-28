@@ -882,6 +882,21 @@ void main() {
     expect(find.text('Plan de génération des animations'), findsOneWidget);
   });
 
+  testWidgets('Lot 79 : section Création du preset Surface visible',
+      (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        SurfaceStudioAtlasAuthoringPrep(
+          readModel: _minimalRead(),
+          selection: const SurfaceStudioSelection.none(),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.text('Création du preset Surface'), findsOneWidget);
+    expect(find.textContaining('Aucune animation n’est créée'), findsOneWidget);
+  });
+
   testWidgets('Lot 76 : section Aperçu animation par colonne visible',
       (tester) async {
     await tester.pumpWidget(

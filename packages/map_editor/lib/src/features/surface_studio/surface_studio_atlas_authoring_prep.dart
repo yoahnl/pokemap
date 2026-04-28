@@ -13,6 +13,7 @@ import 'surface_studio_selection.dart';
 import 'surface_studio_vertical_atlas_animation_generation_plan.dart';
 import 'surface_studio_vertical_atlas_animation_preview.dart';
 import 'surface_studio_vertical_atlas_assistant.dart';
+import 'surface_studio_vertical_atlas_preset_creation_section.dart';
 import 'surface_studio_vertical_atlas_role_mapping.dart';
 
 const ValueKey<String> kSurfaceStudioAtlasAuthoringPrepKey =
@@ -205,6 +206,7 @@ class SurfaceStudioAtlasAuthoringPrep extends StatefulWidget {
     required this.selection,
     this.onSurfaceCatalogChanged,
     this.onWorkCatalogAnimationsCreated,
+    this.onWorkCatalogPresetCreated,
     this.requestEditSignal = 0,
     this.projectTilesets,
     this.projectRootPath,
@@ -214,6 +216,7 @@ class SurfaceStudioAtlasAuthoringPrep extends StatefulWidget {
   final SurfaceStudioSelection selection;
   final ValueChanged<ProjectSurfaceCatalog>? onSurfaceCatalogChanged;
   final ValueChanged<List<String>>? onWorkCatalogAnimationsCreated;
+  final ValueChanged<String>? onWorkCatalogPresetCreated;
   final int requestEditSignal;
   final List<ProjectTilesetEntry>? projectTilesets;
 
@@ -876,6 +879,24 @@ class _SurfaceStudioAtlasAuthoringPrepState
             rows: previewRows,
             onWorkCatalogChanged: widget.onSurfaceCatalogChanged,
             onWorkCatalogAnimationsCreated: widget.onWorkCatalogAnimationsCreated,
+          ),
+          const SizedBox(height: 10),
+          SurfaceStudioVerticalAtlasPresetCreationSection(
+            label: label,
+            subtle: subtle,
+            catalog: widget.readModel.catalog,
+            atlasIdDraft: _id.text.trim(),
+            atlasDisplayName: _name.text,
+            atlasCategoryDraft: _categoryId.text.trim().isEmpty
+                ? null
+                : _categoryId.text.trim(),
+            mappingDraft: _columnRoleMappingDraft,
+            tileWidth: previewTileWidth,
+            tileHeight: previewTileHeight,
+            columns: previewColumns,
+            rows: previewRows,
+            onWorkCatalogChanged: widget.onSurfaceCatalogChanged,
+            onWorkCatalogPresetCreated: widget.onWorkCatalogPresetCreated,
           ),
           const SizedBox(height: 10),
           SurfaceStudioAtlasImagePreview(

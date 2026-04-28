@@ -255,6 +255,14 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
           _selection = SurfaceStudioSelection.animation(createdIds.first);
         });
       },
+      onWorkCatalogPresetCreated: (presetId) {
+        if (presetId.isEmpty) {
+          return;
+        }
+        setState(() {
+          _selection = SurfaceStudioSelection.preset(presetId);
+        });
+      },
     );
     final inspection = Column(
       key: const ValueKey('surface_studio_inspection_column'),
