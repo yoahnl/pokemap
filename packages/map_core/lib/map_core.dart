@@ -69,6 +69,7 @@ export 'src/collision/player_collision_conventions_v1.dart';
 export 'src/collision/element_collision_legacy_migration.dart';
 export 'src/operations/map_layers.dart';
 export 'src/operations/surface_layer_placements.dart';
+export 'src/operations/surface_to_gameplay_zone_generation_plan.dart';
 export 'src/operations/surface_variant_role_resolver.dart';
 export 'src/operations/map_connections.dart';
 export 'src/operations/map_entities.dart';
