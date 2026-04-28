@@ -221,7 +221,8 @@ void main() {
       expect(rm.summary.presetCount, 1);
     });
 
-    testWidgets('22. TextField seulement zone brouillon (Lot 60), pas dans inspecteur',
+    testWidgets(
+        '22. TextField seulement zone brouillon (Lot 60), pas dans inspecteur',
         (tester) async {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
@@ -263,7 +264,7 @@ void main() {
       expect(find.text('Presets Surface'), findsOneWidget);
       expect(find.text('Water Atlas'), findsOneWidget);
       expect(find.text('Water Isolated Loop'), findsOneWidget);
-      expect(find.text('Water Surface'), findsOneWidget);
+      expect(find.text('Water Surface'), findsWidgets);
     });
 
     testWidgets('24. test file uses public map_core only (smoke)',
@@ -351,8 +352,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
       );
-      await tester.ensureVisible(find.text('Water Surface'));
-      await tester.tap(find.text('Water Surface'));
+      await tester.ensureVisible(find.text('Water Surface').last);
+      await tester.tap(find.text('Water Surface').last);
       await tester.pump();
       expect(find.text('Preset sélectionné'), findsWidgets);
       expect(find.text('water-surface'), findsWidgets);
@@ -387,14 +388,14 @@ void main() {
       await tester.ensureVisible(find.text('Water Atlas'));
       await tester.tap(find.text('Water Atlas'));
       await tester.pump();
-      await tester.ensureVisible(find.text('Water Surface'));
-      await tester.tap(find.text('Water Surface'));
+      await tester.ensureVisible(find.text('Water Surface').last);
+      await tester.tap(find.text('Water Surface').last);
       await tester.pump();
       expect(identical(manifest.surfaceCatalog, before), isTrue);
     });
 
     testWidgets('58.27 — pas de TextField dans inspecteur après sélections', (
-        tester,
+      tester,
     ) async {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
@@ -484,8 +485,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
       );
-      await tester.ensureVisible(find.text('Water Surface'));
-      await tester.tap(find.text('Water Surface'));
+      await tester.ensureVisible(find.text('Water Surface').last);
+      await tester.tap(find.text('Water Surface').last);
       await tester.pump();
       final insp = find.byKey(kSurfaceStudioSelectionInspectorKey);
       expect(
@@ -535,8 +536,8 @@ void main() {
       await tester.ensureVisible(find.text('Water Atlas'));
       await tester.tap(find.text('Water Atlas'));
       await tester.pump();
-      await tester.ensureVisible(find.text('Water Surface'));
-      await tester.tap(find.text('Water Surface'));
+      await tester.ensureVisible(find.text('Water Surface').last);
+      await tester.tap(find.text('Water Surface').last);
       await tester.pump();
       expect(identical(manifest.surfaceCatalog, before), isTrue);
     });
@@ -564,8 +565,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
       );
-      await tester.ensureVisible(find.text('Water Surface'));
-      await tester.tap(find.text('Water Surface'));
+      await tester.ensureVisible(find.text('Water Surface').last);
+      await tester.tap(find.text('Water Surface').last);
       await tester.pump();
       for (final s in <String>[
         'Sauvegarder',
@@ -595,8 +596,8 @@ void main() {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
       );
-      await tester.ensureVisible(find.text('Préparation atlas'));
-      expect(find.text('Préparation atlas'), findsOneWidget);
+      await tester.ensureVisible(find.text('Atlas source').first);
+      expect(find.text('Atlas source'), findsWidgets);
       expect(
         find.textContaining('Brouillon : rien n’est écrit sur le disque'),
         findsOneWidget,
@@ -619,8 +620,7 @@ void main() {
 
     testWidgets(
         '61.2 — créer atlas (catalogue vide) : compteur atlas 1, browser, '
-        'inspecteur',
-        (tester) async {
+        'inspecteur', (tester) async {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
       );
@@ -686,11 +686,12 @@ void main() {
       );
       expect(find.text('Water Atlas'), findsOneWidget);
       expect(find.text('Water Isolated Loop'), findsOneWidget);
-      expect(find.text('Water Surface'), findsOneWidget);
+      expect(find.text('Water Surface'), findsWidgets);
       expect(find.text('grass-a'), findsWidgets);
     });
 
-    testWidgets('62.0 — pas de dirty au départ (vide + minimal)', (tester) async {
+    testWidgets('62.0 — pas de dirty au départ (vide + minimal)',
+        (tester) async {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
       );
@@ -757,7 +758,8 @@ void main() {
         find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
       );
       await tester.pump();
-      var counters = find.byKey(const ValueKey('surface_studio_header_counters'));
+      var counters =
+          find.byKey(const ValueKey('surface_studio_header_counters'));
       expect(
         find.descendant(of: counters, matching: find.text('1')),
         findsOneWidget,
@@ -807,7 +809,8 @@ void main() {
         find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
       );
       await tester.pump();
-      var counters = find.byKey(const ValueKey('surface_studio_header_counters'));
+      var counters =
+          find.byKey(const ValueKey('surface_studio_header_counters'));
       expect(
         find.descendant(of: counters, matching: find.text('2')),
         findsOneWidget,
@@ -832,7 +835,7 @@ void main() {
         findsNothing,
       );
       expect(find.text('Water Isolated Loop'), findsOneWidget);
-      expect(find.text('Water Surface'), findsOneWidget);
+      expect(find.text('Water Surface'), findsWidgets);
     });
 
     testWidgets('62.4 — A puis B puis reset (source vide)', (tester) async {
@@ -849,14 +852,17 @@ void main() {
         await tester.enterText(tsF, 't');
         await tester.pump();
         await tester.ensureVisible(
-          find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+          find.byKey(
+              const ValueKey('surface_studio_create_atlas_work_catalog')),
         );
         await tester.tap(
-          find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+          find.byKey(
+              const ValueKey('surface_studio_create_atlas_work_catalog')),
         );
         await tester.pump();
       }
-      var counters = find.byKey(const ValueKey('surface_studio_header_counters'));
+      var counters =
+          find.byKey(const ValueKey('surface_studio_header_counters'));
       expect(
         find.descendant(of: counters, matching: find.text('2')),
         findsOneWidget,
@@ -947,8 +953,10 @@ void main() {
         find.byKey(const ValueKey('atlas_draft_id')),
         'z',
       );
-      await tester.enterText(find.byKey(const ValueKey('atlas_draft_name')), 'N');
-      await tester.enterText(find.byKey(const ValueKey('atlas_draft_tileset_advanced')), 'T');
+      await tester.enterText(
+          find.byKey(const ValueKey('atlas_draft_name')), 'N');
+      await tester.enterText(
+          find.byKey(const ValueKey('atlas_draft_tileset_advanced')), 'T');
       await tester.pump();
       await tester.ensureVisible(
         find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
@@ -971,7 +979,8 @@ void main() {
   });
 
   group('SurfaceStudioPanel (Lot 63)', () {
-    testWidgets('63.1 — sans modification : pas d’action préparation, callback jamais',
+    testWidgets(
+        '63.1 — sans modification : pas d’action préparation, callback jamais',
         (tester) async {
       var calls = 0;
       await tester.pumpWidget(
@@ -1024,7 +1033,8 @@ void main() {
         find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
       );
       await tester.pump();
-      final prep = find.byKey(const ValueKey('surface_studio_save_prep_catalog'));
+      final prep =
+          find.byKey(const ValueKey('surface_studio_save_prep_catalog'));
       expect(prep, findsOneWidget);
       await tester.ensureVisible(prep);
       await tester.tap(prep);
@@ -1043,7 +1053,8 @@ void main() {
       );
     });
 
-    testWidgets('63.3 — sans callback : stable, message not connected, pas de bouton',
+    testWidgets(
+        '63.3 — sans callback : stable, message not connected, pas de bouton',
         (tester) async {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
@@ -1100,7 +1111,8 @@ void main() {
         find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
       );
       await tester.pump();
-      final prep = find.byKey(const ValueKey('surface_studio_save_prep_catalog'));
+      final prep =
+          find.byKey(const ValueKey('surface_studio_save_prep_catalog'));
       await tester.ensureVisible(prep);
       await tester.tap(prep);
       await tester.pump();
@@ -1151,7 +1163,8 @@ void main() {
         find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
       );
       await tester.pump();
-      final prep = find.byKey(const ValueKey('surface_studio_save_prep_catalog'));
+      final prep =
+          find.byKey(const ValueKey('surface_studio_save_prep_catalog'));
       await tester.ensureVisible(prep);
       await tester.tap(prep);
       await tester.pump();
@@ -1174,7 +1187,8 @@ void main() {
         find.text(SurfaceStudioPanel.savePrepTransmittedNote),
         findsNothing,
       );
-      final counters = find.byKey(const ValueKey('surface_studio_header_counters'));
+      final counters =
+          find.byKey(const ValueKey('surface_studio_header_counters'));
       expect(
         find.descendant(of: counters, matching: find.text('0')),
         findsNWidgets(3),
@@ -1185,7 +1199,8 @@ void main() {
       );
     });
 
-    testWidgets('63.6 — A puis B puis préparation : ordre des atlas', (tester) async {
+    testWidgets('63.6 — A puis B puis préparation : ordre des atlas',
+        (tester) async {
       ProjectSurfaceCatalog? got;
       await tester.pumpWidget(
         _wrap(
@@ -1208,14 +1223,17 @@ void main() {
         await tester.enterText(tsF, row.$3);
         await tester.pump();
         await tester.ensureVisible(
-          find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+          find.byKey(
+              const ValueKey('surface_studio_create_atlas_work_catalog')),
         );
         await tester.tap(
-          find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
+          find.byKey(
+              const ValueKey('surface_studio_create_atlas_work_catalog')),
         );
         await tester.pump();
       }
-      final prep = find.byKey(const ValueKey('surface_studio_save_prep_catalog'));
+      final prep =
+          find.byKey(const ValueKey('surface_studio_save_prep_catalog'));
       await tester.ensureVisible(prep);
       await tester.tap(prep);
       await tester.pump();
@@ -1229,7 +1247,8 @@ void main() {
       );
     });
 
-    testWidgets('66.1 — header compact et repères workflow visibles', (tester) async {
+    testWidgets('66.1 — header compact et repères workflow visibles',
+        (tester) async {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
       );
@@ -1243,12 +1262,17 @@ void main() {
       );
     });
 
-    testWidgets('66.2 — préparation atlas au-dessus du catalogue (ordre vertical)',
+    testWidgets(
+        '66.2 — préparation atlas au-dessus du catalogue (ordre vertical)',
         (tester) async {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
       );
-      final yPrep = tester.getTopLeft(find.text('Préparation atlas')).dy;
+      final yPrep = tester
+          .getTopLeft(
+            find.byKey(const ValueKey('surface_studio_authoring_main_title')),
+          )
+          .dy;
       final yCat = tester.getTopLeft(find.text('Catalogue Surface')).dy;
       expect(yPrep, lessThan(yCat));
     });
@@ -1294,7 +1318,8 @@ void main() {
       expect(find.text('Diagnostics Surface'), findsOneWidget);
     });
 
-    testWidgets('66.5 — pas de libellés techniques dans l’UI principale', (tester) async {
+    testWidgets('66.5 — pas de libellés techniques dans l’UI principale',
+        (tester) async {
       await tester.pumpWidget(
         _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
       );
@@ -1303,10 +1328,85 @@ void main() {
       expect(find.textContaining('SurfaceStudioReadModel'), findsNothing);
       expect(find.textContaining('copyWith'), findsNothing);
     });
+
+    testWidgets('85.1 — workflow guidé Surface Studio visible', (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+
+      expect(
+        find.text(
+            'Créer des surfaces peintes à partir d’un atlas, étape par étape.'),
+        findsOneWidget,
+      );
+      expect(find.text('1. Atlas'), findsOneWidget);
+      expect(find.text('2. Grille'), findsOneWidget);
+      expect(find.text('3. Animations'), findsOneWidget);
+      expect(find.text('4. Surfaces prêtes à peindre'), findsOneWidget);
+      expect(find.text('Assistant de création'), findsOneWidget);
+      expect(find.text('Ce que vous faites ici'), findsOneWidget);
+      expect(find.text('Atlas source'), findsWidgets);
+      expect(find.text('Découpage et validation'), findsOneWidget);
+      expect(find.text('Animations détectées'), findsOneWidget);
+      expect(find.text('Surfaces prêtes à peindre'), findsWidgets);
+    });
+
+    testWidgets(
+        '85.2 — animations présentes sans surfaces peignables : état explicite',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _animationsOnlyReadModel())),
+      );
+
+      expect(
+        find.text('Animations détectées, mais aucune surface peignable.'),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Créez une surface à partir des animations générées.'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('85.3 — surfaces peignables listées dans le panneau dédié',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+
+      final panel = find.byKey(
+        const ValueKey('surface_studio_paintable_surfaces_panel'),
+      );
+      expect(panel, findsOneWidget);
+      expect(
+        find.descendant(of: panel, matching: find.text('Water Surface')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: panel, matching: find.text('Peignable')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('85.4 — CTA création surface et sauvegarde visibles',
+        (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioPanel(
+            readModel: _minimalWaterReadModel(),
+            onSurfaceCatalogSaveRequested: (_) {},
+          ),
+        ),
+      );
+
+      expect(find.text('Créer une surface'), findsOneWidget);
+      expect(find.text('Sauvegarder le catalogue'), findsOneWidget);
+    });
   });
 
   group('SurfaceStudioPanel (Lot 67–69)', () {
-    testWidgets('67–68.1 — édition nom atlas, dirty, compteurs stables', (tester) async {
+    testWidgets('67–68.1 — édition nom atlas, dirty, compteurs stables',
+        (tester) async {
       await tester.pumpWidget(
         _wrap(
           SurfaceStudioPanel(
@@ -1342,14 +1442,16 @@ void main() {
         find.text(SurfaceStudioPanel.workCatalogDirtyStateText),
         findsOneWidget,
       );
-      final counters = find.byKey(const ValueKey('surface_studio_header_counters'));
+      final counters =
+          find.byKey(const ValueKey('surface_studio_header_counters'));
       expect(
         find.descendant(of: counters, matching: find.text('1')),
         findsNWidgets(3),
       );
     });
 
-    testWidgets('67–68.2 — création atlas avec sélection animation : sélection inchangée',
+    testWidgets(
+        '67–68.2 — création atlas avec sélection animation : sélection inchangée',
         (tester) async {
       await tester.pumpWidget(
         _wrap(
@@ -1381,7 +1483,8 @@ void main() {
       expect(find.text('Animation sélectionnée'), findsWidgets);
     });
 
-    testWidgets('69.1 — atlas utilisé : pas de préparation suppression', (tester) async {
+    testWidgets('69.1 — atlas utilisé : pas de préparation suppression',
+        (tester) async {
       await tester.pumpWidget(
         _wrap(
           SurfaceStudioPanel(
@@ -1400,7 +1503,8 @@ void main() {
       );
     });
 
-    testWidgets('69.2 — atlas inutilisé : supprimer et sélection nettoyée', (tester) async {
+    testWidgets('69.2 — atlas inutilisé : supprimer et sélection nettoyée',
+        (tester) async {
       await tester.pumpWidget(
         _wrap(
           SurfaceStudioPanel(
@@ -1462,7 +1566,8 @@ void main() {
         find.text(SurfaceStudioPanel.workCatalogDirtyStateText),
         findsOneWidget,
       );
-      final prep = find.byKey(const ValueKey('surface_studio_save_prep_catalog'));
+      final prep =
+          find.byKey(const ValueKey('surface_studio_save_prep_catalog'));
       await tester.ensureVisible(prep);
       await tester.tap(prep);
       await tester.pump();
@@ -1475,7 +1580,8 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('lot64-a'), findsWidgets);
-      final counters = find.byKey(const ValueKey('surface_studio_header_counters'));
+      final counters =
+          find.byKey(const ValueKey('surface_studio_header_counters'));
       expect(
         find.descendant(of: counters, matching: find.text('1')),
         findsWidgets,
@@ -1634,6 +1740,10 @@ SurfaceStudioReadModel _minimalWaterReadModel() {
 }
 
 SurfaceStudioReadModel _warningReadModel() {
+  return buildSurfaceStudioReadModelFromCatalog(_catalogWithUnusedAtlas());
+}
+
+SurfaceStudioReadModel _animationsOnlyReadModel() {
   return buildSurfaceStudioReadModelFromCatalog(_catalogWithUnusedAtlas());
 }
 

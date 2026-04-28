@@ -19,7 +19,8 @@ void main() {
           ),
         ),
       );
-      expect(find.text('Préparation atlas'), findsOneWidget);
+      expect(find.text('Atlas source'), findsOneWidget);
+      expect(find.text('Découpage et validation'), findsOneWidget);
       expect(
         find.textContaining('Brouillon : rien n’est écrit sur le disque'),
         findsOneWidget,
@@ -307,7 +308,8 @@ void main() {
   });
 
   group('SurfaceStudioAtlasAuthoringPrep (Lot 61)', () {
-    testWidgets('création brouillon valide émet le catalogue + atlas', (tester) async {
+    testWidgets('création brouillon valide émet le catalogue + atlas',
+        (tester) async {
       final out = <ProjectSurfaceCatalog>[];
       await tester.pumpWidget(
         _wrap(
@@ -502,7 +504,8 @@ void main() {
   });
 
   group('SurfaceStudioAtlasAuthoringPrep (Lot 67–68)', () {
-    testWidgets('mode édition : libellé, id readOnly, pas Créer', (tester) async {
+    testWidgets('mode édition : libellé, id readOnly, pas Créer',
+        (tester) async {
       final out = <ProjectSurfaceCatalog>[];
       await tester.pumpWidget(
         _wrap(
@@ -534,8 +537,8 @@ void main() {
     });
 
     testWidgets('édition : renommer et appliquer, ordre et animations', (
-        tester,
-      ) async {
+      tester,
+    ) async {
       final out = <ProjectSurfaceCatalog>[];
       await tester.pumpWidget(
         _wrap(
@@ -553,7 +556,8 @@ void main() {
       final nameF = find.byKey(const ValueKey('atlas_draft_name'));
       await tester.enterText(nameF, 'Eau v2');
       await tester.pump();
-      final applyBtn = find.byKey(const ValueKey('surface_studio_apply_atlas_edit'));
+      final applyBtn =
+          find.byKey(const ValueKey('surface_studio_apply_atlas_edit'));
       await tester.ensureVisible(applyBtn);
       await tester.pump();
       await tester.tap(applyBtn);
@@ -622,7 +626,8 @@ void main() {
           ),
         );
         expect(
-          find.byKey(const ValueKey('surface_studio_atlas_image_source_section')),
+          find.byKey(
+              const ValueKey('surface_studio_atlas_image_source_section')),
           findsOneWidget,
         );
         expect(find.text('Image source de l’atlas'), findsOneWidget);
@@ -672,7 +677,8 @@ void main() {
   });
 
   group('SurfaceStudioAtlasAuthoringPrep (Lot 74)', () {
-    testWidgets('assistant vertical visible dans la préparation', (tester) async {
+    testWidgets('assistant vertical visible dans la préparation',
+        (tester) async {
       await tester.pumpWidget(
         _wrap(
           SurfaceStudioAtlasAuthoringPrep(
@@ -681,13 +687,15 @@ void main() {
           ),
         ),
       );
-      expect(find.byKey(SurfaceStudioVerticalAtlasAssistant.sectionKey), findsOneWidget);
+      expect(find.byKey(SurfaceStudioVerticalAtlasAssistant.sectionKey),
+          findsOneWidget);
       expect(find.text('Assistant atlas vertical'), findsOneWidget);
     });
   });
 
   group('SurfaceStudioAtlasAuthoringPrep (Lot 73)', () {
-    testWidgets('sans image résolue : pas de libellé Grille superposée', (tester) async {
+    testWidgets('sans image résolue : pas de libellé Grille superposée',
+        (tester) async {
       await tester.pumpWidget(
         _wrap(
           SurfaceStudioAtlasAuthoringPrep(
@@ -714,8 +722,10 @@ void main() {
           ),
         ),
       );
-      expect(find.byKey(kSurfaceStudioAtlasImagePreviewSectionKey), findsOneWidget);
-      expect(find.text('Aperçu grand format de l’image source'), findsOneWidget);
+      expect(find.byKey(kSurfaceStudioAtlasImagePreviewSectionKey),
+          findsOneWidget);
+      expect(
+          find.text('Aperçu grand format de l’image source'), findsOneWidget);
       expect(
         find.text('Choisissez une image source pour afficher l’aperçu.'),
         findsOneWidget,
@@ -790,7 +800,8 @@ void main() {
       await tester.enterText(wF, '0');
       await tester.pump();
       expect(
-        find.text('Corrigez les dimensions de grille pour afficher la preview.'),
+        find.text(
+            'Corrigez les dimensions de grille pour afficher la preview.'),
         findsOneWidget,
       );
     });
@@ -882,7 +893,7 @@ void main() {
     expect(find.text('Plan de génération des animations'), findsOneWidget);
   });
 
-  testWidgets('Lot 79 : section Création du preset Surface visible',
+  testWidgets('Lot 79 : section création surface peignable visible',
       (tester) async {
     await tester.pumpWidget(
       _wrap(
@@ -893,8 +904,13 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.text('Création du preset Surface'), findsOneWidget);
-    expect(find.textContaining('Aucune animation n’est créée'), findsOneWidget);
+    expect(find.text('Créer une surface à peindre'), findsOneWidget);
+    expect(
+      find.text(
+        'Cette étape regroupe les animations générées dans une surface peignable.',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Lot 76 : section Aperçu animation par colonne visible',
@@ -911,8 +927,7 @@ void main() {
     expect(find.text('Aperçu animation par colonne'), findsOneWidget);
   });
 
-  testWidgets('boutons Suggérer et Réinitialiser fonctionnent',
-      (tester) async {
+  testWidgets('boutons Suggérer et Réinitialiser fonctionnent', (tester) async {
     await tester.pumpWidget(
       _wrap(
         SurfaceStudioAtlasAuthoringPrep(

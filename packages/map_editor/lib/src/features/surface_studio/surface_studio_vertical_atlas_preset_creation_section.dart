@@ -52,7 +52,8 @@ class _SurfaceStudioVerticalAtlasPresetCreationSectionState
   String? _presetFeedback;
 
   @override
-  void didUpdateWidget(covariant SurfaceStudioVerticalAtlasPresetCreationSection oldWidget) {
+  void didUpdateWidget(
+      covariant SurfaceStudioVerticalAtlasPresetCreationSection oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.mappingDraft != oldWidget.mappingDraft ||
         widget.atlasIdDraft != oldWidget.atlasIdDraft ||
@@ -105,16 +106,19 @@ class _SurfaceStudioVerticalAtlasPresetCreationSectionState
       cb(next);
       widget.onWorkCatalogPresetCreated?.call(preset.id);
       setState(() {
-        _presetFeedback = 'Preset Surface créé dans le catalogue de travail. '
+        _presetFeedback =
+            'Surface prête à peindre créée dans le catalogue de travail. '
             'Préparez la sauvegarde du catalogue Surface comme d’habitude, puis sauvegardez le projet.';
       });
     } on ValidationException {
       setState(() {
-        _presetFeedback = 'Impossible d’ajouter le preset (validation du catalogue).';
+        _presetFeedback =
+            'Impossible d’ajouter la surface peignable (validation du catalogue).';
       });
     } on StateError {
       setState(() {
-        _presetFeedback = 'Impossible de créer le preset dans l’état actuel.';
+        _presetFeedback =
+            'Impossible de créer la surface peignable dans l’état actuel.';
       });
     }
   }
@@ -127,9 +131,8 @@ class _SurfaceStudioVerticalAtlasPresetCreationSectionState
       widget.columns,
       widget.rows,
     );
-    final assignedCount = widget.mappingDraft.assignments
-        .where((a) => a.role != null)
-        .length;
+    final assignedCount =
+        widget.mappingDraft.assignments.where((a) => a.role != null).length;
 
     final plan = surfaceStudioPlanVerticalAtlasPresetAppend(
       catalog: widget.catalog,
@@ -154,7 +157,7 @@ class _SurfaceStudioVerticalAtlasPresetCreationSectionState
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Création du preset Surface',
+            'Créer une surface à peindre',
             style: TextStyle(
               color: widget.label,
               fontSize: 12,
@@ -164,83 +167,101 @@ class _SurfaceStudioVerticalAtlasPresetCreationSectionState
           ),
           const SizedBox(height: 4),
           Text(
-            'Aucune animation n’est créée à cette étape.',
-            style: TextStyle(color: widget.subtle, fontSize: 10.5, height: 1.35),
+            'Cette étape regroupe les animations générées dans une surface peignable.',
+            style:
+                TextStyle(color: widget.subtle, fontSize: 10.5, height: 1.35),
           ),
           const SizedBox(height: 8),
           if (!gridOk)
             Text(
-              'Corrigez la grille avant de créer le preset.',
-              style: TextStyle(color: widget.subtle, fontSize: 11, height: 1.35),
+              'Corrigez la grille avant de créer la surface à peindre.',
+              style:
+                  TextStyle(color: widget.subtle, fontSize: 11, height: 1.35),
             )
           else if (assignedCount == 0)
             Text(
-              'Assignez des colonnes à des rôles pour préparer le preset.',
-              style: TextStyle(color: widget.subtle, fontSize: 11, height: 1.35),
+              'Assignez des colonnes à des rôles pour préparer la surface à peindre.',
+              style:
+                  TextStyle(color: widget.subtle, fontSize: 11, height: 1.35),
             )
           else ...[
             Text(
               plan.proposedPresetId.isEmpty
-                  ? 'Preset proposé : —'
-                  : 'Preset proposé : ${plan.proposedPresetId}',
-              style: TextStyle(color: widget.label, fontSize: 11.5, height: 1.35),
+                  ? 'Surface proposée : —'
+                  : 'Surface proposée : ${plan.proposedPresetId}',
+              style:
+                  TextStyle(color: widget.label, fontSize: 11.5, height: 1.35),
             ),
             Text(
               'Nom : ${plan.proposedPresetName}',
-              style: TextStyle(color: widget.label, fontSize: 11.5, height: 1.35),
+              style:
+                  TextStyle(color: widget.label, fontSize: 11.5, height: 1.35),
             ),
             Text(
               'Rôles couverts : ${plan.rolesCoveredCount}',
-              style: TextStyle(color: widget.label, fontSize: 11.5, height: 1.35),
+              style:
+                  TextStyle(color: widget.label, fontSize: 11.5, height: 1.35),
             ),
             Text(
               'Rôles non couverts : ${plan.rolesNotCoveredCount}',
-              style: TextStyle(color: widget.subtle, fontSize: 11, height: 1.35),
+              style:
+                  TextStyle(color: widget.subtle, fontSize: 11, height: 1.35),
             ),
             Text(
               'Animations manquantes : ${plan.missingAnimationCount}',
-              style: TextStyle(color: widget.label, fontSize: 11.5, height: 1.35),
+              style:
+                  TextStyle(color: widget.label, fontSize: 11.5, height: 1.35),
             ),
             Text(
               'Statut : ${_statusLabel(plan.status)}',
-              style: TextStyle(color: widget.label, fontSize: 11.5, height: 1.35),
+              style:
+                  TextStyle(color: widget.label, fontSize: 11.5, height: 1.35),
             ),
             if (plan.status ==
-                    SurfaceStudioVerticalAtlasPresetPlanStatus.blockedMissingAnimations)
+                SurfaceStudioVerticalAtlasPresetPlanStatus
+                    .blockedMissingAnimations)
               Text(
-                'Générez les animations avant de créer le preset.',
-                style: TextStyle(color: widget.subtle, fontSize: 11, height: 1.35),
+                'Générez les animations avant de créer la surface à peindre.',
+                style:
+                    TextStyle(color: widget.subtle, fontSize: 11, height: 1.35),
               ),
             if (plan.status ==
-                SurfaceStudioVerticalAtlasPresetPlanStatus.blockedDuplicatePresetId)
+                SurfaceStudioVerticalAtlasPresetPlanStatus
+                    .blockedDuplicatePresetId)
               Text(
-                'Un preset existe déjà avec cet id.',
-                style: TextStyle(color: widget.subtle, fontSize: 11, height: 1.35),
+                'Une surface existe déjà avec cet id.',
+                style:
+                    TextStyle(color: widget.subtle, fontSize: 11, height: 1.35),
               ),
             if (plan.partialPresetUserMessage != null)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   plan.partialPresetUserMessage!,
-                  style: TextStyle(color: widget.subtle, fontSize: 10.5, height: 1.35),
+                  style: TextStyle(
+                      color: widget.subtle, fontSize: 10.5, height: 1.35),
                 ),
               ),
             if (plan.canCreate) ...[
               const SizedBox(height: 6),
               Text(
-                plan.status == SurfaceStudioVerticalAtlasPresetPlanStatus.incomplete
-                    ? 'Preset prêt à créer (incomplet).'
-                    : 'Preset prêt à créer.',
-                style: TextStyle(color: widget.label, fontSize: 11, height: 1.35),
+                plan.status ==
+                        SurfaceStudioVerticalAtlasPresetPlanStatus.incomplete
+                    ? 'Surface prête à créer (incomplète).'
+                    : 'Surface prête à créer.',
+                style:
+                    TextStyle(color: widget.label, fontSize: 11, height: 1.35),
               ),
             ],
             const SizedBox(height: 10),
             FilledButton(
-              key: const ValueKey('surface_studio_preset_append_vertical_atlas'),
+              key:
+                  const ValueKey('surface_studio_preset_append_vertical_atlas'),
               onPressed: widget.onWorkCatalogChanged != null && plan.canCreate
                   ? () => _tryAppendPreset(plan)
                   : null,
-              child: const Text('Créer le preset Surface dans le catalogue de travail'),
+              child:
+                  const Text('Créer la surface dans le catalogue de travail'),
             ),
           ],
           if (_presetFeedback != null) ...[

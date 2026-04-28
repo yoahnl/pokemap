@@ -16,10 +16,14 @@ import '../../ui/shared/cupertino_editor_widgets.dart';
 import 'surface_studio_atlas_editing.dart';
 import 'surface_studio_atlas_authoring_prep.dart';
 import 'surface_studio_catalog_browser.dart';
+import 'surface_studio_creation_assistant.dart';
+import 'surface_studio_detected_animations_panel.dart';
 import 'surface_studio_diagnostics_view.dart';
+import 'surface_studio_paintable_surfaces_panel.dart';
 import 'surface_studio_selection.dart';
 import 'surface_studio_selection_inspector.dart';
 import 'surface_studio_selection_summary.dart';
+import 'surface_studio_workflow_stepper.dart';
 
 SurfaceStudioSelection _selectionValidInReadModel(
   SurfaceStudioReadModel rm,
@@ -68,9 +72,9 @@ class SurfaceStudioPanel extends StatefulWidget {
   static const String readOnlyBadgeText = 'Lecture seule';
   static const String partialAuthoringBadgeText = 'Édition partielle';
   static const String workflowStepsHintText =
-      'Étapes : état → nouvel atlas → inspection → contenu → signaux';
+      'Étapes : atlas → grille → animations → surfaces prêtes à peindre';
   static const String productDescriptionText =
-      'Surfaces animées : eau, lave, glace, hautes herbes — ici, sans code.';
+      'Créer des surfaces peintes à partir d’un atlas, étape par étape.';
   static const String placeholderActionsTitle = 'Actions auteur';
   static const String placeholderSoonText = 'Bientôt';
   static const String actionImportVerticalAtlasLabel =
@@ -91,7 +95,8 @@ class SurfaceStudioPanel extends StatefulWidget {
       'Sauvegarder le projet via le flux existant';
   static const String projectDiskSaveResultSuccessNote =
       'Projet sauvegardé via le flux projet existant.';
-  static const String projectDiskSaveRequestedNote = 'Sauvegarde projet demandée.';
+  static const String projectDiskSaveRequestedNote =
+      'Sauvegarde projet demandée.';
   static const String projectDiskSaveFailureNote =
       'Échec de sauvegarde projet — voir la barre d’état.';
 
@@ -124,9 +129,8 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
       setState(() {
         _workReadModel = widget.readModel;
         _selection = _selectionValidInReadModel(_workReadModel, _selection);
-        _saveFlowPrepNote = wasAbsorbed
-            ? SurfaceStudioPanel.manifestMemoryUpdatedNote
-            : null;
+        _saveFlowPrepNote =
+            wasAbsorbed ? SurfaceStudioPanel.manifestMemoryUpdatedNote : null;
       });
     }
   }
@@ -231,8 +235,7 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
     final s = _workReadModel.summary;
     final label = EditorChrome.primaryLabel(context);
     final subtle = EditorChrome.subtleLabel(context);
-    final isPartial =
-        widget.onSurfaceCatalogSaveRequested != null;
+    final isPartial = widget.onSurfaceCatalogSaveRequested != null;
     final canMutateCatalog = widget.onSurfaceCatalogSaveRequested != null;
     final authoring = SurfaceStudioAtlasAuthoringPrep(
       readModel: _workReadModel,
@@ -280,6 +283,20 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
         ),
       ],
     );
+    final assistant = SurfaceStudioCreationAssistant(readModel: _workReadModel);
+    final surfaceOutcomePanels = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SurfaceStudioDetectedAnimationsPanel(readModel: _workReadModel),
+        const SizedBox(height: 12),
+        SurfaceStudioPaintableSurfacesPanel(
+          readModel: _workReadModel,
+          onSaveCatalogPressed: widget.onSurfaceCatalogSaveRequested != null
+              ? _onSurfaceCatalogSavePrep
+              : null,
+        ),
+      ],
+    );
 
     return SingleChildScrollView(
       key: const ValueKey('surface_studio_root_scroll'),
@@ -295,16 +312,7 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
             readOnly: !isPartial,
           ),
           const SizedBox(height: 8),
-          Text(
-            SurfaceStudioPanel.workflowStepsHintText,
-            key: const ValueKey('surface_studio_workflow_steps'),
-            style: TextStyle(
-              color: subtle.withValues(alpha: 0.88),
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              height: 1.25,
-            ),
-          ),
+          SurfaceStudioWorkflowStepper(readModel: _workReadModel),
           if (_hasWorkCatalogChanges) ...[
             const SizedBox(height: 10),
             _CatalogStateStrip(
@@ -394,19 +402,48 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
           const SizedBox(height: 12),
           LayoutBuilder(
             builder: (context, c) {
+              if (c.maxWidth >= 1180) {
+                return Row(
+                  key: const ValueKey('surface_studio_main_two_column'),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 24,
+                      child: assistant,
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      flex: 48,
+                      child: authoring,
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      flex: 30,
+                      child: surfaceOutcomePanels,
+                    ),
+                  ],
+                );
+              }
               if (c.maxWidth >= 820) {
                 return Row(
                   key: const ValueKey('surface_studio_main_two_column'),
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Expanded(
-                      flex: 58,
+                      flex: 56,
                       child: authoring,
                     ),
                     const SizedBox(width: 14),
                     Expanded(
-                      flex: 42,
-                      child: inspection,
+                      flex: 44,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          assistant,
+                          const SizedBox(height: 12),
+                          surfaceOutcomePanels,
+                        ],
+                      ),
                     ),
                   ],
                 );
@@ -415,13 +452,17 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
                 key: const ValueKey('surface_studio_main_stacked'),
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  assistant,
+                  const SizedBox(height: 12),
                   authoring,
                   const SizedBox(height: 12),
-                  inspection,
+                  surfaceOutcomePanels,
                 ],
               );
             },
           ),
+          const SizedBox(height: 12),
+          inspection,
           const SizedBox(height: 12),
           SurfaceStudioCatalogBrowser(
             readModel: _workReadModel,
@@ -707,7 +748,7 @@ class _CounterRow extends StatelessWidget {
       children: [
         _CounterChip(label: 'Atlas', value: atlas, compact: compact),
         _CounterChip(label: 'Animations', value: animations, compact: compact),
-        _CounterChip(label: 'Presets', value: presets, compact: compact),
+        _CounterChip(label: 'Surfaces', value: presets, compact: compact),
       ],
     );
   }

@@ -117,7 +117,7 @@ void main() {
       expect(find.text('Presets Surface'), findsOneWidget);
       expect(find.text('Water Atlas'), findsOneWidget);
       expect(find.text('Water Isolated Loop'), findsOneWidget);
-      expect(find.text('Water Surface'), findsOneWidget);
+      expect(find.text('Water Surface'), findsWidgets);
       expect(find.text('Diagnostics Surface'), findsOneWidget);
     });
 
@@ -186,8 +186,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      final counters =
-          find.descendant(
+      final counters = find.descendant(
         of: find.byType(SurfaceStudioPanel),
         matching: find.byKey(const ValueKey('surface_studio_header_counters')),
       );
@@ -349,7 +348,8 @@ void main() {
       }
     });
 
-    testWidgets('Lot 65 — project.json on disk before official save: no new atlas', (
+    testWidgets(
+        'Lot 65 — project.json on disk before official save: no new atlas', (
       tester,
     ) async {
       final temp = Directory.systemTemp.createTempSync('map_editor_lot65_');
@@ -395,8 +395,7 @@ void main() {
       );
       await tester.pumpAndSettle(const Duration(milliseconds: 200));
       final onDisk = File(manifestPath).readAsStringSync();
-      final decoded =
-          jsonDecode(onDisk) as Map<String, dynamic>;
+      final decoded = jsonDecode(onDisk) as Map<String, dynamic>;
       final sc = (decoded['surfaceCatalog'] as Map<String, dynamic>?) ?? {};
       final atl = sc['atlases'] as List<dynamic>? ?? [];
       expect(atl, isEmpty);
@@ -405,7 +404,8 @@ void main() {
     testWidgets(
         'Lot 65 — apply manifest + saveProjectManifest écrit surfaceCatalog (sans UI prep)',
         (tester) async {
-      final temp = Directory.systemTemp.createTempSync('map_editor_lot65_prog_');
+      final temp =
+          Directory.systemTemp.createTempSync('map_editor_lot65_prog_');
       addTearDown(() {
         if (temp.existsSync()) {
           temp.deleteSync(recursive: true);
@@ -434,7 +434,11 @@ void main() {
           .applyInMemoryProjectManifest(withCat);
       await tester.pumpAndSettle();
       expect(
-        container.read(editorNotifierProvider).project!.surfaceCatalog.atlases
+        container
+            .read(editorNotifierProvider)
+            .project!
+            .surfaceCatalog
+            .atlases
             .length,
         1,
       );
@@ -500,7 +504,11 @@ void main() {
       );
       await tester.pumpAndSettle(const Duration(milliseconds: 200));
       expect(
-        container.read(editorNotifierProvider).project!.surfaceCatalog.atlases
+        container
+            .read(editorNotifierProvider)
+            .project!
+            .surfaceCatalog
+            .atlases
             .length,
         1,
       );
@@ -519,7 +527,6 @@ void main() {
       expect(loaded.surfaceCatalog.atlases.length, 1);
       expect(loaded.surfaceCatalog.atlases.first.id, 'lot65save');
     });
-
   });
 }
 

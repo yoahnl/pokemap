@@ -493,7 +493,8 @@ class _SurfaceStudioAtlasAuthoringPrepState
       });
     } on StateError {
       setState(() {
-        _creationNote = 'Impossible d’appliquer : atlas introuvable dans le catalogue.';
+        _creationNote =
+            'Impossible d’appliquer : atlas introuvable dans le catalogue.';
       });
     }
   }
@@ -618,8 +619,7 @@ class _SurfaceStudioAtlasAuthoringPrepState
     );
     final hasImagePicker = sortedTilesets.isNotEmpty;
     final tilesetIdTrim = _tilesetId.text.trim();
-    final sourceLabel =
-        tilesetIdTrim.isEmpty ? null : tilesetIdTrim;
+    final sourceLabel = tilesetIdTrim.isEmpty ? null : tilesetIdTrim;
     ProjectTilesetEntry? selectedTilesetEntry;
     if (tilesetIdTrim.isNotEmpty) {
       for (final e in sortedTilesets) {
@@ -696,476 +696,497 @@ class _SurfaceStudioAtlasAuthoringPrepState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-          Text(
-            'Préparation atlas',
-            key: const ValueKey('surface_studio_authoring_main_title'),
-            style: TextStyle(
-              color: label,
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          if (_isEditMode) ...[
-            const SizedBox(height: 4),
-            const Text(
-              'Édition locale de l’atlas',
-              key: ValueKey<String>('surface_studio_atlas_edit_mode_label'),
-              style: TextStyle(
-                color: accent,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-          const SizedBox(height: 2),
-          Text(
-            'Brouillon : rien n’est écrit sur le disque tant que le projet n’est pas sauvegardé.',
-            style: TextStyle(
-              color: subtle,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Brouillon local · non sauvegardé · en mémoire seulement',
-            style: TextStyle(
-              color: accent.withValues(alpha: 0.95),
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          if (contextNote != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              contextNote,
-              style: TextStyle(
-                color: subtle,
-                fontSize: 11,
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ],
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 6,
-            runSpacing: 4,
-            children: [
-              if (_isEditMode) ...[
-                CupertinoButton(
-                  key: const ValueKey('surface_studio_cancel_atlas_edit'),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  onPressed: _cancelEditMode,
-                  child: const Text('Annuler l’édition'),
-                ),
-                CupertinoButton(
-                  key: const ValueKey('surface_studio_apply_atlas_edit'),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  onPressed: isValid ? _applyEditToWorkCatalog : null,
-                  child: const Text(
-                    'Appliquer les modifications au catalogue de travail',
+                Text(
+                  'Atlas source',
+                  key: const ValueKey('surface_studio_authoring_main_title'),
+                  style: TextStyle(
+                    color: label,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-              ] else ...[
-                CupertinoButton(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  onPressed: _resetToDefaults,
-                  child: const Text('Réinitialiser le brouillon'),
-                ),
-                CupertinoButton(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  onPressed: _loadFromSelection,
-                  child: const Text('Charger la sélection dans le brouillon'),
-                ),
-                if (widget.onSurfaceCatalogChanged != null &&
-                    widget.selection.isAtlas &&
-                    _atlasRowForSelection() != null)
-                  CupertinoButton(
-                    key: const ValueKey('surface_studio_start_edit_atlas'),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    onPressed: _enterEditModeFromSelection,
-                    child: const Text('Modifier cet atlas'),
-                  ),
-                if (widget.onSurfaceCatalogChanged != null)
-                  CupertinoButton(
-                    key: const ValueKey('surface_studio_create_atlas_work_catalog'),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    onPressed: isValid ? _addToWorkCatalog : null,
-                    child: const Text('Créer l’atlas dans le catalogue de travail'),
-                  ),
-              ],
-            ],
-          ),
-          if (_creationNote != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              _creationNote!,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ).copyWith(color: accent),
-            ),
-          ],
-          const SizedBox(height: 6),
-          SurfaceStudioAtlasImageSourceBlock(
-            hasPicker: hasImagePicker,
-            sortedTilesets: sortedTilesets,
-            selectedTilesetId: _tilesetId.text.trim().isEmpty
-                ? null
-                : _tilesetId.text.trim(),
-            onSelectTilesetId: (v) {
-              setState(() {
-                _tilesetId.text = v ?? '';
-              });
-            },
-            label: label,
-            subtle: subtle,
-          ),
-          const SizedBox(height: 10),
-          SurfaceStudioVerticalAtlasAssistant(
-            label: label,
-            subtle: subtle,
-            draftTileWidth: previewTileWidth,
-            draftTileHeight: previewTileHeight,
-            draftColumns: previewColumns,
-            draftRows: previewRows,
-          ),
-          const SizedBox(height: 10),
-          SurfaceStudioColumnRoleMappingBlock(
-            label: label,
-            subtle: subtle,
-            draft: _columnRoleMappingDraft,
-            onDraftChanged: (newDraft) {
-              setState(() {
-                _columnRoleMappingDraft = newDraft;
-              });
-            },
-            draftTileWidth: previewTileWidth,
-            draftTileHeight: previewTileHeight,
-            draftColumns: previewColumns,
-            draftRows: previewRows,
-          ),
-          const SizedBox(height: 10),
-          SurfaceStudioVerticalAtlasAnimationPreview(
-            label: label,
-            subtle: subtle,
-            mappingDraft: _columnRoleMappingDraft,
-            tileWidth: previewTileWidth,
-            tileHeight: previewTileHeight,
-            columns: previewColumns,
-            rows: previewRows,
-            resolvedImagePath: imagePreviewResolution.status ==
-                    SurfaceStudioAtlasImagePreviewResolveStatus.resolved
-                ? imagePreviewResolution.resolvedAbsolutePath
-                : null,
-          ),
-          const SizedBox(height: 10),
-          SurfaceStudioVerticalAtlasAnimationGenerationPlanSection(
-            label: label,
-            subtle: subtle,
-            readModel: widget.readModel,
-            atlasIdDraft: _id.text.trim(),
-            atlasDisplayName: _name.text,
-            atlasCategoryDraft: _categoryId.text.trim().isEmpty
-                ? null
-                : _categoryId.text.trim(),
-            mappingDraft: _columnRoleMappingDraft,
-            tileWidth: previewTileWidth,
-            tileHeight: previewTileHeight,
-            columns: previewColumns,
-            rows: previewRows,
-            onWorkCatalogChanged: widget.onSurfaceCatalogChanged,
-            onWorkCatalogAnimationsCreated: widget.onWorkCatalogAnimationsCreated,
-          ),
-          const SizedBox(height: 10),
-          SurfaceStudioVerticalAtlasPresetCreationSection(
-            label: label,
-            subtle: subtle,
-            catalog: widget.readModel.catalog,
-            atlasIdDraft: _id.text.trim(),
-            atlasDisplayName: _name.text,
-            atlasCategoryDraft: _categoryId.text.trim().isEmpty
-                ? null
-                : _categoryId.text.trim(),
-            mappingDraft: _columnRoleMappingDraft,
-            tileWidth: previewTileWidth,
-            tileHeight: previewTileHeight,
-            columns: previewColumns,
-            rows: previewRows,
-            onWorkCatalogChanged: widget.onSurfaceCatalogChanged,
-            onWorkCatalogPresetCreated: widget.onWorkCatalogPresetCreated,
-          ),
-          const SizedBox(height: 10),
-          SurfaceStudioAtlasImagePreview(
-            resolution: imagePreviewResolution,
-            label: label,
-            subtle: subtle,
-            draftTileWidth: previewTileWidth,
-            draftTileHeight: previewTileHeight,
-            draftColumns: previewColumns,
-            draftRows: previewRows,
-            draftLayoutLabel: _layoutMenuLabel(_layout),
-            largeFormat: true,
-          ),
-          const SizedBox(height: 10),
-          _formGroupTitle('Grille de l’image', label),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              Expanded(
-                child: material.TextField(
-                  key: const ValueKey('atlas_draft_tile_w'),
-                  controller: _tileW,
-                  onChanged: (_) => setState(() {}),
-                  keyboardType: TextInputType.number,
-                  style: TextStyle(color: label, fontSize: 13),
-                  decoration: const material.InputDecoration(
-                    labelText: 'Largeur tuile',
-                    isDense: true,
+                const SizedBox(height: 2),
+                Text(
+                  'Choisissez l’image atlas, vérifiez la grille, puis générez les animations et la surface peignable.',
+                  style: TextStyle(
+                    color: subtle,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    height: 1.35,
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: material.TextField(
-                  key: const ValueKey('atlas_draft_tile_h'),
-                  controller: _tileH,
-                  onChanged: (_) => setState(() {}),
-                  keyboardType: TextInputType.number,
-                  style: TextStyle(color: label, fontSize: 13),
-                  decoration: const material.InputDecoration(
-                    labelText: 'Hauteur tuile',
-                    isDense: true,
+                if (_isEditMode) ...[
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Édition locale de l’atlas',
+                    key: ValueKey<String>(
+                        'surface_studio_atlas_edit_mode_label'),
+                    style: TextStyle(
+                      color: accent,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 2),
+                Text(
+                  'Brouillon : rien n’est écrit sur le disque tant que le projet n’est pas sauvegardé.',
+                  style: TextStyle(
+                    color: subtle,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          Row(
-            children: [
-              Expanded(
-                child: material.TextField(
-                  key: const ValueKey('atlas_draft_cols'),
-                  controller: _cols,
-                  onChanged: (_) {
-                    _updateColumnRoleMappingDraft();
-                    setState(() {});
-                  },
-                  keyboardType: TextInputType.number,
-                  style: TextStyle(color: label, fontSize: 13),
-                  decoration: const material.InputDecoration(
-                    labelText: 'Colonnes',
-                    isDense: true,
+                const SizedBox(height: 4),
+                Text(
+                  'Brouillon local · non sauvegardé · en mémoire seulement',
+                  style: TextStyle(
+                    color: accent.withValues(alpha: 0.95),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: material.TextField(
-                  key: const ValueKey('atlas_draft_rows'),
-                  controller: _rows,
-                  onChanged: (_) {
-                    _updateColumnRoleMappingDraft();
-                    setState(() {});
-                  },
-                  keyboardType: TextInputType.number,
-                  style: TextStyle(color: label, fontSize: 13),
-                  decoration: const material.InputDecoration(
-                    labelText: 'Lignes',
-                    isDense: true,
+                if (contextNote != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    contextNote,
+                    style: TextStyle(
+                      color: subtle,
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                    ),
                   ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 5),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text('Disposition', style: TextStyle(color: label, fontSize: 12)),
-              const SizedBox(width: 12),
-              Expanded(
-                child: material.DropdownButton<SurfaceAtlasLayout>(
-                  isExpanded: true,
-                  value: _layout,
-                  style: TextStyle(color: label, fontSize: 12),
-                  iconEnabledColor: label,
-                  dropdownColor: EditorChrome.elevatedPanelBackground(context),
-                  items: SurfaceAtlasLayout.values
-                      .map(
-                        (e) => material.DropdownMenuItem(
-                          value: e,
-                          child: Text(
-                            _layoutMenuLabel(e),
-                            style: TextStyle(color: label, fontSize: 12),
-                            overflow: TextOverflow.ellipsis,
-                          ),
+                ],
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    if (_isEditMode) ...[
+                      CupertinoButton(
+                        key: const ValueKey('surface_studio_cancel_atlas_edit'),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        onPressed: _cancelEditMode,
+                        child: const Text('Annuler l’édition'),
+                      ),
+                      CupertinoButton(
+                        key: const ValueKey('surface_studio_apply_atlas_edit'),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        onPressed: isValid ? _applyEditToWorkCatalog : null,
+                        child: const Text(
+                          'Appliquer les modifications au catalogue de travail',
                         ),
-                      )
-                      .toList(),
-                  onChanged: (v) {
-                    if (v != null) {
-                      setState(() => _layout = v);
-                    }
-                  },
+                      ),
+                    ] else ...[
+                      CupertinoButton(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        onPressed: _resetToDefaults,
+                        child: const Text('Réinitialiser le brouillon'),
+                      ),
+                      CupertinoButton(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        onPressed: _loadFromSelection,
+                        child: const Text(
+                            'Charger la sélection dans le brouillon'),
+                      ),
+                      if (widget.onSurfaceCatalogChanged != null &&
+                          widget.selection.isAtlas &&
+                          _atlasRowForSelection() != null)
+                        CupertinoButton(
+                          key:
+                              const ValueKey('surface_studio_start_edit_atlas'),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          onPressed: _enterEditModeFromSelection,
+                          child: const Text('Modifier cet atlas'),
+                        ),
+                      if (widget.onSurfaceCatalogChanged != null)
+                        CupertinoButton(
+                          key: const ValueKey(
+                              'surface_studio_create_atlas_work_catalog'),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          onPressed: isValid ? _addToWorkCatalog : null,
+                          child: const Text(
+                              'Créer l’atlas dans le catalogue de travail'),
+                        ),
+                    ],
+                  ],
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          SurfaceStudioAtlasGridPreview(
-            sourceLabel: sourceLabel,
-            sourceDisplayForUi: gridSourceDisplayForUi,
-            tileWidth: previewTileWidth,
-            tileHeight: previewTileHeight,
-            columns: previewColumns,
-            rows: previewRows,
-            layoutLabel: _layoutMenuLabel(_layout),
-          ),
-          const SizedBox(height: 10),
-          material.TextField(
-            key: const ValueKey('atlas_draft_name'),
-            controller: _name,
-            onChanged: (_) {
-              if (!_isEditMode && !_userEditedId) {
-                final t = _name.text;
-                if (t.trim().isEmpty) {
-                  _id.clear();
-                } else {
-                  _id.text = suggestInternalAtlasIdFromName(t);
-                }
-              }
-              setState(() {});
-            },
-            style: TextStyle(color: label, fontSize: 13),
-            decoration: const material.InputDecoration(
-              labelText: 'Nom affiché',
-              isDense: true,
-            ),
-          ),
-          const SizedBox(height: 5),
-          material.TextField(
-            key: const ValueKey('atlas_draft_id'),
-            controller: _id,
-            readOnly: _isEditMode,
-            onChanged: (_) {
-              _userEditedId = true;
-              setState(() {});
-            },
-            style: TextStyle(color: label, fontSize: 13),
-            decoration: material.InputDecoration(
-              labelText: 'Identifiant interne',
-              isDense: true,
-              helperText: _isEditMode
-                  ? 'ID verrouillé pour préserver les références'
-                  : (_userEditedId
+                if (_creationNote != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    _creationNote!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ).copyWith(color: accent),
+                  ),
+                ],
+                const SizedBox(height: 6),
+                SurfaceStudioAtlasImageSourceBlock(
+                  hasPicker: hasImagePicker,
+                  sortedTilesets: sortedTilesets,
+                  selectedTilesetId: _tilesetId.text.trim().isEmpty
                       ? null
-                      : 'Identifiant interne proposé à partir du nom'),
-            ),
-          ),
-          const SizedBox(height: 8),
-          _formGroupTitle('Options avancées', label),
-          const SizedBox(height: 4),
-          if (!hasImagePicker) ...[
-            material.TextField(
-              key: const ValueKey('atlas_draft_tileset_advanced'),
-              controller: _tilesetId,
-              onChanged: (_) => setState(() {}),
-              style: TextStyle(color: label, fontSize: 13),
-              decoration: const material.InputDecoration(
-                labelText: 'Identifiant technique du jeu d’images',
-                helperText:
-                    'Temporaire : ce champ sera remplacé par un sélecteur d’image.',
-                isDense: true,
-              ),
-            ),
-            const SizedBox(height: 6),
-          ],
-          material.TextField(
-            key: const ValueKey('atlas_draft_category'),
-            controller: _categoryId,
-            onChanged: (_) => setState(() {}),
-            style: TextStyle(color: label, fontSize: 13),
-            decoration: const material.InputDecoration(
-              labelText: 'Catégorie (optionnel)',
-              isDense: true,
-            ),
-          ),
-          const SizedBox(height: 5),
-          material.TextField(
-            key: const ValueKey('atlas_draft_sort'),
-            controller: _sort,
-            onChanged: (_) => setState(() {}),
-            keyboardType: TextInputType.number,
-            style: TextStyle(color: label, fontSize: 13),
-            decoration: const material.InputDecoration(
-              labelText: 'Ordre d’affichage',
-              isDense: true,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              material.Switch(
-                value: _showPreview,
-                onChanged: (v) => setState(() => _showPreview = v),
-              ),
-              const SizedBox(width: 4),
-              Text(
-                'Prévisualisation locale',
-                style: TextStyle(color: label, fontSize: 12),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            isValid ? 'Brouillon prêt localement' : 'Brouillon invalide',
-            style: TextStyle(
-              color: isValid ? accent : const Color(0xFFE8887A),
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            'Aucune sauvegarde ne sera effectuée',
-            style: TextStyle(color: subtle, fontSize: 11),
-          ),
-          if (errs.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            for (final e in errs)
-              Text(
-                e,
-                style: const TextStyle(
-                  color: Color(0xFFE8887A),
-                  fontSize: 11,
+                      : _tilesetId.text.trim(),
+                  onSelectTilesetId: (v) {
+                    setState(() {
+                      _tilesetId.text = v ?? '';
+                    });
+                  },
+                  label: label,
+                  subtle: subtle,
                 ),
-              ),
-          ],
-          if (_showPreview && draft != null) ...[
-            const SizedBox(height: 10),
-            Text(
-              'Aperçu : ${draft.tileWidth}×${draft.tileHeight} · Grille ${draft.columns}×${draft.rows} · ${draft.tileCount} tuiles · ordre ${draft.sortOrder}',
-              style: TextStyle(color: label, fontSize: 12),
-            ),
-            Text(
-              'Disposition : ${_layoutMenuLabel(draft.layout)}',
-              style: TextStyle(color: subtle, fontSize: 11),
-            ),
-            Text(
-              'Catégorie : ${draft.categoryId ?? '—'}',
-              style: TextStyle(color: subtle, fontSize: 11),
-            ),
-          ],
-        ],
-              ),
+                const SizedBox(height: 10),
+                SurfaceStudioVerticalAtlasAssistant(
+                  label: label,
+                  subtle: subtle,
+                  draftTileWidth: previewTileWidth,
+                  draftTileHeight: previewTileHeight,
+                  draftColumns: previewColumns,
+                  draftRows: previewRows,
+                ),
+                const SizedBox(height: 10),
+                SurfaceStudioColumnRoleMappingBlock(
+                  label: label,
+                  subtle: subtle,
+                  draft: _columnRoleMappingDraft,
+                  onDraftChanged: (newDraft) {
+                    setState(() {
+                      _columnRoleMappingDraft = newDraft;
+                    });
+                  },
+                  draftTileWidth: previewTileWidth,
+                  draftTileHeight: previewTileHeight,
+                  draftColumns: previewColumns,
+                  draftRows: previewRows,
+                ),
+                const SizedBox(height: 10),
+                SurfaceStudioVerticalAtlasAnimationPreview(
+                  label: label,
+                  subtle: subtle,
+                  mappingDraft: _columnRoleMappingDraft,
+                  tileWidth: previewTileWidth,
+                  tileHeight: previewTileHeight,
+                  columns: previewColumns,
+                  rows: previewRows,
+                  resolvedImagePath: imagePreviewResolution.status ==
+                          SurfaceStudioAtlasImagePreviewResolveStatus.resolved
+                      ? imagePreviewResolution.resolvedAbsolutePath
+                      : null,
+                ),
+                const SizedBox(height: 10),
+                SurfaceStudioVerticalAtlasAnimationGenerationPlanSection(
+                  label: label,
+                  subtle: subtle,
+                  readModel: widget.readModel,
+                  atlasIdDraft: _id.text.trim(),
+                  atlasDisplayName: _name.text,
+                  atlasCategoryDraft: _categoryId.text.trim().isEmpty
+                      ? null
+                      : _categoryId.text.trim(),
+                  mappingDraft: _columnRoleMappingDraft,
+                  tileWidth: previewTileWidth,
+                  tileHeight: previewTileHeight,
+                  columns: previewColumns,
+                  rows: previewRows,
+                  onWorkCatalogChanged: widget.onSurfaceCatalogChanged,
+                  onWorkCatalogAnimationsCreated:
+                      widget.onWorkCatalogAnimationsCreated,
+                ),
+                const SizedBox(height: 10),
+                SurfaceStudioVerticalAtlasPresetCreationSection(
+                  label: label,
+                  subtle: subtle,
+                  catalog: widget.readModel.catalog,
+                  atlasIdDraft: _id.text.trim(),
+                  atlasDisplayName: _name.text,
+                  atlasCategoryDraft: _categoryId.text.trim().isEmpty
+                      ? null
+                      : _categoryId.text.trim(),
+                  mappingDraft: _columnRoleMappingDraft,
+                  tileWidth: previewTileWidth,
+                  tileHeight: previewTileHeight,
+                  columns: previewColumns,
+                  rows: previewRows,
+                  onWorkCatalogChanged: widget.onSurfaceCatalogChanged,
+                  onWorkCatalogPresetCreated: widget.onWorkCatalogPresetCreated,
+                ),
+                const SizedBox(height: 10),
+                SurfaceStudioAtlasImagePreview(
+                  resolution: imagePreviewResolution,
+                  label: label,
+                  subtle: subtle,
+                  draftTileWidth: previewTileWidth,
+                  draftTileHeight: previewTileHeight,
+                  draftColumns: previewColumns,
+                  draftRows: previewRows,
+                  draftLayoutLabel: _layoutMenuLabel(_layout),
+                  largeFormat: true,
+                ),
+                const SizedBox(height: 10),
+                _formGroupTitle('Découpage et validation', label),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Expanded(
+                      child: material.TextField(
+                        key: const ValueKey('atlas_draft_tile_w'),
+                        controller: _tileW,
+                        onChanged: (_) => setState(() {}),
+                        keyboardType: TextInputType.number,
+                        style: TextStyle(color: label, fontSize: 13),
+                        decoration: const material.InputDecoration(
+                          labelText: 'Largeur tuile',
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: material.TextField(
+                        key: const ValueKey('atlas_draft_tile_h'),
+                        controller: _tileH,
+                        onChanged: (_) => setState(() {}),
+                        keyboardType: TextInputType.number,
+                        style: TextStyle(color: label, fontSize: 13),
+                        decoration: const material.InputDecoration(
+                          labelText: 'Hauteur tuile',
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: material.TextField(
+                        key: const ValueKey('atlas_draft_cols'),
+                        controller: _cols,
+                        onChanged: (_) {
+                          _updateColumnRoleMappingDraft();
+                          setState(() {});
+                        },
+                        keyboardType: TextInputType.number,
+                        style: TextStyle(color: label, fontSize: 13),
+                        decoration: const material.InputDecoration(
+                          labelText: 'Colonnes',
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: material.TextField(
+                        key: const ValueKey('atlas_draft_rows'),
+                        controller: _rows,
+                        onChanged: (_) {
+                          _updateColumnRoleMappingDraft();
+                          setState(() {});
+                        },
+                        keyboardType: TextInputType.number,
+                        style: TextStyle(color: label, fontSize: 13),
+                        decoration: const material.InputDecoration(
+                          labelText: 'Lignes',
+                          isDense: true,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text('Disposition',
+                        style: TextStyle(color: label, fontSize: 12)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: material.DropdownButton<SurfaceAtlasLayout>(
+                        isExpanded: true,
+                        value: _layout,
+                        style: TextStyle(color: label, fontSize: 12),
+                        iconEnabledColor: label,
+                        dropdownColor:
+                            EditorChrome.elevatedPanelBackground(context),
+                        items: SurfaceAtlasLayout.values
+                            .map(
+                              (e) => material.DropdownMenuItem(
+                                value: e,
+                                child: Text(
+                                  _layoutMenuLabel(e),
+                                  style: TextStyle(color: label, fontSize: 12),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (v) {
+                          if (v != null) {
+                            setState(() => _layout = v);
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                SurfaceStudioAtlasGridPreview(
+                  sourceLabel: sourceLabel,
+                  sourceDisplayForUi: gridSourceDisplayForUi,
+                  tileWidth: previewTileWidth,
+                  tileHeight: previewTileHeight,
+                  columns: previewColumns,
+                  rows: previewRows,
+                  layoutLabel: _layoutMenuLabel(_layout),
+                ),
+                const SizedBox(height: 10),
+                material.TextField(
+                  key: const ValueKey('atlas_draft_name'),
+                  controller: _name,
+                  onChanged: (_) {
+                    if (!_isEditMode && !_userEditedId) {
+                      final t = _name.text;
+                      if (t.trim().isEmpty) {
+                        _id.clear();
+                      } else {
+                        _id.text = suggestInternalAtlasIdFromName(t);
+                      }
+                    }
+                    setState(() {});
+                  },
+                  style: TextStyle(color: label, fontSize: 13),
+                  decoration: const material.InputDecoration(
+                    labelText: 'Nom affiché',
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                material.TextField(
+                  key: const ValueKey('atlas_draft_id'),
+                  controller: _id,
+                  readOnly: _isEditMode,
+                  onChanged: (_) {
+                    _userEditedId = true;
+                    setState(() {});
+                  },
+                  style: TextStyle(color: label, fontSize: 13),
+                  decoration: material.InputDecoration(
+                    labelText: 'Identifiant interne',
+                    isDense: true,
+                    helperText: _isEditMode
+                        ? 'ID verrouillé pour préserver les références'
+                        : (_userEditedId
+                            ? null
+                            : 'Identifiant interne proposé à partir du nom'),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _formGroupTitle('Options avancées', label),
+                const SizedBox(height: 4),
+                if (!hasImagePicker) ...[
+                  material.TextField(
+                    key: const ValueKey('atlas_draft_tileset_advanced'),
+                    controller: _tilesetId,
+                    onChanged: (_) => setState(() {}),
+                    style: TextStyle(color: label, fontSize: 13),
+                    decoration: const material.InputDecoration(
+                      labelText: 'Identifiant technique du jeu d’images',
+                      helperText:
+                          'Temporaire : ce champ sera remplacé par un sélecteur d’image.',
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                ],
+                material.TextField(
+                  key: const ValueKey('atlas_draft_category'),
+                  controller: _categoryId,
+                  onChanged: (_) => setState(() {}),
+                  style: TextStyle(color: label, fontSize: 13),
+                  decoration: const material.InputDecoration(
+                    labelText: 'Catégorie (optionnel)',
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                material.TextField(
+                  key: const ValueKey('atlas_draft_sort'),
+                  controller: _sort,
+                  onChanged: (_) => setState(() {}),
+                  keyboardType: TextInputType.number,
+                  style: TextStyle(color: label, fontSize: 13),
+                  decoration: const material.InputDecoration(
+                    labelText: 'Ordre d’affichage',
+                    isDense: true,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    material.Switch(
+                      value: _showPreview,
+                      onChanged: (v) => setState(() => _showPreview = v),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Prévisualisation locale',
+                      style: TextStyle(color: label, fontSize: 12),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  isValid ? 'Brouillon prêt localement' : 'Brouillon invalide',
+                  style: TextStyle(
+                    color: isValid ? accent : const Color(0xFFE8887A),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Aucune sauvegarde ne sera effectuée',
+                  style: TextStyle(color: subtle, fontSize: 11),
+                ),
+                if (errs.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  for (final e in errs)
+                    Text(
+                      e,
+                      style: const TextStyle(
+                        color: Color(0xFFE8887A),
+                        fontSize: 11,
+                      ),
+                    ),
+                ],
+                if (_showPreview && draft != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    'Aperçu : ${draft.tileWidth}×${draft.tileHeight} · Grille ${draft.columns}×${draft.rows} · ${draft.tileCount} tuiles · ordre ${draft.sortOrder}',
+                    style: TextStyle(color: label, fontSize: 12),
+                  ),
+                  Text(
+                    'Disposition : ${_layoutMenuLabel(draft.layout)}',
+                    style: TextStyle(color: subtle, fontSize: 11),
+                  ),
+                  Text(
+                    'Catégorie : ${draft.categoryId ?? '—'}',
+                    style: TextStyle(color: subtle, fontSize: 11),
+                  ),
+                ],
+              ],
             ),
           ),
         ),
+      ),
     );
   }
 }
