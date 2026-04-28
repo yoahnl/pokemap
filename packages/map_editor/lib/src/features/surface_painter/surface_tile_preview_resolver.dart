@@ -2,11 +2,13 @@ import 'dart:ui' show Rect;
 
 import 'package:map_core/map_core.dart';
 
+import 'surface_animation_frame_resolver.dart';
+
 /// Editor-only draw instruction for a static Surface atlas preview.
 ///
 /// It resolves catalog references far enough for the canvas to call
-/// `drawImageRect`, but it deliberately keeps animation time and runtime asset
-/// loading out of the editor Surface preview V0.
+/// `drawImageRect`, but it deliberately keeps runtime asset loading out of the
+/// editor Surface preview V0.
 final class SurfaceTilePreviewInstruction {
   const SurfaceTilePreviewInstruction({
     required this.x,
@@ -33,13 +35,14 @@ final class SurfaceTilePreviewInstruction {
   final Rect sourceRect;
 }
 
-/// Resolves a sparse Surface placement into the first frame of the matching
+/// Resolves a sparse Surface placement into the current frame of the matching
 /// atlas animation, or `null` when the debug overlay should remain visible.
 SurfaceTilePreviewInstruction? resolveSurfaceTilePreviewInstruction({
   required SurfaceLayer layer,
   required SurfaceCellPlacement placement,
   required ProjectSurfaceCatalog catalog,
   required Set<String> availableTilesetIds,
+  int elapsedMs = 0,
 }) {
   if (!layer.isVisible || layer.opacity <= 0) {
     return null;
@@ -69,7 +72,10 @@ SurfaceTilePreviewInstruction? resolveSurfaceTilePreviewInstruction({
   if (animation == null || animation.timeline.frames.isEmpty) {
     return null;
   }
-  final frame = animation.timeline.frames.first;
+  final frame = resolveSurfaceAnimationFrameAtElapsedMs(
+    timeline: animation.timeline,
+    elapsedMs: elapsedMs,
+  );
   final atlasId = frame.tileRef.atlasId.trim();
   if (atlasId.isEmpty) {
     return null;
@@ -146,18 +152,62 @@ Set<String> collectSurfaceTilePreviewTilesetIds({
       if (animation == null || animation.timeline.frames.isEmpty) {
         continue;
       }
-      final atlasId = animation.timeline.frames.first.tileRef.atlasId.trim();
-      if (atlasId.isEmpty) {
-        continue;
-      }
-      final atlas = catalog.atlasById(atlasId);
-      final tilesetId = atlas?.tilesetId.trim();
-      if (tilesetId != null && tilesetId.isNotEmpty) {
-        tilesetIds.add(tilesetId);
+      for (final frame in animation.timeline.frames) {
+        final atlasId = frame.tileRef.atlasId.trim();
+        if (atlasId.isEmpty) {
+          continue;
+        }
+        final atlas = catalog.atlasById(atlasId);
+        final tilesetId = atlas?.tilesetId.trim();
+        if (tilesetId != null && tilesetId.isNotEmpty) {
+          tilesetIds.add(tilesetId);
+        }
       }
     }
   }
   return Set<String>.unmodifiable(tilesetIds);
+}
+
+/// Returns whether the editor canvas needs a repaint clock for placed Surface
+/// previews.
+///
+/// This stays deliberately broader than exact role resolution: if a visible
+/// placed preset references any multi-frame Surface animation, the editor timer
+/// can tick. It keeps the canvas simple and avoids freezing animated water just
+/// because the current neighbour role changes while painting.
+bool surfaceTilePreviewNeedsAnimation({
+  required MapData map,
+  required ProjectSurfaceCatalog catalog,
+}) {
+  final presetIds = <String>{};
+  for (final layer in map.layers.whereType<SurfaceLayer>()) {
+    if (!layer.isVisible || layer.opacity <= 0) {
+      continue;
+    }
+    for (final placement in layer.placements) {
+      final presetId = placement.surfacePresetId.trim();
+      if (presetId.isNotEmpty) {
+        presetIds.add(presetId);
+      }
+    }
+  }
+  if (presetIds.isEmpty) {
+    return false;
+  }
+
+  for (final presetId in presetIds) {
+    final preset = catalog.presetById(presetId);
+    if (preset == null) {
+      continue;
+    }
+    for (final ref in preset.variantAnimations.refs) {
+      final animation = catalog.animationById(ref.animationId.trim());
+      if (animation != null && animation.timeline.frames.length > 1) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 String? _resolveAnimationId(

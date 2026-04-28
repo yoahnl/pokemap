@@ -273,6 +273,7 @@ class MapGridPainter extends CustomPainter {
           tileWidth: tileWidth,
           tileHeight: tileHeight,
           zoom: zoom,
+          elapsedMs: editorEntityAnimationMs,
         );
       }
     }

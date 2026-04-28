@@ -260,6 +260,67 @@ void main() {
       image.dispose();
       tilesetImage.dispose();
     });
+
+    test('paints SurfaceLayer atlas tile from current editor elapsed time',
+        () async {
+      const map = MapData(
+        id: 'pond',
+        name: 'Pond',
+        size: GridSize(width: 3, height: 3),
+        layers: <MapLayer>[
+          SurfaceLayer(
+            id: 'surface-main',
+            name: 'Surfaces',
+            placements: <SurfaceCellPlacement>[
+              SurfaceCellPlacement(
+                x: 1,
+                y: 1,
+                surfacePresetId: 'water-surface',
+              ),
+            ],
+          ),
+        ],
+      );
+      final project = ProjectManifest(
+        name: 'editor',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[],
+        surfaceCatalog: _surfaceCatalog(),
+      );
+      final tilesetImage = await _testTilesetImage();
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder);
+
+      MapGridPainter(
+        map: map,
+        zoom: 1,
+        offset: ui.Offset.zero,
+        tileWidth: 32,
+        tileHeight: 32,
+        tilesetImagesById: {'water-tileset': tilesetImage},
+        sourceTileWidth: 32,
+        sourceTileHeight: 32,
+        tilesPerRowById: const <String, int>{},
+        warps: const <MapWarp>[],
+        gameplayZones: const <MapGameplayZone>[],
+        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
+        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
+        project: project,
+        editorEntityAnimationMs: 120,
+      ).paint(canvas, const ui.Size(96, 96));
+
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(96, 96);
+      final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      final offset = ((48 * image.width) + 48) * 4;
+      expect(pixels!.getUint8(offset), lessThan(40));
+      expect(pixels.getUint8(offset + 1), lessThan(40));
+      expect(pixels.getUint8(offset + 2), greaterThan(220));
+      picture.dispose();
+      image.dispose();
+      tilesetImage.dispose();
+    });
   });
 }
 
@@ -287,6 +348,14 @@ ProjectSurfaceCatalog _surfaceCatalog() {
               tileRef: SurfaceAtlasTileRef(
                 atlasId: 'water-atlas',
                 column: 2,
+                row: 0,
+              ),
+              durationMs: 120,
+            ),
+            SurfaceAnimationFrame(
+              tileRef: SurfaceAtlasTileRef(
+                atlasId: 'water-atlas',
+                column: 3,
                 row: 0,
               ),
               durationMs: 120,
@@ -322,6 +391,10 @@ Future<ui.Image> _testTilesetImage() async {
   canvas.drawRect(
     const ui.Rect.fromLTWH(64, 0, 32, 32),
     ui.Paint()..color = const ui.Color(0xFFFF0000),
+  );
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(96, 0, 32, 32),
+    ui.Paint()..color = const ui.Color(0xFF0000FF),
   );
   final picture = recorder.endRecording();
   final image = await picture.toImage(128, 128);

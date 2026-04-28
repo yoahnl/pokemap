@@ -165,6 +165,48 @@ void main() {
       image.dispose();
       tilesetImage.dispose();
     });
+
+    test('paintSurfaceLayerAtlasTilePreview draws the current frame', () async {
+      const layer = SurfaceLayer(
+        id: 'surface-main',
+        name: 'Surfaces',
+        placements: [
+          SurfaceCellPlacement(x: 1, y: 1, surfacePresetId: 'water-surface'),
+        ],
+      );
+      final project = ProjectManifest(
+        name: 'editor',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[],
+        surfaceCatalog: _surfaceCatalog(),
+      );
+      final tilesetImage = await _testTilesetImage();
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+
+      paintSurfaceLayerAtlasTilePreview(
+        canvas: canvas,
+        layer: layer,
+        mapSize: const GridSize(width: 3, height: 3),
+        project: project,
+        tilesetImagesById: {'water-tileset': tilesetImage},
+        tileWidth: 32,
+        tileHeight: 32,
+        zoom: 1,
+        elapsedMs: 120,
+      );
+
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(96, 96);
+      final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      final offset = ((48 * image.width) + 48) * 4;
+      expect(pixels!.getUint8(offset), lessThan(40));
+      expect(pixels.getUint8(offset + 1), lessThan(40));
+      expect(pixels.getUint8(offset + 2), greaterThan(220));
+      picture.dispose();
+      image.dispose();
+      tilesetImage.dispose();
+    });
   });
 }
 
@@ -192,6 +234,14 @@ ProjectSurfaceCatalog _surfaceCatalog() {
               tileRef: SurfaceAtlasTileRef(
                 atlasId: 'water-atlas',
                 column: 2,
+                row: 0,
+              ),
+              durationMs: 120,
+            ),
+            SurfaceAnimationFrame(
+              tileRef: SurfaceAtlasTileRef(
+                atlasId: 'water-atlas',
+                column: 3,
                 row: 0,
               ),
               durationMs: 120,
@@ -227,6 +277,10 @@ Future<ui.Image> _testTilesetImage() async {
   canvas.drawRect(
     const Rect.fromLTWH(64, 0, 32, 32),
     Paint()..color = const Color(0xFFFF0000),
+  );
+  canvas.drawRect(
+    const Rect.fromLTWH(96, 0, 32, 32),
+    Paint()..color = const Color(0xFF0000FF),
   );
   final picture = recorder.endRecording();
   final image = await picture.toImage(128, 128);

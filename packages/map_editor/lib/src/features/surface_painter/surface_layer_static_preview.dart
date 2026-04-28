@@ -132,6 +132,7 @@ void paintSurfaceLayerAtlasTilePreview({
   required double tileWidth,
   required double tileHeight,
   required double zoom,
+  int elapsedMs = 0,
 }) {
   if (tileWidth <= 0 || tileHeight <= 0 || zoom <= 0) {
     return;
@@ -166,6 +167,7 @@ void paintSurfaceLayerAtlasTilePreview({
         placement: cell.placement,
         catalog: catalog,
         availableTilesetIds: availableTilesetIds,
+        elapsedMs: elapsedMs,
       );
     }
     final image =

@@ -58,6 +58,52 @@ void main() {
       expect(instruction.sourceRect, const Rect.fromLTWH(64, 0, 32, 32));
     });
 
+    test('resolves sourceRect from the current animation frame', () {
+      final catalog = _catalog(
+        animations: [
+          _animation(
+            id: 'water-isolated-loop',
+            frames: [
+              _frame(column: 2, row: 0, durationMs: 100),
+              _frame(column: 3, row: 1, durationMs: 150),
+            ],
+          ),
+        ],
+        presets: [
+          _preset(
+            id: 'water-surface',
+            refs: [
+              _ref(SurfaceVariantRole.isolated, 'water-isolated-loop'),
+            ],
+          ),
+        ],
+      );
+      const layer = SurfaceLayer(
+        id: 'surface-main',
+        name: 'Surfaces',
+        placements: [
+          SurfaceCellPlacement(
+            x: 4,
+            y: 5,
+            surfacePresetId: 'water-surface',
+          ),
+        ],
+      );
+
+      final instruction = resolveSurfaceTilePreviewInstruction(
+        layer: layer,
+        placement: layer.placements.single,
+        catalog: catalog,
+        availableTilesetIds: const {'water-tileset'},
+        elapsedMs: 100,
+      );
+
+      expect(instruction, isNotNull);
+      expect(instruction!.sourceColumn, 3);
+      expect(instruction.sourceRow, 1);
+      expect(instruction.sourceRect, const Rect.fromLTWH(96, 32, 32, 32));
+    });
+
     test('uses the Surface role resolved from same-preset neighbors', () {
       final catalog = _catalog(
         animations: [
@@ -382,6 +428,175 @@ void main() {
 
       expect(ids, {'water-tileset'});
     });
+
+    test('collects tilesets referenced by every animation frame', () {
+      final catalog = ProjectSurfaceCatalog(
+        atlases: [
+          ProjectSurfaceAtlas(
+            id: 'water-atlas',
+            name: 'Water Atlas',
+            tilesetId: 'water-tileset-a',
+            geometry: _geometry(),
+          ),
+          ProjectSurfaceAtlas(
+            id: 'foam-atlas',
+            name: 'Foam Atlas',
+            tilesetId: 'water-tileset-b',
+            geometry: _geometry(),
+          ),
+        ],
+        animations: [
+          ProjectSurfaceAnimation(
+            id: 'water-isolated-loop',
+            name: 'Water Isolated',
+            timeline: SurfaceAnimationTimeline(
+              frames: [
+                SurfaceAnimationFrame(
+                  tileRef: SurfaceAtlasTileRef(
+                    atlasId: 'water-atlas',
+                    column: 0,
+                    row: 0,
+                  ),
+                  durationMs: 120,
+                ),
+                SurfaceAnimationFrame(
+                  tileRef: SurfaceAtlasTileRef(
+                    atlasId: 'foam-atlas',
+                    column: 0,
+                    row: 0,
+                  ),
+                  durationMs: 120,
+                ),
+              ],
+            ),
+          ),
+        ],
+        presets: [
+          _preset(
+            id: 'water-surface',
+            refs: [
+              _ref(SurfaceVariantRole.isolated, 'water-isolated-loop'),
+            ],
+          ),
+        ],
+      );
+      const map = MapData(
+        id: 'pond',
+        name: 'Pond',
+        size: GridSize(width: 3, height: 3),
+        layers: [
+          SurfaceLayer(
+            id: 'surface-main',
+            name: 'Surfaces',
+            placements: [
+              SurfaceCellPlacement(
+                x: 1,
+                y: 1,
+                surfacePresetId: 'water-surface',
+              ),
+            ],
+          ),
+        ],
+      );
+
+      final ids = collectSurfaceTilePreviewTilesetIds(
+        map: map,
+        catalog: catalog,
+      );
+
+      expect(ids, {'water-tileset-a', 'water-tileset-b'});
+    });
+
+    test('reports animation need only for visible placed surface presets', () {
+      final catalog = _catalog(
+        animations: [
+          _animation(id: 'water-static', frames: [_frame()]),
+          _animation(
+            id: 'water-animated',
+            frames: [
+              _frame(column: 0, durationMs: 100),
+              _frame(column: 1, durationMs: 100),
+            ],
+          ),
+        ],
+        presets: [
+          _preset(
+            id: 'water-surface',
+            refs: [_ref(SurfaceVariantRole.isolated, 'water-animated')],
+          ),
+          _preset(
+            id: 'stone-surface',
+            refs: [_ref(SurfaceVariantRole.isolated, 'water-static')],
+          ),
+        ],
+      );
+      const map = MapData(
+        id: 'pond',
+        name: 'Pond',
+        size: GridSize(width: 3, height: 3),
+        layers: [
+          SurfaceLayer(
+            id: 'surface-main',
+            name: 'Surfaces',
+            placements: [
+              SurfaceCellPlacement(
+                x: 1,
+                y: 1,
+                surfacePresetId: 'water-surface',
+              ),
+            ],
+          ),
+        ],
+      );
+
+      expect(
+        surfaceTilePreviewNeedsAnimation(map: map, catalog: catalog),
+        isTrue,
+      );
+      expect(
+        surfaceTilePreviewNeedsAnimation(
+          map: map.copyWith(
+            layers: const [
+              SurfaceLayer(
+                id: 'surface-main',
+                name: 'Surfaces',
+                isVisible: false,
+                placements: [
+                  SurfaceCellPlacement(
+                    x: 1,
+                    y: 1,
+                    surfacePresetId: 'water-surface',
+                  ),
+                ],
+              ),
+            ],
+          ),
+          catalog: catalog,
+        ),
+        isFalse,
+      );
+      expect(
+        surfaceTilePreviewNeedsAnimation(
+          map: map.copyWith(
+            layers: const [
+              SurfaceLayer(
+                id: 'surface-main',
+                name: 'Surfaces',
+                placements: [
+                  SurfaceCellPlacement(
+                    x: 1,
+                    y: 1,
+                    surfacePresetId: 'stone-surface',
+                  ),
+                ],
+              ),
+            ],
+          ),
+          catalog: catalog,
+        ),
+        isFalse,
+      );
+    });
   });
 }
 
@@ -425,6 +640,7 @@ ProjectSurfaceAnimation _animation({
 SurfaceAnimationFrame _frame({
   int column = 0,
   int row = 0,
+  int durationMs = 120,
 }) {
   return SurfaceAnimationFrame(
     tileRef: SurfaceAtlasTileRef(
@@ -432,7 +648,7 @@ SurfaceAnimationFrame _frame({
       column: column,
       row: row,
     ),
-    durationMs: 120,
+    durationMs: durationMs,
   );
 }
 

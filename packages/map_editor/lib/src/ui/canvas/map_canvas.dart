@@ -141,6 +141,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           state.project,
         );
         final needsSurfaceAnim = _surfacePresetsNeedEditorFrameAnimation(
+          map: activeMap,
+          project: state.project,
           pathAutotileSetsByPresetId: pathAutotileSetsByPresetId,
           terrainPresetsByType: terrainPresetsByType,
         );
@@ -622,9 +624,20 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   }
 
   bool _surfacePresetsNeedEditorFrameAnimation({
+    required MapData? map,
+    required ProjectManifest? project,
     required Map<String, PathAutotileSet> pathAutotileSetsByPresetId,
     required Map<TerrainType, ProjectTerrainPreset> terrainPresetsByType,
   }) {
+    final surfaceCatalog = project?.surfaceCatalog;
+    if (map != null &&
+        surfaceCatalog != null &&
+        surfaceTilePreviewNeedsAnimation(
+          map: map,
+          catalog: surfaceCatalog,
+        )) {
+      return true;
+    }
     for (final autotileSet in pathAutotileSetsByPresetId.values) {
       for (final frames in autotileSet.variants.values) {
         if (frames.length > 1) {
