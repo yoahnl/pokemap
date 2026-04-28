@@ -174,3 +174,30 @@
 - Check for deeper `AGENTS.md` files before editing in subdirectories (none found during this audit, but always re-check).
 - Before structural changes, read the nearest `pubspec.yaml` and, when present, package `README.md`.
 - Respect `.gitignore` rules and existing tracked/untracked boundaries (especially docs and large fixture/report areas).
+
+## Context Mode Usage
+
+- Use Context Mode when an operation may produce large outputs or consume unnecessary context.
+- Prefer Context Mode for:
+  - repository-wide searches;
+  - reading or summarizing many files;
+  - `git diff`, `git log`, and large `git status` outputs;
+  - test outputs;
+  - analyzer outputs;
+  - build logs;
+  - generated reports;
+  - large JSON, fixture, or snapshot inspection.
+- Do not paste large raw outputs into the conversation when Context Mode can preserve or summarize them.
+- Summarize only the relevant findings, then mention the command or source that produced them.
+- Keep exploration and audit responses compact, but keep final reports complete and structured.
+- Final reports must still include:
+  - changed files;
+  - created files;
+  - deleted files;
+  - commands run;
+  - exact test/analyze/build outcomes;
+  - known limitations;
+  - remaining risks;
+  - self-review or critique when relevant.
+- Context Mode must not be used as an excuse to omit important evidence from the final report.
+- If Context Mode is unavailable, continue with the normal repo workflow and explicitly say that Context Mode was unavailable.
