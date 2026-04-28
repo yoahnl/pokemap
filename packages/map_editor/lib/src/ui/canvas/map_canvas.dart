@@ -156,6 +156,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
         final isStrokeEditingTool =
             state.activeTool == EditorToolType.tilePaint ||
                 state.activeTool == EditorToolType.terrainPaint ||
+                state.activeTool == EditorToolType.surfacePaint ||
                 state.activeTool == EditorToolType.collisionPaint ||
                 state.activeTool == EditorToolType.eraser;
         final isNpcWaypointPlacementActive =
@@ -177,6 +178,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           }
           if (state.activeTool == EditorToolType.terrainPaint) {
             notifier.paintTerrainAt(gridPos);
+            return;
+          }
+          if (state.activeTool == EditorToolType.surfacePaint) {
+            notifier.paintSurfaceAt(gridPos);
             return;
           }
           if (state.activeTool == EditorToolType.collisionPaint) {

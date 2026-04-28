@@ -8,6 +8,15 @@ import 'package:map_core/map_core.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../shared/cupertino_editor_widgets.dart';
 
+enum _LayerCreationKind {
+  tile,
+  collision,
+  terrain,
+  path,
+  surface,
+  object,
+}
+
 class LayersPanel extends ConsumerWidget {
   const LayersPanel({
     super.key,
@@ -16,13 +25,28 @@ class LayersPanel extends ConsumerWidget {
 
   final bool embedded;
 
-  static String _kindLabel(MapLayerKind k) {
+  static String _kindLabel(_LayerCreationKind k) {
     return switch (k) {
-      MapLayerKind.tile => 'Tile Layer',
-      MapLayerKind.collision => 'Collision Layer',
-      MapLayerKind.terrain => 'Terrain Layer',
-      MapLayerKind.path => 'Path Layer',
-      MapLayerKind.object => 'Object Layer',
+      _LayerCreationKind.tile => 'Tile Layer',
+      _LayerCreationKind.collision => 'Collision Layer',
+      _LayerCreationKind.terrain => 'Terrain Layer',
+      _LayerCreationKind.path => 'Path Layer',
+      _LayerCreationKind.surface => 'Surface Layer',
+      _LayerCreationKind.object => 'Object Layer',
+    };
+  }
+
+  static MapLayerKind? _mapLayerKindFor(_LayerCreationKind k) {
+    return switch (k) {
+      _LayerCreationKind.tile => MapLayerKind.tile,
+      _LayerCreationKind.collision => MapLayerKind.collision,
+      _LayerCreationKind.terrain => MapLayerKind.terrain,
+      _LayerCreationKind.path => MapLayerKind.path,
+      // SurfaceLayer is deliberately kept as an editor creation option instead
+      // of expanding MapLayerKind here; map_core already models the layer, but
+      // this bis only fixes the editor entry point.
+      _LayerCreationKind.surface => null,
+      _LayerCreationKind.object => MapLayerKind.object,
     };
   }
 
@@ -91,7 +115,7 @@ class LayersPanel extends ConsumerWidget {
     EditorNotifier notifier,
   ) async {
     final nameController = TextEditingController();
-    var selectedType = MapLayerKind.tile;
+    var selectedType = _LayerCreationKind.tile;
     var shouldSave = false;
 
     await showMacosEditorModalSheet<void>(
@@ -112,14 +136,21 @@ class LayersPanel extends ConsumerWidget {
                 controlSize: ControlSize.regular,
                 secondary: true,
                 onPressed: () async {
-                  final picked = await showCupertinoListPicker<MapLayerKind>(
+                  final picked =
+                      await showCupertinoListPicker<_LayerCreationKind>(
                     context: ctx,
                     title: 'Layer type',
-                    items: MapLayerKind.values,
+                    items: _LayerCreationKind.values,
                     labelOf: _kindLabel,
                   );
                   if (picked != null) {
-                    setState(() => selectedType = picked);
+                    setState(() {
+                      selectedType = picked;
+                      if (picked == _LayerCreationKind.surface &&
+                          nameController.text.trim().isEmpty) {
+                        nameController.text = 'Surfaces';
+                      }
+                    });
                   }
                 },
                 child: Text('Type: ${_kindLabel(selectedType)}'),
@@ -159,8 +190,12 @@ class LayersPanel extends ConsumerWidget {
     );
 
     if (!shouldSave) return;
+    if (selectedType == _LayerCreationKind.surface) {
+      notifier.addSurfaceLayer(name: nameController.text.trim());
+      return;
+    }
     notifier.addMapLayer(
-      kind: selectedType,
+      kind: _mapLayerKindFor(selectedType)!,
       name: nameController.text.trim(),
     );
   }
@@ -347,9 +382,8 @@ class _LayerList extends StatelessWidget {
                         ),
                       )
                     : null,
-                padding: dropHovering
-                    ? const EdgeInsets.all(2)
-                    : EdgeInsets.zero,
+                padding:
+                    dropHovering ? const EdgeInsets.all(2) : EdgeInsets.zero,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -625,7 +659,8 @@ class _LayerList extends StatelessWidget {
       collision: (_) => 'collision',
       terrain: (_) => 'terrain',
       path: (_) => 'path',
-      surface: (_) => 'surface',
+      surface: (surfaceLayer) =>
+          'surface · ${surfaceLayer.placements.length} placement(s)',
       object: (_) => 'object',
     );
   }

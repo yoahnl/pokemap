@@ -717,6 +717,7 @@ mixin _$EditorState {
   MapEntityKind get selectedEntityKind => throw _privateConstructorUsedError;
   String? get selectedTerrainPresetId => throw _privateConstructorUsedError;
   String? get selectedPathPresetId => throw _privateConstructorUsedError;
+  String? get selectedSurfacePresetId => throw _privateConstructorUsedError;
   Map<TerrainType, String> get selectedTerrainPresetByType =>
       throw _privateConstructorUsedError;
   CollisionBrushSizeMode get collisionBrushSizeMode =>
@@ -805,6 +806,7 @@ abstract class $EditorStateCopyWith<$Res> {
       MapEntityKind selectedEntityKind,
       String? selectedTerrainPresetId,
       String? selectedPathPresetId,
+      String? selectedSurfacePresetId,
       Map<TerrainType, String> selectedTerrainPresetByType,
       CollisionBrushSizeMode collisionBrushSizeMode,
       String? selectedEntityId,
@@ -874,6 +876,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? selectedEntityKind = null,
     Object? selectedTerrainPresetId = freezed,
     Object? selectedPathPresetId = freezed,
+    Object? selectedSurfacePresetId = freezed,
     Object? selectedTerrainPresetByType = null,
     Object? collisionBrushSizeMode = null,
     Object? selectedEntityId = freezed,
@@ -964,6 +967,10 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
       selectedPathPresetId: freezed == selectedPathPresetId
           ? _value.selectedPathPresetId
           : selectedPathPresetId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      selectedSurfacePresetId: freezed == selectedSurfacePresetId
+          ? _value.selectedSurfacePresetId
+          : selectedSurfacePresetId // ignore: cast_nullable_to_non_nullable
               as String?,
       selectedTerrainPresetByType: null == selectedTerrainPresetByType
           ? _value.selectedTerrainPresetByType
@@ -1204,6 +1211,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       MapEntityKind selectedEntityKind,
       String? selectedTerrainPresetId,
       String? selectedPathPresetId,
+      String? selectedSurfacePresetId,
       Map<TerrainType, String> selectedTerrainPresetByType,
       CollisionBrushSizeMode collisionBrushSizeMode,
       String? selectedEntityId,
@@ -1278,6 +1286,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? selectedEntityKind = null,
     Object? selectedTerrainPresetId = freezed,
     Object? selectedPathPresetId = freezed,
+    Object? selectedSurfacePresetId = freezed,
     Object? selectedTerrainPresetByType = null,
     Object? collisionBrushSizeMode = null,
     Object? selectedEntityId = freezed,
@@ -1368,6 +1377,10 @@ class __$$EditorStateImplCopyWithImpl<$Res>
       selectedPathPresetId: freezed == selectedPathPresetId
           ? _value.selectedPathPresetId
           : selectedPathPresetId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      selectedSurfacePresetId: freezed == selectedSurfacePresetId
+          ? _value.selectedSurfacePresetId
+          : selectedSurfacePresetId // ignore: cast_nullable_to_non_nullable
               as String?,
       selectedTerrainPresetByType: null == selectedTerrainPresetByType
           ? _value._selectedTerrainPresetByType
@@ -1509,6 +1522,7 @@ class _$EditorStateImpl implements _EditorState {
       this.selectedEntityKind = MapEntityKind.npc,
       this.selectedTerrainPresetId,
       this.selectedPathPresetId,
+      this.selectedSurfacePresetId,
       final Map<TerrainType, String> selectedTerrainPresetByType = const {},
       this.collisionBrushSizeMode = CollisionBrushSizeMode.brushFootprint,
       this.selectedEntityId,
@@ -1582,6 +1596,8 @@ class _$EditorStateImpl implements _EditorState {
   final String? selectedTerrainPresetId;
   @override
   final String? selectedPathPresetId;
+  @override
+  final String? selectedSurfacePresetId;
   final Map<TerrainType, String> _selectedTerrainPresetByType;
   @override
   @JsonKey()
@@ -1695,7 +1711,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, pokemonCatalogSection: $pokemonCatalogSection, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, npcWaypointPlacementEntityId: $npcWaypointPlacementEntityId, selectedMapEventId: $selectedMapEventId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, tilesElementsPanelMode: $tilesElementsPanelMode, selectedPlacedElementInstanceId: $selectedPlacedElementInstanceId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, pokemonCatalogSection: $pokemonCatalogSection, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedSurfacePresetId: $selectedSurfacePresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, npcWaypointPlacementEntityId: $npcWaypointPlacementEntityId, selectedMapEventId: $selectedMapEventId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, tilesElementsPanelMode: $tilesElementsPanelMode, selectedPlacedElementInstanceId: $selectedPlacedElementInstanceId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -1732,6 +1748,8 @@ class _$EditorStateImpl implements _EditorState {
                 other.selectedTerrainPresetId == selectedTerrainPresetId) &&
             (identical(other.selectedPathPresetId, selectedPathPresetId) ||
                 other.selectedPathPresetId == selectedPathPresetId) &&
+            (identical(other.selectedSurfacePresetId, selectedSurfacePresetId) ||
+                other.selectedSurfacePresetId == selectedSurfacePresetId) &&
             const DeepCollectionEquality().equals(
                 other._selectedTerrainPresetByType,
                 _selectedTerrainPresetByType) &&
@@ -1764,10 +1782,8 @@ class _$EditorStateImpl implements _EditorState {
                     selectedPlacedElementInstanceId) &&
             (identical(other.selectedProjectDialogueId, selectedProjectDialogueId) ||
                 other.selectedProjectDialogueId == selectedProjectDialogueId) &&
-            (identical(other.selectedTrainerId, selectedTrainerId) ||
-                other.selectedTrainerId == selectedTrainerId) &&
-            (identical(other.selectedCharacterId, selectedCharacterId) ||
-                other.selectedCharacterId == selectedCharacterId) &&
+            (identical(other.selectedTrainerId, selectedTrainerId) || other.selectedTrainerId == selectedTrainerId) &&
+            (identical(other.selectedCharacterId, selectedCharacterId) || other.selectedCharacterId == selectedCharacterId) &&
             (identical(other.paletteCategoryFilter, paletteCategoryFilter) || other.paletteCategoryFilter == paletteCategoryFilter) &&
             (identical(other.zoom, zoom) || other.zoom == zoom) &&
             (identical(other.panOffset, panOffset) || other.panOffset == panOffset) &&
@@ -1801,6 +1817,7 @@ class _$EditorStateImpl implements _EditorState {
         selectedEntityKind,
         selectedTerrainPresetId,
         selectedPathPresetId,
+        selectedSurfacePresetId,
         const DeepCollectionEquality().hash(_selectedTerrainPresetByType),
         collisionBrushSizeMode,
         selectedEntityId,
@@ -1858,6 +1875,7 @@ abstract class _EditorState implements EditorState {
       final MapEntityKind selectedEntityKind,
       final String? selectedTerrainPresetId,
       final String? selectedPathPresetId,
+      final String? selectedSurfacePresetId,
       final Map<TerrainType, String> selectedTerrainPresetByType,
       final CollisionBrushSizeMode collisionBrushSizeMode,
       final String? selectedEntityId,
@@ -1919,6 +1937,8 @@ abstract class _EditorState implements EditorState {
   String? get selectedTerrainPresetId;
   @override
   String? get selectedPathPresetId;
+  @override
+  String? get selectedSurfacePresetId;
   @override
   Map<TerrainType, String> get selectedTerrainPresetByType;
   @override

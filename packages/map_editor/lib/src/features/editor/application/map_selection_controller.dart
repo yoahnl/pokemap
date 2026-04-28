@@ -228,11 +228,14 @@ class MapSelectionController {
         return layer is CollisionLayer;
       case EditorToolType.terrainPaint:
         return layer is TerrainLayer || layer is PathLayer;
+      case EditorToolType.surfacePaint:
+        return layer is SurfaceLayer;
       case EditorToolType.eraser:
         return layer is TileLayer ||
             layer is CollisionLayer ||
             layer is TerrainLayer ||
-            layer is PathLayer;
+            layer is PathLayer ||
+            layer is SurfaceLayer;
     }
   }
 

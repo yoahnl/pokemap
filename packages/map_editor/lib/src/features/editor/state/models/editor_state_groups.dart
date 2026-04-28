@@ -64,6 +64,7 @@ class EditorSelectionState {
     required this.selectedEntityKind,
     required this.selectedTerrainPresetId,
     required this.selectedPathPresetId,
+    required this.selectedSurfacePresetId,
     required this.selectedTerrainPresetByType,
     required this.collisionBrushSizeMode,
     required this.selectedEntityId,
@@ -92,6 +93,7 @@ class EditorSelectionState {
   final MapEntityKind selectedEntityKind;
   final String? selectedTerrainPresetId;
   final String? selectedPathPresetId;
+  final String? selectedSurfacePresetId;
   final Map<TerrainType, String> selectedTerrainPresetByType;
   final CollisionBrushSizeMode collisionBrushSizeMode;
   final String? selectedEntityId;
@@ -120,6 +122,7 @@ class EditorSelectionState {
     MapEntityKind? selectedEntityKind,
     Object? selectedTerrainPresetId = _editorStateGroupsUnset,
     Object? selectedPathPresetId = _editorStateGroupsUnset,
+    Object? selectedSurfacePresetId = _editorStateGroupsUnset,
     Map<TerrainType, String>? selectedTerrainPresetByType,
     CollisionBrushSizeMode? collisionBrushSizeMode,
     Object? selectedEntityId = _editorStateGroupsUnset,
@@ -158,6 +161,10 @@ class EditorSelectionState {
           identical(selectedPathPresetId, _editorStateGroupsUnset)
               ? this.selectedPathPresetId
               : selectedPathPresetId as String?,
+      selectedSurfacePresetId:
+          identical(selectedSurfacePresetId, _editorStateGroupsUnset)
+              ? this.selectedSurfacePresetId
+              : selectedSurfacePresetId as String?,
       selectedTerrainPresetByType:
           selectedTerrainPresetByType ?? this.selectedTerrainPresetByType,
       collisionBrushSizeMode:
@@ -324,6 +331,7 @@ extension EditorStateGroups on EditorState {
         selectedEntityKind: selectedEntityKind,
         selectedTerrainPresetId: selectedTerrainPresetId,
         selectedPathPresetId: selectedPathPresetId,
+        selectedSurfacePresetId: selectedSurfacePresetId,
         selectedTerrainPresetByType: selectedTerrainPresetByType,
         collisionBrushSizeMode: collisionBrushSizeMode,
         selectedEntityId: selectedEntityId,
@@ -382,6 +390,7 @@ extension EditorStateGroups on EditorState {
       selectedEntityKind: next.selectedEntityKind,
       selectedTerrainPresetId: next.selectedTerrainPresetId,
       selectedPathPresetId: next.selectedPathPresetId,
+      selectedSurfacePresetId: next.selectedSurfacePresetId,
       selectedTerrainPresetByType: next.selectedTerrainPresetByType,
       collisionBrushSizeMode: next.collisionBrushSizeMode,
       selectedEntityId: next.selectedEntityId,

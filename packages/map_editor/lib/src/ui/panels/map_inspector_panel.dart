@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import '../../application/models/terrain_selection_mode.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/tools/editor_tool.dart';
+import '../../features/surface_painter/surface_palette_panel.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/inspector_section_card.dart';
 import 'encounter_tables_panel.dart';
@@ -25,6 +26,7 @@ enum _InspectorSectionId {
   layers,
   tiles,
   ground,
+  surfacePlacements,
   surfaces,
   entities,
   events,
@@ -69,6 +71,10 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
     final hasTerrainLayers =
         activeMap.layers.any((layer) => layer is TerrainLayer);
     final hasPathLayers = activeMap.layers.any((layer) => layer is PathLayer);
+    final hasSurfaceLayers =
+        activeMap.layers.any((layer) => layer is SurfaceLayer);
+    final hasSurfacePresets =
+        state.project?.surfaceCatalog.presets.isNotEmpty ?? false;
     final showTilesSection = activeLayer is TileLayer ||
         state.activeTool == EditorToolType.tilePaint ||
         (state.activeLayerId == null && hasTileLayers);
@@ -78,6 +84,10 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                 state.activeTool == EditorToolType.terrainPaint &&
                 state.terrainSelectionMode == TerrainSelectionMode.terrain));
     final showSurfaceSection = hasPathLayers && activeLayer is PathLayer;
+    final showSurfacePlacementSection = hasSurfaceLayers ||
+        hasSurfacePresets ||
+        activeLayer is SurfaceLayer ||
+        state.activeTool == EditorToolType.surfacePaint;
     const showConnectionsSection = true;
     final showEntitySection =
         state.activeTool == EditorToolType.entityPlacement ||
@@ -191,6 +201,26 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     embedded: true,
                     mode: TerrainMapPanelMode.groundOnly,
                   ),
+                ),
+              if (showSurfacePlacementSection)
+                InspectorSectionCard(
+                  title: 'Surfaces',
+                  subtitle:
+                      'Choisir une surface et poser des placements dans la map.',
+                  icon: CupertinoIcons.drop,
+                  accentColor: EditorChrome.inspectorJoyCyan,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.surfacePlacements,
+                    activeLayer is SurfaceLayer ||
+                        state.activeTool == EditorToolType.surfacePaint,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.surfacePlacements,
+                    defaultExpanded: activeLayer is SurfaceLayer ||
+                        state.activeTool == EditorToolType.surfacePaint,
+                  ),
+                  expandedHeight: 380,
+                  child: const SurfacePainterPanel(embedded: true),
                 ),
               if (showSurfaceSection)
                 InspectorSectionCard(

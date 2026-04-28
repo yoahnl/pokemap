@@ -102,5 +102,41 @@ void main() {
 
       expect(next.activeTool, EditorToolType.selection);
     });
+
+    test('surface paint is compatible only with SurfaceLayer', () {
+      const map = MapData(
+        id: 'map_1',
+        name: 'Map 1',
+        size: GridSize(width: 4, height: 4),
+        layers: [
+          SurfaceLayer(id: 'surface', name: 'Surfaces'),
+          TerrainLayer(id: 'ground', name: 'Ground'),
+        ],
+      );
+
+      const surfaceState = EditorState(
+        activeMap: map,
+        activeLayerId: 'surface',
+        activeTool: EditorToolType.surfacePaint,
+      );
+      const groundState = EditorState(
+        activeMap: map,
+        activeLayerId: 'ground',
+        activeTool: EditorToolType.surfacePaint,
+      );
+
+      expect(
+        controller
+            .coerceActiveToolIfIncompatibleWithLayer(surfaceState)
+            .activeTool,
+        EditorToolType.surfacePaint,
+      );
+      expect(
+        controller
+            .coerceActiveToolIfIncompatibleWithLayer(groundState)
+            .activeTool,
+        EditorToolType.selection,
+      );
+    });
   });
 }

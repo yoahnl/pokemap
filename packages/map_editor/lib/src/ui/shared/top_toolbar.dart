@@ -75,7 +75,8 @@ class TopToolbar extends ConsumerWidget {
     final canEraseOnActiveLayer = activeLayer is TileLayer ||
         activeLayer is CollisionLayer ||
         activeLayer is TerrainLayer ||
-        activeLayer is PathLayer;
+        activeLayer is PathLayer ||
+        activeLayer is SurfaceLayer;
 
     final showTerrainTypePulldown = activeLayer is TerrainLayer &&
         toolbar.activeTool == EditorToolType.terrainPaint &&
@@ -291,6 +292,13 @@ class TopToolbar extends ConsumerWidget {
                 selected: toolbar.activeTool == EditorToolType.terrainPaint &&
                     toolbar.terrainSelectionMode == TerrainSelectionMode.path,
                 onPressed: notifier.selectPathPaintMode,
+              ),
+            if (activeLayer is SurfaceLayer)
+              ToolbarCapsuleButton(
+                icon: CupertinoIcons.drop,
+                tooltip: 'Surface Paint Tool',
+                selected: toolbar.activeTool == EditorToolType.surfacePaint,
+                onPressed: notifier.selectSurfacePaintMode,
               ),
             if (activeLayer is CollisionLayer) ...[
               ToolbarCapsuleButton(

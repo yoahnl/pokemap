@@ -2,6 +2,7 @@ enum EditorToolType {
   selection,
   tilePaint,
   terrainPaint,
+  surfacePaint,
   collisionPaint,
   entityPlacement,
   eventPlacement,

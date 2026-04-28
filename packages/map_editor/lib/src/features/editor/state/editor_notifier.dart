@@ -39,6 +39,7 @@ import '../application/project_session_controller.dart';
 import '../application/project_session_models.dart';
 import '../tools/editor_tool.dart';
 import 'editor_state.dart';
+import '../../surface_painter/surface_painting_controller.dart';
 
 part 'editor_notifier.g.dart';
 
@@ -97,6 +98,8 @@ class EditorNotifier extends _$EditorNotifier {
       ref.read(terrainPaintingCoordinatorProvider);
   PathLayerEditingCoordinator get _pathLayerEditingCoordinator =>
       ref.read(pathLayerEditingCoordinatorProvider);
+  SurfacePaintingController get _surfacePaintingController =>
+      const SurfacePaintingController();
   ElementCollisionProfileGenerator get _elementCollisionProfileGenerator =>
       ref.read(elementCollisionProfileGeneratorProvider);
   PlacedElementInstanceIndexer get _placedElementInstanceIndexer =>
@@ -1269,6 +1272,10 @@ class EditorNotifier extends _$EditorNotifier {
     return _terrainPresetResolver.listPathPresets(project);
   }
 
+  List<ProjectSurfacePreset> getSurfacePresets() {
+    return state.project?.surfaceCatalog.presets ?? const [];
+  }
+
   List<ProjectPresetCategory> getPresetCategories({
     required PresetLibraryKind kind,
     String? parentCategoryId,
@@ -1320,6 +1327,16 @@ class EditorNotifier extends _$EditorNotifier {
     return _terrainPresetResolver.findPathPresetById(project, presetId);
   }
 
+  ProjectSurfacePreset? getSurfacePresetById(String? presetId) {
+    final normalizedPresetId = presetId?.trim();
+    if (normalizedPresetId == null || normalizedPresetId.isEmpty) {
+      return null;
+    }
+    final project = state.project;
+    if (project == null) return null;
+    return project.surfaceCatalog.presetById(normalizedPresetId);
+  }
+
   ProjectTerrainPreset? getSelectedTerrainPreset({TerrainType? terrainType}) {
     final project = state.project;
     if (project == null) return null;
@@ -1339,6 +1356,10 @@ class EditorNotifier extends _$EditorNotifier {
       project,
       selectedPathPresetId: state.selectedPathPresetId,
     );
+  }
+
+  ProjectSurfacePreset? getSelectedSurfacePreset() {
+    return getSurfacePresetById(state.selectedSurfacePresetId);
   }
 
   Map<TerrainType, ProjectTerrainPreset> getTerrainPresetByType() {
@@ -2338,6 +2359,41 @@ class EditorNotifier extends _$EditorNotifier {
     _setPaintError('Active layer "${activeLayer.name}" is not editable');
   }
 
+  void paintSurfaceAt(GridPos pos) {
+    final map = state.activeMap;
+    if (map == null) {
+      _setPaintError('No active map selected');
+      return;
+    }
+    final selectedPreset = getSelectedSurfacePreset();
+    if (selectedPreset == null) {
+      _setPaintError('Select a surface before painting');
+      return;
+    }
+
+    try {
+      final result = _surfacePaintingController.paint(
+        map: map,
+        targetLayerId: state.activeLayerId,
+        surfacePresetId: selectedPreset.id,
+        pos: pos,
+      );
+      if (!result.changed) {
+        state = state.copyWith(errorMessage: null);
+        return;
+      }
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.map,
+        preferredActiveLayerId: result.layerId,
+        statusMessage: 'Surface painted: ${selectedPreset.name}',
+        partOfStroke: true,
+      );
+    } catch (e) {
+      _setPaintError('Failed to paint surface: $e');
+    }
+  }
+
   void fillActiveTerrainLayer(TerrainType terrain) {
     final layerContext = _resolveActiveTerrainLayerContext(emitErrors: true);
     if (layerContext == null) return;
@@ -2451,6 +2507,29 @@ class EditorNotifier extends _$EditorNotifier {
         patternSize: pathFootprint.size,
         failureLabel: pathFootprint.failureLabel,
       );
+      return;
+    }
+    if (activeLayer is SurfaceLayer) {
+      try {
+        final erased = _surfacePaintingController.erase(
+          map: map,
+          targetLayerId: layerId,
+          pos: pos,
+        );
+        if (!erased.changed) {
+          state = state.copyWith(errorMessage: null);
+          return;
+        }
+        _applyMapMutation(
+          previousMap: map,
+          updatedMap: erased.map,
+          preferredActiveLayerId: erased.layerId,
+          statusMessage: 'Surface placement erased',
+          partOfStroke: true,
+        );
+      } catch (e) {
+        _setPaintError('Failed to erase surface: $e');
+      }
       return;
     }
     _setPaintError('Active layer "${activeLayer.name}" is not editable');
@@ -4464,6 +4543,37 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  void addSurfaceLayer({
+    String name = 'Surfaces',
+  }) {
+    final map = state.activeMap;
+    if (map == null) return;
+    try {
+      final useCase = ref.read(addMapLayerUseCaseProvider);
+      int? insertIndex;
+      final activeId = state.activeLayerId;
+      if (activeId != null) {
+        final idx = map.layers.indexWhere((layer) => layer.id == activeId);
+        if (idx >= 0) {
+          insertIndex = idx;
+        }
+      }
+      final result = useCase.executeSurface(
+        map,
+        name: name,
+        insertIndex: insertIndex,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.map,
+        preferredActiveLayerId: result.layer.id,
+        statusMessage: 'Surface layer "${result.layer.name}" added',
+      );
+    } catch (e) {
+      state = state.copyWith(errorMessage: 'Failed to add surface layer: $e');
+    }
+  }
+
   void renameMapLayer(String layerId, String name) {
     final map = state.activeMap;
     if (map == null) return;
@@ -4676,6 +4786,20 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  void selectSurfacePreset(String? presetId) {
+    final preset = getSurfacePresetById(presetId);
+    if (preset == null) {
+      state = state.copyWith(errorMessage: 'Surface not found');
+      return;
+    }
+    state = state.copyWith(
+      selectedSurfacePresetId: preset.id,
+      activeTool: EditorToolType.surfacePaint,
+      statusMessage: 'Surface sélectionnée : ${preset.name}',
+      errorMessage: null,
+    );
+  }
+
   void selectPathPresetForActivePathLayer(String? presetId) {
     final preset = getPathPresetById(presetId);
     if (preset == null) {
@@ -4708,6 +4832,18 @@ class EditorNotifier extends _$EditorNotifier {
     state = _mapSelectionController.selectPathPaintMode(
       current: state,
       selectedPathPreset: getSelectedPathPreset(),
+    );
+  }
+
+  void selectSurfacePaintMode() {
+    if (getSelectedSurfacePreset() == null) {
+      state = state.copyWith(errorMessage: 'Select a surface before painting');
+      return;
+    }
+    state = state.copyWith(
+      activeTool: EditorToolType.surfacePaint,
+      statusMessage: 'Surface paint mode',
+      errorMessage: null,
     );
   }
 
@@ -5472,6 +5608,50 @@ class EditorNotifier extends _$EditorNotifier {
     state = state.copyWith(
       errorMessage: 'No path layer found in this map',
     );
+  }
+
+  void activateFirstSurfaceLayer({
+    bool createIfMissing = false,
+  }) {
+    final map = state.activeMap;
+    if (map == null) return;
+    for (final layer in map.layers) {
+      if (layer is SurfaceLayer) {
+        state = state.copyWith(
+          activeLayerId: layer.id,
+          statusMessage: 'Layer "${layer.name}" selected',
+          errorMessage: null,
+        );
+        _coerceActiveToolIfIncompatibleWithLayer();
+        return;
+      }
+    }
+    if (!createIfMissing) {
+      state = state.copyWith(
+        errorMessage: 'No surface layer found in this map',
+      );
+      return;
+    }
+
+    try {
+      final result = _surfacePaintingController.ensureSurfaceLayer(
+        map: map,
+        preferredLayerId: state.activeLayerId,
+      );
+      if (!result.changed) {
+        state = state.copyWith(activeLayerId: result.layerId);
+        return;
+      }
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.map,
+        preferredActiveLayerId: result.layerId,
+        statusMessage: 'Surface layer created',
+      );
+    } catch (e) {
+      state =
+          state.copyWith(errorMessage: 'Failed to create surface layer: $e');
+    }
   }
 
   void setCollisionBrushSizeMode(CollisionBrushSizeMode mode) {
