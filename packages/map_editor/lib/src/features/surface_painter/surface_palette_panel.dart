@@ -137,10 +137,12 @@ class SurfacePainterPanel extends ConsumerWidget {
 
     final content = Padding(
       padding: EdgeInsets.all(embedded ? 0 : 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _SurfaceLayerTargetBlock(
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _SurfaceLayerTargetBlock(
             surfaceLayers: surfaceLayers,
             activeLayer: activeLayer,
             onSelect: notifier.setActiveLayer,
@@ -191,7 +193,7 @@ class SurfacePainterPanel extends ConsumerWidget {
               ),
               CupertinoButton(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 onPressed: map == null
                     ? null
                     : () async {
@@ -224,8 +226,10 @@ class SurfacePainterPanel extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(CupertinoIcons.add_circled, size: 16),
-                    SizedBox(width: 6),
-                    Text('Créer une zone de rencontre'),
+                    SizedBox(width: 4),
+                    Flexible(
+                      child: Text('Créer une zone de rencontre'),
+                    ),
                   ],
                 ),
               ),

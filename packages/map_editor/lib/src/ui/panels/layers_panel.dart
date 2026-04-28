@@ -466,6 +466,7 @@ class _LayerList extends StatelessWidget {
                                 onPressed: () =>
                                     notifier.setActiveLayer(layer.id),
                                 child: Row(
+                                  clipBehavior: Clip.hardEdge,
                                   children: [
                                     MacosIcon(
                                       _iconForLayer(layer),
@@ -478,7 +479,7 @@ class _LayerList extends StatelessWidget {
                                               0.55,
                                             )!,
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: 7),
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment:
