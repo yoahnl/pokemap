@@ -102,7 +102,9 @@ class SurfaceStudioAtlasFrameCropPainter extends CustomPainter {
       image,
       srcRect,
       dst,
-      Paint()..filterQuality = FilterQuality.medium,
+      // Surface Studio affiche des extraits d'atlas pixel-art : le filtre
+      // nearest-neighbor garde la tuile nette au lieu de la lisser/étirer.
+      Paint()..filterQuality = FilterQuality.none,
     );
   }
 
@@ -163,7 +165,8 @@ class _SurfaceStudioVerticalAtlasAnimationPreviewState
   }
 
   @override
-  void didUpdateWidget(covariant SurfaceStudioVerticalAtlasAnimationPreview oldWidget) {
+  void didUpdateWidget(
+      covariant SurfaceStudioVerticalAtlasAnimationPreview oldWidget) {
     super.didUpdateWidget(oldWidget);
     final pathChanged = widget.resolvedImagePath != oldWidget.resolvedImagePath;
     final draftChanged = widget.mappingDraft != oldWidget.mappingDraft;
@@ -271,8 +274,7 @@ class _SurfaceStudioVerticalAtlasAnimationPreviewState
   }
 
   /// Fond du menu : assez sombre pour garder [widget.label] lisible (évite chips M3 clairs).
-  Color _columnPickerMenuBackground(BuildContext context) =>
-      Color.alphaBlend(
+  Color _columnPickerMenuBackground(BuildContext context) => Color.alphaBlend(
         Colors.black.withValues(alpha: 0.42),
         EditorChrome.islandFillElevated(context),
       );
@@ -344,14 +346,16 @@ class _SurfaceStudioVerticalAtlasAnimationPreviewState
           if (!gridOk) ...[
             Text(
               'Corrigez la grille avant de prévisualiser une animation.',
-              style: TextStyle(color: widget.subtle, fontSize: 11, height: 1.35),
+              style:
+                  TextStyle(color: widget.subtle, fontSize: 11, height: 1.35),
             ),
           ] else if (widget.mappingDraft.assignments
               .where((a) => a.role != null)
               .isEmpty) ...[
             Text(
               'Assignez un rôle à une colonne pour prévisualiser son animation.',
-              style: TextStyle(color: widget.subtle, fontSize: 11, height: 1.35),
+              style:
+                  TextStyle(color: widget.subtle, fontSize: 11, height: 1.35),
             ),
           ] else ...[
             _buildControls(context, tw!, th!, rws!),
@@ -414,7 +418,8 @@ class _SurfaceStudioVerticalAtlasAnimationPreviewState
         const SizedBox(height: 6),
         Text(
           'Colonne à prévisualiser',
-          style: TextStyle(color: widget.label, fontSize: 11, fontWeight: FontWeight.w600),
+          style: TextStyle(
+              color: widget.label, fontSize: 11, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 2),
         Text(
@@ -474,7 +479,10 @@ class _SurfaceStudioVerticalAtlasAnimationPreviewState
           ),
         ),
         const SizedBox(height: 8),
-        Row(
+        Wrap(
+          key: const ValueKey('surface_animation_preview_actions'),
+          spacing: 8,
+          runSpacing: 6,
           children: [
             OutlinedButton(
               onPressed: rws <= 0
@@ -486,7 +494,6 @@ class _SurfaceStudioVerticalAtlasAnimationPreviewState
                     },
               child: const Text('Frame précédente'),
             ),
-            const SizedBox(width: 8),
             OutlinedButton(
               onPressed: rws <= 0
                   ? null
@@ -497,7 +504,6 @@ class _SurfaceStudioVerticalAtlasAnimationPreviewState
                     },
               child: const Text('Frame suivante'),
             ),
-            const SizedBox(width: 8),
             OutlinedButton(
               onPressed: rws <= 0 ? null : _togglePlay,
               child: Text(_playing ? 'Pause' : 'Lecture'),
@@ -510,17 +516,21 @@ class _SurfaceStudioVerticalAtlasAnimationPreviewState
           style: TextStyle(color: widget.subtle, fontSize: 10.5, height: 1.35),
         ),
         const SizedBox(height: 6),
-        SizedBox(
-          height: 96,
-          width: 96,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              border: Border.all(color: widget.label.withValues(alpha: 0.35)),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: _buildPreviewVisual(sr, tw, th),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: SizedBox(
+            key: const ValueKey('surface_animation_preview_tile_box'),
+            height: 96,
+            width: 96,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border.all(color: widget.label.withValues(alpha: 0.35)),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: _buildPreviewVisual(sr, tw, th),
+              ),
             ),
           ),
         ),

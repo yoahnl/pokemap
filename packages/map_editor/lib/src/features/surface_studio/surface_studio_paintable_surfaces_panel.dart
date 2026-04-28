@@ -19,7 +19,6 @@ class SurfaceStudioPaintableSurfacesPanel extends StatelessWidget {
     this.onSaveCatalogPressed,
     this.onPresetSelected,
     this.onEditMappingPressed,
-    this.mappingEditor,
   });
 
   final SurfaceStudioReadModel readModel;
@@ -28,7 +27,6 @@ class SurfaceStudioPaintableSurfacesPanel extends StatelessWidget {
   final VoidCallback? onSaveCatalogPressed;
   final ValueChanged<String>? onPresetSelected;
   final ValueChanged<String>? onEditMappingPressed;
-  final Widget? mappingEditor;
 
   @override
   Widget build(BuildContext context) {
@@ -80,10 +78,6 @@ class SurfaceStudioPaintableSurfacesPanel extends StatelessWidget {
               ),
               if (i != presets.length - 1) const SizedBox(height: 8),
             ],
-          if (mappingEditor != null) ...[
-            const SizedBox(height: 12),
-            mappingEditor!,
-          ],
           const SizedBox(height: 12),
           CupertinoButton(
             key: const ValueKey('surface_studio_guidance_create_surface'),
@@ -250,7 +244,7 @@ class _PaintableSurfaceRow extends StatelessWidget {
               key: ValueKey('surface_paintable_edit_mapping_${row.id}'),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
               onPressed: onEditMapping,
-              child: const Text('Modifier le mapping'),
+              child: const Text('Modifier le mapping visuel'),
             ),
           ],
         ],

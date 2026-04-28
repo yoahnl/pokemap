@@ -1,6 +1,8 @@
 // Tests widget — Surface Studio panel (Lot 52).
 // Imports `map_core` en API publique uniquement (pas de `map_core/src/...`).
 
+import 'dart:ui' as ui;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -1463,6 +1465,8 @@ void main() {
         '88-bis.1 — modifier le mapping met le catalogue de travail dirty et sauvegardable',
         (tester) async {
       ProjectSurfaceCatalog? saved;
+      final atlasImage = await _fakeAtlasImage();
+      addTearDown(atlasImage.dispose);
       await tester.binding.setSurfaceSize(const Size(1600, 1100));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
@@ -1471,6 +1475,9 @@ void main() {
             readModel: buildSurfaceStudioReadModelFromCatalog(
               _roleMappingCatalog(),
             ),
+            projectRootPath: '/project',
+            projectTilesets: _surfaceTilesets(),
+            surfaceMappingImageLoader: (_) async => atlasImage,
             onSurfaceCatalogSaveRequested: (catalog) => saved = catalog,
           ),
         ),
@@ -1479,15 +1486,27 @@ void main() {
       final editButton =
           find.byKey(const ValueKey('surface_paintable_edit_mapping_water'));
       await tester.ensureVisible(editButton);
+      expect(find.text('Modifier le mapping visuel'), findsOneWidget);
       await tester.tap(editButton);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Surface Mapping Editor'), findsOneWidget);
+      expect(find.text('Atlas réel cliquable'), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey('surface_role_slot_endNorth')),
+      );
       await tester.pump();
 
-      expect(find.text('Édition du mapping de surface'), findsOneWidget);
-      final dropdown =
-          find.byKey(const ValueKey('surface_role_mapping_dropdown_cross'));
-      final button = tester.widget<DropdownButton<String>>(dropdown);
-      button.onChanged!('water-horizontal');
+      final hitArea = find.byKey(const ValueKey('surface_real_atlas_hit_area'));
+      final topLeft = tester.getTopLeft(hitArea);
+      final size = tester.getSize(hitArea);
+      await tester.tapAt(topLeft + Offset(size.width * 0.75, size.height / 2));
       await tester.pump();
+
+      await tester.tap(
+        find.byKey(const ValueKey('surface_mapping_editor_close')),
+      );
+      await tester.pumpAndSettle();
 
       expect(
         find.text(SurfaceStudioPanel.workCatalogDirtyStateText),
@@ -1504,7 +1523,7 @@ void main() {
       expect(
         saved!
             .presetById('water')!
-            .animationIdForRole(SurfaceVariantRole.cross),
+            .animationIdForRole(SurfaceVariantRole.endNorth),
         'water-horizontal',
       );
       expect(
@@ -1963,6 +1982,38 @@ ProjectSurfaceCatalog _roleMappingCatalog() {
       ),
     ],
   );
+}
+
+List<ProjectTilesetEntry> _surfaceTilesets() => const [
+      ProjectTilesetEntry(
+        id: 'nature-tileset',
+        name: 'Nature Tileset',
+        relativePath: 'assets/tilesets/nature.png',
+      ),
+    ];
+
+Future<ui.Image> _fakeAtlasImage() async {
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(0, 0, 32, 64),
+    ui.Paint()..color = const ui.Color(0xFF0EA5E9),
+  );
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(32, 0, 32, 64),
+    ui.Paint()..color = const ui.Color(0xFF22C55E),
+  );
+  canvas.drawLine(
+    const ui.Offset(32, 0),
+    const ui.Offset(32, 64),
+    ui.Paint()
+      ..color = const ui.Color(0xFFFFFFFF)
+      ..strokeWidth = 2,
+  );
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(64, 64);
+  picture.dispose();
+  return image;
 }
 
 ProjectSurfaceCatalog _catalogWithUnusedAtlas() {

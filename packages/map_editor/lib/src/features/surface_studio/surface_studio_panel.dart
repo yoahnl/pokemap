@@ -61,12 +61,14 @@ class SurfaceStudioPanel extends StatefulWidget {
     this.onRequestProjectSave,
     this.projectTilesets,
     this.projectRootPath,
+    this.surfaceMappingImageLoader,
   });
 
   final SurfaceStudioReadModel readModel;
   final ValueChanged<ProjectSurfaceCatalog>? onSurfaceCatalogSaveRequested;
   final Future<bool> Function()? onRequestProjectSave;
   final List<ProjectTilesetEntry>? projectTilesets;
+  final SurfaceStudioAtlasUiImageLoader? surfaceMappingImageLoader;
 
   /// Racine projet sur disque pour résoudre les chemins d’images tileset (aperçu Lot 72).
   final String? projectRootPath;
@@ -268,6 +270,78 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
     });
   }
 
+  Future<void> _openPresetMappingEditor(String presetId) async {
+    final preset = _workReadModel.catalog.presetById(presetId);
+    if (preset == null) {
+      return;
+    }
+    setState(() {
+      _selection = SurfaceStudioSelection.preset(presetId);
+    });
+    await showMacosSheet<void>(
+      context: context,
+      builder: (ctx) => Center(
+        child: MacosSheet(
+          insetPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: SizedBox(
+              key: const ValueKey('surface_mapping_editor_sheet'),
+              width: 1120,
+              height: 760,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Surface Mapping Editor',
+                          style: editorMacosSheetTitleStyle(ctx),
+                        ),
+                      ),
+                      PushButton(
+                        key: const ValueKey('surface_mapping_editor_close'),
+                        controlSize: ControlSize.large,
+                        secondary: true,
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Fermer'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Étape 1 : choisissez un slot visuel. Étape 2 : cliquez directement une colonne dans l’atlas réel.',
+                    style: TextStyle(
+                      color: _surfaceStudioAccent,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: SurfaceStudioRoleMappingEditor(
+                        catalog: _workReadModel.catalog,
+                        preset: preset,
+                        projectRootPath: widget.projectRootPath,
+                        projectTilesets: widget.projectTilesets ??
+                            const <ProjectTilesetEntry>[],
+                        imageLoader: widget.surfaceMappingImageLoader,
+                        onRoleAnimationChanged: _onPresetRoleAnimationChanged,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = _workReadModel.summary;
@@ -325,20 +399,11 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
     final detectedAnimations =
         SurfaceStudioDetectedAnimationsPanel(readModel: _workReadModel);
     final selectedPreset = _selectedWorkPreset();
-    final mappingEditor = selectedPreset == null
-        ? null
-        : SurfaceStudioRoleMappingEditor(
-            catalog: _workReadModel.catalog,
-            preset: selectedPreset,
-            onRoleAnimationChanged:
-                canMutateCatalog ? _onPresetRoleAnimationChanged : null,
-          );
     final paintableSurfaces = SurfaceStudioPaintableSurfacesPanel(
       readModel: _workReadModel,
       selectedPresetId: selectedPreset?.id,
       onPresetSelected: _selectPreset,
-      onEditMappingPressed: canMutateCatalog ? _selectPreset : null,
-      mappingEditor: canMutateCatalog ? mappingEditor : null,
+      onEditMappingPressed: canMutateCatalog ? _openPresetMappingEditor : null,
       onSaveCatalogPressed: widget.onSurfaceCatalogSaveRequested != null
           ? _onSurfaceCatalogSavePrep
           : null,

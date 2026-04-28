@@ -75,7 +75,8 @@ void main() {
       expect(find.text('Aperçu animation par colonne'), findsOneWidget);
     });
 
-    testWidgets('grille invalide : message sans jargon interdit', (tester) async {
+    testWidgets('grille invalide : message sans jargon interdit',
+        (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -175,7 +176,8 @@ void main() {
       },
     );
 
-    testWidgets('23 colonnes × 32 lignes : 32 frames affichées', (tester) async {
+    testWidgets('23 colonnes × 32 lignes : 32 frames affichées',
+        (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -194,6 +196,50 @@ void main() {
       await tester.pump();
       await tester.pump();
       expect(find.text('Frames : 32'), findsOneWidget);
+    });
+
+    testWidgets('preview controls stay constrained on narrow width',
+        (tester) async {
+      tester.view.physicalSize = const Size(420, 720);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 260,
+                child: SurfaceStudioVerticalAtlasAnimationPreview(
+                  label: Colors.white,
+                  subtle: Colors.grey,
+                  mappingDraft:
+                      SurfaceStudioColumnRoleMappingDraft.suggested(2),
+                  tileWidth: 32,
+                  tileHeight: 32,
+                  columns: 2,
+                  rows: 4,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(const ValueKey('surface_animation_preview_actions')),
+          findsOneWidget);
+      final preview =
+          find.byKey(const ValueKey('surface_animation_preview_tile_box'));
+      expect(preview, findsOneWidget);
+      final size = tester.getSize(preview);
+      expect(size.width, lessThanOrEqualTo(96));
+      expect(size.height, lessThanOrEqualTo(96));
     });
   });
 }
