@@ -1,3 +1,301 @@
+# Lot 101 — Tall Grass Surface Workflow Hardening / Batch Apply V0
+
+## 1. Résumé exécutif honnête
+
+Le Lot 101 durcit le workflow éditeur du Lot 100 sans ouvrir de nouveau comportement. Le flux reste strictement limité à : surface peinte -> génération Lot 98 -> assessment Lot 99 -> création de `MapGameplayZone(kind: encounter)` pour l'herbe haute.
+
+La décision batch apply est prise et implémentée : `EditorNotifier.applyGeneratedGameplayZones(...)` construit une map draft en appliquant les zones générées via `addGameplayZoneToMap`, puis appelle `_applyMapMutation` une seule fois. Le helper `applyTallGrassEncounterGameplayZonePlan(...)` valide toujours que toutes les zones sont `encounter` + `EncounterKind.walk` avant toute mutation, puis utilise ce seam batch.
+
+Le lot ne modifie pas `map_core`, les modèles persistants, le JSON, `map_runtime`, `map_gameplay`, `map_battle`, ni SurfaceLayer. Aucun surf/lava/ice/mud n'est ouvert.
+
+## 2. Périmètre
+
+Inclus :
+
+- audit Lot 100, mutation editor, history et opérations `MapGameplayZone` ;
+- décision batch apply ;
+- seam batch borné dans `EditorNotifier` ;
+- helper tall grass mis à jour pour utiliser le batch ;
+- suppression de l'ancien getter `selectedGameplayZoneId` côté Surface palette ;
+- tests multi-zone, dirty state, sélection finale, absence de mutation partielle ;
+- rapport complet avec Evidence Pack.
+
+Exclus et respecté :
+
+- pas de surfable water ;
+- pas de lava, ice, mud ;
+- pas de runtime, gameplay, battle ;
+- pas de modification de modèle `MapGameplayZone`, `SurfaceLayer`, `SurfaceCellPlacement`, `MapData` ;
+- pas de JSON, build_runner, migration legacy, Surface Studio, assistant multi-step.
+
+Changements préexistants : aucun changement local au Gate 0.
+
+Changements du Lot 101 : quatre fichiers `map_editor` modifiés et ce rapport créé.
+
+## 3. Gate 0 — status initial
+
+Commandes exécutées avant modification :
+
+```text
+pwd
+git branch --show-current
+git status --short --untracked-files=all
+git diff --stat
+git log --oneline -n 10
+```
+
+Sorties :
+
+```text
+PWD
+/Users/karim/Project/pokemonProject
+
+BRANCH
+main
+
+STATUS
+
+DIFF_STAT
+
+LOG
+b224b0f6 fix: resolve RenderFlex overflow errors in layers and surface panels
+888f1339 fix: resolve RenderFlex overflow errors in layers and surface panels
+58ab7070 lot 100/95: Editor Generate Gameplay Zone from Surface
+15fa925c lot 99/95: Surface Gameplay - Surface to Gameplay Zone Coverage Diagnostics
+70b0f90d lot 98/95: Surface Gameplay - Surface to Gameplay Zone Generation Plan
+8d62718f lot 97/95: Surface Gameplay - Surface Gameplay Zone Authoring Workflow Spec
+ac7984f2 lot 96/95: Surface Gameplay - Zones Bridge Decision Report
+a4d62f39 lot 94/95: Surface Gameplay
+83654389 feat: add surface runtime test files and golden slice reports
+1f900e67 feat(map_runtime): render surface layers
+```
+
+Nested `AGENTS.md` :
+
+```text
+./AGENTS.md
+```
+
+Aucun `AGENTS.md` plus profond n'a été trouvé sous `packages/map_editor`.
+
+## 4. Context Mode usage
+
+Context Mode MCP a été utilisé pour :
+
+- Gate 0 ;
+- audit Lot 100 ;
+- audit mutation/history editor ;
+- audit `MapGameplayZone` operations ;
+- audit tests existants ;
+- sorties RED/GREEN, tests, analyze ;
+- status/diff final ;
+- `ctx_stats` final.
+
+Le binaire `ctx` n'est pas disponible dans le shell local, mais les outils MCP Context Mode sont disponibles. Les stats finales MCP :
+
+```text
+1.0M tokens saved · 90.2% reduction · 2h 43m
+Without context-mode: 4.4 MB
+With context-mode: 441.0 KB
+3.9 MB kept out of your conversation
+115 calls
+ctx_batch_execute: 14 calls, 3.0 MB saved
+ctx_execute: 58 calls, 545.5 KB saved
+ctx_search: 8 calls, 286.5 KB saved
+ctx_stats: 9 calls, 58.6 KB saved
+ctx_index: 20 calls, 33.9 KB saved
+ctx_doctor: 5 calls, 16.5 KB saved
+ctx_upgrade: 1 call, 4.6 KB saved
+version: v1.0.100
+update available: v1.0.100 -> v1.0.103
+```
+
+## 5. Audit Lot 100
+
+Commandes d'audit :
+
+```text
+rg -n "applyTallGrassEncounterGameplayZonePlan|SurfaceToGameplayZoneDialog|buildTallGrassEncounterSurfaceGameplayZonePreview|Créer une zone de rencontre|surface_to_gameplay_zone" packages/map_editor/lib packages/map_editor/test reports/surface
+sed -n '1,220p' packages/map_editor/lib/src/features/surface_painter/surface_to_gameplay_zone_action.dart
+sed -n '1,260p' packages/map_editor/lib/src/features/surface_painter/surface_to_gameplay_zone_dialog.dart
+sed -n '1,260p' packages/map_editor/lib/src/features/surface_painter/surface_to_gameplay_zone_presenter.dart
+sed -n '1,560p' packages/map_editor/lib/src/features/surface_painter/surface_palette_panel.dart
+sed -n '1,420p' packages/map_editor/test/surface_painter/surface_to_gameplay_zone_action_test.dart
+```
+
+Findings importants :
+
+- Le Lot 100 appliquait les zones via `addGameplayZoneAt(...)` puis `updateGameplayZone(...)` pour chaque zone générée.
+- Deux rectangles générés produisaient donc jusqu'à quatre mutations map : add/update, add/update.
+- La sélection finale était forcée avec `selectGameplayZone(firstCreatedZoneId)`, après avoir récupéré l'id temporaire par un callback `selectedGameplayZoneId`.
+- Les tests Lot 100 couvraient déjà la génération multi-zone, la création de zones encounter, dirty state et SurfaceLayer inchangé, mais ne prouvaient pas une seule mutation/historique.
+- La limite batch était explicitement documentée dans le rapport Lot 100.
+
+## 6. Audit mutation / history editor
+
+Commandes d'audit :
+
+```text
+rg -n "class EditorNotifier|_applyMapMutation|addGameplayZoneAt|updateGameplayZone|selectGameplayZone|savedMapSnapshot|isDirty|history|undo|redo|MapHistory|apply.*Mutation" packages/map_editor/lib packages/map_editor/test
+sed -n '3160,3315p' packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
+sed -n '5945,6005p' packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
+sed -n '1,360p' packages/map_editor/lib/src/features/editor/application/map_editing_controller.dart
+sed -n '1,260p' packages/map_editor/lib/src/application/services/editor_map_mutation_coordinator.dart
+sed -n '1,260p' packages/map_editor/lib/src/application/services/gameplay_zone_editing_service.dart
+sed -n '1,260p' packages/map_editor/lib/src/application/services/gameplay_zone_editing_coordinator.dart
+sed -n '1,320p' packages/map_editor/lib/src/application/use_cases/gameplay_zone_use_cases.dart
+```
+
+Findings importants :
+
+- Le seam officiel de mutation map dans le notifier est `_applyMapMutation`, qui délègue à `MapEditingController.applyMutation`.
+- `MapEditingController.applyMutation` enregistre l'historique via `EditorMapMutationCoordinator` et calcule `isDirty` contre `savedMapSnapshot`.
+- Il existe bien un historique undo/redo (`mapUndoStack`, `mapRedoStack`, `canUndoMap`, `canRedoMap`).
+- Aucun seam public batch dédié aux zones gameplay n'existait avant ce lot.
+- Ajouter un helper batch dans `EditorNotifier` est borné : on reste dans le même notifier, on réutilise `_applyMapMutation`, et on évite de modifier services/providers/generated files.
+
+## 7. Audit MapGameplayZone operations
+
+Commandes d'audit :
+
+```text
+rg -n "addGameplayZoneToMap|updateGameplayZoneOnMap|removeGameplayZone|findGameplayZoneAtPos|MapGameplayZone|GameplayZoneKind|MapRect|copyWith|gameplayZones" packages/map_core/lib packages/map_core/test
+sed -n '1,260p' packages/map_core/lib/src/operations/map_gameplay_zones.dart
+sed -n '1,260p' packages/map_core/lib/src/models/map_data.dart
+sed -n '1,320p' packages/map_core/lib/src/models/map_gameplay_zone_payloads.dart
+```
+
+Findings importants :
+
+- `addGameplayZoneToMap` normalise id/name, valide les collisions d'id, l'aire et les bornes map, puis retourne une nouvelle `MapData`.
+- `updateGameplayZoneOnMap` utilise les mêmes invariants pour une zone existante.
+- Les collisions d'id sont déjà évitées en amont par le plan Lot 98, mais `addGameplayZoneToMap` garde une validation finale côté map_core.
+- Une opération pure batch côté `map_core` n'est pas nécessaire pour ce lot : le notifier peut appliquer `addGameplayZoneToMap` sur une map draft locale avant une seule mutation editor.
+
+## 8. Décision batch apply
+
+Verdict : Option A — batch apply maintenant.
+
+Justification :
+
+- le seam `_applyMapMutation` existe déjà et porte l'historique/dirty state ;
+- `addGameplayZoneToMap` permet de préserver les invariants map_core sans nouveau modèle ;
+- on peut valider toutes les zones dans une map draft avant de toucher à `state` ;
+- le changement est borné à `map_editor` et au workflow existant ;
+- cela supprime la dette principale du Lot 100 sans ouvrir de nouveau comportement.
+
+## 9. Implémentation réalisée
+
+Implémentation :
+
+- ajout de `EditorNotifier.applyGeneratedGameplayZones(...)` ;
+- la méthode refuse les listes vides ou l'absence de map active ;
+- elle construit `updatedMap` localement en appliquant `addGameplayZoneToMap` pour chaque zone ;
+- si une zone est invalide, l'exception est capturée et aucune mutation state n'a eu lieu ;
+- si toutes les zones sont valides, une seule `_applyMapMutation` est appelée ;
+- la sélection post-création cible `selectZoneId` si valide, sinon la première zone générée ;
+- `applyTallGrassEncounterGameplayZonePlan(...)` pré-valide strictement `encounter` + `EncounterKind.walk`, puis appelle le batch seam ;
+- `SurfacePainterPanel` ne transmet plus de getter `selectedGameplayZoneId` au helper.
+
+TDD RED :
+
+```text
+flutter test test/surface_painter/surface_to_gameplay_zone_action_test.dart --no-pub --reporter expanded
+Compilation failed: Required named parameter 'selectedGameplayZoneId' must be provided.
+```
+
+Ce RED prouvait que le test attendait le nouveau seam autonome sans callback de sélection.
+
+## 10. Tests lancés
+
+Commandes lancées :
+
+```text
+cd packages/map_editor && flutter test test/surface_painter/surface_to_gameplay_zone_action_test.dart --no-pub --reporter expanded
+cd packages/map_editor && flutter test test/surface_painter --no-pub --reporter expanded
+cd packages/map_editor && flutter test test/map_selection_controller_test.dart --no-pub --reporter expanded
+cd packages/map_core && dart test test/surface_to_gameplay_zone_generation_plan_test.dart --reporter expanded
+cd packages/map_core && dart test test/surface_to_gameplay_zone_generation_assessment_test.dart --reporter expanded
+cd packages/map_core && dart test test/map_gameplay_zone_validation_test.dart --reporter expanded
+```
+
+## 11. Résultats
+
+Lignes finales exactes :
+
+```text
+targeted_action
+00:00 +8: All tests passed!
+EXIT_CODE=0
+
+surface_painter_regression
+00:01 +50: All tests passed!
+EXIT_CODE=0
+
+map_selection_regression
+00:00 +5: All tests passed!
+EXIT_CODE=0
+
+map_core_generation_plan
+00:00 +16: All tests passed!
+EXIT_CODE=0
+
+map_core_assessment
+00:00 +12: All tests passed!
+EXIT_CODE=0
+
+map_core_gameplay_zone_validation
+00:00 +1: All tests passed!
+EXIT_CODE=0
+```
+
+## 12. Analyse lancée
+
+Commande lancée :
+
+```text
+cd packages/map_editor && flutter analyze lib/src/features/editor/state/editor_notifier.dart lib/src/features/surface_painter/surface_palette_panel.dart lib/src/features/surface_painter/surface_to_gameplay_zone_action.dart test/surface_painter/surface_to_gameplay_zone_action_test.dart
+```
+
+## 13. Résultats analyze
+
+Sortie ciblée finale :
+
+```text
+No issues found! (ran in 1.5s)
+EXIT_CODE=0
+```
+
+## 14. Fichiers créés
+
+```text
+reports/surface/surface_engine_lot_101_tall_grass_surface_workflow_hardening_batch_apply.md
+```
+
+## 15. Fichiers modifiés
+
+```text
+packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
+packages/map_editor/lib/src/features/surface_painter/surface_palette_panel.dart
+packages/map_editor/lib/src/features/surface_painter/surface_to_gameplay_zone_action.dart
+packages/map_editor/test/surface_painter/surface_to_gameplay_zone_action_test.dart
+```
+
+## 16. Fichiers supprimés
+
+```text
+Aucun.
+```
+
+## 17. Contenu complet des fichiers créés
+
+Le contenu du rapport lui-même n'est pas recopié ici afin d'éviter une récursion infinie. C'est l'exception explicitement prévue par le prompt.
+
+## 18. Contenu complet des fichiers modifiés
+
+### `packages/map_editor/lib/src/features/editor/state/editor_notifier.dart`
+
+````dart
 import 'dart:convert';
 import 'dart:io';
 
@@ -6543,3 +6841,1044 @@ class _ActivePathLayerContext {
   final String layerId;
   final PathLayer layer;
 }
+
+````
+
+### `packages/map_editor/lib/src/features/surface_painter/surface_palette_panel.dart`
+
+````dart
+import 'package:flutter/cupertino.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:map_core/map_core.dart';
+
+import '../editor/state/editor_notifier.dart';
+import '../editor/tools/editor_tool.dart';
+import 'surface_catalog_availability.dart';
+import 'surface_to_gameplay_zone_action.dart';
+import 'surface_to_gameplay_zone_dialog.dart';
+import '../../ui/shared/cupertino_editor_widgets.dart';
+
+/// Minimal Surface palette for map placement authoring.
+///
+/// The palette intentionally selects a `ProjectSurfacePreset.id`, not an atlas
+/// or animation id. The map placement model stores only `surfacePresetId`; frame
+/// resolution, autotile roles and visual preview are future Surface Engine lots.
+class SurfacePalettePanel extends StatelessWidget {
+  const SurfacePalettePanel({
+    super.key,
+    required this.availability,
+    required this.presets,
+    required this.selectedSurfacePresetId,
+    required this.onPresetSelected,
+    this.onOpenSurfaceStudio,
+  });
+
+  final SurfaceCatalogAvailability availability;
+  final List<ProjectSurfacePreset> presets;
+  final String? selectedSurfacePresetId;
+  final ValueChanged<String> onPresetSelected;
+  final VoidCallback? onOpenSurfaceStudio;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Surfaces',
+          style: TextStyle(
+            color: label,
+            fontWeight: FontWeight.w700,
+            fontSize: 15,
+          ),
+        ),
+        const SizedBox(height: 8),
+        _SurfaceCatalogCounts(availability: availability),
+        const SizedBox(height: 8),
+        Text(
+          availability.primaryMessage,
+          style: TextStyle(
+            color: availability.canPaint ? subtle : label,
+            fontSize: 13,
+            fontWeight:
+                availability.canPaint ? FontWeight.w500 : FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          availability.secondaryMessage,
+          style: TextStyle(color: subtle, fontSize: 12),
+        ),
+        if (presets.isEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Les presets sont les surfaces que vous pouvez peindre sur la map.',
+            style: TextStyle(color: subtle, fontSize: 12),
+          ),
+          if (onOpenSurfaceStudio != null) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: CupertinoButton(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                onPressed: onOpenSurfaceStudio,
+                child: Text(availability.recommendedActionLabel),
+              ),
+            ),
+          ],
+        ] else ...[
+          const SizedBox(height: 10),
+          Text(
+            'Sélectionner une surface',
+            style: TextStyle(color: subtle, fontSize: 12),
+          ),
+          const SizedBox(height: 8),
+          for (var i = 0; i < presets.length; i++) ...[
+            _SurfacePresetTile(
+              preset: presets[i],
+              selected: presets[i].id == selectedSurfacePresetId,
+              onSelected: onPresetSelected,
+            ),
+            if (i < presets.length - 1) const SizedBox(height: 6),
+          ],
+        ],
+      ],
+    );
+  }
+}
+
+/// Small editor-facing wrapper that wires the palette to `EditorNotifier`.
+///
+/// It creates/selects a SurfaceLayer as an authoring target but still does not
+/// render the resulting placements. In Lot 84 the visible map remains unchanged;
+/// the saved map data gains sparse SurfaceCellPlacement entries.
+class SurfacePainterPanel extends ConsumerWidget {
+  const SurfacePainterPanel({
+    super.key,
+    this.embedded = false,
+  });
+
+  final bool embedded;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(editorNotifierProvider);
+    final notifier = ref.read(editorNotifierProvider.notifier);
+    final map = state.activeMap;
+    final catalog = state.project?.surfaceCatalog ?? ProjectSurfaceCatalog();
+    final availability = SurfaceCatalogAvailability.fromCatalog(catalog);
+    final presets =
+        state.project?.surfaceCatalog.presets ?? const <ProjectSurfacePreset>[];
+    final surfaceLayers =
+        map?.layers.whereType<SurfaceLayer>().toList(growable: false) ??
+            const <SurfaceLayer>[];
+    final activeLayer = _activeSurfaceLayer(map, state.activeLayerId);
+    final generationLayer =
+        activeLayer ?? (surfaceLayers.length == 1 ? surfaceLayers.first : null);
+    final canPaint = map != null &&
+        availability.canPaint &&
+        (state.selectedSurfacePresetId?.trim().isNotEmpty ?? false);
+    final subtle = EditorChrome.subtleLabel(context);
+
+    final content = Padding(
+      padding: EdgeInsets.all(embedded ? 0 : 10),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _SurfaceLayerTargetBlock(
+              surfaceLayers: surfaceLayers,
+              activeLayer: activeLayer,
+              onSelect: notifier.setActiveLayer,
+              onCreate: () => notifier.activateFirstSurfaceLayer(
+                createIfMissing: true,
+              ),
+            ),
+          const SizedBox(height: 12),
+          SurfacePalettePanel(
+            availability: availability,
+            presets: presets,
+            selectedSurfacePresetId: state.selectedSurfacePresetId,
+            onPresetSelected: notifier.selectSurfacePreset,
+            onOpenSurfaceStudio: notifier.selectSurfaceStudioWorkspace,
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              CupertinoButton.filled(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                onPressed: canPaint ? notifier.selectSurfacePaintMode : null,
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(CupertinoIcons.paintbrush, size: 16),
+                    SizedBox(width: 6),
+                    Text('Peindre Surface'),
+                  ],
+                ),
+              ),
+              CupertinoButton(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                onPressed: activeLayer == null
+                    ? null
+                    : () => notifier.selectTool(EditorToolType.eraser),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(CupertinoIcons.delete_left, size: 16),
+                    SizedBox(width: 6),
+                    Text('Effacer Surface'),
+                  ],
+                ),
+              ),
+              CupertinoButton(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                onPressed: map == null
+                    ? null
+                    : () async {
+                        final plan = await showCupertinoDialog<
+                            SurfaceGameplayZoneGenerationPlan>(
+                          context: context,
+                          builder: (dialogContext) {
+                            return SurfaceToGameplayZoneDialog(
+                              map: map,
+                              surfaceLayer: generationLayer,
+                              surfacePresetId: state.selectedSurfacePresetId,
+                              presets: presets,
+                              encounterTables:
+                                  state.project?.encounterTables ?? const [],
+                              onConfirm: (plan) =>
+                                  Navigator.of(dialogContext).pop(plan),
+                            );
+                          },
+                        );
+                        if (plan == null) return;
+                        applyTallGrassEncounterGameplayZonePlan(
+                          notifier: notifier,
+                          plan: plan,
+                        );
+                      },
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(CupertinoIcons.add_circled, size: 16),
+                    SizedBox(width: 4),
+                    Flexible(
+                      child: Text('Créer une zone de rencontre'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            _statusLine(
+              activeLayer: activeLayer,
+              hasSurfaceLayer: surfaceLayers.isNotEmpty,
+              presetSelected:
+                  state.selectedSurfacePresetId?.trim().isNotEmpty ?? false,
+              availability: availability,
+            ),
+            style: TextStyle(color: subtle, fontSize: 12),
+          ),
+        ],
+      ),
+    ),
+  );
+
+    if (embedded) {
+      return content;
+    }
+    return Container(
+      decoration: BoxDecoration(color: EditorChrome.islandFill(context)),
+      child: content,
+    );
+  }
+
+  SurfaceLayer? _activeSurfaceLayer(MapData? map, String? activeLayerId) {
+    if (map == null || activeLayerId == null) {
+      return null;
+    }
+    for (final layer in map.layers) {
+      if (layer.id == activeLayerId && layer is SurfaceLayer) {
+        return layer;
+      }
+    }
+    return null;
+  }
+
+  String _statusLine({
+    required SurfaceLayer? activeLayer,
+    required bool hasSurfaceLayer,
+    required bool presetSelected,
+    required SurfaceCatalogAvailability availability,
+  }) {
+    if (!availability.canPaint) {
+      if (hasSurfaceLayer) {
+        return 'Un calque Surface existe, mais aucune surface n’est encore peignable.';
+      }
+      return availability.secondaryMessage;
+    }
+    if (!presetSelected) {
+      return 'Sélectionnez une surface, puis peignez sur la map.';
+    }
+    if (activeLayer == null) {
+      return 'Le premier clic créera un calque Surface automatiquement.';
+    }
+    return 'Calque actif : ${activeLayer.name}';
+  }
+}
+
+class _SurfaceCatalogCounts extends StatelessWidget {
+  const _SurfaceCatalogCounts({
+    required this.availability,
+  });
+
+  final SurfaceCatalogAvailability availability;
+
+  @override
+  Widget build(BuildContext context) {
+    final subtle = EditorChrome.subtleLabel(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Catalogue Surface :',
+          style: TextStyle(
+            color: subtle,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            _SurfaceCatalogCount(
+              label: 'Atlas',
+              value: availability.atlasCount,
+            ),
+            _SurfaceCatalogCount(
+              label: 'Animations',
+              value: availability.animationCount,
+            ),
+            _SurfaceCatalogCount(
+              label: 'Presets',
+              value: availability.presetCount,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _SurfaceCatalogCount extends StatelessWidget {
+  const _SurfaceCatalogCount({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final int value;
+
+  @override
+  Widget build(BuildContext context) {
+    final subtle = EditorChrome.subtleLabel(context);
+
+    return Text(
+      '$label : $value',
+      style: TextStyle(color: subtle, fontSize: 12),
+    );
+  }
+}
+
+class _SurfacePresetTile extends StatelessWidget {
+  const _SurfacePresetTile({
+    required this.preset,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final ProjectSurfacePreset preset;
+  final bool selected;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
+    const accent = EditorChrome.inspectorJoyCyan;
+
+    return CupertinoButton(
+      key: Key('surface-palette-preset-${preset.id}'),
+      padding: EdgeInsets.zero,
+      onPressed: () => onSelected(preset.id),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+        decoration: BoxDecoration(
+          color: selected
+              ? accent.withValues(alpha: 0.16)
+              : EditorChrome.elevatedPanelBackground(context),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: selected ? accent : EditorChrome.separator(context),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              preset.name,
+              style: TextStyle(
+                color: label,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              'ID : ${preset.id}',
+              style: TextStyle(color: subtle, fontSize: 12),
+            ),
+            if (selected) ...[
+              const SizedBox(height: 5),
+              const Text(
+                'Surface sélectionnée',
+                style: TextStyle(
+                  color: accent,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SurfaceLayerTargetBlock extends StatelessWidget {
+  const _SurfaceLayerTargetBlock({
+    required this.surfaceLayers,
+    required this.activeLayer,
+    required this.onSelect,
+    required this.onCreate,
+  });
+
+  final List<SurfaceLayer> surfaceLayers;
+  final SurfaceLayer? activeLayer;
+  final ValueChanged<String> onSelect;
+  final VoidCallback onCreate;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Calque Surface',
+                style: TextStyle(
+                  color: label,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            CupertinoButton(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              onPressed: onCreate,
+              child: const Text('Créer'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        if (surfaceLayers.isEmpty)
+          Text(
+            'Aucun calque Surface',
+            style: TextStyle(color: subtle, fontSize: 12),
+          )
+        else
+          for (final layer in surfaceLayers)
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              onPressed: () => onSelect(layer.id),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  '${layer.name} — ${layer.placements.length} placement(s)',
+                  style: TextStyle(
+                    color: layer.id == activeLayer?.id
+                        ? EditorChrome.inspectorJoyCyan
+                        : label,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+      ],
+    );
+  }
+}
+
+````
+
+### `packages/map_editor/lib/src/features/surface_painter/surface_to_gameplay_zone_action.dart`
+
+````dart
+import 'package:map_core/map_core.dart';
+
+import '../editor/state/editor_notifier.dart';
+
+bool applyTallGrassEncounterGameplayZonePlan({
+  required EditorNotifier notifier,
+  required SurfaceGameplayZoneGenerationPlan plan,
+}) {
+  final zones = plan.generatedZones;
+  if (zones.isEmpty) {
+    return false;
+  }
+  if (zones.any((zone) => !_isTallGrassEncounterZone(zone))) {
+    return false;
+  }
+
+  return notifier.applyGeneratedGameplayZones(
+    zones: zones,
+    selectZoneId: zones.first.id,
+    statusMessage: 'Zones de rencontre créées depuis la surface',
+  );
+}
+
+bool _isTallGrassEncounterZone(MapGameplayZone zone) {
+  return zone.kind == GameplayZoneKind.encounter &&
+      zone.encounter != null &&
+      zone.encounter?.encounterKind == EncounterKind.walk;
+}
+
+````
+
+### `packages/map_editor/test/surface_painter/surface_to_gameplay_zone_action_test.dart`
+
+````dart
+import 'package:flutter/cupertino.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
+import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/surface_painter/surface_palette_panel.dart';
+import 'package:map_editor/src/features/surface_painter/surface_to_gameplay_zone_action.dart';
+import 'package:map_editor/src/features/surface_painter/surface_to_gameplay_zone_dialog.dart';
+import 'package:map_editor/src/features/surface_painter/surface_to_gameplay_zone_presenter.dart';
+
+void main() {
+  group('Tall grass surface to gameplay zone presenter', () {
+    test('builds a greedy encounter generation preview from painted cells', () {
+      final preview = buildTallGrassEncounterSurfaceGameplayZonePreview(
+        map: _mapWithTallGrassSurface(),
+        surfaceLayer: _tallGrassLayer(),
+        surfacePresetId: 'tall_grass',
+        presets: [_surfacePreset(id: 'tall_grass', name: 'Tall Grass')],
+        encounterTableId: 'route_1_grass',
+      );
+
+      expect(preview.canConfirm, isTrue);
+      expect(
+        preview.status,
+        SurfaceGameplayZoneGenerationAssessmentStatus.ready,
+      );
+      expect(preview.plan, isNotNull);
+      expect(
+        preview.plan!.strategy,
+        SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+      );
+      expect(preview.plan!.generatedZones, hasLength(2));
+      expect(
+        preview.plan!.generatedZones.every(
+          (zone) =>
+              zone.kind == GameplayZoneKind.encounter &&
+              zone.encounter?.encounterTableId == 'route_1_grass' &&
+              zone.encounter?.encounterKind == EncounterKind.walk,
+        ),
+        isTrue,
+      );
+      expect(preview.assessment!.coveragePercent, 1);
+      expect(preview.assessment!.extraCellRatio, 0);
+    });
+
+    test('blocks confirmation when encounterTableId is empty', () {
+      final preview = buildTallGrassEncounterSurfaceGameplayZonePreview(
+        map: _mapWithTallGrassSurface(),
+        surfaceLayer: _tallGrassLayer(),
+        surfacePresetId: 'tall_grass',
+        presets: [_surfacePreset(id: 'tall_grass', name: 'Tall Grass')],
+        encounterTableId: '   ',
+      );
+
+      expect(preview.canConfirm, isFalse);
+      expect(
+        preview.status,
+        SurfaceGameplayZoneGenerationAssessmentStatus.blocked,
+      );
+      expect(preview.plan, isNull);
+      expect(
+        preview.messages.map((message) => message.title),
+        contains('Table de rencontres requise'),
+      );
+    });
+
+    test('blocks when selected surface has no painted placement', () {
+      final preview = buildTallGrassEncounterSurfaceGameplayZonePreview(
+        map: _mapWithTallGrassSurface(),
+        surfaceLayer: _tallGrassLayer(),
+        surfacePresetId: 'water',
+        presets: [
+          _surfacePreset(id: 'tall_grass', name: 'Tall Grass'),
+          _surfacePreset(id: 'water', name: 'Water'),
+        ],
+        encounterTableId: 'route_1_grass',
+      );
+
+      expect(preview.canConfirm, isFalse);
+      expect(
+        preview.status,
+        SurfaceGameplayZoneGenerationAssessmentStatus.blocked,
+      );
+      expect(
+        preview.messages.map((message) => message.title),
+        contains('Aucune cellule peinte'),
+      );
+    });
+  });
+
+  group('SurfaceToGameplayZoneDialog', () {
+    testWidgets('requires an encounter table id before confirming',
+        (tester) async {
+      SurfaceGameplayZoneGenerationPlan? confirmedPlan;
+
+      await tester.pumpWidget(
+        CupertinoApp(
+          home: CupertinoPageScaffold(
+            child: SurfaceToGameplayZoneDialog(
+              map: _mapWithTallGrassSurface(),
+              surfaceLayer: _tallGrassLayer(),
+              surfacePresetId: 'tall_grass',
+              presets: [_surfacePreset(id: 'tall_grass', name: 'Tall Grass')],
+              encounterTables: const [],
+              onConfirm: (plan) => confirmedPlan = plan,
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        find.text('Créer une zone de rencontre depuis cette surface'),
+        findsOneWidget,
+      );
+      expect(find.text('Table de rencontres requise'), findsOneWidget);
+      expect(
+        tester
+            .widget<CupertinoDialogAction>(
+              find.widgetWithText(CupertinoDialogAction, 'Créer les zones'),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(confirmedPlan, isNull);
+
+      await tester.enterText(
+        find.byKey(const Key('surface-to-gameplay-zone-encounter-table-field')),
+        'route_1_grass',
+      );
+      await tester.pump();
+
+      expect(find.text('Plan prêt à appliquer'), findsOneWidget);
+
+      final createAction = tester.widget<CupertinoDialogAction>(
+        find.widgetWithText(CupertinoDialogAction, 'Créer les zones'),
+      );
+      expect(createAction.onPressed, isNotNull);
+      createAction.onPressed!();
+
+      expect(confirmedPlan, isNotNull);
+      expect(confirmedPlan!.generatedZones, hasLength(2));
+    });
+  });
+
+  group('SurfacePainterPanel action entry', () {
+    testWidgets('opens the encounter generation dialog from the surface panel',
+        (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final keepAlive = container.listen(editorNotifierProvider, (_, __) {});
+      addTearDown(keepAlive.close);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        project: _projectManifest(),
+        activeMap: _mapWithTallGrassSurface(),
+        activeLayerId: 'surface-main',
+        selectedSurfacePresetId: 'tall_grass',
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const CupertinoApp(
+            home: CupertinoPageScaffold(
+              child: SurfacePainterPanel(embedded: true),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Créer une zone de rencontre'), findsOneWidget);
+
+      await tester.tap(find.text('Créer une zone de rencontre'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Créer une zone de rencontre depuis cette surface'),
+        findsOneWidget,
+      );
+      expect(find.text('Plan prêt à appliquer'), findsOneWidget);
+    });
+  });
+
+  group('EditorNotifier tall grass surface generation', () {
+    test(
+        'adds multiple encounter gameplay zones in one mutation and selects first',
+        () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final initialMap = _mapWithTallGrassSurface();
+      notifier.state = EditorState(
+        project: _projectManifest(),
+        activeMap: initialMap,
+        activeLayerId: 'surface-main',
+        selectedSurfacePresetId: 'tall_grass',
+        savedMapSnapshot: initialMap,
+      );
+      final preview = buildTallGrassEncounterSurfaceGameplayZonePreview(
+        map: initialMap,
+        surfaceLayer: _tallGrassLayer(),
+        surfacePresetId: 'tall_grass',
+        presets: [_surfacePreset(id: 'tall_grass', name: 'Tall Grass')],
+        encounterTableId: 'route_1_grass',
+      );
+
+      final applied = applyTallGrassEncounterGameplayZonePlan(
+        notifier: notifier,
+        plan: preview.plan!,
+      );
+
+      final state = container.read(editorNotifierProvider);
+      final updatedMap = state.activeMap!;
+      expect(applied, isTrue);
+      expect(updatedMap.gameplayZones, hasLength(2));
+      expect(
+        updatedMap.gameplayZones.every(
+          (zone) =>
+              zone.kind == GameplayZoneKind.encounter &&
+              zone.encounter?.encounterTableId == 'route_1_grass' &&
+              zone.encounter?.encounterKind == EncounterKind.walk,
+        ),
+        isTrue,
+      );
+      expect(state.selectedGameplayZoneId, updatedMap.gameplayZones.first.id);
+      expect(state.isDirty, isTrue);
+      expect(state.mapUndoStack, hasLength(1));
+      expect(state.canUndoMap, isTrue);
+      expect(
+        updatedMap.layers.whereType<SurfaceLayer>().single.placements,
+        initialMap.layers.whereType<SurfaceLayer>().single.placements,
+      );
+    });
+
+    test('rejects non-encounter plans without mutating the map', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final initialMap = _mapWithTallGrassSurface();
+      notifier.state = EditorState(
+        project: _projectManifest(),
+        activeMap: initialMap,
+        activeLayerId: 'surface-main',
+        selectedSurfacePresetId: 'tall_grass',
+        savedMapSnapshot: initialMap,
+      );
+
+      final applied = applyTallGrassEncounterGameplayZonePlan(
+        notifier: notifier,
+        plan: _planForBehavior(
+          const SurfaceGameplayZoneBehaviorDraft.movement(
+            MovementZonePayload(requiredMode: MovementMode.surf),
+          ),
+        ),
+      );
+
+      final state = container.read(editorNotifierProvider);
+      expect(applied, isFalse);
+      expect(state.activeMap, initialMap);
+      expect(state.activeMap!.gameplayZones, isEmpty);
+      expect(state.mapUndoStack, isEmpty);
+      expect(state.selectedGameplayZoneId, isNull);
+      expect(state.isDirty, isFalse);
+    });
+
+    test('rejects non-walk encounter plans without mutating the map', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final initialMap = _mapWithTallGrassSurface();
+      notifier.state = EditorState(
+        project: _projectManifest(),
+        activeMap: initialMap,
+        activeLayerId: 'surface-main',
+        selectedSurfacePresetId: 'tall_grass',
+        savedMapSnapshot: initialMap,
+      );
+
+      final applied = applyTallGrassEncounterGameplayZonePlan(
+        notifier: notifier,
+        plan: _planForBehavior(
+          const SurfaceGameplayZoneBehaviorDraft.encounter(
+            EncounterZonePayload(
+              encounterTableId: 'route_1_surf',
+              encounterKind: EncounterKind.surf,
+            ),
+          ),
+        ),
+      );
+
+      final state = container.read(editorNotifierProvider);
+      expect(applied, isFalse);
+      expect(state.activeMap, initialMap);
+      expect(state.activeMap!.gameplayZones, isEmpty);
+      expect(state.mapUndoStack, isEmpty);
+      expect(state.selectedGameplayZoneId, isNull);
+      expect(state.isDirty, isFalse);
+    });
+  });
+}
+
+SurfaceGameplayZoneGenerationPlan _planForBehavior(
+  SurfaceGameplayZoneBehaviorDraft behavior,
+) {
+  return createSurfaceGameplayZoneGenerationPlan(
+    source: SurfaceGameplayZoneGenerationSource(
+      surfaceLayerId: 'surface-main',
+      surfaceLayerName: 'Surfaces',
+      surfacePresetId: 'tall_grass',
+      cells: const [
+        GridPos(x: 0, y: 0),
+        GridPos(x: 2, y: 0),
+      ],
+      mapSize: const GridSize(width: 8, height: 8),
+    ),
+    behavior: behavior,
+    strategy: SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+    zoneIdPrefix: 'tall-grass-encounter',
+    zoneNamePrefix: 'Tall Grass - Rencontre',
+  );
+}
+
+MapData _mapWithTallGrassSurface() {
+  return MapData(
+    id: 'route_1',
+    name: 'Route 1',
+    size: const GridSize(width: 8, height: 8),
+    layers: [_tallGrassLayer()],
+  );
+}
+
+SurfaceLayer _tallGrassLayer() {
+  return const SurfaceLayer(
+    id: 'surface-main',
+    name: 'Surfaces',
+    placements: [
+      SurfaceCellPlacement(
+        x: 0,
+        y: 0,
+        surfacePresetId: 'tall_grass',
+      ),
+      SurfaceCellPlacement(
+        x: 1,
+        y: 0,
+        surfacePresetId: 'tall_grass',
+      ),
+      SurfaceCellPlacement(
+        x: 0,
+        y: 1,
+        surfacePresetId: 'tall_grass',
+      ),
+    ],
+  );
+}
+
+ProjectManifest _projectManifest() {
+  return ProjectManifest(
+    name: 'Demo',
+    maps: const [],
+    tilesets: const [],
+    encounterTables: const [
+      ProjectEncounterTable(
+        id: 'route_1_grass',
+        name: 'Route 1 Grass',
+        encounterKind: EncounterKind.walk,
+      ),
+    ],
+    surfaceCatalog: ProjectSurfaceCatalog(
+      presets: [_surfacePreset(id: 'tall_grass', name: 'Tall Grass')],
+    ),
+  );
+}
+
+ProjectSurfacePreset _surfacePreset({
+  required String id,
+  required String name,
+}) {
+  return ProjectSurfacePreset(
+    id: id,
+    name: name,
+    variantAnimations: SurfaceVariantAnimationRefSet(
+      refs: [
+        SurfaceVariantAnimationRef(
+          role: SurfaceVariantRole.isolated,
+          animationId: '$id-isolated',
+        ),
+      ],
+    ),
+  );
+}
+
+````
+
+
+## 19. Git status final
+
+Status final :
+
+```text
+ M packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
+ M packages/map_editor/lib/src/features/surface_painter/surface_palette_panel.dart
+ M packages/map_editor/lib/src/features/surface_painter/surface_to_gameplay_zone_action.dart
+ M packages/map_editor/test/surface_painter/surface_to_gameplay_zone_action_test.dart
+?? reports/surface/surface_engine_lot_101_tall_grass_surface_workflow_hardening_batch_apply.md
+```
+
+Diff stat final :
+
+```text
+ .../src/features/editor/state/editor_notifier.dart | 39 +++++++++
+ .../surface_painter/surface_palette_panel.dart     |  3 -
+ .../surface_to_gameplay_zone_action.dart           | 32 ++------
+ .../surface_to_gameplay_zone_action_test.dart      | 93 +++++++++++++++++++++-
+ 4 files changed, 134 insertions(+), 33 deletions(-)
+```
+
+`git diff --check` :
+
+```text
+Aucune sortie.
+```
+
+## 20. Périmètre explicitement non touché
+
+Confirmation :
+
+```text
+MapData modèle non modifié
+MapGameplayZone modèle non modifié
+SurfaceLayer non modifié
+SurfaceCellPlacement non modifié
+ProjectManifest non modifié
+surface.dart non modifié
+surface_catalog.dart non modifié
+map_layer.dart non modifié
+map_gameplay_zone_payloads.dart non modifié
+map_core production non modifié
+map_runtime non modifié
+map_gameplay non modifié
+map_battle non modifié
+aucun JSON
+aucun generated/build_runner
+aucun gameplay surf codé
+aucun tall grass encounter runtime codé
+aucune collision Surface codée
+aucune migration legacy
+aucun filtre surfacePresetId dans MapGameplayZone
+aucun surf/lava/ice/mud
+```
+
+## 21. ctx stats
+
+```text
+1.0M tokens saved · 90.1% reduction · 2h 45m
+Without context-mode: 4.4 MB
+With context-mode: 446.1 KB
+3.9 MB kept out of your conversation
+117 calls
+ctx_batch_execute: 15 calls, 3.0 MB saved
+ctx_execute: 58 calls, 539.4 KB saved
+ctx_search: 8 calls, 283.3 KB saved
+ctx_stats: 10 calls, 66.1 KB saved
+ctx_index: 20 calls, 33.5 KB saved
+ctx_doctor: 5 calls, 16.3 KB saved
+ctx_upgrade: 1 call, 4.5 KB saved
+version: v1.0.100
+update available: v1.0.100 -> v1.0.103
+```
+
+## 22. Limites restantes
+
+- Le batch seam est générique côté `EditorNotifier`, mais seul le helper tall grass l'utilise dans ce lot.
+- Il n'existe toujours pas de preview graphique de la couverture ; le dialog reste textuel.
+- Aucun comportement runtime d'herbe haute n'est ajouté ici : les zones encounter sont authorées, pas consommées par un nouveau runtime.
+- La sélection post-création est stable sur la première zone générée ; il n'y a pas encore de navigation/panel focus spécifique après batch.
+
+## 23. Auto-critique
+
+- Est-ce que le workflow tall grass reste borné ? Oui.
+- Est-ce que surf/lava/ice/mud restent hors scope ? Oui.
+- Est-ce qu'une décision batch apply est prise ? Oui.
+- Est-ce qu'un batch apply est implémenté ? Oui : `EditorNotifier.applyGeneratedGameplayZones` applique une map draft validée en une seule `_applyMapMutation`.
+- Si non, est-ce que la dette batch est documentée ? Non applicable, le batch est implémenté.
+- Est-ce qu'aucune MapGameplayZone modèle n'est modifiée ? Oui.
+- Est-ce qu'aucune SurfaceLayer n'est modifiée ? Oui.
+- Est-ce que le plan du Lot 98 est toujours utilisé ? Oui.
+- Est-ce que l'assessment du Lot 99 est toujours utilisé ? Oui, le dialog/presenter Lot 100 restent inchangés sur ce point.
+- Est-ce que l'application multi-zone est testée ? Oui.
+- Est-ce que l'absence de mutation partielle est testée ? Oui, pour plan non-encounter et encounter non-walk.
+- Est-ce que la sélection post-création est testée ? Oui.
+- Est-ce que dirty state est testé ? Oui.
+- Est-ce que les tests ciblés passent ? Oui.
+- Est-ce que les régressions Surface Painter passent ? Oui.
+- Est-ce que l'analyse ciblée passe ? Oui.
+- Est-ce que Context Mode a été utilisé agressivement ? Oui.
+- Est-ce que ctx stats est inclus ? Oui.
+- Est-ce que le contenu complet des fichiers créés/modifiés est copié dans le rapport ? Oui pour les fichiers modifiés ; le rapport lui-même est exclu par exception anti-récursion.
+- Est-ce qu'un Lot 101-bis est nécessaire ? Non. Le durcissement demandé est couvert ; les limites restantes relèvent des prochains lots UX/runtime.
+
+## 24. Regard critique sur le prompt
+
+Le prompt était bien cadré : il force à traiter la dette du Lot 100 avant d'ouvrir d'autres comportements. Le point délicat était d'éviter de transformer ce durcissement en refonte de l'éditeur ; le seam batch dans `EditorNotifier` est le compromis le plus petit qui respecte l'historique, le dirty state et les invariants `map_core`.

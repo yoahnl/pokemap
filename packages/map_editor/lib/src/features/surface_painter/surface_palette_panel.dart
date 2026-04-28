@@ -216,9 +216,6 @@ class SurfacePainterPanel extends ConsumerWidget {
                         if (plan == null) return;
                         applyTallGrassEncounterGameplayZonePlan(
                           notifier: notifier,
-                          selectedGameplayZoneId: () => ref
-                              .read(editorNotifierProvider)
-                              .selectedGameplayZoneId,
                           plan: plan,
                         );
                       },

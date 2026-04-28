@@ -182,7 +182,8 @@ void main() {
   });
 
   group('EditorNotifier tall grass surface generation', () {
-    test('adds encounter gameplay zones, marks dirty, and preserves surfaces',
+    test(
+        'adds multiple encounter gameplay zones in one mutation and selects first',
         () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
@@ -205,8 +206,6 @@ void main() {
 
       final applied = applyTallGrassEncounterGameplayZonePlan(
         notifier: notifier,
-        selectedGameplayZoneId: () =>
-            container.read(editorNotifierProvider).selectedGameplayZoneId,
         plan: preview.plan!,
       );
 
@@ -225,12 +224,100 @@ void main() {
       );
       expect(state.selectedGameplayZoneId, updatedMap.gameplayZones.first.id);
       expect(state.isDirty, isTrue);
+      expect(state.mapUndoStack, hasLength(1));
+      expect(state.canUndoMap, isTrue);
       expect(
         updatedMap.layers.whereType<SurfaceLayer>().single.placements,
         initialMap.layers.whereType<SurfaceLayer>().single.placements,
       );
     });
+
+    test('rejects non-encounter plans without mutating the map', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final initialMap = _mapWithTallGrassSurface();
+      notifier.state = EditorState(
+        project: _projectManifest(),
+        activeMap: initialMap,
+        activeLayerId: 'surface-main',
+        selectedSurfacePresetId: 'tall_grass',
+        savedMapSnapshot: initialMap,
+      );
+
+      final applied = applyTallGrassEncounterGameplayZonePlan(
+        notifier: notifier,
+        plan: _planForBehavior(
+          const SurfaceGameplayZoneBehaviorDraft.movement(
+            MovementZonePayload(requiredMode: MovementMode.surf),
+          ),
+        ),
+      );
+
+      final state = container.read(editorNotifierProvider);
+      expect(applied, isFalse);
+      expect(state.activeMap, initialMap);
+      expect(state.activeMap!.gameplayZones, isEmpty);
+      expect(state.mapUndoStack, isEmpty);
+      expect(state.selectedGameplayZoneId, isNull);
+      expect(state.isDirty, isFalse);
+    });
+
+    test('rejects non-walk encounter plans without mutating the map', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final initialMap = _mapWithTallGrassSurface();
+      notifier.state = EditorState(
+        project: _projectManifest(),
+        activeMap: initialMap,
+        activeLayerId: 'surface-main',
+        selectedSurfacePresetId: 'tall_grass',
+        savedMapSnapshot: initialMap,
+      );
+
+      final applied = applyTallGrassEncounterGameplayZonePlan(
+        notifier: notifier,
+        plan: _planForBehavior(
+          const SurfaceGameplayZoneBehaviorDraft.encounter(
+            EncounterZonePayload(
+              encounterTableId: 'route_1_surf',
+              encounterKind: EncounterKind.surf,
+            ),
+          ),
+        ),
+      );
+
+      final state = container.read(editorNotifierProvider);
+      expect(applied, isFalse);
+      expect(state.activeMap, initialMap);
+      expect(state.activeMap!.gameplayZones, isEmpty);
+      expect(state.mapUndoStack, isEmpty);
+      expect(state.selectedGameplayZoneId, isNull);
+      expect(state.isDirty, isFalse);
+    });
   });
+}
+
+SurfaceGameplayZoneGenerationPlan _planForBehavior(
+  SurfaceGameplayZoneBehaviorDraft behavior,
+) {
+  return createSurfaceGameplayZoneGenerationPlan(
+    source: SurfaceGameplayZoneGenerationSource(
+      surfaceLayerId: 'surface-main',
+      surfaceLayerName: 'Surfaces',
+      surfacePresetId: 'tall_grass',
+      cells: const [
+        GridPos(x: 0, y: 0),
+        GridPos(x: 2, y: 0),
+      ],
+      mapSize: const GridSize(width: 8, height: 8),
+    ),
+    behavior: behavior,
+    strategy: SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+    zoneIdPrefix: 'tall-grass-encounter',
+    zoneNamePrefix: 'Tall Grass - Rencontre',
+  );
 }
 
 MapData _mapWithTallGrassSurface() {

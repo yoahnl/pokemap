@@ -4,7 +4,6 @@ import '../editor/state/editor_notifier.dart';
 
 bool applyTallGrassEncounterGameplayZonePlan({
   required EditorNotifier notifier,
-  required String? Function() selectedGameplayZoneId,
   required SurfaceGameplayZoneGenerationPlan plan,
 }) {
   final zones = plan.generatedZones;
@@ -15,32 +14,11 @@ bool applyTallGrassEncounterGameplayZonePlan({
     return false;
   }
 
-  String? firstCreatedZoneId;
-  for (final zone in zones) {
-    notifier.addGameplayZoneAt(zone.area.pos);
-    final createdZoneId = selectedGameplayZoneId();
-    if (createdZoneId == null) {
-      return false;
-    }
-    firstCreatedZoneId ??= zone.id;
-    notifier.updateGameplayZone(
-      zoneId: createdZoneId,
-      id: zone.id,
-      name: zone.name,
-      kind: zone.kind,
-      area: zone.area,
-      priority: zone.priority,
-      encounter: zone.encounter,
-      movement: null,
-      hazard: null,
-      special: null,
-    );
-  }
-
-  if (firstCreatedZoneId != null) {
-    notifier.selectGameplayZone(firstCreatedZoneId);
-  }
-  return true;
+  return notifier.applyGeneratedGameplayZones(
+    zones: zones,
+    selectZoneId: zones.first.id,
+    statusMessage: 'Zones de rencontre créées depuis la surface',
+  );
 }
 
 bool _isTallGrassEncounterZone(MapGameplayZone zone) {
