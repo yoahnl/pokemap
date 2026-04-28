@@ -1289,7 +1289,12 @@ class MapValidator {
 
     final expectedCellCount = map.size.width * map.size.height;
     for (final layer in map.layers) {
-      _validateLayer(layer, expectedCellCount);
+      _validateLayer(
+        layer,
+        expectedCellCount,
+        mapWidth: map.size.width,
+        mapHeight: map.size.height,
+      );
     }
 
     _validateUniqueIds(
@@ -1971,7 +1976,12 @@ class MapValidator {
     }
   }
 
-  static void _validateLayer(MapLayer layer, int expectedCellCount) {
+  static void _validateLayer(
+    MapLayer layer,
+    int expectedCellCount, {
+    required int mapWidth,
+    required int mapHeight,
+  }) {
     final layerId = _requireNonBlank(layer.id, 'Layer ID cannot be empty');
     _requireNonBlank(layer.name, 'Layer $layerId name cannot be empty');
     if (layer.opacity < 0.0 || layer.opacity > 1.0) {
@@ -2047,6 +2057,37 @@ class MapValidator {
             throw ValidationException(
               'Path layer $layerId trigger[$resolvedId] trigger whileInside requires mode loopWhileActive',
             );
+          }
+        }
+      },
+      surface: (surfaceLayer) {
+        final occupiedCells = <String>{};
+        for (var i = 0; i < surfaceLayer.placements.length; i++) {
+          final placement = surfaceLayer.placements[i];
+          if (placement.surfacePresetId.trim().isEmpty) {
+            throw ValidationException(
+              'Surface layer $layerId placement[$i] has an empty surfacePresetId',
+            );
+          }
+          if (placement.x < 0 ||
+              placement.y < 0 ||
+              placement.x >= mapWidth ||
+              placement.y >= mapHeight) {
+            throw ValidationException(
+              'Surface layer $layerId placement[$i] is outside map bounds: (${placement.x}, ${placement.y})',
+            );
+          }
+          final key = '${placement.x}:${placement.y}';
+          if (!occupiedCells.add(key)) {
+            throw ValidationException(
+              'Surface layer $layerId has duplicate placement coordinates: (${placement.x}, ${placement.y})',
+            );
+          }
+        }
+        for (final key in surfaceLayer.properties.keys) {
+          if (key.trim().isEmpty) {
+            throw ValidationException(
+                'Surface layer $layerId has an empty property key');
           }
         }
       },

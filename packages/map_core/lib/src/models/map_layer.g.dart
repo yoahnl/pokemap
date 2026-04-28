@@ -6,6 +6,22 @@ part of 'map_layer.dart';
 // JsonSerializableGenerator
 // **************************************************************************
 
+_$SurfaceCellPlacementImpl _$$SurfaceCellPlacementImplFromJson(
+        Map<String, dynamic> json) =>
+    _$SurfaceCellPlacementImpl(
+      x: (json['x'] as num).toInt(),
+      y: (json['y'] as num).toInt(),
+      surfacePresetId: json['surfacePresetId'] as String,
+    );
+
+Map<String, dynamic> _$$SurfaceCellPlacementImplToJson(
+        _$SurfaceCellPlacementImpl instance) =>
+    <String, dynamic>{
+      'x': instance.x,
+      'y': instance.y,
+      'surfacePresetId': instance.surfacePresetId,
+    };
+
 _$TileLayerImpl _$$TileLayerImplFromJson(Map<String, dynamic> json) =>
     _$TileLayerImpl(
       id: json['id'] as String,
@@ -133,6 +149,35 @@ const _$PathAnimationModeEnumMap = {
   PathAnimationMode.alwaysActive: 'always_active',
   PathAnimationMode.triggered: 'triggered',
 };
+
+_$SurfaceLayerImpl _$$SurfaceLayerImplFromJson(Map<String, dynamic> json) =>
+    _$SurfaceLayerImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      isVisible: json['isVisible'] as bool? ?? true,
+      opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
+      placements: (json['placements'] as List<dynamic>?)
+              ?.map((e) =>
+                  SurfaceCellPlacement.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      properties: (json['properties'] as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(k, e as String),
+          ) ??
+          const <String, String>{},
+      $type: json['runtimeType'] as String?,
+    );
+
+Map<String, dynamic> _$$SurfaceLayerImplToJson(_$SurfaceLayerImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'isVisible': instance.isVisible,
+      'opacity': instance.opacity,
+      'placements': instance.placements.map((e) => e.toJson()).toList(),
+      'properties': instance.properties,
+      'runtimeType': instance.$type,
+    };
 
 _$ObjectLayerImpl _$$ObjectLayerImplFromJson(Map<String, dynamic> json) =>
     _$ObjectLayerImpl(

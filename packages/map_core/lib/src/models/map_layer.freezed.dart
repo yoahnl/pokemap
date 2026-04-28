@@ -14,6 +14,195 @@ T _$identity<T>(T value) => value;
 final _privateConstructorUsedError = UnsupportedError(
     'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models');
 
+SurfaceCellPlacement _$SurfaceCellPlacementFromJson(Map<String, dynamic> json) {
+  return _SurfaceCellPlacement.fromJson(json);
+}
+
+/// @nodoc
+mixin _$SurfaceCellPlacement {
+  int get x => throw _privateConstructorUsedError;
+  int get y => throw _privateConstructorUsedError;
+  String get surfacePresetId => throw _privateConstructorUsedError;
+
+  /// Serializes this SurfaceCellPlacement to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of SurfaceCellPlacement
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $SurfaceCellPlacementCopyWith<SurfaceCellPlacement> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $SurfaceCellPlacementCopyWith<$Res> {
+  factory $SurfaceCellPlacementCopyWith(SurfaceCellPlacement value,
+          $Res Function(SurfaceCellPlacement) then) =
+      _$SurfaceCellPlacementCopyWithImpl<$Res, SurfaceCellPlacement>;
+  @useResult
+  $Res call({int x, int y, String surfacePresetId});
+}
+
+/// @nodoc
+class _$SurfaceCellPlacementCopyWithImpl<$Res,
+        $Val extends SurfaceCellPlacement>
+    implements $SurfaceCellPlacementCopyWith<$Res> {
+  _$SurfaceCellPlacementCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of SurfaceCellPlacement
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? x = null,
+    Object? y = null,
+    Object? surfacePresetId = null,
+  }) {
+    return _then(_value.copyWith(
+      x: null == x
+          ? _value.x
+          : x // ignore: cast_nullable_to_non_nullable
+              as int,
+      y: null == y
+          ? _value.y
+          : y // ignore: cast_nullable_to_non_nullable
+              as int,
+      surfacePresetId: null == surfacePresetId
+          ? _value.surfacePresetId
+          : surfacePresetId // ignore: cast_nullable_to_non_nullable
+              as String,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$SurfaceCellPlacementImplCopyWith<$Res>
+    implements $SurfaceCellPlacementCopyWith<$Res> {
+  factory _$$SurfaceCellPlacementImplCopyWith(_$SurfaceCellPlacementImpl value,
+          $Res Function(_$SurfaceCellPlacementImpl) then) =
+      __$$SurfaceCellPlacementImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({int x, int y, String surfacePresetId});
+}
+
+/// @nodoc
+class __$$SurfaceCellPlacementImplCopyWithImpl<$Res>
+    extends _$SurfaceCellPlacementCopyWithImpl<$Res, _$SurfaceCellPlacementImpl>
+    implements _$$SurfaceCellPlacementImplCopyWith<$Res> {
+  __$$SurfaceCellPlacementImplCopyWithImpl(_$SurfaceCellPlacementImpl _value,
+      $Res Function(_$SurfaceCellPlacementImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of SurfaceCellPlacement
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? x = null,
+    Object? y = null,
+    Object? surfacePresetId = null,
+  }) {
+    return _then(_$SurfaceCellPlacementImpl(
+      x: null == x
+          ? _value.x
+          : x // ignore: cast_nullable_to_non_nullable
+              as int,
+      y: null == y
+          ? _value.y
+          : y // ignore: cast_nullable_to_non_nullable
+              as int,
+      surfacePresetId: null == surfacePresetId
+          ? _value.surfacePresetId
+          : surfacePresetId // ignore: cast_nullable_to_non_nullable
+              as String,
+    ));
+  }
+}
+
+/// @nodoc
+@JsonSerializable()
+class _$SurfaceCellPlacementImpl implements _SurfaceCellPlacement {
+  const _$SurfaceCellPlacementImpl(
+      {required this.x, required this.y, required this.surfacePresetId});
+
+  factory _$SurfaceCellPlacementImpl.fromJson(Map<String, dynamic> json) =>
+      _$$SurfaceCellPlacementImplFromJson(json);
+
+  @override
+  final int x;
+  @override
+  final int y;
+  @override
+  final String surfacePresetId;
+
+  @override
+  String toString() {
+    return 'SurfaceCellPlacement(x: $x, y: $y, surfacePresetId: $surfacePresetId)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$SurfaceCellPlacementImpl &&
+            (identical(other.x, x) || other.x == x) &&
+            (identical(other.y, y) || other.y == y) &&
+            (identical(other.surfacePresetId, surfacePresetId) ||
+                other.surfacePresetId == surfacePresetId));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, x, y, surfacePresetId);
+
+  /// Create a copy of SurfaceCellPlacement
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$SurfaceCellPlacementImplCopyWith<_$SurfaceCellPlacementImpl>
+      get copyWith =>
+          __$$SurfaceCellPlacementImplCopyWithImpl<_$SurfaceCellPlacementImpl>(
+              this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$SurfaceCellPlacementImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _SurfaceCellPlacement implements SurfaceCellPlacement {
+  const factory _SurfaceCellPlacement(
+      {required final int x,
+      required final int y,
+      required final String surfacePresetId}) = _$SurfaceCellPlacementImpl;
+
+  factory _SurfaceCellPlacement.fromJson(Map<String, dynamic> json) =
+      _$SurfaceCellPlacementImpl.fromJson;
+
+  @override
+  int get x;
+  @override
+  int get y;
+  @override
+  String get surfacePresetId;
+
+  /// Create a copy of SurfaceCellPlacement
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$SurfaceCellPlacementImplCopyWith<_$SurfaceCellPlacementImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
 MapLayer _$MapLayerFromJson(Map<String, dynamic> json) {
   switch (json['runtimeType']) {
     case 'tile':
@@ -24,6 +213,8 @@ MapLayer _$MapLayerFromJson(Map<String, dynamic> json) {
       return TerrainLayer.fromJson(json);
     case 'path':
       return PathLayer.fromJson(json);
+    case 'surface':
+      return SurfaceLayer.fromJson(json);
     case 'object':
       return ObjectLayer.fromJson(json);
 
@@ -62,6 +253,14 @@ mixin _$MapLayer {
             List<PathAnimationTriggerRule> animationTriggers)
         path,
     required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)
+        surface,
+    required TResult Function(
             String id, String name, bool isVisible, double opacity)
         object,
   }) =>
@@ -88,6 +287,14 @@ mixin _$MapLayer {
             PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)?
         path,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)?
+        surface,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
         object,
   }) =>
@@ -114,6 +321,14 @@ mixin _$MapLayer {
             PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)?
         path,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)?
+        surface,
     TResult Function(String id, String name, bool isVisible, double opacity)?
         object,
     required TResult orElse(),
@@ -125,6 +340,7 @@ mixin _$MapLayer {
     required TResult Function(CollisionLayer value) collision,
     required TResult Function(TerrainLayer value) terrain,
     required TResult Function(PathLayer value) path,
+    required TResult Function(SurfaceLayer value) surface,
     required TResult Function(ObjectLayer value) object,
   }) =>
       throw _privateConstructorUsedError;
@@ -134,6 +350,7 @@ mixin _$MapLayer {
     TResult? Function(CollisionLayer value)? collision,
     TResult? Function(TerrainLayer value)? terrain,
     TResult? Function(PathLayer value)? path,
+    TResult? Function(SurfaceLayer value)? surface,
     TResult? Function(ObjectLayer value)? object,
   }) =>
       throw _privateConstructorUsedError;
@@ -143,6 +360,7 @@ mixin _$MapLayer {
     TResult Function(CollisionLayer value)? collision,
     TResult Function(TerrainLayer value)? terrain,
     TResult Function(PathLayer value)? path,
+    TResult Function(SurfaceLayer value)? surface,
     TResult Function(ObjectLayer value)? object,
     required TResult orElse(),
   }) =>
@@ -372,6 +590,14 @@ class _$TileLayerImpl extends TileLayer {
             List<PathAnimationTriggerRule> animationTriggers)
         path,
     required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)
+        surface,
+    required TResult Function(
             String id, String name, bool isVisible, double opacity)
         object,
   }) {
@@ -401,6 +627,14 @@ class _$TileLayerImpl extends TileLayer {
             PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)?
         path,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)?
+        surface,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
         object,
   }) {
@@ -430,6 +664,14 @@ class _$TileLayerImpl extends TileLayer {
             PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)?
         path,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)?
+        surface,
     TResult Function(String id, String name, bool isVisible, double opacity)?
         object,
     required TResult orElse(),
@@ -447,6 +689,7 @@ class _$TileLayerImpl extends TileLayer {
     required TResult Function(CollisionLayer value) collision,
     required TResult Function(TerrainLayer value) terrain,
     required TResult Function(PathLayer value) path,
+    required TResult Function(SurfaceLayer value) surface,
     required TResult Function(ObjectLayer value) object,
   }) {
     return tile(this);
@@ -459,6 +702,7 @@ class _$TileLayerImpl extends TileLayer {
     TResult? Function(CollisionLayer value)? collision,
     TResult? Function(TerrainLayer value)? terrain,
     TResult? Function(PathLayer value)? path,
+    TResult? Function(SurfaceLayer value)? surface,
     TResult? Function(ObjectLayer value)? object,
   }) {
     return tile?.call(this);
@@ -471,6 +715,7 @@ class _$TileLayerImpl extends TileLayer {
     TResult Function(CollisionLayer value)? collision,
     TResult Function(TerrainLayer value)? terrain,
     TResult Function(PathLayer value)? path,
+    TResult Function(SurfaceLayer value)? surface,
     TResult Function(ObjectLayer value)? object,
     required TResult orElse(),
   }) {
@@ -676,6 +921,14 @@ class _$CollisionLayerImpl extends CollisionLayer {
             List<PathAnimationTriggerRule> animationTriggers)
         path,
     required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)
+        surface,
+    required TResult Function(
             String id, String name, bool isVisible, double opacity)
         object,
   }) {
@@ -705,6 +958,14 @@ class _$CollisionLayerImpl extends CollisionLayer {
             PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)?
         path,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)?
+        surface,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
         object,
   }) {
@@ -734,6 +995,14 @@ class _$CollisionLayerImpl extends CollisionLayer {
             PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)?
         path,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)?
+        surface,
     TResult Function(String id, String name, bool isVisible, double opacity)?
         object,
     required TResult orElse(),
@@ -751,6 +1020,7 @@ class _$CollisionLayerImpl extends CollisionLayer {
     required TResult Function(CollisionLayer value) collision,
     required TResult Function(TerrainLayer value) terrain,
     required TResult Function(PathLayer value) path,
+    required TResult Function(SurfaceLayer value) surface,
     required TResult Function(ObjectLayer value) object,
   }) {
     return collision(this);
@@ -763,6 +1033,7 @@ class _$CollisionLayerImpl extends CollisionLayer {
     TResult? Function(CollisionLayer value)? collision,
     TResult? Function(TerrainLayer value)? terrain,
     TResult? Function(PathLayer value)? path,
+    TResult? Function(SurfaceLayer value)? surface,
     TResult? Function(ObjectLayer value)? object,
   }) {
     return collision?.call(this);
@@ -775,6 +1046,7 @@ class _$CollisionLayerImpl extends CollisionLayer {
     TResult Function(CollisionLayer value)? collision,
     TResult Function(TerrainLayer value)? terrain,
     TResult Function(PathLayer value)? path,
+    TResult Function(SurfaceLayer value)? surface,
     TResult Function(ObjectLayer value)? object,
     required TResult orElse(),
   }) {
@@ -976,6 +1248,14 @@ class _$TerrainLayerImpl extends TerrainLayer {
             List<PathAnimationTriggerRule> animationTriggers)
         path,
     required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)
+        surface,
+    required TResult Function(
             String id, String name, bool isVisible, double opacity)
         object,
   }) {
@@ -1005,6 +1285,14 @@ class _$TerrainLayerImpl extends TerrainLayer {
             PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)?
         path,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)?
+        surface,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
         object,
   }) {
@@ -1034,6 +1322,14 @@ class _$TerrainLayerImpl extends TerrainLayer {
             PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)?
         path,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)?
+        surface,
     TResult Function(String id, String name, bool isVisible, double opacity)?
         object,
     required TResult orElse(),
@@ -1051,6 +1347,7 @@ class _$TerrainLayerImpl extends TerrainLayer {
     required TResult Function(CollisionLayer value) collision,
     required TResult Function(TerrainLayer value) terrain,
     required TResult Function(PathLayer value) path,
+    required TResult Function(SurfaceLayer value) surface,
     required TResult Function(ObjectLayer value) object,
   }) {
     return terrain(this);
@@ -1063,6 +1360,7 @@ class _$TerrainLayerImpl extends TerrainLayer {
     TResult? Function(CollisionLayer value)? collision,
     TResult? Function(TerrainLayer value)? terrain,
     TResult? Function(PathLayer value)? path,
+    TResult? Function(SurfaceLayer value)? surface,
     TResult? Function(ObjectLayer value)? object,
   }) {
     return terrain?.call(this);
@@ -1075,6 +1373,7 @@ class _$TerrainLayerImpl extends TerrainLayer {
     TResult Function(CollisionLayer value)? collision,
     TResult Function(TerrainLayer value)? terrain,
     TResult Function(PathLayer value)? path,
+    TResult Function(SurfaceLayer value)? surface,
     TResult Function(ObjectLayer value)? object,
     required TResult orElse(),
   }) {
@@ -1349,6 +1648,14 @@ class _$PathLayerImpl extends PathLayer {
             List<PathAnimationTriggerRule> animationTriggers)
         path,
     required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)
+        surface,
+    required TResult Function(
             String id, String name, bool isVisible, double opacity)
         object,
   }) {
@@ -1379,6 +1686,14 @@ class _$PathLayerImpl extends PathLayer {
             PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)?
         path,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)?
+        surface,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
         object,
   }) {
@@ -1409,6 +1724,14 @@ class _$PathLayerImpl extends PathLayer {
             PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)?
         path,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)?
+        surface,
     TResult Function(String id, String name, bool isVisible, double opacity)?
         object,
     required TResult orElse(),
@@ -1427,6 +1750,7 @@ class _$PathLayerImpl extends PathLayer {
     required TResult Function(CollisionLayer value) collision,
     required TResult Function(TerrainLayer value) terrain,
     required TResult Function(PathLayer value) path,
+    required TResult Function(SurfaceLayer value) surface,
     required TResult Function(ObjectLayer value) object,
   }) {
     return path(this);
@@ -1439,6 +1763,7 @@ class _$PathLayerImpl extends PathLayer {
     TResult? Function(CollisionLayer value)? collision,
     TResult? Function(TerrainLayer value)? terrain,
     TResult? Function(PathLayer value)? path,
+    TResult? Function(SurfaceLayer value)? surface,
     TResult? Function(ObjectLayer value)? object,
   }) {
     return path?.call(this);
@@ -1451,6 +1776,7 @@ class _$PathLayerImpl extends PathLayer {
     TResult Function(CollisionLayer value)? collision,
     TResult Function(TerrainLayer value)? terrain,
     TResult Function(PathLayer value)? path,
+    TResult Function(SurfaceLayer value)? surface,
     TResult Function(ObjectLayer value)? object,
     required TResult orElse(),
   }) {
@@ -1504,6 +1830,362 @@ abstract class PathLayer extends MapLayer {
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
   _$$PathLayerImplCopyWith<_$PathLayerImpl> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class _$$SurfaceLayerImplCopyWith<$Res>
+    implements $MapLayerCopyWith<$Res> {
+  factory _$$SurfaceLayerImplCopyWith(
+          _$SurfaceLayerImpl value, $Res Function(_$SurfaceLayerImpl) then) =
+      __$$SurfaceLayerImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call(
+      {String id,
+      String name,
+      bool isVisible,
+      double opacity,
+      List<SurfaceCellPlacement> placements,
+      Map<String, String> properties});
+}
+
+/// @nodoc
+class __$$SurfaceLayerImplCopyWithImpl<$Res>
+    extends _$MapLayerCopyWithImpl<$Res, _$SurfaceLayerImpl>
+    implements _$$SurfaceLayerImplCopyWith<$Res> {
+  __$$SurfaceLayerImplCopyWithImpl(
+      _$SurfaceLayerImpl _value, $Res Function(_$SurfaceLayerImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of MapLayer
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? id = null,
+    Object? name = null,
+    Object? isVisible = null,
+    Object? opacity = null,
+    Object? placements = null,
+    Object? properties = null,
+  }) {
+    return _then(_$SurfaceLayerImpl(
+      id: null == id
+          ? _value.id
+          : id // ignore: cast_nullable_to_non_nullable
+              as String,
+      name: null == name
+          ? _value.name
+          : name // ignore: cast_nullable_to_non_nullable
+              as String,
+      isVisible: null == isVisible
+          ? _value.isVisible
+          : isVisible // ignore: cast_nullable_to_non_nullable
+              as bool,
+      opacity: null == opacity
+          ? _value.opacity
+          : opacity // ignore: cast_nullable_to_non_nullable
+              as double,
+      placements: null == placements
+          ? _value._placements
+          : placements // ignore: cast_nullable_to_non_nullable
+              as List<SurfaceCellPlacement>,
+      properties: null == properties
+          ? _value._properties
+          : properties // ignore: cast_nullable_to_non_nullable
+              as Map<String, String>,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$SurfaceLayerImpl extends SurfaceLayer {
+  const _$SurfaceLayerImpl(
+      {required this.id,
+      required this.name,
+      this.isVisible = true,
+      this.opacity = 1.0,
+      final List<SurfaceCellPlacement> placements = const [],
+      final Map<String, String> properties = const <String, String>{},
+      final String? $type})
+      : _placements = placements,
+        _properties = properties,
+        $type = $type ?? 'surface',
+        super._();
+
+  factory _$SurfaceLayerImpl.fromJson(Map<String, dynamic> json) =>
+      _$$SurfaceLayerImplFromJson(json);
+
+  @override
+  final String id;
+  @override
+  final String name;
+  @override
+  @JsonKey()
+  final bool isVisible;
+  @override
+  @JsonKey()
+  final double opacity;
+  final List<SurfaceCellPlacement> _placements;
+  @override
+  @JsonKey()
+  List<SurfaceCellPlacement> get placements {
+    if (_placements is EqualUnmodifiableListView) return _placements;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_placements);
+  }
+
+  final Map<String, String> _properties;
+  @override
+  @JsonKey()
+  Map<String, String> get properties {
+    if (_properties is EqualUnmodifiableMapView) return _properties;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableMapView(_properties);
+  }
+
+  @JsonKey(name: 'runtimeType')
+  final String $type;
+
+  @override
+  String toString() {
+    return 'MapLayer.surface(id: $id, name: $name, isVisible: $isVisible, opacity: $opacity, placements: $placements, properties: $properties)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$SurfaceLayerImpl &&
+            (identical(other.id, id) || other.id == id) &&
+            (identical(other.name, name) || other.name == name) &&
+            (identical(other.isVisible, isVisible) ||
+                other.isVisible == isVisible) &&
+            (identical(other.opacity, opacity) || other.opacity == opacity) &&
+            const DeepCollectionEquality()
+                .equals(other._placements, _placements) &&
+            const DeepCollectionEquality()
+                .equals(other._properties, _properties));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(
+      runtimeType,
+      id,
+      name,
+      isVisible,
+      opacity,
+      const DeepCollectionEquality().hash(_placements),
+      const DeepCollectionEquality().hash(_properties));
+
+  /// Create a copy of MapLayer
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$SurfaceLayerImplCopyWith<_$SurfaceLayerImpl> get copyWith =>
+      __$$SurfaceLayerImplCopyWithImpl<_$SurfaceLayerImpl>(this, _$identity);
+
+  @override
+  @optionalTypeArgs
+  TResult when<TResult extends Object?>({
+    required TResult Function(String id, String name, String? tilesetId,
+            bool isVisible, double opacity, List<int> tiles)
+        tile,
+    required TResult Function(String id, String name, bool isVisible,
+            double opacity, List<bool> collisions)
+        collision,
+    required TResult Function(String id, String name, bool isVisible,
+            double opacity, List<TerrainType> terrains)
+        terrain,
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            List<bool> cells,
+            Map<String, String> properties,
+            PathAnimationMode animationMode,
+            List<PathAnimationTriggerRule> animationTriggers)
+        path,
+    required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)
+        surface,
+    required TResult Function(
+            String id, String name, bool isVisible, double opacity)
+        object,
+  }) {
+    return surface(id, name, isVisible, opacity, placements, properties);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? whenOrNull<TResult extends Object?>({
+    TResult? Function(String id, String name, String? tilesetId, bool isVisible,
+            double opacity, List<int> tiles)?
+        tile,
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            List<bool> collisions)?
+        collision,
+    TResult? Function(String id, String name, bool isVisible, double opacity,
+            List<TerrainType> terrains)?
+        terrain,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            List<bool> cells,
+            Map<String, String> properties,
+            PathAnimationMode animationMode,
+            List<PathAnimationTriggerRule> animationTriggers)?
+        path,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)?
+        surface,
+    TResult? Function(String id, String name, bool isVisible, double opacity)?
+        object,
+  }) {
+    return surface?.call(id, name, isVisible, opacity, placements, properties);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeWhen<TResult extends Object?>({
+    TResult Function(String id, String name, String? tilesetId, bool isVisible,
+            double opacity, List<int> tiles)?
+        tile,
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            List<bool> collisions)?
+        collision,
+    TResult Function(String id, String name, bool isVisible, double opacity,
+            List<TerrainType> terrains)?
+        terrain,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            String presetId,
+            List<bool> cells,
+            Map<String, String> properties,
+            PathAnimationMode animationMode,
+            List<PathAnimationTriggerRule> animationTriggers)?
+        path,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)?
+        surface,
+    TResult Function(String id, String name, bool isVisible, double opacity)?
+        object,
+    required TResult orElse(),
+  }) {
+    if (surface != null) {
+      return surface(id, name, isVisible, opacity, placements, properties);
+    }
+    return orElse();
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult map<TResult extends Object?>({
+    required TResult Function(TileLayer value) tile,
+    required TResult Function(CollisionLayer value) collision,
+    required TResult Function(TerrainLayer value) terrain,
+    required TResult Function(PathLayer value) path,
+    required TResult Function(SurfaceLayer value) surface,
+    required TResult Function(ObjectLayer value) object,
+  }) {
+    return surface(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult? mapOrNull<TResult extends Object?>({
+    TResult? Function(TileLayer value)? tile,
+    TResult? Function(CollisionLayer value)? collision,
+    TResult? Function(TerrainLayer value)? terrain,
+    TResult? Function(PathLayer value)? path,
+    TResult? Function(SurfaceLayer value)? surface,
+    TResult? Function(ObjectLayer value)? object,
+  }) {
+    return surface?.call(this);
+  }
+
+  @override
+  @optionalTypeArgs
+  TResult maybeMap<TResult extends Object?>({
+    TResult Function(TileLayer value)? tile,
+    TResult Function(CollisionLayer value)? collision,
+    TResult Function(TerrainLayer value)? terrain,
+    TResult Function(PathLayer value)? path,
+    TResult Function(SurfaceLayer value)? surface,
+    TResult Function(ObjectLayer value)? object,
+    required TResult orElse(),
+  }) {
+    if (surface != null) {
+      return surface(this);
+    }
+    return orElse();
+  }
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$SurfaceLayerImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class SurfaceLayer extends MapLayer {
+  const factory SurfaceLayer(
+      {required final String id,
+      required final String name,
+      final bool isVisible,
+      final double opacity,
+      final List<SurfaceCellPlacement> placements,
+      final Map<String, String> properties}) = _$SurfaceLayerImpl;
+  const SurfaceLayer._() : super._();
+
+  factory SurfaceLayer.fromJson(Map<String, dynamic> json) =
+      _$SurfaceLayerImpl.fromJson;
+
+  @override
+  String get id;
+  @override
+  String get name;
+  @override
+  bool get isVisible;
+  @override
+  double get opacity;
+  List<SurfaceCellPlacement> get placements;
+  Map<String, String> get properties;
+
+  /// Create a copy of MapLayer
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$SurfaceLayerImplCopyWith<_$SurfaceLayerImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
@@ -1639,6 +2321,14 @@ class _$ObjectLayerImpl extends ObjectLayer {
             List<PathAnimationTriggerRule> animationTriggers)
         path,
     required TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)
+        surface,
+    required TResult Function(
             String id, String name, bool isVisible, double opacity)
         object,
   }) {
@@ -1668,6 +2358,14 @@ class _$ObjectLayerImpl extends ObjectLayer {
             PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)?
         path,
+    TResult? Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)?
+        surface,
     TResult? Function(String id, String name, bool isVisible, double opacity)?
         object,
   }) {
@@ -1697,6 +2395,14 @@ class _$ObjectLayerImpl extends ObjectLayer {
             PathAnimationMode animationMode,
             List<PathAnimationTriggerRule> animationTriggers)?
         path,
+    TResult Function(
+            String id,
+            String name,
+            bool isVisible,
+            double opacity,
+            List<SurfaceCellPlacement> placements,
+            Map<String, String> properties)?
+        surface,
     TResult Function(String id, String name, bool isVisible, double opacity)?
         object,
     required TResult orElse(),
@@ -1714,6 +2420,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
     required TResult Function(CollisionLayer value) collision,
     required TResult Function(TerrainLayer value) terrain,
     required TResult Function(PathLayer value) path,
+    required TResult Function(SurfaceLayer value) surface,
     required TResult Function(ObjectLayer value) object,
   }) {
     return object(this);
@@ -1726,6 +2433,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
     TResult? Function(CollisionLayer value)? collision,
     TResult? Function(TerrainLayer value)? terrain,
     TResult? Function(PathLayer value)? path,
+    TResult? Function(SurfaceLayer value)? surface,
     TResult? Function(ObjectLayer value)? object,
   }) {
     return object?.call(this);
@@ -1738,6 +2446,7 @@ class _$ObjectLayerImpl extends ObjectLayer {
     TResult Function(CollisionLayer value)? collision,
     TResult Function(TerrainLayer value)? terrain,
     TResult Function(PathLayer value)? path,
+    TResult Function(SurfaceLayer value)? surface,
     TResult Function(ObjectLayer value)? object,
     required TResult orElse(),
   }) {

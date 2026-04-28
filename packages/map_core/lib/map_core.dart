@@ -68,6 +68,7 @@ export 'src/collision/pixel_rect.dart';
 export 'src/collision/player_collision_conventions_v1.dart';
 export 'src/collision/element_collision_legacy_migration.dart';
 export 'src/operations/map_layers.dart';
+export 'src/operations/surface_layer_placements.dart';
 export 'src/operations/map_connections.dart';
 export 'src/operations/map_entities.dart';
 export 'src/operations/map_events.dart';

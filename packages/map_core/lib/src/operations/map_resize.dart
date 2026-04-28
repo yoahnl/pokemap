@@ -52,6 +52,15 @@ MapData resizeMapData(
               defaultValue: false,
             ),
           ),
+          surface: (l) => l.copyWith(
+            placements: l.placements
+                .where((placement) =>
+                    placement.x >= 0 &&
+                    placement.y >= 0 &&
+                    placement.x < width &&
+                    placement.y < height)
+                .toList(growable: false),
+          ),
           object: (l) => l,
         ),
       )

@@ -612,6 +612,9 @@ class _LayerList extends StatelessWidget {
       collision: (_) => CupertinoIcons.shield,
       terrain: (_) => CupertinoIcons.tree,
       path: (_) => CupertinoIcons.map,
+      // Surface painting/rendering is a later lot; the editor lists it
+      // neutrally so maps containing SurfaceLayer do not break the panel.
+      surface: (_) => CupertinoIcons.map,
       object: (_) => CupertinoIcons.square_stack_3d_up,
     );
   }
@@ -622,6 +625,7 @@ class _LayerList extends StatelessWidget {
       collision: (_) => 'collision',
       terrain: (_) => 'terrain',
       path: (_) => 'path',
+      surface: (_) => 'surface',
       object: (_) => 'object',
     );
   }

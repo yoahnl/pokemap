@@ -246,6 +246,11 @@ MapLayer _copyLayer(
       isVisible: isVisible ?? pathLayer.isVisible,
       opacity: opacity ?? pathLayer.opacity,
     ),
+    surface: (surfaceLayer) => surfaceLayer.copyWith(
+      name: name ?? surfaceLayer.name,
+      isVisible: isVisible ?? surfaceLayer.isVisible,
+      opacity: opacity ?? surfaceLayer.opacity,
+    ),
     object: (objectLayer) => objectLayer.copyWith(
       name: name ?? objectLayer.name,
       isVisible: isVisible ?? objectLayer.isVisible,

@@ -400,6 +400,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
       CollisionLayer _ => 'Collision Layer',
       TerrainLayer _ => 'Terrain Layer',
       PathLayer _ => 'Path Layer',
+      SurfaceLayer _ => 'Surface Layer',
       ObjectLayer _ => 'Object Layer',
     };
   }
@@ -426,6 +427,7 @@ class _InspectorOverviewCard extends StatelessWidget {
             TileLayer _ => 'Tile layer active',
             TerrainLayer _ => 'Ground layer active',
             PathLayer _ => 'Surface layer active',
+            SurfaceLayer _ => 'Surface placement layer active',
             CollisionLayer _ => 'Collision layer active',
             ObjectLayer _ => 'Object layer active',
           };

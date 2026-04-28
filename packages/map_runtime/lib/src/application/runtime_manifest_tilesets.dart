@@ -35,7 +35,11 @@ Set<String> collectTilesetIdsReferencedOnMap(MapData map) {
       tile: (id, name, tilesetId, isVisible, opacity, tiles) => add(tilesetId),
       collision: (id, name, isVisible, opacity, collisions) {},
       terrain: (id, name, isVisible, opacity, terrains) {},
-      path: (id, name, isVisible, opacity, presetId, cells, properties, animationMode, animationTriggers) {},
+      path: (id, name, isVisible, opacity, presetId, cells, properties,
+          animationMode, animationTriggers) {},
+      // Surface layers are no-op in runtime V0; a later runtime Surface lot
+      // will resolve placed preset ids into catalog atlas/tileset references.
+      surface: (id, name, isVisible, opacity, placements, properties) {},
       object: (id, name, isVisible, opacity) {},
     );
   }
@@ -75,7 +79,8 @@ void addTerrainAndPathPresetTilesetIds(
           }
         }
       },
-      path: (id, name, isVisible, opacity, presetId, cells, properties, animationMode, animationTriggers) {
+      path: (id, name, isVisible, opacity, presetId, cells, properties,
+          animationMode, animationTriggers) {
         final pid = presetId.trim();
         if (pid.isEmpty) {
           return;
@@ -98,6 +103,9 @@ void addTerrainAndPathPresetTilesetIds(
           }
         }
       },
+      // Surface layers are intentionally ignored for now so the runtime can
+      // load maps before the Surface renderer and tileset collector exist.
+      surface: (id, name, isVisible, opacity, placements, properties) {},
       object: (id, name, isVisible, opacity) {},
     );
   }

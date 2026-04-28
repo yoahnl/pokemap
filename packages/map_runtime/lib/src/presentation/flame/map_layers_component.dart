@@ -243,6 +243,8 @@ class MapLayersComponent extends PositionComponent {
   void render(Canvas canvas) {
     super.render(canvas);
     final visible = bundle.map.layers.where((l) => l.isVisible).toList();
+    // SurfaceLayer is tolerated as a runtime no-op in V0; the dedicated
+    // Surface renderer will decide its own pass once placement resolving exists.
     if (renderPass == MapLayerRenderPass.foreground) {
       for (var i = visible.length - 1; i >= 0; i--) {
         visible[i].whenOrNull(

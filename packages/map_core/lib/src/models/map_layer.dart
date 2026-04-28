@@ -7,6 +7,18 @@ part 'map_layer.freezed.dart';
 part 'map_layer.g.dart';
 
 @freezed
+class SurfaceCellPlacement with _$SurfaceCellPlacement {
+  const factory SurfaceCellPlacement({
+    required int x,
+    required int y,
+    required String surfacePresetId,
+  }) = _SurfaceCellPlacement;
+
+  factory SurfaceCellPlacement.fromJson(Map<String, dynamic> json) =>
+      _$SurfaceCellPlacementFromJson(json);
+}
+
+@freezed
 sealed class MapLayer with _$MapLayer {
   const MapLayer._();
 
@@ -51,6 +63,17 @@ sealed class MapLayer with _$MapLayer {
     @Default(PathAnimationMode.triggered) PathAnimationMode animationMode,
     @Default([]) List<PathAnimationTriggerRule> animationTriggers,
   }) = PathLayer;
+
+  @FreezedUnionValue('surface')
+  @JsonSerializable(explicitToJson: true)
+  const factory MapLayer.surface({
+    required String id,
+    required String name,
+    @Default(true) bool isVisible,
+    @Default(1.0) double opacity,
+    @Default([]) List<SurfaceCellPlacement> placements,
+    @Default(<String, String>{}) Map<String, String> properties,
+  }) = SurfaceLayer;
 
   @FreezedUnionValue('object')
   const factory MapLayer.object({
