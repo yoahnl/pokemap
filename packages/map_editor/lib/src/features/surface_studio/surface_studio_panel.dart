@@ -23,6 +23,7 @@ import 'surface_studio_paintable_surfaces_panel.dart';
 import 'surface_studio_selection.dart';
 import 'surface_studio_selection_inspector.dart';
 import 'surface_studio_selection_summary.dart';
+import 'surface_studio_workflow_layout.dart';
 import 'surface_studio_workflow_stepper.dart';
 
 SurfaceStudioSelection _selectionValidInReadModel(
@@ -284,18 +285,13 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
       ],
     );
     final assistant = SurfaceStudioCreationAssistant(readModel: _workReadModel);
-    final surfaceOutcomePanels = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SurfaceStudioDetectedAnimationsPanel(readModel: _workReadModel),
-        const SizedBox(height: 12),
-        SurfaceStudioPaintableSurfacesPanel(
-          readModel: _workReadModel,
-          onSaveCatalogPressed: widget.onSurfaceCatalogSaveRequested != null
-              ? _onSurfaceCatalogSavePrep
-              : null,
-        ),
-      ],
+    final detectedAnimations =
+        SurfaceStudioDetectedAnimationsPanel(readModel: _workReadModel);
+    final paintableSurfaces = SurfaceStudioPaintableSurfacesPanel(
+      readModel: _workReadModel,
+      onSaveCatalogPressed: widget.onSurfaceCatalogSaveRequested != null
+          ? _onSurfaceCatalogSavePrep
+          : null,
     );
 
     return SingleChildScrollView(
@@ -400,87 +396,105 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
             ),
           ],
           const SizedBox(height: 12),
+          SurfaceStudioWorkflowLayout(
+            assistant: assistant,
+            atlasWorkspace: authoring,
+            detectedAnimations: detectedAnimations,
+            paintableSurfaces: paintableSurfaces,
+          ),
+          const SizedBox(height: 12),
+          _AdvancedDetailsSection(
+            inspection: inspection,
+            browser: SurfaceStudioCatalogBrowser(
+              readModel: _workReadModel,
+              selection: _selection,
+              onSelectionChanged: (v) {
+                setState(() => _selection = v);
+              },
+            ),
+            diagnostics:
+                SurfaceStudioDiagnosticsView(readModel: _workReadModel),
+            futureActions: const _FutureActions(onImportVertical: null),
+            placeholder: const _SectionPlaceholder(
+              title: SurfaceStudioPanel.placeholderActionsTitle,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AdvancedDetailsSection extends StatelessWidget {
+  const _AdvancedDetailsSection({
+    required this.inspection,
+    required this.browser,
+    required this.diagnostics,
+    required this.futureActions,
+    required this.placeholder,
+  });
+
+  final Widget inspection;
+  final Widget browser;
+  final Widget diagnostics;
+  final Widget futureActions;
+  final Widget placeholder;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
+
+    return _StudioCard(
+      key: const ValueKey('surface_studio_advanced_details'),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Détails avancés',
+            style: TextStyle(
+              color: label,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Catalogue, inspection et diagnostics restent disponibles sans remplacer le workflow principal.',
+            style: TextStyle(color: subtle, fontSize: 11.5, height: 1.35),
+          ),
+          const SizedBox(height: 12),
           LayoutBuilder(
             builder: (context, c) {
-              if (c.maxWidth >= 1180) {
+              if (c.maxWidth >= 960) {
                 return Row(
-                  key: const ValueKey('surface_studio_main_two_column'),
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      flex: 24,
-                      child: assistant,
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      flex: 48,
-                      child: authoring,
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      flex: 30,
-                      child: surfaceOutcomePanels,
-                    ),
-                  ],
-                );
-              }
-              if (c.maxWidth >= 820) {
-                return Row(
-                  key: const ValueKey('surface_studio_main_two_column'),
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 56,
-                      child: authoring,
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      flex: 44,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          assistant,
-                          const SizedBox(height: 12),
-                          surfaceOutcomePanels,
-                        ],
-                      ),
-                    ),
+                    Expanded(child: inspection),
+                    const SizedBox(width: 12),
+                    Expanded(child: browser),
+                    const SizedBox(width: 12),
+                    Expanded(child: diagnostics),
                   ],
                 );
               }
               return Column(
-                key: const ValueKey('surface_studio_main_stacked'),
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  assistant,
+                  inspection,
                   const SizedBox(height: 12),
-                  authoring,
+                  browser,
                   const SizedBox(height: 12),
-                  surfaceOutcomePanels,
+                  diagnostics,
                 ],
               );
             },
           ),
           const SizedBox(height: 12),
-          inspection,
-          const SizedBox(height: 12),
-          SurfaceStudioCatalogBrowser(
-            readModel: _workReadModel,
-            selection: _selection,
-            onSelectionChanged: (v) {
-              setState(() => _selection = v);
-            },
-          ),
+          futureActions,
           const SizedBox(height: 10),
-          SurfaceStudioDiagnosticsView(readModel: _workReadModel),
-          const SizedBox(height: 12),
-          const _FutureActions(
-            onImportVertical: null,
-          ),
-          const SizedBox(height: 10),
-          const _SectionPlaceholder(
-            title: SurfaceStudioPanel.placeholderActionsTitle,
-          ),
+          placeholder,
         ],
       ),
     );
@@ -807,6 +821,7 @@ class _CounterChip extends StatelessWidget {
 /// Carte interne : même relief que les tuiles inspecteur / sections.
 class _StudioCard extends StatelessWidget {
   const _StudioCard({
+    super.key,
     required this.child,
     this.padding = const EdgeInsets.all(16),
   });

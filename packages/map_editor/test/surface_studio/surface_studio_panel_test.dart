@@ -1402,6 +1402,62 @@ void main() {
       expect(find.text('Créer une surface'), findsOneWidget);
       expect(find.text('Sauvegarder le catalogue'), findsOneWidget);
     });
+
+    testWidgets('85-bis.1 — workflow desktop en quatre zones côte à côte',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1600, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        _wrap(SurfaceStudioPanel(readModel: _minimalWaterReadModel())),
+      );
+
+      final grid =
+          find.byKey(const ValueKey('surface_studio_workflow_desktop_grid'));
+      final assistant =
+          find.byKey(const ValueKey('surface_studio_workflow_assistant_lane'));
+      final atlas =
+          find.byKey(const ValueKey('surface_studio_workflow_atlas_lane'));
+      final animations =
+          find.byKey(const ValueKey('surface_studio_workflow_animations_lane'));
+      final surfaces =
+          find.byKey(const ValueKey('surface_studio_workflow_surfaces_lane'));
+      final advanced =
+          find.byKey(const ValueKey('surface_studio_advanced_details'));
+
+      expect(grid, findsOneWidget);
+      expect(assistant, findsOneWidget);
+      expect(atlas, findsOneWidget);
+      expect(animations, findsOneWidget);
+      expect(surfaces, findsOneWidget);
+      expect(advanced, findsOneWidget);
+
+      final assistantLeft = tester.getTopLeft(assistant).dx;
+      final atlasLeft = tester.getTopLeft(atlas).dx;
+      final animationsLeft = tester.getTopLeft(animations).dx;
+      final surfacesLeft = tester.getTopLeft(surfaces).dx;
+      expect(assistantLeft, lessThan(atlasLeft));
+      expect(atlasLeft, lessThan(animationsLeft));
+      expect(animationsLeft, lessThan(surfacesLeft));
+
+      final workflowTop = tester.getTopLeft(grid).dy;
+      expect(
+        (tester.getTopLeft(assistant).dy - workflowTop).abs(),
+        lessThan(1),
+      );
+      expect(
+        (tester.getTopLeft(atlas).dy - workflowTop).abs(),
+        lessThan(1),
+      );
+      expect(
+        (tester.getTopLeft(animations).dy - workflowTop).abs(),
+        lessThan(1),
+      );
+      expect(
+        (tester.getTopLeft(surfaces).dy - workflowTop).abs(),
+        lessThan(1),
+      );
+      expect(tester.getTopLeft(advanced).dy, greaterThan(workflowTop));
+    });
   });
 
   group('SurfaceStudioPanel (Lot 67–69)', () {

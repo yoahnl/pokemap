@@ -4,6 +4,7 @@ import 'package:map_core/map_core.dart';
 
 import '../editor/state/editor_notifier.dart';
 import '../editor/tools/editor_tool.dart';
+import 'surface_catalog_availability.dart';
 import '../../ui/shared/cupertino_editor_widgets.dart';
 
 /// Minimal Surface palette for map placement authoring.
@@ -14,14 +15,18 @@ import '../../ui/shared/cupertino_editor_widgets.dart';
 class SurfacePalettePanel extends StatelessWidget {
   const SurfacePalettePanel({
     super.key,
+    required this.availability,
     required this.presets,
     required this.selectedSurfacePresetId,
     required this.onPresetSelected,
+    this.onOpenSurfaceStudio,
   });
 
+  final SurfaceCatalogAvailability availability;
   final List<ProjectSurfacePreset> presets;
   final String? selectedSurfacePresetId;
   final ValueChanged<String> onPresetSelected;
+  final VoidCallback? onOpenSurfaceStudio;
 
   @override
   Widget build(BuildContext context) {
@@ -40,12 +45,42 @@ class SurfacePalettePanel extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        if (presets.isEmpty)
+        _SurfaceCatalogCounts(availability: availability),
+        const SizedBox(height: 8),
+        Text(
+          availability.primaryMessage,
+          style: TextStyle(
+            color: availability.canPaint ? subtle : label,
+            fontSize: 13,
+            fontWeight:
+                availability.canPaint ? FontWeight.w500 : FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          availability.secondaryMessage,
+          style: TextStyle(color: subtle, fontSize: 12),
+        ),
+        if (presets.isEmpty) ...[
+          const SizedBox(height: 6),
           Text(
-            'Aucune surface disponible',
-            style: TextStyle(color: subtle, fontSize: 13),
-          )
-        else ...[
+            'Les presets sont les surfaces que vous pouvez peindre sur la map.',
+            style: TextStyle(color: subtle, fontSize: 12),
+          ),
+          if (onOpenSurfaceStudio != null) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: CupertinoButton(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                onPressed: onOpenSurfaceStudio,
+                child: Text(availability.recommendedActionLabel),
+              ),
+            ),
+          ],
+        ] else ...[
+          const SizedBox(height: 10),
           Text(
             'Sélectionner une surface',
             style: TextStyle(color: subtle, fontSize: 12),
@@ -83,6 +118,8 @@ class SurfacePainterPanel extends ConsumerWidget {
     final state = ref.watch(editorNotifierProvider);
     final notifier = ref.read(editorNotifierProvider.notifier);
     final map = state.activeMap;
+    final catalog = state.project?.surfaceCatalog ?? ProjectSurfaceCatalog();
+    final availability = SurfaceCatalogAvailability.fromCatalog(catalog);
     final presets =
         state.project?.surfaceCatalog.presets ?? const <ProjectSurfacePreset>[];
     final surfaceLayers =
@@ -90,7 +127,7 @@ class SurfacePainterPanel extends ConsumerWidget {
             const <SurfaceLayer>[];
     final activeLayer = _activeSurfaceLayer(map, state.activeLayerId);
     final canPaint = map != null &&
-        presets.isNotEmpty &&
+        availability.canPaint &&
         (state.selectedSurfacePresetId?.trim().isNotEmpty ?? false);
     final subtle = EditorChrome.subtleLabel(context);
 
@@ -109,9 +146,11 @@ class SurfacePainterPanel extends ConsumerWidget {
           ),
           const SizedBox(height: 12),
           SurfacePalettePanel(
+            availability: availability,
             presets: presets,
             selectedSurfacePresetId: state.selectedSurfacePresetId,
             onPresetSelected: notifier.selectSurfacePreset,
+            onOpenSurfaceStudio: notifier.selectSurfaceStudioWorkspace,
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -152,9 +191,10 @@ class SurfacePainterPanel extends ConsumerWidget {
           Text(
             _statusLine(
               activeLayer: activeLayer,
+              hasSurfaceLayer: surfaceLayers.isNotEmpty,
               presetSelected:
                   state.selectedSurfacePresetId?.trim().isNotEmpty ?? false,
-              hasPresets: presets.isNotEmpty,
+              availability: availability,
             ),
             style: TextStyle(color: subtle, fontSize: 12),
           ),
@@ -185,11 +225,15 @@ class SurfacePainterPanel extends ConsumerWidget {
 
   String _statusLine({
     required SurfaceLayer? activeLayer,
+    required bool hasSurfaceLayer,
     required bool presetSelected,
-    required bool hasPresets,
+    required SurfaceCatalogAvailability availability,
   }) {
-    if (!hasPresets) {
-      return 'Créez des surfaces dans Surface Studio avant de peindre.';
+    if (!availability.canPaint) {
+      if (hasSurfaceLayer) {
+        return 'Un calque Surface existe, mais aucune surface n’est encore peignable.';
+      }
+      return availability.secondaryMessage;
     }
     if (!presetSelected) {
       return 'Sélectionnez une surface, puis peignez sur la map.';
@@ -198,6 +242,72 @@ class SurfacePainterPanel extends ConsumerWidget {
       return 'Le premier clic créera un calque Surface automatiquement.';
     }
     return 'Calque actif : ${activeLayer.name}';
+  }
+}
+
+class _SurfaceCatalogCounts extends StatelessWidget {
+  const _SurfaceCatalogCounts({
+    required this.availability,
+  });
+
+  final SurfaceCatalogAvailability availability;
+
+  @override
+  Widget build(BuildContext context) {
+    final subtle = EditorChrome.subtleLabel(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Catalogue Surface :',
+          style: TextStyle(
+            color: subtle,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            _SurfaceCatalogCount(
+              label: 'Atlas',
+              value: availability.atlasCount,
+            ),
+            _SurfaceCatalogCount(
+              label: 'Animations',
+              value: availability.animationCount,
+            ),
+            _SurfaceCatalogCount(
+              label: 'Presets',
+              value: availability.presetCount,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _SurfaceCatalogCount extends StatelessWidget {
+  const _SurfaceCatalogCount({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final int value;
+
+  @override
+  Widget build(BuildContext context) {
+    final subtle = EditorChrome.subtleLabel(context);
+
+    return Text(
+      '$label : $value',
+      style: TextStyle(color: subtle, fontSize: 12),
+    );
   }
 }
 
