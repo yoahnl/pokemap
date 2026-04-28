@@ -14,13 +14,21 @@ class SurfaceStudioPaintableSurfacesPanel extends StatelessWidget {
   const SurfaceStudioPaintableSurfacesPanel({
     super.key,
     required this.readModel,
+    this.selectedPresetId,
     this.onCreateSurfacePressed,
     this.onSaveCatalogPressed,
+    this.onPresetSelected,
+    this.onEditMappingPressed,
+    this.mappingEditor,
   });
 
   final SurfaceStudioReadModel readModel;
+  final String? selectedPresetId;
   final VoidCallback? onCreateSurfacePressed;
   final VoidCallback? onSaveCatalogPressed;
+  final ValueChanged<String>? onPresetSelected;
+  final ValueChanged<String>? onEditMappingPressed;
+  final Widget? mappingEditor;
 
   @override
   Widget build(BuildContext context) {
@@ -60,9 +68,22 @@ class SurfaceStudioPaintableSurfacesPanel extends StatelessWidget {
             _EmptyPaintableState(hasAnimations: hasAnimations)
           else
             for (var i = 0; i < presets.length; i++) ...[
-              _PaintableSurfaceRow(row: presets[i]),
+              _PaintableSurfaceRow(
+                row: presets[i],
+                selected: presets[i].id == selectedPresetId,
+                onSelect: onPresetSelected == null
+                    ? null
+                    : () => onPresetSelected!(presets[i].id),
+                onEditMapping: onEditMappingPressed == null
+                    ? null
+                    : () => onEditMappingPressed!(presets[i].id),
+              ),
               if (i != presets.length - 1) const SizedBox(height: 8),
             ],
+          if (mappingEditor != null) ...[
+            const SizedBox(height: 12),
+            mappingEditor!,
+          ],
           const SizedBox(height: 12),
           CupertinoButton(
             key: const ValueKey('surface_studio_guidance_create_surface'),
@@ -144,21 +165,33 @@ class _EmptyPaintableState extends StatelessWidget {
 }
 
 class _PaintableSurfaceRow extends StatelessWidget {
-  const _PaintableSurfaceRow({required this.row});
+  const _PaintableSurfaceRow({
+    required this.row,
+    required this.selected,
+    this.onSelect,
+    this.onEditMapping,
+  });
 
   final SurfaceStudioPresetReadModel row;
+  final bool selected;
+  final VoidCallback? onSelect;
+  final VoidCallback? onEditMapping;
 
   @override
   Widget build(BuildContext context) {
     final label = EditorChrome.primaryLabel(context);
     final subtle = EditorChrome.subtleLabel(context);
-    return Container(
+    final content = Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: EditorChrome.islandFillElevated(context).withValues(alpha: 0.62),
+        color: selected
+            ? _accent.withValues(alpha: 0.12)
+            : EditorChrome.islandFillElevated(context).withValues(alpha: 0.62),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: EditorChrome.editorIslandRim(context).withValues(alpha: 0.65),
+          color: selected
+              ? _accent.withValues(alpha: 0.68)
+              : EditorChrome.editorIslandRim(context).withValues(alpha: 0.65),
         ),
       ),
       child: Column(
@@ -211,8 +244,25 @@ class _PaintableSurfaceRow extends StatelessWidget {
               height: 1.3,
             ),
           ),
+          if (onEditMapping != null) ...[
+            const SizedBox(height: 8),
+            CupertinoButton(
+              key: ValueKey('surface_paintable_edit_mapping_${row.id}'),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+              onPressed: onEditMapping,
+              child: const Text('Modifier le mapping'),
+            ),
+          ],
         ],
       ),
+    );
+    if (onSelect == null) {
+      return content;
+    }
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onSelect,
+      child: content,
     );
   }
 }

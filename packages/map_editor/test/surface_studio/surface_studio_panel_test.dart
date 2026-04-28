@@ -1458,6 +1458,62 @@ void main() {
       );
       expect(tester.getTopLeft(advanced).dy, greaterThan(workflowTop));
     });
+
+    testWidgets(
+        '88-bis.1 — modifier le mapping met le catalogue de travail dirty et sauvegardable',
+        (tester) async {
+      ProjectSurfaceCatalog? saved;
+      await tester.binding.setSurfaceSize(const Size(1600, 1100));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        _wrap(
+          SurfaceStudioPanel(
+            readModel: buildSurfaceStudioReadModelFromCatalog(
+              _roleMappingCatalog(),
+            ),
+            onSurfaceCatalogSaveRequested: (catalog) => saved = catalog,
+          ),
+        ),
+      );
+
+      final editButton =
+          find.byKey(const ValueKey('surface_paintable_edit_mapping_water'));
+      await tester.ensureVisible(editButton);
+      await tester.tap(editButton);
+      await tester.pump();
+
+      expect(find.text('Édition du mapping de surface'), findsOneWidget);
+      final dropdown =
+          find.byKey(const ValueKey('surface_role_mapping_dropdown_cross'));
+      final button = tester.widget<DropdownButton<String>>(dropdown);
+      button.onChanged!('water-horizontal');
+      await tester.pump();
+
+      expect(
+        find.text(SurfaceStudioPanel.workCatalogDirtyStateText),
+        findsOneWidget,
+      );
+
+      final prep =
+          find.byKey(const ValueKey('surface_studio_save_prep_catalog'));
+      await tester.ensureVisible(prep);
+      await tester.tap(prep);
+      await tester.pump();
+
+      expect(saved, isNotNull);
+      expect(
+        saved!
+            .presetById('water')!
+            .animationIdForRole(SurfaceVariantRole.cross),
+        'water-horizontal',
+      );
+      expect(
+        saved!
+            .presetById('water')!
+            .animationIdForRole(SurfaceVariantRole.horizontal),
+        'water-horizontal',
+      );
+    });
   });
 
   group('SurfaceStudioPanel (Lot 67–69)', () {
@@ -1849,6 +1905,63 @@ ProjectSurfaceCatalog _minimalWaterCatalog() {
     atlases: [atlas],
     animations: [anim],
     presets: [preset],
+  );
+}
+
+ProjectSurfaceCatalog _roleMappingCatalog() {
+  final g = _geom();
+  final atlas = ProjectSurfaceAtlas(
+    id: 'water-atlas',
+    name: 'Water Atlas',
+    tilesetId: 'nature-tileset',
+    geometry: g,
+  );
+
+  ProjectSurfaceAnimation animation(String id, String name, int column) {
+    return ProjectSurfaceAnimation(
+      id: id,
+      name: name,
+      timeline: SurfaceAnimationTimeline(
+        frames: [
+          SurfaceAnimationFrame(
+            tileRef: SurfaceAtlasTileRef(
+              atlasId: 'water-atlas',
+              column: column,
+              row: 0,
+            ),
+            durationMs: 120,
+          ),
+        ],
+      ),
+    );
+  }
+
+  return ProjectSurfaceCatalog(
+    atlases: [atlas],
+    animations: [
+      animation('water-cross', 'Water Cross', 0),
+      animation('water-horizontal', 'Water Horizontal', 1),
+    ],
+    presets: [
+      ProjectSurfacePreset(
+        id: 'water',
+        name: 'Water Surface',
+        categoryId: 'water',
+        sortOrder: 3,
+        variantAnimations: SurfaceVariantAnimationRefSet(
+          refs: [
+            SurfaceVariantAnimationRef(
+              role: SurfaceVariantRole.cross,
+              animationId: 'water-cross',
+            ),
+            SurfaceVariantAnimationRef(
+              role: SurfaceVariantRole.horizontal,
+              animationId: 'water-horizontal',
+            ),
+          ],
+        ),
+      ),
+    ],
   );
 }
 

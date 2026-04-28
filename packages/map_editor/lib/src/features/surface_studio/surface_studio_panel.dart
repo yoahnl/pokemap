@@ -20,6 +20,8 @@ import 'surface_studio_creation_assistant.dart';
 import 'surface_studio_detected_animations_panel.dart';
 import 'surface_studio_diagnostics_view.dart';
 import 'surface_studio_paintable_surfaces_panel.dart';
+import 'surface_studio_preset_editor_controller.dart';
+import 'surface_studio_role_mapping_editor.dart';
 import 'surface_studio_selection.dart';
 import 'surface_studio_selection_inspector.dart';
 import 'surface_studio_selection_summary.dart';
@@ -231,6 +233,41 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
     });
   }
 
+  ProjectSurfacePreset? _selectedWorkPreset() {
+    final id = _selection.id;
+    if (id == null || !_selection.isPreset) {
+      return null;
+    }
+    return _workReadModel.catalog.presetById(id);
+  }
+
+  void _selectPreset(String presetId) {
+    setState(() {
+      _selection = SurfaceStudioSelection.preset(presetId);
+    });
+  }
+
+  void _onPresetRoleAnimationChanged(
+    SurfaceVariantRole role,
+    String animationId,
+  ) {
+    final presetId = _selection.id;
+    if (presetId == null || !_selection.isPreset) {
+      return;
+    }
+    final next = surfaceStudioReplacePresetRoleAnimation(
+      catalog: _workReadModel.catalog,
+      presetId: presetId,
+      role: role,
+      animationId: animationId,
+    );
+    setState(() {
+      _saveFlowPrepNote = null;
+      _workReadModel = buildSurfaceStudioReadModelFromCatalog(next);
+      _selection = SurfaceStudioSelection.preset(presetId);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = _workReadModel.summary;
@@ -287,8 +324,21 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
     final assistant = SurfaceStudioCreationAssistant(readModel: _workReadModel);
     final detectedAnimations =
         SurfaceStudioDetectedAnimationsPanel(readModel: _workReadModel);
+    final selectedPreset = _selectedWorkPreset();
+    final mappingEditor = selectedPreset == null
+        ? null
+        : SurfaceStudioRoleMappingEditor(
+            catalog: _workReadModel.catalog,
+            preset: selectedPreset,
+            onRoleAnimationChanged:
+                canMutateCatalog ? _onPresetRoleAnimationChanged : null,
+          );
     final paintableSurfaces = SurfaceStudioPaintableSurfacesPanel(
       readModel: _workReadModel,
+      selectedPresetId: selectedPreset?.id,
+      onPresetSelected: _selectPreset,
+      onEditMappingPressed: canMutateCatalog ? _selectPreset : null,
+      mappingEditor: canMutateCatalog ? mappingEditor : null,
       onSaveCatalogPressed: widget.onSurfaceCatalogSaveRequested != null
           ? _onSurfaceCatalogSavePrep
           : null,
