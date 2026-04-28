@@ -202,11 +202,19 @@ final class PsdkBattleEffectIds {
 
   static const String aquaRing = 'aqua_ring';
   static const String batonPass = 'baton_pass';
+  static const String bind = 'bind';
+  static const String cantSwitch = 'cant_switch';
+  static const String centerOfAttention = 'center_of_attention';
   static const String confusion = 'confusion';
   static const String curse = 'curse';
+  static const String forceNextMoveBase = 'force_next_move_base';
+  static const String foresight = 'foresight';
   static const String ingrain = 'ingrain';
   static const String leechSeed = 'leech_seed';
+  static const String mudSport = 'mud_sport';
   static const String protect = 'protect';
+  static const String twoTurnCharge = 'two_turn_charge';
+  static const String waterSport = 'water_sport';
 }
 
 /// Immutable PSDK-lane effect id stack owned by one combatant.

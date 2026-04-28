@@ -65,7 +65,10 @@ final class BattleMoveDefinition {
       effectChance: move.effectChance,
       battleEngineMethod: move.battleEngineMethod,
       target: move.target,
-      flags: BattleMoveFlags(protectable: move.protectable),
+      flags: BattleMoveFlags(
+        protectable: move.protectable,
+        sound: move.sound,
+      ),
       stageMods: move.stageMods
           .map(
             (mod) => BattleStageMod(
@@ -120,6 +123,7 @@ final class BattleMoveDefinition {
       battleEngineMethod: battleEngineMethod,
       target: target,
       protectable: flags.protectable,
+      sound: flags.sound,
       stageMods: stageMods
           .map(
             (mod) => PsdkBattleMoveStageMod(

@@ -44,6 +44,8 @@ const Set<String> _recoilFromUserCurrentHp = <String>{
 final class RecoilMoveBehavior implements BattleMoveBehavior {
   const RecoilMoveBehavior.psdkRecoil() : battleEngineMethod = 's_recoil';
 
+  const RecoilMoveBehavior.struggle() : battleEngineMethod = 's_struggle';
+
   @override
   final String battleEngineMethod;
 

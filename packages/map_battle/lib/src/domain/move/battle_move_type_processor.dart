@@ -18,13 +18,34 @@ final class BattleMoveTypeProcessor {
   BattleTypeEffectivenessResult resolveEffectiveness({
     required String moveType,
     required PsdkBattleTypes targetTypes,
+    bool forceGrounded = false,
   }) {
-    final multiplier = BattleTypeChart.resolveEffectivenessMultiplier(
-      moveType: moveType,
-      defenderTyping: _typingSnapshot(targetTypes),
-    );
+    final multiplier = forceGrounded && moveType.toLowerCase() == 'ground'
+        ? _resolveGroundedGroundEffectiveness(targetTypes)
+        : BattleTypeChart.resolveEffectivenessMultiplier(
+            moveType: moveType,
+            defenderTyping: _typingSnapshot(targetTypes),
+          );
     return BattleTypeEffectivenessResult(multiplier: multiplier);
   }
+}
+
+double _resolveGroundedGroundEffectiveness(PsdkBattleTypes targetTypes) {
+  var multiplier = 1.0;
+  for (final type in <String>[
+    targetTypes.primary,
+    if (targetTypes.secondary != null) targetTypes.secondary!,
+  ]) {
+    final normalized = type.toLowerCase();
+    if (normalized == 'flying') {
+      continue;
+    }
+    multiplier *= BattleTypeChart.resolveEffectivenessMultiplier(
+      moveType: 'ground',
+      defenderTyping: BattleTypingSnapshot(primaryType: normalized),
+    );
+  }
+  return multiplier;
 }
 
 final class BattleTypeEffectivenessResult {

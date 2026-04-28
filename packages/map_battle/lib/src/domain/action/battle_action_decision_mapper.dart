@@ -2,6 +2,8 @@ import '../../psdk/domain/psdk_battle_move.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 import '../../psdk/domain/psdk_battle_state.dart';
 import '../../psdk/domain/psdk_battle_combatant.dart';
+import '../../psdk/domain/psdk_battle_field.dart';
+import '../battler/battle_grounding_resolver.dart';
 import '../decision/battle_decision.dart';
 import 'battle_action.dart';
 
@@ -42,7 +44,11 @@ final class PsdkBattleActionDecisionMapper {
         'moveSlot',
       );
     }
-    final move = battler.moves[moveSlot];
+    final move = _effectiveActionMove(
+      state: state,
+      battler: battler,
+      move: battler.moves[moveSlot],
+    );
     return PsdkBattleFightAction(
       user: user,
       target: requestedTarget ?? _targetFor(user: user, move: move),
@@ -51,6 +57,45 @@ final class PsdkBattleActionDecisionMapper {
       speed: _actionSpeed(battler),
     );
   }
+}
+
+PsdkBattleMoveData _effectiveActionMove({
+  required PsdkBattleState state,
+  required PsdkBattleCombatant battler,
+  required PsdkBattleMoveData move,
+}) {
+  if (move.battleEngineMethod != 's_grassy_glide' ||
+      !state.field.isTerrainActive(PsdkBattleTerrainId.grassyTerrain) ||
+      !const BattleGroundingResolver().isGrounded(battler) ||
+      move.priority >= 14) {
+    return move;
+  }
+  return _copyMoveWithPriority(move, move.priority + 1);
+}
+
+PsdkBattleMoveData _copyMoveWithPriority(
+  PsdkBattleMoveData move,
+  int priority,
+) {
+  return PsdkBattleMoveData(
+    id: move.id,
+    dbSymbol: move.dbSymbol,
+    name: move.name,
+    type: move.type,
+    category: move.category,
+    power: move.power,
+    accuracy: move.accuracy,
+    pp: move.pp,
+    currentPp: move.currentPp,
+    priority: priority,
+    criticalRate: move.criticalRate,
+    effectChance: move.effectChance,
+    battleEngineMethod: move.battleEngineMethod,
+    target: move.target,
+    protectable: move.protectable,
+    statuses: move.statuses,
+    stageMods: move.stageMods,
+  );
 }
 
 int _actionSpeed(PsdkBattleCombatant battler) {
@@ -70,21 +115,21 @@ PsdkBattleSlotRef _targetFor({
   return switch (move.target) {
     PsdkBattleMoveTarget.user || PsdkBattleMoveTarget.self => user,
     PsdkBattleMoveTarget.adjacentFoe ||
-    PsdkBattleMoveTarget.anyFoe =>
+    PsdkBattleMoveTarget.anyFoe ||
+    PsdkBattleMoveTarget.allAdjacentFoes ||
+    PsdkBattleMoveTarget.allFoes ||
+    PsdkBattleMoveTarget.randomFoe =>
       psdkSinglesFoeOf(user),
     PsdkBattleMoveTarget.bank ||
     PsdkBattleMoveTarget.userSide ||
     PsdkBattleMoveTarget.foeSide ||
+    PsdkBattleMoveTarget.allAllies ||
+    PsdkBattleMoveTarget.allBattlers ||
     PsdkBattleMoveTarget.none =>
       user,
     PsdkBattleMoveTarget.adjacentAlly ||
     PsdkBattleMoveTarget.adjacentAllyOrSelf ||
-    PsdkBattleMoveTarget.allAdjacent ||
-    PsdkBattleMoveTarget.allAdjacentFoes ||
-    PsdkBattleMoveTarget.allBattlers ||
-    PsdkBattleMoveTarget.allFoes ||
-    PsdkBattleMoveTarget.allAllies ||
-    PsdkBattleMoveTarget.randomFoe =>
+    PsdkBattleMoveTarget.allAdjacent =>
       throw UnsupportedError(
         'PSDK target ${move.target.name} needs multi-target action support.',
       ),

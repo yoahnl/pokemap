@@ -47,6 +47,16 @@ void main() {
             pp: 5,
             sourceFile: 'unknown.json',
           ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'z_move',
+            battleEngineMethod: 's_z_move',
+            type: 'electric',
+            category: 'physical',
+            power: 210,
+            accuracy: '0',
+            pp: 1,
+            sourceFile: 'z_move.json',
+          ),
         ],
         manifest: const <PsdkMoveRegistryManifestEntry>[
           PsdkMoveRegistryManifestEntry(
@@ -74,14 +84,20 @@ void main() {
         sourceDescription: 'test moves',
       );
 
-      expect(report, contains('| total_attacks | 4 |'));
+      expect(report, contains('| total_attacks | 5 |'));
       expect(report, contains('| fait | 1 |'));
-      expect(report, contains('| partiel | 1 |'));
+      expect(report, contains('| partiel | 2 |'));
       expect(report, contains('| pas_fait | 2 |'));
       expect(report, contains('| unknown_methods | 1 |'));
       expect(
         report,
         contains('| pas_fait | unknown\\|move | s_unknown | unknown_method |'),
+      );
+      expect(
+        report,
+        contains(
+          '| partiel | z_move | s_z_move | partial | StaticBasicMoveRegistry.s_z_move |',
+        ),
       );
     });
   });

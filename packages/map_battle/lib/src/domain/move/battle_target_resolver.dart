@@ -55,8 +55,10 @@ final class BattleTargetResolver {
       PsdkBattleMoveTarget.foeSide ||
       PsdkBattleMoveTarget.none =>
         const <PsdkBattleSlotRef>[],
-      PsdkBattleMoveTarget.randomFoe => throw UnsupportedError(
-          'randomFoe targeting needs RNG-threaded target resolution.',
+      PsdkBattleMoveTarget.randomFoe => _requestedOrFirst(
+          requested: requestedSlot,
+          candidates: state.foesOf(user),
+          fallback: psdkSinglesFoeOf(user),
         ),
     };
 

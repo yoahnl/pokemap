@@ -10,6 +10,7 @@ enum _CustomStatSourceKind {
   foulPlay,
   psyshock,
   customStatsBased,
+  sacredSword,
 }
 
 /// Ports PSDK moves that keep the normal damage formula but swap stat sources.
@@ -35,6 +36,10 @@ final class CustomStatSourceMoveBehavior implements BattleMoveBehavior {
   const CustomStatSourceMoveBehavior.customStatsBased()
       : battleEngineMethod = 's_custom_stats_based',
         _kind = _CustomStatSourceKind.customStatsBased;
+
+  const CustomStatSourceMoveBehavior.sacredSword()
+      : battleEngineMethod = 's_sacred_sword',
+        _kind = _CustomStatSourceKind.sacredSword;
 
   @override
   final String battleEngineMethod;
@@ -134,6 +139,10 @@ final class CustomStatSourceMoveBehavior implements BattleMoveBehavior {
           // negative drops are ignored, positive boosts are kept.
           ignoreNegativeStage: isCritical,
         ),
+      _CustomStatSourceKind.sacredSword => user.effectiveStat(
+          'attack',
+          ignoreNegativeStage: isCritical,
+        ),
     };
   }
 
@@ -141,7 +150,11 @@ final class CustomStatSourceMoveBehavior implements BattleMoveBehavior {
     required PsdkBattleCombatant target,
     required bool isCritical,
   }) {
-    // The three supported families route defense like a physical PSDK move:
+    if (_kind == _CustomStatSourceKind.sacredSword) {
+      return target.effectiveStat('defense', ignoreAllStages: true);
+    }
+
+    // The remaining supported families route defense like a physical PSDK move:
     // target Defense is used, positive defensive boosts are ignored on crit,
     // and negative defensive drops still make the hit stronger.
     return target.effectiveStat(

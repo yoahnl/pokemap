@@ -110,6 +110,35 @@ void main() {
       expect(critical.rngSeeds.moveCritical, criticalSeeds.moveCritical);
       expect(critical.rngSeeds.moveDamage, isNot(criticalSeeds.moveDamage));
     });
+
+    test('Tar Shot marker doubles fire-type effectiveness locally', () {
+      final baseline = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'fire'),
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        playerMove: _damagingMove(
+          id: 'ember',
+          type: 'fire',
+          category: PsdkBattleMoveCategory.special,
+          power: 40,
+        ),
+      );
+      final tarred = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'fire'),
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentEffects: const PsdkBattleEffectStack.empty().addEffect(
+          TarShotEffect(scope: BattlerBattleEffectScope(psdkOpponentSlot)),
+        ),
+        playerMove: _damagingMove(
+          id: 'ember',
+          type: 'fire',
+          category: PsdkBattleMoveCategory.special,
+          power: 40,
+        ),
+      );
+
+      expect(baseline.damageToOpponent, 12);
+      expect(tarred.damageToOpponent, 24);
+    });
   });
 }
 
@@ -117,6 +146,7 @@ _RunResult _runSinglePlayerMove({
   required PsdkBattleTypes playerTypes,
   required PsdkBattleTypes opponentTypes,
   required PsdkBattleMoveData playerMove,
+  PsdkBattleEffectStack opponentEffects = const PsdkBattleEffectStack.empty(),
   BattleRngSeeds seeds = const BattleRngSeeds(
     moveDamage: 1,
     moveCritical: 99999,
@@ -135,6 +165,7 @@ _RunResult _runSinglePlayerMove({
       id: 'opponent',
       types: opponentTypes,
       speed: 1,
+      effects: opponentEffects,
       moves: <PsdkBattleMoveData>[
         _damagingMove(id: 'splash_hit', type: 'normal', power: 0),
       ],
@@ -156,6 +187,7 @@ PsdkBattleCombatantSetup _combatant({
   required PsdkBattleTypes types,
   required int speed,
   required List<PsdkBattleMoveData> moves,
+  PsdkBattleEffectStack effects = const PsdkBattleEffectStack.empty(),
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -173,6 +205,7 @@ PsdkBattleCombatantSetup _combatant({
       speed: speed,
     ),
     moves: moves,
+    effects: effects,
   );
 }
 

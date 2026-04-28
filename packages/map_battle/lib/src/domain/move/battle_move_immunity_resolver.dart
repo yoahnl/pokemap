@@ -86,6 +86,7 @@ final class BattleMoveImmunityResolver {
     final effectiveness = _typeProcessor.resolveEffectiveness(
       moveType: execution.move.type,
       targetTypes: target.types,
+      forceGrounded: target.effects.contains('smack_down'),
     );
     return effectiveness.isImmune;
   }

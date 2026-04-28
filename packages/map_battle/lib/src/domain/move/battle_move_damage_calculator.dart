@@ -34,6 +34,7 @@ final class BattleMoveDamageCalculator {
     final effectiveness = _typeProcessor.resolveEffectiveness(
       moveType: move.type,
       targetTypes: context.target.types,
+      forceGrounded: context.target.effects.contains('smack_down'),
     );
     if (effectiveness.isImmune) {
       return BattleMoveDamageResult.zero(
@@ -70,7 +71,11 @@ final class BattleMoveDamageCalculator {
     final criticalDamage = (baseDamage * critical.multiplier).floor();
     final randomDamage = ((criticalDamage * damageRoll.value) / 100).floor();
     final stabDamage = (randomDamage * stabMultiplier).floor();
-    final typedDamage = (stabDamage * effectiveness.multiplier).floor();
+    final typeEffectivenessMultiplier = _applyLocalEffectivenessModifiers(
+      effectiveness.multiplier,
+      context,
+    );
+    final typedDamage = (stabDamage * typeEffectivenessMultiplier).floor();
     final damage = typedDamage < 1 ? 1 : typedDamage;
 
     return BattleMoveDamageResult(
@@ -79,9 +84,20 @@ final class BattleMoveDamageCalculator {
       isCritical: critical.isCritical,
       criticalMultiplier: critical.multiplier,
       stabMultiplier: stabMultiplier,
-      typeEffectivenessMultiplier: effectiveness.multiplier,
+      typeEffectivenessMultiplier: typeEffectivenessMultiplier,
     );
   }
+}
+
+double _applyLocalEffectivenessModifiers(
+  double multiplier,
+  BattleMoveDamageContext context,
+) {
+  if (context.move.type.toLowerCase() == 'fire' &&
+      context.target.effects.contains('tar_shot')) {
+    return multiplier * 2;
+  }
+  return multiplier;
 }
 
 final class BattleMoveDamageContext {

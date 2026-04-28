@@ -19,6 +19,21 @@ void main() {
             's_protect',
           ]));
       expect(byMethod['s_basic']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_2turns']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_2turns']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_2turns',
+      );
+      expect(
+        byMethod['s_2turns']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.actionOrder,
+          PsdkMoveDependency.weather,
+          PsdkMoveDependency.item,
+          PsdkMoveDependency.targetingMulti,
+        ]),
+      );
       expect(byMethod['s_status']!.status, PsdkPortStatus.partial);
       expect(byMethod['s_protect']!.status, PsdkPortStatus.partial);
       expect(byMethod['s_stat']!.status, PsdkPortStatus.partial);
@@ -130,6 +145,11 @@ void main() {
         byMethod['s_custom_stats_based']!.dartBehavior,
         'CustomStatSourceMoveBehavior.customStatsBased',
       );
+      expect(byMethod['s_sacred_sword']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_sacred_sword']!.dartBehavior,
+        'CustomStatSourceMoveBehavior.sacredSword',
+      );
     });
 
     test('tracks the Lot 18 basic damage specialization slice', () {
@@ -138,6 +158,11 @@ void main() {
           entry.battleEngineMethod: entry,
       };
 
+      expect(byMethod['s_a_fang']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_a_fang']!.dartBehavior,
+        'BasicDamageSpecializationMoveBehavior.fangs',
+      );
       expect(byMethod['s_false_swipe']!.status, PsdkPortStatus.partial);
       expect(
         byMethod['s_false_swipe']!.dartBehavior,
@@ -147,6 +172,881 @@ void main() {
       expect(
         byMethod['s_full_crit']!.dartBehavior,
         'BasicDamageSpecializationMoveBehavior.fullCrit',
+      );
+      expect(byMethod['s_gigaton_hammer']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_gigaton_hammer']!.dartBehavior,
+        'ForcedActionMoveBehavior.gigatonHammer',
+      );
+      expect(byMethod['s_outrage']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_outrage']!.dartBehavior,
+        'ForcedActionMoveBehavior.outrage',
+      );
+      expect(byMethod['s_thrash']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_thrash']!.dartBehavior,
+        'ForcedActionMoveBehavior.thrash',
+      );
+      expect(byMethod['s_uproar']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_uproar']!.dartBehavior,
+        'ForcedActionMoveBehavior.uproar',
+      );
+      expect(byMethod['s_camouflage']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_camouflage']!.dartBehavior,
+        'FieldLocationMoveBehavior.camouflage',
+      );
+      expect(byMethod['s_nature_power']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_nature_power']!.dartBehavior,
+        'FieldLocationMoveBehavior.naturePower',
+      );
+      expect(byMethod['s_pledge']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_pledge']!.dartBehavior,
+        'FieldLocationMoveBehavior.pledge',
+      );
+      expect(byMethod['s_secret_power']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_secret_power']!.dartBehavior,
+        'FieldLocationMoveBehavior.secretPower',
+      );
+      expect(byMethod['s_synchronoise']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_synchronoise']!.dartBehavior,
+        'FieldLocationMoveBehavior.synchronoise',
+      );
+      expect(byMethod['s_smack_down']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_smack_down']!.dartBehavior,
+        'GroundingMoveBehavior.smackDown',
+      );
+      expect(byMethod['s_burn_up']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_burn_up']!.dartBehavior,
+        'SpecialSecondaryMoveBehavior.burnUp',
+      );
+      expect(byMethod['s_alluring_voice']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_alluring_voice']!.dartBehavior,
+        'SpecialSecondaryMoveBehavior.alluringVoice',
+      );
+      expect(byMethod['s_burning_jealousy']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_burning_jealousy']!.dartBehavior,
+        'SpecialSecondaryMoveBehavior.burningJealousy',
+      );
+      expect(byMethod['s_incinerate']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_incinerate']!.dartBehavior,
+        'SpecialSecondaryMoveBehavior.incinerate',
+      );
+      expect(byMethod['s_psychic_noise']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_psychic_noise']!.dartBehavior,
+        'SpecialSecondaryMoveBehavior.psychicNoise',
+      );
+      expect(byMethod['s_relic_song']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_relic_song']!.dartBehavior,
+        'SpecialSecondaryMoveBehavior.relicSong',
+      );
+      expect(byMethod['s_salt_cure']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_salt_cure']!.dartBehavior,
+        'SpecialSecondaryMoveBehavior.saltCure',
+      );
+      expect(byMethod['s_syrup_bomb']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_syrup_bomb']!.dartBehavior,
+        'SpecialSecondaryMoveBehavior.syrupBomb',
+      );
+      expect(byMethod['s_tar_shot']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_tar_shot']!.dartBehavior,
+        'SpecialSecondaryMoveBehavior.tarShot',
+      );
+      expect(byMethod['s_throat_chop']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_throat_chop']!.dartBehavior,
+        'SpecialSecondaryMoveBehavior.throatChop',
+      );
+      expect(byMethod['s_tri_attack']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_tri_attack']!.dartBehavior,
+        'SpecialSecondaryMoveBehavior.triAttack',
+      );
+    });
+
+    test('tracks the partial Basic-descendant move wave', () {
+      final byMethod = {
+        for (final entry in psdkMoveRegistryManifest)
+          entry.battleEngineMethod: entry,
+      };
+
+      for (final method in <String>[
+        's_beak_blast',
+        's_core_enforcer',
+        's_fake_out',
+        's_feint',
+        's_fell_stinger',
+        's_flame_burst',
+        's_flying_press',
+        's_focus_punch',
+        's_fusion_bolt',
+        's_fusion_flare',
+        's_hidden_power',
+        's_jump_kick',
+        's_last_resort',
+        's_payday',
+        's_photon_geyser',
+        's_pollen_puff',
+        's_pursuit',
+        's_rage',
+        's_round',
+        's_shell_trap',
+        's_spectral_thief',
+        's_stomp',
+        's_u_turn',
+      ]) {
+        expect(byMethod[method]!.status, PsdkPortStatus.partial);
+        expect(
+          byMethod[method]!.dartBehavior,
+          'StaticBasicMoveRegistry.partialBasic($method)',
+        );
+      }
+      expect(byMethod['s_sky_drop']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_sky_drop']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_sky_drop',
+      );
+      expect(byMethod['s_rapid_spin']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_rapid_spin']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_rapid_spin',
+      );
+      expect(byMethod['s_brick_break']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_brick_break']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_brick_break',
+      );
+      expect(byMethod['s_ceaseless_edge']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_ceaseless_edge']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_ceaseless_edge',
+      );
+      expect(byMethod['s_stone_axe']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_stone_axe']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_stone_axe',
+      );
+      expect(byMethod['s_cantflee']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_cantflee']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_cantflee',
+      );
+      expect(byMethod['s_snore']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_snore']!.dartBehavior,
+        'ActionGatedMoveBehavior.snore',
+      );
+      expect(byMethod['s_sucker_punch']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_sucker_punch']!.dartBehavior,
+        'ActionGatedMoveBehavior.suckerPunch',
+      );
+      expect(byMethod['s_hurricane']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_hurricane']!.dartBehavior,
+        'WeatherPowerMoveBehavior.hurricane',
+      );
+      expect(byMethod['s_solar_beam']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_solar_beam']!.dartBehavior,
+        'WeatherPowerMoveBehavior.solarBeam',
+      );
+      expect(byMethod['s_thunder']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_thunder']!.dartBehavior,
+        'WeatherPowerMoveBehavior.thunder',
+      );
+      expect(byMethod['s_echo']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_echo']!.dartBehavior,
+        'ConsecutivePowerMoveBehavior.echoedVoice',
+      );
+      expect(byMethod['s_fury_cutter']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_fury_cutter']!.dartBehavior,
+        'ConsecutivePowerMoveBehavior.furyCutter',
+      );
+      expect(byMethod['s_ice_ball']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_ice_ball']!.dartBehavior,
+        'ConsecutivePowerMoveBehavior.iceBall',
+      );
+      expect(byMethod['s_rollout']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_rollout']!.dartBehavior,
+        'ConsecutivePowerMoveBehavior.rollout',
+      );
+      expect(byMethod['s_trump_card']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_trump_card']!.dartBehavior,
+        'ConsecutivePowerMoveBehavior.trumpCard',
+      );
+      expect(byMethod['s_bide']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_bide']!.dartBehavior,
+        'CounterDamageMoveBehavior.bide',
+      );
+      expect(byMethod['s_counter']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_counter']!.dartBehavior,
+        'CounterDamageMoveBehavior.counter',
+      );
+      expect(byMethod['s_metal_burst']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_metal_burst']!.dartBehavior,
+        'CounterDamageMoveBehavior.metalBurst',
+      );
+      expect(byMethod['s_mirror_coat']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_mirror_coat']!.dartBehavior,
+        'CounterDamageMoveBehavior.mirrorCoat',
+      );
+
+      expect(byMethod['s_avalanche']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_avalanche']!.dartBehavior,
+        'HistoryPowerMoveBehavior.avalanche',
+      );
+      expect(byMethod['s_assurance']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_assurance']!.dartBehavior,
+        'HistoryPowerMoveBehavior.assurance',
+      );
+      expect(byMethod['s_fishious_rend']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_fishious_rend']!.dartBehavior,
+        'HistoryPowerMoveBehavior.fishiousRend',
+      );
+      expect(byMethod['s_lash_out']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_lash_out']!.dartBehavior,
+        'HistoryPowerMoveBehavior.lashOut',
+      );
+      expect(byMethod['s_payback']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_payback']!.dartBehavior,
+        'HistoryPowerMoveBehavior.payback',
+      );
+      expect(byMethod['s_rage_fist']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_rage_fist']!.dartBehavior,
+        'HistoryPowerMoveBehavior.rageFist',
+      );
+      expect(byMethod['s_retaliate']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_retaliate']!.dartBehavior,
+        'HistoryPowerMoveBehavior.retaliate',
+      );
+      expect(byMethod['s_revenge']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_revenge']!.dartBehavior,
+        'HistoryPowerMoveBehavior.revenge',
+      );
+      expect(byMethod['s_stomping_tantrum']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_stomping_tantrum']!.dartBehavior,
+        'HistoryPowerMoveBehavior.stompingTantrum',
+      );
+      expect(byMethod['s_ivy_cudgel']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_ivy_cudgel']!.dartBehavior,
+        'TypeBasedMoveBehavior.ivyCudgel',
+      );
+      expect(byMethod['s_judgment']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_judgment']!.dartBehavior,
+        'TypeBasedMoveBehavior.judgment',
+      );
+      expect(byMethod['s_multi_attack']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_multi_attack']!.dartBehavior,
+        'TypeBasedMoveBehavior.multiAttack',
+      );
+      expect(byMethod['s_revelation_dance']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_revelation_dance']!.dartBehavior,
+        'TypeBasedMoveBehavior.revelationDance',
+      );
+      expect(byMethod['s_bind']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_bind']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_bind',
+      );
+      expect(byMethod['s_dragon_tail']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_dragon_tail']!.dartBehavior,
+        'StaticBasicMoveRegistry.forceSwitch(s_dragon_tail)',
+      );
+      expect(byMethod['s_roar']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_roar']!.dartBehavior,
+        'StaticBasicMoveRegistry.forceSwitch(s_roar)',
+      );
+      expect(byMethod['s_substitute']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_substitute']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_substitute',
+      );
+      expect(byMethod['s_follow_me']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_follow_me']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_follow_me',
+      );
+      expect(byMethod['s_add_type']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_add_type']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_add_type',
+      );
+      expect(byMethod['s_foresight']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_foresight']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_foresight',
+      );
+      expect(byMethod['s_thing_sport']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_thing_sport']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_thing_sport',
+      );
+      expect(byMethod['s_trick']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_trick']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_trick',
+      );
+      for (final entry in <({String method, String behavior})>[
+        (method: 's_belch', behavior: 'ItemDependentMoveBehavior.belch'),
+        (method: 's_bestow', behavior: 'ItemDependentMoveBehavior.bestow'),
+        (method: 's_fling', behavior: 'ItemDependentMoveBehavior.fling'),
+        (method: 's_knock_off', behavior: 'ItemDependentMoveBehavior.knockOff'),
+        (
+          method: 's_natural_gift',
+          behavior: 'ItemDependentMoveBehavior.naturalGift',
+        ),
+        (method: 's_pluck', behavior: 'ItemDependentMoveBehavior.pluck'),
+        (method: 's_recycle', behavior: 'ItemDependentMoveBehavior.recycle'),
+        (
+          method: 's_techno_blast',
+          behavior: 'ItemDependentMoveBehavior.technoBlast',
+        ),
+        (method: 's_thief', behavior: 'ItemDependentMoveBehavior.thief'),
+      ]) {
+        expect(byMethod[entry.method]!.status, PsdkPortStatus.partial);
+        expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
+      }
+      for (final entry in <({String method, String behavior})>[
+        (
+          method: 's_attract',
+          behavior: 'StaticBasicMoveRegistry.attract',
+        ),
+        (
+          method: 's_after_you',
+          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_after_you)',
+        ),
+        (
+          method: 's_ally_switch',
+          behavior:
+              'StaticBasicMoveRegistry.partialTargetMarker(s_ally_switch)',
+        ),
+        (
+          method: 's_autotomize',
+          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_autotomize)',
+        ),
+        (
+          method: 's_captivate',
+          behavior: 'StaticBasicMoveRegistry.secondaryOnly(s_captivate)',
+        ),
+        (
+          method: 's_ceaseless_edge',
+          behavior: 'StaticBasicMoveRegistry.s_ceaseless_edge',
+        ),
+        (
+          method: 's_charge',
+          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_charge)',
+        ),
+        (
+          method: 's_change_type',
+          behavior: 'StaticBasicMoveRegistry.s_change_type',
+        ),
+        (
+          method: 's_crafty_shield',
+          behavior:
+              'StaticBasicMoveRegistry.partialUserBankMarker(s_crafty_shield)',
+        ),
+        (
+          method: 's_defog',
+          behavior: 'StaticBasicMoveRegistry.s_defog',
+        ),
+        (
+          method: 's_destiny_bond',
+          behavior:
+              'StaticBasicMoveRegistry.partialTargetMarker(s_destiny_bond)',
+        ),
+        (
+          method: 's_disable',
+          behavior: 'StaticBasicMoveRegistry.disable',
+        ),
+        (
+          method: 's_electrify',
+          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_electrify)',
+        ),
+        (
+          method: 's_embargo',
+          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_embargo)',
+        ),
+        (
+          method: 's_encore',
+          behavior: 'StaticBasicMoveRegistry.encore',
+        ),
+        (
+          method: 's_entrainment',
+          behavior:
+              'StaticBasicMoveRegistry.partialAbilityChanging(s_entrainment)',
+        ),
+        (
+          method: 's_focus_energy',
+          behavior:
+              'StaticBasicMoveRegistry.partialTargetMarker(s_focus_energy)',
+        ),
+        (
+          method: 's_future_sight',
+          behavior:
+              'StaticBasicMoveRegistry.partialTargetMarker(s_future_sight)',
+        ),
+        (
+          method: 's_gastro_acid',
+          behavior:
+              'StaticBasicMoveRegistry.partialTargetMarker(s_gastro_acid)',
+        ),
+        (
+          method: 's_gravity',
+          behavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_gravity)',
+        ),
+        (
+          method: 's_grudge',
+          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_grudge)',
+        ),
+        (
+          method: 's_happy_hour',
+          behavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_happy_hour)',
+        ),
+        (
+          method: 's_heal_block',
+          behavior: 'StaticBasicMoveRegistry.healBlock',
+        ),
+        (
+          method: 's_imprison',
+          behavior: 'StaticBasicMoveRegistry.imprison',
+        ),
+        (
+          method: 's_ion_deluge',
+          behavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_ion_deluge)',
+        ),
+        (
+          method: 's_lucky_chant',
+          behavior:
+              'StaticBasicMoveRegistry.partialUserBankMarker(s_lucky_chant)',
+        ),
+        (
+          method: 's_laser_focus',
+          behavior:
+              'StaticBasicMoveRegistry.partialTargetMarker(s_laser_focus)',
+        ),
+        (
+          method: 's_lock_on',
+          behavior: 'StaticBasicMoveRegistry.s_lock_on',
+        ),
+        (
+          method: 's_magic_coat',
+          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_magic_coat)',
+        ),
+        (
+          method: 's_magic_room',
+          behavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_magic_room)',
+        ),
+        (
+          method: 's_magnet_rise',
+          behavior:
+              'StaticBasicMoveRegistry.partialTargetMarker(s_magnet_rise)',
+        ),
+        (
+          method: 's_memento',
+          behavior: 'StaticBasicMoveRegistry.s_memento',
+        ),
+        (
+          method: 's_minimize',
+          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_minimize)',
+        ),
+        (
+          method: 's_mind_reader',
+          behavior: 'StaticBasicMoveRegistry.s_mind_reader',
+        ),
+        (
+          method: 's_miracle_eye',
+          behavior:
+              'StaticBasicMoveRegistry.partialTargetMarker(s_miracle_eye)',
+        ),
+        (
+          method: 's_mist',
+          behavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_mist)',
+        ),
+        (
+          method: 's_nightmare',
+          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_nightmare)',
+        ),
+        (
+          method: 's_perish_song',
+          behavior:
+              'StaticBasicMoveRegistry.partialTargetMarker(s_perish_song)',
+        ),
+        (
+          method: 's_parting_shot',
+          behavior: 'StaticBasicMoveRegistry.secondaryOnly(s_parting_shot)',
+        ),
+        (
+          method: 's_powder',
+          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_powder)',
+        ),
+        (
+          method: 's_plasma_fists',
+          behavior: 'StaticBasicMoveRegistry.s_plasma_fists',
+        ),
+        (
+          method: 's_quash',
+          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_quash)',
+        ),
+        (
+          method: 's_safe_guard',
+          behavior:
+              'StaticBasicMoveRegistry.partialUserBankMarker(s_safe_guard)',
+        ),
+        (
+          method: 's_simple_beam',
+          behavior:
+              'StaticBasicMoveRegistry.partialAbilityChanging(s_simple_beam)',
+        ),
+        (
+          method: 's_snatch',
+          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_snatch)',
+        ),
+        (
+          method: 's_spike',
+          behavior: 'StaticBasicMoveRegistry.partialFoeBankMarker(s_spike)',
+        ),
+        (
+          method: 's_stealth_rock',
+          behavior:
+              'StaticBasicMoveRegistry.partialFoeBankMarker(s_stealth_rock)',
+        ),
+        (
+          method: 's_sticky_web',
+          behavior:
+              'StaticBasicMoveRegistry.partialFoeBankMarker(s_sticky_web)',
+        ),
+        (
+          method: 's_stockpile',
+          behavior: 'StaticBasicMoveRegistry.s_stockpile',
+        ),
+        (
+          method: 's_stone_axe',
+          behavior: 'StaticBasicMoveRegistry.s_stone_axe',
+        ),
+        (
+          method: 's_tailwind',
+          behavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_tailwind)',
+        ),
+        (
+          method: 's_taunt',
+          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_taunt)',
+        ),
+        (
+          method: 's_telekinesis',
+          behavior:
+              'StaticBasicMoveRegistry.partialTargetMarker(s_telekinesis)',
+        ),
+        (
+          method: 's_reflect_type',
+          behavior: 'StaticBasicMoveRegistry.s_reflect_type',
+        ),
+        (
+          method: 's_role_play',
+          behavior:
+              'StaticBasicMoveRegistry.partialAbilityChanging(s_role_play)',
+        ),
+        (
+          method: 's_skill_swap',
+          behavior:
+              'StaticBasicMoveRegistry.partialAbilityChanging(s_skill_swap)',
+        ),
+        (
+          method: 's_torment',
+          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_torment)',
+        ),
+        (
+          method: 's_toxic_thread',
+          behavior: 'StaticBasicMoveRegistry.secondaryOnly(s_toxic_thread)',
+        ),
+        (
+          method: 's_toxic_spike',
+          behavior:
+              'StaticBasicMoveRegistry.partialFoeBankMarker(s_toxic_spike)',
+        ),
+        (
+          method: 's_trick_room',
+          behavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_trick_room)',
+        ),
+        (
+          method: 's_wish',
+          behavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_wish)',
+        ),
+        (
+          method: 's_wonder_room',
+          behavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_wonder_room)',
+        ),
+        (
+          method: 's_worry_seed',
+          behavior:
+              'StaticBasicMoveRegistry.partialAbilityChanging(s_worry_seed)',
+        ),
+        (
+          method: 's_yawn',
+          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_yawn)',
+        ),
+      ]) {
+        expect(byMethod[entry.method]!.status, PsdkPortStatus.partial);
+        expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
+      }
+      expect(byMethod['s_reflect']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_reflect']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_reflect',
+      );
+      expect(byMethod['s_reload']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_reload']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_reload',
+      );
+      expect(
+        byMethod['s_u_turn']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerSwitch,
+          PsdkMoveDependency.item,
+          PsdkMoveDependency.ability,
+        ]),
+      );
+      expect(
+        byMethod['s_stomp']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.accuracy,
+        ]),
+      );
+      expect(
+        byMethod['s_follow_me']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.actionOrder,
+          PsdkMoveDependency.targetingMulti,
+        ]),
+      );
+      expect(
+        byMethod['s_add_type']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.ability,
+        ]),
+      );
+      expect(
+        byMethod['s_foresight']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.effects,
+        ]),
+      );
+      expect(
+        byMethod['s_thing_sport']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.field,
+        ]),
+      );
+      expect(
+        byMethod['s_trick']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerItem,
+          PsdkMoveDependency.item,
+          PsdkMoveDependency.ability,
+        ]),
+      );
+      expect(
+        byMethod['s_yawn']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.handlerStatus,
+          PsdkMoveDependency.ability,
+          PsdkMoveDependency.terrain,
+        ]),
+      );
+      expect(
+        byMethod['s_future_sight']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.endTurn,
+          PsdkMoveDependency.handlerDamage,
+        ]),
+      );
+      expect(
+        byMethod['s_spike']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.handlerSwitch,
+          PsdkMoveDependency.grounded,
+        ]),
+      );
+      expect(
+        byMethod['s_trick_room']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.actionOrder,
+          PsdkMoveDependency.field,
+        ]),
+      );
+      expect(
+        byMethod['s_simple_beam']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.ability,
+          PsdkMoveDependency.effects,
+        ]),
+      );
+      expect(
+        byMethod['s_skill_swap']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.ability,
+          PsdkMoveDependency.effects,
+        ]),
+      );
+      expect(
+        byMethod['s_reflect_type']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.ability,
+        ]),
+      );
+      expect(
+        byMethod['s_dragon_tail']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerSwitch,
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.ability,
+        ]),
+      );
+      expect(
+        byMethod['s_jump_kick']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerDamage,
+          PsdkMoveDependency.accuracy,
+          PsdkMoveDependency.effects,
+        ]),
+      );
+      expect(
+        byMethod['s_reflect']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.item,
+          PsdkMoveDependency.weather,
+        ]),
+      );
+      expect(
+        byMethod['s_reload']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.history,
+          PsdkMoveDependency.actionOrder,
+        ]),
+      );
+      expect(
+        byMethod['s_retaliate']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.history,
+          PsdkMoveDependency.faintProcess,
+        ]),
+      );
+      expect(
+        byMethod['s_rollout']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.history,
+          PsdkMoveDependency.accuracy,
+        ]),
+      );
+      expect(
+        byMethod['s_round']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.actionOrder,
+          PsdkMoveDependency.history,
+          PsdkMoveDependency.targetingMulti,
+        ]),
+      );
+      expect(
+        byMethod['s_secret_power']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.field,
+          PsdkMoveDependency.handlerStatus,
+          PsdkMoveDependency.handlerStat,
+        ]),
+      );
+      expect(
+        byMethod['s_snore']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerStatus,
+          PsdkMoveDependency.ability,
+        ]),
+      );
+      expect(
+        byMethod['s_pledge']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.field,
+          PsdkMoveDependency.targetingMulti,
+          PsdkMoveDependency.actionOrder,
+        ]),
+      );
+      expect(
+        byMethod['s_smack_down']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.grounded,
+          PsdkMoveDependency.targetingMulti,
+        ]),
+      );
+      expect(
+        byMethod['s_thunder']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.weather,
+          PsdkMoveDependency.accuracy,
+        ]),
+      );
+      expect(
+        byMethod['s_uproar']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.handlerStatus,
+          PsdkMoveDependency.history,
+          PsdkMoveDependency.targetingMulti,
+        ]),
       );
     });
 
@@ -166,6 +1066,8 @@ void main() {
         byMethod['s_splash']!.dartBehavior,
         'NoEffectMoveBehavior.splash',
       );
+      expect(byMethod['s_ohko']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_ohko']!.dartBehavior, 'OhkoMoveBehavior');
       expect(byMethod['s_endeavor']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_endeavor']!.dartBehavior,
@@ -201,8 +1103,11 @@ void main() {
         byMethod['s_recoil']!.dartBehavior,
         'RecoilMoveBehavior.psdkRecoil',
       );
-      expect(byMethod['s_struggle']!.status, PsdkPortStatus.missing);
-      expect(byMethod['s_struggle']!.dartBehavior, 'TODO');
+      expect(byMethod['s_struggle']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_struggle']!.dartBehavior,
+        'RecoilMoveBehavior.struggle',
+      );
     });
 
     test('tracks the Lot 22 MindBlown self-crash slice', () {
@@ -261,12 +1166,28 @@ void main() {
         'TerrainPowerMoveBehavior.terrainBoosting',
       );
 
-      expect(byMethod['s_expanding_force']!.status, PsdkPortStatus.missing);
-      expect(byMethod['s_grassy_glide']!.status, PsdkPortStatus.missing);
-      expect(byMethod['s_rising_voltage']!.status, PsdkPortStatus.missing);
+      expect(byMethod['s_expanding_force']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_expanding_force']!.dartBehavior,
+        'TerrainPowerMoveBehavior.expandingForce',
+      );
+      expect(byMethod['s_grassy_glide']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_grassy_glide']!.dartBehavior,
+        'TerrainPowerMoveBehavior.grassyGlide',
+      );
+      expect(byMethod['s_rising_voltage']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_rising_voltage']!.dartBehavior,
+        'TerrainPowerMoveBehavior.risingVoltage',
+      );
       expect(byMethod['s_terrain']!.status, PsdkPortStatus.partial);
       expect(byMethod['s_terrain']!.dartBehavior, 'TerrainMoveBehavior');
-      expect(byMethod['s_terrain_pulse']!.status, PsdkPortStatus.missing);
+      expect(byMethod['s_terrain_pulse']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_terrain_pulse']!.dartBehavior,
+        'TerrainPowerMoveBehavior.terrainPulse',
+      );
       expect(byMethod['s_weather']!.status, PsdkPortStatus.partial);
       expect(byMethod['s_weather']!.dartBehavior, 'WeatherMoveBehavior');
       expect(byMethod['s_weather_ball']!.status, PsdkPortStatus.partial);
@@ -474,6 +1395,30 @@ void main() {
           PsdkMoveDependency.effects,
           PsdkMoveDependency.targetingMulti,
         ]),
+      );
+      expect(byMethod['s_heal_bell']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_heal_bell']!.dartBehavior,
+        'StatusCureMoveBehavior.healBell',
+      );
+      expect(
+        byMethod['s_heal_bell']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.handlerStatus,
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.ability,
+          PsdkMoveDependency.targetingMulti,
+        ]),
+      );
+      expect(byMethod['s_take_heart']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_take_heart']!.dartBehavior,
+        'StatusCureMoveBehavior.takeHeart',
+      );
+      expect(byMethod['s_sparkly_swirl']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_sparkly_swirl']!.dartBehavior,
+        'StatusCureMoveBehavior.sparklySwirl',
       );
       expect(byMethod['s_acrobatics']!.status, PsdkPortStatus.partial);
       expect(

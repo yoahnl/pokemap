@@ -52,6 +52,93 @@ void main() {
       );
     });
 
+    test('Shadow Tag prevents opposing non-Ghost switch attempts', () {
+      final state = PsdkBattleState.fromSetup(
+        BattleEngineSetup.singles(
+          player: _combatant(
+            id: 'player',
+            move: _move(id: 'tackle', power: 40),
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            abilityId: 'shadow_tag',
+            move: _move(id: 'opponent_wait', power: 0),
+          ),
+          rngSeeds: const BattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ).psdkSeeds,
+        ).psdkSetup,
+      );
+
+      final prevention = const BattleSwitchHandler().resolveSwitchPrevention(
+        context: BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        target: psdkPlayerSlot,
+      );
+
+      expect(prevention.applied, isFalse);
+      expect(prevention.reason, 'ability:shadow_tag');
+    });
+
+    test('Shadow Tag does not trap Ghost or opposing Shadow Tag battlers', () {
+      final ghost = _switchPreventionFor(
+        playerTypes: const PsdkBattleTypes(primary: 'ghost'),
+        opponentAbilityId: 'shadow_tag',
+      );
+      final mirror = _switchPreventionFor(
+        playerAbilityId: 'shadow_tag',
+        opponentAbilityId: 'shadow_tag',
+      );
+
+      expect(ghost.applied, isTrue);
+      expect(ghost.reason, isNull);
+      expect(mirror.applied, isTrue);
+      expect(mirror.reason, isNull);
+    });
+
+    test('Magnet Pull traps only opposing Steel battlers', () {
+      final steel = _switchPreventionFor(
+        playerTypes: const PsdkBattleTypes(primary: 'steel'),
+        opponentAbilityId: 'magnet_pull',
+      );
+      final normal = _switchPreventionFor(
+        opponentAbilityId: 'magnet_pull',
+      );
+
+      expect(steel.applied, isFalse);
+      expect(steel.reason, 'ability:magnet_pull');
+      expect(normal.applied, isTrue);
+      expect(normal.reason, isNull);
+    });
+
+    test('Arena Trap traps only opposing grounded battlers', () {
+      final grounded = _switchPreventionFor(
+        opponentAbilityId: 'arena_trap',
+      );
+      final flying = _switchPreventionFor(
+        playerTypes: const PsdkBattleTypes(primary: 'flying'),
+        opponentAbilityId: 'arena_trap',
+      );
+      final levitate = _switchPreventionFor(
+        playerAbilityId: 'levitate',
+        opponentAbilityId: 'arena_trap',
+      );
+
+      expect(grounded.applied, isFalse);
+      expect(grounded.reason, 'ability:arena_trap');
+      expect(flying.applied, isTrue);
+      expect(flying.reason, isNull);
+      expect(levitate.applied, isTrue);
+      expect(levitate.reason, isNull);
+    });
+
     test('No Guard on either battler bypasses the accuracy roll', () {
       final result = _runMove(
         playerAbilityId: 'no_guard',
@@ -249,8 +336,7 @@ void main() {
       );
     });
 
-    test('non-volatile status immunity abilities prevent matching status',
-        () {
+    test('non-volatile status immunity abilities prevent matching status', () {
       final result = const BattleStatusChangeHandler().applyMajorStatus(
         context: BattleHandlerContext(
           state: PsdkBattleState.fromSetup(
@@ -339,11 +425,50 @@ PsdkBattleTurnResult _runMove({
   return engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
 }
 
+BattleHandlerResult _switchPreventionFor({
+  String? playerAbilityId,
+  String? opponentAbilityId,
+  PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
+}) {
+  final state = PsdkBattleState.fromSetup(
+    BattleEngineSetup.singles(
+      player: _combatant(
+        id: 'player',
+        abilityId: playerAbilityId,
+        types: playerTypes,
+        move: _move(id: 'tackle', power: 40),
+      ),
+      opponent: _combatant(
+        id: 'opponent',
+        abilityId: opponentAbilityId,
+        move: _move(id: 'opponent_wait', power: 0),
+      ),
+      rngSeeds: const BattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 4,
+      ).psdkSeeds,
+    ).psdkSetup,
+  );
+
+  return const BattleSwitchHandler().resolveSwitchPrevention(
+    context: BattleHandlerContext(
+      state: state,
+      rng: _rng(),
+      turn: 1,
+      user: psdkPlayerSlot,
+    ),
+    target: psdkPlayerSlot,
+  );
+}
+
 PsdkBattleCombatantSetup _combatant({
   required String id,
   String? abilityId,
   int currentHp = 100,
   int speed = 50,
+  PsdkBattleTypes types = const PsdkBattleTypes(primary: 'normal'),
   required PsdkBattleMoveData move,
 }) {
   return PsdkBattleCombatantSetup(
@@ -353,7 +478,7 @@ PsdkBattleCombatantSetup _combatant({
     level: 20,
     maxHp: 100,
     currentHp: currentHp,
-    types: const PsdkBattleTypes(primary: 'normal'),
+    types: types,
     stats: PsdkBattleStats(
       attack: 50,
       defense: 50,
@@ -409,4 +534,13 @@ List<PsdkBattleDamageEvent> _damageEvents(
       .whereType<PsdkBattleDamageEvent>()
       .where((event) => event.moveId == moveId)
       .toList(growable: false);
+}
+
+BattleRngStreams _rng() {
+  return BattleRngStreams.fromSeeds(
+    moveDamageSeed: 1,
+    moveCriticalSeed: 2,
+    moveAccuracySeed: 3,
+    genericSeed: 4,
+  );
 }

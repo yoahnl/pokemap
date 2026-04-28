@@ -279,18 +279,52 @@ String _notesFor(String effectName) {
   return switch (effectName) {
     'AquaRing' =>
       'Object-backed AquaRingEffect heals at end turn and transfers through Baton Pass; Big Root branch is local.',
+    'ArenaTrap' =>
+      'Object-backed ShadowTagEffect.arenaTrap prevents opposing grounded non-Ghost switch attempts through the switch-prevention hook; force-switch move exceptions and messaging remain future work.',
+    'Attract' =>
+      'Object-backed AttractEffect performs the PSDK 50% user-prevention roll against the attracting battler; gender immunity, Destiny Knot mirroring and delete messages remain future work.',
     'BatonPass' =>
       'Object-backed BatonPassEffect marks switch transfer; the current handler transfers stat stages and transferable effects, while full party switch action remains future work.',
+    'Bind' =>
+      'Object-backed BindEffect prevents regular switch attempts, applies residual end-turn damage, honors Magic Guard, Grip Claw and Binding Band, and stops when the origin fainted; Rapid Spin cleanup and delete messages remain future work.',
+    'CantSwitch' =>
+      'Object-backed CantSwitchEffect prevents regular switch attempts, transfers through Baton Pass and stops blocking when the origin fainted; full switch-event cleanup and message parity remain future work.',
     'Confusion' =>
       'Object-backed ConfusionEffect runs the PSDK user-prevention lifecycle: countdown, last-turn cleanup, 50% self-hit roll and typeless 40-power self damage; PSDK move statuses can now apply CONFUSED as a volatile effect, while Own Tempo/Persim-style cures and battle messages remain future work.',
     'Curse' =>
       'Object-backed CurseEffect applies end-turn damage and transfers through Baton Pass; Magic Guard is checked by id.',
+    'Disable' =>
+      'Object-backed DisableEffect blocks the target last successful non-Struggle move through the user-prevention hook; UI disabled checks and deletion messages remain future work.',
+    'Encore' =>
+      'Object-backed EncoreEffect blocks choosing a different move than the encored last successful move; PP forcing, UI selection forcing and deletion messages remain future work.',
+    'HealBlock' =>
+      'Object-backed HealBlockEffect blocks local healing battle methods through the user-prevention hook; Studio heal flags, messages and all item/ability exceptions remain future work.',
+    'Imprison' =>
+      'Object-backed ImprisonEffect blocks shared foe move ids through the user-prevention hook; the current Dart storage is target-local until global PSDK effect dispatch exists.',
     'Ingrain' =>
       'Object-backed IngrainEffect heals at end turn, grounds the user, prevents regular switch-out and transfers through Baton Pass; Ghost/Teleport/forced-switch exceptions remain future work.',
     'LeechSeed' =>
       'Object-backed LeechSeedEffect drains at end turn, checks Grass/Substitute duplicate immunity in the move behavior, skips Magic Guard and transfers through Baton Pass; Liquid Ooze and full mark/origin cleanup remain future work.',
+    'MagnetPull' =>
+      'Object-backed ShadowTagEffect.magnetPull prevents opposing Steel non-Ghost switch attempts through the switch-prevention hook; force-switch move exceptions and messaging remain future work.',
     'Protect' =>
       'Object-backed ProtectEffect ported for common target prevention; variants, success-rate decay and Unseen Fist bypass remain future work.',
+    'SaltCure' =>
+      'Object-backed SaltCureEffect applies end-turn residual damage with the Water/Steel divisor branch; messages and full cleanup hooks remain future work.',
+    'ShadowTag' =>
+      'Object-backed ShadowTagEffect prevents opposing non-Ghost non-Shadow Tag switch attempts through the switch-prevention hook; force-switch move exceptions and messaging remain future work.',
+    'SmackDown' =>
+      'Object-backed SmackDownEffect forces grounded checks and removes Flying immunity for local Ground damage; flying-effect cleanup remains future work.',
+    'SyrupBomb' =>
+      'Object-backed SyrupBombEffect applies timed end-turn Speed drops; full counter lifecycle and message parity remain future work.',
+    'Taunt' =>
+      'Object-backed TauntEffect blocks status moves through the user-prevention hook; move-disabled UI messaging and full deletion messages remain future work.',
+    'TarShot' =>
+      'Object-backed TarShotEffect records the target fire-weakness marker; type-multiplier overwrite remains future work.',
+    'ThroatChop' =>
+      'Object-backed ThroatChopEffect blocks sound-flagged moves through the user-prevention hook; disabled-move UI checks and messages remain future work.',
+    'Torment' =>
+      'Object-backed TormentEffect blocks repeating the last successful non-Struggle move; Instruct and switch-in timing branches remain future work.',
     _ => '',
   };
 }
@@ -323,12 +357,29 @@ _PsdkPortStatus _statusFor(String effectName) {
   // missing until the dedicated effect-system lots port them explicitly.
   return switch (effectName) {
     'AquaRing' ||
+    'ArenaTrap' ||
+    'Attract' ||
     'BatonPass' ||
+    'Bind' ||
+    'CantSwitch' ||
     'Confusion' ||
     'Curse' ||
+    'Disable' ||
+    'Encore' ||
+    'HealBlock' ||
+    'Imprison' ||
     'Ingrain' ||
     'LeechSeed' ||
-    'Protect' =>
+    'MagnetPull' ||
+    'Protect' ||
+    'SaltCure' ||
+    'ShadowTag' ||
+    'SmackDown' ||
+    'SyrupBomb' ||
+    'Taunt' ||
+    'TarShot' ||
+    'ThroatChop' ||
+    'Torment' =>
       _PsdkPortStatus.partial,
     _ => _PsdkPortStatus.missing,
   };
