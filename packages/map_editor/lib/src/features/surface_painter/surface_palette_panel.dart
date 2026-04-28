@@ -5,6 +5,8 @@ import 'package:map_core/map_core.dart';
 import '../editor/state/editor_notifier.dart';
 import '../editor/tools/editor_tool.dart';
 import 'surface_catalog_availability.dart';
+import 'surface_to_gameplay_zone_action.dart';
+import 'surface_to_gameplay_zone_dialog.dart';
 import '../../ui/shared/cupertino_editor_widgets.dart';
 
 /// Minimal Surface palette for map placement authoring.
@@ -126,6 +128,8 @@ class SurfacePainterPanel extends ConsumerWidget {
         map?.layers.whereType<SurfaceLayer>().toList(growable: false) ??
             const <SurfaceLayer>[];
     final activeLayer = _activeSurfaceLayer(map, state.activeLayerId);
+    final generationLayer =
+        activeLayer ?? (surfaceLayers.length == 1 ? surfaceLayers.first : null);
     final canPaint = map != null &&
         availability.canPaint &&
         (state.selectedSurfacePresetId?.trim().isNotEmpty ?? false);
@@ -182,6 +186,46 @@ class SurfacePainterPanel extends ConsumerWidget {
                     Icon(CupertinoIcons.delete_left, size: 16),
                     SizedBox(width: 6),
                     Text('Effacer Surface'),
+                  ],
+                ),
+              ),
+              CupertinoButton(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                onPressed: map == null
+                    ? null
+                    : () async {
+                        final plan = await showCupertinoDialog<
+                            SurfaceGameplayZoneGenerationPlan>(
+                          context: context,
+                          builder: (dialogContext) {
+                            return SurfaceToGameplayZoneDialog(
+                              map: map,
+                              surfaceLayer: generationLayer,
+                              surfacePresetId: state.selectedSurfacePresetId,
+                              presets: presets,
+                              encounterTables:
+                                  state.project?.encounterTables ?? const [],
+                              onConfirm: (plan) =>
+                                  Navigator.of(dialogContext).pop(plan),
+                            );
+                          },
+                        );
+                        if (plan == null) return;
+                        applyTallGrassEncounterGameplayZonePlan(
+                          notifier: notifier,
+                          selectedGameplayZoneId: () => ref
+                              .read(editorNotifierProvider)
+                              .selectedGameplayZoneId,
+                          plan: plan,
+                        );
+                      },
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(CupertinoIcons.add_circled, size: 16),
+                    SizedBox(width: 6),
+                    Text('Créer une zone de rencontre'),
                   ],
                 ),
               ),
