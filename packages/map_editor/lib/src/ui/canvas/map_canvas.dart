@@ -14,6 +14,7 @@ import '../../application/models/map_tool_preview.dart';
 import '../../application/models/path_autotile_set.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/tools/editor_tool.dart';
+import '../../features/surface_painter/surface_layer_static_preview.dart';
 import 'entity_editor_element_visual.dart';
 
 // Le shell du canvas garde uniquement le widget, l'interaction et la

@@ -1,5 +1,8 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/models/path_autotile_set.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 
 void main() {
@@ -35,11 +38,12 @@ void main() {
         ],
       );
 
-      const project = ProjectManifest(
+      final project = ProjectManifest(
         name: 'editor',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
-        elements: <ProjectElementEntry>[
+        surfaceCatalog: ProjectSurfaceCatalog(),
+        elements: const <ProjectElementEntry>[
           ProjectElementEntry(
             id: 'table',
             name: 'Table',
@@ -156,6 +160,45 @@ void main() {
         ),
         isTrue,
       );
+    });
+
+    test('paints SurfaceLayer static preview without atlas tile images', () {
+      const map = MapData(
+        id: 'pond',
+        name: 'Pond',
+        size: GridSize(width: 3, height: 3),
+        layers: <MapLayer>[
+          SurfaceLayer(
+            id: 'surface-main',
+            name: 'Surfaces',
+            placements: <SurfaceCellPlacement>[
+              SurfaceCellPlacement(x: 1, y: 1, surfacePresetId: 'water'),
+            ],
+          ),
+        ],
+      );
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder);
+
+      MapGridPainter(
+        map: map,
+        zoom: 1,
+        offset: ui.Offset.zero,
+        tileWidth: 32,
+        tileHeight: 32,
+        tilesetImagesById: const <String, ui.Image?>{},
+        sourceTileWidth: 32,
+        sourceTileHeight: 32,
+        tilesPerRowById: const <String, int>{},
+        warps: const <MapWarp>[],
+        gameplayZones: const <MapGameplayZone>[],
+        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
+        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
+      ).paint(canvas, const ui.Size(96, 96));
+
+      final picture = recorder.endRecording();
+      picture.dispose();
     });
   });
 }

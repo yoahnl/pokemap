@@ -263,6 +263,20 @@ class MapGridPainter extends CustomPainter {
 
     for (var index = visibleLayers.length - 1; index >= 0; index--) {
       final layer = visibleLayers[index];
+      if (layer is SurfaceLayer) {
+        paintSurfaceLayerStaticPreview(
+          canvas: canvas,
+          layer: layer,
+          mapSize: map.size,
+          tileWidth: tileWidth,
+          tileHeight: tileHeight,
+          zoom: zoom,
+        );
+      }
+    }
+
+    for (var index = visibleLayers.length - 1; index >= 0; index--) {
+      final layer = visibleLayers[index];
       if (layer is CollisionLayer) {
         _paintCollisionLayer(canvas, layer,
             isActive: layer.id == activeLayerId);
