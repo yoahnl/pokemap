@@ -3,7 +3,9 @@ import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../battle_effect.dart';
 import '../battle_effect_scope.dart';
 import 'air_balloon_effect.dart';
+import 'black_sludge_effect.dart';
 import 'iron_ball_effect.dart';
+import 'leftovers_effect.dart';
 import 'loaded_dice_effect.dart';
 import 'terrain_extender_effect.dart';
 import 'weather_rock_effect.dart';
@@ -20,12 +22,14 @@ final class ItemEffectRegistry {
   static final Map<String, ItemEffectFactory> _defaultFactories =
       <String, ItemEffectFactory>{
     'air_balloon': ({required scope}) => AirBalloonEffect(scope: scope),
+    'black_sludge': ({required scope}) => BlackSludgeEffect(scope: scope),
     'iron_ball': ({required scope}) => IronBallEffect(scope: scope),
+    'leftovers': ({required scope}) => LeftoversEffect(scope: scope),
     'loaded_dice': ({required scope}) => LoadedDiceEffect(scope: scope),
     'terrain_extender': ({required scope}) => TerrainExtenderEffect(
           scope: scope,
         ),
-        'damp_rock': ({required scope}) => WeatherRockEffect(
+    'damp_rock': ({required scope}) => WeatherRockEffect(
           itemId: 'damp_rock',
           scope: scope,
           moveDbSymbols: const <String>['rain_dance'],

@@ -36,4 +36,15 @@ extension BattleItemEffectList on PsdkBattleCombatant {
       }
     }
   }
+
+  bool get itemEffectsSuppressed {
+    return effects.contains('embargo') || effects.contains('magic_room');
+  }
+
+  Iterable<BattleItemEffect> get activeItemEffects sync* {
+    if (itemEffectsSuppressed) {
+      return;
+    }
+    yield* itemEffects;
+  }
 }

@@ -95,6 +95,58 @@ void main() {
       expect(state.foesOf(user), <PsdkBattleSlotRef>[foe]);
     });
 
+    test('PSDK state exposes adjacent alive allies in stable slot order', () {
+      const target = PsdkBattleSlotRef(bank: 1, position: 1);
+      const leftAlly = PsdkBattleSlotRef(bank: 1, position: 0);
+      const rightAlly = PsdkBattleSlotRef(bank: 1, position: 2);
+      const distantAlly = PsdkBattleSlotRef(bank: 1, position: 3);
+      const faintedAdjacentAlly = PsdkBattleSlotRef(bank: 1, position: 4);
+      final state = PsdkBattleState(
+        combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+          target: PsdkBattleCombatant.fromSetup(
+            _combatantSetup(
+              id: 'target',
+              speciesId: 'target',
+              moves: <PsdkBattleMoveData>[_move(power: 40)],
+            ),
+          ),
+          leftAlly: PsdkBattleCombatant.fromSetup(
+            _combatantSetup(
+              id: 'left-ally',
+              speciesId: 'left-ally',
+              moves: <PsdkBattleMoveData>[_move(power: 40)],
+            ),
+          ),
+          rightAlly: PsdkBattleCombatant.fromSetup(
+            _combatantSetup(
+              id: 'right-ally',
+              speciesId: 'right-ally',
+              moves: <PsdkBattleMoveData>[_move(power: 40)],
+            ),
+          ),
+          distantAlly: PsdkBattleCombatant.fromSetup(
+            _combatantSetup(
+              id: 'distant-ally',
+              speciesId: 'distant-ally',
+              moves: <PsdkBattleMoveData>[_move(power: 40)],
+            ),
+          ),
+          faintedAdjacentAlly: PsdkBattleCombatant.fromSetup(
+            _combatantSetup(
+              id: 'fainted-ally',
+              speciesId: 'fainted-ally',
+              moves: <PsdkBattleMoveData>[_move(power: 40)],
+            ),
+          ).copyWith(currentHp: 0),
+        },
+      );
+
+      expect(
+        state.adjacentAlliesOf(target),
+        <PsdkBattleSlotRef>[leftAlly, rightAlly],
+      );
+    });
+
     test('resolves allies foes and adjacent foes by bank and position', () {
       final topology = BattleTopology(
         banks: <BattleBank>[

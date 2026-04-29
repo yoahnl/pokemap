@@ -16,7 +16,7 @@ final class LoadedDiceEffect extends BattleItemEffect {
   @override
   int? minimumHitCount(BattleMoveDefinition move) {
     return switch (move.battleEngineMethod) {
-      's_multi_hit' || 's_water_shuriken' => 4,
+      's_multi_hit' || 's_scale_shot' || 's_water_shuriken' => 4,
       _ => null,
     };
   }

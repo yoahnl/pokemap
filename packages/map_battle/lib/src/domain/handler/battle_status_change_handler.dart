@@ -1,8 +1,10 @@
 import '../../psdk/domain/psdk_battle_combatant.dart';
+import '../../psdk/domain/psdk_battle_field.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 import '../../psdk/domain/psdk_battle_state.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
+import '../battler/battle_grounding_resolver.dart';
 import '../effect/ability/ability_effect.dart';
 import '../effect/status/status_effect_registry.dart';
 import '../move/battle_move_data.dart';
@@ -30,7 +32,7 @@ final class BattleStatusChangeHandler {
         reason: 'already_statused',
       );
     }
-    if (_isStatusImmune(targetBattler, status)) {
+    if (_isStatusImmune(context, target, targetBattler, status)) {
       return BattleHandlerResult(
         state: context.state,
         rng: context.rng,
@@ -276,6 +278,8 @@ BattleStatusUserPreventionResult _resolveFreezePrevention(
 }
 
 bool _isStatusImmune(
+  BattleHandlerContext context,
+  PsdkBattleSlotRef target,
   PsdkBattleCombatant battler,
   PsdkBattleMajorStatus status,
 ) {
@@ -295,8 +299,25 @@ bool _isStatusImmune(
       battler.hasType('poison') || battler.hasType('steel'),
     PsdkBattleMajorStatus.paralysis => battler.hasType('electric'),
     PsdkBattleMajorStatus.freeze => battler.hasType('ice'),
-    PsdkBattleMajorStatus.sleep => false,
+    PsdkBattleMajorStatus.sleep => _isSleepPreventedByTerrain(
+        context: context,
+        target: target,
+      ),
   };
+}
+
+bool _isSleepPreventedByTerrain({
+  required BattleHandlerContext context,
+  required PsdkBattleSlotRef target,
+}) {
+  final terrainId = context.state.field.terrain?.id;
+  if (terrainId != PsdkBattleTerrainId.electricTerrain &&
+      terrainId != PsdkBattleTerrainId.mistyTerrain) {
+    return false;
+  }
+  return const BattleGroundingResolver().isGrounded(
+    context.state.battlerAt(target),
+  );
 }
 
 int _endTurnDamage(

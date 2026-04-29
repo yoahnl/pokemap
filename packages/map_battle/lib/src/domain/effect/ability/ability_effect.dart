@@ -80,6 +80,9 @@ final class BattleAbilityStatusContext {
 
 extension BattleAbilityEffectList on PsdkBattleCombatant {
   Iterable<BattleAbilityEffect> get abilityEffects sync* {
+    if (effects.contains('ability_suppressed')) {
+      return;
+    }
     for (final effect in effects.effects) {
       if (effect is BattleAbilityEffect) {
         yield effect;

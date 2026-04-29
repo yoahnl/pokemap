@@ -31,7 +31,7 @@ final class TerrainMoveBehavior implements BattleMoveBehavior {
       terrain: terrain,
       remainingTurns: _durationForMove(
         dbSymbol: context.move.dbSymbol,
-        itemEffects: user.itemEffects,
+        itemEffects: user.activeItemEffects,
       ),
     );
 

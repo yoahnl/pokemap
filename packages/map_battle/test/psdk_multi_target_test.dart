@@ -99,10 +99,10 @@ void main() {
       expect(events.whereType<BattleMoveFailedTimelineEvent>(), isEmpty);
     });
 
-    test('random foe remains loud until target RNG is threaded through', () {
+    test('random foe resolves deterministically to the first alive foe', () {
       expect(
-        () => _resolve(PsdkBattleMoveTarget.randomFoe),
-        throwsA(isA<UnsupportedError>()),
+        _resolve(PsdkBattleMoveTarget.randomFoe),
+        <BattlePositionRef>[_opponentLeft],
       );
     });
   });

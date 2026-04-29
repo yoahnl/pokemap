@@ -124,6 +124,7 @@ class PsdkBattleMoveData {
     required String battleEngineMethod,
     required this.target,
     this.protectable = true,
+    this.sound = false,
     List<PsdkBattleMoveStatus> statuses = const <PsdkBattleMoveStatus>[],
     List<PsdkBattleMoveStageMod> stageMods = const <PsdkBattleMoveStageMod>[],
   })  : id = _requireNonBlank(id, 'id'),
@@ -171,6 +172,7 @@ class PsdkBattleMoveData {
   final String battleEngineMethod;
   final PsdkBattleMoveTarget target;
   final bool protectable;
+  final bool sound;
   final List<PsdkBattleMoveStatus> _statuses;
   final List<PsdkBattleMoveStageMod> _stageMods;
 
@@ -211,6 +213,7 @@ class PsdkBattleMoveData {
     String? battleEngineMethod,
     PsdkBattleMoveTarget? target,
     bool? protectable,
+    bool? sound,
     List<PsdkBattleMoveStatus>? statuses,
     List<PsdkBattleMoveStageMod>? stageMods,
   }) {
@@ -230,6 +233,7 @@ class PsdkBattleMoveData {
       battleEngineMethod: battleEngineMethod ?? this.battleEngineMethod,
       target: target ?? this.target,
       protectable: protectable ?? this.protectable,
+      sound: sound ?? this.sound,
       statuses: statuses ?? this.statuses,
       stageMods: stageMods ?? this.stageMods,
     );

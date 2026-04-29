@@ -18,7 +18,7 @@ final class SkillLinkEffect extends BattleAbilityEffect {
       return null;
     }
     return switch (context.move.battleEngineMethod) {
-      's_multi_hit' || 's_water_shuriken' => 5,
+      's_multi_hit' || 's_scale_shot' || 's_water_shuriken' => 5,
       _ => null,
     };
   }

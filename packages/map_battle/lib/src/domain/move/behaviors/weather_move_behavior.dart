@@ -74,6 +74,6 @@ int _durationForContext(BattleMoveBehaviorContext context) {
   final user = context.state.battlerAt(context.user);
   return _durationFromItems(
     dbSymbol: context.move.dbSymbol,
-    itemEffects: user.itemEffects,
+    itemEffects: user.activeItemEffects,
   );
 }

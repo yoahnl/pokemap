@@ -61,6 +61,157 @@ void main() {
       expect(_eventKinds(result), isNot(contains('damage')));
     });
 
+    test('s_toxic_thread fails only when poison and Speed drop both fail', () {
+      final result = _runMove(
+        opponentMajorStatus: PsdkBattleMajorStatus.poison,
+        opponentStatStages: PsdkBattleStatStages(
+          values: const <String, int>{'speed': -6},
+        ),
+        playerMove: _move(
+          id: 'toxic_thread',
+          battleEngineMethod: 's_toxic_thread',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          statuses: <PsdkBattleMoveStatus>[
+            PsdkBattleMoveStatus(
+              status: PsdkBattleMajorStatus.poison,
+              chance: 100,
+            ),
+          ],
+          stageMods: const <PsdkBattleMoveStageMod>[
+            PsdkBattleMoveStageMod(
+              stat: 'speed',
+              stages: -1,
+              chance: 100,
+            ),
+          ],
+        ),
+      );
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+
+      expect(opponent.majorStatus, PsdkBattleMajorStatus.poison);
+      expect(opponent.statStages.valueOf('speed'), -6);
+      expect(_eventKinds(result), contains('move_failed'));
+      expect(_eventKinds(result), isNot(contains('status')));
+      expect(_eventKinds(result), isNot(contains('stat_stage_change')));
+    });
+
+    test('s_toxic_thread continues when either poison or Speed drop works', () {
+      final speedDropOnly = _runMove(
+        opponentMajorStatus: PsdkBattleMajorStatus.poison,
+        playerMove: _move(
+          id: 'toxic_thread',
+          battleEngineMethod: 's_toxic_thread',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          statuses: <PsdkBattleMoveStatus>[
+            PsdkBattleMoveStatus(
+              status: PsdkBattleMajorStatus.poison,
+              chance: 100,
+            ),
+          ],
+          stageMods: const <PsdkBattleMoveStageMod>[
+            PsdkBattleMoveStageMod(
+              stat: 'speed',
+              stages: -1,
+              chance: 100,
+            ),
+          ],
+        ),
+      );
+      final poisonOnly = _runMove(
+        opponentStatStages: PsdkBattleStatStages(
+          values: const <String, int>{'speed': -6},
+        ),
+        playerMove: _move(
+          id: 'toxic_thread',
+          battleEngineMethod: 's_toxic_thread',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          statuses: <PsdkBattleMoveStatus>[
+            PsdkBattleMoveStatus(
+              status: PsdkBattleMajorStatus.poison,
+              chance: 100,
+            ),
+          ],
+          stageMods: const <PsdkBattleMoveStageMod>[
+            PsdkBattleMoveStageMod(
+              stat: 'speed',
+              stages: -1,
+              chance: 100,
+            ),
+          ],
+        ),
+      );
+      final speedDropTarget = speedDropOnly.state.battlerAt(psdkOpponentSlot);
+      final poisonTarget = poisonOnly.state.battlerAt(psdkOpponentSlot);
+
+      expect(speedDropTarget.majorStatus, PsdkBattleMajorStatus.poison);
+      expect(speedDropTarget.statStages.valueOf('speed'), -1);
+      expect(_eventKinds(speedDropOnly), contains('stat_stage_change'));
+      expect(_eventKinds(speedDropOnly), isNot(contains('move_failed')));
+      expect(poisonTarget.majorStatus, PsdkBattleMajorStatus.poison);
+      expect(poisonTarget.statStages.valueOf('speed'), -6);
+      expect(_eventKinds(poisonOnly), contains('status'));
+      expect(_eventKinds(poisonOnly), isNot(contains('move_failed')));
+    });
+
+    test('Mist prevents opposing stat drops', () {
+      final result = _runMove(
+        opponentEffects: const PsdkBattleEffectStack.empty().addEffect(
+          GenericBattleEffect(id: 'mist', scope: BankBattleEffectScope(1)),
+        ),
+        playerMove: _move(
+          id: 'tail_whip',
+          battleEngineMethod: 's_status',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          stageMods: const <PsdkBattleMoveStageMod>[
+            PsdkBattleMoveStageMod(
+              stat: 'defense',
+              stages: -1,
+              chance: 100,
+            ),
+          ],
+        ),
+      );
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+
+      expect(opponent.statStages.valueOf('defense'), 0);
+      expect(_eventKinds(result), isNot(contains('stat_stage_change')));
+    });
+
+    test('s_mist installs protection before slower opposing stat drops', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'mist',
+          battleEngineMethod: 's_mist',
+          power: 0,
+          accuracy: 0,
+          category: PsdkBattleMoveCategory.status,
+          target: PsdkBattleMoveTarget.self,
+        ),
+        opponentMove: _move(
+          id: 'tail_whip',
+          battleEngineMethod: 's_status',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          stageMods: const <PsdkBattleMoveStageMod>[
+            PsdkBattleMoveStageMod(
+              stat: 'defense',
+              stages: -1,
+              chance: 100,
+            ),
+          ],
+        ),
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.effects.contains('mist'), isTrue);
+      expect(player.statStages.valueOf('defense'), 0);
+      expect(_eventKinds(result), isNot(contains('stat_stage_change')));
+    });
+
     test('s_status applies target Confusion as a volatile effect', () {
       final result = _runMove(
         genericSeed: 1,
@@ -174,6 +325,9 @@ void main() {
 PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
   PsdkBattleMoveData? opponentMove,
+  PsdkBattleEffectStack opponentEffects = const PsdkBattleEffectStack.empty(),
+  PsdkBattleMajorStatus? opponentMajorStatus,
+  PsdkBattleStatStages? opponentStatStages,
   int genericSeed = 4,
 }) {
   final engine = PsdkBattleEngine(
@@ -192,6 +346,9 @@ PsdkBattleTurnResult _runMove({
               power: 0,
               accuracy: 1,
             ),
+        majorStatus: opponentMajorStatus,
+        statStages: opponentStatStages,
+        effects: opponentEffects,
       ),
       rngSeeds: PsdkBattleRngSeeds(
         moveDamage: 1,
@@ -208,6 +365,9 @@ PsdkBattleCombatantSetup _combatant({
   required String id,
   required int speed,
   required PsdkBattleMoveData move,
+  PsdkBattleMajorStatus? majorStatus,
+  PsdkBattleStatStages? statStages,
+  PsdkBattleEffectStack effects = const PsdkBattleEffectStack.empty(),
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -224,7 +384,10 @@ PsdkBattleCombatantSetup _combatant({
       specialDefense: 50,
       speed: speed,
     ),
+    statStages: statStages ?? PsdkBattleStatStages.neutral(),
+    majorStatus: majorStatus,
     moves: <PsdkBattleMoveData>[move],
+    effects: effects,
   );
 }
 

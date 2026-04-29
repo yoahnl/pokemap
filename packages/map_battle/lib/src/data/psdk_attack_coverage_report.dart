@@ -64,6 +64,8 @@ String generatePsdkAttackCoverageReport({
 }) {
   final manifestByMethod = <String, PsdkMoveRegistryManifestEntry>{
     for (final entry in manifest) entry.battleEngineMethod: entry,
+    for (final entry in _studioOnlyBattleMethods)
+      entry.battleEngineMethod: entry,
   };
   final rows = <_AttackCoverageRow>[
     for (final move in moves)
@@ -119,6 +121,78 @@ String generatePsdkAttackCoverageReport({
 
   return buffer.toString();
 }
+
+const _studioOnlyBattleMethods = <PsdkMoveRegistryManifestEntry>[
+  PsdkMoveRegistryManifestEntry(
+    battleEngineMethod: 's_genesis_supernova',
+    rubyClass: 'StudioOnlyZMove',
+    rubyPath: 'Data/Studio/moves',
+    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_genesis_supernova)',
+    status: PsdkPortStatus.partial,
+    dependencies: <PsdkMoveDependency>[PsdkMoveDependency.runtimeBridge],
+  ),
+  PsdkMoveRegistryManifestEntry(
+    battleEngineMethod: 's_guardian_of_alola',
+    rubyClass: 'StudioOnlyZMove',
+    rubyPath: 'Data/Studio/moves',
+    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_guardian_of_alola)',
+    status: PsdkPortStatus.partial,
+    dependencies: <PsdkMoveDependency>[PsdkMoveDependency.runtimeBridge],
+  ),
+  PsdkMoveRegistryManifestEntry(
+    battleEngineMethod: 's_hyperspace_hole',
+    rubyClass: 'StudioOnlyMove',
+    rubyPath: 'Data/Studio/moves',
+    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_hyperspace_hole)',
+    status: PsdkPortStatus.partial,
+    dependencies: <PsdkMoveDependency>[PsdkMoveDependency.runtimeBridge],
+  ),
+  PsdkMoveRegistryManifestEntry(
+    battleEngineMethod: 's_light_that_burns_the_sky',
+    rubyClass: 'StudioOnlyZMove',
+    rubyPath: 'Data/Studio/moves',
+    dartBehavior:
+        'StaticBasicMoveRegistry.partialBasic(s_light_that_burns_the_sky)',
+    status: PsdkPortStatus.partial,
+    dependencies: <PsdkMoveDependency>[PsdkMoveDependency.runtimeBridge],
+  ),
+  PsdkMoveRegistryManifestEntry(
+    battleEngineMethod: 's_malicious_moonsault',
+    rubyClass: 'StudioOnlyZMove',
+    rubyPath: 'Data/Studio/moves',
+    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_malicious_moonsault)',
+    status: PsdkPortStatus.partial,
+    dependencies: <PsdkMoveDependency>[PsdkMoveDependency.runtimeBridge],
+  ),
+  PsdkMoveRegistryManifestEntry(
+    battleEngineMethod: 's_self_stat_z_move',
+    rubyClass: 'StudioOnlyZMove',
+    rubyPath: 'Data/Studio/moves',
+    dartBehavior: 'StaticBasicMoveRegistry.secondaryOnly(s_self_stat_z_move)',
+    status: PsdkPortStatus.partial,
+    dependencies: <PsdkMoveDependency>[PsdkMoveDependency.runtimeBridge],
+  ),
+  PsdkMoveRegistryManifestEntry(
+    battleEngineMethod: 's_splintered_stormshards',
+    rubyClass: 'StudioOnlyZMove',
+    rubyPath: 'Data/Studio/moves',
+    dartBehavior:
+        'StaticBasicMoveRegistry.partialBasic(s_splintered_stormshards)',
+    status: PsdkPortStatus.partial,
+    dependencies: <PsdkMoveDependency>[PsdkMoveDependency.runtimeBridge],
+  ),
+  PsdkMoveRegistryManifestEntry(
+    battleEngineMethod: 's_z_move',
+    rubyClass: 'StudioZMove',
+    rubyPath: 'Data/Studio/moves',
+    dartBehavior: 'StaticBasicMoveRegistry.s_z_move',
+    status: PsdkPortStatus.partial,
+    dependencies: <PsdkMoveDependency>[
+      PsdkMoveDependency.item,
+      PsdkMoveDependency.runtimeBridge,
+    ],
+  ),
+];
 
 PsdkStudioMoveCoverageEntry _entryFromPayload(
   Map<String, dynamic> payload,

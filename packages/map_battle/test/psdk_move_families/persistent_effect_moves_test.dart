@@ -116,6 +116,72 @@ void main() {
       expect(_heal(result, moveId: 'effect:leech_seed').amount, 12);
     });
 
+    test('s_sappy_seed damages then adds Leech Seed to the target', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          playerCurrentHp: 50,
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'sappy_seed',
+              type: 'grass',
+              category: PsdkBattleMoveCategory.physical,
+              power: 100,
+              accuracy: 100,
+              battleEngineMethod: 's_sappy_seed',
+              target: PsdkBattleMoveTarget.adjacentFoe,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+
+      expect(_damage(result, moveId: 'sappy_seed').damage, greaterThan(0));
+      expect(opponent.effects.contains('leech_seed'), isTrue);
+      expect(
+        opponent.effects.effects.singleWhere(
+          (effect) => effect.id == 'leech_seed',
+        ),
+        isA<LeechSeedEffect>(),
+      );
+      expect(_damage(result, moveId: 'effect:leech_seed').damage, 12);
+      expect(_heal(result, moveId: 'effect:leech_seed').amount, 12);
+      expect(player.currentHp, 62);
+    });
+
+    test('s_sappy_seed damages Grass targets without adding Leech Seed', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'sappy_seed',
+              type: 'grass',
+              category: PsdkBattleMoveCategory.physical,
+              power: 100,
+              accuracy: 100,
+              battleEngineMethod: 's_sappy_seed',
+              target: PsdkBattleMoveTarget.adjacentFoe,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+
+      expect(_damage(result, moveId: 'sappy_seed').damage, greaterThan(0));
+      expect(opponent.effects.contains('leech_seed'), isFalse);
+      expect(
+        result.timeline.events
+            .whereType<PsdkBattleDamageEvent>()
+            .where((event) => event.moveId == 'effect:leech_seed'),
+        isEmpty,
+      );
+    });
+
     test('ghost s_curse creates a CurseEffect that damages the target later',
         () {
       final engine = PsdkBattleEngine(
@@ -148,6 +214,7 @@ void main() {
 PsdkBattleSetup _setup({
   List<PsdkBattleMoveData>? playerMoves,
   PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
+  PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
   int playerCurrentHp = 100,
   PsdkBattleEffectStack playerEffects = const PsdkBattleEffectStack.empty(),
 }) {
@@ -163,6 +230,7 @@ PsdkBattleSetup _setup({
     opponent: _combatant(
       id: 'opponent',
       speed: 1,
+      types: opponentTypes,
       moves: <PsdkBattleMoveData>[
         _move(
           id: 'splash',
@@ -210,6 +278,10 @@ PsdkBattleCombatantSetup _combatant({
 
 PsdkBattleMoveData _move({
   required String id,
+  String type = 'normal',
+  PsdkBattleMoveCategory category = PsdkBattleMoveCategory.status,
+  int power = 0,
+  int accuracy = 0,
   String? battleEngineMethod,
   PsdkBattleMoveTarget target = PsdkBattleMoveTarget.adjacentFoe,
 }) {
@@ -217,10 +289,10 @@ PsdkBattleMoveData _move({
     id: id,
     dbSymbol: id,
     name: id,
-    type: 'normal',
-    category: PsdkBattleMoveCategory.status,
-    power: 0,
-    accuracy: 0,
+    type: type,
+    category: category,
+    power: power,
+    accuracy: accuracy,
     pp: 35,
     priority: 0,
     criticalRate: 1,

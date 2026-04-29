@@ -71,4 +71,26 @@ final class GenericBattleEffect extends BattleEffect {
       remainingTurns: remainingTurns,
     );
   }
+
+  @override
+  BattleEffectEndTurnResult? onEndTurn(BattleEffectEndTurnContext context) {
+    final turns = remainingTurns;
+    if (turns == null) {
+      return null;
+    }
+
+    final nextEffects = turns <= 1
+        ? context.state.battlerAt(context.owner).effects.remove(id)
+        : context.state
+            .battlerAt(context.owner)
+            .effects
+            .addEffect(copyWithRemainingTurns(turns - 1));
+    return BattleEffectEndTurnResult(
+      state: context.state.updateBattler(
+        context.owner,
+        (battler) => battler.copyWith(effects: nextEffects),
+      ),
+      rng: context.rng,
+    );
+  }
 }

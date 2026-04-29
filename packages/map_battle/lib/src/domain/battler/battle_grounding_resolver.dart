@@ -18,16 +18,23 @@ final class BattleGroundingResolver {
       return true;
     }
 
-    for (final effect in battler.itemEffects) {
+    if (battler.effects.contains('telekinesis') ||
+        battler.effects.contains('magnet_rise')) {
+      return false;
+    }
+
+    for (final effect in battler.activeItemEffects) {
       final grounded = effect.groundedOverride(battler);
       if (grounded != null) {
         return grounded;
       }
     }
-    if (battler.heldItemId == 'iron_ball') {
+    if (!battler.itemEffectsSuppressed && battler.heldItemId == 'iron_ball') {
       return true;
     }
-    if (battler.heldItemId == 'air_balloon' && !battler.itemConsumed) {
+    if (!battler.itemEffectsSuppressed &&
+        battler.heldItemId == 'air_balloon' &&
+        !battler.itemConsumed) {
       return false;
     }
 
@@ -37,7 +44,8 @@ final class BattleGroundingResolver {
         return grounded;
       }
     }
-    if (battler.abilityId == 'levitate') {
+    if (battler.abilityId == 'levitate' &&
+        !battler.effects.contains('ability_suppressed')) {
       return false;
     }
 

@@ -1,14 +1,14 @@
 # PSDK Effect Porting Matrix
 
-Source: `../../pokemonsdk-development/scripts/5 Battle`
+Source: `/Users/karim/Project/pokemonProject/pokemonsdk-development/scripts/5 Battle`
 
 Total effect classes: 482
 
 | Status | Count |
 | --- | ---: |
 | `ported` | 0 |
-| `partial` | 7 |
-| `missing` | 475 |
+| `partial` | 25 |
+| `missing` | 457 |
 
 | Effect | Ruby base | Family | Hooks | Hook families | Ruby path | Dart target | Status | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -25,14 +25,14 @@ Total effect classes: 482
 | `Apicot` | `HpTriggeredStatBerries` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb` | `lib/src/domain/effect/item/apicot_effect.dart` | `missing` | `-` |
 | `ApplyStatusToMoveTarget` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 ApplyStatusToMoveTarget.rb` | `lib/src/domain/effect/ability/apply_status_to_move_target_effect.dart` | `missing` | `-` |
 | `AquaRing` | `PokemonTiedEffectBase` | `move` | `on_end_turn_event` | `end_turn` | `06 Effects/02 Move Effects/001 AquaRing.rb` | `lib/src/domain/effect/move/aqua_ring_effect.dart` | `partial` | Object-backed AquaRingEffect heals at end turn and transfers through Baton Pass; Big Root branch is local. |
-| `ArenaTrap` | `ShadowTag` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb` | `lib/src/domain/effect/ability/arena_trap_effect.dart` | `missing` | `-` |
+| `ArenaTrap` | `ShadowTag` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb` | `lib/src/domain/effect/ability/arena_trap_effect.dart` | `partial` | Object-backed ShadowTagEffect.arenaTrap prevents opposing grounded non-Ghost switch attempts through the switch-prevention hook; force-switch move exceptions and messaging remain future work. |
 | `ArmorTail` | `Ability` | `ability` | `on_move_prevention_user` | `move_prevention` | `06 Effects/04 Ability Effects/100 Armor Tail.rb` | `lib/src/domain/effect/ability/armor_tail_effect.dart` | `missing` | `-` |
 | `AromaVeil` | `MentalImmunityBase` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Mental Immunity.rb` | `lib/src/domain/effect/ability/aroma_veil_effect.dart` | `missing` | `-` |
 | `AsOne` | `Moxie` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/101 AsOne.rb` | `lib/src/domain/effect/ability/as_one_effect.dart` | `missing` | `-` |
 | `Asleep` | `Status` | `status` | `on_move_prevention_user`, `on_status_prevention` | `move_prevention`, `status_prevention` | `06 Effects/03 Status Effects/104 Asleep.rb` | `lib/src/domain/effect/status/asleep_effect.dart` | `missing` | `-` |
 | `AssaultVest` | `ChoiceItemMultiplier` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb` | `lib/src/domain/effect/item/assault_vest_effect.dart` | `missing` | `-` |
 | `AttackMultiplier` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 ItemAttackMultiplier.rb` | `lib/src/domain/effect/item/attack_multiplier_effect.dart` | `missing` | `-` |
-| `Attract` | `PokemonTiedEffectBase` | `move` | `on_delete`, `on_move_prevention_user` | `lifecycle`, `move_prevention` | `06 Effects/02 Move Effects/001 Attract.rb` | `lib/src/domain/effect/move/attract_effect.dart` | `missing` | `-` |
+| `Attract` | `PokemonTiedEffectBase` | `move` | `on_delete`, `on_move_prevention_user` | `lifecycle`, `move_prevention` | `06 Effects/02 Move Effects/001 Attract.rb` | `lib/src/domain/effect/move/attract_effect.dart` | `partial` | Object-backed AttractEffect performs the PSDK 50% user-prevention roll against the attracting battler; gender immunity, Destiny Knot mirroring and delete messages remain future work. |
 | `Auras` | `Ability` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/100 Auras.rb` | `lib/src/domain/effect/ability/auras_effect.dart` | `missing` | `-` |
 | `AuroraVeil` | `LightScreen` | `move` | `-` | `-` | `06 Effects/02 Move Effects/001 LightScreen Reflect.rb` | `lib/src/domain/effect/move/aurora_veil_effect.dart` | `missing` | `-` |
 | `Autotomize` | `PokemonTiedEffectBase` | `move` | `on_delete` | `lifecycle` | `06 Effects/02 Move Effects/001 Autotomize.rb` | `lib/src/domain/effect/move/autotomize_effect.dart` | `missing` | `-` |
@@ -55,7 +55,7 @@ Total effect classes: 482
 | `Bide` | `PokemonTiedEffectBase` | `move` | `on_post_damage` | `post_damage` | `06 Effects/02 Move Effects/001 ForceNextMove effects.rb` | `lib/src/domain/effect/move/bide_effect.dart` | `missing` | `-` |
 | `BigPecks` | `Ability` | `ability` | `on_stat_decrease_prevention` | `stat_change` | `06 Effects/04 Ability Effects/100 Big Pecks.rb` | `lib/src/domain/effect/ability/big_pecks_effect.dart` | `missing` | `-` |
 | `BigRoot` | `Item` | `item` | `on_pre_drain` | `drain` | `06 Effects/05 Item Effects/100 Big Root.rb` | `lib/src/domain/effect/item/big_root_effect.dart` | `missing` | `-` |
-| `Bind` | `PokemonTiedEffectBase` | `move` | `on_delete`, `on_end_turn_event`, `on_switch_event`, `on_switch_prevention` | `end_turn`, `lifecycle`, `switch` | `06 Effects/02 Move Effects/001 Bind.rb` | `lib/src/domain/effect/move/bind_effect.dart` | `missing` | `-` |
+| `Bind` | `PokemonTiedEffectBase` | `move` | `on_delete`, `on_end_turn_event`, `on_switch_event`, `on_switch_prevention` | `end_turn`, `lifecycle`, `switch` | `06 Effects/02 Move Effects/001 Bind.rb` | `lib/src/domain/effect/move/bind_effect.dart` | `partial` | Object-backed BindEffect prevents regular switch attempts, applies residual end-turn damage, honors Magic Guard, Grip Claw and Binding Band, and stops when the origin fainted; Rapid Spin cleanup and delete messages remain future work. |
 | `BlackSludge` | `Item` | `item` | `on_end_turn_event` | `end_turn` | `06 Effects/05 Item Effects/100 Black Sludge.rb` | `lib/src/domain/effect/item/black_sludge_effect.dart` | `missing` | `-` |
 | `BlueOrb` | `RedOrb` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 PrimalOrbs.rb` | `lib/src/domain/effect/item/blue_orb_effect.dart` | `missing` | `-` |
 | `BoostingMoveType` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 BoostingMoveType.rb` | `lib/src/domain/effect/ability/boosting_move_type_effect.dart` | `missing` | `-` |
@@ -64,7 +64,7 @@ Total effect classes: 482
 | `BurnDrive` | `Drives` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 Drives.rb` | `lib/src/domain/effect/item/burn_drive_effect.dart` | `missing` | `-` |
 | `BurnUp` | `PokemonTiedEffectBase` | `move` | `-` | `-` | `06 Effects/02 Move Effects/001 BurnUp.rb` | `lib/src/domain/effect/move/burn_up_effect.dart` | `missing` | `-` |
 | `BurningBulwark` | `KingsShield` | `move` | `-` | `-` | `06 Effects/02 Move Effects/001 Protect.rb` | `lib/src/domain/effect/move/burning_bulwark_effect.dart` | `missing` | `-` |
-| `CantSwitch` | `PokemonTiedEffectBase` | `move` | `on_switch_event`, `on_switch_prevention` | `switch` | `06 Effects/02 Move Effects/001 CantSwitch.rb` | `lib/src/domain/effect/move/cant_switch_effect.dart` | `missing` | `-` |
+| `CantSwitch` | `PokemonTiedEffectBase` | `move` | `on_switch_event`, `on_switch_prevention` | `switch` | `06 Effects/02 Move Effects/001 CantSwitch.rb` | `lib/src/domain/effect/move/cant_switch_effect.dart` | `partial` | Object-backed CantSwitchEffect prevents regular switch attempts, transfers through Baton Pass and stops blocking when the origin fainted; full switch-event cleanup and message parity remain future work. |
 | `CellBattery` | `LuminousMoss` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Luminous Moss - Snowball.rb` | `lib/src/domain/effect/item/cell_battery_effect.dart` | `missing` | `-` |
 | `CenterOfAttention` | `PokemonTiedEffectBase` | `move` | `-` | `-` | `06 Effects/02 Move Effects/001 CenterOfAttention.rb` | `lib/src/domain/effect/move/center_of_attention_effect.dart` | `missing` | `-` |
 | `ChangeType` | `PokemonTiedEffectBase` | `move` | `on_transform_event` | `transform` | `06 Effects/02 Move Effects/001 ChangeType.rb` | `lib/src/domain/effect/move/change_type_effect.dart` | `missing` | `-` |
@@ -108,7 +108,7 @@ Total effect classes: 482
 | `DeltaStream` | `DesolateLand` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Primal Weathers.rb` | `lib/src/domain/effect/ability/delta_stream_effect.dart` | `missing` | `-` |
 | `DesolateLand` | `Ability` | `ability` | `on_post_damage_death`, `on_post_weather_change`, `on_pre_ability_change`, `on_switch_event` | `ability_change`, `post_damage`, `switch`, `weather_change` | `06 Effects/04 Ability Effects/100 Primal Weathers.rb` | `lib/src/domain/effect/ability/desolate_land_effect.dart` | `missing` | `-` |
 | `DestinyBond` | `PokemonTiedEffectBase` | `move` | `on_move_prevention_user`, `on_post_damage_death` | `move_prevention`, `post_damage` | `06 Effects/02 Move Effects/001 DestinyBond.rb` | `lib/src/domain/effect/move/destiny_bond_effect.dart` | `missing` | `-` |
-| `Disable` | `PokemonTiedEffectBase` | `move` | `on_delete`, `on_move_disabled_check`, `on_move_prevention_user` | `lifecycle`, `move_prevention` | `06 Effects/02 Move Effects/001 Disable.rb` | `lib/src/domain/effect/move/disable_effect.dart` | `missing` | `-` |
+| `Disable` | `PokemonTiedEffectBase` | `move` | `on_delete`, `on_move_disabled_check`, `on_move_prevention_user` | `lifecycle`, `move_prevention` | `06 Effects/02 Move Effects/001 Disable.rb` | `lib/src/domain/effect/move/disable_effect.dart` | `partial` | Object-backed DisableEffect blocks the target last successful non-Struggle move through the user-prevention hook; UI disabled checks and deletion messages remain future work. |
 | `Disguise` | `Ability` | `ability` | `on_damage_prevention`, `on_post_damage_death` | `damage_prevention`, `post_damage` | `06 Effects/04 Ability Effects/100 Disguise.rb` | `lib/src/domain/effect/ability/disguise_effect.dart` | `missing` | `-` |
 | `Download` | `Ability` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/100 Download.rb` | `lib/src/domain/effect/ability/download_effect.dart` | `missing` | `-` |
 | `DragonCheer` | `PokemonTiedEffectBase` | `move` | `-` | `-` | `06 Effects/02 Move Effects/001 DragonCheer.rb` | `lib/src/domain/effect/move/dragon_cheer_effect.dart` | `missing` | `-` |
@@ -130,7 +130,7 @@ Total effect classes: 482
 | `Embargo` | `PokemonTiedEffectBase` | `move` | `on_delete` | `lifecycle` | `06 Effects/02 Move Effects/001 Embargo.rb` | `lib/src/domain/effect/move/embargo_effect.dart` | `missing` | `-` |
 | `EmbodyAspect` | `Ability` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/100 Embody Aspect.rb` | `lib/src/domain/effect/ability/embody_aspect_effect.dart` | `missing` | `-` |
 | `EmergencyExit` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 Emergency Exit - Wimp Out.rb` | `lib/src/domain/effect/ability/emergency_exit_effect.dart` | `missing` | `-` |
-| `Encore` | `PokemonTiedEffectBase` | `move` | `on_delete` | `lifecycle` | `06 Effects/02 Move Effects/001 ForceNextMove effects.rb` | `lib/src/domain/effect/move/encore_effect.dart` | `missing` | `-` |
+| `Encore` | `PokemonTiedEffectBase` | `move` | `on_delete` | `lifecycle` | `06 Effects/02 Move Effects/001 ForceNextMove effects.rb` | `lib/src/domain/effect/move/encore_effect.dart` | `partial` | Object-backed EncoreEffect blocks choosing a different move than the encored last successful move; PP forcing, UI selection forcing and deletion messages remain future work. |
 | `Endure` | `PokemonTiedEffectBase` | `move` | `on_damage_prevention`, `on_post_damage` | `damage_prevention`, `post_damage` | `06 Effects/02 Move Effects/001 Protect.rb` | `lib/src/domain/effect/move/endure_effect.dart` | `missing` | `-` |
 | `EnigmaBerry` | `Berry` | `item` | `on_post_damage` | `post_damage` | `06 Effects/05 Item Effects/100 Enigma Berry.rb` | `lib/src/domain/effect/item/enigma_berry_effect.dart` | `missing` | `-` |
 | `Eviolite` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Eviolite.rb` | `lib/src/domain/effect/item/eviolite_effect.dart` | `missing` | `-` |
@@ -141,7 +141,7 @@ Total effect classes: 482
 | `FlameOrb` | `Item` | `item` | `on_end_turn_event` | `end_turn` | `06 Effects/05 Item Effects/100 Flame Orb.rb` | `lib/src/domain/effect/item/flame_orb_effect.dart` | `missing` | `-` |
 | `FlareBoost` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Flare Boost.rb` | `lib/src/domain/effect/ability/flare_boost_effect.dart` | `missing` | `-` |
 | `FlashFire` | `Ability` | `ability` | `on_damage_prevention`, `on_reset_states`, `on_stat_decrease_prevention`, `on_stat_increase_prevention`, `on_status_prevention` | `damage_prevention`, `stat_change`, `status_prevention` | `06 Effects/04 Ability Effects/100 Flash Fire.rb` | `lib/src/domain/effect/ability/flash_fire_effect.dart` | `missing` | `-` |
-| `Flinch` | `PokemonTiedEffectBase` | `move` | `on_move_prevention_user`, `on_status_prevention` | `move_prevention`, `status_prevention` | `06 Effects/02 Move Effects/001 Flinch.rb` | `lib/src/domain/effect/move/flinch_effect.dart` | `missing` | `-` |
+| `Flinch` | `PokemonTiedEffectBase` | `move` | `on_move_prevention_user`, `on_status_prevention` | `move_prevention`, `status_prevention` | `06 Effects/02 Move Effects/001 Flinch.rb` | `lib/src/domain/effect/move/flinch_effect.dart` | `partial` | Object-backed FlinchEffect blocks the target next action through the user-prevention hook and clears at end turn; messaging and Steadfast-style side effects remain future work. |
 | `FlowerGift` | `Ability` | `ability` | `on_post_weather_change`, `on_pre_ability_change`, `on_switch_event` | `ability_change`, `switch`, `weather_change` | `06 Effects/04 Ability Effects/100 Flower Gift.rb` | `lib/src/domain/effect/ability/flower_gift_effect.dart` | `missing` | `-` |
 | `FlowerVeil` | `Ability` | `ability` | `on_stat_decrease_prevention`, `on_status_prevention` | `stat_change`, `status_prevention` | `06 Effects/04 Ability Effects/100 Flower Veil.rb` | `lib/src/domain/effect/ability/flower_veil_effect.dart` | `missing` | `-` |
 | `Fluffy` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Fluffy.rb` | `lib/src/domain/effect/ability/fluffy_effect.dart` | `missing` | `-` |
@@ -184,7 +184,7 @@ Total effect classes: 482
 | `Hardrain` | `Weather` | `field` | `on_end_turn_event`, `on_move_prevention_target`, `on_weather_prevention` | `end_turn`, `move_prevention`, `weather_change` | `06 Effects/06 Weather Effects/100 Hardrain.rb` | `lib/src/domain/effect/field/hardrain_effect.dart` | `missing` | `-` |
 | `Hardsun` | `Weather` | `field` | `on_end_turn_event`, `on_move_prevention_target`, `on_weather_prevention` | `end_turn`, `move_prevention`, `weather_change` | `06 Effects/06 Weather Effects/100 Hardsun.rb` | `lib/src/domain/effect/field/hardsun_effect.dart` | `missing` | `-` |
 | `Harvest` | `Ability` | `ability` | `on_end_turn_event` | `end_turn` | `06 Effects/04 Ability Effects/100 Harvest.rb` | `lib/src/domain/effect/ability/harvest_effect.dart` | `missing` | `-` |
-| `HealBlock` | `PokemonTiedEffectBase` | `move` | `on_move_disabled_check`, `on_move_prevention_user` | `move_prevention` | `06 Effects/02 Move Effects/001 HealBlock.rb` | `lib/src/domain/effect/move/heal_block_effect.dart` | `missing` | `-` |
+| `HealBlock` | `PokemonTiedEffectBase` | `move` | `on_move_disabled_check`, `on_move_prevention_user` | `move_prevention` | `06 Effects/02 Move Effects/001 HealBlock.rb` | `lib/src/domain/effect/move/heal_block_effect.dart` | `partial` | Object-backed HealBlockEffect blocks local healing battle methods through the user-prevention hook; Studio heal flags, messages and all item/ability exceptions remain future work. |
 | `Healer` | `Ability` | `ability` | `on_end_turn_event` | `end_turn` | `06 Effects/04 Ability Effects/100 Healer.rb` | `lib/src/domain/effect/ability/healer_effect.dart` | `missing` | `-` |
 | `HealingWish` | `PokemonTiedEffectBase` | `move` | `on_switch_event` | `switch` | `06 Effects/02 Move Effects/001 HealingWish.rb` | `lib/src/domain/effect/move/healing_wish_effect.dart` | `missing` | `-` |
 | `Heatproof` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Heatproof.rb` | `lib/src/domain/effect/ability/heatproof_effect.dart` | `missing` | `-` |
@@ -200,7 +200,7 @@ Total effect classes: 482
 | `IceScales` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Ice Scales.rb` | `lib/src/domain/effect/ability/ice_scales_effect.dart` | `missing` | `-` |
 | `Immunity` | `NonVolatileStatusImmunityBase` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb` | `lib/src/domain/effect/ability/immunity_effect.dart` | `missing` | `-` |
 | `Imposter` | `Ability` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/100 Imposter.rb` | `lib/src/domain/effect/ability/imposter_effect.dart` | `missing` | `-` |
-| `Imprison` | `PokemonTiedEffectBase` | `move` | `on_move_disabled_check`, `on_move_prevention_user` | `move_prevention` | `06 Effects/02 Move Effects/001 Imprison.rb` | `lib/src/domain/effect/move/imprison_effect.dart` | `missing` | `-` |
+| `Imprison` | `PokemonTiedEffectBase` | `move` | `on_move_disabled_check`, `on_move_prevention_user` | `move_prevention` | `06 Effects/02 Move Effects/001 Imprison.rb` | `lib/src/domain/effect/move/imprison_effect.dart` | `partial` | Object-backed ImprisonEffect blocks shared foe move ids through the user-prevention hook; the current Dart storage is target-local until global PSDK effect dispatch exists. |
 | `Ingrain` | `CantSwitch` | `move` | `on_end_turn_event`, `on_switch_prevention` | `end_turn`, `switch` | `06 Effects/02 Move Effects/001 Ingrain.rb` | `lib/src/domain/effect/move/ingrain_effect.dart` | `partial` | Object-backed IngrainEffect heals at end turn, grounds the user, prevents regular switch-out and transfers through Baton Pass; Ghost/Teleport/forced-switch exceptions remain future work. |
 | `InnardsOut` | `Ability` | `ability` | `on_post_damage`, `on_post_damage_death` | `post_damage` | `06 Effects/04 Ability Effects/100 Innards Out.rb` | `lib/src/domain/effect/ability/innards_out_effect.dart` | `missing` | `-` |
 | `InnerFocus` | `Ability` | `ability` | `on_status_prevention` | `status_prevention` | `06 Effects/04 Ability Effects/100 Inner Focus.rb` | `lib/src/domain/effect/ability/inner_focus_effect.dart` | `missing` | `-` |
@@ -244,7 +244,7 @@ Total effect classes: 482
 | `MagicRoom` | `EffectBase` | `move` | `on_delete`, `on_held_item_use_prevention` | `item_change`, `lifecycle` | `06 Effects/02 Move Effects/001 MagicRoom.rb` | `lib/src/domain/effect/move/magic_room_effect.dart` | `missing` | `-` |
 | `Magician` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 Pickpocket - Magician.rb` | `lib/src/domain/effect/ability/magician_effect.dart` | `missing` | `-` |
 | `MagmaArmor` | `NonVolatileStatusImmunityBase` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb` | `lib/src/domain/effect/ability/magma_armor_effect.dart` | `missing` | `-` |
-| `MagnetPull` | `ShadowTag` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb` | `lib/src/domain/effect/ability/magnet_pull_effect.dart` | `missing` | `-` |
+| `MagnetPull` | `ShadowTag` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb` | `lib/src/domain/effect/ability/magnet_pull_effect.dart` | `partial` | Object-backed ShadowTagEffect.magnetPull prevents opposing Steel non-Ghost switch attempts through the switch-prevention hook; force-switch move exceptions and messaging remain future work. |
 | `MagnetRise` | `PokemonTiedEffectBase` | `move` | `on_delete_message` | `lifecycle` | `06 Effects/02 Move Effects/001 MagnetRise.rb` | `lib/src/domain/effect/move/magnet_rise_effect.dart` | `missing` | `-` |
 | `MarangaBerry` | `KeeBerry` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Kee Berry - Maranga Berry.rb` | `lib/src/domain/effect/item/maranga_berry_effect.dart` | `missing` | `-` |
 | `Mark` | `PokemonTiedEffectBase` | `move` | `-` | `-` | `06 Effects/02 Move Effects/001 HelpingHand.rb` | `lib/src/domain/effect/move/mark_effect.dart` | `missing` | `-` |
@@ -348,7 +348,7 @@ Total effect classes: 482
 | `Safeguard` | `PositionTiedEffectBase` | `move` | `on_delete`, `on_status_prevention` | `lifecycle`, `status_prevention` | `06 Effects/02 Move Effects/001 Safeguard.rb` | `lib/src/domain/effect/move/safeguard_effect.dart` | `missing` | `-` |
 | `SafetyGoggles` | `Item` | `item` | `on_move_prevention_target` | `move_prevention` | `06 Effects/05 Item Effects/100 SafetyGoggles.rb` | `lib/src/domain/effect/item/safety_goggles_effect.dart` | `missing` | `-` |
 | `Salac` | `HpTriggeredStatBerries` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb` | `lib/src/domain/effect/item/salac_effect.dart` | `missing` | `-` |
-| `SaltCure` | `PokemonTiedEffectBase` | `move` | `on_end_turn_event` | `end_turn` | `06 Effects/02 Move Effects/001 SaltCure.rb` | `lib/src/domain/effect/move/salt_cure_effect.dart` | `missing` | `-` |
+| `SaltCure` | `PokemonTiedEffectBase` | `move` | `on_end_turn_event` | `end_turn` | `06 Effects/02 Move Effects/001 SaltCure.rb` | `lib/src/domain/effect/move/salt_cure_effect.dart` | `partial` | Object-backed SaltCureEffect applies end-turn residual damage with the Water/Steel divisor branch; messages and full cleanup hooks remain future work. |
 | `SandForce` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Sand Force.rb` | `lib/src/domain/effect/ability/sand_force_effect.dart` | `missing` | `-` |
 | `SandRush` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Sand Rush.rb` | `lib/src/domain/effect/ability/sand_rush_effect.dart` | `missing` | `-` |
 | `SandSpit` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 Sand Spit.rb` | `lib/src/domain/effect/ability/sand_spit_effect.dart` | `missing` | `-` |
@@ -361,7 +361,7 @@ Total effect classes: 482
 | `SeaOfFire` | `PositionTiedEffectBase` | `move` | `on_delete`, `on_end_turn_event` | `end_turn`, `lifecycle` | `06 Effects/02 Move Effects/001 Pledge Effects/001 SeaOfFire.rb` | `lib/src/domain/effect/move/sea_of_fire_effect.dart` | `missing` | `-` |
 | `SeedSower` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 SeedSower.rb` | `lib/src/domain/effect/ability/seed_sower_effect.dart` | `missing` | `-` |
 | `SereneGrace` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 SereneGrace.rb` | `lib/src/domain/effect/ability/serene_grace_effect.dart` | `missing` | `-` |
-| `ShadowTag` | `Ability` | `ability` | `on_switch_prevention` | `switch` | `06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb` | `lib/src/domain/effect/ability/shadow_tag_effect.dart` | `missing` | `-` |
+| `ShadowTag` | `Ability` | `ability` | `on_switch_prevention` | `switch` | `06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb` | `lib/src/domain/effect/ability/shadow_tag_effect.dart` | `partial` | Object-backed ShadowTagEffect prevents opposing non-Ghost non-Shadow Tag switch attempts through the switch-prevention hook; force-switch move exceptions and messaging remain future work. |
 | `Sharpness` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Sharpness.rb` | `lib/src/domain/effect/ability/sharpness_effect.dart` | `missing` | `-` |
 | `ShedShell` | `Item` | `item` | `on_switch_passthrough` | `switch` | `06 Effects/05 Item Effects/100 Shed Shell.rb` | `lib/src/domain/effect/item/shed_shell_effect.dart` | `missing` | `-` |
 | `ShedSkin` | `Ability` | `ability` | `on_end_turn_event` | `end_turn` | `06 Effects/04 Ability Effects/100 Shed Skin.rb` | `lib/src/domain/effect/ability/shed_skin_effect.dart` | `missing` | `-` |
@@ -378,7 +378,7 @@ Total effect classes: 482
 | `SleepPrevention` | `EffectBase` | `move` | `on_status_prevention` | `status_prevention` | `06 Effects/02 Move Effects/001 UpRoar.rb` | `lib/src/domain/effect/move/sleep_prevention_effect.dart` | `missing` | `-` |
 | `SlowStart` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Slow Start.rb` | `lib/src/domain/effect/ability/slow_start_effect.dart` | `missing` | `-` |
 | `SlushRush` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Slush Rush.rb` | `lib/src/domain/effect/ability/slush_rush_effect.dart` | `missing` | `-` |
-| `SmackDown` | `PokemonTiedEffectBase` | `move` | `on_single_type_multiplier_overwrite` | `damage_change` | `06 Effects/02 Move Effects/001 SmackDown.rb` | `lib/src/domain/effect/move/smack_down_effect.dart` | `missing` | `-` |
+| `SmackDown` | `PokemonTiedEffectBase` | `move` | `on_single_type_multiplier_overwrite` | `damage_change` | `06 Effects/02 Move Effects/001 SmackDown.rb` | `lib/src/domain/effect/move/smack_down_effect.dart` | `partial` | Object-backed SmackDownEffect forces grounded checks and removes Flying immunity for local Ground damage; flying-effect cleanup remains future work. |
 | `SmokeBall` | `Item` | `item` | `on_flee_passthrough` | `switch` | `06 Effects/05 Item Effects/100 SmokeBall.rb` | `lib/src/domain/effect/item/smoke_ball_effect.dart` | `missing` | `-` |
 | `Snatch` | `PokemonTiedEffectBase` | `move` | `-` | `-` | `06 Effects/02 Move Effects/001 Snatch.rb` | `lib/src/domain/effect/move/snatch_effect.dart` | `missing` | `-` |
 | `Snatched` | `Snatch` | `move` | `-` | `-` | `06 Effects/02 Move Effects/001 Snatch.rb` | `lib/src/domain/effect/move/snatched_effect.dart` | `missing` | `-` |
@@ -426,13 +426,13 @@ Total effect classes: 482
 | `SwordOfRuin` | `EffectBase` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/101 TabletsOfRuin.rb` | `lib/src/domain/effect/ability/sword_of_ruin_effect.dart` | `missing` | `-` |
 | `Symbiosis` | `Ability` | `ability` | `on_post_damage`, `on_post_item_change`, `on_pre_item_change` | `item_change`, `post_damage` | `06 Effects/04 Ability Effects/100 Symbiosis.rb` | `lib/src/domain/effect/ability/symbiosis_effect.dart` | `missing` | `-` |
 | `Synchronize` | `Ability` | `ability` | `on_post_status_change` | `status_prevention` | `06 Effects/04 Ability Effects/100 Synchronize.rb` | `lib/src/domain/effect/ability/synchronize_effect.dart` | `missing` | `-` |
-| `SyrupBomb` | `PokemonTiedEffectBase` | `move` | `on_end_turn_event` | `end_turn` | `06 Effects/02 Move Effects/001 SyrupBomb.rb` | `lib/src/domain/effect/move/syrup_bomb_effect.dart` | `missing` | `-` |
+| `SyrupBomb` | `PokemonTiedEffectBase` | `move` | `on_end_turn_event` | `end_turn` | `06 Effects/02 Move Effects/001 SyrupBomb.rb` | `lib/src/domain/effect/move/syrup_bomb_effect.dart` | `partial` | Object-backed SyrupBombEffect applies timed end-turn Speed drops; full counter lifecycle and message parity remain future work. |
 | `TabletsOfRuin` | `Ability` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/100 TabletsOfRuin.rb` | `lib/src/domain/effect/ability/tablets_of_ruin_effect.dart` | `missing` | `-` |
 | `TabletsOfRuin` | `EffectBase` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/101 TabletsOfRuin.rb` | `lib/src/domain/effect/ability/tablets_of_ruin_effect.dart` | `missing` | `-` |
 | `Tailwind` | `PositionTiedEffectBase` | `move` | `on_delete` | `lifecycle` | `06 Effects/02 Move Effects/001 Tailwind.rb` | `lib/src/domain/effect/move/tailwind_effect.dart` | `missing` | `-` |
 | `TangledFeet` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Tangled Feet.rb` | `lib/src/domain/effect/ability/tangled_feet_effect.dart` | `missing` | `-` |
-| `TarShot` | `PokemonTiedEffectBase` | `move` | `on_single_type_multiplier_overwrite` | `damage_change` | `06 Effects/02 Move Effects/001 TarShot.rb` | `lib/src/domain/effect/move/tar_shot_effect.dart` | `missing` | `-` |
-| `Taunt` | `PokemonTiedEffectBase` | `move` | `on_delete`, `on_move_disabled_check`, `on_move_prevention_user` | `lifecycle`, `move_prevention` | `06 Effects/02 Move Effects/001 Taunt.rb` | `lib/src/domain/effect/move/taunt_effect.dart` | `missing` | `-` |
+| `TarShot` | `PokemonTiedEffectBase` | `move` | `on_single_type_multiplier_overwrite` | `damage_change` | `06 Effects/02 Move Effects/001 TarShot.rb` | `lib/src/domain/effect/move/tar_shot_effect.dart` | `partial` | Object-backed TarShotEffect records the target fire-weakness marker; type-multiplier overwrite remains future work. |
+| `Taunt` | `PokemonTiedEffectBase` | `move` | `on_delete`, `on_move_disabled_check`, `on_move_prevention_user` | `lifecycle`, `move_prevention` | `06 Effects/02 Move Effects/001 Taunt.rb` | `lib/src/domain/effect/move/taunt_effect.dart` | `partial` | Object-backed TauntEffect blocks status moves through the user-prevention hook; move-disabled UI messaging and full deletion messages remain future work. |
 | `Technician` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Technician.rb` | `lib/src/domain/effect/ability/technician_effect.dart` | `missing` | `-` |
 | `Telekinesis` | `PokemonTiedEffectBase` | `move` | `on_delete_message`, `on_post_action_event` | `action_order`, `lifecycle` | `06 Effects/02 Move Effects/001 Telekinesis.rb` | `lib/src/domain/effect/move/telekinesis_effect.dart` | `missing` | `-` |
 | `Telepathy` | `Ability` | `ability` | `on_damage_prevention` | `damage_prevention` | `06 Effects/04 Ability Effects/100 Telepathy.rb` | `lib/src/domain/effect/ability/telepathy_effect.dart` | `missing` | `-` |
@@ -444,10 +444,10 @@ Total effect classes: 482
 | `ThermalExchange` | `Ability` | `ability` | `on_post_action_event`, `on_post_damage`, `on_status_prevention` | `action_order`, `post_damage`, `status_prevention` | `06 Effects/04 Ability Effects/100 ThermalExchange.rb` | `lib/src/domain/effect/ability/thermal_exchange_effect.dart` | `missing` | `-` |
 | `ThickClub` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Thick Club.rb` | `lib/src/domain/effect/item/thick_club_effect.dart` | `missing` | `-` |
 | `ThickFat` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Thick Fat.rb` | `lib/src/domain/effect/ability/thick_fat_effect.dart` | `missing` | `-` |
-| `ThroatChop` | `PokemonTiedEffectBase` | `move` | `on_move_disabled_check`, `on_move_prevention_user` | `move_prevention` | `06 Effects/02 Move Effects/001 ThroatChop.rb` | `lib/src/domain/effect/move/throat_chop_effect.dart` | `missing` | `-` |
+| `ThroatChop` | `PokemonTiedEffectBase` | `move` | `on_move_disabled_check`, `on_move_prevention_user` | `move_prevention` | `06 Effects/02 Move Effects/001 ThroatChop.rb` | `lib/src/domain/effect/move/throat_chop_effect.dart` | `partial` | Object-backed ThroatChopEffect blocks sound-flagged moves through the user-prevention hook; disabled-move UI checks and messages remain future work. |
 | `ThroatSpray` | `Item` | `item` | `on_post_action_event` | `action_order` | `06 Effects/05 Item Effects/100 Throat Spray.rb` | `lib/src/domain/effect/item/throat_spray_effect.dart` | `missing` | `-` |
 | `TintedLens` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Tinted Lens.rb` | `lib/src/domain/effect/ability/tinted_lens_effect.dart` | `missing` | `-` |
-| `Torment` | `PokemonTiedEffectBase` | `move` | `on_move_disabled_check`, `on_move_prevention_user` | `move_prevention` | `06 Effects/02 Move Effects/001 Torment.rb` | `lib/src/domain/effect/move/torment_effect.dart` | `missing` | `-` |
+| `Torment` | `PokemonTiedEffectBase` | `move` | `on_move_disabled_check`, `on_move_prevention_user` | `move_prevention` | `06 Effects/02 Move Effects/001 Torment.rb` | `lib/src/domain/effect/move/torment_effect.dart` | `partial` | Object-backed TormentEffect blocks repeating the last successful non-Struggle move; Instruct and switch-in timing branches remain future work. |
 | `ToughClaws` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Tough Claws.rb` | `lib/src/domain/effect/ability/tough_claws_effect.dart` | `missing` | `-` |
 | `Toxic` | `Status` | `status` | `on_end_turn_event`, `on_reset_states`, `on_status_prevention` | `end_turn`, `stat_change`, `status_prevention` | `06 Effects/03 Status Effects/108 Toxic.rb` | `lib/src/domain/effect/status/toxic_effect.dart` | `missing` | `-` |
 | `ToxicBoost` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Toxic Boost.rb` | `lib/src/domain/effect/ability/toxic_boost_effect.dart` | `missing` | `-` |

@@ -22,8 +22,29 @@ final class BattleStatChangeHandler {
     }
 
     final battler = context.state.battlerAt(target);
+    if (stages < 0 &&
+        context.user.bank != target.bank &&
+        battler.effects.contains('mist')) {
+      return BattleHandlerResult(
+        state: context.state,
+        rng: context.rng,
+        applied: false,
+        reason: 'mist',
+      );
+    }
+
     final statStages = battler.statStages.apply(stat: stat, stages: stages);
+    final previousStage = battler.statStages.valueOf(stat);
     final currentStage = statStages.valueOf(stat);
+    if (currentStage == previousStage) {
+      return BattleHandlerResult(
+        state: context.state,
+        rng: context.rng,
+        applied: false,
+        reason: stages > 0 ? 'stat_stage_max' : 'stat_stage_min',
+      );
+    }
+
     final nextBattler =
         battler.copyWith(statStages: statStages).recordStatChange(
               turn: context.turn,

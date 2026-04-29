@@ -211,6 +211,115 @@ void main() {
       );
       expect(result.state.battlerAt(psdkPlayerSlot).currentHp, lessThan(100));
     });
+
+    test('s_feint passes through Protect even when imported as protectable',
+        () {
+      final engine = BattleEngine(
+        setup: _setup(
+          opponentMove: _move(
+            id: 'feint',
+            type: 'normal',
+            power: 30,
+            protectable: true,
+            battleEngineMethod: 's_feint',
+          ),
+        ),
+      );
+
+      final result = engine.submit(const BattleDecision.fight(moveSlot: 0));
+      final feintEvents = result.timeline.events
+          .where((event) => event.toJson()['moveId'] == 'feint')
+          .toList(growable: false);
+
+      expect(
+        feintEvents.map((event) => event.kind),
+        containsAllInOrder(<String>[
+          'move_pp_spent',
+          'move_declared',
+          'animation_cue',
+          'damage',
+        ]),
+      );
+      expect(
+        feintEvents.map((event) => event.kind),
+        isNot(contains('move_failed')),
+      );
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, lessThan(100));
+    });
+
+    test('s_feint uses increased power against same-turn Protect', () {
+      final feint = BattleEngine(
+        setup: _setup(
+          opponentMove: _move(
+            id: 'feint',
+            type: 'normal',
+            power: 30,
+            protectable: true,
+            battleEngineMethod: 's_feint',
+          ),
+        ),
+      ).submit(const BattleDecision.fight(moveSlot: 0));
+      final reference = BattleEngine(
+        setup: _setup(
+          opponentMove: _move(
+            id: 'reference_hit',
+            type: 'normal',
+            power: 50,
+            protectable: false,
+          ),
+        ),
+      ).submit(const BattleDecision.fight(moveSlot: 0));
+
+      expect(
+        feint.state.battlerAt(psdkPlayerSlot).currentHp,
+        reference.state.battlerAt(psdkPlayerSlot).currentHp,
+      );
+    });
+
+    test('Endure lets a damaging move land but prevents the KO', () {
+      final engine = BattleEngine(
+        setup: _setup(
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'endure',
+              type: 'normal',
+              category: PsdkBattleMoveCategory.status,
+              power: 0,
+              accuracy: 0,
+              pp: 10,
+              priority: 4,
+              battleEngineMethod: 's_protect',
+              target: PsdkBattleMoveTarget.user,
+            ),
+          ],
+          opponentMove: _move(
+            id: 'opponent_crush',
+            type: 'normal',
+            power: 600,
+          ),
+        ),
+      );
+
+      final result = engine.submit(const BattleDecision.fight(moveSlot: 0));
+      final opponentEvents = result.timeline.events
+          .where((event) => event.toJson()['moveId'] == 'opponent_crush')
+          .toList(growable: false);
+
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 1);
+      expect(
+        opponentEvents.map((event) => event.kind),
+        containsAllInOrder(<String>[
+          'move_pp_spent',
+          'move_declared',
+          'animation_cue',
+          'damage',
+        ]),
+      );
+      expect(
+        opponentEvents.map((event) => event.kind),
+        isNot(contains('move_failed')),
+      );
+    });
   });
 }
 
@@ -219,6 +328,7 @@ BattleEngineSetup _setup({
   int opponentSpeed = 100,
   PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
   PsdkBattleEffectStack? playerEffects,
+  List<PsdkBattleMoveData>? playerMoves,
   PsdkBattleMoveData? opponentMove,
   int protectPriority = 4,
 }) {
@@ -228,28 +338,29 @@ BattleEngineSetup _setup({
       speed: playerSpeed,
       types: playerTypes,
       effects: playerEffects,
-      moves: <PsdkBattleMoveData>[
-        _move(
-          id: 'protect',
-          type: 'normal',
-          category: PsdkBattleMoveCategory.status,
-          power: 0,
-          accuracy: 0,
-          pp: 10,
-          priority: protectPriority,
-          battleEngineMethod: 's_protect',
-          target: PsdkBattleMoveTarget.user,
-        ),
-        _move(
-          id: 'player_wait',
-          type: 'normal',
-          category: PsdkBattleMoveCategory.status,
-          power: 0,
-          accuracy: 0,
-          battleEngineMethod: 's_status',
-          target: PsdkBattleMoveTarget.user,
-        ),
-      ],
+      moves: playerMoves ??
+          <PsdkBattleMoveData>[
+            _move(
+              id: 'protect',
+              type: 'normal',
+              category: PsdkBattleMoveCategory.status,
+              power: 0,
+              accuracy: 0,
+              pp: 10,
+              priority: protectPriority,
+              battleEngineMethod: 's_protect',
+              target: PsdkBattleMoveTarget.user,
+            ),
+            _move(
+              id: 'player_wait',
+              type: 'normal',
+              category: PsdkBattleMoveCategory.status,
+              power: 0,
+              accuracy: 0,
+              battleEngineMethod: 's_status',
+              target: PsdkBattleMoveTarget.user,
+            ),
+          ],
     ),
     opponent: _combatant(
       id: 'opponent',

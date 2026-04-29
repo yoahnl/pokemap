@@ -9,8 +9,9 @@ final class BattleMoveCriticalResolver {
   BattleMoveCriticalResult resolve({
     required BattleMoveDefinition move,
     required BattleRngStreams rng,
+    int? criticalRate,
   }) {
-    final chance = _criticalChance(move.criticalRate);
+    final chance = _criticalChance(criticalRate ?? move.criticalRate);
     if (chance.denominator == 1) {
       return BattleMoveCriticalResult(
         rng: rng,

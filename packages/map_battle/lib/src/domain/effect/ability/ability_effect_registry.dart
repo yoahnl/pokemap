@@ -10,6 +10,7 @@ import 'levitate_effect.dart';
 import 'no_guard_effect.dart';
 import 'reckless_effect.dart';
 import 'rock_head_effect.dart';
+import 'shadow_tag_effect.dart';
 import 'skill_link_effect.dart';
 import 'status_immunity_effect.dart';
 
@@ -31,6 +32,13 @@ final class AbilityEffectRegistry {
     'no_guard': ({required scope}) => NoGuardEffect(scope: scope),
     'reckless': ({required scope}) => RecklessEffect(scope: scope),
     'rock_head': ({required scope}) => RockHeadEffect(scope: scope),
+    'shadow_tag': ({required scope}) => ShadowTagEffect(scope: scope),
+    'arena_trap': ({required scope}) => ShadowTagEffect.arenaTrap(
+          scope: scope,
+        ),
+    'magnet_pull': ({required scope}) => ShadowTagEffect.magnetPull(
+          scope: scope,
+        ),
     'skill_link': ({required scope}) => SkillLinkEffect(scope: scope),
     'immunity': ({required scope}) => StatusImmunityEffect(
           abilityId: 'immunity',

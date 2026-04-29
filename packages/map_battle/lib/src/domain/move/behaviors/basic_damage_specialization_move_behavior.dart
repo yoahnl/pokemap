@@ -6,6 +6,7 @@ import '../battle_move_secondary_effect_resolver.dart';
 import 'battle_move_behavior_support.dart';
 
 enum _BasicDamageSpecializationKind {
+  fangs,
   falseSwipe,
   fullCrit,
 }
@@ -16,6 +17,10 @@ enum _BasicDamageSpecializationKind {
 /// effects. `FullCrit` is a direct port of Ruby's `critical_rate = 100`.
 final class BasicDamageSpecializationMoveBehavior
     implements BattleMoveBehavior {
+  const BasicDamageSpecializationMoveBehavior.fangs()
+      : battleEngineMethod = 's_a_fang',
+        _kind = _BasicDamageSpecializationKind.fangs;
+
   const BasicDamageSpecializationMoveBehavior.falseSwipe()
       : battleEngineMethod = 's_false_swipe',
         _kind = _BasicDamageSpecializationKind.falseSwipe;
@@ -90,6 +95,7 @@ final class BasicDamageSpecializationMoveBehavior
 
   BattleMoveDefinition _damageMove(BattleMoveDefinition move) {
     return switch (_kind) {
+      _BasicDamageSpecializationKind.fangs => move,
       _BasicDamageSpecializationKind.falseSwipe => move,
       _BasicDamageSpecializationKind.fullCrit => _moveWithCriticalRate(
           move,
@@ -103,6 +109,7 @@ final class BasicDamageSpecializationMoveBehavior
     required int targetCurrentHp,
   }) {
     return switch (_kind) {
+      _BasicDamageSpecializationKind.fangs => calculatedDamage,
       _BasicDamageSpecializationKind.falseSwipe =>
         calculatedDamage >= targetCurrentHp
             ? targetCurrentHp - 1
