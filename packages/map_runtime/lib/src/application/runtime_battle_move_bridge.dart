@@ -141,6 +141,18 @@ class RuntimeBattleMoveBridge {
           // - `protect` auto-appliqué au lanceur ;
           // - déterministe ;
           // - aucune autre taxonomie de volatile.
+          //
+          // Les dégâts + rider de confusion probabiliste type `water_pulse`
+          // restent bridgeables comme dégâts purs tant que le contrat battle
+          // ne transporte pas encore les volatiles appliqués à la cible.
+          if (_isDroppableTargetConfusionRider(
+            move: move,
+            target: target,
+            effect: effect,
+          )) {
+            return;
+          }
+
           if (selfVolatileStatus != null) {
             _rejectMove(
               move: move,
@@ -676,6 +688,7 @@ class RuntimeBattleMoveBridge {
   }) {
     if (move.engineSupportLevel ==
             PokemonMoveEngineSupportLevel.structuredSupported ||
+        _isCatalogOnlyProtectMoveCandidate(move) ||
         _isTransformMoveCandidate(move) ||
         _allowsBridgeableStructuredPartialMove(move)) {
       return;
@@ -742,7 +755,7 @@ class RuntimeBattleMoveBridge {
     // En revanche, on peut déjà arrêter de perdre silencieusement l'intention
     // canonique quand elle reste honnête en 1v1 simple actif :
     // - `self` -> self ;
-    // - `normal`, `adjacentFoe`, `allAdjacentFoes`, `randomNormal`
+    // - `normal`, `any`, `adjacentFoe`, `allAdjacentFoes`, `randomNormal`
     //   -> opponent.
     //
     // Les autres formes (`all`, `allySide`, `foeSide`, etc.) exigent une
@@ -768,6 +781,7 @@ class RuntimeBattleMoveBridge {
     return switch (move.target) {
       PokemonMoveTarget.self => BattleMoveTarget.self,
       PokemonMoveTarget.normal ||
+      PokemonMoveTarget.any ||
       PokemonMoveTarget.adjacentFoe ||
       PokemonMoveTarget.allAdjacentFoes ||
       PokemonMoveTarget.randomNormal =>
@@ -945,6 +959,64 @@ class RuntimeBattleMoveBridge {
         move.category == PokemonMoveCategory.status &&
         move.basePower <= 0 &&
         move.effects.isEmpty;
+  }
+
+  bool _isCatalogOnlyProtectMoveCandidate(PokemonMove move) {
+    if (move.engineSupportLevel != PokemonMoveEngineSupportLevel.catalogOnly) {
+      return false;
+    }
+
+    final normalizedMoveId = move.id.trim().toLowerCase();
+    final normalizedShowdownMoveId =
+        move.sourceRefs.showdownMoveId?.trim().toLowerCase();
+    final isProtectId =
+        normalizedMoveId == 'protect' || normalizedShowdownMoveId == 'protect';
+    if (!isProtectId ||
+        move.category != PokemonMoveCategory.status ||
+        move.target != PokemonMoveTarget.self ||
+        move.basePower != 0 ||
+        move.effects.length != 1) {
+      return false;
+    }
+
+    return move.effects.single.map(
+      fixedDamage: (_) => false,
+      multiHit: (_) => false,
+      applyStatus: (_) => false,
+      applyVolatileStatus: (effect) =>
+          effect.targetScope == PokemonMoveEffectTargetScope.self &&
+          effect.chance == null &&
+          effect.volatileStatusId.trim().toLowerCase() == 'protect',
+      modifyStats: (_) => false,
+      heal: (_) => false,
+      drain: (_) => false,
+      recoil: (_) => false,
+      setWeather: (_) => false,
+      setTerrain: (_) => false,
+      setPseudoWeather: (_) => false,
+      selfSwitch: (_) => false,
+      forceSwitch: (_) => false,
+      breakProtect: (_) => false,
+      requireRecharge: (_) => false,
+      chargeThenStrike: (_) => false,
+      setSideCondition: (_) => false,
+      setSlotCondition: (_) => false,
+    );
+  }
+
+  bool _isDroppableTargetConfusionRider({
+    required PokemonMove move,
+    required BattleMoveTarget target,
+    required PokemonMoveEffectApplyVolatileStatus effect,
+  }) {
+    final chance = effect.chance;
+    return move.usesStandardDamageFlow &&
+        target == BattleMoveTarget.opponent &&
+        effect.targetScope == PokemonMoveEffectTargetScope.target &&
+        chance != null &&
+        chance >= 1 &&
+        chance <= 100 &&
+        effect.volatileStatusId.trim().toLowerCase() == 'confusion';
   }
 
   bool _allowsStructuredPartialFieldMove(PokemonMove move) {

@@ -45,6 +45,67 @@ void main() {
       expect(battleMove.targetStatStageChanges, isEmpty);
     });
 
+    test('projects target any as the active foe in the local singles slice',
+        () {
+      const move = PokemonMove(
+        id: 'aura_sphere',
+        name: 'Aura Sphere',
+        names: <String, String>{'en': 'Aura Sphere'},
+        generation: 4,
+        source: 'test',
+        type: 'fighting',
+        category: PokemonMoveCategory.special,
+        target: PokemonMoveTarget.any,
+        basePower: 80,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+        pp: 20,
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      final battleMove = bridge.toBattleMoveData(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(battleMove.id, equals('aura_sphere'));
+      expect(battleMove.target, equals(BattleMoveTarget.opponent));
+    });
+
+    test(
+        'keeps Water Pulse bridgeable while dropping unsupported confusion rider',
+        () {
+      const move = PokemonMove(
+        id: 'water_pulse',
+        name: 'Water Pulse',
+        names: <String, String>{'en': 'Water Pulse'},
+        generation: 3,
+        source: 'test',
+        type: 'water',
+        category: PokemonMoveCategory.special,
+        target: PokemonMoveTarget.any,
+        basePower: 60,
+        accuracy: PokemonMoveAccuracy.percent(value: 100),
+        pp: 20,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.applyVolatileStatus(
+            targetScope: PokemonMoveEffectTargetScope.target,
+            chance: 20,
+            volatileStatusId: 'confusion',
+          ),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      final battleMove = bridge.toBattleMoveData(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(battleMove.id, equals('water_pulse'));
+      expect(battleMove.power, equals(60));
+      expect(battleMove.target, equals(BattleMoveTarget.opponent));
+    });
+
     test('projects a deterministic target stat drop move honestly', () {
       const move = PokemonMove(
         id: 'growl',
@@ -688,6 +749,46 @@ void main() {
           ),
         ],
         engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      final battleMove = bridge.toBattleMoveData(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(battleMove.target, equals(BattleMoveTarget.self));
+      expect(
+        battleMove.selfVolatileStatus,
+        equals(BattleVolatileStatusId.protect),
+      );
+    });
+
+    test(
+        'accepts old catalog-only Protect when its volatile effect is supported',
+        () {
+      const move = PokemonMove(
+        id: 'protect',
+        name: 'Protect',
+        names: <String, String>{'en': 'Protect'},
+        generation: 1,
+        source: 'test',
+        type: 'normal',
+        category: PokemonMoveCategory.status,
+        target: PokemonMoveTarget.self,
+        basePower: 0,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+        pp: 10,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.applyVolatileStatus(
+            targetScope: PokemonMoveEffectTargetScope.self,
+            volatileStatusId: 'protect',
+          ),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+        unsupportedReasons: <String>[
+          'unsupported_mechanic:condition',
+          'unsupported_mechanic:stallingMove',
+        ],
       );
 
       final battleMove = bridge.toBattleMoveData(

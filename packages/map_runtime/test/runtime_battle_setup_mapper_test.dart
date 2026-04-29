@@ -836,8 +836,85 @@ void main() {
           .map((choice) => setup.playerPokemon.moves[choice.moveIndex].id)
           .toList(growable: false);
 
+      expect(moveChoices,
+          equals(<String>['tail_whip', 'water_gun', 'withdraw', 'bubble']));
+    });
+
+    test(
+        'keeps explicit Squirtle menu moves visible in battle when each move is bridgeable',
+        () async {
+      final manifest = await _writeAndLoadProjectManifest(
+        tempProjectRoot,
+        trainers: const <ProjectTrainerEntry>[],
+      );
+      await _writeSquirtleStarterCoverageFixture(tempProjectRoot);
+      await _rewriteMoveCatalogEntrySupport(
+        tempProjectRoot,
+        moveId: 'protect',
+        supportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+        unsupportedReasons: const <String>[
+          'unsupported_mechanic:condition',
+          'unsupported_mechanic:stallingMove',
+        ],
+      );
+      final bundle = _buildRuntimeBundle(tempProjectRoot.path, manifest);
+
+      final setup = await mapper.map(
+        bundle: bundle,
+        gameState: const GameState(
+          saveId: 'save-squirtle-explicit-menu-moves',
+          party: PlayerParty(
+            members: <PlayerPokemon>[
+              PlayerPokemon(
+                speciesId: 'squirtle',
+                natureId: 'hardy',
+                abilityId: 'torrent',
+                level: 25,
+                knownMoveIds: <String>[
+                  'water_pulse',
+                  'protect',
+                  'rain_dance',
+                  'aqua_tail',
+                ],
+                currentHp: 57,
+              ),
+            ],
+          ),
+        ),
+        request: _wildRequest(
+          speciesId: 'sparkitten',
+          level: 7,
+        ),
+      );
+
       expect(
-          moveChoices, equals(<String>['tail_whip', 'water_gun', 'withdraw', 'bubble']));
+        setup.playerPokemon.moves
+            .map((move) => move.id)
+            .toList(growable: false),
+        equals(<String>[
+          'water_pulse',
+          'protect',
+          'rain_dance',
+          'aqua_tail',
+        ]),
+      );
+
+      final request = createBattleSession(setup).decisionRequest;
+      expect(request, isA<BattleTurnChoiceRequest>());
+      final moveChoices = (request as BattleTurnChoiceRequest)
+          .moveChoices
+          .map((choice) => setup.playerPokemon.moves[choice.moveIndex].id)
+          .toList(growable: false);
+
+      expect(
+        moveChoices,
+        equals(<String>[
+          'water_pulse',
+          'protect',
+          'rain_dance',
+          'aqua_tail',
+        ]),
+      );
     });
 
     test(
@@ -1713,12 +1790,28 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
         _moveEntry('ember', 'Ember', 40, type: 'fire'),
         _moveEntry('flame_wheel', 'Flame Wheel', 60, type: 'fire'),
         _moveEntry('water_gun', 'Water Gun', 40, type: 'water'),
+        _moveEntry(
+          'water_pulse',
+          'Water Pulse',
+          60,
+          type: 'water',
+          target: PokemonMoveTarget.any,
+          pp: 20,
+        ),
         _moveEntry('thunder_wave', 'Thunder Wave', 0, type: 'electric'),
         _moveEntry(
           'protect',
           'Protect',
           0,
           target: PokemonMoveTarget.self,
+          pp: 10,
+        ),
+        _moveEntry(
+          'aqua_tail',
+          'Aqua Tail',
+          90,
+          type: 'water',
+          category: PokemonMoveCategory.physical,
           pp: 10,
         ),
         _moveEntry('feint', 'Feint', 30, pp: 10),
@@ -1770,6 +1863,7 @@ Map<String, Object?> _moveEntry(
   int accuracy = 100,
   int priority = 0,
   int critRatio = 1,
+  PokemonMoveCategory? category,
   PokemonMoveEngineSupportLevel engineSupportLevel =
       PokemonMoveEngineSupportLevel.structuredSupported,
   List<String> unsupportedReasons = const <String>[],
@@ -1782,8 +1876,8 @@ Map<String, Object?> _moveEntry(
     generation: 1,
     source: 'test_runtime_fixture',
     type: type,
-    category:
-        power == 0 ? PokemonMoveCategory.status : PokemonMoveCategory.special,
+    category: category ??
+        (power == 0 ? PokemonMoveCategory.status : PokemonMoveCategory.special),
     target: target,
     basePower: power,
     accuracy: power == 0
@@ -1848,6 +1942,13 @@ List<PokemonMoveEffect> _defaultEffectsForMove(String moveId) {
               stages: -1,
             ),
           ],
+        ),
+      ],
+    'water_pulse' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.applyVolatileStatus(
+          targetScope: PokemonMoveEffectTargetScope.target,
+          chance: 20,
+          volatileStatusId: 'confusion',
         ),
       ],
     'thunder_wave' => const <PokemonMoveEffect>[
