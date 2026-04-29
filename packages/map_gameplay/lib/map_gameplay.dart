@@ -17,6 +17,8 @@ export 'src/gameplay_encounter.dart'
         checkEncounterAtPlayerPosition;
 export 'src/gameplay_connection.dart' show resolveConnectedMapTargetPos;
 export 'src/gameplay_hazard.dart' show GameplayHazardEffect;
+export 'src/gameplay_movement_effect.dart'
+    show GameplayMovementEffect, GameplayMovementEffectKind;
 export 'src/grid_pathfinder.dart'
     show GridCellPassability, GridPathfindingResult, GridPathfinder;
 export 'src/gameplay_step.dart' show stepGameplayWorld;

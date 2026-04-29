@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import 'gameplay_hazard.dart';
+import 'gameplay_movement_effect.dart';
 import 'movement_block_reason.dart';
 import 'gameplay_world_state.dart';
 
@@ -74,10 +75,12 @@ final class Moved extends GameplayStepResult {
   const Moved(
     super.world, {
     this.hazardEffect,
+    this.movementEffect,
     super.pathAnimationSignals,
   });
 
   final GameplayHazardEffect? hazardEffect;
+  final GameplayMovementEffect? movementEffect;
 }
 
 final class Blocked extends GameplayStepResult {
