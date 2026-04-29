@@ -671,7 +671,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_flame_burst': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_flame_burst)',
+    dartBehavior: 'StaticBasicMoveRegistry.s_flame_burst',
     status: _PsdkPortStatus.partial,
   ),
   's_fury_cutter': _KnownDartBehavior(
@@ -679,11 +679,11 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_fusion_bolt': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_fusion_bolt)',
+    dartBehavior: 'StaticBasicMoveRegistry.s_fusion_bolt',
     status: _PsdkPortStatus.partial,
   ),
   's_fusion_flare': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_fusion_flare)',
+    dartBehavior: 'StaticBasicMoveRegistry.s_fusion_flare',
     status: _PsdkPortStatus.partial,
   ),
   's_hidden_power': _KnownDartBehavior(
@@ -715,7 +715,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_last_resort': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_last_resort)',
+    dartBehavior: 'StaticBasicMoveRegistry.s_last_resort',
     status: _PsdkPortStatus.partial,
   ),
   's_outrage': _KnownDartBehavior(
@@ -731,7 +731,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_photon_geyser': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_photon_geyser)',
+    dartBehavior: 'StaticBasicMoveRegistry.s_photon_geyser',
     status: _PsdkPortStatus.partial,
   ),
   's_pledge': _KnownDartBehavior(
@@ -743,7 +743,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_pollen_puff': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_pollen_puff)',
+    dartBehavior: 'StaticBasicMoveRegistry.s_pollen_puff',
     status: _PsdkPortStatus.partial,
   ),
   's_psychic_noise': _KnownDartBehavior(
@@ -751,7 +751,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_pursuit': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_pursuit)',
+    dartBehavior: 'StaticBasicMoveRegistry.s_pursuit',
     status: _PsdkPortStatus.partial,
   ),
   's_rage': _KnownDartBehavior(
@@ -1183,7 +1183,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   // Recovery/stat moves execute their local HP/status/stat formulas. They stay
-  // partial until terrain grounding, Chesto Berry/Big Root/Liquid Ooze,
+  // partial until terrain grounding, full berry/drain-family item coverage,
   // Contrary and Heal Block style hooks are represented in the battle lane.
   's_rest': _KnownDartBehavior(
     dartBehavior: 'RecoveryStatMoveBehavior.rest',

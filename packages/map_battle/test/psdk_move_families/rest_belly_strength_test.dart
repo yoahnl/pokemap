@@ -52,6 +52,71 @@ void main() {
       expect(restEvents.single['reason'], 'unusable_by_user');
     });
 
+    for (final terrainId in <PsdkBattleTerrainId>[
+      PsdkBattleTerrainId.electricTerrain,
+      PsdkBattleTerrainId.mistyTerrain,
+    ]) {
+      test('s_rest fails for grounded users under ${terrainId.jsonName}', () {
+        final result = _runMove(
+          playerCurrentHp: 30,
+          field: PsdkBattleFieldState(
+            terrain: PsdkBattleTerrainState(
+              id: terrainId,
+              remainingTurns: 5,
+            ),
+          ),
+          playerMove: _move(
+            id: 'rest',
+            battleEngineMethod: 's_rest',
+            power: 0,
+            category: PsdkBattleMoveCategory.status,
+            target: PsdkBattleMoveTarget.user,
+          ),
+        );
+        final player = result.state.battlerAt(psdkPlayerSlot);
+        final restEvents = _moveJsonEvents(result, moveId: 'rest');
+
+        expect(player.currentHp, 30);
+        expect(player.majorStatus, isNull);
+        expect(player.moves.single.currentPp, 35);
+        expect(restEvents.map((event) => event['kind']), <String>[
+          'move_failed',
+        ]);
+        expect(restEvents.single['reason'], 'unusable_by_user');
+      });
+    }
+
+    for (final berryId in <String>['chesto_berry', 'lum_berry']) {
+      test('s_rest consumes $berryId to cure its own sleep immediately', () {
+        final result = _runMove(
+          playerCurrentHp: 30,
+          playerHeldItemId: berryId,
+          playerMove: _move(
+            id: 'rest',
+            battleEngineMethod: 's_rest',
+            power: 0,
+            category: PsdkBattleMoveCategory.status,
+            target: PsdkBattleMoveTarget.user,
+          ),
+        );
+        final player = result.state.battlerAt(psdkPlayerSlot);
+
+        expect(player.currentHp, 100);
+        expect(player.majorStatus, isNull);
+        expect(player.heldItemId, isNull);
+        expect(player.consumedItemId, berryId);
+        expect(player.itemConsumed, isTrue);
+        expect(
+          _moveKinds(result, moveId: 'rest'),
+          containsAllInOrder(<String>[
+            'status',
+            'heal',
+            'status_cure',
+          ]),
+        );
+      });
+    }
+
     test('s_bellydrum spends half max HP and maximizes attack stage', () {
       final result = _runMove(
         playerMove: _move(
@@ -196,7 +261,9 @@ PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
   int playerCurrentHp = 100,
   PsdkBattleMajorStatus? playerMajorStatus,
+  String? playerHeldItemId,
   PsdkBattleStatStages? playerStatStages,
+  PsdkBattleFieldState field = const PsdkBattleFieldState(),
   PsdkBattleStats opponentStats = const PsdkBattleStats(
     attack: 50,
     defense: 50,
@@ -214,6 +281,7 @@ PsdkBattleTurnResult _runMove({
         speed: 100,
         move: playerMove,
         majorStatus: playerMajorStatus,
+        heldItemId: playerHeldItemId,
         statStages: playerStatStages,
       ),
       opponent: _combatant(
@@ -234,6 +302,7 @@ PsdkBattleTurnResult _runMove({
         moveAccuracy: 3,
         generic: 4,
       ),
+      field: field,
     ),
   );
   return engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
@@ -245,6 +314,7 @@ PsdkBattleCombatantSetup _combatant({
   required int speed,
   required PsdkBattleMoveData move,
   PsdkBattleMajorStatus? majorStatus,
+  String? heldItemId,
   PsdkBattleStats? stats,
   PsdkBattleStatStages? statStages,
 }) {
@@ -255,6 +325,7 @@ PsdkBattleCombatantSetup _combatant({
     level: 20,
     maxHp: 100,
     currentHp: currentHp,
+    heldItemId: heldItemId,
     types: const PsdkBattleTypes(primary: 'normal'),
     stats: stats ??
         PsdkBattleStats(

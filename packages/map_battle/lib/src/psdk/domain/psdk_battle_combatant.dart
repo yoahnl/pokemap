@@ -207,6 +207,7 @@ final class PsdkBattleEffectIds {
   static const String centerOfAttention = 'center_of_attention';
   static const String confusion = 'confusion';
   static const String curse = 'curse';
+  static const String endure = 'endure';
   static const String forceNextMoveBase = 'force_next_move_base';
   static const String foresight = 'foresight';
   static const String ingrain = 'ingrain';

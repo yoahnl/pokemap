@@ -121,6 +121,45 @@ void main() {
           'oran_berry');
     });
 
+    test('s_pluck forces the stolen Oran Berry heal on the user', () {
+      final result = _runMove(
+        playerCurrentHp: 55,
+        opponentHeldItemId: 'oran_berry',
+        playerMove: _move(
+          id: 'pluck',
+          type: 'flying',
+          power: 60,
+          battleEngineMethod: 's_pluck',
+        ),
+      );
+
+      expect(_damage(result, moveId: 'pluck'), greaterThan(0));
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 65);
+      expect(result.state.battlerAt(psdkOpponentSlot).heldItemId, isNull);
+      expect(result.timeline.events.whereType<PsdkBattleHealEvent>().single,
+          isA<PsdkBattleHealEvent>());
+    });
+
+    test('s_pluck forces the stolen Sitrus Berry quarter heal on the user', () {
+      final result = _runMove(
+        playerCurrentHp: 50,
+        opponentHeldItemId: 'sitrus_berry',
+        playerMove: _move(
+          id: 'pluck',
+          type: 'flying',
+          power: 60,
+          battleEngineMethod: 's_pluck',
+        ),
+      );
+
+      expect(_damage(result, moveId: 'pluck'), greaterThan(0));
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 75);
+      expect(result.state.battlerAt(psdkOpponentSlot).heldItemId, isNull);
+      expect(
+          result.timeline.events.whereType<PsdkBattleHealEvent>().single.amount,
+          25);
+    });
+
     test('s_natural_gift consumes a berry and uses its item power/type', () {
       final normal = _runMove(
         opponentTypes: const PsdkBattleTypes(primary: 'grass'),
@@ -180,6 +219,71 @@ void main() {
       expect(heavy.state.battlerAt(psdkPlayerSlot).consumedItemId, 'iron_ball');
     });
 
+    test('s_fling applies Toxic Orb and Flame Orb status effects', () {
+      final toxic = _runMove(
+        playerHeldItemId: 'toxic_orb',
+        playerMove: _move(
+          id: 'fling',
+          type: 'dark',
+          power: 1,
+          battleEngineMethod: 's_fling',
+        ),
+      );
+      final burn = _runMove(
+        playerHeldItemId: 'flame_orb',
+        playerMove: _move(
+          id: 'fling',
+          type: 'dark',
+          power: 1,
+          battleEngineMethod: 's_fling',
+        ),
+      );
+
+      expect(_damage(toxic, moveId: 'fling'), greaterThan(0));
+      expect(toxic.state.battlerAt(psdkOpponentSlot).majorStatus,
+          PsdkBattleMajorStatus.toxic);
+      expect(toxic.state.battlerAt(psdkPlayerSlot).heldItemId, isNull);
+      expect(
+          toxic.timeline.events
+              .whereType<PsdkBattleStatusEvent>()
+              .single
+              .status,
+          PsdkBattleMajorStatus.toxic);
+      expect(burn.state.battlerAt(psdkOpponentSlot).majorStatus,
+          PsdkBattleMajorStatus.burn);
+      expect(
+          burn.timeline.events.whereType<PsdkBattleStatusEvent>().single.status,
+          PsdkBattleMajorStatus.burn);
+    });
+
+    test('s_fling applies Light Ball and Poison Barb status effects', () {
+      final paralysis = _runMove(
+        playerHeldItemId: 'light_ball',
+        playerMove: _move(
+          id: 'fling',
+          type: 'dark',
+          power: 1,
+          battleEngineMethod: 's_fling',
+        ),
+      );
+      final poison = _runMove(
+        playerHeldItemId: 'poison_barb',
+        playerMove: _move(
+          id: 'fling',
+          type: 'dark',
+          power: 1,
+          battleEngineMethod: 's_fling',
+        ),
+      );
+
+      expect(_failed(paralysis, moveId: 'fling'), isFalse);
+      expect(paralysis.state.battlerAt(psdkOpponentSlot).majorStatus,
+          PsdkBattleMajorStatus.paralysis);
+      expect(_failed(poison, moveId: 'fling'), isFalse);
+      expect(poison.state.battlerAt(psdkOpponentSlot).majorStatus,
+          PsdkBattleMajorStatus.poison);
+    });
+
     test('s_techno_blast is gated to Genesect', () {
       final blocked = _runMove(
         playerSpeciesId: 'ditto',
@@ -217,6 +321,7 @@ PsdkBattleTurnResult _runMove({
   String? opponentHeldItemId,
   String? playerConsumedItemId,
   bool playerItemConsumed = false,
+  int playerCurrentHp = 100,
   PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
 }) {
@@ -227,6 +332,7 @@ PsdkBattleTurnResult _runMove({
         speciesId: playerSpeciesId,
         types: playerTypes,
         move: playerMove,
+        currentHp: playerCurrentHp,
         heldItemId: playerHeldItemId,
         consumedItemId: playerConsumedItemId,
         itemConsumed: playerItemConsumed,
@@ -261,6 +367,7 @@ PsdkBattleCombatantSetup _combatant({
   required PsdkBattleTypes types,
   required PsdkBattleMoveData move,
   int speed = 100,
+  int currentHp = 100,
   String? heldItemId,
   String? consumedItemId,
   bool itemConsumed = false,
@@ -271,7 +378,7 @@ PsdkBattleCombatantSetup _combatant({
     displayName: id,
     level: 20,
     maxHp: 100,
-    currentHp: 100,
+    currentHp: currentHp,
     types: types,
     stats: PsdkBattleStats(
       attack: 50,

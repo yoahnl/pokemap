@@ -103,6 +103,33 @@ void main() {
       expect(_damageEvents(result, moveId: 'double_slap'), hasLength(4));
     });
 
+    test('Embargo and Magic Room suppress Loaded Dice hit-count effects', () {
+      for (final effectId in const <String>['embargo', 'magic_room']) {
+        final result = _runMove(
+          playerHeldItemId: 'loaded_dice',
+          playerEffects: PsdkBattleEffectStack(values: <String>[effectId]),
+          opponentCurrentHp: 200,
+          playerMove: _move(
+            id: 'double_slap',
+            power: 25,
+            battleEngineMethod: 's_multi_hit',
+          ),
+          rngSeeds: const BattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 0,
+          ),
+        );
+
+        expect(
+          _damageEvents(result, moveId: 'double_slap'),
+          hasLength(2),
+          reason: effectId,
+        );
+      }
+    });
+
     test('Loaded Dice raises Scale Shot to at least four hits', () {
       final result = _runMove(
         playerHeldItemId: 'loaded_dice',
@@ -122,6 +149,47 @@ void main() {
 
       expect(_damageEvents(result, moveId: 'scale_shot'), hasLength(4));
     });
+
+    test('Leftovers heals at end turn and respects item suppression', () {
+      final healed = _tickEndTurn(
+        playerHeldItemId: 'leftovers',
+        playerCurrentHp: 40,
+      );
+
+      expect(healed.state.battlerAt(psdkPlayerSlot).currentHp, 46);
+      expect(_healEvents(healed, moveId: 'item:leftovers').single.amount, 6);
+
+      final suppressed = _tickEndTurn(
+        playerHeldItemId: 'leftovers',
+        playerCurrentHp: 40,
+        playerEffects: PsdkBattleEffectStack(
+          values: const <String>['embargo'],
+        ),
+      );
+
+      expect(suppressed.state.battlerAt(psdkPlayerSlot).currentHp, 40);
+      expect(_healEvents(suppressed, moveId: 'item:leftovers'), isEmpty);
+    });
+
+    test('Black Sludge heals Poison types and damages other types', () {
+      final poison = _tickEndTurn(
+        playerHeldItemId: 'black_sludge',
+        playerCurrentHp: 40,
+        playerTypes: const PsdkBattleTypes(primary: 'poison'),
+      );
+      final regular = _tickEndTurn(
+        playerHeldItemId: 'black_sludge',
+        playerCurrentHp: 40,
+      );
+
+      expect(poison.state.battlerAt(psdkPlayerSlot).currentHp, 46);
+      expect(_healEvents(poison, moveId: 'item:black_sludge').single.amount, 6);
+      expect(regular.state.battlerAt(psdkPlayerSlot).currentHp, 28);
+      expect(
+        _damageEvents(regular, moveId: 'item:black_sludge').single.damage,
+        12,
+      );
+    });
   });
 }
 
@@ -135,6 +203,7 @@ const _seeds = BattleRngSeeds(
 PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
   String? playerHeldItemId,
+  PsdkBattleEffectStack? playerEffects,
   int opponentCurrentHp = 100,
   BattleRngSeeds rngSeeds = _seeds,
 }) {
@@ -145,6 +214,7 @@ PsdkBattleTurnResult _runMove({
         heldItemId: playerHeldItemId,
         speed: 100,
         move: playerMove,
+        effects: playerEffects,
       ),
       opponent: _combatant(
         id: 'opponent',
@@ -164,12 +234,46 @@ PsdkBattleTurnResult _runMove({
   return engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
 }
 
+BattleHandlerResult _tickEndTurn({
+  required String playerHeldItemId,
+  required int playerCurrentHp,
+  PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
+  PsdkBattleEffectStack? playerEffects,
+}) {
+  final state = PsdkBattleState.fromSetup(
+    BattleEngineSetup.singles(
+      player: _combatant(
+        id: 'player',
+        heldItemId: playerHeldItemId,
+        currentHp: playerCurrentHp,
+        types: playerTypes,
+        move: _move(id: 'tackle', power: 40),
+        effects: playerEffects,
+      ),
+      opponent: _combatant(
+        id: 'opponent',
+        move: _move(id: 'tackle', power: 40),
+      ),
+      rngSeeds: _seeds.psdkSeeds,
+    ).psdkSetup,
+  );
+  return const BattleEndTurnHandler().resolveEndTurn(
+    BattleHandlerContext(
+      state: state,
+      rng: BattleRngStreams.fromSeedSnapshot(_seeds),
+      turn: 2,
+      user: psdkPlayerSlot,
+    ),
+  );
+}
+
 PsdkBattleCombatantSetup _combatant({
   required String id,
   String? heldItemId,
   int currentHp = 100,
   int speed = 50,
   PsdkBattleTypes types = const PsdkBattleTypes(primary: 'normal'),
+  PsdkBattleEffectStack? effects,
   required PsdkBattleMoveData move,
 }) {
   return PsdkBattleCombatantSetup(
@@ -188,6 +292,7 @@ PsdkBattleCombatantSetup _combatant({
       speed: speed,
     ),
     heldItemId: heldItemId,
+    effects: effects,
     moves: <PsdkBattleMoveData>[move],
   );
 }
@@ -216,11 +321,26 @@ PsdkBattleMoveData _move({
 }
 
 List<PsdkBattleDamageEvent> _damageEvents(
-  PsdkBattleTurnResult result, {
+  Object result, {
   required String moveId,
 }) {
-  return result.timeline.events
+  final events = switch (result) {
+    PsdkBattleTurnResult result => result.timeline.events,
+    BattleHandlerResult result => result.events,
+    _ => throw ArgumentError.value(result, 'result'),
+  };
+  return events
       .whereType<PsdkBattleDamageEvent>()
+      .where((event) => event.moveId == moveId)
+      .toList(growable: false);
+}
+
+List<PsdkBattleHealEvent> _healEvents(
+  BattleHandlerResult result, {
+  required String moveId,
+}) {
+  return result.events
+      .whereType<PsdkBattleHealEvent>()
       .where((event) => event.moveId == moveId)
       .toList(growable: false);
 }

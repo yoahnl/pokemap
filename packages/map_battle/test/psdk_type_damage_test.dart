@@ -627,7 +627,7 @@ void main() {
       expect(knockedDown.damageToOpponent, greaterThan(0));
     });
 
-    test('Embargo marker suppresses grounding item effects', () {
+    test('item suppression markers disable grounding item effects', () {
       final airBalloon = _runSinglePlayerMove(
         playerTypes: const PsdkBattleTypes(primary: 'ground'),
         opponentTypes: const PsdkBattleTypes(primary: 'normal'),
@@ -649,10 +649,59 @@ void main() {
           power: 40,
         ),
       );
+      final magicRoomAirBalloon = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'ground'),
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        opponentHeldItemId: 'air_balloon',
+        opponentEffects: _fieldEffect('magic_room'),
+        playerMove: _damagingMove(
+          id: 'mud_shot',
+          type: 'ground',
+          power: 40,
+        ),
+      );
+      final ironBallFlying = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'ground'),
+        opponentTypes: const PsdkBattleTypes(primary: 'flying'),
+        opponentHeldItemId: 'iron_ball',
+        playerMove: _damagingMove(
+          id: 'mud_shot',
+          type: 'ground',
+          power: 40,
+        ),
+      );
+      final magicRoomIronBallFlying = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'ground'),
+        opponentTypes: const PsdkBattleTypes(primary: 'flying'),
+        opponentHeldItemId: 'iron_ball',
+        opponentEffects: _fieldEffect('magic_room'),
+        playerMove: _damagingMove(
+          id: 'mud_shot',
+          type: 'ground',
+          power: 40,
+        ),
+      );
+      final embargoedIronBallFlying = _runSinglePlayerMove(
+        playerTypes: const PsdkBattleTypes(primary: 'ground'),
+        opponentTypes: const PsdkBattleTypes(primary: 'flying'),
+        opponentHeldItemId: 'iron_ball',
+        opponentEffects: _opponentEffect('embargo'),
+        playerMove: _damagingMove(
+          id: 'mud_shot',
+          type: 'ground',
+          power: 40,
+        ),
+      );
 
       expect(airBalloon.damageToOpponent, 0);
       expect(airBalloon.timelineKinds, contains('move_immune'));
       expect(embargoedAirBalloon.damageToOpponent, greaterThan(0));
+      expect(magicRoomAirBalloon.damageToOpponent, greaterThan(0));
+      expect(ironBallFlying.damageToOpponent, greaterThan(0));
+      expect(magicRoomIronBallFlying.damageToOpponent, 0);
+      expect(magicRoomIronBallFlying.timelineKinds, contains('move_immune'));
+      expect(embargoedIronBallFlying.damageToOpponent, 0);
+      expect(embargoedIronBallFlying.timelineKinds, contains('move_immune'));
     });
 
     test('Electrify and Ion Deluge rewrite move type to Electric', () {
@@ -896,6 +945,12 @@ PsdkBattleEffectStack _playerEffect(String id) {
 PsdkBattleEffectStack _opponentBankEffect(String id) {
   return const PsdkBattleEffectStack.empty().addEffect(
     GenericBattleEffect(id: id, scope: BankBattleEffectScope(1)),
+  );
+}
+
+PsdkBattleEffectStack _fieldEffect(String id) {
+  return const PsdkBattleEffectStack.empty().addEffect(
+    GenericBattleEffect(id: id, scope: FieldBattleEffectScope()),
   );
 }
 

@@ -140,6 +140,30 @@ void main() {
       expect(weatherEvents.single.remainingTurns, 8);
     });
 
+    test('Embargo and Magic Room suppress weather rock duration boosts', () {
+      for (final effectId in const <String>['embargo', 'magic_room']) {
+        final result = _runPlayerMove(
+          _move(
+            id: 'rain_dance',
+            dbSymbol: 'rain_dance',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            accuracy: 0,
+            battleEngineMethod: 's_weather',
+            target: PsdkBattleMoveTarget.none,
+          ),
+          playerHeldItemId: 'damp_rock',
+          playerEffects: PsdkBattleEffectStack(values: <String>[effectId]),
+        );
+        final weatherEvents =
+            result.timeline.events.whereType<PsdkBattleWeatherChangedEvent>();
+
+        expect(result.state.field.weather?.id, PsdkBattleWeatherId.rain);
+        expect(result.state.field.weather?.remainingTurns, 4, reason: effectId);
+        expect(weatherEvents.single.remainingTurns, 5, reason: effectId);
+      }
+    });
+
     test('s_terrain applies Terrain Extender duration through the engine', () {
       final result = _runPlayerMove(
         _move(
@@ -160,6 +184,34 @@ void main() {
           result.state.field.terrain?.id, PsdkBattleTerrainId.electricTerrain);
       expect(result.state.field.terrain?.remainingTurns, 7);
       expect(terrainEvents.single.remainingTurns, 8);
+    });
+
+    test('Embargo and Magic Room suppress Terrain Extender duration boosts',
+        () {
+      for (final effectId in const <String>['embargo', 'magic_room']) {
+        final result = _runPlayerMove(
+          _move(
+            id: 'electric_terrain',
+            dbSymbol: 'electric_terrain',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            accuracy: 0,
+            battleEngineMethod: 's_terrain',
+            target: PsdkBattleMoveTarget.none,
+          ),
+          playerHeldItemId: 'terrain_extender',
+          playerEffects: PsdkBattleEffectStack(values: <String>[effectId]),
+        );
+        final terrainEvents =
+            result.timeline.events.whereType<PsdkBattleTerrainChangedEvent>();
+
+        expect(
+          result.state.field.terrain?.id,
+          PsdkBattleTerrainId.electricTerrain,
+        );
+        expect(result.state.field.terrain?.remainingTurns, 4, reason: effectId);
+        expect(terrainEvents.single.remainingTurns, 5, reason: effectId);
+      }
     });
 
     test('s_weather_ball uses active weather for power and type', () {
@@ -207,12 +259,14 @@ PsdkBattleTurnResult _runPlayerMove(
   PsdkBattleMoveData move, {
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
   String? playerHeldItemId,
+  PsdkBattleEffectStack? playerEffects,
 }) {
   final engine = PsdkBattleEngine(
     setup: _setup(
       playerMove: move,
       field: field,
       playerHeldItemId: playerHeldItemId,
+      playerEffects: playerEffects,
     ),
   );
   return engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
@@ -222,12 +276,14 @@ PsdkBattleSetup _setup({
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
   PsdkBattleMoveData? playerMove,
   String? playerHeldItemId,
+  PsdkBattleEffectStack? playerEffects,
 }) {
   return PsdkBattleSetup.singles(
     player: _combatant(
       id: 'player',
       speed: 100,
       heldItemId: playerHeldItemId,
+      effects: playerEffects,
       move: playerMove ?? _move(id: 'tackle', power: 40),
     ),
     opponent: _combatant(
@@ -258,6 +314,7 @@ PsdkBattleCombatantSetup _combatant({
   required PsdkBattleMoveData move,
   PsdkBattleTypes types = const PsdkBattleTypes(primary: 'normal'),
   String? heldItemId,
+  PsdkBattleEffectStack? effects,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -276,6 +333,7 @@ PsdkBattleCombatantSetup _combatant({
     ),
     moves: <PsdkBattleMoveData>[move],
     heldItemId: heldItemId,
+    effects: effects,
   );
 }
 

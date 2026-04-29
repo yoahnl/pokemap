@@ -1,7 +1,10 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
+import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../handler/battle_handler_context.dart';
+import '../../handler/battle_status_change_handler.dart';
 import '../../rng/battle_rng_streams.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_damage_calculator.dart';
@@ -223,19 +226,23 @@ final class ItemDependentMoveBehavior implements BattleMoveBehavior {
       move: move,
       turn: context.turn,
     );
-    final itemState = _applySuccessfulItemEffect(
+    final itemEffect = _applySuccessfulItemEffect(
       state: secondary.state,
+      rng: secondary.rng,
+      turn: context.turn,
       userSlot: context.user,
       targetSlot: targetSlot,
+      moveId: context.move.id,
     );
 
     return BattleMoveBehaviorResolution(
-      state: itemState,
-      rng: secondary.rng,
+      state: itemEffect.state,
+      rng: itemEffect.rng,
       events: <PsdkBattleEvent>[
         ...prepared.events,
         if (applied.event != null) applied.event!,
         ...secondary.events,
+        ...itemEffect.events,
       ],
     );
   }
@@ -287,27 +294,145 @@ final class ItemDependentMoveBehavior implements BattleMoveBehavior {
     };
   }
 
-  PsdkBattleState _applySuccessfulItemEffect({
+  _ItemDependentMoveEffectResult _applySuccessfulItemEffect({
     required PsdkBattleState state,
+    required BattleRngStreams rng,
+    required int turn,
     required PsdkBattleSlotRef userSlot,
     required PsdkBattleSlotRef targetSlot,
+    required String moveId,
   }) {
     return switch (_kind) {
-      _ItemDependentMoveKind.fling => _consumeHeldItem(state, userSlot),
+      _ItemDependentMoveKind.fling => _applyFlingEffect(
+          state: state,
+          rng: rng,
+          turn: turn,
+          userSlot: userSlot,
+          targetSlot: targetSlot,
+          moveId: moveId,
+        ),
       _ItemDependentMoveKind.knockOff =>
         _canLoseItem(state.battlerAt(targetSlot))
-            ? _removeHeldItem(state, targetSlot)
-            : state,
-      _ItemDependentMoveKind.naturalGift => _consumeHeldItem(state, userSlot),
-      _ItemDependentMoveKind.pluck =>
-        _isBerry(state.battlerAt(targetSlot).heldItemId)
-            ? _consumeHeldItem(state, targetSlot)
-            : state,
+            ? _itemEffectResult(_removeHeldItem(state, targetSlot), rng)
+            : _itemEffectResult(state, rng),
+      _ItemDependentMoveKind.naturalGift =>
+        _itemEffectResult(_consumeHeldItem(state, userSlot), rng),
+      _ItemDependentMoveKind.pluck => _applyPluckEffect(
+          state: state,
+          rng: rng,
+          turn: turn,
+          userSlot: userSlot,
+          targetSlot: targetSlot,
+          moveId: moveId,
+        ),
       _ItemDependentMoveKind.thief =>
-        _stealHeldItem(state, userSlot, targetSlot),
-      _ => state,
+        _itemEffectResult(_stealHeldItem(state, userSlot, targetSlot), rng),
+      _ => _itemEffectResult(state, rng),
     };
   }
+}
+
+_ItemDependentMoveEffectResult _applyFlingEffect({
+  required PsdkBattleState state,
+  required BattleRngStreams rng,
+  required int turn,
+  required PsdkBattleSlotRef userSlot,
+  required PsdkBattleSlotRef targetSlot,
+  required String moveId,
+}) {
+  final itemId = state.battlerAt(userSlot).heldItemId;
+  final status = _flingStatus(itemId);
+  var nextState = state;
+  var nextRng = rng;
+  final events = <PsdkBattleEvent>[];
+  if (status != null) {
+    final statusResult = const BattleStatusChangeHandler().applyMajorStatus(
+      context: BattleHandlerContext(
+        state: nextState,
+        rng: nextRng,
+        turn: turn,
+        user: userSlot,
+      ),
+      target: targetSlot,
+      moveId: moveId,
+      status: status,
+    );
+    nextState = statusResult.state;
+    nextRng = statusResult.rng;
+    events.addAll(statusResult.events);
+  }
+  return _ItemDependentMoveEffectResult(
+    state: _consumeHeldItem(nextState, userSlot),
+    rng: nextRng,
+    events: events,
+  );
+}
+
+_ItemDependentMoveEffectResult _applyPluckEffect({
+  required PsdkBattleState state,
+  required BattleRngStreams rng,
+  required int turn,
+  required PsdkBattleSlotRef userSlot,
+  required PsdkBattleSlotRef targetSlot,
+  required String moveId,
+}) {
+  final berryId = state.battlerAt(targetSlot).heldItemId;
+  if (!_isBerry(berryId)) {
+    return _itemEffectResult(state, rng);
+  }
+
+  var nextState = state;
+  var nextRng = rng;
+  final events = <PsdkBattleEvent>[];
+  final healAmount = _pluckBerryHealAmount(
+    berryId,
+    nextState.battlerAt(userSlot).maxHp,
+  );
+  if (healAmount > 0) {
+    final healed = applyDirectHeal(
+      state: nextState,
+      rng: nextRng,
+      turn: turn,
+      user: userSlot,
+      target: userSlot,
+      moveId: moveId,
+      amount: healAmount,
+    );
+    nextState = healed.state;
+    nextRng = healed.rng;
+    if (healed.event != null) {
+      events.add(healed.event!);
+    }
+  }
+
+  return _ItemDependentMoveEffectResult(
+    state: _consumeHeldItem(nextState, targetSlot),
+    rng: nextRng,
+    events: events,
+  );
+}
+
+_ItemDependentMoveEffectResult _itemEffectResult(
+  PsdkBattleState state,
+  BattleRngStreams rng,
+) {
+  return _ItemDependentMoveEffectResult(
+    state: state,
+    rng: rng,
+    events: const <PsdkBattleEvent>[],
+  );
+}
+
+final class _ItemDependentMoveEffectResult {
+  const _ItemDependentMoveEffectResult({
+    required this.state,
+    required this.rng,
+    required this.events,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
 }
 
 BattleMoveBehaviorResolution _failed({
@@ -445,6 +570,26 @@ int _flingPower(String? itemId) {
   return _flingPowers[itemId] ?? (_isBerry(itemId) ? 10 : 0);
 }
 
+PsdkBattleMajorStatus? _flingStatus(String? itemId) {
+  return switch (itemId) {
+    'flame_orb' => PsdkBattleMajorStatus.burn,
+    'light_ball' => PsdkBattleMajorStatus.paralysis,
+    'poison_barb' => PsdkBattleMajorStatus.poison,
+    'toxic_orb' => PsdkBattleMajorStatus.toxic,
+    _ => null,
+  };
+}
+
+int _pluckBerryHealAmount(String? itemId, int maxHp) {
+  return switch (itemId) {
+    'oran_berry' => 10,
+    'sitrus_berry' => _atLeastOne(maxHp ~/ 4),
+    _ => 0,
+  };
+}
+
+int _atLeastOne(int value) => value < 1 ? 1 : value;
+
 const _naturalGiftBerries = <String, ({String type, int power})>{
   'aguav_berry': (type: 'dragon', power: 80),
   'apicot_berry': (type: 'ground', power: 100),
@@ -519,10 +664,12 @@ const _flingPowers = <String, int>{
   'iron_ball': 130,
   'iron_plate': 90,
   'leftovers': 10,
+  'light_ball': 30,
   'loaded_dice': 10,
   'meadow_plate': 90,
   'mind_plate': 90,
   'pixie_plate': 90,
+  'poison_barb': 70,
   'shock_drive': 70,
   'splash_plate': 90,
   'spooky_plate': 90,

@@ -41,6 +41,47 @@ void main() {
       expect(_hasBankEffect(result.state, 'spikes', bank: 0), isFalse);
       expect(_hasBankEffect(result.state, 'stealth_rock', bank: 1), isTrue);
       expect(_damageEvents(result, moveId: 'rapid_spin'), hasLength(1));
+      expect(result.state.battlerAt(psdkPlayerSlot).statStages.valueOf('speed'),
+          1);
+      expect(
+        result.timeline.events.whereType<PsdkBattleStatStageEvent>().where(
+            (event) => event.target == psdkPlayerSlot && event.stat == 'speed'),
+        hasLength(1),
+      );
+    });
+
+    test('s_rapid_spin does not clean up or boost Speed without a hit', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          playerMove: _move(
+            id: 'rapid_spin',
+            power: 50,
+            battleEngineMethod: 's_rapid_spin',
+          ),
+          opponentTypes: const PsdkBattleTypes(primary: 'ghost'),
+          playerEffects: const PsdkBattleEffectStack.empty().addEffect(
+            const BindEffect(
+              scope: BattlerBattleEffectScope(psdkPlayerSlot),
+              origin: psdkOpponentSlot,
+            ),
+          ),
+          opponentEffects: const PsdkBattleEffectStack.empty().addEffect(
+            const GenericBattleEffect(
+              id: 'spikes',
+              scope: BankBattleEffectScope(0),
+            ),
+          ),
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(result.state.battlerAt(psdkPlayerSlot).effects.contains('bind'),
+          isTrue);
+      expect(_hasBankEffect(result.state, 'spikes', bank: 0), isTrue);
+      expect(_damageEvents(result, moveId: 'rapid_spin'), isEmpty);
+      expect(result.state.battlerAt(psdkPlayerSlot).statStages.valueOf('speed'),
+          0);
     });
 
     test('s_defog clears rapid-spin hazards and opposing screens', () {
@@ -560,6 +601,7 @@ void main() {
 PsdkBattleSetup _setup({
   required PsdkBattleMoveData playerMove,
   PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
+  PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
   String? playerAbilityId,
   String? playerHeldItemId,
@@ -578,7 +620,7 @@ PsdkBattleSetup _setup({
     ),
     opponent: _combatant(
       id: 'opponent',
-      types: const PsdkBattleTypes(primary: 'normal'),
+      types: opponentTypes,
       speed: 1,
       move: _move(
         id: 'opponent_wait',

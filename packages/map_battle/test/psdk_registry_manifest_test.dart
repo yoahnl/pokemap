@@ -299,17 +299,10 @@ void main() {
       for (final method in <String>[
         's_beak_blast',
         's_core_enforcer',
-        's_flame_burst',
         's_flying_press',
         's_focus_punch',
-        's_fusion_bolt',
-        's_fusion_flare',
         's_hidden_power',
-        's_last_resort',
         's_payday',
-        's_photon_geyser',
-        's_pollen_puff',
-        's_pursuit',
         's_round',
         's_shell_trap',
       ]) {
@@ -319,6 +312,41 @@ void main() {
           'StaticBasicMoveRegistry.partialBasic($method)',
         );
       }
+      expect(byMethod['s_flame_burst']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_flame_burst']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_flame_burst',
+      );
+      expect(byMethod['s_fusion_bolt']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_fusion_bolt']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_fusion_bolt',
+      );
+      expect(byMethod['s_fusion_flare']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_fusion_flare']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_fusion_flare',
+      );
+      expect(byMethod['s_last_resort']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_last_resort']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_last_resort',
+      );
+      expect(byMethod['s_photon_geyser']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_photon_geyser']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_photon_geyser',
+      );
+      expect(byMethod['s_pollen_puff']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_pollen_puff']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_pollen_puff',
+      );
+      expect(byMethod['s_pursuit']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_pursuit']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_pursuit',
+      );
       expect(byMethod['s_u_turn']!.status, PsdkPortStatus.partial);
       expect(
         byMethod['s_u_turn']!.dartBehavior,

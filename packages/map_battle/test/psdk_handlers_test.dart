@@ -22,6 +22,38 @@ void main() {
       expect(result.events.single, isA<PsdkBattleDamageEvent>());
     });
 
+    test('damage handler boosts Rage target attack after opposing damage', () {
+      final context = _context(
+        state: PsdkBattleState.fromSetup(
+          _setup(
+            playerEffects: const PsdkBattleEffectStack.empty().addEffect(
+              GenericBattleEffect(
+                id: 'rage',
+                scope: BattlerBattleEffectScope(psdkPlayerSlot),
+              ),
+            ),
+          ),
+        ),
+        user: psdkOpponentSlot,
+      );
+
+      final result = const BattleDamageHandler().applyDamage(
+        context: context,
+        target: psdkPlayerSlot,
+        moveId: 'tackle',
+        rawDamage: 10,
+      );
+
+      final target = result.state.battlerAt(psdkPlayerSlot);
+      expect(result.applied, isTrue);
+      expect(result.amount, 10);
+      expect(target.currentHp, 30);
+      expect(target.statStages.valueOf('attack'), 1);
+      expect(result.events, hasLength(2));
+      expect(result.events.first, isA<PsdkBattleDamageEvent>());
+      expect(result.events.last, isA<PsdkBattleStatStageEvent>());
+    });
+
     test('damage handler reports zero damage without mutating state', () {
       final context = _context();
       final result = const BattleDamageHandler().applyDamage(
@@ -81,7 +113,10 @@ void main() {
   });
 }
 
-BattleHandlerContext _context({PsdkBattleState? state}) {
+BattleHandlerContext _context({
+  PsdkBattleState? state,
+  PsdkBattleSlotRef user = psdkPlayerSlot,
+}) {
   return BattleHandlerContext(
     state: state ?? PsdkBattleState.fromSetup(_setup()),
     rng: BattleRngStreams.fromSeeds(
@@ -91,14 +126,17 @@ BattleHandlerContext _context({PsdkBattleState? state}) {
       genericSeed: 1,
     ),
     turn: 3,
-    user: psdkPlayerSlot,
+    user: user,
   );
 }
 
-PsdkBattleSetup _setup() {
+PsdkBattleSetup _setup({
+  PsdkBattleEffectStack? playerEffects,
+  PsdkBattleEffectStack? opponentEffects,
+}) {
   return PsdkBattleSetup.singles(
-    player: _combatant('player'),
-    opponent: _combatant('opponent'),
+    player: _combatant('player', effects: playerEffects),
+    opponent: _combatant('opponent', effects: opponentEffects),
     rngSeeds: const PsdkBattleRngSeeds(
       moveDamage: 1,
       moveCritical: 1,
@@ -108,7 +146,10 @@ PsdkBattleSetup _setup() {
   );
 }
 
-PsdkBattleCombatantSetup _combatant(String id) {
+PsdkBattleCombatantSetup _combatant(
+  String id, {
+  PsdkBattleEffectStack? effects,
+}) {
   return PsdkBattleCombatantSetup(
     id: id,
     speciesId: id,
@@ -139,5 +180,6 @@ PsdkBattleCombatantSetup _combatant(String id) {
         target: PsdkBattleMoveTarget.adjacentFoe,
       ),
     ],
+    effects: effects,
   );
 }

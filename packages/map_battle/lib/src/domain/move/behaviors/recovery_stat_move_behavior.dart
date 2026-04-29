@@ -1,8 +1,15 @@
 import '../../../psdk/domain/psdk_battle_move.dart';
+import '../../../psdk/domain/psdk_battle_field.dart';
+import '../../../psdk/domain/psdk_battle_slots.dart';
+import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../battler/battle_grounding_resolver.dart';
+import '../../effect/item/item_effect.dart';
 import '../../handler/battle_handler_context.dart';
+import '../../handler/battle_item_change_handler.dart';
 import '../../handler/battle_stat_change_handler.dart';
 import '../../handler/battle_status_change_handler.dart';
+import '../../rng/battle_rng_streams.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_prevention.dart';
 import '../battle_move_secondary_effect_resolver.dart';
@@ -50,16 +57,8 @@ final class RecoveryStatMoveBehavior
     final user = context.state.battlerAt(context.user);
     return switch (_kind) {
       _RecoveryStatKind.rest => user.currentHp >= user.maxHp ||
-              _hasAbilityId(
-                user.abilityId,
-                const <String>{
-                  'comatose',
-                  'insomnia',
-                  'purifying_salt',
-                  'sweet_veil',
-                  'vital_spirit',
-                },
-              )
+              _hasSleepBlockingAbility(user.abilityId) ||
+              _isSleepPreventedByTerrain(context)
           ? const BattleMoveUserPreventionResult(
               reason: BattleMoveFailureReason.unusableByUser,
             )
@@ -164,6 +163,13 @@ final class RecoveryStatMoveBehavior
     if (heal.event != null) {
       events.add(heal.event!);
     }
+    state = _consumeRestWakeBerry(
+      context: context,
+      state: state,
+      rng: rng,
+      events: events,
+      target: targetSlot,
+    );
 
     return BattleMoveBehaviorResolution(
       state: state,
@@ -351,9 +357,75 @@ const _offensiveFilletStats = <String>[
   'speed',
 ];
 
+PsdkBattleState _consumeRestWakeBerry({
+  required BattleMoveBehaviorContext context,
+  required PsdkBattleState state,
+  required BattleRngStreams rng,
+  required List<PsdkBattleEvent> events,
+  required PsdkBattleSlotRef target,
+}) {
+  final battler = state.battlerAt(target);
+  if (battler.majorStatus != PsdkBattleMajorStatus.sleep ||
+      battler.itemEffectsSuppressed ||
+      (battler.heldItemId != 'chesto_berry' &&
+          battler.heldItemId != 'lum_berry')) {
+    return state;
+  }
+
+  final consumed = const BattleItemChangeHandler().consumeHeldItem(
+    context: BattleHandlerContext(
+      state: state,
+      rng: rng,
+      turn: context.turn,
+      user: context.user,
+    ),
+    target: target,
+  );
+  events.addAll(consumed.events);
+
+  final cured = const BattleStatusChangeHandler().cureMajorStatus(
+    context: BattleHandlerContext(
+      state: consumed.state,
+      rng: consumed.rng,
+      turn: context.turn,
+      user: context.user,
+    ),
+    target: target,
+    moveId: context.move.id,
+  );
+  if (cured.applied) {
+    events.addAll(cured.events);
+  }
+  return cured.state;
+}
+
 bool _hasAbilityId(String? abilityId, Set<String> expectedIds) {
   if (abilityId == null) {
     return false;
   }
   return expectedIds.contains(abilityId.toLowerCase());
+}
+
+bool _hasSleepBlockingAbility(String? abilityId) {
+  return _hasAbilityId(
+    abilityId,
+    const <String>{
+      'comatose',
+      'insomnia',
+      'purifying_salt',
+      'sweet_veil',
+      'vital_spirit',
+    },
+  );
+}
+
+bool _isSleepPreventedByTerrain(BattleMoveBehaviorContext context) {
+  final terrainId = context.state.field.terrain?.id;
+  if (terrainId != PsdkBattleTerrainId.electricTerrain &&
+      terrainId != PsdkBattleTerrainId.mistyTerrain) {
+    return false;
+  }
+  return const BattleGroundingResolver().isGrounded(
+    context.state.battlerAt(context.user),
+  );
 }

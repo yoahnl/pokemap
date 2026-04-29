@@ -9,11 +9,13 @@ import 'move/confusion_effect.dart';
 import 'move/curse_effect.dart';
 import 'move/disable_effect.dart';
 import 'move/encore_effect.dart';
+import 'move/endure_effect.dart';
 import 'move/flinch_effect.dart';
 import 'move/force_next_move_base_effect.dart';
 import 'move/heal_block_effect.dart';
 import 'move/imprison_effect.dart';
 import 'move/ingrain_effect.dart';
+import 'move/powder_effect.dart';
 import 'move/protect_effect.dart';
 import 'move/salt_cure_effect.dart';
 import 'move/smack_down_effect.dart';
@@ -52,6 +54,7 @@ final class BattleEffectRegistry {
           scope: LocalBattleEffectScope(),
           disabledMoveId: '',
         ),
+      'endure' => const EndureEffect(scope: LocalBattleEffectScope()),
       'encore' => const EncoreEffect(
           scope: LocalBattleEffectScope(),
           encoredMoveId: '',
@@ -62,6 +65,7 @@ final class BattleEffectRegistry {
       'heal_block' => const HealBlockEffect(scope: LocalBattleEffectScope()),
       'imprison' => ImprisonEffect(scope: const LocalBattleEffectScope()),
       'ingrain' => const IngrainEffect(scope: LocalBattleEffectScope()),
+      'powder' => const PowderEffect(scope: LocalBattleEffectScope()),
       'protect' => const ProtectEffect(scope: LocalBattleEffectScope()),
       'salt_cure' => const SaltCureEffect(scope: LocalBattleEffectScope()),
       'smack_down' => const SmackDownEffect(scope: LocalBattleEffectScope()),

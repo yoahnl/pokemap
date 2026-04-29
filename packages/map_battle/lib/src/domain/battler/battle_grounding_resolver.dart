@@ -23,19 +23,19 @@ final class BattleGroundingResolver {
       return false;
     }
 
-    if (!battler.effects.contains('embargo')) {
-      for (final effect in battler.itemEffects) {
-        final grounded = effect.groundedOverride(battler);
-        if (grounded != null) {
-          return grounded;
-        }
+    for (final effect in battler.activeItemEffects) {
+      final grounded = effect.groundedOverride(battler);
+      if (grounded != null) {
+        return grounded;
       }
-      if (battler.heldItemId == 'iron_ball') {
-        return true;
-      }
-      if (battler.heldItemId == 'air_balloon' && !battler.itemConsumed) {
-        return false;
-      }
+    }
+    if (!battler.itemEffectsSuppressed && battler.heldItemId == 'iron_ball') {
+      return true;
+    }
+    if (!battler.itemEffectsSuppressed &&
+        battler.heldItemId == 'air_balloon' &&
+        !battler.itemConsumed) {
+      return false;
     }
 
     for (final effect in battler.abilityEffects) {

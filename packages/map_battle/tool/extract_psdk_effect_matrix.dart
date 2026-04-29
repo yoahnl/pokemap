@@ -306,7 +306,7 @@ String _notesFor(String effectName) {
     'Ingrain' =>
       'Object-backed IngrainEffect heals at end turn, grounds the user, prevents regular switch-out and transfers through Baton Pass; Ghost/Teleport/forced-switch exceptions remain future work.',
     'LeechSeed' =>
-      'Object-backed LeechSeedEffect drains at end turn, checks Grass/Substitute duplicate immunity in the move behavior, skips Magic Guard and transfers through Baton Pass; Liquid Ooze and full mark/origin cleanup remain future work.',
+      'Object-backed LeechSeedEffect drains at end turn, checks Grass/Substitute duplicate immunity in the move behavior, skips Magic Guard, punishes the source through Liquid Ooze and transfers through Baton Pass; full mark/origin cleanup remains future work.',
     'MagnetPull' =>
       'Object-backed ShadowTagEffect.magnetPull prevents opposing Steel non-Ghost switch attempts through the switch-prevention hook; force-switch move exceptions and messaging remain future work.',
     'Protect' =>

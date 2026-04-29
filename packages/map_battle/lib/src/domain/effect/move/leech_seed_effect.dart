@@ -59,6 +59,41 @@ final class LeechSeedEffect extends BattleEffect {
       return null;
     }
 
+    var healAmount = damaged.amount;
+    if (sourceBattler.heldItemId == 'big_root') {
+      healAmount += (healAmount * 30) ~/ 100;
+    }
+
+    if (targetBattler.abilityId == 'liquid_ooze') {
+      if (sourceBattler.abilityId == 'magic_guard') {
+        return BattleEffectEndTurnResult(
+          state: damaged.state,
+          rng: damaged.rng,
+          events: damaged.events,
+        );
+      }
+
+      final punished = const BattleDamageHandler().applyDamage(
+        context: BattleHandlerContext(
+          state: damaged.state,
+          rng: damaged.rng,
+          turn: context.turn,
+          user: target,
+        ),
+        target: source,
+        moveId: 'effect:leech_seed',
+        rawDamage: healAmount,
+      );
+      return BattleEffectEndTurnResult(
+        state: punished.state,
+        rng: punished.rng,
+        events: <PsdkBattleEvent>[
+          ...damaged.events,
+          ...punished.events,
+        ],
+      );
+    }
+
     final healed = const BattleHealHandler().heal(
       context: BattleHandlerContext(
         state: damaged.state,
@@ -67,7 +102,7 @@ final class LeechSeedEffect extends BattleEffect {
         user: source,
       ),
       target: source,
-      amount: damaged.amount,
+      amount: healAmount,
     );
     final events = <PsdkBattleEvent>[...damaged.events];
     if (healed.applied) {

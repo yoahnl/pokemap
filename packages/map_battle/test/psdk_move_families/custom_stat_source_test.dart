@@ -147,6 +147,51 @@ void main() {
       expect(_damage(highDefenseTarget, moveId: 'psyshock'), 15);
     });
 
+    test('s_photon_geyser uses Attack and target Defense when Attack is higher',
+        () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'photon_geyser',
+          battleEngineMethod: 's_photon_geyser',
+          power: 100,
+          category: PsdkBattleMoveCategory.special,
+        ),
+        playerStats: _stats(
+          attack: 120,
+          specialAttack: 40,
+        ),
+        opponentStats: _stats(
+          defense: 40,
+          specialDefense: 200,
+        ),
+      );
+
+      expect(_damage(result, moveId: 'photon_geyser'), 53);
+    });
+
+    test(
+        's_photon_geyser uses Special Attack and target Special Defense when Special Attack wins',
+        () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'photon_geyser',
+          battleEngineMethod: 's_photon_geyser',
+          power: 100,
+          category: PsdkBattleMoveCategory.special,
+        ),
+        playerStats: _stats(
+          attack: 40,
+          specialAttack: 120,
+        ),
+        opponentStats: _stats(
+          defense: 200,
+          specialDefense: 40,
+        ),
+      );
+
+      expect(_damage(result, moveId: 'photon_geyser'), 53);
+    });
+
     test('custom stat-source moves keep PSDK critical stage rules', () {
       final bodyPressCrit = _runMove(
         playerMove: _move(

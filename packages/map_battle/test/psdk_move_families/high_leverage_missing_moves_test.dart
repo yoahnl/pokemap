@@ -1105,6 +1105,102 @@ void main() {
       expect(opponent.abilityId, 'levitate');
     });
 
+    test('s_gastro_acid fails against PSDK protected abilities', () {
+      const protectedAbilityIds = <String>[
+        'as_one',
+        'battle_bond',
+        'comatose',
+        'commander',
+        'disguise',
+        'gulp_missile',
+        'hadron_engine',
+        'hunger_switch',
+        'ice_face',
+        'imposter',
+        'multitype',
+        'orichalcum_pulse',
+        'power_construct',
+        'protosynthesis',
+        'quark_drive',
+        'rks_system',
+        'schooling',
+        'shields_down',
+        'stance_change',
+        'wonder_guard',
+        'zen_mode',
+        'zero_to_hero',
+      ];
+
+      for (final abilityId in protectedAbilityIds) {
+        final result = _runMove(
+          opponentAbilityId: abilityId,
+          playerMove: _move(
+            id: 'gastro_acid',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            accuracy: 100,
+            battleEngineMethod: 's_gastro_acid',
+          ),
+        );
+
+        final opponent = result.state.battlerAt(psdkOpponentSlot);
+        final failure = result.timeline.events
+            .whereType<PsdkBattleMoveFailedEvent>()
+            .single;
+        expect(
+          opponent.effects.contains('ability_suppressed'),
+          isFalse,
+          reason: abilityId,
+        );
+        expect(failure.reason, BattleMoveFailureReason.immunity.jsonName);
+      }
+    });
+
+    test('s_gastro_acid fails against Good as Gold status protection', () {
+      final result = _runMove(
+        opponentAbilityId: 'good_as_gold',
+        playerMove: _move(
+          id: 'gastro_acid',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 100,
+          battleEngineMethod: 's_gastro_acid',
+        ),
+      );
+
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+      final failure =
+          result.timeline.events.whereType<PsdkBattleMoveFailedEvent>().single;
+      expect(opponent.effects.contains('ability_suppressed'), isFalse);
+      expect(failure.reason, BattleMoveFailureReason.immunity.jsonName);
+    });
+
+    test('s_gastro_acid fails when the target ability is already suppressed',
+        () {
+      final result = _runMove(
+        opponentAbilityId: 'levitate',
+        opponentEffects: const PsdkBattleEffectStack.empty().addEffect(
+          GenericBattleEffect(
+            id: 'ability_suppressed',
+            scope: BattlerBattleEffectScope(psdkOpponentSlot),
+          ),
+        ),
+        playerMove: _move(
+          id: 'gastro_acid',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 100,
+          battleEngineMethod: 's_gastro_acid',
+        ),
+      );
+
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+      final failure =
+          result.timeline.events.whereType<PsdkBattleMoveFailedEvent>().single;
+      expect(opponent.effects.contains('ability_suppressed'), isTrue);
+      expect(failure.reason, BattleMoveFailureReason.immunity.jsonName);
+    });
+
     test('s_defog applies its imported evasion drop without damage', () {
       final result = _runMove(
         playerMove: _move(
@@ -1809,6 +1905,126 @@ void main() {
       expect(opponent.statStages.valueOf('defense'), -1);
     });
 
+    test('s_last_resort fails until all other known moves were attempted', () {
+      final extraMoves = <PsdkBattleMoveData>[
+        _move(id: 'tackle', power: 40),
+        _move(
+          id: 'growl',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_stat',
+        ),
+      ];
+      final noHistory = _runMove(
+        playerMove: _move(
+          id: 'last_resort',
+          power: 140,
+          battleEngineMethod: 's_last_resort',
+        ),
+        playerExtraMoves: extraMoves,
+      );
+      final missingGrowl = _runMove(
+        playerMove: _move(
+          id: 'last_resort',
+          power: 140,
+          battleEngineMethod: 's_last_resort',
+        ),
+        playerExtraMoves: extraMoves,
+        playerMoveHistory: PsdkBattleMoveHistory(
+          attempts: <PsdkBattleMoveHistoryEntry>[
+            PsdkBattleMoveHistoryEntry(
+              moveId: 'tackle',
+              turn: 1,
+              targets: <PsdkBattleSlotRef>[psdkOpponentSlot],
+            ),
+          ],
+        ),
+      );
+      final onlyLastResortWasAttempted = _runMove(
+        playerMove: _move(
+          id: 'last_resort',
+          power: 140,
+          battleEngineMethod: 's_last_resort',
+        ),
+        playerExtraMoves: extraMoves,
+        playerMoveHistory: PsdkBattleMoveHistory(
+          attempts: <PsdkBattleMoveHistoryEntry>[
+            PsdkBattleMoveHistoryEntry(
+              moveId: 'last_resort',
+              turn: 1,
+              targets: <PsdkBattleSlotRef>[psdkOpponentSlot],
+            ),
+          ],
+        ),
+      );
+
+      for (final result in <PsdkBattleTurnResult>[
+        noHistory,
+        missingGrowl,
+        onlyLastResortWasAttempted,
+      ]) {
+        final failures =
+            result.timeline.events.whereType<PsdkBattleMoveFailedEvent>();
+        expect(failures, hasLength(1));
+        expect(failures.single.moveId, 'last_resort');
+        expect(failures.single.reason, 'last_resort_requirements_unmet');
+        expect(_damageEvents(result, moveId: 'last_resort'), isEmpty);
+      }
+    });
+
+    test('s_last_resort fails when it is the only known move', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'last_resort',
+          power: 140,
+          battleEngineMethod: 's_last_resort',
+        ),
+      );
+
+      final failures =
+          result.timeline.events.whereType<PsdkBattleMoveFailedEvent>();
+      expect(failures, hasLength(1));
+      expect(failures.single.reason, 'last_resort_requirements_unmet');
+      expect(_damageEvents(result, moveId: 'last_resort'), isEmpty);
+    });
+
+    test('s_last_resort hits after all other known moves were attempted', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'last_resort',
+          power: 140,
+          battleEngineMethod: 's_last_resort',
+        ),
+        playerExtraMoves: <PsdkBattleMoveData>[
+          _move(id: 'tackle', power: 40),
+          _move(
+            id: 'growl',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            battleEngineMethod: 's_stat',
+          ),
+        ],
+        playerMoveHistory: PsdkBattleMoveHistory(
+          attempts: <PsdkBattleMoveHistoryEntry>[
+            PsdkBattleMoveHistoryEntry(
+              moveId: 'tackle',
+              turn: 1,
+              targets: <PsdkBattleSlotRef>[psdkOpponentSlot],
+            ),
+            PsdkBattleMoveHistoryEntry(
+              moveId: 'growl',
+              turn: 2,
+              targets: <PsdkBattleSlotRef>[psdkOpponentSlot],
+            ),
+          ],
+        ),
+      );
+
+      expect(result.timeline.events.whereType<PsdkBattleMoveFailedEvent>(),
+          isEmpty);
+      expect(_damageEvents(result, moveId: 'last_resort'), hasLength(1));
+    });
+
     test('s_make_it_rain deals damage and applies stat drops to the user', () {
       final result = _runMove(
         playerMove: _move(
@@ -1879,7 +2095,6 @@ void main() {
       's_fusion_flare',
       's_hidden_power',
       's_judgment',
-      's_last_resort',
       's_multi_attack',
       's_payback',
       's_payday',
@@ -1936,6 +2151,125 @@ void main() {
       );
 
       expect(_damageEvents(result, moveId: 'thousand_arrows'), hasLength(1));
+    });
+
+    test('s_pursuit doubles damage against a switching target', () {
+      final normal = _runMove(
+        playerMove: _move(
+          id: 'pursuit',
+          power: 40,
+          battleEngineMethod: 's_pursuit',
+        ),
+      );
+      final switching = _runMove(
+        opponentSwitching: true,
+        opponentLastSentTurn: 0,
+        playerMove: _move(
+          id: 'pursuit',
+          power: 40,
+          battleEngineMethod: 's_pursuit',
+        ),
+      );
+
+      expect(
+        _damage(switching, moveId: 'pursuit'),
+        greaterThan(_damage(normal, moveId: 'pursuit')),
+      );
+    });
+
+    test('s_pursuit does not double a target sent this turn', () {
+      final normal = _runMove(
+        playerMove: _move(
+          id: 'pursuit',
+          power: 40,
+          battleEngineMethod: 's_pursuit',
+        ),
+      );
+      final justSent = _runMove(
+        opponentSwitching: true,
+        opponentLastSentTurn: 1,
+        playerMove: _move(
+          id: 'pursuit',
+          power: 40,
+          battleEngineMethod: 's_pursuit',
+        ),
+      );
+
+      expect(
+        _damage(justSent, moveId: 'pursuit'),
+        _damage(normal, moveId: 'pursuit'),
+      );
+    });
+
+    test('s_fusion_flare doubles after same-turn Fusion Bolt succeeds', () {
+      final baseline = _runMove(
+        playerSpeed: 1,
+        opponentSpeed: 100,
+        opponentMove: _move(id: 'opponent_wait', power: 0),
+        playerMove: _move(
+          id: 'fusion_flare',
+          type: 'fire',
+          category: PsdkBattleMoveCategory.special,
+          power: 100,
+          battleEngineMethod: 's_fusion_flare',
+        ),
+      );
+      final boosted = _runMove(
+        playerSpeed: 1,
+        opponentSpeed: 100,
+        opponentMove: _move(
+          id: 'fusion_bolt',
+          type: 'electric',
+          power: 100,
+          battleEngineMethod: 's_fusion_bolt',
+        ),
+        playerMove: _move(
+          id: 'fusion_flare',
+          type: 'fire',
+          category: PsdkBattleMoveCategory.special,
+          power: 100,
+          battleEngineMethod: 's_fusion_flare',
+        ),
+      );
+
+      expect(
+        _damage(boosted, moveId: 'fusion_flare'),
+        greaterThan(_damage(baseline, moveId: 'fusion_flare')),
+      );
+    });
+
+    test('s_fusion_bolt ignores a counterpart success from an earlier turn',
+        () {
+      final baseline = _runMove(
+        playerMove: _move(
+          id: 'fusion_bolt',
+          type: 'electric',
+          power: 100,
+          battleEngineMethod: 's_fusion_bolt',
+        ),
+      );
+      final oldCounterpart = _runMove(
+        opponentMoveHistory: PsdkBattleMoveHistory(
+          successes: <PsdkBattleMoveHistoryEntry>[
+            PsdkBattleMoveHistoryEntry(
+              moveId: 'fusion_flare',
+              turn: 0,
+              targets: const <PsdkBattleSlotRef>[psdkPlayerSlot],
+            ),
+          ],
+        ),
+        playerMove: _move(
+          id: 'fusion_bolt',
+          type: 'electric',
+          power: 100,
+          battleEngineMethod: 's_fusion_bolt',
+        ),
+      );
+
+      expect(
+        _damage(oldCounterpart, moveId: 'fusion_bolt'),
+        _damage(baseline, moveId: 'fusion_bolt'),
+      );
     });
 
     test('formerly missing broad fallback methods are executable as partials',
@@ -2292,6 +2626,7 @@ PsdkBattleTurnResult _runMove({
   String? opponentAbilityId,
   PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'fire'),
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
+  List<PsdkBattleMoveData> playerExtraMoves = const <PsdkBattleMoveData>[],
   PsdkBattleMoveData? opponentMove,
   int genericSeed = 0,
   int moveAccuracySeed = 3,
@@ -2302,12 +2637,16 @@ PsdkBattleTurnResult _runMove({
   int opponentCurrentHp = 100,
   int playerKoCount = 0,
   int opponentKoCount = 0,
+  bool opponentSwitching = false,
+  int? opponentLastSentTurn,
   double playerBaseWeightKg = 1,
   double? playerCurrentWeightKg,
   PsdkBattleStatStages? playerStages,
   PsdkBattleStatStages? opponentStages,
+  PsdkBattleEffectStack? opponentEffects,
   PsdkBattleStats? playerStats,
   PsdkBattleStats? opponentStats,
+  PsdkBattleMoveHistory? playerMoveHistory,
   PsdkBattleMoveHistory? opponentMoveHistory,
 }) {
   final engine = PsdkBattleEngine(
@@ -2318,6 +2657,7 @@ PsdkBattleTurnResult _runMove({
         speed: playerSpeed,
         currentHp: playerCurrentHp,
         move: playerMove,
+        extraMoves: playerExtraMoves,
         stats: playerStats,
         statStages: playerStages,
         majorStatus: playerMajorStatus,
@@ -2326,6 +2666,7 @@ PsdkBattleTurnResult _runMove({
         koCount: playerKoCount,
         baseWeightKg: playerBaseWeightKg,
         currentWeightKg: playerCurrentWeightKg,
+        moveHistory: playerMoveHistory,
       ),
       opponent: _combatant(
         id: 'opponent',
@@ -2342,8 +2683,11 @@ PsdkBattleTurnResult _runMove({
         statStages: opponentStages,
         heldItemId: opponentHeldItemId,
         abilityId: opponentAbilityId,
+        effects: opponentEffects,
         moveHistory: opponentMoveHistory,
         koCount: opponentKoCount,
+        switching: opponentSwitching,
+        lastSentTurn: opponentLastSentTurn,
       ),
       field: field,
       rngSeeds: PsdkBattleRngSeeds(
@@ -2363,13 +2707,17 @@ PsdkBattleCombatantSetup _combatant({
   required int speed,
   int currentHp = 100,
   required PsdkBattleMoveData move,
+  List<PsdkBattleMoveData> extraMoves = const <PsdkBattleMoveData>[],
   PsdkBattleStats? stats,
   PsdkBattleStatStages? statStages,
   PsdkBattleMajorStatus? majorStatus,
   String? heldItemId,
   String? abilityId,
+  PsdkBattleEffectStack? effects,
   PsdkBattleMoveHistory? moveHistory,
   int koCount = 0,
+  bool switching = false,
+  int? lastSentTurn,
   double baseWeightKg = 1,
   double? currentWeightKg,
 }) {
@@ -2390,12 +2738,15 @@ PsdkBattleCombatantSetup _combatant({
           speed: speed,
         ),
     statStages: statStages,
-    moves: <PsdkBattleMoveData>[move],
+    moves: <PsdkBattleMoveData>[move, ...extraMoves],
     majorStatus: majorStatus,
     heldItemId: heldItemId,
     abilityId: abilityId,
+    effects: effects,
     moveHistory: moveHistory,
     koCount: koCount,
+    switching: switching,
+    lastSentTurn: lastSentTurn,
     baseWeightKg: baseWeightKg,
     currentWeightKg: currentWeightKg,
   );

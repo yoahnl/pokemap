@@ -1,5 +1,6 @@
 import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
+import '../battler/battle_grounding_resolver.dart';
 import '../rng/battle_rng_streams.dart';
 import 'battle_move_critical_resolver.dart';
 import 'battle_move_data.dart';
@@ -10,11 +11,14 @@ final class BattleMoveDamageCalculator {
     BattleMoveTypeProcessor typeProcessor = const BattleMoveTypeProcessor(),
     BattleMoveCriticalResolver criticalResolver =
         const BattleMoveCriticalResolver(),
+    BattleGroundingResolver groundingResolver = const BattleGroundingResolver(),
   })  : _typeProcessor = typeProcessor,
-        _criticalResolver = criticalResolver;
+        _criticalResolver = criticalResolver,
+        _groundingResolver = groundingResolver;
 
   final BattleMoveTypeProcessor _typeProcessor;
   final BattleMoveCriticalResolver _criticalResolver;
+  final BattleGroundingResolver _groundingResolver;
 
   BattleMoveDamageResult calculate(BattleMoveDamageContext context) {
     final move = context.move;
@@ -37,7 +41,8 @@ final class BattleMoveDamageCalculator {
       moveType: moveType,
       targetTypes: context.target.types,
       extraTargetTypes: _extraTypes(context.target),
-      forceGrounded: context.target.effects.contains('smack_down'),
+      forceGrounded:
+          moveType == 'ground' && _groundingResolver.isGrounded(context.target),
       foresight: context.target.effects.contains('foresight'),
       miracleEye: context.target.effects.contains('miracle_eye'),
     );

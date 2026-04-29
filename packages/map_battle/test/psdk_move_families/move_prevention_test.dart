@@ -252,6 +252,76 @@ void main() {
       expect(_damageEvents(result, moveId: 'tackle'), isEmpty);
     });
 
+    test('Aroma Veil blocks local mental prevention effects', () {
+      final cases = <({String method, String moveId, String effectId})>[
+        (method: 's_attract', moveId: 'attract', effectId: 'attract'),
+        (method: 's_disable', moveId: 'disable', effectId: 'disable'),
+        (method: 's_encore', moveId: 'encore', effectId: 'encore'),
+        (method: 's_heal_block', moveId: 'heal_block', effectId: 'heal_block'),
+        (method: 's_taunt', moveId: 'taunt', effectId: 'taunt'),
+        (method: 's_torment', moveId: 'torment', effectId: 'torment'),
+      ];
+
+      for (final entry in cases) {
+        final result = _runMove(
+          playerMove: _move(
+            id: entry.moveId,
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            accuracy: 100,
+            battleEngineMethod: entry.method,
+          ),
+          opponentAbilityId: 'aroma_veil',
+          opponentMoveHistory: PsdkBattleMoveHistory(
+            successes: <PsdkBattleMoveHistoryEntry>[
+              PsdkBattleMoveHistoryEntry(
+                moveId: 'tackle',
+                turn: 1,
+                targets: <PsdkBattleSlotRef>[psdkPlayerSlot],
+              ),
+            ],
+          ),
+        );
+
+        final failures = result.timeline.events
+            .whereType<PsdkBattleMoveFailedEvent>()
+            .where((event) =>
+                event.user == psdkPlayerSlot && event.moveId == entry.moveId)
+            .toList(growable: false);
+        expect(failures, hasLength(1), reason: entry.method);
+        expect(
+          result.state
+              .battlerAt(psdkOpponentSlot)
+              .effects
+              .contains(entry.effectId),
+          isFalse,
+          reason: entry.method,
+        );
+      }
+    });
+
+    test('Aroma Veil can be suppressed before mental prevention effects land',
+        () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'taunt',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 100,
+          battleEngineMethod: 's_taunt',
+        ),
+        opponentAbilityId: 'aroma_veil',
+        opponentEffects: PsdkBattleEffectStack(
+          values: const <String>['ability_suppressed'],
+        ),
+      );
+
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).effects.contains('taunt'),
+        isTrue,
+      );
+    });
+
     test('Imprison prevents foes from using a shared move', () {
       final result = _runMove(
         playerMove: _move(
@@ -283,6 +353,51 @@ void main() {
           BattleMoveFailureReason.unusableByUser.jsonName);
       expect(_damageEvents(result, moveId: 'tackle'), isEmpty);
     });
+
+    test('Powder interrupts Fire moves and damages the affected user', () {
+      final result = _runMove(
+        playerEffects: PsdkBattleEffectStack(values: const <String>['powder']),
+        playerMove: _move(
+          id: 'ember',
+          type: 'fire',
+          category: PsdkBattleMoveCategory.special,
+          power: 40,
+        ),
+      );
+
+      final failures = result.timeline.events
+          .whereType<PsdkBattleMoveFailedEvent>()
+          .toList(growable: false);
+      final powderDamage = _damageEvents(result, moveId: 'effect:powder');
+      expect(failures, hasLength(1));
+      expect(failures.single.user, psdkPlayerSlot);
+      expect(failures.single.moveId, 'ember');
+      expect(failures.single.reason,
+          BattleMoveFailureReason.unusableByUser.jsonName);
+      expect(_damageEvents(result, moveId: 'ember'), isEmpty);
+      expect(powderDamage, hasLength(1));
+      expect(powderDamage.single.target, psdkPlayerSlot);
+      expect(powderDamage.single.damage, 25);
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 75);
+    });
+
+    test('Powder does not interrupt non-Fire moves', () {
+      final result = _runMove(
+        playerEffects: PsdkBattleEffectStack(values: const <String>['powder']),
+        playerMove: _move(
+          id: 'tackle',
+          power: 40,
+        ),
+      );
+
+      expect(
+        result.timeline.events.whereType<PsdkBattleMoveFailedEvent>(),
+        isEmpty,
+      );
+      expect(_damageEvents(result, moveId: 'effect:powder'), isEmpty);
+      expect(_damageEvents(result, moveId: 'tackle'), hasLength(1));
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 100);
+    });
   });
 }
 
@@ -292,8 +407,11 @@ PsdkBattleTurnResult _runMove({
   int playerCurrentHp = 100,
   PsdkBattleMoveHistory? playerMoveHistory,
   List<PsdkBattleMoveData> playerExtraMoves = const <PsdkBattleMoveData>[],
+  String? playerAbilityId,
   PsdkBattleMoveData? opponentMove,
+  PsdkBattleEffectStack? opponentEffects,
   PsdkBattleMoveHistory? opponentMoveHistory,
+  String? opponentAbilityId,
 }) {
   final engine = PsdkBattleEngine(
     setup: PsdkBattleSetup.singles(
@@ -305,6 +423,7 @@ PsdkBattleTurnResult _runMove({
         extraMoves: playerExtraMoves,
         effects: playerEffects,
         moveHistory: playerMoveHistory,
+        abilityId: playerAbilityId,
       ),
       opponent: _combatant(
         id: 'opponent',
@@ -315,7 +434,9 @@ PsdkBattleTurnResult _runMove({
               power: 0,
               accuracy: 1,
             ),
+        effects: opponentEffects,
         moveHistory: opponentMoveHistory,
+        abilityId: opponentAbilityId,
       ),
       rngSeeds: const PsdkBattleRngSeeds(
         moveDamage: 1,
@@ -336,6 +457,7 @@ PsdkBattleCombatantSetup _combatant({
   List<PsdkBattleMoveData> extraMoves = const <PsdkBattleMoveData>[],
   PsdkBattleEffectStack? effects,
   PsdkBattleMoveHistory? moveHistory,
+  String? abilityId,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -354,6 +476,7 @@ PsdkBattleCombatantSetup _combatant({
     ),
     effects: effects,
     moveHistory: moveHistory,
+    abilityId: abilityId,
     moves: <PsdkBattleMoveData>[move, ...extraMoves],
   );
 }

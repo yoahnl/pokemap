@@ -28,6 +28,60 @@ void main() {
       );
     });
 
+    test('s_fury_cutter resets when the previous successful move is different',
+        () {
+      final first = _runMove(
+        playerMove: _move(
+          id: 'fury_cutter',
+          type: 'bug',
+          power: 40,
+          battleEngineMethod: 's_fury_cutter',
+        ),
+      );
+      final reset = _runMove(
+        playerMoveHistory: _history(
+          successes: const <String>['fury_cutter', 'tackle'],
+        ),
+        playerMove: _move(
+          id: 'fury_cutter',
+          type: 'bug',
+          power: 40,
+          battleEngineMethod: 's_fury_cutter',
+        ),
+      );
+
+      expect(
+        _damage(reset, moveId: 'fury_cutter'),
+        _damage(first, moveId: 'fury_cutter'),
+      );
+    });
+
+    test('s_fury_cutter caps at 160 base power', () {
+      final capped = _runMove(
+        playerMoveHistory: _successes('fury_cutter', count: 2),
+        playerMove: _move(
+          id: 'fury_cutter',
+          type: 'bug',
+          power: 40,
+          battleEngineMethod: 's_fury_cutter',
+        ),
+      );
+      final overCapped = _runMove(
+        playerMoveHistory: _successes('fury_cutter', count: 5),
+        playerMove: _move(
+          id: 'fury_cutter',
+          type: 'bug',
+          power: 40,
+          battleEngineMethod: 's_fury_cutter',
+        ),
+      );
+
+      expect(
+        _damage(overCapped, moveId: 'fury_cutter'),
+        _damage(capped, moveId: 'fury_cutter'),
+      );
+    });
+
     for (final entry in <({String method, String moveId})>[
       (method: 's_rollout', moveId: 'rollout'),
       (method: 's_ice_ball', moveId: 'ice_ball'),
@@ -114,19 +168,25 @@ void main() {
 }
 
 PsdkBattleMoveHistory _successes(String moveId, {required int count}) {
+  return _history(successes: <String>[
+    for (var i = 0; i < count; i++) moveId,
+  ]);
+}
+
+PsdkBattleMoveHistory _history({required List<String> successes}) {
   return PsdkBattleMoveHistory(
     attempts: <PsdkBattleMoveHistoryEntry>[
-      for (var i = 0; i < count; i++)
+      for (var i = 0; i < successes.length; i++)
         PsdkBattleMoveHistoryEntry(
-          moveId: moveId,
+          moveId: successes[i],
           turn: i + 1,
           targets: const <PsdkBattleSlotRef>[psdkOpponentSlot],
         ),
     ],
     successes: <PsdkBattleMoveHistoryEntry>[
-      for (var i = 0; i < count; i++)
+      for (var i = 0; i < successes.length; i++)
         PsdkBattleMoveHistoryEntry(
-          moveId: moveId,
+          moveId: successes[i],
           turn: i + 1,
           targets: const <PsdkBattleSlotRef>[psdkOpponentSlot],
         ),

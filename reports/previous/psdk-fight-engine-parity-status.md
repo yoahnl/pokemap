@@ -1,6 +1,6 @@
 # PSDK Fight Engine Parity Status
 
-Date: 2026-04-28
+Date: 2026-04-29
 
 | Axis | Current |
 | --- | ---: |
@@ -109,15 +109,35 @@ Latest completed move wave:
   `s_lucky_chant`, `s_magnet_rise`, `s_powder` and `s_snatch` now execute
   through local PSDK marker paths (`partial`)
 - Basic fallback wave: `s_burn_up`,
-  `s_flame_burst`, `s_fury_cutter`, `s_fusion_bolt`,
-  `s_fusion_flare`, `s_hidden_power`, `s_incinerate`,
-  `s_last_resort`, `s_payday`,
-  `s_photon_geyser`, `s_pollen_puff`, `s_pursuit`, `s_rage`,
-  `s_rapid_spin`, `s_relic_song` and `s_spectral_thief` now execute their
+  `s_hidden_power`, `s_incinerate`,
+  `s_payday` and `s_spectral_thief` now execute their
   local Basic damage path (`partial`)
+- Move-history gate wave: `s_last_resort` now leaves the generic Basic
+  fallback path and fails unless every other known user move has already been
+  attempted in the local move history (`partial`)
+- Dynamic stat-source wave: `s_photon_geyser` now leaves the generic Basic
+  fallback path and chooses physical or special damage from the user's higher
+  effective Attack/Special Attack before running the normal damage pipeline
+  (`partial`)
+- Pollen Puff promotion wave: `s_pollen_puff` now leaves the generic Basic
+  fallback path. The local low-level topology slice heals allied targets for
+  50% max HP while preserving normal damage against opposing targets
+  (`partial`).
+- Pursuit promotion wave: `s_pursuit` now leaves the generic Basic fallback
+  path. The local singles slice doubles base power when the target is switching
+  and was not sent out during the current turn (`partial`).
+- Flame Burst promotion wave: `s_flame_burst` now leaves the generic Basic
+  fallback path. The local topology slice exposes adjacent allies and applies
+  PSDK splash damage equal to 1/16 max HP, clamped to current HP, while skipping
+  unsuppressed Magic Guard (`partial`).
+- Fusion move promotion wave: `s_fusion_bolt` and `s_fusion_flare` now leave
+  the generic Basic fallback path. The local singles slice doubles power when
+  the opposite Fusion move succeeded earlier in the same turn (`partial`).
 - Marker/secondary status wave: `s_focus_energy`, `s_laser_focus`,
   `s_charge`, `s_autotomize`, `s_gastro_acid` and `s_defog` now execute
-  through local marker or secondary-only state paths (`partial`)
+  through local marker or secondary-only state paths; `s_gastro_acid` now also
+  respects PSDK protected abilities, Good as Gold status protection and
+  already-suppressed targets (`partial`)
 - Mixed fallback wave: `s_beak_blast`, `s_core_enforcer`,
   `s_flying_press`, `s_focus_punch`
   and `s_shell_trap` now execute their local Basic damage path; `s_sky_drop`
@@ -146,10 +166,13 @@ Latest completed move wave:
   object-backed as `HealBlockEffect` and blocks local healing methods;
   `Attract` is now object-backed as `AttractEffect` and performs its 50%
   user-prevention roll; `Imprison` is now object-backed as `ImprisonEffect`
-  and blocks shared foe move ids (`partial`)
+  and blocks shared foe move ids; local singles Aroma Veil now blocks incoming
+  Attract/Disable/Encore/Heal Block/Taunt/Torment installation unless
+  `ability_suppressed` is active (`partial`)
 - Hazard cleanup wave: `s_rapid_spin` now resolves through a dedicated
   Rapid Spin path that keeps its Basic hit and clears user-local
-  rapid-spin-affected effects plus own-bank hazards; `s_defog` now resolves
+  rapid-spin-affected effects plus own-bank hazards and applies its Speed +1
+  boost; `s_defog` now resolves
   through a dedicated Defog path that keeps imported secondary drops and clears
   rapid-spin hazards plus opposing screen markers; `s_brick_break` now keeps
   its Basic hit and clears opposing screen markers after a successful hit;
@@ -230,8 +253,13 @@ Latest completed move wave:
 - Rage promotion wave: `s_rage` now resolves through a dedicated static path
   instead of the generic Basic fallback. The local singles slice covers the
   successful Basic hit and battler-scoped `rage` marker installation on the
-  user. The method remains `partial` until the full Rage attack-raise lifecycle
-  and exact PSDK messages are ported.
+  user, plus the incoming opposing-damage attack-raise lifecycle through the
+  shared damage handler. The method remains `partial` until exact PSDK messages
+  and richer multi-target ordering are ported.
+- Fury Cutter characterization wave: existing `s_fury_cutter` consecutive-power
+  behavior is now covered for reset after a different successful move and its
+  local 160 base-power cap. The method remains `partial` until exact PSDK
+  rollout-style lifecycle/messages are ported.
 - Raging Bull promotion wave: `s_raging_bull` now resolves through the Brick
   Break static cleanup path instead of the generic Basic fallback. The local
   singles slice covers the successful hit and opposing screen cleanup inherited
@@ -323,10 +351,11 @@ Latest completed move wave:
   random major status, stat-history-gated Alluring Voice/Burning Jealousy,
   Psychic Noise Heal Block, Throat Chop's sound-move prevention, Burn Up type
   gating/removal, Incinerate berry/gem removal, Salt Cure residual damage,
-  Syrup Bomb timed Speed drops and Tar Shot's fire-weakness multiplier. They
-  remain `partial` until disabled-move UI/messages, ally-side Aroma Veil, exact
-  PSDK item-loss checks, Burn Up cleanup semantics, exact Syrup Bomb
-  lifecycle/messages and Relic Song Meloetta form calibration are represented.
+  Syrup Bomb timed Speed drops, Tar Shot's fire-weakness multiplier and Relic
+  Song's imported sleep secondary. They remain `partial` until disabled-move
+  UI/messages, ally-side Aroma Veil, exact PSDK item-loss checks, Burn Up
+  cleanup semantics, exact Syrup Bomb lifecycle/messages and Relic Song
+  Meloetta form calibration are represented.
 - Grounding wave: `s_smack_down` now resolves through
   `GroundingMoveBehavior` instead of a generic Basic fallback. The local slice
   keeps its Rock hit, installs an object-backed `SmackDownEffect` on airborne
@@ -434,9 +463,49 @@ Latest completed move wave:
 - Marker hook wave: `mist` now prevents opposing stat drops through the stat
   change handler, `telekinesis` now feeds the grounding resolver so Ground moves
   fail against lifted targets, `magnet_rise` now feeds the same forced-flying
-  resolver path, `embargo` now suppresses Air Balloon-style held-item grounding
-  effects, `s_toxic_thread` now fails only when both poison and the Speed drop
-  cannot apply, and `electrify`/`ion_deluge` now rewrite the effective move type
+  resolver path, `embargo` and `magic_room` now suppress held-item grounding
+  effects plus existing active item-effect hooks for Loaded Dice, weather rocks
+  and Terrain Extender, Iron Ball now feeds Ground/Flying effectiveness through the shared
+  grounding resolver, `s_toxic_thread` now fails only when both poison and the
+  Speed drop cannot apply, `s_parting_shot` now marks its user for a pivot
+  switch after successful drops, `s_volt_switch` and `s_flip_turn` reuse the
+  U-turn pivot marker path after a damaging hit, `powder` now interrupts Fire moves with user
+  damage, and `electrify`/`ion_deluge` now rewrite the effective move type
   before immunity and damage. Remaining gaps are exact prevention/type-change
-  messages, one-turn cleanup, broader Embargo item-use prevention and fuller
-  shared hook coverage for specialized move behaviors.
+  messages, one-turn cleanup, trainer/bag item prevention and
+  fuller shared hook coverage for specialized move behaviors.
+- End-turn item wave: `leftovers` now heals through an object-backed active item
+  effect, and `black_sludge` now heals Poison-type holders or damages
+  non-Poison holders during the PSDK end-turn phase. Both respect the local
+  `embargo` / `magic_room` active item-effect suppression gate, and Black
+  Sludge damage skips unsuppressed `magic_guard`. Remaining gaps are exact item
+  messages, richer item catalog metadata and persistent item-removal rules.
+- Big Root drain rider wave: `LeechSeedEffect` now boosts source-side recovery
+  when the source holds `big_root`, matching the already local Aqua Ring and
+  Ingrain Big Root branches. Remaining gaps are broader drain-family coverage
+  and exact PSDK item messages.
+- Ability/item rider wave: `LeechSeedEffect` now punishes the drain source when
+  the seeded target has `liquid_ooze`, and `s_rest` now consumes held
+  `chesto_berry` / `lum_berry` to wake immediately after its sleep-and-heal
+  sequence. Liquid Ooze punishment now also skips source-side `magic_guard`.
+  Remaining gaps are exact PSDK ability/item messages, broader drain-family
+  Liquid Ooze coverage and full berry catalog interactions.
+- Terrain/status rider wave: grounded sleep attempts are now blocked under
+  Electric Terrain and Misty Terrain both through `s_rest`'s pre-PP guard and
+  through the shared major-status handler. `s_take_heart` now cures first, then
+  resolves its imported self-targeted Sp. Atk / Sp. Def stage boosts. Remaining
+  gaps are exact PSDK terrain/status messages and richer status-cure
+  multi-target callbacks.
+- Item-dependent rider wave: `s_fling` now applies local PSDK item riders for
+  `toxic_orb`, `flame_orb`, `light_ball` and `poison_barb` after successful
+  damage while still consuming the thrown item, and `s_pluck` now forces the
+  stolen `oran_berry` / `sitrus_berry` heal on the user before removing the
+  target berry.
+  Remaining gaps are exact PSDK item messages, richer berry catalog effects,
+  Symbiosis/deferred item callbacks and full trainer-item loss rules.
+- Protect-variant wave: imported `endure` still uses PSDK's `s_protect` method
+  row, but now installs a dedicated one-turn `EndureEffect` instead of the
+  target-preventing `ProtectEffect`; lethal incoming damage is capped to leave
+  the target at 1 HP while the marker is active. Remaining gaps are exact
+  messages, success-rate decay, Feint/Unseen Fist interactions and the other
+  protection variants.

@@ -77,6 +77,35 @@ void main() {
       expect(target.effects.contains('throat_chop'), isTrue);
     });
 
+    test('s_relic_song can apply its imported sleep rider', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'relic_song',
+          type: 'normal',
+          category: PsdkBattleMoveCategory.special,
+          power: 75,
+          battleEngineMethod: 's_relic_song',
+          effectChance: 100,
+          statuses: <PsdkBattleMoveStatus>[
+            PsdkBattleMoveStatus(
+              status: PsdkBattleMajorStatus.sleep,
+              chance: 100,
+            ),
+          ],
+        ),
+      );
+
+      expect(_damage(result, moveId: 'relic_song'), greaterThan(0));
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).majorStatus,
+        PsdkBattleMajorStatus.sleep,
+      );
+      expect(
+        result.timeline.events.whereType<PsdkBattleStatusEvent>(),
+        hasLength(1),
+      );
+    });
+
     test('Throat Chop prevents sound moves while its marker is active', () {
       final result = _runMove(
         playerEffects: const PsdkBattleEffectStack.empty().addEffect(
@@ -336,6 +365,8 @@ PsdkBattleMoveData _move({
   int accuracy = 100,
   String battleEngineMethod = 's_basic',
   bool sound = false,
+  int? effectChance,
+  List<PsdkBattleMoveStatus> statuses = const <PsdkBattleMoveStatus>[],
 }) {
   return PsdkBattleMoveData(
     id: id,
@@ -348,9 +379,11 @@ PsdkBattleMoveData _move({
     pp: 20,
     priority: 0,
     criticalRate: 1,
+    effectChance: effectChance,
     battleEngineMethod: battleEngineMethod,
     target: PsdkBattleMoveTarget.adjacentFoe,
     sound: sound,
+    statuses: statuses,
   );
 }
 

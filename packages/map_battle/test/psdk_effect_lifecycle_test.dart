@@ -187,6 +187,128 @@ void main() {
       expect(result.events.whereType<PsdkBattleHealEvent>().single.amount, 12);
     });
 
+    test('Leech Seed healing is boosted when the source holds Big Root', () {
+      final state = PsdkBattleState(
+        combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+          psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'source',
+              currentHp: 40,
+              heldItemId: 'big_root',
+            ),
+          ),
+          psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'seeded',
+              effects: const PsdkBattleEffectStack.empty().addEffect(
+                const LeechSeedEffect(
+                  scope: BattlerBattleEffectScope(psdkOpponentSlot),
+                  source: psdkPlayerSlot,
+                ),
+              ),
+            ),
+          ),
+        },
+      );
+
+      final result = const BattleEndTurnHandler().tickEndTurnEffects(
+        BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 4,
+          user: psdkPlayerSlot,
+        ),
+      );
+
+      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 88);
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 55);
+      expect(
+          result.events.whereType<PsdkBattleDamageEvent>().single.damage, 12);
+      expect(result.events.whereType<PsdkBattleHealEvent>().single.amount, 15);
+    });
+
+    test('Leech Seed damages the source when the seeded target has Liquid Ooze',
+        () {
+      final state = PsdkBattleState(
+        combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+          psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(id: 'source', currentHp: 40),
+          ),
+          psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'seeded',
+              abilityId: 'liquid_ooze',
+              effects: const PsdkBattleEffectStack.empty().addEffect(
+                const LeechSeedEffect(
+                  scope: BattlerBattleEffectScope(psdkOpponentSlot),
+                  source: psdkPlayerSlot,
+                ),
+              ),
+            ),
+          ),
+        },
+      );
+
+      final result = const BattleEndTurnHandler().tickEndTurnEffects(
+        BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 4,
+          user: psdkPlayerSlot,
+        ),
+      );
+
+      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 88);
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 28);
+      expect(result.events.whereType<PsdkBattleHealEvent>(), isEmpty);
+      expect(
+        result.events
+            .whereType<PsdkBattleDamageEvent>()
+            .map((event) => event.damage),
+        <int>[12, 12],
+      );
+    });
+
+    test('Leech Seed Liquid Ooze damage skips a Magic Guard source', () {
+      final state = PsdkBattleState(
+        combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+          psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'source',
+              currentHp: 40,
+              abilityId: 'magic_guard',
+            ),
+          ),
+          psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'seeded',
+              abilityId: 'liquid_ooze',
+              effects: const PsdkBattleEffectStack.empty().addEffect(
+                const LeechSeedEffect(
+                  scope: BattlerBattleEffectScope(psdkOpponentSlot),
+                  source: psdkPlayerSlot,
+                ),
+              ),
+            ),
+          ),
+        },
+      );
+
+      final result = const BattleEndTurnHandler().tickEndTurnEffects(
+        BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 4,
+          user: psdkPlayerSlot,
+        ),
+      );
+
+      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 88);
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 40);
+      expect(result.events.whereType<PsdkBattleHealEvent>(), isEmpty);
+      expect(result.events.whereType<PsdkBattleDamageEvent>(), hasLength(1));
+    });
+
     test('Confusion can self-hit and prevent the user before PP is spent', () {
       final engine = PsdkBattleEngine(
         setup: _setup(
@@ -273,6 +395,8 @@ const _benchSlot = PsdkBattleSlotRef(bank: 0, position: -1);
 PsdkBattleCombatantSetup _combatant({
   required String id,
   int currentHp = 100,
+  String? heldItemId,
+  String? abilityId,
   PsdkBattleStatStages? statStages,
   PsdkBattleEffectStack effects = const PsdkBattleEffectStack.empty(),
 }) {
@@ -283,6 +407,8 @@ PsdkBattleCombatantSetup _combatant({
     level: 20,
     maxHp: 100,
     currentHp: currentHp,
+    heldItemId: heldItemId,
+    abilityId: abilityId,
     types: const PsdkBattleTypes(primary: 'normal'),
     stats: const PsdkBattleStats(
       attack: 50,

@@ -6,8 +6,8 @@ import '../battle_effect_scope.dart';
 /// PSDK Protect effect object.
 ///
 /// This ports only the common Protect target-prevention hook. PSDK variants
-/// such as Spiky Shield, King's Shield, Baneful Bunker, Mat Block, Endure,
-/// Unseen Fist bypass and success-rate decay remain explicit future lots.
+/// such as Spiky Shield, King's Shield, Baneful Bunker, Mat Block, Unseen Fist
+/// bypass and success-rate decay remain explicit future lots.
 final class ProtectEffect extends BattleEffect {
   const ProtectEffect({
     required BattleEffectScope scope,

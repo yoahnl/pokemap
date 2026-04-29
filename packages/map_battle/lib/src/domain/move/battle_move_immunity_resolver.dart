@@ -87,7 +87,8 @@ final class BattleMoveImmunityResolver {
       moveType: moveType,
       targetTypes: target.types,
       extraTargetTypes: _extraTypes(target),
-      forceGrounded: target.effects.contains('smack_down'),
+      forceGrounded:
+          moveType == 'ground' && _groundingResolver.isGrounded(target),
       foresight: target.effects.contains('foresight'),
       miracleEye: target.effects.contains('miracle_eye'),
     );

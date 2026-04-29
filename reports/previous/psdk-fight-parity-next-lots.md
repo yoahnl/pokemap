@@ -84,12 +84,18 @@ Latest completed wave:
   `s_lucky_chant`, `s_magnet_rise`, `s_powder` and `s_snatch` now execute
   through local PSDK marker paths. They remain `partial`.
 - Basic fallback wave: `s_burn_up`,
-  `s_flame_burst`, `s_fury_cutter`, `s_fusion_bolt`,
-  `s_fusion_flare`, `s_hidden_power`, `s_incinerate`,
-  `s_last_resort`, `s_payday`,
-  `s_photon_geyser`, `s_pollen_puff`, `s_pursuit`, `s_rage`,
-  `s_rapid_spin`, `s_relic_song` and `s_spectral_thief` now execute their
+  `s_flame_burst`, `s_fusion_bolt`, `s_fusion_flare`, `s_hidden_power`,
+  `s_incinerate`,
+  `s_payday`, `s_pollen_puff`, `s_pursuit`, `s_rage`,
+  `s_relic_song` and `s_spectral_thief` now execute their
   local Basic damage path. They remain `partial`.
+- Move-history gate wave: `s_last_resort` now leaves the generic Basic
+  fallback path and fails unless every other known user move has already been
+  attempted in the local move history. It remains `partial`.
+- Dynamic stat-source wave: `s_photon_geyser` now leaves the generic Basic
+  fallback path and chooses physical or special damage from the user's higher
+  effective Attack/Special Attack before running the normal damage pipeline.
+  It remains `partial`.
 - Marker/secondary status wave: `s_focus_energy`, `s_laser_focus`,
   `s_charge`, `s_autotomize`, `s_gastro_acid` and `s_defog` now execute
   through local marker or secondary-only state paths. They remain `partial`.
@@ -124,11 +130,12 @@ Latest completed wave:
   and blocks shared foe move ids. They remain `partial`.
 - Hazard cleanup wave: `s_rapid_spin` now resolves through a dedicated Rapid
   Spin path that keeps its Basic hit and clears user-local rapid-spin-affected
-  effects plus own-bank hazards; `s_defog` now resolves through a dedicated
-  Defog path that keeps imported secondary drops and clears rapid-spin hazards
-  plus opposing screen markers; `s_brick_break` now keeps its Basic hit and
-  clears opposing screen markers after a successful hit; Spikes, Toxic Spikes,
-  Stealth Rock and Sticky Web are now object-backed bank hazard effects;
+  effects plus own-bank hazards and applies its Speed +1 boost; `s_defog` now
+  resolves through a dedicated Defog path that keeps imported secondary drops
+  and clears rapid-spin hazards plus opposing screen markers; `s_brick_break`
+  now keeps its Basic hit and clears opposing screen markers after a successful
+  hit; Spikes, Toxic Spikes, Stealth Rock and Sticky Web are now object-backed
+  bank hazard effects;
   Spikes and Toxic Spikes persist PSDK layer counts; Heavy-Duty Boots prevents
   all local entry-hazard effects and Magic Guard prevents Spikes/Stealth Rock
   entry damage; `s_stone_axe` and `s_ceaseless_edge` now keep their Basic hit
@@ -201,9 +208,28 @@ Latest completed wave:
   field-effect lifecycle.
 - Rage promotion wave: `s_rage` now uses a dedicated static resolver instead
   of the generic Basic fallback. It keeps the successful Basic hit and installs
-  a battler-scoped `rage` marker on the user after a successful damage event.
-  It remains `partial` until the full Rage attack-raise lifecycle and exact
-  PSDK messages are represented.
+  a battler-scoped `rage` marker on the user after a successful damage event,
+  then raises Attack when the marked user takes opposing damage. It remains
+  `partial` until exact PSDK messages and richer multi-target ordering are
+  represented.
+- Pollen Puff promotion wave: `s_pollen_puff` now uses a dedicated static
+  resolver instead of the generic Basic fallback. It heals allied targets for
+  50% max HP in the low-level topology slice while preserving normal opposing
+  damage. Public doubles setup and target-selection UX remain future work.
+- Gastro Acid guard wave: `s_gastro_acid` still uses the target-marker path but
+  now fails for already suppressed targets, PSDK protected abilities and Good as
+  Gold status protection before installing `ability_suppressed`.
+- Pursuit promotion wave: `s_pursuit` now uses a dedicated static resolver. It
+  doubles power when the target is switching and was not sent during the current
+  turn. Full switch interception/action cancellation remains future work.
+- Flame Burst promotion wave: `s_flame_burst` now uses a dedicated static
+  resolver and the PSDK state exposes adjacent allies. It applies 1/16 max HP
+  splash to adjacent allies of damaged targets, clamps to current HP and skips
+  unsuppressed Magic Guard.
+- Fusion move promotion wave: `s_fusion_bolt` and `s_fusion_flare` now use
+  dedicated static resolvers. The local singles slice doubles power when the
+  counterpart Fusion move succeeded earlier in the same turn. Exact
+  `attack_order.next` parity remains future work for richer multi-battler order.
 - Raging Bull promotion wave: `s_raging_bull` now reuses the Brick Break static
   cleanup path instead of the generic Basic fallback. It keeps the successful
   hit and clears opposing `reflect`, `light_screen` and `aurora_veil` markers.
@@ -449,17 +475,16 @@ Latest completed wave:
   stat drop fail is now covered.
   The turn-marker wave still needs method-specific hooks: Destiny Bond KO
   retaliation, Disable/Encore move-history selection and move prevention,
-  broader Embargo item prevention and Baton Pass transfer, Grudge PP depletion
-  on user death, Heal Block move prevention, Powder fire-move
-  interruption/damage, and Snatch status-move interception. Magnet Rise
-  force-flying and the first Embargo held-item grounding slice are now covered.
+  trainer/bag item prevention and Baton Pass transfer, Grudge PP depletion
+  on user death, Heal Block move prevention, and Snatch status-move
+  interception. Magnet Rise force-flying, Powder fire-move interruption/damage
+  and Embargo/Magic Room suppression for grounding, Loaded Dice, weather rocks
+  and Terrain Extender are now covered.
   The newest Basic fallback wave still needs method-specific hooks such as
-  Flame Burst adjacent damage, Fury Cutter/Rage counters, Fusion combo power,
+  Flame Burst adjacent damage, Rage counters, Fusion combo power,
   Hidden Power/Judgment type resolution, Knock Off item mutation,
-  Last Resort move-history gating, Photon Geyser stat source selection,
-  Pollen Puff ally healing, Pursuit switch interception, Rapid Spin speed
-  boost, Relic Song form hooks and Spectral Thief stat
-  stealing.
+  Pollen Puff ally healing, Pursuit switch interception, Relic Song form hooks
+  and Spectral Thief stat stealing.
   The marker/secondary status wave still needs Autotomize weight restoration
   on effect removal and Gastro Acid ability-change guards.
   The mixed fallback wave still needs Assurance/Core Enforcer action-history
@@ -469,7 +494,7 @@ Latest completed wave:
   Substitute damage interception/Baton Pass transfer, Attract gender/Destiny
   Knot rules, Nightmare sleep-only end-turn damage, Quash action-order
   rewrites, Gravity grounding/accuracy hooks, Happy Hour payout integration
-  and Magic Room item suppression.
+  and remaining item-use guards.
   The type/order/status wave still needs ChangeType ability/substitute failure
   checks and effect cleanup, Stockpile's three-stack counter with Swallow/Spit
   Up coupling, After You/Ally Switch doubles action-order logic, Magic Coat
@@ -652,8 +677,9 @@ Still remaining in this lot:
   `map_core`/runtime models instead of direct `PsdkBattleMoveData`.
 - Complete immunity/cure interactions such as Own Tempo/Persim-style behavior.
 - Complete the PSDK edge cases for `Ingrain` and `LeechSeed`: Ghost/Teleport
-  switch exceptions, forced-switch handling, Liquid Ooze, explicit
-  `LeechSeed::Mark` modeling and full origin cleanup.
+  switch exceptions, forced-switch handling, explicit `LeechSeed::Mark`
+  modeling and full origin cleanup. Liquid Ooze has a first local Leech Seed
+  drain-punish slice, but broader drain-family Liquid Ooze coverage remains.
 - Wire Baton Pass into a full party switch action, including replacement
   selection, invalid-switch handling and battle events/messages.
 - Promote `s_baton_pass` from `partial` only after the full switch action
@@ -676,7 +702,9 @@ Files to modify/create:
 Logic:
 
 - Port `s_reflect`, `s_protect`, `s_crafty_shield`, `s_quick_guard`,
-  `s_wide_guard`, `s_mat_block`, `s_endure`.
+  `s_wide_guard`, `s_mat_block`.
+- Already locally sliced: `s_endure` installs a dedicated one-turn
+  `EndureEffect` and caps lethal damage at 1 HP.
 - Add side-scoped effects and duration handling.
 - Add Protect success-rate decay based on recent protect attempts.
 
@@ -712,7 +740,8 @@ Current slice:
 - `s_stone_axe` and `s_ceaseless_edge` keep their Basic hit and install or
   empower Stealth Rock/Spikes after a successful hit.
 - `s_rapid_spin` clears user-local rapid-spin-affected effects and own-bank
-  hazard markers after a successful Basic hit.
+  hazard markers after a successful Basic hit, then applies the user's Speed
+  +1 boost.
 - `s_defog` clears rapid-spin hazard markers across banks and opposing screen
   markers while preserving its imported secondary stat drop path.
 - `s_brick_break` clears opposing Reflect/Light Screen/Aurora Veil markers
@@ -799,7 +828,7 @@ Still remaining in this lot:
 - Move-disabled UI checks/deletion messages and richer PSDK failure branches.
 - Full PP forcing, UI selection forcing and deletion messages for
   Disable/Encore/Torment.
-- Full Attract gender immunity, Oblivious/Aroma Veil, Destiny Knot mirroring
+- Full Attract gender immunity, Oblivious/ally-side Aroma Veil, Destiny Knot mirroring
   and delete messages.
 - Global PSDK effect dispatch for Imprison so the effect can live on the user
   instead of the current target-local bridge.
@@ -832,7 +861,8 @@ Still open:
 - Full bench replacement for forced-switch moves once PSDK setup carries
   reserves.
 - `s_whirlwind` if/when a Studio move maps to the same force-switch method.
-- Pivot switch behavior for `s_parting_shot`, `s_flip_turn` and `s_uturn`.
+- Full replacement flow for pivot moves after `s_u_turn`, `s_volt_switch`,
+  `s_flip_turn` and `s_parting_shot` mark the user as switching.
 - Force-switch move exceptions and message parity for Shadow Tag/Arena
   Trap/Magnet Pull.
 
@@ -848,7 +878,7 @@ Files to modify/create:
 Logic:
 
 - Port `s_bind`, `s_cantflee`, `s_mean_look`, `s_dragon_tail`, `s_roar`,
-  `s_whirlwind`, `s_parting_shot`, `s_flip_turn`, `s_uturn`.
+  `s_whirlwind`, `s_parting_shot`, `s_flip_turn`, `s_volt_switch`, `s_uturn`.
 - Add switch-prevention hooks and switch action validation.
 
 ## Lot PSDK-PARITY-07 - Two-Turn, Charge And Recharge Moves
@@ -922,9 +952,10 @@ Logic:
 - Already locally sliced: `s_knock_off`, `s_bestow`, `s_fling`,
   `s_recycle`, `s_belch`, `s_pluck`, `s_thief`, `s_natural_gift` and
   `s_techno_blast`.
-- Remaining parity work: `s_switcheroo`, `s_embargo`, `s_magic_room`,
-  `s_corrosive_gas`, full item catalog metadata, item-loss restrictions,
-  Berry/Fling rider effects and trainer/wild item persistence.
+- Remaining parity work: `s_switcheroo`, broader `s_embargo`/`s_magic_room`
+  item-use prevention beyond grounding, `s_corrosive_gas`, full item catalog
+  metadata, item-loss restrictions, Berry/Fling rider effects and trainer/wild
+  item persistence.
 
 ## Lot PSDK-PARITY-11 - Ability And Item Effect Waves
 
@@ -944,8 +975,24 @@ Logic:
 - Port high-impact abilities first: `magic_guard`, `sturdy`, `mold_breaker`,
   `unaware`, `guts`, `sheer_force`, `technician`, `prankster`, `serene_grace`,
   `intimidate`, `flash_fire`, type absorb abilities.
-- Port high-impact items first: berries, choice items, focus sash, leftovers,
-  life orb, eviolite, assault vest, protective pads, big root.
+- Port high-impact items first: berries, choice items, focus sash, life orb,
+  eviolite, assault vest, protective pads, big root.
+- Already locally sliced from this wave: `endure` as a dedicated one-turn
+  lethal-damage cap, plus `leftovers` and `black_sludge` end-turn item effects.
+- Already locally sliced from this wave: `big_root` on Aqua Ring, Ingrain and
+  Leech Seed recovery. Broader drain-family coverage remains.
+- Already locally sliced from this wave: `liquid_ooze` on Leech Seed and
+  Rest-triggered `chesto_berry` / `lum_berry` wake-up consumption.
+- Already locally sliced from this wave: source-side `magic_guard` blocks Liquid
+  Ooze Leech Seed punishment.
+- Already locally sliced from this wave: grounded sleep prevention under
+  Electric Terrain / Misty Terrain for both `s_rest` and the shared major-status
+  handler.
+- Already locally sliced from this wave: `s_take_heart` cures first and then
+  applies its imported self-targeted Sp. Atk / Sp. Def boosts.
+- Already locally sliced from this wave: `s_fling` item riders for `toxic_orb`,
+  `flame_orb`, `light_ball` and `poison_barb`, plus the first `s_pluck`
+  forced-berry heal paths for `oran_berry` and `sitrus_berry`.
 
 ## Lot PSDK-PARITY-12 - Z-Moves And Unknown Studio Methods
 

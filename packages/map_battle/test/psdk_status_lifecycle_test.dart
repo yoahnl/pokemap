@@ -37,6 +37,40 @@ void main() {
       );
     });
 
+    for (final terrainId in <PsdkBattleTerrainId>[
+      PsdkBattleTerrainId.electricTerrain,
+      PsdkBattleTerrainId.mistyTerrain,
+    ]) {
+      test('blocks sleep on grounded targets under ${terrainId.jsonName}', () {
+        final context = BattleHandlerContext(
+          state: PsdkBattleState.fromSetup(
+            _setup(
+              field: PsdkBattleFieldState(
+                terrain: PsdkBattleTerrainState(
+                  id: terrainId,
+                  remainingTurns: 5,
+                ),
+              ),
+            ),
+          ),
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        );
+
+        final sleep = const BattleStatusChangeHandler().applyMajorStatus(
+          context: context,
+          target: psdkOpponentSlot,
+          moveId: 'sleep_powder',
+          status: PsdkBattleMajorStatus.sleep,
+        );
+
+        expect(sleep.applied, isFalse);
+        expect(sleep.reason, 'status_immune');
+        expect(sleep.state.battlerAt(psdkOpponentSlot).majorStatus, isNull);
+      });
+    }
+
     test('end turn applies burn poison and toxic residual damage', () {
       final state = PsdkBattleState(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
@@ -193,6 +227,7 @@ PsdkBattleSetup _setup({
   PsdkBattleMajorStatus? opponentMajorStatus,
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
   int genericSeed = 5,
+  PsdkBattleFieldState field = const PsdkBattleFieldState(),
 }) {
   return PsdkBattleSetup.singles(
     player: _combatant(
@@ -223,6 +258,7 @@ PsdkBattleSetup _setup({
       moveAccuracy: 3,
       generic: genericSeed,
     ),
+    field: field,
   );
 }
 

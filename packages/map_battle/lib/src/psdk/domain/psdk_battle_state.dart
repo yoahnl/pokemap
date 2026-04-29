@@ -104,9 +104,19 @@ class PsdkBattleState {
     );
   }
 
+  List<PsdkBattleSlotRef> adjacentAlliesOf(PsdkBattleSlotRef user) {
+    return List<PsdkBattleSlotRef>.unmodifiable(
+      alliesOf(user).where(
+        (slot) => (slot.position - user.position).abs() <= 1,
+      ),
+    );
+  }
+
   bool get weatherEffectsSuppressed {
     return _combatants.values.any(
-      (battler) => !battler.isFainted && battler.abilityEffects.any(
+      (battler) =>
+          !battler.isFainted &&
+          battler.abilityEffects.any(
             (effect) => effect.suppressesWeatherEffects,
           ),
     );
@@ -130,8 +140,7 @@ Map<PsdkBattleSlotRef, PsdkBattleCombatant> _hydrateCombatantAbilityEffects(
 ) {
   return <PsdkBattleSlotRef, PsdkBattleCombatant>{
     for (final entry in combatants.entries)
-      entry.key: entry.value
-          .withAbilityEffect(entry.key)
-          .withItemEffect(entry.key),
+      entry.key:
+          entry.value.withAbilityEffect(entry.key).withItemEffect(entry.key),
   };
 }

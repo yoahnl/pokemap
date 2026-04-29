@@ -79,7 +79,7 @@ final class StatusCureMoveBehavior implements BattleMoveBehavior {
       return prepared.toResolution();
     }
 
-    return _cureSlots(
+    final cured = _cureSlots(
       state: prepared.state,
       rng: prepared.rng,
       events: prepared.events,
@@ -87,6 +87,22 @@ final class StatusCureMoveBehavior implements BattleMoveBehavior {
       user: context.user,
       moveId: context.move.id,
       slots: prepared.psdkTargets,
+    );
+    final secondary = const BattleMoveSecondaryEffectResolver().resolve(
+      state: cured.state,
+      rng: cured.rng,
+      user: context.user,
+      target: context.user,
+      move: context.move,
+      turn: context.turn,
+    );
+    return BattleMoveBehaviorResolution(
+      state: secondary.state,
+      rng: secondary.rng,
+      events: <PsdkBattleEvent>[
+        ...cured.events,
+        ...secondary.events,
+      ],
     );
   }
 

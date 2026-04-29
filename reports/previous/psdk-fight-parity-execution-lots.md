@@ -1304,3 +1304,652 @@ Logic:
   and Speed at `-6` with poison still applicable succeeds through poison.
 - Remaining gaps: exact PSDK failure message text and broader secondary-effect
   reason propagation remain future polish.
+
+## Lot BD - Item Suppression Grounding Completion
+
+Status: completed for the current local singles slice.
+
+Files:
+
+- Updated
+  `packages/map_battle/lib/src/domain/battler/battle_grounding_resolver.dart`.
+- Updated
+  `packages/map_battle/lib/src/domain/move/battle_move_damage_calculator.dart`.
+- Updated
+  `packages/map_battle/lib/src/domain/move/battle_move_immunity_resolver.dart`.
+- Updated `packages/map_battle/test/psdk_type_damage_test.dart`.
+- Updated this parity execution report plus the parity status and next-lots
+  notes.
+
+Logic:
+
+- `magic_room` now suppresses held-item grounding overrides in the same local
+  resolver path as `embargo`.
+- Ground-vs-Flying effectiveness now uses `BattleGroundingResolver` instead of
+  checking only `smack_down`, so Iron Ball, Gravity and similar grounded states
+  remove Flying's Ground immunity consistently.
+- Tests cover Air Balloon baseline, Air Balloon suppressed by Embargo/Magic
+  Room, Iron Ball grounding Flying targets, and Embargo/Magic Room restoring
+  Flying immunity by disabling Iron Ball.
+- Remaining gaps: broader Embargo/Magic Room held-item use prevention, trainer
+  item prevention and exact PSDK messages remain future item-effect work.
+
+## Lot BE - Parting Shot Pivot Marker
+
+Status: completed for the current local singles slice.
+
+Files:
+
+- Updated `packages/map_battle/lib/src/data/static_basic_move_registry.dart`.
+- Updated
+  `packages/map_battle/test/psdk_move_families/switch_effect_moves_test.dart`.
+- Updated this parity execution report plus the parity status and next-lots
+  notes.
+
+Logic:
+
+- `s_parting_shot` now resolves through a dedicated callback instead of the
+  generic secondary-only path.
+- When its imported offensive drops apply, the user is marked `switching: true`
+  using the existing `BattleSwitchHandler.markSwitching` seam.
+- If the drops cannot apply, the move does not request a pivot switch.
+- Remaining gaps: actual reserve selection/replacement and richer switch UI
+  remain future switch-flow work.
+
+## Lot BF - Powder Fire-Move Interruption
+
+Status: completed for the current local singles slice.
+
+Files:
+
+- Created
+  `packages/map_battle/lib/src/domain/effect/move/powder_effect.dart`.
+- Updated
+  `packages/map_battle/lib/src/domain/effect/battle_effect_registry.dart`.
+- Updated `packages/map_battle/lib/src/psdk/psdk_battle.dart`.
+- Updated
+  `packages/map_battle/test/psdk_move_families/move_prevention_test.dart`.
+- Updated this parity execution report plus the parity status and next-lots
+  notes.
+
+Logic:
+
+- `powder` is now object-backed and participates in the existing
+  `onUserMovePrevention` hook.
+- A Fire move used by an affected battler now fails before normal execution and
+  deals `1/4` max HP damage to that user via an `effect:powder` damage event.
+- Non-Fire moves are deliberately unaffected.
+- Remaining gaps: exact PSDK message text, cleanup timing messages and broader
+  Snatch-style action-order interactions remain future move-prevention work.
+
+## Lot BG - Local Aroma Veil Mental Guard
+
+Status: completed for the current local singles slice.
+
+Files:
+
+- Updated `packages/map_battle/lib/src/data/static_basic_move_registry.dart`.
+- Updated
+  `packages/map_battle/test/psdk_move_families/move_prevention_test.dart`.
+- Updated this parity execution report plus the parity status and next-lots
+  notes.
+
+Logic:
+
+- Local singles Aroma Veil now blocks incoming Attract, Disable, Encore, Heal
+  Block, Taunt and Torment installation.
+- `ability_suppressed` disables this guard so those effects can land again.
+- Blocked pure mental-effect moves emit the existing
+  `unusableByUser` failure event and do not install the target effect.
+- Remaining gaps: ally-side doubles protection, Oblivious, exact PSDK messages,
+  Mental Herb and Attract gender/Destiny Knot rules remain future work.
+
+## Lot BH - Active Item Effect Suppression
+
+Status: completed for existing active item-effect hooks.
+
+Files:
+
+- Updated `packages/map_battle/lib/src/domain/effect/item/item_effect.dart`.
+- Updated
+  `packages/map_battle/lib/src/domain/battler/battle_grounding_resolver.dart`.
+- Updated
+  `packages/map_battle/lib/src/domain/move/behaviors/multi_hit_move_behavior.dart`.
+- Updated
+  `packages/map_battle/lib/src/domain/move/behaviors/weather_move_behavior.dart`.
+- Updated
+  `packages/map_battle/lib/src/domain/move/behaviors/terrain_move_behavior.dart`.
+- Updated `packages/map_battle/test/psdk_item_effects_test.dart`.
+- Updated `packages/map_battle/test/psdk_weather_terrain_test.dart`.
+- Updated this parity execution report plus the parity status and next-lots
+  notes.
+
+Logic:
+
+- Added `activeItemEffects` and `itemEffectsSuppressed` on
+  `PsdkBattleCombatant`.
+- Embargo and Magic Room now suppress existing active item-effect consumers for
+  Loaded Dice minimum hit count, weather rocks and Terrain Extender.
+- Grounding now uses the same helper while preserving the direct Air Balloon /
+  Iron Ball compatibility checks already covered.
+- Remaining gaps: trainer/bag item prevention, item-moving move exceptions and
+  exact PSDK item messages remain future item work.
+
+## Lot BI - Volt Switch And Flip Turn Pivot Markers
+
+Status: completed for the current local singles slice.
+
+Files:
+
+- Updated `packages/map_battle/lib/src/data/static_basic_move_registry.dart`.
+- Updated
+  `packages/map_battle/test/psdk_move_families/switch_effect_moves_test.dart`.
+- Updated this parity execution report plus the parity status and next-lots
+  notes.
+
+Logic:
+
+- `s_volt_switch` and `s_flip_turn` now reuse the existing U-turn pivot
+  resolver.
+- They mark the user as `switching: true` only after a real damage event hits
+  an opposing target.
+- Misses and no-damage paths do not request a pivot switch.
+- Remaining gaps: full reserve selection/replacement, import manifest coverage
+  for source PSDK method spellings and richer switch UI remain future work.
+
+## Lot BJ - Rapid Spin Speed Boost
+
+Status: completed for the current local singles slice.
+
+Files:
+
+- Updated `packages/map_battle/lib/src/data/static_basic_move_registry.dart`.
+- Updated
+  `packages/map_battle/test/psdk_move_families/hazard_cleanup_moves_test.dart`.
+- Updated this parity execution report plus the parity status and next-lots
+  notes.
+
+Logic:
+
+- `s_rapid_spin` now keeps its dedicated Basic hit plus cleanup path and applies
+  the user's Speed +1 stage boost only after a real damage event for the move.
+- The cleanup behavior remains unchanged: user-local rapid-spin-affected
+  effects and own-bank hazards are removed after a successful hit.
+- Remaining gaps: exact PSDK delete-message ordering for removed effects and
+  richer multi-target messaging remain future cleanup work.
+
+## Lot BK - Last Resort Move-History Gate
+
+Status: completed for the current local singles slice.
+
+Files:
+
+- Updated `packages/map_battle/lib/src/data/static_basic_move_registry.dart`.
+- Updated
+  `packages/map_battle/test/psdk_move_families/high_leverage_missing_moves_test.dart`.
+- Updated `packages/map_battle/test/psdk_registry_manifest_test.dart`.
+- Updated
+  `packages/map_battle/lib/src/data/generated/psdk_move_registry_manifest.dart`.
+- Updated `packages/map_battle/tool/extract_psdk_move_registry.dart`.
+- Updated this parity execution report plus the parity status and next-lots
+  notes.
+
+Logic:
+
+- `s_last_resort` now leaves the generic partial Basic fallback list and has a
+  dedicated registry behavior.
+- It fails with `last_resort_requirements_unmet` when the user has no other
+  known move or when at least one other known move has not been attempted in
+  `PsdkBattleMoveHistory`.
+- It resolves through the normal Basic damage path once every other known move
+  id has been attempted.
+- Remaining gaps: exact PSDK failure message text, Struggle-style edge cases
+  and richer move-history parity for forced/replaced moves remain future work.
+
+## Lot BL - Photon Geyser Dynamic Stat Source
+
+Status: completed for the current local singles slice.
+
+Files:
+
+- Updated `packages/map_battle/lib/src/data/static_basic_move_registry.dart`.
+- Updated
+  `packages/map_battle/test/psdk_move_families/custom_stat_source_test.dart`.
+- Updated `packages/map_battle/test/psdk_registry_manifest_test.dart`.
+- Updated
+  `packages/map_battle/lib/src/data/generated/psdk_move_registry_manifest.dart`.
+- Updated `packages/map_battle/tool/extract_psdk_move_registry.dart`.
+- Updated this parity execution report plus the parity status and next-lots
+  notes.
+
+Logic:
+
+- `s_photon_geyser` now leaves the generic partial Basic fallback list and has a
+  dedicated registry behavior.
+- It compares the user's effective Attack and Special Attack, chooses physical
+  damage only when Attack is higher, otherwise keeps special damage, and then
+  runs the normal damage, screen and secondary-effect pipeline.
+- Remaining gaps: exact PSDK category/type-change messages, broader critical
+  edge-case calibration and multi-target ordering remain future work.
+
+## Lot BM - Fury Cutter Consecutive-Power Characterization
+
+Status: completed as focused coverage for the existing local behavior.
+
+Files:
+
+- Updated
+  `packages/map_battle/test/psdk_move_families/consecutive_power_moves_test.dart`.
+- Updated this parity execution report plus the parity status notes.
+
+Logic:
+
+- Added characterization that `s_fury_cutter` resets to first-use power when
+  the previous successful move is different.
+- Added characterization that the local consecutive-power slice caps Fury
+  Cutter at 160 base power.
+- No production code changed for this lot because the existing
+  `ConsecutivePowerMoveBehavior.furyCutter` path already satisfied the new
+  coverage.
+
+## Lot BN - Pollen Puff Ally Healing Slice
+
+Status: completed for the low-level local topology slice.
+
+Files:
+
+- Updated `packages/map_battle/lib/src/data/static_basic_move_registry.dart`.
+- Updated
+  `packages/map_battle/test/psdk_move_families/pollen_puff_move_test.dart`.
+- Updated `packages/map_battle/test/psdk_registry_manifest_test.dart`.
+- Updated
+  `packages/map_battle/lib/src/data/generated/psdk_move_registry_manifest.dart`.
+- Updated `packages/map_battle/tool/extract_psdk_move_registry.dart`.
+- Updated the parity status and next-lots notes.
+
+Logic:
+
+- `s_pollen_puff` now leaves the generic partial Basic fallback list and has a
+  dedicated registry behavior.
+- When the requested target is an allied battler, it heals 50% max HP and does
+  not emit a damage event.
+- When the target is opposing or self, it falls back to the normal Basic damage
+  path.
+- Remaining gaps: public doubles setup, runtime target-selection UI and exact
+  PSDK multi-target messages remain future work.
+
+## Lot BO - Relic Song Sleep Rider Characterization
+
+Status: completed as focused coverage for the existing local behavior.
+
+Files:
+
+- Updated
+  `packages/map_battle/test/psdk_move_families/special_secondary_moves_test.dart`.
+- Updated this parity execution report plus the parity status notes.
+
+Logic:
+
+- Added characterization that `s_relic_song` can apply its imported sleep rider
+  when the move data carries a guaranteed sleep secondary.
+- No production code changed for this lot because the existing
+  `SpecialSecondaryMoveBehavior` path already satisfied the new coverage.
+- Remaining gap: Meloetta form-change calibration remains future work.
+
+## Lot BP - Rage Incoming-Damage Counter
+
+Status: completed for the current local singles slice.
+
+Files:
+
+- Updated `packages/map_battle/lib/src/domain/handler/battle_damage_handler.dart`.
+- Updated `packages/map_battle/test/psdk_handlers_test.dart`.
+- Updated this parity execution report plus the parity status and next-lots
+  notes.
+
+Logic:
+
+- The shared damage handler now detects a target carrying the `rage` marker.
+- After real opposing damage, it applies a +1 Attack stat-stage change through
+  `BattleStatChangeHandler`, preserving the original damage event ordering.
+- Zero damage, same-bank damage and stat-stage cap behavior stay delegated to
+  existing handler guards.
+- Remaining gaps: exact PSDK messages and richer multi-target ordering remain
+  future work.
+
+## Lot BQ - Gastro Acid Protected-Ability Guards
+
+Status: completed for the current local singles slice.
+
+Files:
+
+- Updated `packages/map_battle/lib/src/data/static_basic_move_registry.dart`.
+- Updated
+  `packages/map_battle/test/psdk_move_families/high_leverage_missing_moves_test.dart`.
+- Updated this parity execution report plus the parity status and next-lots
+  notes.
+
+Logic:
+
+- `s_gastro_acid` still uses the target-marker path, but now fails before
+  installing `ability_suppressed` when the target is already suppressed.
+- It now also fails for PSDK protected abilities:
+  `as_one`, `battle_bond`, `comatose`, `commander`, `disguise`,
+  `gulp_missile`, `hadron_engine`, `hunger_switch`, `ice_face`, `imposter`,
+  `multitype`, `orichalcum_pulse`, `power_construct`, `protosynthesis`,
+  `quark_drive`, `rks_system`, `schooling`, `shields_down`, `stance_change`,
+  `wonder_guard`, `zen_mode` and `zero_to_hero`.
+- Good as Gold is covered as the local Gastro Acid status-protection guard.
+- Remaining gaps: broader generic Good as Gold status-move prevention and exact
+  PSDK message ids remain future work.
+
+## Lot BR - Pursuit Switching Power Slice
+
+Status: completed for the current local singles slice.
+
+Files:
+
+- Updated `packages/map_battle/lib/src/data/static_basic_move_registry.dart`.
+- Updated
+  `packages/map_battle/test/psdk_move_families/high_leverage_missing_moves_test.dart`.
+- Updated `packages/map_battle/test/psdk_registry_manifest_test.dart`.
+- Updated
+  `packages/map_battle/lib/src/data/generated/psdk_move_registry_manifest.dart`.
+- Updated `packages/map_battle/tool/extract_psdk_move_registry.dart`.
+- Updated this parity execution report plus the parity status and next-lots
+  notes.
+
+Logic:
+
+- `s_pursuit` now leaves the generic partial Basic fallback list and has a
+  dedicated registry behavior.
+- It doubles effective base power when the target is marked `switching` and its
+  `lastSentTurn` is not the current turn, matching PSDK's local formula branch.
+- It does not double when the target was sent during the current turn.
+- Remaining gaps: true switch-action interception, priority override and switch
+  cancellation on KO remain future work.
+
+## Lot BS - Flame Burst Adjacent Splash Slice
+
+Status: completed for the low-level local topology slice.
+
+Files:
+
+- Updated `packages/map_battle/lib/src/psdk/domain/psdk_battle_state.dart`.
+- Updated `packages/map_battle/lib/src/data/static_basic_move_registry.dart`.
+- Added
+  `packages/map_battle/test/psdk_move_families/flame_burst_move_test.dart`.
+- Updated `packages/map_battle/test/psdk_battle_topology_test.dart`.
+- Updated `packages/map_battle/test/psdk_registry_manifest_test.dart`.
+- Updated
+  `packages/map_battle/lib/src/data/generated/psdk_move_registry_manifest.dart`.
+- Updated `packages/map_battle/tool/extract_psdk_move_registry.dart`.
+- Updated this parity execution report plus the parity status and next-lots
+  notes.
+
+Logic:
+
+- `PsdkBattleState.adjacentAlliesOf` now returns alive same-bank adjacent slots
+  in stable slot order.
+- `s_flame_burst` now leaves the generic partial Basic fallback list and has a
+  dedicated registry behavior.
+- After successful primary damage, it splashes each adjacent ally of the damaged
+  target for `maxHp ~/ 16`, clamped from 1 to current HP.
+- Unsuppressed `magic_guard` skips the splash damage.
+- Remaining gaps: exact PSDK messages and richer public doubles setup remain
+  future work.
+
+## Lot BT - Fusion Bolt And Fusion Flare Power Slice
+
+Status: completed for the current local singles slice.
+
+Files:
+
+- Updated `packages/map_battle/lib/src/data/static_basic_move_registry.dart`.
+- Updated
+  `packages/map_battle/test/psdk_move_families/high_leverage_missing_moves_test.dart`.
+- Updated `packages/map_battle/test/psdk_registry_manifest_test.dart`.
+- Updated
+  `packages/map_battle/lib/src/data/generated/psdk_move_registry_manifest.dart`.
+- Updated `packages/map_battle/tool/extract_psdk_move_registry.dart`.
+- Updated this parity execution report plus the parity status and next-lots
+  notes.
+
+Logic:
+
+- `s_fusion_bolt` and `s_fusion_flare` now leave the generic partial Basic
+  fallback list and have dedicated registry behaviors.
+- Fusion Bolt doubles effective power when an opposing battler's last successful
+  move in the current turn is Fusion Flare.
+- Fusion Flare doubles effective power when an opposing battler's last
+  successful move in the current turn is Fusion Bolt.
+- Previous-turn counterpart successes do not boost.
+- Remaining gaps: exact PSDK `attack_order.next` parity and richer multi-battler
+  action-order modelling remain future work.
+
+## Lot BU - Leftovers And Black Sludge End-Turn Items
+
+Status: completed for the current local singles slice.
+
+Files:
+
+- Added
+  `packages/map_battle/lib/src/domain/effect/item/leftovers_effect.dart`.
+- Added
+  `packages/map_battle/lib/src/domain/effect/item/black_sludge_effect.dart`.
+- Updated
+  `packages/map_battle/lib/src/domain/effect/item/item_effect_registry.dart`.
+- Updated `packages/map_battle/lib/src/psdk/psdk_battle.dart`.
+- Updated `packages/map_battle/test/psdk_item_effects_test.dart`.
+- Updated this parity execution report plus the parity status and next-lots
+  notes.
+
+Logic:
+
+- `leftovers` now hydrates into an active item effect and heals its owner for
+  `maxHp ~/ 16`, clamped to at least 1, during the PSDK end-turn phase.
+- `black_sludge` now hydrates into an active item effect, heals Poison-type
+  owners for `maxHp ~/ 16`, and damages non-Poison owners for `maxHp ~/ 8`.
+- `embargo` and `magic_room` suppress both effects through the existing active
+  item-effect gate.
+- The Black Sludge damage branch skips unsuppressed `magic_guard`.
+- Remaining gaps: exact PSDK item messages, broader item catalog metadata,
+  Knock Off / Trick persistence and full item-removal restrictions remain
+  future work.
+
+## Lot BV - Big Root Leech Seed Healing Rider
+
+Status: completed for the current local singles slice.
+
+Files:
+
+- Updated
+  `packages/map_battle/lib/src/domain/effect/move/leech_seed_effect.dart`.
+- Updated `packages/map_battle/test/psdk_effect_lifecycle_test.dart`.
+- Updated this parity execution report plus the parity status and next-lots
+  notes.
+
+Logic:
+
+- `LeechSeedEffect` now applies the existing local Big Root healing multiplier
+  to the source-side heal amount.
+- The target still loses the same Leech Seed residual damage; only the drain
+  recovery is boosted.
+- Remaining gaps: Big Root coverage for every drain/heal family and exact PSDK
+  item messages remain future work.
+
+## Lot BW - Endure Protect-Variant Slice
+
+Status: completed for the current local singles slice.
+
+Files:
+
+- Added `packages/map_battle/lib/src/domain/effect/move/endure_effect.dart`.
+- Updated `packages/map_battle/lib/src/data/static_basic_move_registry.dart`.
+- Updated
+  `packages/map_battle/lib/src/domain/handler/battle_damage_handler.dart`.
+- Updated
+  `packages/map_battle/lib/src/domain/effect/battle_effect_registry.dart`.
+- Updated
+  `packages/map_battle/lib/src/domain/effect/move/protect_effect.dart`.
+- Updated `packages/map_battle/lib/src/psdk/domain/psdk_battle_combatant.dart`.
+- Updated `packages/map_battle/lib/src/psdk/psdk_battle.dart`.
+- Updated `packages/map_battle/test/psdk_protect_effect_test.dart`.
+- Updated this parity execution report plus the parity status and next-lots
+  notes.
+
+Logic:
+
+- Imported `endure` still enters through PSDK's `s_protect` method, but it now
+  installs a dedicated one-turn `EndureEffect` instead of `ProtectEffect`.
+- `EndureEffect` does not target-prevent incoming moves.
+- The shared damage handler now caps lethal incoming damage to leave the target
+  at 1 HP when the target has the active `endure` marker.
+- Remaining gaps: PSDK consecutive-protect success-rate decay, exact Endure
+  messages, Feint/Unseen Fist interactions and other protect variants remain
+  future work.
+
+## Lot BX - Liquid Ooze Leech Seed Drain Punish
+
+Status: completed for the current local singles slice.
+
+Files:
+
+- Updated
+  `packages/map_battle/lib/src/domain/effect/move/leech_seed_effect.dart`.
+- Updated `packages/map_battle/test/psdk_effect_lifecycle_test.dart`.
+- Updated this parity execution report plus the parity status and next-lots
+  notes.
+
+Logic:
+
+- `LeechSeedEffect` now checks the seeded target's `liquid_ooze` ability after
+  applying the residual Leech Seed damage.
+- When Liquid Ooze is active, the source takes the would-have-been drain amount
+  as `effect:leech_seed` damage instead of receiving a heal event.
+- The existing Big Root source-side multiplier remains upstream of the drain
+  amount, so the local branch stays consistent with the existing recovery rider.
+- Remaining gaps: exact PSDK ability messages and broader Liquid Ooze coverage
+  across all drain-family moves remain future work.
+
+## Lot BY - Rest Wake-Berry Consumption
+
+Status: completed for the current local singles slice.
+
+Files:
+
+- Updated
+  `packages/map_battle/lib/src/domain/move/behaviors/recovery_stat_move_behavior.dart`.
+- Updated
+  `packages/map_battle/test/psdk_move_families/rest_belly_strength_test.dart`.
+- Updated this parity execution report plus the parity status and next-lots
+  notes.
+
+Logic:
+
+- `s_rest` now reuses the existing item consumption and major-status cure
+  handlers after the Rest sleep and heal steps.
+- A held `chesto_berry` or `lum_berry` is consumed immediately after Rest when
+  item effects are not locally suppressed by `embargo` / `magic_room`.
+- The final battler state is fully healed, awake, with `heldItemId` cleared,
+  `consumedItemId` set to the berry id, and `itemConsumed` set to true.
+- Remaining gaps: exact PSDK berry messages, broader Lum Berry status coverage
+  and full berry catalog interactions remain future work.
+
+## Lot BZ - Liquid Ooze Magic Guard Source Guard
+
+Status: completed for the current local singles slice.
+
+Files:
+
+- Updated
+  `packages/map_battle/lib/src/domain/effect/move/leech_seed_effect.dart`.
+- Updated `packages/map_battle/test/psdk_effect_lifecycle_test.dart`.
+- Updated this parity execution report plus the parity status notes.
+
+Logic:
+
+- Liquid Ooze Leech Seed punishment now respects an unsuppressed source-side
+  `magic_guard` ability.
+- The seeded target still takes normal Leech Seed residual damage, but the
+  source receives neither a drain heal nor Liquid Ooze indirect damage.
+- Remaining gaps: exact PSDK ability messages and broader source-side indirect
+  damage prevention coverage remain future work.
+
+## Lot CA - Terrain Sleep Prevention For Rest And Status Handler
+
+Status: completed for the current local singles slice.
+
+Files:
+
+- Updated
+  `packages/map_battle/lib/src/domain/move/behaviors/recovery_stat_move_behavior.dart`.
+- Updated
+  `packages/map_battle/lib/src/domain/handler/battle_status_change_handler.dart`.
+- Updated
+  `packages/map_battle/test/psdk_move_families/rest_belly_strength_test.dart`.
+- Updated `packages/map_battle/test/psdk_status_lifecycle_test.dart`.
+- Updated this parity execution report plus the parity status and next-lots
+  notes.
+
+Logic:
+
+- `s_rest` now fails before PP spending and before healing when a grounded user
+  tries to sleep under Electric Terrain or Misty Terrain.
+- The shared major-status handler now rejects sleep application on grounded
+  targets under those same terrains with the existing `status_immune` reason.
+- Grounding is resolved through `BattleGroundingResolver`, so Flying,
+  Levitate, Magnet Rise, Iron Ball and related local grounding markers continue
+  to flow through the shared local grounding rules.
+- Remaining gaps: exact PSDK terrain prevention messages and full field-effect
+  messaging remain future work.
+
+## Lot CB - Take Heart Special Stat Boosts
+
+Status: completed for the current local singles slice.
+
+Files:
+
+- Updated
+  `packages/map_battle/lib/src/domain/move/behaviors/status_cure_move_behavior.dart`.
+- Added
+  `packages/map_battle/test/psdk_move_families/status_cure_move_behavior_test.dart`.
+- Updated this parity execution report plus the parity status notes.
+
+Logic:
+
+- `s_take_heart` still runs through the local status-cure path first.
+- After the cure phase, it now resolves the move's self-targeted secondary stat
+  changes so imported `specialAttack +1` and `specialDefense +1` stage mods are
+  applied in the same turn.
+- Remaining gaps: exact PSDK messages and richer multi-target process callbacks
+  for the whole status-cure family remain future work.
+
+## Lot CC - Item-Dependent Fling And Pluck Riders
+
+Status: completed for the current local singles slice.
+
+Files:
+
+- Updated
+  `packages/map_battle/lib/src/domain/move/behaviors/item_dependent_move_behavior.dart`.
+- Updated
+  `packages/map_battle/test/psdk_move_families/item_dependent_moves_test.dart`.
+- Updated this parity execution report plus the parity status and next-lots
+  notes.
+
+Logic:
+
+- `s_fling` still resolves through the local item-dependent damaging path and
+  still consumes the thrown held item after a successful hit.
+- After successful damage, `s_fling` now applies the PSDK item rider for:
+  `toxic_orb` -> toxic, `flame_orb` -> burn, `light_ball` -> paralysis and
+  `poison_barb` -> poison.
+- `light_ball` and `poison_barb` now have battle-local Fling power entries so
+  they pass the same item-power gate as the existing thrown items.
+- `s_pluck` still removes a target berry after a successful hit, and now also
+  forces the stolen `oran_berry` / `sitrus_berry` heal on the user before the
+  target berry is recorded as consumed.
+- Remaining gaps: exact PSDK item messages, broader berry execution effects
+  (status berries, stat berries, Cheek Pouch, Cud Chew), Symbiosis/deferred
+  callbacks and full trainer-item loss rules remain future work.

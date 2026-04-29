@@ -275,6 +275,51 @@ void main() {
         reference.state.battlerAt(psdkPlayerSlot).currentHp,
       );
     });
+
+    test('Endure lets a damaging move land but prevents the KO', () {
+      final engine = BattleEngine(
+        setup: _setup(
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'endure',
+              type: 'normal',
+              category: PsdkBattleMoveCategory.status,
+              power: 0,
+              accuracy: 0,
+              pp: 10,
+              priority: 4,
+              battleEngineMethod: 's_protect',
+              target: PsdkBattleMoveTarget.user,
+            ),
+          ],
+          opponentMove: _move(
+            id: 'opponent_crush',
+            type: 'normal',
+            power: 600,
+          ),
+        ),
+      );
+
+      final result = engine.submit(const BattleDecision.fight(moveSlot: 0));
+      final opponentEvents = result.timeline.events
+          .where((event) => event.toJson()['moveId'] == 'opponent_crush')
+          .toList(growable: false);
+
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 1);
+      expect(
+        opponentEvents.map((event) => event.kind),
+        containsAllInOrder(<String>[
+          'move_pp_spent',
+          'move_declared',
+          'animation_cue',
+          'damage',
+        ]),
+      );
+      expect(
+        opponentEvents.map((event) => event.kind),
+        isNot(contains('move_failed')),
+      );
+    });
   });
 }
 
@@ -283,6 +328,7 @@ BattleEngineSetup _setup({
   int opponentSpeed = 100,
   PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
   PsdkBattleEffectStack? playerEffects,
+  List<PsdkBattleMoveData>? playerMoves,
   PsdkBattleMoveData? opponentMove,
   int protectPriority = 4,
 }) {
@@ -292,28 +338,29 @@ BattleEngineSetup _setup({
       speed: playerSpeed,
       types: playerTypes,
       effects: playerEffects,
-      moves: <PsdkBattleMoveData>[
-        _move(
-          id: 'protect',
-          type: 'normal',
-          category: PsdkBattleMoveCategory.status,
-          power: 0,
-          accuracy: 0,
-          pp: 10,
-          priority: protectPriority,
-          battleEngineMethod: 's_protect',
-          target: PsdkBattleMoveTarget.user,
-        ),
-        _move(
-          id: 'player_wait',
-          type: 'normal',
-          category: PsdkBattleMoveCategory.status,
-          power: 0,
-          accuracy: 0,
-          battleEngineMethod: 's_status',
-          target: PsdkBattleMoveTarget.user,
-        ),
-      ],
+      moves: playerMoves ??
+          <PsdkBattleMoveData>[
+            _move(
+              id: 'protect',
+              type: 'normal',
+              category: PsdkBattleMoveCategory.status,
+              power: 0,
+              accuracy: 0,
+              pp: 10,
+              priority: protectPriority,
+              battleEngineMethod: 's_protect',
+              target: PsdkBattleMoveTarget.user,
+            ),
+            _move(
+              id: 'player_wait',
+              type: 'normal',
+              category: PsdkBattleMoveCategory.status,
+              power: 0,
+              accuracy: 0,
+              battleEngineMethod: 's_status',
+              target: PsdkBattleMoveTarget.user,
+            ),
+          ],
     ),
     opponent: _combatant(
       id: 'opponent',
