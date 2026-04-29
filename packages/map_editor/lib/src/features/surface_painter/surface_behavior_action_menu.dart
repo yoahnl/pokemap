@@ -8,6 +8,7 @@ import 'surface_to_gameplay_zone_dialog.dart';
 enum _SurfaceBehaviorChoice {
   tallGrassEncounter,
   surfableWater,
+  lavaHazard,
 }
 
 class SurfaceBehaviorActionMenu extends StatelessWidget {
@@ -66,6 +67,12 @@ class SurfaceBehaviorActionMenu extends StatelessWidget {
               ),
               child: const Text('Eau surfable'),
             ),
+            CupertinoActionSheetAction(
+              onPressed: () => Navigator.of(sheetContext).pop(
+                _SurfaceBehaviorChoice.lavaHazard,
+              ),
+              child: const Text('Lave dangereuse'),
+            ),
           ],
           cancelButton: CupertinoActionSheetAction(
             onPressed: () => Navigator.of(sheetContext).pop(),
@@ -84,6 +91,8 @@ class SurfaceBehaviorActionMenu extends StatelessWidget {
         await _openTallGrassDialog(context);
       case _SurfaceBehaviorChoice.surfableWater:
         await _openSurfableWaterDialog(context);
+      case _SurfaceBehaviorChoice.lavaHazard:
+        await _openLavaHazardDialog(context);
     }
   }
 
@@ -135,6 +144,32 @@ class SurfaceBehaviorActionMenu extends StatelessWidget {
       return;
     }
     applySurfableWaterGameplayZonePlan(
+      notifier: notifier,
+      plan: plan,
+    );
+  }
+
+  Future<void> _openLavaHazardDialog(BuildContext context) async {
+    final currentMap = map;
+    if (currentMap == null) {
+      return;
+    }
+    final plan = await showCupertinoDialog<SurfaceGameplayZoneGenerationPlan>(
+      context: context,
+      builder: (dialogContext) {
+        return LavaHazardSurfaceGameplayZoneDialog(
+          map: currentMap,
+          surfaceLayer: surfaceLayer,
+          surfacePresetId: surfacePresetId,
+          presets: presets,
+          onConfirm: (plan) => Navigator.of(dialogContext).pop(plan),
+        );
+      },
+    );
+    if (plan == null) {
+      return;
+    }
+    applyLavaHazardGameplayZonePlan(
       notifier: notifier,
       plan: plan,
     );

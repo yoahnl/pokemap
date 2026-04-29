@@ -231,6 +231,130 @@ class SurfableWaterSurfaceGameplayZoneDialog extends StatelessWidget {
   }
 }
 
+class LavaHazardSurfaceGameplayZoneDialog extends StatefulWidget {
+  const LavaHazardSurfaceGameplayZoneDialog({
+    super.key,
+    required this.map,
+    required this.surfaceLayer,
+    required this.surfacePresetId,
+    required this.presets,
+    required this.onConfirm,
+    this.onCancel,
+  });
+
+  final MapData? map;
+  final SurfaceLayer? surfaceLayer;
+  final String? surfacePresetId;
+  final List<ProjectSurfacePreset> presets;
+  final ValueChanged<SurfaceGameplayZoneGenerationPlan> onConfirm;
+  final VoidCallback? onCancel;
+
+  @override
+  State<LavaHazardSurfaceGameplayZoneDialog> createState() =>
+      _LavaHazardSurfaceGameplayZoneDialogState();
+}
+
+class _LavaHazardSurfaceGameplayZoneDialogState
+    extends State<LavaHazardSurfaceGameplayZoneDialog> {
+  late final TextEditingController _damageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _damageController = TextEditingController(text: '5');
+  }
+
+  @override
+  void dispose() {
+    _damageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final preview = buildLavaHazardSurfaceGameplayZonePreview(
+      map: widget.map,
+      surfaceLayer: widget.surfaceLayer,
+      surfacePresetId: widget.surfacePresetId,
+      presets: widget.presets,
+      damagePerStep: int.tryParse(_damageController.text.trim()),
+    );
+
+    return CupertinoAlertDialog(
+      title: const Text('Créer une zone de lave dangereuse'),
+      content: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 10),
+          _InfoLine(label: 'Surface', value: preview.surfaceLabel),
+          _InfoLine(label: 'Cellules', value: '${preview.sourceCellCount}'),
+          const _InfoLine(label: 'Type', value: 'Lave dangereuse'),
+          _InfoLine(label: 'Zones', value: '${preview.generatedZoneCount}'),
+          const SizedBox(height: 10),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: Text('Dégâts par pas'),
+          ),
+          const SizedBox(height: 6),
+          CupertinoTextField(
+            key: const Key('surface-to-gameplay-zone-lava-damage-field'),
+            controller: _damageController,
+            keyboardType: TextInputType.number,
+            placeholder: '5',
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              preview.summaryTitle,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(preview.summaryDescription),
+          ),
+          const SizedBox(height: 8),
+          for (final message in preview.messages) ...[
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text('• ${message.title}'),
+            ),
+            const SizedBox(height: 3),
+          ],
+          if (preview.assessment != null) ...[
+            const SizedBox(height: 8),
+            _InfoLine(
+              label: 'Couverture',
+              value:
+                  '${(preview.assessment!.coveragePercent * 100).toStringAsFixed(1)}%',
+            ),
+            _InfoLine(
+              label: 'Hors surface',
+              value:
+                  '${(preview.assessment!.extraCellRatio * 100).toStringAsFixed(1)}%',
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        CupertinoDialogAction(
+          onPressed: widget.onCancel ?? () => Navigator.of(context).pop(),
+          child: const Text('Annuler'),
+        ),
+        CupertinoDialogAction(
+          isDefaultAction: true,
+          onPressed:
+              preview.canConfirm ? () => widget.onConfirm(preview.plan!) : null,
+          child: const Text('Créer la zone de lave'),
+        ),
+      ],
+    );
+  }
+}
+
 class _InfoLine extends StatelessWidget {
   const _InfoLine({
     required this.label,

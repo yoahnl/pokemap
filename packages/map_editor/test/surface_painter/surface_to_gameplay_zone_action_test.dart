@@ -146,6 +146,127 @@ void main() {
     });
   });
 
+  group('Lava hazard surface to gameplay zone presenter', () {
+    test('builds a greedy hazard/lava generation preview from painted cells',
+        () {
+      final preview = buildLavaHazardSurfaceGameplayZonePreview(
+        map: _mapWithLavaSurface(),
+        surfaceLayer: _lavaLayer(),
+        surfacePresetId: 'lava',
+        presets: [_surfacePreset(id: 'lava', name: 'Lava')],
+        damagePerStep: 5,
+      );
+
+      expect(preview.canConfirm, isTrue);
+      expect(preview.damagePerStep, 5);
+      expect(
+        preview.status,
+        SurfaceGameplayZoneGenerationAssessmentStatus.ready,
+      );
+      expect(preview.plan, isNotNull);
+      expect(
+        preview.plan!.strategy,
+        SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+      );
+      expect(preview.plan!.generatedZones, hasLength(2));
+      expect(
+        preview.plan!.generatedZones.every(
+          (zone) =>
+              zone.kind == GameplayZoneKind.hazard &&
+              zone.hazard?.hazardKind == HazardKind.lava &&
+              zone.hazard?.damagePerStep == 5,
+        ),
+        isTrue,
+      );
+      expect(preview.assessment!.coveragePercent, 1);
+      expect(preview.assessment!.extraCellRatio, 0);
+    });
+
+    test('blocks when damagePerStep is not positive', () {
+      final preview = buildLavaHazardSurfaceGameplayZonePreview(
+        map: _mapWithLavaSurface(),
+        surfaceLayer: _lavaLayer(),
+        surfacePresetId: 'lava',
+        presets: [_surfacePreset(id: 'lava', name: 'Lava')],
+        damagePerStep: 0,
+      );
+
+      expect(preview.canConfirm, isFalse);
+      expect(
+        preview.status,
+        SurfaceGameplayZoneGenerationAssessmentStatus.blocked,
+      );
+      expect(preview.plan, isNull);
+      expect(
+        preview.messages.map((message) => message.title),
+        contains('Dégâts par pas invalides'),
+      );
+    });
+
+    test('blocks when selected lava surface has no painted placement', () {
+      final preview = buildLavaHazardSurfaceGameplayZonePreview(
+        map: _mapWithLavaSurface(),
+        surfaceLayer: _lavaLayer(),
+        surfacePresetId: 'water',
+        presets: [
+          _surfacePreset(id: 'lava', name: 'Lava'),
+          _surfacePreset(id: 'water', name: 'Water'),
+        ],
+        damagePerStep: 5,
+      );
+
+      expect(preview.canConfirm, isFalse);
+      expect(
+        preview.status,
+        SurfaceGameplayZoneGenerationAssessmentStatus.blocked,
+      );
+      expect(
+        preview.messages.map((message) => message.title),
+        contains('Aucune cellule peinte'),
+      );
+    });
+
+    test('blocks when selected lava preset is absent from catalog', () {
+      final preview = buildLavaHazardSurfaceGameplayZonePreview(
+        map: _mapWithLavaSurface(),
+        surfaceLayer: _lavaLayer(),
+        surfacePresetId: 'lava',
+        presets: const [],
+        damagePerStep: 5,
+      );
+
+      expect(preview.canConfirm, isFalse);
+      expect(
+        preview.status,
+        SurfaceGameplayZoneGenerationAssessmentStatus.blocked,
+      );
+      expect(
+        preview.messages.map((message) => message.title),
+        contains('Surface absente du catalogue'),
+      );
+    });
+
+    test('blocks when map is null', () {
+      final preview = buildLavaHazardSurfaceGameplayZonePreview(
+        map: null,
+        surfaceLayer: _lavaLayer(),
+        surfacePresetId: 'lava',
+        presets: [_surfacePreset(id: 'lava', name: 'Lava')],
+        damagePerStep: 5,
+      );
+
+      expect(preview.canConfirm, isFalse);
+      expect(
+        preview.status,
+        SurfaceGameplayZoneGenerationAssessmentStatus.blocked,
+      );
+      expect(
+        preview.messages.map((message) => message.title),
+        contains('Aucune map active'),
+      );
+    });
+  });
+
   group('SurfaceToGameplayZoneDialog', () {
     testWidgets('requires an encounter table id before confirming',
         (tester) async {
@@ -265,6 +386,110 @@ void main() {
     });
   });
 
+  group('LavaHazardSurfaceGameplayZoneDialog', () {
+    testWidgets('confirms a ready lava hazard plan with default damage',
+        (tester) async {
+      SurfaceGameplayZoneGenerationPlan? confirmedPlan;
+
+      await tester.pumpWidget(
+        CupertinoApp(
+          home: CupertinoPageScaffold(
+            child: LavaHazardSurfaceGameplayZoneDialog(
+              map: _mapWithLavaSurface(),
+              surfaceLayer: _lavaLayer(),
+              surfacePresetId: 'lava',
+              presets: [_surfacePreset(id: 'lava', name: 'Lava')],
+              onConfirm: (plan) => confirmedPlan = plan,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Créer une zone de lave dangereuse'), findsOneWidget);
+      expect(find.text('Dégâts par pas'), findsOneWidget);
+      expect(find.text('Type : '), findsOneWidget);
+      expect(find.text('Lave dangereuse'), findsOneWidget);
+      final damageField = tester.widget<CupertinoTextField>(
+        find.byKey(const Key('surface-to-gameplay-zone-lava-damage-field')),
+      );
+      expect(damageField.controller?.text, '5');
+      expect(find.text('Plan prêt à appliquer'), findsOneWidget);
+
+      final createAction = tester.widget<CupertinoDialogAction>(
+        find.widgetWithText(CupertinoDialogAction, 'Créer la zone de lave'),
+      );
+      expect(createAction.onPressed, isNotNull);
+      createAction.onPressed!();
+
+      expect(confirmedPlan, isNotNull);
+      expect(confirmedPlan!.generatedZones, hasLength(2));
+      expect(
+        confirmedPlan!.generatedZones.every(
+          (zone) =>
+              zone.kind == GameplayZoneKind.hazard &&
+              zone.hazard?.hazardKind == HazardKind.lava &&
+              zone.hazard?.damagePerStep == 5,
+        ),
+        isTrue,
+      );
+    });
+
+    testWidgets('requires positive damage and uses edited damage in the plan',
+        (tester) async {
+      SurfaceGameplayZoneGenerationPlan? confirmedPlan;
+
+      await tester.pumpWidget(
+        CupertinoApp(
+          home: CupertinoPageScaffold(
+            child: LavaHazardSurfaceGameplayZoneDialog(
+              map: _mapWithLavaSurface(),
+              surfaceLayer: _lavaLayer(),
+              surfacePresetId: 'lava',
+              presets: [_surfacePreset(id: 'lava', name: 'Lava')],
+              onConfirm: (plan) => confirmedPlan = plan,
+            ),
+          ),
+        ),
+      );
+
+      final field = find.byKey(
+        const Key('surface-to-gameplay-zone-lava-damage-field'),
+      );
+      await tester.enterText(field, '0');
+      await tester.pump();
+
+      expect(find.text('Dégâts par pas invalides'), findsOneWidget);
+      expect(
+        tester
+            .widget<CupertinoDialogAction>(
+              find.widgetWithText(
+                CupertinoDialogAction,
+                'Créer la zone de lave',
+              ),
+            )
+            .onPressed,
+        isNull,
+      );
+
+      await tester.enterText(field, '8');
+      await tester.pump();
+
+      final createAction = tester.widget<CupertinoDialogAction>(
+        find.widgetWithText(CupertinoDialogAction, 'Créer la zone de lave'),
+      );
+      expect(createAction.onPressed, isNotNull);
+      createAction.onPressed!();
+
+      expect(confirmedPlan, isNotNull);
+      expect(
+        confirmedPlan!.generatedZones.every(
+          (zone) => zone.hazard?.damagePerStep == 8,
+        ),
+        isTrue,
+      );
+    });
+  });
+
   group('SurfacePainterPanel behavior action menu', () {
     testWidgets('shows one behavior action and opens behavior choices',
         (tester) async {
@@ -304,6 +529,7 @@ void main() {
 
       expect(find.text('Herbe haute avec rencontres'), findsOneWidget);
       expect(find.text('Eau surfable'), findsOneWidget);
+      expect(find.text('Lave dangereuse'), findsOneWidget);
     });
 
     testWidgets('routes tall grass choice to the encounter dialog',
@@ -380,6 +606,43 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Rendre cette eau surfable'), findsOneWidget);
+      expect(find.text('Plan prêt à appliquer'), findsOneWidget);
+    });
+
+    testWidgets('routes lava choice to the lava hazard dialog', (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final keepAlive = container.listen(editorNotifierProvider, (_, __) {});
+      addTearDown(keepAlive.close);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        project: _projectManifest(
+          surfacePresets: [_surfacePreset(id: 'lava', name: 'Lava')],
+        ),
+        activeMap: _mapWithLavaSurface(),
+        activeLayerId: 'surface-main',
+        selectedSurfacePresetId: 'lava',
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const CupertinoApp(
+            home: CupertinoPageScaffold(
+              child: SurfacePainterPanel(embedded: true),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(
+        find.text('Créer un comportement depuis cette surface'),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Lave dangereuse'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Créer une zone de lave dangereuse'), findsOneWidget);
       expect(find.text('Plan prêt à appliquer'), findsOneWidget);
     });
   });
@@ -623,6 +886,165 @@ void main() {
       expect(state.isDirty, isFalse);
     });
   });
+
+  group('EditorNotifier lava hazard surface generation', () {
+    test(
+        'adds multiple hazard lava gameplay zones in one mutation and selects first',
+        () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final initialMap = _mapWithLavaSurface();
+      notifier.state = EditorState(
+        project: _projectManifest(
+          surfacePresets: [_surfacePreset(id: 'lava', name: 'Lava')],
+        ),
+        activeMap: initialMap,
+        activeLayerId: 'surface-main',
+        selectedSurfacePresetId: 'lava',
+        savedMapSnapshot: initialMap,
+      );
+      final preview = buildLavaHazardSurfaceGameplayZonePreview(
+        map: initialMap,
+        surfaceLayer: _lavaLayer(),
+        surfacePresetId: 'lava',
+        presets: [_surfacePreset(id: 'lava', name: 'Lava')],
+        damagePerStep: 5,
+      );
+
+      final applied = applyLavaHazardGameplayZonePlan(
+        notifier: notifier,
+        plan: preview.plan!,
+      );
+
+      final state = container.read(editorNotifierProvider);
+      final updatedMap = state.activeMap!;
+      expect(applied, isTrue);
+      expect(updatedMap.gameplayZones, hasLength(2));
+      expect(
+        updatedMap.gameplayZones.every(
+          (zone) =>
+              zone.kind == GameplayZoneKind.hazard &&
+              zone.hazard?.hazardKind == HazardKind.lava &&
+              zone.hazard?.damagePerStep == 5,
+        ),
+        isTrue,
+      );
+      expect(state.selectedGameplayZoneId, updatedMap.gameplayZones.first.id);
+      expect(state.isDirty, isTrue);
+      expect(state.mapUndoStack, hasLength(1));
+      expect(state.canUndoMap, isTrue);
+      expect(
+        updatedMap.layers.whereType<SurfaceLayer>().single.placements,
+        initialMap.layers.whereType<SurfaceLayer>().single.placements,
+      );
+    });
+
+    test('rejects non-hazard plans without mutating the map', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final initialMap = _mapWithLavaSurface();
+      notifier.state = EditorState(
+        project: _projectManifest(
+          surfacePresets: [_surfacePreset(id: 'lava', name: 'Lava')],
+        ),
+        activeMap: initialMap,
+        activeLayerId: 'surface-main',
+        selectedSurfacePresetId: 'lava',
+        savedMapSnapshot: initialMap,
+      );
+
+      final applied = applyLavaHazardGameplayZonePlan(
+        notifier: notifier,
+        plan: _planForBehavior(
+          const SurfaceGameplayZoneBehaviorDraft.movement(
+            MovementZonePayload(requiredMode: MovementMode.surf),
+          ),
+        ),
+      );
+
+      final state = container.read(editorNotifierProvider);
+      expect(applied, isFalse);
+      expect(state.activeMap, initialMap);
+      expect(state.activeMap!.gameplayZones, isEmpty);
+      expect(state.mapUndoStack, isEmpty);
+      expect(state.selectedGameplayZoneId, isNull);
+      expect(state.isDirty, isFalse);
+    });
+
+    test('rejects non-lava hazard plans without mutating the map', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final initialMap = _mapWithLavaSurface();
+      notifier.state = EditorState(
+        project: _projectManifest(
+          surfacePresets: [_surfacePreset(id: 'lava', name: 'Lava')],
+        ),
+        activeMap: initialMap,
+        activeLayerId: 'surface-main',
+        selectedSurfacePresetId: 'lava',
+        savedMapSnapshot: initialMap,
+      );
+
+      final applied = applyLavaHazardGameplayZonePlan(
+        notifier: notifier,
+        plan: _planForBehavior(
+          const SurfaceGameplayZoneBehaviorDraft.hazard(
+            HazardZonePayload(
+              hazardKind: HazardKind.poison,
+              damagePerStep: 5,
+            ),
+          ),
+        ),
+      );
+
+      final state = container.read(editorNotifierProvider);
+      expect(applied, isFalse);
+      expect(state.activeMap, initialMap);
+      expect(state.activeMap!.gameplayZones, isEmpty);
+      expect(state.mapUndoStack, isEmpty);
+      expect(state.selectedGameplayZoneId, isNull);
+      expect(state.isDirty, isFalse);
+    });
+
+    test('rejects lava hazard plans without positive damage', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final initialMap = _mapWithLavaSurface();
+      notifier.state = EditorState(
+        project: _projectManifest(
+          surfacePresets: [_surfacePreset(id: 'lava', name: 'Lava')],
+        ),
+        activeMap: initialMap,
+        activeLayerId: 'surface-main',
+        selectedSurfacePresetId: 'lava',
+        savedMapSnapshot: initialMap,
+      );
+
+      final applied = applyLavaHazardGameplayZonePlan(
+        notifier: notifier,
+        plan: _planForBehavior(
+          const SurfaceGameplayZoneBehaviorDraft.hazard(
+            HazardZonePayload(
+              hazardKind: HazardKind.lava,
+              damagePerStep: 0,
+            ),
+          ),
+        ),
+      );
+
+      final state = container.read(editorNotifierProvider);
+      expect(applied, isFalse);
+      expect(state.activeMap, initialMap);
+      expect(state.activeMap!.gameplayZones, isEmpty);
+      expect(state.mapUndoStack, isEmpty);
+      expect(state.selectedGameplayZoneId, isNull);
+      expect(state.isDirty, isFalse);
+    });
+  });
 }
 
 SurfaceGameplayZoneGenerationPlan _planForBehavior(
@@ -661,6 +1083,15 @@ MapData _mapWithWaterSurface() {
     name: 'Route 1',
     size: const GridSize(width: 8, height: 8),
     layers: [_waterLayer()],
+  );
+}
+
+MapData _mapWithLavaSurface() {
+  return MapData(
+    id: 'route_1',
+    name: 'Route 1',
+    size: const GridSize(width: 8, height: 8),
+    layers: [_lavaLayer()],
   );
 }
 
@@ -707,6 +1138,30 @@ SurfaceLayer _waterLayer() {
         x: 2,
         y: 1,
         surfacePresetId: 'water',
+      ),
+    ],
+  );
+}
+
+SurfaceLayer _lavaLayer() {
+  return const SurfaceLayer(
+    id: 'surface-main',
+    name: 'Surfaces',
+    placements: [
+      SurfaceCellPlacement(
+        x: 4,
+        y: 0,
+        surfacePresetId: 'lava',
+      ),
+      SurfaceCellPlacement(
+        x: 5,
+        y: 0,
+        surfacePresetId: 'lava',
+      ),
+      SurfaceCellPlacement(
+        x: 4,
+        y: 1,
+        surfacePresetId: 'lava',
       ),
     ],
   );

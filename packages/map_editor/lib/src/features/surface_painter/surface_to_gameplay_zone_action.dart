@@ -40,6 +40,27 @@ bool applySurfableWaterGameplayZonePlan({
   );
 }
 
+bool applyLavaHazardGameplayZonePlan({
+  required EditorNotifier notifier,
+  required SurfaceGameplayZoneGenerationPlan plan,
+}) {
+  // Authoring only: this stores lava damage metadata on gameplay zones.
+  // HP / party mutation is intentionally left to gameplay/runtime consumers.
+  final zones = plan.generatedZones;
+  if (zones.isEmpty) {
+    return false;
+  }
+  if (zones.any((zone) => !_isLavaHazardZone(zone))) {
+    return false;
+  }
+
+  return notifier.applyGeneratedGameplayZones(
+    zones: zones,
+    selectZoneId: zones.first.id,
+    statusMessage: 'Zones de lave créées depuis la surface',
+  );
+}
+
 bool _isTallGrassEncounterZone(MapGameplayZone zone) {
   return zone.kind == GameplayZoneKind.encounter &&
       zone.encounter != null &&
@@ -50,4 +71,11 @@ bool _isSurfableWaterMovementZone(MapGameplayZone zone) {
   return zone.kind == GameplayZoneKind.movement &&
       zone.movement != null &&
       zone.movement?.requiredMode == MovementMode.surf;
+}
+
+bool _isLavaHazardZone(MapGameplayZone zone) {
+  return zone.kind == GameplayZoneKind.hazard &&
+      zone.hazard != null &&
+      zone.hazard?.hazardKind == HazardKind.lava &&
+      (zone.hazard?.damagePerStep ?? 0) > 0;
 }
