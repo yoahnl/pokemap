@@ -95,6 +95,7 @@ class _SurfaceStudioScreenState extends State<SurfaceStudioScreen> {
   bool _aiConfirmationOpen = false;
   bool _mergeAiAfterConfirmation = false;
   bool _suggestionRunning = false;
+  String? _mistralProgressMessage;
   Set<String> _openSchemaGroups = const {
     'surfaceMain',
     'edges',
@@ -538,6 +539,7 @@ class _SurfaceStudioScreenState extends State<SurfaceStudioScreen> {
       _suggestionResult = result;
       _suggestionReviewOpen = openReview || _suggestionReviewOpen;
       _aiConfirmationOpen = false;
+      _mistralProgressMessage = null;
       _statusMessage =
           'Suggestions locales prêtes — validation utilisateur requise.';
     });
@@ -548,6 +550,7 @@ class _SurfaceStudioScreenState extends State<SurfaceStudioScreen> {
       _suggestionReviewOpen = true;
       _aiConfirmationOpen = true;
       _mergeAiAfterConfirmation = mergeWithLocal;
+      _mistralProgressMessage = null;
       _statusMessage = 'Confirmation IA requise avant envoi.';
     });
   }
@@ -559,6 +562,7 @@ class _SurfaceStudioScreenState extends State<SurfaceStudioScreen> {
     if (!hasApiKey || imageBytes == null) {
       setState(() {
         _aiConfirmationOpen = false;
+        _mistralProgressMessage = null;
         _suggestionResult = SurfaceStudioMappingSuggestionResult(
           suggestions: _suggestionResult?.suggestions ??
               const <SurfaceStudioRoleSuggestion>[],
@@ -576,19 +580,39 @@ class _SurfaceStudioScreenState extends State<SurfaceStudioScreen> {
     setState(() {
       _suggestionRunning = true;
       _aiConfirmationOpen = false;
+      _mistralProgressMessage = 'Analyse visuelle approfondie…';
     });
     final aiController = SurfaceStudioMappingSuggestionController(
       aiSuggester:
           widget.aiMappingSuggester ?? SurfaceStudioMistralMappingSuggester(),
     );
-    final ai = await aiController.suggestMistral(
-      apiKey: apiKey,
-      imageBytes: imageBytes,
-      tileWidth: _tileWidthValue,
-      tileHeight: _tileHeightValue,
-      columnCount: _columnCount,
-      frameCount: _frameCount,
-    );
+    late final SurfaceStudioMappingSuggestionResult ai;
+    try {
+      ai = await aiController.suggestMistral(
+        apiKey: apiKey,
+        imageBytes: imageBytes,
+        tileWidth: _tileWidthValue,
+        tileHeight: _tileHeightValue,
+        columnCount: _columnCount,
+        frameCount: _frameCount,
+      );
+    } on TimeoutException {
+      ai = const SurfaceStudioMappingSuggestionResult(
+        suggestions: <SurfaceStudioRoleSuggestion>[],
+        warnings: <String>[
+          'Mistral n’a pas répondu à temps. Aucune modification n’a été appliquée.',
+        ],
+        source: SurfaceStudioMappingSuggestionSource.mistral,
+      );
+    } catch (_) {
+      ai = const SurfaceStudioMappingSuggestionResult(
+        suggestions: <SurfaceStudioRoleSuggestion>[],
+        warnings: <String>[
+          'Analyse Mistral impossible. Aucune modification n’a été appliquée.',
+        ],
+        source: SurfaceStudioMappingSuggestionSource.mistral,
+      );
+    }
     if (!mounted) {
       return;
     }
@@ -607,6 +631,7 @@ class _SurfaceStudioScreenState extends State<SurfaceStudioScreen> {
         : ai;
     setState(() {
       _suggestionRunning = false;
+      _mistralProgressMessage = null;
       _suggestionResult = result;
       _suggestionReviewOpen = true;
       _statusMessage =
@@ -629,6 +654,29 @@ class _SurfaceStudioScreenState extends State<SurfaceStudioScreen> {
       _assignmentDraft = draft;
       _suggestionReviewOpen = false;
       _statusMessage = 'Suggestions appliquées au mapping de travail.';
+    });
+  }
+
+  void _applySingleSuggestion(SurfaceStudioRoleSuggestion suggestion) {
+    setState(() {
+      _assignmentDraft =
+          _assignmentDraft.assignColumns(suggestion.role, suggestion.columns);
+      _statusMessage = 'Suggestion appliquée au mapping de travail.';
+    });
+  }
+
+  void _useSelectionAsCenter() {
+    final columns = _selectedColumns.columns;
+    if (columns.isEmpty) {
+      setState(() {
+        _statusMessage = 'Sélectionnez au moins une colonne à assigner.';
+      });
+      return;
+    }
+    setState(() {
+      _assignmentDraft =
+          _assignmentDraft.assignColumns(SurfaceVariantRole.isolated, columns);
+      _statusMessage = 'Colonnes sélectionnées assignées à Plein(center).';
     });
   }
 
@@ -823,10 +871,12 @@ class _SurfaceStudioScreenState extends State<SurfaceStudioScreen> {
                   hasEditorMistralApiKey(widget.projectSettings),
               aiConfirmationOpen: _aiConfirmationOpen,
               running: _suggestionRunning,
+              progressMessage: _mistralProgressMessage,
               onCancel: () {
                 setState(() {
                   _suggestionReviewOpen = false;
                   _aiConfirmationOpen = false;
+                  _mistralProgressMessage = null;
                 });
               },
               onRunLocal: () => _runLocalSuggestion(),
@@ -836,6 +886,7 @@ class _SurfaceStudioScreenState extends State<SurfaceStudioScreen> {
                 mergeWithLocal: _mergeAiAfterConfirmation,
               ),
               onCompare: () => _requestAiSuggestion(mergeWithLocal: true),
+              onApplySuggestion: _applySingleSuggestion,
               onApplyReliable: () => _applySuggestions(reliableOnly: true),
               onApplyAll: () => _applySuggestions(reliableOnly: false),
             ),
@@ -912,10 +963,15 @@ class _SurfaceStudioScreenState extends State<SurfaceStudioScreen> {
               ? 'Image source indisponible — aperçu illustratif.'
               : null,
           selection: _selectedColumns,
+          centerAssigned:
+              _assignmentDraft.isAssigned(SurfaceVariantRole.isolated),
+          centerColumns:
+              _assignmentDraft.columnsForRole(SurfaceVariantRole.isolated),
           zoomPercent: _zoomPercent,
           onColumnSelectionChanged: (selection) {
             setState(() => _selectedColumns = selection);
           },
+          onUseSelectionAsCenter: _useSelectionAsCenter,
           onZoomChanged: (value) {
             setState(() => _zoomPercent = value.clamp(25, 400).toDouble());
           },
@@ -967,6 +1023,9 @@ class _SurfaceStudioScreenState extends State<SurfaceStudioScreen> {
             loop: _previewLoop,
             gridVisible: _previewGridVisible,
             previewSize: _previewSize,
+            tileWidth: _tileWidthValue,
+            tileHeight: _tileHeightValue,
+            columnCount: _columnCount,
             assignmentDraft: _assignmentDraft,
             atlasImageBytes: _atlasImageBytes(),
             atlasFallbackMessage: _atlasImageBytes() == null
@@ -1066,6 +1125,9 @@ class _SurfaceStudioScreenState extends State<SurfaceStudioScreen> {
             loop: _previewLoop,
             gridVisible: _previewGridVisible,
             previewSize: _previewSize,
+            tileWidth: _tileWidthValue,
+            tileHeight: _tileHeightValue,
+            columnCount: _columnCount,
             assignmentDraft: _assignmentDraft,
             atlasImageBytes: _atlasImageBytes(),
             atlasFallbackMessage: _atlasImageBytes() == null
@@ -1845,12 +1907,14 @@ class _SuggestionReviewScrim extends StatelessWidget {
     required this.mistralKeyConfigured,
     required this.aiConfirmationOpen,
     required this.running,
+    required this.progressMessage,
     required this.onCancel,
     required this.onRunLocal,
     required this.onRequestAi,
     required this.onCancelAi,
     required this.onConfirmAi,
     required this.onCompare,
+    required this.onApplySuggestion,
     required this.onApplyReliable,
     required this.onApplyAll,
   });
@@ -1859,12 +1923,14 @@ class _SuggestionReviewScrim extends StatelessWidget {
   final bool mistralKeyConfigured;
   final bool aiConfirmationOpen;
   final bool running;
+  final String? progressMessage;
   final VoidCallback onCancel;
   final VoidCallback onRunLocal;
   final VoidCallback onRequestAi;
   final VoidCallback onCancelAi;
   final VoidCallback onConfirmAi;
   final VoidCallback onCompare;
+  final ValueChanged<SurfaceStudioRoleSuggestion> onApplySuggestion;
   final VoidCallback onApplyReliable;
   final VoidCallback onApplyAll;
 
@@ -1913,7 +1979,10 @@ class _SuggestionReviewScrim extends StatelessWidget {
                       const SizedBox(height: 8),
                     ],
                     for (final suggestion in result.suggestions)
-                      _SuggestionRow(suggestion: suggestion),
+                      _SuggestionRow(
+                        suggestion: suggestion,
+                        onApply: () => onApplySuggestion(suggestion),
+                      ),
                     const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -1952,6 +2021,59 @@ class _SuggestionReviewScrim extends StatelessWidget {
                               height: 1.3,
                             ),
                           ),
+                          if (running) ...[
+                            const SizedBox(height: 10),
+                            Container(
+                              key: const ValueKey(
+                                'surfaceStudio.suggestion.mistralProgress',
+                              ),
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: SurfaceStudioDesignTokens.backgroundDeep,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color:
+                                      SurfaceStudioDesignTokens.accentGoldSoft,
+                                ),
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const CupertinoActivityIndicator(radius: 10),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'Mistral analyse l’atlas avec un niveau de réflexion élevé. Cela peut prendre quelques secondes.',
+                                          style: TextStyle(
+                                            color: SurfaceStudioDesignTokens
+                                                .textSecondary,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w800,
+                                            height: 1.3,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          progressMessage ??
+                                              'Analyse visuelle approfondie…',
+                                          style: const TextStyle(
+                                            color: SurfaceStudioDesignTokens
+                                                .accentGold,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 8),
                           Wrap(
                             spacing: 8,
@@ -2077,9 +2199,13 @@ class _SuggestionReviewScrim extends StatelessWidget {
 }
 
 class _SuggestionRow extends StatelessWidget {
-  const _SuggestionRow({required this.suggestion});
+  const _SuggestionRow({
+    required this.suggestion,
+    required this.onApply,
+  });
 
   final SurfaceStudioRoleSuggestion suggestion;
+  final VoidCallback onApply;
 
   @override
   Widget build(BuildContext context) {
@@ -2115,6 +2241,19 @@ class _SuggestionRow extends StatelessWidget {
             style: const TextStyle(
               color: SurfaceStudioDesignTokens.textMuted,
               height: 1.3,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: CupertinoButton(
+              key: ValueKey(
+                'surfaceStudio.suggestion.accept.${suggestion.role.name}',
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              color: SurfaceStudioDesignTokens.accentTealSoft,
+              onPressed: onApply,
+              child: const Text('Accepter'),
             ),
           ),
         ],

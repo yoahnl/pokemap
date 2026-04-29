@@ -3,19 +3,19 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
-import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 
 import 'surface_studio_ai_mapping_suggester.dart';
 import 'surface_studio_mapping_suggestion_models.dart';
 import 'surface_studio_mapping_suggestion_prompt_builder.dart';
+import 'surface_studio_mistral_vision_pack.dart';
 
 final class SurfaceStudioMistralMappingSuggester
     implements SurfaceStudioAiMappingSuggester {
   SurfaceStudioMistralMappingSuggester({
     http.Client? httpClient,
     this.baseUrl = 'https://api.mistral.ai/v1/chat/completions',
-    this.model = 'mistral-small-2506',
+    this.model = 'mistral-large-latest',
     this.timeout = const Duration(seconds: 30),
   }) : _client = httpClient ?? http.Client();
 
@@ -42,23 +42,42 @@ final class SurfaceStudioMistralMappingSuggester
       );
     }
 
-    final prompt = buildSurfaceStudioMappingSuggestionPrompt(
+    final visionPack = buildSurfaceStudioMistralVisionPack(
+      imageBytes: imageBytes,
       tileWidth: tileWidth,
       tileHeight: tileHeight,
       columnCount: columnCount,
       frameCount: frameCount,
     );
-    final imageDataUrl = _imageDataUrl(imageBytes);
+    final prompt = buildSurfaceStudioMappingSuggestionPrompt(
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
+      columnCount: columnCount,
+      frameCount: frameCount,
+      columnDescriptors: visionPack.columnDescriptors,
+    );
     final body = jsonEncode({
       'model': model,
-      'temperature': 0,
-      'response_format': {'type': 'json_object'},
+      'temperature': 0.1,
+      'reasoning_effort': 'high',
+      'response_format': _jsonSchemaResponseFormat(),
       'messages': [
         {
           'role': 'user',
           'content': [
             {'type': 'text', 'text': prompt},
-            {'type': 'image_url', 'image_url': imageDataUrl},
+            {
+              'type': 'image_url',
+              'image_url': visionPack.originalAtlasDataUrl,
+            },
+            {
+              'type': 'image_url',
+              'image_url': visionPack.annotatedAtlasDataUrl,
+            },
+            {
+              'type': 'image_url',
+              'image_url': visionPack.columnContactSheetDataUrl,
+            },
           ],
         },
       ],
@@ -85,6 +104,7 @@ final class SurfaceStudioMistralMappingSuggester
       return _parseChatResponse(
         response.body,
         columnCount: columnCount,
+        columnDescriptors: visionPack.columnDescriptors,
       );
     } on TimeoutException {
       return const SurfaceStudioMappingSuggestionResult(
@@ -101,31 +121,76 @@ final class SurfaceStudioMistralMappingSuggester
     }
   }
 
-  String _imageDataUrl(Uint8List bytes) {
-    img.Image? decoded;
-    try {
-      decoded = img.decodeImage(bytes);
-    } catch (_) {
-      decoded = null;
-    }
-    if (decoded == null) {
-      return 'data:image/png;base64,${base64Encode(bytes)}';
-    }
-    final longest =
-        decoded.width > decoded.height ? decoded.width : decoded.height;
-    final normalized = longest > 768
-        ? img.copyResize(
-            decoded,
-            width: decoded.width >= decoded.height ? 768 : null,
-            height: decoded.height > decoded.width ? 768 : null,
-          )
-        : decoded;
-    return 'data:image/png;base64,${base64Encode(img.encodePng(normalized))}';
+  Map<String, Object?> _jsonSchemaResponseFormat() {
+    return {
+      'type': 'json_schema',
+      'json_schema': {
+        'name': 'surface_studio_mapping_suggestion',
+        'strict': true,
+        'schema': {
+          'type': 'object',
+          'additionalProperties': false,
+          'required': ['assignments', 'rejectedColumns', 'warnings'],
+          'properties': {
+            'assignments': {
+              'type': 'array',
+              'items': {
+                'type': 'object',
+                'additionalProperties': false,
+                'required': [
+                  'role',
+                  'columns',
+                  'confidence',
+                  'evidenceColumns',
+                  'reason',
+                ],
+                'properties': {
+                  'role': {
+                    'type': 'string',
+                    'enum': surfaceStudioMistralAllowedRoleNames,
+                  },
+                  'columns': {
+                    'type': 'array',
+                    'items': {'type': 'integer'},
+                  },
+                  'confidence': {
+                    'type': 'string',
+                    'enum': ['high', 'medium', 'low'],
+                  },
+                  'evidenceColumns': {
+                    'type': 'array',
+                    'items': {'type': 'integer'},
+                  },
+                  'reason': {'type': 'string'},
+                },
+              },
+            },
+            'rejectedColumns': {
+              'type': 'array',
+              'items': {
+                'type': 'object',
+                'additionalProperties': false,
+                'required': ['column', 'reason'],
+                'properties': {
+                  'column': {'type': 'integer'},
+                  'reason': {'type': 'string'},
+                },
+              },
+            },
+            'warnings': {
+              'type': 'array',
+              'items': {'type': 'string'},
+            },
+          },
+        },
+      },
+    };
   }
 
   SurfaceStudioMappingSuggestionResult _parseChatResponse(
     String body, {
     required int columnCount,
+    required List<SurfaceStudioColumnVisualDescriptor> columnDescriptors,
   }) {
     try {
       final decoded = jsonDecode(body);
@@ -152,7 +217,11 @@ final class SurfaceStudioMistralMappingSuggester
       if (payload is! Map<String, dynamic>) {
         throw const FormatException('payload');
       }
-      return _parsePayload(payload, columnCount: columnCount);
+      return _parsePayload(
+        payload,
+        columnCount: columnCount,
+        columnDescriptors: columnDescriptors,
+      );
     } catch (e) {
       return SurfaceStudioMappingSuggestionResult(
         suggestions: const <SurfaceStudioRoleSuggestion>[],
@@ -165,13 +234,40 @@ final class SurfaceStudioMistralMappingSuggester
   SurfaceStudioMappingSuggestionResult _parsePayload(
     Map<String, dynamic> payload, {
     required int columnCount,
+    required List<SurfaceStudioColumnVisualDescriptor> columnDescriptors,
   }) {
     final warnings = <String>[];
+    final descriptorsByColumn = <int, SurfaceStudioColumnVisualDescriptor>{
+      for (final descriptor in columnDescriptors) descriptor.column: descriptor,
+    };
+    final likelyEmptyColumns = descriptorsByColumn.values
+        .where((descriptor) => descriptor.likelyEmpty)
+        .map((descriptor) => descriptor.column)
+        .toSet();
     final rawWarnings = payload['warnings'];
     if (rawWarnings is List) {
       for (final warning in rawWarnings) {
         if (warning is String && warning.trim().isNotEmpty) {
           warnings.add(warning.trim());
+        }
+      }
+    }
+    final rejectedColumns = payload['rejectedColumns'];
+    if (rejectedColumns is List) {
+      for (final rejected in rejectedColumns) {
+        if (rejected is! Map<String, dynamic>) {
+          warnings.add('Colonne rejetée Mistral non objet ignorée.');
+          continue;
+        }
+        final column = rejected['column'];
+        final reason = rejected['reason'];
+        if (column is! int || column < 1 || column > columnCount) {
+          warnings.add('Colonne rejetée Mistral hors bornes ignorée.');
+          continue;
+        }
+        if (reason is String && reason.trim().isNotEmpty) {
+          warnings
+              .add('Mistral a rejeté la colonne $column : ${reason.trim()}');
         }
       }
     }
@@ -212,9 +308,37 @@ final class SurfaceStudioMistralMappingSuggester
         );
         continue;
       }
+      int? emptyColumn;
+      for (final column in columns) {
+        if (likelyEmptyColumns.contains(column)) {
+          emptyColumn = column;
+          break;
+        }
+      }
+      if (emptyColumn != null) {
+        warnings.add(
+          'Suggestion Mistral sur colonne likelyEmpty rejetée pour $roleName : $emptyColumn.',
+        );
+        continue;
+      }
       if (role != SurfaceVariantRole.isolated && columns.length > 1) {
         warnings
             .add('Suggestion Mistral multi-colonnes rejetée pour $roleName.');
+        continue;
+      }
+      final evidenceColumns = _parseColumns(item['evidenceColumns']);
+      if (evidenceColumns.isEmpty) {
+        warnings.add(
+            'Suggestion Mistral sans evidenceColumns rejetée pour $roleName.');
+        continue;
+      }
+      final evidenceOutOfRange = evidenceColumns.where(
+        (column) => column < 1 || column > columnCount,
+      );
+      if (evidenceOutOfRange.isNotEmpty) {
+        warnings.add(
+          'Evidence Mistral hors bornes rejetée pour $roleName : ${evidenceOutOfRange.first}.',
+        );
         continue;
       }
       final confidence = _confidenceFromName(item['confidence']);
@@ -223,6 +347,17 @@ final class SurfaceStudioMistralMappingSuggester
         continue;
       }
       final reason = item['reason'];
+      for (final column in columns) {
+        final descriptor = descriptorsByColumn[column];
+        if (descriptor == null) {
+          continue;
+        }
+        if (!descriptor.localCandidateRoles.contains(role.name)) {
+          warnings.add(
+            'Mistral contredit l’analyse locale pour ${role.name} colonne $column.',
+          );
+        }
+      }
       suggestions.add(
         SurfaceStudioRoleSuggestion(
           role: role,

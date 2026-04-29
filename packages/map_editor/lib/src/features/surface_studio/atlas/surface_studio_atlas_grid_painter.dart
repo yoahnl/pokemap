@@ -8,56 +8,66 @@ class SurfaceStudioAtlasGridPainter extends CustomPainter {
     required this.rowCount,
     required this.selectedColumns,
     required this.zoomPercent,
+    this.drawFallbackSurface = true,
   });
 
   final int columnCount;
   final int rowCount;
   final List<int> selectedColumns;
   final double zoomPercent;
+  final bool drawFallbackSurface;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final bg = Paint()..color = const Color(0xFF102E70);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(8)),
-      bg,
-    );
+    if (drawFallbackSurface) {
+      final bg = Paint()..color = const Color(0xFF102E70);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(8)),
+        bg,
+      );
+
+      final columnWidth = size.width / columnCount;
+      final stripePaint = Paint();
+      for (var i = 0; i < columnCount; i++) {
+        final rect =
+            Rect.fromLTWH(i * columnWidth, 0, columnWidth, size.height);
+        final hue = i % 4;
+        stripePaint.color = switch (hue) {
+          0 => const Color(0xFF1C7DFF),
+          1 => const Color(0xFF2E8DFF),
+          2 => const Color(0xFFE15E91),
+          _ => const Color(0xFF2272DD),
+        };
+        canvas.drawRect(rect, stripePaint);
+        if (hue == 2) {
+          final shore = Paint()
+            ..color = const Color(0xFFE2D6C8).withValues(alpha: 0.72);
+          canvas.drawRect(
+            Rect.fromLTWH(
+              rect.left + columnWidth * 0.72,
+              0,
+              columnWidth * 0.16,
+              size.height,
+            ),
+            shore,
+          );
+        }
+      }
+
+      final waterLine = Paint()
+        ..color = const Color(0xFF7ACDFF).withValues(alpha: 0.18)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.2;
+      for (var y = 14.0; y < size.height; y += 32) {
+        final path = Path()..moveTo(0, y);
+        for (var x = 0.0; x <= size.width; x += 24) {
+          path.quadraticBezierTo(x + 12, y - 8, x + 24, y);
+        }
+        canvas.drawPath(path, waterLine);
+      }
+    }
 
     final columnWidth = size.width / columnCount;
-    final stripePaint = Paint();
-    for (var i = 0; i < columnCount; i++) {
-      final rect = Rect.fromLTWH(i * columnWidth, 0, columnWidth, size.height);
-      final hue = i % 4;
-      stripePaint.color = switch (hue) {
-        0 => const Color(0xFF1C7DFF),
-        1 => const Color(0xFF2E8DFF),
-        2 => const Color(0xFFE15E91),
-        _ => const Color(0xFF2272DD),
-      };
-      canvas.drawRect(rect, stripePaint);
-      if (hue == 2) {
-        final shore = Paint()
-          ..color = const Color(0xFFE2D6C8).withValues(alpha: 0.72);
-        canvas.drawRect(
-          Rect.fromLTWH(rect.left + columnWidth * 0.72, 0, columnWidth * 0.16,
-              size.height),
-          shore,
-        );
-      }
-    }
-
-    final waterLine = Paint()
-      ..color = const Color(0xFF7ACDFF).withValues(alpha: 0.18)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.2;
-    for (var y = 14.0; y < size.height; y += 32) {
-      final path = Path()..moveTo(0, y);
-      for (var x = 0.0; x <= size.width; x += 24) {
-        path.quadraticBezierTo(x + 12, y - 8, x + 24, y);
-      }
-      canvas.drawPath(path, waterLine);
-    }
-
     final gridPaint = Paint()
       ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.42)
       ..strokeWidth = 1;
@@ -96,6 +106,7 @@ class SurfaceStudioAtlasGridPainter extends CustomPainter {
       oldDelegate.columnCount != columnCount ||
       oldDelegate.rowCount != rowCount ||
       oldDelegate.zoomPercent != zoomPercent ||
+      oldDelegate.drawFallbackSurface != drawFallbackSurface ||
       !_listEquals(oldDelegate.selectedColumns, selectedColumns);
 }
 

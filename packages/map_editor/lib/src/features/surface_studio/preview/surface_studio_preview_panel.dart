@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 
 import '../surface_studio_design_tokens.dart';
 import '../surface_studio_role_assignment_draft.dart';
+import 'surface_studio_surface_preview_renderer.dart';
 
 class SurfaceStudioPreviewPanel extends StatelessWidget {
   const SurfaceStudioPreviewPanel({
@@ -17,6 +18,9 @@ class SurfaceStudioPreviewPanel extends StatelessWidget {
     required this.loop,
     required this.gridVisible,
     required this.previewSize,
+    required this.tileWidth,
+    required this.tileHeight,
+    required this.columnCount,
     required this.assignmentDraft,
     this.atlasImageBytes,
     this.atlasFallbackMessage,
@@ -35,6 +39,9 @@ class SurfaceStudioPreviewPanel extends StatelessWidget {
   final bool loop;
   final bool gridVisible;
   final int previewSize;
+  final int tileWidth;
+  final int tileHeight;
+  final int columnCount;
   final SurfaceStudioRoleAssignmentDraft assignmentDraft;
   final Uint8List? atlasImageBytes;
   final String? atlasFallbackMessage;
@@ -80,11 +87,12 @@ class SurfaceStudioPreviewPanel extends StatelessWidget {
                       gridVisible: gridVisible,
                       frameIndex: frameIndex,
                       frameCount: frameCount,
+                      tileWidth: tileWidth,
+                      tileHeight: tileHeight,
+                      columnCount: columnCount,
                       atlasImageBytes: atlasImageBytes,
                       atlasFallbackMessage: atlasFallbackMessage,
-                      hasCenter: assignmentDraft.isAssigned(
-                        SurfaceVariantRole.isolated,
-                      ),
+                      assignmentDraft: assignmentDraft,
                     ),
                   ),
                 ),
@@ -122,21 +130,30 @@ class _PreviewViewport extends StatelessWidget {
     required this.gridVisible,
     required this.frameIndex,
     required this.frameCount,
+    required this.tileWidth,
+    required this.tileHeight,
+    required this.columnCount,
     this.atlasImageBytes,
     this.atlasFallbackMessage,
-    required this.hasCenter,
+    required this.assignmentDraft,
   });
 
   final int previewSize;
   final bool gridVisible;
   final int frameIndex;
   final int frameCount;
+  final int tileWidth;
+  final int tileHeight;
+  final int columnCount;
   final Uint8List? atlasImageBytes;
   final String? atlasFallbackMessage;
-  final bool hasCenter;
+  final SurfaceStudioRoleAssignmentDraft assignmentDraft;
 
   @override
   Widget build(BuildContext context) {
+    final hasCenter = assignmentDraft.isAssigned(SurfaceVariantRole.isolated);
+    final centerColumns =
+        assignmentDraft.columnsForRole(SurfaceVariantRole.isolated);
     return Container(
       decoration: BoxDecoration(
         color: SurfaceStudioDesignTokens.backgroundDeep,
@@ -149,32 +166,17 @@ class _PreviewViewport extends StatelessWidget {
               fit: StackFit.expand,
               children: [
                 if (atlasImageBytes != null)
-                  Image.memory(
-                    atlasImageBytes!,
-                    key: const ValueKey('surfaceStudio.preview.realImage'),
-                    fit: BoxFit.cover,
-                    alignment: Alignment(
-                      0,
-                      frameCount <= 1
-                          ? 0
-                          : -1 + (2 * (frameIndex / (frameCount - 1))),
-                    ),
-                    gaplessPlayback: true,
-                    errorBuilder: (_, __, ___) => Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Text(
-                          atlasFallbackMessage ??
-                              'Image source indisponible — aperçu illustratif.',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: SurfaceStudioDesignTokens.textMuted,
-                            fontSize: 12,
-                            height: 1.3,
-                          ),
-                        ),
-                      ),
-                    ),
+                  SurfaceStudioSurfacePreviewRenderer(
+                    key: const ValueKey('surfaceStudio.preview.tileRenderer'),
+                    atlasImageBytes: atlasImageBytes!,
+                    assignmentDraft: assignmentDraft,
+                    tileWidth: tileWidth,
+                    tileHeight: tileHeight,
+                    columnCount: columnCount,
+                    frameCount: frameCount,
+                    frameIndex: frameIndex,
+                    previewSize: previewSize,
+                    gridVisible: gridVisible,
                   )
                 else
                   Center(
@@ -192,13 +194,26 @@ class _PreviewViewport extends StatelessWidget {
                       ),
                     ),
                   ),
-                CustomPaint(
-                  painter: _WaterPreviewPainter(
-                    gridVisible: gridVisible,
-                    previewSize: previewSize,
+                if (atlasImageBytes != null)
+                  const Positioned(
+                    left: 10,
+                    top: 10,
+                    child: _PartialPreviewBadge(),
                   ),
-                  child: const SizedBox.expand(),
-                ),
+                if (atlasImageBytes != null && centerColumns.isNotEmpty)
+                  Positioned(
+                    left: 10,
+                    right: 10,
+                    bottom: 10,
+                    child: _SourceRectDebug(
+                      centerColumns: centerColumns,
+                      frameIndex: frameIndex,
+                      frameCount: frameCount,
+                      tileWidth: tileWidth,
+                      tileHeight: tileHeight,
+                      columnCount: columnCount,
+                    ),
+                  ),
               ],
             )
           : const Center(
@@ -215,6 +230,101 @@ class _PreviewViewport extends StatelessWidget {
                 ),
               ),
             ),
+    );
+  }
+}
+
+class _SourceRectDebug extends StatelessWidget {
+  const _SourceRectDebug({
+    required this.centerColumns,
+    required this.frameIndex,
+    required this.frameCount,
+    required this.tileWidth,
+    required this.tileHeight,
+    required this.columnCount,
+  });
+
+  final List<int> centerColumns;
+  final int frameIndex;
+  final int frameCount;
+  final int tileWidth;
+  final int tileHeight;
+  final int columnCount;
+
+  @override
+  Widget build(BuildContext context) {
+    final safeFrameCount = frameCount < 1 ? 1 : frameCount;
+    final safeFrameIndex = frameIndex % safeFrameCount;
+    final column = centerColumns[safeFrameIndex % centerColumns.length];
+    final source = surfaceStudioTileSourceRect(
+      uiColumn: column,
+      frameIndex: safeFrameIndex,
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
+      columnCount: columnCount,
+      frameCount: safeFrameCount,
+    );
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: SurfaceStudioDesignTokens.backgroundDeep.withValues(alpha: 0.82),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: SurfaceStudioDesignTokens.borderStrong.withValues(alpha: 0.72),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+        child: Text(
+          'Colonnes assignées au Plein : ${_formatColumns(centerColumns)}  •  '
+          'Source rect actuelle : x=${source.left.round()} y=${source.top.round()} '
+          'w=${source.width.round()} h=${source.height.round()}  •  '
+          'Frame : ${safeFrameIndex + 1} / $safeFrameCount',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: SurfaceStudioDesignTokens.textSecondary,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            height: 1.25,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+String _formatColumns(List<int> columns) {
+  if (columns.isEmpty) {
+    return 'aucune';
+  }
+  if (columns.length == 1) {
+    return '${columns.first}';
+  }
+  return '${columns.first}–${columns.last}';
+}
+
+class _PartialPreviewBadge extends StatelessWidget {
+  const _PartialPreviewBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: SurfaceStudioDesignTokens.backgroundDeep.withValues(alpha: 0.82),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: SurfaceStudioDesignTokens.accentTeal),
+      ),
+      child: const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        child: Text(
+          'Preview partielle : Plein(center)',
+          style: TextStyle(
+            color: SurfaceStudioDesignTokens.accentTeal,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -488,57 +598,4 @@ class _CheckLine extends StatelessWidget {
       ),
     );
   }
-}
-
-class _WaterPreviewPainter extends CustomPainter {
-  const _WaterPreviewPainter({
-    required this.gridVisible,
-    required this.previewSize,
-  });
-
-  final bool gridVisible;
-  final int previewSize;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final cellW = size.width / previewSize;
-    final cellH = size.height / previewSize;
-    final a = Paint()..color = const Color(0xFF1E89FF);
-    final b = Paint()..color = const Color(0xFF1268D9);
-    for (var y = 0; y < previewSize; y++) {
-      for (var x = 0; x < previewSize; x++) {
-        canvas.drawRect(
-          Rect.fromLTWH(x * cellW, y * cellH, cellW, cellH),
-          (x + y).isEven ? a : b,
-        );
-      }
-    }
-    final wave = Paint()
-      ..color = const Color(0xFFA4E7FF).withValues(alpha: 0.26)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.3;
-    for (var y = 8.0; y < size.height; y += 24) {
-      final path = Path()..moveTo(0, y);
-      for (var x = 0.0; x <= size.width; x += 22) {
-        path.quadraticBezierTo(x + 11, y - 7, x + 22, y);
-      }
-      canvas.drawPath(path, wave);
-    }
-    if (gridVisible) {
-      final grid = Paint()
-        ..color = const Color(0xFFFFFFFF).withValues(alpha: 0.16)
-        ..strokeWidth = 1;
-      for (var i = 0; i <= previewSize; i++) {
-        final x = i * cellW;
-        final y = i * cellH;
-        canvas.drawLine(Offset(x, 0), Offset(x, size.height), grid);
-        canvas.drawLine(Offset(0, y), Offset(size.width, y), grid);
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _WaterPreviewPainter oldDelegate) =>
-      oldDelegate.gridVisible != gridVisible ||
-      oldDelegate.previewSize != previewSize;
 }

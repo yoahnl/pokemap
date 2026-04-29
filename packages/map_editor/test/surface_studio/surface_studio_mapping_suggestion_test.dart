@@ -1,10 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/surface_studio/surface_studio_local_mapping_suggester.dart';
 import 'package:map_editor/src/features/surface_studio/surface_studio_ai_mapping_suggester.dart';
@@ -103,6 +105,74 @@ void main() {
     expect(fakeAi.calls, 0);
   });
 
+  testWidgets('accepted Mistral suggestion updates mapping and live preview',
+      (tester) async {
+    final temp =
+        Directory.systemTemp.createTempSync('surface_mistral_preview_');
+    addTearDown(() => temp.deleteSync(recursive: true));
+    final image = File('${temp.path}/tiles/water.png');
+    image.parent.createSync(recursive: true);
+    image.writeAsBytesSync(_atlasBytes());
+    final fakeAi = _FakeAiSuggester();
+
+    await pumpSurfaceStudioForTest(
+      tester,
+      readModel: _readModel(),
+      projectSettings: const ProjectSettings(mistralApiKey: 'configured'),
+      projectTilesets: const <ProjectTilesetEntry>[
+        ProjectTilesetEntry(
+          id: 'water_tiles',
+          name: 'Water Tiles',
+          relativePath: 'tiles/water.png',
+          sortOrder: 0,
+        ),
+      ],
+      projectRootPath: temp.path,
+      aiMappingSuggester: fakeAi,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Assignez au moins le rôle'), findsOneWidget);
+    expect(find.byKey(const Key('surfaceStudio.preview.tileRenderer')),
+        findsNothing);
+
+    await tester.tap(find.byKey(const Key('surfaceStudio.action.autoSuggest')));
+    await tester.pumpAndSettle();
+    final mistralButton =
+        find.byKey(const Key('surfaceStudio.suggestion.mistral'));
+    await tester.ensureVisible(mistralButton);
+    await tester.tap(mistralButton);
+    await tester.pumpAndSettle();
+    expect(find.text('Confirmer l’analyse IA'), findsOneWidget);
+    expect(fakeAi.calls, 0);
+
+    final confirmButton =
+        find.byKey(const Key('surfaceStudio.suggestion.confirmAi'));
+    await tester.ensureVisible(confirmButton);
+    await tester.tap(confirmButton);
+    await tester.pumpAndSettle();
+    expect(fakeAi.calls, 1);
+    expect(find.text('AI center'), findsOneWidget);
+    expect(find.byKey(const Key('surfaceStudio.preview.tileRenderer')),
+        findsNothing);
+
+    final acceptButton =
+        find.byKey(const Key('surfaceStudio.suggestion.accept.isolated'));
+    await tester.ensureVisible(acceptButton);
+    await tester.tap(acceptButton);
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Assignez au moins le rôle'), findsNothing);
+    expect(find.byKey(const Key('surfaceStudio.preview.tileRenderer')),
+        findsOneWidget);
+    final centerSlot =
+        find.byKey(const Key('surfaceStudio.schema.role.center'));
+    expect(find.descendant(of: centerSlot, matching: find.text('4')),
+        findsOneWidget);
+    expect(find.descendant(of: centerSlot, matching: find.text('5')),
+        findsOneWidget);
+  });
+
   test('Mistral suggester validates JSON without leaking secrets', () async {
     final requests = <http.Request>[];
     final suggester = SurfaceStudioMistralMappingSuggester(
@@ -121,27 +191,32 @@ void main() {
                         'role': 'isolated',
                         'columns': [4, 5],
                         'confidence': 'medium',
+                        'evidenceColumns': [4, 5],
                         'reason': 'Center water candidates.',
                       },
                       {
                         'role': 'endNorth',
                         'columns': [99],
                         'confidence': 'high',
+                        'evidenceColumns': [99],
                         'reason': 'Out of range.',
                       },
                       {
                         'role': 'endEast',
                         'columns': [1, 2],
                         'confidence': 'high',
+                        'evidenceColumns': [1, 2],
                         'reason': 'Too many columns.',
                       },
                       {
                         'role': 'unknown',
                         'columns': [3],
                         'confidence': 'high',
+                        'evidenceColumns': [3],
                         'reason': 'Unknown role.',
                       },
                     ],
+                    'rejectedColumns': const [],
                     'warnings': ['Inner corners are ambiguous.'],
                   }),
                 },
@@ -210,6 +285,54 @@ void main() {
     expect(result.suggestions, isEmpty);
     expect(result.warnings.single, contains('Réponse Mistral invalide'));
   });
+
+  test('Mistral suggester rejects locally likelyEmpty columns', () async {
+    final suggester = SurfaceStudioMistralMappingSuggester(
+      httpClient: MockClient((_) async {
+        return http.Response(
+          jsonEncode({
+            'choices': [
+              {
+                'message': {
+                  'content': jsonEncode({
+                    'assignments': [
+                      {
+                        'role': 'isolated',
+                        'columns': [3],
+                        'confidence': 'high',
+                        'evidenceColumns': [3],
+                        'reason': 'Looks empty but claimed as center.',
+                      },
+                    ],
+                    'rejectedColumns': const [],
+                    'warnings': const [],
+                  }),
+                },
+              },
+            ],
+          }),
+          200,
+        );
+      }),
+    );
+
+    final result = await suggester.suggest(
+      apiKey: 'configured',
+      imageBytes: _atlasBytesWithEmptyColumn(),
+      tileWidth: 8,
+      tileHeight: 8,
+      columnCount: 4,
+      frameCount: 2,
+    );
+
+    expect(result.suggestions, isEmpty);
+    expect(
+      result.warnings,
+      contains(
+        'Suggestion Mistral sur colonne likelyEmpty rejetée pour isolated : 3.',
+      ),
+    );
+  });
 }
 
 final class _FakeAiSuggester implements SurfaceStudioAiMappingSuggester {
@@ -241,4 +364,70 @@ final class _FakeAiSuggester implements SurfaceStudioAiMappingSuggester {
       source: SurfaceStudioMappingSuggestionSource.mistral,
     );
   }
+}
+
+SurfaceStudioReadModel _readModel() {
+  const atlasId = 'water-atlas';
+  return buildSurfaceStudioReadModelFromCatalog(
+    ProjectSurfaceCatalog(
+      atlases: <ProjectSurfaceAtlas>[
+        ProjectSurfaceAtlas(
+          id: atlasId,
+          name: 'Water Atlas',
+          tilesetId: 'water_tiles',
+          geometry: SurfaceAtlasGeometry(
+            tileSize: SurfaceAtlasTileSize(width: 8, height: 8),
+            gridSize: SurfaceAtlasGridSize(columns: 5, rows: 2),
+            layout: SurfaceAtlasLayout.columnsAreVariantsRowsAreFrames,
+          ),
+        ),
+      ],
+      animations: const <ProjectSurfaceAnimation>[],
+      presets: const <ProjectSurfacePreset>[],
+    ),
+  );
+}
+
+Uint8List _atlasBytes() {
+  const tile = 8;
+  const columns = 5;
+  const frames = 2;
+  final image = img.Image(width: columns * tile, height: frames * tile);
+  for (var frame = 0; frame < frames; frame++) {
+    for (var column = 0; column < columns; column++) {
+      img.fillRect(
+        image,
+        x1: column * tile,
+        y1: frame * tile,
+        x2: column * tile + tile - 1,
+        y2: frame * tile + tile - 1,
+        color: img.ColorRgb8(40 + column * 32, 80 + frame * 70, 180),
+      );
+    }
+  }
+  return Uint8List.fromList(img.encodePng(image));
+}
+
+Uint8List _atlasBytesWithEmptyColumn() {
+  const tile = 8;
+  const columns = 4;
+  const frames = 2;
+  final image = img.Image(width: columns * tile, height: frames * tile);
+  img.fill(image, color: img.ColorRgba8(0, 0, 0, 0));
+  for (var frame = 0; frame < frames; frame++) {
+    for (var column = 0; column < columns; column++) {
+      if (column == 2) {
+        continue;
+      }
+      img.fillRect(
+        image,
+        x1: column * tile,
+        y1: frame * tile,
+        x2: column * tile + tile - 1,
+        y2: frame * tile + tile - 1,
+        color: img.ColorRgba8(40 + column * 30, 100, 180, 255),
+      );
+    }
+  }
+  return Uint8List.fromList(img.encodePng(image));
 }
