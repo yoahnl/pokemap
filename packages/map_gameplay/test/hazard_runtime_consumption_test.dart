@@ -48,6 +48,32 @@ void main() {
       expect(effect.priority, 3);
     });
 
+    test('non-positive lava damage does not produce a hazard effect', () {
+      final world = _world(
+        gameplayZones: const [
+          MapGameplayZone(
+            id: 'empty-lava-zone',
+            kind: GameplayZoneKind.hazard,
+            area: MapRect(
+              pos: GridPos(x: 1, y: 0),
+              size: GridSize(width: 1, height: 1),
+            ),
+            hazard: HazardZonePayload(
+              hazardKind: HazardKind.lava,
+              damagePerStep: 0,
+            ),
+          ),
+        ],
+      );
+
+      final result = stepGameplayWorld(world, const MoveIntent(Direction.east));
+
+      expect(result, isA<Moved>());
+      final moved = result as Moved;
+      expect(moved.world.player.pos, const GridPos(x: 1, y: 0));
+      expect(moved.hazardEffect, isNull);
+    });
+
     test('blocked movement does not trigger hazard effect', () {
       final world = _world(
         includeCollisionAtTarget: true,

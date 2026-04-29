@@ -6,7 +6,7 @@ import 'package:test/test.dart';
 
 void main() {
   group('surface generated gameplay zone bridge', () {
-    test('SurfaceLayer alone stays visual for water and tall grass', () {
+    test('SurfaceLayer alone stays visual for water, grass, and lava', () {
       final map = _baseSurfaceMap();
       final project = _project();
 
@@ -36,6 +36,19 @@ void main() {
 
       expect(encounterResult.status, GameplayEncounterCheckStatus.noZone);
       expect(encounterResult.triggered, isFalse);
+
+      final lavaWorld = GameplayWorldState.initial(
+        map: map,
+        playerPos: const GridPos(x: 1, y: 1),
+        project: project,
+      );
+      final lavaResult =
+          stepGameplayWorld(lavaWorld, const MoveIntent(Direction.east));
+
+      expect(lavaResult, isA<Moved>());
+      final lavaMoved = lavaResult as Moved;
+      expect(lavaMoved.world.player.pos, const GridPos(x: 2, y: 1));
+      expect(lavaMoved.hazardEffect, isNull);
     });
 
     test('generated water movement surf zones are consumed by movement', () {
@@ -136,6 +149,88 @@ void main() {
       expect(result.encounter?.level, 3);
       expect(result.encounter?.playerPos, const GridPos(x: 0, y: 1));
     });
+
+    test('generated lava hazard zones are consumed by hazard effects', () {
+      final map = _baseSurfaceMap();
+      final project = _project();
+      final plan = _lavaGenerationPlan(map);
+      final originalSurfacePlacements = _surfaceLayer(map).placements;
+
+      expect(
+        plan.generatedZones,
+        everyElement(
+          isA<MapGameplayZone>()
+              .having((zone) => zone.kind, 'kind', GameplayZoneKind.hazard)
+              .having(
+                (zone) => zone.hazard?.hazardKind,
+                'hazardKind',
+                HazardKind.lava,
+              )
+              .having(
+                (zone) => zone.hazard?.damagePerStep,
+                'damagePerStep',
+                5,
+              ),
+        ),
+      );
+
+      final mapWithZones = map.copyWith(gameplayZones: plan.generatedZones);
+      expect(_surfaceLayer(mapWithZones).placements, originalSurfacePlacements);
+
+      final world = GameplayWorldState.initial(
+        map: mapWithZones,
+        playerPos: const GridPos(x: 1, y: 1),
+        project: project,
+      );
+      final result = stepGameplayWorld(world, const MoveIntent(Direction.east));
+
+      expect(result, isA<Moved>());
+      final effect = (result as Moved).hazardEffect;
+      expect(effect, isNotNull);
+      expect(effect!.hazardKind, HazardKind.lava);
+      expect(effect.damagePerStep, 5);
+      expect(effect.position, const GridPos(x: 2, y: 1));
+      expect(
+        plan.generatedZones.any((zone) => zone.id == effect.zoneId),
+        isTrue,
+      );
+    });
+
+    test('generated lava hazard preserves custom damagePerStep', () {
+      final map = _baseSurfaceMap();
+      final project = _project();
+      final plan = _lavaGenerationPlan(map, damagePerStep: 8);
+      final mapWithZones = map.copyWith(gameplayZones: plan.generatedZones);
+
+      final world = GameplayWorldState.initial(
+        map: mapWithZones,
+        playerPos: const GridPos(x: 1, y: 1),
+        project: project,
+      );
+      final result = stepGameplayWorld(world, const MoveIntent(Direction.east));
+
+      expect(result, isA<Moved>());
+      expect((result as Moved).hazardEffect?.damagePerStep, 8);
+    });
+
+    test('blocked movement into generated lava does not trigger hazard', () {
+      final map = _baseSurfaceMap(blockLavaTarget: true);
+      final project = _project();
+      final plan = _lavaGenerationPlan(map);
+      final mapWithZones = map.copyWith(gameplayZones: plan.generatedZones);
+
+      final world = GameplayWorldState.initial(
+        map: mapWithZones,
+        playerPos: const GridPos(x: 1, y: 1),
+        project: project,
+      );
+      final result = stepGameplayWorld(world, const MoveIntent(Direction.east));
+
+      expect(result, isA<Blocked>());
+      final blocked = result as Blocked;
+      expect(blocked.reason, GameplayMovementBlockReason.solid);
+      expect(blocked.world.player.pos, const GridPos(x: 1, y: 1));
+    });
   });
 }
 
@@ -168,6 +263,25 @@ SurfaceGameplayZoneGenerationPlan _tallGrassGenerationPlan(MapData map) {
   );
 }
 
+SurfaceGameplayZoneGenerationPlan _lavaGenerationPlan(
+  MapData map, {
+  int damagePerStep = 5,
+}) {
+  return createSurfaceGameplayZoneGenerationPlan(
+    source: _sourceForPreset(map, 'lava'),
+    behavior: SurfaceGameplayZoneBehaviorDraft.hazard(
+      HazardZonePayload(
+        hazardKind: HazardKind.lava,
+        damagePerStep: damagePerStep,
+      ),
+    ),
+    strategy: SurfaceGameplayZoneGenerationStrategy.greedyRectangles,
+    zoneIdPrefix: 'lava-hazard',
+    zoneNamePrefix: 'Lava - Hazard',
+    existingZones: map.gameplayZones,
+  );
+}
+
 SurfaceGameplayZoneGenerationSource _sourceForPreset(
   MapData map,
   String surfacePresetId,
@@ -191,13 +305,13 @@ SurfaceLayer _surfaceLayer(MapData map) {
   return map.layers.whereType<SurfaceLayer>().single;
 }
 
-MapData _baseSurfaceMap() {
-  return const MapData(
+MapData _baseSurfaceMap({bool blockLavaTarget = false}) {
+  return MapData(
     id: 'route_1',
     name: 'Route 1',
-    size: GridSize(width: 4, height: 3),
+    size: const GridSize(width: 4, height: 3),
     layers: [
-      MapLayer.tile(
+      const MapLayer.tile(
         id: 'tile',
         name: 'Tile',
         tiles: [
@@ -218,22 +332,37 @@ MapData _baseSurfaceMap() {
       MapLayer.collision(
         id: 'collision',
         name: 'Collision',
-        collisions: [
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-          false,
-        ],
+        collisions: blockLavaTarget
+            ? const [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                true,
+                false,
+                false,
+                false,
+                false,
+                false,
+              ]
+            : const [
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+              ],
       ),
-      SurfaceLayer(
+      const SurfaceLayer(
         id: 'surface-main',
         name: 'Surfaces',
         placements: [
@@ -256,6 +385,21 @@ MapData _baseSurfaceMap() {
             x: 1,
             y: 1,
             surfacePresetId: 'tall_grass',
+          ),
+          SurfaceCellPlacement(
+            x: 2,
+            y: 1,
+            surfacePresetId: 'lava',
+          ),
+          SurfaceCellPlacement(
+            x: 3,
+            y: 1,
+            surfacePresetId: 'lava',
+          ),
+          SurfaceCellPlacement(
+            x: 2,
+            y: 2,
+            surfacePresetId: 'lava',
           ),
         ],
       ),
@@ -304,6 +448,18 @@ ProjectManifest _project() {
               SurfaceVariantAnimationRef(
                 role: SurfaceVariantRole.isolated,
                 animationId: 'tall-grass-idle',
+              ),
+            ],
+          ),
+        ),
+        ProjectSurfacePreset(
+          id: 'lava',
+          name: 'Lava',
+          variantAnimations: SurfaceVariantAnimationRefSet(
+            refs: [
+              SurfaceVariantAnimationRef(
+                role: SurfaceVariantRole.isolated,
+                animationId: 'lava-idle',
               ),
             ],
           ),
