@@ -265,8 +265,8 @@ void main() {
     });
   });
 
-  group('SurfacePainterPanel action entry', () {
-    testWidgets('opens the encounter generation dialog from the surface panel',
+  group('SurfacePainterPanel behavior action menu', () {
+    testWidgets('shows one behavior action and opens behavior choices',
         (tester) async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
@@ -290,9 +290,52 @@ void main() {
         ),
       );
 
-      expect(find.text('Créer une zone de rencontre'), findsOneWidget);
+      expect(
+        find.text('Créer un comportement depuis cette surface'),
+        findsOneWidget,
+      );
+      expect(find.text('Créer une zone de rencontre'), findsNothing);
+      expect(find.text('Rendre cette eau surfable'), findsNothing);
 
-      await tester.tap(find.text('Créer une zone de rencontre'));
+      await tester.tap(
+        find.text('Créer un comportement depuis cette surface'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Herbe haute avec rencontres'), findsOneWidget);
+      expect(find.text('Eau surfable'), findsOneWidget);
+    });
+
+    testWidgets('routes tall grass choice to the encounter dialog',
+        (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final keepAlive = container.listen(editorNotifierProvider, (_, __) {});
+      addTearDown(keepAlive.close);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        project: _projectManifest(),
+        activeMap: _mapWithTallGrassSurface(),
+        activeLayerId: 'surface-main',
+        selectedSurfacePresetId: 'tall_grass',
+      );
+
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const CupertinoApp(
+            home: CupertinoPageScaffold(
+              child: SurfacePainterPanel(embedded: true),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(
+        find.text('Créer un comportement depuis cette surface'),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Herbe haute avec rencontres'));
       await tester.pumpAndSettle();
 
       expect(
@@ -302,7 +345,7 @@ void main() {
       expect(find.text('Plan prêt à appliquer'), findsOneWidget);
     });
 
-    testWidgets('opens the surfable water generation dialog from the panel',
+    testWidgets('routes water choice to the surfable water dialog',
         (tester) async {
       final container = ProviderContainer();
       addTearDown(container.dispose);
@@ -328,12 +371,15 @@ void main() {
         ),
       );
 
-      expect(find.text('Rendre cette eau surfable'), findsOneWidget);
-
-      await tester.tap(find.text('Rendre cette eau surfable'));
+      await tester.tap(
+        find.text('Créer un comportement depuis cette surface'),
+      );
       await tester.pumpAndSettle();
 
-      expect(find.text('Rendre cette eau surfable'), findsWidgets);
+      await tester.tap(find.text('Eau surfable'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Rendre cette eau surfable'), findsOneWidget);
       expect(find.text('Plan prêt à appliquer'), findsOneWidget);
     });
   });

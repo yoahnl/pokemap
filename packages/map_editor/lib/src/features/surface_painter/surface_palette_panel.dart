@@ -5,8 +5,7 @@ import 'package:map_core/map_core.dart';
 import '../editor/state/editor_notifier.dart';
 import '../editor/tools/editor_tool.dart';
 import 'surface_catalog_availability.dart';
-import 'surface_to_gameplay_zone_action.dart';
-import 'surface_to_gameplay_zone_dialog.dart';
+import 'surface_behavior_action_menu.dart';
 import '../../ui/shared/cupertino_editor_widgets.dart';
 
 /// Minimal Surface palette for map placement authoring.
@@ -191,81 +190,13 @@ class SurfacePainterPanel extends ConsumerWidget {
                     ],
                   ),
                 ),
-                CupertinoButton(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  onPressed: map == null
-                      ? null
-                      : () async {
-                          final plan = await showCupertinoDialog<
-                              SurfaceGameplayZoneGenerationPlan>(
-                            context: context,
-                            builder: (dialogContext) {
-                              return SurfaceToGameplayZoneDialog(
-                                map: map,
-                                surfaceLayer: generationLayer,
-                                surfacePresetId: state.selectedSurfacePresetId,
-                                presets: presets,
-                                encounterTables:
-                                    state.project?.encounterTables ?? const [],
-                                onConfirm: (plan) =>
-                                    Navigator.of(dialogContext).pop(plan),
-                              );
-                            },
-                          );
-                          if (plan == null) return;
-                          applyTallGrassEncounterGameplayZonePlan(
-                            notifier: notifier,
-                            plan: plan,
-                          );
-                        },
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(CupertinoIcons.add_circled, size: 16),
-                      SizedBox(width: 4),
-                      Flexible(
-                        child: Text('Créer une zone de rencontre'),
-                      ),
-                    ],
-                  ),
-                ),
-                CupertinoButton(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  onPressed: map == null
-                      ? null
-                      : () async {
-                          final plan = await showCupertinoDialog<
-                              SurfaceGameplayZoneGenerationPlan>(
-                            context: context,
-                            builder: (dialogContext) {
-                              return SurfableWaterSurfaceGameplayZoneDialog(
-                                map: map,
-                                surfaceLayer: generationLayer,
-                                surfacePresetId: state.selectedSurfacePresetId,
-                                presets: presets,
-                                onConfirm: (plan) =>
-                                    Navigator.of(dialogContext).pop(plan),
-                              );
-                            },
-                          );
-                          if (plan == null) return;
-                          applySurfableWaterGameplayZonePlan(
-                            notifier: notifier,
-                            plan: plan,
-                          );
-                        },
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(CupertinoIcons.drop, size: 16),
-                      SizedBox(width: 4),
-                      Flexible(
-                        child: Text('Rendre cette eau surfable'),
-                      ),
-                    ],
-                  ),
+                SurfaceBehaviorActionMenu(
+                  map: map,
+                  surfaceLayer: generationLayer,
+                  surfacePresetId: state.selectedSurfacePresetId,
+                  presets: presets,
+                  encounterTables: state.project?.encounterTables ?? const [],
+                  notifier: notifier,
                 ),
               ],
             ),
