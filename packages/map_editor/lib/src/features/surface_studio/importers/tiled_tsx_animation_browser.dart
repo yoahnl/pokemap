@@ -6,7 +6,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../ui/shared/cupertino_editor_widgets.dart';
+import '../surface_studio_vertical_atlas_preset_generator.dart';
+import '../surface_studio_vertical_atlas_role_mapping.dart';
 import 'tiled_tsx_animation_browser_models.dart';
+import 'tiled_tsx_surface_preset_draft.dart';
 
 const Color _tsxAccent = Color(0xFF2DD4BF);
 
@@ -18,6 +21,8 @@ class TiledTsxAnimationBrowser extends StatefulWidget {
     this.atlasImageBytes,
     this.sourceLabel = 'TSX',
     this.onSelectionChanged,
+    this.catalog,
+    this.onSurfaceCatalogChanged,
   });
 
   final ProjectSurfaceAtlas? atlas;
@@ -25,6 +30,8 @@ class TiledTsxAnimationBrowser extends StatefulWidget {
   final Uint8List? atlasImageBytes;
   final String sourceLabel;
   final ValueChanged<Set<String>>? onSelectionChanged;
+  final ProjectSurfaceCatalog? catalog;
+  final ValueChanged<ProjectSurfaceCatalog>? onSurfaceCatalogChanged;
 
   @override
   State<TiledTsxAnimationBrowser> createState() =>
@@ -33,15 +40,28 @@ class TiledTsxAnimationBrowser extends StatefulWidget {
 
 class _TiledTsxAnimationBrowserState extends State<TiledTsxAnimationBrowser> {
   final TextEditingController _query = TextEditingController();
+  final TextEditingController _presetId = TextEditingController();
+  final TextEditingController _presetName = TextEditingController();
+  final TextEditingController _presetCategory = TextEditingController();
+  final TextEditingController _presetSortOrder = TextEditingController();
+  final Map<SurfaceVariantRole, TextEditingController> _roleControllers = {
+    for (final role in standardSurfaceVariantRoleOrder)
+      role: TextEditingController(),
+  };
   Set<String> _selectedIds = const <String>{};
   String? _activeAnimationId;
   bool _onlySelected = false;
+  bool _presetBuilderOpen = false;
+  List<String> _presetBuilderErrors = const <String>[];
+  List<String> _presetBuilderWarnings = const <String>[];
+  String? _presetBuilderNote;
 
   @override
   void initState() {
     super.initState();
     _activeAnimationId =
         widget.animations.isEmpty ? null : widget.animations.first.id;
+    _resetPresetDefaults();
   }
 
   @override
@@ -68,6 +88,13 @@ class _TiledTsxAnimationBrowserState extends State<TiledTsxAnimationBrowser> {
   @override
   void dispose() {
     _query.dispose();
+    _presetId.dispose();
+    _presetName.dispose();
+    _presetCategory.dispose();
+    _presetSortOrder.dispose();
+    for (final controller in _roleControllers.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -88,6 +115,8 @@ class _TiledTsxAnimationBrowserState extends State<TiledTsxAnimationBrowser> {
     );
     final active = _activeAnimation();
     final atlas = widget.atlas;
+    final canCreateSurfaceFromSelection =
+        _selectedIds.isNotEmpty && widget.onSurfaceCatalogChanged != null;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -95,6 +124,43 @@ class _TiledTsxAnimationBrowserState extends State<TiledTsxAnimationBrowser> {
             constraints.hasBoundedHeight && constraints.maxHeight.isFinite
                 ? (constraints.maxHeight - 210).clamp(220.0, 520.0).toDouble()
                 : 440.0;
+        final animationBody = LayoutBuilder(
+          builder: (context, constraints) {
+            final twoColumns = constraints.maxWidth >= 760;
+            final list = _AnimationList(
+              items: visible,
+              selectedIds: _selectedIds,
+              activeAnimationId: _activeAnimationId,
+              onToggleSelection: _toggleSelection,
+              onActivate: _activateAnimation,
+            );
+            final preview = active == null
+                ? _EmptyPreview(subtle: subtle)
+                : TiledTsxSurfaceAnimationPreview(
+                    atlas: atlas,
+                    animation: active,
+                    atlasImageBytes: widget.atlasImageBytes,
+                  );
+            if (!twoColumns) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(child: list),
+                  const SizedBox(height: 12),
+                  SizedBox(height: 260, child: preview),
+                ],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(flex: 5, child: list),
+                const SizedBox(width: 12),
+                Expanded(flex: 4, child: preview),
+              ],
+            );
+          },
+        );
         return Container(
           key: const ValueKey('tiled_tsx_animation_browser.root'),
           padding: const EdgeInsets.all(14),
@@ -104,134 +170,165 @@ class _TiledTsxAnimationBrowserState extends State<TiledTsxAnimationBrowser> {
             border: Border.all(color: EditorChrome.editorIslandRim(context)),
             boxShadow: EditorChrome.sectionCardShadows(context),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Animations TSX importées',
-                style: TextStyle(
-                  color: label,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Animations TSX importées',
+                  style: TextStyle(
+                    color: label,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Animations lues depuis le fichier TSX. Les frames et durées viennent du fichier Tiled.',
-                style: TextStyle(color: subtle, fontSize: 11.5, height: 1.35),
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _MetricPill('${items.length} animations'),
-                  _MetricPill(atlas == null ? '0 atlas' : '1 atlas'),
-                  if (atlas != null)
-                    _MetricPill(
-                      '${atlas.geometry.tileSize.width}×${atlas.geometry.tileSize.height}',
-                    ),
-                  _MetricPill(widget.sourceLabel),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _SearchField(
-                controller: _query,
-                onChanged: (_) => setState(() {}),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
+                const SizedBox(height: 4),
+                Text(
+                  'Animations lues depuis le fichier TSX. Les frames et durées viennent du fichier Tiled.',
+                  style: TextStyle(color: subtle, fontSize: 11.5, height: 1.35),
+                ),
+                const SizedBox(height: 10),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _MetricPill('${items.length} animations'),
+                    _MetricPill(atlas == null ? '0 atlas' : '1 atlas'),
+                    if (atlas != null)
+                      _MetricPill(
+                        '${atlas.geometry.tileSize.width}×${atlas.geometry.tileSize.height}',
+                      ),
+                    _MetricPill(widget.sourceLabel),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _SearchField(
+                  controller: _query,
+                  onChanged: (_) => setState(() {}),
+                ),
+                const SizedBox(height: 8),
+                LayoutBuilder(
+                  builder: (context, toolbarConstraints) {
+                    final selectionText = Text(
                       _selectionLabel(_selectedIds.length),
                       style: TextStyle(
                         color: label,
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
-                    ),
-                  ),
-                  CupertinoButton(
-                    key: const ValueKey(
-                        'tiled_tsx_animation_browser.only_selected'),
-                    minimumSize: Size.zero,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    onPressed: () {
-                      setState(() {
-                        _onlySelected = !_onlySelected;
-                      });
-                    },
-                    child: Text(
-                      _onlySelected ? 'Tout afficher' : 'Sélection seulement',
-                      style: const TextStyle(
-                        color: _tsxAccent,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                  CupertinoButton(
-                    key: const ValueKey(
-                        'tiled_tsx_animation_browser.clear_selection'),
-                    minimumSize: Size.zero,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    onPressed: _selectedIds.isEmpty ? null : _clearSelection,
-                    child: Text(
-                      'Vider',
-                      style: TextStyle(
-                        color: _selectedIds.isEmpty ? subtle : _tsxAccent,
-                        fontSize: 11.5,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                height: bodyHeight,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final twoColumns = constraints.maxWidth >= 760;
-                    final list = _AnimationList(
-                      items: visible,
-                      selectedIds: _selectedIds,
-                      activeAnimationId: _activeAnimationId,
-                      onToggleSelection: _toggleSelection,
-                      onActivate: _activateAnimation,
                     );
-                    final preview = active == null
-                        ? _EmptyPreview(subtle: subtle)
-                        : TiledTsxSurfaceAnimationPreview(
-                            atlas: atlas,
-                            animation: active,
-                            atlasImageBytes: widget.atlasImageBytes,
-                          );
-                    if (!twoColumns) {
+                    final actions = Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      alignment: WrapAlignment.end,
+                      children: [
+                        CupertinoButton(
+                          key: const ValueKey(
+                              'tiled_tsx_animation_browser.create_surface'),
+                          minimumSize: Size.zero,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          onPressed: canCreateSurfaceFromSelection
+                              ? _openPresetBuilder
+                              : null,
+                          child: Text(
+                            'Créer une surface depuis la sélection',
+                            style: TextStyle(
+                              color: canCreateSurfaceFromSelection
+                                  ? _tsxAccent
+                                  : subtle,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        CupertinoButton(
+                          key: const ValueKey(
+                              'tiled_tsx_animation_browser.only_selected'),
+                          minimumSize: Size.zero,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          onPressed: () {
+                            setState(() {
+                              _onlySelected = !_onlySelected;
+                            });
+                          },
+                          child: Text(
+                            _onlySelected
+                                ? 'Tout afficher'
+                                : 'Sélection seulement',
+                            style: const TextStyle(
+                              color: _tsxAccent,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        CupertinoButton(
+                          key: const ValueKey(
+                              'tiled_tsx_animation_browser.clear_selection'),
+                          minimumSize: Size.zero,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          onPressed:
+                              _selectedIds.isEmpty ? null : _clearSelection,
+                          child: Text(
+                            'Vider',
+                            style: TextStyle(
+                              color: _selectedIds.isEmpty ? subtle : _tsxAccent,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                    if (toolbarConstraints.maxWidth < 700) {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          Expanded(child: list),
-                          const SizedBox(height: 12),
-                          SizedBox(height: 260, child: preview),
+                          selectionText,
+                          const SizedBox(height: 4),
+                          actions,
                         ],
                       );
                     }
                     return Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(flex: 5, child: list),
-                        const SizedBox(width: 12),
-                        Expanded(flex: 4, child: preview),
+                        Expanded(child: selectionText),
+                        actions,
                       ],
                     );
                   },
                 ),
-              ),
-            ],
+                const SizedBox(height: 10),
+                if (_presetBuilderOpen) ...[
+                  _TiledTsxSurfacePresetBuilderPanel(
+                    selectedAnimationIds: _selectedIds,
+                    idController: _presetId,
+                    nameController: _presetName,
+                    categoryController: _presetCategory,
+                    sortOrderController: _presetSortOrder,
+                    roleControllers: _roleControllers,
+                    errors: _presetBuilderErrors,
+                    warnings: _presetBuilderWarnings,
+                    note: _presetBuilderNote,
+                    onCreate: _createPresetFromBuilder,
+                    onClose: () {
+                      setState(() {
+                        _presetBuilderOpen = false;
+                        _presetBuilderErrors = const <String>[];
+                        _presetBuilderWarnings = const <String>[];
+                        _presetBuilderNote = null;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                if (!_presetBuilderOpen)
+                  SizedBox(height: bodyHeight, child: animationBody),
+              ],
+            ),
           ),
         );
       },
@@ -273,8 +370,455 @@ class _TiledTsxAnimationBrowserState extends State<TiledTsxAnimationBrowser> {
     setState(() {
       _selectedIds = const <String>{};
       _onlySelected = false;
+      _presetBuilderOpen = false;
     });
     widget.onSelectionChanged?.call(const <String>{});
+  }
+
+  ProjectSurfaceCatalog _effectiveCatalog() {
+    final provided = widget.catalog;
+    if (provided != null) {
+      return provided;
+    }
+    return ProjectSurfaceCatalog(
+      atlases: widget.atlas == null
+          ? const <ProjectSurfaceAtlas>[]
+          : <ProjectSurfaceAtlas>[widget.atlas!],
+      animations: widget.animations,
+    );
+  }
+
+  void _resetPresetDefaults() {
+    final catalog = _effectiveCatalog();
+    _presetId.text = 'tsx-surface-${catalog.presetCount}';
+    _presetName.text = 'Surface TSX';
+    _presetCategory.text = '';
+    _presetSortOrder.text = '${catalog.presetCount}';
+    for (final controller in _roleControllers.values) {
+      controller.text = '';
+    }
+  }
+
+  void _openPresetBuilder() {
+    setState(() {
+      _presetBuilderOpen = true;
+      _presetBuilderErrors = const <String>[];
+      _presetBuilderWarnings = const <String>[];
+      _presetBuilderNote = null;
+    });
+  }
+
+  void _createPresetFromBuilder() {
+    final sortOrder = int.tryParse(_presetSortOrder.text.trim());
+    if (sortOrder == null) {
+      setState(() {
+        _presetBuilderErrors = const <String>['Ordre invalide.'];
+        _presetBuilderWarnings = const <String>[];
+        _presetBuilderNote = null;
+      });
+      return;
+    }
+
+    final roleAnimationIds = <SurfaceVariantRole, String>{
+      for (final entry in _roleControllers.entries)
+        if (entry.value.text.trim().isNotEmpty)
+          entry.key: entry.value.text.trim(),
+    };
+    final nonSelected = <String>[];
+    for (final entry in roleAnimationIds.entries) {
+      if (!_selectedIds.contains(entry.value)) {
+        nonSelected.add(
+          'Animation non sélectionnée pour ${SurfaceStudioRoleLabels.labelForRole(entry.key)} : ${entry.value}.',
+        );
+      }
+    }
+    if (nonSelected.isNotEmpty) {
+      setState(() {
+        _presetBuilderErrors = List<String>.unmodifiable(nonSelected);
+        _presetBuilderWarnings = const <String>[];
+        _presetBuilderNote = null;
+      });
+      return;
+    }
+
+    final catalog = _effectiveCatalog();
+    final draft = TiledTsxSurfacePresetDraft(
+      id: _presetId.text,
+      name: _presetName.text,
+      categoryId: _presetCategory.text,
+      sortOrder: sortOrder,
+      roleAnimationIds: roleAnimationIds,
+    );
+    final validation = validateTiledTsxSurfacePresetDraft(
+      draft: draft,
+      catalog: catalog,
+    );
+    if (!validation.canCreate) {
+      setState(() {
+        _presetBuilderErrors = validation.errors;
+        _presetBuilderWarnings = validation.warnings;
+        _presetBuilderNote = null;
+      });
+      return;
+    }
+
+    final preset = buildTiledTsxSurfacePresetFromDraft(
+      draft: draft,
+      catalog: catalog,
+    );
+    final next = surfaceStudioAppendPresetToWorkCatalog(
+      catalog: catalog,
+      preset: preset,
+    );
+    widget.onSurfaceCatalogChanged?.call(next);
+    setState(() {
+      _presetBuilderErrors = const <String>[];
+      _presetBuilderWarnings = validation.warnings;
+      _presetBuilderNote =
+          'Preset ${preset.id} ajouté au catalogue de travail.';
+    });
+  }
+}
+
+class _TiledTsxSurfacePresetBuilderPanel extends StatelessWidget {
+  const _TiledTsxSurfacePresetBuilderPanel({
+    required this.selectedAnimationIds,
+    required this.idController,
+    required this.nameController,
+    required this.categoryController,
+    required this.sortOrderController,
+    required this.roleControllers,
+    required this.errors,
+    required this.warnings,
+    required this.note,
+    required this.onCreate,
+    required this.onClose,
+  });
+
+  final Set<String> selectedAnimationIds;
+  final TextEditingController idController;
+  final TextEditingController nameController;
+  final TextEditingController categoryController;
+  final TextEditingController sortOrderController;
+  final Map<SurfaceVariantRole, TextEditingController> roleControllers;
+  final List<String> errors;
+  final List<String> warnings;
+  final String? note;
+  final VoidCallback onCreate;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
+    return Container(
+      key: const ValueKey('tiled_tsx_surface_preset_builder.panel'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: EditorChrome.islandFillElevated(context).withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: EditorChrome.editorIslandRim(context).withValues(alpha: 0.7),
+        ),
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxHeight: 310),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Créer une surface depuis animations TSX',
+                      style: TextStyle(
+                        color: label,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  CupertinoButton.filled(
+                    key: const ValueKey(
+                      'tiled_tsx_surface_preset_builder.create',
+                    ),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    onPressed: onCreate,
+                    child: const Text(
+                      'Créer le preset',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  CupertinoButton(
+                    minimumSize: Size.zero,
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                    onPressed: onClose,
+                    child: const Text(
+                      'Masquer',
+                      style: TextStyle(
+                        color: _tsxAccent,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Aucun rôle n’est deviné : associez explicitement chaque rôle à une animation sélectionnée.',
+                style: TextStyle(color: subtle, fontSize: 11.5, height: 1.35),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${selectedAnimationIds.length} animations sélectionnées',
+                style: TextStyle(
+                  color: label,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final id in selectedAnimationIds)
+                    _SelectedAnimationPill(id: id),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  _BuilderTextField(
+                    keyName: 'tiled_tsx_surface_preset_builder.id',
+                    label: 'Identifiant surface',
+                    controller: idController,
+                    width: 210,
+                  ),
+                  _BuilderTextField(
+                    keyName: 'tiled_tsx_surface_preset_builder.name',
+                    label: 'Nom surface',
+                    controller: nameController,
+                    width: 210,
+                  ),
+                  _BuilderTextField(
+                    keyName: 'tiled_tsx_surface_preset_builder.category',
+                    label: 'Catégorie',
+                    controller: categoryController,
+                    width: 170,
+                  ),
+                  _BuilderTextField(
+                    keyName: 'tiled_tsx_surface_preset_builder.sort_order',
+                    label: 'Ordre',
+                    controller: sortOrderController,
+                    width: 96,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Mapping rôles → animations',
+                style: TextStyle(
+                  color: label,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 6),
+              for (final role in standardSurfaceVariantRoleOrder)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _RoleAnimationField(
+                    role: role,
+                    controller: roleControllers[role]!,
+                  ),
+                ),
+              if (errors.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                for (final error in errors)
+                  _StatusLine(text: error, color: const Color(0xFFF87171)),
+              ],
+              if (warnings.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                for (final warning in warnings)
+                  _StatusLine(text: warning, color: const Color(0xFFFACC15)),
+              ],
+              if (note != null) ...[
+                const SizedBox(height: 4),
+                _StatusLine(text: note!, color: _tsxAccent),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectedAnimationPill extends StatelessWidget {
+  const _SelectedAnimationPill({required this.id});
+
+  final String id;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: _tsxAccent.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: _tsxAccent.withValues(alpha: 0.34)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Text(
+          id,
+          style: const TextStyle(
+            color: _tsxAccent,
+            fontSize: 10.5,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BuilderTextField extends StatelessWidget {
+  const _BuilderTextField({
+    required this.keyName,
+    required this.label,
+    required this.controller,
+    required this.width,
+  });
+
+  final String keyName;
+  final String label;
+  final TextEditingController controller;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    final subtle = EditorChrome.subtleLabel(context);
+    return SizedBox(
+      width: width,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              color: subtle,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          CupertinoTextField(
+            key: ValueKey(keyName),
+            controller: controller,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+            style: const TextStyle(fontSize: 12),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RoleAnimationField extends StatelessWidget {
+  const _RoleAnimationField({
+    required this.role,
+    required this.controller,
+  });
+
+  final SurfaceVariantRole role;
+  final TextEditingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
+    final roleLabel = role == SurfaceVariantRole.isolated
+        ? 'Plein(center)'
+        : SurfaceStudioRoleLabels.labelForRole(role);
+    return Row(
+      children: [
+        SizedBox(
+          width: 170,
+          child: Text(
+            roleLabel,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: label,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: CupertinoTextField(
+            key: ValueKey(
+              'tiled_tsx_surface_preset_builder.role.${role.name}',
+            ),
+            controller: controller,
+            placeholder: 'animation id sélectionnée',
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+            style: const TextStyle(fontSize: 12),
+            placeholderStyle: TextStyle(color: subtle, fontSize: 12),
+          ),
+        ),
+        CupertinoButton(
+          minimumSize: Size.zero,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          onPressed: () => controller.clear(),
+          child: const Text(
+            'Clear',
+            style: TextStyle(
+              color: _tsxAccent,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StatusLine extends StatelessWidget {
+  const _StatusLine({
+    required this.text,
+    required this.color,
+  });
+
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 3),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontSize: 11.5,
+          fontWeight: FontWeight.w700,
+          height: 1.3,
+        ),
+      ),
+    );
   }
 }
 

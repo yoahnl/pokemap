@@ -88,12 +88,12 @@ void main() {
       expect(find.text('242 animations'), findsOneWidget);
       expect(find.text('0 animations sélectionnées'), findsOneWidget);
 
-      await tester.tap(
-        find.byKey(
-          const ValueKey(
-              'tiled_tsx_animation_browser.checkbox.tech-animations-tile-99'),
-        ),
+      final tile99Checkbox = find.byKey(
+        const ValueKey(
+            'tiled_tsx_animation_browser.checkbox.tech-animations-tile-99'),
       );
+      await tester.ensureVisible(tile99Checkbox);
+      await tester.tap(tile99Checkbox);
       await tester.pumpAndSettle();
 
       expect(lastSelection, contains('tech-animations-tile-99'));
@@ -101,10 +101,11 @@ void main() {
       expect(catalog.animationCount, 242);
       expect(catalog.presetCount, 0);
 
-      await tester.tap(
-        find.byKey(
-            const ValueKey('tiled_tsx_animation_browser.clear_selection')),
+      final clearSelection = find.byKey(
+        const ValueKey('tiled_tsx_animation_browser.clear_selection'),
       );
+      await tester.ensureVisible(clearSelection);
+      await tester.tap(clearSelection);
       await tester.pumpAndSettle();
 
       expect(lastSelection, isEmpty);
@@ -149,12 +150,12 @@ void main() {
         ),
       );
 
-      await tester.tap(
-        find.byKey(
-          const ValueKey(
-              'tiled_tsx_animation_browser.item.tech-animations-tile-99'),
-        ),
+      final tile99Item = find.byKey(
+        const ValueKey(
+            'tiled_tsx_animation_browser.item.tech-animations-tile-99'),
       );
+      await tester.ensureVisible(tile99Item);
+      await tester.tap(tile99Item);
       await tester.pumpAndSettle();
 
       expect(find.text('tech-animations-tile-99'), findsWidgets);
