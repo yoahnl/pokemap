@@ -4,12 +4,17 @@
 // briques utiles restent accessibles dans le drawer avance, sans second
 // Surface Studio rendu sous l'assistant.
 
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:flutter/cupertino.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../ui/shared/cupertino_editor_widgets.dart';
+import 'importers/tiled_tsx_animation_browser.dart';
 import 'surface_studio_atlas_editing.dart';
+import 'surface_studio_atlas_image_preview.dart';
 import 'surface_studio_catalog_browser.dart';
 import 'surface_studio_diagnostics_view.dart';
 import 'surface_studio_paintable_surfaces_panel.dart';
@@ -113,6 +118,8 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
   String? _saveFlowPrepNote;
   String? _projectSaveDiskNote;
   int _atlasEditSignal = 0;
+  String? _tsxBrowserImagePath;
+  Uint8List? _tsxBrowserImageBytes;
 
   @override
   void initState() {
@@ -347,6 +354,56 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
     });
   }
 
+  ProjectSurfaceAtlas? _atlasForAnimationBrowser() {
+    for (final animation in _workReadModel.catalog.animations) {
+      final frames = animation.timeline.frames;
+      if (frames.isEmpty) {
+        continue;
+      }
+      final atlas = _workReadModel.catalog.atlasById(
+        frames.first.tileRef.atlasId,
+      );
+      if (atlas != null) {
+        return atlas;
+      }
+    }
+    return _workReadModel.catalog.atlases.isEmpty
+        ? null
+        : _workReadModel.catalog.atlases.first;
+  }
+
+  Uint8List? _atlasImageBytesForBrowser(ProjectSurfaceAtlas? atlas) {
+    if (atlas == null) {
+      _tsxBrowserImagePath = null;
+      _tsxBrowserImageBytes = null;
+      return null;
+    }
+    final resolution = resolveSurfaceStudioAtlasImagePreview(
+      projectRootPath: widget.projectRootPath,
+      projectTilesets: widget.projectTilesets ?? const <ProjectTilesetEntry>[],
+      technicalTilesetId: atlas.tilesetId,
+    );
+    final path = resolution.resolvedAbsolutePath;
+    if (path == null || path.isEmpty) {
+      _tsxBrowserImagePath = null;
+      _tsxBrowserImageBytes = null;
+      return null;
+    }
+    if (_tsxBrowserImagePath == path && _tsxBrowserImageBytes != null) {
+      return _tsxBrowserImageBytes;
+    }
+    try {
+      final bytes = File(path).readAsBytesSync();
+      _tsxBrowserImagePath = path;
+      _tsxBrowserImageBytes = bytes;
+      return bytes;
+    } catch (_) {
+      _tsxBrowserImagePath = path;
+      _tsxBrowserImageBytes = null;
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final canMutateCatalog = widget.onSurfaceCatalogSaveRequested != null;
@@ -376,6 +433,7 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
           ? _onSurfaceCatalogSavePrep
           : null,
     );
+    final tsxBrowserAtlas = _atlasForAnimationBrowser();
     final advancedDrawer = SingleChildScrollView(
       padding: const EdgeInsets.all(14),
       child: _AdvancedDetailsSection(
@@ -386,6 +444,12 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
           onSelectionChanged: (v) {
             setState(() => _selection = v);
           },
+        ),
+        tsxAnimations: TiledTsxAnimationBrowser(
+          atlas: tsxBrowserAtlas,
+          animations: _workReadModel.catalog.animations,
+          atlasImageBytes: _atlasImageBytesForBrowser(tsxBrowserAtlas),
+          sourceLabel: 'Catalogue de travail',
         ),
         diagnostics: SurfaceStudioDiagnosticsView(readModel: _workReadModel),
         futureActions: paintableSurfaces,
@@ -458,6 +522,7 @@ class _AdvancedDetailsSection extends StatelessWidget {
   const _AdvancedDetailsSection({
     required this.inspection,
     required this.browser,
+    required this.tsxAnimations,
     required this.diagnostics,
     required this.futureActions,
     required this.placeholder,
@@ -465,6 +530,7 @@ class _AdvancedDetailsSection extends StatelessWidget {
 
   final Widget inspection;
   final Widget browser;
+  final Widget tsxAnimations;
   final Widget diagnostics;
   final Widget futureActions;
   final Widget placeholder;
@@ -520,6 +586,8 @@ class _AdvancedDetailsSection extends StatelessWidget {
               );
             },
           ),
+          const SizedBox(height: 12),
+          tsxAnimations,
           const SizedBox(height: 12),
           futureActions,
           const SizedBox(height: 10),

@@ -34,7 +34,7 @@ ProjectManifest buildShellChromeProject({
   List<ProjectMapEntry> maps = const <ProjectMapEntry>[],
   List<ProjectTilesetEntry> tilesets = const <ProjectTilesetEntry>[],
 }) {
-  return ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+  return ProjectManifest(
     name: name,
     maps: maps,
     tilesets: tilesets,
