@@ -13,6 +13,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../ui/shared/cupertino_editor_widgets.dart';
 import 'importers/tiled_tsx_animation_browser.dart';
+import 'importers/tiled_tsx_workspace.dart';
 import 'surface_studio_atlas_editing.dart';
 import 'surface_studio_atlas_image_preview.dart';
 import 'surface_studio_catalog_browser.dart';
@@ -50,6 +51,12 @@ SurfaceStudioSelection _selectionValidInReadModel(
 /// Accent produit Surface Studio (même base que la tuile World Explorer).
 const Color _surfaceStudioAccent = Color(0xFF2DD4BF);
 
+enum _SurfaceStudioPrimaryWorkspace {
+  catalogue,
+  tsx,
+  diagnostics,
+}
+
 /// Panneau présentationnel **lecture seule** pour Surface Studio.
 class SurfaceStudioPanel extends StatefulWidget {
   const SurfaceStudioPanel({
@@ -62,6 +69,7 @@ class SurfaceStudioPanel extends StatefulWidget {
     this.projectSettings,
     this.surfaceMappingImageLoader,
     this.aiMappingSuggester,
+    this.tsxFileLoader = const TiledTsxPlatformFileLoader(),
   });
 
   final SurfaceStudioReadModel readModel;
@@ -71,6 +79,7 @@ class SurfaceStudioPanel extends StatefulWidget {
   final ProjectSettings? projectSettings;
   final SurfaceStudioAtlasUiImageLoader? surfaceMappingImageLoader;
   final SurfaceStudioAiMappingSuggester? aiMappingSuggester;
+  final TiledTsxFileLoader tsxFileLoader;
 
   /// Racine projet sur disque pour résoudre les chemins d’images tileset (aperçu Lot 72).
   final String? projectRootPath;
@@ -114,6 +123,8 @@ class SurfaceStudioPanel extends StatefulWidget {
 class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
   /// Sélection d’inspection : locale au widget, jamais écrite dans le manifest.
   SurfaceStudioSelection _selection = const SurfaceStudioSelection.none();
+  _SurfaceStudioPrimaryWorkspace _primaryWorkspace =
+      _SurfaceStudioPrimaryWorkspace.catalogue;
   late SurfaceStudioReadModel _workReadModel;
   String? _saveFlowPrepNote;
   String? _projectSaveDiskNote;
@@ -434,9 +445,8 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
           : null,
     );
     final tsxBrowserAtlas = _atlasForAnimationBrowser();
-    final advancedDrawer = SingleChildScrollView(
-      padding: const EdgeInsets.all(14),
-      child: _AdvancedDetailsSection(
+    Widget buildAdvancedDetails() {
+      return _AdvancedDetailsSection(
         inspection: inspection,
         browser: SurfaceStudioCatalogBrowser(
           readModel: _workReadModel,
@@ -459,7 +469,12 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
         placeholder: const _SectionPlaceholder(
           title: SurfaceStudioPanel.placeholderActionsTitle,
         ),
-      ),
+      );
+    }
+
+    final advancedDrawer = SingleChildScrollView(
+      padding: const EdgeInsets.all(14),
+      child: buildAdvancedDetails(),
     );
 
     return LayoutBuilder(
@@ -468,55 +483,165 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
             constraints.hasBoundedWidth ? constraints.maxWidth : 1600.0;
         final shellHeight =
             constraints.hasBoundedHeight ? constraints.maxHeight : 900.0;
+        final tsxWorkspaceAtlas = _atlasForAnimationBrowser();
+        final content = switch (_primaryWorkspace) {
+          _SurfaceStudioPrimaryWorkspace.catalogue => SurfaceStudioScreen(
+              readModel: _workReadModel,
+              projectSettings: widget.projectSettings,
+              projectTilesets: widget.projectTilesets ?? const [],
+              projectRootPath: widget.projectRootPath,
+              surfaceMappingImageLoader: widget.surfaceMappingImageLoader,
+              hasWorkCatalogChanges: _hasWorkCatalogChanges,
+              saveFlowPrepNote: _saveFlowPrepNote,
+              projectSaveDiskNote: _projectSaveDiskNote,
+              onSurfaceCatalogChanged: _onSurfaceCatalogChanged,
+              onWorkCatalogAnimationsCreated: (createdIds) {
+                if (createdIds.isEmpty) {
+                  return;
+                }
+                setState(() {
+                  _selection =
+                      SurfaceStudioSelection.animation(createdIds.first);
+                });
+              },
+              onWorkCatalogPresetCreated: (presetId) {
+                if (presetId.isEmpty) {
+                  return;
+                }
+                setState(() {
+                  _selection = SurfaceStudioSelection.preset(presetId);
+                });
+              },
+              onResetWorkCatalog: () {
+                setState(() {
+                  _workReadModel = widget.readModel;
+                  _selection =
+                      _selectionValidInReadModel(_workReadModel, _selection);
+                  _saveFlowPrepNote = null;
+                });
+              },
+              onSurfaceCatalogSavePrep:
+                  widget.onSurfaceCatalogSaveRequested == null
+                      ? null
+                      : _onSurfaceCatalogSavePrep,
+              onRequestProjectSave: widget.onRequestProjectSave == null
+                  ? null
+                  : _onRequestProjectSave,
+              advancedDrawer: advancedDrawer,
+              aiMappingSuggester: widget.aiMappingSuggester,
+            ),
+          _SurfaceStudioPrimaryWorkspace.tsx => TiledTsxWorkspace(
+              catalog: _workReadModel.catalog,
+              projectTilesets: widget.projectTilesets ?? const [],
+              onSurfaceCatalogChanged: _onSurfaceCatalogChanged,
+              fileLoader: widget.tsxFileLoader,
+              atlasImageBytes: _atlasImageBytesForBrowser(tsxWorkspaceAtlas),
+              projectSettings: widget.projectSettings,
+            ),
+          _SurfaceStudioPrimaryWorkspace.diagnostics => SingleChildScrollView(
+              key: const ValueKey('surface_studio.diagnostics_workspace'),
+              padding: const EdgeInsets.all(14),
+              child: buildAdvancedDetails(),
+            ),
+        };
         return SizedBox(
           width: shellWidth,
           height: shellHeight,
-          child: SurfaceStudioScreen(
-            readModel: _workReadModel,
-            projectSettings: widget.projectSettings,
-            projectTilesets: widget.projectTilesets ?? const [],
-            projectRootPath: widget.projectRootPath,
-            surfaceMappingImageLoader: widget.surfaceMappingImageLoader,
-            hasWorkCatalogChanges: _hasWorkCatalogChanges,
-            saveFlowPrepNote: _saveFlowPrepNote,
-            projectSaveDiskNote: _projectSaveDiskNote,
-            onSurfaceCatalogChanged: _onSurfaceCatalogChanged,
-            onWorkCatalogAnimationsCreated: (createdIds) {
-              if (createdIds.isEmpty) {
-                return;
-              }
-              setState(() {
-                _selection = SurfaceStudioSelection.animation(createdIds.first);
-              });
-            },
-            onWorkCatalogPresetCreated: (presetId) {
-              if (presetId.isEmpty) {
-                return;
-              }
-              setState(() {
-                _selection = SurfaceStudioSelection.preset(presetId);
-              });
-            },
-            onResetWorkCatalog: () {
-              setState(() {
-                _workReadModel = widget.readModel;
-                _selection =
-                    _selectionValidInReadModel(_workReadModel, _selection);
-                _saveFlowPrepNote = null;
-              });
-            },
-            onSurfaceCatalogSavePrep:
-                widget.onSurfaceCatalogSaveRequested == null
-                    ? null
-                    : _onSurfaceCatalogSavePrep,
-            onRequestProjectSave: widget.onRequestProjectSave == null
-                ? null
-                : _onRequestProjectSave,
-            advancedDrawer: advancedDrawer,
-            aiMappingSuggester: widget.aiMappingSuggester,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _SurfaceStudioPrimaryTabs(
+                selected: _primaryWorkspace,
+                onSelected: (workspace) {
+                  setState(() => _primaryWorkspace = workspace);
+                },
+              ),
+              Expanded(child: content),
+            ],
           ),
         );
       },
+    );
+  }
+}
+
+class _SurfaceStudioPrimaryTabs extends StatelessWidget {
+  const _SurfaceStudioPrimaryTabs({
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final _SurfaceStudioPrimaryWorkspace selected;
+  final ValueChanged<_SurfaceStudioPrimaryWorkspace> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const ValueKey('surface_studio.primary_tabs'),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      color: EditorChrome.appBackground(context),
+      child: Row(
+        children: [
+          _SurfaceStudioPrimaryTabButton(
+            key: const ValueKey('surface_studio.tab.catalogue'),
+            label: 'Catalogue Surface',
+            selected: selected == _SurfaceStudioPrimaryWorkspace.catalogue,
+            onPressed: () =>
+                onSelected(_SurfaceStudioPrimaryWorkspace.catalogue),
+          ),
+          const SizedBox(width: 8),
+          _SurfaceStudioPrimaryTabButton(
+            key: const ValueKey('surface_studio.tab.tsx'),
+            label: 'TSX',
+            selected: selected == _SurfaceStudioPrimaryWorkspace.tsx,
+            onPressed: () => onSelected(_SurfaceStudioPrimaryWorkspace.tsx),
+          ),
+          const SizedBox(width: 8),
+          _SurfaceStudioPrimaryTabButton(
+            key: const ValueKey('surface_studio.tab.diagnostics'),
+            label: 'Diagnostics',
+            selected: selected == _SurfaceStudioPrimaryWorkspace.diagnostics,
+            onPressed: () =>
+                onSelected(_SurfaceStudioPrimaryWorkspace.diagnostics),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SurfaceStudioPrimaryTabButton extends StatelessWidget {
+  const _SurfaceStudioPrimaryTabButton({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected
+        ? _surfaceStudioAccent.withValues(alpha: 0.2)
+        : EditorChrome.elevatedPanelBackground(context);
+    final textColor =
+        selected ? _surfaceStudioAccent : EditorChrome.primaryLabel(context);
+    return CupertinoButton(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      color: color,
+      borderRadius: BorderRadius.circular(9),
+      onPressed: onPressed,
+      child: Text(
+        label,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 13,
+          fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+        ),
+      ),
     );
   }
 }

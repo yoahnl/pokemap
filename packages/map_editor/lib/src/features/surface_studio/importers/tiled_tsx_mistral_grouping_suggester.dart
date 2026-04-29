@@ -24,7 +24,7 @@ final class TiledTsxMistralAnimationGroupingSuggester
   TiledTsxMistralAnimationGroupingSuggester({
     http.Client? httpClient,
     this.baseUrl = 'https://api.mistral.ai/v1/chat/completions',
-    this.model = 'mistral-large-latest',
+    this.model = 'mistral-small-latest',
     this.timeout = const Duration(seconds: 30),
   }) : _client = httpClient ?? http.Client();
 

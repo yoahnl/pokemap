@@ -32,7 +32,9 @@ void main() {
       );
       expect(find.byType(SurfaceStudioWorkflowLayout), findsNothing);
       expect(find.text('Assistant de création'), findsNothing);
-      expect(find.text('Catalogue Surface'), findsNothing);
+      expect(find.byKey(const Key('surface_studio.primary_tabs')), findsOne);
+      expect(find.text('Catalogue Surface'), findsOneWidget);
+      expect(find.text('TSX'), findsOneWidget);
       expect(find.text('Diagnostics Surface'), findsNothing);
     });
 
@@ -50,7 +52,7 @@ void main() {
       );
       expect(find.text('Catalogue & diagnostics'), findsOneWidget);
       expect(find.text('Détails avancés'), findsOneWidget);
-      expect(find.text('Catalogue Surface'), findsOneWidget);
+      expect(find.text('Catalogue Surface'), findsWidgets);
       expect(find.text('Animations TSX importées'), findsOneWidget);
       expect(find.text('Diagnostics Surface'), findsOneWidget);
       expect(find.text('Surfaces prêtes à peindre'), findsOneWidget);
