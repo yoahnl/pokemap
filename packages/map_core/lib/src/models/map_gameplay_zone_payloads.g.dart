@@ -65,6 +65,27 @@ const _$MovementModeEnumMap = {
   MovementMode.rockSmash: 'rock_smash',
 };
 
+_$MovementEffectZonePayloadImpl _$$MovementEffectZonePayloadImplFromJson(
+        Map<String, dynamic> json) =>
+    _$MovementEffectZonePayloadImpl(
+      effectKind: $enumDecodeNullable(
+              _$MovementEffectZoneKindEnumMap, json['effectKind']) ??
+          MovementEffectZoneKind.slide,
+      movementCost: (json['movementCost'] as num?)?.toInt() ?? 1,
+    );
+
+Map<String, dynamic> _$$MovementEffectZonePayloadImplToJson(
+        _$MovementEffectZonePayloadImpl instance) =>
+    <String, dynamic>{
+      'effectKind': _$MovementEffectZoneKindEnumMap[instance.effectKind]!,
+      'movementCost': instance.movementCost,
+    };
+
+const _$MovementEffectZoneKindEnumMap = {
+  MovementEffectZoneKind.slide: 'slide',
+  MovementEffectZoneKind.movementCost: 'movementCost',
+};
+
 _$HazardZonePayloadImpl _$$HazardZonePayloadImplFromJson(
         Map<String, dynamic> json) =>
     _$HazardZonePayloadImpl(

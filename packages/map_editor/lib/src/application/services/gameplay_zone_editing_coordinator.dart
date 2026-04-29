@@ -60,6 +60,9 @@ class GameplayZoneEditingCoordinator {
       encounter: kind == core.GameplayZoneKind.encounter
           ? const core.EncounterZonePayload()
           : null,
+      movementEffect: kind == core.GameplayZoneKind.movementEffect
+          ? const core.MovementEffectZonePayload()
+          : null,
     );
   }
 }

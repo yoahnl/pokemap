@@ -46,6 +46,10 @@ class _GameplayZonePropertiesPanelState
   // movement
   MovementMode _movementMode = MovementMode.walk;
 
+  // movement effect
+  MovementEffectZoneKind _movementEffectKind = MovementEffectZoneKind.slide;
+  int _movementEffectCost = 1;
+
   // hazard
   HazardKind _hazardKind = HazardKind.other;
   int _hazardDamagePerStep = 0;
@@ -180,8 +184,7 @@ class _GameplayZonePropertiesPanelState
                 Text(
                   'Select a zone to edit its properties.',
                   style: TextStyle(
-                    color:
-                        CupertinoColors.placeholderText.resolveFrom(context),
+                    color: CupertinoColors.placeholderText.resolveFrom(context),
                     fontSize: 12,
                   ),
                 )
@@ -325,6 +328,29 @@ class _GameplayZonePropertiesPanelState
           const SizedBox(height: 8),
         ],
 
+        if (_selectedKind == GameplayZoneKind.movementEffect) ...[
+          const _SectionDivider('Movement Effect'),
+          const SizedBox(height: 8),
+          _buildMovementEffectKindDropdown(context, coral),
+          const SizedBox(height: 8),
+          _labeledField(
+            context,
+            label: 'Movement Cost',
+            controller:
+                TextEditingController(text: _movementEffectCost.toString())
+                  ..selection = TextSelection.collapsed(
+                    offset: _movementEffectCost.toString().length,
+                  ),
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            onChanged: (v) {
+              final parsed = int.tryParse(v);
+              if (parsed != null) setState(() => _movementEffectCost = parsed);
+            },
+          ),
+          const SizedBox(height: 8),
+        ],
+
         if (_selectedKind == GameplayZoneKind.hazard) ...[
           const _SectionDivider('Hazard'),
           const SizedBox(height: 8),
@@ -333,10 +359,10 @@ class _GameplayZonePropertiesPanelState
           _labeledField(
             context,
             label: 'Damage / step',
-            controller: TextEditingController(
-                text: _hazardDamagePerStep.toString())
-              ..selection = TextSelection.collapsed(
-                  offset: _hazardDamagePerStep.toString().length),
+            controller:
+                TextEditingController(text: _hazardDamagePerStep.toString())
+                  ..selection = TextSelection.collapsed(
+                      offset: _hazardDamagePerStep.toString().length),
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             onChanged: (v) {
@@ -354,9 +380,8 @@ class _GameplayZonePropertiesPanelState
           _labeledField(
             context,
             label: 'Script Key',
-            controller:
-                TextEditingController(text: _scriptKey)
-                  ..selection = TextSelection.collapsed(offset: _scriptKey.length),
+            controller: TextEditingController(text: _scriptKey)
+              ..selection = TextSelection.collapsed(offset: _scriptKey.length),
             onChanged: (v) => setState(() => _scriptKey = v),
           ),
           const SizedBox(height: 8),
@@ -485,8 +510,7 @@ class _GameplayZonePropertiesPanelState
           EncounterKind.values.firstWhere((k) => k.name == id),
         ),
         onSelected: (id) => setState(() {
-          _encounterKind =
-              EncounterKind.values.firstWhere((k) => k.name == id);
+          _encounterKind = EncounterKind.values.firstWhere((k) => k.name == id);
         }),
         tooltip: 'Encounter trigger kind',
       );
@@ -556,7 +580,9 @@ class _GameplayZonePropertiesPanelState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  hasExplicitPath ? relativePath : 'No battle background linked.',
+                  hasExplicitPath
+                      ? relativePath
+                      : 'No battle background linked.',
                   style: TextStyle(
                     color: hasExplicitPath ? labelColor : subtle,
                     fontSize: 12,
@@ -649,8 +675,7 @@ class _GameplayZonePropertiesPanelState
           MovementMode.values.firstWhere((m) => m.name == id),
         ),
         onSelected: (id) => setState(() {
-          _movementMode =
-              MovementMode.values.firstWhere((m) => m.name == id);
+          _movementMode = MovementMode.values.firstWhere((m) => m.name == id);
         }),
         tooltip: 'Required movement mode',
       );
@@ -668,6 +693,43 @@ class _GameplayZonePropertiesPanelState
         if (picked != null) setState(() => _movementMode = picked);
       },
       child: Text('Required Mode: ${_movementModeLabel(_movementMode)}'),
+    );
+  }
+
+  Widget _buildMovementEffectKindDropdown(BuildContext context, Color accent) {
+    if (widget.embedded) {
+      return InspectorEmbeddedDropdown(
+        accent: accent,
+        fieldLabel: 'Effect Kind',
+        valueLabel: _movementEffectKindLabel(_movementEffectKind),
+        orderedIds: MovementEffectZoneKind.values.map((k) => k.name).toList(),
+        selectedMenuValue: _movementEffectKind.name,
+        selectedIdForCheck: _movementEffectKind.name,
+        idToLabel: (id) => _movementEffectKindLabel(
+          MovementEffectZoneKind.values.firstWhere((k) => k.name == id),
+        ),
+        onSelected: (id) => setState(() {
+          _movementEffectKind =
+              MovementEffectZoneKind.values.firstWhere((k) => k.name == id);
+        }),
+        tooltip: 'Movement effect kind',
+      );
+    }
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      alignment: Alignment.centerLeft,
+      onPressed: () async {
+        final picked = await showCupertinoListPicker<MovementEffectZoneKind>(
+          context: context,
+          title: 'Movement Effect',
+          items: MovementEffectZoneKind.values,
+          labelOf: _movementEffectKindLabel,
+        );
+        if (picked != null) setState(() => _movementEffectKind = picked);
+      },
+      child: Text(
+        'Effect: ${_movementEffectKindLabel(_movementEffectKind)}',
+      ),
     );
   }
 
@@ -747,6 +809,7 @@ class _GameplayZonePropertiesPanelState
             '|${zone.priority}'
             '|${zone.encounter?.encounterTableId}|${zone.encounter?.encounterKind.name}|${zone.encounter?.battleBackgroundRelativePath}'
             '|${zone.movement?.requiredMode.name}'
+            '|${zone.movementEffect?.effectKind.name}|${zone.movementEffect?.movementCost}'
             '|${zone.hazard?.hazardKind.name}|${zone.hazard?.damagePerStep}'
             '|${zone.special?.scriptKey}';
     if (_boundFingerprint == fingerprint) return;
@@ -767,6 +830,11 @@ class _GameplayZonePropertiesPanelState
     // movement
     _movementMode = zone?.movement?.requiredMode ?? MovementMode.walk;
 
+    // movement effect
+    _movementEffectKind =
+        zone?.movementEffect?.effectKind ?? MovementEffectZoneKind.slide;
+    _movementEffectCost = zone?.movementEffect?.movementCost ?? 1;
+
     // hazard
     _hazardKind = zone?.hazard?.hazardKind ?? HazardKind.other;
     _hazardDamagePerStep = zone?.hazard?.damagePerStep ?? 0;
@@ -780,6 +848,7 @@ class _GameplayZonePropertiesPanelState
 
     EncounterZonePayload? encounter;
     MovementZonePayload? movement;
+    MovementEffectZonePayload? movementEffect;
     HazardZonePayload? hazard;
     SpecialZonePayload? special;
 
@@ -788,13 +857,17 @@ class _GameplayZonePropertiesPanelState
         encounter = EncounterZonePayload(
           encounterTableId: _encounterTableId,
           encounterKind: _encounterKind,
-          battleBackgroundRelativePath:
-              _normalizeOptionalProjectRelativePath(
+          battleBackgroundRelativePath: _normalizeOptionalProjectRelativePath(
             _encounterBattleBackgroundRelativePath,
           ),
         );
       case GameplayZoneKind.movement:
         movement = MovementZonePayload(requiredMode: _movementMode);
+      case GameplayZoneKind.movementEffect:
+        movementEffect = MovementEffectZonePayload(
+          effectKind: _movementEffectKind,
+          movementCost: _movementEffectCost,
+        );
       case GameplayZoneKind.hazard:
         hazard = HazardZonePayload(
           hazardKind: _hazardKind,
@@ -814,6 +887,7 @@ class _GameplayZonePropertiesPanelState
       priority: priority,
       encounter: encounter,
       movement: movement,
+      movementEffect: movementEffect,
       hazard: hazard,
       special: special,
     );
@@ -890,6 +964,7 @@ class _GameplayZonePropertiesPanelState
     return switch (kind) {
       GameplayZoneKind.encounter => CupertinoIcons.leaf_arrow_circlepath,
       GameplayZoneKind.movement => CupertinoIcons.arrow_right_arrow_left,
+      GameplayZoneKind.movementEffect => CupertinoIcons.arrow_2_circlepath,
       GameplayZoneKind.hazard => CupertinoIcons.exclamationmark_triangle,
       GameplayZoneKind.special => CupertinoIcons.star,
       GameplayZoneKind.custom => CupertinoIcons.square_stack_3d_up,
@@ -900,6 +975,7 @@ class _GameplayZonePropertiesPanelState
     return switch (kind) {
       GameplayZoneKind.encounter => 'Encounter',
       GameplayZoneKind.movement => 'Movement',
+      GameplayZoneKind.movementEffect => 'Movement Effect',
       GameplayZoneKind.hazard => 'Hazard',
       GameplayZoneKind.special => 'Special',
       GameplayZoneKind.custom => 'Custom',
@@ -914,6 +990,13 @@ class _GameplayZonePropertiesPanelState
       MovementMode.cut => 'Cut',
       MovementMode.strength => 'Strength',
       MovementMode.rockSmash => 'Rock Smash',
+    };
+  }
+
+  static String _movementEffectKindLabel(MovementEffectZoneKind kind) {
+    return switch (kind) {
+      MovementEffectZoneKind.slide => 'Slide',
+      MovementEffectZoneKind.movementCost => 'Movement Cost',
     };
   }
 
@@ -961,7 +1044,8 @@ class _SectionDivider extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        Expanded(child: Container(height: 1, color: color.withValues(alpha: 0.3))),
+        Expanded(
+            child: Container(height: 1, color: color.withValues(alpha: 0.3))),
       ],
     );
   }

@@ -54,6 +54,7 @@ class MapData with _$MapData {
 /// Chaque [kind] dispose d'un payload typé :
 /// - [encounter] → [EncounterZonePayload]
 /// - [movement]  → [MovementZonePayload]
+/// - [movementEffect] → [MovementEffectZonePayload]
 /// - [hazard]    → [HazardZonePayload]
 /// - [special] / [custom] → [SpecialZonePayload]
 ///
@@ -76,6 +77,9 @@ class MapGameplayZone with _$MapGameplayZone {
 
     /// Payload pour [GameplayZoneKind.movement].
     MovementZonePayload? movement,
+
+    /// Payload pour [GameplayZoneKind.movementEffect].
+    MovementEffectZonePayload? movementEffect,
 
     /// Payload pour [GameplayZoneKind.hazard].
     HazardZonePayload? hazard,

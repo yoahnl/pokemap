@@ -1705,6 +1705,18 @@ class MapValidator {
           }
         }
       }
+      final movementEffect = zone.movementEffect;
+      if (zone.kind == GameplayZoneKind.movementEffect &&
+          movementEffect == null) {
+        throw ValidationException(
+          'Gameplay zone $zoneId requires a movement effect payload',
+        );
+      }
+      if (movementEffect != null && movementEffect.movementCost <= 0) {
+        throw ValidationException(
+          'Gameplay zone $zoneId movement effect movementCost must be positive',
+        );
+      }
       _validatePositionInBounds(
         zone.area.pos,
         map.size,

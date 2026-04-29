@@ -2054,6 +2054,7 @@ class MapGridPainter extends CustomPainter {
     return switch (kind) {
       GameplayZoneKind.encounter => const Color(0xFF66FF99),
       GameplayZoneKind.movement => const Color(0xFF66AAFF),
+      GameplayZoneKind.movementEffect => const Color(0xFF66D9FF),
       GameplayZoneKind.hazard => const Color(0xFFFF6666),
       GameplayZoneKind.special => const Color(0xFFCC66FF),
       GameplayZoneKind.custom => const Color(0xFF66FFFF),

@@ -442,6 +442,200 @@ abstract class _MovementZonePayload implements MovementZonePayload {
       throw _privateConstructorUsedError;
 }
 
+MovementEffectZonePayload _$MovementEffectZonePayloadFromJson(
+    Map<String, dynamic> json) {
+  return _MovementEffectZonePayload.fromJson(json);
+}
+
+/// @nodoc
+mixin _$MovementEffectZonePayload {
+  MovementEffectZoneKind get effectKind => throw _privateConstructorUsedError;
+
+  /// Coût entier positif pour [MovementEffectZoneKind.movementCost].
+  ///
+  /// Pour [MovementEffectZoneKind.slide], la valeur est conservée par défaut
+  /// pour garder un JSON stable, mais elle n'est pas consommée.
+  int get movementCost => throw _privateConstructorUsedError;
+
+  /// Serializes this MovementEffectZonePayload to a JSON map.
+  Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
+
+  /// Create a copy of MovementEffectZonePayload
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  $MovementEffectZonePayloadCopyWith<MovementEffectZonePayload> get copyWith =>
+      throw _privateConstructorUsedError;
+}
+
+/// @nodoc
+abstract class $MovementEffectZonePayloadCopyWith<$Res> {
+  factory $MovementEffectZonePayloadCopyWith(MovementEffectZonePayload value,
+          $Res Function(MovementEffectZonePayload) then) =
+      _$MovementEffectZonePayloadCopyWithImpl<$Res, MovementEffectZonePayload>;
+  @useResult
+  $Res call({MovementEffectZoneKind effectKind, int movementCost});
+}
+
+/// @nodoc
+class _$MovementEffectZonePayloadCopyWithImpl<$Res,
+        $Val extends MovementEffectZonePayload>
+    implements $MovementEffectZonePayloadCopyWith<$Res> {
+  _$MovementEffectZonePayloadCopyWithImpl(this._value, this._then);
+
+  // ignore: unused_field
+  final $Val _value;
+  // ignore: unused_field
+  final $Res Function($Val) _then;
+
+  /// Create a copy of MovementEffectZonePayload
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? effectKind = null,
+    Object? movementCost = null,
+  }) {
+    return _then(_value.copyWith(
+      effectKind: null == effectKind
+          ? _value.effectKind
+          : effectKind // ignore: cast_nullable_to_non_nullable
+              as MovementEffectZoneKind,
+      movementCost: null == movementCost
+          ? _value.movementCost
+          : movementCost // ignore: cast_nullable_to_non_nullable
+              as int,
+    ) as $Val);
+  }
+}
+
+/// @nodoc
+abstract class _$$MovementEffectZonePayloadImplCopyWith<$Res>
+    implements $MovementEffectZonePayloadCopyWith<$Res> {
+  factory _$$MovementEffectZonePayloadImplCopyWith(
+          _$MovementEffectZonePayloadImpl value,
+          $Res Function(_$MovementEffectZonePayloadImpl) then) =
+      __$$MovementEffectZonePayloadImplCopyWithImpl<$Res>;
+  @override
+  @useResult
+  $Res call({MovementEffectZoneKind effectKind, int movementCost});
+}
+
+/// @nodoc
+class __$$MovementEffectZonePayloadImplCopyWithImpl<$Res>
+    extends _$MovementEffectZonePayloadCopyWithImpl<$Res,
+        _$MovementEffectZonePayloadImpl>
+    implements _$$MovementEffectZonePayloadImplCopyWith<$Res> {
+  __$$MovementEffectZonePayloadImplCopyWithImpl(
+      _$MovementEffectZonePayloadImpl _value,
+      $Res Function(_$MovementEffectZonePayloadImpl) _then)
+      : super(_value, _then);
+
+  /// Create a copy of MovementEffectZonePayload
+  /// with the given fields replaced by the non-null parameter values.
+  @pragma('vm:prefer-inline')
+  @override
+  $Res call({
+    Object? effectKind = null,
+    Object? movementCost = null,
+  }) {
+    return _then(_$MovementEffectZonePayloadImpl(
+      effectKind: null == effectKind
+          ? _value.effectKind
+          : effectKind // ignore: cast_nullable_to_non_nullable
+              as MovementEffectZoneKind,
+      movementCost: null == movementCost
+          ? _value.movementCost
+          : movementCost // ignore: cast_nullable_to_non_nullable
+              as int,
+    ));
+  }
+}
+
+/// @nodoc
+
+@JsonSerializable(explicitToJson: true)
+class _$MovementEffectZonePayloadImpl implements _MovementEffectZonePayload {
+  const _$MovementEffectZonePayloadImpl(
+      {this.effectKind = MovementEffectZoneKind.slide, this.movementCost = 1});
+
+  factory _$MovementEffectZonePayloadImpl.fromJson(Map<String, dynamic> json) =>
+      _$$MovementEffectZonePayloadImplFromJson(json);
+
+  @override
+  @JsonKey()
+  final MovementEffectZoneKind effectKind;
+
+  /// Coût entier positif pour [MovementEffectZoneKind.movementCost].
+  ///
+  /// Pour [MovementEffectZoneKind.slide], la valeur est conservée par défaut
+  /// pour garder un JSON stable, mais elle n'est pas consommée.
+  @override
+  @JsonKey()
+  final int movementCost;
+
+  @override
+  String toString() {
+    return 'MovementEffectZonePayload(effectKind: $effectKind, movementCost: $movementCost)';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        (other.runtimeType == runtimeType &&
+            other is _$MovementEffectZonePayloadImpl &&
+            (identical(other.effectKind, effectKind) ||
+                other.effectKind == effectKind) &&
+            (identical(other.movementCost, movementCost) ||
+                other.movementCost == movementCost));
+  }
+
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  int get hashCode => Object.hash(runtimeType, effectKind, movementCost);
+
+  /// Create a copy of MovementEffectZonePayload
+  /// with the given fields replaced by the non-null parameter values.
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  @override
+  @pragma('vm:prefer-inline')
+  _$$MovementEffectZonePayloadImplCopyWith<_$MovementEffectZonePayloadImpl>
+      get copyWith => __$$MovementEffectZonePayloadImplCopyWithImpl<
+          _$MovementEffectZonePayloadImpl>(this, _$identity);
+
+  @override
+  Map<String, dynamic> toJson() {
+    return _$$MovementEffectZonePayloadImplToJson(
+      this,
+    );
+  }
+}
+
+abstract class _MovementEffectZonePayload implements MovementEffectZonePayload {
+  const factory _MovementEffectZonePayload(
+      {final MovementEffectZoneKind effectKind,
+      final int movementCost}) = _$MovementEffectZonePayloadImpl;
+
+  factory _MovementEffectZonePayload.fromJson(Map<String, dynamic> json) =
+      _$MovementEffectZonePayloadImpl.fromJson;
+
+  @override
+  MovementEffectZoneKind get effectKind;
+
+  /// Coût entier positif pour [MovementEffectZoneKind.movementCost].
+  ///
+  /// Pour [MovementEffectZoneKind.slide], la valeur est conservée par défaut
+  /// pour garder un JSON stable, mais elle n'est pas consommée.
+  @override
+  int get movementCost;
+
+  /// Create a copy of MovementEffectZonePayload
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  _$$MovementEffectZonePayloadImplCopyWith<_$MovementEffectZonePayloadImpl>
+      get copyWith => throw _privateConstructorUsedError;
+}
+
 HazardZonePayload _$HazardZonePayloadFromJson(Map<String, dynamic> json) {
   return _HazardZonePayload.fromJson(json);
 }

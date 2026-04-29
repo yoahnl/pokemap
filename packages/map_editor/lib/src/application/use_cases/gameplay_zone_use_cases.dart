@@ -17,9 +17,11 @@ class UpdateGameplayZoneOnMapUseCase {
     GameplayZoneKind? kind,
     MapRect? area,
     int? priority,
+
     /// Passer `null` pour effacer le payload, sentinel pour conserver.
     Object? encounter,
     Object? movement,
+    Object? movementEffect,
     Object? hazard,
     Object? special,
   }) {
@@ -33,6 +35,7 @@ class UpdateGameplayZoneOnMapUseCase {
       priority: priority,
       encounter: encounter,
       movement: movement,
+      movementEffect: movementEffect,
       hazard: hazard,
       special: special,
     );

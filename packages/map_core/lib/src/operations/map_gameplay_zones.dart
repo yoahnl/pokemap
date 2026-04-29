@@ -57,7 +57,8 @@ MapData addGameplayZoneToMap(
   required MapGameplayZone zone,
 }) {
   final normalized = _normalizeZone(zone);
-  _validateZone(map, normalized, duplicateIdLabel: 'Gameplay zone ID already exists');
+  _validateZone(map, normalized,
+      duplicateIdLabel: 'Gameplay zone ID already exists');
   return map.copyWith(gameplayZones: [...map.gameplayZones, normalized]);
 }
 
@@ -69,9 +70,11 @@ MapData updateGameplayZoneOnMap(
   GameplayZoneKind? kind,
   MapRect? area,
   int? priority,
+
   /// Passer `null` pour effacer le payload, `_kUnset` (défaut) pour conserver.
   Object? encounter = _kUnset,
   Object? movement = _kUnset,
+  Object? movementEffect = _kUnset,
   Object? hazard = _kUnset,
   Object? special = _kUnset,
 }) {
@@ -92,6 +95,10 @@ MapData updateGameplayZoneOnMap(
   if (!identical(movement, _kUnset)) {
     draft = draft.copyWith(movement: movement as MovementZonePayload?);
   }
+  if (!identical(movementEffect, _kUnset)) {
+    draft = draft.copyWith(
+        movementEffect: movementEffect as MovementEffectZonePayload?);
+  }
   if (!identical(hazard, _kUnset)) {
     draft = draft.copyWith(hazard: hazard as HazardZonePayload?);
   }
@@ -106,7 +113,8 @@ MapData updateGameplayZoneOnMap(
     excludedZoneId: current.id,
     duplicateIdLabel: 'Gameplay zone ID already exists',
   );
-  final updated = List<MapGameplayZone>.from(map.gameplayZones, growable: false);
+  final updated =
+      List<MapGameplayZone>.from(map.gameplayZones, growable: false);
   updated[index] = next;
   return map.copyWith(gameplayZones: updated);
 }
@@ -117,7 +125,9 @@ MapData moveGameplayZoneOnMap(
   required GridPos pos,
 }) {
   final zone = findGameplayZoneById(map, zoneId);
-  if (zone == null) throw ValidationException('Gameplay zone not found: $zoneId');
+  if (zone == null) {
+    throw ValidationException('Gameplay zone not found: $zoneId');
+  }
   return updateGameplayZoneOnMap(
     map,
     zoneId: zoneId,
@@ -131,7 +141,9 @@ MapData resizeGameplayZoneOnMap(
   required GridSize size,
 }) {
   final zone = findGameplayZoneById(map, zoneId);
-  if (zone == null) throw ValidationException('Gameplay zone not found: $zoneId');
+  if (zone == null) {
+    throw ValidationException('Gameplay zone not found: $zoneId');
+  }
   return updateGameplayZoneOnMap(
     map,
     zoneId: zoneId,
@@ -171,7 +183,9 @@ void _validateZone(
   required String duplicateIdLabel,
 }) {
   final id = zone.id.trim();
-  if (id.isEmpty) throw const ValidationException('Gameplay zone ID cannot be empty');
+  if (id.isEmpty) {
+    throw const ValidationException('Gameplay zone ID cannot be empty');
+  }
 
   if (map.gameplayZones.any(
     (z) => z.id == id && z.id != excludedZoneId,
@@ -198,9 +212,21 @@ void _validateZone(
   if (specialProps != null) {
     for (final key in specialProps.keys) {
       if (key.trim().isEmpty) {
-        throw ValidationException('Gameplay zone $id has an empty special property key');
+        throw ValidationException(
+            'Gameplay zone $id has an empty special property key');
       }
     }
+  }
+  final movementEffect = zone.movementEffect;
+  if (zone.kind == GameplayZoneKind.movementEffect && movementEffect == null) {
+    throw ValidationException(
+      'Gameplay zone $id requires a movement effect payload',
+    );
+  }
+  if (movementEffect != null && movementEffect.movementCost <= 0) {
+    throw ValidationException(
+      'Gameplay zone $id movement effect movementCost must be positive',
+    );
   }
 }
 

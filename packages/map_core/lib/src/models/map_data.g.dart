@@ -92,6 +92,10 @@ _$MapGameplayZoneImpl _$$MapGameplayZoneImplFromJson(
           ? null
           : MovementZonePayload.fromJson(
               json['movement'] as Map<String, dynamic>),
+      movementEffect: json['movementEffect'] == null
+          ? null
+          : MovementEffectZonePayload.fromJson(
+              json['movementEffect'] as Map<String, dynamic>),
       hazard: json['hazard'] == null
           ? null
           : HazardZonePayload.fromJson(json['hazard'] as Map<String, dynamic>),
@@ -111,6 +115,7 @@ Map<String, dynamic> _$$MapGameplayZoneImplToJson(
       'priority': instance.priority,
       'encounter': instance.encounter?.toJson(),
       'movement': instance.movement?.toJson(),
+      'movementEffect': instance.movementEffect?.toJson(),
       'hazard': instance.hazard?.toJson(),
       'special': instance.special?.toJson(),
     };
@@ -118,6 +123,7 @@ Map<String, dynamic> _$$MapGameplayZoneImplToJson(
 const _$GameplayZoneKindEnumMap = {
   GameplayZoneKind.encounter: 'encounter',
   GameplayZoneKind.movement: 'movement',
+  GameplayZoneKind.movementEffect: 'movementEffect',
   GameplayZoneKind.hazard: 'hazard',
   GameplayZoneKind.special: 'special',
   GameplayZoneKind.custom: 'custom',

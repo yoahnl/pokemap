@@ -17,8 +17,10 @@ class EncounterZonePayload with _$EncounterZonePayload {
   const factory EncounterZonePayload({
     /// ID de la [ProjectEncounterTable] du projet (optionnel — zone sans table = inerte).
     String? encounterTableId,
+
     /// Type de rencontre déclenchée dans cette zone.
     @Default(EncounterKind.walk) EncounterKind encounterKind,
+
     /// Image de fond de combat authorée explicitement pour cette zone.
     ///
     /// Le chemin reste project-local et optionnel :
@@ -34,18 +36,44 @@ class EncounterZonePayload with _$EncounterZonePayload {
 
 /// Payload d'une zone [GameplayZoneKind.movement].
 /// Contrainte ou mode de déplacement requis/appliqué dans la zone.
+///
+/// Les effets de surface comme la glissade ou le coût de déplacement restent
+/// séparés dans [MovementEffectZonePayload] pour éviter de transformer ce
+/// payload de gate en fourre-tout.
 @freezed
 class MovementZonePayload with _$MovementZonePayload {
   @JsonSerializable(explicitToJson: true)
   const factory MovementZonePayload({
     /// Mode de déplacement requis pour traverser la zone.
     @Default(MovementMode.walk) MovementMode requiredMode,
+
     /// Modes supplémentaires autorisés en plus de [requiredMode].
     @Default([]) List<MovementMode> allowedModes,
   }) = _MovementZonePayload;
 
   factory MovementZonePayload.fromJson(Map<String, dynamic> json) =>
       _$MovementZonePayloadFromJson(json);
+}
+
+/// Payload d'une zone [GameplayZoneKind.movementEffect].
+///
+/// Le payload décrit une source persistante typée. `map_gameplay` décidera
+/// plus tard comment la transformer en `GameplayMovementEffect`.
+@freezed
+class MovementEffectZonePayload with _$MovementEffectZonePayload {
+  @JsonSerializable(explicitToJson: true)
+  const factory MovementEffectZonePayload({
+    @Default(MovementEffectZoneKind.slide) MovementEffectZoneKind effectKind,
+
+    /// Coût entier positif pour [MovementEffectZoneKind.movementCost].
+    ///
+    /// Pour [MovementEffectZoneKind.slide], la valeur est conservée par défaut
+    /// pour garder un JSON stable, mais elle n'est pas consommée.
+    @Default(1) int movementCost,
+  }) = _MovementEffectZonePayload;
+
+  factory MovementEffectZonePayload.fromJson(Map<String, dynamic> json) =>
+      _$MovementEffectZonePayloadFromJson(json);
 }
 
 /// Payload d'une zone [GameplayZoneKind.hazard].
@@ -55,6 +83,7 @@ class HazardZonePayload with _$HazardZonePayload {
   @JsonSerializable(explicitToJson: true)
   const factory HazardZonePayload({
     @Default(HazardKind.other) HazardKind hazardKind,
+
     /// Dommages infligés à chaque pas dans la zone (0 = aucun dommage direct).
     @Default(0) int damagePerStep,
   }) = _HazardZonePayload;
@@ -71,6 +100,7 @@ class SpecialZonePayload with _$SpecialZonePayload {
   const factory SpecialZonePayload({
     /// Clé de script rattachée à cette zone (ex. identifiant Yarn / EventGraph).
     String? scriptKey,
+
     /// Propriétés libres (clé → valeur).
     @Default({}) Map<String, String> properties,
   }) = _SpecialZonePayload;

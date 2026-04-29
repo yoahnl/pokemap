@@ -93,6 +93,7 @@ class GameplayZoneEditingService {
     int? priority,
     Object? encounter,
     Object? movement,
+    Object? movementEffect,
     Object? hazard,
     Object? special,
   }) {
@@ -106,11 +107,13 @@ class GameplayZoneEditingService {
       priority: priority,
       encounter: encounter,
       movement: movement,
+      movementEffect: movementEffect,
       hazard: hazard,
       special: special,
     );
     final nextId = id?.trim().isNotEmpty == true ? id!.trim() : zoneId;
-    return GameplayZoneUpdateResult(updatedMap: updated, selectedZoneId: nextId);
+    return GameplayZoneUpdateResult(
+        updatedMap: updated, selectedZoneId: nextId);
   }
 
   MapData deleteZone(MapData map, {required String zoneId}) {

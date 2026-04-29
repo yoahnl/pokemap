@@ -1,3 +1,5 @@
+// ignore_for_file: constant_identifier_names
+
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 enum ProjectVersion { v1 }
@@ -272,14 +274,17 @@ enum PathAnimationActivationScope {
 /// Sépare explicitement le visuel (PathSurfaceKind / TerrainType) du comportement.
 ///
 /// Chaque kind correspond à un payload typé ([EncounterZonePayload],
-/// [MovementZonePayload], [HazardZonePayload], [SpecialZonePayload]).
+/// [MovementZonePayload], [MovementEffectZonePayload],
+/// [HazardZonePayload], [SpecialZonePayload]).
 /// `custom` est réservé aux extensions futures — ne pas l'utiliser dans du
 /// nouveau code ; préférer un kind typé.
 enum GameplayZoneKind {
   @JsonValue('encounter')
   encounter, // Zone de rencontre aléatoire (herbes, grotte, surf, etc.)
   @JsonValue('movement')
-  movement, // Zone à contrainte de déplacement (surf requis, glace, etc.)
+  movement, // Zone à contrainte de déplacement (surf requis, etc.)
+  @JsonValue('movementEffect')
+  movementEffect, // Zone qui déclenche un effet de mouvement (glissade, coût, etc.)
   @JsonValue('hazard')
   hazard, // Danger environnemental (lave, marais, etc.)
   @JsonValue('special')
@@ -288,6 +293,17 @@ enum GameplayZoneKind {
   /// Ne pas utiliser dans du nouveau code.
   @JsonValue('custom')
   custom,
+}
+
+/// Effet de mouvement persistant porté par [GameplayZoneKind.movementEffect].
+///
+/// Cette enum vit dans `map_core` pour rester indépendante du runtime
+/// `map_gameplay`, qui fera plus tard le mapping vers GameplayMovementEffect.
+enum MovementEffectZoneKind {
+  @JsonValue('slide')
+  slide,
+  @JsonValue('movementCost')
+  movementCost,
 }
 
 /// Sous-type de danger environnemental pour [GameplayZoneKind.hazard].

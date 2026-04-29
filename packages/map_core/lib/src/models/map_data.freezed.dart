@@ -600,6 +600,10 @@ mixin _$MapGameplayZone {
   /// Payload pour [GameplayZoneKind.movement].
   MovementZonePayload? get movement => throw _privateConstructorUsedError;
 
+  /// Payload pour [GameplayZoneKind.movementEffect].
+  MovementEffectZonePayload? get movementEffect =>
+      throw _privateConstructorUsedError;
+
   /// Payload pour [GameplayZoneKind.hazard].
   HazardZonePayload? get hazard => throw _privateConstructorUsedError;
 
@@ -630,12 +634,14 @@ abstract class $MapGameplayZoneCopyWith<$Res> {
       int priority,
       EncounterZonePayload? encounter,
       MovementZonePayload? movement,
+      MovementEffectZonePayload? movementEffect,
       HazardZonePayload? hazard,
       SpecialZonePayload? special});
 
   $MapRectCopyWith<$Res> get area;
   $EncounterZonePayloadCopyWith<$Res>? get encounter;
   $MovementZonePayloadCopyWith<$Res>? get movement;
+  $MovementEffectZonePayloadCopyWith<$Res>? get movementEffect;
   $HazardZonePayloadCopyWith<$Res>? get hazard;
   $SpecialZonePayloadCopyWith<$Res>? get special;
 }
@@ -662,6 +668,7 @@ class _$MapGameplayZoneCopyWithImpl<$Res, $Val extends MapGameplayZone>
     Object? priority = null,
     Object? encounter = freezed,
     Object? movement = freezed,
+    Object? movementEffect = freezed,
     Object? hazard = freezed,
     Object? special = freezed,
   }) {
@@ -694,6 +701,10 @@ class _$MapGameplayZoneCopyWithImpl<$Res, $Val extends MapGameplayZone>
           ? _value.movement
           : movement // ignore: cast_nullable_to_non_nullable
               as MovementZonePayload?,
+      movementEffect: freezed == movementEffect
+          ? _value.movementEffect
+          : movementEffect // ignore: cast_nullable_to_non_nullable
+              as MovementEffectZonePayload?,
       hazard: freezed == hazard
           ? _value.hazard
           : hazard // ignore: cast_nullable_to_non_nullable
@@ -747,6 +758,21 @@ class _$MapGameplayZoneCopyWithImpl<$Res, $Val extends MapGameplayZone>
   /// with the given fields replaced by the non-null parameter values.
   @override
   @pragma('vm:prefer-inline')
+  $MovementEffectZonePayloadCopyWith<$Res>? get movementEffect {
+    if (_value.movementEffect == null) {
+      return null;
+    }
+
+    return $MovementEffectZonePayloadCopyWith<$Res>(_value.movementEffect!,
+        (value) {
+      return _then(_value.copyWith(movementEffect: value) as $Val);
+    });
+  }
+
+  /// Create a copy of MapGameplayZone
+  /// with the given fields replaced by the non-null parameter values.
+  @override
+  @pragma('vm:prefer-inline')
   $HazardZonePayloadCopyWith<$Res>? get hazard {
     if (_value.hazard == null) {
       return null;
@@ -788,6 +814,7 @@ abstract class _$$MapGameplayZoneImplCopyWith<$Res>
       int priority,
       EncounterZonePayload? encounter,
       MovementZonePayload? movement,
+      MovementEffectZonePayload? movementEffect,
       HazardZonePayload? hazard,
       SpecialZonePayload? special});
 
@@ -797,6 +824,8 @@ abstract class _$$MapGameplayZoneImplCopyWith<$Res>
   $EncounterZonePayloadCopyWith<$Res>? get encounter;
   @override
   $MovementZonePayloadCopyWith<$Res>? get movement;
+  @override
+  $MovementEffectZonePayloadCopyWith<$Res>? get movementEffect;
   @override
   $HazardZonePayloadCopyWith<$Res>? get hazard;
   @override
@@ -823,6 +852,7 @@ class __$$MapGameplayZoneImplCopyWithImpl<$Res>
     Object? priority = null,
     Object? encounter = freezed,
     Object? movement = freezed,
+    Object? movementEffect = freezed,
     Object? hazard = freezed,
     Object? special = freezed,
   }) {
@@ -855,6 +885,10 @@ class __$$MapGameplayZoneImplCopyWithImpl<$Res>
           ? _value.movement
           : movement // ignore: cast_nullable_to_non_nullable
               as MovementZonePayload?,
+      movementEffect: freezed == movementEffect
+          ? _value.movementEffect
+          : movementEffect // ignore: cast_nullable_to_non_nullable
+              as MovementEffectZonePayload?,
       hazard: freezed == hazard
           ? _value.hazard
           : hazard // ignore: cast_nullable_to_non_nullable
@@ -879,6 +913,7 @@ class _$MapGameplayZoneImpl implements _MapGameplayZone {
       this.priority = 0,
       this.encounter,
       this.movement,
+      this.movementEffect,
       this.hazard,
       this.special});
 
@@ -908,6 +943,10 @@ class _$MapGameplayZoneImpl implements _MapGameplayZone {
   @override
   final MovementZonePayload? movement;
 
+  /// Payload pour [GameplayZoneKind.movementEffect].
+  @override
+  final MovementEffectZonePayload? movementEffect;
+
   /// Payload pour [GameplayZoneKind.hazard].
   @override
   final HazardZonePayload? hazard;
@@ -918,7 +957,7 @@ class _$MapGameplayZoneImpl implements _MapGameplayZone {
 
   @override
   String toString() {
-    return 'MapGameplayZone(id: $id, name: $name, kind: $kind, area: $area, priority: $priority, encounter: $encounter, movement: $movement, hazard: $hazard, special: $special)';
+    return 'MapGameplayZone(id: $id, name: $name, kind: $kind, area: $area, priority: $priority, encounter: $encounter, movement: $movement, movementEffect: $movementEffect, hazard: $hazard, special: $special)';
   }
 
   @override
@@ -936,6 +975,8 @@ class _$MapGameplayZoneImpl implements _MapGameplayZone {
                 other.encounter == encounter) &&
             (identical(other.movement, movement) ||
                 other.movement == movement) &&
+            (identical(other.movementEffect, movementEffect) ||
+                other.movementEffect == movementEffect) &&
             (identical(other.hazard, hazard) || other.hazard == hazard) &&
             (identical(other.special, special) || other.special == special));
   }
@@ -943,7 +984,7 @@ class _$MapGameplayZoneImpl implements _MapGameplayZone {
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   int get hashCode => Object.hash(runtimeType, id, name, kind, area, priority,
-      encounter, movement, hazard, special);
+      encounter, movement, movementEffect, hazard, special);
 
   /// Create a copy of MapGameplayZone
   /// with the given fields replaced by the non-null parameter values.
@@ -971,6 +1012,7 @@ abstract class _MapGameplayZone implements MapGameplayZone {
       final int priority,
       final EncounterZonePayload? encounter,
       final MovementZonePayload? movement,
+      final MovementEffectZonePayload? movementEffect,
       final HazardZonePayload? hazard,
       final SpecialZonePayload? special}) = _$MapGameplayZoneImpl;
 
@@ -997,6 +1039,10 @@ abstract class _MapGameplayZone implements MapGameplayZone {
   /// Payload pour [GameplayZoneKind.movement].
   @override
   MovementZonePayload? get movement;
+
+  /// Payload pour [GameplayZoneKind.movementEffect].
+  @override
+  MovementEffectZonePayload? get movementEffect;
 
   /// Payload pour [GameplayZoneKind.hazard].
   @override

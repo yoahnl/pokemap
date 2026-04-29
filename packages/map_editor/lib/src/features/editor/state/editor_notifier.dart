@@ -3226,6 +3226,7 @@ class EditorNotifier extends _$EditorNotifier {
     int? priority,
     Object? encounter,
     Object? movement,
+    Object? movementEffect,
     Object? hazard,
     Object? special,
   }) {
@@ -3240,6 +3241,7 @@ class EditorNotifier extends _$EditorNotifier {
       priority: priority,
       encounter: encounter,
       movement: movement,
+      movementEffect: movementEffect,
       hazard: hazard,
       special: special,
     );
@@ -3254,6 +3256,7 @@ class EditorNotifier extends _$EditorNotifier {
     int? priority,
     Object? encounter,
     Object? movement,
+    Object? movementEffect,
     Object? hazard,
     Object? special,
   }) {
@@ -3270,6 +3273,7 @@ class EditorNotifier extends _$EditorNotifier {
         priority: priority,
         encounter: encounter,
         movement: movement,
+        movementEffect: movementEffect,
         hazard: hazard,
         special: special,
       );
