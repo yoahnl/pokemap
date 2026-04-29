@@ -220,7 +220,7 @@ MapData _map({
   );
 }
 
-const _project = ProjectManifest(
+final _project = ProjectManifest(
   name: 'project',
   maps: [],
   tilesets: [
@@ -252,4 +252,5 @@ const _project = ProjectManifest(
       ],
     ),
   ],
+  surfaceCatalog: ProjectSurfaceCatalog(),
 );

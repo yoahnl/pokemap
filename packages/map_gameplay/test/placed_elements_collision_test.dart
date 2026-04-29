@@ -208,6 +208,7 @@ void main() {
             ).copyWith(collisionMask: mask),
           ),
         ],
+        surfaceCatalog: ProjectSurfaceCatalog(),
       );
       final world = GameplayWorldState.initial(
         map: _baseMap(
@@ -438,6 +439,7 @@ void main() {
               collisionProfile: ElementCollisionProfile(cells: roofCells),
             ),
           ],
+          surfaceCatalog: ProjectSurfaceCatalog(),
         ),
       );
 
@@ -588,5 +590,6 @@ ProjectManifest _project({
             ),
           ]
         : const [],
+    surfaceCatalog: ProjectSurfaceCatalog(),
   );
 }

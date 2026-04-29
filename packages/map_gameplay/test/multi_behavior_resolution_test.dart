@@ -78,6 +78,7 @@ void main() {
         maps: [],
         tilesets: [],
         elements: [element1, element2],
+        surfaceCatalog: ProjectSurfaceCatalog(),
       );
 
       final world = GameplayWorldState.initial(
@@ -155,6 +156,7 @@ void main() {
         maps: [],
         tilesets: [],
         elements: [element1, element2],
+        surfaceCatalog: ProjectSurfaceCatalog(),
       );
 
       final world = GameplayWorldState.initial(
@@ -224,6 +226,7 @@ void main() {
         maps: [],
         tilesets: [],
         elements: [element],
+        surfaceCatalog: ProjectSurfaceCatalog(),
       );
 
       // Start OUTSIDE the element cell, then move INTO it
@@ -312,6 +315,7 @@ void main() {
         maps: [],
         tilesets: [],
         elements: [element],
+        surfaceCatalog: ProjectSurfaceCatalog(),
       );
 
       final world1 = GameplayWorldState.initial(
@@ -380,6 +384,7 @@ void main() {
         maps: [],
         tilesets: [],
         elements: [element],
+        surfaceCatalog: ProjectSurfaceCatalog(),
       );
 
       // Player at (4,5) facing EAST towards element at (5,5)

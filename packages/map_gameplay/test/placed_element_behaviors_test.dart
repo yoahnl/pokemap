@@ -700,5 +700,6 @@ ProjectManifest _project({
             : null,
       ),
     ],
+    surfaceCatalog: ProjectSurfaceCatalog(),
   );
 }

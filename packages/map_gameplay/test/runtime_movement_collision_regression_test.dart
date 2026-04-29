@@ -71,7 +71,7 @@ void main() {
           ],
         ),
         playerPos: const GridPos(x: 0, y: 0),
-        project: const ProjectManifest(
+        project: ProjectManifest(
           name: 'Placed Collision Project',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[
@@ -84,6 +84,7 @@ void main() {
           elementCategories: <ProjectElementCategory>[
             ProjectElementCategory(id: 'obstacles', name: 'Obstacles'),
           ],
+          surfaceCatalog: ProjectSurfaceCatalog(),
           elements: <ProjectElementEntry>[
             ProjectElementEntry(
               id: 'rock',
@@ -134,7 +135,7 @@ void main() {
           placedElements: placedElements,
         ),
         playerPos: const GridPos(x: 0, y: 0),
-        project: const ProjectManifest(
+        project: ProjectManifest(
           name: 'Perf Project',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[
@@ -147,6 +148,7 @@ void main() {
           elementCategories: <ProjectElementCategory>[
             ProjectElementCategory(id: 'obstacles', name: 'Obstacles'),
           ],
+          surfaceCatalog: ProjectSurfaceCatalog(),
           elements: <ProjectElementEntry>[
             ProjectElementEntry(
               id: 'rock',
