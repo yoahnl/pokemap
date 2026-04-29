@@ -2,11 +2,11 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/widgets.dart';
-import 'package:map_core/map_core.dart';
 
 import '../surface_studio_design_tokens.dart';
 import '../surface_studio_atlas_view_geometry.dart';
 import '../surface_studio_role_assignment_draft.dart';
+import 'surface_studio_surface_preview_cells.dart';
 
 export '../surface_studio_atlas_view_geometry.dart'
     show surfaceStudioTileSourceRect;
@@ -139,9 +139,12 @@ class SurfaceStudioSurfacePreviewPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final centerColumns =
-        assignmentDraft.columnsForRole(SurfaceVariantRole.isolated);
-    if (centerColumns.isEmpty) {
+    final cells = buildSurfaceStudioRectPreviewCells(
+      assignmentDraft: assignmentDraft,
+      previewSize: previewSize,
+      frameIndex: frameIndex,
+    );
+    if (cells.isEmpty) {
       return;
     }
     final safeFrameCount = frameCount < 1 ? 1 : frameCount;
@@ -149,25 +152,26 @@ class SurfaceStudioSurfacePreviewPainter extends CustomPainter {
     final cellWidth = size.width / previewSize;
     final cellHeight = size.height / previewSize;
     final paint = Paint()..filterQuality = FilterQuality.none;
-    for (var y = 0; y < previewSize; y++) {
-      for (var x = 0; x < previewSize; x++) {
-        final tileColumn =
-            centerColumns[(x + y + safeFrameIndex) % centerColumns.length];
-        final source = surfaceStudioTileSourceRect(
-          uiColumn: tileColumn,
-          frameIndex: safeFrameIndex,
-          tileWidth: tileWidth,
-          tileHeight: tileHeight,
-          columnCount: columnCount,
-          frameCount: safeFrameCount,
-        );
-        canvas.drawImageRect(
-          atlasImage,
-          source,
-          Rect.fromLTWH(x * cellWidth, y * cellHeight, cellWidth, cellHeight),
-          paint,
-        );
-      }
+    for (final cell in cells) {
+      final source = surfaceStudioTileSourceRect(
+        uiColumn: cell.sourceColumn,
+        frameIndex: safeFrameIndex,
+        tileWidth: tileWidth,
+        tileHeight: tileHeight,
+        columnCount: columnCount,
+        frameCount: safeFrameCount,
+      );
+      canvas.drawImageRect(
+        atlasImage,
+        source,
+        Rect.fromLTWH(
+          cell.x * cellWidth,
+          cell.y * cellHeight,
+          cellWidth,
+          cellHeight,
+        ),
+        paint,
+      );
     }
     if (!gridVisible) {
       return;

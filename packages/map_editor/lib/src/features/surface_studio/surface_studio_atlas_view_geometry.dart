@@ -1,5 +1,10 @@
 import 'dart:ui';
 
+enum SurfaceStudioAtlasViewMode {
+  fitWidth,
+  fitWhole,
+}
+
 final class SurfaceStudioAtlasViewGeometry {
   const SurfaceStudioAtlasViewGeometry({
     required this.viewportSize,
@@ -33,6 +38,59 @@ final class SurfaceStudioAtlasViewGeometry {
     );
   }
 
+  factory SurfaceStudioAtlasViewGeometry.fromFitWidth({
+    required Size viewportSize,
+    required Size imagePixelSize,
+    required int tileWidth,
+    required int tileHeight,
+    required int columnCount,
+    required int frameCount,
+  }) {
+    return SurfaceStudioAtlasViewGeometry(
+      viewportSize: viewportSize,
+      imagePixelSize: imagePixelSize,
+      fittedImageRect: computeSurfaceStudioFitWidthImageRect(
+        viewportSize: viewportSize,
+        imagePixelSize: imagePixelSize,
+      ),
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
+      columnCount: columnCount,
+      frameCount: frameCount,
+    );
+  }
+
+  factory SurfaceStudioAtlasViewGeometry.fromMode({
+    required SurfaceStudioAtlasViewMode mode,
+    required Size viewportSize,
+    required Size imagePixelSize,
+    required int tileWidth,
+    required int tileHeight,
+    required int columnCount,
+    required int frameCount,
+  }) {
+    return switch (mode) {
+      SurfaceStudioAtlasViewMode.fitWidth =>
+        SurfaceStudioAtlasViewGeometry.fromFitWidth(
+          viewportSize: viewportSize,
+          imagePixelSize: imagePixelSize,
+          tileWidth: tileWidth,
+          tileHeight: tileHeight,
+          columnCount: columnCount,
+          frameCount: frameCount,
+        ),
+      SurfaceStudioAtlasViewMode.fitWhole =>
+        SurfaceStudioAtlasViewGeometry.fromContain(
+          viewportSize: viewportSize,
+          imagePixelSize: imagePixelSize,
+          tileWidth: tileWidth,
+          tileHeight: tileHeight,
+          columnCount: columnCount,
+          frameCount: frameCount,
+        ),
+    };
+  }
+
   final Size viewportSize;
   final Size imagePixelSize;
   final Rect fittedImageRect;
@@ -40,6 +98,25 @@ final class SurfaceStudioAtlasViewGeometry {
   final int tileHeight;
   final int columnCount;
   final int frameCount;
+}
+
+Rect computeSurfaceStudioFitWidthImageRect({
+  required Size viewportSize,
+  required Size imagePixelSize,
+}) {
+  if (viewportSize.width <= 0 ||
+      viewportSize.height <= 0 ||
+      imagePixelSize.width <= 0 ||
+      imagePixelSize.height <= 0) {
+    return Offset.zero & Size.zero;
+  }
+  final scale = viewportSize.width / imagePixelSize.width;
+  return Rect.fromLTWH(
+    0,
+    0,
+    viewportSize.width,
+    imagePixelSize.height * scale,
+  );
 }
 
 Rect computeSurfaceStudioContainedImageRect({

@@ -87,7 +87,7 @@ class SurfaceStudioAtlasPanel extends StatelessWidget {
   }
 }
 
-class SurfaceStudioAtlasViewport extends StatelessWidget {
+class SurfaceStudioAtlasViewport extends StatefulWidget {
   const SurfaceStudioAtlasViewport({
     super.key,
     required this.columnCount,
@@ -118,12 +118,28 @@ class SurfaceStudioAtlasViewport extends StatelessWidget {
   final VoidCallback onUseSelectionAsCenter;
 
   @override
+  State<SurfaceStudioAtlasViewport> createState() =>
+      _SurfaceStudioAtlasViewportState();
+}
+
+class _SurfaceStudioAtlasViewportState
+    extends State<SurfaceStudioAtlasViewport> {
+  SurfaceStudioAtlasViewMode _viewMode = SurfaceStudioAtlasViewMode.fitWidth;
+
+  void _setViewMode(SurfaceStudioAtlasViewMode viewMode) {
+    if (_viewMode == viewMode) {
+      return;
+    }
+    setState(() => _viewMode = viewMode);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final payload = SurfaceStudioColumnDragPayload(
-      columns: selection.columns,
-      tileWidth: tileWidth,
-      tileHeight: tileHeight,
-      frameCount: frameCount,
+      columns: widget.selection.columns,
+      tileWidth: widget.tileWidth,
+      tileHeight: widget.tileHeight,
+      frameCount: widget.frameCount,
     );
     return Container(
       key: const ValueKey('surfaceStudio.atlas.viewport'),
@@ -135,23 +151,29 @@ class SurfaceStudioAtlasViewport extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
       child: Column(
         children: [
+          _AtlasViewModeBar(
+            viewMode: _viewMode,
+            onChanged: _setViewMode,
+          ),
+          const SizedBox(height: 8),
           Expanded(
             child: Stack(
               children: [
                 Positioned.fill(
                   child: SurfaceStudioAtlasCanvas(
-                    columnCount: columnCount,
-                    frameCount: frameCount,
-                    tileWidth: tileWidth,
-                    tileHeight: tileHeight,
-                    atlasImageBytes: atlasImageBytes,
-                    atlasImageFallbackLabel: atlasImageFallbackLabel,
-                    selection: selection,
-                    zoomPercent: zoomPercent,
-                    onColumnSelectionChanged: onColumnSelectionChanged,
+                    columnCount: widget.columnCount,
+                    frameCount: widget.frameCount,
+                    tileWidth: widget.tileWidth,
+                    tileHeight: widget.tileHeight,
+                    atlasImageBytes: widget.atlasImageBytes,
+                    atlasImageFallbackLabel: widget.atlasImageFallbackLabel,
+                    selection: widget.selection,
+                    zoomPercent: widget.zoomPercent,
+                    viewMode: _viewMode,
+                    onColumnSelectionChanged: widget.onColumnSelectionChanged,
                   ),
                 ),
-                if (selection.isNotEmpty)
+                if (widget.selection.isNotEmpty)
                   Positioned(
                     left: 14,
                     bottom: 14,
@@ -186,7 +208,7 @@ class SurfaceStudioAtlasViewport extends StatelessWidget {
                 runSpacing: 6,
                 children: [
                   Text(
-                    selection.microcopy,
+                    widget.selection.microcopy,
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                       color: SurfaceStudioDesignTokens.textMuted,
@@ -195,9 +217,9 @@ class SurfaceStudioAtlasViewport extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    selection.isEmpty
+                    widget.selection.isEmpty
                         ? 'Colonnes sélectionnées : aucune'
-                        : 'Colonnes sélectionnées : ${_formatColumns(selection.columns)}',
+                        : 'Colonnes sélectionnées : ${_formatColumns(widget.selection.columns)}',
                     style: const TextStyle(
                       color: SurfaceStudioDesignTokens.textSecondary,
                       fontSize: 12,
@@ -205,18 +227,18 @@ class SurfaceStudioAtlasViewport extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    centerAssigned
-                        ? 'Plein(center) : colonnes ${_formatColumns(centerColumns)}'
+                    widget.centerAssigned
+                        ? 'Plein(center) : colonnes ${_formatColumns(widget.centerColumns)}'
                         : 'Plein(center) : non assigné',
                     style: TextStyle(
-                      color: centerAssigned
+                      color: widget.centerAssigned
                           ? SurfaceStudioDesignTokens.accentTeal
                           : SurfaceStudioDesignTokens.accentGold,
                       fontSize: 12,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                  if (selection.isNotEmpty)
+                  if (widget.selection.isNotEmpty)
                     CupertinoButton(
                       key: const ValueKey(
                         'surfaceStudio.atlas.useSelectionAsCenter',
@@ -227,7 +249,7 @@ class SurfaceStudioAtlasViewport extends StatelessWidget {
                       ),
                       minimumSize: const Size(0, 0),
                       color: SurfaceStudioDesignTokens.accentGoldSoft,
-                      onPressed: onUseSelectionAsCenter,
+                      onPressed: widget.onUseSelectionAsCenter,
                       child: const Text(
                         'Utiliser comme Plein(center)',
                         style: TextStyle(
@@ -247,6 +269,95 @@ class SurfaceStudioAtlasViewport extends StatelessWidget {
   }
 }
 
+class _AtlasViewModeBar extends StatelessWidget {
+  const _AtlasViewModeBar({
+    required this.viewMode,
+    required this.onChanged,
+  });
+
+  final SurfaceStudioAtlasViewMode viewMode;
+  final ValueChanged<SurfaceStudioAtlasViewMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = switch (viewMode) {
+      SurfaceStudioAtlasViewMode.fitWidth => 'Affichage : Largeur',
+      SurfaceStudioAtlasViewMode.fitWhole => 'Affichage : Tout voir',
+    };
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 8,
+      runSpacing: 6,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: SurfaceStudioDesignTokens.textSecondary,
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _AtlasViewModeButton(
+              keyName: 'surfaceStudio.atlas.viewMode.fitWidth',
+              label: 'Largeur',
+              selected: viewMode == SurfaceStudioAtlasViewMode.fitWidth,
+              onPressed: () => onChanged(SurfaceStudioAtlasViewMode.fitWidth),
+            ),
+            const SizedBox(width: 6),
+            _AtlasViewModeButton(
+              keyName: 'surfaceStudio.atlas.viewMode.fitWhole',
+              label: 'Tout voir',
+              selected: viewMode == SurfaceStudioAtlasViewMode.fitWhole,
+              onPressed: () => onChanged(SurfaceStudioAtlasViewMode.fitWhole),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _AtlasViewModeButton extends StatelessWidget {
+  const _AtlasViewModeButton({
+    required this.keyName,
+    required this.label,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  final String keyName;
+  final String label;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoButton(
+      key: ValueKey(keyName),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      minimumSize: const Size(0, 0),
+      color: selected
+          ? SurfaceStudioDesignTokens.accentTealSoft
+          : SurfaceStudioDesignTokens.backgroundPanelAlt,
+      onPressed: onPressed,
+      child: Text(
+        label,
+        style: TextStyle(
+          color: selected
+              ? SurfaceStudioDesignTokens.accentTeal
+              : SurfaceStudioDesignTokens.textMuted,
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
 class SurfaceStudioAtlasCanvas extends StatefulWidget {
   const SurfaceStudioAtlasCanvas({
     super.key,
@@ -258,6 +369,7 @@ class SurfaceStudioAtlasCanvas extends StatefulWidget {
     this.atlasImageFallbackLabel,
     required this.selection,
     required this.zoomPercent,
+    required this.viewMode,
     required this.onColumnSelectionChanged,
   });
 
@@ -269,6 +381,7 @@ class SurfaceStudioAtlasCanvas extends StatefulWidget {
   final String? atlasImageFallbackLabel;
   final SurfaceStudioColumnSelection selection;
   final double zoomPercent;
+  final SurfaceStudioAtlasViewMode viewMode;
   final ValueChanged<SurfaceStudioColumnSelection> onColumnSelectionChanged;
 
   @override
@@ -346,7 +459,7 @@ class _SurfaceStudioAtlasCanvasState extends State<SurfaceStudioAtlasCanvas> {
                 (widget.frameCount * widget.tileHeight).toDouble(),
               )
             : Size(image.width.toDouble(), image.height.toDouble());
-        final geometry = SurfaceStudioAtlasViewGeometry.fromContain(
+        final fitWidthGeometry = SurfaceStudioAtlasViewGeometry.fromFitWidth(
           viewportSize: viewportSize,
           imagePixelSize: imagePixelSize,
           tileWidth: widget.tileWidth,
@@ -354,7 +467,23 @@ class _SurfaceStudioAtlasCanvasState extends State<SurfaceStudioAtlasCanvas> {
           columnCount: widget.columnCount,
           frameCount: widget.frameCount,
         );
-        return GestureDetector(
+        final canvasHeight =
+            widget.viewMode == SurfaceStudioAtlasViewMode.fitWidth
+                ? (fitWidthGeometry.fittedImageRect.height > viewportSize.height
+                    ? fitWidthGeometry.fittedImageRect.height
+                    : viewportSize.height)
+                : viewportSize.height;
+        final canvasSize = Size(viewportSize.width, canvasHeight);
+        final geometry = SurfaceStudioAtlasViewGeometry.fromMode(
+          mode: widget.viewMode,
+          viewportSize: canvasSize,
+          imagePixelSize: imagePixelSize,
+          tileWidth: widget.tileWidth,
+          tileHeight: widget.tileHeight,
+          columnCount: widget.columnCount,
+          frameCount: widget.frameCount,
+        );
+        final canvas = GestureDetector(
           key: const ValueKey('surfaceStudio.atlas.canvas'),
           behavior: HitTestBehavior.opaque,
           onTapDown: (details) {
@@ -366,55 +495,84 @@ class _SurfaceStudioAtlasCanvasState extends State<SurfaceStudioAtlasCanvas> {
               _selectColumn(column);
             }
           },
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              CustomPaint(
-                painter: _SurfaceStudioAtlasCanvasPainter(
-                  atlasImage: image,
-                  geometry: geometry,
-                  selectedColumns: widget.selection.columns,
-                  zoomPercent: widget.zoomPercent,
-                  fallbackLabel: widget.atlasImageFallbackLabel ??
-                      'Image source indisponible — aperçu illustratif.',
+          child: SizedBox(
+            width: canvasSize.width,
+            height: canvasSize.height,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                CustomPaint(
+                  painter: _SurfaceStudioAtlasCanvasPainter(
+                    atlasImage: image,
+                    geometry: geometry,
+                    selectedColumns: widget.selection.columns,
+                    zoomPercent: widget.zoomPercent,
+                    fallbackLabel: widget.atlasImageFallbackLabel ??
+                        'Image source indisponible — aperçu illustratif.',
+                  ),
+                  child: const SizedBox.expand(),
                 ),
-                child: const SizedBox.expand(),
-              ),
-              if (image == null)
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Text(
-                      widget.atlasImageFallbackLabel ??
-                          'Image source indisponible — aperçu illustratif.',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: SurfaceStudioDesignTokens.textMuted,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
+                if (image == null)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        widget.atlasImageFallbackLabel ??
+                            'Image source indisponible — aperçu illustratif.',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: SurfaceStudioDesignTokens.textMuted,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              for (var column = 1; column <= widget.columnCount; column++)
-                Positioned.fromRect(
-                  rect: surfaceStudioColumnViewportRect(
-                    uiColumn: column,
-                    geometry: geometry,
+                for (var column = 1; column <= widget.columnCount; column++)
+                  Positioned.fromRect(
+                    rect: _visibleColumnHitRect(
+                      columnRect: surfaceStudioColumnViewportRect(
+                        uiColumn: column,
+                        geometry: geometry,
+                      ),
+                      visibleHeight: viewportSize.height,
+                    ),
+                    child: GestureDetector(
+                      key: ValueKey('surfaceStudio.atlas.column.$column'),
+                      behavior: HitTestBehavior.translucent,
+                      onTap: () => _selectColumn(column),
+                      child: const SizedBox.expand(),
+                    ),
                   ),
-                  child: GestureDetector(
-                    key: ValueKey('surfaceStudio.atlas.column.$column'),
-                    behavior: HitTestBehavior.translucent,
-                    onTap: () => _selectColumn(column),
-                    child: const SizedBox.expand(),
-                  ),
-                ),
-            ],
+              ],
+            ),
           ),
+        );
+        if (widget.viewMode == SurfaceStudioAtlasViewMode.fitWhole) {
+          return canvas;
+        }
+        return SingleChildScrollView(
+          child: canvas,
         );
       },
     );
   }
+}
+
+Rect _visibleColumnHitRect({
+  required Rect columnRect,
+  required double visibleHeight,
+}) {
+  if (columnRect.height <= visibleHeight) {
+    return columnRect;
+  }
+  final height = visibleHeight - columnRect.top;
+  return Rect.fromLTWH(
+    columnRect.left,
+    columnRect.top,
+    columnRect.width,
+    height > 1 ? height : 1,
+  );
 }
 
 class _SurfaceStudioAtlasCanvasPainter extends CustomPainter {

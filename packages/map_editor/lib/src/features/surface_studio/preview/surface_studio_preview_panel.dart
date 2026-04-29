@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 
 import '../surface_studio_design_tokens.dart';
 import '../surface_studio_role_assignment_draft.dart';
+import '../surface_studio_vertical_atlas_role_mapping.dart';
 import 'surface_studio_surface_preview_renderer.dart';
 
 class SurfaceStudioPreviewPanel extends StatelessWidget {
@@ -154,6 +155,12 @@ class _PreviewViewport extends StatelessWidget {
     final hasCenter = assignmentDraft.isAssigned(SurfaceVariantRole.isolated);
     final centerColumns =
         assignmentDraft.columnsForRole(SurfaceVariantRole.isolated);
+    final assignedRoles = standardSurfaceVariantRoleOrder
+        .where(assignmentDraft.isAssigned)
+        .toList(growable: false);
+    final missingExteriorRoles = _surfacePreviewExteriorRoles
+        .where((role) => !assignmentDraft.isAssigned(role))
+        .length;
     return Container(
       decoration: BoxDecoration(
         color: SurfaceStudioDesignTokens.backgroundDeep,
@@ -195,10 +202,19 @@ class _PreviewViewport extends StatelessWidget {
                     ),
                   ),
                 if (atlasImageBytes != null)
-                  const Positioned(
+                  Positioned(
                     left: 10,
                     top: 10,
-                    child: _PartialPreviewBadge(),
+                    child: _PartialPreviewBadge(
+                      assignedRoleCount: assignedRoles.length,
+                      missingExteriorRoleCount: missingExteriorRoles,
+                    ),
+                  ),
+                if (atlasImageBytes != null && assignedRoles.length > 1)
+                  Positioned(
+                    right: 10,
+                    top: 10,
+                    child: _AssignedRolesStrip(assignedRoles: assignedRoles),
                   ),
                 if (atlasImageBytes != null && centerColumns.isNotEmpty)
                   Positioned(
@@ -293,6 +309,17 @@ class _SourceRectDebug extends StatelessWidget {
   }
 }
 
+const _surfacePreviewExteriorRoles = <SurfaceVariantRole>[
+  SurfaceVariantRole.cornerNW,
+  SurfaceVariantRole.cornerNE,
+  SurfaceVariantRole.cornerSW,
+  SurfaceVariantRole.cornerSE,
+  SurfaceVariantRole.endNorth,
+  SurfaceVariantRole.endEast,
+  SurfaceVariantRole.endSouth,
+  SurfaceVariantRole.endWest,
+];
+
 String _formatColumns(List<int> columns) {
   if (columns.isEmpty) {
     return 'aucune';
@@ -304,23 +331,117 @@ String _formatColumns(List<int> columns) {
 }
 
 class _PartialPreviewBadge extends StatelessWidget {
-  const _PartialPreviewBadge();
+  const _PartialPreviewBadge({
+    required this.assignedRoleCount,
+    required this.missingExteriorRoleCount,
+  });
+
+  final int assignedRoleCount;
+  final int missingExteriorRoleCount;
 
   @override
   Widget build(BuildContext context) {
+    final label = assignedRoleCount > 1
+        ? 'Preview multi-rôles : $assignedRoleCount rôles utilisés'
+        : 'Preview partielle : Plein(center)';
+    final subtitle = missingExteriorRoleCount > 0 && assignedRoleCount > 1
+        ? ' • $missingExteriorRoleCount rôles manquants utilisent Plein(center)'
+        : '';
     return DecoratedBox(
       decoration: BoxDecoration(
         color: SurfaceStudioDesignTokens.backgroundDeep.withValues(alpha: 0.82),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: SurfaceStudioDesignTokens.accentTeal),
       ),
-      child: const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         child: Text(
-          'Preview partielle : Plein(center)',
-          style: TextStyle(
+          '$label$subtitle',
+          style: const TextStyle(
             color: SurfaceStudioDesignTokens.accentTeal,
             fontSize: 11,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AssignedRolesStrip extends StatelessWidget {
+  const _AssignedRolesStrip({required this.assignedRoles});
+
+  final List<SurfaceVariantRole> assignedRoles;
+
+  @override
+  Widget build(BuildContext context) {
+    final extraRoles = assignedRoles
+        .where((role) => role != SurfaceVariantRole.isolated)
+        .toList(growable: false);
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 230),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color:
+              SurfaceStudioDesignTokens.backgroundDeep.withValues(alpha: 0.84),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color:
+                SurfaceStudioDesignTokens.borderStrong.withValues(alpha: 0.72),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(9),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Rôles assignés',
+                style: TextStyle(
+                  color: SurfaceStudioDesignTokens.textPrimary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 5,
+                runSpacing: 5,
+                children: [
+                  for (final role in extraRoles) _AssignedRoleChip(role: role),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AssignedRoleChip extends StatelessWidget {
+  const _AssignedRoleChip({required this.role});
+
+  final SurfaceVariantRole role;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: SurfaceStudioDesignTokens.backgroundPanelAlt,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: SurfaceStudioDesignTokens.borderSubtle.withValues(alpha: 0.8),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+        child: Text(
+          SurfaceStudioRoleLabels.labelForRole(role),
+          style: const TextStyle(
+            color: SurfaceStudioDesignTokens.textSecondary,
+            fontSize: 10,
             fontWeight: FontWeight.w800,
           ),
         ),
