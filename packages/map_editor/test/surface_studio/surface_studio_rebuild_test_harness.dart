@@ -6,6 +6,8 @@ import 'package:map_editor/src/features/surface_studio/surface_studio_panel.dart
 
 Widget wrapSurfaceStudioForTest({
   SurfaceStudioReadModel? readModel,
+  ProjectSettings? projectSettings,
+  ValueChanged<ProjectSurfaceCatalog>? onSurfaceCatalogSaveRequested,
   double width = 2048,
   double height = 1120,
 }) {
@@ -19,6 +21,8 @@ Widget wrapSurfaceStudioForTest({
           child: SurfaceStudioPanel(
             readModel:
                 readModel ?? buildSurfaceStudioReadModelFromCatalog(_catalog()),
+            projectSettings: projectSettings,
+            onSurfaceCatalogSaveRequested: onSurfaceCatalogSaveRequested,
             projectTilesets: const <ProjectTilesetEntry>[
               ProjectTilesetEntry(
                 id: 'water_tiles',
@@ -38,6 +42,8 @@ Widget wrapSurfaceStudioForTest({
 Future<void> pumpSurfaceStudioForTest(
   WidgetTester tester, {
   SurfaceStudioReadModel? readModel,
+  ProjectSettings? projectSettings,
+  ValueChanged<ProjectSurfaceCatalog>? onSurfaceCatalogSaveRequested,
   double width = 2048,
   double height = 1120,
 }) async {
@@ -48,6 +54,8 @@ Future<void> pumpSurfaceStudioForTest(
   await tester.pumpWidget(
     wrapSurfaceStudioForTest(
       readModel: readModel,
+      projectSettings: projectSettings,
+      onSurfaceCatalogSaveRequested: onSurfaceCatalogSaveRequested,
       width: width,
       height: height,
     ),

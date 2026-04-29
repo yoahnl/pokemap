@@ -185,69 +185,69 @@ class _PreviewControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(
-            color: SurfaceStudioDesignTokens.backgroundPanelAlt,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: SurfaceStudioDesignTokens.borderSubtle),
-          ),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _RoundControl(
-                    keyName: 'surfaceStudio.preview.previous',
-                    icon: CupertinoIcons.backward_end_fill,
-                    onPressed: onPrevious,
-                  ),
-                  const SizedBox(width: 10),
-                  _RoundControl(
-                    keyName: 'surfaceStudio.preview.playPause',
-                    icon: playing
-                        ? CupertinoIcons.pause_fill
-                        : CupertinoIcons.play_fill,
-                    onPressed: onTogglePlaying,
-                    highlighted: true,
-                  ),
-                  const SizedBox(width: 10),
-                  _RoundControl(
-                    keyName: 'surfaceStudio.preview.next',
-                    icon: CupertinoIcons.forward_end_fill,
-                    onPressed: onNext,
-                  ),
-                ],
-              ),
-              const SizedBox(height: 9),
-              Text(
-                'Frame ${frameIndex + 1} / $frameCount',
-                style: const TextStyle(
-                  color: SurfaceStudioDesignTokens.textSecondary,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 12,
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: SurfaceStudioDesignTokens.backgroundPanelAlt,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: SurfaceStudioDesignTokens.borderSubtle),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _RoundControl(
+                      keyName: 'surfaceStudio.preview.previous',
+                      icon: CupertinoIcons.backward_end_fill,
+                      onPressed: onPrevious,
+                    ),
+                    const SizedBox(width: 10),
+                    _RoundControl(
+                      keyName: 'surfaceStudio.preview.playPause',
+                      icon: playing
+                          ? CupertinoIcons.pause_fill
+                          : CupertinoIcons.play_fill,
+                      onPressed: onTogglePlaying,
+                      highlighted: true,
+                    ),
+                    const SizedBox(width: 10),
+                    _RoundControl(
+                      keyName: 'surfaceStudio.preview.next',
+                      icon: CupertinoIcons.forward_end_fill,
+                      onPressed: onNext,
+                    ),
+                  ],
                 ),
-              ),
-              Material(
-                type: MaterialType.transparency,
-                child: Slider(
-                  key: const ValueKey('surfaceStudio.preview.scrubSlider'),
-                  value: frameIndex.toDouble(),
-                  min: 0,
-                  max: (frameCount - 1).toDouble(),
-                  divisions: frameCount > 1 ? frameCount - 1 : null,
-                  onChanged: (value) => onFrameChanged(value.round()),
+                const SizedBox(height: 9),
+                Text(
+                  'Frame ${frameIndex + 1} / $frameCount',
+                  style: const TextStyle(
+                    color: SurfaceStudioDesignTokens.textSecondary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                  ),
                 ),
-              ),
-            ],
+                Material(
+                  type: MaterialType.transparency,
+                  child: Slider(
+                    key: const ValueKey('surfaceStudio.preview.scrubSlider'),
+                    value: frameIndex.toDouble(),
+                    min: 0,
+                    max: (frameCount - 1).toDouble(),
+                    divisions: frameCount > 1 ? frameCount - 1 : null,
+                    onChanged: (value) => onFrameChanged(value.round()),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: Container(
+          const SizedBox(height: 8),
+          Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: SurfaceStudioDesignTokens.backgroundPanelAlt,
@@ -325,8 +325,8 @@ class _PreviewControls extends StatelessWidget {
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

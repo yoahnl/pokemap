@@ -7,17 +7,15 @@ class SurfaceStudioShell extends StatelessWidget {
     super.key,
     required this.header,
     required this.sidebar,
-    required this.atlasPanel,
-    required this.schemaPanel,
-    required this.previewPanel,
+    required this.workspacePanel,
+    required this.rightDock,
     required this.bottomBar,
   });
 
   final Widget header;
   final Widget sidebar;
-  final Widget atlasPanel;
-  final Widget schemaPanel;
-  final Widget previewPanel;
+  final Widget workspacePanel;
+  final Widget rightDock;
   final Widget bottomBar;
 
   @override
@@ -39,17 +37,11 @@ class SurfaceStudioShell extends StatelessWidget {
                 children: [
                   sidebar,
                   const SizedBox(width: SurfaceStudioDesignTokens.gapSm),
-                  Expanded(child: atlasPanel),
+                  Expanded(child: workspacePanel),
                   const SizedBox(width: SurfaceStudioDesignTokens.gapSm),
                   SizedBox(
                     width: SurfaceStudioDesignTokens.rightPanelWidthExpanded,
-                    child: Column(
-                      children: [
-                        Expanded(flex: 3, child: schemaPanel),
-                        const SizedBox(height: SurfaceStudioDesignTokens.gapSm),
-                        Expanded(flex: 2, child: previewPanel),
-                      ],
-                    ),
+                    child: rightDock,
                   ),
                 ],
               ),

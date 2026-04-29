@@ -7,19 +7,11 @@
 // -----------------------------------------------------------------------------
 
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:http/http.dart' as http;
-import 'package:map_core/map_core.dart';
 
-/// Clé Mistral pour toute fonction IA de l’éditeur (Dialogue Studio, futurs écrans).
-///
-/// Ordre : réglage projet → env. Évite de dupliquer la logique dans chaque workspace.
-String resolveEditorMistralApiKey(ProjectSettings? settings) {
-  final fromProject = settings?.mistralApiKey?.trim() ?? '';
-  if (fromProject.isNotEmpty) return fromProject;
-  return Platform.environment['MISTRAL_API_KEY'] ?? '';
-}
+export '../../editor/application/editor_ai_settings.dart'
+    show resolveEditorMistralApiKey;
 
 /// Erreur réseau ou réponse API inattendue.
 class MistralDialogueException implements Exception {

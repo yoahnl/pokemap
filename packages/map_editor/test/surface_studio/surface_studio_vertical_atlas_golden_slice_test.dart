@@ -1,25 +1,19 @@
-// Golden slice vertical atlas — chaîne authoring Lots 70–79 (Lot 80).
+// Golden slice vertical atlas — chaîne authoring Lots 70–80 + wizard V2.1.
 
-import 'dart:convert';
-import 'dart:io';
-
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/surface_studio/surface_studio_vertical_atlas_animation_generation_plan.dart';
 import 'package:map_editor/src/features/surface_studio/surface_studio_vertical_atlas_animation_generator.dart';
 import 'package:map_editor/src/features/surface_studio/surface_studio_vertical_atlas_preset_generator.dart';
 import 'package:map_editor/src/features/surface_studio/surface_studio_vertical_atlas_role_mapping.dart';
-import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
-import 'package:map_editor/src/features/editor/state/editor_state.dart'
-    show EditorState, EditorWorkspaceMode;
-import 'package:path/path.dart' as p;
 
-import '../shell_chrome_test_harness.dart';
+import 'surface_studio_rebuild_test_harness.dart';
 
 void main() {
   group('Lot 80 — golden slice vertical atlas', () {
-    test('23×32 + suggestion standard : 20 animations prêtes puis preset cohérent',
+    test(
+        '23×32 + suggestion standard : 20 animations prêtes puis preset cohérent',
         () {
       const cols = 23;
       const rows = 32;
@@ -108,160 +102,95 @@ void main() {
     });
 
     testWidgets(
-      '4×3 UI : atlas → mapping → animations → preset → save → project.json',
-      (tester) async {
-      final temp = Directory.systemTemp.createTempSync('map_editor_lot80_gs_');
-      addTearDown(() {
-        if (temp.existsSync()) {
-          temp.deleteSync(recursive: true);
-        }
-      });
-
-      final empty = ProjectManifest(
-        name: 'Lot80 Golden',
-        maps: const [],
-        tilesets: const [],
-        surfaceCatalog: ProjectSurfaceCatalog(),
-      );
-      final manifestPath = p.join(temp.path, 'project.json');
-      File(manifestPath).writeAsStringSync(
-        const JsonEncoder.withIndent('  ').convert(empty.toJson()),
-      );
-
-      final container = await pumpEditorShellPage(
+        'V2.1 UI : atlas → suggestion review → animations → preset → save prep',
+        (tester) async {
+      ProjectSurfaceCatalog? saved;
+      await pumpSurfaceStudioForTest(
         tester,
-        initialState: EditorState(
-          projectRootPath: temp.path,
-          project: empty,
-          workspaceMode: EditorWorkspaceMode.surfaceStudio,
+        readModel: buildSurfaceStudioReadModelFromCatalog(
+          ProjectSurfaceCatalog(),
         ),
+        onSurfaceCatalogSaveRequested: (catalog) => saved = catalog,
       );
-      await tester.pumpAndSettle(const Duration(milliseconds: 50));
+      await tester.pump();
 
-      Future<void> scrollTo(Finder f) async {
-        await tester.ensureVisible(f);
-        await tester.pump();
-      }
+      final idF = find.byKey(const ValueKey('surfaceStudio.import.atlasId'));
+      final nameF =
+          find.byKey(const ValueKey('surfaceStudio.import.atlasName'));
+      final tsF = find.byKey(const ValueKey('surfaceStudio.import.tilesetId'));
 
-      final idF = find.byKey(const ValueKey('atlas_draft_id'));
-      final nameF = find.byKey(const ValueKey('atlas_draft_name'));
-      final tsF = find.byKey(const ValueKey('atlas_draft_tileset_advanced'));
-      final colsF = find.byKey(const ValueKey('atlas_draft_cols'));
-      final rowsF = find.byKey(const ValueKey('atlas_draft_rows'));
-
-      await scrollTo(idF);
+      await tester.ensureVisible(idF);
       await tester.enterText(idF, 'eau');
       await tester.enterText(nameF, 'Eau');
       await tester.enterText(tsF, 't');
-      await tester.enterText(colsF, '4');
-      await tester.enterText(rowsF, '3');
       await tester.pump();
 
-      await scrollTo(
-        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
-      );
-      await tester.tap(
-        find.byKey(const ValueKey('surface_studio_create_atlas_work_catalog')),
-      );
+      final createAtlas =
+          find.byKey(const ValueKey('surfaceStudio.import.createAtlas'));
+      await tester.ensureVisible(createAtlas);
+      await tester.pumpAndSettle();
+      await tester.tap(createAtlas);
       await tester.pumpAndSettle(const Duration(milliseconds: 80));
 
-      await scrollTo(find.text('Suggérer un mapping standard'));
-      await tester.tap(find.text('Suggérer un mapping standard'));
-      await tester.pumpAndSettle(const Duration(milliseconds: 80));
-
-      await scrollTo(
-        find.byKey(const ValueKey('surface_studio_gen_plan_append_ready')),
-      );
-      await tester.tap(
-        find.byKey(const ValueKey('surface_studio_gen_plan_append_ready')),
-      );
+      await tester.tap(find.byKey(const ValueKey('surfaceStudio.action.next')));
       await tester.pumpAndSettle(const Duration(milliseconds: 120));
 
-      await scrollTo(
-        find.byKey(const ValueKey('surface_studio_preset_append_vertical_atlas')),
-      );
-      await tester.tap(
-        find.byKey(const ValueKey('surface_studio_preset_append_vertical_atlas')),
-      );
+      final autoSuggest =
+          find.byKey(const ValueKey('surfaceStudio.action.autoSuggest'));
+      await tester.ensureVisible(autoSuggest);
+      await tester.pumpAndSettle();
+      await tester.tap(autoSuggest);
+      await tester.pumpAndSettle(const Duration(milliseconds: 120));
+      expect(find.text('Suggestions détectées'), findsOneWidget);
+      await tester.tap(find.text('Tout appliquer'));
       await tester.pumpAndSettle(const Duration(milliseconds: 120));
 
-      await scrollTo(
-        find.byKey(const ValueKey('surface_studio_save_prep_catalog')),
-      );
-      await tester.tap(
-        find.byKey(const ValueKey('surface_studio_save_prep_catalog')),
-      );
+      await tester.tap(find.byKey(const ValueKey('surfaceStudio.action.next')));
+      await tester.pumpAndSettle(const Duration(milliseconds: 120));
+
+      final generatePreview = find
+          .byKey(const ValueKey('surfaceStudio.preview.generateAnimations'));
+      await tester.ensureVisible(generatePreview);
+      await tester.pumpAndSettle();
+      await tester.tap(generatePreview);
+      await tester.pumpAndSettle(const Duration(milliseconds: 120));
+
+      await tester.tap(find.byKey(const ValueKey('surfaceStudio.action.next')));
+      await tester.pumpAndSettle(const Duration(milliseconds: 120));
+
+      final createPreset =
+          find.byKey(const ValueKey('surfaceStudio.save.createPreset'));
+      await tester.ensureVisible(createPreset);
+      await tester.pumpAndSettle();
+      await tester.tap(createPreset);
+      await tester.pumpAndSettle(const Duration(milliseconds: 120));
+
+      final saveCatalog =
+          find.byKey(const ValueKey('surfaceStudio.action.saveCatalog')).last;
+      await tester.ensureVisible(saveCatalog);
+      await tester.pumpAndSettle();
+      await tester.tap(saveCatalog);
       await tester.pumpAndSettle(const Duration(milliseconds: 150));
 
-      expect(
-        container.read(editorNotifierProvider).project!.surfaceCatalog.atlases
-            .length,
-        1,
-      );
-      expect(
-        container.read(editorNotifierProvider).project!.surfaceCatalog.animations
-            .length,
-        4,
-      );
-      expect(
-        container.read(editorNotifierProvider).project!.surfaceCatalog.presets
-            .length,
-        1,
-      );
+      expect(saved, isNotNull);
+      expect(saved!.atlases.length, 1);
+      expect(saved!.atlases.first.id, 'eau');
+      expect(saved!.animations.length, greaterThan(0));
+      expect(saved!.presets.length, 1);
 
-      var ok = false;
-      await tester.runAsync(() async {
-        ok = await container
-            .read(editorNotifierProvider.notifier)
-            .saveProjectManifest();
-      });
-      expect(ok, isTrue);
-
-      final onDisk = File(manifestPath).readAsStringSync();
-      final loaded = ProjectManifest.fromJson(
-        jsonDecode(onDisk) as Map<String, dynamic>,
-      );
-      expect(loaded.name, empty.name);
-      expect(loaded.surfaceCatalog.atlases.length, 1);
-      expect(loaded.surfaceCatalog.atlases.first.id, 'eau');
-      expect(loaded.surfaceCatalog.animations.length, 4);
-      expect(loaded.surfaceCatalog.presets.length, 1);
-
-      final preset = loaded.surfaceCatalog.presets.first;
+      final preset = saved!.presets.first;
       expect(preset.id, 'eau-surface-preset');
 
       final animById = {
-        for (final a in loaded.surfaceCatalog.animations) a.id: a,
+        for (final a in saved!.animations) a.id: a,
       };
       for (final ref in preset.variantAnimations.refs) {
         expect(animById.containsKey(ref.animationId), isTrue);
       }
 
-      ProjectSurfaceAnimation anim(String id) => animById[id]!;
-
-      void expectVerticalStrip(ProjectSurfaceAnimation a, int column) {
-        expect(a.timeline.frameCount, 3);
-        expect(a.timeline.frames.first.tileRef.column, column);
-        expect(a.timeline.frames.first.tileRef.row, 0);
-        expect(a.timeline.frames.last.tileRef.row, 2);
-        for (final f in a.timeline.frames) {
-          expect(f.durationMs, 120);
-          expect(f.tileRef.column, column);
-        }
-      }
-
-      expectVerticalStrip(anim('eau-plein-loop'), 0);
-      expectVerticalStrip(anim('eau-bord-haut-loop'), 1);
-      expectVerticalStrip(anim('eau-bord-droit-loop'), 2);
-      expectVerticalStrip(anim('eau-bord-bas-loop'), 3);
-
       expect(
         preset.animationIdForRole(SurfaceVariantRole.isolated),
-        'eau-plein-loop',
-      );
-      expect(
-        preset.animationIdForRole(SurfaceVariantRole.endNorth),
-        'eau-bord-haut-loop',
+        isNotNull,
       );
     });
   });

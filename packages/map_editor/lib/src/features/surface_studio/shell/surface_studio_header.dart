@@ -11,11 +11,13 @@ class SurfaceStudioHeader extends StatelessWidget {
     required this.currentStep,
     required this.completedSteps,
     required this.onStepSelected,
+    this.onOpenAdvanced,
   });
 
   final SurfaceStudioWizardStep currentStep;
   final Set<SurfaceStudioWizardStep> completedSteps;
   final ValueChanged<SurfaceStudioWizardStep> onStepSelected;
+  final VoidCallback? onOpenAdvanced;
 
   @override
   Widget build(BuildContext context) {
@@ -55,9 +57,9 @@ class SurfaceStudioHeader extends StatelessWidget {
             onPressed: () {},
           ),
           _HeaderIconButton(
-            tooltip: 'Paramètres',
+            tooltip: 'Catalogue & diagnostics',
             icon: CupertinoIcons.gear_alt,
-            onPressed: () {},
+            onPressed: onOpenAdvanced ?? () {},
           ),
           _HeaderIconButton(
             tooltip: 'Fermer',

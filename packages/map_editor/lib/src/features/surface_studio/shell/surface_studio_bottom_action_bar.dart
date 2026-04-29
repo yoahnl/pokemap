@@ -9,20 +9,24 @@ class SurfaceStudioBottomActionBar extends StatelessWidget {
     required this.canAutoSuggest,
     required this.canApplyMapping,
     required this.canGoNext,
+    this.canSaveCatalog = false,
     required this.onBack,
     required this.onAutoSuggest,
     required this.onApplyMapping,
     required this.onNext,
+    this.onSaveCatalog,
   });
 
   final bool canGoBack;
   final bool canAutoSuggest;
   final bool canApplyMapping;
   final bool canGoNext;
+  final bool canSaveCatalog;
   final VoidCallback onBack;
   final VoidCallback onAutoSuggest;
   final VoidCallback onApplyMapping;
   final VoidCallback onNext;
+  final VoidCallback? onSaveCatalog;
 
   @override
   Widget build(BuildContext context) {
@@ -44,32 +48,54 @@ class SurfaceStudioBottomActionBar extends StatelessWidget {
             enabled: canGoBack,
             onPressed: onBack,
           ),
-          const Spacer(),
-          _BarButton(
-            keyName: 'surfaceStudio.action.autoSuggest',
-            label: 'Suggestion auto',
-            icon: CupertinoIcons.sparkles,
-            enabled: canAutoSuggest,
-            onPressed: onAutoSuggest,
-            accent: SurfaceStudioDesignTokens.accentTeal,
-          ),
-          const SizedBox(width: 20),
-          _BarButton(
-            keyName: 'surfaceStudio.action.applyMapping',
-            label: 'Appliquer le mapping',
-            icon: CupertinoIcons.checkmark_circle,
-            enabled: canApplyMapping,
-            onPressed: onApplyMapping,
-          ),
-          const SizedBox(width: 20),
-          _BarButton(
-            keyName: 'surfaceStudio.action.next',
-            label: 'Suivant',
-            icon: CupertinoIcons.arrow_right,
-            enabled: canGoNext,
-            onPressed: onNext,
-            accent: SurfaceStudioDesignTokens.accentGold,
-            primary: true,
+          const SizedBox(width: 16),
+          Expanded(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              reverse: true,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _BarButton(
+                    keyName: 'surfaceStudio.action.autoSuggest',
+                    label: 'Suggestion auto',
+                    icon: CupertinoIcons.sparkles,
+                    enabled: canAutoSuggest,
+                    onPressed: onAutoSuggest,
+                    accent: SurfaceStudioDesignTokens.accentTeal,
+                  ),
+                  const SizedBox(width: 12),
+                  _BarButton(
+                    keyName: 'surfaceStudio.action.applyMapping',
+                    label: 'Appliquer le mapping',
+                    icon: CupertinoIcons.checkmark_circle,
+                    enabled: canApplyMapping,
+                    onPressed: onApplyMapping,
+                  ),
+                  if (onSaveCatalog != null) ...[
+                    const SizedBox(width: 12),
+                    _BarButton(
+                      keyName: 'surfaceStudio.action.saveCatalog',
+                      label: 'Préparer sauvegarde',
+                      icon: CupertinoIcons.tray_arrow_down,
+                      enabled: canSaveCatalog,
+                      onPressed: onSaveCatalog!,
+                      accent: SurfaceStudioDesignTokens.accentTeal,
+                    ),
+                  ],
+                  const SizedBox(width: 12),
+                  _BarButton(
+                    keyName: 'surfaceStudio.action.next',
+                    label: 'Suivant',
+                    icon: CupertinoIcons.arrow_right,
+                    enabled: canGoNext,
+                    onPressed: onNext,
+                    accent: SurfaceStudioDesignTokens.accentGold,
+                    primary: true,
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
@@ -104,7 +130,7 @@ class _BarButton extends StatelessWidget {
       child: CupertinoButton(
         key: ValueKey(keyName),
         minimumSize: const Size(46, 46),
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         color: primary
             ? effectiveAccent.withValues(alpha: 0.42)
             : SurfaceStudioDesignTokens.backgroundElevated,
@@ -120,7 +146,7 @@ class _BarButton extends StatelessWidget {
                   : effectiveAccent,
               size: 18,
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
