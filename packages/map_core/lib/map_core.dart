@@ -62,6 +62,7 @@ export 'src/operations/legacy_surface_catalog_diagnostics.dart';
 export 'src/operations/legacy_surface_usage_view.dart';
 export 'src/operations/legacy_surface_usage_diagnostics.dart';
 export 'src/operations/legacy_surface_audit_report.dart';
+export 'src/operations/tall_grass_authoring_view.dart';
 export 'src/operations/path_animation_rules.dart';
 export 'src/operations/element_collision_mask_codec.dart';
 export 'src/collision/pixel_rect.dart';

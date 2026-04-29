@@ -50,6 +50,8 @@ SurfaceStudioSelection _selectionValidInReadModel(
 /// Accent produit Surface Studio (même base que la tuile World Explorer).
 const Color _surfaceStudioAccent = Color(0xFF2DD4BF);
 
+enum _SurfaceStudioSection { catalog, tallGrass }
+
 /// Panneau présentationnel **lecture seule** pour Surface Studio.
 class SurfaceStudioPanel extends StatefulWidget {
   const SurfaceStudioPanel({
@@ -62,6 +64,7 @@ class SurfaceStudioPanel extends StatefulWidget {
     this.projectSettings,
     this.surfaceMappingImageLoader,
     this.aiMappingSuggester,
+    this.tallGrassAuthoringView,
   });
 
   final SurfaceStudioReadModel readModel;
@@ -71,6 +74,7 @@ class SurfaceStudioPanel extends StatefulWidget {
   final ProjectSettings? projectSettings;
   final SurfaceStudioAtlasUiImageLoader? surfaceMappingImageLoader;
   final SurfaceStudioAiMappingSuggester? aiMappingSuggester;
+  final TallGrassAuthoringView? tallGrassAuthoringView;
 
   /// Racine projet sur disque pour résoudre les chemins d’images tileset (aperçu Lot 72).
   final String? projectRootPath;
@@ -120,6 +124,7 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
   int _atlasEditSignal = 0;
   String? _tsxBrowserImagePath;
   Uint8List? _tsxBrowserImageBytes;
+  _SurfaceStudioSection _section = _SurfaceStudioSection.catalog;
 
   @override
   void initState() {
@@ -471,54 +476,456 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
         return SizedBox(
           width: shellWidth,
           height: shellHeight,
-          child: SurfaceStudioScreen(
-            readModel: _workReadModel,
-            projectSettings: widget.projectSettings,
-            projectTilesets: widget.projectTilesets ?? const [],
-            projectRootPath: widget.projectRootPath,
-            surfaceMappingImageLoader: widget.surfaceMappingImageLoader,
-            hasWorkCatalogChanges: _hasWorkCatalogChanges,
-            saveFlowPrepNote: _saveFlowPrepNote,
-            projectSaveDiskNote: _projectSaveDiskNote,
-            onSurfaceCatalogChanged: _onSurfaceCatalogChanged,
-            onWorkCatalogAnimationsCreated: (createdIds) {
-              if (createdIds.isEmpty) {
-                return;
-              }
-              setState(() {
-                _selection = SurfaceStudioSelection.animation(createdIds.first);
-              });
-            },
-            onWorkCatalogPresetCreated: (presetId) {
-              if (presetId.isEmpty) {
-                return;
-              }
-              setState(() {
-                _selection = SurfaceStudioSelection.preset(presetId);
-              });
-            },
-            onResetWorkCatalog: () {
-              setState(() {
-                _workReadModel = widget.readModel;
-                _selection =
-                    _selectionValidInReadModel(_workReadModel, _selection);
-                _saveFlowPrepNote = null;
-              });
-            },
-            onSurfaceCatalogSavePrep:
-                widget.onSurfaceCatalogSaveRequested == null
-                    ? null
-                    : _onSurfaceCatalogSavePrep,
-            onRequestProjectSave: widget.onRequestProjectSave == null
-                ? null
-                : _onRequestProjectSave,
-            advancedDrawer: advancedDrawer,
-            aiMappingSuggester: widget.aiMappingSuggester,
+          child: Column(
+            children: [
+              _SurfaceStudioSectionTabs(
+                section: _section,
+                onChanged: (section) {
+                  setState(() => _section = section);
+                },
+              ),
+              Expanded(
+                child: switch (_section) {
+                  _SurfaceStudioSection.catalog => SurfaceStudioScreen(
+                      readModel: _workReadModel,
+                      projectSettings: widget.projectSettings,
+                      projectTilesets: widget.projectTilesets ?? const [],
+                      projectRootPath: widget.projectRootPath,
+                      surfaceMappingImageLoader:
+                          widget.surfaceMappingImageLoader,
+                      hasWorkCatalogChanges: _hasWorkCatalogChanges,
+                      saveFlowPrepNote: _saveFlowPrepNote,
+                      projectSaveDiskNote: _projectSaveDiskNote,
+                      onSurfaceCatalogChanged: _onSurfaceCatalogChanged,
+                      onWorkCatalogAnimationsCreated: (createdIds) {
+                        if (createdIds.isEmpty) {
+                          return;
+                        }
+                        setState(() {
+                          _selection = SurfaceStudioSelection.animation(
+                              createdIds.first);
+                        });
+                      },
+                      onWorkCatalogPresetCreated: (presetId) {
+                        if (presetId.isEmpty) {
+                          return;
+                        }
+                        setState(() {
+                          _selection = SurfaceStudioSelection.preset(presetId);
+                        });
+                      },
+                      onResetWorkCatalog: () {
+                        setState(() {
+                          _workReadModel = widget.readModel;
+                          _selection = _selectionValidInReadModel(
+                            _workReadModel,
+                            _selection,
+                          );
+                          _saveFlowPrepNote = null;
+                        });
+                      },
+                      onSurfaceCatalogSavePrep:
+                          widget.onSurfaceCatalogSaveRequested == null
+                              ? null
+                              : _onSurfaceCatalogSavePrep,
+                      onRequestProjectSave: widget.onRequestProjectSave == null
+                          ? null
+                          : _onRequestProjectSave,
+                      advancedDrawer: advancedDrawer,
+                      aiMappingSuggester: widget.aiMappingSuggester,
+                    ),
+                  _SurfaceStudioSection.tallGrass => _TallGrassStudioPanel(
+                      view: widget.tallGrassAuthoringView,
+                    ),
+                },
+              ),
+            ],
           ),
         );
       },
     );
   }
+}
+
+class _SurfaceStudioSectionTabs extends StatelessWidget {
+  const _SurfaceStudioSectionTabs({
+    required this.section,
+    required this.onChanged,
+  });
+
+  final _SurfaceStudioSection section;
+  final ValueChanged<_SurfaceStudioSection> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
+      decoration: BoxDecoration(
+        color: EditorChrome.panelBackground(context),
+        border: Border(
+          bottom: BorderSide(color: EditorChrome.separator(context)),
+        ),
+      ),
+      child: Row(
+        children: [
+          CupertinoSlidingSegmentedControl<_SurfaceStudioSection>(
+            key: const ValueKey('surfaceStudio.sectionTabs'),
+            groupValue: section,
+            backgroundColor: EditorChrome.chipFill(context),
+            thumbColor: Color.lerp(
+              EditorChrome.elevatedPanelBackground(context),
+              _surfaceStudioAccent,
+              0.28,
+            )!,
+            children: const {
+              _SurfaceStudioSection.catalog: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                child: Text('Catalogue', style: TextStyle(fontSize: 12)),
+              ),
+              _SurfaceStudioSection.tallGrass: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                child: Text('Hautes herbes', style: TextStyle(fontSize: 12)),
+              ),
+            },
+            onValueChanged: (value) {
+              if (value != null) {
+                onChanged(value);
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TallGrassStudioPanel extends StatelessWidget {
+  const _TallGrassStudioPanel({this.view});
+
+  final TallGrassAuthoringView? view;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
+
+    return DecoratedBox(
+      key: const ValueKey('surfaceStudio.tallGrass.panel'),
+      decoration:
+          BoxDecoration(color: EditorChrome.scaffoldBackground(context)),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _StudioCard(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: Color.lerp(
+                        EditorChrome.elevatedPanelBackground(context),
+                        _surfaceStudioAccent,
+                        0.24,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const MacosIcon(
+                      CupertinoIcons.leaf_arrow_circlepath,
+                      color: _surfaceStudioAccent,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Hautes herbes',
+                          style: TextStyle(
+                            color: label,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Terrain spécial traversable avec rencontres, overlay joueur et bruissement local.',
+                          style: TextStyle(
+                            color: subtle,
+                            fontSize: 12,
+                            height: 1.35,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final cards = [
+                  const _TallGrassCapabilityCard(
+                    title: 'Visuel',
+                    value: 'Preset terrain + overlay',
+                    icon: CupertinoIcons.square_stack_3d_down_right,
+                  ),
+                  const _TallGrassCapabilityCard(
+                    title: 'Comportement',
+                    value: 'Rencontres en marchant',
+                    icon: CupertinoIcons.arrow_right_circle,
+                  ),
+                  const _TallGrassCapabilityCard(
+                    title: 'Animation locale',
+                    value: 'Bruissement au pas',
+                    icon: CupertinoIcons.waveform_path_ecg,
+                  ),
+                  const _TallGrassCapabilityCard(
+                    title: 'Overlay joueur',
+                    value: 'Masque bas du sprite',
+                    icon: CupertinoIcons.person_crop_square,
+                  ),
+                ];
+                if (constraints.maxWidth >= 980) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (final card in cards) ...[
+                        Expanded(child: card),
+                        if (card != cards.last) const SizedBox(width: 12),
+                      ],
+                    ],
+                  );
+                }
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (final card in cards) ...[
+                      card,
+                      if (card != cards.last) const SizedBox(height: 12),
+                    ],
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            _TallGrassProjectSignalsCard(view: view),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TallGrassCapabilityCard extends StatelessWidget {
+  const _TallGrassCapabilityCard({
+    required this.title,
+    required this.value,
+    required this.icon,
+  });
+
+  final String title;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
+
+    return _StudioCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          MacosIcon(icon, size: 18, color: _surfaceStudioAccent),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            style: TextStyle(
+              color: subtle,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            value,
+            style: TextStyle(
+              color: label,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TallGrassProjectSignalsCard extends StatelessWidget {
+  const _TallGrassProjectSignalsCard({required this.view});
+
+  final TallGrassAuthoringView? view;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
+    final grassTerrainCount = view?.grassTerrainPresets.length ?? 0;
+    final tallGrassPathCount = view?.tallGrassPathPresets.length ?? 0;
+    final walkTableCount = view?.walkEncounterTables.length ?? 0;
+    final walkZoneCount = view?.walkEncounterZones.length ?? 0;
+    final readinessItems =
+        view?.readinessItems ?? _emptyTallGrassReadinessItems;
+
+    return _StudioCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Signaux projet',
+            style: TextStyle(
+              color: label,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Lecture des presets et rencontres existants, sans nouveau modèle Surface.',
+            style: TextStyle(color: subtle, fontSize: 11.5, height: 1.35),
+          ),
+          const SizedBox(height: 12),
+          _TallGrassSignalRow(
+            label: 'Terrain herbe',
+            value:
+                _tallGrassCountLabel(grassTerrainCount, 'terrain', 'terrains'),
+          ),
+          const SizedBox(height: 8),
+          _TallGrassSignalRow(
+            label: 'Chemins hautes herbes',
+            value:
+                _tallGrassCountLabel(tallGrassPathCount, 'chemin', 'chemins'),
+          ),
+          const SizedBox(height: 8),
+          _TallGrassSignalRow(
+            label: 'Tables rencontres walk',
+            value: _tallGrassCountLabel(walkTableCount, 'table', 'tables'),
+          ),
+          const SizedBox(height: 8),
+          _TallGrassSignalRow(
+            label: 'Zones rencontres walk',
+            value: _tallGrassCountLabel(walkZoneCount, 'zone', 'zones'),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Préparation',
+            style: TextStyle(
+              color: label,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          for (final item in readinessItems) ...[
+            _TallGrassSignalRow(
+              label: _tallGrassReadinessLabel(item.id),
+              value: _tallGrassReadinessStatus(item),
+            ),
+            if (item != readinessItems.last) const SizedBox(height: 8),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TallGrassSignalRow extends StatelessWidget {
+  const _TallGrassSignalRow({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = EditorChrome.primaryLabel(context);
+    final secondary = EditorChrome.subtleLabel(context);
+
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: secondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            color: primary,
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+String _tallGrassCountLabel(int count, String singular, String plural) {
+  return '$count ${count <= 1 ? singular : plural}';
+}
+
+const _emptyTallGrassReadinessItems = [
+  TallGrassAuthoringReadinessItem(
+    id: TallGrassAuthoringReadinessItem.visualCandidateId,
+    isSatisfied: false,
+  ),
+  TallGrassAuthoringReadinessItem(
+    id: TallGrassAuthoringReadinessItem.walkEncounterTableId,
+    isSatisfied: false,
+  ),
+  TallGrassAuthoringReadinessItem(
+    id: TallGrassAuthoringReadinessItem.mappedWalkEncounterZoneId,
+    isSatisfied: false,
+  ),
+];
+
+String _tallGrassReadinessLabel(String id) {
+  return switch (id) {
+    TallGrassAuthoringReadinessItem.visualCandidateId => 'Visuel hautes herbes',
+    TallGrassAuthoringReadinessItem.walkEncounterTableId =>
+      'Table rencontres walk',
+    TallGrassAuthoringReadinessItem.mappedWalkEncounterZoneId =>
+      'Zones walk posées',
+    _ => id,
+  };
+}
+
+String _tallGrassReadinessStatus(TallGrassAuthoringReadinessItem item) {
+  if (!item.isSatisfied) {
+    return item.id == TallGrassAuthoringReadinessItem.mappedWalkEncounterZoneId
+        ? 'À poser'
+        : 'À créer';
+  }
+  return item.id == TallGrassAuthoringReadinessItem.walkEncounterTableId
+      ? 'Prête'
+      : 'Prêt';
 }
 
 class _AdvancedDetailsSection extends StatelessWidget {
@@ -728,6 +1135,7 @@ class _SurfaceStudioPanelFromManifestState
       projectSettings: _manifest.settings,
       projectTilesets: _manifest.tilesets,
       projectRootPath: widget.projectRootPath,
+      tallGrassAuthoringView: createTallGrassAuthoringView(manifest: _manifest),
       onSurfaceCatalogSaveRequested: (c) {
         final n = replaceProjectManifestSurfaceCatalog(_manifest, c);
         setState(() {
