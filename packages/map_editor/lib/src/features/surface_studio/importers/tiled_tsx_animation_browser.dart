@@ -5,10 +5,13 @@ import 'dart:ui' as ui;
 import 'package:flutter/cupertino.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../editor/application/editor_ai_settings.dart';
 import '../../../ui/shared/cupertino_editor_widgets.dart';
 import '../surface_studio_vertical_atlas_preset_generator.dart';
 import '../surface_studio_vertical_atlas_role_mapping.dart';
 import 'tiled_tsx_animation_browser_models.dart';
+import 'tiled_tsx_mistral_grouping_models.dart';
+import 'tiled_tsx_mistral_grouping_suggester.dart';
 import 'tiled_tsx_surface_preset_draft.dart';
 
 const Color _tsxAccent = Color(0xFF2DD4BF);
@@ -23,6 +26,8 @@ class TiledTsxAnimationBrowser extends StatefulWidget {
     this.onSelectionChanged,
     this.catalog,
     this.onSurfaceCatalogChanged,
+    this.projectSettings,
+    this.groupingSuggester,
   });
 
   final ProjectSurfaceAtlas? atlas;
@@ -32,6 +37,8 @@ class TiledTsxAnimationBrowser extends StatefulWidget {
   final ValueChanged<Set<String>>? onSelectionChanged;
   final ProjectSurfaceCatalog? catalog;
   final ValueChanged<ProjectSurfaceCatalog>? onSurfaceCatalogChanged;
+  final ProjectSettings? projectSettings;
+  final TiledTsxAnimationGroupingSuggester? groupingSuggester;
 
   @override
   State<TiledTsxAnimationBrowser> createState() =>
@@ -55,6 +62,9 @@ class _TiledTsxAnimationBrowserState extends State<TiledTsxAnimationBrowser> {
   List<String> _presetBuilderErrors = const <String>[];
   List<String> _presetBuilderWarnings = const <String>[];
   String? _presetBuilderNote;
+  bool _mistralConfirmOpen = false;
+  bool _mistralPending = false;
+  TiledTsxMistralGroupingResult? _mistralResult;
 
   @override
   void initState() {
@@ -117,6 +127,9 @@ class _TiledTsxAnimationBrowserState extends State<TiledTsxAnimationBrowser> {
     final atlas = widget.atlas;
     final canCreateSurfaceFromSelection =
         _selectedIds.isNotEmpty && widget.onSurfaceCatalogChanged != null;
+    final hasMistralKey = hasEditorMistralApiKey(widget.projectSettings);
+    final canRunMistralGrouping =
+        _selectedIds.isNotEmpty && hasMistralKey && !_mistralPending;
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -244,6 +257,25 @@ class _TiledTsxAnimationBrowserState extends State<TiledTsxAnimationBrowser> {
                         ),
                         CupertinoButton(
                           key: const ValueKey(
+                              'tiled_tsx_animation_browser.mistral_grouping'),
+                          minimumSize: Size.zero,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          onPressed: canRunMistralGrouping
+                              ? _openMistralConfirmation
+                              : null,
+                          child: Text(
+                            'Proposer un mapping avec Mistral',
+                            style: TextStyle(
+                              color:
+                                  canRunMistralGrouping ? _tsxAccent : subtle,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        CupertinoButton(
+                          key: const ValueKey(
                               'tiled_tsx_animation_browser.only_selected'),
                           minimumSize: Size.zero,
                           padding: const EdgeInsets.symmetric(
@@ -283,7 +315,7 @@ class _TiledTsxAnimationBrowserState extends State<TiledTsxAnimationBrowser> {
                         ),
                       ],
                     );
-                    if (toolbarConstraints.maxWidth < 700) {
+                    if (toolbarConstraints.maxWidth < 900) {
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -302,6 +334,37 @@ class _TiledTsxAnimationBrowserState extends State<TiledTsxAnimationBrowser> {
                   },
                 ),
                 const SizedBox(height: 10),
+                if (_selectedIds.isNotEmpty && !hasMistralKey) ...[
+                  const _StatusLine(
+                    text:
+                        'Clé Mistral absente : Projet → Paramètres (IA) ou MISTRAL_API_KEY.',
+                    color: Color(0xFFFACC15),
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                if (_mistralConfirmOpen ||
+                    _mistralPending ||
+                    _mistralResult != null) ...[
+                  _TiledTsxMistralGroupingPanel(
+                    result: _mistralResult,
+                    pending: _mistralPending,
+                    confirming: _mistralConfirmOpen,
+                    onConfirm: _runMistralGrouping,
+                    onCancel: () {
+                      setState(() {
+                        _mistralConfirmOpen = false;
+                        if (!_mistralPending) {
+                          _mistralResult = null;
+                        }
+                      });
+                    },
+                    onApplyReliable: _applyReliableMistralSuggestions,
+                    onApplyAll: _applyAllMistralSuggestions,
+                    onAccept: _applyMistralSuggestion,
+                    onReject: _rejectMistralSuggestion,
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 if (_presetBuilderOpen) ...[
                   _TiledTsxSurfacePresetBuilderPanel(
                     selectedAnimationIds: _selectedIds,
@@ -405,6 +468,148 @@ class _TiledTsxAnimationBrowserState extends State<TiledTsxAnimationBrowser> {
       _presetBuilderErrors = const <String>[];
       _presetBuilderWarnings = const <String>[];
       _presetBuilderNote = null;
+    });
+  }
+
+  void _openMistralConfirmation() {
+    setState(() {
+      _mistralConfirmOpen = true;
+      _mistralResult = null;
+    });
+  }
+
+  Future<void> _runMistralGrouping() async {
+    final atlas = widget.atlas;
+    if (atlas == null) {
+      setState(() {
+        _mistralConfirmOpen = false;
+        _mistralPending = false;
+        _mistralResult = const TiledTsxMistralGroupingResult(
+          suggestions: <TiledTsxRoleAnimationSuggestion>[],
+          rejectedAnimationIds: <String>[],
+          warnings: <String>[
+            'Atlas Surface indisponible : analyse Mistral impossible.',
+          ],
+        );
+      });
+      return;
+    }
+    final selectedAnimations = _selectedAnimations();
+    if (selectedAnimations.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      _mistralConfirmOpen = false;
+      _mistralPending = true;
+      _mistralResult = null;
+    });
+
+    final request = TiledTsxMistralGroupingRequest(
+      animations: selectedAnimations,
+      tileWidth: atlas.geometry.tileSize.width,
+      tileHeight: atlas.geometry.tileSize.height,
+      atlasColumns: atlas.geometry.gridSize.columns,
+      atlasRows: atlas.geometry.gridSize.rows,
+      availableRoles: standardSurfaceVariantRoleOrder,
+    );
+    final suggester =
+        widget.groupingSuggester ?? TiledTsxMistralAnimationGroupingSuggester();
+    late final TiledTsxMistralGroupingResult result;
+    try {
+      result = await suggester.suggest(
+        apiKey: resolveEditorMistralApiKey(widget.projectSettings),
+        request: request,
+        atlasImageBytes: widget.atlasImageBytes,
+      );
+    } on TimeoutException {
+      result = const TiledTsxMistralGroupingResult(
+        suggestions: <TiledTsxRoleAnimationSuggestion>[],
+        rejectedAnimationIds: <String>[],
+        warnings: <String>[
+          'Mistral n’a pas répondu à temps. Aucune modification n’a été appliquée.',
+        ],
+      );
+    } catch (_) {
+      result = const TiledTsxMistralGroupingResult(
+        suggestions: <TiledTsxRoleAnimationSuggestion>[],
+        rejectedAnimationIds: <String>[],
+        warnings: <String>[
+          'Analyse Mistral impossible. Aucune modification n’a été appliquée.',
+        ],
+      );
+    }
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _mistralPending = false;
+      _mistralResult = result;
+    });
+  }
+
+  List<ProjectSurfaceAnimation> _selectedAnimations() {
+    return widget.animations
+        .where((animation) => _selectedIds.contains(animation.id))
+        .toList(growable: false);
+  }
+
+  void _applyMistralSuggestion(TiledTsxRoleAnimationSuggestion suggestion) {
+    setState(() {
+      _presetBuilderOpen = true;
+      _roleControllers[suggestion.role]!.text = suggestion.animationId;
+      _presetBuilderErrors = const <String>[];
+      _presetBuilderWarnings = const <String>[];
+      _presetBuilderNote = 'Suggestion Mistral appliquée au draft local.';
+    });
+  }
+
+  void _applyReliableMistralSuggestions() {
+    final result = _mistralResult;
+    if (result == null) {
+      return;
+    }
+    setState(() {
+      _presetBuilderOpen = true;
+      for (final suggestion in result.reliableSuggestions) {
+        _roleControllers[suggestion.role]!.text = suggestion.animationId;
+      }
+      _presetBuilderErrors = const <String>[];
+      _presetBuilderWarnings = const <String>[];
+      _presetBuilderNote =
+          'Suggestions Mistral fiables appliquées au draft local.';
+    });
+  }
+
+  void _applyAllMistralSuggestions() {
+    final result = _mistralResult;
+    if (result == null) {
+      return;
+    }
+    setState(() {
+      _presetBuilderOpen = true;
+      for (final suggestion in result.suggestions) {
+        _roleControllers[suggestion.role]!.text = suggestion.animationId;
+      }
+      _presetBuilderErrors = const <String>[];
+      _presetBuilderWarnings = const <String>[];
+      _presetBuilderNote = 'Suggestions Mistral appliquées au draft local.';
+    });
+  }
+
+  void _rejectMistralSuggestion(TiledTsxRoleAnimationSuggestion suggestion) {
+    final result = _mistralResult;
+    if (result == null) {
+      return;
+    }
+    setState(() {
+      _mistralResult = TiledTsxMistralGroupingResult(
+        suggestions: List<TiledTsxRoleAnimationSuggestion>.unmodifiable(
+          result.suggestions.where((item) => item != suggestion),
+        ),
+        rejectedAnimationIds: result.rejectedAnimationIds,
+        warnings: result.warnings,
+      );
     });
   }
 
@@ -817,6 +1022,312 @@ class _StatusLine extends StatelessWidget {
           fontWeight: FontWeight.w700,
           height: 1.3,
         ),
+      ),
+    );
+  }
+}
+
+class _TiledTsxMistralGroupingPanel extends StatelessWidget {
+  const _TiledTsxMistralGroupingPanel({
+    required this.result,
+    required this.pending,
+    required this.confirming,
+    required this.onConfirm,
+    required this.onCancel,
+    required this.onApplyReliable,
+    required this.onApplyAll,
+    required this.onAccept,
+    required this.onReject,
+  });
+
+  final TiledTsxMistralGroupingResult? result;
+  final bool pending;
+  final bool confirming;
+  final VoidCallback onConfirm;
+  final VoidCallback onCancel;
+  final VoidCallback onApplyReliable;
+  final VoidCallback onApplyAll;
+  final ValueChanged<TiledTsxRoleAnimationSuggestion> onAccept;
+  final ValueChanged<TiledTsxRoleAnimationSuggestion> onReject;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
+    return Container(
+      key: const ValueKey('tiled_tsx_mistral_grouping.panel'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: EditorChrome.islandFillElevated(context).withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: EditorChrome.editorIslandRim(context).withValues(alpha: 0.7),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            confirming || pending ? 'Assistant Mistral' : 'Suggestions Mistral',
+            style: TextStyle(
+              color: label,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Mistral analyse uniquement les animations TSX sélectionnées et propose role → animationId. Aucun preset n’est créé automatiquement.',
+            style: TextStyle(color: subtle, fontSize: 11.5, height: 1.35),
+          ),
+          const SizedBox(height: 10),
+          if (confirming) _buildConfirmation(),
+          if (pending) _buildProgress(label),
+          if (!confirming && !pending && result != null)
+            _buildReview(label, subtle, result!),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConfirmation() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Cette analyse enverra une planche visuelle des animations sélectionnées au fournisseur IA configuré. Aucune modification ne sera appliquée automatiquement.',
+          style: TextStyle(
+            color: Color(0xFFCBD5E1),
+            fontSize: 11.5,
+            height: 1.35,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          children: [
+            CupertinoButton.filled(
+              key: const ValueKey('tiled_tsx_mistral_grouping.confirm'),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              onPressed: onConfirm,
+              child: const Text(
+                'Confirmer l’analyse IA',
+                style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w800),
+              ),
+            ),
+            CupertinoButton(
+              minimumSize: Size.zero,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              onPressed: onCancel,
+              child: const Text(
+                'Annuler',
+                style: TextStyle(
+                  color: _tsxAccent,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProgress(Color label) {
+    return Row(
+      key: const ValueKey('tiled_tsx_mistral_grouping.progress'),
+      children: [
+        const CupertinoActivityIndicator(),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            'Mistral analyse les animations sélectionnées avec un niveau de réflexion élevé.',
+            style: TextStyle(
+              color: label,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              height: 1.35,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReview(
+    Color label,
+    Color subtle,
+    TiledTsxMistralGroupingResult result,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (result.warnings.isNotEmpty) ...[
+          for (final warning in result.warnings)
+            _StatusLine(text: warning, color: const Color(0xFFFACC15)),
+          const SizedBox(height: 6),
+        ],
+        if (result.suggestions.isEmpty)
+          Text(
+            'Aucune suggestion exploitable.',
+            style: TextStyle(color: subtle, fontSize: 11.5),
+          )
+        else ...[
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            children: [
+              CupertinoButton(
+                key: const ValueKey(
+                  'tiled_tsx_mistral_grouping.apply_reliable',
+                ),
+                minimumSize: Size.zero,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                onPressed: onApplyReliable,
+                child: const Text(
+                  'Appliquer les suggestions fiables au draft',
+                  style: TextStyle(
+                    color: _tsxAccent,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              CupertinoButton(
+                key: const ValueKey('tiled_tsx_mistral_grouping.apply_all'),
+                minimumSize: Size.zero,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                onPressed: onApplyAll,
+                child: const Text(
+                  'Tout appliquer',
+                  style: TextStyle(
+                    color: _tsxAccent,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              CupertinoButton(
+                minimumSize: Size.zero,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                onPressed: onCancel,
+                child: const Text(
+                  'Annuler',
+                  style: TextStyle(
+                    color: _tsxAccent,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          for (final suggestion in result.suggestions)
+            _TiledTsxMistralSuggestionRow(
+              suggestion: suggestion,
+              label: label,
+              subtle: subtle,
+              onAccept: () => onAccept(suggestion),
+              onReject: () => onReject(suggestion),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+class _TiledTsxMistralSuggestionRow extends StatelessWidget {
+  const _TiledTsxMistralSuggestionRow({
+    required this.suggestion,
+    required this.label,
+    required this.subtle,
+    required this.onAccept,
+    required this.onReject,
+  });
+
+  final TiledTsxRoleAnimationSuggestion suggestion;
+  final Color label;
+  final Color subtle;
+  final VoidCallback onAccept;
+  final VoidCallback onReject;
+
+  @override
+  Widget build(BuildContext context) {
+    final roleLabel = suggestion.role == SurfaceVariantRole.isolated
+        ? 'Plein(center)'
+        : SurfaceStudioRoleLabels.labelForRole(suggestion.role);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: EditorChrome.islandFillElevated(context),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: EditorChrome.editorIslandRim(context).withValues(alpha: 0.7),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            '$roleLabel → ${suggestion.animationId}',
+            style: TextStyle(
+              color: label,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            'confidence ${suggestion.confidence.name} · evidence ${suggestion.evidenceAnimationIds.join(', ')}',
+            style: TextStyle(color: subtle, fontSize: 11.2, height: 1.3),
+          ),
+          Text(
+            suggestion.reason,
+            style: TextStyle(color: subtle, fontSize: 11.2, height: 1.3),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            children: [
+              CupertinoButton(
+                key: ValueKey(
+                  'tiled_tsx_mistral_grouping.accept.${suggestion.role.name}',
+                ),
+                minimumSize: Size.zero,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                onPressed: onAccept,
+                child: const Text(
+                  'Accepter',
+                  style: TextStyle(
+                    color: _tsxAccent,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              CupertinoButton(
+                minimumSize: Size.zero,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                onPressed: onReject,
+                child: const Text(
+                  'Rejeter',
+                  style: TextStyle(
+                    color: _tsxAccent,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

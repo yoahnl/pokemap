@@ -451,6 +451,7 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
           atlasImageBytes: _atlasImageBytesForBrowser(tsxBrowserAtlas),
           sourceLabel: 'Catalogue de travail',
           catalog: _workReadModel.catalog,
+          projectSettings: widget.projectSettings,
           onSurfaceCatalogChanged: _onSurfaceCatalogChanged,
         ),
         diagnostics: SurfaceStudioDiagnosticsView(readModel: _workReadModel),
