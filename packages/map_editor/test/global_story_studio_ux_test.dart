@@ -103,7 +103,7 @@ void main() {
         ],
       );
 
-      final project = ProjectManifest(
+      final project = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
         name: 'test',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
@@ -242,7 +242,7 @@ void main() {
       'unique global story rule is respected',
       (tester) async {
         // Project with NO Global Story.
-        const project = ProjectManifest(
+        const project = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
           name: 'test',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],

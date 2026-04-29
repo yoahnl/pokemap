@@ -154,7 +154,7 @@ void main() {
       final keepAlive = container.listen(editorNotifierProvider, (_, __) {});
       addTearDown(keepAlive.close);
       container.read(editorNotifierProvider.notifier).state = EditorState(
-        project: ProjectManifest(
+        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
           name: 'Demo',
           maps: const [],
           tilesets: const [],

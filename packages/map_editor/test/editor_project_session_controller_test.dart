@@ -29,7 +29,7 @@ void main() {
         errorMessage: 'Old error',
       );
 
-      const updated = ProjectManifest(
+      const updated = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
         name: 'Demo',
         maps: [],
         tilesets: [],
@@ -130,7 +130,7 @@ void main() {
         layers: [],
       );
       const state = EditorState(
-        project: ProjectManifest(
+        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
           name: 'Demo',
           maps: [],
           tilesets: [],
@@ -147,7 +147,7 @@ void main() {
 
       final next = controller.afterMapRenamed(
         current: state,
-        updatedProject: const ProjectManifest(
+        updatedProject: const ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
           name: 'Demo',
           maps: [],
           tilesets: [],
@@ -174,7 +174,7 @@ void main() {
         layers: [],
       );
       const state = EditorState(
-        project: ProjectManifest(
+        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
           name: 'Demo',
           maps: [],
           tilesets: [],
@@ -195,7 +195,7 @@ void main() {
 
       final next = controller.afterMapDeleted(
         current: state,
-        updatedProject: const ProjectManifest(
+        updatedProject: const ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
           name: 'Demo',
           maps: [],
           tilesets: [],

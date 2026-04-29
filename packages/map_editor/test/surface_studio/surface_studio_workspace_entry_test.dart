@@ -142,7 +142,7 @@ void main() {
       await tester.runAsync(() async {
         ok = await container
             .read(editorNotifierProvider.notifier)
-            .saveProjectManifest();
+            .saveProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), );
       });
 
       expect(ok, isTrue);
@@ -181,7 +181,7 @@ Future<void> _createAtlasFromWizard(
 }
 
 ProjectManifest _projectWithSurfaceCatalog(ProjectSurfaceCatalog catalog) {
-  return ProjectManifest(
+  return ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
     name: 'Surface V2.1',
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[

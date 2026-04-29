@@ -10,7 +10,7 @@ void main() {
     const coordinator = TerrainPresetSelectionCoordinator(resolver: resolver);
 
     test('uses the shared application terrain selection mode model', () {
-      const project = ProjectManifest(
+      const project = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
         name: 'Demo',
         maps: [],
         tilesets: [],

@@ -22,7 +22,7 @@ void main() {
       repo = _FakeProjectRepository();
       workspace = _FakeWorkspace(tempDir.path);
       useCase = ImportProjectTilesetUseCase(repo);
-      project = const ProjectManifest(
+      project = const ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
         name: 'Test Project',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],

@@ -78,7 +78,7 @@ void main() {
       addTearDown(container.dispose);
 
       container.read(editorNotifierProvider.notifier).state = const EditorState(
-        project: ProjectManifest(
+        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],

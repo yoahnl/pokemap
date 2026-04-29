@@ -16,7 +16,7 @@ import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/ui/canvas/pokedex_workspace.dart';
 
 void main() {
-  const sampleProject = ProjectManifest(
+  const sampleProject = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
     name: 'pokedex_external_batch_dry_run_test',
     maps: <ProjectMapEntry>[],
     tilesets: <ProjectTilesetEntry>[],

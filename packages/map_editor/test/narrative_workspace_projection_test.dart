@@ -6,7 +6,7 @@ import 'package:map_editor/src/features/narrative/application/step_studio_author
 void main() {
   group('buildNarrativeWorkspaceProjection', () {
     test('splits global story and local flows, and projects steps', () {
-      const project = ProjectManifest(
+      const project = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
         name: 'test',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -119,7 +119,7 @@ void main() {
         ],
       );
 
-      final project = ProjectManifest(
+      final project = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
         name: 'test',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],

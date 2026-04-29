@@ -166,7 +166,7 @@ void main() {
 ProjectManifest _project({
   List<ProjectEncounterTable> encounterTables = const <ProjectEncounterTable>[],
 }) {
-  return ProjectManifest(
+  return ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
     name: 'encounter_table_use_case_test',
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[],

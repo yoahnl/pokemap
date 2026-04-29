@@ -144,7 +144,7 @@ Future<void> pumpSurfaceStudioPanelFromManifest(
 }
 
 ProjectManifest _manifest(ProjectSurfaceCatalog catalog) {
-  return ProjectManifest(
+  return ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
     name: 'Test',
     maps: const [],
     tilesets: const [

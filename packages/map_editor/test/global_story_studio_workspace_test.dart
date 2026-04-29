@@ -52,7 +52,7 @@ void main() {
           globalDocument,
           stepDocument: stepDocument,
         );
-        final project = ProjectManifest(
+        final project = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
           name: 'test',
           maps: const <ProjectMapEntry>[],
           tilesets: const <ProjectTilesetEntry>[],
@@ -164,7 +164,7 @@ void main() {
           globalDocument,
           stepDocument: stepDocument,
         );
-        final project = ProjectManifest(
+        final project = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
           name: 'test',
           maps: const <ProjectMapEntry>[],
           tilesets: const <ProjectTilesetEntry>[],

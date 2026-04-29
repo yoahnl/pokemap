@@ -43,7 +43,7 @@ void main() {
       addTearDown(container.dispose);
 
       container.read(editorNotifierProvider.notifier).state = EditorState(
-        project: ProjectManifest(
+        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[
@@ -84,7 +84,7 @@ void main() {
       container.read(editorNotifierProvider.notifier).state = EditorState(
         workspaceMode: EditorWorkspaceMode.pokedex,
         pokemonCatalogSection: PokemonCatalogSection.items,
-        project: ProjectManifest(
+        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
@@ -111,7 +111,7 @@ void main() {
 
       container.read(editorNotifierProvider.notifier).state = EditorState(
         workspaceMode: EditorWorkspaceMode.trainer,
-        project: ProjectManifest(
+        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
@@ -133,7 +133,7 @@ void main() {
 
       container.read(editorNotifierProvider.notifier).state = EditorState(
         workspaceMode: EditorWorkspaceMode.pokedex,
-        project: ProjectManifest(
+        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
@@ -152,7 +152,7 @@ void main() {
 
       container.read(editorNotifierProvider.notifier).state = EditorState(
         workspaceMode: EditorWorkspaceMode.surfaceStudio,
-        project: ProjectManifest(
+        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
@@ -174,7 +174,7 @@ void main() {
       addTearDown(container.dispose);
 
       container.read(editorNotifierProvider.notifier).state = EditorState(
-        project: ProjectManifest(
+        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[
@@ -205,7 +205,7 @@ void main() {
 
       container.read(editorNotifierProvider.notifier).state = EditorState(
         projectRootPath: '/tmp/project',
-        project: ProjectManifest(
+        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[

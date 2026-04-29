@@ -20,10 +20,11 @@ void main() {
       );
       const state = EditorState(
         projectRootPath: '/tmp/demo',
-        project: ProjectManifest(
+        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
           name: 'Demo',
           maps: [],
           tilesets: [],
+          surfaceCatalog: ProjectSurfaceCatalog(),
         ),
         workspaceMode: EditorWorkspaceMode.dialogue,
         activeMap: map,
@@ -98,6 +99,7 @@ void main() {
               selectedEntityKind: MapEntityKind.custom,
               selectedTerrainPresetId: null,
               selectedPathPresetId: null,
+              selectedSurfacePresetId: null,
               selectedTerrainPresetByType: {},
               collisionBrushSizeMode: CollisionBrushSizeMode.singleTile,
               selectedEntityId: 'entity_7',

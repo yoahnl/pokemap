@@ -160,7 +160,7 @@ void main() {
 }
 
 ProjectManifest _projectManifest() {
-  return const ProjectManifest(
+  return const ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
     name: 'Test',
     maps: [],
     tilesets: [

@@ -29,7 +29,7 @@ void main() {
     }
   });
 
-  const sampleProject = ProjectManifest(
+  const sampleProject = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
     name: 'widget_test_proj',
     maps: <ProjectMapEntry>[],
     tilesets: <ProjectTilesetEntry>[],

@@ -310,7 +310,7 @@ ProjectManifest _project({
     ),
   ],
 }) {
-  return ProjectManifest(
+  return ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
     name: 'trainer_use_case_test',
     maps: const <ProjectMapEntry>[],
     tilesets: tilesets,

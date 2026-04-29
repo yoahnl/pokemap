@@ -7,8 +7,7 @@ import 'package:map_editor/src/features/surface_studio/atlas/surface_studio_atla
 import 'package:map_editor/src/features/surface_studio/surface_studio_column_selection.dart';
 
 void main() {
-  testWidgets(
-      'atlas viewport hit testing uses fitted image rect, not viewport width',
+  testWidgets('atlas viewport defaults to fitWidth for usable columns',
       (tester) async {
     var selection = const SurfaceStudioColumnSelection.empty();
 
@@ -44,13 +43,18 @@ void main() {
         findsNothing);
 
     final canvasTopLeft = tester.getTopLeft(canvas);
+    expect(find.text('Affichage : Largeur'), findsOneWidget);
+    await tester.tapAt(canvasTopLeft + const Offset(91, 210));
+    await tester.pump();
+    expect(selection.columns, <int>[4]);
+
+    await tester
+        .tap(find.byKey(const Key('surfaceStudio.atlas.viewMode.fitWhole')));
+    await tester.pumpAndSettle();
+    selection = const SurfaceStudioColumnSelection.empty();
     await tester.tapAt(canvasTopLeft + const Offset(120, 210));
     await tester.pump();
     expect(selection.columns, isEmpty);
-
-    await tester.tapAt(canvasTopLeft + const Offset(200, 210));
-    await tester.pump();
-    expect(selection.columns, <int>[4]);
   });
 }
 

@@ -15,7 +15,7 @@ import 'package:map_editor/src/ui/canvas/pokemon_catalogs_workspace/items_catalo
 import 'package:path/path.dart' as p;
 
 void main() {
-  const project = ProjectManifest(
+  const project = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
     name: 'Items Catalog UI Project',
     maps: <ProjectMapEntry>[],
     tilesets: <ProjectTilesetEntry>[],

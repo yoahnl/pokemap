@@ -391,7 +391,7 @@ String _resolveRepositoryRootFromCurrentDirectory() {
   }
 }
 
-const ProjectManifest _configuredPokemonProject = ProjectManifest(
+const ProjectManifest _configuredPokemonProject = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
   name: 'Configured Pokemon Project',
   maps: <ProjectMapEntry>[],
   tilesets: <ProjectTilesetEntry>[],

@@ -95,7 +95,7 @@ void main() {
         container: container,
         initialState: const EditorState(
           projectRootPath: '/tmp/pokemon_catalogs_workspace_test',
-          project: ProjectManifest(
+          project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
             name: 'Catalogs Test Project',
             maps: <ProjectMapEntry>[
               ProjectMapEntry(
@@ -149,7 +149,7 @@ void main() {
         container: container,
         initialState: const EditorState(
           projectRootPath: '/tmp/pokemon_catalogs_moves_test',
-          project: ProjectManifest(
+          project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
             name: 'Catalogs Test Project',
             maps: <ProjectMapEntry>[
               ProjectMapEntry(
@@ -223,7 +223,7 @@ void main() {
         container: container,
         initialState: const EditorState(
           projectRootPath: '/tmp/pokemon_catalogs_items_test',
-          project: ProjectManifest(
+          project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
             name: 'Catalogs Test Project',
             maps: <ProjectMapEntry>[
               ProjectMapEntry(
@@ -260,7 +260,7 @@ void main() {
       addTearDown(container.dispose);
       container.read(editorNotifierProvider.notifier).state = const EditorState(
         projectRootPath: '/tmp/pokemon_catalogs_remount_test',
-        project: ProjectManifest(
+        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
           name: 'Catalogs Test Project',
           maps: <ProjectMapEntry>[
             ProjectMapEntry(

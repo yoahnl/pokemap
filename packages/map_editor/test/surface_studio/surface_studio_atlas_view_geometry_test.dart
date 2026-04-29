@@ -78,4 +78,45 @@ void main() {
     );
     expect(source, const Rect.fromLTWH(96, 32, 32, 32));
   });
+
+  test('fitWidth fills usable width and can exceed viewport height', () {
+    final fitWidth = SurfaceStudioAtlasViewGeometry.fromFitWidth(
+      viewportSize: const Size(600, 400),
+      imagePixelSize: const Size(480, 1024),
+      tileWidth: 40,
+      tileHeight: 32,
+      columnCount: 12,
+      frameCount: 32,
+    );
+    final fitWhole = SurfaceStudioAtlasViewGeometry.fromMode(
+      mode: SurfaceStudioAtlasViewMode.fitWhole,
+      viewportSize: const Size(600, 400),
+      imagePixelSize: const Size(480, 1024),
+      tileWidth: 40,
+      tileHeight: 32,
+      columnCount: 12,
+      frameCount: 32,
+    );
+
+    expect(fitWidth.fittedImageRect.left, closeTo(0, 0.001));
+    expect(fitWidth.fittedImageRect.top, closeTo(0, 0.001));
+    expect(fitWidth.fittedImageRect.width, closeTo(600, 0.001));
+    expect(fitWidth.fittedImageRect.height, greaterThan(400));
+    expect(fitWhole.fittedImageRect.height, lessThanOrEqualTo(400));
+
+    expect(
+      surfaceStudioColumnAtViewportOffset(
+        localPosition: const Offset(175, 640),
+        geometry: fitWidth,
+      ),
+      4,
+    );
+    expect(
+      surfaceStudioFrameAtViewportOffset(
+        localPosition: const Offset(175, 640),
+        geometry: fitWidth,
+      ),
+      17,
+    );
+  });
 }
