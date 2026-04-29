@@ -1,11 +1,8 @@
-// Surface Studio — shell UI lecture seule (Lot 52).
+// Surface Studio — assistant premium de mapping d'atlas.
 //
-// Consomme un [SurfaceStudioReadModel] déjà construit côté [map_core] : pas de
-// re-diagnostic, pas de mutation manifest, pas d’I/O. Les actions futures sont
-// désactivées ; seul le placeholder « Actions auteur » reste pour un lot ultérieur.
-//
-// Style : aligné sur [EditorChrome] / îlots de l’éditeur (pas de Card Material
-// clair isolé) — cohérent avec World Explorer et le shell macOS.
+// Le premier viewport porte le workflow guide moderne. Les sections legacy
+// restent disponibles plus bas pour conserver les briques metier existantes :
+// preparation d'atlas, inspection, diagnostics et sauvegarde via le flux projet.
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Icons;
@@ -25,6 +22,7 @@ import 'surface_studio_role_mapping_editor.dart';
 import 'surface_studio_selection.dart';
 import 'surface_studio_selection_inspector.dart';
 import 'surface_studio_selection_summary.dart';
+import 'surface_studio_screen.dart';
 import 'surface_studio_workflow_layout.dart';
 import 'surface_studio_workflow_stepper.dart';
 
@@ -409,73 +407,48 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
           : null,
     );
 
-    return SingleChildScrollView(
-      key: const ValueKey('surface_studio_root_scroll'),
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _CompactStudioHeader(
-            key: const ValueKey('surface_studio_workflow_header'),
-            label: label,
+    final legacyAuthoringBridge = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _CompactStudioHeader(
+          key: const ValueKey('surface_studio_workflow_header'),
+          label: label,
+          subtle: subtle,
+          summary: s,
+          readOnly: !isPartial,
+        ),
+        const SizedBox(height: 8),
+        SurfaceStudioWorkflowStepper(readModel: _workReadModel),
+        if (_hasWorkCatalogChanges) ...[
+          const SizedBox(height: 10),
+          _CatalogStateStrip(
+            key: const ValueKey('surface_studio_catalog_status_strip'),
             subtle: subtle,
-            summary: s,
-            readOnly: !isPartial,
+            workCatalogNote: SurfaceStudioPanel.workCatalogDirtyStateText,
+            onSurfaceSavePrep: widget.onSurfaceCatalogSaveRequested != null
+                ? _onSurfaceCatalogSavePrep
+                : null,
+            onResetWorkCatalog: () {
+              setState(() {
+                _workReadModel = widget.readModel;
+                _selection =
+                    _selectionValidInReadModel(_workReadModel, _selection);
+                _saveFlowPrepNote = null;
+              });
+            },
           ),
-          const SizedBox(height: 8),
-          SurfaceStudioWorkflowStepper(readModel: _workReadModel),
-          if (_hasWorkCatalogChanges) ...[
-            const SizedBox(height: 10),
-            _CatalogStateStrip(
-              key: const ValueKey('surface_studio_catalog_status_strip'),
-              subtle: subtle,
-              workCatalogNote: SurfaceStudioPanel.workCatalogDirtyStateText,
-              onSurfaceSavePrep: widget.onSurfaceCatalogSaveRequested != null
-                  ? _onSurfaceCatalogSavePrep
-                  : null,
-              onResetWorkCatalog: () {
-                setState(() {
-                  _workReadModel = widget.readModel;
-                  _selection =
-                      _selectionValidInReadModel(_workReadModel, _selection);
-                  _saveFlowPrepNote = null;
-                });
-              },
+          if (widget.onSurfaceCatalogSaveRequested == null)
+            Text(
+              key: const ValueKey('surface_studio_save_prep_not_connected'),
+              SurfaceStudioPanel.savePrepNotConnectedNote,
+              style: TextStyle(
+                color: subtle.withValues(alpha: 0.95),
+                fontSize: 11,
+                fontStyle: FontStyle.italic,
+              ),
             ),
-            if (widget.onSurfaceCatalogSaveRequested == null)
-              Text(
-                key: const ValueKey('surface_studio_save_prep_not_connected'),
-                SurfaceStudioPanel.savePrepNotConnectedNote,
-                style: TextStyle(
-                  color: subtle.withValues(alpha: 0.95),
-                  fontSize: 11,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
-            if (widget.onRequestProjectSave != null) ...[
-              const SizedBox(height: 6),
-              CupertinoButton(
-                key: const ValueKey(
-                    'surface_studio_project_save_via_official_flow'),
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                onPressed: _onRequestProjectSave,
-                child: const Text(
-                  SurfaceStudioPanel.projectSaveViaExistingFlowButtonLabel,
-                ),
-              ),
-              if (_projectSaveDiskNote != null)
-                Text(
-                  _projectSaveDiskNote!,
-                  key: const ValueKey('surface_studio_project_save_disk_note'),
-                  style: TextStyle(
-                    color: _surfaceStudioAccent.withValues(alpha: 0.88),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-            ],
-          ] else if (widget.onRequestProjectSave != null) ...[
-            const SizedBox(height: 8),
+          if (widget.onRequestProjectSave != null) ...[
+            const SizedBox(height: 6),
             CupertinoButton(
               key: const ValueKey(
                   'surface_studio_project_save_via_official_flow'),
@@ -485,8 +458,7 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
                 SurfaceStudioPanel.projectSaveViaExistingFlowButtonLabel,
               ),
             ),
-            if (_projectSaveDiskNote != null) ...[
-              const SizedBox(height: 4),
+            if (_projectSaveDiskNote != null)
               Text(
                 _projectSaveDiskNote!,
                 key: const ValueKey('surface_studio_project_save_disk_note'),
@@ -496,46 +468,99 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-            ],
           ],
-          if (_saveFlowPrepNote != null) ...[
-            const SizedBox(height: 6),
+        ] else if (widget.onRequestProjectSave != null) ...[
+          const SizedBox(height: 8),
+          CupertinoButton(
+            key:
+                const ValueKey('surface_studio_project_save_via_official_flow'),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            onPressed: _onRequestProjectSave,
+            child: const Text(
+              SurfaceStudioPanel.projectSaveViaExistingFlowButtonLabel,
+            ),
+          ),
+          if (_projectSaveDiskNote != null) ...[
+            const SizedBox(height: 4),
             Text(
-              _saveFlowPrepNote!,
-              key: const ValueKey('surface_studio_save_prep_transmitted'),
+              _projectSaveDiskNote!,
+              key: const ValueKey('surface_studio_project_save_disk_note'),
               style: TextStyle(
-                color: _surfaceStudioAccent.withValues(alpha: 0.9),
+                color: _surfaceStudioAccent.withValues(alpha: 0.88),
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
               ),
             ),
           ],
-          const SizedBox(height: 12),
-          SurfaceStudioWorkflowLayout(
-            assistant: assistant,
-            atlasWorkspace: authoring,
-            detectedAnimations: detectedAnimations,
-            paintableSurfaces: paintableSurfaces,
-          ),
-          const SizedBox(height: 12),
-          _AdvancedDetailsSection(
-            inspection: inspection,
-            browser: SurfaceStudioCatalogBrowser(
-              readModel: _workReadModel,
-              selection: _selection,
-              onSelectionChanged: (v) {
-                setState(() => _selection = v);
-              },
-            ),
-            diagnostics:
-                SurfaceStudioDiagnosticsView(readModel: _workReadModel),
-            futureActions: const _FutureActions(onImportVertical: null),
-            placeholder: const _SectionPlaceholder(
-              title: SurfaceStudioPanel.placeholderActionsTitle,
+        ],
+        if (_saveFlowPrepNote != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            _saveFlowPrepNote!,
+            key: const ValueKey('surface_studio_save_prep_transmitted'),
+            style: TextStyle(
+              color: _surfaceStudioAccent.withValues(alpha: 0.9),
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
-      ),
+        const SizedBox(height: 12),
+        SurfaceStudioWorkflowLayout(
+          assistant: assistant,
+          atlasWorkspace: authoring,
+          detectedAnimations: detectedAnimations,
+          paintableSurfaces: paintableSurfaces,
+        ),
+        const SizedBox(height: 12),
+        _AdvancedDetailsSection(
+          inspection: inspection,
+          browser: SurfaceStudioCatalogBrowser(
+            readModel: _workReadModel,
+            selection: _selection,
+            onSelectionChanged: (v) {
+              setState(() => _selection = v);
+            },
+          ),
+          diagnostics: SurfaceStudioDiagnosticsView(readModel: _workReadModel),
+          futureActions: const _FutureActions(onImportVertical: null),
+          placeholder: const _SectionPlaceholder(
+            title: SurfaceStudioPanel.placeholderActionsTitle,
+          ),
+        ),
+      ],
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final shellWidth = constraints.hasBoundedWidth
+            ? constraints.maxWidth.clamp(1200.0, 2400.0).toDouble()
+            : 1600.0;
+        final shellHeight = constraints.hasBoundedHeight
+            ? constraints.maxHeight.clamp(900.0, 1120.0).toDouble()
+            : 900.0;
+        return SingleChildScrollView(
+          key: const ValueKey('surface_studio_root_scroll'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(
+                  width: shellWidth,
+                  height: shellHeight,
+                  child: SurfaceStudioScreen(readModel: _workReadModel),
+                ),
+              ),
+              Padding(
+                key: const ValueKey('surface_studio_legacy_authoring_bridge'),
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
+                child: legacyAuthoringBridge,
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

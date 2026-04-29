@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
@@ -8,6 +9,25 @@ import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/ui/editor_shell_page.dart';
 import 'package:map_editor/src/ui/shared/status_bar.dart';
 import 'package:map_editor/src/ui/shared/top_toolbar.dart';
+
+const _appkitUiElementColorsChannel = MethodChannel('appkit_ui_element_colors');
+
+void _installMacosAccentColorMock() {
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(_appkitUiElementColorsChannel, (call) async {
+    switch (call.method) {
+      case 'getColorComponents':
+        return <String, double>{'hueComponent': 0.58};
+      case 'getColor':
+        return 0xFF0A84FF;
+    }
+    return null;
+  });
+  addTearDown(() {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(_appkitUiElementColorsChannel, null);
+  });
+}
 
 ProjectManifest buildShellChromeProject({
   String name = 'Demo Project',
@@ -43,6 +63,7 @@ Future<ProviderContainer> pumpEditorShellPage(
   Size surfaceSize = const Size(1600, 1000),
   List<Override> overrides = const <Override>[],
 }) async {
+  _installMacosAccentColorMock();
   final container = ProviderContainer(overrides: overrides);
   final editorStateSubscription = container.listen<EditorState>(
     editorNotifierProvider,
@@ -83,6 +104,7 @@ Future<ProviderContainer> pumpTopToolbarHarness(
   required EditorState initialState,
   Size surfaceSize = const Size(1280, 220),
 }) async {
+  _installMacosAccentColorMock();
   final container = ProviderContainer();
   final editorStateSubscription = container.listen<EditorState>(
     editorNotifierProvider,
@@ -120,6 +142,7 @@ Future<ProviderContainer> pumpStatusBarHarness(
   required EditorState initialState,
   Size surfaceSize = const Size(900, 180),
 }) async {
+  _installMacosAccentColorMock();
   final container = ProviderContainer();
   final editorStateSubscription = container.listen<EditorState>(
     editorNotifierProvider,

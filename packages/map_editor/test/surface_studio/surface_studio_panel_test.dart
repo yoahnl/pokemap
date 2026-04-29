@@ -250,7 +250,8 @@ void main() {
         _wrap(SurfaceStudioPanel(readModel: _emptyReadModel())),
       );
       expect(find.textContaining('Sauvegarder'), findsNothing);
-      expect(find.textContaining('Enregistrer'), findsNothing);
+      expect(find.byKey(const ValueKey('surfaceStudio.step.save')),
+          findsOneWidget);
       expect(find.textContaining('Save'), findsNothing);
     });
 
@@ -423,7 +424,6 @@ void main() {
       await tester.pump();
       for (final s in <String>[
         'Sauvegarder',
-        'Enregistrer',
         'Modifier',
         'Supprimer',
         'Save',
@@ -432,6 +432,10 @@ void main() {
       ]) {
         expect(find.text(s), findsNothing);
       }
+      expect(
+        find.byKey(const ValueKey('surfaceStudio.step.save')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('59.20 — inspecteur none au départ', (tester) async {
@@ -572,7 +576,6 @@ void main() {
       await tester.pump();
       for (final s in <String>[
         'Sauvegarder',
-        'Enregistrer',
         'Modifier',
         'Supprimer',
         'Save',
@@ -581,6 +584,10 @@ void main() {
       ]) {
         expect(find.text(s), findsNothing);
       }
+      expect(
+        find.byKey(const ValueKey('surfaceStudio.step.save')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('30. Lot 55 — surfaceCatalog unchanged after panel pump',
