@@ -2,6 +2,7 @@ import 'package:map_core/map_core.dart';
 
 import 'collision/pixel_movement_resolver.dart';
 import 'direction.dart';
+import 'gameplay_hazard.dart';
 import 'gameplay_intent.dart';
 import 'movement_block_reason.dart';
 import 'gameplay_step_result.dart';
@@ -74,9 +75,9 @@ GameplayStepResult _resolveMove(GameplayWorldState world, MoveIntent intent) {
         facingWorld.worldStaticObstaclesCollidePixelRect,
   );
 
-  final unchanged = resolvedTopLeft.leftPx ==
-          facingWorld.player.playerPositionPx.leftPx &&
-      resolvedTopLeft.topPx == facingWorld.player.playerPositionPx.topPx;
+  final unchanged =
+      resolvedTopLeft.leftPx == facingWorld.player.playerPositionPx.leftPx &&
+          resolvedTopLeft.topPx == facingWorld.player.playerPositionPx.topPx;
 
   if (unchanged) {
     final bumpWarp = facingWorld.warpOnBumpAt(nextCellX, nextCellY, direction);
@@ -177,8 +178,43 @@ GameplayStepResult _resolveMove(GameplayWorldState world, MoveIntent intent) {
 
   return Moved(
     movedWorld,
+    hazardEffect: _resolveHazardEffectAt(movedWorld, targetPos),
     pathAnimationSignals: pathSignals,
   );
+}
+
+GameplayHazardEffect? _resolveHazardEffectAt(
+  GameplayWorldState world,
+  GridPos position,
+) {
+  MapGameplayZone? bestZone;
+  for (final zone in world.map.gameplayZones) {
+    if (zone.kind != GameplayZoneKind.hazard) continue;
+    final hazard = zone.hazard;
+    if (hazard == null || hazard.damagePerStep <= 0) continue;
+    if (!_containsPos(zone.area, position)) continue;
+    if (bestZone == null || zone.priority >= bestZone.priority) {
+      bestZone = zone;
+    }
+  }
+
+  if (bestZone == null) return null;
+  final hazard = bestZone.hazard!;
+  return GameplayHazardEffect(
+    zoneId: bestZone.id,
+    zoneName: bestZone.name,
+    hazardKind: hazard.hazardKind,
+    damagePerStep: hazard.damagePerStep,
+    position: position,
+    priority: bestZone.priority,
+  );
+}
+
+bool _containsPos(MapRect rect, GridPos pos) {
+  return pos.x >= rect.pos.x &&
+      pos.y >= rect.pos.y &&
+      pos.x < rect.pos.x + rect.size.width &&
+      pos.y < rect.pos.y + rect.size.height;
 }
 
 GameplayStepResult? _resolveMovementTriggeredBehavior({
