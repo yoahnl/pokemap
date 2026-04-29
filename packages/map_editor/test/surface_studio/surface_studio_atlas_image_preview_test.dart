@@ -147,7 +147,8 @@ void main() {
           ],
           technicalTilesetId: 't1',
         );
-        expect(r.status, SurfaceStudioAtlasImagePreviewResolveStatus.missingFile);
+        expect(
+            r.status, SurfaceStudioAtlasImagePreviewResolveStatus.missingFile);
         expect(r.displayFileName, 'nope.png');
         expect(r.relativePathForUi, 'nope.png');
       } finally {
@@ -200,7 +201,8 @@ void main() {
           ),
         ),
       );
-      expect(find.byKey(kSurfaceStudioAtlasImagePreviewSectionKey), findsOneWidget);
+      expect(find.byKey(kSurfaceStudioAtlasImagePreviewSectionKey),
+          findsOneWidget);
       expect(find.text('Aperçu de l’image source'), findsOneWidget);
       expect(
         find.text('Choisissez une image source pour afficher l’aperçu.'),

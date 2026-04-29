@@ -265,23 +265,32 @@ class _SurfaceStudioAtlasImagePreviewState
           color: EditorChrome.editorIslandRim(context).withValues(alpha: 0.65),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            widget.largeFormat
-                ? 'Aperçu grand format de l’image source'
-                : 'Aperçu de l’image source',
-            style: TextStyle(
-              color: widget.label,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.2,
-            ),
-          ),
-          const SizedBox(height: 6),
-          ..._bodyForStatus(context),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final content = Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                widget.largeFormat
+                    ? 'Aperçu grand format de l’image source'
+                    : 'Aperçu de l’image source',
+                style: TextStyle(
+                  color: widget.label,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.2,
+                ),
+              ),
+              const SizedBox(height: 6),
+              ..._bodyForStatus(context),
+            ],
+          );
+          if (!constraints.maxHeight.isFinite) {
+            return content;
+          }
+          return SingleChildScrollView(child: content);
+        },
       ),
     );
   }
@@ -362,11 +371,11 @@ class _SurfaceStudioAtlasImagePreviewState
     final th = widget.draftTileHeight;
     final cols = widget.draftColumns;
     final rows = widget.draftRows;
-    final gridValid = surfaceStudioAtlasGridOverlayDraftValid(tw, th, cols, rows);
+    final gridValid =
+        surfaceStudioAtlasGridOverlayDraftValid(tw, th, cols, rows);
     final natW = _imageNaturalWidth;
     final natH = _imageNaturalHeight;
-    final naturalKnown =
-        natW != null && natH != null && natW > 0 && natH > 0;
+    final naturalKnown = natW != null && natH != null && natW > 0 && natH > 0;
     final nw = natW ?? 0;
     final nh = natH ?? 0;
 
@@ -438,7 +447,11 @@ class _SurfaceStudioAtlasImagePreviewState
           style: TextStyle(color: widget.label, fontSize: 11.5),
         ),
       ],
-      if (gridValid && cols != null && rows != null && tw != null && th != null) ...[
+      if (gridValid &&
+          cols != null &&
+          rows != null &&
+          tw != null &&
+          th != null) ...[
         const SizedBox(height: 2),
         Text(
           'Grille : $cols colonnes × $rows lignes',
@@ -467,9 +480,7 @@ class _SurfaceStudioAtlasImagePreviewState
               ? 'La grille correspond aux dimensions attendues.'
               : 'La grille ne correspond pas exactement aux dimensions de l’image.',
           style: TextStyle(
-            color: dimMatch
-                ? const Color(0xFF5EEAD4)
-                : const Color(0xFFE8B87A),
+            color: dimMatch ? const Color(0xFF5EEAD4) : const Color(0xFFE8B87A),
             fontSize: 11,
             fontWeight: FontWeight.w600,
           ),
@@ -549,9 +560,12 @@ class _SurfaceStudioAtlasImagePreviewState
                 spacing: 6,
                 runSpacing: 4,
                 children: [
-                  fitBtn('Ajuster à la largeur', SurfaceStudioAtlasImagePreviewFitMode.fitWidth),
-                  fitBtn('Taille réelle 100 %', SurfaceStudioAtlasImagePreviewFitMode.pixel100),
-                  fitBtn('Ajuster à la hauteur', SurfaceStudioAtlasImagePreviewFitMode.fitHeight),
+                  fitBtn('Ajuster à la largeur',
+                      SurfaceStudioAtlasImagePreviewFitMode.fitWidth),
+                  fitBtn('Taille réelle 100 %',
+                      SurfaceStudioAtlasImagePreviewFitMode.pixel100),
+                  fitBtn('Ajuster à la hauteur',
+                      SurfaceStudioAtlasImagePreviewFitMode.fitHeight),
                 ],
               ),
               const SizedBox(height: 6),
@@ -626,7 +640,8 @@ class _SurfaceStudioAtlasImagePreviewState
                   borderRadius: BorderRadius.circular(8),
                   child: material.Image.memory(
                     _cachedBytes!,
-                    key: const ValueKey('surface_studio_atlas_image_preview_file'),
+                    key: const ValueKey(
+                        'surface_studio_atlas_image_preview_file'),
                     fit: material.BoxFit.contain,
                     height: 480,
                     errorBuilder: (_, __, ___) => Text(

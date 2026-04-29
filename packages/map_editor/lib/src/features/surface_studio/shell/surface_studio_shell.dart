@@ -8,14 +8,14 @@ class SurfaceStudioShell extends StatelessWidget {
     required this.header,
     required this.sidebar,
     required this.workspacePanel,
-    required this.rightDock,
+    this.rightDock,
     required this.bottomBar,
   });
 
   final Widget header;
   final Widget sidebar;
   final Widget workspacePanel;
-  final Widget rightDock;
+  final Widget? rightDock;
   final Widget bottomBar;
 
   @override
@@ -32,18 +32,42 @@ class SurfaceStudioShell extends StatelessWidget {
           Expanded(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(6, 0, 6, 0),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  sidebar,
-                  const SizedBox(width: SurfaceStudioDesignTokens.gapSm),
-                  Expanded(child: workspacePanel),
-                  const SizedBox(width: SurfaceStudioDesignTokens.gapSm),
-                  SizedBox(
-                    width: SurfaceStudioDesignTokens.rightPanelWidthExpanded,
-                    child: rightDock,
-                  ),
-                ],
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final minimumReadableWidth =
+                      rightDock == null ? 900.0 : 1260.0;
+                  final contentWidth =
+                      constraints.maxWidth < minimumReadableWidth
+                          ? minimumReadableWidth
+                          : constraints.maxWidth;
+                  final content = SizedBox(
+                    width: contentWidth,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        sidebar,
+                        const SizedBox(width: SurfaceStudioDesignTokens.gapSm),
+                        Expanded(child: workspacePanel),
+                        if (rightDock != null) ...[
+                          const SizedBox(
+                              width: SurfaceStudioDesignTokens.gapSm),
+                          SizedBox(
+                            width: SurfaceStudioDesignTokens
+                                .rightPanelWidthExpanded,
+                            child: rightDock!,
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                  if (contentWidth == constraints.maxWidth) {
+                    return content;
+                  }
+                  return SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: content,
+                  );
+                },
               ),
             ),
           ),

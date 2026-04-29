@@ -43,7 +43,8 @@ void main() {
       expect(plan.summary.assignedColumnCount, 0);
     });
 
-    test('23×32 après suggestion : 20 animations, 3 colonnes non assignées', () {
+    test('23×32 après suggestion : 20 animations, 3 colonnes non assignées',
+        () {
       final draft = SurfaceStudioColumnRoleMappingDraft.suggested(23);
       final plan = buildSurfaceStudioVerticalAtlasAnimationGenerationPlan(
         atlasIdRaw: 'eau',
@@ -101,7 +102,8 @@ void main() {
       expect(plan.summary.errorAnimationCount, 2);
       for (final it in plan.items) {
         expect(it.isReady, isFalse);
-        expect(it.status, SurfaceStudioVerticalAtlasAnimationPlanItemStatus.invalid);
+        expect(it.status,
+            SurfaceStudioVerticalAtlasAnimationPlanItemStatus.invalid);
       }
     });
 
@@ -158,7 +160,8 @@ void main() {
 
   group('SurfaceStudioVerticalAtlasAnimationGenerationPlanSection', () {
     testWidgets('section et résumé visibles après suggestion', (tester) async {
-      final rm = buildSurfaceStudioReadModelFromCatalog(ProjectSurfaceCatalog());
+      final rm =
+          buildSurfaceStudioReadModelFromCatalog(ProjectSurfaceCatalog());
       final draft = SurfaceStudioColumnRoleMappingDraft.suggested(23);
       await tester.pumpWidget(
         MaterialApp(
@@ -183,7 +186,8 @@ void main() {
       expect(find.textContaining('Animations prêtes : 20'), findsOneWidget);
       expect(find.textContaining('Colonnes non assignées : 3'), findsOneWidget);
       expect(find.textContaining('ProjectSurfaceAnimation'), findsNothing);
-      await tester.tap(find.byKey(const ValueKey('surface_studio_gen_plan_preview')));
+      await tester
+          .tap(find.byKey(const ValueKey('surface_studio_gen_plan_preview')));
       await tester.pump();
       expect(find.textContaining('eau-plein-loop'), findsWidgets);
     });
@@ -228,14 +232,16 @@ void main() {
         '50',
       );
       await tester.pump();
-      await tester.tap(find.byKey(const ValueKey('surface_studio_gen_plan_preview')));
+      await tester
+          .tap(find.byKey(const ValueKey('surface_studio_gen_plan_preview')));
       await tester.pump();
       expect(rm.catalog.animations.length, before);
     });
 
     testWidgets('ajout animations prêtes via callback', (tester) async {
       ProjectSurfaceCatalog? updated;
-      final rm = buildSurfaceStudioReadModelFromCatalog(ProjectSurfaceCatalog());
+      final rm =
+          buildSurfaceStudioReadModelFromCatalog(ProjectSurfaceCatalog());
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(

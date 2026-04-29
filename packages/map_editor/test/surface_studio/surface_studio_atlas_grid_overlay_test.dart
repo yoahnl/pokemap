@@ -132,7 +132,8 @@ void main() {
           ),
         ),
       );
-      expect(find.byKey(const ValueKey('surf73_grid_paint_test')), findsOneWidget);
+      expect(
+          find.byKey(const ValueKey('surf73_grid_paint_test')), findsOneWidget);
     });
 
     testWidgets('pas de jargon dans le painter (aucun Text)', (tester) async {

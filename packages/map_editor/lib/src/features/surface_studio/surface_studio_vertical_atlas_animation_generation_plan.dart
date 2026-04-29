@@ -125,10 +125,8 @@ String surfaceStudioSlugForAnimationIdSegment(String raw) {
 }
 
 String _foldLatin1Accents(String s) {
-  const from =
-      'àáâãäåèéêëìíîïòóôõöùúûüýÿçñÀÁÂÃÄÅÈÉÊËÌÍÎÏÒÓÔÕÖÙÚÛÜÝŸÇÑ';
-  const to =
-      'aaaaaaeeeeiiiiooooouuuuyyncaaaaaaeeeeiiiiooooouuuuyync';
+  const from = 'àáâãäåèéêëìíîïòóôõöùúûüýÿçñÀÁÂÃÄÅÈÉÊËÌÍÎÏÒÓÔÕÖÙÚÛÜÝŸÇÑ';
+  const to = 'aaaaaaeeeeiiiiooooouuuuyyncaaaaaaeeeeiiiiooooouuuuyync';
   final b = StringBuffer();
   for (final ch in s.split('')) {
     final i = from.indexOf(ch);
@@ -263,7 +261,8 @@ SurfaceStudioVerticalAtlasAnimationGenerationPlan
       problems.add('Durée par frame invalide.');
     }
     if (atlasSeg.isEmpty) {
-      problems.add('Identifiant d’atlas requis pour proposer un id d’animation.');
+      problems
+          .add('Identifiant d’atlas requis pour proposer un id d’animation.');
     }
 
     final proposed = surfaceStudioProposedAnimationId(
@@ -396,7 +395,8 @@ class _SurfaceStudioVerticalAtlasAnimationGenerationPlanSectionState
 
   @override
   void didUpdateWidget(
-    covariant SurfaceStudioVerticalAtlasAnimationGenerationPlanSection oldWidget,
+    covariant SurfaceStudioVerticalAtlasAnimationGenerationPlanSection
+        oldWidget,
   ) {
     super.didUpdateWidget(oldWidget);
     if (widget.mappingDraft != oldWidget.mappingDraft ||
@@ -425,7 +425,8 @@ class _SurfaceStudioVerticalAtlasAnimationGenerationPlanSectionState
     });
   }
 
-  void _tryAppendAnimations(SurfaceStudioVerticalAtlasAnimationGenerationPlan plan) {
+  void _tryAppendAnimations(
+      SurfaceStudioVerticalAtlasAnimationGenerationPlan plan) {
     final cb = widget.onWorkCatalogChanged;
     if (cb == null) {
       return;
@@ -502,9 +503,8 @@ class _SurfaceStudioVerticalAtlasAnimationGenerationPlanSectionState
       widget.columns,
       widget.rows,
     );
-    final assignedCount = widget.mappingDraft.assignments
-        .where((a) => a.role != null)
-        .length;
+    final assignedCount =
+        widget.mappingDraft.assignments.where((a) => a.role != null).length;
     final durationParsed = _parseDurationMs();
     final durationEffective =
         durationParsed != null && durationParsed > 0 ? durationParsed : 0;
@@ -565,121 +565,132 @@ class _SurfaceStudioVerticalAtlasAnimationGenerationPlanSectionState
             if (!gridOk) ...[
               Text(
                 'Corrigez la grille avant de préparer les animations.',
-                style: TextStyle(color: widget.subtle, fontSize: 11, height: 1.35),
+                style:
+                    TextStyle(color: widget.subtle, fontSize: 11, height: 1.35),
               ),
             ] else if (assignedCount == 0) ...[
               Text(
                 'Assignez au moins une colonne à un rôle pour préparer les animations.',
-                style: TextStyle(color: widget.subtle, fontSize: 11, height: 1.35),
+                style:
+                    TextStyle(color: widget.subtle, fontSize: 11, height: 1.35),
               ),
             ] else ...[
-            Text(
-              'Colonnes assignées : $assignedCount',
-              style: TextStyle(color: widget.label, fontSize: 11.5, height: 1.35),
-            ),
-            if (unassigned > 0)
               Text(
-                'Colonnes non assignées : $unassigned',
-                style: TextStyle(color: widget.subtle, fontSize: 11, height: 1.35),
+                'Colonnes assignées : $assignedCount',
+                style: TextStyle(
+                    color: widget.label, fontSize: 11.5, height: 1.35),
               ),
-            Text(
-              'Animations prêtes : ${summary.readyAnimationCount}',
-              style: TextStyle(color: widget.label, fontSize: 11.5, height: 1.35),
-            ),
-            Text(
-              'Animations en erreur : ${summary.errorAnimationCount}',
-              style: TextStyle(color: widget.label, fontSize: 11.5, height: 1.35),
-            ),
-            Text(
-              summary.durationFieldValid
-                  ? 'Durée par frame : ${summary.durationMsPerFrame} ms'
-                  : 'Durée par frame : invalide',
-              style: TextStyle(color: widget.subtle, fontSize: 11, height: 1.35),
-            ),
-            const SizedBox(height: 6),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: TextField(
-                    key: const ValueKey('surface_studio_gen_plan_duration_ms'),
-                    controller: _durationMs,
-                    onChanged: (_) => setState(() {}),
-                    keyboardType: TextInputType.number,
-                    style: TextStyle(color: widget.label, fontSize: 12),
-                    decoration: InputDecoration(
-                      labelText: 'Durée par frame (ms)',
-                      isDense: true,
-                      errorText: summary.durationFieldValid
-                          ? null
-                          : 'Entier strictement positif requis',
+              if (unassigned > 0)
+                Text(
+                  'Colonnes non assignées : $unassigned',
+                  style: TextStyle(
+                      color: widget.subtle, fontSize: 11, height: 1.35),
+                ),
+              Text(
+                'Animations prêtes : ${summary.readyAnimationCount}',
+                style: TextStyle(
+                    color: widget.label, fontSize: 11.5, height: 1.35),
+              ),
+              Text(
+                'Animations en erreur : ${summary.errorAnimationCount}',
+                style: TextStyle(
+                    color: widget.label, fontSize: 11.5, height: 1.35),
+              ),
+              Text(
+                summary.durationFieldValid
+                    ? 'Durée par frame : ${summary.durationMsPerFrame} ms'
+                    : 'Durée par frame : invalide',
+                style:
+                    TextStyle(color: widget.subtle, fontSize: 11, height: 1.35),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      key:
+                          const ValueKey('surface_studio_gen_plan_duration_ms'),
+                      controller: _durationMs,
+                      onChanged: (_) => setState(() {}),
+                      keyboardType: TextInputType.number,
+                      style: TextStyle(color: widget.label, fontSize: 12),
+                      decoration: InputDecoration(
+                        labelText: 'Durée par frame (ms)',
+                        isDense: true,
+                        errorText: summary.durationFieldValid
+                            ? null
+                            : 'Entier strictement positif requis',
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 6,
+                children: [
+                  OutlinedButton(
+                    key: const ValueKey('surface_studio_gen_plan_preview'),
+                    onPressed: () => setState(() => _showDetails = true),
+                    child: const Text('Prévisualiser le plan'),
+                  ),
+                  OutlinedButton(
+                    key: const ValueKey(
+                        'surface_studio_gen_plan_reset_duration'),
+                    onPressed: _resetDuration,
+                    child: const Text('Réinitialiser la durée par frame'),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              if (summary.readyAnimationCount == 0)
+                Text(
+                  'Aucune animation prête à créer.',
+                  style: TextStyle(
+                      color: widget.subtle, fontSize: 10.5, height: 1.35),
+                ),
+              const SizedBox(height: 8),
+              FilledButton(
+                key: const ValueKey('surface_studio_gen_plan_append_ready'),
+                onPressed: widget.onWorkCatalogChanged != null &&
+                        summary.readyAnimationCount > 0 &&
+                        summary.durationFieldValid &&
+                        widget.atlasIdDraft.trim().isNotEmpty
+                    ? () => _tryAppendAnimations(plan)
+                    : null,
+                child: const Text(
+                  'Ajouter les animations prêtes au catalogue de travail',
+                ),
+              ),
+              if (_appendFeedback != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  _appendFeedback!,
+                  style: TextStyle(
+                      color: widget.label, fontSize: 11, height: 1.35),
+                ),
+              ],
+              if (_showDetails) ...[
+                const SizedBox(height: 10),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 420),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final it in plan.items) ...[
+                          _itemCard(context, it),
+                          const SizedBox(height: 6),
+                        ],
+                      ],
                     ),
                   ),
                 ),
               ],
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 6,
-              children: [
-                OutlinedButton(
-                  key: const ValueKey('surface_studio_gen_plan_preview'),
-                  onPressed: () => setState(() => _showDetails = true),
-                  child: const Text('Prévisualiser le plan'),
-                ),
-                OutlinedButton(
-                  key: const ValueKey('surface_studio_gen_plan_reset_duration'),
-                  onPressed: _resetDuration,
-                  child: const Text('Réinitialiser la durée par frame'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            if (summary.readyAnimationCount == 0)
-              Text(
-                'Aucune animation prête à créer.',
-                style: TextStyle(color: widget.subtle, fontSize: 10.5, height: 1.35),
-              ),
-            const SizedBox(height: 8),
-            FilledButton(
-              key: const ValueKey('surface_studio_gen_plan_append_ready'),
-              onPressed: widget.onWorkCatalogChanged != null &&
-                      summary.readyAnimationCount > 0 &&
-                      summary.durationFieldValid &&
-                      widget.atlasIdDraft.trim().isNotEmpty
-                  ? () => _tryAppendAnimations(plan)
-                  : null,
-              child: const Text(
-                'Ajouter les animations prêtes au catalogue de travail',
-              ),
-            ),
-            if (_appendFeedback != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                _appendFeedback!,
-                style: TextStyle(color: widget.label, fontSize: 11, height: 1.35),
-              ),
-            ],
-            if (_showDetails) ...[
-              const SizedBox(height: 10),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 420),
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      for (final it in plan.items) ...[
-                        _itemCard(context, it),
-                        const SizedBox(height: 6),
-                      ],
-                    ],
-                  ),
-                ),
-              ),
             ],
           ],
-        ],
         ),
       ),
     );

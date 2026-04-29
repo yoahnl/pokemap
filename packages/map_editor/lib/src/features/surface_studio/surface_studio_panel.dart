@@ -14,6 +14,7 @@ import 'surface_studio_catalog_browser.dart';
 import 'surface_studio_diagnostics_view.dart';
 import 'surface_studio_paintable_surfaces_panel.dart';
 import 'surface_studio_preset_editor_controller.dart';
+import 'surface_studio_ai_mapping_suggester.dart';
 import 'surface_studio_role_mapping_editor.dart';
 import 'surface_studio_selection.dart';
 import 'surface_studio_selection_inspector.dart';
@@ -55,6 +56,7 @@ class SurfaceStudioPanel extends StatefulWidget {
     this.projectRootPath,
     this.projectSettings,
     this.surfaceMappingImageLoader,
+    this.aiMappingSuggester,
   });
 
   final SurfaceStudioReadModel readModel;
@@ -63,6 +65,7 @@ class SurfaceStudioPanel extends StatefulWidget {
   final List<ProjectTilesetEntry>? projectTilesets;
   final ProjectSettings? projectSettings;
   final SurfaceStudioAtlasUiImageLoader? surfaceMappingImageLoader;
+  final SurfaceStudioAiMappingSuggester? aiMappingSuggester;
 
   /// Racine projet sur disque pour résoudre les chemins d’images tileset (aperçu Lot 72).
   final String? projectRootPath;
@@ -394,61 +397,56 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final shellWidth = constraints.hasBoundedWidth
-            ? constraints.maxWidth.clamp(1200.0, 2400.0).toDouble()
-            : 1600.0;
-        final shellHeight = constraints.hasBoundedHeight
-            ? constraints.maxHeight.clamp(760.0, 1120.0).toDouble()
-            : 900.0;
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: SizedBox(
-            width: shellWidth,
-            height: shellHeight,
-            child: SurfaceStudioScreen(
-              readModel: _workReadModel,
-              projectSettings: widget.projectSettings,
-              projectTilesets: widget.projectTilesets ?? const [],
-              projectRootPath: widget.projectRootPath,
-              surfaceMappingImageLoader: widget.surfaceMappingImageLoader,
-              hasWorkCatalogChanges: _hasWorkCatalogChanges,
-              saveFlowPrepNote: _saveFlowPrepNote,
-              projectSaveDiskNote: _projectSaveDiskNote,
-              onSurfaceCatalogChanged: _onSurfaceCatalogChanged,
-              onWorkCatalogAnimationsCreated: (createdIds) {
-                if (createdIds.isEmpty) {
-                  return;
-                }
-                setState(() {
-                  _selection =
-                      SurfaceStudioSelection.animation(createdIds.first);
-                });
-              },
-              onWorkCatalogPresetCreated: (presetId) {
-                if (presetId.isEmpty) {
-                  return;
-                }
-                setState(() {
-                  _selection = SurfaceStudioSelection.preset(presetId);
-                });
-              },
-              onResetWorkCatalog: () {
-                setState(() {
-                  _workReadModel = widget.readModel;
-                  _selection =
-                      _selectionValidInReadModel(_workReadModel, _selection);
-                  _saveFlowPrepNote = null;
-                });
-              },
-              onSurfaceCatalogSavePrep:
-                  widget.onSurfaceCatalogSaveRequested == null
-                      ? null
-                      : _onSurfaceCatalogSavePrep,
-              onRequestProjectSave: widget.onRequestProjectSave == null
-                  ? null
-                  : _onRequestProjectSave,
-              advancedDrawer: advancedDrawer,
-            ),
+        final shellWidth =
+            constraints.hasBoundedWidth ? constraints.maxWidth : 1600.0;
+        final shellHeight =
+            constraints.hasBoundedHeight ? constraints.maxHeight : 900.0;
+        return SizedBox(
+          width: shellWidth,
+          height: shellHeight,
+          child: SurfaceStudioScreen(
+            readModel: _workReadModel,
+            projectSettings: widget.projectSettings,
+            projectTilesets: widget.projectTilesets ?? const [],
+            projectRootPath: widget.projectRootPath,
+            surfaceMappingImageLoader: widget.surfaceMappingImageLoader,
+            hasWorkCatalogChanges: _hasWorkCatalogChanges,
+            saveFlowPrepNote: _saveFlowPrepNote,
+            projectSaveDiskNote: _projectSaveDiskNote,
+            onSurfaceCatalogChanged: _onSurfaceCatalogChanged,
+            onWorkCatalogAnimationsCreated: (createdIds) {
+              if (createdIds.isEmpty) {
+                return;
+              }
+              setState(() {
+                _selection = SurfaceStudioSelection.animation(createdIds.first);
+              });
+            },
+            onWorkCatalogPresetCreated: (presetId) {
+              if (presetId.isEmpty) {
+                return;
+              }
+              setState(() {
+                _selection = SurfaceStudioSelection.preset(presetId);
+              });
+            },
+            onResetWorkCatalog: () {
+              setState(() {
+                _workReadModel = widget.readModel;
+                _selection =
+                    _selectionValidInReadModel(_workReadModel, _selection);
+                _saveFlowPrepNote = null;
+              });
+            },
+            onSurfaceCatalogSavePrep:
+                widget.onSurfaceCatalogSaveRequested == null
+                    ? null
+                    : _onSurfaceCatalogSavePrep,
+            onRequestProjectSave: widget.onRequestProjectSave == null
+                ? null
+                : _onRequestProjectSave,
+            advancedDrawer: advancedDrawer,
+            aiMappingSuggester: widget.aiMappingSuggester,
           ),
         );
       },

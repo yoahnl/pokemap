@@ -2,11 +2,15 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/surface_studio/surface_studio_ai_mapping_suggester.dart';
 import 'package:map_editor/src/features/surface_studio/surface_studio_panel.dart';
 
 Widget wrapSurfaceStudioForTest({
   SurfaceStudioReadModel? readModel,
   ProjectSettings? projectSettings,
+  List<ProjectTilesetEntry>? projectTilesets,
+  String? projectRootPath,
+  SurfaceStudioAiMappingSuggester? aiMappingSuggester,
   ValueChanged<ProjectSurfaceCatalog>? onSurfaceCatalogSaveRequested,
   double width = 2048,
   double height = 1120,
@@ -23,15 +27,17 @@ Widget wrapSurfaceStudioForTest({
                 readModel ?? buildSurfaceStudioReadModelFromCatalog(_catalog()),
             projectSettings: projectSettings,
             onSurfaceCatalogSaveRequested: onSurfaceCatalogSaveRequested,
-            projectTilesets: const <ProjectTilesetEntry>[
-              ProjectTilesetEntry(
-                id: 'water_tiles',
-                name: 'Water Tiles',
-                relativePath: 'missing/water.png',
-                sortOrder: 0,
-              ),
-            ],
-            projectRootPath: '/missing/project',
+            projectTilesets: projectTilesets ??
+                const <ProjectTilesetEntry>[
+                  ProjectTilesetEntry(
+                    id: 'water_tiles',
+                    name: 'Water Tiles',
+                    relativePath: 'missing/water.png',
+                    sortOrder: 0,
+                  ),
+                ],
+            projectRootPath: projectRootPath ?? '/missing/project',
+            aiMappingSuggester: aiMappingSuggester,
           ),
         ),
       ),
@@ -43,6 +49,9 @@ Future<void> pumpSurfaceStudioForTest(
   WidgetTester tester, {
   SurfaceStudioReadModel? readModel,
   ProjectSettings? projectSettings,
+  List<ProjectTilesetEntry>? projectTilesets,
+  String? projectRootPath,
+  SurfaceStudioAiMappingSuggester? aiMappingSuggester,
   ValueChanged<ProjectSurfaceCatalog>? onSurfaceCatalogSaveRequested,
   double width = 2048,
   double height = 1120,
@@ -55,6 +64,9 @@ Future<void> pumpSurfaceStudioForTest(
     wrapSurfaceStudioForTest(
       readModel: readModel,
       projectSettings: projectSettings,
+      projectTilesets: projectTilesets,
+      projectRootPath: projectRootPath,
+      aiMappingSuggester: aiMappingSuggester,
       onSurfaceCatalogSaveRequested: onSurfaceCatalogSaveRequested,
       width: width,
       height: height,

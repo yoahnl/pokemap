@@ -15,7 +15,8 @@ void main() {
           ),
         ),
       );
-      expect(find.byKey(SurfaceStudioVerticalAtlasAssistant.sectionKey), findsOneWidget);
+      expect(find.byKey(SurfaceStudioVerticalAtlasAssistant.sectionKey),
+          findsOneWidget);
       expect(find.text('Assistant atlas vertical'), findsOneWidget);
       expect(find.text('Colonnes = variantes visuelles'), findsOneWidget);
       expect(find.text('Lignes = frames d’animation'), findsOneWidget);

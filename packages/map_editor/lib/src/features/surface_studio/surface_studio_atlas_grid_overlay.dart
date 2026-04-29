@@ -32,10 +32,7 @@ bool surfaceStudioAtlasGridOverlayDraftValid(
       rows == null) {
     return false;
   }
-  return tileWidth > 0 &&
-      tileHeight > 0 &&
-      columns > 0 &&
-      rows > 0;
+  return tileWidth > 0 && tileHeight > 0 && columns > 0 && rows > 0;
 }
 
 int surfaceStudioAtlasGridExpectedWidthPx(int tileWidth, int columns) =>

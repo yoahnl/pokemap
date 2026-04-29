@@ -298,7 +298,8 @@ void main() {
       );
     });
 
-    testWidgets('20. Lot 67 — callback édition : bouton inspecteur', (tester) async {
+    testWidgets('20. Lot 67 — callback édition : bouton inspecteur',
+        (tester) async {
       await tester.pumpWidget(
         _wrap(
           SurfaceStudioSelectionInspector(
@@ -314,7 +315,8 @@ void main() {
       );
     });
 
-    testWidgets('21. Lot 67 — sans callback : pas d’edit inspecteur', (tester) async {
+    testWidgets('21. Lot 67 — sans callback : pas d’edit inspecteur',
+        (tester) async {
       await tester.pumpWidget(
         _wrap(
           SurfaceStudioSelectionInspector(
@@ -329,8 +331,8 @@ void main() {
       );
     });
 
-    testWidgets('22. Lot 69 — atlas référencé : préparer suppression absent', (
-        tester) async {
+    testWidgets('22. Lot 69 — atlas référencé : préparer suppression absent',
+        (tester) async {
       await tester.pumpWidget(
         _wrap(
           SurfaceStudioSelectionInspector(
@@ -352,8 +354,8 @@ void main() {
       );
     });
 
-    testWidgets('23. Lot 69 — atlas inutilisé : confirmation en deux étapes', (
-        tester) async {
+    testWidgets('23. Lot 69 — atlas inutilisé : confirmation en deux étapes',
+        (tester) async {
       var del = 0;
       await tester.pumpWidget(
         _wrap(

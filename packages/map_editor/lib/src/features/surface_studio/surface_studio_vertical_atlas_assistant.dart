@@ -125,7 +125,8 @@ class SurfaceStudioVerticalAtlasAssistant extends StatelessWidget {
         children.add(
           material.Text(
             'Structure probablement verticale : plusieurs frames par variante.',
-            style: material.TextStyle(color: subtle, fontSize: 11, height: 1.35),
+            style:
+                material.TextStyle(color: subtle, fontSize: 11, height: 1.35),
           ),
         );
       } else if (cols > rows) {
@@ -133,7 +134,8 @@ class SurfaceStudioVerticalAtlasAssistant extends StatelessWidget {
         children.add(
           material.Text(
             'Structure probablement horizontale ou non standard.',
-            style: material.TextStyle(color: subtle, fontSize: 11, height: 1.35),
+            style:
+                material.TextStyle(color: subtle, fontSize: 11, height: 1.35),
           ),
         );
       }
@@ -141,7 +143,8 @@ class SurfaceStudioVerticalAtlasAssistant extends StatelessWidget {
 
     return material.Container(
       key: sectionKey,
-      padding: const material.EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      padding:
+          const material.EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: material.BoxDecoration(
         color: EditorChrome.islandFillElevated(context).withValues(alpha: 0.72),
         borderRadius: material.BorderRadius.circular(10),

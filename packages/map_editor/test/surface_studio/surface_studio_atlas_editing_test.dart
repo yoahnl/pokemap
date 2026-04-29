@@ -59,7 +59,8 @@ void main() {
       expect(countAnimationsReferencingAtlasId(cat, 'B'), 1);
     });
 
-    test('replaceAtlasInCatalogInPlace préserve ordre, animations, presets', () {
+    test('replaceAtlasInCatalogInPlace préserve ordre, animations, presets',
+        () {
       final g0 = SurfaceAtlasGeometry(
         tileSize: SurfaceAtlasTileSize(width: 32, height: 32),
         gridSize: SurfaceAtlasGridSize(columns: 2, rows: 2),

@@ -65,4 +65,35 @@ void main() {
     expect(saved, isNotNull);
     expect(saved!.atlases.map((atlas) => atlas.id), contains('v21-water'));
   });
+
+  testWidgets('import and slice steps do not render schema or preview docks',
+      (tester) async {
+    await pumpSurfaceStudioForTest(tester);
+    await tester.pump();
+
+    await tester.tap(find.byKey(const Key('surfaceStudio.step.import')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('surfaceStudio.schema.panel')), findsNothing);
+    expect(find.byKey(const Key('surfaceStudio.preview.panel')), findsNothing);
+    expect(find.text('Schéma de surface (glissez-déposez)'), findsNothing);
+    expect(find.text('Prévisualisation'), findsNothing);
+
+    await tester.tap(find.byKey(const Key('surfaceStudio.step.slice')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('surfaceStudio.schema.panel')), findsNothing);
+    expect(find.byKey(const Key('surfaceStudio.preview.panel')), findsNothing);
+    expect(find.text('Schéma de surface (glissez-déposez)'), findsNothing);
+    expect(find.text('Prévisualisation'), findsNothing);
+  });
+
+  testWidgets('header has no internal close control', (tester) async {
+    await pumpSurfaceStudioForTest(tester);
+    await tester.pump();
+
+    expect(find.byTooltip('Fermer'), findsNothing);
+    expect(find.text('Fermer'), findsNothing);
+    expect(find.byKey(const Key('surfaceStudio.header.close')), findsNothing);
+  });
 }

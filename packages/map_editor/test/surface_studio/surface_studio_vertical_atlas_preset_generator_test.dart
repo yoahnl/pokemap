@@ -25,7 +25,8 @@ ProjectSurfaceAnimation _anim(String id) {
 void main() {
   group('surfaceStudioProposedVerticalAtlasPresetId', () {
     test('eau → eau-surface-preset', () {
-      expect(surfaceStudioProposedVerticalAtlasPresetId('eau'), 'eau-surface-preset');
+      expect(surfaceStudioProposedVerticalAtlasPresetId('eau'),
+          'eau-surface-preset');
     });
   });
 
@@ -41,7 +42,8 @@ void main() {
         gridValid: true,
       );
       expect(p.canCreate, isFalse);
-      expect(p.status, SurfaceStudioVerticalAtlasPresetPlanStatus.blockedNoMapping);
+      expect(p.status,
+          SurfaceStudioVerticalAtlasPresetPlanStatus.blockedNoMapping);
     });
 
     test('grille invalide → bloqué', () {
@@ -56,7 +58,8 @@ void main() {
         gridValid: false,
       );
       expect(p.canCreate, isFalse);
-      expect(p.status, SurfaceStudioVerticalAtlasPresetPlanStatus.blockedInvalidGrid);
+      expect(p.status,
+          SurfaceStudioVerticalAtlasPresetPlanStatus.blockedInvalidGrid);
     });
 
     test('animation manquante → bloqué', () {
@@ -72,7 +75,8 @@ void main() {
       );
       expect(p.canCreate, isFalse);
       expect(p.missingAnimationCount, greaterThan(0));
-      expect(p.status, SurfaceStudioVerticalAtlasPresetPlanStatus.blockedMissingAnimations);
+      expect(p.status,
+          SurfaceStudioVerticalAtlasPresetPlanStatus.blockedMissingAnimations);
     });
 
     test('id preset déjà pris → bloqué', () {
@@ -102,7 +106,8 @@ void main() {
         gridValid: true,
       );
       expect(p.canCreate, isFalse);
-      expect(p.status, SurfaceStudioVerticalAtlasPresetPlanStatus.blockedDuplicatePresetId);
+      expect(p.status,
+          SurfaceStudioVerticalAtlasPresetPlanStatus.blockedDuplicatePresetId);
     });
 
     test('plein + animation → prêt ou incomplet selon couverture standard', () {

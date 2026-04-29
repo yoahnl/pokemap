@@ -98,7 +98,8 @@ void main() {
     test('modifie le rôle d’une colonne', () {
       const draft = SurfaceStudioColumnRoleMappingDraft.empty(23);
       final withRole1 = draft.withRoleForColumn(0, SurfaceVariantRole.isolated);
-      final withRole2 = withRole1.withRoleForColumn(0, SurfaceVariantRole.endNorth);
+      final withRole2 =
+          withRole1.withRoleForColumn(0, SurfaceVariantRole.endNorth);
 
       expect(withRole2.roleForColumn(0), SurfaceVariantRole.endNorth);
       expect(withRole2.assignments.length, 1); // Pas de duplication
@@ -152,7 +153,8 @@ void main() {
       final withDuplicates = draft
           .withRoleForColumn(0, SurfaceVariantRole.isolated)
           .withRoleForColumn(1, SurfaceVariantRole.isolated);
-      final summary = SurfaceStudioColumnRoleMappingSummary.fromDraft(withDuplicates);
+      final summary =
+          SurfaceStudioColumnRoleMappingSummary.fromDraft(withDuplicates);
 
       expect(summary.columnCount, 23);
       expect(summary.assignedColumnCount, 2);
@@ -181,7 +183,8 @@ void main() {
     });
 
     test('fournit un libellé lisible pour un rôle', () {
-      final label = SurfaceStudioRoleLabels.labelForRole(SurfaceVariantRole.isolated);
+      final label =
+          SurfaceStudioRoleLabels.labelForRole(SurfaceVariantRole.isolated);
 
       expect(label, 'Plein');
     });

@@ -56,7 +56,8 @@ class SurfaceStudioColumnRoleMappingDraft {
   factory SurfaceStudioColumnRoleMappingDraft.suggested(int columnCount) {
     final assignments = <SurfaceStudioColumnRoleAssignment>[];
     const roles = standardSurfaceVariantRoleOrder;
-    final countToAssign = columnCount < roles.length ? columnCount : roles.length;
+    final countToAssign =
+        columnCount < roles.length ? columnCount : roles.length;
 
     for (var i = 0; i < countToAssign; i++) {
       assignments.add(SurfaceStudioColumnRoleAssignment(

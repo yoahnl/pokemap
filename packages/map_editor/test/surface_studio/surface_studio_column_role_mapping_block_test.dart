@@ -125,8 +125,8 @@ void main() {
       );
 
       expect(find.text('Suggérer un mapping standard'), findsOneWidget);
-      expect(find.text('Réinitialiser le mapping des colonnes'),
-          findsOneWidget);
+      expect(
+          find.text('Réinitialiser le mapping des colonnes'), findsOneWidget);
     });
 
     testWidgets('appelle onDraftChanged quand on suggère un mapping standard',

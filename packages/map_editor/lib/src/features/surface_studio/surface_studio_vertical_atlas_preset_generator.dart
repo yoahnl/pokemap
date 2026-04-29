@@ -65,7 +65,8 @@ String? _categoryIdForPreset({
 }
 
 /// Plan local : mapping + catalogue (animations déjà présentes) — ne crée rien.
-SurfaceStudioVerticalAtlasPresetAppendPlan surfaceStudioPlanVerticalAtlasPresetAppend({
+SurfaceStudioVerticalAtlasPresetAppendPlan
+    surfaceStudioPlanVerticalAtlasPresetAppend({
   required ProjectSurfaceCatalog catalog,
   required String atlasIdRaw,
   required String atlasDisplayName,
@@ -75,7 +76,8 @@ SurfaceStudioVerticalAtlasPresetAppendPlan surfaceStudioPlanVerticalAtlasPresetA
 }) {
   final atlasId = atlasIdRaw.trim();
   final presetId = surfaceStudioProposedVerticalAtlasPresetId(atlasIdRaw);
-  final namePrefix = atlasDisplayName.trim().isEmpty ? atlasId : atlasDisplayName.trim();
+  final namePrefix =
+      atlasDisplayName.trim().isEmpty ? atlasId : atlasDisplayName.trim();
   final proposedName = '$namePrefix — Surface';
 
   if (atlasId.isEmpty || presetId.isEmpty) {
@@ -125,7 +127,8 @@ SurfaceStudioVerticalAtlasPresetAppendPlan surfaceStudioPlanVerticalAtlasPresetA
         rolesCoveredCount: 0,
         rolesNotCoveredCount: 0,
         missingAnimationCount: 0,
-        status: SurfaceStudioVerticalAtlasPresetPlanStatus.blockedDuplicatePresetId,
+        status:
+            SurfaceStudioVerticalAtlasPresetPlanStatus.blockedDuplicatePresetId,
         canCreate: false,
       );
     }
@@ -174,7 +177,8 @@ SurfaceStudioVerticalAtlasPresetAppendPlan surfaceStudioPlanVerticalAtlasPresetA
       rolesCoveredCount: covered,
       rolesNotCoveredCount: notCovered,
       missingAnimationCount: missing,
-      status: SurfaceStudioVerticalAtlasPresetPlanStatus.blockedMissingAnimations,
+      status:
+          SurfaceStudioVerticalAtlasPresetPlanStatus.blockedMissingAnimations,
       canCreate: false,
       partialPresetUserMessage: partialMsg,
     );
@@ -214,7 +218,8 @@ ProjectSurfacePreset surfaceStudioBuildVerticalAtlasPreset({
     gridValid: gridValid,
   );
   if (!plan.canCreate) {
-    throw StateError('surfaceStudioBuildVerticalAtlasPreset: plan not creatable');
+    throw StateError(
+        'surfaceStudioBuildVerticalAtlasPreset: plan not creatable');
   }
   final atlasId = atlasIdRaw.trim();
   final assigned = mappingDraft.assignments

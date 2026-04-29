@@ -14,6 +14,8 @@ class SurfaceStudioAtlasPanel extends StatelessWidget {
     required this.frameCount,
     required this.tileWidth,
     required this.tileHeight,
+    this.atlasImageBytes,
+    this.atlasImageFallbackLabel,
     required this.selection,
     required this.zoomPercent,
     required this.onColumnSelectionChanged,
@@ -26,6 +28,8 @@ class SurfaceStudioAtlasPanel extends StatelessWidget {
   final int frameCount;
   final int tileWidth;
   final int tileHeight;
+  final Uint8List? atlasImageBytes;
+  final String? atlasImageFallbackLabel;
   final SurfaceStudioColumnSelection selection;
   final double zoomPercent;
   final ValueChanged<SurfaceStudioColumnSelection> onColumnSelectionChanged;
@@ -48,6 +52,8 @@ class SurfaceStudioAtlasPanel extends StatelessWidget {
               frameCount: frameCount,
               tileWidth: tileWidth,
               tileHeight: tileHeight,
+              atlasImageBytes: atlasImageBytes,
+              atlasImageFallbackLabel: atlasImageFallbackLabel,
               selection: selection,
               zoomPercent: zoomPercent,
               onColumnSelectionChanged: onColumnSelectionChanged,
@@ -77,6 +83,8 @@ class SurfaceStudioAtlasViewport extends StatelessWidget {
     required this.frameCount,
     required this.tileWidth,
     required this.tileHeight,
+    this.atlasImageBytes,
+    this.atlasImageFallbackLabel,
     required this.selection,
     required this.zoomPercent,
     required this.onColumnSelectionChanged,
@@ -86,6 +94,8 @@ class SurfaceStudioAtlasViewport extends StatelessWidget {
   final int frameCount;
   final int tileWidth;
   final int tileHeight;
+  final Uint8List? atlasImageBytes;
+  final String? atlasImageFallbackLabel;
   final SurfaceStudioColumnSelection selection;
   final double zoomPercent;
   final ValueChanged<SurfaceStudioColumnSelection> onColumnSelectionChanged;
@@ -149,13 +159,49 @@ class SurfaceStudioAtlasViewport extends StatelessWidget {
             child: Stack(
               children: [
                 Positioned.fill(
-                  child: CustomPaint(
-                    painter: SurfaceStudioAtlasGridPainter(
-                      columnCount: columnCount,
-                      rowCount: frameCount,
-                      selectedColumns: selection.columns,
-                      zoomPercent: zoomPercent,
-                    ),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (atlasImageBytes != null)
+                        Image.memory(
+                          atlasImageBytes!,
+                          key: const ValueKey('surfaceStudio.atlas.realImage'),
+                          fit: BoxFit.cover,
+                          gaplessPlayback: true,
+                          errorBuilder: (_, __, ___) => const Center(
+                            child: Text(
+                              'Image source indisponible — aperçu illustratif.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: SurfaceStudioDesignTokens.textMuted,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        Center(
+                          child: Text(
+                            atlasImageFallbackLabel ??
+                                'Image source indisponible — aperçu illustratif.',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: SurfaceStudioDesignTokens.textMuted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      CustomPaint(
+                        painter: SurfaceStudioAtlasGridPainter(
+                          columnCount: columnCount,
+                          rowCount: frameCount,
+                          selectedColumns: selection.columns,
+                          zoomPercent: zoomPercent,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 if (selection.isNotEmpty)

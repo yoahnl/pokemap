@@ -75,7 +75,10 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
     final shell = ref.watch(editorShellSnapshotProvider);
     final workspaceMode = shell.workspaceMode;
     final notifier = ref.read(editorNotifierProvider.notifier);
-    final supportsRightInspector = workspaceMode != EditorWorkspaceMode.pokedex;
+    final supportsRightInspector = switch (workspaceMode) {
+      EditorWorkspaceMode.pokedex || EditorWorkspaceMode.surfaceStudio => false,
+      _ => true,
+    };
 
     ref.listen(editorNotifierProvider.select((s) => s.errorMessage),
         (prev, next) {

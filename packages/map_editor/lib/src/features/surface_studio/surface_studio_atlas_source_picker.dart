@@ -130,7 +130,8 @@ class SurfaceStudioAtlasImageSourceBlock extends StatelessWidget {
           ] else ...[
             Text(
               'Sélecteur d’image non connecté pour l’instant.',
-              style: TextStyle(color: label, fontSize: 12, fontWeight: FontWeight.w600),
+              style: TextStyle(
+                  color: label, fontSize: 12, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 4),
             Text(

@@ -21,53 +21,60 @@ class SurfaceStudioHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      key: const ValueKey('surfaceStudio.header'),
-      decoration: const BoxDecoration(
-        color: SurfaceStudioDesignTokens.backgroundDeep,
-        border: Border(
-          bottom: BorderSide(color: SurfaceStudioDesignTokens.borderSubtle),
-        ),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        children: [
-          const _StudioMark(),
-          const SizedBox(width: 12),
-          const Text(
-            'Surface Studio — Assistant de mapping d’atlas',
-            style: TextStyle(
-              color: SurfaceStudioDesignTokens.textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 900;
+        return Container(
+          key: const ValueKey('surfaceStudio.header'),
+          decoration: const BoxDecoration(
+            color: SurfaceStudioDesignTokens.backgroundDeep,
+            border: Border(
+              bottom: BorderSide(color: SurfaceStudioDesignTokens.borderSubtle),
             ),
           ),
-          const SizedBox(width: 24),
-          Expanded(
-            child: SurfaceStudioTopStepper(
-              currentStep: currentStep,
-              completedSteps: completedSteps,
-              onStepSelected: onStepSelected,
-            ),
+          padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 20),
+          child: Row(
+            children: [
+              const _StudioMark(),
+              const SizedBox(width: 12),
+              Flexible(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: compact ? 180 : 380),
+                  child: const Text(
+                    'Surface Studio — Assistant de mapping d’atlas',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: SurfaceStudioDesignTokens.textPrimary,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: compact ? 12 : 24),
+              Expanded(
+                child: SurfaceStudioTopStepper(
+                  currentStep: currentStep,
+                  completedSteps: completedSteps,
+                  onStepSelected: onStepSelected,
+                ),
+              ),
+              const SizedBox(width: 8),
+              _HeaderIconButton(
+                tooltip: 'Aide',
+                icon: CupertinoIcons.question_circle,
+                onPressed: () {},
+              ),
+              _HeaderIconButton(
+                tooltip: 'Catalogue & diagnostics',
+                icon: CupertinoIcons.gear_alt,
+                onPressed: onOpenAdvanced ?? () {},
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          _HeaderIconButton(
-            tooltip: 'Aide',
-            icon: CupertinoIcons.question_circle,
-            onPressed: () {},
-          ),
-          _HeaderIconButton(
-            tooltip: 'Catalogue & diagnostics',
-            icon: CupertinoIcons.gear_alt,
-            onPressed: onOpenAdvanced ?? () {},
-          ),
-          _HeaderIconButton(
-            tooltip: 'Fermer',
-            icon: CupertinoIcons.xmark,
-            onPressed: () {},
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

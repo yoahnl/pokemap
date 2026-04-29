@@ -17,7 +17,8 @@ void main() {
       ),
     );
 
-    expect(find.byKey(kSurfaceStudioAtlasGridPreviewSectionKey), findsOneWidget);
+    expect(
+        find.byKey(kSurfaceStudioAtlasGridPreviewSectionKey), findsOneWidget);
     expect(find.text('Aperçu de la grille atlas'), findsOneWidget);
     expect(find.text('Source : eau_atlas'), findsOneWidget);
     expect(find.text('Tile : 32×32 px'), findsOneWidget);
@@ -81,8 +82,10 @@ void main() {
     );
 
     expect(find.text('Aperçu réduit'), findsOneWidget);
-    expect(find.byKey(const ValueKey('surface_studio_grid_cell_95')), findsOneWidget);
-    expect(find.byKey(const ValueKey('surface_studio_grid_cell_96')), findsNothing);
+    expect(find.byKey(const ValueKey('surface_studio_grid_cell_95')),
+        findsOneWidget);
+    expect(find.byKey(const ValueKey('surface_studio_grid_cell_96')),
+        findsNothing);
   });
 
   testWidgets('pas de jargon interdit dans la preview', (tester) async {

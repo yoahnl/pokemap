@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart'
     show Material, MaterialType, PopupMenuButton, PopupMenuItem, Slider;
@@ -16,6 +18,8 @@ class SurfaceStudioPreviewPanel extends StatelessWidget {
     required this.gridVisible,
     required this.previewSize,
     required this.assignmentDraft,
+    this.atlasImageBytes,
+    this.atlasFallbackMessage,
     required this.onPrevious,
     required this.onNext,
     required this.onTogglePlaying,
@@ -32,6 +36,8 @@ class SurfaceStudioPreviewPanel extends StatelessWidget {
   final bool gridVisible;
   final int previewSize;
   final SurfaceStudioRoleAssignmentDraft assignmentDraft;
+  final Uint8List? atlasImageBytes;
+  final String? atlasFallbackMessage;
   final VoidCallback onPrevious;
   final VoidCallback onNext;
   final VoidCallback onTogglePlaying;
@@ -72,6 +78,10 @@ class SurfaceStudioPreviewPanel extends StatelessWidget {
                     child: _PreviewViewport(
                       previewSize: previewSize,
                       gridVisible: gridVisible,
+                      frameIndex: frameIndex,
+                      frameCount: frameCount,
+                      atlasImageBytes: atlasImageBytes,
+                      atlasFallbackMessage: atlasFallbackMessage,
                       hasCenter: assignmentDraft.isAssigned(
                         SurfaceVariantRole.isolated,
                       ),
@@ -110,11 +120,19 @@ class _PreviewViewport extends StatelessWidget {
   const _PreviewViewport({
     required this.previewSize,
     required this.gridVisible,
+    required this.frameIndex,
+    required this.frameCount,
+    this.atlasImageBytes,
+    this.atlasFallbackMessage,
     required this.hasCenter,
   });
 
   final int previewSize;
   final bool gridVisible;
+  final int frameIndex;
+  final int frameCount;
+  final Uint8List? atlasImageBytes;
+  final String? atlasFallbackMessage;
   final bool hasCenter;
 
   @override
@@ -127,12 +145,61 @@ class _PreviewViewport extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: hasCenter
-          ? CustomPaint(
-              painter: _WaterPreviewPainter(
-                gridVisible: gridVisible,
-                previewSize: previewSize,
-              ),
-              child: const SizedBox.expand(),
+          ? Stack(
+              fit: StackFit.expand,
+              children: [
+                if (atlasImageBytes != null)
+                  Image.memory(
+                    atlasImageBytes!,
+                    key: const ValueKey('surfaceStudio.preview.realImage'),
+                    fit: BoxFit.cover,
+                    alignment: Alignment(
+                      0,
+                      frameCount <= 1
+                          ? 0
+                          : -1 + (2 * (frameIndex / (frameCount - 1))),
+                    ),
+                    gaplessPlayback: true,
+                    errorBuilder: (_, __, ___) => Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Text(
+                          atlasFallbackMessage ??
+                              'Image source indisponible — aperçu illustratif.',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: SurfaceStudioDesignTokens.textMuted,
+                            fontSize: 12,
+                            height: 1.3,
+                          ),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        atlasFallbackMessage ??
+                            'Image source indisponible — aperçu illustratif.',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: SurfaceStudioDesignTokens.textMuted,
+                          fontSize: 12,
+                          height: 1.3,
+                        ),
+                      ),
+                    ),
+                  ),
+                CustomPaint(
+                  painter: _WaterPreviewPainter(
+                    gridVisible: gridVisible,
+                    previewSize: previewSize,
+                  ),
+                  child: const SizedBox.expand(),
+                ),
+              ],
             )
           : const Center(
               child: Padding(

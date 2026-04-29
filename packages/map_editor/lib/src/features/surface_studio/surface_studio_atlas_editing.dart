@@ -37,8 +37,7 @@ ProjectSurfaceCatalog removeAtlasIdFromWorkCatalog(
   ProjectSurfaceCatalog catalog,
   String atlasId,
 ) {
-  final nextAtlases =
-      catalog.atlases.where((a) => a.id != atlasId).toList();
+  final nextAtlases = catalog.atlases.where((a) => a.id != atlasId).toList();
   if (nextAtlases.length == catalog.atlases.length) {
     throw StateError('Atlas id introuvable: $atlasId');
   }

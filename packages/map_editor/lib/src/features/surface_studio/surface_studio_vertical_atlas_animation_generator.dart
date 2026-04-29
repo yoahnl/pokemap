@@ -42,8 +42,7 @@ ProjectSurfaceAnimation surfaceStudioProjectSurfaceAnimationFromReadyPlanItem({
   final prefix = animationDisplayNamePrefix.trim().isEmpty
       ? atlasIdForTileRefs.trim()
       : animationDisplayNamePrefix.trim();
-  final name =
-      '$prefix — ${SurfaceStudioRoleLabels.labelForRole(item.role)}';
+  final name = '$prefix — ${SurfaceStudioRoleLabels.labelForRole(item.role)}';
   return ProjectSurfaceAnimation(
     id: item.proposedAnimationId,
     name: name,

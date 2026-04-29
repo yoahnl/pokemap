@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart'
@@ -26,11 +28,13 @@ import 'surface_studio_atlas_grid_overlay.dart';
 import 'surface_studio_atlas_grid_preview.dart';
 import 'surface_studio_atlas_image_preview.dart';
 import 'surface_studio_atlas_source_picker.dart';
+import 'surface_studio_ai_mapping_suggester.dart';
 import 'surface_studio_column_selection.dart';
 import 'surface_studio_design_tokens.dart';
 import 'surface_studio_drag_payload.dart';
 import 'surface_studio_mapping_suggestion_controller.dart';
 import 'surface_studio_mapping_suggestion_models.dart';
+import 'surface_studio_mistral_mapping_suggester.dart';
 import 'surface_studio_role_assignment_draft.dart';
 import 'surface_studio_step.dart';
 import 'surface_studio_vertical_atlas_animation_generation_plan.dart';
@@ -56,6 +60,7 @@ class SurfaceStudioScreen extends StatefulWidget {
     this.onSurfaceCatalogSavePrep,
     this.onRequestProjectSave,
     this.advancedDrawer,
+    this.aiMappingSuggester,
   });
 
   final SurfaceStudioReadModel readModel;
@@ -73,6 +78,7 @@ class SurfaceStudioScreen extends StatefulWidget {
   final VoidCallback? onSurfaceCatalogSavePrep;
   final Future<void> Function()? onRequestProjectSave;
   final Widget? advancedDrawer;
+  final SurfaceStudioAiMappingSuggester? aiMappingSuggester;
 
   @override
   State<SurfaceStudioScreen> createState() => _SurfaceStudioScreenState();
@@ -86,6 +92,9 @@ class _SurfaceStudioScreenState extends State<SurfaceStudioScreen> {
   bool _rightPanelCollapsed = false;
   bool _advancedDrawerOpen = false;
   bool _suggestionReviewOpen = false;
+  bool _aiConfirmationOpen = false;
+  bool _mergeAiAfterConfirmation = false;
+  bool _suggestionRunning = false;
   Set<String> _openSchemaGroups = const {
     'surfaceMain',
     'edges',
@@ -107,9 +116,9 @@ class _SurfaceStudioScreenState extends State<SurfaceStudioScreen> {
   String? _lastGenerationMessage;
   String? _lastPresetMessage;
   SurfaceStudioMappingSuggestionResult? _suggestionResult;
-  final _suggestionController =
-      const SurfaceStudioMappingSuggestionController();
   Timer? _previewTimer;
+  String? _cachedAtlasImagePath;
+  Uint8List? _cachedAtlasImageBytes;
 
   final TextEditingController _atlasId = TextEditingController();
   final TextEditingController _atlasName = TextEditingController();
@@ -186,6 +195,38 @@ class _SurfaceStudioScreenState extends State<SurfaceStudioScreen> {
       }
     }
     return null;
+  }
+
+  SurfaceStudioMappingSuggestionController get _suggestionController =>
+      const SurfaceStudioMappingSuggestionController();
+
+  SurfaceStudioAtlasImagePreviewResolution get _atlasImageResolution =>
+      resolveSurfaceStudioAtlasImagePreview(
+        projectRootPath: widget.projectRootPath,
+        projectTilesets: widget.projectTilesets,
+        technicalTilesetId: _tilesetId.text,
+      );
+
+  Uint8List? _atlasImageBytes() {
+    final path = _atlasImageResolution.resolvedAbsolutePath;
+    if (path == null || path.isEmpty) {
+      _cachedAtlasImagePath = null;
+      _cachedAtlasImageBytes = null;
+      return null;
+    }
+    if (_cachedAtlasImagePath == path && _cachedAtlasImageBytes != null) {
+      return _cachedAtlasImageBytes;
+    }
+    try {
+      final bytes = File(path).readAsBytesSync();
+      _cachedAtlasImagePath = path;
+      _cachedAtlasImageBytes = bytes;
+      return bytes;
+    } catch (_) {
+      _cachedAtlasImagePath = path;
+      _cachedAtlasImageBytes = null;
+      return null;
+    }
   }
 
   int get _columnCount {
@@ -486,14 +527,90 @@ class _SurfaceStudioScreenState extends State<SurfaceStudioScreen> {
   }
 
   void _openSuggestionReview() {
+    _runLocalSuggestion(openReview: true);
+  }
+
+  void _runLocalSuggestion({bool openReview = false}) {
     final result = _suggestionController.suggestLocal(
       columnCount: _columnCount,
     );
     setState(() {
       _suggestionResult = result;
-      _suggestionReviewOpen = true;
+      _suggestionReviewOpen = openReview || _suggestionReviewOpen;
+      _aiConfirmationOpen = false;
       _statusMessage =
           'Suggestions locales prêtes — validation utilisateur requise.';
+    });
+  }
+
+  void _requestAiSuggestion({bool mergeWithLocal = false}) {
+    setState(() {
+      _suggestionReviewOpen = true;
+      _aiConfirmationOpen = true;
+      _mergeAiAfterConfirmation = mergeWithLocal;
+      _statusMessage = 'Confirmation IA requise avant envoi.';
+    });
+  }
+
+  Future<void> _confirmAiSuggestion({required bool mergeWithLocal}) async {
+    final apiKey = resolveEditorMistralApiKey(widget.projectSettings);
+    final imageBytes = _atlasImageBytes();
+    final hasApiKey = apiKey.trim().isNotEmpty;
+    if (!hasApiKey || imageBytes == null) {
+      setState(() {
+        _aiConfirmationOpen = false;
+        _suggestionResult = SurfaceStudioMappingSuggestionResult(
+          suggestions: _suggestionResult?.suggestions ??
+              const <SurfaceStudioRoleSuggestion>[],
+          warnings: <String>[
+            if (_suggestionResult != null) ..._suggestionResult!.warnings,
+            if (!hasApiKey) 'Clé Mistral absente.',
+            if (imageBytes == null) 'Image source indisponible pour Mistral.',
+          ],
+          source: _suggestionResult?.source ??
+              SurfaceStudioMappingSuggestionSource.local,
+        );
+      });
+      return;
+    }
+    setState(() {
+      _suggestionRunning = true;
+      _aiConfirmationOpen = false;
+    });
+    final aiController = SurfaceStudioMappingSuggestionController(
+      aiSuggester:
+          widget.aiMappingSuggester ?? SurfaceStudioMistralMappingSuggester(),
+    );
+    final ai = await aiController.suggestMistral(
+      apiKey: apiKey,
+      imageBytes: imageBytes,
+      tileWidth: _tileWidthValue,
+      tileHeight: _tileHeightValue,
+      columnCount: _columnCount,
+      frameCount: _frameCount,
+    );
+    if (!mounted) {
+      return;
+    }
+    final result = mergeWithLocal && _suggestionResult != null
+        ? SurfaceStudioMappingSuggestionResult(
+            suggestions: <SurfaceStudioRoleSuggestion>[
+              ..._suggestionResult!.suggestions,
+              ...ai.suggestions,
+            ],
+            warnings: <String>[
+              ..._suggestionResult!.warnings,
+              ...ai.warnings,
+            ],
+            source: SurfaceStudioMappingSuggestionSource.merged,
+          )
+        : ai;
+    setState(() {
+      _suggestionRunning = false;
+      _suggestionResult = result;
+      _suggestionReviewOpen = true;
+      _statusMessage =
+          'Suggestions IA prêtes — validation utilisateur requise.';
     });
   }
 
@@ -704,9 +821,21 @@ class _SurfaceStudioScreenState extends State<SurfaceStudioScreen> {
               result: _suggestionResult!,
               mistralKeyConfigured:
                   hasEditorMistralApiKey(widget.projectSettings),
+              aiConfirmationOpen: _aiConfirmationOpen,
+              running: _suggestionRunning,
               onCancel: () {
-                setState(() => _suggestionReviewOpen = false);
+                setState(() {
+                  _suggestionReviewOpen = false;
+                  _aiConfirmationOpen = false;
+                });
               },
+              onRunLocal: () => _runLocalSuggestion(),
+              onRequestAi: () => _requestAiSuggestion(),
+              onCancelAi: () => setState(() => _aiConfirmationOpen = false),
+              onConfirmAi: () => _confirmAiSuggestion(
+                mergeWithLocal: _mergeAiAfterConfirmation,
+              ),
+              onCompare: () => _requestAiSuggestion(mergeWithLocal: true),
               onApplyReliable: () => _applySuggestions(reliableOnly: true),
               onApplyAll: () => _applySuggestions(reliableOnly: false),
             ),
@@ -725,6 +854,7 @@ class _SurfaceStudioScreenState extends State<SurfaceStudioScreen> {
   }
 
   Widget _buildWorkspacePanel() {
+    final frameCount = _frameCount;
     return switch (_currentStep) {
       SurfaceStudioWizardStep.importAtlas => _ImportStepPanel(
           readModel: widget.readModel,
@@ -777,6 +907,10 @@ class _SurfaceStudioScreenState extends State<SurfaceStudioScreen> {
           frameCount: _frameCount,
           tileWidth: _tileWidthValue,
           tileHeight: _tileHeightValue,
+          atlasImageBytes: _atlasImageBytes(),
+          atlasImageFallbackLabel: _atlasImageBytes() == null
+              ? 'Image source indisponible — aperçu illustratif.'
+              : null,
           selection: _selectedColumns,
           zoomPercent: _zoomPercent,
           onColumnSelectionChanged: (selection) {
@@ -794,13 +928,7 @@ class _SurfaceStudioScreenState extends State<SurfaceStudioScreen> {
           },
           onAutoSuggest: _openSuggestionReview,
         ),
-      SurfaceStudioWizardStep.preview => _PreviewPlanPanel(
-          generationPlan: _generationPlan,
-          multiCenterColumns:
-              _assignmentDraft.columnsForRole(SurfaceVariantRole.isolated),
-          onGenerateAnimations: _appendReadyAnimations,
-          message: _lastGenerationMessage,
-        ),
+      SurfaceStudioWizardStep.preview => _buildPreviewWorkspace(frameCount),
       SurfaceStudioWizardStep.save => _SaveStepPanel(
           readModel: widget.readModel,
           generationPlan: _generationPlan,
@@ -826,18 +954,73 @@ class _SurfaceStudioScreenState extends State<SurfaceStudioScreen> {
     };
   }
 
-  Widget _buildRightDock(int frameCount) {
-    if (_currentStep == SurfaceStudioWizardStep.save) {
-      return _RightDockFrame(
-        children: [
-          Expanded(
-            child: _CatalogStatusPanel(
-              readModel: widget.readModel,
-              hasWorkCatalogChanges: widget.hasWorkCatalogChanges,
-            ),
+  Widget _buildPreviewWorkspace(int frameCount) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(
+          flex: 3,
+          child: SurfaceStudioPreviewPanel(
+            frameCount: frameCount,
+            frameIndex: _previewFrameIndex.clamp(0, frameCount - 1).toInt(),
+            playing: _previewPlaying,
+            loop: _previewLoop,
+            gridVisible: _previewGridVisible,
+            previewSize: _previewSize,
+            assignmentDraft: _assignmentDraft,
+            atlasImageBytes: _atlasImageBytes(),
+            atlasFallbackMessage: _atlasImageBytes() == null
+                ? 'Image source indisponible — aperçu illustratif.'
+                : null,
+            onPrevious: () {
+              setState(() {
+                _previewPlaying = false;
+                _previewFrameIndex =
+                    (_previewFrameIndex - 1).clamp(0, frameCount - 1).toInt();
+              });
+              _syncPreviewTimer();
+            },
+            onNext: () {
+              setState(() {
+                _previewPlaying = false;
+                _previewFrameIndex =
+                    (_previewFrameIndex + 1).clamp(0, frameCount - 1).toInt();
+              });
+              _syncPreviewTimer();
+            },
+            onTogglePlaying: _togglePreviewPlaying,
+            onFrameChanged: (value) {
+              setState(() {
+                _previewPlaying = false;
+                _previewFrameIndex = value.clamp(0, frameCount - 1).toInt();
+              });
+              _syncPreviewTimer();
+            },
+            onLoopChanged: (value) => setState(() => _previewLoop = value),
+            onGridChanged: (value) =>
+                setState(() => _previewGridVisible = value),
+            onPreviewSizeChanged: (value) =>
+                setState(() => _previewSize = value),
           ),
-        ],
-      );
+        ),
+        const SizedBox(width: SurfaceStudioDesignTokens.gapMd),
+        SizedBox(
+          width: 430,
+          child: _PreviewPlanPanel(
+            generationPlan: _generationPlan,
+            multiCenterColumns:
+                _assignmentDraft.columnsForRole(SurfaceVariantRole.isolated),
+            onGenerateAnimations: _appendReadyAnimations,
+            message: _lastGenerationMessage,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget? _buildRightDock(int frameCount) {
+    if (_currentStep != SurfaceStudioWizardStep.map) {
+      return null;
     }
     return _RightDockFrame(
       children: [
@@ -884,6 +1067,10 @@ class _SurfaceStudioScreenState extends State<SurfaceStudioScreen> {
             gridVisible: _previewGridVisible,
             previewSize: _previewSize,
             assignmentDraft: _assignmentDraft,
+            atlasImageBytes: _atlasImageBytes(),
+            atlasFallbackMessage: _atlasImageBytes() == null
+                ? 'Image source indisponible — aperçu illustratif.'
+                : null,
             onPrevious: () {
               setState(() {
                 _previewPlaying = false;
@@ -1402,47 +1589,6 @@ class _SaveStepPanel extends StatelessWidget {
   }
 }
 
-class _CatalogStatusPanel extends StatelessWidget {
-  const _CatalogStatusPanel({
-    required this.readModel,
-    required this.hasWorkCatalogChanges,
-  });
-
-  final SurfaceStudioReadModel readModel;
-  final bool hasWorkCatalogChanges;
-
-  @override
-  Widget build(BuildContext context) {
-    return _PanelFrame(
-      keyName: 'surfaceStudio.catalogStatus.panel',
-      title: 'Catalogue & état',
-      subtitle: 'Résumé du catalogue de travail Surface.',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _MetricRow(
-            metrics: {
-              'Atlas': '${readModel.summary.atlasCount}',
-              'Animations': '${readModel.summary.animationCount}',
-              'Surfaces': '${readModel.summary.presetCount}',
-            },
-          ),
-          const SizedBox(height: 12),
-          Text(
-            hasWorkCatalogChanges
-                ? 'Catalogue de travail modifié — sauvegarde projet non effectuée.'
-                : 'Catalogue synchronisé avec le manifest mémoire.',
-            style: const TextStyle(
-              color: SurfaceStudioDesignTokens.textSecondary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _RightDockFrame extends StatelessWidget {
   const _RightDockFrame({required this.children});
 
@@ -1697,14 +1843,28 @@ class _SuggestionReviewScrim extends StatelessWidget {
   const _SuggestionReviewScrim({
     required this.result,
     required this.mistralKeyConfigured,
+    required this.aiConfirmationOpen,
+    required this.running,
     required this.onCancel,
+    required this.onRunLocal,
+    required this.onRequestAi,
+    required this.onCancelAi,
+    required this.onConfirmAi,
+    required this.onCompare,
     required this.onApplyReliable,
     required this.onApplyAll,
   });
 
   final SurfaceStudioMappingSuggestionResult result;
   final bool mistralKeyConfigured;
+  final bool aiConfirmationOpen;
+  final bool running;
   final VoidCallback onCancel;
+  final VoidCallback onRunLocal;
+  final VoidCallback onRequestAi;
+  final VoidCallback onCancelAi;
+  final VoidCallback onConfirmAi;
+  final VoidCallback onCompare;
   final VoidCallback onApplyReliable;
   final VoidCallback onApplyAll;
 
@@ -1793,13 +1953,85 @@ class _SuggestionReviewScrim extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'Analyse IA à venir',
-                            style: TextStyle(
-                              color: SurfaceStudioDesignTokens.accentGold,
-                              fontWeight: FontWeight.w800,
-                            ),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              CupertinoButton(
+                                key: const ValueKey(
+                                  'surfaceStudio.suggestion.local',
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                color: SurfaceStudioDesignTokens.accentTealSoft,
+                                onPressed: running ? null : onRunLocal,
+                                child: const Text('Analyse locale'),
+                              ),
+                              CupertinoButton(
+                                key: const ValueKey(
+                                  'surfaceStudio.suggestion.mistral',
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                color: mistralKeyConfigured
+                                    ? SurfaceStudioDesignTokens.accentGoldSoft
+                                    : SurfaceStudioDesignTokens.borderSubtle,
+                                onPressed: running || !mistralKeyConfigured
+                                    ? null
+                                    : onRequestAi,
+                                child: Text(
+                                  running
+                                      ? 'Analyse IA...'
+                                      : 'Analyse IA Mistral',
+                                ),
+                              ),
+                              CupertinoButton(
+                                key: const ValueKey(
+                                  'surfaceStudio.suggestion.compare',
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                color: SurfaceStudioDesignTokens
+                                    .backgroundPanelAlt,
+                                onPressed: running || !mistralKeyConfigured
+                                    ? null
+                                    : onCompare,
+                                child: const Text('Comparer local + IA'),
+                              ),
+                            ],
                           ),
+                          if (aiConfirmationOpen) ...[
+                            const SizedBox(height: 10),
+                            const _WarningBox(
+                              text:
+                                  'Confirmez l’envoi de l’image atlas à Mistral. Aucune suggestion ne sera appliquée automatiquement.',
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              children: [
+                                CupertinoButton(
+                                  key: const ValueKey(
+                                    'surfaceStudio.suggestion.confirmAi',
+                                  ),
+                                  color:
+                                      SurfaceStudioDesignTokens.accentGoldSoft,
+                                  onPressed: onConfirmAi,
+                                  child: const Text('Confirmer l’analyse IA'),
+                                ),
+                                CupertinoButton(
+                                  onPressed: onCancelAi,
+                                  child: const Text('Annuler l’analyse IA'),
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),

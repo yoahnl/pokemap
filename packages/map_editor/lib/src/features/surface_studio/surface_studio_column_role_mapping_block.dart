@@ -52,10 +52,12 @@ class SurfaceStudioColumnRoleMappingBlock extends StatelessWidget {
         key: sectionKey,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
-          color: EditorChrome.islandFillElevated(context).withValues(alpha: 0.72),
+          color:
+              EditorChrome.islandFillElevated(context).withValues(alpha: 0.72),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: EditorChrome.editorIslandRim(context).withValues(alpha: 0.65),
+            color:
+                EditorChrome.editorIslandRim(context).withValues(alpha: 0.65),
           ),
         ),
         child: Column(
@@ -86,10 +88,12 @@ class SurfaceStudioColumnRoleMappingBlock extends StatelessWidget {
         key: sectionKey,
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         decoration: BoxDecoration(
-          color: EditorChrome.islandFillElevated(context).withValues(alpha: 0.72),
+          color:
+              EditorChrome.islandFillElevated(context).withValues(alpha: 0.72),
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: EditorChrome.editorIslandRim(context).withValues(alpha: 0.65),
+            color:
+                EditorChrome.editorIslandRim(context).withValues(alpha: 0.65),
           ),
         ),
         child: Column(
@@ -251,9 +255,8 @@ class _SummaryRow extends StatelessWidget {
           label: 'Doublons',
           value: '${summary.duplicateRoleCount}',
           labelColor: label,
-          valueColor: summary.hasDuplicateRoles
-              ? Colors.orange.shade700
-              : subtle,
+          valueColor:
+              summary.hasDuplicateRoles ? Colors.orange.shade700 : subtle,
         ),
       ],
     );
@@ -329,7 +332,8 @@ class _ColumnList extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 4),
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: EditorChrome.islandFillElevated(context).withValues(alpha: 0.5),
+              color: EditorChrome.islandFillElevated(context)
+                  .withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Row(
@@ -362,7 +366,8 @@ class _ColumnList extends StatelessWidget {
                       fontSize: 11,
                     ),
                     iconEnabledColor: label,
-                    dropdownColor: EditorChrome.elevatedPanelBackground(context),
+                    dropdownColor:
+                        EditorChrome.elevatedPanelBackground(context),
                     items: [
                       // Option pour désassigner
                       const DropdownMenuItem<SurfaceVariantRole>(

@@ -36,16 +36,17 @@ class SurfaceStudioAtlasGridPreview extends StatelessWidget {
     final subtle = EditorChrome.subtleLabel(context);
     final source = sourceLabel?.trim();
     final hasSource = source != null && source.isNotEmpty;
-    final displaySource = (sourceDisplayForUi != null &&
-            sourceDisplayForUi!.trim().isNotEmpty)
-        ? sourceDisplayForUi!.trim()
-        : source;
+    final displaySource =
+        (sourceDisplayForUi != null && sourceDisplayForUi!.trim().isNotEmpty)
+            ? sourceDisplayForUi!.trim()
+            : source;
     final hasValidGrid = _isPositive(tileWidth) &&
         _isPositive(tileHeight) &&
         _isPositive(columns) &&
         _isPositive(rows);
 
-    final previewColumns = hasValidGrid ? _cap(columns!, _previewMaxColumns) : 0;
+    final previewColumns =
+        hasValidGrid ? _cap(columns!, _previewMaxColumns) : 0;
     final previewRows = hasValidGrid ? _cap(rows!, _previewMaxRows) : 0;
     final reduced = hasValidGrid &&
         (columns! > _previewMaxColumns || rows! > _previewMaxRows);
