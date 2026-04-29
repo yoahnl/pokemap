@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_core/map_core.dart';
+import 'package:map_runtime/map_runtime.dart';
 
 const kRuntimeDemoSeedLevel = 25;
 const kRuntimeDemoSeedCurrentHp = 60;
@@ -115,6 +116,9 @@ Future<List<RuntimePartyBuilderPokemonOption>>
     projectRootUri: projectRootUri,
     speciesDir: pokemonConfig.speciesDir,
   );
+  final moveCatalog = await _tryReadMoveCatalog(
+    projectRootUri.resolve(pokemonConfig.movesCatalogPath),
+  );
 
   final options = <RuntimePartyBuilderPokemonOption>[];
   for (final speciesEntry in speciesJsonEntries) {
@@ -123,6 +127,7 @@ Future<List<RuntimePartyBuilderPokemonOption>>
       pokemonConfig: pokemonConfig,
       speciesEntry: speciesEntry,
       suggestedLevel: suggestedLevel,
+      moveCatalog: moveCatalog,
     );
     if (option != null) {
       options.add(option);
@@ -165,6 +170,9 @@ Future<RuntimeDemoPartySeed?> buildRuntimeHostLaunchDemoPartySeed({
   }
 
   final orderedSpecies = _orderDemoSpeciesEntries(speciesJsonEntries);
+  final moveCatalog = await _tryReadMoveCatalog(
+    projectRootUri.resolve(pokemonConfig.movesCatalogPath),
+  );
   final members = <RuntimeDemoPartyPokemonSeed>[];
   final selectedSpeciesIds = <String>{};
   for (final speciesEntry in orderedSpecies) {
@@ -175,6 +183,7 @@ Future<RuntimeDemoPartySeed?> buildRuntimeHostLaunchDemoPartySeed({
       projectRootUri: projectRootUri,
       pokemonConfig: pokemonConfig,
       speciesEntry: speciesEntry,
+      moveCatalog: moveCatalog,
     );
     if (member == null) {
       continue;
@@ -234,10 +243,12 @@ class _RuntimeHostPokemonConfig {
   const _RuntimeHostPokemonConfig({
     required this.speciesDir,
     required this.learnsetsDir,
+    required this.movesCatalogPath,
   });
 
   final String speciesDir;
   final String learnsetsDir;
+  final String movesCatalogPath;
 }
 
 class _RuntimeHostSpeciesJsonEntry {
@@ -258,6 +269,7 @@ _RuntimeHostPokemonConfig _readPokemonConfig(Map<String, dynamic> projectJson) {
     return const _RuntimeHostPokemonConfig(
       speciesDir: 'data/pokemon/species',
       learnsetsDir: 'data/pokemon/learnsets',
+      movesCatalogPath: 'data/pokemon/catalogs/moves.json',
     );
   }
 
@@ -265,10 +277,16 @@ _RuntimeHostPokemonConfig _readPokemonConfig(Map<String, dynamic> projectJson) {
       (pokemon['speciesDir'] as String?)?.trim() ?? 'data/pokemon/species';
   final learnsetsDir =
       (pokemon['learnsetsDir'] as String?)?.trim() ?? 'data/pokemon/learnsets';
+  final catalogFiles = pokemon['catalogFiles'];
+  final movesCatalogPath =
+      (catalogFiles is Map ? catalogFiles['moves'] as String? : null)?.trim();
 
   return _RuntimeHostPokemonConfig(
     speciesDir: speciesDir,
     learnsetsDir: learnsetsDir,
+    movesCatalogPath: movesCatalogPath == null || movesCatalogPath.isEmpty
+        ? 'data/pokemon/catalogs/moves.json'
+        : movesCatalogPath,
   );
 }
 
@@ -338,6 +356,7 @@ Future<RuntimeDemoPartyPokemonSeed?> _tryBuildPartySeedMember({
   required Uri projectRootUri,
   required _RuntimeHostPokemonConfig pokemonConfig,
   required _RuntimeHostSpeciesJsonEntry speciesEntry,
+  required Map<String, PokemonMove>? moveCatalog,
 }) async {
   final speciesJson = speciesEntry.json;
   final learnsetId = _readLearnsetId(speciesJson, speciesEntry.id);
@@ -348,9 +367,10 @@ Future<RuntimeDemoPartyPokemonSeed?> _tryBuildPartySeedMember({
     return null;
   }
 
-  final knownMoveIds = _deriveKnownMoveIds(
+  final knownMoveIds = _deriveSuggestedMoveIds(
     learnsetJson,
     level: kRuntimeDemoSeedLevel,
+    moveCatalog: moveCatalog,
   );
   if (knownMoveIds.isEmpty) {
     return null;
@@ -371,6 +391,7 @@ Future<RuntimePartyBuilderPokemonOption?> _tryBuildPartyBuilderOption({
   required _RuntimeHostPokemonConfig pokemonConfig,
   required _RuntimeHostSpeciesJsonEntry speciesEntry,
   required int suggestedLevel,
+  required Map<String, PokemonMove>? moveCatalog,
 }) async {
   final speciesJson = speciesEntry.json;
   final learnsetId = _readLearnsetId(speciesJson, speciesEntry.id);
@@ -381,17 +402,21 @@ Future<RuntimePartyBuilderPokemonOption?> _tryBuildPartyBuilderOption({
     return null;
   }
 
-  final availableMoveIds = _deriveAvailableMoveIds(
-    learnsetJson,
-    maxLevel: 100,
+  final availableMoveIds = _filterBattleBridgeableMoveIds(
+    _deriveAvailableMoveIds(
+      learnsetJson,
+      maxLevel: 100,
+    ),
+    moveCatalog: moveCatalog,
   );
   if (availableMoveIds.isEmpty) {
     return null;
   }
 
-  final suggestedMoveIds = _deriveKnownMoveIds(
+  final suggestedMoveIds = _deriveSuggestedMoveIds(
     learnsetJson,
     level: suggestedLevel.clamp(1, 100).toInt(),
+    moveCatalog: moveCatalog,
   );
 
   return RuntimePartyBuilderPokemonOption(
@@ -514,6 +539,82 @@ List<String> _deriveKnownMoveIds(
     return List<String>.unmodifiable(unique);
   }
   return List<String>.unmodifiable(unique.sublist(unique.length - 4));
+}
+
+List<String> _deriveSuggestedMoveIds(
+  Map<String, dynamic> learnsetJson, {
+  required int level,
+  required Map<String, PokemonMove>? moveCatalog,
+}) {
+  if (moveCatalog == null) {
+    return _deriveKnownMoveIds(learnsetJson, level: level);
+  }
+
+  final bridgeableMoveIds = _filterBattleBridgeableMoveIds(
+    _deriveAvailableMoveIds(learnsetJson, maxLevel: level),
+    moveCatalog: moveCatalog,
+  );
+  if (bridgeableMoveIds.length <= 4) {
+    return List<String>.unmodifiable(bridgeableMoveIds);
+  }
+  return List<String>.unmodifiable(
+    bridgeableMoveIds.sublist(bridgeableMoveIds.length - 4),
+  );
+}
+
+Future<Map<String, PokemonMove>?> _tryReadMoveCatalog(Uri fileUri) async {
+  final json = await _tryReadJsonMap(fileUri);
+  if (json == null) {
+    return null;
+  }
+  final rawEntries = json['entries'];
+  if (rawEntries is! List) {
+    return null;
+  }
+
+  final entries = <String, PokemonMove>{};
+  for (final rawEntry in rawEntries.whereType<Map>()) {
+    try {
+      final move = PokemonMove.fromJson(rawEntry.cast<String, dynamic>());
+      entries[move.id] = move;
+    } catch (_) {
+      continue;
+    }
+  }
+
+  if (entries.isEmpty) {
+    return null;
+  }
+  return Map<String, PokemonMove>.unmodifiable(entries);
+}
+
+List<String> _filterBattleBridgeableMoveIds(
+  List<String> moveIds, {
+  required Map<String, PokemonMove>? moveCatalog,
+}) {
+  if (moveCatalog == null) {
+    return List<String>.unmodifiable(moveIds);
+  }
+
+  const bridge = RuntimeBattleMoveBridge();
+  final bridgeableMoveIds = <String>[];
+  for (final moveId in moveIds) {
+    final move = moveCatalog[moveId];
+    if (move == null) {
+      continue;
+    }
+
+    try {
+      bridge.toBattleMoveData(
+        move: move,
+        combatantLabel: 'Le Pokémon de test',
+      );
+      bridgeableMoveIds.add(moveId);
+    } on RuntimeBattleSetupException {
+      continue;
+    }
+  }
+  return List<String>.unmodifiable(bridgeableMoveIds);
 }
 
 List<String> _deriveAvailableMoveIds(

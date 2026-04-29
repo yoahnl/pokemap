@@ -14,6 +14,10 @@ export 'src/application/trainer_battle_request.dart'
     show buildTrainerBattleRequestFromNpc;
 export 'src/application/npc_runtime_presence.dart'
     show isNpcRuntimePresentOnMap;
+export 'src/application/runtime_battle_move_bridge.dart'
+    show RuntimeBattleMoveBridge;
+export 'src/application/runtime_battle_setup_exception.dart'
+    show RuntimeBattleSetupException;
 export 'src/application/load_runtime_map_bundle.dart' show loadRuntimeMapBundle;
 export 'src/application/runtime_map_bundle.dart' show RuntimeMapBundle;
 export 'src/presentation/flame/playable_map_game.dart' show PlayableMapGame;

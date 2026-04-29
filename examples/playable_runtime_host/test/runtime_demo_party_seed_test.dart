@@ -214,6 +214,26 @@ void main() {
         equals(<String>['tackle', 'growl', 'vine_whip', 'razor_leaf']),
       );
     });
+
+    test('filters picker suggestions to moves bridgeable by the battle runtime',
+        () async {
+      await _writeProjectFixture(
+        root,
+        includeMew: true,
+      );
+
+      final options = await loadRuntimeHostPartyBuilderOptions(
+        projectFilePath: '${root.path}/project.json',
+      );
+
+      final mew = options.singleWhere((option) => option.speciesId == 'mew');
+      expect(
+        mew.suggestedMoveIds,
+        equals(<String>['pound', 'transform', 'mega_punch', 'swift']),
+      );
+      expect(mew.availableMoveIds, isNot(contains('baton_pass')));
+      expect(mew.availableMoveIds, isNot(contains('metronome')));
+    });
   });
 }
 
@@ -221,6 +241,7 @@ Future<void> _writeProjectFixture(
   Directory root, {
   bool includeAbra = false,
   bool includeSquirtle = false,
+  bool includeMew = false,
   bool includeGenderRatio = false,
   String squirtleFileName = '0007-squirtle.json',
 }) async {
@@ -239,6 +260,9 @@ Future<void> _writeProjectFixture(
         'enabled': true,
         'speciesDir': 'data/pokemon/species',
         'learnsetsDir': 'data/pokemon/learnsets',
+        'catalogFiles': <String, String>{
+          'moves': 'data/pokemon/catalogs/moves.json',
+        },
       },
     }),
   );
@@ -372,6 +396,177 @@ Future<void> _writeProjectFixture(
       },
     );
   }
+
+  if (includeMew) {
+    await _writeJson(
+      root,
+      'data/pokemon/species/0151-mew.json',
+      <String, dynamic>{
+        'id': 'mew',
+        'nationalDex': 151,
+        'names': <String, String>{'en': 'Mew'},
+        'typing': <String, Object>{
+          'types': <String>['psychic'],
+        },
+        'abilities': <String, String>{'primary': 'synchronize'},
+        'refs': <String, String>{
+          'learnset': 'mew',
+          'evolution': 'mew',
+          'media': 'mew',
+        },
+        'classification': <String, bool>{'isEnabledInProject': true},
+      },
+    );
+
+    await _writeJson(
+      root,
+      'data/pokemon/learnsets/mew.json',
+      <String, dynamic>{
+        'speciesId': 'mew',
+        'startingMoves': <String>['pound', 'transform'],
+        'relearnMoves': <String>['mimic'],
+        'levelUp': <Map<String, Object>>[
+          <String, Object>{
+            'moveId': 'mega_punch',
+            'level': 10,
+            'source': 'level_up',
+            'versionGroup': 'demo',
+          },
+          <String, Object>{
+            'moveId': 'swift',
+            'level': 20,
+            'source': 'level_up',
+            'versionGroup': 'demo',
+          },
+          <String, Object>{
+            'moveId': 'baton_pass',
+            'level': 22,
+            'source': 'level_up',
+            'versionGroup': 'demo',
+          },
+          <String, Object>{
+            'moveId': 'metronome',
+            'level': 25,
+            'source': 'level_up',
+            'versionGroup': 'demo',
+          },
+        ],
+      },
+    );
+  }
+
+  await _writeJson(
+    root,
+    'data/pokemon/catalogs/moves.json',
+    <String, dynamic>{
+      'schemaVersion': 1,
+      'kind': 'pokemon_catalog',
+      'catalog': 'moves',
+      'entries': <Map<String, Object?>>[
+        _moveEntry('tackle', 'Tackle', 40),
+        _moveEntry('growl', 'Growl', 0),
+        _moveEntry('vine_whip', 'Vine Whip', 45, type: 'grass'),
+        _moveEntry('razor_leaf', 'Razor Leaf', 55, type: 'grass'),
+        _moveEntry('tail_whip', 'Tail Whip', 0),
+        _moveEntry('bubble', 'Bubble', 40, type: 'water'),
+        _moveEntry('water_gun', 'Water Gun', 40, type: 'water'),
+        _moveEntry('pound', 'Pound', 40),
+        _moveEntry(
+          'transform',
+          'Transform',
+          0,
+          target: PokemonMoveTarget.normal,
+        ),
+        _moveEntry('mega_punch', 'Mega Punch', 80, accuracy: 85),
+        _moveEntry(
+          'swift',
+          'Swift',
+          60,
+          target: PokemonMoveTarget.allAdjacentFoes,
+          accuracy: null,
+        ),
+        _moveEntry(
+          'baton_pass',
+          'Baton Pass',
+          0,
+          target: PokemonMoveTarget.self,
+          effects: const <PokemonMoveEffect>[
+            PokemonMoveEffect.selfSwitch(),
+          ],
+        ),
+        _moveEntry(
+          'metronome',
+          'Metronome',
+          0,
+          target: PokemonMoveTarget.self,
+          supportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+          unsupportedReasons: const <String>['unsupported_mechanic:callsMove'],
+        ),
+      ],
+    },
+  );
+}
+
+Map<String, Object?> _moveEntry(
+  String id,
+  String name,
+  int power, {
+  String type = 'normal',
+  PokemonMoveTarget target = PokemonMoveTarget.normal,
+  int? accuracy = 100,
+  List<PokemonMoveEffect> effects = const <PokemonMoveEffect>[],
+  PokemonMoveEngineSupportLevel supportLevel =
+      PokemonMoveEngineSupportLevel.structuredSupported,
+  List<String> unsupportedReasons = const <String>[],
+}) {
+  final resolvedEffects = effects.isEmpty ? _defaultMoveEffects(id) : effects;
+  return PokemonMove(
+    id: id,
+    name: name,
+    names: <String, String>{'en': name},
+    generation: 1,
+    source: 'test_runtime_fixture',
+    type: type,
+    category:
+        power == 0 ? PokemonMoveCategory.status : PokemonMoveCategory.physical,
+    target: target,
+    basePower: power,
+    accuracy: accuracy == null
+        ? const PokemonMoveAccuracy.alwaysHits()
+        : PokemonMoveAccuracy.percent(value: accuracy),
+    pp: 20,
+    effects: resolvedEffects,
+    engineSupportLevel: supportLevel,
+    unsupportedReasons: unsupportedReasons,
+  ).toJson();
+}
+
+List<PokemonMoveEffect> _defaultMoveEffects(String moveId) {
+  return switch (moveId) {
+    'growl' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.modifyStats(
+          targetScope: PokemonMoveEffectTargetScope.target,
+          stageChanges: <PokemonMoveStatStageChange>[
+            PokemonMoveStatStageChange(
+              stat: PokemonMoveStatId.attack,
+              stages: -1,
+            ),
+          ],
+        ),
+      ],
+    'tail_whip' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.modifyStats(
+          targetScope: PokemonMoveEffectTargetScope.target,
+          stageChanges: <PokemonMoveStatStageChange>[
+            PokemonMoveStatStageChange(
+              stat: PokemonMoveStatId.defense,
+              stages: -1,
+            ),
+          ],
+        ),
+      ],
+    _ => const <PokemonMoveEffect>[],
+  };
 }
 
 Future<void> _writeJson(
