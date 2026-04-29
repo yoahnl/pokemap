@@ -21,8 +21,6 @@ ProjectManifest _manifestWithGlobalStory() {
     scenarios: [
       ScenarioAsset(
         id: 'g',
-    ],
-    surfaceCatalog: ProjectSurfaceCatalog(),
         name: 'g',
         entryNodeId: 'start',
         scope: ScenarioScope.globalStory,
@@ -31,6 +29,7 @@ ProjectManifest _manifestWithGlobalStory() {
         metadata: {kStepStudioDocumentMetadataKey: _stepStudioDoc},
       ),
     ],
+    surfaceCatalog: ProjectSurfaceCatalog(),
   );
 }
 

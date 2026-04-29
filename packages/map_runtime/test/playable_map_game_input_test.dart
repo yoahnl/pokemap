@@ -2214,11 +2214,10 @@ RuntimeMapBundle _baseBundle() {
           id: 'test_map',
           name: 'Test Map',
           relativePath: 'maps/test_map.json',
-      ],
-      surfaceCatalog: ProjectSurfaceCatalog(),
         ),
       ],
       tilesets: [],
+      surfaceCatalog: ProjectSurfaceCatalog(),
     ),
     map: const MapData(
       id: 'test_map',

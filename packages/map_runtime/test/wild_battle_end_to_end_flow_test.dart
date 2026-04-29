@@ -1185,18 +1185,17 @@ RuntimeMapBundle _buildBundle(
 }
 
 Future<ProjectManifest> _writeProjectManifest(Directory projectRoot) async {
-  const manifest = ProjectManifest(
+  final manifest = ProjectManifest(
     name: 'Wild Battle Flow Test',
     maps: <ProjectMapEntry>[
       ProjectMapEntry(
         id: 'field_map',
         name: 'Field Map',
         relativePath: 'maps/field_map.json',
-      ],
-      surfaceCatalog: ProjectSurfaceCatalog(),
       ),
     ],
     tilesets: <ProjectTilesetEntry>[],
+    surfaceCatalog: ProjectSurfaceCatalog(),
     encounterTables: <ProjectEncounterTable>[
       ProjectEncounterTable(
         id: 'field_grass',

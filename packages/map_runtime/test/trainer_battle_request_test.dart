@@ -48,7 +48,6 @@ void main() {
       tilesets: [],
       elements: [],
       trainers: [
-      surfaceCatalog: ProjectSurfaceCatalog(),
         ProjectTrainerEntry(
           id: 'trainer_001',
           name: 'Dresseur 1',
@@ -56,6 +55,7 @@ void main() {
           team: [],
         ),
       ],
+      surfaceCatalog: ProjectSurfaceCatalog(),
     );
 
     final _testWorld = GameplayWorldState.initial(
