@@ -4,7 +4,7 @@ Date: 2026-04-30
 
 ## Decision
 
-The active product direction is now deliberately small:
+The active product direction is deliberately small:
 
 ```text
 Path Studio.
@@ -13,14 +13,10 @@ Then tall grass.
 Nothing else.
 ```
 
-This roadmap does not recreate Surface Studio and does not use TSX, TMX,
-Pokemon SDK imports, Mistral, PixelLab, MCP, or external map import flows as
-product objectives.
-
 ## Starting Point
 
-Surface Studio and the TSX authoring workspace were purged from the active
-editor UI. The useful foundations remain:
+The previous complex authoring workspace has been removed from the active
+editor path. The useful foundations remain:
 
 - `packages/map_core` Surface models;
 - `ProjectManifest.surfaceCatalog`;
@@ -29,8 +25,8 @@ editor UI. The useful foundations remain:
 - existing runtime Surface support;
 - existing Surface to GameplayZone bridge.
 
-The new work should build on the system that already behaves best in the
-editor: Path / Path Painter.
+The new work builds on the system that already behaves best in the editor:
+Path / Path Painter.
 
 ## Product Goal
 
@@ -59,13 +55,12 @@ patternX = mapX % 2
 patternY = mapY % 2
 ```
 
-Important compatibility note:
+Compatibility warning:
 
 ```text
 Do not assume isolated = center.
 The current path resolver must be audited first.
-The interior of a full block currently resolves through the legacy path
-variant system, and Lot 0 must identify the real variant used.
+Lot 0 identifies the real variant used by a full-area interior cell.
 ```
 
 ## Reports
@@ -117,11 +112,10 @@ Touch `packages/map_runtime` only in lots explicitly marked runtime.
 Do not:
 
 ```text
-- recreate Surface Studio;
-- recreate TSX/TMX authoring;
-- add Mistral;
-- add PixelLab;
-- add MCP;
+- recreate the removed authoring workspace;
+- add external map import flows;
+- add AI grouping;
+- add image generation workflows;
 - add gameplay to visual presets;
 - mutate ProjectManifest directly from UI flows;
 - write project files automatically.
@@ -148,71 +142,60 @@ Each lot report should contain:
 | --- | ---: | --- |
 | A - Decision and minimal model | 0-3 | Decide center anchor, define pure center pattern objects, keep legacy compatible |
 | B - Transparency and preview | 4-6 | Transparent color, static preview, animated preview |
-| C - Persistence and manifest | 7-10 | Minimal project model, external JSON codec, manifest integration, manifest ops |
-| D - Path Studio UI | 11-14 | Shell, center pattern editor, save flow, painter integration |
-| E - Water closure | 15-17 | Editor canvas render, runtime render, internal water 2x2 golden slice |
-| F - Tall grass | 18-20 | Decide, author, and bridge tall grass cleanly |
+| C - Persistence and manifest | 7-11 | Project model, codec, golden JSON decision, manifest integration, manifest ops |
+| D - Path Studio UI | 12-15 | Shell, center pattern editor, save flow, painter integration |
+| E - Water closure | 16-18 | Editor canvas render, runtime render, internal water 2x2 golden slice |
+| F - Tall grass | 19-21 | Decide, author, and bridge tall grass cleanly |
 
 ## Strict Order
 
 ```text
-0  Path Studio Center Pattern Decision
-1  Path Center Pattern Value Objects
-2  Path Center Pattern Resolver
-3  Legacy Path Preset Center Adapter
+0  Center Variant Audit / Decision
+1  Center Pattern Value Objects
+2  Center Pattern Resolver
+3  Legacy ProjectPathPreset Adapter
 4  Tileset Transparent Color
-5  Path Center Pattern Static Preview
-6  Path Center Pattern Animated Preview
+5  Static Preview
+6  Animated Preview
 7  ProjectPathPatternPreset Model
-8  ProjectPathPatternPreset JSON Codec
-9  ProjectManifest PathPattern Integration
-10 PathPattern Manifest Operations
-11 Path Studio Shell
-12 Path Studio Center Pattern Editor
-13 Path Studio Save Flow
-14 Path Painter Integration
-15 Editor Canvas PathPattern Render
-16 Runtime PathPattern Render
-17 Water 2x2 Golden Slice
-18 Tall Grass PathPattern Decision
-19 Tall Grass PathPattern Authoring
-20 Tall Grass Gameplay Bridge
+8  JSON Codec
+9  Manifest Decision / Golden JSON
+10 Manifest Integration
+11 Manifest Operations
+12 Path Studio Shell
+13 Center Pattern Editor
+14 Save Flow
+15 Path Painter Integration
+16 Editor Canvas Render
+17 Runtime Render
+18 Water 2x2 Golden Slice
+19 Tall Grass Decision
+20 Tall Grass Authoring
+21 Tall Grass Gameplay Bridge
 ```
 
-## Lot 0 - Path Studio Center Pattern Decision V0
+## Lot 0 - Center Variant Audit / Decision
 
 Report:
 
 ```text
-reports/pathPattern/path_pattern_lot_00_center_pattern_decision.md
+reports/pathPattern/path_pattern_lot_00_center_variant_audit_decision.md
 ```
 
 Goal:
 
 ```text
-Decide how to let the existing Path system support a multi-cell center fill.
+Understand how the current Path resolver chooses variants and identify the
+actual variant used for the interior of a full painted area.
 ```
 
-Lot 0 must answer:
+Required output:
 
 ```text
-- where ProjectPathPreset and TerrainPathVariant are defined;
-- how path variants are stored;
-- whether variants store one frame or frame lists;
-- which variant is actually used by the current resolver for the interior of a full painted block;
-- where the editor resolves and draws path frames;
-- where a center pattern can be inserted without changing borders, corners, junctions, gameplay, or runtime.
+Cellule intérieure pleine -> TerrainPathVariant.<exact name>
 ```
 
-Expected recommendation:
-
-```text
-Create a separate ProjectPathPatternPreset later.
-Adapt existing ProjectPathPreset entries as center 1x1.
-Keep V0 center-only; bords/corners/junctions remain legacy.
-```
-
-## Lot 1 - Path Center Pattern Value Objects V0
+## Lot 1 - Center Pattern Value Objects
 
 Report:
 
@@ -223,16 +206,15 @@ reports/pathPattern/path_pattern_lot_01_center_pattern_value_objects.md
 Goal:
 
 ```text
-Create pure map_core value objects for the center pattern only.
+Create pure non-persistent value objects for the center pattern only.
 ```
 
 Expected objects:
 
 ```text
-PathCenterPatternSize
-PathCenterPatternCellCoordinate
-PathCenterPatternCell
 PathCenterPattern
+PathCenterPatternCell
+PathCenterPatternSize or equivalent
 ```
 
 Rules:
@@ -243,11 +225,11 @@ Rules:
 - cells cover exactly every local coordinate;
 - no duplicate localX/localY;
 - each cell contains List<TilesetVisualFrame>;
-- no JSON yet;
+- no JSON;
 - no manifest change.
 ```
 
-## Lot 2 - Path Center Pattern Resolver V0
+## Lot 2 - Center Pattern Resolver
 
 Report:
 
@@ -261,21 +243,19 @@ Goal:
 Resolve map coordinates to a center pattern cell.
 ```
 
-Rule:
+Recommended V0 rule:
 
 ```text
 patternX = mapX modulo pattern.width
 patternY = mapY modulo pattern.height
 ```
 
-The lot must define the negative-coordinate contract explicitly.
-
-## Lot 3 - Legacy Path Preset Center Adapter V0
+## Lot 3 - Legacy ProjectPathPreset Adapter
 
 Report:
 
 ```text
-reports/pathPattern/path_pattern_lot_03_legacy_center_adapter.md
+reports/pathPattern/path_pattern_lot_03_legacy_project_path_preset_adapter.md
 ```
 
 Goal:
@@ -291,10 +271,10 @@ Rules:
 - preserve frame order and durationMs;
 - preserve frame tilesetId overrides;
 - preserve legacy variants for borders/corners/junctions;
-- do not add JSON.
+- no JSON.
 ```
 
-## Lot 4 - Tileset Transparent Color V0
+## Lot 4 - Tileset Transparent Color
 
 Report:
 
@@ -305,7 +285,7 @@ reports/pathPattern/path_pattern_lot_04_tileset_transparent_color.md
 Goal:
 
 ```text
-Add configurable transparent color support, for example f05ba1, without hardcoding any specific color.
+Add configurable transparent color support without hardcoding any specific color.
 ```
 
 Rules:
@@ -318,12 +298,12 @@ Rules:
 - never create derived images automatically.
 ```
 
-## Lot 5 - Path Center Pattern Static Preview V0
+## Lot 5 - Static Preview
 
 Report:
 
 ```text
-reports/pathPattern/path_pattern_lot_05_center_pattern_static_preview.md
+reports/pathPattern/path_pattern_lot_05_static_preview.md
 ```
 
 Goal:
@@ -341,12 +321,12 @@ Rules:
 - provide a fallback when image bytes are unavailable.
 ```
 
-## Lot 6 - Path Center Pattern Animated Preview V0
+## Lot 6 - Animated Preview
 
 Report:
 
 ```text
-reports/pathPattern/path_pattern_lot_06_center_pattern_animated_preview.md
+reports/pathPattern/path_pattern_lot_06_animated_preview.md
 ```
 
 Goal:
@@ -359,12 +339,12 @@ Rules:
 
 ```text
 - preview only;
-- no Flame runtime;
+- no runtime rendering;
 - one-frame cells stay stable;
 - timelines use a shared elapsedMs.
 ```
 
-## Lot 7 - ProjectPathPatternPreset Model V0
+## Lot 7 - ProjectPathPatternPreset Model
 
 Report:
 
@@ -396,15 +376,15 @@ Rules:
 ```text
 - do not modify ProjectManifest in this lot;
 - do not modify ProjectPathPreset;
-- no JSON yet.
+- no JSON.
 ```
 
-## Lot 8 - ProjectPathPatternPreset JSON Codec V0
+## Lot 8 - JSON Codec
 
 Report:
 
 ```text
-reports/pathPattern/path_pattern_lot_08_project_path_pattern_json_codec.md
+reports/pathPattern/path_pattern_lot_08_json_codec.md
 ```
 
 Goal:
@@ -422,18 +402,32 @@ Rules:
 - transparentColor encoded only when present.
 ```
 
-## Lot 9 - ProjectManifest PathPattern Integration V0
+## Lot 9 - Manifest Decision / Golden JSON
 
 Report:
 
 ```text
-reports/pathPattern/path_pattern_lot_09_manifest_path_pattern_integration.md
+reports/pathPattern/path_pattern_lot_09_manifest_decision_golden_json.md
 ```
 
 Goal:
 
 ```text
-Add pathPatternPresets to ProjectManifest after the model and codec are covered.
+Decide the manifest shape and lock golden JSON samples before integration.
+```
+
+## Lot 10 - Manifest Integration
+
+Report:
+
+```text
+reports/pathPattern/path_pattern_lot_10_manifest_integration.md
+```
+
+Goal:
+
+```text
+Add PathPattern presets to ProjectManifest after the model, codec, and golden JSON decision are covered.
 ```
 
 Rules:
@@ -444,12 +438,12 @@ Rules:
 - generated code only for touched map_core models if the current style requires it.
 ```
 
-## Lot 10 - PathPattern Manifest Operations V0
+## Lot 11 - Manifest Operations
 
 Report:
 
 ```text
-reports/pathPattern/path_pattern_lot_10_manifest_operations.md
+reports/pathPattern/path_pattern_lot_11_manifest_operations.md
 ```
 
 Goal:
@@ -458,12 +452,12 @@ Goal:
 Pure helpers for read, replace, upsert, remove, and clear.
 ```
 
-## Lot 11 - Path Studio Shell V0
+## Lot 12 - Path Studio Shell
 
 Report:
 
 ```text
-reports/pathPattern/path_pattern_lot_11_path_studio_shell.md
+reports/pathPattern/path_pattern_lot_12_path_studio_shell.md
 ```
 
 Goal:
@@ -484,17 +478,17 @@ Path Studio
 Rules:
 
 ```text
-- no Surface Studio;
-- no placeholder promising unsupported actions;
+- no complete pattern editor;
+- no unsupported primary actions;
 - no save to disk.
 ```
 
-## Lot 12 - Path Studio Center Pattern Editor V0
+## Lot 13 - Center Pattern Editor
 
 Report:
 
 ```text
-reports/pathPattern/path_pattern_lot_12_center_pattern_editor.md
+reports/pathPattern/path_pattern_lot_13_center_pattern_editor.md
 ```
 
 Goal:
@@ -512,12 +506,12 @@ V0 UX:
 - transparent color display/config if already available.
 ```
 
-## Lot 13 - Path Studio Save Flow V0
+## Lot 14 - Save Flow
 
 Report:
 
 ```text
-reports/pathPattern/path_pattern_lot_13_save_flow.md
+reports/pathPattern/path_pattern_lot_14_save_flow.md
 ```
 
 Goal:
@@ -534,12 +528,12 @@ Rules:
 - no direct disk write.
 ```
 
-## Lot 14 - Path Painter Integration V0
+## Lot 15 - Path Painter Integration
 
 Report:
 
 ```text
-reports/pathPattern/path_pattern_lot_14_path_painter_integration.md
+reports/pathPattern/path_pattern_lot_15_path_painter_integration.md
 ```
 
 Goal:
@@ -548,12 +542,12 @@ Goal:
 Let users select and paint a PathPattern preset without breaking legacy Path Painter.
 ```
 
-## Lot 15 - Editor Canvas PathPattern Render V0
+## Lot 16 - Editor Canvas Render
 
 Report:
 
 ```text
-reports/pathPattern/path_pattern_lot_15_editor_canvas_render.md
+reports/pathPattern/path_pattern_lot_16_editor_canvas_render.md
 ```
 
 Goal:
@@ -570,12 +564,12 @@ Rules:
 - borders/corners/junctions remain legacy.
 ```
 
-## Lot 16 - Runtime PathPattern Render V0
+## Lot 17 - Runtime Render
 
 Report:
 
 ```text
-reports/pathPattern/path_pattern_lot_16_runtime_render.md
+reports/pathPattern/path_pattern_lot_17_runtime_render.md
 ```
 
 Goal:
@@ -587,17 +581,17 @@ Render PathPattern visually in runtime.
 Rules:
 
 ```text
-- map_runtime only;
+- runtime package only;
 - no gameplay;
 - preserve layer ordering.
 ```
 
-## Lot 17 - Water 2x2 Golden Slice V0
+## Lot 18 - Water 2x2 Golden Slice
 
 Report:
 
 ```text
-reports/pathPattern/path_pattern_lot_17_water_2x2_golden_slice.md
+reports/pathPattern/path_pattern_lot_18_water_2x2_golden_slice.md
 ```
 
 Goal:
@@ -610,18 +604,16 @@ Rules:
 
 ```text
 - internal fixture;
-- no TSX;
-- no TMX;
 - transparent color configurable;
 - editor preview, paint, and runtime visual slice.
 ```
 
-## Lot 18 - Tall Grass PathPattern Decision V0
+## Lot 19 - Tall Grass Decision
 
 Report:
 
 ```text
-reports/pathPattern/path_pattern_lot_18_tall_grass_decision.md
+reports/pathPattern/path_pattern_lot_19_tall_grass_decision.md
 ```
 
 Goal:
@@ -630,12 +622,12 @@ Goal:
 Decide whether tall grass should be visual PathPattern plus explicit gameplay zone association.
 ```
 
-## Lot 19 - Tall Grass PathPattern Authoring V0
+## Lot 20 - Tall Grass Authoring
 
 Report:
 
 ```text
-reports/pathPattern/path_pattern_lot_19_tall_grass_authoring.md
+reports/pathPattern/path_pattern_lot_20_tall_grass_authoring.md
 ```
 
 Goal:
@@ -644,12 +636,12 @@ Goal:
 Create a simple tall grass visual preset flow.
 ```
 
-## Lot 20 - Tall Grass Gameplay Bridge V0
+## Lot 21 - Tall Grass Gameplay Bridge
 
 Report:
 
 ```text
-reports/pathPattern/path_pattern_lot_20_tall_grass_gameplay_bridge.md
+reports/pathPattern/path_pattern_lot_21_tall_grass_gameplay_bridge.md
 ```
 
 Goal:
@@ -658,27 +650,12 @@ Goal:
 Associate tall grass visuals with encounter gameplay cleanly, without hiding gameplay inside visual presets.
 ```
 
-## Removed From This Roadmap
-
-The following are intentionally out:
-
-```text
-TSX Import Lite
-TMX import
-Mistral grouping
-PixelLab
-Surface Studio
-Surface TSX builder
-Golden Slice Exterior TMX
-runtime import of external maps
-```
-
 ## Visual Milestones
 
 ```text
 Lot 5: static center preview
 Lot 6: animated center preview
-Lot 12: editable center pattern
-Lot 14: paintable PathPattern preset
-Lot 17: water 2x2 slice
+Lot 13: editable center pattern
+Lot 15: paintable PathPattern preset
+Lot 18: water 2x2 slice
 ```
