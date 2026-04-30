@@ -3,6 +3,7 @@ library map_core;
 export 'src/models/enums.dart';
 export 'src/models/geometry.dart';
 export 'src/models/tileset.dart';
+export 'src/models/tileset_transparent_color.dart';
 export 'src/models/map_data.dart';
 export 'src/models/element_collision_profile.dart';
 export 'src/models/map_entity_payloads.dart';
