@@ -72,12 +72,27 @@ void main() {
         find.byKey(const ValueKey('tiled_tsx_surface_preset_builder.name')),
         'Water TSX Surface',
       );
-      await tester.enterText(
+      expect(
         find.byKey(
           const ValueKey('tiled_tsx_surface_preset_builder.role.isolated'),
         ),
-        'tech-animations-tile-99',
+        findsNothing,
       );
+
+      final pickIsolated = find.byKey(
+        const ValueKey('tiled_tsx_role_mapping_builder.pick.isolated'),
+      );
+      await tester.ensureVisible(pickIsolated);
+      await tester.tap(pickIsolated);
+      await tester.pumpAndSettle();
+
+      final tile99Option = find.byKey(
+        const ValueKey(
+          'tiled_tsx_role_mapping_builder.option.isolated.tech-animations-tile-99',
+        ),
+      );
+      await tester.ensureVisible(tile99Option);
+      await tester.tap(tile99Option);
       await tester.pumpAndSettle();
 
       await tester.ensureVisible(createPreset);

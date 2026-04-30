@@ -21,8 +21,8 @@ void main() {
     );
 
     expect(find.byKey(const ValueKey('surface_studio.primary_tabs')), findsOne);
-    expect(find.text('Catalogue Surface'), findsOneWidget);
-    expect(find.text('TSX'), findsOneWidget);
+    expect(find.text('Catalogue'), findsOneWidget);
+    expect(find.text('Créer une surface'), findsOneWidget);
     expect(find.text('Diagnostics'), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey('surface_studio.tab.tsx')));

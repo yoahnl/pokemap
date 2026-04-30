@@ -12,6 +12,7 @@ import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../ui/shared/cupertino_editor_widgets.dart';
+import 'importers/tall_grass_tsx_asset_importer.dart';
 import 'importers/tiled_tsx_animation_browser.dart';
 import 'importers/tiled_tsx_workspace.dart';
 import 'surface_studio_atlas_editing.dart';
@@ -58,6 +59,12 @@ enum _SurfaceStudioPrimaryWorkspace {
   diagnostics,
 }
 
+typedef TallGrassTsxImportRequested = Future<TallGrassTsxAssetImportResult>
+    Function({
+  required TiledTsxLoadedFile loadedFile,
+  required ProjectSurfaceCatalog workCatalog,
+});
+
 /// Panneau présentationnel **lecture seule** pour Surface Studio.
 class SurfaceStudioPanel extends StatefulWidget {
   const SurfaceStudioPanel({
@@ -71,6 +78,7 @@ class SurfaceStudioPanel extends StatefulWidget {
     this.surfaceMappingImageLoader,
     this.aiMappingSuggester,
     this.tallGrassAuthoringView,
+    this.onTallGrassTsxImportRequested,
     this.tsxFileLoader = const TiledTsxPlatformFileLoader(),
   });
 
@@ -82,6 +90,7 @@ class SurfaceStudioPanel extends StatefulWidget {
   final SurfaceStudioAtlasUiImageLoader? surfaceMappingImageLoader;
   final SurfaceStudioAiMappingSuggester? aiMappingSuggester;
   final TallGrassAuthoringView? tallGrassAuthoringView;
+  final TallGrassTsxImportRequested? onTallGrassTsxImportRequested;
   final TiledTsxFileLoader tsxFileLoader;
 
   /// Racine projet sur disque pour résoudre les chemins d’images tileset (aperçu Lot 72).
@@ -368,6 +377,41 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
     });
   }
 
+  Future<TallGrassTsxAssetImportResult> _onTallGrassTsxImportRequested(
+    TiledTsxLoadedFile loadedFile,
+  ) async {
+    final requested = widget.onTallGrassTsxImportRequested;
+    if (requested == null) {
+      return TallGrassTsxAssetImportResult(
+        manifest: null,
+        errors: const ['Import manifest non connecté dans ce contexte.'],
+        messages: const <String>[],
+        createdTileset: false,
+        tileset: null,
+        importedAnimationCount: 0,
+        candidateAnimationIds: const <String>[],
+        visualCandidateTileIds: const <int>[],
+        sdkParticleTags: const <int>[],
+        loadedFileName: loadedFile.fileName,
+      );
+    }
+    final result = await requested(
+      loadedFile: loadedFile,
+      workCatalog: _workReadModel.catalog,
+    );
+    final next = result.manifest;
+    if (!result.hasErrors && next != null && mounted) {
+      setState(() {
+        _saveFlowPrepNote = SurfaceStudioPanel.manifestMemoryUpdatedNote;
+        _workReadModel = buildSurfaceStudioReadModelFromCatalog(
+          next.surfaceCatalog,
+        );
+        _selection = _selectionAfterCatalogChanged(next.surfaceCatalog);
+      });
+    }
+    return result;
+  }
+
   ProjectSurfaceAtlas? _atlasForAnimationBrowser() {
     for (final animation in _workReadModel.catalog.animations) {
       final frames = animation.timeline.frames;
@@ -535,6 +579,10 @@ class _SurfaceStudioPanelState extends State<SurfaceStudioPanel> {
             ),
           _SurfaceStudioPrimaryWorkspace.tallGrass => _TallGrassStudioPanel(
               view: widget.tallGrassAuthoringView,
+              tsxFileLoader: widget.tsxFileLoader,
+              onTsxImportRequested: widget.onTallGrassTsxImportRequested == null
+                  ? null
+                  : _onTallGrassTsxImportRequested,
             ),
           _SurfaceStudioPrimaryWorkspace.tsx => TiledTsxWorkspace(
               catalog: _workReadModel.catalog,
@@ -590,7 +638,7 @@ class _SurfaceStudioPrimaryTabs extends StatelessWidget {
         children: [
           _SurfaceStudioPrimaryTabButton(
             key: const ValueKey('surface_studio.tab.catalogue'),
-            label: 'Catalogue Surface',
+            label: 'Catalogue',
             selected: selected == _SurfaceStudioPrimaryWorkspace.catalogue,
             onPressed: () =>
                 onSelected(_SurfaceStudioPrimaryWorkspace.catalogue),
@@ -606,7 +654,7 @@ class _SurfaceStudioPrimaryTabs extends StatelessWidget {
           const SizedBox(width: 8),
           _SurfaceStudioPrimaryTabButton(
             key: const ValueKey('surface_studio.tab.tsx'),
-            label: 'TSX',
+            label: 'Créer une surface',
             selected: selected == _SurfaceStudioPrimaryWorkspace.tsx,
             onPressed: () => onSelected(_SurfaceStudioPrimaryWorkspace.tsx),
           ),
@@ -661,9 +709,17 @@ class _SurfaceStudioPrimaryTabButton extends StatelessWidget {
 }
 
 class _TallGrassStudioPanel extends StatelessWidget {
-  const _TallGrassStudioPanel({this.view});
+  const _TallGrassStudioPanel({
+    this.view,
+    required this.tsxFileLoader,
+    required this.onTsxImportRequested,
+  });
 
   final TallGrassAuthoringView? view;
+  final TiledTsxFileLoader tsxFileLoader;
+  final Future<TallGrassTsxAssetImportResult> Function(
+    TiledTsxLoadedFile loadedFile,
+  )? onTsxImportRequested;
 
   @override
   Widget build(BuildContext context) {
@@ -777,6 +833,11 @@ class _TallGrassStudioPanel extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             _TallGrassProjectSignalsCard(view: view),
+            const SizedBox(height: 12),
+            _TallGrassTsxImportCard(
+              tsxFileLoader: tsxFileLoader,
+              onTsxImportRequested: onTsxImportRequested,
+            ),
           ],
         ),
       ),
@@ -827,6 +888,185 @@ class _TallGrassCapabilityCard extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _TallGrassTsxImportCard extends StatefulWidget {
+  const _TallGrassTsxImportCard({
+    required this.tsxFileLoader,
+    required this.onTsxImportRequested,
+  });
+
+  final TiledTsxFileLoader tsxFileLoader;
+  final Future<TallGrassTsxAssetImportResult> Function(
+    TiledTsxLoadedFile loadedFile,
+  )? onTsxImportRequested;
+
+  @override
+  State<_TallGrassTsxImportCard> createState() =>
+      _TallGrassTsxImportCardState();
+}
+
+class _TallGrassTsxImportCardState extends State<_TallGrassTsxImportCard> {
+  bool _loading = false;
+  String? _loadedFileName;
+  List<String> _messages = const <String>[];
+  List<String> _errors = const <String>[];
+
+  @override
+  Widget build(BuildContext context) {
+    final label = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
+    final canImport = widget.onTsxImportRequested != null && !_loading;
+
+    return _StudioCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Import assets',
+            style: TextStyle(
+              color: label,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Importer un TSX hautes herbes pour lier son image tileset au projet, extraire les tuiles candidates et préparer les particules locales.',
+            style: TextStyle(color: subtle, fontSize: 11.5, height: 1.35),
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: CupertinoButton(
+              key: const ValueKey('surfaceStudio.tallGrass.importTsx'),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+              color: canImport
+                  ? _surfaceStudioAccent.withValues(alpha: 0.22)
+                  : EditorChrome.elevatedPanelBackground(context),
+              borderRadius: BorderRadius.circular(9),
+              onPressed: canImport ? _pickAndImportTsx : null,
+              child: Text(
+                _loading
+                    ? 'Import en cours...'
+                    : 'Importer un TSX hautes herbes',
+                style: TextStyle(
+                  color: canImport
+                      ? _surfaceStudioAccent
+                      : subtle.withValues(alpha: 0.8),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+          if (widget.onTsxImportRequested == null) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Import manifest non connecté dans ce contexte.',
+              style: TextStyle(color: subtle, fontSize: 11.5, height: 1.35),
+            ),
+          ],
+          if (_loadedFileName != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Fichier : $_loadedFileName',
+              style: TextStyle(
+                color: subtle,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+          if (_messages.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            for (final message in _messages) ...[
+              Text(
+                message,
+                style: TextStyle(
+                  color: label,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  height: 1.35,
+                ),
+              ),
+              if (message != _messages.last) const SizedBox(height: 6),
+            ],
+          ],
+          if (_errors.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Import hautes herbes bloqué',
+              style: TextStyle(
+                color: CupertinoColors.systemRed.resolveFrom(context),
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            for (final error in _errors) ...[
+              Text(
+                error,
+                style: TextStyle(
+                  color: CupertinoColors.systemRed.resolveFrom(context),
+                  fontSize: 11.5,
+                  height: 1.35,
+                ),
+              ),
+              if (error != _errors.last) const SizedBox(height: 5),
+            ],
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickAndImportTsx() async {
+    final importRequested = widget.onTsxImportRequested;
+    if (importRequested == null) {
+      return;
+    }
+    setState(() {
+      _loading = true;
+      _messages = const <String>[];
+      _errors = const <String>[];
+    });
+    try {
+      final loaded = await widget.tsxFileLoader.pickAndLoadTsx();
+      if (!mounted) {
+        return;
+      }
+      if (loaded == null) {
+        setState(() {
+          _loading = false;
+          _loadedFileName = null;
+          _messages = const ['Import TSX annulé.'];
+          _errors = const <String>[];
+        });
+        return;
+      }
+      final result = await importRequested(loaded);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _loading = false;
+        _loadedFileName = result.loadedFileName;
+        _messages = result.hasErrors ? const <String>[] : result.messages;
+        _errors = result.errors;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _loading = false;
+        _messages = const <String>[];
+        _errors = ['Échec import TSX hautes herbes.', '$error'];
+      });
+    }
   }
 }
 
@@ -1155,6 +1395,7 @@ class SurfaceStudioPanelFromManifest extends StatefulWidget {
     this.onProjectManifestChanged,
     this.onRequestProjectSave,
     this.projectRootPath,
+    this.tsxFileLoader = const TiledTsxPlatformFileLoader(),
   });
 
   final ProjectManifest manifest;
@@ -1163,6 +1404,8 @@ class SurfaceStudioPanelFromManifest extends StatefulWidget {
 
   /// Dossier projet ouvert (même source que l’éditeur) pour résoudre les fichiers image.
   final String? projectRootPath;
+
+  final TiledTsxFileLoader tsxFileLoader;
 
   @override
   State<SurfaceStudioPanelFromManifest> createState() =>
@@ -1189,6 +1432,25 @@ class _SurfaceStudioPanelFromManifestState
     }
   }
 
+  Future<TallGrassTsxAssetImportResult> _onTallGrassTsxImportRequested({
+    required TiledTsxLoadedFile loadedFile,
+    required ProjectSurfaceCatalog workCatalog,
+  }) async {
+    final result = importTallGrassTsxAssets(
+      manifest: _manifest.copyWith(surfaceCatalog: workCatalog),
+      projectRootPath: widget.projectRootPath,
+      loadedFile: loadedFile,
+    );
+    final next = result.manifest;
+    if (!result.hasErrors && next != null) {
+      setState(() {
+        _manifest = next;
+      });
+      widget.onProjectManifestChanged?.call(next);
+    }
+    return result;
+  }
+
   @override
   Widget build(BuildContext context) {
     return SurfaceStudioPanel(
@@ -1197,6 +1459,8 @@ class _SurfaceStudioPanelFromManifestState
       projectTilesets: _manifest.tilesets,
       projectRootPath: widget.projectRootPath,
       tallGrassAuthoringView: createTallGrassAuthoringView(manifest: _manifest),
+      onTallGrassTsxImportRequested: _onTallGrassTsxImportRequested,
+      tsxFileLoader: widget.tsxFileLoader,
       onSurfaceCatalogSaveRequested: (c) {
         final n = replaceProjectManifestSurfaceCatalog(_manifest, c);
         setState(() {

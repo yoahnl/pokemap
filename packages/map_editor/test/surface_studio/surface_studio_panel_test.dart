@@ -4,12 +4,16 @@
 // the catalog browser, diagnostics and paintable-surface panels still exist, but
 // they must no longer render as a second Surface Studio under the wizard.
 
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show MaterialApp;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/surface_studio/importers/tiled_tsx_workspace.dart';
 import 'package:map_editor/src/features/surface_studio/surface_studio_panel.dart';
 import 'package:map_editor/src/features/surface_studio/surface_studio_workflow_layout.dart';
+import 'package:path/path.dart' as p;
 
 import 'surface_studio_rebuild_test_harness.dart';
 
@@ -32,8 +36,8 @@ void main() {
       expect(find.byType(SurfaceStudioWorkflowLayout), findsNothing);
       expect(find.text('Assistant de création'), findsNothing);
       expect(find.byKey(const Key('surface_studio.primary_tabs')), findsOne);
-      expect(find.text('Catalogue Surface'), findsOneWidget);
-      expect(find.text('TSX'), findsOneWidget);
+      expect(find.text('Catalogue'), findsOneWidget);
+      expect(find.text('Créer une surface'), findsOneWidget);
       expect(find.text('Diagnostics Surface'), findsNothing);
     });
 
@@ -132,6 +136,77 @@ void main() {
       expect(find.text('À poser'), findsOneWidget);
     });
 
+    testWidgets('imports TECH-Nature static tall grass assets', (tester) async {
+      ProjectManifest? changedManifest;
+      final projectRoot = Directory.systemTemp.createTempSync(
+        'pokemap_tall_grass_panel_import_',
+      );
+      addTearDown(() {
+        if (projectRoot.existsSync()) {
+          projectRoot.deleteSync(recursive: true);
+        }
+      });
+
+      await pumpSurfaceStudioPanelFromManifest(
+        tester,
+        manifest: _manifest(ProjectSurfaceCatalog()),
+        projectRootPath: projectRoot.path,
+        tsxFileLoader: _FakeTsxFileLoader(_loadSdkTsx('TECH-Nature.tsx')),
+        onProjectManifestChanged: (manifest) => changedManifest = manifest,
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('Hautes herbes'));
+      await tester.pumpAndSettle();
+
+      final importButton =
+          find.byKey(const Key('surfaceStudio.tallGrass.importTsx'));
+      await tester.ensureVisible(importButton);
+      await tester.tap(importButton);
+      await tester.pumpAndSettle();
+
+      expect(changedManifest, isNotNull);
+      expect(
+        changedManifest!.tilesets.map((tileset) => tileset.id),
+        contains('tech-nature'),
+      );
+      expect(
+        changedManifest!.tilesets.map((tileset) => tileset.relativePath),
+        contains('assets/tilesets/tech-nature.png'),
+      );
+      expect(
+        File(p.join(projectRoot.path, 'assets/tilesets/tech-nature.png'))
+            .existsSync(),
+        isTrue,
+      );
+      expect(changedManifest!.surfaceCatalog.atlasCount, 1);
+      expect(changedManifest!.surfaceCatalog.animationCount, 0);
+      expect(
+        find.text(
+          'Import hautes herbes prêt : atlas statique lié, 34 tuiles candidates extraites.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'Particules SDK : TGrass -> 1, TTallGrass -> 2.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'Image TSX copiée dans le projet : assets/tilesets/tech-nature.png.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'Tileset lié : tech nature · assets/tilesets/tech-nature.png',
+        ),
+        findsOneWidget,
+      );
+    });
+
     testWidgets(
         'SurfaceStudioPanelFromManifest saves the work catalog by action',
         (tester) async {
@@ -200,6 +275,8 @@ Future<void> pumpSurfaceStudioPanelFromManifest(
   WidgetTester tester, {
   required ProjectManifest manifest,
   ValueChanged<ProjectManifest>? onProjectManifestChanged,
+  String? projectRootPath,
+  TiledTsxFileLoader tsxFileLoader = const TiledTsxPlatformFileLoader(),
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = const Size(2048, 1120);
@@ -212,12 +289,41 @@ Future<void> pumpSurfaceStudioPanelFromManifest(
         height: 1120,
         child: SurfaceStudioPanelFromManifest(
           manifest: manifest,
-          projectRootPath: '/missing/project',
+          projectRootPath: projectRootPath ?? '/missing/project',
+          tsxFileLoader: tsxFileLoader,
           onProjectManifestChanged: onProjectManifestChanged,
         ),
       ),
     ),
   );
+}
+
+TiledTsxLoadedFile _loadSdkTsx(String fileName) {
+  final file = File(
+    p.join(_sdkProject().path, 'Data', 'Tiled', 'Tilesets', fileName),
+  );
+  return TiledTsxLoadedFile(
+    path: file.path,
+    fileName: fileName,
+    xml: file.readAsStringSync(),
+  );
+}
+
+Directory _sdkProject() {
+  final repoRoot = Directory.current.parent.parent;
+  return repoRoot
+      .listSync()
+      .whereType<Directory>()
+      .firstWhere((dir) => p.basename(dir.path).contains('sdk_test_project'));
+}
+
+final class _FakeTsxFileLoader implements TiledTsxFileLoader {
+  const _FakeTsxFileLoader(this.loadedFile);
+
+  final TiledTsxLoadedFile loadedFile;
+
+  @override
+  Future<TiledTsxLoadedFile?> pickAndLoadTsx() async => loadedFile;
 }
 
 ProjectManifest _manifest(

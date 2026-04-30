@@ -171,6 +171,8 @@ final class MacOsFileAccessBridge {
 
     if selectedDirectoryURL.lastPathComponent.lowercased() == "species" {
       accessURL = selectedDirectoryURL.deletingLastPathComponent()
+    } else if selectedDirectoryURL.lastPathComponent.lowercased() == "tilesets" {
+      accessURL = selectedDirectoryURL.deletingLastPathComponent()
     } else {
       accessURL = selectedDirectoryURL
     }

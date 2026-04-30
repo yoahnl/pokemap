@@ -12,6 +12,7 @@ import '../surface_studio_vertical_atlas_role_mapping.dart';
 import 'tiled_tsx_animation_browser_models.dart';
 import 'tiled_tsx_mistral_grouping_models.dart';
 import 'tiled_tsx_mistral_grouping_suggester.dart';
+import 'tiled_tsx_role_mapping_builder.dart';
 import 'tiled_tsx_surface_preset_draft.dart';
 
 const Color _tsxAccent = Color(0xFF2DD4BF);
@@ -65,6 +66,7 @@ class _TiledTsxAnimationBrowserState extends State<TiledTsxAnimationBrowser> {
   bool _mistralConfirmOpen = false;
   bool _mistralPending = false;
   TiledTsxMistralGroupingResult? _mistralResult;
+  final Map<SurfaceVariantRole, TiledTsxRoleAssignmentMeta> _roleSources = {};
 
   @override
   void initState() {
@@ -362,6 +364,9 @@ class _TiledTsxAnimationBrowserState extends State<TiledTsxAnimationBrowser> {
                     onApplyAll: _applyAllMistralSuggestions,
                     onAccept: _applyMistralSuggestion,
                     onReject: _rejectMistralSuggestion,
+                    atlas: widget.atlas,
+                    animations: widget.animations,
+                    atlasImageBytes: widget.atlasImageBytes,
                   ),
                   const SizedBox(height: 10),
                 ],
@@ -373,10 +378,15 @@ class _TiledTsxAnimationBrowserState extends State<TiledTsxAnimationBrowser> {
                     categoryController: _presetCategory,
                     sortOrderController: _presetSortOrder,
                     roleControllers: _roleControllers,
+                    roleSources: _roleSources,
+                    atlas: widget.atlas,
+                    animations: widget.animations,
+                    atlasImageBytes: widget.atlasImageBytes,
                     errors: _presetBuilderErrors,
                     warnings: _presetBuilderWarnings,
                     note: _presetBuilderNote,
                     onCreate: _createPresetFromBuilder,
+                    onRoleAssignmentsChanged: _replaceRoleAssignments,
                     onClose: () {
                       setState(() {
                         _presetBuilderOpen = false;
@@ -460,6 +470,7 @@ class _TiledTsxAnimationBrowserState extends State<TiledTsxAnimationBrowser> {
     for (final controller in _roleControllers.values) {
       controller.text = '';
     }
+    _roleSources.clear();
   }
 
   void _openPresetBuilder() {
@@ -558,6 +569,10 @@ class _TiledTsxAnimationBrowserState extends State<TiledTsxAnimationBrowser> {
     setState(() {
       _presetBuilderOpen = true;
       _roleControllers[suggestion.role]!.text = suggestion.animationId;
+      _roleSources[suggestion.role] = TiledTsxRoleAssignmentMeta(
+        source: TiledTsxRoleAssignmentSource.mistral,
+        confidence: suggestion.confidence,
+      );
       _presetBuilderErrors = const <String>[];
       _presetBuilderWarnings = const <String>[];
       _presetBuilderNote = 'Suggestion Mistral appliquée au draft local.';
@@ -573,6 +588,10 @@ class _TiledTsxAnimationBrowserState extends State<TiledTsxAnimationBrowser> {
       _presetBuilderOpen = true;
       for (final suggestion in result.reliableSuggestions) {
         _roleControllers[suggestion.role]!.text = suggestion.animationId;
+        _roleSources[suggestion.role] = TiledTsxRoleAssignmentMeta(
+          source: TiledTsxRoleAssignmentSource.mistral,
+          confidence: suggestion.confidence,
+        );
       }
       _presetBuilderErrors = const <String>[];
       _presetBuilderWarnings = const <String>[];
@@ -590,6 +609,10 @@ class _TiledTsxAnimationBrowserState extends State<TiledTsxAnimationBrowser> {
       _presetBuilderOpen = true;
       for (final suggestion in result.suggestions) {
         _roleControllers[suggestion.role]!.text = suggestion.animationId;
+        _roleSources[suggestion.role] = TiledTsxRoleAssignmentMeta(
+          source: TiledTsxRoleAssignmentSource.mistral,
+          confidence: suggestion.confidence,
+        );
       }
       _presetBuilderErrors = const <String>[];
       _presetBuilderWarnings = const <String>[];
@@ -610,6 +633,34 @@ class _TiledTsxAnimationBrowserState extends State<TiledTsxAnimationBrowser> {
         rejectedAnimationIds: result.rejectedAnimationIds,
         warnings: result.warnings,
       );
+    });
+  }
+
+  Map<SurfaceVariantRole, String> _currentRoleAnimationIds() {
+    return <SurfaceVariantRole, String>{
+      for (final entry in _roleControllers.entries)
+        if (entry.value.text.trim().isNotEmpty)
+          entry.key: entry.value.text.trim(),
+    };
+  }
+
+  void _replaceRoleAssignments(Map<SurfaceVariantRole, String> next) {
+    final previous = _currentRoleAnimationIds();
+    setState(() {
+      for (final role in standardSurfaceVariantRoleOrder) {
+        final value = next[role];
+        _roleControllers[role]!.text = value ?? '';
+        if (value == null || value.trim().isEmpty) {
+          _roleSources.remove(role);
+        } else if (previous[role] != value) {
+          _roleSources[role] = const TiledTsxRoleAssignmentMeta(
+            source: TiledTsxRoleAssignmentSource.manual,
+          );
+        }
+      }
+      _presetBuilderErrors = const <String>[];
+      _presetBuilderWarnings = const <String>[];
+      _presetBuilderNote = null;
     });
   }
 
@@ -693,10 +744,15 @@ class _TiledTsxSurfacePresetBuilderPanel extends StatelessWidget {
     required this.categoryController,
     required this.sortOrderController,
     required this.roleControllers,
+    required this.roleSources,
+    required this.atlas,
+    required this.animations,
+    required this.atlasImageBytes,
     required this.errors,
     required this.warnings,
     required this.note,
     required this.onCreate,
+    required this.onRoleAssignmentsChanged,
     required this.onClose,
   });
 
@@ -706,10 +762,15 @@ class _TiledTsxSurfacePresetBuilderPanel extends StatelessWidget {
   final TextEditingController categoryController;
   final TextEditingController sortOrderController;
   final Map<SurfaceVariantRole, TextEditingController> roleControllers;
+  final Map<SurfaceVariantRole, TiledTsxRoleAssignmentMeta> roleSources;
+  final ProjectSurfaceAtlas? atlas;
+  final List<ProjectSurfaceAnimation> animations;
+  final Uint8List? atlasImageBytes;
   final List<String> errors;
   final List<String> warnings;
   final String? note;
   final VoidCallback onCreate;
+  final ValueChanged<Map<SurfaceVariantRole, String>> onRoleAssignmentsChanged;
   final VoidCallback onClose;
 
   @override
@@ -840,14 +901,19 @@ class _TiledTsxSurfacePresetBuilderPanel extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 6),
-              for (final role in standardSurfaceVariantRoleOrder)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: _RoleAnimationField(
-                    role: role,
-                    controller: roleControllers[role]!,
-                  ),
-                ),
+              TiledTsxRoleMappingBuilder(
+                atlas: atlas,
+                animations: animations,
+                selectedAnimationIds: selectedAnimationIds,
+                roleAnimationIds: {
+                  for (final entry in roleControllers.entries)
+                    if (entry.value.text.trim().isNotEmpty)
+                      entry.key: entry.value.text.trim(),
+                },
+                roleSources: roleSources,
+                atlasImageBytes: atlasImageBytes,
+                onChanged: onRoleAssignmentsChanged,
+              ),
               if (errors.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 for (final error in errors)
@@ -940,67 +1006,6 @@ class _BuilderTextField extends StatelessWidget {
   }
 }
 
-class _RoleAnimationField extends StatelessWidget {
-  const _RoleAnimationField({
-    required this.role,
-    required this.controller,
-  });
-
-  final SurfaceVariantRole role;
-  final TextEditingController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = EditorChrome.primaryLabel(context);
-    final subtle = EditorChrome.subtleLabel(context);
-    final roleLabel = role == SurfaceVariantRole.isolated
-        ? 'Plein(center)'
-        : SurfaceStudioRoleLabels.labelForRole(role);
-    return Row(
-      children: [
-        SizedBox(
-          width: 170,
-          child: Text(
-            roleLabel,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: label,
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: CupertinoTextField(
-            key: ValueKey(
-              'tiled_tsx_surface_preset_builder.role.${role.name}',
-            ),
-            controller: controller,
-            placeholder: 'animation id sélectionnée',
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
-            style: const TextStyle(fontSize: 12),
-            placeholderStyle: TextStyle(color: subtle, fontSize: 12),
-          ),
-        ),
-        CupertinoButton(
-          minimumSize: Size.zero,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-          onPressed: () => controller.clear(),
-          child: const Text(
-            'Clear',
-            style: TextStyle(
-              color: _tsxAccent,
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _StatusLine extends StatelessWidget {
   const _StatusLine({
     required this.text,
@@ -1038,6 +1043,9 @@ class _TiledTsxMistralGroupingPanel extends StatelessWidget {
     required this.onApplyAll,
     required this.onAccept,
     required this.onReject,
+    required this.atlas,
+    required this.animations,
+    required this.atlasImageBytes,
   });
 
   final TiledTsxMistralGroupingResult? result;
@@ -1049,6 +1057,9 @@ class _TiledTsxMistralGroupingPanel extends StatelessWidget {
   final VoidCallback onApplyAll;
   final ValueChanged<TiledTsxRoleAnimationSuggestion> onAccept;
   final ValueChanged<TiledTsxRoleAnimationSuggestion> onReject;
+  final ProjectSurfaceAtlas? atlas;
+  final List<ProjectSurfaceAnimation> animations;
+  final Uint8List? atlasImageBytes;
 
   @override
   Widget build(BuildContext context) {
@@ -1163,9 +1174,10 @@ class _TiledTsxMistralGroupingPanel extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (result.warnings.isNotEmpty) ...[
-          for (final warning in result.warnings)
-            _StatusLine(text: warning, color: const Color(0xFFFACC15)),
+        if (_groupMistralWarnings(result.warnings).hasWarnings) ...[
+          _MistralWarningSummary(
+            groupedWarnings: _groupMistralWarnings(result.warnings),
+          ),
           const SizedBox(height: 6),
         ],
         if (result.suggestions.isEmpty)
@@ -1232,12 +1244,26 @@ class _TiledTsxMistralGroupingPanel extends StatelessWidget {
               suggestion: suggestion,
               label: label,
               subtle: subtle,
+              animation: _animationForSuggestion(suggestion),
+              atlas: atlas,
+              atlasImageBytes: atlasImageBytes,
               onAccept: () => onAccept(suggestion),
               onReject: () => onReject(suggestion),
             ),
         ],
       ],
     );
+  }
+
+  ProjectSurfaceAnimation? _animationForSuggestion(
+    TiledTsxRoleAnimationSuggestion suggestion,
+  ) {
+    for (final animation in animations) {
+      if (animation.id == suggestion.animationId) {
+        return animation;
+      }
+    }
+    return null;
   }
 }
 
@@ -1246,6 +1272,9 @@ class _TiledTsxMistralSuggestionRow extends StatelessWidget {
     required this.suggestion,
     required this.label,
     required this.subtle,
+    required this.animation,
+    required this.atlas,
+    required this.atlasImageBytes,
     required this.onAccept,
     required this.onReject,
   });
@@ -1253,6 +1282,9 @@ class _TiledTsxMistralSuggestionRow extends StatelessWidget {
   final TiledTsxRoleAnimationSuggestion suggestion;
   final Color label;
   final Color subtle;
+  final ProjectSurfaceAnimation? animation;
+  final ProjectSurfaceAtlas? atlas;
+  final Uint8List? atlasImageBytes;
   final VoidCallback onAccept;
   final VoidCallback onReject;
 
@@ -1274,17 +1306,60 @@ class _TiledTsxMistralSuggestionRow extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            '$roleLabel → ${suggestion.animationId}',
-            style: TextStyle(
-              color: label,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                width: 58,
+                height: 58,
+                child: animation == null
+                    ? const _SmallPreviewFallback()
+                    : TiledTsxAnimationTilePreview(
+                        atlas: atlas,
+                        animation: animation!,
+                        atlasImageBytes: atlasImageBytes,
+                        compact: true,
+                      ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      roleLabel,
+                      style: TextStyle(
+                        color: label,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      suggestion.animationId,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: label,
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      'Confiance : ${suggestion.confidence.name}',
+                      style: TextStyle(
+                        color: subtle,
+                        fontSize: 11.2,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 3),
           Text(
-            'confidence ${suggestion.confidence.name} · evidence ${suggestion.evidenceAnimationIds.join(', ')}',
+            'Evidence : ${suggestion.evidenceAnimationIds.join(', ')}',
             style: TextStyle(color: subtle, fontSize: 11.2, height: 1.3),
           ),
           Text(
@@ -1331,6 +1406,137 @@ class _TiledTsxMistralSuggestionRow extends StatelessWidget {
       ),
     );
   }
+}
+
+class _SmallPreviewFallback extends StatelessWidget {
+  const _SmallPreviewFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xFF101820),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: EditorChrome.editorIslandRim(context).withValues(alpha: 0.7),
+        ),
+      ),
+      child: const Center(
+        child: Padding(
+          padding: EdgeInsets.all(4),
+          child: Text(
+            'Aperçu indisponible',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color(0xFF94A3B8),
+              fontSize: 9,
+              fontWeight: FontWeight.w700,
+              height: 1.1,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MistralWarningSummary extends StatelessWidget {
+  const _MistralWarningSummary({required this.groupedWarnings});
+
+  final _GroupedMistralWarnings groupedWarnings;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFACC15).withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: const Color(0xFFFACC15).withValues(alpha: 0.35),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Suggestions ignorées',
+            style: TextStyle(
+              color: Color(0xFFFACC15),
+              fontSize: 11.5,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 4),
+          for (final entry in groupedWarnings.duplicateRoleCounts.entries)
+            Text(
+              '${entry.value} suggestions ont été ignorées car elles proposaient déjà ${_mistralRoleLabel(entry.key)}.',
+              style: const TextStyle(
+                color: Color(0xFFFACC15),
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                height: 1.3,
+              ),
+            ),
+          for (final warning in groupedWarnings.otherWarnings)
+            Text(
+              warning,
+              style: const TextStyle(
+                color: Color(0xFFFACC15),
+                fontSize: 11.5,
+                fontWeight: FontWeight.w700,
+                height: 1.3,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+final class _GroupedMistralWarnings {
+  const _GroupedMistralWarnings({
+    required this.duplicateRoleCounts,
+    required this.otherWarnings,
+  });
+
+  final Map<String, int> duplicateRoleCounts;
+  final List<String> otherWarnings;
+
+  bool get hasWarnings =>
+      duplicateRoleCounts.isNotEmpty || otherWarnings.isNotEmpty;
+}
+
+_GroupedMistralWarnings _groupMistralWarnings(List<String> warnings) {
+  final duplicateRoleCounts = <String, int>{};
+  final otherWarnings = <String>[];
+  final duplicateRoleRegex =
+      RegExp(r'^Rôle Mistral dupliqué rejeté : ([A-Za-z0-9_]+)\.$');
+  for (final warning in warnings) {
+    final match = duplicateRoleRegex.firstMatch(warning);
+    if (match == null) {
+      otherWarnings.add(warning);
+      continue;
+    }
+    final roleName = match.group(1)!;
+    duplicateRoleCounts[roleName] = (duplicateRoleCounts[roleName] ?? 0) + 1;
+  }
+  return _GroupedMistralWarnings(
+    duplicateRoleCounts: Map<String, int>.unmodifiable(duplicateRoleCounts),
+    otherWarnings: List<String>.unmodifiable(otherWarnings),
+  );
+}
+
+String _mistralRoleLabel(String roleName) {
+  for (final role in standardSurfaceVariantRoleOrder) {
+    if (role.name == roleName) {
+      if (role == SurfaceVariantRole.isolated) {
+        return 'Plein(center)';
+      }
+      return SurfaceStudioRoleLabels.labelForRole(role);
+    }
+  }
+  return roleName;
 }
 
 class TiledTsxSurfaceAnimationPreview extends StatefulWidget {

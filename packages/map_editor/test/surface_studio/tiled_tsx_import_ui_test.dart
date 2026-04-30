@@ -30,7 +30,8 @@ void main() {
       );
 
       expect(find.text('Aucune animation TSX importée.'), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('tiled_tsx_workspace.import')));
+      await tester
+          .tap(find.byKey(const ValueKey('tiled_tsx_workspace.import')));
       await tester.pumpAndSettle();
 
       expect(find.text('Résumé TSX'), findsOneWidget);
@@ -59,6 +60,21 @@ void main() {
         find.text('Import TSX prêt : 242 animations ajoutées.'),
         findsOneWidget,
       );
+      expect(
+        find.byKey(const ValueKey('tiled_tsx_reference_builder.root')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('tiled_tsx_animation_browser.root')),
+        findsNothing,
+      );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('tiled_tsx_reference.show_all_animations')),
+      );
+      await tester.tap(
+        find.byKey(const ValueKey('tiled_tsx_reference.show_all_animations')),
+      );
+      await tester.pumpAndSettle();
       expect(find.text('Animations TSX importées'), findsOneWidget);
       expect(find.text('tech-animations-tile-99'), findsWidgets);
     });
@@ -78,7 +94,8 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byKey(const ValueKey('tiled_tsx_workspace.import')));
+      await tester
+          .tap(find.byKey(const ValueKey('tiled_tsx_workspace.import')));
       await tester.pumpAndSettle();
 
       expect(
@@ -112,7 +129,8 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byKey(const ValueKey('tiled_tsx_workspace.import')));
+      await tester
+          .tap(find.byKey(const ValueKey('tiled_tsx_workspace.import')));
       await tester.pumpAndSettle();
 
       expect(find.text('Erreur import TSX'), findsOneWidget);
@@ -136,7 +154,8 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byKey(const ValueKey('tiled_tsx_workspace.import')));
+      await tester
+          .tap(find.byKey(const ValueKey('tiled_tsx_workspace.import')));
       await tester.pumpAndSettle();
 
       expect(find.text('Le TSX ne contient aucune animation.'), findsOneWidget);
@@ -180,7 +199,8 @@ void main() {
         ),
       );
 
-      await tester.tap(find.byKey(const ValueKey('tiled_tsx_workspace.import')));
+      await tester
+          .tap(find.byKey(const ValueKey('tiled_tsx_workspace.import')));
       await tester.pumpAndSettle();
       final confirm = find.byKey(
         const ValueKey('tiled_tsx_workspace.confirm_import'),
@@ -191,7 +211,8 @@ void main() {
 
       expect(changedCatalog, isNull);
       expect(
-        find.text('Atlas TSX déjà présent dans le catalogue : tech-animations.'),
+        find.text(
+            'Atlas TSX déjà présent dans le catalogue : tech-animations.'),
         findsOneWidget,
       );
     });

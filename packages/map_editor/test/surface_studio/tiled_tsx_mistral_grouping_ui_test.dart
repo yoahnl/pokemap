@@ -165,8 +165,19 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.widgetWithText(CupertinoTextField, 'tech-animations-tile-99'),
+        find.byKey(
+          const ValueKey('tiled_tsx_role_mapping_builder.slot.isolated'),
+        ),
         findsOneWidget,
+      );
+      expect(find.text('Plein(center)'), findsWidgets);
+      expect(find.text('Source : Mistral'), findsOneWidget);
+      expect(find.text('Aperçu indisponible'), findsWidgets);
+      expect(
+        find.byKey(
+          const ValueKey('tiled_tsx_surface_preset_builder.role.isolated'),
+        ),
+        findsNothing,
       );
       expect(changedCatalog, isNull);
       expect(find.text('Créer le preset'), findsOneWidget);
