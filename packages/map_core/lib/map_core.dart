@@ -12,6 +12,7 @@ export 'src/models/map_gameplay_zone_payloads.dart';
 export 'src/models/map_layer.dart';
 export 'src/models/map_metadata.dart';
 export 'src/models/path_center_pattern.dart';
+export 'src/models/project_path_pattern_preset.dart';
 export 'src/models/project_manifest.dart';
 export 'src/models/save_data.dart';
 export 'src/models/game_state.dart';
