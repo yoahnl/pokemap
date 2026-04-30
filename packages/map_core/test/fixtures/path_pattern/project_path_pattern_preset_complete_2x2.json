@@ -1,0 +1,90 @@
+{
+  "id": "water-sea-2x2",
+  "name": "Mer 2x2",
+  "basePathPresetId": "legacy-water",
+  "centerPattern": {
+    "size": {
+      "width": 2,
+      "height": 2
+    },
+    "cells": [
+      {
+        "localX": 0,
+        "localY": 0,
+        "frames": [
+          {
+            "tilesetId": "",
+            "source": {
+              "x": 0,
+              "y": 0,
+              "width": 1,
+              "height": 1
+            },
+            "durationMs": 100
+          },
+          {
+            "tilesetId": "override_tileset",
+            "source": {
+              "x": 1,
+              "y": 0,
+              "width": 1,
+              "height": 1
+            },
+            "durationMs": 110
+          }
+        ]
+      },
+      {
+        "localX": 1,
+        "localY": 0,
+        "frames": [
+          {
+            "tilesetId": "",
+            "source": {
+              "x": 2,
+              "y": 0,
+              "width": 1,
+              "height": 1
+            },
+            "durationMs": 120
+          }
+        ]
+      },
+      {
+        "localX": 0,
+        "localY": 1,
+        "frames": [
+          {
+            "tilesetId": "",
+            "source": {
+              "x": 3,
+              "y": 0,
+              "width": 1,
+              "height": 1
+            },
+            "durationMs": 130
+          }
+        ]
+      },
+      {
+        "localX": 1,
+        "localY": 1,
+        "frames": [
+          {
+            "tilesetId": "",
+            "source": {
+              "x": 4,
+              "y": 0,
+              "width": 1,
+              "height": 1
+            },
+            "durationMs": 140
+          }
+        ]
+      }
+    ]
+  },
+  "transparentColor": "f05ba1",
+  "categoryId": "water",
+  "sortOrder": 12
+}

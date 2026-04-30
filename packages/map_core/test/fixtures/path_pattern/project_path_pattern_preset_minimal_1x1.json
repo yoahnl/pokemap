@@ -1,0 +1,30 @@
+{
+  "id": "water-1x1",
+  "name": "Water 1x1",
+  "basePathPresetId": "legacy-water",
+  "centerPattern": {
+    "size": {
+      "width": 1,
+      "height": 1
+    },
+    "cells": [
+      {
+        "localX": 0,
+        "localY": 0,
+        "frames": [
+          {
+            "tilesetId": "",
+            "source": {
+              "x": 1,
+              "y": 2,
+              "width": 1,
+              "height": 1
+            },
+            "durationMs": null
+          }
+        ]
+      }
+    ]
+  },
+  "sortOrder": 0
+}
