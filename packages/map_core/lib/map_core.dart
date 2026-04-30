@@ -61,6 +61,7 @@ export 'src/operations/surface_variant_animation_ref_set_json_codec.dart';
 export 'src/operations/project_surface_preset_json_codec.dart';
 export 'src/operations/project_surface_catalog_json_codec.dart';
 export 'src/operations/project_manifest_surface_catalog_operations.dart';
+export 'src/operations/project_manifest_path_pattern_preset_operations.dart';
 export 'src/operations/surface_studio_read_model.dart';
 export 'src/operations/tall_grass_authoring_view.dart';
 export 'src/operations/path_animation_rules.dart';
