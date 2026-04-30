@@ -1360,10 +1360,10 @@ class _NewPathWorkflowSteps extends StatelessWidget {
         spacing: 10,
         runSpacing: 10,
         children: [
-          _StepPill(index: 1, label: 'Nouveau chemin', active: true),
-          _StepArrow(),
-          _StepPill(index: 2, label: 'Motif du centre', active: true),
-          _StepArrow(),
+          const _StepPill(index: 1, label: 'Nouveau chemin', active: true),
+          const _StepArrow(),
+          const _StepPill(index: 2, label: 'Motif du centre', active: true),
+          const _StepArrow(),
           _StepPill(
             index: 3,
             label: 'Tileset',
