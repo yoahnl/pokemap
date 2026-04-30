@@ -8,6 +8,7 @@ import 'package:map_editor/src/app/providers/pokedex/pokedex_providers.dart';
 import 'package:map_editor/src/application/use_cases/load_pokemon_items_catalog_use_case.dart';
 import 'package:map_editor/src/application/models/pokemon_database_index.dart';
 import 'package:map_editor/src/application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
+import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 
 import 'shell_chrome_test_harness.dart';
@@ -206,6 +207,67 @@ void main() {
         ),
         findsNothing,
       );
+    });
+
+    testWidgets('opens Path Studio from the project explorer', (tester) async {
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/editor_shell_path_studio',
+          project: buildShellChromeProject(
+            pathPresets: const <ProjectPathPreset>[
+              ProjectPathPreset(
+                id: 'legacy-water',
+                name: 'Legacy Water',
+                surfaceKind: PathSurfaceKind.water,
+              ),
+            ],
+            pathPatternPresets: [
+              ProjectPathPatternPreset(
+                id: 'water-1x1',
+                name: 'Water 1x1',
+                basePathPresetId: 'legacy-water',
+                centerPattern: PathCenterPattern(
+                  size: PathCenterPatternSize(width: 1, height: 1),
+                  cells: [
+                    PathCenterPatternCell(
+                      localX: 0,
+                      localY: 0,
+                      frames: [
+                        const TilesetVisualFrame(
+                          source: TilesetSourceRect(x: 0, y: 0),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(
+        find.byKey(const Key('project-explorer-path-studio-entry')),
+        findsOneWidget,
+      );
+
+      await tester.ensureVisible(
+        find.byKey(const Key('project-explorer-path-studio-entry')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('project-explorer-path-studio-entry')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        container.read(editorNotifierProvider).workspaceMode,
+        EditorWorkspaceMode.pathStudio,
+      );
+      expect(find.text('Path Studio'), findsWidgets);
+      expect(find.text('Créer des motifs de chemin'), findsWidgets);
+      expect(find.text('Water 1x1'), findsWidgets);
     });
 
     testWidgets('renders shell chrome with an error state already present',

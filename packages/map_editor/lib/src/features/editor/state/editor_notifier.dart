@@ -1448,6 +1448,14 @@ class EditorNotifier extends _$EditorNotifier {
     state = _editorWorkspaceController.selectDialogueWorkspace(state);
   }
 
+  /// Bascule vers Path Studio.
+  ///
+  /// Navigation pure de shell : aucune mutation de manifest, aucune génération
+  /// de preview et aucun save flow ne sont déclenchés par ce point d'entrée.
+  void selectPathStudioWorkspace() {
+    state = _editorWorkspaceController.selectPathStudioWorkspace(state);
+  }
+
   /// Écrit uniquement le fichier `.yarn` (le manifest projet reste inchangé).
   Future<void> saveProjectDialogueYarnBody({
     required String dialogueId,

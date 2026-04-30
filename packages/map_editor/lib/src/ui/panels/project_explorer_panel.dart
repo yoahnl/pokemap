@@ -334,14 +334,15 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         InspectorSectionCard(
           borderRadius: explorerTileRadius,
           title: 'Path Library',
-          subtitle: 'Surface overlays: roads, water, tall grass...',
+          subtitle: 'Legacy paths and Path Studio shell',
           icon: CupertinoIcons.arrow_branch,
           accentColor: EditorChrome.accentWarm,
-          badgeText: '${project.pathPresets.length}',
+          badgeText:
+              '${project.pathPresets.length}/${project.pathPatternPresets.length}',
           expanded: _expandPaths,
           onToggle: () => setState(() => _expandPaths = !_expandPaths),
           expandedHeight: hPaths,
-          child: const PathLibraryPanel(embedded: true),
+          child: _buildPathLibraryCard(context, project, snapshot, notifier),
         ),
         InspectorSectionCard(
           borderRadius: explorerTileRadius,
@@ -446,6 +447,38 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPathLibraryCard(
+    BuildContext context,
+    ProjectManifest project,
+    EditorProjectExplorerSnapshot snapshot,
+    EditorNotifier notifier,
+  ) {
+    final isPathStudio =
+        snapshot.workspaceMode == EditorWorkspaceMode.pathStudio;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        EditorSidebarListRow(
+          key: const Key('project-explorer-path-studio-entry'),
+          selected: isPathStudio,
+          onTap: notifier.selectPathStudioWorkspace,
+          leading: const MacosIcon(CupertinoIcons.arrow_branch),
+          title: const Text('Path Studio'),
+          subtitle: Text(
+            '${project.pathPatternPresets.length} motifs PathPattern — shell read-only',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Expanded(
+          child: PathLibraryPanel(embedded: true),
+        ),
+      ],
     );
   }
 

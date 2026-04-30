@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/ui/shared/top_toolbar/widgets/toolbar_capsules.dart';
 
 import 'shell_chrome_test_harness.dart';
 
@@ -57,6 +58,35 @@ void main() {
       );
 
       expect(find.text('Pokemon Map  •  Trainer Studio'), findsOneWidget);
+    });
+
+    testWidgets('disables map save and history actions in Path Studio',
+        (tester) async {
+      await pumpTopToolbarHarness(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/top_toolbar_path_studio',
+          project: buildShellChromeProject(name: 'Pokemon Map'),
+          workspaceMode: EditorWorkspaceMode.pathStudio,
+          activeMap: buildShellChromeMap(),
+          isDirty: true,
+          canUndoMap: true,
+          canRedoMap: true,
+        ),
+      );
+
+      ToolbarCapsuleButton buttonWithTooltip(String tooltip) {
+        return tester.widget<ToolbarCapsuleButton>(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is ToolbarCapsuleButton && widget.tooltip == tooltip,
+          ),
+        );
+      }
+
+      expect(buttonWithTooltip('Save Map').onPressed, isNull);
+      expect(buttonWithTooltip('Undo').onPressed, isNull);
+      expect(buttonWithTooltip('Redo').onPressed, isNull);
     });
   });
 }

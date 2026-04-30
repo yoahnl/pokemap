@@ -169,9 +169,7 @@ class TopToolbar extends ConsumerWidget {
               icon: CupertinoIcons.floppy_disk,
               tooltip: 'Save Map',
               selected: toolbar.isDirty,
-              onPressed: toolbar.activeMap != null
-                  ? () => notifier.saveActiveMap()
-                  : null,
+              onPressed: toolbar.canSaveMap ? notifier.saveActiveMap : null,
             ),
           ToolbarCapsuleButton(
             icon: CupertinoIcons.arrow_uturn_left,
@@ -244,6 +242,14 @@ class TopToolbar extends ConsumerWidget {
             tooltip: 'Switch to dialogue studio',
             selected: toolbar.workspaceMode == EditorWorkspaceMode.dialogue,
             onPressed: notifier.selectDialogueWorkspace,
+          ),
+          ToolbarCapsuleButton(
+            icon: CupertinoIcons.arrow_branch,
+            tooltip: 'Switch to Path Studio',
+            selected: toolbar.workspaceMode == EditorWorkspaceMode.pathStudio,
+            onPressed: toolbar.project != null
+                ? notifier.selectPathStudioWorkspace
+                : null,
           ),
         ],
       ),
@@ -448,6 +454,7 @@ class TopToolbar extends ConsumerWidget {
           EditorWorkspaceMode.step => 'Step Studio',
           EditorWorkspaceMode.cutscene => 'Cutscene Studio',
           EditorWorkspaceMode.dialogue => 'Dialogue Studio',
+          EditorWorkspaceMode.pathStudio => 'Path Studio',
         },
       ),
       titleWidth: 236,

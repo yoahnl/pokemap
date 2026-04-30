@@ -38,6 +38,7 @@ typedef EditorToolbarSnapshot = ({
   CollisionBrushSizeMode collisionBrushSizeMode,
   bool isSaving,
   bool isDirty,
+  bool canSaveMap,
   bool canUndoMap,
   bool canRedoMap,
   String? statusMessage,
@@ -149,6 +150,7 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
     EditorWorkspaceMode.step => 'Step Studio',
     EditorWorkspaceMode.cutscene => 'Cutscene Studio',
     EditorWorkspaceMode.dialogue => 'Dialogue Studio',
+    EditorWorkspaceMode.pathStudio => 'Path Studio',
   };
 
   final workspaceSubtitle = switch (workspaceMode) {
@@ -170,16 +172,20 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
       'Scene execution workspace: dialogue, movement, waits, local branching.',
     EditorWorkspaceMode.dialogue =>
       'Conversation authoring: visual blocks, preview, Yarn export — not a raw script IDE.',
+    EditorWorkspaceMode.pathStudio =>
+      'Créer des motifs de chemin à partir des presets PathPattern du projet.',
   };
+
+  final exposesMapActions = workspaceMode == EditorWorkspaceMode.map;
 
   return (
     workspaceMode: workspaceMode,
     workspaceTitle: workspaceTitle,
     workspaceSubtitle: workspaceSubtitle,
-    canUndoMap: canUndoMap,
-    canRedoMap: canRedoMap,
+    canUndoMap: exposesMapActions && canUndoMap,
+    canRedoMap: exposesMapActions && canRedoMap,
     isSaving: isSaving,
-    canSaveMap: activeMap != null && !isSaving,
+    canSaveMap: exposesMapActions && activeMap != null && !isSaving,
   );
 });
 
@@ -187,6 +193,7 @@ final editorToolbarSnapshotProvider = Provider<EditorToolbarSnapshot>((ref) {
   return ref.watch(
     editorNotifierProvider.select((state) {
       final project = state.project;
+      final exposesMapActions = state.workspaceMode == EditorWorkspaceMode.map;
       return (
         project: project,
         projectRootPath: state.projectRootPath,
@@ -202,8 +209,9 @@ final editorToolbarSnapshotProvider = Provider<EditorToolbarSnapshot>((ref) {
         collisionBrushSizeMode: state.collisionBrushSizeMode,
         isSaving: state.isSaving,
         isDirty: state.isDirty,
-        canUndoMap: state.canUndoMap,
-        canRedoMap: state.canRedoMap,
+        canSaveMap: exposesMapActions && state.activeMap != null,
+        canUndoMap: exposesMapActions && state.canUndoMap,
+        canRedoMap: exposesMapActions && state.canRedoMap,
         statusMessage: state.statusMessage,
       );
     }),

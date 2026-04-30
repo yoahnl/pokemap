@@ -77,6 +77,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
     final notifier = ref.read(editorNotifierProvider.notifier);
     final supportsRightInspector = switch (workspaceMode) {
       EditorWorkspaceMode.pokedex => false,
+      EditorWorkspaceMode.pathStudio => false,
       _ => true,
     };
 
@@ -329,6 +330,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                       EditorChrome.islandNeutralTint,
                                     EditorWorkspaceMode.dialogue =>
                                       EditorChrome.islandCoolTint,
+                                    EditorWorkspaceMode.pathStudio =>
+                                      EditorChrome.islandCoolTint,
                                   },
                                   child: switch (workspaceMode) {
                                     EditorWorkspaceMode.map =>
@@ -344,6 +347,8 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
                                     // pour éviter d'introduire une nouvelle
                                     // structure latérale ou une fausse logique.
                                     EditorWorkspaceMode.pokedex =>
+                                      const _EmptyWorkspaceInspector(),
+                                    EditorWorkspaceMode.pathStudio =>
                                       const _EmptyWorkspaceInspector(),
                                     EditorWorkspaceMode.globalStory ||
                                     EditorWorkspaceMode.step ||
@@ -481,6 +486,7 @@ class _WorkspaceStageHeader extends StatelessWidget {
       EditorWorkspaceMode.step => EditorChrome.inspectorJoyMint,
       EditorWorkspaceMode.cutscene => EditorChrome.inspectorJoyCoral,
       EditorWorkspaceMode.dialogue => EditorChrome.inspectorJoyBlue,
+      EditorWorkspaceMode.pathStudio => EditorChrome.accentPrimary,
     };
     final chipAccent2 = switch (workspaceMode) {
       EditorWorkspaceMode.map => EditorChrome.inspectorJoyApricot,
@@ -491,6 +497,7 @@ class _WorkspaceStageHeader extends StatelessWidget {
       EditorWorkspaceMode.step => EditorChrome.accentJade,
       EditorWorkspaceMode.cutscene => EditorChrome.inspectorJoyCoral,
       EditorWorkspaceMode.dialogue => EditorChrome.inspectorJoyCyan,
+      EditorWorkspaceMode.pathStudio => EditorChrome.inspectorJoyCyan,
     };
 
     return Row(
@@ -524,6 +531,7 @@ class _WorkspaceStageHeader extends StatelessWidget {
               EditorWorkspaceMode.step => CupertinoIcons.flag,
               EditorWorkspaceMode.cutscene => CupertinoIcons.play_rectangle,
               EditorWorkspaceMode.dialogue => CupertinoIcons.text_bubble,
+              EditorWorkspaceMode.pathStudio => CupertinoIcons.arrow_branch,
             },
             color: CupertinoColors.white,
             size: 22,
@@ -605,6 +613,7 @@ class _WorkspaceStageHeader extends StatelessWidget {
               EditorWorkspaceMode.step => 'Step',
               EditorWorkspaceMode.cutscene => 'Cutscene',
               EditorWorkspaceMode.dialogue => 'Dialogue',
+              EditorWorkspaceMode.pathStudio => 'Path',
             },
             style: TextStyle(
               color: chipAccent,

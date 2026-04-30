@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/editor/state/editor_selectors.dart';
 import '../../features/editor/state/editor_state.dart';
+import '../../features/path_studio/path_studio_panel.dart';
 import 'map_canvas.dart';
 import 'narrative_workspace_canvas.dart';
 import 'pokemon_catalogs_workspace.dart';
@@ -26,6 +27,7 @@ class EditorCanvasHost extends ConsumerWidget {
       EditorWorkspaceMode.cutscene ||
       EditorWorkspaceMode.dialogue =>
         const NarrativeWorkspaceCanvas(),
+      EditorWorkspaceMode.pathStudio => const PathStudioWorkspace(),
     };
   }
 }

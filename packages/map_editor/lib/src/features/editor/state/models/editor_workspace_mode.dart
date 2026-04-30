@@ -36,4 +36,11 @@ enum EditorWorkspaceMode {
 
   /// Studio de conversation (dialogues `.yarn` en blocs visuels).
   dialogue,
+
+  /// Shell Path Studio V0.
+  ///
+  /// Ce mode expose une surface read-only pour les `ProjectPathPatternPreset` :
+  /// liste, recherche, sélection, diagnostics et inspecteur. Il ne branche ni
+  /// painter, ni save flow, ni éditeur réel du motif.
+  pathStudio,
 }

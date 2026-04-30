@@ -33,11 +33,16 @@ ProjectManifest buildShellChromeProject({
   String name = 'Demo Project',
   List<ProjectMapEntry> maps = const <ProjectMapEntry>[],
   List<ProjectTilesetEntry> tilesets = const <ProjectTilesetEntry>[],
+  List<ProjectPathPreset> pathPresets = const <ProjectPathPreset>[],
+  List<ProjectPathPatternPreset> pathPatternPresets =
+      const <ProjectPathPatternPreset>[],
 }) {
   return ProjectManifest(
     name: name,
     maps: maps,
     tilesets: tilesets,
+    pathPresets: pathPresets,
+    pathPatternPresets: pathPatternPresets,
     surfaceCatalog: ProjectSurfaceCatalog(),
   );
 }

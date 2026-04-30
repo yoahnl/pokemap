@@ -76,6 +76,34 @@ void main() {
       expect(toolbar.activeLayer, isA<TileLayer>());
     });
 
+    test('Path Studio snapshots hide map save and history actions', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        workspaceMode: EditorWorkspaceMode.pathStudio,
+        activeMap: MapData(
+          id: 'town',
+          name: 'Starter Town',
+          size: GridSize(width: 8, height: 8),
+          layers: [],
+        ),
+        canUndoMap: true,
+        canRedoMap: true,
+        isDirty: true,
+      );
+
+      final shell = container.read(editorShellSnapshotProvider);
+      final toolbar = container.read(editorToolbarSnapshotProvider);
+
+      expect(shell.canSaveMap, isFalse);
+      expect(shell.canUndoMap, isFalse);
+      expect(shell.canRedoMap, isFalse);
+      expect(toolbar.canSaveMap, isFalse);
+      expect(toolbar.canUndoMap, isFalse);
+      expect(toolbar.canRedoMap, isFalse);
+    });
+
     test('editorProjectExplorerSnapshotProvider exposes active map selection',
         () {
       final container = ProviderContainer();
