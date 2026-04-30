@@ -14,6 +14,16 @@ import '../../application/ports/project_workspace.dart';
 import '../../application/services/pokemon_project_data_reader.dart';
 import '../../domain/repositories/repositories.dart';
 
+/// Migre le JSON d'un projet pour s'assurer qu'il est compatible avec la version actuelle.
+Map<String, dynamic> migrateProjectManifestJson(Map<String, dynamic> raw) {
+  return raw;
+}
+
+/// Migre le JSON d'une carte pour s'assurer qu'il est compatible avec la version actuelle.
+Map<String, dynamic> migrateMapDataJson(Map<String, dynamic> raw) {
+  return raw;
+}
+
 class FileProjectRepository implements ProjectRepository {
   @override
   Future<void> saveProject(ProjectManifest project, String path) async {
