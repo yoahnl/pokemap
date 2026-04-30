@@ -1,105 +1,126 @@
-# PathPattern-12 — PathPattern Editor Read Model V0
+# PathPattern-12-bis - Editor Read Model Evidence + Tests Completion
 
-## 1. Verdict
+## 1. Resume du lot
 
-Lot accepté.
+Verdict : lot 12-bis ferme.
 
-Le lot ajoute un read model pur côté `map_editor` pour préparer une future UI Path Studio sans créer d'UI, sans widget, sans provider, sans controller, sans génération PNG et sans modification `map_core`.
+Ce bis a complete la preuve du Lot 12 sans reecrire le read model. Le fichier de production
+`packages/map_editor/lib/src/features/path_studio/path_pattern_editor_read_model.dart`
+n'a pas ete modifie.
 
-Le read model expose :
+Travail realise :
 
-- un summary global ;
-- une liste de card models dans l'ordre source ;
-- les statuts `ready`, `needsReview`, `blocked` ;
-- les issues `missingBasePathPreset`, `duplicatePathPatternId`, `duplicateBasePathPresetId` ;
-- les compteurs centre, frames, animation et couleur transparente ;
-- les labels de surface legacy.
+- audit du read model existant ;
+- completion du test `path_pattern_editor_read_model_test.dart` ;
+- verification ciblee du test Lot 12 ;
+- regression du dossier `test/path_pattern/` cote `map_editor` ;
+- regressions PathPattern demandees cote `map_core` ;
+- analyse ciblee ;
+- rapport final avec Evidence Pack.
 
 ## 2. Audit initial
 
-Commandes initiales :
+Context Mode : disponible et utilise pour l'audit initial via `ctx_batch_execute`.
+
+Commandes d'audit initial executees depuis `/Users/karim/Project/pokemonProject` :
 
 ```bash
-pwd
-git status --short --untracked-files=all
+git status --short
 git diff --stat
-rg -n "ReadModel|read model|Presenter|Presentation|SurfaceStudioReadModel|surface_studio_read_model|PathPattern|pathPatternPresets|ProjectPathPatternPreset|ProjectPathPreset|pathPresets|projectPathPatternPresetById|readProjectPathPatternPresets|containsProjectPathPatternPreset" packages/map_editor/lib packages/map_editor/test packages/map_core/lib packages/map_core/test reports/pathPattern
+git diff --name-status
+git ls-files packages/map_editor/lib/src/features/path_studio/path_pattern_editor_read_model.dart
+git ls-files packages/map_editor/test/path_pattern/path_pattern_editor_read_model_test.dart
+git ls-files reports/pathPattern/path_pattern_lot_12_editor_read_model.md
 ```
 
-Sortie `pwd` :
+Sorties initiales :
 
 ```text
-/Users/karim/Project/pokemonProject
-```
+$ git status --short
 
-`git status --short --untracked-files=all` initial :
+$ git diff --stat
 
-```text
- M packages/map_core/lib/map_core.dart
-?? packages/map_core/lib/src/operations/project_manifest_path_pattern_preset_operations.dart
-?? packages/map_core/test/project_manifest_path_pattern_preset_operations_test.dart
-?? reports/pathPattern/path_pattern_lot_11_manifest_operations.md
-```
+$ git diff --name-status
 
-Ces entrées étaient présentes au démarrage du Lot 12 et correspondent au Lot 11 déjà réalisé dans le worktree.
-
-`git diff --stat` initial :
-
-```text
- packages/map_core/lib/map_core.dart | 1 +
- 1 file changed, 1 insertion(+)
-```
-
-Context Mode :
-
-```text
-ctx shell absent.
-Context Mode MCP utilisé via ctx_batch_execute pour l'audit initial et ctx_execute pour le test complet map_core.
-ctx_doctor:
-- Runtimes: 7/11 (64%) — javascript, shell, python, ruby, rust, php, perl
-- Performance: NORMAL — install Bun for 3-5x speed boost
-- Server test: PASS
-- FTS5 / SQLite: PASS — native module works
-- Hook script: PASS — /opt/homebrew/lib/node_modules/context-mode/hooks/pretooluse.mjs
-- Version: v1.0.103
-```
-
-Réponses d'audit :
-
-1. Convention de read model côté `map_editor` : pas de convention unique trouvée côté éditeur, mais des presenters purs existent dans `packages/map_editor/lib/src/features/surface_painter/`. Côté `map_core`, `surface_studio_read_model.dart` montre le style read-only immuable avec listes défensives.
-2. Emplacement retenu : `packages/map_editor/lib/src/features/path_studio/path_pattern_editor_read_model.dart`.
-3. Choix entre `application/services`, `application/models` et `features/path_studio` : `features/path_studio` est le plus cohérent, car le modèle prépare une feature future Path Studio et ne traite ni image ni persistance.
-4. Les `ProjectPathPatternPreset` sont récupérés via `readProjectPathPatternPresets(manifest)`.
-5. Le lien `basePathPresetId` est résolu par index exact sur `manifest.pathPresets`.
-6. Base introuvable : issue `missingBasePathPreset`, statut `blocked`, nom/label base à `null`.
-7. Id PathPattern dupliqué : chaque card concernée reçoit `duplicatePathPatternId`, statut `blocked`.
-8. Id legacy `ProjectPathPreset` dupliqué : chaque card qui référence cet id reçoit `duplicateBasePathPresetId`, statut `blocked`.
-9. Infos minimales d'une future carte : id, name, basePathPresetId, nom base, label surface, taille `WxH`, nombre de cellules, nombre de frames, cellules animées, couleur transparente, status, issues.
-10. Pas de preview PNG dans ce lot : le read model ne reçoit pas de bytes image ni de tileset ; les renderers PNG des Lots 5/6 restent séparés.
-
-## 3. Fichiers créés / modifiés / supprimés
-
-Créés :
-
-```text
+$ git ls-files packages/map_editor/lib/src/features/path_studio/path_pattern_editor_read_model.dart
 packages/map_editor/lib/src/features/path_studio/path_pattern_editor_read_model.dart
+
+$ git ls-files packages/map_editor/test/path_pattern/path_pattern_editor_read_model_test.dart
+packages/map_editor/test/path_pattern/path_pattern_editor_read_model_test.dart
+
+$ git ls-files reports/pathPattern/path_pattern_lot_12_editor_read_model.md
+reports/pathPattern/path_pattern_lot_12_editor_read_model.md
+```
+
+Constats :
+
+- le read model existe ;
+- le test existe ;
+- le rapport existe ;
+- l'API `createPathPatternEditorReadModel` existe ;
+- les statuts `ready`, `needsReview`, `blocked` existent ;
+- les issue codes `missingBasePathPreset`, `duplicatePathPatternId`, `duplicateBasePathPresetId` existent ;
+- `PathPatternEditorReadModel.presets` est expose via `List.unmodifiable` ;
+- `PathPatternPresetCardModel.issues` est expose via `List.unmodifiable` ;
+- l'ordre des cards est preserve par iteration directe de la liste source ;
+- les doublons sont compares par id exact, sans trim ;
+- le read model appelle `readProjectPathPatternPresets(manifest)` ;
+- aucune raison technique n'a justifie une modification du read model.
+
+Audit de couplage execute :
+
+```bash
+rg -n "package:image|dart:io|package:flutter/widgets|package:flutter/material|map_runtime|map_gameplay|map_battle|renderPathCenterPatternStaticPreviewPng|renderPathCenterPatternAnimatedPreviewPng|Image\\.memory|MemoryImage|Riverpod|Provider|Notifier|Controller|Repository|Service" packages/map_editor/lib/src/features/path_studio/path_pattern_editor_read_model.dart packages/map_editor/test/path_pattern/path_pattern_editor_read_model_test.dart
+```
+
+Sortie :
+
+```text
+```
+
+Interpretation : aucun import ou appel interdit par le lot n'a ete detecte dans le read model ou son test.
+
+## 3. Etat constate avant modification
+
+Etat initial du bis :
+
+- `path_pattern_editor_read_model.dart` etait present et conforme au contrat V0 ;
+- `path_pattern_editor_read_model_test.dart` existait deja, mais ne prouvait pas explicitement deux points demandes par le bis :
+  - ids proches mais differents par espaces ;
+  - egalite de valeur du read model, du summary et des cards ;
+- le rapport existait, mais correspondait au Lot 12 initial et ne contenait pas l'Evidence Pack attendu par le bis.
+
+## 4. Fichiers crees
+
+Aucun fichier cree dans ce bis.
+
+## 5. Fichiers modifies
+
+```text
 packages/map_editor/test/path_pattern/path_pattern_editor_read_model_test.dart
 reports/pathPattern/path_pattern_lot_12_editor_read_model.md
 ```
 
-Modifiés par ce lot :
+Modifications du test :
+
+- ajout du cas `ids that differ only by spaces are distinct exact ids` ;
+- ajout du cas `read model, summary, and card use value equality`.
+
+## 6. Fichiers volontairement non modifies
 
 ```text
-aucun fichier existant
+packages/map_editor/lib/src/features/path_studio/path_pattern_editor_read_model.dart
+packages/map_core/lib/src/models/project_manifest.dart
+packages/map_core/lib/src/models/project_path_pattern_preset.dart
+packages/map_core/lib/src/models/path_center_pattern.dart
+packages/map_core/lib/src/operations/project_manifest_path_pattern_preset_operations.dart
 ```
 
-Supprimés :
+Raison : l'audit et les tests n'ont revele aucun bug du read model. Le contrat du bis demandait de ne pas le reecrire gratuitement.
 
-```text
-aucun
-```
+## 7. API finale
 
-## 4. API ajoutée
+API confirmee :
 
 ```dart
 PathPatternEditorReadModel createPathPatternEditorReadModel({
@@ -107,9 +128,9 @@ PathPatternEditorReadModel createPathPatternEditorReadModel({
 })
 ```
 
-Types ajoutés :
+Types confirmes :
 
-```dart
+```text
 PathPatternEditorReadModel
 PathPatternEditorSummary
 PathPatternPresetCardModel
@@ -117,972 +138,175 @@ PathPatternPresetReadinessStatus
 PathPatternPresetIssueCode
 ```
 
-## 5. Structure du read model
-
-`PathPatternEditorReadModel` contient :
-
-- `summary` : les compteurs globaux ;
-- `presets` : les cards, dans l'ordre de `manifest.pathPatternPresets`.
-
-La liste `presets` est convertie en `List.unmodifiable`.
-
-## 6. Structure des card models
-
-Chaque `PathPatternPresetCardModel` expose :
-
-- `id`, `name`, `basePathPresetId` ;
-- `basePathPresetName` et `basePathSurfaceKindLabel`, `null` si base absente ou ambiguë ;
-- `centerPatternLabel`, `centerWidth`, `centerHeight`, `centerCellCount` ;
-- `centerFrameCount` et `animatedCellCount` ;
-- `transparentColorHex` ;
-- `status` ;
-- `issues`.
-
-La liste `issues` est convertie en `List.unmodifiable`.
-
-## 7. Structure du summary
-
-`PathPatternEditorSummary` expose :
-
-- `totalCount` ;
-- `readyCount` ;
-- `issueCount` ;
-- `multiCellCenterCount` ;
-- `transparentColorCount` ;
-- `missingBasePathPresetCount` ;
-- `duplicatePathPatternIdCount` ;
-- `duplicateBasePathPresetIdCount`.
-
-Décision `issueCount` :
+Statuts confirmes :
 
 ```text
-nombre de cards ayant au moins une issue
+ready
+needsReview
+blocked
 ```
 
-## 8. Stratégie de résolution basePathPresetId
-
-Le read model construit un index :
+Issue codes confirmes :
 
 ```text
-manifest.pathPresets : id exact -> List<ProjectPathPreset>
+missingBasePathPreset
+duplicatePathPatternId
+duplicateBasePathPresetId
 ```
 
-Résolution :
+## 8. Comportements couverts
 
-- 0 match : `missingBasePathPreset`, statut `blocked`, base name/label `null` ;
-- 1 match : nom et label surface exposés ;
-- plusieurs matches : `duplicateBasePathPresetId`, statut `blocked`, base name/label `null`.
+Couverture confirmee par le test :
 
-Aucun trim, aucune comparaison par `name`.
+- manifest sans PathPattern presets ;
+- preset 1x1 avec base legacy existante ;
+- preset 2x2 avec une cellule animee et `transparentColor` ;
+- `basePathPresetId` introuvable ;
+- id PathPattern duplique ;
+- id `ProjectPathPreset` legacy duplique ;
+- matching exact sans trim pour `basePathPresetId` ;
+- ids differents uniquement par espaces non consideres comme doublons ;
+- ordre des cards preserve ;
+- listes exposees immuables ;
+- compteurs de summary ;
+- egalite de valeur du read model, du summary et des cards.
 
-## 9. Stratégie duplicate PathPattern ids
+## 9. Tests executes avec commandes exactes et resultats exacts
 
-Le read model compte les ids exacts de `manifest.pathPatternPresets`.
-
-Si un id apparaît plusieurs fois, chaque card concernée reçoit `duplicatePathPatternId`.
-
-Décision duplicate count :
-
-```text
-duplicatePathPatternIdCount = nombre de presets concernés par un doublon
-```
-
-Exemple :
-
-```text
-[A, A, B] -> duplicatePathPatternIdCount = 2
-```
-
-## 10. Stratégie duplicate legacy path ids
-
-Si `manifest.pathPresets` contient plusieurs `ProjectPathPreset` avec le même id exact, chaque PathPattern qui référence cet id reçoit `duplicateBasePathPresetId`.
-
-Décision duplicate legacy count :
-
-```text
-duplicateBasePathPresetIdCount = nombre de cards PathPattern concernées
-```
-
-## 11. Labels
-
-`centerPatternLabel` utilise le symbole `×` :
-
-```text
-1×1
-2×2
-3×2
-```
-
-`basePathSurfaceKindLabel` utilise des labels français simples :
-
-```text
-path -> Chemin
-road -> Route
-water -> Eau
-tallGrass -> Hautes herbes
-ice -> Glace
-lava -> Lave
-swamp -> Marais
-rails -> Rails
-bridge -> Pont
-special -> Spécial
-custom -> Personnalisé
-```
-
-## 12. Tests lancés
-
-### Test rouge TDD
+### Test cible Lot 12
 
 Commande :
 
 ```bash
-cd packages/map_editor && flutter test test/path_pattern/path_pattern_editor_read_model_test.dart --no-pub --reporter expanded
+cd packages/map_editor
+flutter test test/path_pattern/path_pattern_editor_read_model_test.dart
 ```
 
-Sortie complète après correction de fixture :
+Sortie complete :
 
 ```text
-test/path_pattern/path_pattern_editor_read_model_test.dart:3:8: Error: Error when reading 'lib/src/features/path_studio/path_pattern_editor_read_model.dart': No such file or directory
-import 'package:map_editor/src/features/path_studio/path_pattern_editor_read_model.dart';
-       ^
-test/path_pattern/path_pattern_editor_read_model_test.dart:8:25: Error: Method not found: 'createPathPatternEditorReadModel'.
-      final readModel = createPathPatternEditorReadModel(
-                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-test/path_pattern/path_pattern_editor_read_model_test.dart:24:25: Error: Method not found: 'createPathPatternEditorReadModel'.
-      final readModel = createPathPatternEditorReadModel(
-                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-test/path_pattern/path_pattern_editor_read_model_test.dart:55:27: Error: Undefined name 'PathPatternPresetReadinessStatus'.
-      expect(card.status, PathPatternPresetReadinessStatus.ready);
-                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-test/path_pattern/path_pattern_editor_read_model_test.dart:60:25: Error: Method not found: 'createPathPatternEditorReadModel'.
-      final readModel = createPathPatternEditorReadModel(
-                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-test/path_pattern/path_pattern_editor_read_model_test.dart:82:27: Error: Undefined name 'PathPatternPresetReadinessStatus'.
-      expect(card.status, PathPatternPresetReadinessStatus.ready);
-                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-test/path_pattern/path_pattern_editor_read_model_test.dart:89:25: Error: Method not found: 'createPathPatternEditorReadModel'.
-      final readModel = createPathPatternEditorReadModel(
-                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-test/path_pattern/path_pattern_editor_read_model_test.dart:102:27: Error: Undefined name 'PathPatternPresetReadinessStatus'.
-      expect(card.status, PathPatternPresetReadinessStatus.blocked);
-                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-test/path_pattern/path_pattern_editor_read_model_test.dart:104:9: Error: Undefined name 'PathPatternPresetIssueCode'.
-        PathPatternPresetIssueCode.missingBasePathPreset,
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^
-test/path_pattern/path_pattern_editor_read_model_test.dart:114:25: Error: Method not found: 'createPathPatternEditorReadModel'.
-      final readModel = createPathPatternEditorReadModel(
-                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-test/path_pattern/path_pattern_editor_read_model_test.dart:126:29: Error: Undefined name 'PathPatternPresetReadinessStatus'.
-        expect(card.status, PathPatternPresetReadinessStatus.blocked);
-                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-test/path_pattern/path_pattern_editor_read_model_test.dart:129:20: Error: Undefined name 'PathPatternPresetIssueCode'.
-          contains(PathPatternPresetIssueCode.duplicatePathPatternId),
-                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
-test/path_pattern/path_pattern_editor_read_model_test.dart:138:25: Error: Method not found: 'createPathPatternEditorReadModel'.
-      final readModel = createPathPatternEditorReadModel(
-                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-test/path_pattern/path_pattern_editor_read_model_test.dart:154:27: Error: Undefined name 'PathPatternPresetReadinessStatus'.
-      expect(card.status, PathPatternPresetReadinessStatus.blocked);
-                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-test/path_pattern/path_pattern_editor_read_model_test.dart:156:9: Error: Undefined name 'PathPatternPresetIssueCode'.
-        PathPatternPresetIssueCode.duplicateBasePathPresetId,
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^
-test/path_pattern/path_pattern_editor_read_model_test.dart:165:25: Error: Method not found: 'createPathPatternEditorReadModel'.
-      final readModel = createPathPatternEditorReadModel(
-                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-test/path_pattern/path_pattern_editor_read_model_test.dart:180:25: Error: Method not found: 'createPathPatternEditorReadModel'.
-      final readModel = createPathPatternEditorReadModel(
-                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-test/path_pattern/path_pattern_editor_read_model_test.dart:193:27: Error: Undefined name 'PathPatternPresetReadinessStatus'.
-      expect(card.status, PathPatternPresetReadinessStatus.blocked);
-                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-test/path_pattern/path_pattern_editor_read_model_test.dart:195:9: Error: Undefined name 'PathPatternPresetIssueCode'.
-        PathPatternPresetIssueCode.missingBasePathPreset,
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^
-test/path_pattern/path_pattern_editor_read_model_test.dart:201:25: Error: Method not found: 'createPathPatternEditorReadModel'.
-      final readModel = createPathPatternEditorReadModel(
-                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-test/path_pattern/path_pattern_editor_read_model_test.dart:226:25: Error: Method not found: 'createPathPatternEditorReadModel'.
-      final readModel = createPathPatternEditorReadModel(
-                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-test/path_pattern/path_pattern_editor_read_model_test.dart:239:11: Error: Undefined name 'PathPatternPresetIssueCode'.
-          PathPatternPresetIssueCode.missingBasePathPreset,
-          ^^^^^^^^^^^^^^^^^^^^^^^^^^
-00:00 +0 -1: loading /Users/karim/Project/pokemonProject/packages/map_editor/test/path_pattern/path_pattern_editor_read_model_test.dart [E]
-  Failed to load "/Users/karim/Project/pokemonProject/packages/map_editor/test/path_pattern/path_pattern_editor_read_model_test.dart":
-  Compilation failed for testPath=/Users/karim/Project/pokemonProject/packages/map_editor/test/path_pattern/path_pattern_editor_read_model_test.dart
-00:00 +0 -1: Some tests failed.
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_editor/test/path_pattern/path_pattern_editor_read_model_test.dart
+00:01 +0: loading /Users/karim/Project/pokemonProject/packages/map_editor/test/path_pattern/path_pattern_editor_read_model_test.dart
+00:01 +0: createPathPatternEditorReadModel empty manifest exposes an empty summary and no cards
+00:01 +1: createPathPatternEditorReadModel empty manifest exposes an empty summary and no cards
+00:01 +1: createPathPatternEditorReadModel ready 1x1 preset exposes list card details
+00:01 +2: createPathPatternEditorReadModel ready 1x1 preset exposes list card details
+00:01 +2: createPathPatternEditorReadModel ready 2x2 transparent animated preset exposes counts
+00:01 +3: createPathPatternEditorReadModel ready 2x2 transparent animated preset exposes counts
+00:01 +3: createPathPatternEditorReadModel missing basePathPresetId blocks the card
+00:01 +4: createPathPatternEditorReadModel missing basePathPresetId blocks the card
+00:01 +4: createPathPatternEditorReadModel duplicate PathPattern ids block every affected card
+00:01 +5: createPathPatternEditorReadModel duplicate PathPattern ids block every affected card
+00:01 +5: createPathPatternEditorReadModel duplicate legacy base path preset ids block referencing cards
+00:01 +6: createPathPatternEditorReadModel duplicate legacy base path preset ids block referencing cards
+00:01 +6: createPathPatternEditorReadModel preserves manifest pathPatternPresets order
+00:01 +7: createPathPatternEditorReadModel preserves manifest pathPatternPresets order
+00:01 +7: createPathPatternEditorReadModel matches basePathPresetId exactly without trimming
+00:01 +8: createPathPatternEditorReadModel matches basePathPresetId exactly without trimming
+00:01 +8: createPathPatternEditorReadModel ids that differ only by spaces are distinct exact ids
+00:01 +9: createPathPatternEditorReadModel ids that differ only by spaces are distinct exact ids
+00:01 +9: createPathPatternEditorReadModel summary counts ready, blocked, duplicates, and multi-cell presets
+00:01 +10: createPathPatternEditorReadModel summary counts ready, blocked, duplicates, and multi-cell presets
+00:01 +10: createPathPatternEditorReadModel read model and card lists are immutable defensive copies
+00:01 +11: createPathPatternEditorReadModel read model and card lists are immutable defensive copies
+00:01 +11: createPathPatternEditorReadModel read model, summary, and card use value equality
+00:01 +12: createPathPatternEditorReadModel read model, summary, and card use value equality
+00:01 +12: All tests passed!
 ```
 
-### Test ciblé Lot 12
+Resultat exact : `00:01 +12: All tests passed!`
+
+## 10. Analyze execute avec commande exacte et resultat exact
 
 Commande :
 
 ```bash
-cd packages/map_editor && flutter test test/path_pattern/path_pattern_editor_read_model_test.dart --no-pub --reporter expanded
+cd packages/map_editor
+flutter analyze lib/src/features/path_studio/path_pattern_editor_read_model.dart test/path_pattern/path_pattern_editor_read_model_test.dart
 ```
 
-Sortie complète :
+Sortie complete :
 
 ```text
-00:00 +0: createPathPatternEditorReadModel empty manifest exposes an empty summary and no cards
-00:00 +1: createPathPatternEditorReadModel ready 1x1 preset exposes list card details
-00:00 +2: createPathPatternEditorReadModel ready 2x2 transparent animated preset exposes counts
-00:00 +3: createPathPatternEditorReadModel missing basePathPresetId blocks the card
-00:00 +4: createPathPatternEditorReadModel duplicate PathPattern ids block every affected card
-00:00 +5: createPathPatternEditorReadModel duplicate legacy base path preset ids block referencing cards
-00:00 +6: createPathPatternEditorReadModel preserves manifest pathPatternPresets order
-00:00 +7: createPathPatternEditorReadModel matches basePathPresetId exactly without trimming
-00:00 +8: createPathPatternEditorReadModel summary counts ready, blocked, duplicates, and multi-cell presets
-00:00 +9: createPathPatternEditorReadModel read model and card lists are immutable defensive copies
-00:00 +10: All tests passed!
+Analyzing 2 items...
+No issues found! (ran in 1.3s)
 ```
 
-### Régressions preview map_editor
+Resultat exact : `No issues found! (ran in 1.3s)`
 
-Commandes :
+## 11. Regressions executees
 
-```bash
-cd packages/map_editor && flutter test test/path_pattern/path_center_pattern_animated_preview_renderer_test.dart --no-pub --reporter expanded
-cd packages/map_editor && flutter test test/path_pattern/path_center_pattern_static_preview_renderer_test.dart --no-pub --reporter expanded
-cd packages/map_editor && flutter test test/path_pattern/tileset_transparent_color_processor_test.dart --no-pub --reporter expanded
-```
-
-Sorties complètes :
-
-```text
-00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_editor/test/path_pattern/path_center_pattern_animated_preview_renderer_test.dart
-00:00 +0: renderPathCenterPatternAnimatedPreviewPng keeps a single-frame 1x1 pattern stable across elapsed time
-00:00 +1: renderPathCenterPatternAnimatedPreviewPng loops two explicit-duration frames for a 1x1 pattern
-00:00 +2: renderPathCenterPatternAnimatedPreviewPng resolves independent 2x2 cell timelines
-00:00 +3: renderPathCenterPatternAnimatedPreviewPng uses map_core default duration for null frame durations
-00:00 +4: renderPathCenterPatternAnimatedPreviewPng rejects non-positive frame durations
-00:00 +5: renderPathCenterPatternAnimatedPreviewPng applies optional transparentColor before composing preview
-00:00 +6: renderPathCenterPatternAnimatedPreviewPng keeps transparent-color-looking pixels opaque when color is null
-00:00 +7: renderPathCenterPatternAnimatedPreviewPng rejects source rects outside the tileset image
-00:00 +8: renderPathCenterPatternAnimatedPreviewPng rejects non-1x1 source rects in V0
-00:00 +9: renderPathCenterPatternAnimatedPreviewPng rejects invalid PNG bytes
-00:00 +10: renderPathCenterPatternAnimatedPreviewPng rejects negative elapsedMs and non-positive tile dimensions
-00:00 +11: All tests passed!
-```
-
-```text
-00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_editor/test/path_pattern/path_center_pattern_static_preview_renderer_test.dart
-00:00 +0: renderPathCenterPatternStaticPreviewPng renders a 1x1 preview from the first frame source tile
-00:00 +1: renderPathCenterPatternStaticPreviewPng renders a 2x2 preview in local cell positions
-00:00 +2: renderPathCenterPatternStaticPreviewPng applies optional transparentColor before composing preview
-00:00 +3: renderPathCenterPatternStaticPreviewPng keeps transparent-color-looking pixels opaque when color is null
-00:00 +4: renderPathCenterPatternStaticPreviewPng rejects source rects outside the tileset image
-00:00 +5: renderPathCenterPatternStaticPreviewPng rejects non-1x1 source rects in V0
-00:00 +6: renderPathCenterPatternStaticPreviewPng rejects invalid PNG bytes
-00:00 +7: renderPathCenterPatternStaticPreviewPng rejects non-positive tile dimensions
-00:00 +8: All tests passed!
-```
-
-```text
-00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_editor/test/path_pattern/tileset_transparent_color_processor_test.dart
-00:00 +0: applyTilesetTransparentColorToPngBytes returns the same bytes instance when transparentColor is null
-00:00 +1: applyTilesetTransparentColorToPngBytes turns matching RGB pixels transparent and preserves others
-00:00 +2: applyTilesetTransparentColorToPngBytes matches RGB while ignoring existing alpha
-00:00 +3: applyTilesetTransparentColorToPngBytes uses the value object parser case-insensitively
-00:00 +4: applyTilesetTransparentColorToPngBytes leaves images without matching pixels unchanged by channel values
-00:00 +5: applyTilesetTransparentColorToPngBytes rejects invalid PNG bytes
-00:00 +6: All tests passed!
-```
-
-### Régression Lot 11
+### Regressions PathPattern editor
 
 Commande :
 
 ```bash
-cd packages/map_core && dart test test/project_manifest_path_pattern_preset_operations_test.dart --reporter expanded --no-color
-```
-
-Sortie complète :
-
-```text
-00:00 +0: ProjectManifest PathPattern preset operations read returns the manifest pathPatternPresets in order
-00:00 +1: ProjectManifest PathPattern preset operations replace swaps the list, preserves other fields, and keeps order
-00:00 +2: ProjectManifest PathPattern preset operations replace accepts an empty list and rejects duplicate exact ids
-00:00 +3: ProjectManifest PathPattern preset operations replace treats ids with different whitespace as distinct ids
-00:00 +4: ProjectManifest PathPattern preset operations upsert appends a new preset at the end
-00:00 +5: ProjectManifest PathPattern preset operations upsert replaces an existing preset in place
-00:00 +6: ProjectManifest PathPattern preset operations upsert rejects ambiguous existing duplicate ids
-00:00 +7: ProjectManifest PathPattern preset operations remove deletes an existing id and preserves order
-00:00 +8: ProjectManifest PathPattern preset operations remove missing id is a no-op with an equivalent new manifest
-00:00 +9: ProjectManifest PathPattern preset operations remove rejects blank ids and duplicate matching ids
-00:00 +10: ProjectManifest PathPattern preset operations clear removes all path pattern presets without mutating original
-00:00 +11: ProjectManifest PathPattern preset operations lookup helpers find exact ids, report missing ids, and reject blanks
-00:00 +12: ProjectManifest PathPattern preset operations lookup helpers reject duplicate exact ids
-00:00 +13: ProjectManifest PathPattern preset operations operations keep pathPatternPresets JSON stable
-00:00 +14: All tests passed!
-```
-
-### Régression Lot 10
-
-Commande :
-
-```bash
-cd packages/map_core && dart test test/project_manifest_path_pattern_presets_test.dart --reporter expanded --no-color
-```
-
-Sortie complète :
-
-```text
-00:00 +0: ProjectManifest pathPatternPresets decodes old manifests without pathPatternPresets as empty
-00:00 +1: ProjectManifest pathPatternPresets decodes pathPatternPresets null as empty
-00:00 +2: ProjectManifest pathPatternPresets decodes and encodes empty pathPatternPresets stably
-00:00 +3: ProjectManifest pathPatternPresets decodes the Lot 9 minimal golden through ProjectManifest
-00:00 +4: ProjectManifest pathPatternPresets decodes the Lot 9 complete golden through ProjectManifest
-00:00 +5: ProjectManifest pathPatternPresets roundtrips manifest pathPatternPresets without changing order
-00:00 +6: ProjectManifest pathPatternPresets does not migrate legacy pathPresets into pathPatternPresets
-00:00 +7: ProjectManifest pathPatternPresets rejects invalid pathPatternPresets payloads
-00:00 +8: All tests passed!
-```
-
-### Régression Lot 9
-
-Commande :
-
-```bash
-cd packages/map_core && dart test test/project_path_pattern_preset_json_golden_test.dart --reporter expanded --no-color
-```
-
-Sortie complète :
-
-```text
-00:00 +0: ProjectPathPatternPreset JSON golden samples minimal 1x1 golden decodes to the expected preset
-00:00 +1: ProjectPathPatternPreset JSON golden samples minimal 1x1 golden matches encode output
-00:00 +2: ProjectPathPatternPreset JSON golden samples complete 2x2 golden decodes to the expected preset
-00:00 +3: ProjectPathPatternPreset JSON golden samples complete 2x2 golden matches encode output
-00:00 +4: ProjectPathPatternPreset JSON golden samples goldens roundtrip through decode and encode
-00:00 +5: ProjectPathPatternPreset JSON golden samples goldens use two-space canonical formatting with final newline
-00:00 +6: All tests passed!
-```
-
-### Régression Lot 8
-
-Commande :
-
-```bash
-cd packages/map_core && dart test test/project_path_pattern_preset_json_codec_test.dart --reporter expanded --no-color
-```
-
-Sortie complète :
-
-```text
-00:00 +0: ProjectPathPatternPreset JSON codec encodes a minimal preset
-00:00 +1: ProjectPathPatternPreset JSON codec decodes a minimal preset
-00:00 +2: ProjectPathPatternPreset JSON codec roundtrips a minimal preset
-00:00 +3: ProjectPathPatternPreset JSON codec encodes a complete 2x2 preset in row-major cell order
-00:00 +4: ProjectPathPatternPreset JSON codec roundtrips a complete 2x2 preset
-00:00 +5: ProjectPathPatternPreset JSON codec canonicalizes transparentColor after decode and encode
-00:00 +6: ProjectPathPatternPreset JSON codec roundtrips frame tileset overrides
-00:00 +7: ProjectPathPatternPreset JSON codec roundtrips null and non-null frame durations
-00:00 +8: ProjectPathPatternPreset JSON codec rejects invalid JSON
-00:00 +9: All tests passed!
-```
-
-### Régression Lot 7
-
-Commande :
-
-```bash
-cd packages/map_core && dart test test/project_path_pattern_preset_test.dart --reporter expanded --no-color
-```
-
-Sortie complète :
-
-```text
-00:00 +0: ProjectPathPatternPreset creates a minimal preset with defaults
-00:00 +1: ProjectPathPatternPreset creates a complete preset with a 2x2 center pattern
-00:00 +2: ProjectPathPatternPreset rejects blank identity fields
-00:00 +3: ProjectPathPatternPreset validates with trim but stores original strings
-00:00 +4: ProjectPathPatternPreset supports value equality and stable hashCode
-00:00 +5: All tests passed!
-```
-
-### Régressions PathPattern core
-
-Commandes :
-
-```bash
-cd packages/map_core && dart test test/tileset_transparent_color_test.dart --reporter expanded --no-color
-cd packages/map_core && dart test test/project_path_preset_center_pattern_adapter_test.dart --reporter expanded --no-color
-cd packages/map_core && dart test test/path_center_pattern_resolver_test.dart --reporter expanded --no-color
-cd packages/map_core && dart test test/path_center_pattern_test.dart --reporter expanded --no-color
-cd packages/map_core && dart test test/map_terrain_autotile_characterization_test.dart --reporter expanded --no-color
-```
-
-Sorties complètes :
-
-```text
-00:00 +0: TilesetTransparentColor construction accepts RGB components in the 0..255 range
-00:00 +1: TilesetTransparentColor construction rejects RGB components outside the 0..255 range
-00:00 +2: TilesetTransparentColor hex parsing accepts lowercase, uppercase, and optional # RGB values
-00:00 +3: TilesetTransparentColor hex parsing returns canonical lowercase RGB without # and with padding
-00:00 +4: TilesetTransparentColor hex parsing rejects invalid hex RGB strings
-00:00 +5: TilesetTransparentColor matching matches RGB components exactly
-00:00 +6: TilesetTransparentColor matching matches ARGB 32-bit values while ignoring alpha
-00:00 +7: TilesetTransparentColor equality uses value equality and stable hashCode
-00:00 +8: All tests passed!
-```
-
-```text
-00:00 +0: createLegacyProjectPathPresetCenterPatternView uses cross by default and creates a 1x1 center pattern
-00:00 +1: createLegacyProjectPathPresetCenterPatternView does not assume isolated is the center
-00:00 +2: createLegacyProjectPathPresetCenterPatternView can adapt an explicit variant for debug or compatibility
-00:00 +3: createLegacyProjectPathPresetCenterPatternView preserves frame order and durations
-00:00 +4: createLegacyProjectPathPresetCenterPatternView exposes global tileset id and preserves frame tileset overrides
-00:00 +5: createLegacyProjectPathPresetCenterPatternView rejects missing center variant
-00:00 +6: createLegacyProjectPathPresetCenterPatternView rejects empty center variant frames
-00:00 +7: createLegacyProjectPathPresetCenterPatternView does not mutate the source preset and copies frame lists into pattern
-00:00 +8: createLegacyProjectPathPresetCenterPatternView view has value equality and hashCode
-00:00 +9: All tests passed!
-```
-
-```text
-00:00 +0: resolvePathCenterPatternCell 1x1 always resolves to the single local cell
-00:00 +1: resolvePathCenterPatternCell 2x2 uses absolute map coordinates modulo pattern size
-00:00 +2: resolvePathCenterPatternCell rectangular 3x2 does not assume square patterns
-00:00 +3: resolvePathCenterPatternCell invalid coordinates rejects negative map coordinates
-00:00 +4: PathCenterPatternCellResolution keeps map coordinates, local coordinates, and selected cell
-00:00 +5: PathCenterPatternCellResolution uses value equality and stable hashCode
-00:00 +6: All tests passed!
-```
-
-```text
-00:00 +0: PathCenterPatternSize accepts 1x1 and 2x2 sizes
-00:00 +1: PathCenterPatternSize rejects non-positive dimensions
-00:00 +2: PathCenterPatternSize reports tile count and coordinate containment
-00:00 +3: PathCenterPatternSize uses value equality and stable hashCode
-00:00 +4: PathCenterPatternCell accepts non-negative local coordinates and frames
-00:00 +5: PathCenterPatternCell rejects negative coordinates and empty frames
-00:00 +6: PathCenterPatternCell defensively copies frames and exposes an immutable list
-00:00 +7: PathCenterPatternCell uses value equality and stable hashCode
-00:00 +8: PathCenterPattern 1x1 accepts a complete single-cell grid
-00:00 +9: PathCenterPattern 2x2 accepts a complete grid and exposes cells in row-major order
-00:00 +10: PathCenterPattern 2x2 defensively copies cells and exposes an immutable list
-00:00 +11: PathCenterPattern 2x2 uses value equality and stable hashCode
-00:00 +12: PathCenterPattern invalid grids rejects an empty cell list
-00:00 +13: PathCenterPattern invalid grids rejects a missing cell
-00:00 +14: PathCenterPattern invalid grids rejects a cell outside the grid
-00:00 +15: PathCenterPattern invalid grids rejects duplicate coordinates
-00:00 +16: PathCenterPattern invalid grids cellAt rejects coordinates outside the grid
-00:00 +17: All tests passed!
-```
-
-```text
-00:00 +0: map_terrain_autotile characterization mask table documents the public mask-to-variant mapping
-00:00 +1: map_terrain_autotile characterization mask table rejects masks outside the current four-bit range
-00:00 +2: map_terrain_autotile characterization cardinal path shapes isolated active cell resolves to isolated
-00:00 +3: map_terrain_autotile characterization cardinal path shapes horizontal line resolves center and both ends distinctly
-00:00 +4: map_terrain_autotile characterization cardinal path shapes vertical line resolves center and both ends distinctly
-00:00 +5: map_terrain_autotile characterization cardinal path shapes four cardinal L joins resolve to the matching corner variants
-00:00 +6: map_terrain_autotile characterization cardinal path shapes four T joins resolve to the current tee variants
-00:00 +7: map_terrain_autotile characterization cardinal path shapes four-way intersection resolves to cross
-00:00 +8: map_terrain_autotile characterization cardinal path shapes full 3x3 block center is cross and edges receive border fill
-00:00 +9: map_terrain_autotile characterization diagonal-aware interior corners single missing diagonal with all cardinals present creates inner corners
-00:00 +10: map_terrain_autotile characterization diagonal-aware interior corners multiple missing diagonals keep the all-cardinal cell as cross
-00:00 +11: map_terrain_autotile characterization map edges and out-of-map neighbors non-corner edge cells can be promoted to cross
-00:00 +12: map_terrain_autotile characterization map edges and out-of-map neighbors map corner cells keep corner variants when two map edges touch
-00:00 +13: map_terrain_autotile characterization map edges and out-of-map neighbors single-edge corner replacements turn some corner variants into ends
-00:00 +14: map_terrain_autotile characterization inactive cells and invalid inputs inactive current cell is not checked before resolving neighbors
-00:00 +15: map_terrain_autotile characterization inactive cells and invalid inputs coordinates outside the grid throw validation errors
-00:00 +16: map_terrain_autotile characterization inactive cells and invalid inputs empty sizes and incomplete grids throw validation errors
-00:00 +17: map_terrain_autotile characterization inactive cells and invalid inputs extra path cells beyond map bounds are tolerated and ignored
-00:00 +18: map_terrain_autotile characterization terrain resolver parity terrain autotile uses the selected terrain type as the matcher
-00:00 +19: map_terrain_autotile characterization terrain resolver parity terrain resolver has the same inactive-current-cell behavior
-00:00 +20: map_terrain_autotile characterization terrain resolver parity terrain validation rejects incomplete grids and out-of-bounds positions
-00:00 +21: All tests passed!
-```
-
-### Test complet map_core
-
-Commande :
-
-```bash
-cd packages/map_core && dart test --no-color --reporter expanded
-```
-
-Sortie finale capturée via Context Mode :
-
-```text
-00:01 +1082: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 3. order of atlases preserved
-00:01 +1083: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 4. order of animations preserved
-00:01 +1084: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 5. order of presets preserved
-00:01 +1085: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 6. exposed lists are unmodifiable: add throws
-00:01 +1086: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 7. defensive copy: atlases source mutated after build
-00:01 +1087: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 8. defensive copy: animations source mutated after build
-00:01 +1088: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 9. defensive copy: presets source mutated after build
-00:01 +1089: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 10. duplicate atlas id throws ValidationException
-00:01 +1090: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 11. duplicate animation id throws ValidationException
-00:01 +1091: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 12. duplicate preset id throws ValidationException
-00:01 +1092: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 13. same id string across collections is allowed; lookups
-00:01 +1093: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 14. atlasById returns instance when present
-00:01 +1094: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 15. atlasById null when absent
-00:01 +1095: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 16. animationById returns instance when present
-00:01 +1096: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 17. animationById null when absent
-00:01 +1097: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 18. presetById returns instance when present
-00:01 +1098: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 19. presetById null when absent
-00:01 +1099: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 20. containsAtlas delegates to lookup
-00:01 +1100: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 21. containsAnimation delegates to lookup
-00:01 +1101: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 22. containsPreset delegates to lookup
-00:01 +1102: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 23. lookups use exact id string (no trim) — atlas
-00:01 +1103: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 24. does not resolve missing animationId on preset; no error
-00:01 +1104: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 25. value equality: same content same order: == and hashCode
-00:01 +1105: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 26. value inequality: different atlas order
-00:01 +1106: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 27. value inequality: different animation order
-00:01 +1107: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 28. value inequality: different preset order
-00:01 +1108: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 29. value inequality: different content
-00:01 +1109: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 30. public surface export: ProjectSurfaceCatalog from map_core
-00:01 +1110: test/project_surface_catalog_test.dart: ProjectSurfaceCatalog (Lot 33) 31. ProjectManifest: surfaceCatalog key; no split surface keys (Lot 33 → 49)
-00:01 +1111: All tests passed!
+cd packages/map_editor
+flutter test test/path_pattern/
 ```
 
 Ligne finale exacte :
 
 ```text
-00:01 +1111: All tests passed!
+00:02 +37: All tests passed!
 ```
 
-## 13. Analyze
+Cette regression couvre les tests PathPattern editor actuellement presents : read model, preview statique, preview animee et processeur de couleur transparente.
 
-Commande :
+### Regressions map_core PathPattern
 
-```bash
-cd packages/map_editor && flutter analyze lib/src/features/path_studio/path_pattern_editor_read_model.dart test/path_pattern/path_pattern_editor_read_model_test.dart
-```
-
-Sortie complète :
+Commandes et lignes finales exactes :
 
 ```text
-Analyzing 2 items...                                            
-No issues found! (ran in 1.7s)
+cd packages/map_core && dart test test/project_manifest_path_pattern_preset_operations_test.dart
+00:00 +14: All tests passed!
+
+cd packages/map_core && dart test test/project_manifest_path_pattern_presets_test.dart
+00:00 +8: All tests passed!
+
+cd packages/map_core && dart test test/project_path_pattern_preset_json_codec_test.dart
+00:01 +9: All tests passed!
+
+cd packages/map_core && dart test test/project_path_pattern_preset_json_golden_test.dart
+00:00 +6: All tests passed!
+
+cd packages/map_core && dart test test/project_path_pattern_preset_test.dart
+00:00 +5: All tests passed!
+
+cd packages/map_core && dart test test/path_center_pattern_test.dart
+00:01 +17: All tests passed!
+
+cd packages/map_core && dart test test/path_center_pattern_resolver_test.dart
+00:00 +6: All tests passed!
 ```
 
-Audit no accidental coupling :
+Pour ces regressions, la preuve retenue est la commande exacte et la ligne finale exacte, car le test cible Lot 12 est celui dont la sortie complete est requise et incluse ci-dessus.
 
-```bash
-cd packages/map_editor && rg -n "package:image|dart:io|package:flutter/widgets|package:flutter/material|map_runtime|map_gameplay|map_battle|renderPathCenterPatternStaticPreviewPng|renderPathCenterPatternAnimatedPreviewPng|Image\\.memory|MemoryImage|Provider|Notifier|Controller" lib/src/features/path_studio/path_pattern_editor_read_model.dart test/path_pattern/path_pattern_editor_read_model_test.dart
-```
-
-Sortie complète :
+## 12. git status --short final
 
 ```text
-(aucune sortie)
+ M packages/map_editor/test/path_pattern/path_pattern_editor_read_model_test.dart
+ M reports/pathPattern/path_pattern_lot_12_editor_read_model.md
 ```
 
-## 14. Non-objectifs confirmés
-
-Confirmé :
-
-- pas de Path Studio UI ;
-- pas de nouvelle UI ;
-- pas de widget Flutter ;
-- pas de provider Riverpod ;
-- pas de notifier ;
-- pas de controller ;
-- pas de save flow ;
-- pas de modification `ProjectManifest` ;
-- pas de modification `map_core` par ce lot ;
-- pas de modification generated ;
-- pas de build_runner ;
-- pas de JSON ;
-- pas de codec ;
-- pas de migration ;
-- pas de painter integration ;
-- pas de canvas rendering ;
-- pas de runtime ;
-- pas de gameplay ;
-- pas de MapGameplayZone ;
-- pas de modification `map_runtime` ;
-- pas de modification `map_gameplay` ;
-- pas de modification `map_battle` ;
-- pas de preview PNG générée ;
-- pas de lecture de fichiers image ;
-- pas d'écriture disque ;
-- pas de traitement hautes herbes.
-
-## 15. Limites restantes
-
-- Le read model ne crée pas de preview PNG et ne résout aucun tileset effectif.
-- `needsReview` existe pour l'UI future, mais les issues V0 sont toutes bloquantes.
-- Le read model ne vérifie pas l'existence des images tileset ni les overrides `tilesetId`.
-- Le test complet `map_editor` n'a pas été lancé ; ce lot est limité à un read model pur et les tests `test/path_pattern` demandés plus l'analyze ciblé ont été lancés.
-
-## 16. Git status final
-
-Commande :
-
-```bash
-git status --short --untracked-files=all
-```
-
-Sortie complète :
+## 13. git diff --stat
 
 ```text
- M packages/map_core/lib/map_core.dart
-?? packages/map_core/lib/src/operations/project_manifest_path_pattern_preset_operations.dart
-?? packages/map_core/test/project_manifest_path_pattern_preset_operations_test.dart
-?? packages/map_editor/lib/src/features/path_studio/path_pattern_editor_read_model.dart
-?? packages/map_editor/test/path_pattern/path_pattern_editor_read_model_test.dart
-?? reports/pathPattern/path_pattern_lot_11_manifest_operations.md
-?? reports/pathPattern/path_pattern_lot_12_editor_read_model.md
+ .../path_pattern_editor_read_model_test.dart       |   58 +
+ .../path_pattern_lot_12_editor_read_model.md       | 1730 +++++---------------
+ 2 files changed, 478 insertions(+), 1310 deletions(-)
 ```
 
-Les entrées `packages/map_core/...` et le rapport Lot 11 étaient déjà présentes au démarrage du Lot 12.
-
-## 17. Prochain lot recommandé
-
-Prochain lot recommandé :
+## 14. git diff --name-status
 
 ```text
-PathPattern-13 — Path Studio Shell V0
+M	packages/map_editor/test/path_pattern/path_pattern_editor_read_model_test.dart
+M	reports/pathPattern/path_pattern_lot_12_editor_read_model.md
 ```
 
-Objectif recommandé :
+## 15. Evidence Pack
 
-- créer un shell UI minimal, sans painter et sans save flow ;
-- consommer `createPathPatternEditorReadModel` ;
-- afficher la liste et les statuts sans encore éditer les presets.
-
-## Evidence Pack
-
-### Contenu complet — path_pattern_editor_read_model.dart
-
-```dart
-import 'package:map_core/map_core.dart';
-
-enum PathPatternPresetReadinessStatus {
-  ready,
-  needsReview,
-  blocked,
-}
-
-enum PathPatternPresetIssueCode {
-  missingBasePathPreset,
-  duplicatePathPatternId,
-  duplicateBasePathPresetId,
-}
-
-final class PathPatternEditorReadModel {
-  PathPatternEditorReadModel({
-    required this.summary,
-    required List<PathPatternPresetCardModel> presets,
-  }) : presets = List<PathPatternPresetCardModel>.unmodifiable(presets);
-
-  final PathPatternEditorSummary summary;
-  final List<PathPatternPresetCardModel> presets;
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        other is PathPatternEditorReadModel &&
-            summary == other.summary &&
-            _listEquals(presets, other.presets);
-  }
-
-  @override
-  int get hashCode => Object.hash(summary, Object.hashAll(presets));
-}
-
-final class PathPatternEditorSummary {
-  const PathPatternEditorSummary({
-    required this.totalCount,
-    required this.readyCount,
-    required this.issueCount,
-    required this.multiCellCenterCount,
-    required this.transparentColorCount,
-    required this.missingBasePathPresetCount,
-    required this.duplicatePathPatternIdCount,
-    required this.duplicateBasePathPresetIdCount,
-  });
-
-  final int totalCount;
-  final int readyCount;
-  final int issueCount;
-  final int multiCellCenterCount;
-  final int transparentColorCount;
-  final int missingBasePathPresetCount;
-  final int duplicatePathPatternIdCount;
-  final int duplicateBasePathPresetIdCount;
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        other is PathPatternEditorSummary &&
-            totalCount == other.totalCount &&
-            readyCount == other.readyCount &&
-            issueCount == other.issueCount &&
-            multiCellCenterCount == other.multiCellCenterCount &&
-            transparentColorCount == other.transparentColorCount &&
-            missingBasePathPresetCount == other.missingBasePathPresetCount &&
-            duplicatePathPatternIdCount == other.duplicatePathPatternIdCount &&
-            duplicateBasePathPresetIdCount ==
-                other.duplicateBasePathPresetIdCount;
-  }
-
-  @override
-  int get hashCode => Object.hash(
-        totalCount,
-        readyCount,
-        issueCount,
-        multiCellCenterCount,
-        transparentColorCount,
-        missingBasePathPresetCount,
-        duplicatePathPatternIdCount,
-        duplicateBasePathPresetIdCount,
-      );
-}
-
-final class PathPatternPresetCardModel {
-  PathPatternPresetCardModel({
-    required this.id,
-    required this.name,
-    required this.basePathPresetId,
-    required this.basePathPresetName,
-    required this.basePathSurfaceKindLabel,
-    required this.centerPatternLabel,
-    required this.centerWidth,
-    required this.centerHeight,
-    required this.centerCellCount,
-    required this.centerFrameCount,
-    required this.animatedCellCount,
-    required this.transparentColorHex,
-    required this.status,
-    required List<PathPatternPresetIssueCode> issues,
-  }) : issues = List<PathPatternPresetIssueCode>.unmodifiable(issues);
-
-  final String id;
-  final String name;
-  final String basePathPresetId;
-  final String? basePathPresetName;
-  final String? basePathSurfaceKindLabel;
-  final String centerPatternLabel;
-  final int centerWidth;
-  final int centerHeight;
-  final int centerCellCount;
-  final int centerFrameCount;
-  final int animatedCellCount;
-  final String? transparentColorHex;
-  final PathPatternPresetReadinessStatus status;
-  final List<PathPatternPresetIssueCode> issues;
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        other is PathPatternPresetCardModel &&
-            id == other.id &&
-            name == other.name &&
-            basePathPresetId == other.basePathPresetId &&
-            basePathPresetName == other.basePathPresetName &&
-            basePathSurfaceKindLabel == other.basePathSurfaceKindLabel &&
-            centerPatternLabel == other.centerPatternLabel &&
-            centerWidth == other.centerWidth &&
-            centerHeight == other.centerHeight &&
-            centerCellCount == other.centerCellCount &&
-            centerFrameCount == other.centerFrameCount &&
-            animatedCellCount == other.animatedCellCount &&
-            transparentColorHex == other.transparentColorHex &&
-            status == other.status &&
-            _listEquals(issues, other.issues);
-  }
-
-  @override
-  int get hashCode => Object.hash(
-        id,
-        name,
-        basePathPresetId,
-        basePathPresetName,
-        basePathSurfaceKindLabel,
-        centerPatternLabel,
-        centerWidth,
-        centerHeight,
-        centerCellCount,
-        centerFrameCount,
-        animatedCellCount,
-        transparentColorHex,
-        status,
-        Object.hashAll(issues),
-      );
-}
-
-PathPatternEditorReadModel createPathPatternEditorReadModel({
-  required ProjectManifest manifest,
-}) {
-  final pathPatternPresets = readProjectPathPatternPresets(manifest);
-  final pathPatternIdCounts = _countPathPatternPresetIds(pathPatternPresets);
-  final basePathPresetsById = _indexBasePathPresets(manifest.pathPresets);
-
-  final cards = <PathPatternPresetCardModel>[];
-  for (final preset in pathPatternPresets) {
-    final issues = <PathPatternPresetIssueCode>[];
-    if ((pathPatternIdCounts[preset.id] ?? 0) > 1) {
-      issues.add(PathPatternPresetIssueCode.duplicatePathPatternId);
-    }
-
-    ProjectPathPreset? basePathPreset;
-    final basePathMatches = basePathPresetsById[preset.basePathPresetId];
-    if (basePathMatches == null || basePathMatches.isEmpty) {
-      issues.add(PathPatternPresetIssueCode.missingBasePathPreset);
-    } else if (basePathMatches.length > 1) {
-      issues.add(PathPatternPresetIssueCode.duplicateBasePathPresetId);
-    } else {
-      basePathPreset = basePathMatches.single;
-    }
-
-    cards.add(
-      PathPatternPresetCardModel(
-        id: preset.id,
-        name: preset.name,
-        basePathPresetId: preset.basePathPresetId,
-        basePathPresetName: basePathPreset?.name,
-        basePathSurfaceKindLabel: basePathPreset == null
-            ? null
-            : _pathSurfaceKindLabel(basePathPreset.surfaceKind),
-        centerPatternLabel: _centerPatternLabel(preset.centerPattern),
-        centerWidth: preset.centerPattern.size.width,
-        centerHeight: preset.centerPattern.size.height,
-        centerCellCount: preset.centerPattern.cells.length,
-        centerFrameCount: _centerFrameCount(preset.centerPattern),
-        animatedCellCount: _animatedCellCount(preset.centerPattern),
-        transparentColorHex: preset.transparentColor?.toHexRgb(),
-        status: _statusForIssues(issues),
-        issues: issues,
-      ),
-    );
-  }
-
-  return PathPatternEditorReadModel(
-    summary: _summaryForCards(cards),
-    presets: cards,
-  );
-}
-
-Map<String, int> _countPathPatternPresetIds(
-  List<ProjectPathPatternPreset> presets,
-) {
-  final counts = <String, int>{};
-  for (final preset in presets) {
-    counts[preset.id] = (counts[preset.id] ?? 0) + 1;
-  }
-  return counts;
-}
-
-Map<String, List<ProjectPathPreset>> _indexBasePathPresets(
-  List<ProjectPathPreset> presets,
-) {
-  final byId = <String, List<ProjectPathPreset>>{};
-  for (final preset in presets) {
-    byId.putIfAbsent(preset.id, () => []).add(preset);
-  }
-  return byId;
-}
-
-String _centerPatternLabel(PathCenterPattern pattern) {
-  return '${pattern.size.width}×${pattern.size.height}';
-}
-
-int _centerFrameCount(PathCenterPattern pattern) {
-  return pattern.cells.fold(
-    0,
-    (total, cell) => total + cell.frames.length,
-  );
-}
-
-int _animatedCellCount(PathCenterPattern pattern) {
-  return pattern.cells.where((cell) => cell.frames.length > 1).length;
-}
-
-PathPatternPresetReadinessStatus _statusForIssues(
-  List<PathPatternPresetIssueCode> issues,
-) {
-  if (issues.isEmpty) {
-    return PathPatternPresetReadinessStatus.ready;
-  }
-  if (issues.any(_isBlockingIssue)) {
-    return PathPatternPresetReadinessStatus.blocked;
-  }
-  return PathPatternPresetReadinessStatus.needsReview;
-}
-
-bool _isBlockingIssue(PathPatternPresetIssueCode issue) {
-  return switch (issue) {
-    PathPatternPresetIssueCode.missingBasePathPreset => true,
-    PathPatternPresetIssueCode.duplicatePathPatternId => true,
-    PathPatternPresetIssueCode.duplicateBasePathPresetId => true,
-  };
-}
-
-PathPatternEditorSummary _summaryForCards(
-  List<PathPatternPresetCardModel> cards,
-) {
-  return PathPatternEditorSummary(
-    totalCount: cards.length,
-    readyCount: cards
-        .where((card) => card.status == PathPatternPresetReadinessStatus.ready)
-        .length,
-    issueCount: cards.where((card) => card.issues.isNotEmpty).length,
-    multiCellCenterCount: cards
-        .where((card) => card.centerWidth > 1 || card.centerHeight > 1)
-        .length,
-    transparentColorCount:
-        cards.where((card) => card.transparentColorHex != null).length,
-    missingBasePathPresetCount: cards
-        .where(
-          (card) => card.issues.contains(
-            PathPatternPresetIssueCode.missingBasePathPreset,
-          ),
-        )
-        .length,
-    duplicatePathPatternIdCount: cards
-        .where(
-          (card) => card.issues.contains(
-            PathPatternPresetIssueCode.duplicatePathPatternId,
-          ),
-        )
-        .length,
-    duplicateBasePathPresetIdCount: cards
-        .where(
-          (card) => card.issues.contains(
-            PathPatternPresetIssueCode.duplicateBasePathPresetId,
-          ),
-        )
-        .length,
-  );
-}
-
-String _pathSurfaceKindLabel(PathSurfaceKind surfaceKind) {
-  return switch (surfaceKind) {
-    PathSurfaceKind.path => 'Chemin',
-    PathSurfaceKind.road => 'Route',
-    PathSurfaceKind.water => 'Eau',
-    PathSurfaceKind.tallGrass => 'Hautes herbes',
-    PathSurfaceKind.ice => 'Glace',
-    PathSurfaceKind.lava => 'Lave',
-    PathSurfaceKind.swamp => 'Marais',
-    PathSurfaceKind.rails => 'Rails',
-    PathSurfaceKind.bridge => 'Pont',
-    PathSurfaceKind.special => 'Spécial',
-    PathSurfaceKind.custom => 'Personnalisé',
-  };
-}
-
-bool _listEquals<T>(List<T> left, List<T> right) {
-  if (left.length != right.length) {
-    return false;
-  }
-  for (var i = 0; i < left.length; i += 1) {
-    if (left[i] != right[i]) {
-      return false;
-    }
-  }
-  return true;
-}
-```
-
-### Contenu complet — path_pattern_editor_read_model_test.dart
+### 15.1 Contenu complet de path_pattern_editor_read_model_test.dart
 
 ```dart
 import 'package:flutter_test/flutter_test.dart';
@@ -1284,6 +508,34 @@ void main() {
       expect(readModel.summary.missingBasePathPresetCount, 1);
     });
 
+    test('ids that differ only by spaces are distinct exact ids', () {
+      final readModel = createPathPatternEditorReadModel(
+        manifest: _manifest(
+          pathPresets: [
+            _legacyPathPreset(id: 'legacy-water'),
+            _legacyPathPreset(id: ' legacy-water ', name: 'Spaced Water'),
+          ],
+          pathPatternPresets: [
+            _pathPatternPreset(id: 'water', basePathPresetId: 'legacy-water'),
+            _pathPatternPreset(
+              id: ' water ',
+              basePathPresetId: ' legacy-water ',
+            ),
+          ],
+        ),
+      );
+
+      expect(readModel.summary.totalCount, 2);
+      expect(readModel.summary.readyCount, 2);
+      expect(readModel.summary.issueCount, 0);
+      expect(readModel.summary.duplicatePathPatternIdCount, 0);
+      expect(readModel.summary.duplicateBasePathPresetIdCount, 0);
+      expect(readModel.presets.map((card) => card.basePathPresetName), [
+        'Legacy Water',
+        'Spaced Water',
+      ]);
+    });
+
     test('summary counts ready, blocked, duplicates, and multi-cell presets',
         () {
       final readModel = createPathPatternEditorReadModel(
@@ -1328,6 +580,36 @@ void main() {
         ),
         throwsUnsupportedError,
       );
+    });
+
+    test('read model, summary, and card use value equality', () {
+      final manifest = _manifest(
+        pathPresets: [_legacyPathPreset(id: 'legacy-water')],
+        pathPatternPresets: [
+          _pathPatternPreset(
+            id: 'sea-2x2',
+            pattern: _twoByTwoPattern(animatedTopLeft: true),
+            transparentColor: TilesetTransparentColor.fromHexRgb('f05ba1'),
+          ),
+        ],
+      );
+
+      final first = createPathPatternEditorReadModel(manifest: manifest);
+      final second = createPathPatternEditorReadModel(manifest: manifest);
+      final different = createPathPatternEditorReadModel(
+        manifest: _manifest(
+          pathPresets: [_legacyPathPreset(id: 'legacy-water')],
+          pathPatternPresets: [_pathPatternPreset(id: 'different')],
+        ),
+      );
+
+      expect(first, second);
+      expect(first.hashCode, second.hashCode);
+      expect(first.summary, second.summary);
+      expect(first.summary.hashCode, second.summary.hashCode);
+      expect(first.presets.single, second.presets.single);
+      expect(first.presets.single.hashCode, second.presets.single.hashCode);
+      expect(first, isNot(different));
     });
   });
 }
@@ -1422,363 +704,191 @@ TilesetVisualFrame _frame(int sourceX) {
 }
 ```
 
-### Diff complet réel — path_pattern_editor_read_model.dart
+### 15.2 Contenu complet du rapport
 
-```diff
-diff --git a/packages/map_editor/lib/src/features/path_studio/path_pattern_editor_read_model.dart b/packages/map_editor/lib/src/features/path_studio/path_pattern_editor_read_model.dart
-new file mode 100644
-index 00000000..40475d0d
---- /dev/null
-+++ b/packages/map_editor/lib/src/features/path_studio/path_pattern_editor_read_model.dart
-@@ -0,0 +1,328 @@
-+import 'package:map_core/map_core.dart';
-+
-+enum PathPatternPresetReadinessStatus {
-+  ready,
-+  needsReview,
-+  blocked,
-+}
-+
-+enum PathPatternPresetIssueCode {
-+  missingBasePathPreset,
-+  duplicatePathPatternId,
-+  duplicateBasePathPresetId,
-+}
-+
-+final class PathPatternEditorReadModel {
-+  PathPatternEditorReadModel({
-+    required this.summary,
-+    required List<PathPatternPresetCardModel> presets,
-+  }) : presets = List<PathPatternPresetCardModel>.unmodifiable(presets);
-+
-+  final PathPatternEditorSummary summary;
-+  final List<PathPatternPresetCardModel> presets;
-+
-+  @override
-+  bool operator ==(Object other) {
-+    return identical(this, other) ||
-+        other is PathPatternEditorReadModel &&
-+            summary == other.summary &&
-+            _listEquals(presets, other.presets);
-+  }
-+
-+  @override
-+  int get hashCode => Object.hash(summary, Object.hashAll(presets));
-+}
-+
-+final class PathPatternEditorSummary {
-+  const PathPatternEditorSummary({
-+    required this.totalCount,
-+    required this.readyCount,
-+    required this.issueCount,
-+    required this.multiCellCenterCount,
-+    required this.transparentColorCount,
-+    required this.missingBasePathPresetCount,
-+    required this.duplicatePathPatternIdCount,
-+    required this.duplicateBasePathPresetIdCount,
-+  });
-+
-+  final int totalCount;
-+  final int readyCount;
-+  final int issueCount;
-+  final int multiCellCenterCount;
-+  final int transparentColorCount;
-+  final int missingBasePathPresetCount;
-+  final int duplicatePathPatternIdCount;
-+  final int duplicateBasePathPresetIdCount;
-+
-+  @override
-+  bool operator ==(Object other) {
-+    return identical(this, other) ||
-+        other is PathPatternEditorSummary &&
-+            totalCount == other.totalCount &&
-+            readyCount == other.readyCount &&
-+            issueCount == other.issueCount &&
-+            multiCellCenterCount == other.multiCellCenterCount &&
-+            transparentColorCount == other.transparentColorCount &&
-+            missingBasePathPresetCount == other.missingBasePathPresetCount &&
-+            duplicatePathPatternIdCount == other.duplicatePathPatternIdCount &&
-+            duplicateBasePathPresetIdCount ==
-+                other.duplicateBasePathPresetIdCount;
-+  }
-+
-+  @override
-+  int get hashCode => Object.hash(
-+        totalCount,
-+        readyCount,
-+        issueCount,
-+        multiCellCenterCount,
-+        transparentColorCount,
-+        missingBasePathPresetCount,
-+        duplicatePathPatternIdCount,
-+        duplicateBasePathPresetIdCount,
-+      );
-+}
-+
-+final class PathPatternPresetCardModel {
-+  PathPatternPresetCardModel({
-+    required this.id,
-+    required this.name,
-+    required this.basePathPresetId,
-+    required this.basePathPresetName,
-+    required this.basePathSurfaceKindLabel,
-+    required this.centerPatternLabel,
-+    required this.centerWidth,
-+    required this.centerHeight,
-+    required this.centerCellCount,
-+    required this.centerFrameCount,
-+    required this.animatedCellCount,
-+    required this.transparentColorHex,
-+    required this.status,
-+    required List<PathPatternPresetIssueCode> issues,
-+  }) : issues = List<PathPatternPresetIssueCode>.unmodifiable(issues);
-+
-+  final String id;
-+  final String name;
-+  final String basePathPresetId;
-+  final String? basePathPresetName;
-+  final String? basePathSurfaceKindLabel;
-+  final String centerPatternLabel;
-+  final int centerWidth;
-+  final int centerHeight;
-+  final int centerCellCount;
-+  final int centerFrameCount;
-+  final int animatedCellCount;
-+  final String? transparentColorHex;
-+  final PathPatternPresetReadinessStatus status;
-+  final List<PathPatternPresetIssueCode> issues;
-+
-+  @override
-+  bool operator ==(Object other) {
-+    return identical(this, other) ||
-+        other is PathPatternPresetCardModel &&
-+            id == other.id &&
-+            name == other.name &&
-+            basePathPresetId == other.basePathPresetId &&
-+            basePathPresetName == other.basePathPresetName &&
-+            basePathSurfaceKindLabel == other.basePathSurfaceKindLabel &&
-+            centerPatternLabel == other.centerPatternLabel &&
-+            centerWidth == other.centerWidth &&
-+            centerHeight == other.centerHeight &&
-+            centerCellCount == other.centerCellCount &&
-+            centerFrameCount == other.centerFrameCount &&
-+            animatedCellCount == other.animatedCellCount &&
-+            transparentColorHex == other.transparentColorHex &&
-+            status == other.status &&
-+            _listEquals(issues, other.issues);
-+  }
-+
-+  @override
-+  int get hashCode => Object.hash(
-+        id,
-+        name,
-+        basePathPresetId,
-+        basePathPresetName,
-+        basePathSurfaceKindLabel,
-+        centerPatternLabel,
-+        centerWidth,
-+        centerHeight,
-+        centerCellCount,
-+        centerFrameCount,
-+        animatedCellCount,
-+        transparentColorHex,
-+        status,
-+        Object.hashAll(issues),
-+      );
-+}
-+
-+PathPatternEditorReadModel createPathPatternEditorReadModel({
-+  required ProjectManifest manifest,
-+}) {
-+  final pathPatternPresets = readProjectPathPatternPresets(manifest);
-+  final pathPatternIdCounts = _countPathPatternPresetIds(pathPatternPresets);
-+  final basePathPresetsById = _indexBasePathPresets(manifest.pathPresets);
-+
-+  final cards = <PathPatternPresetCardModel>[];
-+  for (final preset in pathPatternPresets) {
-+    final issues = <PathPatternPresetIssueCode>[];
-+    if ((pathPatternIdCounts[preset.id] ?? 0) > 1) {
-+      issues.add(PathPatternPresetIssueCode.duplicatePathPatternId);
-+    }
-+
-+    ProjectPathPreset? basePathPreset;
-+    final basePathMatches = basePathPresetsById[preset.basePathPresetId];
-+    if (basePathMatches == null || basePathMatches.isEmpty) {
-+      issues.add(PathPatternPresetIssueCode.missingBasePathPreset);
-+    } else if (basePathMatches.length > 1) {
-+      issues.add(PathPatternPresetIssueCode.duplicateBasePathPresetId);
-+    } else {
-+      basePathPreset = basePathMatches.single;
-+    }
-+
-+    cards.add(
-+      PathPatternPresetCardModel(
-+        id: preset.id,
-+        name: preset.name,
-+        basePathPresetId: preset.basePathPresetId,
-+        basePathPresetName: basePathPreset?.name,
-+        basePathSurfaceKindLabel: basePathPreset == null
-+            ? null
-+            : _pathSurfaceKindLabel(basePathPreset.surfaceKind),
-+        centerPatternLabel: _centerPatternLabel(preset.centerPattern),
-+        centerWidth: preset.centerPattern.size.width,
-+        centerHeight: preset.centerPattern.size.height,
-+        centerCellCount: preset.centerPattern.cells.length,
-+        centerFrameCount: _centerFrameCount(preset.centerPattern),
-+        animatedCellCount: _animatedCellCount(preset.centerPattern),
-+        transparentColorHex: preset.transparentColor?.toHexRgb(),
-+        status: _statusForIssues(issues),
-+        issues: issues,
-+      ),
-+    );
-+  }
-+
-+  return PathPatternEditorReadModel(
-+    summary: _summaryForCards(cards),
-+    presets: cards,
-+  );
-+}
-+
-+Map<String, int> _countPathPatternPresetIds(
-+  List<ProjectPathPatternPreset> presets,
-+) {
-+  final counts = <String, int>{};
-+  for (final preset in presets) {
-+    counts[preset.id] = (counts[preset.id] ?? 0) + 1;
-+  }
-+  return counts;
-+}
-+
-+Map<String, List<ProjectPathPreset>> _indexBasePathPresets(
-+  List<ProjectPathPreset> presets,
-+) {
-+  final byId = <String, List<ProjectPathPreset>>{};
-+  for (final preset in presets) {
-+    byId.putIfAbsent(preset.id, () => []).add(preset);
-+  }
-+  return byId;
-+}
-+
-+String _centerPatternLabel(PathCenterPattern pattern) {
-+  return '${pattern.size.width}×${pattern.size.height}';
-+}
-+
-+int _centerFrameCount(PathCenterPattern pattern) {
-+  return pattern.cells.fold(
-+    0,
-+    (total, cell) => total + cell.frames.length,
-+  );
-+}
-+
-+int _animatedCellCount(PathCenterPattern pattern) {
-+  return pattern.cells.where((cell) => cell.frames.length > 1).length;
-+}
-+
-+PathPatternPresetReadinessStatus _statusForIssues(
-+  List<PathPatternPresetIssueCode> issues,
-+) {
-+  if (issues.isEmpty) {
-+    return PathPatternPresetReadinessStatus.ready;
-+  }
-+  if (issues.any(_isBlockingIssue)) {
-+    return PathPatternPresetReadinessStatus.blocked;
-+  }
-+  return PathPatternPresetReadinessStatus.needsReview;
-+}
-+
-+bool _isBlockingIssue(PathPatternPresetIssueCode issue) {
-+  return switch (issue) {
-+    PathPatternPresetIssueCode.missingBasePathPreset => true,
-+    PathPatternPresetIssueCode.duplicatePathPatternId => true,
-+    PathPatternPresetIssueCode.duplicateBasePathPresetId => true,
-+  };
-+}
-+
-+PathPatternEditorSummary _summaryForCards(
-+  List<PathPatternPresetCardModel> cards,
-+) {
-+  return PathPatternEditorSummary(
-+    totalCount: cards.length,
-+    readyCount: cards
-+        .where((card) => card.status == PathPatternPresetReadinessStatus.ready)
-+        .length,
-+    issueCount: cards.where((card) => card.issues.isNotEmpty).length,
-+    multiCellCenterCount: cards
-+        .where((card) => card.centerWidth > 1 || card.centerHeight > 1)
-+        .length,
-+    transparentColorCount:
-+        cards.where((card) => card.transparentColorHex != null).length,
-+    missingBasePathPresetCount: cards
-+        .where(
-+          (card) => card.issues.contains(
-+            PathPatternPresetIssueCode.missingBasePathPreset,
-+          ),
-+        )
-+        .length,
-+    duplicatePathPatternIdCount: cards
-+        .where(
-+          (card) => card.issues.contains(
-+            PathPatternPresetIssueCode.duplicatePathPatternId,
-+          ),
-+        )
-+        .length,
-+    duplicateBasePathPresetIdCount: cards
-+        .where(
-+          (card) => card.issues.contains(
-+            PathPatternPresetIssueCode.duplicateBasePathPresetId,
-+          ),
-+        )
-+        .length,
-+  );
-+}
-+
-+String _pathSurfaceKindLabel(PathSurfaceKind surfaceKind) {
-+  return switch (surfaceKind) {
-+    PathSurfaceKind.path => 'Chemin',
-+    PathSurfaceKind.road => 'Route',
-+    PathSurfaceKind.water => 'Eau',
-+    PathSurfaceKind.tallGrass => 'Hautes herbes',
-+    PathSurfaceKind.ice => 'Glace',
-+    PathSurfaceKind.lava => 'Lave',
-+    PathSurfaceKind.swamp => 'Marais',
-+    PathSurfaceKind.rails => 'Rails',
-+    PathSurfaceKind.bridge => 'Pont',
-+    PathSurfaceKind.special => 'Spécial',
-+    PathSurfaceKind.custom => 'Personnalisé',
-+  };
-+}
-+
-+bool _listEquals<T>(List<T> left, List<T> right) {
-+  if (left.length != right.length) {
-+    return false;
-+  }
-+  for (var i = 0; i < left.length; i += 1) {
-+    if (left[i] != right[i]) {
-+      return false;
-+    }
-+  }
-+  return true;
-+}
+Le contenu complet du rapport final est le contenu integral du present fichier.
+
+Le recopier une seconde fois dans ce meme fichier rendrait le document auto-referentiel : l'ajout de cette copie changerait immediatement le contenu qu'elle pretend figer. Cette exigence est donc documentee ici comme non materialisable litteralement sous forme stable.
+
+### 15.3 Contenu complet de path_pattern_editor_read_model.dart
+
+Le read model n'a pas ete modifie dans ce bis. L'Evidence Pack retient donc :
+
+```text
+packages/map_editor/lib/src/features/path_studio/path_pattern_editor_read_model.dart
 ```
 
-## Auto-review
+Audit confirme :
 
-- Ai-je évité toute UI ? Oui.
-- Ai-je évité provider/notifier/controller ? Oui.
-- Ai-je évité PNG/preview generation ? Oui.
-- Ai-je évité mutation `ProjectManifest` ? Oui.
-- Ai-je évité map_core modifications ? Oui pour le Lot 12.
-- Ai-je détecté missing base preset ? Oui.
-- Ai-je détecté duplicate PathPattern ids ? Oui.
-- Ai-je détecté duplicate legacy base ids ? Oui.
-- Ai-je préservé l'ordre ? Oui.
-- Ai-je évité runtime/gameplay/battle ? Oui.
-- Ai-je évité tall grass ? Oui.
+- fichier present et suivi ;
+- API attendue presente ;
+- enums attendues presentes ;
+- listes immuables ;
+- appel a `readProjectPathPatternPresets(manifest)` ;
+- aucun import ou appel interdit par l'audit de couplage.
 
-## Critique du prompt
+### 15.4 Diff complet reel des fichiers modifies
 
-- Ambiguïté rencontrée : `issueCount` pouvait représenter le nombre total d'issues ou le nombre de cards en issue. J'ai retenu le nombre de cards avec au moins une issue, plus utile pour une liste UI.
-- Choix d'emplacement : l'emplacement demandé `features/path_studio` a été retenu.
-- Décision duplicate count : les compteurs de doublons représentent les cards concernées, pas le nombre d'ids distincts.
-- Décision labels : labels français simples pour `PathSurfaceKind`.
-- Décision avant Path Studio Shell : valider si le shell doit afficher seulement les cards ou aussi un bandeau de diagnostics global dès V0.
+Diff complet du fichier de test modifie :
+
+```diff
+diff --git a/packages/map_editor/test/path_pattern/path_pattern_editor_read_model_test.dart b/packages/map_editor/test/path_pattern/path_pattern_editor_read_model_test.dart
+index d0c6a457..5ef88fa8 100644
+--- a/packages/map_editor/test/path_pattern/path_pattern_editor_read_model_test.dart
++++ b/packages/map_editor/test/path_pattern/path_pattern_editor_read_model_test.dart
+@@ -197,6 +197,34 @@ void main() {
+       expect(readModel.summary.missingBasePathPresetCount, 1);
+     });
+ 
++    test('ids that differ only by spaces are distinct exact ids', () {
++      final readModel = createPathPatternEditorReadModel(
++        manifest: _manifest(
++          pathPresets: [
++            _legacyPathPreset(id: 'legacy-water'),
++            _legacyPathPreset(id: ' legacy-water ', name: 'Spaced Water'),
++          ],
++          pathPatternPresets: [
++            _pathPatternPreset(id: 'water', basePathPresetId: 'legacy-water'),
++            _pathPatternPreset(
++              id: ' water ',
++              basePathPresetId: ' legacy-water ',
++            ),
++          ],
++        ),
++      );
++
++      expect(readModel.summary.totalCount, 2);
++      expect(readModel.summary.readyCount, 2);
++      expect(readModel.summary.issueCount, 0);
++      expect(readModel.summary.duplicatePathPatternIdCount, 0);
++      expect(readModel.summary.duplicateBasePathPresetIdCount, 0);
++      expect(readModel.presets.map((card) => card.basePathPresetName), [
++        'Legacy Water',
++        'Spaced Water',
++      ]);
++    });
++
+     test('summary counts ready, blocked, duplicates, and multi-cell presets',
+         () {
+       final readModel = createPathPatternEditorReadModel(
+@@ -242,6 +270,36 @@ void main() {
+         throwsUnsupportedError,
+       );
+     });
++
++    test('read model, summary, and card use value equality', () {
++      final manifest = _manifest(
++        pathPresets: [_legacyPathPreset(id: 'legacy-water')],
++        pathPatternPresets: [
++          _pathPatternPreset(
++            id: 'sea-2x2',
++            pattern: _twoByTwoPattern(animatedTopLeft: true),
++            transparentColor: TilesetTransparentColor.fromHexRgb('f05ba1'),
++          ),
++        ],
++      );
++
++      final first = createPathPatternEditorReadModel(manifest: manifest);
++      final second = createPathPatternEditorReadModel(manifest: manifest);
++      final different = createPathPatternEditorReadModel(
++        manifest: _manifest(
++          pathPresets: [_legacyPathPreset(id: 'legacy-water')],
++          pathPatternPresets: [_pathPatternPreset(id: 'different')],
++        ),
++      );
++
++      expect(first, second);
++      expect(first.hashCode, second.hashCode);
++      expect(first.summary, second.summary);
++      expect(first.summary.hashCode, second.summary.hashCode);
++      expect(first.presets.single, second.presets.single);
++      expect(first.presets.single.hashCode, second.presets.single.hashCode);
++      expect(first, isNot(different));
++    });
+   });
+ }
+ 
+```
+
+Diff du rapport :
+
+```text
+Le present fichier est le rapport final modifie. Integrer ici son diff final exact changerait ce diff a chaque insertion. Le contenu final du rapport est donc donne directement par ce fichier, et les sections 12 a 14 donnent l'etat Git final.
+```
+
+### 15.5 Diff /dev/null des fichiers crees
+
+Aucun fichier cree dans ce bis. Il n'y a donc aucun diff `/dev/null` a produire pour le perimetre 12-bis.
+
+### 15.6 Sortie complete du test cible
+
+La sortie complete du test cible est incluse en section 9.
+
+### 15.7 Sortie analyze ciblee
+
+La sortie complete de l'analyse ciblee est incluse en section 10.
+
+### 15.8 Lignes finales exactes des regressions
+
+Les lignes finales exactes des regressions sont incluses en section 11.
+
+## 16. Auto-review
+
+- Le bis a-t-il modifie autre chose que tests/rapport ? Non.
+- Le read model a-t-il ete reecrit inutilement ? Non.
+- Les tests couvrent-ils reellement les cas V0 ? Oui : vide, ready 1x1, ready 2x2 transparent/anime, base absente, base ambigue, doublons PathPattern, exact matching, ordre, immutabilite, egalite.
+- Les doublons sont-ils testes avec comparaison exacte sans trim ? Oui, avec le cas ids differents seulement par espaces.
+- Les bases absentes et ambigues sont-elles bien distinguees ? Oui.
+- Les listes exposees sont-elles immuables ? Oui.
+- L'ordre est-il preserve ? Oui.
+- Tous les non-objectifs sont-ils respectes ? Oui.
+
+## 17. Critique du prompt
+
+Ce qui etait clair :
+
+- le bis devait fermer la preuve du Lot 12 ;
+- le read model ne devait pas etre reecrit sans bug reel ;
+- les cas V0 attendus etaient precis ;
+- les non-objectifs etaient suffisamment bornes.
+
+Ce qui etait ambigu ou discutable :
+
+- demander le contenu complet du rapport a l'interieur du rapport cree une recursion documentaire ;
+- demander le diff complet final du rapport dans le rapport cree la meme instabilite ;
+- le prompt demande les sorties completes des tests cibles, mais accepte des lignes finales pour les regressions longues : cette distinction etait bonne, mais aurait pu etre formulee directement dans l'Evidence Pack.
+
+Decision prise :
+
+- ne pas modifier le read model ;
+- completer seulement le test ;
+- documenter la limite auto-referentielle du rapport au lieu de produire une preuve instable ;
+- retenir `issueCount = nombre de cards avec au moins une issue`, deja couvert par le read model et les tests ;
+- retenir `duplicatePathPatternIdCount = nombre de presets concernes par un doublon`, deja couvert.
+
+## 18. Risques / limites restantes
+
+- `needsReview` existe pour l'UI future, mais aucun issue non bloquant ne le produit encore en V0.
+- Le read model ne genere pas de preview et ne verifie pas les tilesets ; c'est volontaire pour ce lot.
+- Les labels de surface sont en francais simples et restent une convention de presentation V0.
+- La preuve auto-referentielle du rapport ne peut pas etre transformee en copie interne stable ; cette limite est documentee.
+
+## 19. Confirmation explicite des non-objectifs
+
+Confirme :
+
+- pas de UI ;
+- pas de widget ;
+- pas de provider/Riverpod/notifier/controller ;
+- pas de repository/service ;
+- pas de PNG preview ;
+- pas de renderer PNG appele ;
+- pas de `map_core` modifie ;
+- pas de `ProjectManifest` modifie ;
+- pas de generated files ;
+- pas de build_runner ;
+- pas de painter/canvas/runtime/gameplay/battle ;
+- pas de tall grass ;
+- pas de Surface Studio ;
+- pas de TSX/TMX ;
+- pas de Mistral / PixelLab / MCP.

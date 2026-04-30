@@ -197,6 +197,34 @@ void main() {
       expect(readModel.summary.missingBasePathPresetCount, 1);
     });
 
+    test('ids that differ only by spaces are distinct exact ids', () {
+      final readModel = createPathPatternEditorReadModel(
+        manifest: _manifest(
+          pathPresets: [
+            _legacyPathPreset(id: 'legacy-water'),
+            _legacyPathPreset(id: ' legacy-water ', name: 'Spaced Water'),
+          ],
+          pathPatternPresets: [
+            _pathPatternPreset(id: 'water', basePathPresetId: 'legacy-water'),
+            _pathPatternPreset(
+              id: ' water ',
+              basePathPresetId: ' legacy-water ',
+            ),
+          ],
+        ),
+      );
+
+      expect(readModel.summary.totalCount, 2);
+      expect(readModel.summary.readyCount, 2);
+      expect(readModel.summary.issueCount, 0);
+      expect(readModel.summary.duplicatePathPatternIdCount, 0);
+      expect(readModel.summary.duplicateBasePathPresetIdCount, 0);
+      expect(readModel.presets.map((card) => card.basePathPresetName), [
+        'Legacy Water',
+        'Spaced Water',
+      ]);
+    });
+
     test('summary counts ready, blocked, duplicates, and multi-cell presets',
         () {
       final readModel = createPathPatternEditorReadModel(
@@ -241,6 +269,36 @@ void main() {
         ),
         throwsUnsupportedError,
       );
+    });
+
+    test('read model, summary, and card use value equality', () {
+      final manifest = _manifest(
+        pathPresets: [_legacyPathPreset(id: 'legacy-water')],
+        pathPatternPresets: [
+          _pathPatternPreset(
+            id: 'sea-2x2',
+            pattern: _twoByTwoPattern(animatedTopLeft: true),
+            transparentColor: TilesetTransparentColor.fromHexRgb('f05ba1'),
+          ),
+        ],
+      );
+
+      final first = createPathPatternEditorReadModel(manifest: manifest);
+      final second = createPathPatternEditorReadModel(manifest: manifest);
+      final different = createPathPatternEditorReadModel(
+        manifest: _manifest(
+          pathPresets: [_legacyPathPreset(id: 'legacy-water')],
+          pathPatternPresets: [_pathPatternPreset(id: 'different')],
+        ),
+      );
+
+      expect(first, second);
+      expect(first.hashCode, second.hashCode);
+      expect(first.summary, second.summary);
+      expect(first.summary.hashCode, second.summary.hashCode);
+      expect(first.presets.single, second.presets.single);
+      expect(first.presets.single.hashCode, second.presets.single.hashCode);
+      expect(first, isNot(different));
     });
   });
 }
