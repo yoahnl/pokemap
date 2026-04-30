@@ -133,7 +133,7 @@ void main() {
           SurfaceCellPlacement(x: 1, y: 1, surfacePresetId: 'water-surface'),
         ],
       );
-      final project = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+      final project = ProjectManifest(
         name: 'editor',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
@@ -174,7 +174,7 @@ void main() {
           SurfaceCellPlacement(x: 1, y: 1, surfacePresetId: 'water-surface'),
         ],
       );
-      final project = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+      final project = ProjectManifest(
         name: 'editor',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],

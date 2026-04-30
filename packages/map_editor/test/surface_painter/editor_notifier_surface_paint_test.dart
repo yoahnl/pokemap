@@ -12,7 +12,7 @@ void main() {
       addTearDown(container.dispose);
       final notifier = container.read(editorNotifierProvider.notifier);
       notifier.state = EditorState(
-        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+        project: ProjectManifest(
           name: 'Demo',
           maps: const [],
           tilesets: const [],
@@ -46,7 +46,7 @@ void main() {
       addTearDown(container.dispose);
       final notifier = container.read(editorNotifierProvider.notifier);
       notifier.state = EditorState(
-        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+        project: ProjectManifest(
           name: 'Demo',
           maps: const [],
           tilesets: const [],

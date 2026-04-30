@@ -1,5 +1,4 @@
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Icons;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
@@ -34,7 +33,6 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
   bool _expandNarrative = true;
   bool _expandWorld = true;
   bool _expandTerrains = true;
-  bool _expandSurfaceStudio = true;
   bool _expandPaths = true;
   bool _expandTrainers = false;
   bool _expandCharacters = false;
@@ -223,7 +221,6 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
     final hNarrative = (screenH * 0.34).clamp(260.0, 460.0);
     final hWorld = (screenH * 0.30).clamp(240.0, 400.0);
     final hTerrains = (screenH * 0.36).clamp(280.0, 500.0);
-    final hSurfaceStudio = (screenH * 0.16).clamp(160.0, 220.0);
     final hPaths = (screenH * 0.36).clamp(280.0, 500.0);
     final hTrainers = (screenH * 0.18).clamp(180.0, 240.0);
     final hCharacters = (screenH * 0.35).clamp(260.0, 480.0);
@@ -333,35 +330,6 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           onToggle: () => setState(() => _expandTerrains = !_expandTerrains),
           expandedHeight: hTerrains,
           child: const TerrainLibraryPanel(embedded: true),
-        ),
-        InspectorSectionCard(
-          borderRadius: explorerTileRadius,
-          title: 'Surface Studio',
-          subtitle: 'Surfaces animées : eau, lave, glace, hautes herbes',
-          icon: Icons.auto_awesome_motion,
-          accentColor: const Color(0xFF2DD4BF),
-          badgeText: '${project.surfaceCatalog.presets.length}',
-          expanded: _expandSurfaceStudio,
-          onToggle: () =>
-              setState(() => _expandSurfaceStudio = !_expandSurfaceStudio),
-          expandedHeight: hSurfaceStudio,
-          child: SingleChildScrollView(
-            primary: false,
-            padding: const EdgeInsets.only(bottom: 8),
-            child: EditorSidebarListRow(
-              key: const Key('surface-studio-workspace-entry'),
-              selected:
-                  snapshot.workspaceMode == EditorWorkspaceMode.surfaceStudio,
-              onTap: () => notifier.selectSurfaceStudioWorkspace(),
-              leading: const MacosIcon(Icons.auto_awesome_motion, size: 18),
-              title: const Text('Surface Studio'),
-              subtitle: const Text(
-                'Aperçu du catalogue surfaces (lecture seule)',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ),
         ),
         InspectorSectionCard(
           borderRadius: explorerTileRadius,

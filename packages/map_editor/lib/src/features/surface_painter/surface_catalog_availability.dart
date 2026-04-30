@@ -4,8 +4,8 @@ import 'package:map_core/map_core.dart';
 ///
 /// The painter places `surfacePresetId` values in a SurfaceLayer. Atlases and
 /// animations can exist before a preset is authored, so this small value object
-/// makes that intermediate Surface Studio state explicit instead of showing a
-/// vague empty palette.
+/// keeps the palette's empty state explicit instead of showing a vague empty
+/// panel.
 final class SurfaceCatalogAvailability {
   const SurfaceCatalogAvailability({
     required this.atlasCount,
@@ -51,18 +51,11 @@ final class SurfaceCatalogAvailability {
       return 'Les presets sont les surfaces que vous pouvez peindre sur la map.';
     }
     if (hasAnyAnimation) {
-      return 'Créez un preset Surface dans Surface Studio, puis appliquez/sauvegardez le catalogue.';
+      return 'Ajoutez un preset Surface au catalogue du projet pour rendre ces animations peignables.';
     }
     if (hasAnyAtlas) {
-      return 'Générez les animations puis créez un preset Surface dans Surface Studio.';
+      return 'Ajoutez des animations et un preset Surface au catalogue du projet.';
     }
-    return 'Créez d’abord un atlas, des animations et un preset dans Surface Studio.';
-  }
-
-  String get recommendedActionLabel {
-    if (hasAnyPreset) {
-      return 'Sélectionner une surface';
-    }
-    return 'Ouvrir Surface Studio';
+    return 'Ajoutez au catalogue un atlas, des animations et un preset Surface.';
   }
 }

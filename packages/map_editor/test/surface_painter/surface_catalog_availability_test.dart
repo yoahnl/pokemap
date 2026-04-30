@@ -4,7 +4,7 @@ import 'package:map_editor/src/features/surface_painter/surface_catalog_availabi
 
 void main() {
   group('SurfaceCatalogAvailability', () {
-    test('empty catalog explains the full Surface Studio sequence', () {
+    test('empty catalog explains missing paintable surface data', () {
       final availability = SurfaceCatalogAvailability.fromCatalog(
         ProjectSurfaceCatalog(),
       );
@@ -16,7 +16,7 @@ void main() {
       expect(availability.primaryMessage, 'Aucun preset Surface disponible');
       expect(
         availability.secondaryMessage,
-        'Créez d’abord un atlas, des animations et un preset dans Surface Studio.',
+        'Ajoutez au catalogue un atlas, des animations et un preset Surface.',
       );
     });
 
@@ -35,7 +35,7 @@ void main() {
       );
       expect(
         availability.secondaryMessage,
-        'Générez les animations puis créez un preset Surface dans Surface Studio.',
+        'Ajoutez des animations et un preset Surface au catalogue du projet.',
       );
     });
 
@@ -57,7 +57,7 @@ void main() {
       );
       expect(
         availability.secondaryMessage,
-        'Créez un preset Surface dans Surface Studio, puis appliquez/sauvegardez le catalogue.',
+        'Ajoutez un preset Surface au catalogue du projet pour rendre ces animations peignables.',
       );
     });
 

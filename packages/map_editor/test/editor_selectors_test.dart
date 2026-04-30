@@ -43,11 +43,11 @@ void main() {
       addTearDown(container.dispose);
 
       container.read(editorNotifierProvider.notifier).state = EditorState(
-        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+        project: ProjectManifest(
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[
-            ProjectTilesetEntry(
+            const ProjectTilesetEntry(
               id: 'world',
               name: 'World',
               relativePath: 'tilesets/world.json',
@@ -55,7 +55,7 @@ void main() {
           ],
           surfaceCatalog: ProjectSurfaceCatalog(),
         ),
-        activeMap: MapData(
+        activeMap: const MapData(
           id: 'town',
           name: 'Starter Town',
           size: GridSize(width: 8, height: 8),
@@ -84,13 +84,13 @@ void main() {
       container.read(editorNotifierProvider.notifier).state = EditorState(
         workspaceMode: EditorWorkspaceMode.pokedex,
         pokemonCatalogSection: PokemonCatalogSection.items,
-        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+        project: ProjectManifest(
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
           surfaceCatalog: ProjectSurfaceCatalog(),
         ),
-        activeMap: MapData(
+        activeMap: const MapData(
           id: 'town',
           name: 'Starter Town',
           size: GridSize(width: 8, height: 8),
@@ -111,7 +111,7 @@ void main() {
 
       container.read(editorNotifierProvider.notifier).state = EditorState(
         workspaceMode: EditorWorkspaceMode.trainer,
-        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+        project: ProjectManifest(
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
@@ -133,7 +133,7 @@ void main() {
 
       container.read(editorNotifierProvider.notifier).state = EditorState(
         workspaceMode: EditorWorkspaceMode.pokedex,
-        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+        project: ProjectManifest(
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[],
@@ -146,39 +146,17 @@ void main() {
       expect(shell.workspaceSubtitle, contains('Pokédex, Moves et Items'));
     });
 
-    test('editorShellSnapshotProvider exposes Surface Studio labels', () {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-
-      container.read(editorNotifierProvider.notifier).state = EditorState(
-        workspaceMode: EditorWorkspaceMode.surfaceStudio,
-        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
-          name: 'demo',
-          maps: <ProjectMapEntry>[],
-          tilesets: <ProjectTilesetEntry>[],
-          surfaceCatalog: ProjectSurfaceCatalog(),
-        ),
-      );
-
-      final shell = container.read(editorShellSnapshotProvider);
-      expect(shell.workspaceTitle, 'Surface Studio');
-      expect(
-        shell.workspaceSubtitle,
-        contains('surfaces animées'),
-      );
-    });
-
     test('editorTerrainLibrarySnapshotProvider exposes preset selection inputs',
         () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
 
       container.read(editorNotifierProvider.notifier).state = EditorState(
-        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+        project: ProjectManifest(
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[
-            ProjectTilesetEntry(
+            const ProjectTilesetEntry(
               id: 'world',
               name: 'World',
               relativePath: 'tilesets/world.json',
@@ -205,11 +183,11 @@ void main() {
 
       container.read(editorNotifierProvider.notifier).state = EditorState(
         projectRootPath: '/tmp/project',
-        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+        project: ProjectManifest(
           name: 'demo',
           maps: <ProjectMapEntry>[],
           tilesets: <ProjectTilesetEntry>[
-            ProjectTilesetEntry(
+            const ProjectTilesetEntry(
               id: 'world',
               name: 'World',
               relativePath: 'tilesets/world.json',
@@ -217,7 +195,7 @@ void main() {
           ],
           surfaceCatalog: ProjectSurfaceCatalog(),
         ),
-        activeMap: MapData(
+        activeMap: const MapData(
           id: 'town',
           name: 'Starter Town',
           size: GridSize(width: 8, height: 8),
@@ -231,7 +209,7 @@ void main() {
           ],
         ),
         activeLayerId: 'ground',
-        activeBrush: EditorBrush.tile(tileId: 7, tilesetId: 'world'),
+        activeBrush: const EditorBrush.tile(tileId: 7, tilesetId: 'world'),
         paletteCategoryFilter: PaletteCategory.floors,
         selectedTilesetElementGroupId: 'group_a',
         tilesElementsPanelMode: TilesElementsPanelMode.placedInstances,

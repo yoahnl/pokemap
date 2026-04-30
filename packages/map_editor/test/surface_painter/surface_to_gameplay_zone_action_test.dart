@@ -1170,7 +1170,7 @@ SurfaceLayer _lavaLayer() {
 ProjectManifest _projectManifest({
   List<ProjectSurfacePreset>? surfacePresets,
 }) {
-  return ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+  return ProjectManifest(
     name: 'Demo',
     maps: const [],
     tilesets: const [],

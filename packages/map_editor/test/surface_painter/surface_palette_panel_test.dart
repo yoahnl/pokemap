@@ -20,7 +20,6 @@ void main() {
             presets: const [],
             selectedSurfacePresetId: null,
             onPresetSelected: (_) {},
-            onOpenSurfaceStudio: () {},
           ),
         ),
       );
@@ -33,7 +32,7 @@ void main() {
       expect(find.text('Aucun preset Surface disponible'), findsOneWidget);
       expect(
         find.text(
-          'Créez d’abord un atlas, des animations et un preset dans Surface Studio.',
+          'Ajoutez au catalogue un atlas, des animations et un preset Surface.',
         ),
         findsOneWidget,
       );
@@ -56,7 +55,6 @@ void main() {
             presets: const [],
             selectedSurfacePresetId: null,
             onPresetSelected: (_) {},
-            onOpenSurfaceStudio: () {},
           ),
         ),
       );
@@ -70,7 +68,7 @@ void main() {
       );
       expect(
         find.text(
-          'Créez un preset Surface dans Surface Studio, puis appliquez/sauvegardez le catalogue.',
+          'Ajoutez un preset Surface au catalogue du projet pour rendre ces animations peignables.',
         ),
         findsOneWidget,
       );
@@ -81,30 +79,6 @@ void main() {
       expect(find.text('manifest'), findsNothing);
       expect(find.text('callback'), findsNothing);
       expect(find.text('copyWith'), findsNothing);
-    });
-
-    testWidgets(
-        'open Surface Studio action is exposed when presets are missing',
-        (tester) async {
-      var opened = false;
-
-      await tester.pumpWidget(
-        _wrap(
-          SurfacePalettePanel(
-            availability: SurfaceCatalogAvailability.fromCatalog(
-              ProjectSurfaceCatalog(atlases: [_atlas('water')]),
-            ),
-            presets: const [],
-            selectedSurfacePresetId: null,
-            onPresetSelected: (_) {},
-            onOpenSurfaceStudio: () => opened = true,
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Ouvrir Surface Studio'));
-
-      expect(opened, isTrue);
     });
 
     testWidgets('lists presets and reports selected surface ids',
@@ -128,7 +102,6 @@ void main() {
             ],
             selectedSurfacePresetId: 'lava',
             onPresetSelected: selectedIds.add,
-            onOpenSurfaceStudio: () {},
           ),
         ),
       );
@@ -154,7 +127,7 @@ void main() {
       final keepAlive = container.listen(editorNotifierProvider, (_, __) {});
       addTearDown(keepAlive.close);
       container.read(editorNotifierProvider.notifier).state = EditorState(
-        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+        project: ProjectManifest(
           name: 'Demo',
           maps: const [],
           tilesets: const [],

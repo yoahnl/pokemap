@@ -20,14 +20,12 @@ class SurfacePalettePanel extends StatelessWidget {
     required this.presets,
     required this.selectedSurfacePresetId,
     required this.onPresetSelected,
-    this.onOpenSurfaceStudio,
   });
 
   final SurfaceCatalogAvailability availability;
   final List<ProjectSurfacePreset> presets;
   final String? selectedSurfacePresetId;
   final ValueChanged<String> onPresetSelected;
-  final VoidCallback? onOpenSurfaceStudio;
 
   @override
   Widget build(BuildContext context) {
@@ -68,18 +66,6 @@ class SurfacePalettePanel extends StatelessWidget {
             'Les presets sont les surfaces que vous pouvez peindre sur la map.',
             style: TextStyle(color: subtle, fontSize: 12),
           ),
-          if (onOpenSurfaceStudio != null) ...[
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: CupertinoButton(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                onPressed: onOpenSurfaceStudio,
-                child: Text(availability.recommendedActionLabel),
-              ),
-            ),
-          ],
         ] else ...[
           const SizedBox(height: 10),
           Text(
@@ -155,7 +141,6 @@ class SurfacePainterPanel extends ConsumerWidget {
               presets: presets,
               selectedSurfacePresetId: state.selectedSurfacePresetId,
               onPresetSelected: notifier.selectSurfacePreset,
-              onOpenSurfaceStudio: notifier.selectSurfaceStudioWorkspace,
             ),
             const SizedBox(height: 12),
             Wrap(

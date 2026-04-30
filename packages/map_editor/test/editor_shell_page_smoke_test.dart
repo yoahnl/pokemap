@@ -208,36 +208,6 @@ void main() {
       );
     });
 
-    testWidgets('renders Surface Studio without the global right inspector',
-        (tester) async {
-      await pumpEditorShellPage(
-        tester,
-        initialState: EditorState(
-          projectRootPath: '/tmp/editor_shell_surface_studio',
-          project: buildShellChromeProject(),
-          workspaceMode: EditorWorkspaceMode.surfaceStudio,
-        ),
-      );
-
-      expect(
-        find.text('Surface Studio — Assistant de mapping d’atlas'),
-        findsWidgets,
-      );
-      expect(
-        find.textContaining('vue centrale'),
-        findsNothing,
-      );
-      expect(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is MacosIconButton &&
-              (widget.semanticLabel == 'Hide right panel' ||
-                  widget.semanticLabel == 'Show right panel'),
-        ),
-        findsNothing,
-      );
-    });
-
     testWidgets('renders shell chrome with an error state already present',
         (tester) async {
       await pumpEditorShellPage(

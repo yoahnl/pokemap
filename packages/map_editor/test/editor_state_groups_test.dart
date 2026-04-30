@@ -20,7 +20,7 @@ void main() {
       );
       const state = EditorState(
         projectRootPath: '/tmp/demo',
-        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+        project: ProjectManifest(
           name: 'Demo',
           maps: [],
           tilesets: [],

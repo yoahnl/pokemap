@@ -119,8 +119,8 @@ SurfaceTilePreviewInstruction? resolveSurfaceTilePreviewInstruction({
 /// presets in [map].
 ///
 /// The canvas already has a tileset image cache; this helper only feeds it ids
-/// from actually placed Surface presets, instead of loading every Surface Studio
-/// atlas in the project.
+/// from actually placed Surface presets, instead of loading every Surface atlas
+/// in the project.
 Set<String> collectSurfaceTilePreviewTilesetIds({
   required MapData map,
   required ProjectSurfaceCatalog catalog,

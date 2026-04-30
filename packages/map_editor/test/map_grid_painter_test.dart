@@ -38,7 +38,7 @@ void main() {
         ],
       );
 
-      final project = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+      final project = ProjectManifest(
         name: 'editor',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -221,7 +221,7 @@ void main() {
           ),
         ],
       );
-      final project = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+      final project = ProjectManifest(
         name: 'editor',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],
@@ -281,7 +281,7 @@ void main() {
           ),
         ],
       );
-      final project = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+      final project = ProjectManifest(
         name: 'editor',
         maps: const <ProjectMapEntry>[],
         tilesets: const <ProjectTilesetEntry>[],

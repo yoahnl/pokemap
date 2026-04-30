@@ -1,6 +1,5 @@
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/material.dart' show Icons;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
@@ -220,15 +219,6 @@ class TopToolbar extends ConsumerWidget {
             selected: toolbar.workspaceMode == EditorWorkspaceMode.pokedex,
             onPressed: toolbar.project != null
                 ? notifier.selectPokedexWorkspace
-                : null,
-          ),
-          ToolbarCapsuleButton(
-            icon: Icons.auto_awesome_motion,
-            tooltip: 'Switch to Surface Studio',
-            selected:
-                toolbar.workspaceMode == EditorWorkspaceMode.surfaceStudio,
-            onPressed: toolbar.project != null
-                ? notifier.selectSurfaceStudioWorkspace
                 : null,
           ),
           ToolbarCapsuleButton(
@@ -454,7 +444,6 @@ class TopToolbar extends ConsumerWidget {
           EditorWorkspaceMode.tileset => 'Tileset Studio',
           EditorWorkspaceMode.trainer => 'Trainer Studio',
           EditorWorkspaceMode.pokedex => 'Catalogues Pokémon',
-          EditorWorkspaceMode.surfaceStudio => 'Surface Studio',
           EditorWorkspaceMode.globalStory => 'Global Story',
           EditorWorkspaceMode.step => 'Step Studio',
           EditorWorkspaceMode.cutscene => 'Cutscene Studio',

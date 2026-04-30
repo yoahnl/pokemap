@@ -149,7 +149,6 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
     EditorWorkspaceMode.step => 'Step Studio',
     EditorWorkspaceMode.cutscene => 'Cutscene Studio',
     EditorWorkspaceMode.dialogue => 'Dialogue Studio',
-    EditorWorkspaceMode.surfaceStudio => 'Surface Studio',
   };
 
   final workspaceSubtitle = switch (workspaceMode) {
@@ -171,8 +170,6 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
       'Scene execution workspace: dialogue, movement, waits, local branching.',
     EditorWorkspaceMode.dialogue =>
       'Conversation authoring: visual blocks, preview, Yarn export — not a raw script IDE.',
-    EditorWorkspaceMode.surfaceStudio =>
-      'Aperçu du catalogue surfaces animées (lecture seule) : atlas, animations, presets.',
   };
 
   return (
