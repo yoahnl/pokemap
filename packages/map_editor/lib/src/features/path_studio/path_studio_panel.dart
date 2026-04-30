@@ -156,6 +156,8 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
                       hasAnyPreset: readModel.presets.isNotEmpty,
                       onNewPathSizeChanged: _resizeNewPathDraft,
                       onNewPathCellSelected: _selectNewPathDraftCell,
+                      onNewPathTileSelected: _assignNewPathDraftTile,
+                      onNewPathCellCleared: _clearNewPathDraftCell,
                       onDraftSizeChanged: _resizeDraft,
                       onDraftCellSelected: _selectDraftCell,
                     ),
@@ -329,6 +331,36 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
     }
     setState(() {
       _newPathDraft = selectPathStudioNewPathDraftCell(
+        draft: draft,
+        localX: localX,
+        localY: localY,
+      );
+    });
+  }
+
+  void _assignNewPathDraftTile(int sourceX, int sourceY) {
+    final draft = _newPathDraft;
+    if (draft == null) {
+      return;
+    }
+    setState(() {
+      _newPathDraft = assignPathStudioNewPathDraftCellTile(
+        draft: draft,
+        localX: draft.selectedCellX,
+        localY: draft.selectedCellY,
+        sourceX: sourceX,
+        sourceY: sourceY,
+      );
+    });
+  }
+
+  void _clearNewPathDraftCell(int localX, int localY) {
+    final draft = _newPathDraft;
+    if (draft == null) {
+      return;
+    }
+    setState(() {
+      _newPathDraft = clearPathStudioNewPathDraftCell(
         draft: draft,
         localX: localX,
         localY: localY,
@@ -1229,6 +1261,8 @@ class _CenterWorkspace extends StatelessWidget {
     required this.hasAnyPreset,
     required this.onNewPathSizeChanged,
     required this.onNewPathCellSelected,
+    required this.onNewPathTileSelected,
+    required this.onNewPathCellCleared,
     required this.onDraftSizeChanged,
     required this.onDraftCellSelected,
   });
@@ -1240,6 +1274,8 @@ class _CenterWorkspace extends StatelessWidget {
   final bool hasAnyPreset;
   final void Function(int width, int height) onNewPathSizeChanged;
   final void Function(int localX, int localY) onNewPathCellSelected;
+  final void Function(int sourceX, int sourceY) onNewPathTileSelected;
+  final void Function(int localX, int localY) onNewPathCellCleared;
   final void Function(int width, int height) onDraftSizeChanged;
   final void Function(int localX, int localY) onDraftCellSelected;
 
@@ -1252,6 +1288,8 @@ class _CenterWorkspace extends StatelessWidget {
         draft: newPathDraft,
         onSizeChanged: onNewPathSizeChanged,
         onCellSelected: onNewPathCellSelected,
+        onTileSelected: onNewPathTileSelected,
+        onCellCleared: onNewPathCellCleared,
       );
     }
     final draft = this.draft;
@@ -1290,12 +1328,16 @@ class _NewPathCenterWorkspace extends StatelessWidget {
     required this.draft,
     required this.onSizeChanged,
     required this.onCellSelected,
+    required this.onTileSelected,
+    required this.onCellCleared,
   });
 
   final List<ProjectTilesetEntry> tilesets;
   final PathStudioNewPathDraft draft;
   final void Function(int width, int height) onSizeChanged;
   final void Function(int localX, int localY) onCellSelected;
+  final void Function(int sourceX, int sourceY) onTileSelected;
+  final void Function(int localX, int localY) onCellCleared;
 
   @override
   Widget build(BuildContext context) {
@@ -1310,9 +1352,12 @@ class _NewPathCenterWorkspace extends StatelessWidget {
           _NewPathSummary(tilesets: tilesets, draft: draft),
           const SizedBox(height: 14),
           _NewPathCenterPatternEditor(
+            tilesets: tilesets,
             draft: draft,
             onSizeChanged: onSizeChanged,
             onCellSelected: onCellSelected,
+            onTileSelected: onTileSelected,
+            onCellCleared: onCellCleared,
           ),
           const SizedBox(height: 14),
           _NewPathDiagnosticsCard(draft: draft),
@@ -1401,7 +1446,10 @@ class _NewPathSummary extends StatelessWidget {
           _InfoTile(label: 'Tileset', value: tilesetLabel),
           _InfoTile(label: 'Centre', value: draft.centerPatternLabel),
           _InfoTile(label: 'Cellules', value: '${draft.centerCellCount}'),
-          const _InfoTile(label: 'Contenu', value: 'À configurer'),
+          _InfoTile(
+            label: 'Configurées',
+            value: '${draft.configuredCellCount}/${draft.centerCellCount}',
+          ),
           const _InfoTile(label: 'État', value: 'Brouillon non sauvegardé'),
         ],
       ),
@@ -1411,14 +1459,20 @@ class _NewPathSummary extends StatelessWidget {
 
 class _NewPathCenterPatternEditor extends StatelessWidget {
   const _NewPathCenterPatternEditor({
+    required this.tilesets,
     required this.draft,
     required this.onSizeChanged,
     required this.onCellSelected,
+    required this.onTileSelected,
+    required this.onCellCleared,
   });
 
+  final List<ProjectTilesetEntry> tilesets;
   final PathStudioNewPathDraft draft;
   final void Function(int width, int height) onSizeChanged;
   final void Function(int localX, int localY) onCellSelected;
+  final void Function(int sourceX, int sourceY) onTileSelected;
+  final void Function(int localX, int localY) onCellCleared;
 
   @override
   Widget build(BuildContext context) {
@@ -1466,7 +1520,16 @@ class _NewPathCenterPatternEditor extends StatelessWidget {
             onCellSelected: onCellSelected,
           ),
           const SizedBox(height: 14),
-          _NewPathSelectedCellDetails(draft: draft),
+          _NewPathSelectedCellDetails(
+            draft: draft,
+            onCellCleared: onCellCleared,
+          ),
+          const SizedBox(height: 14),
+          _NewPathTilePickerPanel(
+            tilesets: tilesets,
+            draft: draft,
+            onTileSelected: onTileSelected,
+          ),
         ],
       ),
     );
@@ -1527,11 +1590,12 @@ class _NewPathPatternCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tile = cell.tile;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         width: 112,
-        height: 92,
+        height: 118,
         margin: const EdgeInsets.all(6),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
@@ -1560,17 +1624,24 @@ class _NewPathPatternCell extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            const Text(
-              'À configurer',
+            if (tile != null)
+              _TilePreviewBadge(tile: tile)
+            else
+              const _EmptyTileBadge(),
+            const SizedBox(height: 6),
+            Text(
+              tile == null ? 'À configurer' : 'Configurée',
               style: TextStyle(
-                color: PathStudioTheme.textSecondary,
+                color: tile == null
+                    ? PathStudioTheme.textSecondary
+                    : PathStudioTheme.success,
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
               ),
             ),
-            const Text(
-              'Aucune tuile',
-              style: TextStyle(
+            Text(
+              tile == null ? 'Aucune tuile' : 'Tuile ${tile.coordinateLabel}',
+              style: const TextStyle(
                 color: PathStudioTheme.textMuted,
                 fontSize: 10,
                 fontWeight: FontWeight.w700,
@@ -1584,13 +1655,18 @@ class _NewPathPatternCell extends StatelessWidget {
 }
 
 class _NewPathSelectedCellDetails extends StatelessWidget {
-  const _NewPathSelectedCellDetails({required this.draft});
+  const _NewPathSelectedCellDetails({
+    required this.draft,
+    required this.onCellCleared,
+  });
 
   final PathStudioNewPathDraft draft;
+  final void Function(int localX, int localY) onCellCleared;
 
   @override
   Widget build(BuildContext context) {
     final cell = draft.selectedCell;
+    final tile = cell.tile;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: PathStudioTheme.subtleDecoration(),
@@ -1614,15 +1690,289 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          const Text(
-            'Aucune tuile configurée pour cette cellule.',
-            style: TextStyle(
+          const SizedBox(height: 6),
+          Text(
+            tile == null
+                ? 'Aucune tuile configurée pour cette cellule.'
+                : 'Tuile ${tile.coordinateLabel} assignée depuis ${tile.tilesetId}.',
+            style: const TextStyle(
               color: PathStudioTheme.textMuted,
               fontSize: 11,
               fontWeight: FontWeight.w700,
             ),
           ),
+          if (tile != null) ...[
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: CupertinoButton(
+                key: const Key('path-studio-new-path-clear-selected-cell'),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                minimumSize: Size.zero,
+                color: PathStudioTheme.error.withValues(alpha: 0.16),
+                onPressed: () => onCellCleared(cell.localX, cell.localY),
+                child: const Text(
+                  'Effacer la cellule',
+                  style: TextStyle(
+                    color: PathStudioTheme.error,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+class _TilePreviewBadge extends StatelessWidget {
+  const _TilePreviewBadge({required this.tile});
+
+  final PathStudioNewPathDraftTile tile;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 46,
+      height: 28,
+      decoration: BoxDecoration(
+        color: PathStudioTheme.success.withValues(alpha: 0.16),
+        borderRadius: BorderRadius.circular(8),
+        border:
+            Border.all(color: PathStudioTheme.success.withValues(alpha: 0.5)),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        tile.coordinateLabel,
+        style: const TextStyle(
+          color: PathStudioTheme.textPrimary,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyTileBadge extends StatelessWidget {
+  const _EmptyTileBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 46,
+      height: 28,
+      decoration: BoxDecoration(
+        color: PathStudioTheme.backgroundAlt,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: PathStudioTheme.borderStrong.withValues(alpha: 0.65),
+        ),
+      ),
+      alignment: Alignment.center,
+      child: const MacosIcon(
+        CupertinoIcons.square,
+        color: PathStudioTheme.textMuted,
+        size: 14,
+      ),
+    );
+  }
+}
+
+class _NewPathTilePickerPanel extends StatelessWidget {
+  const _NewPathTilePickerPanel({
+    required this.tilesets,
+    required this.draft,
+    required this.onTileSelected,
+  });
+
+  final List<ProjectTilesetEntry> tilesets;
+  final PathStudioNewPathDraft draft;
+  final void Function(int sourceX, int sourceY) onTileSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final tilesetLabel =
+        _selectedTilesetLabel(tilesets: tilesets, tilesetId: draft.tilesetId);
+    if (tilesetLabel == null) {
+      return Container(
+        padding: const EdgeInsets.all(14),
+        decoration: PathStudioTheme.subtleDecoration(
+          color: PathStudioTheme.backgroundAlt,
+        ),
+        child: const Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            MacosIcon(
+              CupertinoIcons.square_grid_2x2,
+              color: PathStudioTheme.textMuted,
+              size: 18,
+            ),
+            SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Sélectionnez d’abord un tileset',
+                    style: TextStyle(
+                      color: PathStudioTheme.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Le picker de tuiles s’activera ensuite pour la cellule sélectionnée.',
+                    style: TextStyle(
+                      color: PathStudioTheme.textSecondary,
+                      fontSize: 11.5,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final selectedCell = draft.selectedCell;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: PathStudioTheme.subtleDecoration(
+        color: PathStudioTheme.backgroundAlt,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const MacosIcon(
+                CupertinoIcons.square_grid_3x2,
+                color: PathStudioTheme.accentCyan,
+                size: 18,
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Text(
+                  'Tileset: $tilesetLabel',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: PathStudioTheme.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Sélectionnez une tuile pour la cellule ${selectedCell.label}',
+            style: const TextStyle(
+              color: PathStudioTheme.textSecondary,
+              fontSize: 12,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (var y = 0; y < 4; y += 1)
+                for (var x = 0; x < 8; x += 1)
+                  _NewPathTileButton(
+                    key: Key('path-studio-new-path-tile-$x-$y'),
+                    sourceX: x,
+                    sourceY: y,
+                    selected: selectedCell.tile?.sourceX == x &&
+                        selectedCell.tile?.sourceY == y &&
+                        selectedCell.tile?.tilesetId == draft.tilesetId,
+                    onTap: () => onTileSelected(x, y),
+                  ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Grille logique V0 : les coordonnées sont enregistrées dans le brouillon, sans lecture de l’image tileset ni preview PNG.',
+            style: TextStyle(
+              color: PathStudioTheme.textMuted,
+              fontSize: 10.5,
+              height: 1.35,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NewPathTileButton extends StatelessWidget {
+  const _NewPathTileButton({
+    super.key,
+    required this.sourceX,
+    required this.sourceY,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final int sourceX;
+  final int sourceY;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color =
+        selected ? PathStudioTheme.accentHover : PathStudioTheme.border;
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: Size.zero,
+      onPressed: onTap,
+      child: Container(
+        width: 46,
+        height: 46,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color.lerp(
+                PathStudioTheme.surfaceStrong,
+                PathStudioTheme.accentCyan,
+                selected ? 0.3 : 0.12,
+              )!,
+              Color.lerp(
+                PathStudioTheme.backgroundAlt,
+                PathStudioTheme.accent,
+                selected ? 0.26 : 0.08,
+              )!,
+            ],
+          ),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: color, width: selected ? 2 : 1),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          '$sourceX,$sourceY',
+          style: TextStyle(
+            color: selected
+                ? PathStudioTheme.textPrimary
+                : PathStudioTheme.textSecondary,
+            fontSize: 10.5,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
       ),
     );
   }
@@ -1635,27 +1985,36 @@ class _NewPathDiagnosticsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final issues = draft.issues;
     return _SectionCard(
       title: 'Diagnostics locaux',
       icon: CupertinoIcons.check_mark_circled,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: draft.issues
-            .map(
-              (issue) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: _DiagnosticRow(
-                  icon: CupertinoIcons.info_circle_fill,
-                  color: issue == PathStudioNewPathDraftIssueCode.nameRequired
-                      ? PathStudioTheme.warning
-                      : PathStudioTheme.accentCyan,
-                  title: _newPathDraftIssueLabel(issue),
-                  message: _newPathDraftIssueDescription(issue),
-                ),
-              ),
+      child: issues.isEmpty
+          ? const _DiagnosticRow(
+              icon: CupertinoIcons.check_mark_circled_solid,
+              color: PathStudioTheme.success,
+              title: 'Aucune erreur',
+              message: 'Toutes les cellules requises ont une tuile V0.',
             )
-            .toList(growable: false),
-      ),
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: issues
+                  .map(
+                    (issue) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _DiagnosticRow(
+                        icon: CupertinoIcons.info_circle_fill,
+                        color: issue ==
+                                PathStudioNewPathDraftIssueCode.nameRequired
+                            ? PathStudioTheme.warning
+                            : PathStudioTheme.accentCyan,
+                        title: _newPathDraftIssueLabel(issue),
+                        message: _newPathDraftIssueDescription(issue),
+                      ),
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
     );
   }
 }
@@ -2570,8 +2929,18 @@ class _NewPathInspector extends StatelessWidget {
             _InspectorRow(label: 'Tileset', value: tilesetLabel),
             _InspectorRow(label: 'Cellules', value: '${draft.centerCellCount}'),
             _InspectorRow(
+              label: 'Cellules configurées',
+              value: '${draft.configuredCellCount}/${draft.centerCellCount}',
+            ),
+            _InspectorRow(
               label: 'Cellule sélectionnée',
               value: 'Cellule ${draft.selectedCell.label}',
+            ),
+            _InspectorRow(
+              label: 'Tuile sélectionnée',
+              value: draft.selectedCell.tile == null
+                  ? 'Aucune tuile'
+                  : 'Tuile ${draft.selectedCell.tile!.coordinateLabel}',
             ),
             const _InspectorRow(
               label: 'État',

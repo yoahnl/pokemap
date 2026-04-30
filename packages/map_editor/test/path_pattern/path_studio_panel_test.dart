@@ -187,6 +187,8 @@ void main() {
       expect(find.text('Cellules à configurer'), findsWidgets);
       expect(find.text('À configurer'), findsWidgets);
       expect(find.text('Aucune tuile'), findsWidgets);
+      expect(
+          find.text('Sélectionnez une tuile pour la cellule A'), findsWidgets);
     });
 
     testWidgets('new path draft stays usable when the project has no tileset',
@@ -202,7 +204,149 @@ void main() {
       expect(find.text('Brouillon nouveau chemin'), findsWidgets);
       expect(
           find.text('Aucun tileset disponible dans le projet'), findsWidgets);
+      expect(find.text('Sélectionnez d’abord un tileset'), findsWidgets);
       expect(find.text('Tileset à choisir'), findsWidgets);
+    });
+
+    testWidgets('assigns a tileset tile to the 1x1 active cell',
+        (tester) async {
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          tilesets: [_tileset(id: 'tileset-main', name: 'Chemins principaux')],
+        ),
+      );
+
+      await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+      await tester.pumpAndSettle();
+      tester
+          .widget<MacosPopupButton<String>>(
+            find.byKey(const Key('path-studio-new-path-tileset-popup')),
+          )
+          .onChanged
+          ?.call('tileset-main');
+      await tester.pumpAndSettle();
+
+      final tile = find.byKey(const Key('path-studio-new-path-tile-2-1'));
+      await tester.ensureVisible(tile);
+      await tester.pumpAndSettle();
+      await tester.tap(tile);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Configurée'), findsWidgets);
+      expect(find.text('Tuile 2,1'), findsWidgets);
+      expect(find.text('Cellules à configurer'), findsNothing);
+      expect(find.text('Tileset à choisir'), findsNothing);
+    });
+
+    testWidgets('assigns independent tiles to all 2x2 center cells',
+        (tester) async {
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          tilesets: [_tileset(id: 'tileset-main', name: 'Chemins principaux')],
+        ),
+      );
+
+      await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+      await tester.pumpAndSettle();
+      tester
+          .widget<MacosPopupButton<String>>(
+            find.byKey(const Key('path-studio-new-path-tileset-popup')),
+          )
+          .onChanged
+          ?.call('tileset-main');
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('path-studio-new-path-size-2x2')),
+      );
+      await tester.pumpAndSettle();
+
+      await _assignNewPathTile(tester, cellX: 0, cellY: 0, tileX: 0, tileY: 0);
+      await _assignNewPathTile(tester, cellX: 1, cellY: 0, tileX: 1, tileY: 0);
+      await _assignNewPathTile(tester, cellX: 0, cellY: 1, tileX: 0, tileY: 1);
+
+      expect(find.text('Cellules à configurer'), findsWidgets);
+
+      await _assignNewPathTile(tester, cellX: 1, cellY: 1, tileX: 1, tileY: 1);
+
+      expect(find.text('Tuile 0,0'), findsWidgets);
+      expect(find.text('Tuile 1,0'), findsWidgets);
+      expect(find.text('Tuile 0,1'), findsWidgets);
+      expect(find.text('Tuile 1,1'), findsWidgets);
+      expect(find.text('Cellules à configurer'), findsNothing);
+    });
+
+    testWidgets('replaces and clears the active cell tile', (tester) async {
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          tilesets: [_tileset(id: 'tileset-main', name: 'Chemins principaux')],
+        ),
+      );
+
+      await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+      await tester.pumpAndSettle();
+      tester
+          .widget<MacosPopupButton<String>>(
+            find.byKey(const Key('path-studio-new-path-tileset-popup')),
+          )
+          .onChanged
+          ?.call('tileset-main');
+      await tester.pumpAndSettle();
+
+      await _tapNewPathTile(tester, tileX: 0, tileY: 0);
+      await _tapNewPathTile(tester, tileX: 1, tileY: 0);
+
+      expect(find.text('Tuile 1,0'), findsWidgets);
+      expect(find.text('Tuile 0,0'), findsNothing);
+
+      final clearButton =
+          find.byKey(const Key('path-studio-new-path-clear-selected-cell'));
+      await tester.ensureVisible(clearButton);
+      await tester.pumpAndSettle();
+      await tester.tap(clearButton);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Tuile 1,0'), findsNothing);
+      expect(find.text('Aucune tuile configurée pour cette cellule.'),
+          findsWidgets);
+      expect(find.text('Cellules à configurer'), findsWidgets);
+    });
+
+    testWidgets('changing tileset clears configured center cells',
+        (tester) async {
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          tilesets: [
+            _tileset(id: 'tileset-main', name: 'Chemins principaux'),
+            _tileset(id: 'tileset-extra', name: 'Décor extra'),
+          ],
+        ),
+      );
+
+      await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+      await tester.pumpAndSettle();
+      final popupFinder =
+          find.byKey(const Key('path-studio-new-path-tileset-popup'));
+      tester.widget<MacosPopupButton<String>>(popupFinder).onChanged?.call(
+            'tileset-main',
+          );
+      await tester.pumpAndSettle();
+      await _tapNewPathTile(tester, tileX: 2, tileY: 1);
+
+      expect(find.text('Tuile 2,1'), findsWidgets);
+      expect(find.text('Cellules à configurer'), findsNothing);
+
+      tester.widget<MacosPopupButton<String>>(popupFinder).onChanged?.call(
+            'tileset-extra',
+          );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Décor extra (tileset-extra)'), findsWidgets);
+      expect(find.text('Tuile 2,1'), findsNothing);
+      expect(find.text('Cellules à configurer'), findsWidgets);
     });
 
     testWidgets('resizes the new path draft to 2x2 and selects a cell',
@@ -394,6 +538,33 @@ Future<void> _pumpPathStudio(
       ),
     ),
   );
+  await tester.pumpAndSettle();
+}
+
+Future<void> _assignNewPathTile(
+  WidgetTester tester, {
+  required int cellX,
+  required int cellY,
+  required int tileX,
+  required int tileY,
+}) async {
+  final cell = find.byKey(Key('path-studio-new-path-cell-$cellX-$cellY'));
+  await tester.ensureVisible(cell);
+  await tester.pumpAndSettle();
+  await tester.tap(cell);
+  await tester.pumpAndSettle();
+  await _tapNewPathTile(tester, tileX: tileX, tileY: tileY);
+}
+
+Future<void> _tapNewPathTile(
+  WidgetTester tester, {
+  required int tileX,
+  required int tileY,
+}) async {
+  final tile = find.byKey(Key('path-studio-new-path-tile-$tileX-$tileY'));
+  await tester.ensureVisible(tile);
+  await tester.pumpAndSettle();
+  await tester.tap(tile);
   await tester.pumpAndSettle();
 }
 
