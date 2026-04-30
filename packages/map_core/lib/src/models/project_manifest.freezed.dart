@@ -37,6 +37,12 @@ mixin _$ProjectManifest {
   List<ProjectTerrainPreset> get terrainPresets =>
       throw _privateConstructorUsedError;
   List<ProjectPathPreset> get pathPresets => throw _privateConstructorUsedError;
+  @JsonKey(
+      name: 'pathPatternPresets',
+      fromJson: decodeProjectPathPatternPresets,
+      toJson: encodeProjectPathPatternPresets)
+  List<ProjectPathPatternPreset> get pathPatternPresets =>
+      throw _privateConstructorUsedError;
   List<ProjectEncounterTable> get encounterTables =>
       throw _privateConstructorUsedError;
   List<ProjectDialogueFolder> get dialogueFolders =>
@@ -88,6 +94,11 @@ abstract class $ProjectManifestCopyWith<$Res> {
       List<ProjectPresetCategory> pathCategories,
       List<ProjectTerrainPreset> terrainPresets,
       List<ProjectPathPreset> pathPresets,
+      @JsonKey(
+          name: 'pathPatternPresets',
+          fromJson: decodeProjectPathPatternPresets,
+          toJson: encodeProjectPathPatternPresets)
+      List<ProjectPathPatternPreset> pathPatternPresets,
       List<ProjectEncounterTable> encounterTables,
       List<ProjectDialogueFolder> dialogueFolders,
       List<ProjectDialogueEntry> dialogues,
@@ -135,6 +146,7 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
     Object? pathCategories = null,
     Object? terrainPresets = null,
     Object? pathPresets = null,
+    Object? pathPatternPresets = null,
     Object? encounterTables = null,
     Object? dialogueFolders = null,
     Object? dialogues = null,
@@ -196,6 +208,10 @@ class _$ProjectManifestCopyWithImpl<$Res, $Val extends ProjectManifest>
           ? _value.pathPresets
           : pathPresets // ignore: cast_nullable_to_non_nullable
               as List<ProjectPathPreset>,
+      pathPatternPresets: null == pathPatternPresets
+          ? _value.pathPatternPresets
+          : pathPatternPresets // ignore: cast_nullable_to_non_nullable
+              as List<ProjectPathPatternPreset>,
       encounterTables: null == encounterTables
           ? _value.encounterTables
           : encounterTables // ignore: cast_nullable_to_non_nullable
@@ -285,6 +301,11 @@ abstract class _$$ProjectManifestImplCopyWith<$Res>
       List<ProjectPresetCategory> pathCategories,
       List<ProjectTerrainPreset> terrainPresets,
       List<ProjectPathPreset> pathPresets,
+      @JsonKey(
+          name: 'pathPatternPresets',
+          fromJson: decodeProjectPathPatternPresets,
+          toJson: encodeProjectPathPatternPresets)
+      List<ProjectPathPatternPreset> pathPatternPresets,
       List<ProjectEncounterTable> encounterTables,
       List<ProjectDialogueFolder> dialogueFolders,
       List<ProjectDialogueEntry> dialogues,
@@ -332,6 +353,7 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
     Object? pathCategories = null,
     Object? terrainPresets = null,
     Object? pathPresets = null,
+    Object? pathPatternPresets = null,
     Object? encounterTables = null,
     Object? dialogueFolders = null,
     Object? dialogues = null,
@@ -393,6 +415,10 @@ class __$$ProjectManifestImplCopyWithImpl<$Res>
           ? _value._pathPresets
           : pathPresets // ignore: cast_nullable_to_non_nullable
               as List<ProjectPathPreset>,
+      pathPatternPresets: null == pathPatternPresets
+          ? _value._pathPatternPresets
+          : pathPatternPresets // ignore: cast_nullable_to_non_nullable
+              as List<ProjectPathPatternPreset>,
       encounterTables: null == encounterTables
           ? _value._encounterTables
           : encounterTables // ignore: cast_nullable_to_non_nullable
@@ -458,6 +484,11 @@ class _$ProjectManifestImpl implements _ProjectManifest {
       final List<ProjectPresetCategory> pathCategories = const [],
       final List<ProjectTerrainPreset> terrainPresets = const [],
       final List<ProjectPathPreset> pathPresets = const [],
+      @JsonKey(
+          name: 'pathPatternPresets',
+          fromJson: decodeProjectPathPatternPresets,
+          toJson: encodeProjectPathPatternPresets)
+      final List<ProjectPathPatternPreset> pathPatternPresets = const [],
       final List<ProjectEncounterTable> encounterTables = const [],
       final List<ProjectDialogueFolder> dialogueFolders = const [],
       final List<ProjectDialogueEntry> dialogues = const [],
@@ -483,6 +514,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         _pathCategories = pathCategories,
         _terrainPresets = terrainPresets,
         _pathPresets = pathPresets,
+        _pathPatternPresets = pathPatternPresets,
         _encounterTables = encounterTables,
         _dialogueFolders = dialogueFolders,
         _dialogues = dialogues,
@@ -590,6 +622,19 @@ class _$ProjectManifestImpl implements _ProjectManifest {
     return EqualUnmodifiableListView(_pathPresets);
   }
 
+  final List<ProjectPathPatternPreset> _pathPatternPresets;
+  @override
+  @JsonKey(
+      name: 'pathPatternPresets',
+      fromJson: decodeProjectPathPatternPresets,
+      toJson: encodeProjectPathPatternPresets)
+  List<ProjectPathPatternPreset> get pathPatternPresets {
+    if (_pathPatternPresets is EqualUnmodifiableListView)
+      return _pathPatternPresets;
+    // ignore: implicit_dynamic_type
+    return EqualUnmodifiableListView(_pathPatternPresets);
+  }
+
   final List<ProjectEncounterTable> _encounterTables;
   @override
   @JsonKey()
@@ -677,7 +722,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
 
   @override
   String toString() {
-    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, globalProperties: $globalProperties, surfaceCatalog: $surfaceCatalog)';
+    return 'ProjectManifest(name: $name, version: $version, maps: $maps, groups: $groups, tilesetFolders: $tilesetFolders, tilesets: $tilesets, elementCategories: $elementCategories, elements: $elements, terrainCategories: $terrainCategories, pathCategories: $pathCategories, terrainPresets: $terrainPresets, pathPresets: $pathPresets, pathPatternPresets: $pathPatternPresets, encounterTables: $encounterTables, dialogueFolders: $dialogueFolders, dialogues: $dialogues, scripts: $scripts, scenarios: $scenarios, trainers: $trainers, characters: $characters, settings: $settings, pokemon: $pokemon, globalProperties: $globalProperties, surfaceCatalog: $surfaceCatalog)';
   }
 
   @override
@@ -703,6 +748,8 @@ class _$ProjectManifestImpl implements _ProjectManifest {
                 .equals(other._terrainPresets, _terrainPresets) &&
             const DeepCollectionEquality()
                 .equals(other._pathPresets, _pathPresets) &&
+            const DeepCollectionEquality()
+                .equals(other._pathPatternPresets, _pathPatternPresets) &&
             const DeepCollectionEquality()
                 .equals(other._encounterTables, _encounterTables) &&
             const DeepCollectionEquality()
@@ -740,6 +787,7 @@ class _$ProjectManifestImpl implements _ProjectManifest {
         const DeepCollectionEquality().hash(_pathCategories),
         const DeepCollectionEquality().hash(_terrainPresets),
         const DeepCollectionEquality().hash(_pathPresets),
+        const DeepCollectionEquality().hash(_pathPatternPresets),
         const DeepCollectionEquality().hash(_encounterTables),
         const DeepCollectionEquality().hash(_dialogueFolders),
         const DeepCollectionEquality().hash(_dialogues),
@@ -784,6 +832,11 @@ abstract class _ProjectManifest implements ProjectManifest {
           final List<ProjectPresetCategory> pathCategories,
           final List<ProjectTerrainPreset> terrainPresets,
           final List<ProjectPathPreset> pathPresets,
+          @JsonKey(
+              name: 'pathPatternPresets',
+              fromJson: decodeProjectPathPatternPresets,
+              toJson: encodeProjectPathPatternPresets)
+          final List<ProjectPathPatternPreset> pathPatternPresets,
           final List<ProjectEncounterTable> encounterTables,
           final List<ProjectDialogueFolder> dialogueFolders,
           final List<ProjectDialogueEntry> dialogues,
@@ -828,6 +881,12 @@ abstract class _ProjectManifest implements ProjectManifest {
   List<ProjectTerrainPreset> get terrainPresets;
   @override
   List<ProjectPathPreset> get pathPresets;
+  @override
+  @JsonKey(
+      name: 'pathPatternPresets',
+      fromJson: decodeProjectPathPatternPresets,
+      toJson: encodeProjectPathPatternPresets)
+  List<ProjectPathPatternPreset> get pathPatternPresets;
   @override
   List<ProjectEncounterTable> get encounterTables;
   @override

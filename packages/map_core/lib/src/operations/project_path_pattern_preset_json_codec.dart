@@ -1,8 +1,8 @@
 // JSON codec manuel — [ProjectPathPatternPreset].
 //
-// Prépare une future persistance PathPattern sans branchement manifeste et
-// sans ajouter toJson/fromJson au modèle. Le codec réutilise le format généré
-// existant de TilesetVisualFrame pour éviter un second schéma de frame.
+// Persistance PathPattern externe au modèle : aucune méthode toJson/fromJson
+// sur [ProjectPathPatternPreset]. Le codec réutilise le format généré existant
+// de TilesetVisualFrame pour éviter un second schéma de frame.
 
 import '../exceptions/map_exceptions.dart';
 import '../models/path_center_pattern.dart';
@@ -158,6 +158,38 @@ ProjectPathPatternPreset decodeProjectPathPatternPreset(
       'ProjectPathPatternPreset.sortOrder',
     ),
   );
+}
+
+/// Encodes a manifest-level list of PathPattern presets.
+List<Map<String, dynamic>> encodeProjectPathPatternPresets(
+  List<ProjectPathPatternPreset> presets,
+) {
+  return [
+    for (final preset in presets) encodeProjectPathPatternPreset(preset),
+  ];
+}
+
+/// Decodes a manifest-level list of PathPattern presets.
+///
+/// Missing or `null` manifest fields are interpreted as an empty list so old
+/// project manifests stay compatible.
+List<ProjectPathPatternPreset> decodeProjectPathPatternPresets(Object? json) {
+  if (json == null) {
+    return const [];
+  }
+  if (json is! List) {
+    throw const ValidationException('pathPatternPresets must be a List');
+  }
+
+  final presets = <ProjectPathPatternPreset>[];
+  for (var index = 0; index < json.length; index += 1) {
+    final item = json[index];
+    if (item is! Map) {
+      throw ValidationException('pathPatternPresets[$index] must be an Object');
+    }
+    presets.add(decodeProjectPathPatternPreset(_stringKeyMapFrom(item)));
+  }
+  return presets;
 }
 
 Map<String, dynamic> _encodePathCenterPattern(PathCenterPattern pattern) {
