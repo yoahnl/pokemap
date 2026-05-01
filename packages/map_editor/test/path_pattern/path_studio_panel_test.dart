@@ -65,6 +65,147 @@ void main() {
       expect(find.text('Preset de base introuvable'), findsWidgets);
     });
 
+    testWidgets(
+        'selected saved preset shows read-only center and inspector detail',
+        (tester) async {
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          pathPresets: [
+            _legacyPathPreset(
+              id: 'legacy-water',
+              name: 'Base eau',
+              tilesetId: 'tileset-main',
+            ),
+          ],
+          tilesets: [
+            _tileset(id: 'tileset-main', name: 'Chemins principaux'),
+          ],
+          pathPatternPresets: [
+            _pathPatternPreset(
+              id: 'water-sea-2x2',
+              name: 'Mer 2x2',
+              pattern: _twoByTwoPattern(animatedTopLeft: true),
+            ),
+          ],
+        ),
+      );
+
+      await tester.tap(find.byKey(const Key('path-studio-preset-card-0')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('PathPattern sauvegardé'), findsOneWidget);
+      expect(find.text('Present dans le projet'), findsWidgets);
+      expect(find.text('Base path preset id'), findsWidgets);
+      expect(find.text('legacy-water'), findsWidgets);
+      expect(find.text('Base eau'), findsWidgets);
+      expect(find.text('Tileset de base'), findsWidgets);
+      expect(find.byKey(const Key('path-studio-saved-cell-thumbnail-A')),
+          findsOneWidget);
+      expect(find.text('Anime - 2 frames'), findsOneWidget);
+    });
+
+    testWidgets('saved preset uses image-backed thumbnail when tileset exists',
+        (tester) async {
+      final temp = (await tester.runAsync(
+        () => Directory.systemTemp.createTemp('path_studio_saved_img_'),
+      ))!;
+      addTearDown(() => temp.delete(recursive: true));
+      final imageFile = File(p.join(temp.path, 'tilesets/tileset-main.png'));
+      await tester.runAsync(() async {
+        await imageFile.parent.create(recursive: true);
+        await imageFile.writeAsBytes(await _pngBytes(width: 64, height: 32));
+      });
+
+      await _pumpPathStudio(
+        tester,
+        projectRootPath: temp.path,
+        manifest: _manifest(
+          pathPresets: [
+            _legacyPathPreset(
+              id: 'legacy-water',
+              name: 'Base eau',
+              tilesetId: 'tileset-main',
+            ),
+          ],
+          tilesets: [
+            _tileset(id: 'tileset-main', name: 'Chemins principaux'),
+          ],
+          pathPatternPresets: [
+            _pathPatternPreset(id: 'saved-water'),
+          ],
+        ),
+      );
+
+      await tester.tap(find.byKey(const Key('path-studio-preset-card-0')));
+      await _pumpPathStudioAsync(tester);
+
+      expect(find.byKey(const Key('path-studio-saved-cell-thumbnail-A')),
+          findsOneWidget);
+      expect(
+        find.byKey(const Key('path-studio-saved-cell-thumbnail-image-A')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+        'saved preset missing image falls back to readable source label',
+        (tester) async {
+      final temp = (await tester.runAsync(
+        () => Directory.systemTemp.createTemp('path_studio_saved_missing_'),
+      ))!;
+      addTearDown(() => temp.delete(recursive: true));
+
+      await _pumpPathStudio(
+        tester,
+        projectRootPath: temp.path,
+        manifest: _manifest(
+          pathPresets: [
+            _legacyPathPreset(
+              id: 'legacy-water',
+              name: 'Base eau',
+              tilesetId: 'tileset-main',
+            ),
+          ],
+          tilesets: [
+            _tileset(id: 'tileset-main', name: 'Chemins principaux'),
+          ],
+          pathPatternPresets: [
+            _pathPatternPreset(id: 'saved-water'),
+          ],
+        ),
+      );
+
+      await tester.tap(find.byKey(const Key('path-studio-preset-card-0')));
+      await _pumpPathStudioAsync(tester);
+
+      expect(find.byKey(const Key('path-studio-saved-cell-thumbnail-A')),
+          findsOneWidget);
+      expect(find.text('0,0'), findsWidgets);
+    });
+
+    testWidgets('saved preset with missing base path shows diagnostic',
+        (tester) async {
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          pathPatternPresets: [
+            _pathPatternPreset(
+              id: 'missing-base',
+              basePathPresetId: 'absent-base',
+            ),
+          ],
+        ),
+      );
+
+      await tester.tap(find.byKey(const Key('path-studio-preset-card-0')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Preset de base introuvable'), findsWidgets);
+      expect(find.text('Base path name'), findsWidgets);
+      expect(find.text('Introuvable'), findsWidgets);
+    });
+
     testWidgets('filters presets locally and clears selection on no result',
         (tester) async {
       await _pumpPathStudio(
@@ -1132,10 +1273,12 @@ ProjectPathPreset _legacyPathPreset({
   required String id,
   String name = 'Legacy Water',
   int crossSourceX = 0,
+  String tilesetId = '',
 }) {
   return ProjectPathPreset(
     id: id,
     name: name,
+    tilesetId: tilesetId,
     surfaceKind: PathSurfaceKind.water,
     variants: [
       PathPresetVariantMapping(

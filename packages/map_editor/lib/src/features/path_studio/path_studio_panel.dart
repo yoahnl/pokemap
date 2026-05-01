@@ -13,6 +13,8 @@ import 'path_studio_save_plan.dart';
 import 'path_studio_theme.dart';
 import 'path_studio_tileset_image_picker.dart';
 
+part 'path_studio_saved_preset_detail.dart';
+
 /// Workspace branché au shell global de l'éditeur.
 ///
 /// Ce wrapper Riverpod reste volontairement fin : il lit seulement le manifest
@@ -129,6 +131,9 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
     final selected = _newPathDraftSelected || _draftSelected
         ? null
         : _selectedCard(filtered);
+    final selectedPreset = selected == null
+        ? null
+        : _pathPatternPresetBySourceIndex(selected.sourceIndex);
     final selectedNewPathDraft = _newPathDraftSelected ? _newPathDraft : null;
     final selectedDraft = _draftSelected ? _draft : null;
     final newPathSavePlan = selectedNewPathDraft == null
@@ -222,6 +227,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: _CenterWorkspace(
+                      manifest: widget.manifest,
                       tilesets: widget.manifest.tilesets,
                       settings: widget.manifest.settings,
                       projectRootPath: widget.projectRootPath,
@@ -232,6 +238,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
                       hasSaveCallback: saveCallback != null,
                       saveFeedbackMessage: _saveFeedbackMessage,
                       selected: selected?.card,
+                      selectedPreset: selectedPreset,
                       hasAnyPreset: readModel.presets.isNotEmpty,
                       onNewPathSizeChanged: _resizeNewPathDraft,
                       onNewPathCellSelected: _selectNewPathDraftCell,
@@ -249,6 +256,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
                       newPathDraft: selectedNewPathDraft,
                       draft: selectedDraft,
                       selected: selected?.card,
+                      selectedPreset: selectedPreset,
                       onNewPathNameChanged: _renameNewPathDraft,
                       onNewPathTilesetChanged: _selectNewPathDraftTileset,
                       onNewPathSizeChanged: _resizeNewPathDraft,
@@ -594,6 +602,14 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
       }
     }
     return null;
+  }
+
+  ProjectPathPatternPreset? _pathPatternPresetBySourceIndex(int sourceIndex) {
+    if (sourceIndex < 0 ||
+        sourceIndex >= widget.manifest.pathPatternPresets.length) {
+      return null;
+    }
+    return widget.manifest.pathPatternPresets[sourceIndex];
   }
 }
 
@@ -1458,6 +1474,7 @@ class _MiniMetric extends StatelessWidget {
 
 class _CenterWorkspace extends StatelessWidget {
   const _CenterWorkspace({
+    required this.manifest,
     required this.tilesets,
     required this.settings,
     required this.projectRootPath,
@@ -1468,6 +1485,7 @@ class _CenterWorkspace extends StatelessWidget {
     required this.hasSaveCallback,
     required this.saveFeedbackMessage,
     required this.selected,
+    required this.selectedPreset,
     required this.hasAnyPreset,
     required this.onNewPathSizeChanged,
     required this.onNewPathCellSelected,
@@ -1477,6 +1495,7 @@ class _CenterWorkspace extends StatelessWidget {
     required this.onDraftCellSelected,
   });
 
+  final ProjectManifest manifest;
   final List<ProjectTilesetEntry> tilesets;
   final ProjectSettings settings;
   final String? projectRootPath;
@@ -1487,6 +1506,7 @@ class _CenterWorkspace extends StatelessWidget {
   final bool hasSaveCallback;
   final String? saveFeedbackMessage;
   final PathPatternPresetCardModel? selected;
+  final ProjectPathPatternPreset? selectedPreset;
   final bool hasAnyPreset;
   final void Function(int width, int height) onNewPathSizeChanged;
   final void Function(int localX, int localY) onNewPathCellSelected;
@@ -1529,6 +1549,14 @@ class _CenterWorkspace extends StatelessWidget {
       return _NoSelectionCenter(hasAnyPreset: hasAnyPreset);
     }
 
+    final preset = selectedPreset;
+    if (preset == null) {
+      return _NoSelectionCenter(hasAnyPreset: hasAnyPreset);
+    }
+    final detail = _createSavedPathPatternDetail(
+      manifest: manifest,
+      preset: preset,
+    );
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1537,7 +1565,12 @@ class _CenterWorkspace extends StatelessWidget {
           const SizedBox(height: 14),
           _SelectedSummary(card: card),
           const SizedBox(height: 14),
-          _CenterPatternPlaceholder(card: card),
+          _SavedPresetCenterDetail(
+            detail: detail,
+            tilesets: tilesets,
+            settings: settings,
+            projectRootPath: projectRootPath,
+          ),
           const SizedBox(height: 14),
           _DiagnosticsCard(card: card),
         ],
@@ -3144,112 +3177,6 @@ class _SelectedSummary extends StatelessWidget {
   }
 }
 
-class _CenterPatternPlaceholder extends StatelessWidget {
-  const _CenterPatternPlaceholder({required this.card});
-
-  final PathPatternPresetCardModel card;
-
-  @override
-  Widget build(BuildContext context) {
-    return _SectionCard(
-      title: 'Motif du centre',
-      icon: CupertinoIcons.square_grid_2x2,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _MiniPatternGrid(card: card),
-          const SizedBox(width: 18),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Éditeur read-only',
-                  style: TextStyle(
-                    color: PathStudioTheme.textPrimary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'L’édition 1×1 / 2×2 arrivera au lot 14. Cette zone pose seulement la structure du futur espace de travail, sans drag & drop ni génération PNG.',
-                  style: TextStyle(
-                    color: PathStudioTheme.textSecondary,
-                    fontSize: 13,
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _MiniPatternGrid extends StatelessWidget {
-  const _MiniPatternGrid({required this.card});
-
-  final PathPatternPresetCardModel card;
-
-  @override
-  Widget build(BuildContext context) {
-    final rows = <Widget>[];
-    var labelCode = 'A'.codeUnitAt(0);
-    for (var y = 0; y < card.centerHeight; y += 1) {
-      final cells = <Widget>[];
-      for (var x = 0; x < card.centerWidth; x += 1) {
-        cells.add(_PatternCell(label: String.fromCharCode(labelCode)));
-        labelCode += 1;
-      }
-      rows.add(Row(mainAxisSize: MainAxisSize.min, children: cells));
-    }
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: PathStudioTheme.subtleDecoration(
-        color: PathStudioTheme.backgroundAlt,
-      ),
-      child: Column(mainAxisSize: MainAxisSize.min, children: rows),
-    );
-  }
-}
-
-class _PatternCell extends StatelessWidget {
-  const _PatternCell({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 54,
-      height: 54,
-      margin: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: Color.lerp(
-          PathStudioTheme.surfaceStrong,
-          PathStudioTheme.accentCyan,
-          0.18,
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-            color: PathStudioTheme.accentCyan.withValues(alpha: 0.5)),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        label,
-        style: const TextStyle(
-          color: PathStudioTheme.textPrimary,
-          fontSize: 16,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
-    );
-  }
-}
-
 class _DiagnosticsCard extends StatelessWidget {
   const _DiagnosticsCard({required this.card});
 
@@ -3294,6 +3221,7 @@ class _PresetInspector extends StatelessWidget {
     required this.newPathDraft,
     required this.draft,
     required this.selected,
+    required this.selectedPreset,
     required this.onNewPathNameChanged,
     required this.onNewPathTilesetChanged,
     required this.onNewPathSizeChanged,
@@ -3306,6 +3234,7 @@ class _PresetInspector extends StatelessWidget {
   final PathStudioNewPathDraft? newPathDraft;
   final PathPatternDraft? draft;
   final PathPatternPresetCardModel? selected;
+  final ProjectPathPatternPreset? selectedPreset;
   final ValueChanged<String> onNewPathNameChanged;
   final ValueChanged<String> onNewPathTilesetChanged;
   final void Function(int width, int height) onNewPathSizeChanged;
@@ -3336,10 +3265,18 @@ class _PresetInspector extends StatelessWidget {
       );
     }
     final card = selected;
+    final preset = selectedPreset;
+    final basePathPreset = preset == null
+        ? null
+        : _resolveBasePathPreset(
+            manifest: manifest,
+            basePathPresetId: preset.basePathPresetId,
+          );
+    final baseTilesetId = basePathPreset?.tilesetId.trim() ?? '';
     return Container(
       decoration: PathStudioTheme.panelDecoration(),
       padding: const EdgeInsets.all(16),
-      child: card == null
+      child: card == null || preset == null
           ? const _InspectorEmptyState()
           : SingleChildScrollView(
               child: Column(
@@ -3354,30 +3291,48 @@ class _PresetInspector extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  _InspectorRow(label: 'Nom', value: card.name),
-                  _InspectorRow(label: 'ID', value: card.id),
+                  const _StatusChip(
+                    label: 'Present dans le projet',
+                    color: PathStudioTheme.success,
+                  ),
+                  const SizedBox(height: 12),
+                  _InspectorRow(label: 'Nom', value: preset.name),
+                  _InspectorRow(label: 'ID', value: preset.id),
                   _InspectorRow(
                     label: 'Base path preset id',
-                    value: card.basePathPresetId,
+                    value: preset.basePathPresetId,
                   ),
                   _InspectorRow(
-                      label: 'Preset de base',
-                      value: card.basePathPresetName ?? 'Introuvable'),
+                    label: 'Base path name',
+                    value: card.basePathPresetName ?? 'Introuvable',
+                  ),
                   _InspectorRow(
-                      label: 'Surface',
-                      value: card.basePathSurfaceKindLabel ?? 'Non disponible'),
+                    label: 'Tileset de base',
+                    value: baseTilesetId.isEmpty
+                        ? 'Non disponible'
+                        : baseTilesetId,
+                  ),
                   _InspectorRow(
-                      label: 'Taille centre', value: card.centerPatternLabel),
+                    label: 'Taille du centre',
+                    value:
+                        '${preset.centerPattern.size.width}×${preset.centerPattern.size.height}',
+                  ),
                   _InspectorRow(
                       label: 'Cellules', value: '${card.centerCellCount}'),
                   _InspectorRow(
                       label: 'Frames', value: '${card.centerFrameCount}'),
                   _InspectorRow(
-                      label: 'Cellules animées',
-                      value: '${card.animatedCellCount}'),
+                    label: 'Cellules animees',
+                    value: '${card.animatedCellCount}',
+                  ),
                   _InspectorRow(
-                      label: 'Transparent color',
-                      value: card.transparentColorHex ?? 'Aucune'),
+                    label: 'Transparent color',
+                    value: preset.transparentColor?.toHexRgb() ?? 'Aucune',
+                  ),
+                  const _InspectorRow(
+                    label: 'Statut',
+                    value: 'Present dans le projet',
+                  ),
                   const SizedBox(height: 14),
                   _DiagnosticsCard(card: card),
                 ],
