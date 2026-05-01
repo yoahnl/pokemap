@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 
+import '../editor/state/editor_notifier.dart';
 import '../editor/state/editor_selectors.dart';
 import 'path_pattern_draft.dart';
 import 'path_pattern_editor_read_model.dart';
@@ -29,6 +30,16 @@ class PathStudioWorkspace extends ConsumerWidget {
     return PathStudioPanel(
       manifest: manifest,
       projectRootPath: projectRootPath,
+      onPathPatternPresetSaveRequested: (preset) {
+        final currentManifest = ref.read(editorProjectManifestProvider);
+        if (currentManifest == null) return;
+        final updatedManifest = upsertProjectPathPatternPreset(
+          manifest: currentManifest,
+          preset: preset,
+        );
+        ref.read(editorNotifierProvider.notifier)
+            .applyInMemoryProjectManifest(updatedManifest);
+      },
     );
   }
 }
