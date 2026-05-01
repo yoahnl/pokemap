@@ -11,6 +11,7 @@ import 'package:map_editor/src/application/models/pokemon_database_index.dart';
 import 'package:map_editor/src/application/use_cases/sync_pokemon_moves_catalog_use_case.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/ui/shared/top_toolbar/widgets/toolbar_capsules.dart';
 
 import 'shell_chrome_test_harness.dart';
 
@@ -306,7 +307,8 @@ void main() {
       expect(container.read(editorNotifierProvider).errorMessage, isNull);
     });
 
-    testWidgets('Cmd/Ctrl+S saves project outside map workspace', (tester) async {
+    testWidgets('Cmd/Ctrl+S saves project outside map workspace',
+        (tester) async {
       await pumpEditorShellPage(
         tester,
         initialState: EditorState(
@@ -340,6 +342,59 @@ void main() {
 
       expect(container.read(editorNotifierProvider).project, isNull);
       expect(container.read(editorNotifierProvider).errorMessage, isNull);
+    });
+
+    testWidgets('affiche puis retire le signal projet non sauvegardé',
+        (tester) async {
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/editor_shell_project_dirty',
+          project: buildShellChromeProject(),
+          workspaceMode: EditorWorkspaceMode.pathStudio,
+          isProjectDirty: true,
+        ),
+      );
+
+      expect(
+        find.text(
+          'Projet modifié en mémoire — sauvegardez le projet avec la disquette.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('status-bar-project-dirty-chip')),
+          findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is ToolbarCapsuleButton &&
+              widget.tooltip == 'Save Project — unsaved project changes',
+        ),
+        findsOneWidget,
+      );
+
+      container.read(editorNotifierProvider.notifier).state =
+          container.read(editorNotifierProvider).copyWith(
+                isProjectDirty: false,
+                statusMessage: 'Projet sauvegardé via le flux projet existant.',
+              );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'Projet modifié en mémoire — sauvegardez le projet avec la disquette.',
+        ),
+        findsNothing,
+      );
+      expect(
+          find.byKey(const Key('status-bar-project-dirty-chip')), findsNothing);
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is ToolbarCapsuleButton && widget.tooltip == 'Save Project',
+        ),
+        findsOneWidget,
+      );
     });
   });
 }

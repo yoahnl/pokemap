@@ -110,6 +110,7 @@ class EditorState with _$EditorState {
     @Default(false) bool canUndoMap,
     @Default(false) bool canRedoMap,
     @Default(false) bool isDirty,
+    @Default(false) bool isProjectDirty,
     @Default(false) bool isSaving,
     String? statusMessage,
     String? errorMessage,

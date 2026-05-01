@@ -167,14 +167,21 @@ class TopToolbar extends ConsumerWidget {
           else
             ToolbarCapsuleButton(
               icon: CupertinoIcons.floppy_disk,
-              tooltip: toolbar.workspaceMode == EditorWorkspaceMode.map
-                  ? 'Save Map'
-                  : 'Save Project',
-              selected: toolbar.isDirty,
+              tooltip: switch (toolbar.workspaceMode) {
+                EditorWorkspaceMode.map => 'Save Map',
+                _ => toolbar.isProjectDirty
+                    ? 'Save Project — unsaved project changes'
+                    : 'Save Project',
+              },
+              selected: switch (toolbar.workspaceMode) {
+                EditorWorkspaceMode.map => toolbar.isDirty,
+                _ => toolbar.isProjectDirty,
+              },
               onPressed: switch (toolbar.workspaceMode) {
                 EditorWorkspaceMode.map =>
                   toolbar.canSaveMap ? notifier.saveActiveMap : null,
-                _ => toolbar.project != null ? notifier.saveProjectManifest : null,
+                _ =>
+                  toolbar.project != null ? notifier.saveProjectManifest : null,
               },
             ),
           ToolbarCapsuleButton(

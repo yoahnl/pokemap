@@ -12,7 +12,14 @@ class StatusBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(editorNotifierProvider);
     final activeMap = state.activeMap;
+    const pendingProjectSaveMessage =
+        'Projet modifié en mémoire — sauvegardez le projet avec la disquette.';
     final hasError = state.errorMessage != null;
+    final primaryMessage = hasError
+        ? state.errorMessage!
+        : state.isProjectDirty
+            ? pendingProjectSaveMessage
+            : state.statusMessage ?? 'Ready';
     final labelColor =
         hasError ? const Color(0xFFF3C5CB) : EditorChrome.subtleLabel(context);
     final tint = hasError
@@ -62,7 +69,7 @@ class StatusBar extends ConsumerWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  state.errorMessage ?? state.statusMessage ?? 'Ready',
+                  primaryMessage,
                   style: TextStyle(
                     fontSize: 12,
                     color: hasError ? leadingTint : const Color(0xFFF2F2F4),
@@ -87,6 +94,16 @@ class StatusBar extends ConsumerWidget {
                 ),
                 const SizedBox(width: 8),
               ],
+              if (state.isProjectDirty) ...[
+                _statusChip(
+                  context,
+                  'Projet non sauvegardé',
+                  CupertinoIcons.floppy_disk,
+                  labelColor,
+                  key: const Key('status-bar-project-dirty-chip'),
+                ),
+                const SizedBox(width: 8),
+              ],
               _statusChip(
                 context,
                 'Zoom ${(state.zoom * 100).toInt()}%',
@@ -101,12 +118,10 @@ class StatusBar extends ConsumerWidget {
   }
 
   static Widget _statusChip(
-    BuildContext context,
-    String label,
-    IconData icon,
-    Color textColor,
-  ) {
+      BuildContext context, String label, IconData icon, Color textColor,
+      {Key? key}) {
     return Container(
+      key: key,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: Color.lerp(

@@ -773,6 +773,7 @@ mixin _$EditorState {
   bool get canUndoMap => throw _privateConstructorUsedError;
   bool get canRedoMap => throw _privateConstructorUsedError;
   bool get isDirty => throw _privateConstructorUsedError;
+  bool get isProjectDirty => throw _privateConstructorUsedError;
   bool get isSaving => throw _privateConstructorUsedError;
   String? get statusMessage => throw _privateConstructorUsedError;
   String? get errorMessage => throw _privateConstructorUsedError;
@@ -833,6 +834,7 @@ abstract class $EditorStateCopyWith<$Res> {
       bool canUndoMap,
       bool canRedoMap,
       bool isDirty,
+      bool isProjectDirty,
       bool isSaving,
       String? statusMessage,
       String? errorMessage});
@@ -903,6 +905,7 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? canUndoMap = null,
     Object? canRedoMap = null,
     Object? isDirty = null,
+    Object? isProjectDirty = null,
     Object? isSaving = null,
     Object? statusMessage = freezed,
     Object? errorMessage = freezed,
@@ -1077,6 +1080,10 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
           ? _value.isDirty
           : isDirty // ignore: cast_nullable_to_non_nullable
               as bool,
+      isProjectDirty: null == isProjectDirty
+          ? _value.isProjectDirty
+          : isProjectDirty // ignore: cast_nullable_to_non_nullable
+              as bool,
       isSaving: null == isSaving
           ? _value.isSaving
           : isSaving // ignore: cast_nullable_to_non_nullable
@@ -1238,6 +1245,7 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       bool canUndoMap,
       bool canRedoMap,
       bool isDirty,
+      bool isProjectDirty,
       bool isSaving,
       String? statusMessage,
       String? errorMessage});
@@ -1313,6 +1321,7 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? canUndoMap = null,
     Object? canRedoMap = null,
     Object? isDirty = null,
+    Object? isProjectDirty = null,
     Object? isSaving = null,
     Object? statusMessage = freezed,
     Object? errorMessage = freezed,
@@ -1487,6 +1496,10 @@ class __$$EditorStateImplCopyWithImpl<$Res>
           ? _value.isDirty
           : isDirty // ignore: cast_nullable_to_non_nullable
               as bool,
+      isProjectDirty: null == isProjectDirty
+          ? _value.isProjectDirty
+          : isProjectDirty // ignore: cast_nullable_to_non_nullable
+              as bool,
       isSaving: null == isSaving
           ? _value.isSaving
           : isSaving // ignore: cast_nullable_to_non_nullable
@@ -1549,6 +1562,7 @@ class _$EditorStateImpl implements _EditorState {
       this.canUndoMap = false,
       this.canRedoMap = false,
       this.isDirty = false,
+      this.isProjectDirty = false,
       this.isSaving = false,
       this.statusMessage,
       this.errorMessage})
@@ -1703,6 +1717,9 @@ class _$EditorStateImpl implements _EditorState {
   final bool isDirty;
   @override
   @JsonKey()
+  final bool isProjectDirty;
+  @override
+  @JsonKey()
   final bool isSaving;
   @override
   final String? statusMessage;
@@ -1711,7 +1728,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, pokemonCatalogSection: $pokemonCatalogSection, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedSurfacePresetId: $selectedSurfacePresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, npcWaypointPlacementEntityId: $npcWaypointPlacementEntityId, selectedMapEventId: $selectedMapEventId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, tilesElementsPanelMode: $tilesElementsPanelMode, selectedPlacedElementInstanceId: $selectedPlacedElementInstanceId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, pokemonCatalogSection: $pokemonCatalogSection, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedSurfacePresetId: $selectedSurfacePresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, npcWaypointPlacementEntityId: $npcWaypointPlacementEntityId, selectedMapEventId: $selectedMapEventId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, tilesElementsPanelMode: $tilesElementsPanelMode, selectedPlacedElementInstanceId: $selectedPlacedElementInstanceId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isProjectDirty: $isProjectDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -1794,6 +1811,7 @@ class _$EditorStateImpl implements _EditorState {
             (identical(other.canUndoMap, canUndoMap) || other.canUndoMap == canUndoMap) &&
             (identical(other.canRedoMap, canRedoMap) || other.canRedoMap == canRedoMap) &&
             (identical(other.isDirty, isDirty) || other.isDirty == isDirty) &&
+            (identical(other.isProjectDirty, isProjectDirty) || other.isProjectDirty == isProjectDirty) &&
             (identical(other.isSaving, isSaving) || other.isSaving == isSaving) &&
             (identical(other.statusMessage, statusMessage) || other.statusMessage == statusMessage) &&
             (identical(other.errorMessage, errorMessage) || other.errorMessage == errorMessage));
@@ -1844,6 +1862,7 @@ class _$EditorStateImpl implements _EditorState {
         canUndoMap,
         canRedoMap,
         isDirty,
+        isProjectDirty,
         isSaving,
         statusMessage,
         errorMessage
@@ -1902,6 +1921,7 @@ abstract class _EditorState implements EditorState {
       final bool canUndoMap,
       final bool canRedoMap,
       final bool isDirty,
+      final bool isProjectDirty,
       final bool isSaving,
       final String? statusMessage,
       final String? errorMessage}) = _$EditorStateImpl;
@@ -2009,6 +2029,8 @@ abstract class _EditorState implements EditorState {
   bool get canRedoMap;
   @override
   bool get isDirty;
+  @override
+  bool get isProjectDirty;
   @override
   bool get isSaving;
   @override

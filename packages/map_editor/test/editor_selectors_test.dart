@@ -91,6 +91,7 @@ void main() {
         canUndoMap: true,
         canRedoMap: true,
         isDirty: true,
+        isProjectDirty: true,
       );
 
       final shell = container.read(editorShellSnapshotProvider);
@@ -102,6 +103,7 @@ void main() {
       expect(toolbar.canSaveMap, isFalse);
       expect(toolbar.canUndoMap, isFalse);
       expect(toolbar.canRedoMap, isFalse);
+      expect(toolbar.isProjectDirty, isTrue);
     });
 
     test('editorProjectExplorerSnapshotProvider exposes active map selection',

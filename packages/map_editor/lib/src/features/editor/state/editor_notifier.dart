@@ -413,7 +413,10 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   void applyInMemoryProjectManifest(ProjectManifest manifest) {
-    state = state.copyWith(project: manifest);
+    state = state.copyWith(
+      project: manifest,
+      isProjectDirty: true,
+    );
   }
 
   Future<bool> saveProjectManifest() async {
@@ -432,6 +435,7 @@ class EditorNotifier extends _$EditorNotifier {
             fs.projectManifestPath,
           );
       state = state.copyWith(
+        isProjectDirty: false,
         statusMessage: 'Projet sauvegardé via le flux projet existant.',
         errorMessage: null,
       );

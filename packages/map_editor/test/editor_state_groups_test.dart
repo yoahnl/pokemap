@@ -134,6 +134,7 @@ void main() {
               canUndoMap: false,
               canRedoMap: false,
               isDirty: true,
+              isProjectDirty: false,
               isSaving: false,
               statusMessage: 'Updated',
               errorMessage: null,

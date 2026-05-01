@@ -12,11 +12,13 @@ import 'package:map_editor/src/features/path_studio/path_studio_save_flow.dart';
 
 void main() {
   group('PathPattern deep_water persistence bugfix', () {
-    test('fixture deep_water statique documente une frame par cellule', () async {
+    test('fixture deep_water statique documente une frame par cellule',
+        () async {
       final file = File(
         'test/fixtures/path_pattern/deep_water_static_saved_project_fixture.json',
       );
-      final decoded = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+      final decoded =
+          jsonDecode(await file.readAsString()) as Map<String, dynamic>;
       final manifest = ProjectManifest.fromJson(decoded);
       final pattern = manifest.pathPatternPresets.singleWhere(
         (preset) => preset.id == 'nouveau-chemin-pattern',
@@ -31,7 +33,8 @@ void main() {
       }
     });
 
-    test('create flow conserve deep_water multi-frame jusqu au JSON roundtrip', () {
+    test('create flow conserve deep_water multi-frame jusqu au JSON roundtrip',
+        () {
       final draft = _buildDeepWaterDraft2x2(
         createInitialPathStudioNewPathDraft(),
       );
@@ -48,7 +51,8 @@ void main() {
       );
 
       final reloaded = ProjectManifest.fromJson(
-        jsonDecode(jsonEncode(updatedManifest.toJson())) as Map<String, dynamic>,
+        jsonDecode(jsonEncode(updatedManifest.toJson()))
+            as Map<String, dynamic>,
       );
       _expectDeepWaterAnimatedPattern(reloaded.pathPatternPresets.single);
     });
@@ -76,7 +80,8 @@ void main() {
         request: editRequest,
       );
       final reloaded = ProjectManifest.fromJson(
-        jsonDecode(jsonEncode(updatedManifest.toJson())) as Map<String, dynamic>,
+        jsonDecode(jsonEncode(updatedManifest.toJson()))
+            as Map<String, dynamic>,
       );
       _expectDeepWaterAnimatedPattern(
         reloaded.pathPatternPresets.singleWhere(
@@ -85,7 +90,8 @@ void main() {
       );
     });
 
-    test('saveProjectManifest serialize le manifest courant en memoire', () async {
+    test('saveProjectManifest serialize le manifest courant en memoire',
+        () async {
       final tempDir = await Directory.systemTemp.createTemp(
         'deep_water_persistence_',
       );
@@ -125,11 +131,14 @@ void main() {
       );
 
       notifier.applyInMemoryProjectManifest(updatedManifest);
+      expect(notifier.state.isProjectDirty, isTrue);
       final saveResult = await notifier.saveProjectManifest();
       expect(saveResult, isTrue);
+      expect(notifier.state.isProjectDirty, isFalse);
 
       final persisted = ProjectManifest.fromJson(
-        jsonDecode(await File(manifestPath).readAsString()) as Map<String, dynamic>,
+        jsonDecode(await File(manifestPath).readAsString())
+            as Map<String, dynamic>,
       );
       _expectDeepWaterAnimatedPattern(
         persisted.pathPatternPresets.singleWhere(
@@ -287,6 +296,7 @@ ProjectManifest _loadStaticDeepWaterManifestFixture() {
   final fixture = File(
     'test/fixtures/path_pattern/deep_water_static_saved_project_fixture.json',
   );
-  final decoded = jsonDecode(fixture.readAsStringSync()) as Map<String, dynamic>;
+  final decoded =
+      jsonDecode(fixture.readAsStringSync()) as Map<String, dynamic>;
   return ProjectManifest.fromJson(decoded);
 }

@@ -75,7 +75,7 @@ void main() {
           project: buildShellChromeProject(name: 'Pokemon Map'),
           workspaceMode: EditorWorkspaceMode.pathStudio,
           activeMap: buildShellChromeMap(),
-          isDirty: true,
+          isProjectDirty: true,
           canUndoMap: true,
           canRedoMap: true,
         ),
@@ -90,7 +90,10 @@ void main() {
         );
       }
 
-      expect(buttonWithTooltip('Save Project').onPressed, isNotNull);
+      final saveButton =
+          buttonWithTooltip('Save Project — unsaved project changes');
+      expect(saveButton.onPressed, isNotNull);
+      expect(saveButton.selected, isTrue);
       expect(buttonWithTooltip('Undo').onPressed, isNull);
       expect(buttonWithTooltip('Redo').onPressed, isNull);
 
@@ -101,6 +104,31 @@ void main() {
         ),
         findsNothing,
       );
+    });
+
+    testWidgets(
+        'shows neutral Save Project when project is clean in Path Studio',
+        (tester) async {
+      await pumpTopToolbarHarness(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/top_toolbar_path_studio_clean',
+          project: buildShellChromeProject(name: 'Pokemon Map'),
+          workspaceMode: EditorWorkspaceMode.pathStudio,
+          activeMap: buildShellChromeMap(),
+          isProjectDirty: false,
+        ),
+      );
+
+      final saveButton = tester.widget<ToolbarCapsuleButton>(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is ToolbarCapsuleButton &&
+              widget.tooltip == 'Save Project',
+        ),
+      );
+      expect(saveButton.onPressed, isNotNull);
+      expect(saveButton.selected, isFalse);
     });
 
     testWidgets('keeps map save action in map workspace', (tester) async {

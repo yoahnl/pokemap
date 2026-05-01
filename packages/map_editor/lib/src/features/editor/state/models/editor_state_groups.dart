@@ -257,6 +257,7 @@ class EditorDocumentStatusState {
     required this.canUndoMap,
     required this.canRedoMap,
     required this.isDirty,
+    required this.isProjectDirty,
     required this.isSaving,
     required this.statusMessage,
     required this.errorMessage,
@@ -269,6 +270,7 @@ class EditorDocumentStatusState {
   final bool canUndoMap;
   final bool canRedoMap;
   final bool isDirty;
+  final bool isProjectDirty;
   final bool isSaving;
   final String? statusMessage;
   final String? errorMessage;
@@ -281,6 +283,7 @@ class EditorDocumentStatusState {
     bool? canUndoMap,
     bool? canRedoMap,
     bool? isDirty,
+    bool? isProjectDirty,
     bool? isSaving,
     Object? statusMessage = _editorStateGroupsUnset,
     Object? errorMessage = _editorStateGroupsUnset,
@@ -297,6 +300,7 @@ class EditorDocumentStatusState {
       canUndoMap: canUndoMap ?? this.canUndoMap,
       canRedoMap: canRedoMap ?? this.canRedoMap,
       isDirty: isDirty ?? this.isDirty,
+      isProjectDirty: isProjectDirty ?? this.isProjectDirty,
       isSaving: isSaving ?? this.isSaving,
       statusMessage: identical(statusMessage, _editorStateGroupsUnset)
           ? this.statusMessage
@@ -364,6 +368,7 @@ extension EditorStateGroups on EditorState {
         canUndoMap: canUndoMap,
         canRedoMap: canRedoMap,
         isDirty: isDirty,
+        isProjectDirty: isProjectDirty,
         isSaving: isSaving,
         statusMessage: statusMessage,
         errorMessage: errorMessage,
@@ -427,6 +432,7 @@ extension EditorStateGroups on EditorState {
       canUndoMap: next.canUndoMap,
       canRedoMap: next.canRedoMap,
       isDirty: next.isDirty,
+      isProjectDirty: next.isProjectDirty,
       isSaving: next.isSaving,
       statusMessage: next.statusMessage,
       errorMessage: next.errorMessage,
