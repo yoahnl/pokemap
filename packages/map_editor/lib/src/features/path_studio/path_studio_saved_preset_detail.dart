@@ -166,7 +166,16 @@ class _SavedPresetCenterDetail extends StatelessWidget {
               ),
             ),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
+          Text(
+            'Résumé',
+            style: TextStyle(
+              color: PathStudioTheme.textMuted.withValues(alpha: 0.95),
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
           Wrap(
             spacing: 10,
             runSpacing: 10,
@@ -179,11 +188,25 @@ class _SavedPresetCenterDetail extends StatelessWidget {
                 value:
                     '${preset.centerPattern.size.width}×${preset.centerPattern.size.height}',
               ),
-              _InfoTile(label: 'Cellules', value: '${detail.cells.length}'),
-              _InfoTile(label: 'Frames', value: '${detail.centerFrameCount}'),
+              _InfoTile(
+                label: 'Cellules',
+                value: pluralizeFr(detail.cells.length, 'cellule', 'cellules'),
+              ),
+              _InfoTile(
+                label: 'Frames du centre',
+                value: pluralizeFr(
+                  detail.centerFrameCount,
+                  'frame',
+                  'frames',
+                ),
+              ),
               _InfoTile(
                 label: 'Cellules animées',
-                value: '${detail.animatedCellCount}',
+                value: pluralizeFr(
+                  detail.animatedCellCount,
+                  'cellule animée',
+                  'cellules animées',
+                ),
               ),
               _InfoTile(
                 label: 'Transparent color',
@@ -192,7 +215,16 @@ class _SavedPresetCenterDetail extends StatelessWidget {
               _InfoTile(label: 'Tileset de base', value: baseTilesetLabel),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
+          Text(
+            'Centre',
+            style: TextStyle(
+              color: PathStudioTheme.textMuted.withValues(alpha: 0.95),
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 10),
           _SavedPresetCellGrid(
             detail: detail,
             tilesets: tilesets,
@@ -315,8 +347,8 @@ class _SavedPresetCellCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             detail.isAnimated
-                ? 'Anime - ${detail.frameCount} frames'
-                : 'Statique - ${detail.frameCount} frame',
+                ? 'Animé — ${pluralizeFr(detail.frameCount, 'frame', 'frames')}'
+                : 'Statique — ${pluralizeFr(detail.frameCount, 'frame', 'frames')}',
             style: const TextStyle(
               color: PathStudioTheme.textPrimary,
               fontSize: 11,

@@ -14,6 +14,7 @@ import 'path_studio_new_path_build_request.dart';
 import 'path_studio_new_path_draft.dart';
 import 'path_studio_save_flow.dart';
 import 'path_studio_save_plan.dart';
+import 'path_studio_fr_copy.dart';
 import 'path_studio_theme.dart';
 import 'path_studio_tileset_image_picker.dart';
 
@@ -598,7 +599,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         _draftSelected = draft != null;
         _draftMessage = draft == null
             ? 'Aucun path existant disponible'
-            : 'Brouillon non sauvegardé';
+            : 'Modifié en mémoire uniquement';
         _saveFeedbackMessage = null;
         _pendingSavedPathPatternId = null;
       });
@@ -1063,14 +1064,14 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
           return 'non sauvegardable';
         }
         return hasEditPathSaveCallback
-            ? 'application en mémoire prête'
+            ? 'mémoire → puis Save Project pour project.json'
             : 'callback absent';
       }
       if (!newPathSavePlan.canBuildRequest) {
         return 'non sauvegardable';
       }
       return hasNewPathSaveCallback
-          ? 'application en mémoire prête'
+          ? 'mémoire → puis Save Project pour project.json'
           : 'callback absent';
     }
     if (legacySavePlan != null) {
@@ -1865,8 +1866,8 @@ class _NewPathDraftListCard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               draft.isEditMode
-                  ? 'Brouillon de modification • Non sauvegardé'
-                  : 'Brouillon chemin • Non sauvegardé',
+                  ? 'Modification • Mémoire uniquement'
+                  : 'Nouveau • Mémoire uniquement',
               style: const TextStyle(
                 color: PathStudioTheme.textMuted,
                 fontSize: 11,
@@ -1953,7 +1954,7 @@ class _DraftListCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Structure héritée • Non sauvegardé',
+              'Structure héritée • Mémoire uniquement',
               style: TextStyle(
                 color: PathStudioTheme.textMuted,
                 fontSize: 11,
@@ -1972,7 +1973,7 @@ class _DraftListCard extends StatelessWidget {
                   icon: draft.animatedCellCount > 0
                       ? CupertinoIcons.play_circle
                       : CupertinoIcons.circle,
-                  label: draft.animatedCellCount > 0 ? 'animé' : 'statique',
+                  label: draft.animatedCellCount > 0 ? 'Animé' : 'Statique',
                 ),
               ],
             ),
@@ -2060,6 +2061,14 @@ class _SidebarNotice extends StatelessWidget {
   }
 }
 
+bool _presetCardHasCenterOnlyBadge(PathPatternPresetCardModel card) {
+  return card.issues.contains(PathPatternDiagnosticCode.centerOnly);
+}
+
+bool _presetCardHasPartialVariantsBadge(PathPatternPresetCardModel card) {
+  return card.issues.contains(PathPatternDiagnosticCode.partialVariantCoverage);
+}
+
 class _PresetListCard extends StatefulWidget {
   const _PresetListCard({
     super.key,
@@ -2143,22 +2152,40 @@ class _PresetListCardState extends State<_PresetListCard> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
+              const SizedBox(height: 6),
+              Text(
+                'Base : ${widget.card.basePathPresetName ?? widget.card.basePathPresetId} · ${widget.card.centerPatternLabel}',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: PathStudioTheme.textSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 10),
-              Row(
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
                 children: [
-                  _MiniMetric(
-                    icon: CupertinoIcons.square_grid_2x2,
-                    label: widget.card.centerPatternLabel,
-                  ),
-                  const SizedBox(width: 8),
-                  _MiniMetric(
-                    icon: widget.card.animatedCellCount > 0
-                        ? CupertinoIcons.play_circle
-                        : CupertinoIcons.circle,
+                  _StatusChip(
                     label: widget.card.animatedCellCount > 0
-                        ? 'animé'
-                        : 'statique',
+                        ? 'Animé'
+                        : 'Statique',
+                    color: widget.card.animatedCellCount > 0
+                        ? PathStudioTheme.accentCyan
+                        : PathStudioTheme.textMuted,
                   ),
+                  if (_presetCardHasCenterOnlyBadge(widget.card))
+                    const _StatusChip(
+                      label: 'Centre uniquement',
+                      color: PathStudioTheme.accent,
+                    ),
+                  if (_presetCardHasPartialVariantsBadge(widget.card))
+                    const _StatusChip(
+                      label: 'Variants partiels',
+                      color: PathStudioTheme.warning,
+                    ),
                 ],
               ),
               if (widget.card.hasBlockingDiagnostics ||
@@ -2166,8 +2193,22 @@ class _PresetListCardState extends State<_PresetListCard> {
                 const SizedBox(height: 8),
                 Text(
                   widget.card.hasBlockingDiagnostics
-                      ? '${widget.card.diagnostics.where((d) => d.severity == PathPatternDiagnosticSeverity.blocking).length} blocage(s)'
-                      : '${widget.card.warningCount} warning(s)',
+                      ? pluralizeFr(
+                          widget.card.diagnostics
+                              .where(
+                                (d) =>
+                                    d.severity ==
+                                    PathPatternDiagnosticSeverity.blocking,
+                              )
+                              .length,
+                          'blocage',
+                          'blocages',
+                        )
+                      : pluralizeFr(
+                          widget.card.warningCount,
+                          'warning',
+                          'warnings',
+                        ),
                   style: TextStyle(
                     color: widget.card.hasBlockingDiagnostics
                         ? PathStudioTheme.error
@@ -2393,7 +2434,10 @@ class _CenterWorkspace extends StatelessWidget {
             onEditRequested: () => onSavedPresetEditRequested(preset),
           ),
           const SizedBox(height: 14),
-          _DiagnosticsCard(card: card),
+          _DiagnosticsCard(
+            card: card,
+            summaryKey: const Key('path-studio-diagnostics-summary'),
+          ),
         ],
       ),
     );
@@ -2459,11 +2503,11 @@ class _DraftBanner extends StatelessWidget {
       title: 'Motif depuis path existant',
       icon: CupertinoIcons.pencil_outline,
       trailing: _StatusChip(
-        label: 'Non sauvegardé',
+        label: 'Modifié en mémoire',
         color: PathStudioTheme.warning,
       ),
       child: Text(
-        'Ce brouillon réutilise temporairement une structure héritée. Il reste local et non sauvegardé.',
+        'Ce brouillon réutilise une structure héritée. Appliquez au projet pour mettre à jour le manifest en mémoire, puis Save Project pour project.json.',
         style: TextStyle(
           color: PathStudioTheme.textSecondary,
           fontSize: 13,
@@ -2482,7 +2526,7 @@ class _DraftSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SectionCard(
-      title: 'Résumé du brouillon',
+      title: 'Résumé',
       icon: CupertinoIcons.doc_text,
       child: Wrap(
         spacing: 10,
@@ -2497,7 +2541,7 @@ class _DraftSummary extends StatelessWidget {
             label: 'Animation',
             value: '${draft.animatedCellCount} cellules',
           ),
-          const _InfoTile(label: 'État', value: 'Brouillon non sauvegardé'),
+          const _InfoTile(label: 'État', value: 'Modifié en mémoire'),
         ],
       ),
     );
@@ -2790,7 +2834,7 @@ class _LegacyPathSaveStatusCard extends StatelessWidget {
     final ready = plan.canSaveNow;
     return _SectionCard(
       key: const Key('path-studio-save-status-card'),
-      title: 'Sauvegarde',
+      title: 'Application au projet (mémoire)',
       icon: CupertinoIcons.floppy_disk,
       trailing: _StatusChip(
         label: ready ? 'Requête prête' : 'Bloquée',
@@ -2833,9 +2877,9 @@ class _LegacyPathSaveStatusCard extends StatelessWidget {
             const _DiagnosticRow(
               icon: CupertinoIcons.info_circle_fill,
               color: PathStudioTheme.warning,
-              title: 'Callback de sauvegarde absent',
+              title: 'Callback d’application absent',
               message:
-                  'La requête locale est prête, mais aucun callback externe ne l’utilise encore.',
+                  'La requête locale est prête, mais aucun callback ne l’applique au manifest en mémoire.',
             ),
           ],
           if (plan.issues.isNotEmpty) ...[
@@ -3066,8 +3110,11 @@ class _SelectedSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status = _statusPresentation(card.status);
+    final animationLine =
+        '${card.animatedCellCount > 0 ? 'Animé' : 'Statique'} — '
+        '${pluralizeFr(card.centerFrameCount, 'frame', 'frames')}';
     return _SectionCard(
-      title: 'Résumé du preset',
+      title: 'Résumé',
       icon: CupertinoIcons.doc_text,
       trailing: _StatusChip(label: status.label, color: status.color),
       child: Wrap(
@@ -3077,11 +3124,12 @@ class _SelectedSummary extends StatelessWidget {
           _InfoTile(label: 'Nom', value: card.name),
           _InfoTile(
               label: 'Base', value: card.basePathPresetName ?? 'Introuvable'),
-          _InfoTile(label: 'Centre', value: card.centerPatternLabel),
-          _InfoTile(label: 'Cellules', value: '${card.centerCellCount}'),
-          _InfoTile(label: 'Frames', value: '${card.centerFrameCount}'),
+          _InfoTile(label: 'Taille du centre', value: card.centerPatternLabel),
           _InfoTile(
-              label: 'Animation', value: '${card.animatedCellCount} cellules'),
+            label: 'Cellules',
+            value: pluralizeFr(card.centerCellCount, 'cellule', 'cellules'),
+          ),
+          _InfoTile(label: 'Animation', value: animationLine),
           _InfoTile(
             label: 'Transparent',
             value: card.transparentColorHex ?? 'Absent',
@@ -3093,9 +3141,10 @@ class _SelectedSummary extends StatelessWidget {
 }
 
 class _DiagnosticsCard extends StatelessWidget {
-  const _DiagnosticsCard({required this.card});
+  const _DiagnosticsCard({required this.card, this.summaryKey});
 
   final PathPatternPresetCardModel card;
+  final Key? summaryKey;
 
   @override
   Widget build(BuildContext context) {
@@ -3109,6 +3158,26 @@ class _DiagnosticsCard extends StatelessWidget {
         }
         return left.title.compareTo(right.title);
       });
+    final blocking = diagnostics
+        .where(
+          (d) => d.severity == PathPatternDiagnosticSeverity.blocking,
+        )
+        .toList(growable: false);
+    final warnings = diagnostics
+        .where(
+          (d) => d.severity == PathPatternDiagnosticSeverity.warning,
+        )
+        .toList(growable: false);
+    final infos = diagnostics
+        .where(
+          (d) => d.severity == PathPatternDiagnosticSeverity.info,
+        )
+        .toList(growable: false);
+    final summaryText = formatDiagnosticsSeveritySummary(
+      blocking: blocking.length,
+      warning: warnings.length,
+      info: infos.length,
+    );
     return _SectionCard(
       title: 'Diagnostics',
       icon: CupertinoIcons.check_mark_circled,
@@ -3117,12 +3186,34 @@ class _DiagnosticsCard extends StatelessWidget {
               icon: CupertinoIcons.check_mark_circled_solid,
               color: PathStudioTheme.success,
               title: 'Prêt',
-              message: 'Aucun diagnostic bloquant ou warning détecté.',
+              message: 'Aucun blocage ni warning détecté.',
             )
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: diagnostics
-                  .map(
+              children: [
+                if (summaryText.isNotEmpty) ...[
+                  Text(
+                    summaryText,
+                    key: summaryKey,
+                    style: const TextStyle(
+                      color: PathStudioTheme.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (blocking.isNotEmpty) ...[
+                  const Text(
+                    'Blocages',
+                    style: TextStyle(
+                      color: PathStudioTheme.error,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  ...blocking.map(
                     (diagnostic) => Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: _DiagnosticRow(
@@ -3131,11 +3222,60 @@ class _DiagnosticsCard extends StatelessWidget {
                         title: diagnostic.title,
                         message: diagnostic.suggestion == null
                             ? diagnostic.description
-                            : '${diagnostic.description}\n${diagnostic.suggestion!}',
+                            : '${diagnostic.description}\n\nSuggestion : ${diagnostic.suggestion!}',
                       ),
                     ),
-                  )
-                  .toList(growable: false),
+                  ),
+                ],
+                if (warnings.isNotEmpty) ...[
+                  const Text(
+                    'Warnings',
+                    style: TextStyle(
+                      color: PathStudioTheme.warning,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  ...warnings.map(
+                    (diagnostic) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _DiagnosticRow(
+                        icon: _diagnosticIcon(diagnostic.severity),
+                        color: _diagnosticColor(diagnostic.severity),
+                        title: diagnostic.title,
+                        message: diagnostic.suggestion == null
+                            ? diagnostic.description
+                            : '${diagnostic.description}\n\nSuggestion : ${diagnostic.suggestion!}',
+                      ),
+                    ),
+                  ),
+                ],
+                if (infos.isNotEmpty) ...[
+                  const Text(
+                    'Infos',
+                    style: TextStyle(
+                      color: PathStudioTheme.accent,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  ...infos.map(
+                    (diagnostic) => Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _DiagnosticRow(
+                        icon: _diagnosticIcon(diagnostic.severity),
+                        color: _diagnosticColor(diagnostic.severity),
+                        title: diagnostic.title,
+                        message: diagnostic.suggestion == null
+                            ? diagnostic.description
+                            : '${diagnostic.description}\n\nSuggestion : ${diagnostic.suggestion!}',
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
     );
   }
@@ -3247,12 +3387,28 @@ class _PresetInspector extends StatelessWidget {
                         '${preset.centerPattern.size.width}×${preset.centerPattern.size.height}',
                   ),
                   _InspectorRow(
-                      label: 'Cellules', value: '${card.centerCellCount}'),
+                    label: 'Cellules',
+                    value: pluralizeFr(
+                      card.centerCellCount,
+                      'cellule',
+                      'cellules',
+                    ),
+                  ),
                   _InspectorRow(
-                      label: 'Frames', value: '${card.centerFrameCount}'),
+                    label: 'Frames du centre',
+                    value: pluralizeFr(
+                      card.centerFrameCount,
+                      'frame',
+                      'frames',
+                    ),
+                  ),
                   _InspectorRow(
-                    label: 'Cellules animees',
-                    value: '${card.animatedCellCount}',
+                    label: 'Cellules animées',
+                    value: pluralizeFr(
+                      card.animatedCellCount,
+                      'cellule animée',
+                      'cellules animées',
+                    ),
                   ),
                   _InspectorRow(
                     label: 'Transparent color',
@@ -3305,7 +3461,7 @@ class _LegacyDraftInspector extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             const _StatusChip(
-              label: 'Brouillon non sauvegardé',
+              label: 'Modifié en mémoire',
               color: PathStudioTheme.warning,
             ),
             const SizedBox(height: 14),
@@ -3378,7 +3534,7 @@ class _LegacyDraftInspector extends StatelessWidget {
             ),
             const _InspectorRow(
               label: 'État',
-              value: 'Brouillon non sauvegardé',
+              value: 'Modifié en mémoire',
             ),
             const SizedBox(height: 14),
             _DraftDiagnosticsCard(draft: draft),

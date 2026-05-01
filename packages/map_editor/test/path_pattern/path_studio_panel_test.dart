@@ -105,7 +105,7 @@ void main() {
       expect(find.text('Tileset de base'), findsWidgets);
       expect(find.byKey(const Key('path-studio-saved-cell-thumbnail-A')),
           findsOneWidget);
-      expect(find.text('Anime - 2 frames'), findsOneWidget);
+      expect(find.text('Animé — 2 frames'), findsOneWidget);
     });
 
     testWidgets('saved preset uses image-backed thumbnail when tileset exists',
@@ -341,7 +341,7 @@ void main() {
 
       expect(find.text('Modification du chemin'), findsWidgets);
       expect(find.text('Propriétés de la modification'), findsOneWidget);
-      expect(find.text('Animée — 2 frames'), findsWidgets);
+      expect(find.text('Animé — 2 frames'), findsWidgets);
       expect(find.text('Frame 1 / 2'), findsOneWidget);
       expect(find.text('ID path pattern'), findsWidgets);
       expect(find.text('water-sea-2x2'), findsWidgets);
@@ -409,8 +409,11 @@ void main() {
       await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
       await _pumpPathStudioAsync(tester);
 
-      expect(find.text('Brouillon nouveau chemin'), findsWidgets);
-      expect(find.text('Brouillon non sauvegardé'), findsWidgets);
+      expect(
+        find.byKey(const Key('path-studio-new-path-context-banner')),
+        findsOneWidget,
+      );
+      expect(find.text('Modifié en mémoire'), findsWidgets);
       expect(find.text('Propriétés du nouveau chemin'), findsOneWidget);
       expect(find.text('Nouveau chemin'), findsWidgets);
       expect(find.text('1×1'), findsWidgets);
@@ -467,7 +470,10 @@ void main() {
           findsNothing,
         );
         expect(find.text('Brouillon annulé.'), findsOneWidget);
-        expect(find.text('Brouillon nouveau chemin'), findsNothing);
+        expect(
+          find.byKey(const Key('path-studio-new-path-context-banner')),
+          findsNothing,
+        );
         expect(applyNewCount, 0);
         expect(applyEditCount, 0);
       });
@@ -667,7 +673,10 @@ void main() {
           find.byKey(const Key('path-studio-cancel-draft-confirmation')),
           findsNothing,
         );
-        expect(find.text('Brouillon nouveau chemin'), findsWidgets);
+        expect(
+          find.byKey(const Key('path-studio-new-path-context-banner')),
+          findsOneWidget,
+        );
       });
     });
 
@@ -772,7 +781,99 @@ void main() {
           ),
         );
 
-        expect(find.text('1 blocage(s)'), findsWidgets);
+        expect(find.text('1 blocage'), findsWidgets);
+      });
+    });
+
+    group('PathPattern-42 ergonomics polish', () {
+      testWidgets('read-only detail shows Résumé Centre Diagnostics headings',
+          (tester) async {
+        await _pumpPathStudio(
+          tester,
+          manifest: _manifest(
+            pathPresets: [
+              _legacyPathPreset(id: 'legacy-water', tilesetId: 'tileset-main'),
+            ],
+            tilesets: [
+              _tileset(id: 'tileset-main', name: 'Chemins principaux'),
+            ],
+            pathPatternPresets: [
+              _pathPatternPreset(id: 'pp42-ready'),
+            ],
+          ),
+        );
+
+        await tester.tap(find.byKey(const Key('path-studio-preset-card-0')));
+        await _pumpPathStudioAsync(tester);
+
+        expect(find.text('Résumé'), findsWidgets);
+        expect(find.text('Centre'), findsWidgets);
+        expect(find.text('Diagnostics'), findsWidgets);
+        expect(find.text('Statique — 1 frame'), findsWidgets);
+      });
+
+      testWidgets('diagnostics summary appears when severities present',
+          (tester) async {
+        final temp = Directory.systemTemp.createTempSync('path42_diag_');
+        addTearDown(() => temp.deleteSync(recursive: true));
+
+        await _pumpPathStudio(
+          tester,
+          projectRootPath: temp.path,
+          manifest: _manifest(
+            settings: const ProjectSettings(tileWidth: 16, tileHeight: 16),
+            pathPresets: [
+              _legacyPathPreset(id: 'legacy-water', tilesetId: 'tileset-main'),
+            ],
+            tilesets: [
+              _tileset(id: 'tileset-main', name: 'Chemins principaux'),
+            ],
+            pathPatternPresets: [
+              _pathPatternPreset(id: 'pp42-missing-img'),
+            ],
+          ),
+        );
+
+        await tester.tap(find.byKey(const Key('path-studio-preset-card-0')));
+        await _pumpPathStudioAsync(tester);
+
+        expect(
+          find.byKey(const Key('path-studio-diagnostics-summary')),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets('preset card shows Variants partiels when base missing variants',
+          (tester) async {
+        await _pumpPathStudio(
+          tester,
+          manifest: _manifest(
+            tilesets: [
+              _tileset(id: 'tileset-main', name: 'Chemins principaux'),
+            ],
+            pathPresets: [
+              _legacyPathPreset(
+                id: 'legacy-water',
+                tilesetId: 'tileset-main',
+                variants: [
+                  const PathPresetVariantMapping(
+                    variant: TerrainPathVariant.isolated,
+                    frames: [
+                      TilesetVisualFrame(
+                        source: TilesetSourceRect(x: 0, y: 0),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+            pathPatternPresets: [
+              _pathPatternPreset(id: 'pp42-partial'),
+            ],
+          ),
+        );
+
+        expect(find.text('Variants partiels'), findsWidgets);
       });
     });
 
@@ -896,7 +997,10 @@ void main() {
       await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
       await _pumpPathStudioAsync(tester);
 
-      expect(find.text('Brouillon nouveau chemin'), findsWidgets);
+      expect(
+        find.byKey(const Key('path-studio-new-path-context-banner')),
+        findsOneWidget,
+      );
       expect(
           find.text('Aucun tileset disponible dans le projet'), findsWidgets);
       expect(find.text('Sélectionnez d’abord un tileset'), findsWidgets);
@@ -966,7 +1070,7 @@ void main() {
         find.byKey(const Key('path-studio-new-path-center-animation-summary')),
         findsOneWidget,
       );
-      expect(find.textContaining('Centre : 1 cellules · 1 frames'),
+      expect(find.textContaining('Centre : 1 cellule · 1 frame'),
           findsOneWidget);
       expect(
         find.byKey(const Key('path-studio-new-path-active-frame-title')),
@@ -984,10 +1088,10 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(addFrame);
       await _pumpPathStudioAsync(tester);
-      expect(find.text('Animée — 2 frames'), findsWidgets);
+      expect(find.text('Animé — 2 frames'), findsWidgets);
       expect(find.text('Ajouter une frame dupliquée'), findsWidgets);
       expect(find.text('Frame 2 / 2'), findsOneWidget);
-      expect(find.textContaining('Centre : 1 cellules · 2 frames'),
+      expect(find.textContaining('Centre : 1 cellule · 2 frames'),
           findsOneWidget);
 
       await tester.enterText(
@@ -1451,14 +1555,17 @@ void main() {
 
       expect(find.byKey(const Key('path-studio-save-status-card')),
           findsOneWidget);
-      expect(find.text('Plan de création local'), findsWidgets);
-      expect(find.text('Brouillon de nouveau chemin'), findsWidgets);
+      expect(
+        find.text('Application au projet (mémoire)'),
+        findsWidgets,
+      );
+      expect(find.text('Nouveau chemin'), findsWidgets);
       expect(find.text('Création en mémoire'), findsWidgets);
-      expect(find.text('Requête locale bloquée'), findsWidgets);
+      expect(find.text('Requête bloquée (corrections requises)'), findsWidgets);
       expect(find.text('Couverture partielle des variants'), findsNothing);
       expect(
         find.text(
-          'Corrigez les erreurs bloquantes pour préparer la sauvegarde en mémoire.',
+          'Corrigez les blocages pour pouvoir appliquer le chemin en mémoire, puis enregistrez le projet (disquette) vers project.json.',
         ),
         findsWidgets,
       );
@@ -1492,7 +1599,7 @@ void main() {
 
       expect(find.text('prêt'), findsWidgets);
       expect(find.text('Cellules du centre à configurer'), findsNothing);
-      expect(find.text('Callback de sauvegarde absent'), findsWidgets);
+      expect(find.text('Callback d’application absent'), findsWidgets);
       expect(find.text('Aucun variant legacy configuré'), findsWidgets);
 
       final saveButton = tester.widget<CupertinoButton>(
@@ -1523,9 +1630,12 @@ void main() {
       await tester.pumpAndSettle();
       await _tapNewPathTile(tester, tileX: 2, tileY: 1);
 
-      expect(find.text('application en mémoire prête'), findsWidgets);
       expect(
-        find.text('Warnings présents, mais sauvegarde en mémoire possible.'),
+        find.text('mémoire → puis Save Project pour project.json'),
+        findsWidgets,
+      );
+      expect(
+        find.text('Warnings possibles, mais application en mémoire autorisée.'),
         findsWidgets,
       );
       expect(find.text('Aucun variant legacy configuré'), findsWidgets);
@@ -1692,7 +1802,7 @@ void main() {
         await tester.tap(generateBtn);
         await _pumpPathStudioAsync(tester);
 
-        expect(find.text('Animée — 4 frames'), findsWidgets);
+        expect(find.text('Animé — 4 frames'), findsWidgets);
         expect(
           find.text('Animation générée pour la cellule A.'),
           findsOneWidget,
@@ -1821,7 +1931,7 @@ void main() {
         await tester.tap(generateBtn);
         await _pumpPathStudioAsync(tester);
 
-        expect(find.text('Animée — 4 frames'), findsWidgets);
+        expect(find.text('Animé — 4 frames'), findsWidgets);
 
         final isolated =
             find.byKey(const Key('path-studio-new-path-variant-isolated'));
@@ -1960,7 +2070,7 @@ void main() {
 
       expect(find.text('Motif PathPattern depuis path existant'), findsWidgets);
       expect(find.text('Requête prête'), findsWidgets);
-      expect(find.text('Callback de sauvegarde absent'), findsWidgets);
+      expect(find.text('Callback d’application absent'), findsWidgets);
 
       final saveButton = tester.widget<CupertinoButton>(
         find.byKey(const Key('path-studio-save-button')),
@@ -2109,7 +2219,7 @@ void main() {
       expect(find.text('Mer brouillon'), findsWidgets);
       expect(find.text('legacy-sand'), findsWidgets);
       expect(find.text('source 5,0'), findsWidgets);
-      expect(find.text('Brouillon non sauvegardé'), findsWidgets);
+      expect(find.text('Modifié en mémoire'), findsWidgets);
     });
 
     testWidgets('empty new path name shows a local diagnostic', (tester) async {
@@ -2219,7 +2329,7 @@ void main() {
 
       expect(find.text('Couverture partielle des variants'), findsNothing);
       expect(find.text('Aucun variant legacy configuré'), findsNothing);
-      expect(find.text('Callback de sauvegarde absent'), findsWidgets);
+      expect(find.text('Callback d’application absent'), findsWidgets);
 
       final saveButton = tester.widget<CupertinoButton>(
         find.byKey(const Key('path-studio-save-button')),
@@ -2244,7 +2354,10 @@ void main() {
       await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Brouillon nouveau chemin'), findsWidgets);
+      expect(
+        find.byKey(const Key('path-studio-new-path-context-banner')),
+        findsOneWidget,
+      );
       expect(find.text('Aucun path existant disponible'), findsNothing);
     });
   });

@@ -114,16 +114,17 @@ class _NewPathBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SectionCard(
-      title: isEditMode ? 'Modification du chemin' : 'Brouillon nouveau chemin',
+      key: const Key('path-studio-new-path-context-banner'),
+      title: isEditMode ? 'Modification du chemin' : 'Nouveau chemin',
       icon: CupertinoIcons.pencil_outline,
       trailing: const _StatusChip(
-        label: 'Non sauvegardé',
+        label: 'Modifié en mémoire',
         color: PathStudioTheme.warning,
       ),
       child: Text(
         isEditMode
-            ? 'Ce brouillon modifie un chemin existant. Les changements restent locaux tant que vous ne sauvegardez pas.'
-            : 'Ce brouillon représente un nouveau chemin complet. La sélection du tileset et la configuration des bords arriveront dans un lot futur.',
+            ? 'Les changements s’appliquent au projet en mémoire via « Appliquer les modifications ». Pour écrire project.json, utilisez Save Project (icône disquette).'
+            : 'Les changements s’appliquent au projet en mémoire via « Appliquer au projet ». Pour écrire project.json, utilisez Save Project (icône disquette).',
         style: const TextStyle(
           color: PathStudioTheme.textSecondary,
           fontSize: 13,
@@ -187,7 +188,7 @@ class _NewPathSummary extends StatelessWidget {
         _selectedTilesetLabel(tilesets: tilesets, tilesetId: draft.tilesetId) ??
             'À choisir';
     return _SectionCard(
-      title: 'Résumé du nouveau chemin',
+      title: 'Résumé',
       icon: CupertinoIcons.doc_text,
       child: Wrap(
         spacing: 10,
@@ -201,25 +202,40 @@ class _NewPathSummary extends StatelessWidget {
           ),
           _InfoTile(label: 'Tileset', value: tilesetLabel),
           _InfoTile(label: 'Centre', value: draft.centerPatternLabel),
-          _InfoTile(label: 'Cellules', value: '${draft.centerCellCount}'),
+          _InfoTile(
+            label: 'Cellules',
+            value: pluralizeFr(
+              draft.centerCellCount,
+              'cellule',
+              'cellules',
+            ),
+          ),
           _InfoTile(
             label: 'Configurées',
             value: '${draft.configuredCellCount}/${draft.centerCellCount}',
           ),
           _InfoTile(
             label: 'Frames du centre',
-            value: '${draft.totalCenterFrameCount}',
+            value: pluralizeFr(
+              draft.totalCenterFrameCount,
+              'frame',
+              'frames',
+            ),
           ),
           _InfoTile(
             label: 'Cellules animées',
-            value: '${draft.animatedCenterCellCount}',
+            value: pluralizeFr(
+              draft.animatedCenterCellCount,
+              'cellule animée',
+              'cellules animées',
+            ),
           ),
           _InfoTile(
             label: 'Variants',
             value:
                 '${draft.configuredVariantCount}/${draft.requiredVariantCount}',
           ),
-          const _InfoTile(label: 'État', value: 'Brouillon non sauvegardé'),
+          const _InfoTile(label: 'État', value: 'Modifié en mémoire'),
         ],
       ),
     );
@@ -520,8 +536,8 @@ class _NewPathPatternCell extends StatelessWidget {
               tile == null
                   ? 'À configurer'
                   : (cell.frames.length > 1
-                      ? 'Animée — ${cell.frames.length} frames'
-                      : 'Statique — 1 frame'),
+                      ? 'Animé — ${pluralizeFr(cell.frames.length, 'frame', 'frames')}'
+                      : 'Statique — ${pluralizeFr(1, 'frame', 'frames')}'),
               style: TextStyle(
                 color: tile == null
                     ? PathStudioTheme.textSecondary
@@ -570,7 +586,6 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
     final cell = draft.selectedCell;
     final selectedFrame = cell.selectedFrame;
     final isAnimated = cell.frames.length > 1;
-    final frameLabel = cell.frames.length > 1 ? 'frames' : 'frame';
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: PathStudioTheme.subtleDecoration(),
@@ -608,8 +623,8 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             isAnimated
-                ? 'Animée — ${cell.frames.length} $frameLabel'
-                : 'Statique — ${cell.frames.length} $frameLabel',
+                ? 'Animé — ${pluralizeFr(cell.frames.length, 'frame', 'frames')}'
+                : 'Statique — ${pluralizeFr(cell.frames.length, 'frame', 'frames')}',
             style: const TextStyle(
               color: PathStudioTheme.textSecondary,
               fontSize: 11,
@@ -618,7 +633,9 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            'Centre : ${draft.centerCellCount} cellules · ${draft.totalCenterFrameCount} frames · ${draft.animatedCenterCellCount} cellules animées',
+            'Centre : ${pluralizeFr(draft.centerCellCount, 'cellule', 'cellules')} · '
+            '${pluralizeFr(draft.totalCenterFrameCount, 'frame', 'frames')} · '
+            '${pluralizeFr(draft.animatedCenterCellCount, 'cellule animée', 'cellules animées')}',
             key: const Key('path-studio-new-path-center-animation-summary'),
             style: const TextStyle(
               color: PathStudioTheme.textMuted,
@@ -1820,7 +1837,7 @@ class _NewPathSaveStatusCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SectionCard(
       key: const Key('path-studio-save-status-card'),
-      title: 'Plan de création local',
+      title: 'Application au projet (mémoire)',
       icon: CupertinoIcons.floppy_disk,
       trailing: _StatusChip(
         label: (draft.isEditMode
@@ -1828,7 +1845,7 @@ class _NewPathSaveStatusCard extends StatelessWidget {
                     : plan.canBuildRequest) &&
                 hasSaveCallback
             ? 'Requête prête'
-            : 'Non sauvegardable',
+            : 'Incomplet',
         color: ((draft.isEditMode
                     ? editPlan?.canBuildRequest == true
                     : plan.canBuildRequest) &&
@@ -1846,8 +1863,8 @@ class _NewPathSaveStatusCard extends StatelessWidget {
               _InfoTile(
                 label: 'État',
                 value: draft.isEditMode
-                    ? 'Brouillon de modification'
-                    : 'Brouillon de nouveau chemin',
+                    ? 'Modification du chemin'
+                    : 'Nouveau chemin',
               ),
               _InfoTile(
                 label: 'Base path id',
@@ -1891,14 +1908,17 @@ class _NewPathSaveStatusCard extends StatelessWidget {
             !(draft.isEditMode
                     ? editPlan?.canBuildRequest == true
                     : plan.canBuildRequest)
-                ? 'Requête locale bloquée'
+                ? 'Requête bloquée (corrections requises)'
                 : hasSaveCallback
-                    ? 'Requête locale prête'
-                    : 'Callback de sauvegarde absent',
+                    ? 'Prêt à appliquer en mémoire'
+                    : 'Callback d’application absent',
             style: TextStyle(
-              color: plan.canBuildRequest && hasSaveCallback
-                  ? PathStudioTheme.success
-                  : PathStudioTheme.warning,
+              color: !(draft.isEditMode
+                          ? editPlan?.canBuildRequest == true
+                          : plan.canBuildRequest) ||
+                      !hasSaveCallback
+                  ? PathStudioTheme.warning
+                  : PathStudioTheme.success,
               fontSize: 13,
               fontWeight: FontWeight.w800,
             ),
@@ -1908,10 +1928,10 @@ class _NewPathSaveStatusCard extends StatelessWidget {
             !(draft.isEditMode
                     ? editPlan?.canBuildRequest == true
                     : plan.canBuildRequest)
-                ? 'Corrigez les erreurs bloquantes pour préparer la sauvegarde en mémoire.'
+                ? 'Corrigez les blocages pour pouvoir appliquer le chemin en mémoire, puis enregistrez le projet (disquette) vers project.json.'
                 : hasSaveCallback
-                    ? 'Warnings présents, mais sauvegarde en mémoire possible.'
-                    : 'La requête locale est prête, mais aucun callback ne l’applique au manifest.',
+                    ? 'Warnings possibles, mais application en mémoire autorisée.'
+                    : 'Requête prête, mais aucun chemin d’application vers le manifest.',
             style: const TextStyle(
               color: PathStudioTheme.textSecondary,
               fontSize: 12,
@@ -1966,7 +1986,7 @@ class _NewPathInspector extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             const _StatusChip(
-              label: 'Brouillon non sauvegardé',
+              label: 'Modifié en mémoire',
               color: PathStudioTheme.warning,
             ),
             const SizedBox(height: 14),
@@ -2077,7 +2097,7 @@ class _NewPathInspector extends StatelessWidget {
             ),
             const _InspectorRow(
               label: 'État',
-              value: 'Brouillon non sauvegardé',
+              value: 'Modifié en mémoire',
             ),
             const _InspectorRow(
               label: 'Sauvegarde',
