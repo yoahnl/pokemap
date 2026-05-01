@@ -123,8 +123,7 @@ class ProjectSessionController {
             statusMessage: statusMessage,
             errorMessage: null,
           ),
-        )
-        .copyWith(isProjectDirty: false);
+        );
   }
 
   EditorState markMapSaved({

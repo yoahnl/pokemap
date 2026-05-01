@@ -78,6 +78,36 @@ void main() {
 
       expect(notifier.state.isProjectDirty, isFalse);
     });
+
+    test(
+        'apply -> project dirty -> open map -> still dirty -> save project -> clean',
+        () async {
+      final tempDir =
+          await Directory.systemTemp.createTemp('project_dirty_open_map_');
+      addTearDown(() async => tempDir.delete(recursive: true));
+      final manifestPath = '${tempDir.path}/project.json';
+      final mapsDir = Directory('${tempDir.path}/maps');
+      await mapsDir.create(recursive: true);
+      await File('${mapsDir.path}/town.json')
+          .writeAsString(jsonEncode(_mapData(id: 'town').toJson()));
+      await File(manifestPath)
+          .writeAsString(jsonEncode(_manifestWithMap().toJson()));
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+
+      await notifier.loadProject(manifestPath);
+      notifier.applyInMemoryProjectManifest(_manifestWithMap(name: 'Dirty'));
+      expect(notifier.state.isProjectDirty, isTrue);
+
+      await notifier.loadMap('maps/town.json');
+      expect(notifier.state.isProjectDirty, isTrue);
+
+      final saved = await notifier.saveProjectManifest();
+      expect(saved, isTrue);
+      expect(notifier.state.isProjectDirty, isFalse);
+    });
   });
 }
 
@@ -89,5 +119,31 @@ ProjectManifest _manifest({String name = 'Demo'}) {
     pathPresets: const [],
     pathPatternPresets: const [],
     surfaceCatalog: ProjectSurfaceCatalog(),
+  );
+}
+
+ProjectManifest _manifestWithMap({String name = 'Demo'}) {
+  return ProjectManifest(
+    name: name,
+    maps: const [
+      ProjectMapEntry(
+        id: 'town',
+        name: 'Town',
+        relativePath: 'maps/town.json',
+      ),
+    ],
+    tilesets: const [],
+    pathPresets: const [],
+    pathPatternPresets: const [],
+    surfaceCatalog: ProjectSurfaceCatalog(),
+  );
+}
+
+MapData _mapData({required String id}) {
+  return MapData(
+    id: id,
+    name: 'Town',
+    size: const GridSize(width: 8, height: 8),
+    layers: const [],
   );
 }

@@ -26,10 +26,12 @@ void main() {
         mapRedoStack: [],
         canUndoMap: true,
         isDirty: true,
+        isProjectDirty: true,
         errorMessage: 'Old error',
       );
 
-      const updated = ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+      final updated = ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog(),
         name: 'Demo',
         maps: [],
         tilesets: [],
@@ -37,7 +39,7 @@ void main() {
 
       final next = controller.openProjectSession(
         current: state,
-        session: const ProjectSessionLoadResult(
+        session: ProjectSessionLoadResult(
           projectRootPath: '/tmp/new',
           project: updated,
           presetSelection: TerrainPresetSelection(
@@ -63,6 +65,7 @@ void main() {
       expect(next.selectedTerrainPresetId, 'grass-a');
       expect(next.selectedPathPresetId, 'path-a');
       expect(next.isDirty, isFalse);
+      expect(next.isProjectDirty, isFalse);
       expect(next.errorMessage, isNull);
       expect(next.statusMessage, 'Loaded');
     });
@@ -76,6 +79,7 @@ void main() {
         mapUndoStack: [],
         mapRedoStack: [],
         isDirty: true,
+        isProjectDirty: true,
       );
       const map = MapData(
         id: 'town',
@@ -118,6 +122,7 @@ void main() {
       expect(next.selectedPathPresetId, 'path-road');
       expect(next.savedMapSnapshot, map);
       expect(next.isDirty, isFalse);
+      expect(next.isProjectDirty, isTrue);
       expect(next.statusMessage, 'Map loaded');
     });
 
@@ -129,8 +134,9 @@ void main() {
         size: GridSize(width: 4, height: 4),
         layers: [],
       );
-      const state = EditorState(
-        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+      final state = EditorState(
+        project: ProjectManifest(
+          surfaceCatalog: ProjectSurfaceCatalog(),
           name: 'Demo',
           maps: [],
           tilesets: [],
@@ -147,7 +153,8 @@ void main() {
 
       final next = controller.afterMapRenamed(
         current: state,
-        updatedProject: const ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+        updatedProject: ProjectManifest(
+          surfaceCatalog: ProjectSurfaceCatalog(),
           name: 'Demo',
           maps: [],
           tilesets: [],
@@ -173,8 +180,9 @@ void main() {
         size: GridSize(width: 4, height: 4),
         layers: [],
       );
-      const state = EditorState(
-        project: ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+      final state = EditorState(
+        project: ProjectManifest(
+          surfaceCatalog: ProjectSurfaceCatalog(),
           name: 'Demo',
           maps: [],
           tilesets: [],
@@ -195,7 +203,8 @@ void main() {
 
       final next = controller.afterMapDeleted(
         current: state,
-        updatedProject: const ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+        updatedProject: ProjectManifest(
+          surfaceCatalog: ProjectSurfaceCatalog(),
           name: 'Demo',
           maps: [],
           tilesets: [],
