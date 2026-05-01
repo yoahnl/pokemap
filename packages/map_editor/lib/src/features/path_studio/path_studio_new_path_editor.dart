@@ -753,7 +753,7 @@ class _CenterFrameChip extends StatelessWidget {
   }
 }
 
-class _NewPathVariantMappingSection extends StatelessWidget {
+class _NewPathVariantMappingSection extends StatefulWidget {
   const _NewPathVariantMappingSection({
     required this.tilesets,
     required this.settings,
@@ -771,6 +771,15 @@ class _NewPathVariantMappingSection extends StatelessWidget {
   final ValueChanged<TerrainPathVariant> onVariantCleared;
 
   @override
+  State<_NewPathVariantMappingSection> createState() =>
+      _NewPathVariantMappingSectionState();
+}
+
+class _NewPathVariantMappingSectionState
+    extends State<_NewPathVariantMappingSection> {
+  bool _expanded = true;
+
+  @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -778,17 +787,43 @@ class _NewPathVariantMappingSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Bords, coins et jonctions',
-            style: TextStyle(
-              color: PathStudioTheme.textPrimary,
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
+          GestureDetector(
+            key: const Key('path-studio-new-path-variants-accordion-toggle'),
+            onTap: () => setState(() => _expanded = !_expanded),
+            child: Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Bords, coins et jonctions',
+                    style: TextStyle(
+                      color: PathStudioTheme.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                Text(
+                  _expanded ? 'Replier' : 'Déplier',
+                  style: const TextStyle(
+                    color: PathStudioTheme.textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Icon(
+                  _expanded
+                      ? CupertinoIcons.chevron_up
+                      : CupertinoIcons.chevron_down,
+                  color: PathStudioTheme.textSecondary,
+                  size: 13,
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 6),
           Text(
-            'Progression variants: ${draft.configuredVariantCount}/${draft.requiredVariantCount} configurés',
+            'Progression variants: ${widget.draft.configuredVariantCount}/${widget.draft.requiredVariantCount} configurés',
             key: const Key('path-studio-new-path-variant-progress'),
             style: const TextStyle(
               color: PathStudioTheme.textSecondary,
@@ -796,45 +831,47 @@ class _NewPathVariantMappingSection extends StatelessWidget {
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: 6),
-          const Text(
-            'Ces tuiles permettront de créer les bords, coins, extrémités et jonctions du futur chemin.',
-            style: TextStyle(
-              color: PathStudioTheme.textMuted,
-              fontSize: 11,
-              height: 1.35,
-              fontWeight: FontWeight.w700,
+          if (_expanded) ...[
+            const SizedBox(height: 6),
+            const Text(
+              'Ces tuiles permettront de créer les bords, coins, extrémités et jonctions du futur chemin.',
+              style: TextStyle(
+                color: PathStudioTheme.textMuted,
+                fontSize: 11,
+                height: 1.35,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-          const Text(
-            'Le centre reste géré séparément par le motif multi-cases.',
-            style: TextStyle(
-              color: PathStudioTheme.textMuted,
-              fontSize: 11,
-              height: 1.35,
-              fontWeight: FontWeight.w700,
+            const Text(
+              'Le centre reste géré séparément par le motif multi-cases.',
+              style: TextStyle(
+                color: PathStudioTheme.textMuted,
+                fontSize: 11,
+                height: 1.35,
+                fontWeight: FontWeight.w700,
+              ),
             ),
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final variant in PathStudioNewPathDraft.requiredVariants)
-                _NewPathVariantTileCard(
-                  tilesets: tilesets,
-                  settings: settings,
-                  projectRootPath: projectRootPath,
-                  variant: variant,
-                  tile: draft.variantTiles[variant],
-                  selected: draft.selectedTarget ==
-                          PathStudioNewPathDraftSelectionTarget.variant &&
-                      draft.selectedVariant == variant,
-                  onTap: () => onVariantSelected(variant),
-                  onClear: () => onVariantCleared(variant),
-                ),
-            ],
-          ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final variant in PathStudioNewPathDraft.requiredVariants)
+                  _NewPathVariantTileCard(
+                    tilesets: widget.tilesets,
+                    settings: widget.settings,
+                    projectRootPath: widget.projectRootPath,
+                    variant: variant,
+                    tile: widget.draft.variantTiles[variant],
+                    selected: widget.draft.selectedTarget ==
+                            PathStudioNewPathDraftSelectionTarget.variant &&
+                        widget.draft.selectedVariant == variant,
+                    onTap: () => widget.onVariantSelected(variant),
+                    onClear: () => widget.onVariantCleared(variant),
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );

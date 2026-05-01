@@ -342,6 +342,56 @@ void main() {
           findsOneWidget);
     });
 
+    testWidgets('new path variant section can be collapsed and expanded',
+        (tester) async {
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          tilesets: [_tileset(id: 'tileset-main', name: 'Chemins principaux')],
+        ),
+      );
+
+      await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+      await _pumpPathStudioAsync(tester);
+      tester
+          .widget<MacosPopupButton<String>>(
+            find.byKey(const Key('path-studio-new-path-tileset-popup')),
+          )
+          .onChanged
+          ?.call('tileset-main');
+      await _pumpPathStudioAsync(tester);
+
+      expect(
+        find.byKey(const Key('path-studio-new-path-variant-isolated')),
+        findsOneWidget,
+      );
+
+      final accordionToggle = find.byKey(
+        const Key('path-studio-new-path-variants-accordion-toggle'),
+      );
+      await tester.ensureVisible(accordionToggle);
+      await tester.pumpAndSettle();
+      await tester.tap(accordionToggle);
+      await _pumpPathStudioAsync(tester);
+
+      expect(
+        find.byKey(const Key('path-studio-new-path-variant-isolated')),
+        findsNothing,
+      );
+      expect(find.text('Déplier'), findsWidgets);
+
+      await tester.ensureVisible(accordionToggle);
+      await tester.pumpAndSettle();
+      await tester.tap(accordionToggle);
+      await _pumpPathStudioAsync(tester);
+
+      expect(
+        find.byKey(const Key('path-studio-new-path-variant-isolated')),
+        findsOneWidget,
+      );
+      expect(find.text('Replier'), findsWidgets);
+    });
+
     testWidgets('new path draft stays usable when the project has no tileset',
         (tester) async {
       await _pumpPathStudio(
