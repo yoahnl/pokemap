@@ -384,11 +384,53 @@ void main() {
       await tester.tap(tile);
       await tester.pumpAndSettle();
 
-      expect(find.text('Configurée'), findsWidgets);
-      expect(find.text('Tuile 2,1'), findsWidgets);
+      expect(find.text('Statique — 1 frame'), findsWidgets);
       expect(find.text('Centre incomplet'), findsNothing);
       expect(find.text('Aucun variant legacy configuré'), findsWidgets);
       expect(find.text('Tileset requis'), findsNothing);
+    });
+
+    testWidgets('new path center cell exposes animation frame controls',
+        (tester) async {
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          tilesets: [_tileset(id: 'tileset-main', name: 'Chemins principaux')],
+        ),
+      );
+
+      await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+      await _pumpPathStudioAsync(tester);
+      tester
+          .widget<MacosPopupButton<String>>(
+            find.byKey(const Key('path-studio-new-path-tileset-popup')),
+          )
+          .onChanged
+          ?.call('tileset-main');
+      await _pumpPathStudioAsync(tester);
+      await _tapNewPathTile(tester, tileX: 2, tileY: 1);
+
+      expect(find.text('Animation de la cellule A'), findsWidgets);
+      expect(find.text('Statique — 1 frame'), findsWidgets);
+
+      final addFrame = find.byKey(const Key('path-studio-new-path-add-frame'));
+      await tester.ensureVisible(addFrame);
+      await tester.pumpAndSettle();
+      await tester.tap(addFrame);
+      await _pumpPathStudioAsync(tester);
+      expect(find.text('Animée — 2 frames'), findsWidgets);
+
+      await tester.enterText(
+        find.byKey(const Key('path-studio-new-path-frame-duration-1')),
+        '333',
+      );
+      await _pumpPathStudioAsync(tester);
+      expect(find.textContaining('333 ms'), findsWidgets);
+
+      await tester.tap(find.byKey(const Key('path-studio-new-path-frame-chip-0')));
+      await _pumpPathStudioAsync(tester);
+      await _tapNewPathTile(tester, tileX: 5, tileY: 1);
+      expect(find.textContaining('Tuile 5,1'), findsWidgets);
     });
 
     testWidgets('missing tileset image keeps the logical picker fallback',
@@ -568,9 +610,10 @@ void main() {
           .onChanged
           ?.call('tileset-main');
       await _pumpPathStudioAsync(tester);
-      await tester.tap(
-        find.byKey(const Key('path-studio-new-path-size-2x2')),
-      );
+      final size2x2 = find.byKey(const Key('path-studio-new-path-size-2x2'));
+      await tester.ensureVisible(size2x2);
+      await tester.pumpAndSettle();
+      await tester.tap(size2x2);
       await tester.pumpAndSettle();
 
       await _assignImageBackedTile(
@@ -646,9 +689,10 @@ void main() {
           .onChanged
           ?.call('tileset-main');
       await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const Key('path-studio-new-path-size-2x2')),
-      );
+      final size2x2 = find.byKey(const Key('path-studio-new-path-size-2x2'));
+      await tester.ensureVisible(size2x2);
+      await tester.pumpAndSettle();
+      await tester.tap(size2x2);
       await tester.pumpAndSettle();
 
       await _assignNewPathTile(tester, cellX: 0, cellY: 0, tileX: 0, tileY: 0);
@@ -659,10 +703,7 @@ void main() {
 
       await _assignNewPathTile(tester, cellX: 1, cellY: 1, tileX: 1, tileY: 1);
 
-      expect(find.text('Tuile 0,0'), findsWidgets);
-      expect(find.text('Tuile 1,0'), findsWidgets);
-      expect(find.text('Tuile 0,1'), findsWidgets);
-      expect(find.text('Tuile 1,1'), findsWidgets);
+      expect(find.text('Statique — 1 frame'), findsWidgets);
       expect(find.text('Centre incomplet'), findsNothing);
     });
 
@@ -757,9 +798,10 @@ void main() {
           .onChanged
           ?.call('tileset-main');
       await tester.pumpAndSettle();
-      await tester.tap(
-        find.byKey(const Key('path-studio-new-path-size-2x2')),
-      );
+      final size2x2 = find.byKey(const Key('path-studio-new-path-size-2x2'));
+      await tester.ensureVisible(size2x2);
+      await tester.pumpAndSettle();
+      await tester.tap(size2x2);
       await tester.pumpAndSettle();
 
       expect(

@@ -229,6 +229,50 @@ void main() {
         isFalse,
       );
     });
+
+    test('build request conserve toutes les frames animées du centre', () {
+      var draft = _readyCenterDraft();
+      draft = appendPathStudioNewPathDraftCenterFrame(
+        draft: draft,
+        localX: 0,
+        localY: 0,
+      );
+      draft = assignPathStudioNewPathDraftCellTile(
+        draft: draft,
+        localX: 0,
+        localY: 0,
+        sourceX: 7,
+        sourceY: 5,
+      );
+      draft = updatePathStudioNewPathDraftCenterFrameDuration(
+        draft: draft,
+        localX: 0,
+        localY: 0,
+        frameIndex: 0,
+        durationMs: 110,
+      );
+      draft = updatePathStudioNewPathDraftCenterFrameDuration(
+        draft: draft,
+        localX: 0,
+        localY: 0,
+        frameIndex: 1,
+        durationMs: 220,
+      );
+
+      final plan = createPathStudioNewPathBuildPlan(
+        manifest: _manifest(),
+        draft: draft,
+      );
+      final frames = plan.buildRequest!.pathPatternPreset.centerPattern.cells.first.frames;
+
+      expect(frames.length, 2);
+      expect(frames[0].source, const TilesetSourceRect(x: 2, y: 3));
+      expect(frames[1].source, const TilesetSourceRect(x: 7, y: 5));
+      expect(frames[0].durationMs, 110);
+      expect(frames[1].durationMs, 220);
+      expect(frames[0].tilesetId, 'tileset-main');
+      expect(frames[1].tilesetId, 'tileset-main');
+    });
   });
 }
 

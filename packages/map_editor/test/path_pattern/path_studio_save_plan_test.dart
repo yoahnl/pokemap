@@ -56,6 +56,7 @@ void main() {
         const TilesetVisualFrame(
           tilesetId: 'tileset-main',
           source: TilesetSourceRect(x: 2, y: 3),
+          durationMs: 200,
         ),
       ]);
       expect(

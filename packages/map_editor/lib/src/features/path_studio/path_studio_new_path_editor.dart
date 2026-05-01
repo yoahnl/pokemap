@@ -13,6 +13,10 @@ class _NewPathCenterWorkspace extends StatelessWidget {
     required this.onCellSelected,
     required this.onVariantSelected,
     required this.onTileSelected,
+    required this.onCenterFrameSelected,
+    required this.onCenterFrameAdded,
+    required this.onCenterFrameRemoved,
+    required this.onCenterFrameDurationChanged,
     required this.onCellCleared,
     required this.onVariantCleared,
   });
@@ -28,6 +32,10 @@ class _NewPathCenterWorkspace extends StatelessWidget {
   final void Function(int localX, int localY) onCellSelected;
   final ValueChanged<TerrainPathVariant> onVariantSelected;
   final void Function(int sourceX, int sourceY) onTileSelected;
+  final ValueChanged<int> onCenterFrameSelected;
+  final VoidCallback onCenterFrameAdded;
+  final ValueChanged<int> onCenterFrameRemoved;
+  final void Function(int frameIndex, int durationMs) onCenterFrameDurationChanged;
   final void Function(int localX, int localY) onCellCleared;
   final ValueChanged<TerrainPathVariant> onVariantCleared;
 
@@ -57,6 +65,10 @@ class _NewPathCenterWorkspace extends StatelessWidget {
             onCellSelected: onCellSelected,
             onVariantSelected: onVariantSelected,
             onTileSelected: onTileSelected,
+            onCenterFrameSelected: onCenterFrameSelected,
+            onCenterFrameAdded: onCenterFrameAdded,
+            onCenterFrameRemoved: onCenterFrameRemoved,
+            onCenterFrameDurationChanged: onCenterFrameDurationChanged,
             onCellCleared: onCellCleared,
             onVariantCleared: onVariantCleared,
           ),
@@ -157,6 +169,14 @@ class _NewPathSummary extends StatelessWidget {
             value: '${draft.configuredCellCount}/${draft.centerCellCount}',
           ),
           _InfoTile(
+            label: 'Frames du centre',
+            value: '${draft.totalCenterFrameCount}',
+          ),
+          _InfoTile(
+            label: 'Cellules animées',
+            value: '${draft.animatedCenterCellCount}',
+          ),
+          _InfoTile(
             label: 'Variants',
             value:
                 '${draft.configuredVariantCount}/${draft.requiredVariantCount}',
@@ -227,6 +247,10 @@ class _NewPathCenterPatternEditor extends StatelessWidget {
     required this.onCellSelected,
     required this.onVariantSelected,
     required this.onTileSelected,
+    required this.onCenterFrameSelected,
+    required this.onCenterFrameAdded,
+    required this.onCenterFrameRemoved,
+    required this.onCenterFrameDurationChanged,
     required this.onCellCleared,
     required this.onVariantCleared,
   });
@@ -239,6 +263,10 @@ class _NewPathCenterPatternEditor extends StatelessWidget {
   final void Function(int localX, int localY) onCellSelected;
   final ValueChanged<TerrainPathVariant> onVariantSelected;
   final void Function(int sourceX, int sourceY) onTileSelected;
+  final ValueChanged<int> onCenterFrameSelected;
+  final VoidCallback onCenterFrameAdded;
+  final ValueChanged<int> onCenterFrameRemoved;
+  final void Function(int frameIndex, int durationMs) onCenterFrameDurationChanged;
   final void Function(int localX, int localY) onCellCleared;
   final ValueChanged<TerrainPathVariant> onVariantCleared;
 
@@ -293,6 +321,10 @@ class _NewPathCenterPatternEditor extends StatelessWidget {
           const SizedBox(height: 14),
           _NewPathSelectedCellDetails(
             draft: draft,
+            onCenterFrameSelected: onCenterFrameSelected,
+            onCenterFrameAdded: onCenterFrameAdded,
+            onCenterFrameRemoved: onCenterFrameRemoved,
+            onCenterFrameDurationChanged: onCenterFrameDurationChanged,
             onCellCleared: onCellCleared,
           ),
           const SizedBox(height: 14),
@@ -433,21 +465,17 @@ class _NewPathPatternCell extends StatelessWidget {
               _EmptyTileBadge(cellLabel: cell.label),
             const SizedBox(height: 6),
             Text(
-              tile == null ? 'À configurer' : 'Configurée',
+              tile == null
+                  ? 'À configurer'
+                  : (cell.frames.length > 1
+                      ? 'Animée — ${cell.frames.length} frames'
+                      : 'Statique — 1 frame'),
               style: TextStyle(
                 color: tile == null
                     ? PathStudioTheme.textSecondary
                     : PathStudioTheme.success,
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
-              ),
-            ),
-            Text(
-              tile == null ? 'Aucune tuile' : 'Tuile ${tile.coordinateLabel}',
-              style: const TextStyle(
-                color: PathStudioTheme.textMuted,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
               ),
             ),
           ],
@@ -460,16 +488,24 @@ class _NewPathPatternCell extends StatelessWidget {
 class _NewPathSelectedCellDetails extends StatelessWidget {
   const _NewPathSelectedCellDetails({
     required this.draft,
+    required this.onCenterFrameSelected,
+    required this.onCenterFrameAdded,
+    required this.onCenterFrameRemoved,
+    required this.onCenterFrameDurationChanged,
     required this.onCellCleared,
   });
 
   final PathStudioNewPathDraft draft;
+  final ValueChanged<int> onCenterFrameSelected;
+  final VoidCallback onCenterFrameAdded;
+  final ValueChanged<int> onCenterFrameRemoved;
+  final void Function(int frameIndex, int durationMs) onCenterFrameDurationChanged;
   final void Function(int localX, int localY) onCellCleared;
 
   @override
   Widget build(BuildContext context) {
     final cell = draft.selectedCell;
-    final tile = cell.tile;
+    final selectedFrame = cell.selectedFrame;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: PathStudioTheme.subtleDecoration(),
@@ -495,16 +531,92 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            tile == null
+            selectedFrame == null
                 ? 'Aucune tuile configurée pour cette cellule.'
-                : 'Tuile ${tile.coordinateLabel} assignée depuis ${tile.tilesetId}.',
+                : 'Tuile ${selectedFrame.tile.coordinateLabel} assignée depuis ${selectedFrame.tile.tilesetId}.',
             style: const TextStyle(
               color: PathStudioTheme.textMuted,
               fontSize: 11,
               fontWeight: FontWeight.w700,
             ),
           ),
-          if (tile != null) ...[
+          const SizedBox(height: 10),
+          Text(
+            cell.frames.length > 1
+                ? 'Animée — ${cell.frames.length} frames'
+                : 'Statique — ${cell.frames.length} frame',
+            style: const TextStyle(
+              color: PathStudioTheme.textSecondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          if (cell.frames.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Animation de la cellule ${cell.label}',
+              key: Key('path-studio-new-path-animation-title-${cell.label}'),
+              style: const TextStyle(
+                color: PathStudioTheme.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (var index = 0; index < cell.frames.length; index += 1)
+                  _CenterFrameChip(
+                    key: Key('path-studio-new-path-frame-chip-$index'),
+                    frameIndex: index,
+                    frame: cell.frames[index],
+                    selected: index == cell.selectedFrameIndex,
+                    canRemove: cell.frames.length > 1,
+                    onSelect: () => onCenterFrameSelected(index),
+                    onRemove: () => onCenterFrameRemoved(index),
+                    onDurationChanged: (duration) {
+                      onCenterFrameDurationChanged(index, duration);
+                    },
+                  ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: CupertinoButton(
+                key: const Key('path-studio-new-path-add-frame'),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                minimumSize: Size.zero,
+                color: PathStudioTheme.accentCyan.withValues(alpha: 0.2),
+                onPressed: onCenterFrameAdded,
+                child: const Text(
+                  'Ajouter une frame',
+                  style: TextStyle(
+                    color: PathStudioTheme.accentCyan,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ],
+          if (selectedFrame != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Frame active: ${cell.selectedFrameIndex + 1} • Tuile ${selectedFrame.tile.coordinateLabel} • ${selectedFrame.durationMs} ms',
+              style: const TextStyle(
+                color: PathStudioTheme.textMuted,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+          if (selectedFrame != null) ...[
             const SizedBox(height: 10),
             Align(
               alignment: Alignment.centerLeft,
@@ -529,6 +641,113 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _CenterFrameChip extends StatelessWidget {
+  const _CenterFrameChip({
+    super.key,
+    required this.frameIndex,
+    required this.frame,
+    required this.selected,
+    required this.canRemove,
+    required this.onSelect,
+    required this.onRemove,
+    required this.onDurationChanged,
+  });
+
+  final int frameIndex;
+  final PathStudioNewPathDraftCenterFrame frame;
+  final bool selected;
+  final bool canRemove;
+  final VoidCallback onSelect;
+  final VoidCallback onRemove;
+  final ValueChanged<int> onDurationChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onSelect,
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        width: 188,
+        decoration: BoxDecoration(
+          color: selected
+              ? PathStudioTheme.accent.withValues(alpha: 0.18)
+              : PathStudioTheme.backgroundAlt,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: selected
+                ? PathStudioTheme.accentHover
+                : PathStudioTheme.borderStrong.withValues(alpha: 0.6),
+            width: selected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Frame ${frameIndex + 1}',
+              style: const TextStyle(
+                color: PathStudioTheme.textPrimary,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Tuile ${frame.tile.coordinateLabel}',
+              style: const TextStyle(
+                color: PathStudioTheme.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            CupertinoTextField(
+              key: Key('path-studio-new-path-frame-duration-$frameIndex'),
+              controller: TextEditingController(text: '${frame.durationMs}'),
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                final parsed = int.tryParse(value.trim());
+                if (parsed != null && parsed > 0) {
+                  onDurationChanged(parsed);
+                }
+              },
+              style: const TextStyle(
+                color: PathStudioTheme.textPrimary,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: PathStudioTheme.surfaceRaised,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: PathStudioTheme.border),
+              ),
+            ),
+            if (canRemove) ...[
+              const SizedBox(height: 6),
+              CupertinoButton(
+                key: Key('path-studio-new-path-remove-frame-$frameIndex'),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                minimumSize: Size.zero,
+                color: PathStudioTheme.error.withValues(alpha: 0.16),
+                onPressed: onRemove,
+                child: const Text(
+                  'Supprimer',
+                  style: TextStyle(
+                    color: PathStudioTheme.error,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -916,7 +1135,14 @@ class _NewPathTilePickerPanel extends StatelessWidget {
             localX: -1,
             localY: -1,
             label: _variantLabel(selectedVariant),
-            tile: selectedVariantTile,
+            frames: selectedVariantTile == null
+                ? const []
+                : [
+                    PathStudioNewPathDraftCenterFrame(
+                      tile: selectedVariantTile,
+                      durationMs: defaultPlacedElementAnimationFrameDurationMs,
+                    ),
+                  ],
           )
         : selectedCell;
     final targetLabel = isVariantTarget

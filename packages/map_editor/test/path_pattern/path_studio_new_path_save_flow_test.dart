@@ -161,6 +161,55 @@ void main() {
         isFalse,
       );
     });
+
+    test('conserve centerPattern animé dans le manifest mis à jour', () {
+      const basePathPreset = ProjectPathPreset(
+        id: 'new-base',
+        name: 'New Base',
+        tilesetId: 'tileset-main',
+      );
+      final animatedRequest = PathStudioNewPathBuildRequest(
+        basePathPreset: basePathPreset,
+        pathPatternPreset: ProjectPathPatternPreset(
+          id: 'new-pattern',
+          name: 'new-pattern',
+          basePathPresetId: 'new-base',
+          centerPattern: PathCenterPattern(
+            size: PathCenterPatternSize(width: 1, height: 1),
+            cells: [
+              PathCenterPatternCell(
+                localX: 0,
+                localY: 0,
+                frames: const [
+                  TilesetVisualFrame(
+                    tilesetId: 'tileset-main',
+                    source: TilesetSourceRect(x: 1, y: 1),
+                    durationMs: 120,
+                  ),
+                  TilesetVisualFrame(
+                    tilesetId: 'tileset-main',
+                    source: TilesetSourceRect(x: 2, y: 1),
+                    durationMs: 240,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+        configuredVariants: const [],
+        missingVariants: const [],
+        warnings: const [],
+      );
+
+      final updated = applyNewPathBuildRequestToManifest(
+        manifest: _manifest(),
+        request: animatedRequest,
+      );
+      final frames = updated.pathPatternPresets.single.centerPattern.cells.first.frames;
+      expect(frames.length, 2);
+      expect(frames[0].durationMs, 120);
+      expect(frames[1].durationMs, 240);
+    });
   });
 }
 

@@ -278,6 +278,13 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
                       onNewPathCellSelected: _selectNewPathDraftCell,
                       onNewPathVariantSelected: _selectNewPathDraftVariant,
                       onNewPathTileSelected: _assignNewPathDraftTile,
+                      onNewPathCenterFrameSelected:
+                          _selectNewPathDraftCenterFrame,
+                      onNewPathCenterFrameAdded: _appendNewPathDraftCenterFrame,
+                      onNewPathCenterFrameRemoved:
+                          _removeNewPathDraftCenterFrame,
+                      onNewPathCenterFrameDurationChanged:
+                          _updateNewPathDraftCenterFrameDuration,
                       onNewPathCellCleared: _clearNewPathDraftCell,
                       onNewPathVariantCleared: _clearNewPathDraftVariant,
                       onDraftSizeChanged: _resizeDraft,
@@ -510,6 +517,70 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
               sourceX: sourceX,
               sourceY: sourceY,
             );
+      _saveFeedbackMessage = null;
+    });
+  }
+
+  void _selectNewPathDraftCenterFrame(int frameIndex) {
+    final draft = _newPathDraft;
+    if (draft == null) {
+      return;
+    }
+    setState(() {
+      _newPathDraft = selectPathStudioNewPathDraftCenterFrame(
+        draft: draft,
+        localX: draft.selectedCellX,
+        localY: draft.selectedCellY,
+        frameIndex: frameIndex,
+      );
+      _saveFeedbackMessage = null;
+    });
+  }
+
+  void _appendNewPathDraftCenterFrame() {
+    final draft = _newPathDraft;
+    if (draft == null) {
+      return;
+    }
+    setState(() {
+      _newPathDraft = appendPathStudioNewPathDraftCenterFrame(
+        draft: draft,
+        localX: draft.selectedCellX,
+        localY: draft.selectedCellY,
+      );
+      _saveFeedbackMessage = null;
+    });
+  }
+
+  void _removeNewPathDraftCenterFrame(int frameIndex) {
+    final draft = _newPathDraft;
+    if (draft == null) {
+      return;
+    }
+    setState(() {
+      _newPathDraft = removePathStudioNewPathDraftCenterFrame(
+        draft: draft,
+        localX: draft.selectedCellX,
+        localY: draft.selectedCellY,
+        frameIndex: frameIndex,
+      );
+      _saveFeedbackMessage = null;
+    });
+  }
+
+  void _updateNewPathDraftCenterFrameDuration(int frameIndex, int durationMs) {
+    final draft = _newPathDraft;
+    if (draft == null) {
+      return;
+    }
+    setState(() {
+      _newPathDraft = updatePathStudioNewPathDraftCenterFrameDuration(
+        draft: draft,
+        localX: draft.selectedCellX,
+        localY: draft.selectedCellY,
+        frameIndex: frameIndex,
+        durationMs: durationMs,
+      );
       _saveFeedbackMessage = null;
     });
   }
@@ -1660,6 +1731,10 @@ class _CenterWorkspace extends StatelessWidget {
     required this.onNewPathCellSelected,
     required this.onNewPathVariantSelected,
     required this.onNewPathTileSelected,
+    required this.onNewPathCenterFrameSelected,
+    required this.onNewPathCenterFrameAdded,
+    required this.onNewPathCenterFrameRemoved,
+    required this.onNewPathCenterFrameDurationChanged,
     required this.onNewPathCellCleared,
     required this.onNewPathVariantCleared,
     required this.onDraftSizeChanged,
@@ -1685,6 +1760,11 @@ class _CenterWorkspace extends StatelessWidget {
   final void Function(int localX, int localY) onNewPathCellSelected;
   final ValueChanged<TerrainPathVariant> onNewPathVariantSelected;
   final void Function(int sourceX, int sourceY) onNewPathTileSelected;
+  final ValueChanged<int> onNewPathCenterFrameSelected;
+  final VoidCallback onNewPathCenterFrameAdded;
+  final ValueChanged<int> onNewPathCenterFrameRemoved;
+  final void Function(int frameIndex, int durationMs)
+      onNewPathCenterFrameDurationChanged;
   final void Function(int localX, int localY) onNewPathCellCleared;
   final ValueChanged<TerrainPathVariant> onNewPathVariantCleared;
   final void Function(int width, int height) onDraftSizeChanged;
@@ -1707,6 +1787,10 @@ class _CenterWorkspace extends StatelessWidget {
         onCellSelected: onNewPathCellSelected,
         onVariantSelected: onNewPathVariantSelected,
         onTileSelected: onNewPathTileSelected,
+        onCenterFrameSelected: onNewPathCenterFrameSelected,
+        onCenterFrameAdded: onNewPathCenterFrameAdded,
+        onCenterFrameRemoved: onNewPathCenterFrameRemoved,
+        onCenterFrameDurationChanged: onNewPathCenterFrameDurationChanged,
         onCellCleared: onNewPathCellCleared,
         onVariantCleared: onNewPathVariantCleared,
       );

@@ -207,7 +207,9 @@ PathCenterPattern? createPathCenterPatternFromNewPathDraft(
         PathCenterPatternCell(
           localX: cell.localX,
           localY: cell.localY,
-          frames: [cell.tile!.toFrame()],
+          frames: [
+            for (final frame in cell.frames) frame.toFrame(),
+          ],
         ),
     ],
   );

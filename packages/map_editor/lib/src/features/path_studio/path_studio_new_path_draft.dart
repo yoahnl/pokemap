@@ -25,10 +25,13 @@ final class PathStudioNewPathDraftTile {
 
   String get coordinateLabel => '$sourceX,$sourceY';
 
-  TilesetVisualFrame toFrame() {
+  TilesetVisualFrame toFrame({
+    int? durationMs,
+  }) {
     return TilesetVisualFrame(
       tilesetId: tilesetId,
       source: TilesetSourceRect(x: sourceX, y: sourceY),
+      durationMs: durationMs,
     );
   }
 
@@ -45,20 +48,58 @@ final class PathStudioNewPathDraftTile {
   int get hashCode => Object.hash(tilesetId, sourceX, sourceY);
 }
 
+final class PathStudioNewPathDraftCenterFrame {
+  const PathStudioNewPathDraftCenterFrame({
+    required this.tile,
+    required this.durationMs,
+  }) : assert(durationMs > 0);
+
+  final PathStudioNewPathDraftTile tile;
+  final int durationMs;
+
+  TilesetVisualFrame toFrame() {
+    return tile.toFrame(durationMs: durationMs);
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is PathStudioNewPathDraftCenterFrame &&
+            tile == other.tile &&
+            durationMs == other.durationMs;
+  }
+
+  @override
+  int get hashCode => Object.hash(tile, durationMs);
+}
+
 final class PathStudioNewPathDraftCell {
   const PathStudioNewPathDraftCell({
     required this.localX,
     required this.localY,
     required this.label,
-    this.tile,
+    this.frames = const [],
+    this.selectedFrameIndex = 0,
   });
 
   final int localX;
   final int localY;
   final String label;
-  final PathStudioNewPathDraftTile? tile;
+  final List<PathStudioNewPathDraftCenterFrame> frames;
+  final int selectedFrameIndex;
 
-  bool get isConfigured => tile != null;
+  PathStudioNewPathDraftTile? get tile => selectedFrame?.tile;
+
+  PathStudioNewPathDraftCenterFrame? get selectedFrame {
+    if (frames.isEmpty) {
+      return null;
+    }
+    return frames[selectedFrameIndex.clamp(0, frames.length - 1)];
+  }
+
+  bool get isConfigured => frames.isNotEmpty;
+
+  bool get isAnimated => frames.length > 1;
 
   @override
   bool operator ==(Object other) {
@@ -67,11 +108,18 @@ final class PathStudioNewPathDraftCell {
             localX == other.localX &&
             localY == other.localY &&
             label == other.label &&
-            tile == other.tile;
+            selectedFrameIndex == other.selectedFrameIndex &&
+            _centerFrameListsEqual(frames, other.frames);
   }
 
   @override
-  int get hashCode => Object.hash(localX, localY, label, tile);
+  int get hashCode => Object.hash(
+        localX,
+        localY,
+        label,
+        selectedFrameIndex,
+        Object.hashAll(frames),
+      );
 }
 
 final class PathStudioNewPathDraft {
@@ -87,17 +135,26 @@ final class PathStudioNewPathDraft {
     required this.selectedTarget,
     required this.surfaceKind,
     required this.isDirty,
-    Map<String, PathStudioNewPathDraftTile> assignedTiles = const {},
+    Map<String, List<PathStudioNewPathDraftCenterFrame>> centerCellFrames =
+        const {},
     Map<TerrainPathVariant, PathStudioNewPathDraftTile> variantTiles = const {},
+    this.selectedCenterFrameIndex = 0,
   })  : assert(centerWidth > 0),
         assert(centerHeight > 0),
         assert(selectedCellX >= 0 && selectedCellX < centerWidth),
         assert(selectedCellY >= 0 && selectedCellY < centerHeight),
+        assert(selectedCenterFrameIndex >= 0),
         assert(
           _requiredVariants.contains(selectedVariant),
         ),
-        assignedTiles = Map<String, PathStudioNewPathDraftTile>.unmodifiable(
-          assignedTiles,
+        centerCellFrames =
+            Map<String, List<PathStudioNewPathDraftCenterFrame>>.unmodifiable(
+          centerCellFrames.map(
+            (key, value) => MapEntry(
+              key,
+              List<PathStudioNewPathDraftCenterFrame>.unmodifiable(value),
+            ),
+          ),
         ),
         variantTiles =
             Map<TerrainPathVariant, PathStudioNewPathDraftTile>.unmodifiable(
@@ -115,13 +172,14 @@ final class PathStudioNewPathDraft {
   final PathStudioNewPathDraftSelectionTarget selectedTarget;
   final PathSurfaceKind surfaceKind;
   final bool isDirty;
+  final int selectedCenterFrameIndex;
 
   /// Assignations locales des cellules du centre, indexées par `x,y`.
   ///
   /// Le map est immuable pour éviter qu'un widget ou test modifie le brouillon
   /// en place. Les helpers de ce fichier retournent toujours une nouvelle
   /// instance de [PathStudioNewPathDraft].
-  final Map<String, PathStudioNewPathDraftTile> assignedTiles;
+  final Map<String, List<PathStudioNewPathDraftCenterFrame>> centerCellFrames;
   final Map<TerrainPathVariant, PathStudioNewPathDraftTile> variantTiles;
 
   static final List<TerrainPathVariant> requiredVariants =
@@ -133,6 +191,12 @@ final class PathStudioNewPathDraft {
 
   int get configuredCellCount =>
       cells.where((cell) => cell.isConfigured).length;
+
+  int get totalCenterFrameCount =>
+      cells.fold<int>(0, (total, cell) => total + cell.frames.length);
+
+  int get animatedCenterCellCount =>
+      cells.where((cell) => cell.frames.length > 1).length;
 
   int get requiredVariantCount => requiredVariants.length;
 
@@ -154,7 +218,10 @@ final class PathStudioNewPathDraft {
             localX: x,
             localY: y,
             label: String.fromCharCode(labelCode),
-            tile: assignedTiles[_cellKey(x, y)],
+            frames: centerCellFrames[_cellKey(x, y)] ?? const [],
+            selectedFrameIndex: selectedCellX == x && selectedCellY == y
+                ? selectedCenterFrameIndex
+                : 0,
           ),
         );
         labelCode += 1;
@@ -198,8 +265,9 @@ final class PathStudioNewPathDraft {
     PathStudioNewPathDraftSelectionTarget? selectedTarget,
     PathSurfaceKind? surfaceKind,
     bool? isDirty,
-    Map<String, PathStudioNewPathDraftTile>? assignedTiles,
+    Map<String, List<PathStudioNewPathDraftCenterFrame>>? centerCellFrames,
     Map<TerrainPathVariant, PathStudioNewPathDraftTile>? variantTiles,
+    int? selectedCenterFrameIndex,
   }) {
     return PathStudioNewPathDraft(
       id: id ?? this.id,
@@ -215,8 +283,10 @@ final class PathStudioNewPathDraft {
       selectedTarget: selectedTarget ?? this.selectedTarget,
       surfaceKind: surfaceKind ?? this.surfaceKind,
       isDirty: isDirty ?? this.isDirty,
-      assignedTiles: assignedTiles ?? this.assignedTiles,
+      centerCellFrames: centerCellFrames ?? this.centerCellFrames,
       variantTiles: variantTiles ?? this.variantTiles,
+      selectedCenterFrameIndex:
+          selectedCenterFrameIndex ?? this.selectedCenterFrameIndex,
     );
   }
 
@@ -235,7 +305,8 @@ final class PathStudioNewPathDraft {
             selectedTarget == other.selectedTarget &&
             surfaceKind == other.surfaceKind &&
             isDirty == other.isDirty &&
-            _assignedTileMapsEqual(assignedTiles, other.assignedTiles) &&
+            selectedCenterFrameIndex == other.selectedCenterFrameIndex &&
+            _centerCellFrameMapsEqual(centerCellFrames, other.centerCellFrames) &&
             _variantTileMapsEqual(variantTiles, other.variantTiles);
   }
 
@@ -252,7 +323,8 @@ final class PathStudioNewPathDraft {
         selectedTarget,
         surfaceKind,
         isDirty,
-        _assignedTileMapHash(assignedTiles),
+        selectedCenterFrameIndex,
+        _centerCellFrameMapHash(centerCellFrames),
         _variantTileMapHash(variantTiles),
       );
 }
@@ -287,9 +359,10 @@ PathStudioNewPathDraft resizePathStudioNewPathDraftCenter({
     centerHeight: height,
     selectedCellX: draft.selectedCellX.clamp(0, width - 1).toInt(),
     selectedCellY: draft.selectedCellY.clamp(0, height - 1).toInt(),
+    selectedCenterFrameIndex: 0,
     isDirty: true,
-    assignedTiles: _trimAssignedTilesForSize(
-      draft.assignedTiles,
+    centerCellFrames: _trimCenterCellFramesForSize(
+      draft.centerCellFrames,
       width: width,
       height: height,
     ),
@@ -316,8 +389,9 @@ PathStudioNewPathDraft selectPathStudioNewPathDraftTileset(
 ) {
   return draft.copyWith(
     tilesetId: tilesetId.isEmpty ? null : tilesetId,
-    assignedTiles: const {},
+    centerCellFrames: const {},
     variantTiles: const {},
+    selectedCenterFrameIndex: 0,
     isDirty: true,
   );
 }
@@ -341,15 +415,160 @@ PathStudioNewPathDraft assignPathStudioNewPathDraftCellTile({
   }
   _validateCellCoordinates(draft: draft, localX: localX, localY: localY);
 
-  final nextTiles = Map<String, PathStudioNewPathDraftTile>.from(
-    draft.assignedTiles,
+  final cellKey = _cellKey(localX, localY);
+  final nextCellFrames =
+      Map<String, List<PathStudioNewPathDraftCenterFrame>>.from(
+    draft.centerCellFrames,
   );
-  nextTiles[_cellKey(localX, localY)] = PathStudioNewPathDraftTile(
-    tilesetId: tilesetId,
-    sourceX: sourceX,
-    sourceY: sourceY,
+  final currentFrames =
+      List<PathStudioNewPathDraftCenterFrame>.from(nextCellFrames[cellKey] ?? const []);
+  final selectedIndex = currentFrames.isEmpty
+      ? 0
+      : draft.selectedCenterFrameIndex.clamp(0, currentFrames.length - 1);
+  final nextFrame = PathStudioNewPathDraftCenterFrame(
+    tile: PathStudioNewPathDraftTile(
+      tilesetId: tilesetId,
+      sourceX: sourceX,
+      sourceY: sourceY,
+    ),
+    durationMs: currentFrames.isEmpty
+        ? defaultPlacedElementAnimationFrameDurationMs
+        : currentFrames[selectedIndex].durationMs,
   );
-  return draft.copyWith(assignedTiles: nextTiles, isDirty: true);
+  if (currentFrames.isEmpty) {
+    currentFrames.add(nextFrame);
+  } else {
+    currentFrames[selectedIndex] = nextFrame;
+  }
+  nextCellFrames[cellKey] = currentFrames;
+  return draft.copyWith(
+    centerCellFrames: nextCellFrames,
+    selectedCenterFrameIndex: selectedIndex,
+    isDirty: true,
+  );
+}
+
+PathStudioNewPathDraft appendPathStudioNewPathDraftCenterFrame({
+  required PathStudioNewPathDraft draft,
+  required int localX,
+  required int localY,
+}) {
+  _validateCellCoordinates(draft: draft, localX: localX, localY: localY);
+  final cellKey = _cellKey(localX, localY);
+  final nextCellFrames =
+      Map<String, List<PathStudioNewPathDraftCenterFrame>>.from(
+    draft.centerCellFrames,
+  );
+  final currentFrames =
+      List<PathStudioNewPathDraftCenterFrame>.from(nextCellFrames[cellKey] ?? const []);
+  if (currentFrames.isEmpty) {
+    return draft;
+  }
+  final selectedIndex =
+      draft.selectedCenterFrameIndex.clamp(0, currentFrames.length - 1);
+  final sourceFrame = currentFrames[selectedIndex];
+  currentFrames.add(
+    PathStudioNewPathDraftCenterFrame(
+      tile: PathStudioNewPathDraftTile(
+        tilesetId: sourceFrame.tile.tilesetId,
+        sourceX: sourceFrame.tile.sourceX,
+        sourceY: sourceFrame.tile.sourceY,
+      ),
+      durationMs: sourceFrame.durationMs,
+    ),
+  );
+  nextCellFrames[cellKey] = currentFrames;
+  return draft.copyWith(
+    centerCellFrames: nextCellFrames,
+    selectedCenterFrameIndex: currentFrames.length - 1,
+    isDirty: true,
+  );
+}
+
+PathStudioNewPathDraft removePathStudioNewPathDraftCenterFrame({
+  required PathStudioNewPathDraft draft,
+  required int localX,
+  required int localY,
+  required int frameIndex,
+}) {
+  _validateCellCoordinates(draft: draft, localX: localX, localY: localY);
+  final cellKey = _cellKey(localX, localY);
+  final nextCellFrames =
+      Map<String, List<PathStudioNewPathDraftCenterFrame>>.from(
+    draft.centerCellFrames,
+  );
+  final currentFrames =
+      List<PathStudioNewPathDraftCenterFrame>.from(nextCellFrames[cellKey] ?? const []);
+  if (frameIndex < 0 || frameIndex >= currentFrames.length) {
+    throw RangeError.range(frameIndex, 0, currentFrames.length - 1, 'frameIndex');
+  }
+  currentFrames.removeAt(frameIndex);
+  if (currentFrames.isEmpty) {
+    nextCellFrames.remove(cellKey);
+  } else {
+    nextCellFrames[cellKey] = currentFrames;
+  }
+  final nextSelectedIndex = currentFrames.isEmpty
+      ? 0
+      : draft.selectedCenterFrameIndex.clamp(0, currentFrames.length - 1);
+  return draft.copyWith(
+    centerCellFrames: nextCellFrames,
+    selectedCenterFrameIndex: nextSelectedIndex,
+    isDirty: true,
+  );
+}
+
+PathStudioNewPathDraft selectPathStudioNewPathDraftCenterFrame({
+  required PathStudioNewPathDraft draft,
+  required int localX,
+  required int localY,
+  required int frameIndex,
+}) {
+  _validateCellCoordinates(draft: draft, localX: localX, localY: localY);
+  final frames = draft.centerCellFrames[_cellKey(localX, localY)] ?? const [];
+  if (frameIndex < 0 || frameIndex >= frames.length) {
+    throw RangeError.range(frameIndex, 0, frames.length - 1, 'frameIndex');
+  }
+  return draft.copyWith(
+    selectedCellX: localX,
+    selectedCellY: localY,
+    selectedTarget: PathStudioNewPathDraftSelectionTarget.centerCell,
+    selectedCenterFrameIndex: frameIndex,
+  );
+}
+
+PathStudioNewPathDraft updatePathStudioNewPathDraftCenterFrameDuration({
+  required PathStudioNewPathDraft draft,
+  required int localX,
+  required int localY,
+  required int frameIndex,
+  required int durationMs,
+}) {
+  if (durationMs <= 0) {
+    throw ArgumentError.value(durationMs, 'durationMs', 'must be positive');
+  }
+  _validateCellCoordinates(draft: draft, localX: localX, localY: localY);
+  final cellKey = _cellKey(localX, localY);
+  final nextCellFrames =
+      Map<String, List<PathStudioNewPathDraftCenterFrame>>.from(
+    draft.centerCellFrames,
+  );
+  final currentFrames =
+      List<PathStudioNewPathDraftCenterFrame>.from(nextCellFrames[cellKey] ?? const []);
+  if (frameIndex < 0 || frameIndex >= currentFrames.length) {
+    throw RangeError.range(frameIndex, 0, currentFrames.length - 1, 'frameIndex');
+  }
+  final frame = currentFrames[frameIndex];
+  currentFrames[frameIndex] = PathStudioNewPathDraftCenterFrame(
+    tile: PathStudioNewPathDraftTile(
+      tilesetId: frame.tile.tilesetId,
+      sourceX: frame.tile.sourceX,
+      sourceY: frame.tile.sourceY,
+    ),
+    durationMs: durationMs,
+  );
+  nextCellFrames[cellKey] = currentFrames;
+  return draft.copyWith(centerCellFrames: nextCellFrames, isDirty: true);
 }
 
 PathStudioNewPathDraft clearPathStudioNewPathDraftCell({
@@ -359,10 +578,15 @@ PathStudioNewPathDraft clearPathStudioNewPathDraftCell({
 }) {
   _validateCellCoordinates(draft: draft, localX: localX, localY: localY);
 
-  final nextTiles = Map<String, PathStudioNewPathDraftTile>.from(
-    draft.assignedTiles,
+  final nextCellFrames =
+      Map<String, List<PathStudioNewPathDraftCenterFrame>>.from(
+    draft.centerCellFrames,
   )..remove(_cellKey(localX, localY));
-  return draft.copyWith(assignedTiles: nextTiles, isDirty: true);
+  return draft.copyWith(
+    centerCellFrames: nextCellFrames,
+    selectedCenterFrameIndex: 0,
+    isDirty: true,
+  );
 }
 
 PathStudioNewPathDraft selectPathStudioNewPathDraftCell({
@@ -375,6 +599,7 @@ PathStudioNewPathDraft selectPathStudioNewPathDraftCell({
     selectedCellX: localX,
     selectedCellY: localY,
     selectedTarget: PathStudioNewPathDraftSelectionTarget.centerCell,
+    selectedCenterFrameIndex: 0,
   );
 }
 
@@ -471,13 +696,13 @@ void _validateCellCoordinates({
   }
 }
 
-Map<String, PathStudioNewPathDraftTile> _trimAssignedTilesForSize(
-  Map<String, PathStudioNewPathDraftTile> assignedTiles, {
+Map<String, List<PathStudioNewPathDraftCenterFrame>> _trimCenterCellFramesForSize(
+  Map<String, List<PathStudioNewPathDraftCenterFrame>> centerCellFrames, {
   required int width,
   required int height,
 }) {
-  final kept = <String, PathStudioNewPathDraftTile>{};
-  for (final entry in assignedTiles.entries) {
+  final kept = <String, List<PathStudioNewPathDraftCenterFrame>>{};
+  for (final entry in centerCellFrames.entries) {
     final parts = entry.key.split(',');
     if (parts.length != 2) {
       continue;
@@ -488,15 +713,17 @@ Map<String, PathStudioNewPathDraftTile> _trimAssignedTilesForSize(
       continue;
     }
     if (localX >= 0 && localX < width && localY >= 0 && localY < height) {
-      kept[entry.key] = entry.value;
+      kept[entry.key] = List<PathStudioNewPathDraftCenterFrame>.unmodifiable(
+        entry.value,
+      );
     }
   }
   return kept;
 }
 
-bool _assignedTileMapsEqual(
-  Map<String, PathStudioNewPathDraftTile> left,
-  Map<String, PathStudioNewPathDraftTile> right,
+bool _centerCellFrameMapsEqual(
+  Map<String, List<PathStudioNewPathDraftCenterFrame>> left,
+  Map<String, List<PathStudioNewPathDraftCenterFrame>> right,
 ) {
   if (identical(left, right)) {
     return true;
@@ -505,19 +732,40 @@ bool _assignedTileMapsEqual(
     return false;
   }
   for (final entry in left.entries) {
-    if (right[entry.key] != entry.value) {
+    final otherFrames = right[entry.key];
+    if (otherFrames == null || !_centerFrameListsEqual(entry.value, otherFrames)) {
       return false;
     }
   }
   return true;
 }
 
-int _assignedTileMapHash(Map<String, PathStudioNewPathDraftTile> tiles) {
-  final entries = tiles.entries.toList()
+int _centerCellFrameMapHash(
+  Map<String, List<PathStudioNewPathDraftCenterFrame>> cells,
+) {
+  final entries = cells.entries.toList()
     ..sort((left, right) => left.key.compareTo(right.key));
   return Object.hashAll(
-    entries.map((entry) => Object.hash(entry.key, entry.value)),
+    entries.map((entry) => Object.hash(entry.key, Object.hashAll(entry.value))),
   );
+}
+
+bool _centerFrameListsEqual(
+  List<PathStudioNewPathDraftCenterFrame> left,
+  List<PathStudioNewPathDraftCenterFrame> right,
+) {
+  if (identical(left, right)) {
+    return true;
+  }
+  if (left.length != right.length) {
+    return false;
+  }
+  for (var index = 0; index < left.length; index += 1) {
+    if (left[index] != right[index]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 bool _variantTileMapsEqual(

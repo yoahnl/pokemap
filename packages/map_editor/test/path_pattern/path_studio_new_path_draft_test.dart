@@ -459,5 +459,162 @@ void main() {
       }
       expect(draft.issues, isEmpty);
     });
+
+    test('append center frame duplicates selected frame tile and duration', () {
+      var draft = assignPathStudioNewPathDraftCellTile(
+        draft: selectPathStudioNewPathDraftTileset(
+          createInitialPathStudioNewPathDraft(),
+          'tileset-main',
+        ),
+        localX: 0,
+        localY: 0,
+        sourceX: 2,
+        sourceY: 3,
+      );
+      draft = updatePathStudioNewPathDraftCenterFrameDuration(
+        draft: draft,
+        localX: 0,
+        localY: 0,
+        frameIndex: 0,
+        durationMs: 120,
+      );
+
+      final appended = appendPathStudioNewPathDraftCenterFrame(
+        draft: draft,
+        localX: 0,
+        localY: 0,
+      );
+
+      expect(appended.selectedCell.frames.length, 2);
+      expect(appended.selectedCell.frames[1].tile.coordinateLabel, '2,3');
+      expect(appended.selectedCell.frames[1].durationMs, 120);
+      expect(appended.totalCenterFrameCount, 2);
+      expect(appended.animatedCenterCellCount, 1);
+    });
+
+    test('remove center frame can make cell non configured', () {
+      final draft = assignPathStudioNewPathDraftCellTile(
+        draft: selectPathStudioNewPathDraftTileset(
+          createInitialPathStudioNewPathDraft(),
+          'tileset-main',
+        ),
+        localX: 0,
+        localY: 0,
+        sourceX: 2,
+        sourceY: 3,
+      );
+
+      final removed = removePathStudioNewPathDraftCenterFrame(
+        draft: draft,
+        localX: 0,
+        localY: 0,
+        frameIndex: 0,
+      );
+
+      expect(removed.selectedCell.frames, isEmpty);
+      expect(removed.configuredCellCount, 0);
+      expect(
+        removed.issues,
+        contains(PathStudioNewPathDraftIssueCode.cellsNotConfigured),
+      );
+    });
+
+    test('update center frame duration only updates targeted frame', () {
+      var draft = assignPathStudioNewPathDraftCellTile(
+        draft: selectPathStudioNewPathDraftTileset(
+          createInitialPathStudioNewPathDraft(),
+          'tileset-main',
+        ),
+        localX: 0,
+        localY: 0,
+        sourceX: 1,
+        sourceY: 1,
+      );
+      draft = appendPathStudioNewPathDraftCenterFrame(
+        draft: draft,
+        localX: 0,
+        localY: 0,
+      );
+      draft = assignPathStudioNewPathDraftCellTile(
+        draft: draft,
+        localX: 0,
+        localY: 0,
+        sourceX: 4,
+        sourceY: 4,
+      );
+
+      final updated = updatePathStudioNewPathDraftCenterFrameDuration(
+        draft: draft,
+        localX: 0,
+        localY: 0,
+        frameIndex: 1,
+        durationMs: 333,
+      );
+
+      expect(updated.selectedCell.frames[0].durationMs, 200);
+      expect(updated.selectedCell.frames[1].durationMs, 333);
+      expect(updated.selectedCell.frames[1].tile.coordinateLabel, '4,4');
+    });
+
+    test('update center frame duration rejects non-positive values', () {
+      final draft = assignPathStudioNewPathDraftCellTile(
+        draft: selectPathStudioNewPathDraftTileset(
+          createInitialPathStudioNewPathDraft(),
+          'tileset-main',
+        ),
+        localX: 0,
+        localY: 0,
+        sourceX: 1,
+        sourceY: 1,
+      );
+
+      expect(
+        () => updatePathStudioNewPathDraftCenterFrameDuration(
+          draft: draft,
+          localX: 0,
+          localY: 0,
+          frameIndex: 0,
+          durationMs: 0,
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('resize keeps multi-frame cell A when switching 1x1 and 2x2', () {
+      var draft = assignPathStudioNewPathDraftCellTile(
+        draft: selectPathStudioNewPathDraftTileset(
+          createInitialPathStudioNewPathDraft(),
+          'tileset-main',
+        ),
+        localX: 0,
+        localY: 0,
+        sourceX: 1,
+        sourceY: 1,
+      );
+      draft = appendPathStudioNewPathDraftCenterFrame(
+        draft: draft,
+        localX: 0,
+        localY: 0,
+      );
+      draft = assignPathStudioNewPathDraftCellTile(
+        draft: draft,
+        localX: 0,
+        localY: 0,
+        sourceX: 2,
+        sourceY: 2,
+      );
+      final expanded = resizePathStudioNewPathDraftCenter(
+        draft: draft,
+        width: 2,
+        height: 2,
+      );
+      expect(expanded.cells.first.frames.length, 2);
+      final reduced = resizePathStudioNewPathDraftCenter(
+        draft: expanded,
+        width: 1,
+        height: 1,
+      );
+      expect(reduced.cells.single.frames.length, 2);
+    });
   });
 }

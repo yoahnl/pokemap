@@ -222,6 +222,71 @@ void main() {
       );
       expect(resolution?.sourceRect, const TilesetSourceRect(x: 6, y: 1));
     });
+
+    test('centerPattern multi-frame change selon elapsedMs', () {
+      final project = _project(
+        pathPresets: [_basePresetNoVariants()],
+        pathPatterns: [
+          ProjectPathPatternPreset(
+            id: 'animated',
+            name: 'Animated',
+            basePathPresetId: 'base',
+            centerPattern: PathCenterPattern(
+              size: PathCenterPatternSize(width: 1, height: 1),
+              cells: [
+                PathCenterPatternCell(
+                  localX: 0,
+                  localY: 0,
+                  frames: const [
+                    TilesetVisualFrame(
+                      source: TilesetSourceRect(x: 1, y: 0),
+                      durationMs: 200,
+                    ),
+                    TilesetVisualFrame(
+                      source: TilesetSourceRect(x: 2, y: 0),
+                      durationMs: 200,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+      final legacySet = PathAutotileSet.defaultForTileset('tileset-main');
+
+      final frame0 = resolvePathPatternEditorRenderResolution(
+        project: project,
+        basePathPresetId: 'base',
+        variant: TerrainPathVariant.cross,
+        mapX: 0,
+        mapY: 0,
+        elapsedMs: 0,
+        legacyAutotileSet: legacySet,
+      );
+      final frame1 = resolvePathPatternEditorRenderResolution(
+        project: project,
+        basePathPresetId: 'base',
+        variant: TerrainPathVariant.cross,
+        mapX: 0,
+        mapY: 0,
+        elapsedMs: 200,
+        legacyAutotileSet: legacySet,
+      );
+      final frameLoop = resolvePathPatternEditorRenderResolution(
+        project: project,
+        basePathPresetId: 'base',
+        variant: TerrainPathVariant.cross,
+        mapX: 0,
+        mapY: 0,
+        elapsedMs: 400,
+        legacyAutotileSet: legacySet,
+      );
+
+      expect(frame0?.sourceRect, const TilesetSourceRect(x: 1, y: 0));
+      expect(frame1?.sourceRect, const TilesetSourceRect(x: 2, y: 0));
+      expect(frameLoop?.sourceRect, const TilesetSourceRect(x: 1, y: 0));
+    });
   });
 }
 
