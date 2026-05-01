@@ -347,6 +347,8 @@ _$ProjectTilesetEntryImpl _$$ProjectTilesetEntryImplFromJson(
       folderId: json['folderId'] as String?,
       sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
       isWorldTileset: json['isWorldTileset'] as bool? ?? false,
+      transparentColor:
+          _tilesetTransparentColorFromJson(json['transparentColor']),
       elementGroups: (json['elementGroups'] as List<dynamic>?)
               ?.map((e) =>
                   TilesetElementGroup.fromJson(e as Map<String, dynamic>))
@@ -370,6 +372,9 @@ Map<String, dynamic> _$$ProjectTilesetEntryImplToJson(
       'folderId': instance.folderId,
       'sortOrder': instance.sortOrder,
       'isWorldTileset': instance.isWorldTileset,
+      if (_tilesetTransparentColorToJson(instance.transparentColor)
+          case final value?)
+        'transparentColor': value,
       'elementGroups': instance.elementGroups,
       'paletteEntries': instance.paletteEntries,
     };

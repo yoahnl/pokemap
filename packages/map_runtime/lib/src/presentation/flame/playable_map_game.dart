@@ -101,7 +101,10 @@ typedef RuntimeMapBundleLoader = Future<RuntimeMapBundle> Function({
 });
 
 typedef RuntimeTilesetImageLoader = Future<Map<String, RuntimeTilesetImage>>
-    Function(Map<String, String> absolutePathByTilesetId);
+    Function(
+  Map<String, String> absolutePathByTilesetId, {
+  Map<String, TilesetTransparentColor> transparentColorByTilesetId,
+});
 typedef RuntimeDialogueSessionLoader = Future<DialogueSession?> Function(
   ResolvedDialogue resolved,
 );
@@ -937,15 +940,23 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   }
 
   Future<Map<String, RuntimeTilesetImage>> _loadTilesetImagesCached(
-    Map<String, String> absolutePathByTilesetId,
-  ) async {
+    Map<String, String> absolutePathByTilesetId, {
+    ProjectManifest? manifest,
+  }) async {
     if (absolutePathByTilesetId.isEmpty) {
       return const <String, RuntimeTilesetImage>{};
     }
+    final transparentColors = _transparentColorByTilesetId(
+      manifest ?? _bundle.manifest,
+    );
     final result = <String, RuntimeTilesetImage>{};
     final missing = <String, String>{};
     for (final entry in absolutePathByTilesetId.entries) {
-      final cached = _cachedTilesetImagesByPath[entry.value];
+      final cacheKey = _tilesetImageCacheKey(
+        entry.value,
+        transparentColors[entry.key],
+      );
+      final cached = _cachedTilesetImagesByPath[cacheKey];
       if (cached != null) {
         result[entry.key] = cached;
       } else {
@@ -953,17 +964,44 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       }
     }
     if (missing.isNotEmpty) {
-      final loaded = await _runtimeTilesetImageLoader(missing);
+      final loaded = await _runtimeTilesetImageLoader(
+        missing,
+        transparentColorByTilesetId: <String, TilesetTransparentColor>{
+          for (final tilesetId in missing.keys)
+            if (transparentColors[tilesetId] != null)
+              tilesetId: transparentColors[tilesetId]!,
+        },
+      );
       for (final entry in missing.entries) {
         final image = loaded[entry.key];
         if (image == null) {
           continue;
         }
-        _cachedTilesetImagesByPath[entry.value] = image;
+        _cachedTilesetImagesByPath[_tilesetImageCacheKey(
+          entry.value,
+          transparentColors[entry.key],
+        )] = image;
         result[entry.key] = image;
       }
     }
     return result;
+  }
+
+  Map<String, TilesetTransparentColor> _transparentColorByTilesetId(
+    ProjectManifest manifest,
+  ) {
+    return <String, TilesetTransparentColor>{
+      for (final tileset in manifest.tilesets)
+        if (tileset.transparentColor != null)
+          tileset.id: tileset.transparentColor!,
+    };
+  }
+
+  String _tilesetImageCacheKey(
+    String path,
+    TilesetTransparentColor? transparentColor,
+  ) {
+    return '$path#${transparentColor?.toHexRgb() ?? ''}';
   }
 
   Future<T> _traceAsync<T>(
@@ -5461,8 +5499,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     // 3. Charger newImages (avec error handling)
     Map<String, RuntimeTilesetImage> newImages;
     try {
-      newImages =
-          await _loadTilesetImagesCached(newBundle.tilesetAbsolutePathsById);
+      newImages = await _loadTilesetImagesCached(
+        newBundle.tilesetAbsolutePathsById,
+        manifest: newBundle.manifest,
+      );
     } catch (e, st) {
       debugPrint('[load] failed to load tileset images: $e\n$st');
       return false;
@@ -5722,7 +5762,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       final newImages = await _traceAsync(
         'warp',
         'loadTilesets',
-        () => _loadTilesetImagesCached(newBundle.tilesetAbsolutePathsById),
+        () => _loadTilesetImagesCached(
+          newBundle.tilesetAbsolutePathsById,
+          manifest: newBundle.manifest,
+        ),
       );
       _unmountAllLoadedMaps();
       final root = await _traceAsync(
@@ -5891,7 +5934,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         tileHeight: fallbackBundle.manifest.settings.tileHeight,
       );
       final fallbackImages = await _loadTilesetImagesCached(
-          fallbackBundle.tilesetAbsolutePathsById);
+        fallbackBundle.tilesetAbsolutePathsById,
+        manifest: fallbackBundle.manifest,
+      );
       final root = await _mountLoadedMap(
         bundle: fallbackBundle,
         tileImagesById: fallbackImages,
@@ -6465,8 +6510,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           connection: connection,
           targetSize: bundle.map.size,
         );
-        final images =
-            await _loadTilesetImagesCached(bundle.tilesetAbsolutePathsById);
+        final images = await _loadTilesetImagesCached(
+          bundle.tilesetAbsolutePathsById,
+          manifest: bundle.manifest,
+        );
         final loaded = await _mountLoadedMap(
           bundle: bundle,
           tileImagesById: images,
@@ -6602,7 +6649,10 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     future = () async {
       try {
         final bundle = await _loadRuntimeMapBundleCached(normalizedTargetMapId);
-        await _loadTilesetImagesCached(bundle.tilesetAbsolutePathsById);
+        await _loadTilesetImagesCached(
+          bundle.tilesetAbsolutePathsById,
+          manifest: bundle.manifest,
+        );
       } catch (error, stackTrace) {
         debugPrint(
           '[perf][warp][real] prewarmTargetFailed map=$normalizedTargetMapId error=$error\n$stackTrace',

@@ -9,6 +9,7 @@ import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 
+import '../../application/services/tileset_transparent_color_processor.dart';
 import 'path_studio_new_path_draft.dart';
 import 'path_studio_theme.dart';
 
@@ -106,12 +107,23 @@ Future<PathStudioTilesetImageLoadResult> loadPathStudioTilesetImage({
         message: 'Impossible de découper ce tileset',
       );
     }
+    var displayBytes = bytes;
+    if (tileset.transparentColor != null) {
+      try {
+        displayBytes = applyTilesetTransparentColorToPngBytes(
+          imageBytes: bytes,
+          transparentColor: tileset.transparentColor,
+        );
+      } catch (_) {
+        displayBytes = bytes;
+      }
+    }
     return PathStudioTilesetImageLoadResult(
       status: PathStudioTilesetImageStatus.loaded,
       message: 'Image du tileset chargée',
       image: PathStudioResolvedTilesetImage(
         absolutePath: absolutePath,
-        bytes: bytes,
+        bytes: displayBytes,
         imageWidthPx: decoded.width,
         imageHeightPx: decoded.height,
         tileWidthPx: tileWidth,

@@ -1298,11 +1298,7 @@ class MapGridPainter extends CustomPainter {
       tileHeight,
     );
 
-    // Check if the layer has animation triggers
-    final hasAnimationTriggers = activePathLayer.animationTriggers.isNotEmpty;
-    // If there are animation triggers, do not animate in the editor
-    final elapsedMs =
-        hasAnimationTriggers ? 0.0 : editorEntityAnimationMs.toDouble();
+    final elapsedMs = editorEntityAnimationMs.toDouble();
 
     final painted = _paintAutotileVariantCell(
       canvas,
@@ -1705,11 +1701,7 @@ class MapGridPainter extends CustomPainter {
       tileHeight,
     );
 
-    // Check if the layer has animation triggers
-    final hasAnimationTriggers = layer.animationTriggers.isNotEmpty;
-    // If there are animation triggers, do not animate in the editor
-    final elapsedMs =
-        hasAnimationTriggers ? 0.0 : editorEntityAnimationMs.toDouble();
+    final elapsedMs = editorEntityAnimationMs.toDouble();
 
     return _paintAutotileVariantCell(
       canvas,

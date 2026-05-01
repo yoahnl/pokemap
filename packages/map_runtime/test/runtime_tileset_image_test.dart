@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
+import 'package:map_core/map_core.dart';
 import 'package:path/path.dart' as p;
 import 'package:map_runtime/src/infrastructure/runtime_tileset_image.dart';
 import 'package:map_runtime/src/infrastructure/tile_image_loader.dart';
@@ -95,4 +96,41 @@ void main() {
     expect(loaded.height, 5000);
     expect(loaded.chunkCount, 2);
   });
+
+  test('loadTilesetImageFromFilePath applies transparent color preview',
+      () async {
+    final tempDir = Directory.systemTemp.createTempSync('tileset_alpha_test');
+    addTearDown(() async {
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+
+    final image = img.Image(width: 1, height: 1);
+    img.fill(image, color: img.ColorRgba8(240, 91, 161, 255));
+    final path = p.join(tempDir.path, 'alpha_tileset.png');
+    await File(path).writeAsBytes(img.encodePng(image, level: 0));
+
+    final loaded = await loadTilesetImageFromFilePath(
+      path,
+      transparentColor: TilesetTransparentColor.fromHexRgb('f05ba1'),
+    );
+
+    expect(await _drawnPixelAlpha(loaded), 0);
+  });
+}
+
+Future<int> _drawnPixelAlpha(RuntimeTilesetImage image) async {
+  final recorder = PictureRecorder();
+  final canvas = Canvas(recorder);
+  image.drawImageRect(
+    canvas,
+    const Rect.fromLTWH(0, 0, 1, 1),
+    const Rect.fromLTWH(0, 0, 1, 1),
+    Paint(),
+  );
+  final picture = recorder.endRecording();
+  final rendered = await picture.toImage(1, 1);
+  final bytes = await rendered.toByteData(format: ImageByteFormat.rawRgba);
+  return bytes!.getUint8(3);
 }

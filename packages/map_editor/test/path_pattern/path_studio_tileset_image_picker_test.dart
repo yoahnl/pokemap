@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/path_studio/path_studio_tileset_image_picker.dart';
 import 'package:path/path.dart' as p;
@@ -53,6 +54,28 @@ void main() {
       expect(result.status, PathStudioTilesetImageStatus.missingFile);
       expect(result.image, isNull);
       expect(result.message, contains('introuvable'));
+    });
+
+    test('applies the tileset transparent color to displayed bytes', () async {
+      final temp = await Directory.systemTemp.createTemp('path_studio_alpha_');
+      addTearDown(() => temp.delete(recursive: true));
+      final imageFile = File(p.join(temp.path, 'tilesets/alpha.png'));
+      await imageFile.parent.create(recursive: true);
+      await imageFile.writeAsBytes(await _pngBytes(width: 16, height: 16));
+
+      final result = await loadPathStudioTilesetImage(
+        projectRootPath: temp.path,
+        tileset: ProjectTilesetEntry(
+          id: 'alpha',
+          name: 'Alpha',
+          relativePath: 'tilesets/alpha.png',
+          transparentColor: TilesetTransparentColor.fromHexRgb('ff00ff'),
+        ),
+        settings: const ProjectSettings(tileWidth: 16, tileHeight: 16),
+      );
+
+      final decoded = img.decodePng(result.image!.bytes)!;
+      expect(decoded.getPixel(0, 0).a.toInt(), 0);
     });
 
     test('converts a local click position to tile coordinates', () {

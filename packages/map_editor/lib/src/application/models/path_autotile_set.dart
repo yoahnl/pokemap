@@ -102,7 +102,7 @@ class PathAutotileSet {
     TerrainPathVariant variant, {
     required double elapsedMs,
   }) {
-    final frames = variants[variant];
+    final frames = _playbackFramesForVariant(variant);
     if (frames == null || frames.isEmpty) {
       return null;
     }
@@ -143,5 +143,26 @@ class PathAutotileSet {
       return frameTilesetId;
     }
     return tilesetId.trim();
+  }
+
+  List<TilesetVisualFrame>? _playbackFramesForVariant(
+    TerrainPathVariant variant,
+  ) {
+    final frames = variants[variant];
+    if (frames == null || frames.isEmpty || frames.length > 1) {
+      return frames;
+    }
+    final firstFrame = frames.first;
+    for (final candidate in variants.values) {
+      if (candidate.length <= 1) {
+        continue;
+      }
+      final candidateFirstFrame = candidate.first;
+      if (candidateFirstFrame.source == firstFrame.source &&
+          candidateFirstFrame.tilesetId.trim() == firstFrame.tilesetId.trim()) {
+        return candidate;
+      }
+    }
+    return frames;
   }
 }

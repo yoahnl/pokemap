@@ -110,4 +110,31 @@ void main() {
       expect(a, isNot(c));
     });
   });
+
+  group('ProjectTilesetEntry transparentColor', () {
+    test('serializes transparent color as lowercase hex RGB', () {
+      final entry = ProjectTilesetEntry(
+        id: 'tech_nature_animations',
+        name: 'TECH-Nature-animations',
+        relativePath: 'tilesets/tech.png',
+        transparentColor: TilesetTransparentColor.fromHexRgb('#F05BA1'),
+      );
+
+      expect(entry.toJson()['transparentColor'], 'f05ba1');
+    });
+
+    test('deserializes transparent color from hex RGB', () {
+      final entry = ProjectTilesetEntry.fromJson({
+        'id': 'tech_nature_animations',
+        'name': 'TECH-Nature-animations',
+        'relativePath': 'tilesets/tech.png',
+        'transparentColor': 'f05ba1',
+      });
+
+      expect(
+        entry.transparentColor,
+        TilesetTransparentColor.fromHexRgb('f05ba1'),
+      );
+    });
+  });
 }

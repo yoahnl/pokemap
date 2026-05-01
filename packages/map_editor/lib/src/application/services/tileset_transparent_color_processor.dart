@@ -20,18 +20,25 @@ Uint8List applyTilesetTransparentColorToPngBytes({
     );
   }
 
-  for (var y = 0; y < image.height; y += 1) {
-    for (var x = 0; x < image.width; x += 1) {
-      final pixel = image.getPixel(x, y);
+  final output = image.hasAlpha
+      ? img.Image.from(image)
+      : image.convert(
+          numChannels: 4,
+          alpha: 255,
+        );
+
+  for (var y = 0; y < output.height; y += 1) {
+    for (var x = 0; x < output.width; x += 1) {
+      final pixel = output.getPixel(x, y);
       final red = pixel.r.toInt();
       final green = pixel.g.toInt();
       final blue = pixel.b.toInt();
 
       if (transparentColor.matchesRgb(red: red, green: green, blue: blue)) {
-        image.setPixelRgba(x, y, red, green, blue, 0);
+        output.setPixelRgba(x, y, red, green, blue, 0);
       }
     }
   }
 
-  return img.encodePng(image);
+  return img.encodePng(output);
 }

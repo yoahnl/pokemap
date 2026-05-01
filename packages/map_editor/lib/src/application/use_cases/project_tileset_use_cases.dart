@@ -138,6 +138,8 @@ class UpdateProjectTilesetUseCase {
     int? sortOrder,
     String? folderId,
     bool clearLibraryFolder = false,
+    TilesetTransparentColor? transparentColor,
+    bool clearTransparentColor = false,
   }) async {
     final current = project.tilesets.firstWhere(
       (tileset) => tileset.id == tilesetId,
@@ -205,6 +207,9 @@ class UpdateProjectTilesetUseCase {
         isWorldTileset: nextWorld,
         sortOrder: nextSort,
         folderId: nextFolderId,
+        transparentColor: clearTransparentColor
+            ? null
+            : transparentColor ?? tileset.transparentColor,
       );
     }).toList(growable: false);
 

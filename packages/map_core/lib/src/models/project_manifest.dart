@@ -8,6 +8,7 @@ import 'project_path_pattern_preset.dart';
 import 'scenario_asset.dart';
 import 'script_asset.dart';
 import 'surface_catalog.dart';
+import 'tileset_transparent_color.dart';
 import 'visual_frame_json.dart';
 
 import '../exceptions/map_exceptions.dart';
@@ -39,6 +40,28 @@ Map<String, Object?> _projectSurfaceCatalogToJson(
 
 Object? _readDefaultPlayerCharacterId(Map json, String _) {
   return json['defaultPlayerCharacterId'] ?? json['playerCharacterId'];
+}
+
+TilesetTransparentColor? _tilesetTransparentColorFromJson(Object? json) {
+  if (json == null) {
+    return null;
+  }
+  if (json is String) {
+    final value = json.trim();
+    if (value.isEmpty) {
+      return null;
+    }
+    return TilesetTransparentColor.fromHexRgb(value);
+  }
+  throw ArgumentError.value(
+    json,
+    'transparentColor',
+    'Expected a hex RGB string',
+  );
+}
+
+String? _tilesetTransparentColorToJson(TilesetTransparentColor? color) {
+  return color?.toHexRgb();
 }
 
 const Map<String, String> _defaultPokemonCatalogFiles = <String, String>{
@@ -237,6 +260,12 @@ class ProjectTilesetEntry with _$ProjectTilesetEntry {
     String? folderId,
     @Default(0) int sortOrder,
     @Default(false) bool isWorldTileset,
+    @JsonKey(
+      fromJson: _tilesetTransparentColorFromJson,
+      toJson: _tilesetTransparentColorToJson,
+      includeIfNull: false,
+    )
+    TilesetTransparentColor? transparentColor,
     @Default([]) List<TilesetElementGroup> elementGroups,
     @Default([]) List<TilesetPaletteEntry> paletteEntries,
   }) = _ProjectTilesetEntry;

@@ -12,6 +12,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../application/models/map_tool_preview.dart';
 import '../../application/models/path_autotile_set.dart';
+import '../../application/services/tileset_transparent_color_processor.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../../features/surface_painter/surface_layer_static_preview.dart';
@@ -33,6 +34,8 @@ class MapCanvas extends ConsumerStatefulWidget {
 
 class _MapCanvasState extends ConsumerState<MapCanvas> {
   Map<String, String> _lastTilesetPathsById = const {};
+  Map<String, TilesetTransparentColor> _lastTilesetTransparentColorById =
+      const {};
   Future<Map<String, ui.Image?>>? _tilesetImagesFuture;
   GridPos? _hoveredTile;
 
@@ -78,13 +81,27 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     super.dispose();
   }
 
-  void _updateTilesetImagesFuture(Map<String, String> nextTilesetPathsById) {
+  void _updateTilesetImagesFuture(
+    Map<String, String> nextTilesetPathsById,
+    Map<String, TilesetTransparentColor> nextTransparentColorByTilesetId,
+  ) {
     if (_tilesetImagesFuture != null &&
-        mapEquals(_lastTilesetPathsById, nextTilesetPathsById)) {
+        mapEquals(_lastTilesetPathsById, nextTilesetPathsById) &&
+        mapEquals(
+          _lastTilesetTransparentColorById,
+          nextTransparentColorByTilesetId,
+        )) {
       return;
     }
     _lastTilesetPathsById = Map<String, String>.from(nextTilesetPathsById);
-    _tilesetImagesFuture = _TilesetImageCache.loadMany(_lastTilesetPathsById);
+    _lastTilesetTransparentColorById =
+        Map<String, TilesetTransparentColor>.from(
+      nextTransparentColorByTilesetId,
+    );
+    _tilesetImagesFuture = _TilesetImageCache.loadMany(
+      _lastTilesetPathsById,
+      transparentColorByTilesetId: _lastTilesetTransparentColorById,
+    );
   }
 
   @override
@@ -106,7 +123,13 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
       pathAutotileSetsByPresetId: pathAutotileSetsByPresetId,
       terrainPresetsByType: terrainPresetsByType,
     );
-    _updateTilesetImagesFuture(tilesetPathsById);
+    final transparentColorByTilesetId = _collectTilesetTransparentColors(
+      state.project,
+    );
+    _updateTilesetImagesFuture(
+      tilesetPathsById,
+      transparentColorByTilesetId,
+    );
 
     if (activeMap == null) {
       _rightPanPointerId = null;
@@ -621,6 +644,19 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
       }
     }
     return result;
+  }
+
+  Map<String, TilesetTransparentColor> _collectTilesetTransparentColors(
+    ProjectManifest? project,
+  ) {
+    if (project == null) {
+      return const {};
+    }
+    return <String, TilesetTransparentColor>{
+      for (final tileset in project.tilesets)
+        if (tileset.transparentColor != null)
+          tileset.id: tileset.transparentColor!,
+    };
   }
 
   bool _surfacePresetsNeedEditorFrameAnimation({

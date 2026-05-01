@@ -1619,8 +1619,10 @@ void main() {
       }
 
       Future<Map<String, RuntimeTilesetImage>> tilesetLoader(
-        Map<String, String> absolutePathByTilesetId,
-      ) async {
+        Map<String, String> absolutePathByTilesetId, {
+        Map<String, TilesetTransparentColor> transparentColorByTilesetId =
+            const {},
+      }) async {
         for (final path in absolutePathByTilesetId.values) {
           tilesetLoadCounts[path] = (tilesetLoadCounts[path] ?? 0) + 1;
         }
@@ -2209,7 +2211,7 @@ RuntimeMapBundle _baseBundle() {
   return RuntimeMapBundle(
     manifest: ProjectManifest(
       name: 'Test Project',
-      maps: [
+      maps: const [
         ProjectMapEntry(
           id: 'test_map',
           name: 'Test Map',

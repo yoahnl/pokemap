@@ -905,6 +905,8 @@ class EditorNotifier extends _$EditorNotifier {
     int? sortOrder,
     String? libraryFolderId,
     bool clearLibraryFolder = false,
+    TilesetTransparentColor? transparentColor,
+    bool clearTransparentColor = false,
   }) async {
     final fs = _projectWorkspace;
     final project = state.project;
@@ -923,6 +925,8 @@ class EditorNotifier extends _$EditorNotifier {
         sortOrder: sortOrder,
         folderId: libraryFolderId,
         clearLibraryFolder: clearLibraryFolder,
+        transparentColor: transparentColor,
+        clearTransparentColor: clearTransparentColor,
       );
       state = state.copyWith(
         project: updated,

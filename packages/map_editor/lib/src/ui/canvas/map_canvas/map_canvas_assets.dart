@@ -19,15 +19,30 @@ class _ResolvedTerrainFrame {
 class _TilesetImageCache {
   static final Map<String, Future<ui.Image?>> _cache = {};
 
-  static Future<ui.Image?> load(String? path) {
+  static Future<ui.Image?> load(
+    String? path, {
+    TilesetTransparentColor? transparentColor,
+  }) {
     if (path == null || path.isEmpty) return Future.value(null);
-    return _cache.putIfAbsent(path, () async {
+    final cacheKey = '$path#${transparentColor?.toHexRgb() ?? ''}';
+    return _cache.putIfAbsent(cacheKey, () async {
       try {
         final file = File(path);
         if (!await file.exists()) return null;
         final bytes = await file.readAsBytes();
         if (bytes.isEmpty) return null;
-        final codec = await ui.instantiateImageCodec(bytes);
+        var displayBytes = bytes;
+        if (transparentColor != null) {
+          try {
+            displayBytes = applyTilesetTransparentColorToPngBytes(
+              imageBytes: bytes,
+              transparentColor: transparentColor,
+            );
+          } catch (_) {
+            displayBytes = bytes;
+          }
+        }
+        final codec = await ui.instantiateImageCodec(displayBytes);
         final frame = await codec.getNextFrame();
         return frame.image;
       } catch (_) {
@@ -36,10 +51,18 @@ class _TilesetImageCache {
     });
   }
 
-  static Future<Map<String, ui.Image?>> loadMany(Map<String, String> paths) {
+  static Future<Map<String, ui.Image?>> loadMany(
+    Map<String, String> paths, {
+    Map<String, TilesetTransparentColor> transparentColorByTilesetId = const {},
+  }) {
     final futures = <Future<MapEntry<String, ui.Image?>>>[];
     paths.forEach((tilesetId, path) {
-      futures.add(load(path).then((image) => MapEntry(tilesetId, image)));
+      futures.add(
+        load(
+          path,
+          transparentColor: transparentColorByTilesetId[tilesetId],
+        ).then((image) => MapEntry(tilesetId, image)),
+      );
     });
     return Future.wait(futures).then((entries) {
       final result = <String, ui.Image?>{};

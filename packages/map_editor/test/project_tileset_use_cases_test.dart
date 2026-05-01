@@ -22,7 +22,8 @@ void main() {
       repo = _FakeProjectRepository();
       workspace = _FakeWorkspace(tempDir.path);
       useCase = ImportProjectTilesetUseCase(repo);
-      project = const ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+      project = ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog(),
         name: 'Test Project',
         maps: <ProjectMapEntry>[],
         tilesets: <ProjectTilesetEntry>[],
@@ -50,8 +51,8 @@ void main() {
 
       expect(updatedProject.tilesets, hasLength(1));
       expect(updatedProject.tilesets.single.name, 'Indoor');
-      expect(updatedProject.tilesets.single.relativePath,
-          'tilesets/indoor.png');
+      expect(
+          updatedProject.tilesets.single.relativePath, 'tilesets/indoor.png');
       expect(repo.savedProject, isNotNull);
     });
 
@@ -78,6 +79,72 @@ void main() {
       );
       expect(workspace.importedPaths, isEmpty);
       expect(repo.savedProject, isNull);
+    });
+  });
+
+  group('UpdateProjectTilesetUseCase', () {
+    late Directory tempDir;
+    late _FakeProjectRepository repo;
+    late _FakeWorkspace workspace;
+    late UpdateProjectTilesetUseCase useCase;
+    late ProjectManifest project;
+
+    setUp(() async {
+      tempDir = await Directory.systemTemp.createTemp('tileset_update_test_');
+      repo = _FakeProjectRepository();
+      workspace = _FakeWorkspace(tempDir.path);
+      useCase = UpdateProjectTilesetUseCase(repo);
+      project = ProjectManifest(
+        surfaceCatalog: ProjectSurfaceCatalog(),
+        name: 'Test Project',
+        maps: <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[
+          ProjectTilesetEntry(
+            id: 'tech_nature_animations',
+            name: 'TECH-Nature-animations',
+            relativePath: 'tilesets/tech.png',
+          ),
+        ],
+      );
+    });
+
+    tearDown(() async {
+      if (await tempDir.exists()) {
+        await tempDir.delete(recursive: true);
+      }
+    });
+
+    test('persists a transparent color on the tileset entry', () async {
+      final color = TilesetTransparentColor.fromHexRgb('f05ba1');
+
+      final updated = await useCase.execute(
+        workspace,
+        project,
+        tilesetId: 'tech_nature_animations',
+        transparentColor: color,
+      );
+
+      expect(updated.tilesets.single.transparentColor, color);
+      expect(repo.savedProject?.tilesets.single.transparentColor, color);
+    });
+
+    test('clears a transparent color from the tileset entry', () async {
+      final color = TilesetTransparentColor.fromHexRgb('f05ba1');
+      final projectWithColor = project.copyWith(
+        tilesets: [
+          project.tilesets.single.copyWith(transparentColor: color),
+        ],
+      );
+
+      final updated = await useCase.execute(
+        workspace,
+        projectWithColor,
+        tilesetId: 'tech_nature_animations',
+        clearTransparentColor: true,
+      );
+
+      expect(updated.tilesets.single.transparentColor, isNull);
+      expect(repo.savedProject?.tilesets.single.transparentColor, isNull);
     });
   });
 }
@@ -149,7 +216,8 @@ class _FakeWorkspace implements ProjectWorkspace {
     String sourcePath, {
     String? preferredName,
   }) async {
-    final relativePath = 'tilesets/${preferredName ?? p.basename(sourcePath)}.png';
+    final relativePath =
+        'tilesets/${preferredName ?? p.basename(sourcePath)}.png';
     importedPaths.add(relativePath);
     return relativePath;
   }

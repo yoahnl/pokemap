@@ -2906,6 +2906,12 @@ mixin _$ProjectTilesetEntry {
   String? get folderId => throw _privateConstructorUsedError;
   int get sortOrder => throw _privateConstructorUsedError;
   bool get isWorldTileset => throw _privateConstructorUsedError;
+  @JsonKey(
+      fromJson: _tilesetTransparentColorFromJson,
+      toJson: _tilesetTransparentColorToJson,
+      includeIfNull: false)
+  TilesetTransparentColor? get transparentColor =>
+      throw _privateConstructorUsedError;
   List<TilesetElementGroup> get elementGroups =>
       throw _privateConstructorUsedError;
   List<TilesetPaletteEntry> get paletteEntries =>
@@ -2936,6 +2942,11 @@ abstract class $ProjectTilesetEntryCopyWith<$Res> {
       String? folderId,
       int sortOrder,
       bool isWorldTileset,
+      @JsonKey(
+          fromJson: _tilesetTransparentColorFromJson,
+          toJson: _tilesetTransparentColorToJson,
+          includeIfNull: false)
+      TilesetTransparentColor? transparentColor,
       List<TilesetElementGroup> elementGroups,
       List<TilesetPaletteEntry> paletteEntries});
 }
@@ -2963,6 +2974,7 @@ class _$ProjectTilesetEntryCopyWithImpl<$Res, $Val extends ProjectTilesetEntry>
     Object? folderId = freezed,
     Object? sortOrder = null,
     Object? isWorldTileset = null,
+    Object? transparentColor = freezed,
     Object? elementGroups = null,
     Object? paletteEntries = null,
   }) {
@@ -2999,6 +3011,10 @@ class _$ProjectTilesetEntryCopyWithImpl<$Res, $Val extends ProjectTilesetEntry>
           ? _value.isWorldTileset
           : isWorldTileset // ignore: cast_nullable_to_non_nullable
               as bool,
+      transparentColor: freezed == transparentColor
+          ? _value.transparentColor
+          : transparentColor // ignore: cast_nullable_to_non_nullable
+              as TilesetTransparentColor?,
       elementGroups: null == elementGroups
           ? _value.elementGroups
           : elementGroups // ignore: cast_nullable_to_non_nullable
@@ -3028,6 +3044,11 @@ abstract class _$$ProjectTilesetEntryImplCopyWith<$Res>
       String? folderId,
       int sortOrder,
       bool isWorldTileset,
+      @JsonKey(
+          fromJson: _tilesetTransparentColorFromJson,
+          toJson: _tilesetTransparentColorToJson,
+          includeIfNull: false)
+      TilesetTransparentColor? transparentColor,
       List<TilesetElementGroup> elementGroups,
       List<TilesetPaletteEntry> paletteEntries});
 }
@@ -3053,6 +3074,7 @@ class __$$ProjectTilesetEntryImplCopyWithImpl<$Res>
     Object? folderId = freezed,
     Object? sortOrder = null,
     Object? isWorldTileset = null,
+    Object? transparentColor = freezed,
     Object? elementGroups = null,
     Object? paletteEntries = null,
   }) {
@@ -3089,6 +3111,10 @@ class __$$ProjectTilesetEntryImplCopyWithImpl<$Res>
           ? _value.isWorldTileset
           : isWorldTileset // ignore: cast_nullable_to_non_nullable
               as bool,
+      transparentColor: freezed == transparentColor
+          ? _value.transparentColor
+          : transparentColor // ignore: cast_nullable_to_non_nullable
+              as TilesetTransparentColor?,
       elementGroups: null == elementGroups
           ? _value._elementGroups
           : elementGroups // ignore: cast_nullable_to_non_nullable
@@ -3113,6 +3139,11 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
       this.folderId,
       this.sortOrder = 0,
       this.isWorldTileset = false,
+      @JsonKey(
+          fromJson: _tilesetTransparentColorFromJson,
+          toJson: _tilesetTransparentColorToJson,
+          includeIfNull: false)
+      this.transparentColor,
       final List<TilesetElementGroup> elementGroups = const [],
       final List<TilesetPaletteEntry> paletteEntries = const []})
       : _elementGroups = elementGroups,
@@ -3142,6 +3173,12 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
   @override
   @JsonKey()
   final bool isWorldTileset;
+  @override
+  @JsonKey(
+      fromJson: _tilesetTransparentColorFromJson,
+      toJson: _tilesetTransparentColorToJson,
+      includeIfNull: false)
+  final TilesetTransparentColor? transparentColor;
   final List<TilesetElementGroup> _elementGroups;
   @override
   @JsonKey()
@@ -3162,7 +3199,7 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
 
   @override
   String toString() {
-    return 'ProjectTilesetEntry(id: $id, name: $name, relativePath: $relativePath, scope: $scope, groupId: $groupId, folderId: $folderId, sortOrder: $sortOrder, isWorldTileset: $isWorldTileset, elementGroups: $elementGroups, paletteEntries: $paletteEntries)';
+    return 'ProjectTilesetEntry(id: $id, name: $name, relativePath: $relativePath, scope: $scope, groupId: $groupId, folderId: $folderId, sortOrder: $sortOrder, isWorldTileset: $isWorldTileset, transparentColor: $transparentColor, elementGroups: $elementGroups, paletteEntries: $paletteEntries)';
   }
 
   @override
@@ -3182,6 +3219,8 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
                 other.sortOrder == sortOrder) &&
             (identical(other.isWorldTileset, isWorldTileset) ||
                 other.isWorldTileset == isWorldTileset) &&
+            (identical(other.transparentColor, transparentColor) ||
+                other.transparentColor == transparentColor) &&
             const DeepCollectionEquality()
                 .equals(other._elementGroups, _elementGroups) &&
             const DeepCollectionEquality()
@@ -3200,6 +3239,7 @@ class _$ProjectTilesetEntryImpl implements _ProjectTilesetEntry {
       folderId,
       sortOrder,
       isWorldTileset,
+      transparentColor,
       const DeepCollectionEquality().hash(_elementGroups),
       const DeepCollectionEquality().hash(_paletteEntries));
 
@@ -3230,6 +3270,11 @@ abstract class _ProjectTilesetEntry implements ProjectTilesetEntry {
           final String? folderId,
           final int sortOrder,
           final bool isWorldTileset,
+          @JsonKey(
+              fromJson: _tilesetTransparentColorFromJson,
+              toJson: _tilesetTransparentColorToJson,
+              includeIfNull: false)
+          final TilesetTransparentColor? transparentColor,
           final List<TilesetElementGroup> elementGroups,
           final List<TilesetPaletteEntry> paletteEntries}) =
       _$ProjectTilesetEntryImpl;
@@ -3255,6 +3300,12 @@ abstract class _ProjectTilesetEntry implements ProjectTilesetEntry {
   int get sortOrder;
   @override
   bool get isWorldTileset;
+  @override
+  @JsonKey(
+      fromJson: _tilesetTransparentColorFromJson,
+      toJson: _tilesetTransparentColorToJson,
+      includeIfNull: false)
+  TilesetTransparentColor? get transparentColor;
   @override
   List<TilesetElementGroup> get elementGroups;
   @override

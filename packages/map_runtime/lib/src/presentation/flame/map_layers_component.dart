@@ -1317,7 +1317,10 @@ class MapLayersComponent extends PositionComponent {
           tilesetId: tilesetId,
         );
       case _PathLayerPlaybackKind.staticFrame:
-        final frame = autotileSet.frameForVariantStatic(variant);
+        final frame = autotileSet.frameForVariantAt(
+          variant,
+          elapsedMs: elapsedMs,
+        );
         if (frame == null) {
           return null;
         }

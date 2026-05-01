@@ -486,6 +486,9 @@ Future<void> _showPathPresetDialog(
   );
   var categoryId = preset?.categoryId ?? initialCategoryId;
   var tilesetId = preset?.tilesetId ?? '';
+  var pathTilesetTransparentColor =
+      notifier.getTilesetById(tilesetId)?.transparentColor;
+  var clearPathTilesetTransparentColor = false;
   final variants = <TerrainPathVariant, List<TilesetVisualFrame>>{
     for (final mapping
         in preset?.variants ?? const <PathPresetVariantMapping>[])
@@ -615,7 +618,12 @@ Future<void> _showPathPresetDialog(
                         labelOf: pathTilesetRowLabel,
                       );
                       if (picked != null) {
-                        setState(() => tilesetId = picked);
+                        setState(() {
+                          tilesetId = picked;
+                          pathTilesetTransparentColor =
+                              notifier.getTilesetById(picked)?.transparentColor;
+                          clearPathTilesetTransparentColor = false;
+                        });
                       }
                     },
                     child: Text(
@@ -667,7 +675,11 @@ Future<void> _showPathPresetDialog(
                           setState(() {
                             variants
                               ..clear()
-                              ..addAll(mapped);
+                              ..addAll(mapped.mappings);
+                            pathTilesetTransparentColor =
+                                mapped.transparentColor;
+                            clearPathTilesetTransparentColor =
+                                mapped.clearTransparentColor;
                           });
                         },
                   child: const Row(
@@ -738,6 +750,21 @@ Future<void> _showPathPresetDialog(
                           previousSurfaceKind:
                               preset?.surfaceKind ?? PathSurfaceKind.path,
                         );
+                        if (tilesetId.trim().isNotEmpty) {
+                          final currentTransparentColor = notifier
+                              .getTilesetById(tilesetId)
+                              ?.transparentColor;
+                          if (clearPathTilesetTransparentColor ||
+                              pathTilesetTransparentColor !=
+                                  currentTransparentColor) {
+                            await notifier.updateProjectTileset(
+                              tilesetId: tilesetId,
+                              transparentColor: pathTilesetTransparentColor,
+                              clearTransparentColor:
+                                  clearPathTilesetTransparentColor,
+                            );
+                          }
+                        }
                         if (preset == null) {
                           await notifier.createPathPreset(
                             name: controller.text.trim(),
@@ -1189,8 +1216,19 @@ TilesetSourceRect _rectFromGridPoints(GridPos start, GridPos end) {
   );
 }
 
-Future<Map<TerrainPathVariant, List<TilesetVisualFrame>>?>
-    _showPathMappingWorkspaceDialog(
+class _PathMappingWorkspaceResult {
+  const _PathMappingWorkspaceResult({
+    required this.mappings,
+    required this.transparentColor,
+    required this.clearTransparentColor,
+  });
+
+  final Map<TerrainPathVariant, List<TilesetVisualFrame>> mappings;
+  final TilesetTransparentColor? transparentColor;
+  final bool clearTransparentColor;
+}
+
+Future<_PathMappingWorkspaceResult?> _showPathMappingWorkspaceDialog(
   BuildContext context, {
   required EditorNotifier notifier,
   required ProjectSettings settings,
@@ -1238,13 +1276,28 @@ Future<Map<TerrainPathVariant, List<TilesetVisualFrame>>?>
           (variant) => !mappings.containsKey(variant),
           orElse: () => _pathSchemaEditableVariants.first,
         );
-  Map<TerrainPathVariant, List<TilesetVisualFrame>>? result;
+  _PathMappingWorkspaceResult? result;
   var displayedImage = image;
   var mappingZoom = 1.0;
-  var alphaPreviewEnabled = false;
+  final initialTransparentColor =
+      notifier.getTilesetById(normalizedTilesetId)?.transparentColor;
+  var alphaPreviewEnabled = initialTransparentColor != null;
   var alphaPreviewErrorMessage = '';
   var alphaPreviewRevision = 0;
-  final alphaPreviewController = TextEditingController(text: 'f05ba1');
+  final alphaPreviewController = TextEditingController(
+    text: initialTransparentColor?.toHexRgb() ?? 'f05ba1',
+  );
+  if (initialTransparentColor != null) {
+    final preview = createPathMappingAlphaPreviewBytes(
+      originalPngBytes: imageAsset.bytes,
+      enabled: true,
+      hexRgb: initialTransparentColor.toHexRgb(),
+    );
+    if (preview.errorMessage == null) {
+      displayedImage =
+          await _TerrainTilesetImageCache.decodeBytes(preview.bytes) ?? image;
+    }
+  }
 
   Future<void> updateAlphaPreview(StateSetter setState) async {
     final revision = ++alphaPreviewRevision;
@@ -1773,15 +1826,34 @@ Future<Map<TerrainPathVariant, List<TilesetVisualFrame>>?>
                         PushButton(
                           controlSize: ControlSize.large,
                           onPressed: () {
-                            result = _completePathMappings(
-                              <TerrainPathVariant, List<TilesetVisualFrame>>{
-                                for (final entry in mappings.entries)
-                                  if (entry.value.isNotEmpty)
-                                    entry.key: List<TilesetVisualFrame>.from(
-                                      entry.value,
-                                      growable: false,
-                                    ),
-                              },
+                            TilesetTransparentColor? transparentColor;
+                            if (alphaPreviewEnabled) {
+                              try {
+                                transparentColor =
+                                    TilesetTransparentColor.fromHexRgb(
+                                  alphaPreviewController.text,
+                                );
+                              } on ArgumentError {
+                                setState(() {
+                                  alphaPreviewErrorMessage = 'Hex RGB invalide';
+                                });
+                                return;
+                              }
+                            }
+                            result = _PathMappingWorkspaceResult(
+                              mappings: _completePathMappings(
+                                <TerrainPathVariant, List<TilesetVisualFrame>>{
+                                  for (final entry in mappings.entries)
+                                    if (entry.value.isNotEmpty)
+                                      entry.key: List<TilesetVisualFrame>.from(
+                                        entry.value,
+                                        growable: false,
+                                      ),
+                                },
+                              ),
+                              transparentColor: transparentColor,
+                              clearTransparentColor: !alphaPreviewEnabled &&
+                                  initialTransparentColor != null,
                             );
                             Navigator.pop(ctx);
                           },
@@ -1992,7 +2064,7 @@ Future<void> _runPathMappingAssistant(
   if (mapped == null) {
     return;
   }
-  final next = mapped.entries
+  final next = mapped.mappings.entries
       .where((entry) => entry.value.isNotEmpty)
       .map(
         (entry) => PathPresetVariantMapping(
@@ -2002,6 +2074,13 @@ Future<void> _runPathMappingAssistant(
       )
       .toList(growable: false)
     ..sort((a, b) => a.variant.index.compareTo(b.variant.index));
+  if (mapped.clearTransparentColor || mapped.transparentColor != null) {
+    await notifier.updateProjectTileset(
+      tilesetId: tilesetId,
+      transparentColor: mapped.transparentColor,
+      clearTransparentColor: mapped.clearTransparentColor,
+    );
+  }
   await notifier.updatePathPreset(
     presetId: preset.id,
     variants: next,
