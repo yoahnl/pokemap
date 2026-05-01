@@ -1,0 +1,180 @@
+{
+  "name": "PathPattern Save Reload",
+  "maps": [],
+  "tilesets": [
+    {
+      "id": "tileset-main",
+      "name": "Main",
+      "relativePath": "tilesets/main.png"
+    },
+    {
+      "id": "tileset-water-fx",
+      "name": "Water FX",
+      "relativePath": "tilesets/water_fx.png"
+    }
+  ],
+  "pathPresets": [
+    {
+      "id": "water-base",
+      "name": "Water Base",
+      "surfaceKind": "water",
+      "categoryId": "water-category",
+      "tilesetId": "tileset-main",
+      "variants": [
+        {
+          "variant": "endNorth",
+          "frames": [
+            {
+              "tilesetId": "",
+              "source": {
+                "x": 9,
+                "y": 4,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": 120
+            }
+          ]
+        },
+        {
+          "variant": "cross",
+          "frames": [
+            {
+              "tilesetId": "",
+              "source": {
+                "x": 7,
+                "y": 7,
+                "width": 1,
+                "height": 1
+              },
+              "durationMs": null
+            }
+          ]
+        }
+      ],
+      "sortOrder": 8
+    }
+  ],
+  "pathPatternPresets": [
+    {
+      "id": "water-pattern",
+      "name": "Water Pattern",
+      "basePathPresetId": "water-base",
+      "centerPattern": {
+        "size": {
+          "width": 2,
+          "height": 2
+        },
+        "cells": [
+          {
+            "localX": 0,
+            "localY": 0,
+            "frames": [
+              {
+                "tilesetId": "",
+                "source": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 1,
+                  "height": 1
+                },
+                "durationMs": 100
+              },
+              {
+                "tilesetId": "",
+                "source": {
+                  "x": 0,
+                  "y": 1,
+                  "width": 1,
+                  "height": 1
+                },
+                "durationMs": 150
+              }
+            ]
+          },
+          {
+            "localX": 1,
+            "localY": 0,
+            "frames": [
+              {
+                "tilesetId": "",
+                "source": {
+                  "x": 1,
+                  "y": 0,
+                  "width": 1,
+                  "height": 1
+                },
+                "durationMs": 100
+              },
+              {
+                "tilesetId": "",
+                "source": {
+                  "x": 1,
+                  "y": 1,
+                  "width": 1,
+                  "height": 1
+                },
+                "durationMs": 150
+              }
+            ]
+          },
+          {
+            "localX": 0,
+            "localY": 1,
+            "frames": [
+              {
+                "tilesetId": "",
+                "source": {
+                  "x": 2,
+                  "y": 0,
+                  "width": 1,
+                  "height": 1
+                },
+                "durationMs": 200
+              },
+              {
+                "tilesetId": "",
+                "source": {
+                  "x": 2,
+                  "y": 1,
+                  "width": 1,
+                  "height": 1
+                },
+                "durationMs": 250
+              }
+            ]
+          },
+          {
+            "localX": 1,
+            "localY": 1,
+            "frames": [
+              {
+                "tilesetId": "",
+                "source": {
+                  "x": 3,
+                  "y": 0,
+                  "width": 1,
+                  "height": 1
+                },
+                "durationMs": 200
+              },
+              {
+                "tilesetId": "tileset-water-fx",
+                "source": {
+                  "x": 3,
+                  "y": 1,
+                  "width": 1,
+                  "height": 1
+                },
+                "durationMs": 250
+              }
+            ]
+          }
+        ]
+      },
+      "transparentColor": "102a4f",
+      "categoryId": "water-category",
+      "sortOrder": 21
+    }
+  ]
+}
