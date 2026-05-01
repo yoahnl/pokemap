@@ -100,6 +100,19 @@ void addTerrainAndPathPresetTilesetIds(
                 }
               }
             }
+            for (final pattern in manifest.pathPatternPresets) {
+              if (pattern.basePathPresetId != pid) {
+                continue;
+              }
+              for (final cell in pattern.centerPattern.cells) {
+                for (final frame in cell.frames) {
+                  final overrideTilesetId = frame.tilesetId.trim();
+                  if (overrideTilesetId.isNotEmpty) {
+                    ids.add(overrideTilesetId);
+                  }
+                }
+              }
+            }
             return;
           }
         }

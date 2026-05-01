@@ -8,6 +8,7 @@ import '../../application/runtime_manifest_tilesets.dart';
 import '../../application/runtime_map_bundle.dart';
 import '../../infrastructure/runtime_tileset_image.dart';
 import '../../surface/surface_runtime_resolver.dart';
+import 'path_pattern_runtime_render_resolution.dart';
 import 'runtime_path_autotile.dart';
 
 const int _kEntityFrameDurationFallbackMs = 200;
@@ -1294,78 +1295,6 @@ class MapLayersComponent extends PositionComponent {
     }
   }
 
-  _ResolvedPathVariantFrame? _resolvePathVariantFrame({
-    required RuntimePathAutotileSet autotileSet,
-    required _PathLayerPlayback playback,
-    required TerrainPathVariant variant,
-    required double elapsedMs,
-  }) {
-    switch (playback.kind) {
-      case _PathLayerPlaybackKind.alwaysLoop:
-        final frame = autotileSet.frameForVariantAt(
-          variant,
-          elapsedMs: elapsedMs,
-        );
-        if (frame == null) {
-          return null;
-        }
-        final tilesetId = autotileSet.resolvedTilesetId(
-          frame,
-        );
-        return _ResolvedPathVariantFrame(
-          source: frame.source,
-          tilesetId: tilesetId,
-        );
-      case _PathLayerPlaybackKind.staticFrame:
-        final frame = autotileSet.frameForVariantAt(
-          variant,
-          elapsedMs: elapsedMs,
-        );
-        if (frame == null) {
-          return null;
-        }
-        final tilesetId = autotileSet.resolvedTilesetId(
-          frame,
-        );
-        return _ResolvedPathVariantFrame(
-          source: frame.source,
-          tilesetId: tilesetId,
-        );
-      case _PathLayerPlaybackKind.loopFrom:
-        final localElapsed = elapsedMs - playback.startedAtMs;
-        final frame = autotileSet.frameForVariantAt(
-          variant,
-          elapsedMs: localElapsed,
-        );
-        if (frame == null) {
-          return null;
-        }
-        final tilesetId = autotileSet.resolvedTilesetId(
-          frame,
-        );
-        return _ResolvedPathVariantFrame(
-          source: frame.source,
-          tilesetId: tilesetId,
-        );
-      case _PathLayerPlaybackKind.oneShot:
-        final localElapsed = elapsedMs - playback.startedAtMs;
-        final frame = autotileSet.frameForVariantOneShot(
-          variant,
-          elapsedMs: localElapsed,
-        );
-        if (frame == null) {
-          return null;
-        }
-        final tilesetId = autotileSet.resolvedTilesetId(
-          frame,
-        );
-        return _ResolvedPathVariantFrame(
-          source: frame.source,
-          tilesetId: tilesetId,
-        );
-    }
-  }
-
   void _paintPathLayer(
     Canvas canvas,
     String layerId,
@@ -1450,9 +1379,12 @@ class MapLayersComponent extends PositionComponent {
         : _resolvePathLayerPlayback(layerId: layerId, presetId: presetId);
     return _paintAutotileVariantCell(
       canvas,
+      presetId: presetId,
       autotileSet: autotileSet,
       playback: playback,
       variant: variant,
+      mapX: x,
+      mapY: y,
       tw: tw,
       th: th,
       dstRect: cell,
@@ -1463,25 +1395,32 @@ class MapLayersComponent extends PositionComponent {
 
   bool _paintAutotileVariantCell(
     Canvas canvas, {
+    required String presetId,
     required RuntimePathAutotileSet autotileSet,
     required _PathLayerPlayback playback,
     required TerrainPathVariant variant,
+    required int mapX,
+    required int mapY,
     required int tw,
     required int th,
     required Rect dstRect,
     required double alpha,
     required double elapsedMs,
   }) {
-    final resolved = _resolvePathVariantFrame(
-      autotileSet: autotileSet,
-      playback: playback,
+    final resolved = resolvePathPatternRuntimeRenderResolution(
+      manifest: bundle.manifest,
+      basePathPresetId: presetId,
       variant: variant,
+      mapX: mapX,
+      mapY: mapY,
       elapsedMs: elapsedMs,
+      playback: _toRuntimePathPatternPlayback(playback),
+      legacyAutotileSet: autotileSet,
     );
     if (resolved == null) {
       return false;
     }
-    final source = resolved.source;
+    final source = resolved.sourceRect;
     final tilesetId = resolved.tilesetId.trim();
     if (tilesetId.isEmpty) {
       return false;
@@ -1511,6 +1450,25 @@ class MapLayersComponent extends PositionComponent {
         ..color = Colors.white.withValues(alpha: alpha.clamp(0.0, 1.0)),
     );
     return true;
+  }
+
+  PathPatternRuntimePlayback _toRuntimePathPatternPlayback(
+    _PathLayerPlayback playback,
+  ) {
+    switch (playback.kind) {
+      case _PathLayerPlaybackKind.alwaysLoop:
+        return const PathPatternRuntimePlayback.alwaysLoop();
+      case _PathLayerPlaybackKind.staticFrame:
+        return const PathPatternRuntimePlayback.staticFrame();
+      case _PathLayerPlaybackKind.loopFrom:
+        return PathPatternRuntimePlayback.loopFrom(
+          startedAtMs: playback.startedAtMs,
+        );
+      case _PathLayerPlaybackKind.oneShot:
+        return PathPatternRuntimePlayback.oneShot(
+          startedAtMs: playback.startedAtMs,
+        );
+    }
   }
 }
 
@@ -1690,16 +1648,6 @@ class _PathLayerPlayback {
 
   final _PathLayerPlaybackKind kind;
   final double startedAtMs;
-}
-
-class _ResolvedPathVariantFrame {
-  const _ResolvedPathVariantFrame({
-    required this.source,
-    required this.tilesetId,
-  });
-
-  final TilesetSourceRect source;
-  final String tilesetId;
 }
 
 String? _resolveTilesetId(MapData map, String? layerTilesetId) {

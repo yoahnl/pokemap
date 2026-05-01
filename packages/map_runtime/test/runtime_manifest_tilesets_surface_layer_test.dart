@@ -53,6 +53,74 @@ void main() {
         'surface-water',
       });
     });
+
+    test('collects pathPattern center frame tileset overrides', () {
+      const map = MapData(
+        id: 'route-path',
+        name: 'Route Path',
+        size: GridSize(width: 2, height: 2),
+        layers: [
+          MapLayer.path(
+            id: 'path',
+            name: 'Path',
+            presetId: 'water-base',
+            cells: [true, true, true, true],
+          ),
+        ],
+      );
+      final manifest = ProjectManifest(
+        name: 'PathPattern Runtime',
+        maps: const [],
+        tilesets: const [
+          ProjectTilesetEntry(
+            id: 'base-world',
+            name: 'Base World',
+            relativePath: 'tilesets/base.png',
+          ),
+          ProjectTilesetEntry(
+            id: 'water-fx',
+            name: 'Water FX',
+            relativePath: 'tilesets/water_fx.png',
+          ),
+        ],
+        pathPresets: const [
+          ProjectPathPreset(
+            id: 'water-base',
+            name: 'Water Base',
+            tilesetId: 'base-world',
+            variants: [],
+          ),
+        ],
+        pathPatternPresets: [
+          ProjectPathPatternPreset(
+            id: 'water-pattern',
+            name: 'Water Pattern',
+            basePathPresetId: 'water-base',
+            centerPattern: PathCenterPattern(
+              size: PathCenterPatternSize(width: 1, height: 1),
+              cells: [
+                PathCenterPatternCell(
+                  localX: 0,
+                  localY: 0,
+                  frames: [
+                    TilesetVisualFrame(
+                      tilesetId: 'water-fx',
+                      source: TilesetSourceRect(x: 3, y: 2),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+        surfaceCatalog: ProjectSurfaceCatalog(),
+      );
+
+      expect(
+        collectAllRuntimeTilesetIds(map, manifest),
+        containsAll(<String>{'base-world', 'water-fx'}),
+      );
+    });
   });
 }
 
