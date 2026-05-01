@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/path_studio/path_studio_panel.dart';
+import 'package:map_editor/src/features/path_studio/path_studio_save_flow.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
@@ -718,17 +719,47 @@ void main() {
       expect(saveButton.onPressed, isNull);
     });
 
-    testWidgets('legacy save request calls callback without mutating manifest',
+    testWidgets(
+        'legacy save updates parent manifest and panel exits draft state',
         (tester) async {
-      final manifest = _manifest(
+      var parentManifest = _manifest(
         pathPresets: [_legacyPathPreset(id: 'legacy-water')],
       );
-      final captured = <ProjectPathPatternPreset>[];
-      await _pumpPathStudio(
-        tester,
-        manifest: manifest,
-        onPathPatternPresetSaveRequested: captured.add,
+      var callbackCount = 0;
+
+      await tester.binding.setSurfaceSize(const Size(1440, 920));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        MacosApp(
+          theme: MacosThemeData.dark(),
+          home: MacosScaffold(
+            children: [
+              ContentArea(
+                builder: (context, scrollController) {
+                  return StatefulBuilder(
+                    builder: (context, setParentState) {
+                      return PathStudioPanel(
+                        manifest: parentManifest,
+                        onPathPatternPresetSaveRequested: (preset) {
+                          callbackCount += 1;
+                          setParentState(() {
+                            parentManifest = applyLegacyPathPatternSaveToManifest(
+                              manifest: parentManifest,
+                              preset: preset,
+                            );
+                          });
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
       );
+      await _pumpPathStudioAsync(tester);
 
       await tester.tap(
         find.widgetWithText(CupertinoButton, 'Depuis un path existant'),
@@ -740,20 +771,23 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      final saveButton = tester.widget<CupertinoButton>(
-        find.byKey(const Key('path-studio-save-button')),
-      );
-      expect(saveButton.onPressed, isNotNull);
-
       await tester.tap(find.byKey(const Key('path-studio-save-button')));
       await tester.pumpAndSettle();
 
-      expect(captured, hasLength(1));
-      expect(captured.single.id, 'motif-eau');
-      expect(captured.single.name, 'Motif eau');
-      expect(captured.single.basePathPresetId, 'legacy-water');
-      expect(manifest.pathPatternPresets, isEmpty);
-      expect(find.text('Requête de sauvegarde préparée'), findsWidgets);
+      expect(callbackCount, 1);
+      expect(
+        parentManifest.pathPatternPresets.any((preset) => preset.id == 'motif-eau'),
+        isTrue,
+      );
+      expect(find.byKey(const Key('path-studio-draft-card')), findsNothing);
+      expect(
+        find.byKey(const Key('path-studio-save-success-message')),
+        findsOneWidget,
+      );
+      expect(find.text('Motif enregistré dans le projet'), findsOneWidget);
+      expect(find.text('Propriétés du preset'), findsOneWidget);
+      expect(find.text('motif-eau'), findsWidgets);
+      expect(find.text('Motif PathPattern depuis path existant'), findsNothing);
     });
 
     testWidgets('legacy duplicate proposed id blocks save', (tester) async {

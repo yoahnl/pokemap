@@ -76,6 +76,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
   bool _draftSelected = false;
   String? _draftMessage;
   String? _saveFeedbackMessage;
+  String? _pendingSavedPathPatternId;
 
   /// Index dans `readModel.presets`, pas id métier.
   ///
@@ -88,6 +89,24 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
   void didUpdateWidget(covariant PathStudioPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.manifest != widget.manifest) {
+      final pendingSavedId = _pendingSavedPathPatternId;
+      if (pendingSavedId != null) {
+        final savedPresetIndex = _indexOfPathPatternPresetById(
+          widget.manifest.pathPatternPresets,
+          pendingSavedId,
+        );
+        if (savedPresetIndex != null) {
+          _selectedSourceIndex = savedPresetIndex;
+          _newPathDraft = null;
+          _newPathDraftSelected = false;
+          _draft = null;
+          _draftSelected = false;
+          _draftMessage = null;
+          _saveFeedbackMessage = 'Motif enregistré dans le projet';
+          _pendingSavedPathPatternId = null;
+          return;
+        }
+      }
       _selectedSourceIndex = null;
       _newPathDraft = null;
       _newPathDraftSelected = false;
@@ -95,6 +114,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
       _draftSelected = false;
       _draftMessage = null;
       _saveFeedbackMessage = null;
+      _pendingSavedPathPatternId = null;
     }
   }
 
@@ -148,6 +168,10 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
                 hasSaveCallback: saveCallback != null,
               ),
             ),
+            if (_saveFeedbackMessage != null) ...[
+              const SizedBox(height: 10),
+              _SaveFeedbackBanner(message: _saveFeedbackMessage!),
+            ],
             const SizedBox(height: 16),
             Expanded(
               child: Row(
@@ -311,6 +335,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
       _draftSelected = false;
       _draftMessage = null;
       _saveFeedbackMessage = null;
+      _pendingSavedPathPatternId = null;
     });
   }
 
@@ -319,6 +344,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
       setState(() {
         _draftMessage = 'Aucun path existant disponible';
         _saveFeedbackMessage = null;
+        _pendingSavedPathPatternId = null;
         _newPathDraftSelected = false;
         _draftSelected = false;
       });
@@ -336,12 +362,14 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
             ? 'Aucun path existant disponible'
             : 'Brouillon non sauvegardé';
         _saveFeedbackMessage = null;
+        _pendingSavedPathPatternId = null;
       });
     } on ArgumentError {
       setState(() {
         _draftMessage =
             'Le preset Path de base ne contient pas de centre cross';
         _saveFeedbackMessage = null;
+        _pendingSavedPathPatternId = null;
         _newPathDraftSelected = false;
         _draftSelected = false;
       });
@@ -507,11 +535,19 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
     if (request == null) {
       return;
     }
-    callback(request.preset);
     setState(() {
-      _saveFeedbackMessage = 'Requête de sauvegarde préparée';
-      _draftMessage = _saveFeedbackMessage;
+      _pendingSavedPathPatternId = request.preset.id;
+      _saveFeedbackMessage = null;
     });
+    try {
+      callback(request.preset);
+    } catch (_) {
+      setState(() {
+        _pendingSavedPathPatternId = null;
+        _saveFeedbackMessage = null;
+        _draftMessage = 'La sauvegarde a échoué';
+      });
+    }
   }
 
   String _saveButtonHint({
@@ -545,6 +581,56 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
       }
     }
     return null;
+  }
+
+  int? _indexOfPathPatternPresetById(
+    List<ProjectPathPatternPreset> presets,
+    String id,
+  ) {
+    for (var index = 0; index < presets.length; index += 1) {
+      if (presets[index].id == id) {
+        return index;
+      }
+    }
+    return null;
+  }
+}
+
+class _SaveFeedbackBanner extends StatelessWidget {
+  const _SaveFeedbackBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('path-studio-save-success-message'),
+      decoration: PathStudioTheme.panelDecoration(
+        color: PathStudioTheme.success.withValues(alpha: 0.14),
+        radius: 14,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Row(
+        children: [
+          const MacosIcon(
+            CupertinoIcons.check_mark_circled_solid,
+            size: 16,
+            color: PathStudioTheme.success,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: PathStudioTheme.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
