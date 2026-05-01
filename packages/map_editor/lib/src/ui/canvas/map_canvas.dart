@@ -15,6 +15,7 @@ import '../../application/models/path_autotile_set.dart';
 import '../../application/services/tileset_transparent_color_processor.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/tools/editor_tool.dart';
+import '../../features/path_pattern/path_pattern_editor_render_resolution.dart';
 import '../../features/surface_painter/surface_layer_static_preview.dart';
 import '../../features/surface_painter/surface_tile_preview_resolver.dart';
 import 'entity_editor_element_visual.dart';
@@ -643,6 +644,23 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
         }
       }
     }
+    if (project != null) {
+      for (final preset in project.pathPatternPresets) {
+        for (final cell in preset.centerPattern.cells) {
+          for (final frame in cell.frames) {
+            final frameTilesetId = frame.tilesetId.trim();
+            if (frameTilesetId.isEmpty || result.containsKey(frameTilesetId)) {
+              continue;
+            }
+            final frameTilesetPath =
+                notifier.getTilesetAbsolutePathById(frameTilesetId);
+            if (frameTilesetPath != null && frameTilesetPath.isNotEmpty) {
+              result[frameTilesetId] = frameTilesetPath;
+            }
+          }
+        }
+      }
+    }
     return result;
   }
 
@@ -685,6 +703,15 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
       for (final variant in preset.variants) {
         if (variant.frames.length > 1) {
           return true;
+        }
+      }
+    }
+    if (project != null) {
+      for (final preset in project.pathPatternPresets) {
+        for (final cell in preset.centerPattern.cells) {
+          if (cell.frames.length > 1) {
+            return true;
+          }
         }
       }
     }

@@ -321,6 +321,172 @@ void main() {
       image.dispose();
       tilesetImage.dispose();
     });
+
+    test('paints path layer with center-only 2x2 PathPattern in canvas',
+        () async {
+      const map = MapData(
+        id: 'water_map',
+        name: 'Water Map',
+        size: GridSize(width: 4, height: 2),
+        layers: <MapLayer>[
+          PathLayer(
+            id: 'path_main',
+            name: 'Path',
+            presetId: 'water-base',
+            cells: <bool>[
+              true,
+              true,
+              true,
+              true,
+              true,
+              true,
+              true,
+              true,
+            ],
+          ),
+        ],
+      );
+      final project = ProjectManifest(
+        name: 'editor',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[
+          ProjectTilesetEntry(
+            id: 'water-tileset',
+            name: 'Water',
+            relativePath: 'tilesets/water.png',
+          ),
+        ],
+        pathPresets: const <ProjectPathPreset>[
+          ProjectPathPreset(
+            id: 'water-base',
+            name: 'Water Base',
+            tilesetId: 'water-tileset',
+            variants: <PathPresetVariantMapping>[],
+          ),
+        ],
+        pathPatternPresets: [
+          ProjectPathPatternPreset(
+            id: 'water-pattern',
+            name: 'Water Pattern',
+            basePathPresetId: 'water-base',
+            centerPattern: PathCenterPattern(
+              size: PathCenterPatternSize(width: 2, height: 2),
+              cells: [
+                PathCenterPatternCell(
+                  localX: 0,
+                  localY: 0,
+                  frames: const [
+                    TilesetVisualFrame(source: TilesetSourceRect(x: 5, y: 0)),
+                  ],
+                ),
+                PathCenterPatternCell(
+                  localX: 1,
+                  localY: 0,
+                  frames: const [
+                    TilesetVisualFrame(source: TilesetSourceRect(x: 6, y: 0)),
+                  ],
+                ),
+                PathCenterPatternCell(
+                  localX: 0,
+                  localY: 1,
+                  frames: const [
+                    TilesetVisualFrame(source: TilesetSourceRect(x: 5, y: 1)),
+                  ],
+                ),
+                PathCenterPatternCell(
+                  localX: 1,
+                  localY: 1,
+                  frames: const [
+                    TilesetVisualFrame(source: TilesetSourceRect(x: 6, y: 1)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+        surfaceCatalog: ProjectSurfaceCatalog(),
+      );
+      final tilesetImage = await _testPathPatternTilesetImage();
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder);
+
+      MapGridPainter(
+        map: map,
+        zoom: 1,
+        offset: ui.Offset.zero,
+        tileWidth: 16,
+        tileHeight: 16,
+        tilesetImagesById: {'water-tileset': tilesetImage},
+        sourceTileWidth: 16,
+        sourceTileHeight: 16,
+        tilesPerRowById: const <String, int>{'water-tileset': 12},
+        warps: const <MapWarp>[],
+        gameplayZones: const <MapGameplayZone>[],
+        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+        pathAutotileSetsByPresetId: {
+          'water-base': PathAutotileSet.defaultForTileset('water-tileset'),
+        },
+        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
+        project: project,
+      ).paint(canvas, const ui.Size(64, 32));
+
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(64, 32);
+      final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+
+      void expectPixelColor(
+        int x,
+        int y, {
+        required bool Function(int value) red,
+        required bool Function(int value) green,
+        required bool Function(int value) blue,
+      }) {
+        final offset = ((y * image.width) + x) * 4;
+        expect(red(pixels!.getUint8(offset)), isTrue);
+        expect(green(pixels.getUint8(offset + 1)), isTrue);
+        expect(blue(pixels.getUint8(offset + 2)), isTrue);
+      }
+
+      expectPixelColor(
+        8,
+        8,
+        red: (value) => value > 220,
+        green: (value) => value < 20,
+        blue: (value) => value < 20,
+      );
+      expectPixelColor(
+        24,
+        8,
+        red: (value) => value < 20,
+        green: (value) => value > 220,
+        blue: (value) => value < 20,
+      );
+      expectPixelColor(
+        8,
+        24,
+        red: (value) => value < 20,
+        green: (value) => value < 20,
+        blue: (value) => value > 220,
+      );
+      expectPixelColor(
+        24,
+        24,
+        red: (value) => value > 220,
+        green: (value) => value > 220,
+        blue: (value) => value < 20,
+      );
+      expectPixelColor(
+        40,
+        8,
+        red: (value) => value > 220,
+        green: (value) => value < 20,
+        blue: (value) => value < 20,
+      );
+
+      picture.dispose();
+      image.dispose();
+      tilesetImage.dispose();
+    });
   });
 }
 
@@ -398,6 +564,35 @@ Future<ui.Image> _testTilesetImage() async {
   );
   final picture = recorder.endRecording();
   final image = await picture.toImage(128, 128);
+  picture.dispose();
+  return image;
+}
+
+Future<ui.Image> _testPathPatternTilesetImage() async {
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(0, 0, 192, 32),
+    ui.Paint()..color = const ui.Color(0xFF000000),
+  );
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(80, 0, 16, 16),
+    ui.Paint()..color = const ui.Color(0xFFFF0000),
+  );
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(96, 0, 16, 16),
+    ui.Paint()..color = const ui.Color(0xFF00FF00),
+  );
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(80, 16, 16, 16),
+    ui.Paint()..color = const ui.Color(0xFF0000FF),
+  );
+  canvas.drawRect(
+    const ui.Rect.fromLTWH(96, 16, 16, 16),
+    ui.Paint()..color = const ui.Color(0xFFFFFF00),
+  );
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(192, 32);
   picture.dispose();
   return image;
 }

@@ -1300,10 +1300,13 @@ class MapGridPainter extends CustomPainter {
 
     final elapsedMs = editorEntityAnimationMs.toDouble();
 
-    final painted = _paintAutotileVariantCell(
+    final painted = _paintResolvedPathVariantCell(
       canvas,
-      autotileSet: autotileSet,
+      basePathPresetId: activePathLayer.presetId,
+      legacyAutotileSet: autotileSet,
       variant: variant,
+      mapX: origin.x,
+      mapY: origin.y,
       dstRect: dstRect,
       alpha: 0.66,
       elapsedMs: elapsedMs,
@@ -1644,16 +1647,14 @@ class MapGridPainter extends CustomPainter {
           tileWidth,
           tileHeight,
         );
-        final pathDrawn = autotileSet == null
-            ? false
-            : _paintPathLayerCell(
-                canvas,
-                layer,
-                autotileSet: autotileSet,
-                x: x,
-                y: y,
-                alpha: pathCellAlpha,
-              );
+        final pathDrawn = _paintPathLayerCell(
+          canvas,
+          layer,
+          autotileSet: autotileSet,
+          x: x,
+          y: y,
+          alpha: pathCellAlpha,
+        );
         if (pathDrawn) {
           continue;
         }
@@ -1677,15 +1678,12 @@ class MapGridPainter extends CustomPainter {
   bool _paintPathLayerCell(
     Canvas canvas,
     PathLayer layer, {
-    required PathAutotileSet autotileSet,
+    required PathAutotileSet? autotileSet,
     required int x,
     required int y,
     required double alpha,
   }) {
-    final tilesetId = autotileSet.tilesetId.trim();
-    if (tilesetId.isEmpty) return false;
-    final tilesetImage = tilesetImagesById[tilesetId];
-    if (tilesetImage == null || sourceTileWidth <= 0 || sourceTileHeight <= 0) {
+    if (sourceTileWidth <= 0 || sourceTileHeight <= 0) {
       return false;
     }
 
@@ -1703,20 +1701,26 @@ class MapGridPainter extends CustomPainter {
 
     final elapsedMs = editorEntityAnimationMs.toDouble();
 
-    return _paintAutotileVariantCell(
+    return _paintResolvedPathVariantCell(
       canvas,
-      autotileSet: autotileSet,
+      basePathPresetId: layer.presetId,
+      legacyAutotileSet: autotileSet,
       variant: variant,
+      mapX: x,
+      mapY: y,
       dstRect: dstRect,
       alpha: alpha,
       elapsedMs: elapsedMs,
     );
   }
 
-  bool _paintAutotileVariantCell(
+  bool _paintResolvedPathVariantCell(
     Canvas canvas, {
-    required PathAutotileSet autotileSet,
+    required String basePathPresetId,
+    required PathAutotileSet? legacyAutotileSet,
     required TerrainPathVariant variant,
+    required int mapX,
+    required int mapY,
     required Rect dstRect,
     required double alpha,
     required double elapsedMs,
@@ -1724,15 +1728,20 @@ class MapGridPainter extends CustomPainter {
     if (sourceTileWidth <= 0 || sourceTileHeight <= 0) {
       return false;
     }
-    final source = autotileSet.sourceForVariantAt(
-      variant,
+    final resolved = resolvePathPatternEditorRenderResolution(
+      project: project,
+      basePathPresetId: basePathPresetId,
+      variant: variant,
+      mapX: mapX,
+      mapY: mapY,
       elapsedMs: elapsedMs,
+      legacyAutotileSet: legacyAutotileSet,
     );
-    if (source == null) return false;
-    final tilesetId = autotileSet.resolvedTilesetIdForVariantAt(
-      variant,
-      elapsedMs: elapsedMs,
-    );
+    if (resolved == null) {
+      return false;
+    }
+    final source = resolved.sourceRect;
+    final tilesetId = resolved.tilesetId.trim();
     if (tilesetId.isEmpty) {
       return false;
     }
