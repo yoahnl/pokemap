@@ -671,6 +671,111 @@ void main() {
       });
     });
 
+    group('PathPattern-41 asset / bounds diagnostics', () {
+      testWidgets('read-only detail lists missing tileset image', (tester) async {
+        final temp = Directory.systemTemp.createTempSync('path41_ui_');
+        addTearDown(() => temp.deleteSync(recursive: true));
+
+        await _pumpPathStudio(
+          tester,
+          projectRootPath: temp.path,
+          manifest: _manifest(
+            settings: const ProjectSettings(tileWidth: 16, tileHeight: 16),
+            pathPresets: [
+              _legacyPathPreset(id: 'legacy-water', tilesetId: 'tileset-main'),
+            ],
+            tilesets: [
+              _tileset(id: 'tileset-main', name: 'Chemins principaux'),
+            ],
+            pathPatternPresets: [
+              _pathPatternPreset(id: 'water-missing-file'),
+            ],
+          ),
+        );
+
+        await tester.tap(find.byKey(const Key('path-studio-preset-card-0')));
+        await _pumpPathStudioAsync(tester);
+
+        expect(find.text('Image de tileset introuvable'), findsWidgets);
+        expect(find.text('Diagnostics'), findsWidgets);
+      });
+
+      testWidgets('read-only detail lists frame hors image', (tester) async {
+        final temp = Directory.systemTemp.createTempSync('path41_ui_oob_');
+        addTearDown(() => temp.deleteSync(recursive: true));
+
+        await tester.runAsync(() async {
+          final imgFile = File(p.join(temp.path, 'tilesets/tileset-main.png'));
+          await imgFile.parent.create(recursive: true);
+          await imgFile.writeAsBytes(await _pngBytes(width: 32, height: 32));
+        });
+
+        await _pumpPathStudio(
+          tester,
+          projectRootPath: temp.path,
+          manifest: _manifest(
+            settings: const ProjectSettings(tileWidth: 16, tileHeight: 16),
+            pathPresets: [
+              _legacyPathPreset(id: 'legacy-water', tilesetId: 'tileset-main'),
+            ],
+            tilesets: [
+              _tileset(id: 'tileset-main', name: 'Chemins principaux'),
+            ],
+            pathPatternPresets: [
+              _pathPatternPreset(
+                id: 'oob-frame',
+                pattern: PathCenterPattern(
+                  size: PathCenterPatternSize(width: 1, height: 1),
+                  cells: [
+                    PathCenterPatternCell(
+                      localX: 0,
+                      localY: 0,
+                      frames: [
+                        const TilesetVisualFrame(
+                          tilesetId: '',
+                          source: TilesetSourceRect(x: 2, y: 0),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+
+        await tester.tap(find.byKey(const Key('path-studio-preset-card-0')));
+        await _pumpPathStudioAsync(tester);
+
+        expect(find.text('Frame hors image'), findsWidgets);
+      });
+
+      testWidgets('preset card shows blocage counter when asset blocks',
+          (tester) async {
+        final temp = Directory.systemTemp.createTempSync('path41_cnt_');
+        addTearDown(() => temp.deleteSync(recursive: true));
+
+        await _pumpPathStudio(
+          tester,
+          projectRootPath: temp.path,
+          manifest: _manifest(
+            settings: const ProjectSettings(tileWidth: 16, tileHeight: 16),
+            pathPresets: [
+              _legacyPathPreset(id: 'legacy-water', tilesetId: 'tileset-main'),
+            ],
+            tilesets: [
+              _tileset(id: 'tileset-main', name: 'Chemins principaux'),
+            ],
+            pathPatternPresets: [
+              _pathPatternPreset(id: 'blocked-asset'),
+            ],
+          ),
+        );
+
+        expect(find.text('1 blocage(s)'), findsWidgets);
+      });
+    });
+
     testWidgets('new path draft does not force existing legacy path choices',
         (tester) async {
       await _pumpPathStudio(

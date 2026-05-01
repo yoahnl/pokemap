@@ -8,6 +8,7 @@ import '../editor/state/editor_selectors.dart';
 import 'path_pattern_draft.dart';
 import 'path_pattern_diagnostics.dart';
 import 'path_pattern_editor_read_model.dart';
+import 'path_pattern_tileset_image_info_loader.dart';
 import 'path_studio_edit_path_build_request.dart';
 import 'path_studio_new_path_build_request.dart';
 import 'path_studio_new_path_draft.dart';
@@ -173,11 +174,23 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
     }
   }
 
+  PathPatternEditorReadModel _pathPatternReadModel() {
+    final infos = widget.projectRootPath != null &&
+            widget.projectRootPath!.trim().isNotEmpty
+        ? loadPathPatternTilesetImageInfoMap(
+            projectRootPath: widget.projectRootPath!,
+            manifest: widget.manifest,
+          )
+        : null;
+    return createPathPatternEditorReadModel(
+      manifest: widget.manifest,
+      tilesetImageInfoById: infos,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final readModel = createPathPatternEditorReadModel(
-      manifest: widget.manifest,
-    );
+    final readModel = _pathPatternReadModel();
     final query = _searchQuery.trim().toLowerCase();
     final filtered = _filteredCards(readModel, query);
     final selected = _newPathDraftSelected || _draftSelected
@@ -466,8 +479,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
   }
 
   int? _findSourceIndexForPathPatternId(String pathPatternId) {
-    final readModel =
-        createPathPatternEditorReadModel(manifest: widget.manifest);
+    final readModel = _pathPatternReadModel();
     for (var i = 0; i < readModel.presets.length; i++) {
       if (readModel.presets[i].id == pathPatternId) {
         return i;

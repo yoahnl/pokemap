@@ -19,6 +19,16 @@ enum PathPatternDiagnosticCode {
   crossHandledByCenterPattern,
   pathPatternRenderAmbiguous,
   centerPatternStats,
+  /// Lot PathPattern-41 — fichier image tileset absent sur disque.
+  missingTilesetImageFile,
+  /// Lot PathPattern-41 — octets présents mais décodage image impossible.
+  unreadableTilesetImageFile,
+  /// Lot PathPattern-41 — `TilesetSourceRect` dépasse l’atlas en pixels.
+  frameSourceOutOfBounds,
+  /// Lot PathPattern-41 — source autre que 1×1 tuile (aperçu V0 = 1×1).
+  unsupportedPathPatternFrameSize,
+  /// Lot PathPattern-41 — pas de racine projet / dimensions tuile invalides.
+  assetValidationUnavailable,
 }
 
 final class PathPatternDiagnostic {

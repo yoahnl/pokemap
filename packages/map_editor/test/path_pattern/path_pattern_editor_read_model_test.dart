@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/path_studio/path_pattern_asset_diagnostics.dart';
+import 'package:map_editor/src/features/path_studio/path_pattern_diagnostics.dart';
 import 'package:map_editor/src/features/path_studio/path_pattern_editor_read_model.dart';
 
 void main() {
@@ -494,6 +496,107 @@ void main() {
       expect(first.presets.single.hashCode, second.presets.single.hashCode);
       expect(first, isNot(different));
     });
+
+    test(
+        'Lot 41: assetValidationUnavailable only on first card when no image map',
+        () {
+      final readModel = createPathPatternEditorReadModel(
+        manifest: _manifest(
+          pathPresets: [_legacyPathPreset(id: 'legacy-water', tilesetId: 't')],
+          tilesets: [_tileset(id: 't')],
+          pathPatternPresets: [
+            _pathPatternPreset(id: 'a'),
+            _pathPatternPreset(id: 'b'),
+          ],
+        ),
+      );
+      expect(
+        readModel.presets[0].diagnostics.map((d) => d.code),
+        contains(PathPatternDiagnosticCode.assetValidationUnavailable),
+      );
+      expect(
+        readModel.presets[1].diagnostics.map((d) => d.code),
+        isNot(contains(PathPatternDiagnosticCode.assetValidationUnavailable)),
+      );
+    });
+
+    test('Lot 41: injected image map blocks on frameSourceOutOfBounds', () {
+      final readModel = createPathPatternEditorReadModel(
+        manifest: _manifest(
+          pathPresets: [
+            _legacyPathPreset(
+              id: 'legacy-water',
+              tilesetId: 't',
+            ),
+          ],
+          tilesets: [_tileset(id: 't')],
+          pathPatternPresets: [
+            _pathPatternPreset(
+              id: 'oob',
+              pattern: PathCenterPattern(
+                size: PathCenterPatternSize(width: 1, height: 1),
+                cells: [
+                  PathCenterPatternCell(
+                    localX: 0,
+                    localY: 0,
+                    frames: [
+                      const TilesetVisualFrame(
+                        tilesetId: '',
+                        source: TilesetSourceRect(x: 2, y: 0),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+          settings: const ProjectSettings(tileWidth: 16, tileHeight: 16),
+        ),
+        tilesetImageInfoById: {
+          't': PathPatternTilesetImageInfo(
+            tilesetId: 't',
+            status: PathPatternTilesetImageStatus.ok,
+            widthPx: 32,
+            heightPx: 32,
+          ),
+        },
+      );
+      final card = readModel.presets.single;
+      expect(card.status, PathPatternPresetReadinessStatus.blocked);
+      expect(
+        card.diagnostics.map((d) => d.code),
+        contains(PathPatternDiagnosticCode.frameSourceOutOfBounds),
+      );
+      expect(readModel.summary.blockingCount, greaterThanOrEqualTo(1));
+    });
+
+    test(
+        'Lot 41: ready preset stays ready when image map validates in bounds',
+        () {
+      final readModel = createPathPatternEditorReadModel(
+        manifest: _manifest(
+          pathPresets: [
+            _legacyPathPreset(id: 'legacy-water', tilesetId: 't'),
+          ],
+          tilesets: [_tileset(id: 't')],
+          pathPatternPresets: [_pathPatternPreset(id: 'ok')],
+          settings: const ProjectSettings(tileWidth: 16, tileHeight: 16),
+        ),
+        tilesetImageInfoById: {
+          't': PathPatternTilesetImageInfo(
+            tilesetId: 't',
+            status: PathPatternTilesetImageStatus.ok,
+            widthPx: 256,
+            heightPx: 256,
+          ),
+        },
+      );
+      expect(readModel.presets.single.status, PathPatternPresetReadinessStatus.ready);
+      expect(
+        readModel.presets.single.diagnostics.map((d) => d.code),
+        isNot(contains(PathPatternDiagnosticCode.assetValidationUnavailable)),
+      );
+    });
   });
 }
 
@@ -501,9 +604,11 @@ ProjectManifest _manifest({
   List<ProjectTilesetEntry> tilesets = const [],
   List<ProjectPathPreset> pathPresets = const [],
   List<ProjectPathPatternPreset> pathPatternPresets = const [],
+  ProjectSettings settings = const ProjectSettings(),
 }) {
   return ProjectManifest(
     name: 'Project',
+    settings: settings,
     maps: const [],
     tilesets: tilesets,
     pathPresets: pathPresets,

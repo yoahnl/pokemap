@@ -1,5 +1,6 @@
 import 'package:map_core/map_core.dart';
 
+import 'path_pattern_asset_diagnostics.dart';
 import 'path_pattern_diagnostics.dart';
 
 enum PathPatternPresetReadinessStatus {
@@ -184,6 +185,7 @@ final class PathPatternPresetCardModel {
 
 PathPatternEditorReadModel createPathPatternEditorReadModel({
   required ProjectManifest manifest,
+  Map<String, PathPatternTilesetImageInfo>? tilesetImageInfoById,
 }) {
   final pathPatternPresets = readProjectPathPatternPresets(manifest);
   final pathPatternIdCounts = _countPathPatternPresetIds(pathPatternPresets);
@@ -196,7 +198,8 @@ PathPatternEditorReadModel createPathPatternEditorReadModel({
       .toSet();
 
   final cards = <PathPatternPresetCardModel>[];
-  for (final preset in pathPatternPresets) {
+  for (var cardIndex = 0; cardIndex < pathPatternPresets.length; cardIndex++) {
+    final preset = pathPatternPresets[cardIndex];
     final diagnostics = <PathPatternDiagnostic>[];
     int? missingVariantCount;
     bool hasCrossVariant = false;
@@ -391,6 +394,26 @@ PathPatternEditorReadModel createPathPatternEditorReadModel({
         ),
       );
     }
+
+    final tw = manifest.settings.tileWidth;
+    final th = manifest.settings.tileHeight;
+    final assetRunnable = _canRunAssetValidation(
+      tilesetImageInfoById: tilesetImageInfoById,
+      tileWidth: tw,
+      tileHeight: th,
+    );
+    diagnostics.addAll(
+      createPathPatternAssetDiagnostics(
+        manifest: manifest,
+        pathPatternPreset: preset,
+        basePathPreset: basePathPreset,
+        tilesetImageInfoById: tilesetImageInfoById,
+        tileWidth: tw,
+        tileHeight: th,
+        emitAssetValidationUnavailable:
+            cardIndex == 0 && !assetRunnable,
+      ),
+    );
 
     diagnostics.add(
       PathPatternDiagnostic(
@@ -595,6 +618,14 @@ String _pathSurfaceKindLabel(PathSurfaceKind surfaceKind) {
     PathSurfaceKind.special => 'Spécial',
     PathSurfaceKind.custom => 'Personnalisé',
   };
+}
+
+bool _canRunAssetValidation({
+  required Map<String, PathPatternTilesetImageInfo>? tilesetImageInfoById,
+  required int tileWidth,
+  required int tileHeight,
+}) {
+  return tilesetImageInfoById != null && tileWidth > 0 && tileHeight > 0;
 }
 
 bool _listEquals<T>(List<T> left, List<T> right) {
