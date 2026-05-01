@@ -83,14 +83,25 @@ final class PathStudioNewPathDraft {
     required this.centerHeight,
     required this.selectedCellX,
     required this.selectedCellY,
+    required this.selectedVariant,
+    required this.selectedTarget,
+    required this.surfaceKind,
     required this.isDirty,
     Map<String, PathStudioNewPathDraftTile> assignedTiles = const {},
+    Map<TerrainPathVariant, PathStudioNewPathDraftTile> variantTiles = const {},
   })  : assert(centerWidth > 0),
         assert(centerHeight > 0),
         assert(selectedCellX >= 0 && selectedCellX < centerWidth),
         assert(selectedCellY >= 0 && selectedCellY < centerHeight),
+        assert(
+          _requiredVariants.contains(selectedVariant),
+        ),
         assignedTiles = Map<String, PathStudioNewPathDraftTile>.unmodifiable(
           assignedTiles,
+        ),
+        variantTiles =
+            Map<TerrainPathVariant, PathStudioNewPathDraftTile>.unmodifiable(
+          variantTiles,
         );
 
   final String id;
@@ -100,6 +111,9 @@ final class PathStudioNewPathDraft {
   final int centerHeight;
   final int selectedCellX;
   final int selectedCellY;
+  final TerrainPathVariant selectedVariant;
+  final PathStudioNewPathDraftSelectionTarget selectedTarget;
+  final PathSurfaceKind surfaceKind;
   final bool isDirty;
 
   /// Assignations locales des cellules du centre, indexées par `x,y`.
@@ -108,6 +122,10 @@ final class PathStudioNewPathDraft {
   /// en place. Les helpers de ce fichier retournent toujours une nouvelle
   /// instance de [PathStudioNewPathDraft].
   final Map<String, PathStudioNewPathDraftTile> assignedTiles;
+  final Map<TerrainPathVariant, PathStudioNewPathDraftTile> variantTiles;
+
+  static final List<TerrainPathVariant> requiredVariants =
+      List<TerrainPathVariant>.unmodifiable(_requiredVariants);
 
   String get centerPatternLabel => '$centerWidth×$centerHeight';
 
@@ -116,7 +134,15 @@ final class PathStudioNewPathDraft {
   int get configuredCellCount =>
       cells.where((cell) => cell.isConfigured).length;
 
+  int get requiredVariantCount => requiredVariants.length;
+
+  int get configuredVariantCount =>
+      requiredVariants.where((variant) => variantTiles[variant] != null).length;
+
   bool get allCenterCellsConfigured => configuredCellCount == centerCellCount;
+
+  bool get allRequiredVariantsConfigured =>
+      configuredVariantCount == requiredVariantCount;
 
   List<PathStudioNewPathDraftCell> get cells {
     final result = <PathStudioNewPathDraftCell>[];
@@ -143,6 +169,9 @@ final class PathStudioNewPathDraft {
     );
   }
 
+  PathStudioNewPathDraftTile? get selectedVariantTile =>
+      variantTiles[selectedVariant];
+
   List<PathStudioNewPathDraftIssueCode> get issues {
     final result = <PathStudioNewPathDraftIssueCode>[];
     if (name.trim().isEmpty) {
@@ -165,8 +194,12 @@ final class PathStudioNewPathDraft {
     int? centerHeight,
     int? selectedCellX,
     int? selectedCellY,
+    TerrainPathVariant? selectedVariant,
+    PathStudioNewPathDraftSelectionTarget? selectedTarget,
+    PathSurfaceKind? surfaceKind,
     bool? isDirty,
     Map<String, PathStudioNewPathDraftTile>? assignedTiles,
+    Map<TerrainPathVariant, PathStudioNewPathDraftTile>? variantTiles,
   }) {
     return PathStudioNewPathDraft(
       id: id ?? this.id,
@@ -178,8 +211,12 @@ final class PathStudioNewPathDraft {
       centerHeight: centerHeight ?? this.centerHeight,
       selectedCellX: selectedCellX ?? this.selectedCellX,
       selectedCellY: selectedCellY ?? this.selectedCellY,
+      selectedVariant: selectedVariant ?? this.selectedVariant,
+      selectedTarget: selectedTarget ?? this.selectedTarget,
+      surfaceKind: surfaceKind ?? this.surfaceKind,
       isDirty: isDirty ?? this.isDirty,
       assignedTiles: assignedTiles ?? this.assignedTiles,
+      variantTiles: variantTiles ?? this.variantTiles,
     );
   }
 
@@ -194,8 +231,12 @@ final class PathStudioNewPathDraft {
             centerHeight == other.centerHeight &&
             selectedCellX == other.selectedCellX &&
             selectedCellY == other.selectedCellY &&
+            selectedVariant == other.selectedVariant &&
+            selectedTarget == other.selectedTarget &&
+            surfaceKind == other.surfaceKind &&
             isDirty == other.isDirty &&
-            _assignedTileMapsEqual(assignedTiles, other.assignedTiles);
+            _assignedTileMapsEqual(assignedTiles, other.assignedTiles) &&
+            _variantTileMapsEqual(variantTiles, other.variantTiles);
   }
 
   @override
@@ -207,8 +248,12 @@ final class PathStudioNewPathDraft {
         centerHeight,
         selectedCellX,
         selectedCellY,
+        selectedVariant,
+        selectedTarget,
+        surfaceKind,
         isDirty,
         _assignedTileMapHash(assignedTiles),
+        _variantTileMapHash(variantTiles),
       );
 }
 
@@ -222,6 +267,9 @@ PathStudioNewPathDraft createInitialPathStudioNewPathDraft() {
     centerHeight: 1,
     selectedCellX: 0,
     selectedCellY: 0,
+    selectedVariant: _requiredVariants.first,
+    selectedTarget: PathStudioNewPathDraftSelectionTarget.centerCell,
+    surfaceKind: PathSurfaceKind.path,
     isDirty: true,
   );
 }
@@ -255,16 +303,21 @@ PathStudioNewPathDraft renamePathStudioNewPathDraft(
   return draft.copyWith(name: name, isDirty: true);
 }
 
+PathStudioNewPathDraft selectPathStudioNewPathDraftSurfaceKind({
+  required PathStudioNewPathDraft draft,
+  required PathSurfaceKind surfaceKind,
+}) {
+  return draft.copyWith(surfaceKind: surfaceKind, isDirty: true);
+}
+
 PathStudioNewPathDraft selectPathStudioNewPathDraftTileset(
   PathStudioNewPathDraft draft,
   String tilesetId,
 ) {
-  // Une coordonnée `2,3` n'a de sens que dans l'atlas courant. Changer de
-  // tileset vide donc les cellules plutôt que de garder une assignation qui
-  // aurait l'air valide tout en pointant vers une autre image.
   return draft.copyWith(
     tilesetId: tilesetId.isEmpty ? null : tilesetId,
     assignedTiles: const {},
+    variantTiles: const {},
     isDirty: true,
   );
 }
@@ -321,6 +374,85 @@ PathStudioNewPathDraft selectPathStudioNewPathDraftCell({
   return draft.copyWith(
     selectedCellX: localX,
     selectedCellY: localY,
+    selectedTarget: PathStudioNewPathDraftSelectionTarget.centerCell,
+  );
+}
+
+PathStudioNewPathDraft selectPathStudioNewPathDraftVariant({
+  required PathStudioNewPathDraft draft,
+  required TerrainPathVariant variant,
+}) {
+  if (!_requiredVariants.contains(variant)) {
+    throw ArgumentError.value(
+      variant,
+      'variant',
+      'must belong to required variants',
+    );
+  }
+  return draft.copyWith(
+    selectedVariant: variant,
+    selectedTarget: PathStudioNewPathDraftSelectionTarget.variant,
+  );
+}
+
+PathStudioNewPathDraft assignPathStudioNewPathDraftVariantTile({
+  required PathStudioNewPathDraft draft,
+  required TerrainPathVariant variant,
+  required int sourceX,
+  required int sourceY,
+}) {
+  final tilesetId = draft.tilesetId;
+  if (tilesetId == null || tilesetId.isEmpty) {
+    throw StateError('A tileset must be selected before assigning a tile.');
+  }
+  if (!_requiredVariants.contains(variant)) {
+    throw ArgumentError.value(
+      variant,
+      'variant',
+      'must belong to required variants',
+    );
+  }
+  if (sourceX < 0) {
+    throw ArgumentError.value(sourceX, 'sourceX', 'must be non-negative');
+  }
+  if (sourceY < 0) {
+    throw ArgumentError.value(sourceY, 'sourceY', 'must be non-negative');
+  }
+  final nextTiles = Map<TerrainPathVariant, PathStudioNewPathDraftTile>.from(
+    draft.variantTiles,
+  );
+  nextTiles[variant] = PathStudioNewPathDraftTile(
+    tilesetId: tilesetId,
+    sourceX: sourceX,
+    sourceY: sourceY,
+  );
+  return draft.copyWith(
+    variantTiles: nextTiles,
+    selectedVariant: variant,
+    selectedTarget: PathStudioNewPathDraftSelectionTarget.variant,
+    isDirty: true,
+  );
+}
+
+PathStudioNewPathDraft clearPathStudioNewPathDraftVariant({
+  required PathStudioNewPathDraft draft,
+  required TerrainPathVariant variant,
+}) {
+  if (!_requiredVariants.contains(variant)) {
+    throw ArgumentError.value(
+      variant,
+      'variant',
+      'must belong to required variants',
+    );
+  }
+  final nextTiles = Map<TerrainPathVariant, PathStudioNewPathDraftTile>.from(
+    draft.variantTiles,
+  )..remove(variant);
+  return draft.copyWith(
+    variantTiles: nextTiles,
+    selectedVariant: variant,
+    selectedTarget: PathStudioNewPathDraftSelectionTarget.variant,
+    isDirty: true,
   );
 }
 
@@ -387,3 +519,40 @@ int _assignedTileMapHash(Map<String, PathStudioNewPathDraftTile> tiles) {
     entries.map((entry) => Object.hash(entry.key, entry.value)),
   );
 }
+
+bool _variantTileMapsEqual(
+  Map<TerrainPathVariant, PathStudioNewPathDraftTile> left,
+  Map<TerrainPathVariant, PathStudioNewPathDraftTile> right,
+) {
+  if (identical(left, right)) {
+    return true;
+  }
+  if (left.length != right.length) {
+    return false;
+  }
+  for (final entry in left.entries) {
+    if (right[entry.key] != entry.value) {
+      return false;
+    }
+  }
+  return true;
+}
+
+int _variantTileMapHash(
+    Map<TerrainPathVariant, PathStudioNewPathDraftTile> tiles) {
+  final entries = tiles.entries.toList()
+    ..sort((left, right) => left.key.index.compareTo(right.key.index));
+  return Object.hashAll(
+    entries.map((entry) => Object.hash(entry.key, entry.value)),
+  );
+}
+
+enum PathStudioNewPathDraftSelectionTarget {
+  centerCell,
+  variant,
+}
+
+final List<TerrainPathVariant> _requiredVariants = List.unmodifiable(
+  TerrainPathVariant.values
+      .where((variant) => variant != TerrainPathVariant.cross),
+);

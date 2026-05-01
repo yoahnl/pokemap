@@ -16,12 +16,19 @@ void main() {
       expect(draft.tilesetId, isNull);
       expect(draft.selectedCellX, 0);
       expect(draft.selectedCellY, 0);
+      expect(draft.surfaceKind, PathSurfaceKind.path);
       expect(draft.isDirty, isTrue);
       expect(draft.cells.map((cell) => cell.label), ['A']);
       expect(draft.issues, [
         PathStudioNewPathDraftIssueCode.tilesetNotConfigured,
         PathStudioNewPathDraftIssueCode.cellsNotConfigured,
       ]);
+      expect(
+        PathStudioNewPathDraft.requiredVariants.contains(
+          TerrainPathVariant.cross,
+        ),
+        isFalse,
+      );
     });
 
     test('selects a tileset while preserving center size and selection', () {
@@ -125,6 +132,7 @@ void main() {
         draft.issues,
         isNot(contains(PathStudioNewPathDraftIssueCode.cellsNotConfigured)),
       );
+      expect(draft.issues, isEmpty);
     });
 
     test('replaces a configured cell instead of adding a second frame', () {
@@ -351,6 +359,105 @@ void main() {
       expect(selected.selectedCellX, 1);
       expect(selected.selectedCellY, 0);
       expect(selected.selectedCell.label, 'B');
+    });
+
+    test('assigns, replaces and clears variant mappings with progression', () {
+      final draft = selectPathStudioNewPathDraftTileset(
+        createInitialPathStudioNewPathDraft(),
+        'tileset-main',
+      );
+      final variant = PathStudioNewPathDraft.requiredVariants.first;
+
+      final assigned = assignPathStudioNewPathDraftVariantTile(
+        draft: draft,
+        variant: variant,
+        sourceX: 6,
+        sourceY: 2,
+      );
+      expect(assigned.configuredVariantCount, 1);
+      expect(assigned.variantTiles[variant]?.coordinateLabel, '6,2');
+
+      final replaced = assignPathStudioNewPathDraftVariantTile(
+        draft: assigned,
+        variant: variant,
+        sourceX: 1,
+        sourceY: 7,
+      );
+      expect(replaced.configuredVariantCount, 1);
+      expect(replaced.variantTiles[variant]?.coordinateLabel, '1,7');
+
+      final cleared = clearPathStudioNewPathDraftVariant(
+        draft: replaced,
+        variant: variant,
+      );
+      expect(cleared.configuredVariantCount, 0);
+      expect(cleared.variantTiles[variant], isNull);
+    });
+
+    test('resize keeps variants, tileset change clears center and variants',
+        () {
+      final variant = PathStudioNewPathDraft.requiredVariants.first;
+      final withVariant = assignPathStudioNewPathDraftVariantTile(
+        draft: assignPathStudioNewPathDraftCellTile(
+          draft: selectPathStudioNewPathDraftTileset(
+            createInitialPathStudioNewPathDraft(),
+            'tileset-main',
+          ),
+          localX: 0,
+          localY: 0,
+          sourceX: 2,
+          sourceY: 3,
+        ),
+        variant: variant,
+        sourceX: 8,
+        sourceY: 1,
+      );
+
+      final resized = resizePathStudioNewPathDraftCenter(
+        draft: withVariant,
+        width: 2,
+        height: 2,
+      );
+      expect(resized.variantTiles[variant]?.coordinateLabel, '8,1');
+
+      final changedTileset = selectPathStudioNewPathDraftTileset(
+        resized,
+        'tileset-extra',
+      );
+      expect(changedTileset.configuredCellCount, 0);
+      expect(changedTileset.configuredVariantCount, 0);
+    });
+
+    test('surface kind can be selected locally', () {
+      final draft = selectPathStudioNewPathDraftSurfaceKind(
+        draft: createInitialPathStudioNewPathDraft(),
+        surfaceKind: PathSurfaceKind.road,
+      );
+      expect(draft.surfaceKind, PathSurfaceKind.road);
+    });
+
+    test('variant mapping is optional for draft blocking diagnostics', () {
+      var draft = assignPathStudioNewPathDraftCellTile(
+        draft: selectPathStudioNewPathDraftTileset(
+          createInitialPathStudioNewPathDraft(),
+          'tileset-main',
+        ),
+        localX: 0,
+        localY: 0,
+        sourceX: 0,
+        sourceY: 0,
+      );
+      for (var i = 0;
+          i < PathStudioNewPathDraft.requiredVariants.length;
+          i += 1) {
+        draft = assignPathStudioNewPathDraftVariantTile(
+          draft: draft,
+          variant: PathStudioNewPathDraft.requiredVariants[i],
+          sourceX: i % 8,
+          sourceY: i ~/ 8,
+        );
+      }
+      expect(draft.issues, isEmpty);
     });
   });
 }

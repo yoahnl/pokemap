@@ -7,6 +7,7 @@ import '../editor/state/editor_notifier.dart';
 import '../editor/state/editor_selectors.dart';
 import 'path_pattern_draft.dart';
 import 'path_pattern_editor_read_model.dart';
+import 'path_studio_new_path_build_request.dart';
 import 'path_studio_new_path_draft.dart';
 import 'path_studio_save_flow.dart';
 import 'path_studio_save_plan.dart';
@@ -139,7 +140,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
     final selectedDraft = _draftSelected ? _draft : null;
     final newPathSavePlan = selectedNewPathDraft == null
         ? null
-        : createPathStudioNewPathSavePlan(
+        : createPathStudioNewPathBuildPlan(
             manifest: widget.manifest,
             draft: selectedNewPathDraft,
           );
@@ -242,9 +243,12 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
                       selectedPreset: selectedPreset,
                       hasAnyPreset: readModel.presets.isNotEmpty,
                       onNewPathSizeChanged: _resizeNewPathDraft,
+                      onNewPathSurfaceKindChanged: _selectNewPathDraftSurfaceKind,
                       onNewPathCellSelected: _selectNewPathDraftCell,
+                      onNewPathVariantSelected: _selectNewPathDraftVariant,
                       onNewPathTileSelected: _assignNewPathDraftTile,
                       onNewPathCellCleared: _clearNewPathDraftCell,
+                      onNewPathVariantCleared: _clearNewPathDraftVariant,
                       onDraftSizeChanged: _resizeDraft,
                       onDraftCellSelected: _selectDraftCell,
                     ),
@@ -260,6 +264,8 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
                       selectedPreset: selectedPreset,
                       onNewPathNameChanged: _renameNewPathDraft,
                       onNewPathTilesetChanged: _selectNewPathDraftTileset,
+                      onNewPathSurfaceKindChanged:
+                          _selectNewPathDraftSurfaceKind,
                       onNewPathSizeChanged: _resizeNewPathDraft,
                       onDraftNameChanged: _renameDraft,
                       onDraftBaseChanged: _changeDraftBase,
@@ -423,6 +429,20 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
     });
   }
 
+  void _selectNewPathDraftSurfaceKind(PathSurfaceKind surfaceKind) {
+    final draft = _newPathDraft;
+    if (draft == null) {
+      return;
+    }
+    setState(() {
+      _newPathDraft = selectPathStudioNewPathDraftSurfaceKind(
+        draft: draft,
+        surfaceKind: surfaceKind,
+      );
+      _saveFeedbackMessage = null;
+    });
+  }
+
   void _selectNewPathDraftCell(int localX, int localY) {
     final draft = _newPathDraft;
     if (draft == null) {
@@ -444,13 +464,21 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
       return;
     }
     setState(() {
-      _newPathDraft = assignPathStudioNewPathDraftCellTile(
-        draft: draft,
-        localX: draft.selectedCellX,
-        localY: draft.selectedCellY,
-        sourceX: sourceX,
-        sourceY: sourceY,
-      );
+      _newPathDraft = draft.selectedTarget ==
+              PathStudioNewPathDraftSelectionTarget.centerCell
+          ? assignPathStudioNewPathDraftCellTile(
+              draft: draft,
+              localX: draft.selectedCellX,
+              localY: draft.selectedCellY,
+              sourceX: sourceX,
+              sourceY: sourceY,
+            )
+          : assignPathStudioNewPathDraftVariantTile(
+              draft: draft,
+              variant: draft.selectedVariant,
+              sourceX: sourceX,
+              sourceY: sourceY,
+            );
       _saveFeedbackMessage = null;
     });
   }
@@ -465,6 +493,34 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         draft: draft,
         localX: localX,
         localY: localY,
+      );
+      _saveFeedbackMessage = null;
+    });
+  }
+
+  void _selectNewPathDraftVariant(TerrainPathVariant variant) {
+    final draft = _newPathDraft;
+    if (draft == null) {
+      return;
+    }
+    setState(() {
+      _newPathDraft = selectPathStudioNewPathDraftVariant(
+        draft: draft,
+        variant: variant,
+      );
+      _saveFeedbackMessage = null;
+    });
+  }
+
+  void _clearNewPathDraftVariant(TerrainPathVariant variant) {
+    final draft = _newPathDraft;
+    if (draft == null) {
+      return;
+    }
+    setState(() {
+      _newPathDraft = clearPathStudioNewPathDraftVariant(
+        draft: draft,
+        variant: variant,
       );
       _saveFeedbackMessage = null;
     });
@@ -561,12 +617,14 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
   }
 
   String _saveButtonHint({
-    required PathStudioNewPathSavePlan? newPathSavePlan,
+    required PathStudioNewPathBuildPlan? newPathSavePlan,
     required PathStudioLegacyPathPatternSavePlan? legacySavePlan,
     required bool hasSaveCallback,
   }) {
     if (newPathSavePlan != null) {
-      return 'variants manquants';
+      return newPathSavePlan.canBuildRequest
+          ? 'requête locale prête'
+          : 'non sauvegardable';
     }
     if (legacySavePlan != null) {
       if (!legacySavePlan.canSaveNow) {
@@ -1489,9 +1547,12 @@ class _CenterWorkspace extends StatelessWidget {
     required this.selectedPreset,
     required this.hasAnyPreset,
     required this.onNewPathSizeChanged,
+    required this.onNewPathSurfaceKindChanged,
     required this.onNewPathCellSelected,
+    required this.onNewPathVariantSelected,
     required this.onNewPathTileSelected,
     required this.onNewPathCellCleared,
+    required this.onNewPathVariantCleared,
     required this.onDraftSizeChanged,
     required this.onDraftCellSelected,
   });
@@ -1501,7 +1562,7 @@ class _CenterWorkspace extends StatelessWidget {
   final ProjectSettings settings;
   final String? projectRootPath;
   final PathStudioNewPathDraft? newPathDraft;
-  final PathStudioNewPathSavePlan? newPathSavePlan;
+  final PathStudioNewPathBuildPlan? newPathSavePlan;
   final PathPatternDraft? draft;
   final PathStudioLegacyPathPatternSavePlan? legacySavePlan;
   final bool hasSaveCallback;
@@ -1510,9 +1571,12 @@ class _CenterWorkspace extends StatelessWidget {
   final ProjectPathPatternPreset? selectedPreset;
   final bool hasAnyPreset;
   final void Function(int width, int height) onNewPathSizeChanged;
+  final ValueChanged<PathSurfaceKind> onNewPathSurfaceKindChanged;
   final void Function(int localX, int localY) onNewPathCellSelected;
+  final ValueChanged<TerrainPathVariant> onNewPathVariantSelected;
   final void Function(int sourceX, int sourceY) onNewPathTileSelected;
   final void Function(int localX, int localY) onNewPathCellCleared;
+  final ValueChanged<TerrainPathVariant> onNewPathVariantCleared;
   final void Function(int width, int height) onDraftSizeChanged;
   final void Function(int localX, int localY) onDraftCellSelected;
 
@@ -1528,9 +1592,12 @@ class _CenterWorkspace extends StatelessWidget {
         draft: newPathDraft,
         savePlan: newPathSavePlan,
         onSizeChanged: onNewPathSizeChanged,
+        onSurfaceKindChanged: onNewPathSurfaceKindChanged,
         onCellSelected: onNewPathCellSelected,
+        onVariantSelected: onNewPathVariantSelected,
         onTileSelected: onNewPathTileSelected,
         onCellCleared: onNewPathCellCleared,
+        onVariantCleared: onNewPathVariantCleared,
       );
     }
     final draft = this.draft;
@@ -2319,6 +2386,7 @@ class _PresetInspector extends StatelessWidget {
     required this.selectedPreset,
     required this.onNewPathNameChanged,
     required this.onNewPathTilesetChanged,
+    required this.onNewPathSurfaceKindChanged,
     required this.onNewPathSizeChanged,
     required this.onDraftNameChanged,
     required this.onDraftBaseChanged,
@@ -2332,6 +2400,7 @@ class _PresetInspector extends StatelessWidget {
   final ProjectPathPatternPreset? selectedPreset;
   final ValueChanged<String> onNewPathNameChanged;
   final ValueChanged<String> onNewPathTilesetChanged;
+  final ValueChanged<PathSurfaceKind> onNewPathSurfaceKindChanged;
   final void Function(int width, int height) onNewPathSizeChanged;
   final ValueChanged<String> onDraftNameChanged;
   final ValueChanged<String> onDraftBaseChanged;
@@ -2346,6 +2415,7 @@ class _PresetInspector extends StatelessWidget {
         draft: newPathDraft,
         onNameChanged: onNewPathNameChanged,
         onTilesetChanged: onNewPathTilesetChanged,
+        onSurfaceKindChanged: onNewPathSurfaceKindChanged,
         onSizeChanged: onNewPathSizeChanged,
       );
     }

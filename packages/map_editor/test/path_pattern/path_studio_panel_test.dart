@@ -321,7 +321,7 @@ void main() {
 
       expect(find.text('Tileset'), findsWidgets);
       expect(find.text('À choisir'), findsWidgets);
-      expect(find.text('Tileset à choisir'), findsWidgets);
+      expect(find.text('Tileset requis'), findsWidgets);
 
       final popup = tester.widget<MacosPopupButton<String>>(
         find.byKey(const Key('path-studio-new-path-tileset-popup')),
@@ -330,12 +330,15 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Chemins principaux (tileset-main)'), findsWidgets);
-      expect(find.text('Tileset à choisir'), findsNothing);
-      expect(find.text('Cellules à configurer'), findsWidgets);
+      expect(find.text('Tileset requis'), findsNothing);
+      expect(find.text('Centre incomplet'), findsWidgets);
       expect(find.text('À configurer'), findsWidgets);
       expect(find.text('Aucune tuile'), findsWidgets);
       expect(
           find.text('Sélectionnez une tuile pour la cellule A'), findsWidgets);
+      expect(find.text('Bords, coins et jonctions'), findsWidgets);
+      expect(find.byKey(const Key('path-studio-new-path-variant-progress')),
+          findsOneWidget);
     });
 
     testWidgets('new path draft stays usable when the project has no tileset',
@@ -352,7 +355,7 @@ void main() {
       expect(
           find.text('Aucun tileset disponible dans le projet'), findsWidgets);
       expect(find.text('Sélectionnez d’abord un tileset'), findsWidgets);
-      expect(find.text('Tileset à choisir'), findsWidgets);
+      expect(find.text('Tileset requis'), findsWidgets);
     });
 
     testWidgets('assigns a tileset tile to the 1x1 active cell',
@@ -382,8 +385,9 @@ void main() {
 
       expect(find.text('Configurée'), findsWidgets);
       expect(find.text('Tuile 2,1'), findsWidgets);
-      expect(find.text('Cellules à configurer'), findsNothing);
-      expect(find.text('Tileset à choisir'), findsNothing);
+      expect(find.text('Centre incomplet'), findsNothing);
+      expect(find.text('Aucun variant legacy configuré'), findsWidgets);
+      expect(find.text('Tileset requis'), findsNothing);
     });
 
     testWidgets('missing tileset image keeps the logical picker fallback',
@@ -417,7 +421,7 @@ void main() {
       await _tapNewPathTile(tester, tileX: 2, tileY: 1);
 
       expect(find.text('Tuile 2,1'), findsWidgets);
-      expect(find.text('Cellules à configurer'), findsNothing);
+      expect(find.text('Centre incomplet'), findsNothing);
       final fallbackThumbSize = tester.getSize(
         find.byKey(const Key('path-studio-cell-thumbnail-A')),
       );
@@ -506,7 +510,7 @@ void main() {
           tileX: 2, tileY: 1, columns: 4, rows: 2);
 
       expect(find.text('Tuile 2,1'), findsWidgets);
-      expect(find.text('Cellules à configurer'), findsNothing);
+      expect(find.text('Centre incomplet'), findsNothing);
       final imageThumbSize = tester.getSize(
         find.byKey(const Key('path-studio-cell-thumbnail-A')),
       );
@@ -596,7 +600,7 @@ void main() {
         rows: 2,
       );
 
-      expect(find.text('Cellules à configurer'), findsWidgets);
+      expect(find.text('Centre incomplet'), findsWidgets);
 
       await _assignImageBackedTile(
         tester,
@@ -608,7 +612,7 @@ void main() {
         rows: 2,
       );
 
-      expect(find.text('Cellules à configurer'), findsNothing);
+      expect(find.text('Centre incomplet'), findsNothing);
       expect(find.text('Tuile 3,0'), findsWidgets);
 
       final clearButton =
@@ -618,7 +622,7 @@ void main() {
       await tester.tap(clearButton);
       await tester.pumpAndSettle();
 
-      expect(find.text('Cellules à configurer'), findsWidgets);
+      expect(find.text('Centre incomplet'), findsWidgets);
       expect(find.text('Aucune tuile configurée pour cette cellule.'),
           findsWidgets);
     });
@@ -650,7 +654,7 @@ void main() {
       await _assignNewPathTile(tester, cellX: 1, cellY: 0, tileX: 1, tileY: 0);
       await _assignNewPathTile(tester, cellX: 0, cellY: 1, tileX: 0, tileY: 1);
 
-      expect(find.text('Cellules à configurer'), findsWidgets);
+      expect(find.text('Centre incomplet'), findsWidgets);
 
       await _assignNewPathTile(tester, cellX: 1, cellY: 1, tileX: 1, tileY: 1);
 
@@ -658,7 +662,7 @@ void main() {
       expect(find.text('Tuile 1,0'), findsWidgets);
       expect(find.text('Tuile 0,1'), findsWidgets);
       expect(find.text('Tuile 1,1'), findsWidgets);
-      expect(find.text('Cellules à configurer'), findsNothing);
+      expect(find.text('Centre incomplet'), findsNothing);
     });
 
     testWidgets('replaces and clears the active cell tile', (tester) async {
@@ -695,7 +699,7 @@ void main() {
       expect(find.text('Tuile 1,0'), findsNothing);
       expect(find.text('Aucune tuile configurée pour cette cellule.'),
           findsWidgets);
-      expect(find.text('Cellules à configurer'), findsWidgets);
+      expect(find.text('Centre incomplet'), findsWidgets);
     });
 
     testWidgets('changing tileset clears configured center cells',
@@ -721,7 +725,7 @@ void main() {
       await _tapNewPathTile(tester, tileX: 2, tileY: 1);
 
       expect(find.text('Tuile 2,1'), findsWidgets);
-      expect(find.text('Cellules à configurer'), findsNothing);
+      expect(find.text('Centre incomplet'), findsNothing);
 
       tester.widget<MacosPopupButton<String>>(popupFinder).onChanged?.call(
             'tileset-extra',
@@ -730,7 +734,7 @@ void main() {
 
       expect(find.text('Décor extra (tileset-extra)'), findsWidgets);
       expect(find.text('Tuile 2,1'), findsNothing);
-      expect(find.text('Cellules à configurer'), findsWidgets);
+      expect(find.text('Centre incomplet'), findsWidgets);
     });
 
     testWidgets('resizes the new path draft to 2x2 and selects a cell',
@@ -830,20 +834,17 @@ void main() {
 
       expect(find.byKey(const Key('path-studio-save-status-card')),
           findsOneWidget);
-      expect(find.text('Sauvegarde'), findsWidgets);
+      expect(find.text('Plan de création local'), findsWidgets);
       expect(find.text('Brouillon de nouveau chemin'), findsWidgets);
-      expect(find.text('Sauvegarde non disponible dans ce lot'), findsWidgets);
-      expect(find.text('Configuration des bords à venir'), findsWidgets);
+      expect(find.text('prochain lot'), findsWidgets);
+      expect(find.text('Requête locale bloquée'), findsWidgets);
+      expect(find.text('Couverture partielle des variants'), findsNothing);
       expect(
         find.text(
-            'La configuration des bords, coins et jonctions arrivera dans un prochain lot.'),
+            'Cette préparation reste locale: aucune mutation du manifest et aucune écriture disque.'),
         findsWidgets,
       );
-      expect(
-        find.text(
-            'Pour l’instant, seul le flux "Depuis un path existant" peut être sauvegardé.'),
-        findsWidgets,
-      );
+      expect(find.text('Aucun variant legacy configuré'), findsWidgets);
 
       final saveButton = tester.widget<CupertinoButton>(
         find.byKey(const Key('path-studio-save-button')),
@@ -871,9 +872,10 @@ void main() {
       await tester.pumpAndSettle();
       await _tapNewPathTile(tester, tileX: 2, tileY: 1);
 
-      expect(find.text('Centre prêt'), findsWidgets);
+      expect(find.text('prêt'), findsWidgets);
       expect(find.text('Cellules du centre à configurer'), findsNothing);
-      expect(find.text('Configuration des bords à venir'), findsWidgets);
+      expect(find.text('Requête locale prête'), findsWidgets);
+      expect(find.text('Aucun variant legacy configuré'), findsWidgets);
 
       final saveButton = tester.widget<CupertinoButton>(
         find.byKey(const Key('path-studio-save-button')),
@@ -1070,6 +1072,102 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Nom requis'), findsWidgets);
+    });
+
+    testWidgets(
+        'new path variants can be selected assigned and cleared with picker',
+        (tester) async {
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          tilesets: [_tileset(id: 'tileset-main', name: 'Chemins principaux')],
+        ),
+      );
+
+      await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+      await _pumpPathStudioAsync(tester);
+      tester
+          .widget<MacosPopupButton<String>>(
+            find.byKey(const Key('path-studio-new-path-tileset-popup')),
+          )
+          .onChanged
+          ?.call('tileset-main');
+      await _pumpPathStudioAsync(tester);
+
+      final variantCard =
+          find.byKey(const Key('path-studio-new-path-variant-isolated'));
+      await tester.ensureVisible(variantCard);
+      await tester.pumpAndSettle();
+      await tester.tap(variantCard);
+      await _pumpPathStudioAsync(tester);
+
+      expect(
+        find.text('Sélectionnez une tuile pour le variant isolated'),
+        findsWidgets,
+      );
+
+      await _tapNewPathTile(tester, tileX: 4, tileY: 1);
+
+      expect(find.text('Tuile 4,1'), findsWidgets);
+      expect(
+        find.byKey(const Key('path-studio-cell-thumbnail-isolated')),
+        findsOneWidget,
+      );
+
+      final clearVariant = find.byKey(
+        const Key('path-studio-new-path-clear-variant-isolated'),
+      );
+      await tester.ensureVisible(clearVariant);
+      await tester.pumpAndSettle();
+      await tester.tap(clearVariant);
+      await _pumpPathStudioAsync(tester);
+
+      expect(find.text('Aucun variant legacy configuré'), findsWidgets);
+    });
+
+    testWidgets(
+        'all variants configured clears variant diagnostic but save stays disabled',
+        (tester) async {
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          tilesets: [_tileset(id: 'tileset-main', name: 'Chemins principaux')],
+        ),
+      );
+
+      await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+      await _pumpPathStudioAsync(tester);
+      tester
+          .widget<MacosPopupButton<String>>(
+            find.byKey(const Key('path-studio-new-path-tileset-popup')),
+          )
+          .onChanged
+          ?.call('tileset-main');
+      await _pumpPathStudioAsync(tester);
+      await _tapNewPathTile(tester, tileX: 0, tileY: 0);
+
+      final variants = TerrainPathVariant.values
+          .where((variant) => variant != TerrainPathVariant.cross)
+          .toList();
+      for (var i = 0; i < variants.length; i += 1) {
+        final name = variants[i].name;
+        final cardKey = Key('path-studio-new-path-variant-$name');
+        final card = find.byKey(cardKey);
+        await tester.ensureVisible(card);
+        await tester.pumpAndSettle();
+        await tester.tap(card);
+        await _pumpPathStudioAsync(tester);
+        await _tapNewPathTile(tester, tileX: i % 8, tileY: i ~/ 8);
+      }
+
+      expect(find.text('Couverture partielle des variants'), findsNothing);
+      expect(find.text('Aucun variant legacy configuré'), findsNothing);
+      expect(find.text('Requête locale prête'), findsWidgets);
+
+      final saveButton = tester.widget<CupertinoButton>(
+        find.byKey(const Key('path-studio-save-button')),
+      );
+      expect(saveButton.onPressed, isNull);
     });
 
     testWidgets('secondary legacy flow reports missing existing paths',

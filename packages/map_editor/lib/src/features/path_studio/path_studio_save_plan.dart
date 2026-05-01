@@ -38,6 +38,8 @@ final class PathStudioNewPathSavePlan {
     required this.centerHeight,
     required this.configuredCellCount,
     required this.centerCellCount,
+    required this.configuredVariantCount,
+    required this.requiredVariantCount,
     required List<PathStudioSaveIssueCode> issues,
     required this.centerPattern,
   }) : issues = List<PathStudioSaveIssueCode>.unmodifiable(issues);
@@ -49,6 +51,8 @@ final class PathStudioNewPathSavePlan {
   final int centerHeight;
   final int configuredCellCount;
   final int centerCellCount;
+  final int configuredVariantCount;
+  final int requiredVariantCount;
   final List<PathStudioSaveIssueCode> issues;
   final PathCenterPattern? centerPattern;
 
@@ -57,6 +61,8 @@ final class PathStudioNewPathSavePlan {
   bool get canSaveNow => false;
 
   bool get isCenterReady => centerPattern != null;
+
+  bool get variantsReady => configuredVariantCount == requiredVariantCount;
 
   PathStudioSaveReadiness get readiness => PathStudioSaveReadiness(
         kind: kind,
@@ -121,7 +127,9 @@ PathStudioNewPathSavePlan createPathStudioNewPathSavePlan({
   if (!draft.allCenterCellsConfigured) {
     issues.add(PathStudioSaveIssueCode.centerCellsRequired);
   }
-  issues.add(PathStudioSaveIssueCode.pathVariantMappingRequired);
+  if (!draft.allRequiredVariantsConfigured) {
+    issues.add(PathStudioSaveIssueCode.pathVariantMappingRequired);
+  }
   if (_hasPathPatternId(manifest, patternId) ||
       _hasPathPresetId(manifest, baseId)) {
     issues.add(PathStudioSaveIssueCode.duplicatePathPatternId);
@@ -135,6 +143,8 @@ PathStudioNewPathSavePlan createPathStudioNewPathSavePlan({
     centerHeight: draft.centerHeight,
     configuredCellCount: draft.configuredCellCount,
     centerCellCount: draft.centerCellCount,
+    configuredVariantCount: draft.configuredVariantCount,
+    requiredVariantCount: draft.requiredVariantCount,
     issues: issues,
     centerPattern: createPathCenterPatternFromNewPathDraft(draft),
   );
