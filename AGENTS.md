@@ -624,3 +624,604 @@ Final responses after code work should include:
 - limitations or skipped checks;
 - final `git status --short --untracked-files=all`;
 - self-review for substantial changes.
+
+Do not express performative agreement or gratitude. Actions speak louder than words. State facts, show evidence.
+
+---
+
+## 16. Superpowers Workflow Integration
+
+**Core principle:** Skills guide HOW to execute work. User instructions define WHAT to do. When in doubt, invoke relevant skills BEFORE responding.
+
+### 16.1 Skill Invocation Discipline
+
+**Iron Law:** If there is even a 1% chance a skill might apply, you MUST invoke it. Skills override default behavior where they conflict with system prompts, but user instructions (this AGENTS.md, CLAUDE.md, direct requests) always take precedence.
+
+**When to invoke skills:**
+- Starting any conversation
+- Beginning any task
+- Encountering bugs, test failures, or unexpected behavior
+- Completing tasks (before claiming success)
+- Writing plans or specs
+- Requesting or receiving code review
+- Executing implementation plans
+- Finishing development branches
+
+**Red flags (STOP and check skills):**
+- "This is just a simple question"
+- "I need more context first"
+- "Let me explore the codebase first"
+- "I can check git/files quickly"
+- "Let me gather information first"
+- "This does not need a formal skill"
+- "I remember this skill"
+- "This does not count as a task"
+- "The skill is overkill"
+- "I will just do this one thing first"
+- "This feels productive"
+- "I know what that means"
+
+### 16.2 Process Skills Priority
+
+When multiple skills could apply, follow this order:
+
+1. **Brainstorming** (superpowers:brainstorming) - Before any creative work
+2. **Writing Plans** (superpowers:writing-plans) - For multi-step tasks
+3. **Systematic Debugging** (superpowers:systematic-debugging) - For any bug or failure
+4. **Verification Before Completion** (superpowers:verification-before-completion) - Before claiming success
+5. **Requesting Code Review** (superpowers:requesting-code-review) - After completing tasks
+
+### 16.3 Implementation Workflows
+
+#### 16.3.1 Subagent-Driven Development (Recommended)
+
+For execution of implementation plans with independent tasks in the current session:
+
+1. **REQUIRED:** Use superpowers:subagent-driven-development
+2. Dispatch one fresh subagent per task
+3. Each subagent: implements → tests → commits → self-reviews
+4. Two-stage review per task:
+   - Stage 1: Spec compliance review
+   - Stage 2: Code quality review
+5. Fix issues in review loops before proceeding
+6. **NEVER:** Skip reviews, proceed with unfixed issues, or dispatch multiple implementers in parallel
+
+**Model selection:** Use the least powerful model that can handle the task:
+- 1-2 files, clear spec → fast, cheap model
+- Multi-file integration → standard model
+- Architecture/design judgment → most capable model
+
+#### 16.3.2 Executing Plans (Parallel Session)
+
+For execution in a separate session:
+
+1. **REQUIRED:** Use superpowers:executing-plans
+2. Load and critically review plan first
+3. Execute tasks sequentially with verification
+4. **REQUIRED:** Use superpowers:finishing-a-development-branch after all tasks
+
+#### 16.3.3 Parallel Investigation
+
+For 3+ independent failures across different subsystems:
+
+1. **REQUIRED:** Use superpowers:dispatching-parallel-agents
+2. Identify independent problem domains
+3. Create focused agent tasks (one per domain)
+4. Dispatch in parallel
+5. Review and integrate results
+6. Verify no conflicts, run full test suite
+
+### 16.4 Debugging Discipline
+
+**Iron Law:** NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST.
+
+When encountering any bug, test failure, or unexpected behavior:
+
+1. **Phase 1: Root Cause Investigation**
+   - Read error messages carefully (complete stack traces)
+   - Reproduce consistently (exact steps, happens every time?)
+   - Check recent changes (git diff, commits, config changes)
+   - Gather evidence in multi-component systems (log at each layer boundary)
+   - Trace data flow backward to find origin
+
+2. **Phase 2: Pattern Analysis**
+   - Find working examples of similar code
+   - Compare against reference implementations
+   - Identify all differences, however small
+   - Understand dependencies
+
+3. **Phase 3: Hypothesis and Testing**
+   - Form single clear hypothesis
+   - Test minimally (smallest possible change)
+   - Verify before continuing
+   - If hypothesis wrong, form NEW hypothesis (don't add fixes)
+
+4. **Phase 4: Implementation**
+   - Create failing test case (REQUIRED)
+   - Implement single fix addressing root cause
+   - Verify fix works
+   - If 3+ fixes failed: STOP and question architecture
+
+**Red flags:** Quick fixes, multiple changes at once, skipping test creation, "just try this", proceeding after 2+ failed attempts.
+
+### 16.5 Test-Driven Development
+
+**Iron Law:** NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST.
+
+For any feature or bugfix:
+
+1. **RED:** Write minimal failing test
+2. **Verify RED:** Watch it fail for expected reason (not typos)
+3. **GREEN:** Write minimal code to pass
+4. **Verify GREEN:** Watch it pass, ensure no regressions
+5. **REFACTOR:** Clean up (no behavior changes, tests stay green)
+6. **Repeat:** Next failing test
+
+**Requirements:**
+- One behavior per test
+- Clear test names (describe behavior, not implementation)
+- Real code (mocks only if unavoidable)
+- Watched test fail BEFORE implementing
+
+**Red flags:** Code before test, test passes immediately, tests written after, "I already manually tested", keeping code as "reference".
+
+**If code exists before test:** DELETE IT. Start over with TDD.
+
+### 16.6 Verification Before Completion
+
+**Iron Law:** NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE.
+
+Before claiming any status or expressing satisfaction:
+
+1. **IDENTIFY:** What command proves this claim?
+2. **RUN:** Execute the FULL command (fresh, complete)
+3. **READ:** Full output, check exit code, count failures
+4. **VERIFY:** Does output confirm the claim?
+   - If NO: State actual status with evidence
+   - If YES: State claim WITH evidence
+5. **ONLY THEN:** Make the claim
+
+**Gate function applies to:**
+- Tests passing claims
+- Linter clean claims
+- Build succeeds claims
+- Bug fixed claims
+- Regression test works claims
+- Agent completed claims
+- Requirements met claims
+
+**Red flags:** "Should work", "I'm confident", "just this once", "Linter passed" (≠ compiler), "Agent said success", "I'm tired".
+
+### 16.7 Code Review Process
+
+#### 16.7.1 Requesting Code Review
+
+After completing tasks, use superpowers:requesting-code-review:
+
+1. Get git SHAs (base and head)
+2. Dispatch code-reviewer subagent with context
+3. Act on feedback:
+   - Fix Critical issues immediately
+   - Fix Important issues before proceeding
+   - Note Minor issues for later
+   - Push back if reviewer is wrong (with reasoning)
+
+#### 16.7.2 Receiving Code Review
+
+Use superpowers:receiving-code-review:
+
+1. **READ** complete feedback without reacting
+2. **UNDERSTAND** requirement in own words (or ask)
+3. **VERIFY** against codebase reality
+4. **EVALUATE** technically sound for THIS codebase?
+5. **RESPOND** with technical acknowledgment or reasoned pushback
+6. **IMPLEMENT** one item at a time, test each
+
+**Forbidden responses:**
+- "You're absolutely right!"
+- "Great point!"
+- "Let me implement that now" (before verification)
+- Any gratitude expression
+
+**Instead:**
+- Restate the technical requirement
+- Ask clarifying questions
+- Push back with technical reasoning if wrong
+- Just start working (actions > words)
+
+**If unclear:** STOP. Ask for clarification on ALL unclear items before implementing.
+
+**Implementation order:**
+1. Clarify anything unclear FIRST
+2. Blocking issues (breaks, security)
+3. Simple fixes (typos, imports)
+4. Complex fixes (refactoring, logic)
+5. Test each fix individually
+6. Verify no regressions
+
+**Push back when:**
+- Suggestion breaks existing functionality
+- Reviewer lacks full context
+- Violates YAGNI
+- Technically incorrect for this stack
+- Conflicts with architectural decisions
+
+### 16.8 Git Worktrees for Isolation
+
+**REQUIRED:** Use superpowers:using-git-worktrees before starting feature work.
+
+Process:
+1. Check existing directories (`.worktrees/`, `worktrees/`)
+2. Check CLAUDE.md for preference
+3. Ask user if ambiguous
+4. **CRITICAL:** Verify directory is ignored (git check-ignore) for project-local
+5. Create worktree with new branch
+6. Run project setup (auto-detect: npm, cargo, pip, go)
+7. Verify clean baseline (run tests)
+8. Report location and status
+
+**Never:** Create worktree without ignore verification, skip baseline test, proceed with failing tests.
+
+### 16.9 Finishing Development Branch
+
+Use superpowers:finishing-a-development-branch when implementation is complete:
+
+1. **Verify tests pass** (MANDATORY - stop if failing)
+2. Determine base branch
+3. Present exactly these 4 options:
+   ```
+   1. Merge back to <base-branch> locally
+   2. Push and create a Pull Request
+   3. Keep the branch as-is (I'll handle it later)
+   4. Discard this work
+   ```
+4. Execute chosen option
+5. Cleanup worktree (for options 1, 2, 4)
+
+**Never:** Proceed with failing tests, merge without verification, delete without confirmation, force-push without request.
+
+### 16.10 Brainstorming Before Implementation
+
+**HARD GATE:** Do NOT invoke any implementation skill, write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it.
+
+For ANY creative work (features, components, functionality, behavior changes):
+
+1. Explore project context (files, docs, recent commits)
+2. Offer Visual Companion if visual questions ahead
+3. Ask clarifying questions (one at a time)
+4. Propose 2-3 approaches with trade-offs and recommendation
+5. Present design in sections (scaled to complexity)
+6. Write design doc to `docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`
+7. Spec self-review (check for placeholders, contradictions, ambiguity, scope)
+8. User reviews written spec
+9. **ONLY THEN:** Invoke writing-plans skill
+
+**Anti-pattern:** "This is too simple to need a design". Every project goes through this process.
+
+### 16.11 Writing Plans
+
+Use superpowers:writing-plans to create implementation plans:
+
+**Plan structure:**
+1. Header with goal, architecture, tech stack
+2. File structure (which files created/modified)
+3. Bite-sized tasks (2-5 minutes each)
+4. Each task: exact file paths, complete code, exact commands with expected output
+
+**Requirements:**
+- No placeholders (TBD, TODO, "implement later")
+- Exact file paths always
+- Complete code in every step
+- DRY, YAGNI, TDD, frequent commits
+
+**After plan:**
+- Self-review for spec coverage, placeholder scan, type consistency
+- User reviews plan
+- Offer execution choice (subagent-driven or inline execution)
+
+### 16.12 Execution Options
+
+After plan creation, offer:
+
+**Option 1: Subagent-Driven (recommended)**
+- Fresh subagent per task
+- Two-stage review (spec compliance → code quality)
+- Continuous progress, review checkpoints automatic
+
+**Option 2: Inline Execution**
+- Same session execution
+- Use superpowers:executing-plans
+- Review plan critically first, stop when blocked
+
+**Which approach?**
+
+---
+
+### 16.13 Lot-Specific Workflows
+
+For PathPattern and Surface Engine lots, adapt superpowers workflows to lot methodology:
+
+**Before starting a lot:**
+1. Read the roadmap (`reports/pathPattern/path_pattern_roadmap.md`)
+2. Check previous lot reports for decisions and constraints
+3. Review non-goals confirmed in prior lots
+4. Identify dependencies (which lots must be complete first)
+
+**During lot execution:**
+1. Follow the 10-point lot report template (Verdict → Audit → Files → Decisions → Non-goals → Tests → Analyze → Git Status → Limits → Next Lot)
+2. Use Context Mode for large audits (as shown in lot reports)
+3. Document all commands run with exact outputs
+4. Never modify files outside lot scope without explicit user consent
+
+**After completing a lot:**
+1. Run targeted tests for the lot
+2. Run regression tests for dependent lots
+3. Run full package tests
+4. Include complete Evidence Pack in report
+
+### 16.14 Common Anti-Patterns (from skills)
+
+**Debugging Anti-Patterns:**
+- Quick fixes without root cause investigation
+- Multiple changes at once
+- Skipping test case creation
+- Proceeding after 2+ failed fix attempts (question architecture!)
+- Assuming you understand without tracing data flow
+
+**TDD Anti-Patterns:**
+- Code before test
+- Test passes immediately (not watched fail)
+- Tests written after implementation
+- "I already manually tested"
+- Keeping code as "reference" while writing tests
+
+**Verification Anti-Patterns:**
+- Claiming success without running verification
+- Using "should", "probably", "seems to"
+- Expressing satisfaction before verification
+- Trusting agent success reports without checking
+- Relying on partial verification
+
+**Code Review Anti-Patterns:**
+- Performative agreement ("You're absolutely right!")
+- Blind implementation without verification
+- Batch fixes without testing each
+- Avoiding pushback when reviewer is wrong
+- Partial implementation of unclear feedback
+
+**Planning Anti-Patterns:**
+- Placeholders (TBD, TODO, "implement later")
+- Vague steps without exact commands
+- Missing file paths
+- Incomplete code examples
+
+---
+
+## 17. Project-Specific Superpowers Adaptations
+
+### 17.1 TDD for Dart/Flutter
+
+**RED phase:**
+```bash
+ # Run specific test
+ dart test test/path/to/test.dart
+ flutter test test/path/to/test.dart
+
+ # Verify it fails with expected reason
+```
+
+**GREEN phase:**
+- Write minimal Dart code to pass
+- Use `package:test` conventions
+- Match existing test patterns in the codebase
+
+**REFACTOR phase:**
+- Run full test suite after each refactor
+- Use `dart analyze` to catch static issues
+- Keep tests green
+
+**Dart-specific tips:**
+- Use `expect()` for assertions
+- Test both success and error cases
+- Use `setUp()` and `tearDown()` for test fixtures
+- Mock external dependencies with `package:mockito`
+
+### 17.2 Systematic Debugging for Dart
+
+**Phase 1 adaptations:**
+- Use `dart analyze --format json` for static analysis errors
+- Use `dart test --reporter expanded` for detailed test output
+- Check `pubspec.yaml` for dependency issues
+- Use `flutter doctor -v` for environment problems
+
+**Phase 2 (Pattern Analysis):**
+- Search existing code with `grep` or `rg`
+- Compare with working examples in `packages/map_core/test/`
+- Check golden files in `fixtures/` directories
+
+**Phase 3 (Hypothesis):**
+- Create minimal reproduction in isolation
+- Use `dart pad` for quick experimentation
+- Test with `dart run` for scripts
+
+**Phase 4 (Implementation):**
+- Create failing test case first
+- Run with `dart test --name-only` to verify test name
+- Fix and verify
+
+### 17.3 Verification Commands Matrix
+
+| Claim | Package | Command | Success Criteria |
+|-------|---------|---------|------------------|
+| Tests pass | map_core | `dart test` | All tests pass, 0 failures |
+| Tests pass | map_gameplay | `dart test` | All tests pass, 0 failures |
+| Tests pass | map_battle | `dart test` | All tests pass, 0 failures |
+| Tests pass | map_editor | `flutter test` | All tests pass, 0 failures |
+| Tests pass | map_runtime | `flutter test` | All tests pass, 0 failures |
+| Static analysis | map_core | `dart analyze` | 0 errors, 0 warnings |
+| Static analysis | map_editor | `flutter analyze` | 0 errors, 0 warnings |
+| Static analysis | map_runtime | `flutter analyze` | 0 errors, 0 warnings |
+| Build runner | map_core | `dart run build_runner build --delete-conflicting-outputs` | Exit code 0 |
+| Build runner | map_editor | `flutter pub run build_runner build --delete-conflicting-outputs` | Exit code 0 |
+
+**Always include:** Command used, full output summary, exit code, timestamp.
+
+### 17.4 Git Worktree Integration
+
+**For lot development:**
+```bash
+ # Create worktree for lot-XX
+ mkdir -p .worktrees
+git worktree add .worktrees/lot-XX feature/lot-XX-pathpattern
+cd .worktrees/lot-XX
+
+ # After completion, cleanup
+git worktree remove .worktrees/lot-XX
+```
+
+**Verify .worktrees is ignored:**
+```bash
+  git check-ignore -q .worktrees || echo ".worktrees not ignored - add to .gitignore"
+```
+
+### 17.5 Code Review Checklist (Dart-specific)
+
+**Spec Compliance:**
+- [ ] Follows lot scope (no out-of-scope changes)
+- [ ] Respects non-goals confirmed in prior lots
+- [ ] Compatible with existing models (map_core contracts)
+- [ ] No breaking changes to public APIs without migration
+
+**Code Quality:**
+- [ ] Follows Dart style guide (dart analyze clean)
+- [ ] Uses existing naming conventions
+- [ ] Proper null safety
+- [ ] Immutable where appropriate (final classes, final fields)
+- [ ] No unused imports (dart analyze warning)
+- [ ] No dead code
+
+**Testing:**
+- [ ] Tests added for new functionality
+- [ ] Tests pass
+- [ ] No regressions in existing tests
+- [ ] Tests follow existing patterns
+
+**Documentation:**
+- [ ] Report follows lot template
+- [ ] Evidence Pack complete
+- [ ] Decisions documented
+- [ ] Remaining limits identified
+
+---
+
+## 18. Quick Reference: When to Use Which Skill
+
+| Scenario | Primary Skill | Secondary Skills |
+|----------|---------------|------------------|
+| Starting any task | using-superpowers | - |
+| Brainstorming feature | brainstorming | writing-plans |
+| Writing implementation plan | writing-plans | - |
+| Bug or test failure | systematic-debugging | test-driven-development, verification-before-completion |
+| Implementing feature/bugfix | test-driven-development | verification-before-completion, requesting-code-review |
+| Completing task | verification-before-completion | requesting-code-review |
+| Executing plan (same session) | subagent-driven-development | systematic-debugging, test-driven-development |
+| Executing plan (parallel) | executing-plans | finishing-a-development-branch |
+| Multiple independent failures | dispatching-parallel-agents | systematic-debugging |
+| Requesting review | requesting-code-review | - |
+| Receiving review feedback | receiving-code-review | - |
+| Finishing branch | finishing-a-development-branch | using-git-worktrees |
+| Starting feature work | using-git-worktrees | brainstorming, writing-plans |
+
+---
+
+## 19. Rationalization Prevention
+
+**If you catch yourself thinking these, STOP and invoke relevant skills:**
+
+| Thought | Skill to Invoke | Why |
+|---------|----------------|-----|
+| "This is just a simple question" | using-superpowers | Check for skills first |
+| "I need more context first" | brainstorming | Skills tell you HOW to gather context |
+| "Let me explore the codebase first" | using-superpowers | Skills guide exploration |
+| "I can check git/files quickly" | using-superpowers | Skills tell you HOW to check |
+| "This does not need a formal skill" | using-superpowers | If skill exists, use it |
+| "Just try changing X and see if it works" | systematic-debugging | NO FIXES WITHOUT ROOT CAUSE |
+| "I'll write tests after" | test-driven-development | NO CODE WITHOUT FAILING TEST |
+| "Should work now" | verification-before-completion | RUN THE VERIFICATION |
+| "Tests pass, phase complete" | verification-before-completion | Need full verification |
+| "I'm confident" | verification-before-completion | Confidence ≠ evidence |
+| "Let me implement that now" | receiving-code-review | Verify first, implement second |
+| "You're absolutely right!" | receiving-code-review | No performative agreement |
+
+---
+
+**Remember:** The purpose of skills is to prevent the rationalizations that lead to wasted work, bugs, and rework. When in doubt, invoke the skill.
+
+---
+
+## 20. Summary: Integration Complete
+
+This AGENTS.md now integrates the **Superpowers skill system** with the **PokeMap project context**. The integration provides:
+
+### What Was Added:
+
+1. **Section 16 - Superpowers Workflow Integration**
+   - Core principles and discipline
+   - When to invoke skills
+   - Process skills priority
+   - Implementation workflows (Subagent-Driven, Executing Plans, Parallel Agents)
+   - Debugging discipline (4 phases)
+   - Test-Driven Development (RED-GREEN-REFACTOR)
+   - Verification Before Completion (Gate Function)
+   - Code Review Process (Requesting + Receiving)
+   - Git Worktrees for isolation
+   - Finishing Development Branch
+   - Brainstorming Before Implementation
+   - Writing Plans
+
+2. **Section 17 - Project-Specific Adaptations**
+   - TDD for Dart/Flutter
+   - Systematic Debugging for Dart
+   - Verification Commands Matrix
+   - Git Worktree Integration
+   - Code Review Checklist (Dart-specific)
+
+3. **Section 18 - Quick Reference**
+   - When to use which skill (scenario mapping)
+
+4. **Section 19 - Rationalization Prevention**
+   - Thought patterns that trigger skill invocation
+   - Mapping thoughts to specific skills
+
+### How to Use:
+
+1. **Start every task** by checking if any skill applies (Section 16.1)
+2. **Follow the workflows** for your specific scenario (Sections 16.3-16.12)
+3. **For PathPattern lots**, use the adaptations in Section 17
+4. **When stuck**, consult the Rationalization Prevention table (Section 19)
+5. **Verify always** before claiming completion (Section 16.6)
+
+### Key Principles to Remember:
+
+- **Skills override defaults** but user instructions (this file) take precedence
+- **1% chance rule:** If there's even a 1% chance a skill applies, invoke it
+- **No rationalizations:** When you catch yourself making excuses, STOP and use the skill
+- **Evidence before claims:** Always run verification commands before stating success
+- **TDD always:** No production code without a failing test first
+- **Root cause first:** No fixes without investigating root cause
+- **No performative agreement:** Actions > words in code review
+
+### Files Modified:
+- `AGENTS.md` (this file): Added Sections 16-20
+
+### Verification:
+```bash
+# This file passes static analysis
+dart analyze AGENTS.md
+# Result: No issues found!
+```
+
+---
+
+*Last updated: Integration of Superpowers skills from `/skills/` directory*
+*Skills integrated: using-superpowers, systematic-debugging, test-driven-development, verification-before-completion, brainstorming, writing-plans, subagent-driven-development, executing-plans, dispatching-parallel-agents, requesting-code-review, receiving-code-review, finishing-a-development-branch, using-git-worktrees, writing-skills*
