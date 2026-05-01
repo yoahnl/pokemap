@@ -7,6 +7,7 @@ import '../editor/state/editor_notifier.dart';
 import '../editor/state/editor_selectors.dart';
 import 'path_pattern_draft.dart';
 import 'path_pattern_editor_read_model.dart';
+import 'path_studio_edit_path_build_request.dart';
 import 'path_studio_new_path_build_request.dart';
 import 'path_studio_new_path_draft.dart';
 import 'path_studio_save_flow.dart';
@@ -57,6 +58,17 @@ class PathStudioWorkspace extends ConsumerWidget {
             .read(editorNotifierProvider.notifier)
             .applyInMemoryProjectManifest(updatedManifest);
       },
+      onEditPathSaveRequested: (request) {
+        final currentManifest = ref.read(editorProjectManifestProvider);
+        if (currentManifest == null) return;
+        final updatedManifest = applyPathPatternEditRequestToManifest(
+          manifest: currentManifest,
+          request: request,
+        );
+        ref
+            .read(editorNotifierProvider.notifier)
+            .applyInMemoryProjectManifest(updatedManifest);
+      },
     );
   }
 }
@@ -74,6 +86,7 @@ class PathStudioPanel extends StatefulWidget {
     this.projectRootPath,
     this.onPathPatternPresetSaveRequested,
     this.onNewPathSaveRequested,
+    this.onEditPathSaveRequested,
   });
 
   final ProjectManifest manifest;
@@ -81,6 +94,7 @@ class PathStudioPanel extends StatefulWidget {
   final ValueChanged<ProjectPathPatternPreset>?
       onPathPatternPresetSaveRequested;
   final ValueChanged<PathStudioNewPathBuildRequest>? onNewPathSaveRequested;
+  final ValueChanged<PathStudioEditPathBuildRequest>? onEditPathSaveRequested;
 
   @override
   State<PathStudioPanel> createState() => _PathStudioPanelState();
@@ -164,6 +178,13 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
             manifest: widget.manifest,
             draft: selectedNewPathDraft,
           );
+    final editPathSavePlan =
+        selectedNewPathDraft == null || !selectedNewPathDraft.isEditMode
+            ? null
+            : createPathStudioEditPathBuildPlan(
+                manifest: widget.manifest,
+                draft: selectedNewPathDraft,
+              );
     final legacySavePlan = selectedDraft == null
         ? null
         : createPathStudioLegacyPathPatternSavePlan(
@@ -172,10 +193,16 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
           );
     final legacySaveCallback = widget.onPathPatternPresetSaveRequested;
     final newPathSaveCallback = widget.onNewPathSaveRequested;
+    final editPathSaveCallback = widget.onEditPathSaveRequested;
     final onSavePressed = newPathSavePlan != null
-        ? (newPathSavePlan.canBuildRequest && newPathSaveCallback != null
-            ? _requestNewPathSave
-            : null)
+        ? (selectedNewPathDraft?.isEditMode == true
+            ? (editPathSavePlan?.canBuildRequest == true &&
+                    editPathSaveCallback != null
+                ? _requestEditPathSave
+                : null)
+            : (newPathSavePlan.canBuildRequest && newPathSaveCallback != null
+                ? _requestNewPathSave
+                : null))
         : (legacySavePlan?.canSaveNow == true && legacySaveCallback != null
             ? _requestLegacyPathPatternSave
             : null);
@@ -196,8 +223,10 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
               onSavePressed: onSavePressed,
               saveHint: _saveButtonHint(
                 newPathSavePlan: newPathSavePlan,
+                editPathSavePlan: editPathSavePlan,
                 legacySavePlan: legacySavePlan,
                 hasNewPathSaveCallback: newPathSaveCallback != null,
+                hasEditPathSaveCallback: editPathSaveCallback != null,
                 hasLegacySaveCallback: legacySaveCallback != null,
               ),
             ),
@@ -264,6 +293,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
                       projectRootPath: widget.projectRootPath,
                       newPathDraft: selectedNewPathDraft,
                       newPathSavePlan: newPathSavePlan,
+                      editPathSavePlan: editPathSavePlan,
                       draft: selectedDraft,
                       legacySavePlan: legacySavePlan,
                       hasSaveCallback: legacySaveCallback != null,
@@ -272,6 +302,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
                       selected: selected?.card,
                       selectedPreset: selectedPreset,
                       hasAnyPreset: readModel.presets.isNotEmpty,
+                      onSavedPresetEditRequested: _openSavedPathPatternForEdit,
                       onNewPathSizeChanged: _resizeNewPathDraft,
                       onNewPathSurfaceKindChanged:
                           _selectNewPathDraftSurfaceKind,
@@ -390,6 +421,26 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
       _draftMessage = null;
       _saveFeedbackMessage = null;
       _pendingSavedPathPatternId = null;
+    });
+  }
+
+  void _openSavedPathPatternForEdit(ProjectPathPatternPreset preset) {
+    final resolution = _resolveEditAvailabilityForSelection(preset);
+    if (!resolution.canEdit || resolution.basePathPreset == null) {
+      return;
+    }
+    setState(() {
+      _newPathDraft = createPathStudioEditDraftFromExistingPathPattern(
+        pathPatternPreset: preset,
+        basePathPreset: resolution.basePathPreset!,
+      );
+      _newPathDraftSelected = true;
+      _draftSelected = false;
+      _draftMessage = null;
+      _saveFeedbackMessage = null;
+      _saveErrorMessage = null;
+      _pendingSavedPathPatternId = null;
+      _pendingSavedSuccessMessage = null;
     });
   }
 
@@ -753,13 +804,58 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
     }
   }
 
+  void _requestEditPathSave() {
+    final draft = _newPathDraft;
+    final callback = widget.onEditPathSaveRequested;
+    if (draft == null ||
+        !_newPathDraftSelected ||
+        !draft.isEditMode ||
+        callback == null) {
+      return;
+    }
+    final plan = createPathStudioEditPathBuildPlan(
+      manifest: widget.manifest,
+      draft: draft,
+    );
+    final request = plan.buildRequest;
+    if (!plan.canBuildRequest || request == null) {
+      return;
+    }
+    setState(() {
+      _pendingSavedPathPatternId = request.updatedPathPatternPreset.id;
+      _pendingSavedSuccessMessage = 'Chemin modifié dans le projet';
+      _saveFeedbackMessage = null;
+      _saveErrorMessage = null;
+    });
+    try {
+      callback(request);
+    } catch (_) {
+      setState(() {
+        _pendingSavedPathPatternId = null;
+        _pendingSavedSuccessMessage = null;
+        _saveFeedbackMessage = null;
+        _saveErrorMessage = 'La modification du chemin a échoué';
+      });
+    }
+  }
+
   String _saveButtonHint({
     required PathStudioNewPathBuildPlan? newPathSavePlan,
+    required PathStudioEditPathBuildPlan? editPathSavePlan,
     required PathStudioLegacyPathPatternSavePlan? legacySavePlan,
     required bool hasNewPathSaveCallback,
+    required bool hasEditPathSaveCallback,
     required bool hasLegacySaveCallback,
   }) {
     if (newPathSavePlan != null) {
+      if (editPathSavePlan != null) {
+        if (!editPathSavePlan.canBuildRequest) {
+          return 'non sauvegardable';
+        }
+        return hasEditPathSaveCallback
+            ? 'modification prête'
+            : 'callback absent';
+      }
       if (!newPathSavePlan.canBuildRequest) {
         return 'non sauvegardable';
       }
@@ -774,6 +870,12 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
       return hasLegacySaveCallback ? 'préparer' : 'callback absent';
     }
     return 'aucun brouillon';
+  }
+
+  _EditAvailability _resolveEditAvailabilityForSelection(
+    ProjectPathPatternPreset preset,
+  ) {
+    return _resolveEditAvailability(manifest: widget.manifest, preset: preset);
   }
 
   ProjectPathPreset? _basePathPresetForDraft(PathPatternDraft? draft) {
@@ -894,6 +996,49 @@ class _IndexedPresetCard {
 
   final int sourceIndex;
   final PathPatternPresetCardModel card;
+}
+
+final class _EditAvailability {
+  const _EditAvailability({
+    required this.canEdit,
+    this.reason,
+    this.basePathPreset,
+  });
+
+  final bool canEdit;
+  final String? reason;
+  final ProjectPathPreset? basePathPreset;
+}
+
+_EditAvailability _resolveEditAvailability({
+  required ProjectManifest manifest,
+  required ProjectPathPatternPreset preset,
+}) {
+  final presetMatches = manifest.pathPatternPresets
+      .where((candidate) => candidate.id == preset.id)
+      .toList(growable: false);
+  if (presetMatches.length != 1) {
+    return const _EditAvailability(
+      canEdit: false,
+      reason: 'PathPattern introuvable',
+    );
+  }
+  final baseMatches = manifest.pathPresets
+      .where((candidate) => candidate.id == preset.basePathPresetId)
+      .toList(growable: false);
+  if (baseMatches.isEmpty) {
+    return const _EditAvailability(
+      canEdit: false,
+      reason: 'Base path introuvable',
+    );
+  }
+  if (baseMatches.length > 1) {
+    return const _EditAvailability(
+      canEdit: false,
+      reason: 'Base path ambiguë',
+    );
+  }
+  return _EditAvailability(canEdit: true, basePathPreset: baseMatches.single);
 }
 
 class _PathStudioProjectMissingState extends StatelessWidget {
@@ -1340,16 +1485,18 @@ class _NewPathDraftListCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                const _StatusChip(
-                  label: 'Nouveau chemin',
+                _StatusChip(
+                  label: draft.isEditMode ? 'Modification' : 'Nouveau chemin',
                   color: PathStudioTheme.accentCyan,
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Brouillon chemin • Non sauvegardé',
-              style: TextStyle(
+            Text(
+              draft.isEditMode
+                  ? 'Brouillon de modification • Non sauvegardé'
+                  : 'Brouillon chemin • Non sauvegardé',
+              style: const TextStyle(
                 color: PathStudioTheme.textMuted,
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
@@ -1718,6 +1865,7 @@ class _CenterWorkspace extends StatelessWidget {
     required this.projectRootPath,
     required this.newPathDraft,
     required this.newPathSavePlan,
+    required this.editPathSavePlan,
     required this.draft,
     required this.legacySavePlan,
     required this.hasSaveCallback,
@@ -1726,6 +1874,7 @@ class _CenterWorkspace extends StatelessWidget {
     required this.selected,
     required this.selectedPreset,
     required this.hasAnyPreset,
+    required this.onSavedPresetEditRequested,
     required this.onNewPathSizeChanged,
     required this.onNewPathSurfaceKindChanged,
     required this.onNewPathCellSelected,
@@ -1747,6 +1896,7 @@ class _CenterWorkspace extends StatelessWidget {
   final String? projectRootPath;
   final PathStudioNewPathDraft? newPathDraft;
   final PathStudioNewPathBuildPlan? newPathSavePlan;
+  final PathStudioEditPathBuildPlan? editPathSavePlan;
   final PathPatternDraft? draft;
   final PathStudioLegacyPathPatternSavePlan? legacySavePlan;
   final bool hasSaveCallback;
@@ -1755,6 +1905,7 @@ class _CenterWorkspace extends StatelessWidget {
   final PathPatternPresetCardModel? selected;
   final ProjectPathPatternPreset? selectedPreset;
   final bool hasAnyPreset;
+  final ValueChanged<ProjectPathPatternPreset> onSavedPresetEditRequested;
   final void Function(int width, int height) onNewPathSizeChanged;
   final ValueChanged<PathSurfaceKind> onNewPathSurfaceKindChanged;
   final void Function(int localX, int localY) onNewPathCellSelected;
@@ -1781,6 +1932,7 @@ class _CenterWorkspace extends StatelessWidget {
         projectRootPath: projectRootPath,
         draft: newPathDraft,
         savePlan: newPathSavePlan,
+        editSavePlan: editPathSavePlan,
         hasSaveCallback: hasNewPathSaveCallback,
         onSizeChanged: onNewPathSizeChanged,
         onSurfaceKindChanged: onNewPathSurfaceKindChanged,
@@ -1820,6 +1972,10 @@ class _CenterWorkspace extends StatelessWidget {
       manifest: manifest,
       preset: preset,
     );
+    final editAvailability = _resolveEditAvailability(
+      manifest: manifest,
+      preset: preset,
+    );
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1830,9 +1986,11 @@ class _CenterWorkspace extends StatelessWidget {
           const SizedBox(height: 14),
           _SavedPresetCenterDetail(
             detail: detail,
+            editAvailability: editAvailability,
             tilesets: tilesets,
             settings: settings,
             projectRootPath: projectRootPath,
+            onEditRequested: () => onSavedPresetEditRequested(preset),
           ),
           const SizedBox(height: 14),
           _DiagnosticsCard(card: card),

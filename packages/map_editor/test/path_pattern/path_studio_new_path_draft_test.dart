@@ -616,5 +616,130 @@ void main() {
       );
       expect(reduced.cells.single.frames.length, 2);
     });
+
+    test('convertit un path pattern 1x1 existant en brouillon edit', () {
+      const base = ProjectPathPreset(
+        id: 'base-water',
+        name: 'Base water',
+        tilesetId: 'tileset-main',
+        surfaceKind: PathSurfaceKind.water,
+        variants: [
+          PathPresetVariantMapping(
+            variant: TerrainPathVariant.cross,
+            frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 9, y: 9))],
+          ),
+          PathPresetVariantMapping(
+            variant: TerrainPathVariant.endNorth,
+            frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 1, y: 2))],
+          ),
+        ],
+      );
+      final pattern = ProjectPathPatternPreset(
+        id: 'water-pattern',
+        name: 'Water pattern',
+        basePathPresetId: 'base-water',
+        centerPattern: PathCenterPattern(
+          size: PathCenterPatternSize(width: 1, height: 1),
+          cells: [
+            PathCenterPatternCell(
+              localX: 0,
+              localY: 0,
+              frames: [
+                const TilesetVisualFrame(
+                  source: TilesetSourceRect(x: 3, y: 4),
+                  durationMs: 150,
+                ),
+                const TilesetVisualFrame(
+                  tilesetId: 'tileset-alt',
+                  source: TilesetSourceRect(x: 5, y: 6),
+                  durationMs: 220,
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      final draft = createPathStudioEditDraftFromExistingPathPattern(
+        pathPatternPreset: pattern,
+        basePathPreset: base,
+      );
+
+      expect(draft.isEditMode, isTrue);
+      expect(draft.id, 'base-water');
+      expect(draft.pathPatternPresetId, 'water-pattern');
+      expect(draft.name, 'Water pattern');
+      expect(draft.surfaceKind, PathSurfaceKind.water);
+      expect(draft.cells.single.frames.length, 2);
+      expect(draft.cells.single.frames[0].tile.tilesetId, 'tileset-main');
+      expect(draft.cells.single.frames[0].durationMs, 150);
+      expect(draft.cells.single.frames[1].tile.tilesetId, 'tileset-alt');
+      expect(draft.cells.single.frames[1].durationMs, 220);
+      expect(
+        draft.variantTiles[TerrainPathVariant.endNorth]?.coordinateLabel,
+        '1,2',
+      );
+      expect(
+        draft.preservedVariantMappings
+            .any((mapping) => mapping.variant == TerrainPathVariant.cross),
+        isTrue,
+      );
+    });
+
+    test('convertit un path pattern 2x2 existant en brouillon edit', () {
+      const base = ProjectPathPreset(
+        id: 'base-road',
+        name: 'Base road',
+        tilesetId: 'tileset-main',
+      );
+      final pattern = ProjectPathPatternPreset(
+        id: 'road-pattern',
+        name: 'Road pattern',
+        basePathPresetId: 'base-road',
+        centerPattern: PathCenterPattern(
+          size: PathCenterPatternSize(width: 2, height: 2),
+          cells: [
+            PathCenterPatternCell(
+              localX: 0,
+              localY: 0,
+              frames: [
+                const TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))
+              ],
+            ),
+            PathCenterPatternCell(
+              localX: 1,
+              localY: 0,
+              frames: [
+                const TilesetVisualFrame(source: TilesetSourceRect(x: 1, y: 0))
+              ],
+            ),
+            PathCenterPatternCell(
+              localX: 0,
+              localY: 1,
+              frames: [
+                const TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 1))
+              ],
+            ),
+            PathCenterPatternCell(
+              localX: 1,
+              localY: 1,
+              frames: [
+                const TilesetVisualFrame(source: TilesetSourceRect(x: 1, y: 1))
+              ],
+            ),
+          ],
+        ),
+      );
+
+      final draft = createPathStudioEditDraftFromExistingPathPattern(
+        pathPatternPreset: pattern,
+        basePathPreset: base,
+      );
+
+      expect(draft.centerPatternLabel, '2×2');
+      expect(draft.centerCellCount, 4);
+      expect(draft.configuredCellCount, 4);
+      expect(draft.issues, isEmpty);
+    });
   });
 }

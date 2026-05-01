@@ -7,6 +7,7 @@ class _NewPathCenterWorkspace extends StatelessWidget {
     required this.projectRootPath,
     required this.draft,
     required this.savePlan,
+    required this.editSavePlan,
     required this.hasSaveCallback,
     required this.onSizeChanged,
     required this.onSurfaceKindChanged,
@@ -26,6 +27,7 @@ class _NewPathCenterWorkspace extends StatelessWidget {
   final String? projectRootPath;
   final PathStudioNewPathDraft draft;
   final PathStudioNewPathBuildPlan savePlan;
+  final PathStudioEditPathBuildPlan? editSavePlan;
   final bool hasSaveCallback;
   final void Function(int width, int height) onSizeChanged;
   final ValueChanged<PathSurfaceKind> onSurfaceKindChanged;
@@ -35,7 +37,8 @@ class _NewPathCenterWorkspace extends StatelessWidget {
   final ValueChanged<int> onCenterFrameSelected;
   final VoidCallback onCenterFrameAdded;
   final ValueChanged<int> onCenterFrameRemoved;
-  final void Function(int frameIndex, int durationMs) onCenterFrameDurationChanged;
+  final void Function(int frameIndex, int durationMs)
+      onCenterFrameDurationChanged;
   final void Function(int localX, int localY) onCellCleared;
   final ValueChanged<TerrainPathVariant> onVariantCleared;
 
@@ -45,9 +48,12 @@ class _NewPathCenterWorkspace extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const _NewPathBanner(),
+          _NewPathBanner(isEditMode: draft.isEditMode),
           const SizedBox(height: 14),
-          _NewPathWorkflowSteps(hasTileset: _hasSelectedTileset(draft)),
+          _NewPathWorkflowSteps(
+            hasTileset: _hasSelectedTileset(draft),
+            isEditMode: draft.isEditMode,
+          ),
           const SizedBox(height: 14),
           _NewPathSummary(tilesets: tilesets, draft: draft),
           const SizedBox(height: 14),
@@ -77,6 +83,8 @@ class _NewPathCenterWorkspace extends StatelessWidget {
           const SizedBox(height: 14),
           _NewPathSaveStatusCard(
             plan: savePlan,
+            editPlan: editSavePlan,
+            draft: draft,
             hasSaveCallback: hasSaveCallback,
           ),
         ],
@@ -86,20 +94,24 @@ class _NewPathCenterWorkspace extends StatelessWidget {
 }
 
 class _NewPathBanner extends StatelessWidget {
-  const _NewPathBanner();
+  const _NewPathBanner({required this.isEditMode});
+
+  final bool isEditMode;
 
   @override
   Widget build(BuildContext context) {
-    return const _SectionCard(
-      title: 'Brouillon nouveau chemin',
+    return _SectionCard(
+      title: isEditMode ? 'Modification du chemin' : 'Brouillon nouveau chemin',
       icon: CupertinoIcons.pencil_outline,
-      trailing: _StatusChip(
+      trailing: const _StatusChip(
         label: 'Non sauvegardé',
         color: PathStudioTheme.warning,
       ),
       child: Text(
-        'Ce brouillon représente un nouveau chemin complet. La sélection du tileset et la configuration des bords arriveront dans un lot futur.',
-        style: TextStyle(
+        isEditMode
+            ? 'Ce brouillon modifie un chemin existant. Les changements restent locaux tant que vous ne sauvegardez pas.'
+            : 'Ce brouillon représente un nouveau chemin complet. La sélection du tileset et la configuration des bords arriveront dans un lot futur.',
+        style: const TextStyle(
           color: PathStudioTheme.textSecondary,
           fontSize: 13,
           height: 1.4,
@@ -110,20 +122,28 @@ class _NewPathBanner extends StatelessWidget {
 }
 
 class _NewPathWorkflowSteps extends StatelessWidget {
-  const _NewPathWorkflowSteps({required this.hasTileset});
+  const _NewPathWorkflowSteps({
+    required this.hasTileset,
+    required this.isEditMode,
+  });
 
   final bool hasTileset;
+  final bool isEditMode;
 
   @override
   Widget build(BuildContext context) {
     return _SectionCard(
-      title: 'Création guidée',
+      title: isEditMode ? 'Modification guidée' : 'Création guidée',
       icon: CupertinoIcons.list_bullet,
       child: Wrap(
         spacing: 10,
         runSpacing: 10,
         children: [
-          const _StepPill(index: 1, label: 'Nouveau chemin', active: true),
+          _StepPill(
+            index: 1,
+            label: isEditMode ? 'Modification' : 'Nouveau chemin',
+            active: true,
+          ),
           const _StepArrow(),
           const _StepPill(index: 2, label: 'Motif du centre', active: true),
           const _StepArrow(),
@@ -161,6 +181,11 @@ class _NewPathSummary extends StatelessWidget {
         runSpacing: 10,
         children: [
           _InfoTile(label: 'Nom', value: draft.name),
+          _InfoTile(
+            label: 'Mode',
+            value:
+                draft.isEditMode ? 'Modification du chemin' : 'Nouveau chemin',
+          ),
           _InfoTile(label: 'Tileset', value: tilesetLabel),
           _InfoTile(label: 'Centre', value: draft.centerPatternLabel),
           _InfoTile(label: 'Cellules', value: '${draft.centerCellCount}'),
@@ -266,7 +291,8 @@ class _NewPathCenterPatternEditor extends StatelessWidget {
   final ValueChanged<int> onCenterFrameSelected;
   final VoidCallback onCenterFrameAdded;
   final ValueChanged<int> onCenterFrameRemoved;
-  final void Function(int frameIndex, int durationMs) onCenterFrameDurationChanged;
+  final void Function(int frameIndex, int durationMs)
+      onCenterFrameDurationChanged;
   final void Function(int localX, int localY) onCellCleared;
   final ValueChanged<TerrainPathVariant> onVariantCleared;
 
@@ -499,7 +525,8 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
   final ValueChanged<int> onCenterFrameSelected;
   final VoidCallback onCenterFrameAdded;
   final ValueChanged<int> onCenterFrameRemoved;
-  final void Function(int frameIndex, int durationMs) onCenterFrameDurationChanged;
+  final void Function(int frameIndex, int durationMs)
+      onCenterFrameDurationChanged;
   final void Function(int localX, int localY) onCellCleared;
 
   @override
@@ -750,7 +777,9 @@ class _CenterFrameChip extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              selected ? 'Frame ${frameIndex + 1} (active)' : 'Frame ${frameIndex + 1}',
+              selected
+                  ? 'Frame ${frameIndex + 1} (active)'
+                  : 'Frame ${frameIndex + 1}',
               style: const TextStyle(
                 color: PathStudioTheme.textPrimary,
                 fontSize: 11.5,
@@ -1475,10 +1504,14 @@ class _NewPathDiagnosticsCard extends StatelessWidget {
 class _NewPathSaveStatusCard extends StatelessWidget {
   const _NewPathSaveStatusCard({
     required this.plan,
+    required this.editPlan,
+    required this.draft,
     required this.hasSaveCallback,
   });
 
   final PathStudioNewPathBuildPlan plan;
+  final PathStudioEditPathBuildPlan? editPlan;
+  final PathStudioNewPathDraft draft;
   final bool hasSaveCallback;
 
   @override
@@ -1488,10 +1521,16 @@ class _NewPathSaveStatusCard extends StatelessWidget {
       title: 'Plan de création local',
       icon: CupertinoIcons.floppy_disk,
       trailing: _StatusChip(
-        label: plan.canBuildRequest && hasSaveCallback
+        label: (draft.isEditMode
+                    ? editPlan?.canBuildRequest == true
+                    : plan.canBuildRequest) &&
+                hasSaveCallback
             ? 'Requête prête'
             : 'Non sauvegardable',
-        color: plan.canBuildRequest && hasSaveCallback
+        color: ((draft.isEditMode
+                    ? editPlan?.canBuildRequest == true
+                    : plan.canBuildRequest) &&
+                hasSaveCallback)
             ? PathStudioTheme.success
             : PathStudioTheme.warning,
       ),
@@ -1502,17 +1541,23 @@ class _NewPathSaveStatusCard extends StatelessWidget {
             spacing: 10,
             runSpacing: 10,
             children: [
-              const _InfoTile(
+              _InfoTile(
                 label: 'État',
-                value: 'Brouillon de nouveau chemin',
+                value: draft.isEditMode
+                    ? 'Brouillon de modification'
+                    : 'Brouillon de nouveau chemin',
               ),
               _InfoTile(
                 label: 'Base path id',
-                value: plan.proposedBasePathPresetId,
+                value: draft.isEditMode
+                    ? draft.basePathPresetId
+                    : plan.proposedBasePathPresetId,
               ),
               _InfoTile(
                 label: 'Path pattern id',
-                value: plan.proposedPathPatternPresetId,
+                value: draft.isEditMode
+                    ? draft.pathPatternPresetId
+                    : plan.proposedPathPatternPresetId,
               ),
               _InfoTile(
                 label: 'Type de surface',
@@ -1531,15 +1576,19 @@ class _NewPathSaveStatusCard extends StatelessWidget {
                 label: 'Couverture',
                 value: plan.variantsCoverageLabel,
               ),
-              const _InfoTile(
-                label: 'Sauvegarde persistée',
-                value: 'prochain lot',
+              _InfoTile(
+                label: 'Action',
+                value: draft.isEditMode
+                    ? 'Remplacement en mémoire'
+                    : 'Création en mémoire',
               ),
             ],
           ),
           const SizedBox(height: 14),
           Text(
-            !plan.canBuildRequest
+            !(draft.isEditMode
+                    ? editPlan?.canBuildRequest == true
+                    : plan.canBuildRequest)
                 ? 'Requête locale bloquée'
                 : hasSaveCallback
                     ? 'Requête locale prête'
@@ -1554,10 +1603,12 @@ class _NewPathSaveStatusCard extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            !plan.canBuildRequest
-                ? 'Corrigez les erreurs bloquantes pour préparer la création en mémoire.'
+            !(draft.isEditMode
+                    ? editPlan?.canBuildRequest == true
+                    : plan.canBuildRequest)
+                ? 'Corrigez les erreurs bloquantes pour préparer la sauvegarde en mémoire.'
                 : hasSaveCallback
-                    ? 'Warnings présents, mais création en mémoire possible.'
+                    ? 'Warnings présents, mais sauvegarde en mémoire possible.'
                     : 'La requête locale est prête, mais aucun callback ne l’applique au manifest.',
             style: const TextStyle(
               color: PathStudioTheme.textSecondary,
@@ -1601,9 +1652,11 @@ class _NewPathInspector extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Propriétés du nouveau chemin',
-              style: TextStyle(
+            Text(
+              draft.isEditMode
+                  ? 'Propriétés de la modification'
+                  : 'Propriétés du nouveau chemin',
+              style: const TextStyle(
                 color: PathStudioTheme.textPrimary,
                 fontSize: 16,
                 fontWeight: FontWeight.w800,
@@ -1686,7 +1739,15 @@ class _NewPathInspector extends StatelessWidget {
               },
             ),
             const SizedBox(height: 14),
-            _InspectorRow(label: 'ID temporaire', value: draft.id),
+            _InspectorRow(
+              label: draft.isEditMode ? 'ID base path' : 'ID temporaire',
+              value: draft.id,
+            ),
+            if (draft.isEditMode)
+              _InspectorRow(
+                label: 'ID path pattern',
+                value: draft.pathPatternPresetId,
+              ),
             _InspectorRow(label: 'Tileset', value: tilesetLabel),
             _InspectorRow(label: 'Cellules', value: '${draft.centerCellCount}'),
             _InspectorRow(

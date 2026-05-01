@@ -104,15 +104,19 @@ String _savedCellLabel(int index) {
 class _SavedPresetCenterDetail extends StatelessWidget {
   const _SavedPresetCenterDetail({
     required this.detail,
+    required this.editAvailability,
     required this.tilesets,
     required this.settings,
     required this.projectRootPath,
+    required this.onEditRequested,
   });
 
   final _SavedPathPatternDetail detail;
+  final _EditAvailability editAvailability;
   final List<ProjectTilesetEntry> tilesets;
   final ProjectSettings settings;
   final String? projectRootPath;
+  final VoidCallback onEditRequested;
 
   @override
   Widget build(BuildContext context) {
@@ -132,6 +136,37 @@ class _SavedPresetCenterDetail extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Align(
+            alignment: Alignment.centerLeft,
+            child: CupertinoButton(
+              key: const Key('path-studio-saved-preset-edit-button'),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              minimumSize: Size.zero,
+              onPressed: editAvailability.canEdit ? onEditRequested : null,
+              color: PathStudioTheme.accent,
+              child: const Text(
+                'Modifier',
+                style: TextStyle(
+                  color: CupertinoColors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+          if (editAvailability.reason != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              editAvailability.reason!,
+              key: const Key('path-studio-saved-preset-edit-disabled-reason'),
+              style: const TextStyle(
+                color: PathStudioTheme.warning,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
           Wrap(
             spacing: 10,
             runSpacing: 10,

@@ -1,4 +1,5 @@
 import 'package:map_core/map_core.dart';
+import 'path_studio_edit_path_build_request.dart';
 import 'path_studio_new_path_build_request.dart';
 
 /// Helper pour appliquer la sauvegarde d'un ProjectPathPatternPreset dans le manifest.
@@ -48,5 +49,58 @@ ProjectManifest applyNewPathBuildRequestToManifest({
       ...manifest.pathPatternPresets,
       request.pathPatternPreset,
     ],
+  );
+}
+
+ProjectManifest applyPathPatternEditRequestToManifest({
+  required ProjectManifest manifest,
+  required PathStudioEditPathBuildRequest request,
+}) {
+  final originalBaseIndex = manifest.pathPresets.indexWhere(
+    (preset) => preset.id == request.originalBasePathPresetId,
+  );
+  if (originalBaseIndex < 0) {
+    throw ArgumentError(
+      'Original ProjectPathPreset not found: ${request.originalBasePathPresetId}',
+    );
+  }
+  final originalPatternIndex = manifest.pathPatternPresets.indexWhere(
+    (preset) => preset.id == request.originalPathPatternPresetId,
+  );
+  if (originalPatternIndex < 0) {
+    throw ArgumentError(
+      'Original ProjectPathPatternPreset not found: ${request.originalPathPatternPresetId}',
+    );
+  }
+  final collidingBaseIndex = manifest.pathPresets.indexWhere(
+    (preset) =>
+        preset.id == request.updatedBasePathPreset.id &&
+        preset.id != request.originalBasePathPresetId,
+  );
+  if (collidingBaseIndex >= 0) {
+    throw ArgumentError(
+      'ProjectPathPreset id collision: ${request.updatedBasePathPreset.id}',
+    );
+  }
+  final collidingPatternIndex = manifest.pathPatternPresets.indexWhere(
+    (preset) =>
+        preset.id == request.updatedPathPatternPreset.id &&
+        preset.id != request.originalPathPatternPresetId,
+  );
+  if (collidingPatternIndex >= 0) {
+    throw ArgumentError(
+      'ProjectPathPatternPreset id collision: ${request.updatedPathPatternPreset.id}',
+    );
+  }
+
+  final nextPathPresets = List<ProjectPathPreset>.from(manifest.pathPresets);
+  nextPathPresets[originalBaseIndex] = request.updatedBasePathPreset;
+  final nextPathPatternPresets =
+      List<ProjectPathPatternPreset>.from(manifest.pathPatternPresets);
+  nextPathPatternPresets[originalPatternIndex] =
+      request.updatedPathPatternPreset;
+  return manifest.copyWith(
+    pathPresets: nextPathPresets,
+    pathPatternPresets: nextPathPatternPresets,
   );
 }

@@ -207,6 +207,73 @@ void main() {
       expect(find.text('Introuvable'), findsWidgets);
     });
 
+    testWidgets(
+        'saved preset exposes Modifier and disables it when base missing',
+        (tester) async {
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          pathPatternPresets: [
+            _pathPatternPreset(
+              id: 'missing-base',
+              basePathPresetId: 'absent-base',
+            ),
+          ],
+        ),
+      );
+
+      await tester.tap(find.byKey(const Key('path-studio-preset-card-0')));
+      await tester.pumpAndSettle();
+
+      final editButton = tester.widget<CupertinoButton>(
+        find.byKey(const Key('path-studio-saved-preset-edit-button')),
+      );
+      expect(editButton.onPressed, isNull);
+      expect(
+        find.byKey(const Key('path-studio-saved-preset-edit-disabled-reason')),
+        findsOneWidget,
+      );
+      expect(find.text('Base path introuvable'), findsWidgets);
+    });
+
+    testWidgets(
+        'Modifier ouvre un brouillon de modification avec frames existantes',
+        (tester) async {
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          pathPresets: [
+            _legacyPathPreset(
+              id: 'legacy-water',
+              name: 'Base eau',
+              tilesetId: 'tileset-main',
+            ),
+          ],
+          tilesets: [_tileset(id: 'tileset-main', name: 'Chemins principaux')],
+          pathPatternPresets: [
+            _pathPatternPreset(
+              id: 'water-sea-2x2',
+              name: 'Mer 2x2',
+              pattern: _twoByTwoPattern(animatedTopLeft: true),
+            ),
+          ],
+        ),
+      );
+
+      await tester.tap(find.byKey(const Key('path-studio-preset-card-0')));
+      await tester.pumpAndSettle();
+      await tester
+          .tap(find.byKey(const Key('path-studio-saved-preset-edit-button')));
+      await _pumpPathStudioAsync(tester);
+
+      expect(find.text('Modification du chemin'), findsWidgets);
+      expect(find.text('Propriétés de la modification'), findsOneWidget);
+      expect(find.text('Animée — 2 frames'), findsWidgets);
+      expect(find.text('Frame 1 / 2'), findsOneWidget);
+      expect(find.text('ID path pattern'), findsWidgets);
+      expect(find.text('water-sea-2x2'), findsWidgets);
+    });
+
     testWidgets('filters presets locally and clears selection on no result',
         (tester) async {
       await _pumpPathStudio(
@@ -472,7 +539,8 @@ void main() {
         find.byKey(const Key('path-studio-new-path-center-animation-summary')),
         findsOneWidget,
       );
-      expect(find.textContaining('Centre : 1 cellules · 1 frames'), findsOneWidget);
+      expect(find.textContaining('Centre : 1 cellules · 1 frames'),
+          findsOneWidget);
       expect(
         find.byKey(const Key('path-studio-new-path-active-frame-title')),
         findsOneWidget,
@@ -492,7 +560,8 @@ void main() {
       expect(find.text('Animée — 2 frames'), findsWidgets);
       expect(find.text('Ajouter une frame dupliquée'), findsWidgets);
       expect(find.text('Frame 2 / 2'), findsOneWidget);
-      expect(find.textContaining('Centre : 1 cellules · 2 frames'), findsOneWidget);
+      expect(find.textContaining('Centre : 1 cellules · 2 frames'),
+          findsOneWidget);
 
       await tester.enterText(
         find.byKey(const Key('path-studio-new-path-frame-duration-1')),
@@ -957,12 +1026,13 @@ void main() {
           findsOneWidget);
       expect(find.text('Plan de création local'), findsWidgets);
       expect(find.text('Brouillon de nouveau chemin'), findsWidgets);
-      expect(find.text('prochain lot'), findsWidgets);
+      expect(find.text('Création en mémoire'), findsWidgets);
       expect(find.text('Requête locale bloquée'), findsWidgets);
       expect(find.text('Couverture partielle des variants'), findsNothing);
       expect(
         find.text(
-            'Corrigez les erreurs bloquantes pour préparer la création en mémoire.'),
+          'Corrigez les erreurs bloquantes pour préparer la sauvegarde en mémoire.',
+        ),
         findsWidgets,
       );
       expect(find.text('Aucun variant legacy configuré'), findsWidgets);
@@ -1028,7 +1098,7 @@ void main() {
 
       expect(find.text('Requête locale prête'), findsWidgets);
       expect(
-        find.text('Warnings présents, mais création en mémoire possible.'),
+        find.text('Warnings présents, mais sauvegarde en mémoire possible.'),
         findsWidgets,
       );
       expect(find.text('Aucun variant legacy configuré'), findsWidgets);
@@ -1122,6 +1192,102 @@ void main() {
       expect(find.text('Nouveau chemin créé dans le projet'), findsOneWidget);
       expect(find.text('PathPattern sauvegardé'), findsOneWidget);
       expect(find.text('nouveau-chemin-pattern'), findsWidgets);
+    });
+
+    testWidgets('edit save remplace en mémoire et nettoie le brouillon',
+        (tester) async {
+      var parentManifest = _manifest(
+        pathPresets: [
+          _legacyPathPreset(
+            id: 'legacy-water',
+            name: 'Base eau',
+            tilesetId: 'tileset-main',
+          ),
+        ],
+        tilesets: [_tileset(id: 'tileset-main', name: 'Chemins principaux')],
+        pathPatternPresets: [
+          _pathPatternPreset(
+            id: 'water-sea-2x2',
+            name: 'Mer 2x2',
+            pattern: _twoByTwoPattern(animatedTopLeft: true),
+          ),
+        ],
+      );
+
+      await tester.binding.setSurfaceSize(const Size(1440, 920));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        MacosApp(
+          theme: MacosThemeData.dark(),
+          home: MacosScaffold(
+            children: [
+              ContentArea(
+                builder: (context, scrollController) {
+                  return StatefulBuilder(
+                    builder: (context, setParentState) {
+                      return PathStudioPanel(
+                        manifest: parentManifest,
+                        onEditPathSaveRequested: (request) {
+                          setParentState(() {
+                            parentManifest =
+                                applyPathPatternEditRequestToManifest(
+                              manifest: parentManifest,
+                              request: request,
+                            );
+                          });
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+      await _pumpPathStudioAsync(tester);
+
+      await tester.tap(find.byKey(const Key('path-studio-preset-card-0')));
+      await _pumpPathStudioAsync(tester);
+      await tester
+          .tap(find.byKey(const Key('path-studio-saved-preset-edit-button')));
+      await _pumpPathStudioAsync(tester);
+
+      await tester.enterText(
+        find.byKey(const Key('path-studio-new-path-name-field')),
+        'Mer éditée',
+      );
+      await _pumpPathStudioAsync(tester);
+
+      final addFrame = find.byKey(const Key('path-studio-new-path-add-frame'));
+      await tester.ensureVisible(addFrame);
+      await tester.pumpAndSettle();
+      await tester.tap(addFrame);
+      await _pumpPathStudioAsync(tester);
+      await tester.enterText(
+        find.byKey(const Key('path-studio-new-path-frame-duration-2')),
+        '444',
+      );
+      await _pumpPathStudioAsync(tester);
+
+      await tester.tap(find.byKey(const Key('path-studio-save-button')));
+      await _pumpPathStudioAsync(tester);
+
+      final updatedPattern = parentManifest.pathPatternPresets.single;
+      final updatedBase = parentManifest.pathPresets.single;
+      expect(updatedPattern.id, 'water-sea-2x2');
+      expect(updatedBase.id, 'legacy-water');
+      expect(updatedPattern.name, 'Mer éditée');
+      expect(updatedBase.name, 'Mer éditée');
+      expect(updatedPattern.centerPattern.cells.first.frames.length, 3);
+      expect(
+          updatedPattern.centerPattern.cells.first.frames[2].durationMs, 444);
+      expect(find.byKey(const Key('path-studio-new-path-draft-card')),
+          findsNothing);
+      expect(find.text('Chemin modifié dans le projet'), findsOneWidget);
+      expect(find.text('PathPattern sauvegardé'), findsOneWidget);
+      expect(find.text('Mer éditée'), findsWidgets);
     });
 
     testWidgets('legacy save request is prepared but disabled without callback',
