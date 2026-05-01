@@ -53,7 +53,8 @@ void main() {
       expect(card.animatedCellCount, 0);
       expect(card.transparentColorHex, isNull);
       expect(card.status, PathPatternPresetReadinessStatus.ready);
-      expect(card.issues, isEmpty);
+      expect(card.hasBlockingDiagnostics, isFalse);
+      expect(card.warningCount, 0);
     });
 
     test('ready 2x2 transparent animated preset exposes counts', () {
@@ -100,9 +101,10 @@ void main() {
 
       final card = readModel.presets.single;
       expect(card.status, PathPatternPresetReadinessStatus.blocked);
-      expect(card.issues, [
-        PathPatternPresetIssueCode.missingBasePathPreset,
-      ]);
+      expect(
+        card.issues,
+        contains(PathPatternPresetIssueCode.missingBasePathPreset),
+      );
       expect(card.basePathPresetName, isNull);
       expect(card.basePathSurfaceKindLabel, isNull);
       expect(readModel.summary.readyCount, 0);
@@ -152,13 +154,203 @@ void main() {
 
       final card = readModel.presets.single;
       expect(card.status, PathPatternPresetReadinessStatus.blocked);
-      expect(card.issues, [
-        PathPatternPresetIssueCode.duplicateBasePathPresetId,
-      ]);
+      expect(
+        card.issues,
+        contains(PathPatternPresetIssueCode.duplicateBasePathPresetId),
+      );
       expect(card.basePathPresetName, isNull);
       expect(card.basePathSurfaceKindLabel, isNull);
       expect(readModel.summary.issueCount, 1);
       expect(readModel.summary.duplicateBasePathPresetIdCount, 1);
+    });
+
+    test('duplicate path patterns for the same base are blocked as ambiguous',
+        () {
+      final readModel = createPathPatternEditorReadModel(
+        manifest: _manifest(
+          pathPresets: [_legacyPathPreset(id: 'legacy-water')],
+          pathPatternPresets: [
+            _pathPatternPreset(id: 'water-a', basePathPresetId: 'legacy-water'),
+            _pathPatternPreset(id: 'water-b', basePathPresetId: 'legacy-water'),
+          ],
+        ),
+      );
+
+      expect(readModel.summary.blockedCount, 2);
+      expect(readModel.summary.ambiguousCount, 2);
+      for (final card in readModel.presets) {
+        expect(card.status, PathPatternPresetReadinessStatus.blocked);
+        expect(
+          card.issues,
+          contains(PathPatternPresetIssueCode.duplicatePathPatternForBase),
+        );
+        expect(
+          card.issues,
+          contains(PathPatternPresetIssueCode.pathPatternRenderAmbiguous),
+        );
+      }
+    });
+
+    test('missing base tileset is blocking', () {
+      final readModel = createPathPatternEditorReadModel(
+        manifest: _manifest(
+          pathPresets: [
+            _legacyPathPreset(id: 'legacy-water', tilesetId: 'missing-tileset'),
+          ],
+          pathPatternPresets: [_pathPatternPreset(id: 'water')],
+        ),
+      );
+
+      final card = readModel.presets.single;
+      expect(card.status, PathPatternPresetReadinessStatus.blocked);
+      expect(
+        card.issues,
+        contains(PathPatternPresetIssueCode.missingBaseTileset),
+      );
+      expect(card.hasBlockingDiagnostics, isTrue);
+    });
+
+    test('missing frame tileset override is blocking', () {
+      final readModel = createPathPatternEditorReadModel(
+        manifest: _manifest(
+          tilesets: [_tileset(id: 'tileset-main')],
+          pathPresets: [
+            _legacyPathPreset(id: 'legacy-water', tilesetId: 'tileset-main'),
+          ],
+          pathPatternPresets: [
+            _pathPatternPreset(
+              id: 'water',
+              pattern: _singleCellPattern(frameTilesetId: 'ghost-tileset'),
+            ),
+          ],
+        ),
+      );
+
+      final card = readModel.presets.single;
+      expect(card.status, PathPatternPresetReadinessStatus.blocked);
+      expect(
+        card.issues,
+        contains(PathPatternPresetIssueCode.missingFrameTileset),
+      );
+    });
+
+    test('center-only with empty variants stays needsReview and non-blocking',
+        () {
+      final readModel = createPathPatternEditorReadModel(
+        manifest: _manifest(
+          tilesets: [_tileset(id: 'tileset-main')],
+          pathPresets: [
+            _legacyPathPreset(
+              id: 'legacy-water',
+              tilesetId: 'tileset-main',
+              variants: const [],
+            ),
+          ],
+          pathPatternPresets: [_pathPatternPreset(id: 'water')],
+        ),
+      );
+
+      final card = readModel.presets.single;
+      expect(card.status, PathPatternPresetReadinessStatus.needsReview);
+      expect(card.hasBlockingDiagnostics, isFalse);
+      expect(
+        card.issues,
+        contains(PathPatternPresetIssueCode.centerOnly),
+      );
+      expect(
+        card.issues,
+        contains(PathPatternPresetIssueCode.noVariantCoverage),
+      );
+    });
+
+    test('partial variants is warning without blocking', () {
+      final readModel = createPathPatternEditorReadModel(
+        manifest: _manifest(
+          tilesets: [_tileset(id: 'tileset-main')],
+          pathPresets: [
+            _legacyPathPreset(
+              id: 'legacy-water',
+              tilesetId: 'tileset-main',
+              variants: [
+                const PathPresetVariantMapping(
+                  variant: TerrainPathVariant.isolated,
+                  frames: [
+                    TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0))
+                  ],
+                ),
+              ],
+            ),
+          ],
+          pathPatternPresets: [_pathPatternPreset(id: 'water')],
+        ),
+      );
+
+      final card = readModel.presets.single;
+      expect(card.status, PathPatternPresetReadinessStatus.needsReview);
+      expect(card.hasBlockingDiagnostics, isFalse);
+      expect(
+        card.issues,
+        contains(PathPatternPresetIssueCode.partialVariantCoverage),
+      );
+    });
+
+    test('cross variant emits informational diagnostic', () {
+      final readModel = createPathPatternEditorReadModel(
+        manifest: _manifest(
+          tilesets: [_tileset(id: 'tileset-main')],
+          pathPresets: [
+            _legacyPathPreset(
+              id: 'legacy-water',
+              tilesetId: 'tileset-main',
+              variants: [
+                const PathPresetVariantMapping(
+                  variant: TerrainPathVariant.cross,
+                  frames: [
+                    TilesetVisualFrame(source: TilesetSourceRect(x: 5, y: 5))
+                  ],
+                ),
+              ],
+            ),
+          ],
+          pathPatternPresets: [_pathPatternPreset(id: 'water')],
+        ),
+      );
+
+      final card = readModel.presets.single;
+      expect(
+        card.issues,
+        contains(PathPatternPresetIssueCode.crossHandledByCenterPattern),
+      );
+      expect(card.infoCount, greaterThan(0));
+    });
+
+    test('fully configured pattern is ready', () {
+      final readModel = createPathPatternEditorReadModel(
+        manifest: _manifest(
+          tilesets: [_tileset(id: 'tileset-main')],
+          pathPresets: [
+            _legacyPathPreset(
+              id: 'legacy-water',
+              tilesetId: 'tileset-main',
+              variants: [
+                for (final variant in TerrainPathVariant.values)
+                  PathPresetVariantMapping(
+                    variant: variant,
+                    frames: const [
+                      TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
+                    ],
+                  ),
+              ],
+            ),
+          ],
+          pathPatternPresets: [_pathPatternPreset(id: 'water')],
+        ),
+      );
+
+      final card = readModel.presets.single;
+      expect(card.status, PathPatternPresetReadinessStatus.ready);
+      expect(card.hasBlockingDiagnostics, isFalse);
+      expect(card.warningCount, 0);
     });
 
     test('preserves manifest pathPatternPresets order', () {
@@ -191,9 +383,10 @@ void main() {
 
       final card = readModel.presets.single;
       expect(card.status, PathPatternPresetReadinessStatus.blocked);
-      expect(card.issues, [
-        PathPatternPresetIssueCode.missingBasePathPreset,
-      ]);
+      expect(
+        card.issues,
+        contains(PathPatternPresetIssueCode.missingBasePathPreset),
+      );
       expect(readModel.summary.missingBasePathPresetCount, 1);
     });
 
@@ -243,12 +436,13 @@ void main() {
       );
 
       expect(readModel.summary.totalCount, 4);
-      expect(readModel.summary.readyCount, 1);
-      expect(readModel.summary.issueCount, 3);
+      expect(readModel.summary.readyCount, 0);
+      expect(readModel.summary.issueCount, 4);
       expect(readModel.summary.multiCellCenterCount, 1);
       expect(readModel.summary.missingBasePathPresetCount, 1);
       expect(readModel.summary.duplicatePathPatternIdCount, 2);
       expect(readModel.summary.duplicateBasePathPresetIdCount, 0);
+      expect(readModel.summary.ambiguousCount, 3);
     });
 
     test('read model and card lists are immutable defensive copies', () {
@@ -304,13 +498,14 @@ void main() {
 }
 
 ProjectManifest _manifest({
+  List<ProjectTilesetEntry> tilesets = const [],
   List<ProjectPathPreset> pathPresets = const [],
   List<ProjectPathPatternPreset> pathPatternPresets = const [],
 }) {
   return ProjectManifest(
     name: 'Project',
     maps: const [],
-    tilesets: const [],
+    tilesets: tilesets,
     pathPresets: pathPresets,
     pathPatternPresets: pathPatternPresets,
     surfaceCatalog: ProjectSurfaceCatalog(),
@@ -321,11 +516,15 @@ ProjectPathPreset _legacyPathPreset({
   required String id,
   String name = 'Legacy Water',
   PathSurfaceKind surfaceKind = PathSurfaceKind.water,
+  String tilesetId = '',
+  List<PathPresetVariantMapping>? variants,
 }) {
   return ProjectPathPreset(
     id: id,
     name: name,
     surfaceKind: surfaceKind,
+    tilesetId: tilesetId,
+    variants: variants ?? _allVariantMappings(),
   );
 }
 
@@ -345,14 +544,14 @@ ProjectPathPatternPreset _pathPatternPreset({
   );
 }
 
-PathCenterPattern _singleCellPattern() {
+PathCenterPattern _singleCellPattern({String frameTilesetId = ''}) {
   return PathCenterPattern(
     size: PathCenterPatternSize(width: 1, height: 1),
     cells: [
       PathCenterPatternCell(
         localX: 0,
         localY: 0,
-        frames: [_frame(0)],
+        frames: [_frame(0, tilesetId: frameTilesetId)],
       ),
     ],
   );
@@ -386,8 +585,26 @@ PathCenterPattern _twoByTwoPattern({bool animatedTopLeft = false}) {
   );
 }
 
-TilesetVisualFrame _frame(int sourceX) {
+TilesetVisualFrame _frame(int sourceX, {String tilesetId = ''}) {
   return TilesetVisualFrame(
     source: TilesetSourceRect(x: sourceX, y: 0),
+    tilesetId: tilesetId,
   );
+}
+
+ProjectTilesetEntry _tileset({required String id}) {
+  return ProjectTilesetEntry(
+      id: id, name: id, relativePath: 'tilesets/$id.png');
+}
+
+List<PathPresetVariantMapping> _allVariantMappings() {
+  return [
+    for (final variant in TerrainPathVariant.values)
+      PathPresetVariantMapping(
+        variant: variant,
+        frames: const [
+          TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
+        ],
+      ),
+  ];
 }

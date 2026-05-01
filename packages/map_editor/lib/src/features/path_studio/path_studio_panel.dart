@@ -6,6 +6,7 @@ import 'package:map_core/map_core.dart';
 import '../editor/state/editor_notifier.dart';
 import '../editor/state/editor_selectors.dart';
 import 'path_pattern_draft.dart';
+import 'path_pattern_diagnostics.dart';
 import 'path_pattern_editor_read_model.dart';
 import 'path_studio_edit_path_build_request.dart';
 import 'path_studio_new_path_build_request.dart';
@@ -136,9 +137,8 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
           _draft = null;
           _draftSelected = false;
           _draftMessage = null;
-          _saveFeedbackMessage =
-              _pendingSavedSuccessMessage ??
-                  'Modification appliquée au projet en mémoire. Sauvegardez le projet avec la disquette pour l’écrire dans project.json.';
+          _saveFeedbackMessage = _pendingSavedSuccessMessage ??
+              'Modification appliquée au projet en mémoire. Sauvegardez le projet avec la disquette pour l’écrire dans project.json.';
           _saveErrorMessage = null;
           _pendingSavedPathPatternId = null;
           _pendingSavedSuccessMessage = null;
@@ -1817,6 +1817,22 @@ class _PresetListCardState extends State<_PresetListCard> {
                   ),
                 ],
               ),
+              if (widget.card.hasBlockingDiagnostics ||
+                  widget.card.warningCount > 0) ...[
+                const SizedBox(height: 8),
+                Text(
+                  widget.card.hasBlockingDiagnostics
+                      ? '${widget.card.diagnostics.where((d) => d.severity == PathPatternDiagnosticSeverity.blocking).length} blocage(s)'
+                      : '${widget.card.warningCount} warning(s)',
+                  style: TextStyle(
+                    color: widget.card.hasBlockingDiagnostics
+                        ? PathStudioTheme.error
+                        : PathStudioTheme.warning,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -2726,28 +2742,39 @@ class _DiagnosticsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final issues = card.issues;
+    final diagnostics = List<PathPatternDiagnostic>.from(card.diagnostics)
+      ..sort((left, right) {
+        final severityCompare = _diagnosticSortWeight(left.severity).compareTo(
+          _diagnosticSortWeight(right.severity),
+        );
+        if (severityCompare != 0) {
+          return severityCompare;
+        }
+        return left.title.compareTo(right.title);
+      });
     return _SectionCard(
       title: 'Diagnostics',
       icon: CupertinoIcons.check_mark_circled,
-      child: issues.isEmpty
+      child: diagnostics.isEmpty
           ? const _DiagnosticRow(
               icon: CupertinoIcons.check_mark_circled_solid,
               color: PathStudioTheme.success,
-              title: 'Aucune erreur',
-              message: 'Le preset est valide pour le shell V0.',
+              title: 'Prêt',
+              message: 'Aucun diagnostic bloquant ou warning détecté.',
             )
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: issues
+              children: diagnostics
                   .map(
-                    (issue) => Padding(
+                    (diagnostic) => Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: _DiagnosticRow(
-                        icon: CupertinoIcons.exclamationmark_triangle_fill,
-                        color: PathStudioTheme.error,
-                        title: _issueLabel(issue),
-                        message: _issueDescription(issue),
+                        icon: _diagnosticIcon(diagnostic.severity),
+                        color: _diagnosticColor(diagnostic.severity),
+                        title: diagnostic.title,
+                        message: diagnostic.suggestion == null
+                            ? diagnostic.description
+                            : '${diagnostic.description}\n${diagnostic.suggestion!}',
                       ),
                     ),
                   )
@@ -3313,25 +3340,29 @@ class _StatusPresentation {
   final Color color;
 }
 
-String _issueLabel(PathPatternPresetIssueCode issue) {
-  return switch (issue) {
-    PathPatternPresetIssueCode.missingBasePathPreset =>
-      'Preset de base introuvable',
-    PathPatternPresetIssueCode.duplicatePathPatternId =>
-      'ID PathPattern dupliqué',
-    PathPatternPresetIssueCode.duplicateBasePathPresetId =>
-      'Preset de base dupliqué',
+int _diagnosticSortWeight(PathPatternDiagnosticSeverity severity) {
+  return switch (severity) {
+    PathPatternDiagnosticSeverity.blocking => 0,
+    PathPatternDiagnosticSeverity.warning => 1,
+    PathPatternDiagnosticSeverity.info => 2,
   };
 }
 
-String _issueDescription(PathPatternPresetIssueCode issue) {
-  return switch (issue) {
-    PathPatternPresetIssueCode.missingBasePathPreset =>
-      'Le preset référence un basePathPresetId absent du manifest.',
-    PathPatternPresetIssueCode.duplicatePathPatternId =>
-      'Plusieurs PathPattern partagent exactement le même id.',
-    PathPatternPresetIssueCode.duplicateBasePathPresetId =>
-      'Plusieurs ProjectPathPreset legacy correspondent à la même base.',
+Color _diagnosticColor(PathPatternDiagnosticSeverity severity) {
+  return switch (severity) {
+    PathPatternDiagnosticSeverity.blocking => PathStudioTheme.error,
+    PathPatternDiagnosticSeverity.warning => PathStudioTheme.warning,
+    PathPatternDiagnosticSeverity.info => PathStudioTheme.accent,
+  };
+}
+
+IconData _diagnosticIcon(PathPatternDiagnosticSeverity severity) {
+  return switch (severity) {
+    PathPatternDiagnosticSeverity.blocking =>
+      CupertinoIcons.exclamationmark_triangle_fill,
+    PathPatternDiagnosticSeverity.warning =>
+      CupertinoIcons.exclamationmark_triangle,
+    PathPatternDiagnosticSeverity.info => CupertinoIcons.info_circle_fill,
   };
 }
 

@@ -63,7 +63,7 @@ void main() {
 
       expect(find.text('missing-base'), findsWidgets);
       expect(find.text('Bloqué'), findsWidgets);
-      expect(find.text('Preset de base introuvable'), findsWidgets);
+      expect(find.text('Base path introuvable'), findsWidgets);
     });
 
     testWidgets(
@@ -77,6 +77,7 @@ void main() {
               id: 'legacy-water',
               name: 'Base eau',
               tilesetId: 'tileset-main',
+              variants: const [],
             ),
           ],
           tilesets: [
@@ -127,6 +128,7 @@ void main() {
               id: 'legacy-water',
               name: 'Base eau',
               tilesetId: 'tileset-main',
+              variants: const [],
             ),
           ],
           tilesets: [
@@ -202,9 +204,79 @@ void main() {
       await tester.tap(find.byKey(const Key('path-studio-preset-card-0')));
       await tester.pumpAndSettle();
 
-      expect(find.text('Preset de base introuvable'), findsWidgets);
+      expect(find.text('Base path introuvable'), findsWidgets);
       expect(find.text('Base path name'), findsWidgets);
       expect(find.text('Introuvable'), findsWidgets);
+    });
+
+    testWidgets('saved preset card shows blocked state and blocking counter',
+        (tester) async {
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          pathPatternPresets: [
+            _pathPatternPreset(
+              id: 'missing-base',
+              basePathPresetId: 'absent-base',
+            ),
+          ],
+        ),
+      );
+
+      expect(find.text('Bloqué'), findsWidgets);
+      expect(find.textContaining('blocage'), findsWidgets);
+    });
+
+    testWidgets('saved preset card shows diagnostics for selected preset',
+        (tester) async {
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          pathPresets: [
+            _legacyPathPreset(
+              id: 'legacy-water',
+              name: 'Base eau',
+              tilesetId: 'tileset-main',
+            ),
+          ],
+          tilesets: [
+            _tileset(id: 'tileset-main', name: 'Chemins principaux'),
+          ],
+          pathPatternPresets: [
+            _pathPatternPreset(id: 'water-review'),
+          ],
+        ),
+      );
+
+      await tester.tap(find.byKey(const Key('path-studio-preset-card-0')));
+      await tester.pumpAndSettle();
+      expect(find.text('Diagnostics'), findsWidgets);
+      expect(find.text('Résumé centerPattern'), findsWidgets);
+    });
+
+    testWidgets(
+        'duplicate path patterns for one base shows ambiguity diagnostic',
+        (tester) async {
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          pathPresets: [
+            _legacyPathPreset(id: 'legacy-water', tilesetId: 'tileset-main'),
+          ],
+          tilesets: [
+            _tileset(id: 'tileset-main', name: 'Chemins principaux'),
+          ],
+          pathPatternPresets: [
+            _pathPatternPreset(id: 'water-a', basePathPresetId: 'legacy-water'),
+            _pathPatternPreset(id: 'water-b', basePathPresetId: 'legacy-water'),
+          ],
+        ),
+      );
+
+      await tester.tap(find.byKey(const Key('path-studio-preset-card-0')));
+      await tester.pumpAndSettle();
+      expect(find.text('Association ambiguë'), findsWidgets);
+      expect(find.text('Fallback legacy attendu'), findsWidgets);
     });
 
     testWidgets(
@@ -1789,18 +1861,23 @@ ProjectPathPreset _legacyPathPreset({
   String name = 'Legacy Water',
   int crossSourceX = 0,
   String tilesetId = '',
+  List<PathPresetVariantMapping>? variants,
 }) {
   return ProjectPathPreset(
     id: id,
     name: name,
     tilesetId: tilesetId,
     surfaceKind: PathSurfaceKind.water,
-    variants: [
-      PathPresetVariantMapping(
-        variant: TerrainPathVariant.cross,
-        frames: [_frame(crossSourceX)],
-      ),
-    ],
+    variants: variants ??
+        [
+          for (final variant in TerrainPathVariant.values)
+            PathPresetVariantMapping(
+              variant: variant,
+              frames: [
+                _frame(variant == TerrainPathVariant.cross ? crossSourceX : 0)
+              ],
+            ),
+        ],
   );
 }
 
