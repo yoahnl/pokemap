@@ -18,6 +18,13 @@
 - Unit tests must test actual logic, not just type compilation.
 - If a test cannot cover the full path, document exactly what is and is not covered.
 
+## 2.1. Production logic vs test helpers
+
+- **A test helper must NOT duplicate production integration logic and then claim to prove the production path.**
+- If a helper represents production behavior, it must live in **production code** and be used by the production code.
+- Tests may use helper builders for fixtures, but **must NOT duplicate the behavior under test**.
+- Example of violation: Creating a helper in the test file that duplicates the logic of a production callback, then testing only that helper and claiming the production callback works.
+
 ## 3. Repository discipline
 
 - **Do not leave temporary files at the repository root.**

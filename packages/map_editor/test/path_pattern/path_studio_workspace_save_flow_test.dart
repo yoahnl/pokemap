@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/path_studio/path_studio_save_flow.dart';
 
 /// Helper pour créer un manifest de test.
 /// Basé sur le pattern utilisé dans path_pattern_editor_read_model_test.dart
@@ -34,26 +35,6 @@ ProjectPathPreset _legacyPathPreset({
     surfaceKind: surfaceKind,
     variants: const [],
   );
-}
-
-/// Helper extrait du code de production pour simuler le flux de sauvegarde.
-/// Ce helper est utilisé par le callback réel dans PathStudioWorkspace.build().
-///
-/// Ce helper prouve que :
-/// 1. On reçoit un ProjectPathPatternPreset
-/// 2. On appelle upsertProjectPathPatternPreset
-/// 3. Le manifest est mis à jour en mémoire
-ProjectManifest applyLegacyPathPatternSaveToManifest({
-  required ProjectManifest manifest,
-  required ProjectPathPatternPreset preset,
-}) {
-  // C'est exactement ce que fait le callback dans PathStudioWorkspace.build()
-  final currentManifest = manifest;
-  final updatedManifest = upsertProjectPathPatternPreset(
-    manifest: currentManifest,
-    preset: preset,
-  );
-  return updatedManifest;
 }
 
 /// Helper pour créer un PathCenterPattern simple 1x1
@@ -95,9 +76,9 @@ ProjectPathPatternPreset _pathPatternPreset({
 }
 
 void main() {
-  group('Lot 20-bis — Real Workspace Save Flow Proof', () {
+  group('Lot 20-ter — Real Save Handler Proof', () {
     
-    group('applyLegacyPathPatternSaveToManifest', () {
+    group('applyLegacyPathPatternSaveToManifest (helper de PRODUCTION)', () {
       late ProjectManifest initialManifest;
 
       setUp(() {
@@ -114,6 +95,7 @@ void main() {
           basePathPresetId: 'legacy-water',
         );
 
+        // Test du helper DE PRODUCTION, pas une copie locale
         final updated = applyLegacyPathPatternSaveToManifest(
           manifest: initialManifest,
           preset: preset,
@@ -132,6 +114,9 @@ void main() {
         expect(updated.name, initialManifest.name);
         expect(updated.pathPresets, hasLength(1));
         expect(updated.pathPresets.first.id, 'legacy-water');
+        
+        // Preuve 3: Le manifest original n'est pas muté
+        expect(initialManifest.pathPatternPresets, isEmpty);
       });
 
       test('remplace un preset existant avec même id (upsert)', () {
@@ -216,6 +201,9 @@ void main() {
           updated.pathPatternPresets.first.centerPattern.size.height,
           2,
         );
+        
+        // Preuve: L'ancien manifest n'est pas muté
+        expect(manifestWithPreset.pathPatternPresets.first.name, 'Water V1');
       });
 
       test('preserve les autres presets lors de l\'ajout', () {

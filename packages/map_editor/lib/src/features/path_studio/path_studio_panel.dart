@@ -8,6 +8,7 @@ import '../editor/state/editor_selectors.dart';
 import 'path_pattern_draft.dart';
 import 'path_pattern_editor_read_model.dart';
 import 'path_studio_new_path_draft.dart';
+import 'path_studio_save_flow.dart';
 import 'path_studio_save_plan.dart';
 import 'path_studio_theme.dart';
 import 'path_studio_tileset_image_picker.dart';
@@ -33,7 +34,7 @@ class PathStudioWorkspace extends ConsumerWidget {
       onPathPatternPresetSaveRequested: (preset) {
         final currentManifest = ref.read(editorProjectManifestProvider);
         if (currentManifest == null) return;
-        final updatedManifest = upsertProjectPathPatternPreset(
+        final updatedManifest = applyLegacyPathPatternSaveToManifest(
           manifest: currentManifest,
           preset: preset,
         );
