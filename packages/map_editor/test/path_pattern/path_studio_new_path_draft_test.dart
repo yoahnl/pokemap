@@ -17,7 +17,8 @@ void main() {
       expect(draft.selectedCellX, 0);
       expect(draft.selectedCellY, 0);
       expect(draft.surfaceKind, PathSurfaceKind.path);
-      expect(draft.isDirty, isTrue);
+      // Lot PathPattern-40 : dirty uniquement après une action utilisateur.
+      expect(draft.isDirty, isFalse);
       expect(draft.cells.map((cell) => cell.label), ['A']);
       expect(draft.issues, [
         PathStudioNewPathDraftIssueCode.tilesetNotConfigured,
@@ -666,6 +667,7 @@ void main() {
       );
 
       expect(draft.isEditMode, isTrue);
+      expect(draft.isDirty, isFalse);
       expect(draft.id, 'base-water');
       expect(draft.pathPatternPresetId, 'water-pattern');
       expect(draft.name, 'Water pattern');
@@ -740,6 +742,115 @@ void main() {
       expect(draft.centerCellCount, 4);
       expect(draft.configuredCellCount, 4);
       expect(draft.issues, isEmpty);
+    });
+
+    group('Lot PathPattern-40 edit draft dirty', () {
+      PathStudioNewPathDraft sampleEditDraft() {
+        const base = ProjectPathPreset(
+          id: 'base-water',
+          name: 'Base water',
+          tilesetId: 'tileset-main',
+          surfaceKind: PathSurfaceKind.water,
+          variants: [
+            PathPresetVariantMapping(
+              variant: TerrainPathVariant.cross,
+              frames: [TilesetVisualFrame(source: TilesetSourceRect(x: 9, y: 9))],
+            ),
+          ],
+        );
+        final pattern = ProjectPathPatternPreset(
+          id: 'water-pattern',
+          name: 'Water pattern',
+          basePathPresetId: 'base-water',
+          centerPattern: PathCenterPattern(
+            size: PathCenterPatternSize(width: 1, height: 1),
+            cells: [
+              PathCenterPatternCell(
+                localX: 0,
+                localY: 0,
+                frames: [
+                  const TilesetVisualFrame(
+                    source: TilesetSourceRect(x: 3, y: 4),
+                    durationMs: 150,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+        return createPathStudioEditDraftFromExistingPathPattern(
+          pathPatternPreset: pattern,
+          basePathPreset: base,
+        );
+      }
+
+      test('rename marks dirty', () {
+        final renamed =
+            renamePathStudioNewPathDraft(sampleEditDraft(), 'Autre nom');
+        expect(renamed.isDirty, isTrue);
+      });
+
+      test('assign cell tile marks dirty', () {
+        final touched = assignPathStudioNewPathDraftCellTile(
+          draft: sampleEditDraft(),
+          localX: 0,
+          localY: 0,
+          sourceX: 9,
+          sourceY: 9,
+        );
+        expect(touched.isDirty, isTrue);
+      });
+
+      test('update frame duration marks dirty', () {
+        final touched = updatePathStudioNewPathDraftCenterFrameDuration(
+          draft: sampleEditDraft(),
+          localX: 0,
+          localY: 0,
+          frameIndex: 0,
+          durationMs: 400,
+        );
+        expect(touched.isDirty, isTrue);
+        expect(touched.cells.single.frames.single.durationMs, 400);
+      });
+
+      test('sequence assistant marks dirty', () {
+        final ok = generatePathStudioCenterAnimationSequence(
+          draft: sampleEditDraft(),
+          target: PathStudioCenterAnimationSequenceTarget.selectedCell,
+          frameCount: 2,
+          stepX: 1,
+          stepY: 0,
+          durationMs: 90,
+        );
+        expect(ok, isA<PathStudioCenterAnimationSequenceSuccess>());
+        expect((ok as PathStudioCenterAnimationSequenceSuccess).draft.isDirty,
+            isTrue);
+      });
+
+      test('clear cell marks dirty', () {
+        final cleared = clearPathStudioNewPathDraftCell(
+          draft: sampleEditDraft(),
+          localX: 0,
+          localY: 0,
+        );
+        expect(cleared.isDirty, isTrue);
+      });
+
+      test('remove frame marks dirty', () {
+        final twoFrames = appendPathStudioNewPathDraftCenterFrame(
+          draft: sampleEditDraft(),
+          localX: 0,
+          localY: 0,
+        );
+        expect(twoFrames.cells.single.frames.length, 2);
+        final removed = removePathStudioNewPathDraftCenterFrame(
+          draft: twoFrames,
+          localX: 0,
+          localY: 0,
+          frameIndex: 1,
+        );
+        expect(removed.isDirty, isTrue);
+      });
     });
   });
 

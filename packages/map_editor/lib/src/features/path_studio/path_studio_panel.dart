@@ -113,6 +113,10 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
   String? _pendingSavedPathPatternId;
   String? _pendingSavedSuccessMessage;
   String? _newPathCenterSeqFeedback;
+  String? _draftCancelFeedbackMessage;
+  bool _newPathCancelConfirmVisible = false;
+  int? _selectionSourceIndexBeforeNewPathDraft;
+  int? _editCancelRestoreSourceIndex;
 
   /// Index dans `readModel.presets`, pas id métier.
   ///
@@ -144,6 +148,10 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
           _pendingSavedPathPatternId = null;
           _pendingSavedSuccessMessage = null;
           _newPathCenterSeqFeedback = null;
+          _draftCancelFeedbackMessage = null;
+          _newPathCancelConfirmVisible = false;
+          _selectionSourceIndexBeforeNewPathDraft = null;
+          _editCancelRestoreSourceIndex = null;
           return;
         }
       }
@@ -158,6 +166,10 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
       _pendingSavedPathPatternId = null;
       _pendingSavedSuccessMessage = null;
       _newPathCenterSeqFeedback = null;
+      _draftCancelFeedbackMessage = null;
+      _newPathCancelConfirmVisible = false;
+      _selectionSourceIndexBeforeNewPathDraft = null;
+      _editCancelRestoreSourceIndex = null;
     }
   }
 
@@ -238,7 +250,29 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
                 hasEditPathSaveCallback: editPathSaveCallback != null,
                 hasLegacySaveCallback: legacySaveCallback != null,
               ),
+              showNewPathDraftCancel: selectedNewPathDraft != null &&
+                  _newPathDraftSelected,
+              cancelDraftLabel: selectedNewPathDraft?.isEditMode == true
+                  ? 'Annuler les modifications'
+                  : 'Annuler la création',
+              onCancelNewPathDraftPressed:
+                  selectedNewPathDraft != null && _newPathDraftSelected
+                      ? _requestCancelNewPathDraft
+                      : null,
             ),
+            if (_newPathCancelConfirmVisible &&
+                selectedNewPathDraft != null) ...[
+              const SizedBox(height: 10),
+              _DraftCancelConfirmationBanner(
+                isEditMode: selectedNewPathDraft.isEditMode,
+                onContinueEditing: _dismissNewPathDraftCancelConfirmation,
+                onConfirmDiscard: _confirmCancelNewPathDraft,
+              ),
+            ],
+            if (_draftCancelFeedbackMessage != null) ...[
+              const SizedBox(height: 10),
+              _DraftCancelFeedbackBanner(message: _draftCancelFeedbackMessage!),
+            ],
             if (_saveFeedbackMessage != null) ...[
               const SizedBox(height: 10),
               _SaveFeedbackBanner(message: _saveFeedbackMessage!),
@@ -425,12 +459,82 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
     return filtered.first;
   }
 
+  /// Efface le bandeau « annulation » et la confirmation sans toucher au manifest.
+  void _clearNewPathDraftTransientChrome() {
+    _newPathCancelConfirmVisible = false;
+    _draftCancelFeedbackMessage = null;
+  }
+
+  int? _findSourceIndexForPathPatternId(String pathPatternId) {
+    final readModel =
+        createPathPatternEditorReadModel(manifest: widget.manifest);
+    for (var i = 0; i < readModel.presets.length; i++) {
+      if (readModel.presets[i].id == pathPatternId) {
+        return i;
+      }
+    }
+    return null;
+  }
+
+  void _requestCancelNewPathDraft() {
+    final draft = _newPathDraft;
+    if (draft == null || !_newPathDraftSelected) {
+      return;
+    }
+    if (!draft.isDirty) {
+      _discardCurrentNewPathDraft();
+      return;
+    }
+    setState(() {
+      _newPathCancelConfirmVisible = true;
+      _draftCancelFeedbackMessage = null;
+    });
+  }
+
+  void _dismissNewPathDraftCancelConfirmation() {
+    setState(() => _newPathCancelConfirmVisible = false);
+  }
+
+  void _confirmCancelNewPathDraft() {
+    _discardCurrentNewPathDraft();
+  }
+
+  void _discardCurrentNewPathDraft() {
+    final draft = _newPathDraft;
+    if (draft == null) {
+      return;
+    }
+    final wasEditMode = draft.isEditMode;
+    setState(() {
+      _newPathDraft = null;
+      _newPathDraftSelected = false;
+      _newPathCancelConfirmVisible = false;
+      _newPathCenterSeqFeedback = null;
+      _saveFeedbackMessage = null;
+      if (wasEditMode) {
+        _selectedSourceIndex = _editCancelRestoreSourceIndex;
+        _editCancelRestoreSourceIndex = null;
+        _selectionSourceIndexBeforeNewPathDraft = null;
+        _draftCancelFeedbackMessage = 'Modifications annulées.';
+      } else {
+        _selectedSourceIndex = _selectionSourceIndexBeforeNewPathDraft;
+        _selectionSourceIndexBeforeNewPathDraft = null;
+        _editCancelRestoreSourceIndex = null;
+        _draftCancelFeedbackMessage = 'Brouillon annulé.';
+      }
+    });
+  }
+
   void _createNewPathDraft() {
     setState(() {
+      if (!_newPathDraftSelected) {
+        _selectionSourceIndexBeforeNewPathDraft = _selectedSourceIndex;
+      }
       _newPathDraft = createInitialPathStudioNewPathDraft();
       _newPathDraftSelected = true;
       _draftSelected = false;
       _draftMessage = null;
+      _clearNewPathDraftTransientChrome();
       _saveFeedbackMessage = null;
       _newPathCenterSeqFeedback = null;
       _pendingSavedPathPatternId = null;
@@ -443,6 +547,9 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
       return;
     }
     setState(() {
+      _clearNewPathDraftTransientChrome();
+      _editCancelRestoreSourceIndex =
+          _findSourceIndexForPathPatternId(preset.id);
       _newPathDraft = createPathStudioEditDraftFromExistingPathPattern(
         pathPatternPreset: preset,
         basePathPreset: resolution.basePathPreset!,
@@ -502,6 +609,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
     }
     setState(() {
       _newPathDraft = renamePathStudioNewPathDraft(draft, name);
+      _clearNewPathDraftTransientChrome();
       _saveFeedbackMessage = null;
       _newPathCenterSeqFeedback = null;
     });
@@ -518,6 +626,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         width: width,
         height: height,
       );
+      _clearNewPathDraftTransientChrome();
       _saveFeedbackMessage = null;
       _newPathCenterSeqFeedback = null;
     });
@@ -530,6 +639,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
     }
     setState(() {
       _newPathDraft = selectPathStudioNewPathDraftTileset(draft, tilesetId);
+      _clearNewPathDraftTransientChrome();
       _saveFeedbackMessage = null;
       _newPathCenterSeqFeedback = null;
     });
@@ -545,6 +655,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         draft: draft,
         surfaceKind: surfaceKind,
       );
+      _clearNewPathDraftTransientChrome();
       _saveFeedbackMessage = null;
       _newPathCenterSeqFeedback = null;
     });
@@ -561,6 +672,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         localX: localX,
         localY: localY,
       );
+      _clearNewPathDraftTransientChrome();
       _saveFeedbackMessage = null;
       _newPathCenterSeqFeedback = null;
     });
@@ -587,6 +699,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
               sourceX: sourceX,
               sourceY: sourceY,
             );
+      _clearNewPathDraftTransientChrome();
       _saveFeedbackMessage = null;
       _newPathCenterSeqFeedback = null;
     });
@@ -604,6 +717,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         localY: draft.selectedCellY,
         frameIndex: frameIndex,
       );
+      _clearNewPathDraftTransientChrome();
       _saveFeedbackMessage = null;
       _newPathCenterSeqFeedback = null;
     });
@@ -620,6 +734,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         localX: draft.selectedCellX,
         localY: draft.selectedCellY,
       );
+      _clearNewPathDraftTransientChrome();
       _saveFeedbackMessage = null;
       _newPathCenterSeqFeedback = null;
     });
@@ -637,6 +752,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         localY: draft.selectedCellY,
         frameIndex: frameIndex,
       );
+      _clearNewPathDraftTransientChrome();
       _saveFeedbackMessage = null;
       _newPathCenterSeqFeedback = null;
     });
@@ -655,6 +771,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         frameIndex: frameIndex,
         durationMs: durationMs,
       );
+      _clearNewPathDraftTransientChrome();
       _saveFeedbackMessage = null;
       _newPathCenterSeqFeedback = null;
     });
@@ -671,6 +788,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         localX: localX,
         localY: localY,
       );
+      _clearNewPathDraftTransientChrome();
       _saveFeedbackMessage = null;
       _newPathCenterSeqFeedback = null;
     });
@@ -686,6 +804,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         draft: draft,
         variant: variant,
       );
+      _clearNewPathDraftTransientChrome();
       _saveFeedbackMessage = null;
       _newPathCenterSeqFeedback = null;
     });
@@ -701,6 +820,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         draft: draft,
         variant: variant,
       );
+      _clearNewPathDraftTransientChrome();
       _saveFeedbackMessage = null;
       _newPathCenterSeqFeedback = null;
     });
@@ -726,6 +846,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
       durationMs: durationMs,
     );
     setState(() {
+      _clearNewPathDraftTransientChrome();
       switch (result) {
         case PathStudioCenterAnimationSequenceSuccess(:final draft, :final message):
           _newPathDraft = draft;
@@ -992,6 +1113,137 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
   }
 }
 
+class _DraftCancelFeedbackBanner extends StatelessWidget {
+  const _DraftCancelFeedbackBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('path-studio-draft-cancel-feedback'),
+      decoration: PathStudioTheme.panelDecoration(
+        color: PathStudioTheme.warning.withValues(alpha: 0.14),
+        radius: 14,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Row(
+        children: [
+          const MacosIcon(
+            CupertinoIcons.info,
+            size: 16,
+            color: PathStudioTheme.warning,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: PathStudioTheme.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Confirmation Lot PathPattern-40 : abandon du brouillon avec perte des edits locaux.
+class _DraftCancelConfirmationBanner extends StatelessWidget {
+  const _DraftCancelConfirmationBanner({
+    required this.isEditMode,
+    required this.onContinueEditing,
+    required this.onConfirmDiscard,
+  });
+
+  final bool isEditMode;
+  final VoidCallback onContinueEditing;
+  final VoidCallback onConfirmDiscard;
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = isEditMode
+        ? 'Annuler ces modifications restaurera le chemin sauvegardé.'
+        : 'Annuler ce brouillon supprimera le nouveau chemin non appliqué.';
+    return Container(
+      key: const Key('path-studio-cancel-draft-confirmation'),
+      decoration: PathStudioTheme.panelDecoration(
+        color: PathStudioTheme.warning.withValues(alpha: 0.12),
+        radius: 14,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Des modifications non appliquées seront perdues.',
+            style: TextStyle(
+              color: PathStudioTheme.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            secondary,
+            style: const TextStyle(
+              color: PathStudioTheme.textSecondary,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              CupertinoButton(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                minimumSize: Size.zero,
+                onPressed: onContinueEditing,
+                color: PathStudioTheme.surfaceStrong,
+                borderRadius: BorderRadius.circular(12),
+                child: const Text(
+                  'Continuer l’édition',
+                  style: TextStyle(
+                    color: PathStudioTheme.textPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              CupertinoButton(
+                key: const Key('path-studio-cancel-draft-confirm-button'),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                minimumSize: Size.zero,
+                onPressed: onConfirmDiscard,
+                color: PathStudioTheme.warning.withValues(alpha: 0.88),
+                borderRadius: BorderRadius.circular(12),
+                child: Text(
+                  isEditMode
+                      ? 'Annuler les modifications'
+                      : 'Annuler la création',
+                  style: const TextStyle(
+                    color: Color(0xFF1A1528),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SaveFeedbackBanner extends StatelessWidget {
   const _SaveFeedbackBanner({required this.message});
 
@@ -1147,6 +1399,9 @@ class _PathStudioHeader extends StatelessWidget {
     required this.onSavePressed,
     required this.saveButtonLabel,
     required this.saveHint,
+    required this.showNewPathDraftCancel,
+    required this.cancelDraftLabel,
+    this.onCancelNewPathDraftPressed,
   });
 
   final PathPatternEditorSummary summary;
@@ -1155,6 +1410,9 @@ class _PathStudioHeader extends StatelessWidget {
   final VoidCallback? onSavePressed;
   final String saveButtonLabel;
   final String saveHint;
+  final bool showNewPathDraftCancel;
+  final String cancelDraftLabel;
+  final VoidCallback? onCancelNewPathDraftPressed;
 
   @override
   Widget build(BuildContext context) {
@@ -1241,6 +1499,17 @@ class _PathStudioHeader extends StatelessWidget {
                   label: 'Dupliquer',
                   hint: 'lot futur',
                 ),
+                if (showNewPathDraftCancel &&
+                    onCancelNewPathDraftPressed != null)
+                  _ShellActionButton(
+                    icon: CupertinoIcons.xmark_circle_fill,
+                    label: cancelDraftLabel,
+                    hint: 'sans appliquer au projet',
+                    buttonKey: const Key('path-studio-cancel-draft-button'),
+                    onPressed: onCancelNewPathDraftPressed,
+                    backgroundColor: PathStudioTheme.surfaceStrong,
+                    foregroundColor: PathStudioTheme.warning,
+                  ),
                 _ShellActionButton(
                   icon: CupertinoIcons.floppy_disk,
                   label: saveButtonLabel,
@@ -1308,6 +1577,8 @@ class _ShellActionButton extends StatelessWidget {
     this.hint = 'lot futur',
     this.buttonKey,
     this.onPressed,
+    this.backgroundColor,
+    this.foregroundColor,
   });
 
   final IconData icon;
@@ -1315,25 +1586,38 @@ class _ShellActionButton extends StatelessWidget {
   final String hint;
   final Key? buttonKey;
   final VoidCallback? onPressed;
+  final Color? backgroundColor;
+  final Color? foregroundColor;
 
   @override
   Widget build(BuildContext context) {
+    final bg = backgroundColor ?? PathStudioTheme.accent;
+    final fg = foregroundColor;
+    final titleColor = onPressed == null
+        ? PathStudioTheme.textSecondary.withValues(alpha: 0.7)
+        : (fg ?? CupertinoColors.white);
+    final subtitleColor = onPressed == null
+        ? PathStudioTheme.textMuted
+        : (fg?.withValues(alpha: 0.85) ??
+            CupertinoColors.white.withValues(alpha: 0.72));
+    final iconColor = onPressed == null
+        ? PathStudioTheme.textMuted.withValues(alpha: 0.72)
+        : (fg ?? CupertinoColors.white);
+
     return CupertinoButton(
       key: buttonKey,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       minimumSize: Size.zero,
       onPressed: onPressed,
       disabledColor: PathStudioTheme.surfaceRaised.withValues(alpha: 0.72),
-      color: PathStudioTheme.accent,
+      color: bg,
       borderRadius: BorderRadius.circular(13),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           MacosIcon(
             icon,
-            color: onPressed == null
-                ? PathStudioTheme.textMuted.withValues(alpha: 0.72)
-                : CupertinoColors.white,
+            color: iconColor,
             size: 15,
           ),
           const SizedBox(width: 8),
@@ -1343,9 +1627,7 @@ class _ShellActionButton extends StatelessWidget {
               Text(
                 label,
                 style: TextStyle(
-                  color: onPressed == null
-                      ? PathStudioTheme.textSecondary.withValues(alpha: 0.7)
-                      : CupertinoColors.white,
+                  color: titleColor,
                   fontSize: 12,
                   fontWeight: FontWeight.w800,
                 ),
@@ -1353,9 +1635,7 @@ class _ShellActionButton extends StatelessWidget {
               Text(
                 hint,
                 style: TextStyle(
-                  color: onPressed == null
-                      ? PathStudioTheme.textMuted
-                      : CupertinoColors.white.withValues(alpha: 0.72),
+                  color: subtitleColor,
                   fontSize: 9,
                   fontWeight: FontWeight.w700,
                 ),

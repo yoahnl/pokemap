@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/path_studio/path_studio_panel.dart';
+import 'package:map_editor/src/features/path_studio/path_studio_edit_path_build_request.dart';
 import 'package:map_editor/src/features/path_studio/path_studio_new_path_build_request.dart';
 import 'package:map_editor/src/features/path_studio/path_studio_save_flow.dart';
 import 'package:path/path.dart' as p;
@@ -420,6 +421,254 @@ void main() {
         find.byKey(const Key('path-studio-new-path-cell-0-0')),
         findsOneWidget,
       );
+    });
+
+    group('PathPattern-40 draft cancel / revert safety', () {
+      testWidgets(
+          'new path draft header shows Annuler la création while editing',
+          (tester) async {
+        await _pumpPathStudio(
+          tester,
+          manifest: _manifest(),
+        );
+
+        await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+        await _pumpPathStudioAsync(tester);
+
+        expect(
+          find.byKey(const Key('path-studio-cancel-draft-button')),
+          findsOneWidget,
+        );
+        expect(find.text('Annuler la création'), findsWidgets);
+      });
+
+      testWidgets(
+          'cancel new path draft without edits skips confirmation and clears draft',
+          (tester) async {
+        var applyNewCount = 0;
+        var applyEditCount = 0;
+        await _pumpPathStudio(
+          tester,
+          manifest: _manifest(),
+          onNewPathSaveRequested: (_) => applyNewCount += 1,
+          onEditPathSaveRequested: (_) => applyEditCount += 1,
+        );
+
+        await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+        await _pumpPathStudioAsync(tester);
+
+        await tester.tap(
+          find.byKey(const Key('path-studio-cancel-draft-button')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('path-studio-cancel-draft-confirmation')),
+          findsNothing,
+        );
+        expect(find.text('Brouillon annulé.'), findsOneWidget);
+        expect(find.text('Brouillon nouveau chemin'), findsNothing);
+        expect(applyNewCount, 0);
+        expect(applyEditCount, 0);
+      });
+
+      testWidgets(
+          'cancel new path draft after tileset change asks confirmation then discards',
+          (tester) async {
+        var applyNewCount = 0;
+        await _pumpPathStudio(
+          tester,
+          manifest: _manifest(
+            tilesets: [
+              _tileset(id: 'tileset-main', name: 'Chemins principaux'),
+            ],
+          ),
+          onNewPathSaveRequested: (_) => applyNewCount += 1,
+        );
+
+        await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+        await _pumpPathStudioAsync(tester);
+
+        tester
+            .widget<MacosPopupButton<String>>(
+              find.byKey(const Key('path-studio-new-path-tileset-popup')),
+            )
+            .onChanged
+            ?.call('tileset-main');
+        await tester.pumpAndSettle();
+
+        await tester.tap(
+          find.byKey(const Key('path-studio-cancel-draft-button')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('path-studio-cancel-draft-confirmation')),
+          findsOneWidget,
+        );
+        expect(
+          find.text('Des modifications non appliquées seront perdues.'),
+          findsOneWidget,
+        );
+
+        await tester.tap(
+          find.byKey(const Key('path-studio-cancel-draft-confirm-button')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('path-studio-cancel-draft-confirmation')),
+          findsNothing,
+        );
+        expect(find.text('Brouillon annulé.'), findsOneWidget);
+        expect(applyNewCount, 0);
+      });
+
+      testWidgets('edit mode shows Annuler les modifications in header',
+          (tester) async {
+        await _pumpPathStudio(
+          tester,
+          manifest: _manifest(
+            pathPresets: [
+              _legacyPathPreset(
+                id: 'legacy-water',
+                name: 'Base eau',
+                tilesetId: 'tileset-main',
+              ),
+            ],
+            tilesets: [
+              _tileset(id: 'tileset-main', name: 'Chemins principaux'),
+            ],
+            pathPatternPresets: [
+              _pathPatternPreset(
+                id: 'water-sea-2x2',
+                name: 'Mer 2x2',
+                pattern: _twoByTwoPattern(animatedTopLeft: true),
+              ),
+            ],
+          ),
+        );
+
+        await tester.tap(find.byKey(const Key('path-studio-preset-card-0')));
+        await tester.pumpAndSettle();
+        await tester
+            .tap(find.byKey(const Key('path-studio-saved-preset-edit-button')));
+        await _pumpPathStudioAsync(tester);
+
+        expect(find.text('Annuler les modifications'), findsWidgets);
+        expect(
+          find.byKey(const Key('path-studio-cancel-draft-button')),
+          findsOneWidget,
+        );
+      });
+
+      testWidgets(
+          'cancel edit draft after rename restores read-only and does not apply',
+          (tester) async {
+        var applyEditCount = 0;
+        var applyNewCount = 0;
+        await _pumpPathStudio(
+          tester,
+          manifest: _manifest(
+            pathPresets: [
+              _legacyPathPreset(
+                id: 'legacy-water',
+                name: 'Base eau',
+                tilesetId: 'tileset-main',
+              ),
+            ],
+            tilesets: [
+              _tileset(id: 'tileset-main', name: 'Chemins principaux'),
+            ],
+            pathPatternPresets: [
+              _pathPatternPreset(
+                id: 'water-sea-2x2',
+                name: 'Mer 2x2',
+                pattern: _twoByTwoPattern(animatedTopLeft: true),
+              ),
+            ],
+          ),
+          onEditPathSaveRequested: (_) => applyEditCount += 1,
+          onNewPathSaveRequested: (_) => applyNewCount += 1,
+        );
+
+        await tester.tap(find.byKey(const Key('path-studio-preset-card-0')));
+        await tester.pumpAndSettle();
+        await tester
+            .tap(find.byKey(const Key('path-studio-saved-preset-edit-button')));
+        await _pumpPathStudioAsync(tester);
+
+        await tester.enterText(
+          find.byKey(const Key('path-studio-new-path-name-field')),
+          'Nom hack lot40',
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(
+          find.byKey(const Key('path-studio-cancel-draft-button')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('path-studio-cancel-draft-confirmation')),
+          findsOneWidget,
+        );
+
+        await tester.tap(
+          find.byKey(const Key('path-studio-cancel-draft-confirm-button')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('Modifications annulées.'), findsOneWidget);
+        expect(find.text('PathPattern sauvegardé'), findsOneWidget);
+        expect(find.text('Mer 2x2'), findsWidgets);
+        expect(find.text('Nom hack lot40'), findsNothing);
+        expect(applyEditCount, 0);
+        expect(applyNewCount, 0);
+      });
+
+      testWidgets(
+          'dirty cancel confirmation Continuer l’édition keeps draft open',
+          (tester) async {
+        await _pumpPathStudio(
+          tester,
+          manifest: _manifest(
+            tilesets: [
+              _tileset(id: 'tileset-main', name: 'Chemins principaux'),
+            ],
+          ),
+        );
+
+        await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+        await _pumpPathStudioAsync(tester);
+
+        tester
+            .widget<MacosPopupButton<String>>(
+              find.byKey(const Key('path-studio-new-path-tileset-popup')),
+            )
+            .onChanged
+            ?.call('tileset-main');
+        await tester.pumpAndSettle();
+
+        await tester.tap(
+          find.byKey(const Key('path-studio-cancel-draft-button')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('path-studio-cancel-draft-confirmation')),
+          findsOneWidget,
+        );
+
+        await tester.tap(find.text('Continuer l’édition'));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('path-studio-cancel-draft-confirmation')),
+          findsNothing,
+        );
+        expect(find.text('Brouillon nouveau chemin'), findsWidgets);
+      });
     });
 
     testWidgets('new path draft does not force existing legacy path choices',
@@ -1902,6 +2151,7 @@ Future<void> _pumpPathStudio(
   String? projectRootPath,
   ValueChanged<ProjectPathPatternPreset>? onPathPatternPresetSaveRequested,
   ValueChanged<PathStudioNewPathBuildRequest>? onNewPathSaveRequested,
+  ValueChanged<PathStudioEditPathBuildRequest>? onEditPathSaveRequested,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1440, 920));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -1919,6 +2169,7 @@ Future<void> _pumpPathStudio(
                 onPathPatternPresetSaveRequested:
                     onPathPatternPresetSaveRequested,
                 onNewPathSaveRequested: onNewPathSaveRequested,
+                onEditPathSaveRequested: onEditPathSaveRequested,
               );
             },
           ),

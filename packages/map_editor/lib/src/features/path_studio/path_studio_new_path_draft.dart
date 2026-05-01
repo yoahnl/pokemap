@@ -404,7 +404,8 @@ PathStudioNewPathDraft createInitialPathStudioNewPathDraft() {
     selectedTarget: PathStudioNewPathDraftSelectionTarget.centerCell,
     surfaceKind: PathSurfaceKind.path,
     mode: PathStudioPathDraftMode.create,
-    isDirty: true,
+    // Lot PathPattern-40 : pas « dirty » tant que l’utilisateur n’a pas modifié.
+    isDirty: false,
   );
 }
 
