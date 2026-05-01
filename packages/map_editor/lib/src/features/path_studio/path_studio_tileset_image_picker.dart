@@ -253,6 +253,7 @@ class PathStudioTileSpritePreview extends StatefulWidget {
     required this.settings,
     required this.tile,
     required this.fallback,
+    this.thumbnailKey,
   });
 
   final String? projectRootPath;
@@ -260,6 +261,7 @@ class PathStudioTileSpritePreview extends StatefulWidget {
   final ProjectSettings settings;
   final PathStudioNewPathDraftTile tile;
   final Widget fallback;
+  final Key? thumbnailKey;
 
   @override
   State<PathStudioTileSpritePreview> createState() =>
@@ -319,7 +321,7 @@ class _PathStudioTileSpritePreviewState
           return widget.fallback;
         }
         return _TileSpritePreview(
-          key: const Key('path-studio-tile-preview-image'),
+          key: widget.thumbnailKey,
           image: image,
           tile: widget.tile,
         );
@@ -340,11 +342,11 @@ class _TileSpritePreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const previewWidth = 46.0;
-    const previewHeight = 28.0;
+    const previewSize = 46.0;
+    final tileBytes = _extractTilePngBytes(image: image, tile: tile);
     return Container(
-      width: previewWidth,
-      height: previewHeight,
+      width: previewSize,
+      height: previewSize,
       decoration: BoxDecoration(
         color: PathStudioTheme.backgroundAlt,
         borderRadius: BorderRadius.circular(8),
@@ -353,24 +355,98 @@ class _TileSpritePreview extends StatelessWidget {
         ),
       ),
       clipBehavior: Clip.antiAlias,
-      child: ClipRect(
-        child: Transform.translate(
-          offset: Offset(
-            -tile.sourceX * previewWidth,
-            -tile.sourceY * previewHeight,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          const _TilePreviewCheckerboard(
+            key: Key('path-studio-tile-preview-checkerboard'),
           ),
-          child: Image.memory(
-            image.bytes,
-            width: image.columns * previewWidth,
-            height: image.rows * previewHeight,
-            fit: BoxFit.fill,
-            filterQuality: FilterQuality.none,
-            gaplessPlayback: true,
-          ),
-        ),
+          if (tileBytes != null)
+            Image.memory(
+              tileBytes,
+              key: const Key('path-studio-tile-preview-image'),
+              fit: BoxFit.cover,
+              filterQuality: FilterQuality.none,
+              gaplessPlayback: true,
+            ),
+        ],
       ),
     );
   }
+}
+
+Uint8List? _extractTilePngBytes({
+  required PathStudioResolvedTilesetImage image,
+  required PathStudioNewPathDraftTile tile,
+}) {
+  final decoded = img.decodePng(image.bytes);
+  if (decoded == null) {
+    return null;
+  }
+  final sourceX = tile.sourceX * image.tileWidthPx;
+  final sourceY = tile.sourceY * image.tileHeightPx;
+  if (sourceX < 0 ||
+      sourceY < 0 ||
+      sourceX + image.tileWidthPx > decoded.width ||
+      sourceY + image.tileHeightPx > decoded.height) {
+    return null;
+  }
+  final tileImage = img.copyCrop(
+    decoded,
+    x: sourceX,
+    y: sourceY,
+    width: image.tileWidthPx,
+    height: image.tileHeightPx,
+  );
+  return Uint8List.fromList(img.encodePng(tileImage));
+}
+
+class _TilePreviewCheckerboard extends StatelessWidget {
+  const _TilePreviewCheckerboard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const CustomPaint(
+      painter: _TilePreviewCheckerboardPainter(),
+    );
+  }
+}
+
+class _TilePreviewCheckerboardPainter extends CustomPainter {
+  const _TilePreviewCheckerboardPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const cell = 6.0;
+    final dark = Paint()..color = PathStudioTheme.backgroundAlt;
+    final light = Paint()
+      ..color = PathStudioTheme.borderStrong.withValues(alpha: 0.28);
+    var y = 0.0;
+    var row = 0;
+    while (y < size.height) {
+      var x = 0.0;
+      var col = 0;
+      while (x < size.width) {
+        canvas.drawRect(
+          Rect.fromLTWH(
+            x,
+            y,
+            cell <= size.width - x ? cell : size.width - x,
+            cell <= size.height - y ? cell : size.height - y,
+          ),
+          (row + col).isEven ? dark : light,
+        );
+        x += cell;
+        col += 1;
+      }
+      y += cell;
+      row += 1;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _TilePreviewCheckerboardPainter oldDelegate) =>
+      false;
 }
 
 class _LoadedTilesetImagePicker extends StatefulWidget {

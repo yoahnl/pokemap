@@ -38,7 +38,8 @@ class PathStudioWorkspace extends ConsumerWidget {
           manifest: currentManifest,
           preset: preset,
         );
-        ref.read(editorNotifierProvider.notifier)
+        ref
+            .read(editorNotifierProvider.notifier)
             .applyInMemoryProjectManifest(updatedManifest);
       },
     );
@@ -1852,7 +1853,7 @@ class _NewPathPatternCell extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: 112,
-        height: 118,
+        height: 136,
         margin: const EdgeInsets.all(6),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
@@ -1883,13 +1884,14 @@ class _NewPathPatternCell extends StatelessWidget {
             const Spacer(),
             if (tile != null)
               _TilePreviewBadge(
+                cellLabel: cell.label,
                 tilesets: tilesets,
                 settings: settings,
                 projectRootPath: projectRootPath,
                 tile: tile,
               )
             else
-              const _EmptyTileBadge(),
+              _EmptyTileBadge(cellLabel: cell.label),
             const SizedBox(height: 6),
             Text(
               tile == null ? 'À configurer' : 'Configurée',
@@ -1995,12 +1997,14 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
 
 class _TilePreviewBadge extends StatelessWidget {
   const _TilePreviewBadge({
+    required this.cellLabel,
     required this.tilesets,
     required this.settings,
     required this.projectRootPath,
     required this.tile,
   });
 
+  final String cellLabel;
   final List<ProjectTilesetEntry> tilesets;
   final ProjectSettings settings;
   final String? projectRootPath;
@@ -2009,42 +2013,66 @@ class _TilePreviewBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fallback = Container(
-      width: 46,
-      height: 28,
       decoration: BoxDecoration(
         color: PathStudioTheme.success.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(8),
         border:
             Border.all(color: PathStudioTheme.success.withValues(alpha: 0.5)),
       ),
-      alignment: Alignment.center,
-      child: Text(
-        tile.coordinateLabel,
-        style: const TextStyle(
-          color: PathStudioTheme.textPrimary,
-          fontSize: 10,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
     );
-    return PathStudioTileSpritePreview(
-      projectRootPath: projectRootPath,
-      tilesets: tilesets,
-      settings: settings,
-      tile: tile,
-      fallback: fallback,
+    return SizedBox(
+      key: Key('path-studio-cell-thumbnail-$cellLabel'),
+      width: 46,
+      height: 46,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: PathStudioTileSpritePreview(
+              projectRootPath: projectRootPath,
+              tilesets: tilesets,
+              settings: settings,
+              tile: tile,
+              fallback: fallback,
+              thumbnailKey: Key('path-studio-cell-thumbnail-image-$cellLabel'),
+            ),
+          ),
+          Positioned(
+            left: 4,
+            bottom: 4,
+            child: Container(
+              key: Key('path-studio-cell-thumbnail-label-$cellLabel'),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              decoration: BoxDecoration(
+                color: PathStudioTheme.background.withValues(alpha: 0.78),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                tile.coordinateLabel,
+                style: const TextStyle(
+                  color: PathStudioTheme.textPrimary,
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
 class _EmptyTileBadge extends StatelessWidget {
-  const _EmptyTileBadge();
+  const _EmptyTileBadge({required this.cellLabel});
+
+  final String cellLabel;
 
   @override
   Widget build(BuildContext context) {
     return Container(
+      key: Key('path-studio-cell-thumbnail-$cellLabel'),
       width: 46,
-      height: 28,
+      height: 46,
       decoration: BoxDecoration(
         color: PathStudioTheme.backgroundAlt,
         borderRadius: BorderRadius.circular(8),
@@ -2755,7 +2783,34 @@ class _NewPathSaveStatusCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           const Text(
-            'Le centre peut être préparé localement, mais un nouveau chemin complet doit encore définir ses bords, coins et jonctions.',
+            'Configuration des bords à venir',
+            style: TextStyle(
+              color: PathStudioTheme.textPrimary,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Le centre du chemin est prêt.',
+            style: TextStyle(
+              color: PathStudioTheme.textSecondary,
+              fontSize: 12,
+              height: 1.35,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const Text(
+            'La configuration des bords, coins et jonctions arrivera dans un prochain lot.',
+            style: TextStyle(
+              color: PathStudioTheme.textSecondary,
+              fontSize: 12,
+              height: 1.35,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const Text(
+            'Pour l’instant, seul le flux "Depuis un path existant" peut être sauvegardé.',
             style: TextStyle(
               color: PathStudioTheme.textSecondary,
               fontSize: 12,

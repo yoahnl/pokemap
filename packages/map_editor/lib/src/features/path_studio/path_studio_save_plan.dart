@@ -211,7 +211,7 @@ String pathStudioSaveIssueLabel(PathStudioSaveIssueCode issue) {
       'Cellules du centre à configurer',
     PathStudioSaveIssueCode.basePathPresetRequired => 'Path de base requis',
     PathStudioSaveIssueCode.pathVariantMappingRequired =>
-      'Bords / coins / jonctions à définir',
+      'Configuration des bords à venir',
     PathStudioSaveIssueCode.duplicatePathPatternId =>
       'ID PathPattern déjà utilisé',
   };
@@ -228,7 +228,7 @@ String pathStudioSaveIssueDescription(PathStudioSaveIssueCode issue) {
     PathStudioSaveIssueCode.basePathPresetRequired =>
       'Le motif legacy doit référencer un path existant du projet.',
     PathStudioSaveIssueCode.pathVariantMappingRequired =>
-      'Le centre est préparé localement, mais les bords, coins et jonctions du chemin complet restent à définir.',
+      'Le centre est préparé localement. La configuration des bords, coins et jonctions arrivera dans un prochain lot.',
     PathStudioSaveIssueCode.duplicatePathPatternId =>
       'L’identifiant proposé entre en collision avec un id déjà présent dans le projet.',
   };

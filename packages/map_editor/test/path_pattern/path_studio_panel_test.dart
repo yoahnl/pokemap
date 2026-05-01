@@ -277,6 +277,22 @@ void main() {
 
       expect(find.text('Tuile 2,1'), findsWidgets);
       expect(find.text('Cellules à configurer'), findsNothing);
+      final fallbackThumbSize = tester.getSize(
+        find.byKey(const Key('path-studio-cell-thumbnail-A')),
+      );
+      expect(fallbackThumbSize.width, 46);
+      expect(fallbackThumbSize.height, 46);
+      expect(
+        find.byKey(const Key('path-studio-cell-thumbnail-label-A')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('path-studio-cell-thumbnail-A')),
+          matching: find.text('2,1'),
+        ),
+        findsOneWidget,
+      );
     });
 
     testWidgets('image-backed tileset picker assigns the active cell',
@@ -350,6 +366,30 @@ void main() {
 
       expect(find.text('Tuile 2,1'), findsWidgets);
       expect(find.text('Cellules à configurer'), findsNothing);
+      final imageThumbSize = tester.getSize(
+        find.byKey(const Key('path-studio-cell-thumbnail-A')),
+      );
+      expect(imageThumbSize.width, 46);
+      expect(imageThumbSize.height, 46);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('path-studio-cell-thumbnail-A')),
+          matching: find.byKey(const Key('path-studio-tile-preview-image')),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('path-studio-cell-thumbnail-A')),
+          matching:
+              find.byKey(const Key('path-studio-tile-preview-checkerboard')),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('path-studio-cell-thumbnail-label-A')),
+        findsOneWidget,
+      );
     });
 
     testWidgets('image-backed picker fills all 2x2 cells and supports clear',
@@ -652,7 +692,17 @@ void main() {
       expect(find.text('Sauvegarde'), findsWidgets);
       expect(find.text('Brouillon de nouveau chemin'), findsWidgets);
       expect(find.text('Sauvegarde non disponible dans ce lot'), findsWidgets);
-      expect(find.text('Bords / coins / jonctions à définir'), findsWidgets);
+      expect(find.text('Configuration des bords à venir'), findsWidgets);
+      expect(
+        find.text(
+            'La configuration des bords, coins et jonctions arrivera dans un prochain lot.'),
+        findsWidgets,
+      );
+      expect(
+        find.text(
+            'Pour l’instant, seul le flux "Depuis un path existant" peut être sauvegardé.'),
+        findsWidgets,
+      );
 
       final saveButton = tester.widget<CupertinoButton>(
         find.byKey(const Key('path-studio-save-button')),
@@ -682,7 +732,7 @@ void main() {
 
       expect(find.text('Centre prêt'), findsWidgets);
       expect(find.text('Cellules du centre à configurer'), findsNothing);
-      expect(find.text('Bords / coins / jonctions à définir'), findsWidgets);
+      expect(find.text('Configuration des bords à venir'), findsWidgets);
 
       final saveButton = tester.widget<CupertinoButton>(
         find.byKey(const Key('path-studio-save-button')),
@@ -744,7 +794,8 @@ void main() {
                         onPathPatternPresetSaveRequested: (preset) {
                           callbackCount += 1;
                           setParentState(() {
-                            parentManifest = applyLegacyPathPatternSaveToManifest(
+                            parentManifest =
+                                applyLegacyPathPatternSaveToManifest(
                               manifest: parentManifest,
                               preset: preset,
                             );
@@ -776,7 +827,8 @@ void main() {
 
       expect(callbackCount, 1);
       expect(
-        parentManifest.pathPatternPresets.any((preset) => preset.id == 'motif-eau'),
+        parentManifest.pathPatternPresets
+            .any((preset) => preset.id == 'motif-eau'),
         isTrue,
       );
       expect(find.byKey(const Key('path-studio-draft-card')), findsNothing);
