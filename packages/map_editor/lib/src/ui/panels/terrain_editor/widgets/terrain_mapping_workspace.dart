@@ -1242,10 +1242,24 @@ class _TilesetRectSelectionPainter extends CustomPainter {
   }
 }
 
-class _TerrainTilesetImageCache {
-  static final Map<String, Future<ui.Image?>> _cache = {};
+class _TerrainTilesetImageAsset {
+  const _TerrainTilesetImageAsset({
+    required this.bytes,
+    required this.image,
+  });
 
-  static Future<ui.Image?> load(String? path) {
+  final Uint8List bytes;
+  final ui.Image image;
+}
+
+class _TerrainTilesetImageCache {
+  static final Map<String, Future<_TerrainTilesetImageAsset?>> _cache = {};
+
+  static Future<ui.Image?> load(String? path) async {
+    return (await loadAsset(path))?.image;
+  }
+
+  static Future<_TerrainTilesetImageAsset?> loadAsset(String? path) {
     if (path == null || path.isEmpty) {
       return Future.value(null);
     }
@@ -1259,12 +1273,24 @@ class _TerrainTilesetImageCache {
         if (bytes.isEmpty) {
           return null;
         }
-        final codec = await ui.instantiateImageCodec(bytes);
-        final frame = await codec.getNextFrame();
-        return frame.image;
+        final image = await decodeBytes(bytes);
+        if (image == null) {
+          return null;
+        }
+        return _TerrainTilesetImageAsset(bytes: bytes, image: image);
       } catch (_) {
         return null;
       }
     });
+  }
+
+  static Future<ui.Image?> decodeBytes(Uint8List bytes) async {
+    try {
+      final codec = await ui.instantiateImageCodec(bytes);
+      final frame = await codec.getNextFrame();
+      return frame.image;
+    } catch (_) {
+      return null;
+    }
   }
 }

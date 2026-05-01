@@ -1003,10 +1003,11 @@ Future<TilesetSourceRect?> _showTilesetRectPickerDialog(
   if (path == null) {
     return null;
   }
-  final image = await _TerrainTilesetImageCache.load(path);
-  if (image == null) {
+  final imageAsset = await _TerrainTilesetImageCache.loadAsset(path);
+  if (imageAsset == null) {
     return null;
   }
+  final image = imageAsset.image;
   if (settings.tileWidth <= 0 || settings.tileHeight <= 0) {
     return null;
   }
@@ -1167,13 +1168,12 @@ GridPos _gridFromPickerLocal(
   int columns,
   int rows,
 ) {
-  final maxX = math.max(0.0, columns * cellWidth - 0.000001);
-  final maxY = math.max(0.0, rows * cellHeight - 0.000001);
-  final dx = localPosition.dx.clamp(0.0, maxX).toDouble();
-  final dy = localPosition.dy.clamp(0.0, maxY).toDouble();
-  final x = (dx / cellWidth).floor().clamp(0, columns - 1);
-  final y = (dy / cellHeight).floor().clamp(0, rows - 1);
-  return GridPos(x: x, y: y);
+  return pathMappingTileFromLocalPosition(
+    localPosition: localPosition,
+    displaySize: ui.Size(columns * cellWidth, rows * cellHeight),
+    columns: columns,
+    rows: rows,
+  );
 }
 
 TilesetSourceRect _rectFromGridPoints(GridPos start, GridPos end) {
@@ -1206,10 +1206,11 @@ Future<Map<TerrainPathVariant, List<TilesetVisualFrame>>?>
   if (path == null || path.isEmpty) {
     return null;
   }
-  final image = await _TerrainTilesetImageCache.load(path);
-  if (image == null) {
+  final imageAsset = await _TerrainTilesetImageCache.loadAsset(path);
+  if (imageAsset == null) {
     return null;
   }
+  final image = imageAsset.image;
 
   final sourceTileWidth = settings.tileWidth;
   final sourceTileHeight = settings.tileHeight;
@@ -1238,127 +1239,77 @@ Future<Map<TerrainPathVariant, List<TilesetVisualFrame>>?>
           orElse: () => _pathSchemaEditableVariants.first,
         );
   Map<TerrainPathVariant, List<TilesetVisualFrame>>? result;
+  var displayedImage = image;
+  var mappingZoom = 1.0;
+  var alphaPreviewEnabled = false;
+  var alphaPreviewErrorMessage = '';
+  var alphaPreviewRevision = 0;
+  final alphaPreviewController = TextEditingController(text: 'f05ba1');
+
+  Future<void> updateAlphaPreview(StateSetter setState) async {
+    final revision = ++alphaPreviewRevision;
+    final preview = createPathMappingAlphaPreviewBytes(
+      originalPngBytes: imageAsset.bytes,
+      enabled: alphaPreviewEnabled,
+      hexRgb: alphaPreviewController.text,
+    );
+    if (!alphaPreviewEnabled || preview.errorMessage != null) {
+      if (!context.mounted || revision != alphaPreviewRevision) {
+        return;
+      }
+      setState(() {
+        displayedImage = image;
+        alphaPreviewErrorMessage = preview.errorMessage ?? '';
+      });
+      return;
+    }
+    final decoded = await _TerrainTilesetImageCache.decodeBytes(preview.bytes);
+    if (!context.mounted || revision != alphaPreviewRevision) {
+      return;
+    }
+    setState(() {
+      displayedImage = decoded ?? image;
+      alphaPreviewErrorMessage =
+          decoded == null ? 'Preview alpha indisponible' : '';
+    });
+  }
 
   if (!context.mounted) {
+    alphaPreviewController.dispose();
     return null;
   }
-  await showMacosSheet<void>(
-    context: context,
-    builder: (ctx) => StatefulBuilder(
-      builder: (ctx, setState) => Center(
-        child: MacosSheet(
-          insetPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: SizedBox(
-              width: 980,
-              height: 660,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Path Mapping Editor',
-                    style: editorMacosSheetTitleStyle(ctx),
-                  ),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        SizedBox(
-                          width: 430,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                'Step 1: Complete the schema',
-                                style: TextStyle(
-                                  color: CupertinoColors.label
-                                      .resolveFrom(ctx)
-                                      .withValues(alpha: 0.9),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                '${mappings.length}/${TerrainPathVariant.values.length} mapped',
-                                style: TextStyle(
-                                  color: CupertinoColors.secondaryLabel
-                                      .resolveFrom(ctx),
-                                  fontSize: 11,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 7,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: CupertinoColors.systemFill
-                                      .resolveFrom(ctx),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: CupertinoColors.separator
-                                        .resolveFrom(ctx),
-                                  ),
-                                ),
-                                child: Text(
-                                  'Select a slot in the schema, then click a cell in the tileset on the right to assign it.',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: CupertinoColors.secondaryLabel
-                                        .resolveFrom(ctx),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Expanded(
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: CupertinoColors.systemFill
-                                        .resolveFrom(ctx),
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(
-                                      color: CupertinoColors.separator
-                                          .resolveFrom(ctx),
-                                    ),
-                                  ),
-                                  child: _PathSchemaCanvas(
-                                    mappings: mappings,
-                                    selectedVariant: selectedVariant,
-                                    image: image,
-                                    sourceTileWidth: sourceTileWidth,
-                                    sourceTileHeight: sourceTileHeight,
-                                    onSelect: (variant) => setState(
-                                        () => selectedVariant = variant),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color:
-                                  CupertinoColors.systemFill.resolveFrom(ctx),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color:
-                                    CupertinoColors.separator.resolveFrom(ctx),
-                              ),
-                            ),
+  try {
+    await showMacosSheet<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) => Center(
+          child: MacosSheet(
+            insetPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: SizedBox(
+                width: 980,
+                height: 660,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      'Path Mapping Editor',
+                      style: editorMacosSheetTitleStyle(ctx),
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SizedBox(
+                            width: 430,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
                                 Text(
-                                  'Step 2: Click the tileset to map "${_pathVariantDisplayName(selectedVariant)}"',
+                                  'Step 1: Complete the schema',
                                   style: TextStyle(
                                     color: CupertinoColors.label
                                         .resolveFrom(ctx)
@@ -1369,7 +1320,7 @@ Future<Map<TerrainPathVariant, List<TilesetVisualFrame>>?>
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
-                                  'Tileset: ${notifier.getTilesetById(normalizedTilesetId)?.name ?? normalizedTilesetId}',
+                                  '${mappings.length}/${TerrainPathVariant.values.length} mapped',
                                   style: TextStyle(
                                     color: CupertinoColors.secondaryLabel
                                         .resolveFrom(ctx),
@@ -1378,101 +1329,354 @@ Future<Map<TerrainPathVariant, List<TilesetVisualFrame>>?>
                                 ),
                                 const SizedBox(height: 8),
                                 Container(
-                                  padding: const EdgeInsets.all(8),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 7,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: EditorPaintColors.blueGrey
-                                        .withValues(alpha: 0.2),
+                                    color: CupertinoColors.systemFill
+                                        .resolveFrom(ctx),
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
                                       color: CupertinoColors.separator
                                           .resolveFrom(ctx),
                                     ),
                                   ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                  child: Text(
+                                    'Select a slot in the schema, then click a cell in the tileset on the right to assign it.',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: CupertinoColors.secondaryLabel
+                                          .resolveFrom(ctx),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 10),
+                                Expanded(
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: CupertinoColors.systemFill
+                                          .resolveFrom(ctx),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: CupertinoColors.separator
+                                            .resolveFrom(ctx),
+                                      ),
+                                    ),
+                                    child: _PathSchemaCanvas(
+                                      mappings: mappings,
+                                      selectedVariant: selectedVariant,
+                                      image: displayedImage,
+                                      sourceTileWidth: sourceTileWidth,
+                                      sourceTileHeight: sourceTileHeight,
+                                      onSelect: (variant) => setState(
+                                          () => selectedVariant = variant),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color:
+                                    CupertinoColors.systemFill.resolveFrom(ctx),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: CupertinoColors.separator
+                                      .resolveFrom(ctx),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  Text(
+                                    'Step 2: Click the tileset to map "${_pathVariantDisplayName(selectedVariant)}"',
+                                    style: TextStyle(
+                                      color: CupertinoColors.label
+                                          .resolveFrom(ctx)
+                                          .withValues(alpha: 0.9),
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Tileset: ${notifier.getTilesetById(normalizedTilesetId)?.name ?? normalizedTilesetId}',
+                                    style: TextStyle(
+                                      color: CupertinoColors.secondaryLabel
+                                          .resolveFrom(ctx),
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: EditorPaintColors.blueGrey
+                                          .withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: CupertinoColors.separator
+                                            .resolveFrom(ctx),
+                                      ),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Active variant: ${_pathVariantDisplayName(selectedVariant)}',
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: CupertinoColors.label
+                                                .resolveFrom(ctx),
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Connections: ${_pathVariantDirectionsLabel(selectedVariant)}',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: CupertinoColors
+                                                .secondaryLabel
+                                                .resolveFrom(ctx),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          _pathVariantUsageDescription(
+                                            selectedVariant,
+                                          ),
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: CupertinoColors
+                                                .secondaryLabel
+                                                .resolveFrom(ctx),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: EditorPaintColors.black
+                                          .withValues(alpha: 0.16),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: CupertinoColors.separator
+                                            .resolveFrom(ctx),
+                                      ),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.stretch,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Text(
+                                              'Transparence preview',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: CupertinoColors.label
+                                                    .resolveFrom(ctx),
+                                                fontWeight: FontWeight.w700,
+                                              ),
+                                            ),
+                                            const Spacer(),
+                                            CupertinoSwitch(
+                                              key: const Key(
+                                                'path-mapping-alpha-toggle',
+                                              ),
+                                              value: alphaPreviewEnabled,
+                                              onChanged: (value) {
+                                                setState(() {
+                                                  alphaPreviewEnabled = value;
+                                                  if (!value) {
+                                                    displayedImage = image;
+                                                    alphaPreviewErrorMessage =
+                                                        '';
+                                                  }
+                                                });
+                                                if (value) {
+                                                  unawaited(
+                                                    updateAlphaPreview(
+                                                        setState),
+                                                  );
+                                                }
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 6),
+                                        CupertinoTextField(
+                                          key: const Key(
+                                            'path-mapping-alpha-hex-field',
+                                          ),
+                                          controller: alphaPreviewController,
+                                          enabled: alphaPreviewEnabled,
+                                          placeholder: 'f05ba1',
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 6,
+                                          ),
+                                          onChanged: (_) {
+                                            if (alphaPreviewEnabled) {
+                                              unawaited(
+                                                updateAlphaPreview(setState),
+                                              );
+                                            }
+                                          },
+                                        ),
+                                        if (alphaPreviewErrorMessage.isNotEmpty)
+                                          Padding(
+                                            padding:
+                                                const EdgeInsets.only(top: 5),
+                                            child: Text(
+                                              alphaPreviewErrorMessage,
+                                              style: const TextStyle(
+                                                fontSize: 10,
+                                                color:
+                                                    EditorPaintColors.redAccent,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  _PathVariantFramesEditor(
+                                    image: displayedImage,
+                                    sourceTileWidth: sourceTileWidth,
+                                    sourceTileHeight: sourceTileHeight,
+                                    frames: mappings[selectedVariant] ??
+                                        const <TilesetVisualFrame>[],
+                                    onChanged: (next) {
+                                      setState(() {
+                                        if (next.isEmpty) {
+                                          mappings.remove(selectedVariant);
+                                        } else {
+                                          mappings[selectedVariant] = next;
+                                        }
+                                      });
+                                    },
+                                    onPickFrame: (initial) async {
+                                      final picked =
+                                          await _showTilesetRectPickerDialog(
+                                        context,
+                                        notifier: notifier,
+                                        settings: settings,
+                                        tilesetId: normalizedTilesetId,
+                                        initial: initial,
+                                        title: 'Pick path frame source',
+                                      );
+                                      if (picked == null) {
+                                        return null;
+                                      }
+                                      return TilesetSourceRect(
+                                        x: picked.x,
+                                        y: picked.y,
+                                        width: 1,
+                                        height: 1,
+                                      );
+                                    },
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Row(
                                     children: [
+                                      PushButton(
+                                        key: const Key('path-mapping-zoom-out'),
+                                        controlSize: ControlSize.small,
+                                        secondary: true,
+                                        onPressed: mappingZoom >
+                                                pathMappingTilesetMinZoom
+                                            ? () => setState(() {
+                                                  mappingZoom =
+                                                      pathMappingTilesetZoomOut(
+                                                    mappingZoom,
+                                                  );
+                                                })
+                                            : null,
+                                        child: const Text('Zoom -'),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      PushButton(
+                                        key: const Key('path-mapping-zoom-in'),
+                                        controlSize: ControlSize.small,
+                                        secondary: true,
+                                        onPressed: mappingZoom <
+                                                pathMappingTilesetMaxZoom
+                                            ? () => setState(() {
+                                                  mappingZoom =
+                                                      pathMappingTilesetZoomIn(
+                                                    mappingZoom,
+                                                  );
+                                                })
+                                            : null,
+                                        child: const Text('Zoom +'),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      PushButton(
+                                        key: const Key(
+                                            'path-mapping-zoom-reset'),
+                                        controlSize: ControlSize.small,
+                                        secondary: true,
+                                        onPressed: mappingZoom == 1.0
+                                            ? null
+                                            : () => setState(
+                                                  () => mappingZoom = 1.0,
+                                                ),
+                                        child: const Text('100%'),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      PushButton(
+                                        key: const Key('path-mapping-zoom-fit'),
+                                        controlSize: ControlSize.small,
+                                        secondary: true,
+                                        onPressed: mappingZoom == 1.0
+                                            ? null
+                                            : () => setState(
+                                                  () => mappingZoom = 1.0,
+                                                ),
+                                        child: const Text('Ajuster'),
+                                      ),
+                                      const Spacer(),
                                       Text(
-                                        'Active variant: ${_pathVariantDisplayName(selectedVariant)}',
+                                        '${(mappingZoom * 100).round()}%',
+                                        key: const Key(
+                                          'path-mapping-zoom-label',
+                                        ),
                                         style: TextStyle(
                                           fontSize: 11,
-                                          color: CupertinoColors.label
+                                          color: CupertinoColors.secondaryLabel
                                               .resolveFrom(ctx),
                                           fontWeight: FontWeight.w700,
                                         ),
                                       ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        'Connections: ${_pathVariantDirectionsLabel(selectedVariant)}',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          color: CupertinoColors.secondaryLabel
-                                              .resolveFrom(ctx),
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        _pathVariantUsageDescription(
-                                          selectedVariant,
-                                        ),
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          color: CupertinoColors.secondaryLabel
-                                              .resolveFrom(ctx),
-                                        ),
-                                      ),
                                     ],
                                   ),
-                                ),
-                                const SizedBox(height: 10),
-                                _PathVariantFramesEditor(
-                                  image: image,
-                                  sourceTileWidth: sourceTileWidth,
-                                  sourceTileHeight: sourceTileHeight,
-                                  frames: mappings[selectedVariant] ??
-                                      const <TilesetVisualFrame>[],
-                                  onChanged: (next) {
-                                    setState(() {
-                                      if (next.isEmpty) {
-                                        mappings.remove(selectedVariant);
-                                      } else {
-                                        mappings[selectedVariant] = next;
-                                      }
-                                    });
-                                  },
-                                  onPickFrame: (initial) async {
-                                    final picked =
-                                        await _showTilesetRectPickerDialog(
-                                      context,
-                                      notifier: notifier,
-                                      settings: settings,
-                                      tilesetId: normalizedTilesetId,
-                                      initial: initial,
-                                      title: 'Pick path frame source',
-                                    );
-                                    if (picked == null) {
-                                      return null;
-                                    }
-                                    return TilesetSourceRect(
-                                      x: picked.x,
-                                      y: picked.y,
-                                      width: 1,
-                                      height: 1,
-                                    );
-                                  },
-                                ),
-                                const SizedBox(height: 10),
-                                Expanded(
-                                  child: Center(
+                                  const SizedBox(height: 8),
+                                  Expanded(
                                     child: LayoutBuilder(
                                       builder: (context, constraints) {
-                                        final scale = math.min(
-                                          constraints.maxWidth / image.width,
-                                          constraints.maxHeight / image.height,
+                                        final fitScale = math.min(
+                                          constraints.maxWidth /
+                                              displayedImage.width,
+                                          constraints.maxHeight /
+                                              displayedImage.height,
                                         );
-                                        final renderWidth = image.width * scale;
+                                        final scale = fitScale * mappingZoom;
+                                        final renderWidth =
+                                            displayedImage.width * scale;
                                         final renderHeight =
-                                            image.height * scale;
+                                            displayedImage.height * scale;
                                         final cellWidth = renderWidth / columns;
                                         final cellHeight = renderHeight / rows;
 
@@ -1500,7 +1704,7 @@ Future<Map<TerrainPathVariant, List<TilesetVisualFrame>>?>
                                           });
                                         }
 
-                                        return SizedBox(
+                                        final canvas = SizedBox(
                                           width: renderWidth,
                                           height: renderHeight,
                                           child: GestureDetector(
@@ -1515,7 +1719,7 @@ Future<Map<TerrainPathVariant, List<TilesetVisualFrame>>?>
                                             child: CustomPaint(
                                               painter:
                                                   _PathTilesetMappingPainter(
-                                                image: image,
+                                                image: displayedImage,
                                                 columns: columns,
                                                 rows: rows,
                                                 mappings: mappings,
@@ -1526,66 +1730,76 @@ Future<Map<TerrainPathVariant, List<TilesetVisualFrame>>?>
                                             ),
                                           ),
                                         );
+                                        return SingleChildScrollView(
+                                          primary: false,
+                                          child: SingleChildScrollView(
+                                            primary: false,
+                                            scrollDirection: Axis.horizontal,
+                                            child: canvas,
+                                          ),
+                                        );
                                       },
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        PushButton(
+                          controlSize: ControlSize.large,
+                          secondary: true,
+                          onPressed: () => Navigator.pop(ctx),
+                          child: const Text('Cancel'),
+                        ),
+                        const SizedBox(width: 8),
+                        PushButton(
+                          controlSize: ControlSize.large,
+                          secondary: true,
+                          onPressed: mappings.containsKey(selectedVariant)
+                              ? () => setState(
+                                    () => mappings.remove(selectedVariant),
+                                  )
+                              : null,
+                          child: const Text('Clear Variant'),
+                        ),
+                        const SizedBox(width: 8),
+                        PushButton(
+                          controlSize: ControlSize.large,
+                          onPressed: () {
+                            result = _completePathMappings(
+                              <TerrainPathVariant, List<TilesetVisualFrame>>{
+                                for (final entry in mappings.entries)
+                                  if (entry.value.isNotEmpty)
+                                    entry.key: List<TilesetVisualFrame>.from(
+                                      entry.value,
+                                      growable: false,
+                                    ),
+                              },
+                            );
+                            Navigator.pop(ctx);
+                          },
+                          child: const Text('Apply'),
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      PushButton(
-                        controlSize: ControlSize.large,
-                        secondary: true,
-                        onPressed: () => Navigator.pop(ctx),
-                        child: const Text('Cancel'),
-                      ),
-                      const SizedBox(width: 8),
-                      PushButton(
-                        controlSize: ControlSize.large,
-                        secondary: true,
-                        onPressed: mappings.containsKey(selectedVariant)
-                            ? () => setState(
-                                  () => mappings.remove(selectedVariant),
-                                )
-                            : null,
-                        child: const Text('Clear Variant'),
-                      ),
-                      const SizedBox(width: 8),
-                      PushButton(
-                        controlSize: ControlSize.large,
-                        onPressed: () {
-                          result = _completePathMappings(
-                            <TerrainPathVariant, List<TilesetVisualFrame>>{
-                              for (final entry in mappings.entries)
-                                if (entry.value.isNotEmpty)
-                                  entry.key: List<TilesetVisualFrame>.from(
-                                    entry.value,
-                                    growable: false,
-                                  ),
-                            },
-                          );
-                          Navigator.pop(ctx);
-                        },
-                        child: const Text('Apply'),
-                      ),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
         ),
       ),
-    ),
-  );
+    );
+  } finally {
+    alphaPreviewController.dispose();
+  }
 
   return result;
 }
@@ -1848,7 +2062,9 @@ Widget _buildPresetDetailsContent({
   required ProjectSettings settings,
   required List<ProjectTilesetEntry> tilesets,
 }) {
-  final color = kind == PresetLibraryKind.terrain ? EditorChrome.accentJade : EditorChrome.accentWarm;
+  final color = kind == PresetLibraryKind.terrain
+      ? EditorChrome.accentJade
+      : EditorChrome.accentWarm;
   return _PresetDetailsCard(
     kind: kind,
     preset: preset,

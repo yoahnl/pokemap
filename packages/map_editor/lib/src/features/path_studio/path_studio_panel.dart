@@ -8,6 +8,7 @@ import 'path_pattern_draft.dart';
 import 'path_pattern_editor_read_model.dart';
 import 'path_studio_new_path_draft.dart';
 import 'path_studio_theme.dart';
+import 'path_studio_tileset_image_picker.dart';
 
 /// Workspace branché au shell global de l'éditeur.
 ///
@@ -20,10 +21,14 @@ class PathStudioWorkspace extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final manifest = ref.watch(editorProjectManifestProvider);
+    final projectRootPath = ref.watch(editorProjectRootPathProvider);
     if (manifest == null) {
       return const _PathStudioProjectMissingState();
     }
-    return PathStudioPanel(manifest: manifest);
+    return PathStudioPanel(
+      manifest: manifest,
+      projectRootPath: projectRootPath,
+    );
   }
 }
 
@@ -37,9 +42,11 @@ class PathStudioPanel extends StatefulWidget {
   const PathStudioPanel({
     super.key,
     required this.manifest,
+    this.projectRootPath,
   });
 
   final ProjectManifest manifest;
+  final String? projectRootPath;
 
   @override
   State<PathStudioPanel> createState() => _PathStudioPanelState();
@@ -150,6 +157,8 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
                   Expanded(
                     child: _CenterWorkspace(
                       tilesets: widget.manifest.tilesets,
+                      settings: widget.manifest.settings,
+                      projectRootPath: widget.projectRootPath,
                       newPathDraft: selectedNewPathDraft,
                       draft: selectedDraft,
                       selected: selected?.card,
@@ -1255,6 +1264,8 @@ class _MiniMetric extends StatelessWidget {
 class _CenterWorkspace extends StatelessWidget {
   const _CenterWorkspace({
     required this.tilesets,
+    required this.settings,
+    required this.projectRootPath,
     required this.newPathDraft,
     required this.draft,
     required this.selected,
@@ -1268,6 +1279,8 @@ class _CenterWorkspace extends StatelessWidget {
   });
 
   final List<ProjectTilesetEntry> tilesets;
+  final ProjectSettings settings;
+  final String? projectRootPath;
   final PathStudioNewPathDraft? newPathDraft;
   final PathPatternDraft? draft;
   final PathPatternPresetCardModel? selected;
@@ -1285,6 +1298,8 @@ class _CenterWorkspace extends StatelessWidget {
     if (newPathDraft != null) {
       return _NewPathCenterWorkspace(
         tilesets: tilesets,
+        settings: settings,
+        projectRootPath: projectRootPath,
         draft: newPathDraft,
         onSizeChanged: onNewPathSizeChanged,
         onCellSelected: onNewPathCellSelected,
@@ -1325,6 +1340,8 @@ class _CenterWorkspace extends StatelessWidget {
 class _NewPathCenterWorkspace extends StatelessWidget {
   const _NewPathCenterWorkspace({
     required this.tilesets,
+    required this.settings,
+    required this.projectRootPath,
     required this.draft,
     required this.onSizeChanged,
     required this.onCellSelected,
@@ -1333,6 +1350,8 @@ class _NewPathCenterWorkspace extends StatelessWidget {
   });
 
   final List<ProjectTilesetEntry> tilesets;
+  final ProjectSettings settings;
+  final String? projectRootPath;
   final PathStudioNewPathDraft draft;
   final void Function(int width, int height) onSizeChanged;
   final void Function(int localX, int localY) onCellSelected;
@@ -1353,6 +1372,8 @@ class _NewPathCenterWorkspace extends StatelessWidget {
           const SizedBox(height: 14),
           _NewPathCenterPatternEditor(
             tilesets: tilesets,
+            settings: settings,
+            projectRootPath: projectRootPath,
             draft: draft,
             onSizeChanged: onSizeChanged,
             onCellSelected: onCellSelected,
@@ -1460,6 +1481,8 @@ class _NewPathSummary extends StatelessWidget {
 class _NewPathCenterPatternEditor extends StatelessWidget {
   const _NewPathCenterPatternEditor({
     required this.tilesets,
+    required this.settings,
+    required this.projectRootPath,
     required this.draft,
     required this.onSizeChanged,
     required this.onCellSelected,
@@ -1468,6 +1491,8 @@ class _NewPathCenterPatternEditor extends StatelessWidget {
   });
 
   final List<ProjectTilesetEntry> tilesets;
+  final ProjectSettings settings;
+  final String? projectRootPath;
   final PathStudioNewPathDraft draft;
   final void Function(int width, int height) onSizeChanged;
   final void Function(int localX, int localY) onCellSelected;
@@ -1516,6 +1541,9 @@ class _NewPathCenterPatternEditor extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           _NewPathPatternGrid(
+            tilesets: tilesets,
+            settings: settings,
+            projectRootPath: projectRootPath,
             draft: draft,
             onCellSelected: onCellSelected,
           ),
@@ -1527,6 +1555,8 @@ class _NewPathCenterPatternEditor extends StatelessWidget {
           const SizedBox(height: 14),
           _NewPathTilePickerPanel(
             tilesets: tilesets,
+            settings: settings,
+            projectRootPath: projectRootPath,
             draft: draft,
             onTileSelected: onTileSelected,
           ),
@@ -1538,10 +1568,16 @@ class _NewPathCenterPatternEditor extends StatelessWidget {
 
 class _NewPathPatternGrid extends StatelessWidget {
   const _NewPathPatternGrid({
+    required this.tilesets,
+    required this.settings,
+    required this.projectRootPath,
     required this.draft,
     required this.onCellSelected,
   });
 
+  final List<ProjectTilesetEntry> tilesets;
+  final ProjectSettings settings;
+  final String? projectRootPath;
   final PathStudioNewPathDraft draft;
   final void Function(int localX, int localY) onCellSelected;
 
@@ -1557,6 +1593,9 @@ class _NewPathPatternGrid extends StatelessWidget {
         cells.add(
           _NewPathPatternCell(
             key: Key('path-studio-new-path-cell-$x-$y'),
+            tilesets: tilesets,
+            settings: settings,
+            projectRootPath: projectRootPath,
             cell: cell,
             selected: draft.selectedCellX == x && draft.selectedCellY == y,
             onTap: () => onCellSelected(x, y),
@@ -1579,11 +1618,17 @@ class _NewPathPatternGrid extends StatelessWidget {
 class _NewPathPatternCell extends StatelessWidget {
   const _NewPathPatternCell({
     super.key,
+    required this.tilesets,
+    required this.settings,
+    required this.projectRootPath,
     required this.cell,
     required this.selected,
     required this.onTap,
   });
 
+  final List<ProjectTilesetEntry> tilesets;
+  final ProjectSettings settings;
+  final String? projectRootPath;
   final PathStudioNewPathDraftCell cell;
   final bool selected;
   final VoidCallback onTap;
@@ -1625,7 +1670,12 @@ class _NewPathPatternCell extends StatelessWidget {
             ),
             const Spacer(),
             if (tile != null)
-              _TilePreviewBadge(tile: tile)
+              _TilePreviewBadge(
+                tilesets: tilesets,
+                settings: settings,
+                projectRootPath: projectRootPath,
+                tile: tile,
+              )
             else
               const _EmptyTileBadge(),
             const SizedBox(height: 6),
@@ -1732,13 +1782,21 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
 }
 
 class _TilePreviewBadge extends StatelessWidget {
-  const _TilePreviewBadge({required this.tile});
+  const _TilePreviewBadge({
+    required this.tilesets,
+    required this.settings,
+    required this.projectRootPath,
+    required this.tile,
+  });
 
+  final List<ProjectTilesetEntry> tilesets;
+  final ProjectSettings settings;
+  final String? projectRootPath;
   final PathStudioNewPathDraftTile tile;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final fallback = Container(
       width: 46,
       height: 28,
       decoration: BoxDecoration(
@@ -1756,6 +1814,13 @@ class _TilePreviewBadge extends StatelessWidget {
           fontWeight: FontWeight.w900,
         ),
       ),
+    );
+    return PathStudioTileSpritePreview(
+      projectRootPath: projectRootPath,
+      tilesets: tilesets,
+      settings: settings,
+      tile: tile,
+      fallback: fallback,
     );
   }
 }
@@ -1788,19 +1853,27 @@ class _EmptyTileBadge extends StatelessWidget {
 class _NewPathTilePickerPanel extends StatelessWidget {
   const _NewPathTilePickerPanel({
     required this.tilesets,
+    required this.settings,
+    required this.projectRootPath,
     required this.draft,
     required this.onTileSelected,
   });
 
   final List<ProjectTilesetEntry> tilesets;
+  final ProjectSettings settings;
+  final String? projectRootPath;
   final PathStudioNewPathDraft draft;
   final void Function(int sourceX, int sourceY) onTileSelected;
 
   @override
   Widget build(BuildContext context) {
+    final selectedTileset = _selectedTileset(
+      tilesets: tilesets,
+      tilesetId: draft.tilesetId,
+    );
     final tilesetLabel =
         _selectedTilesetLabel(tilesets: tilesets, tilesetId: draft.tilesetId);
-    if (tilesetLabel == null) {
+    if (tilesetLabel == null || selectedTileset == null) {
       return Container(
         padding: const EdgeInsets.all(14),
         decoration: PathStudioTheme.subtleDecoration(
@@ -1884,35 +1957,70 @@ class _NewPathTilePickerPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (var y = 0; y < 4; y += 1)
-                for (var x = 0; x < 8; x += 1)
-                  _NewPathTileButton(
-                    key: Key('path-studio-new-path-tile-$x-$y'),
-                    sourceX: x,
-                    sourceY: y,
-                    selected: selectedCell.tile?.sourceX == x &&
-                        selectedCell.tile?.sourceY == y &&
-                        selectedCell.tile?.tilesetId == draft.tilesetId,
-                    onTap: () => onTileSelected(x, y),
-                  ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'Grille logique V0 : les coordonnées sont enregistrées dans le brouillon, sans lecture de l’image tileset ni preview PNG.',
-            style: TextStyle(
-              color: PathStudioTheme.textMuted,
-              fontSize: 10.5,
-              height: 1.35,
-              fontWeight: FontWeight.w700,
-            ),
+          PathStudioImageBackedTilesetPicker(
+            projectRootPath: projectRootPath,
+            tileset: selectedTileset,
+            settings: settings,
+            activeCell: selectedCell,
+            onTileSelected: (source) => onTileSelected(source.x, source.y),
+            fallbackBuilder: (context, result) {
+              return _LogicalNewPathTileGrid(
+                draft: draft,
+                selectedCell: selectedCell,
+                onTileSelected: onTileSelected,
+              );
+            },
           ),
         ],
       ),
+    );
+  }
+}
+
+class _LogicalNewPathTileGrid extends StatelessWidget {
+  const _LogicalNewPathTileGrid({
+    required this.draft,
+    required this.selectedCell,
+    required this.onTileSelected,
+  });
+
+  final PathStudioNewPathDraft draft;
+  final PathStudioNewPathDraftCell selectedCell;
+  final void Function(int sourceX, int sourceY) onTileSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (var y = 0; y < 4; y += 1)
+              for (var x = 0; x < 8; x += 1)
+                _NewPathTileButton(
+                  key: Key('path-studio-new-path-tile-$x-$y'),
+                  sourceX: x,
+                  sourceY: y,
+                  selected: selectedCell.tile?.sourceX == x &&
+                      selectedCell.tile?.sourceY == y &&
+                      selectedCell.tile?.tilesetId == draft.tilesetId,
+                  onTap: () => onTileSelected(x, y),
+                ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          'Fallback V0 : les coordonnées sont enregistrées dans le brouillon quand l’image tileset ne peut pas être chargée.',
+          style: TextStyle(
+            color: PathStudioTheme.textMuted,
+            fontSize: 10.5,
+            height: 1.35,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -3522,6 +3630,21 @@ String? _selectedTilesetLabel({
     }
   }
   return tilesetId;
+}
+
+ProjectTilesetEntry? _selectedTileset({
+  required List<ProjectTilesetEntry> tilesets,
+  required String? tilesetId,
+}) {
+  if (tilesetId == null || tilesetId.isEmpty) {
+    return null;
+  }
+  for (final tileset in tilesets) {
+    if (tileset.id == tilesetId) {
+      return tileset;
+    }
+  }
+  return null;
 }
 
 String _newPathDraftIssueLabel(PathStudioNewPathDraftIssueCode issue) {

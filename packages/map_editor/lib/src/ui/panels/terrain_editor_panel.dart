@@ -13,6 +13,7 @@ import 'package:map_editor/src/ui/shared/editor_paint_palette.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_selectors.dart';
+import 'terrain_editor/path_mapping_editor_helpers.dart';
 
 part 'terrain_editor/dialogs/terrain_preset_dialogs.dart';
 part 'terrain_editor/widgets/terrain_mapping_workspace.dart';

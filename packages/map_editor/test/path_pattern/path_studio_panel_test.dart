@@ -1,8 +1,13 @@
+import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/path_studio/path_studio_panel.dart';
+import 'package:path/path.dart' as p;
 
 void main() {
   group('PathStudioPanel', () {
@@ -118,7 +123,7 @@ void main() {
       expect(find.text('lot futur'), findsWidgets);
 
       await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
-      await tester.pumpAndSettle();
+      await _pumpPathStudioAsync(tester);
 
       expect(find.text('Brouillon nouveau chemin'), findsWidgets);
       expect(find.text('Brouillon non sauvegardé'), findsWidgets);
@@ -147,7 +152,7 @@ void main() {
       );
 
       await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
-      await tester.pumpAndSettle();
+      await _pumpPathStudioAsync(tester);
 
       expect(find.text('Propriétés du nouveau chemin'), findsOneWidget);
       expect(find.text('mountain rock'), findsNothing);
@@ -170,7 +175,7 @@ void main() {
       );
 
       await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
-      await tester.pumpAndSettle();
+      await _pumpPathStudioAsync(tester);
 
       expect(find.text('Tileset'), findsWidgets);
       expect(find.text('À choisir'), findsWidgets);
@@ -199,7 +204,7 @@ void main() {
       );
 
       await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
-      await tester.pumpAndSettle();
+      await _pumpPathStudioAsync(tester);
 
       expect(find.text('Brouillon nouveau chemin'), findsWidgets);
       expect(
@@ -218,14 +223,14 @@ void main() {
       );
 
       await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
-      await tester.pumpAndSettle();
+      await _pumpPathStudioAsync(tester);
       tester
           .widget<MacosPopupButton<String>>(
             find.byKey(const Key('path-studio-new-path-tileset-popup')),
           )
           .onChanged
           ?.call('tileset-main');
-      await tester.pumpAndSettle();
+      await _pumpPathStudioAsync(tester);
 
       final tile = find.byKey(const Key('path-studio-new-path-tile-2-1'));
       await tester.ensureVisible(tile);
@@ -237,6 +242,203 @@ void main() {
       expect(find.text('Tuile 2,1'), findsWidgets);
       expect(find.text('Cellules à configurer'), findsNothing);
       expect(find.text('Tileset à choisir'), findsNothing);
+    });
+
+    testWidgets('missing tileset image keeps the logical picker fallback',
+        (tester) async {
+      final temp = (await tester.runAsync(
+        () => Directory.systemTemp.createTemp('path_studio_missing_'),
+      ))!;
+      addTearDown(() => temp.delete(recursive: true));
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          tilesets: [_tileset(id: 'tileset-main', name: 'Chemins principaux')],
+        ),
+        projectRootPath: temp.path,
+      );
+
+      await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+      await _pumpPathStudioAsync(tester);
+      tester
+          .widget<MacosPopupButton<String>>(
+            find.byKey(const Key('path-studio-new-path-tileset-popup')),
+          )
+          .onChanged
+          ?.call('tileset-main');
+      await _pumpPathStudioAsync(tester);
+
+      expect(find.text('Image du tileset introuvable'), findsWidgets);
+      expect(find.byKey(const Key('path-studio-new-path-tile-2-1')),
+          findsOneWidget);
+
+      await _tapNewPathTile(tester, tileX: 2, tileY: 1);
+
+      expect(find.text('Tuile 2,1'), findsWidgets);
+      expect(find.text('Cellules à configurer'), findsNothing);
+    });
+
+    testWidgets('image-backed tileset picker assigns the active cell',
+        (tester) async {
+      final temp = (await tester.runAsync(
+        () => Directory.systemTemp.createTemp('path_studio_image_'),
+      ))!;
+      addTearDown(() => temp.delete(recursive: true));
+      final imageFile = File(p.join(temp.path, 'tilesets/tileset-main.png'));
+      await tester.runAsync(() async {
+        await imageFile.parent.create(recursive: true);
+        await imageFile.writeAsBytes(await _pngBytes(width: 64, height: 32));
+      });
+
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          settings: const ProjectSettings(tileWidth: 16, tileHeight: 16),
+          tilesets: [_tileset(id: 'tileset-main', name: 'Chemins principaux')],
+        ),
+        projectRootPath: temp.path,
+      );
+
+      await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+      await _pumpPathStudioAsync(tester);
+      tester
+          .widget<MacosPopupButton<String>>(
+            find.byKey(const Key('path-studio-new-path-tileset-popup')),
+          )
+          .onChanged
+          ?.call('tileset-main');
+      await _pumpPathStudioAsync(tester);
+
+      expect(find.byKey(const Key('path-studio-image-backed-tileset-picker')),
+          findsOneWidget);
+      expect(find.text('Image du tileset chargée'), findsWidgets);
+      expect(find.text('Grille 4×2'), findsWidgets);
+      expect(find.byKey(const Key('path-studio-tileset-zoom-out')),
+          findsOneWidget);
+      expect(
+          find.byKey(const Key('path-studio-tileset-zoom-in')), findsOneWidget);
+      expect(find.byKey(const Key('path-studio-tileset-zoom-reset')),
+          findsOneWidget);
+      expect(find.byKey(const Key('path-studio-tileset-zoom-fit')),
+          findsOneWidget);
+
+      final zoomIn = find.byKey(const Key('path-studio-tileset-zoom-in'));
+      await tester.ensureVisible(zoomIn);
+      await _pumpPathStudioAsync(tester);
+      await tester.tap(zoomIn);
+      await _pumpPathStudioAsync(tester);
+      expect(find.text('125%'), findsOneWidget);
+      await tester.tap(find.byKey(const Key('path-studio-tileset-zoom-out')));
+      await _pumpPathStudioAsync(tester);
+      _expectPathStudioZoomLabel(tester, '100%');
+      await tester.tap(zoomIn);
+      await _pumpPathStudioAsync(tester);
+      await tester.tap(find.byKey(const Key('path-studio-tileset-zoom-reset')));
+      await _pumpPathStudioAsync(tester);
+      _expectPathStudioZoomLabel(tester, '100%');
+      await tester.tap(zoomIn);
+      await _pumpPathStudioAsync(tester);
+      await tester.tap(find.byKey(const Key('path-studio-tileset-zoom-fit')));
+      await _pumpPathStudioAsync(tester);
+      _expectPathStudioZoomLabel(tester, '100%');
+      await tester.tap(zoomIn);
+      await _pumpPathStudioAsync(tester);
+
+      await _tapImageBackedTile(tester,
+          tileX: 2, tileY: 1, columns: 4, rows: 2);
+
+      expect(find.text('Tuile 2,1'), findsWidgets);
+      expect(find.text('Cellules à configurer'), findsNothing);
+    });
+
+    testWidgets('image-backed picker fills all 2x2 cells and supports clear',
+        (tester) async {
+      final temp = (await tester.runAsync(
+        () => Directory.systemTemp.createTemp('path_studio_2x2_'),
+      ))!;
+      addTearDown(() => temp.delete(recursive: true));
+      final imageFile = File(p.join(temp.path, 'tilesets/tileset-main.png'));
+      await tester.runAsync(() async {
+        await imageFile.parent.create(recursive: true);
+        await imageFile.writeAsBytes(await _pngBytes(width: 64, height: 32));
+      });
+
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          settings: const ProjectSettings(tileWidth: 16, tileHeight: 16),
+          tilesets: [_tileset(id: 'tileset-main', name: 'Chemins principaux')],
+        ),
+        projectRootPath: temp.path,
+      );
+
+      await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+      await _pumpPathStudioAsync(tester);
+      tester
+          .widget<MacosPopupButton<String>>(
+            find.byKey(const Key('path-studio-new-path-tileset-popup')),
+          )
+          .onChanged
+          ?.call('tileset-main');
+      await _pumpPathStudioAsync(tester);
+      await tester.tap(
+        find.byKey(const Key('path-studio-new-path-size-2x2')),
+      );
+      await tester.pumpAndSettle();
+
+      await _assignImageBackedTile(
+        tester,
+        cellX: 0,
+        cellY: 0,
+        tileX: 0,
+        tileY: 0,
+        columns: 4,
+        rows: 2,
+      );
+      await _assignImageBackedTile(
+        tester,
+        cellX: 1,
+        cellY: 0,
+        tileX: 1,
+        tileY: 0,
+        columns: 4,
+        rows: 2,
+      );
+      await _assignImageBackedTile(
+        tester,
+        cellX: 0,
+        cellY: 1,
+        tileX: 2,
+        tileY: 0,
+        columns: 4,
+        rows: 2,
+      );
+
+      expect(find.text('Cellules à configurer'), findsWidgets);
+
+      await _assignImageBackedTile(
+        tester,
+        cellX: 1,
+        cellY: 1,
+        tileX: 3,
+        tileY: 0,
+        columns: 4,
+        rows: 2,
+      );
+
+      expect(find.text('Cellules à configurer'), findsNothing);
+      expect(find.text('Tuile 3,0'), findsWidgets);
+
+      final clearButton =
+          find.byKey(const Key('path-studio-new-path-clear-selected-cell'));
+      await tester.ensureVisible(clearButton);
+      await tester.pumpAndSettle();
+      await tester.tap(clearButton);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cellules à configurer'), findsWidgets);
+      expect(find.text('Aucune tuile configurée pour cette cellule.'),
+          findsWidgets);
     });
 
     testWidgets('assigns independent tiles to all 2x2 center cells',
@@ -520,6 +722,7 @@ void main() {
 Future<void> _pumpPathStudio(
   WidgetTester tester, {
   required ProjectManifest manifest,
+  String? projectRootPath,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1440, 920));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -531,14 +734,76 @@ Future<void> _pumpPathStudio(
         children: [
           ContentArea(
             builder: (context, scrollController) {
-              return PathStudioPanel(manifest: manifest);
+              return PathStudioPanel(
+                manifest: manifest,
+                projectRootPath: projectRootPath,
+              );
             },
           ),
         ],
       ),
     ),
   );
-  await tester.pumpAndSettle();
+  await _pumpPathStudioAsync(tester);
+}
+
+Future<void> _pumpPathStudioAsync(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 250));
+  await tester.pump(const Duration(milliseconds: 250));
+}
+
+void _expectPathStudioZoomLabel(WidgetTester tester, String value) {
+  final label = tester.widget<Text>(
+    find.byKey(const Key('path-studio-tileset-zoom-label')),
+  );
+  expect(label.data, value);
+}
+
+Future<void> _assignImageBackedTile(
+  WidgetTester tester, {
+  required int cellX,
+  required int cellY,
+  required int tileX,
+  required int tileY,
+  required int columns,
+  required int rows,
+}) async {
+  final cell = find.byKey(Key('path-studio-new-path-cell-$cellX-$cellY'));
+  await tester.ensureVisible(cell);
+  await _pumpPathStudioAsync(tester);
+  await tester.tap(cell);
+  await _pumpPathStudioAsync(tester);
+  await _tapImageBackedTile(
+    tester,
+    tileX: tileX,
+    tileY: tileY,
+    columns: columns,
+    rows: rows,
+  );
+}
+
+Future<void> _tapImageBackedTile(
+  WidgetTester tester, {
+  required int tileX,
+  required int tileY,
+  required int columns,
+  required int rows,
+}) async {
+  final picker =
+      find.byKey(const Key('path-studio-image-backed-tileset-canvas'));
+  await tester.ensureVisible(picker);
+  await _pumpPathStudioAsync(tester);
+  final topLeft = tester.getTopLeft(picker);
+  final size = tester.getSize(picker);
+  await tester.tapAt(
+    topLeft +
+        Offset(
+          (tileX + 0.5) * size.width / columns,
+          (tileY + 0.5) * size.height / rows,
+        ),
+  );
+  await _pumpPathStudioAsync(tester);
 }
 
 Future<void> _assignNewPathTile(
@@ -550,9 +815,9 @@ Future<void> _assignNewPathTile(
 }) async {
   final cell = find.byKey(Key('path-studio-new-path-cell-$cellX-$cellY'));
   await tester.ensureVisible(cell);
-  await tester.pumpAndSettle();
+  await _pumpPathStudioAsync(tester);
   await tester.tap(cell);
-  await tester.pumpAndSettle();
+  await _pumpPathStudioAsync(tester);
   await _tapNewPathTile(tester, tileX: tileX, tileY: tileY);
 }
 
@@ -563,24 +828,55 @@ Future<void> _tapNewPathTile(
 }) async {
   final tile = find.byKey(Key('path-studio-new-path-tile-$tileX-$tileY'));
   await tester.ensureVisible(tile);
-  await tester.pumpAndSettle();
+  await _pumpPathStudioAsync(tester);
   await tester.tap(tile);
-  await tester.pumpAndSettle();
+  await _pumpPathStudioAsync(tester);
 }
 
 ProjectManifest _manifest({
   List<ProjectPathPreset> pathPresets = const [],
   List<ProjectPathPatternPreset> pathPatternPresets = const [],
   List<ProjectTilesetEntry> tilesets = const [],
+  ProjectSettings settings = const ProjectSettings(),
 }) {
   return ProjectManifest(
     name: 'Project',
+    settings: settings,
     maps: const [],
     tilesets: tilesets,
     pathPresets: pathPresets,
     pathPatternPresets: pathPatternPresets,
     surfaceCatalog: ProjectSurfaceCatalog(),
   );
+}
+
+Future<Uint8List> _pngBytes({
+  required int width,
+  required int height,
+}) async {
+  final recorder = ui.PictureRecorder();
+  final canvas = ui.Canvas(recorder);
+  final colors = [
+    const ui.Color(0xFFEBCB8B),
+    const ui.Color(0xFFA3BE8C),
+    const ui.Color(0xFF88C0D0),
+    const ui.Color(0xFFB48EAD),
+  ];
+  var colorIndex = 0;
+  for (var y = 0; y < height; y += 16) {
+    for (var x = 0; x < width; x += 16) {
+      final paint = ui.Paint()..color = colors[colorIndex % colors.length];
+      canvas.drawRect(
+        ui.Rect.fromLTWH(x.toDouble(), y.toDouble(), 16, 16),
+        paint,
+      );
+      colorIndex += 1;
+    }
+  }
+  final picture = recorder.endRecording();
+  final image = await picture.toImage(width, height);
+  final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+  return byteData!.buffer.asUint8List();
 }
 
 ProjectTilesetEntry _tileset({
