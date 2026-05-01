@@ -506,6 +506,8 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
   Widget build(BuildContext context) {
     final cell = draft.selectedCell;
     final selectedFrame = cell.selectedFrame;
+    final isAnimated = cell.frames.length > 1;
+    final frameLabel = cell.frames.length > 1 ? 'frames' : 'frame';
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: PathStudioTheme.subtleDecoration(),
@@ -542,19 +544,29 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            cell.frames.length > 1
-                ? 'Animée — ${cell.frames.length} frames'
-                : 'Statique — ${cell.frames.length} frame',
+            isAnimated
+                ? 'Animée — ${cell.frames.length} $frameLabel'
+                : 'Statique — ${cell.frames.length} $frameLabel',
             style: const TextStyle(
               color: PathStudioTheme.textSecondary,
               fontSize: 11,
               fontWeight: FontWeight.w800,
             ),
           ),
+          const SizedBox(height: 6),
+          Text(
+            'Centre : ${draft.centerCellCount} cellules · ${draft.totalCenterFrameCount} frames · ${draft.animatedCenterCellCount} cellules animées',
+            key: const Key('path-studio-new-path-center-animation-summary'),
+            style: const TextStyle(
+              color: PathStudioTheme.textMuted,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           if (cell.frames.isNotEmpty) ...[
             const SizedBox(height: 10),
             Text(
-              'Animation de la cellule ${cell.label}',
+              'Animation du centre — Cellule ${cell.label}',
               key: Key('path-studio-new-path-animation-title-${cell.label}'),
               style: const TextStyle(
                 color: PathStudioTheme.textPrimary,
@@ -563,6 +575,16 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
+            const Text(
+              'Chaque frame correspond à une tuile du tileset.\nLe runtime joue les frames dans l’ordre avec la durée indiquée.\nAvec une seule frame, la cellule reste statique.',
+              style: TextStyle(
+                color: PathStudioTheme.textMuted,
+                fontSize: 11,
+                height: 1.35,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -595,7 +617,7 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
                 color: PathStudioTheme.accentCyan.withValues(alpha: 0.2),
                 onPressed: onCenterFrameAdded,
                 child: const Text(
-                  'Ajouter une frame',
+                  'Ajouter une frame dupliquée',
                   style: TextStyle(
                     color: PathStudioTheme.accentCyan,
                     fontSize: 11,
@@ -604,11 +626,50 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(height: 6),
+            const Text(
+              'La nouvelle frame copie la frame active. Sélectionnez ensuite une tuile pour la remplacer.',
+              style: TextStyle(
+                color: PathStudioTheme.textMuted,
+                fontSize: 10.5,
+                height: 1.35,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ],
           if (selectedFrame != null) ...[
             const SizedBox(height: 10),
+            const Text(
+              'Frame active',
+              key: Key('path-studio-new-path-active-frame-title'),
+              style: TextStyle(
+                color: PathStudioTheme.textPrimary,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 4),
             Text(
-              'Frame active: ${cell.selectedFrameIndex + 1} • Tuile ${selectedFrame.tile.coordinateLabel} • ${selectedFrame.durationMs} ms',
+              'Frame ${cell.selectedFrameIndex + 1} / ${cell.frames.length}',
+              key: const Key('path-studio-new-path-active-frame-index'),
+              style: const TextStyle(
+                color: PathStudioTheme.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'Tuile ${selectedFrame.tile.coordinateLabel}',
+              style: const TextStyle(
+                color: PathStudioTheme.textMuted,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'Durée ${selectedFrame.durationMs} ms',
               style: const TextStyle(
                 color: PathStudioTheme.textMuted,
                 fontSize: 11,
@@ -689,7 +750,7 @@ class _CenterFrameChip extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Frame ${frameIndex + 1}',
+              selected ? 'Frame ${frameIndex + 1} (active)' : 'Frame ${frameIndex + 1}',
               style: const TextStyle(
                 color: PathStudioTheme.textPrimary,
                 fontSize: 11.5,
@@ -706,6 +767,15 @@ class _CenterFrameChip extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 6),
+            const Text(
+              'Durée de la frame (ms)',
+              style: TextStyle(
+                color: PathStudioTheme.textMuted,
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
             CupertinoTextField(
               key: Key('path-studio-new-path-frame-duration-$frameIndex'),
               controller: TextEditingController(text: '${frame.durationMs}'),
@@ -737,7 +807,7 @@ class _CenterFrameChip extends StatelessWidget {
                 color: PathStudioTheme.error.withValues(alpha: 0.16),
                 onPressed: onRemove,
                 child: const Text(
-                  'Supprimer',
+                  'Supprimer cette frame',
                   style: TextStyle(
                     color: PathStudioTheme.error,
                     fontSize: 10.5,

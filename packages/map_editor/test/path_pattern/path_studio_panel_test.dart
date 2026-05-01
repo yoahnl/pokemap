@@ -460,8 +460,29 @@ void main() {
       await _pumpPathStudioAsync(tester);
       await _tapNewPathTile(tester, tileX: 2, tileY: 1);
 
-      expect(find.text('Animation de la cellule A'), findsWidgets);
+      expect(find.text('Animation du centre — Cellule A'), findsWidgets);
+      expect(
+        find.text(
+          'Chaque frame correspond à une tuile du tileset.\nLe runtime joue les frames dans l’ordre avec la durée indiquée.\nAvec une seule frame, la cellule reste statique.',
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Statique — 1 frame'), findsWidgets);
+      expect(
+        find.byKey(const Key('path-studio-new-path-center-animation-summary')),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Centre : 1 cellules · 1 frames'), findsOneWidget);
+      expect(
+        find.byKey(const Key('path-studio-new-path-active-frame-title')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('path-studio-new-path-active-frame-index')),
+        findsOneWidget,
+      );
+      expect(find.text('Frame 1 / 1'), findsOneWidget);
+      expect(find.text('Durée de la frame (ms)'), findsOneWidget);
 
       final addFrame = find.byKey(const Key('path-studio-new-path-add-frame'));
       await tester.ensureVisible(addFrame);
@@ -469,15 +490,22 @@ void main() {
       await tester.tap(addFrame);
       await _pumpPathStudioAsync(tester);
       expect(find.text('Animée — 2 frames'), findsWidgets);
+      expect(find.text('Ajouter une frame dupliquée'), findsWidgets);
+      expect(find.text('Frame 2 / 2'), findsOneWidget);
+      expect(find.textContaining('Centre : 1 cellules · 2 frames'), findsOneWidget);
 
       await tester.enterText(
         find.byKey(const Key('path-studio-new-path-frame-duration-1')),
         '333',
       );
       await _pumpPathStudioAsync(tester);
-      expect(find.textContaining('333 ms'), findsWidgets);
+      expect(find.text('Durée 333 ms'), findsOneWidget);
 
-      await tester.tap(find.byKey(const Key('path-studio-new-path-frame-chip-0')));
+      final firstFrameChip =
+          find.byKey(const Key('path-studio-new-path-frame-chip-0'));
+      await tester.ensureVisible(firstFrameChip);
+      await tester.pumpAndSettle();
+      await tester.tap(firstFrameChip);
       await _pumpPathStudioAsync(tester);
       await _tapNewPathTile(tester, tileX: 5, tileY: 1);
       expect(find.textContaining('Tuile 5,1'), findsWidgets);
