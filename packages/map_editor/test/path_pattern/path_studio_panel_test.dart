@@ -323,13 +323,14 @@ void main() {
         find.widgetWithText(CupertinoButton, 'Dupliquer'),
       );
       final saveButton = tester.widget<CupertinoButton>(
-        find.widgetWithText(CupertinoButton, 'Enregistrer'),
+        find.widgetWithText(CupertinoButton, 'Appliquer au projet'),
       );
 
       expect(find.text('Nouveau preset'), findsNothing);
       expect(newPathButton.onPressed, isNotNull);
       expect(duplicateButton.onPressed, isNull);
       expect(saveButton.onPressed, isNull);
+      expect(find.widgetWithText(CupertinoButton, 'Enregistrer'), findsNothing);
       expect(find.text('lot futur'), findsWidgets);
 
       await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
@@ -1007,7 +1008,7 @@ void main() {
 
       expect(find.text('Route brouillon'), findsWidgets);
       final saveButton = tester.widget<CupertinoButton>(
-        find.widgetWithText(CupertinoButton, 'Enregistrer'),
+        find.widgetWithText(CupertinoButton, 'Appliquer au projet'),
       );
       expect(saveButton.onPressed, isNull);
     });
@@ -1096,7 +1097,7 @@ void main() {
       await tester.pumpAndSettle();
       await _tapNewPathTile(tester, tileX: 2, tileY: 1);
 
-      expect(find.text('Requête locale prête'), findsWidgets);
+      expect(find.text('application en mémoire prête'), findsWidgets);
       expect(
         find.text('Warnings présents, mais sauvegarde en mémoire possible.'),
         findsWidgets,
@@ -1189,7 +1190,8 @@ void main() {
         find.byKey(const Key('path-studio-save-success-message')),
         findsOneWidget,
       );
-      expect(find.text('Nouveau chemin créé dans le projet'), findsOneWidget);
+      expect(find.textContaining('en mémoire'), findsWidgets);
+      expect(find.textContaining('disquette'), findsWidgets);
       expect(find.text('PathPattern sauvegardé'), findsOneWidget);
       expect(find.text('nouveau-chemin-pattern'), findsWidgets);
     });
@@ -1271,6 +1273,10 @@ void main() {
       );
       await _pumpPathStudioAsync(tester);
 
+      expect(
+        find.widgetWithText(CupertinoButton, 'Appliquer les modifications'),
+        findsOneWidget,
+      );
       await tester.tap(find.byKey(const Key('path-studio-save-button')));
       await _pumpPathStudioAsync(tester);
 
@@ -1285,7 +1291,8 @@ void main() {
           updatedPattern.centerPattern.cells.first.frames[2].durationMs, 444);
       expect(find.byKey(const Key('path-studio-new-path-draft-card')),
           findsNothing);
-      expect(find.text('Chemin modifié dans le projet'), findsOneWidget);
+      expect(find.textContaining('en mémoire'), findsWidgets);
+      expect(find.textContaining('disquette'), findsWidgets);
       expect(find.text('PathPattern sauvegardé'), findsOneWidget);
       expect(find.text('Mer éditée'), findsWidgets);
     });
@@ -1386,7 +1393,8 @@ void main() {
         find.byKey(const Key('path-studio-save-success-message')),
         findsOneWidget,
       );
-      expect(find.text('Motif enregistré dans le projet'), findsOneWidget);
+      expect(find.textContaining('en mémoire'), findsWidgets);
+      expect(find.textContaining('disquette'), findsWidgets);
       expect(find.text('Propriétés du preset'), findsOneWidget);
       expect(find.text('motif-eau'), findsWidgets);
       expect(find.text('Motif PathPattern depuis path existant'), findsNothing);

@@ -73,6 +73,7 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
   @override
   Widget build(BuildContext context) {
     final shell = ref.watch(editorShellSnapshotProvider);
+    final project = ref.watch(editorProjectManifestProvider);
     final workspaceMode = shell.workspaceMode;
     final notifier = ref.read(editorNotifierProvider.notifier);
     final supportsRightInspector = switch (workspaceMode) {
@@ -138,8 +139,13 @@ class _EditorShellPageState extends ConsumerState<EditorShellPage> {
           _SaveIntent: CallbackAction<_SaveIntent>(
             onInvoke: (_) {
               if (_isTextInputFocused()) return null;
-              if (!shell.canSaveMap) return null;
-              notifier.saveActiveMap();
+              if (workspaceMode == EditorWorkspaceMode.map) {
+                if (!shell.canSaveMap) return null;
+                notifier.saveActiveMap();
+                return null;
+              }
+              if (project == null) return null;
+              notifier.saveProjectManifest();
               return null;
             },
           ),

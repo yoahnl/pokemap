@@ -1,0 +1,100 @@
+{
+  "name": "Deep Water Static Fixture",
+  "maps": [],
+  "tilesets": [
+    {
+      "id": "deep_water",
+      "name": "Deep Water",
+      "relativePath": "assets/tilesets/deep_water.png"
+    }
+  ],
+  "pathPresets": [
+    {
+      "id": "nouveau-chemin",
+      "name": "sea",
+      "surfaceKind": "water",
+      "tilesetId": "deep_water",
+      "variants": []
+    }
+  ],
+  "pathPatternPresets": [
+    {
+      "id": "nouveau-chemin-pattern",
+      "name": "Nouveau chemin",
+      "basePathPresetId": "nouveau-chemin",
+      "sortOrder": 0,
+      "centerPattern": {
+        "size": {
+          "width": 2,
+          "height": 2
+        },
+        "cells": [
+          {
+            "localX": 0,
+            "localY": 0,
+            "frames": [
+              {
+                "tilesetId": "deep_water",
+                "source": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 1,
+                  "height": 1
+                },
+                "durationMs": null
+              }
+            ]
+          },
+          {
+            "localX": 1,
+            "localY": 0,
+            "frames": [
+              {
+                "tilesetId": "deep_water",
+                "source": {
+                  "x": 1,
+                  "y": 0,
+                  "width": 1,
+                  "height": 1
+                },
+                "durationMs": null
+              }
+            ]
+          },
+          {
+            "localX": 0,
+            "localY": 1,
+            "frames": [
+              {
+                "tilesetId": "deep_water",
+                "source": {
+                  "x": 0,
+                  "y": 1,
+                  "width": 1,
+                  "height": 1
+                },
+                "durationMs": null
+              }
+            ]
+          },
+          {
+            "localX": 1,
+            "localY": 1,
+            "frames": [
+              {
+                "tilesetId": "deep_water",
+                "source": {
+                  "x": 1,
+                  "y": 1,
+                  "width": 1,
+                  "height": 1
+                },
+                "durationMs": null
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

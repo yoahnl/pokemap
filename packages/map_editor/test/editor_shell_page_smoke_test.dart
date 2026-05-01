@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
@@ -282,6 +283,63 @@ void main() {
       );
 
       expect(find.text('Shell render failure'), findsOneWidget);
+    });
+
+    testWidgets('Cmd/Ctrl+S saves map in map workspace', (tester) async {
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/editor_shell_shortcut_map',
+          project: buildShellChromeProject(),
+          workspaceMode: EditorWorkspaceMode.map,
+          activeMap: buildShellChromeMap(),
+        ),
+      );
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.keyS);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.keyS);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+
+      expect(container.read(editorNotifierProvider).statusMessage, isNull);
+      expect(container.read(editorNotifierProvider).errorMessage, isNull);
+    });
+
+    testWidgets('Cmd/Ctrl+S saves project outside map workspace', (tester) async {
+      await pumpEditorShellPage(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/editor_shell_shortcut_path_studio',
+          project: buildShellChromeProject(),
+          workspaceMode: EditorWorkspaceMode.pathStudio,
+        ),
+      );
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.keyS);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.keyS);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+      expect(find.byType(Placeholder), findsNothing);
+    });
+
+    testWidgets('Cmd/Ctrl+S no-op sans projet chargé', (tester) async {
+      final container = await pumpEditorShellPage(
+        tester,
+        initialState: const EditorState(
+          workspaceMode: EditorWorkspaceMode.pathStudio,
+        ),
+      );
+
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.controlLeft);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.keyS);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.keyS);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.controlLeft);
+      await tester.pumpAndSettle();
+
+      expect(container.read(editorNotifierProvider).project, isNull);
+      expect(container.read(editorNotifierProvider).errorMessage, isNull);
     });
   });
 }

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/ui/shared/top_toolbar/widgets/toolbar_capsules.dart';
@@ -60,8 +62,12 @@ void main() {
       expect(find.text('Pokemon Map  •  Trainer Studio'), findsOneWidget);
     });
 
-    testWidgets('disables map save and history actions in Path Studio',
+    testWidgets('enables project save and disables map history in Path Studio',
         (tester) async {
+      final projectDir = Directory('/tmp/top_toolbar_path_studio');
+      if (!projectDir.existsSync()) {
+        projectDir.createSync(recursive: true);
+      }
       await pumpTopToolbarHarness(
         tester,
         initialState: EditorState(
@@ -84,9 +90,44 @@ void main() {
         );
       }
 
-      expect(buttonWithTooltip('Save Map').onPressed, isNull);
+      expect(buttonWithTooltip('Save Project').onPressed, isNotNull);
       expect(buttonWithTooltip('Undo').onPressed, isNull);
       expect(buttonWithTooltip('Redo').onPressed, isNull);
+
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is ToolbarCapsuleButton && widget.tooltip == 'Save Map',
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('keeps map save action in map workspace', (tester) async {
+      await pumpTopToolbarHarness(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/top_toolbar_map',
+          project: buildShellChromeProject(name: 'Pokemon Map'),
+          workspaceMode: EditorWorkspaceMode.map,
+          activeMap: buildShellChromeMap(),
+          canUndoMap: true,
+          canRedoMap: true,
+        ),
+      );
+
+      ToolbarCapsuleButton buttonWithTooltip(String tooltip) {
+        return tester.widget<ToolbarCapsuleButton>(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is ToolbarCapsuleButton && widget.tooltip == tooltip,
+          ),
+        );
+      }
+
+      expect(buttonWithTooltip('Save Map').onPressed, isNotNull);
+      buttonWithTooltip('Save Map').onPressed?.call();
+      await tester.pumpAndSettle();
     });
   });
 }

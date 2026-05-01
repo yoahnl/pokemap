@@ -137,7 +137,8 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
           _draftSelected = false;
           _draftMessage = null;
           _saveFeedbackMessage =
-              _pendingSavedSuccessMessage ?? 'Motif enregistré dans le projet';
+              _pendingSavedSuccessMessage ??
+                  'Modification appliquée au projet en mémoire. Sauvegardez le projet avec la disquette pour l’écrire dans project.json.';
           _saveErrorMessage = null;
           _pendingSavedPathPatternId = null;
           _pendingSavedSuccessMessage = null;
@@ -221,6 +222,11 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
               onCreateNewPathDraft: _createNewPathDraft,
               onCreateLegacyDraft: _createLegacyDraft,
               onSavePressed: onSavePressed,
+              saveButtonLabel: _saveButtonLabel(
+                newPathSavePlan: newPathSavePlan,
+                editPathSavePlan: editPathSavePlan,
+                legacySavePlan: legacySavePlan,
+              ),
               saveHint: _saveButtonHint(
                 newPathSavePlan: newPathSavePlan,
                 editPathSavePlan: editPathSavePlan,
@@ -756,7 +762,8 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
     }
     setState(() {
       _pendingSavedPathPatternId = request.preset.id;
-      _pendingSavedSuccessMessage = 'Motif enregistré dans le projet';
+      _pendingSavedSuccessMessage =
+          'Modification appliquée au projet en mémoire. Sauvegardez le projet avec la disquette pour l’écrire dans project.json.';
       _saveFeedbackMessage = null;
       _saveErrorMessage = null;
     });
@@ -788,7 +795,8 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
     }
     setState(() {
       _pendingSavedPathPatternId = request.pathPatternPreset.id;
-      _pendingSavedSuccessMessage = 'Nouveau chemin créé dans le projet';
+      _pendingSavedSuccessMessage =
+          'Chemin ajouté au projet en mémoire. Sauvegardez le projet avec la disquette pour l’écrire dans project.json.';
       _saveFeedbackMessage = null;
       _saveErrorMessage = null;
     });
@@ -823,7 +831,8 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
     }
     setState(() {
       _pendingSavedPathPatternId = request.updatedPathPatternPreset.id;
-      _pendingSavedSuccessMessage = 'Chemin modifié dans le projet';
+      _pendingSavedSuccessMessage =
+          'Chemin modifié en mémoire. Sauvegardez le projet avec la disquette pour l’écrire dans project.json.';
       _saveFeedbackMessage = null;
       _saveErrorMessage = null;
     });
@@ -837,6 +846,22 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         _saveErrorMessage = 'La modification du chemin a échoué';
       });
     }
+  }
+
+  String _saveButtonLabel({
+    required PathStudioNewPathBuildPlan? newPathSavePlan,
+    required PathStudioEditPathBuildPlan? editPathSavePlan,
+    required PathStudioLegacyPathPatternSavePlan? legacySavePlan,
+  }) {
+    if (newPathSavePlan != null) {
+      return editPathSavePlan != null
+          ? 'Appliquer les modifications'
+          : 'Appliquer au projet';
+    }
+    if (legacySavePlan != null) {
+      return 'Appliquer au projet';
+    }
+    return 'Appliquer au projet';
   }
 
   String _saveButtonHint({
@@ -853,14 +878,14 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
           return 'non sauvegardable';
         }
         return hasEditPathSaveCallback
-            ? 'modification prête'
+            ? 'application en mémoire prête'
             : 'callback absent';
       }
       if (!newPathSavePlan.canBuildRequest) {
         return 'non sauvegardable';
       }
       return hasNewPathSaveCallback
-          ? 'requête locale prête'
+          ? 'application en mémoire prête'
           : 'callback absent';
     }
     if (legacySavePlan != null) {
@@ -1068,6 +1093,7 @@ class _PathStudioHeader extends StatelessWidget {
     required this.onCreateNewPathDraft,
     required this.onCreateLegacyDraft,
     required this.onSavePressed,
+    required this.saveButtonLabel,
     required this.saveHint,
   });
 
@@ -1075,6 +1101,7 @@ class _PathStudioHeader extends StatelessWidget {
   final VoidCallback onCreateNewPathDraft;
   final VoidCallback onCreateLegacyDraft;
   final VoidCallback? onSavePressed;
+  final String saveButtonLabel;
   final String saveHint;
 
   @override
@@ -1164,7 +1191,7 @@ class _PathStudioHeader extends StatelessWidget {
                 ),
                 _ShellActionButton(
                   icon: CupertinoIcons.floppy_disk,
-                  label: 'Enregistrer',
+                  label: saveButtonLabel,
                   hint: saveHint,
                   buttonKey: const Key('path-studio-save-button'),
                   onPressed: onSavePressed,
