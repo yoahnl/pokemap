@@ -7,6 +7,7 @@ import '../editor/state/editor_selectors.dart';
 import 'path_pattern_draft.dart';
 import 'path_pattern_editor_read_model.dart';
 import 'path_studio_new_path_draft.dart';
+import 'path_studio_save_plan.dart';
 import 'path_studio_theme.dart';
 import 'path_studio_tileset_image_picker.dart';
 
@@ -43,10 +44,13 @@ class PathStudioPanel extends StatefulWidget {
     super.key,
     required this.manifest,
     this.projectRootPath,
+    this.onPathPatternPresetSaveRequested,
   });
 
   final ProjectManifest manifest;
   final String? projectRootPath;
+  final ValueChanged<ProjectPathPatternPreset>?
+      onPathPatternPresetSaveRequested;
 
   @override
   State<PathStudioPanel> createState() => _PathStudioPanelState();
@@ -59,6 +63,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
   PathPatternDraft? _draft;
   bool _draftSelected = false;
   String? _draftMessage;
+  String? _saveFeedbackMessage;
 
   /// Index dans `readModel.presets`, pas id métier.
   ///
@@ -77,6 +82,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
       _draft = null;
       _draftSelected = false;
       _draftMessage = null;
+      _saveFeedbackMessage = null;
     }
   }
 
@@ -92,6 +98,23 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         : _selectedCard(filtered);
     final selectedNewPathDraft = _newPathDraftSelected ? _newPathDraft : null;
     final selectedDraft = _draftSelected ? _draft : null;
+    final newPathSavePlan = selectedNewPathDraft == null
+        ? null
+        : createPathStudioNewPathSavePlan(
+            manifest: widget.manifest,
+            draft: selectedNewPathDraft,
+          );
+    final legacySavePlan = selectedDraft == null
+        ? null
+        : createPathStudioLegacyPathPatternSavePlan(
+            manifest: widget.manifest,
+            draft: selectedDraft,
+          );
+    final saveCallback = widget.onPathPatternPresetSaveRequested;
+    final onSavePressed =
+        legacySavePlan?.canSaveNow == true && saveCallback != null
+            ? _requestLegacyPathPatternSave
+            : null;
 
     return DecoratedBox(
       decoration: const BoxDecoration(
@@ -106,6 +129,12 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
               summary: readModel.summary,
               onCreateNewPathDraft: _createNewPathDraft,
               onCreateLegacyDraft: _createLegacyDraft,
+              onSavePressed: onSavePressed,
+              saveHint: _saveButtonHint(
+                newPathSavePlan: newPathSavePlan,
+                legacySavePlan: legacySavePlan,
+                hasSaveCallback: saveCallback != null,
+              ),
             ),
             const SizedBox(height: 16),
             Expanded(
@@ -160,7 +189,11 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
                       settings: widget.manifest.settings,
                       projectRootPath: widget.projectRootPath,
                       newPathDraft: selectedNewPathDraft,
+                      newPathSavePlan: newPathSavePlan,
                       draft: selectedDraft,
+                      legacySavePlan: legacySavePlan,
+                      hasSaveCallback: saveCallback != null,
+                      saveFeedbackMessage: _saveFeedbackMessage,
                       selected: selected?.card,
                       hasAnyPreset: readModel.presets.isNotEmpty,
                       onNewPathSizeChanged: _resizeNewPathDraft,
@@ -265,6 +298,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
       _newPathDraftSelected = true;
       _draftSelected = false;
       _draftMessage = null;
+      _saveFeedbackMessage = null;
     });
   }
 
@@ -272,6 +306,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
     if (widget.manifest.pathPresets.isEmpty) {
       setState(() {
         _draftMessage = 'Aucun path existant disponible';
+        _saveFeedbackMessage = null;
         _newPathDraftSelected = false;
         _draftSelected = false;
       });
@@ -288,11 +323,13 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         _draftMessage = draft == null
             ? 'Aucun path existant disponible'
             : 'Brouillon non sauvegardé';
+        _saveFeedbackMessage = null;
       });
     } on ArgumentError {
       setState(() {
         _draftMessage =
             'Le preset Path de base ne contient pas de centre cross';
+        _saveFeedbackMessage = null;
         _newPathDraftSelected = false;
         _draftSelected = false;
       });
@@ -306,6 +343,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
     }
     setState(() {
       _newPathDraft = renamePathStudioNewPathDraft(draft, name);
+      _saveFeedbackMessage = null;
     });
   }
 
@@ -320,6 +358,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         width: width,
         height: height,
       );
+      _saveFeedbackMessage = null;
     });
   }
 
@@ -330,6 +369,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
     }
     setState(() {
       _newPathDraft = selectPathStudioNewPathDraftTileset(draft, tilesetId);
+      _saveFeedbackMessage = null;
     });
   }
 
@@ -344,6 +384,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         localX: localX,
         localY: localY,
       );
+      _saveFeedbackMessage = null;
     });
   }
 
@@ -360,6 +401,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         sourceX: sourceX,
         sourceY: sourceY,
       );
+      _saveFeedbackMessage = null;
     });
   }
 
@@ -374,6 +416,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         localX: localX,
         localY: localY,
       );
+      _saveFeedbackMessage = null;
     });
   }
 
@@ -382,7 +425,10 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
     if (draft == null) {
       return;
     }
-    setState(() => _draft = renamePathPatternDraft(draft, name));
+    setState(() {
+      _draft = renamePathPatternDraft(draft, name);
+      _saveFeedbackMessage = null;
+    });
   }
 
   void _resizeDraft(int width, int height) {
@@ -398,6 +444,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         width: width,
         height: height,
       );
+      _saveFeedbackMessage = null;
     });
   }
 
@@ -415,6 +462,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         draft: draft,
         basePathPreset: base,
       );
+      _saveFeedbackMessage = null;
     });
   }
 
@@ -429,7 +477,46 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         localX: localX,
         localY: localY,
       );
+      _saveFeedbackMessage = null;
     });
+  }
+
+  void _requestLegacyPathPatternSave() {
+    final draft = _draft;
+    final callback = widget.onPathPatternPresetSaveRequested;
+    if (draft == null || !_draftSelected || callback == null) {
+      return;
+    }
+    final plan = createPathStudioLegacyPathPatternSavePlan(
+      manifest: widget.manifest,
+      draft: draft,
+    );
+    final request = plan.request;
+    if (request == null) {
+      return;
+    }
+    callback(request.preset);
+    setState(() {
+      _saveFeedbackMessage = 'Requête de sauvegarde préparée';
+      _draftMessage = _saveFeedbackMessage;
+    });
+  }
+
+  String _saveButtonHint({
+    required PathStudioNewPathSavePlan? newPathSavePlan,
+    required PathStudioLegacyPathPatternSavePlan? legacySavePlan,
+    required bool hasSaveCallback,
+  }) {
+    if (newPathSavePlan != null) {
+      return 'variants manquants';
+    }
+    if (legacySavePlan != null) {
+      if (!legacySavePlan.canSaveNow) {
+        return 'à corriger';
+      }
+      return hasSaveCallback ? 'préparer' : 'callback absent';
+    }
+    return 'aucun brouillon';
   }
 
   ProjectPathPreset? _basePathPresetForDraft(PathPatternDraft? draft) {
@@ -482,11 +569,15 @@ class _PathStudioHeader extends StatelessWidget {
     required this.summary,
     required this.onCreateNewPathDraft,
     required this.onCreateLegacyDraft,
+    required this.onSavePressed,
+    required this.saveHint,
   });
 
   final PathPatternEditorSummary summary;
   final VoidCallback onCreateNewPathDraft;
   final VoidCallback onCreateLegacyDraft;
+  final VoidCallback? onSavePressed;
+  final String saveHint;
 
   @override
   Widget build(BuildContext context) {
@@ -573,10 +664,12 @@ class _PathStudioHeader extends StatelessWidget {
                   label: 'Dupliquer',
                   hint: 'lot futur',
                 ),
-                const _ShellActionButton(
+                _ShellActionButton(
                   icon: CupertinoIcons.floppy_disk,
                   label: 'Enregistrer',
-                  hint: 'lot futur',
+                  hint: saveHint,
+                  buttonKey: const Key('path-studio-save-button'),
+                  onPressed: onSavePressed,
                 ),
               ],
             ),
@@ -636,17 +729,20 @@ class _ShellActionButton extends StatelessWidget {
     required this.icon,
     required this.label,
     this.hint = 'lot futur',
+    this.buttonKey,
     this.onPressed,
   });
 
   final IconData icon;
   final String label;
   final String hint;
+  final Key? buttonKey;
   final VoidCallback? onPressed;
 
   @override
   Widget build(BuildContext context) {
     return CupertinoButton(
+      key: buttonKey,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       minimumSize: Size.zero,
       onPressed: onPressed,
@@ -1267,7 +1363,11 @@ class _CenterWorkspace extends StatelessWidget {
     required this.settings,
     required this.projectRootPath,
     required this.newPathDraft,
+    required this.newPathSavePlan,
     required this.draft,
+    required this.legacySavePlan,
+    required this.hasSaveCallback,
+    required this.saveFeedbackMessage,
     required this.selected,
     required this.hasAnyPreset,
     required this.onNewPathSizeChanged,
@@ -1282,7 +1382,11 @@ class _CenterWorkspace extends StatelessWidget {
   final ProjectSettings settings;
   final String? projectRootPath;
   final PathStudioNewPathDraft? newPathDraft;
+  final PathStudioNewPathSavePlan? newPathSavePlan;
   final PathPatternDraft? draft;
+  final PathStudioLegacyPathPatternSavePlan? legacySavePlan;
+  final bool hasSaveCallback;
+  final String? saveFeedbackMessage;
   final PathPatternPresetCardModel? selected;
   final bool hasAnyPreset;
   final void Function(int width, int height) onNewPathSizeChanged;
@@ -1295,12 +1399,14 @@ class _CenterWorkspace extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final newPathDraft = this.newPathDraft;
-    if (newPathDraft != null) {
+    final newPathSavePlan = this.newPathSavePlan;
+    if (newPathDraft != null && newPathSavePlan != null) {
       return _NewPathCenterWorkspace(
         tilesets: tilesets,
         settings: settings,
         projectRootPath: projectRootPath,
         draft: newPathDraft,
+        savePlan: newPathSavePlan,
         onSizeChanged: onNewPathSizeChanged,
         onCellSelected: onNewPathCellSelected,
         onTileSelected: onNewPathTileSelected,
@@ -1308,9 +1414,13 @@ class _CenterWorkspace extends StatelessWidget {
       );
     }
     final draft = this.draft;
-    if (draft != null) {
+    final legacySavePlan = this.legacySavePlan;
+    if (draft != null && legacySavePlan != null) {
       return _DraftCenterWorkspace(
         draft: draft,
+        savePlan: legacySavePlan,
+        hasSaveCallback: hasSaveCallback,
+        saveFeedbackMessage: saveFeedbackMessage,
         onSizeChanged: onDraftSizeChanged,
         onCellSelected: onDraftCellSelected,
       );
@@ -1343,6 +1453,7 @@ class _NewPathCenterWorkspace extends StatelessWidget {
     required this.settings,
     required this.projectRootPath,
     required this.draft,
+    required this.savePlan,
     required this.onSizeChanged,
     required this.onCellSelected,
     required this.onTileSelected,
@@ -1353,6 +1464,7 @@ class _NewPathCenterWorkspace extends StatelessWidget {
   final ProjectSettings settings;
   final String? projectRootPath;
   final PathStudioNewPathDraft draft;
+  final PathStudioNewPathSavePlan savePlan;
   final void Function(int width, int height) onSizeChanged;
   final void Function(int localX, int localY) onCellSelected;
   final void Function(int sourceX, int sourceY) onTileSelected;
@@ -1382,6 +1494,8 @@ class _NewPathCenterWorkspace extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           _NewPathDiagnosticsCard(draft: draft),
+          const SizedBox(height: 14),
+          _NewPathSaveStatusCard(plan: savePlan),
         ],
       ),
     );
@@ -2130,11 +2244,17 @@ class _NewPathDiagnosticsCard extends StatelessWidget {
 class _DraftCenterWorkspace extends StatelessWidget {
   const _DraftCenterWorkspace({
     required this.draft,
+    required this.savePlan,
+    required this.hasSaveCallback,
+    required this.saveFeedbackMessage,
     required this.onSizeChanged,
     required this.onCellSelected,
   });
 
   final PathPatternDraft draft;
+  final PathStudioLegacyPathPatternSavePlan savePlan;
+  final bool hasSaveCallback;
+  final String? saveFeedbackMessage;
   final void Function(int width, int height) onSizeChanged;
   final void Function(int localX, int localY) onCellSelected;
 
@@ -2159,6 +2279,12 @@ class _DraftCenterWorkspace extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           _DraftDiagnosticsCard(draft: draft),
+          const SizedBox(height: 14),
+          _LegacyPathSaveStatusCard(
+            plan: savePlan,
+            hasSaveCallback: hasSaveCallback,
+            feedbackMessage: saveFeedbackMessage,
+          ),
         ],
       ),
     );
@@ -2485,6 +2611,174 @@ class _DraftDiagnosticsCard extends StatelessWidget {
                   )
                   .toList(growable: false),
             ),
+    );
+  }
+}
+
+class _NewPathSaveStatusCard extends StatelessWidget {
+  const _NewPathSaveStatusCard({required this.plan});
+
+  final PathStudioNewPathSavePlan plan;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      key: const Key('path-studio-save-status-card'),
+      title: 'Sauvegarde',
+      icon: CupertinoIcons.floppy_disk,
+      trailing: const _StatusChip(
+        label: 'Non sauvegardable',
+        color: PathStudioTheme.warning,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              const _InfoTile(
+                label: 'État',
+                value: 'Brouillon de nouveau chemin',
+              ),
+              _InfoTile(
+                label: 'Centre',
+                value: plan.isCenterReady ? 'Centre prêt' : 'Centre incomplet',
+              ),
+              const _InfoTile(
+                label: 'Sauvegarde',
+                value: 'Sauvegarde non disponible dans ce lot',
+              ),
+              _InfoTile(
+                label: 'Pattern proposé',
+                value: plan.proposedPathPatternPresetId,
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          const Text(
+            'Le centre peut être préparé localement, mais un nouveau chemin complet doit encore définir ses bords, coins et jonctions.',
+            style: TextStyle(
+              color: PathStudioTheme.textSecondary,
+              fontSize: 12,
+              height: 1.35,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 12),
+          _SaveIssueList(issues: plan.issues),
+        ],
+      ),
+    );
+  }
+}
+
+class _LegacyPathSaveStatusCard extends StatelessWidget {
+  const _LegacyPathSaveStatusCard({
+    required this.plan,
+    required this.hasSaveCallback,
+    required this.feedbackMessage,
+  });
+
+  final PathStudioLegacyPathPatternSavePlan plan;
+  final bool hasSaveCallback;
+  final String? feedbackMessage;
+
+  @override
+  Widget build(BuildContext context) {
+    final ready = plan.canSaveNow;
+    return _SectionCard(
+      key: const Key('path-studio-save-status-card'),
+      title: 'Sauvegarde',
+      icon: CupertinoIcons.floppy_disk,
+      trailing: _StatusChip(
+        label: ready ? 'Requête prête' : 'Bloquée',
+        color: ready ? PathStudioTheme.success : PathStudioTheme.warning,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              const _InfoTile(
+                label: 'État',
+                value: 'Motif PathPattern depuis path existant',
+              ),
+              _InfoTile(
+                label: 'ID proposé',
+                value: plan.proposedPathPatternPresetId,
+              ),
+              _InfoTile(label: 'Base', value: plan.basePathPresetId),
+              _InfoTile(
+                label: 'Action',
+                value: ready ? 'Requête prête' : 'À corriger',
+              ),
+            ],
+          ),
+          if (feedbackMessage != null) ...[
+            const SizedBox(height: 12),
+            _DiagnosticRow(
+              icon: CupertinoIcons.check_mark_circled_solid,
+              color: PathStudioTheme.success,
+              title: feedbackMessage!,
+              message:
+                  'Le callback a reçu le ProjectPathPatternPreset préparé. Le manifest reste inchangé.',
+            ),
+          ],
+          if (ready && !hasSaveCallback) ...[
+            const SizedBox(height: 12),
+            const _DiagnosticRow(
+              icon: CupertinoIcons.info_circle_fill,
+              color: PathStudioTheme.warning,
+              title: 'Callback de sauvegarde absent',
+              message:
+                  'La requête locale est prête, mais aucun callback externe ne l’utilise encore.',
+            ),
+          ],
+          if (plan.issues.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _SaveIssueList(issues: plan.issues),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SaveIssueList extends StatelessWidget {
+  const _SaveIssueList({required this.issues});
+
+  final List<PathStudioSaveIssueCode> issues;
+
+  @override
+  Widget build(BuildContext context) {
+    if (issues.isEmpty) {
+      return const _DiagnosticRow(
+        icon: CupertinoIcons.check_mark_circled_solid,
+        color: PathStudioTheme.success,
+        title: 'Aucune issue de sauvegarde locale',
+        message: 'La préparation locale ne signale aucun blocage.',
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (final issue in issues)
+          Padding(
+            key: Key('path-studio-save-issue-${issue.name}'),
+            padding: const EdgeInsets.only(bottom: 8),
+            child: _DiagnosticRow(
+              icon: CupertinoIcons.exclamationmark_triangle_fill,
+              color: issue == PathStudioSaveIssueCode.pathVariantMappingRequired
+                  ? PathStudioTheme.warning
+                  : PathStudioTheme.accentCyan,
+              title: pathStudioSaveIssueLabel(issue),
+              message: pathStudioSaveIssueDescription(issue),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -3354,6 +3648,7 @@ class _InspectorEmptyState extends StatelessWidget {
 
 class _SectionCard extends StatelessWidget {
   const _SectionCard({
+    super.key,
     required this.title,
     required this.icon,
     required this.child,

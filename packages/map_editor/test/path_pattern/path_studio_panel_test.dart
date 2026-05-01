@@ -636,6 +636,155 @@ void main() {
       expect(saveButton.onPressed, isNull);
     });
 
+    testWidgets('new path save status explains missing path variant mapping',
+        (tester) async {
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(),
+      );
+
+      await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('path-studio-save-status-card')),
+          findsOneWidget);
+      expect(find.text('Sauvegarde'), findsWidgets);
+      expect(find.text('Brouillon de nouveau chemin'), findsWidgets);
+      expect(find.text('Sauvegarde non disponible dans ce lot'), findsWidgets);
+      expect(find.text('Bords / coins / jonctions à définir'), findsWidgets);
+
+      final saveButton = tester.widget<CupertinoButton>(
+        find.byKey(const Key('path-studio-save-button')),
+      );
+      expect(saveButton.onPressed, isNull);
+    });
+
+    testWidgets('new path with complete center stays blocked for save',
+        (tester) async {
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          tilesets: [_tileset(id: 'tileset-main', name: 'Chemins principaux')],
+        ),
+      );
+
+      await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+      await tester.pumpAndSettle();
+      tester
+          .widget<MacosPopupButton<String>>(
+            find.byKey(const Key('path-studio-new-path-tileset-popup')),
+          )
+          .onChanged
+          ?.call('tileset-main');
+      await tester.pumpAndSettle();
+      await _tapNewPathTile(tester, tileX: 2, tileY: 1);
+
+      expect(find.text('Centre prêt'), findsWidgets);
+      expect(find.text('Cellules du centre à configurer'), findsNothing);
+      expect(find.text('Bords / coins / jonctions à définir'), findsWidgets);
+
+      final saveButton = tester.widget<CupertinoButton>(
+        find.byKey(const Key('path-studio-save-button')),
+      );
+      expect(saveButton.onPressed, isNull);
+    });
+
+    testWidgets('legacy save request is prepared but disabled without callback',
+        (tester) async {
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          pathPresets: [_legacyPathPreset(id: 'legacy-water')],
+        ),
+      );
+
+      await tester.tap(
+        find.widgetWithText(CupertinoButton, 'Depuis un path existant'),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('path-studio-draft-name-field')),
+        'Motif eau',
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Motif PathPattern depuis path existant'), findsWidgets);
+      expect(find.text('Requête prête'), findsWidgets);
+      expect(find.text('Callback de sauvegarde absent'), findsWidgets);
+
+      final saveButton = tester.widget<CupertinoButton>(
+        find.byKey(const Key('path-studio-save-button')),
+      );
+      expect(saveButton.onPressed, isNull);
+    });
+
+    testWidgets('legacy save request calls callback without mutating manifest',
+        (tester) async {
+      final manifest = _manifest(
+        pathPresets: [_legacyPathPreset(id: 'legacy-water')],
+      );
+      final captured = <ProjectPathPatternPreset>[];
+      await _pumpPathStudio(
+        tester,
+        manifest: manifest,
+        onPathPatternPresetSaveRequested: captured.add,
+      );
+
+      await tester.tap(
+        find.widgetWithText(CupertinoButton, 'Depuis un path existant'),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('path-studio-draft-name-field')),
+        'Motif eau',
+      );
+      await tester.pumpAndSettle();
+
+      final saveButton = tester.widget<CupertinoButton>(
+        find.byKey(const Key('path-studio-save-button')),
+      );
+      expect(saveButton.onPressed, isNotNull);
+
+      await tester.tap(find.byKey(const Key('path-studio-save-button')));
+      await tester.pumpAndSettle();
+
+      expect(captured, hasLength(1));
+      expect(captured.single.id, 'motif-eau');
+      expect(captured.single.name, 'Motif eau');
+      expect(captured.single.basePathPresetId, 'legacy-water');
+      expect(manifest.pathPatternPresets, isEmpty);
+      expect(find.text('Requête de sauvegarde préparée'), findsWidgets);
+    });
+
+    testWidgets('legacy duplicate proposed id blocks save', (tester) async {
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          pathPresets: [_legacyPathPreset(id: 'legacy-water')],
+          pathPatternPresets: [
+            _pathPatternPreset(
+                id: 'motif-eau', basePathPresetId: 'legacy-water')
+          ],
+        ),
+      );
+
+      await tester.tap(
+        find.widgetWithText(CupertinoButton, 'Depuis un path existant'),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('path-studio-draft-name-field')),
+        'Motif eau',
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('ID PathPattern déjà utilisé'), findsWidgets);
+      final saveButton = tester.widget<CupertinoButton>(
+        find.byKey(const Key('path-studio-save-button')),
+      );
+      expect(saveButton.onPressed, isNull);
+    });
+
     testWidgets('secondary legacy flow changes inherited structure locally',
         (tester) async {
       await _pumpPathStudio(
@@ -723,6 +872,7 @@ Future<void> _pumpPathStudio(
   WidgetTester tester, {
   required ProjectManifest manifest,
   String? projectRootPath,
+  ValueChanged<ProjectPathPatternPreset>? onPathPatternPresetSaveRequested,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1440, 920));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -737,6 +887,8 @@ Future<void> _pumpPathStudio(
               return PathStudioPanel(
                 manifest: manifest,
                 projectRootPath: projectRootPath,
+                onPathPatternPresetSaveRequested:
+                    onPathPatternPresetSaveRequested,
               );
             },
           ),
