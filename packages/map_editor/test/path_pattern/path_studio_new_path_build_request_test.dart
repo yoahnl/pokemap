@@ -273,6 +273,42 @@ void main() {
       expect(frames[0].tilesetId, 'tileset-main');
       expect(frames[1].tilesetId, 'tileset-main');
     });
+
+    test('assistant séquence: centerPattern porte 4 frames stepX=3 sans perte', () {
+      var draft = assignPathStudioNewPathDraftCellTile(
+        draft: selectPathStudioNewPathDraftTileset(
+          createInitialPathStudioNewPathDraft(),
+          'tileset-main',
+        ),
+        localX: 0,
+        localY: 0,
+        sourceX: 0,
+        sourceY: 0,
+      );
+      draft = switch (generatePathStudioCenterAnimationSequence(
+        draft: draft,
+        target: PathStudioCenterAnimationSequenceTarget.selectedCell,
+        frameCount: 4,
+        stepX: 3,
+        stepY: 0,
+        durationMs: 200,
+      )) {
+        PathStudioCenterAnimationSequenceSuccess(:final draft) => draft,
+        PathStudioCenterAnimationSequenceFailure(:final message) =>
+          throw StateError(message),
+      };
+
+      final plan = createPathStudioNewPathBuildPlan(
+        manifest: _manifest(),
+        draft: draft,
+      );
+      final frames =
+          plan.buildRequest!.pathPatternPreset.centerPattern.cells.single.frames;
+      expect(frames.length, 4);
+      expect(frames.map((f) => f.source.x), equals([0, 3, 6, 9]));
+      expect(frames.every((f) => f.durationMs == 200), isTrue);
+      expect(frames.every((f) => f.tilesetId == 'tileset-main'), isTrue);
+    });
   });
 }
 

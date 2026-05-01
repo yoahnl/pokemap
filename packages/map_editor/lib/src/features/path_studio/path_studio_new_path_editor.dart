@@ -20,6 +20,8 @@ class _NewPathCenterWorkspace extends StatelessWidget {
     required this.onCenterFrameDurationChanged,
     required this.onCellCleared,
     required this.onVariantCleared,
+    this.centerSequenceFeedback,
+    required this.onCenterAnimationSequenceRequested,
   });
 
   final List<ProjectTilesetEntry> tilesets;
@@ -41,6 +43,14 @@ class _NewPathCenterWorkspace extends StatelessWidget {
       onCenterFrameDurationChanged;
   final void Function(int localX, int localY) onCellCleared;
   final ValueChanged<TerrainPathVariant> onVariantCleared;
+  final String? centerSequenceFeedback;
+  final void Function(
+    PathStudioCenterAnimationSequenceTarget target,
+    int frameCount,
+    int stepX,
+    int stepY,
+    int durationMs,
+  ) onCenterAnimationSequenceRequested;
 
   @override
   Widget build(BuildContext context) {
@@ -77,6 +87,9 @@ class _NewPathCenterWorkspace extends StatelessWidget {
             onCenterFrameDurationChanged: onCenterFrameDurationChanged,
             onCellCleared: onCellCleared,
             onVariantCleared: onVariantCleared,
+            sequenceFeedbackMessage: centerSequenceFeedback,
+            onCenterAnimationSequenceRequested:
+                onCenterAnimationSequenceRequested,
           ),
           const SizedBox(height: 14),
           _NewPathDiagnosticsCard(plan: savePlan),
@@ -278,6 +291,8 @@ class _NewPathCenterPatternEditor extends StatelessWidget {
     required this.onCenterFrameDurationChanged,
     required this.onCellCleared,
     required this.onVariantCleared,
+    this.sequenceFeedbackMessage,
+    required this.onCenterAnimationSequenceRequested,
   });
 
   final List<ProjectTilesetEntry> tilesets;
@@ -295,6 +310,14 @@ class _NewPathCenterPatternEditor extends StatelessWidget {
       onCenterFrameDurationChanged;
   final void Function(int localX, int localY) onCellCleared;
   final ValueChanged<TerrainPathVariant> onVariantCleared;
+  final String? sequenceFeedbackMessage;
+  final void Function(
+    PathStudioCenterAnimationSequenceTarget target,
+    int frameCount,
+    int stepX,
+    int stepY,
+    int durationMs,
+  ) onCenterAnimationSequenceRequested;
 
   @override
   Widget build(BuildContext context) {
@@ -352,6 +375,9 @@ class _NewPathCenterPatternEditor extends StatelessWidget {
             onCenterFrameRemoved: onCenterFrameRemoved,
             onCenterFrameDurationChanged: onCenterFrameDurationChanged,
             onCellCleared: onCellCleared,
+            sequenceFeedbackMessage: sequenceFeedbackMessage,
+            onCenterAnimationSequenceRequested:
+                onCenterAnimationSequenceRequested,
           ),
           const SizedBox(height: 14),
           _NewPathVariantMappingSection(
@@ -519,6 +545,8 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
     required this.onCenterFrameRemoved,
     required this.onCenterFrameDurationChanged,
     required this.onCellCleared,
+    this.sequenceFeedbackMessage,
+    required this.onCenterAnimationSequenceRequested,
   });
 
   final PathStudioNewPathDraft draft;
@@ -528,6 +556,14 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
   final void Function(int frameIndex, int durationMs)
       onCenterFrameDurationChanged;
   final void Function(int localX, int localY) onCellCleared;
+  final String? sequenceFeedbackMessage;
+  final void Function(
+    PathStudioCenterAnimationSequenceTarget target,
+    int frameCount,
+    int stepX,
+    int stepY,
+    int durationMs,
+  ) onCenterAnimationSequenceRequested;
 
   @override
   Widget build(BuildContext context) {
@@ -663,6 +699,15 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
                 fontWeight: FontWeight.w700,
               ),
             ),
+            if (draft.tilesetId != null) ...[
+              const SizedBox(height: 14),
+              _NewPathCenterSequenceAssistant(
+                key: const Key('path-studio-new-path-seq-section'),
+                draft: draft,
+                feedbackMessage: sequenceFeedbackMessage,
+                onGenerateRequested: onCenterAnimationSequenceRequested,
+              ),
+            ],
           ],
           if (selectedFrame != null) ...[
             const SizedBox(height: 10),
@@ -725,6 +770,263 @@ class _NewPathSelectedCellDetails extends StatelessWidget {
                     fontWeight: FontWeight.w800,
                   ),
                 ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _NewPathCenterSequenceAssistant extends StatefulWidget {
+  const _NewPathCenterSequenceAssistant({
+    super.key,
+    required this.draft,
+    this.feedbackMessage,
+    required this.onGenerateRequested,
+  });
+
+  final PathStudioNewPathDraft draft;
+  final String? feedbackMessage;
+  final void Function(
+    PathStudioCenterAnimationSequenceTarget target,
+    int frameCount,
+    int stepX,
+    int stepY,
+    int durationMs,
+  ) onGenerateRequested;
+
+  @override
+  State<_NewPathCenterSequenceAssistant> createState() =>
+      _NewPathCenterSequenceAssistantState();
+}
+
+class _NewPathCenterSequenceAssistantState
+    extends State<_NewPathCenterSequenceAssistant> {
+  late final TextEditingController _frameCount;
+  late final TextEditingController _stepX;
+  late final TextEditingController _stepY;
+  late final TextEditingController _durationMs;
+  String _targetKey = 'selected';
+  String? _localFeedback;
+
+  @override
+  void initState() {
+    super.initState();
+    _frameCount = TextEditingController(text: '4');
+    _stepX = TextEditingController(text: '3');
+    _stepY = TextEditingController(text: '0');
+    _durationMs = TextEditingController(text: '200');
+  }
+
+  @override
+  void dispose() {
+    _frameCount.dispose();
+    _stepX.dispose();
+    _stepY.dispose();
+    _durationMs.dispose();
+    super.dispose();
+  }
+
+  String? get _displayedFeedback =>
+      _localFeedback ?? widget.feedbackMessage;
+
+  void _submit() {
+    setState(() => _localFeedback = null);
+    final frameCountParsed = int.tryParse(_frameCount.text.trim());
+    final stepXParsed = int.tryParse(_stepX.text.trim());
+    final stepYParsed = int.tryParse(_stepY.text.trim());
+    final durationParsed = int.tryParse(_durationMs.text.trim());
+    if (frameCountParsed == null ||
+        stepXParsed == null ||
+        stepYParsed == null ||
+        durationParsed == null) {
+      setState(() {
+        _localFeedback =
+            'Impossible de générer l’animation : valeurs numériques invalides.';
+      });
+      return;
+    }
+    final target = switch (_targetKey) {
+      'selected' => PathStudioCenterAnimationSequenceTarget.selectedCell,
+      _ => PathStudioCenterAnimationSequenceTarget.allCenterCells,
+    };
+    widget.onGenerateRequested(
+      target,
+      frameCountParsed,
+      stepXParsed,
+      stepYParsed,
+      durationParsed,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('path-studio-new-path-seq-inner'),
+      padding: const EdgeInsets.all(12),
+      decoration: PathStudioTheme.subtleDecoration(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Générer une séquence',
+            key: Key('path-studio-new-path-seq-heading'),
+            style: TextStyle(
+              color: PathStudioTheme.textPrimary,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Génère une timeline à partir de la première frame de chaque '
+            'cellule ciblée.\nUtile pour les tilesets d’eau organisés en '
+            'colonnes espacées régulièrement.',
+            style: TextStyle(
+              color: PathStudioTheme.textMuted,
+              fontSize: 11,
+              height: 1.35,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Cible',
+            style: TextStyle(
+              color: PathStudioTheme.textSecondary,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 6),
+          CupertinoSlidingSegmentedControl<String>(
+            key: const Key('path-studio-new-path-seq-target-control'),
+            groupValue: _targetKey,
+            onValueChanged: (value) {
+              if (value == null) {
+                return;
+              }
+              setState(() => _targetKey = value);
+            },
+            children: const {
+              'selected': Padding(
+                key: Key('path-studio-new-path-seq-target-selected'),
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                child: Text(
+                  'Cellule active',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                ),
+              ),
+              'all': Padding(
+                key: Key('path-studio-new-path-seq-target-all-center'),
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                child: Text(
+                  'Toutes les cellules',
+                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                ),
+              ),
+            },
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Nombre de frames',
+            style: TextStyle(
+              color: PathStudioTheme.textSecondary,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          CupertinoTextField(
+            key: const Key('path-studio-new-path-seq-frame-count'),
+            controller: _frameCount,
+            keyboardType: TextInputType.number,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Pas',
+            style: TextStyle(
+              color: PathStudioTheme.textSecondary,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Expanded(
+                child: CupertinoTextField(
+                  key: const Key('path-studio-new-path-seq-step-x'),
+                  controller: _stepX,
+                  placeholder: 'Pas X',
+                  keyboardType: TextInputType.number,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: CupertinoTextField(
+                  key: const Key('path-studio-new-path-seq-step-y'),
+                  controller: _stepY,
+                  placeholder: 'Pas Y',
+                  keyboardType: TextInputType.number,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Durée par frame (ms)',
+            style: TextStyle(
+              color: PathStudioTheme.textSecondary,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          CupertinoTextField(
+            key: const Key('path-studio-new-path-seq-duration'),
+            controller: _durationMs,
+            keyboardType: TextInputType.number,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: CupertinoButton(
+              key: const Key('path-studio-new-path-seq-generate'),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              minimumSize: Size.zero,
+              color: PathStudioTheme.accent.withValues(alpha: 0.2),
+              onPressed: _submit,
+              child: const Text(
+                'Générer l’animation',
+                style: TextStyle(
+                  color: PathStudioTheme.accent,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+          if (_displayedFeedback != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              _displayedFeedback!,
+              key: const Key('path-studio-new-path-seq-feedback'),
+              style: TextStyle(
+                color: _displayedFeedback!.startsWith('Impossible')
+                    ? PathStudioTheme.warning
+                    : PathStudioTheme.success,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                height: 1.35,
               ),
             ),
           ],

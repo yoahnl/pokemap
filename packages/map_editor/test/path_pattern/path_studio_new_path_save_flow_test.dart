@@ -1,6 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/path_studio/path_studio_new_path_build_request.dart';
+import 'package:map_editor/src/features/path_studio/path_studio_new_path_draft.dart';
 import 'package:map_editor/src/features/path_studio/path_studio_save_flow.dart';
 
 void main() {
@@ -209,6 +212,53 @@ void main() {
       expect(frames.length, 2);
       expect(frames[0].durationMs, 120);
       expect(frames[1].durationMs, 240);
+    });
+
+    test('roundtrip JSON conserve une séquence générée par l’assistant', () {
+      var draft = assignPathStudioNewPathDraftCellTile(
+        draft: selectPathStudioNewPathDraftTileset(
+          createInitialPathStudioNewPathDraft(),
+          'tileset-main',
+        ),
+        localX: 0,
+        localY: 0,
+        sourceX: 1,
+        sourceY: 2,
+      );
+      draft = switch (generatePathStudioCenterAnimationSequence(
+        draft: draft,
+        target: PathStudioCenterAnimationSequenceTarget.selectedCell,
+        frameCount: 3,
+        stepX: 2,
+        stepY: -1,
+        durationMs: 88,
+      )) {
+        PathStudioCenterAnimationSequenceSuccess(:final draft) => draft,
+        PathStudioCenterAnimationSequenceFailure(:final message) =>
+          throw StateError(message),
+      };
+
+      final plan = createPathStudioNewPathBuildPlan(
+        manifest: _manifest(),
+        draft: draft,
+      );
+      final request = plan.buildRequest!;
+
+      final updated = applyNewPathBuildRequestToManifest(
+        manifest: _manifest(),
+        request: request,
+      );
+      final raw = jsonEncode(updated.toJson());
+      final roundtrip = ProjectManifest.fromJson(
+        jsonDecode(raw) as Map<String, dynamic>,
+      );
+      final persisted =
+          roundtrip.pathPatternPresets.single.centerPattern.cells.single.frames;
+      expect(persisted.length, 3);
+      expect(persisted[0].source, const TilesetSourceRect(x: 1, y: 2));
+      expect(persisted[1].source, const TilesetSourceRect(x: 3, y: 1));
+      expect(persisted[2].source, const TilesetSourceRect(x: 5, y: 0));
+      expect(persisted.every((f) => f.durationMs == 88), isTrue);
     });
   });
 }

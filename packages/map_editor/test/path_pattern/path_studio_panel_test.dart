@@ -1268,6 +1268,222 @@ void main() {
       expect(find.text('nouveau-chemin-pattern'), findsWidgets);
     });
 
+    testWidgets('new path center sequence assistant bloc is wired', (tester) async {
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          tilesets: [_tileset(id: 'tileset-main', name: 'Chemins principaux')],
+        ),
+      );
+
+      await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+      await _pumpPathStudioAsync(tester);
+      tester
+          .widget<MacosPopupButton<String>>(
+            find.byKey(const Key('path-studio-new-path-tileset-popup')),
+          )
+          .onChanged
+          ?.call('tileset-main');
+      await _pumpPathStudioAsync(tester);
+      await _tapNewPathTile(tester, tileX: 0, tileY: 0);
+
+      expect(find.text('Générer une séquence'), findsOneWidget);
+      expect(
+        find.byKey(const Key('path-studio-new-path-seq-section')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('path-studio-new-path-seq-frame-count')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('path-studio-new-path-seq-step-x')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('path-studio-new-path-seq-step-y')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('path-studio-new-path-seq-duration')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets(
+      'sequence assistant fills active cell with default deep_water-like frames',
+      (tester) async {
+        await _pumpPathStudio(
+          tester,
+          manifest: _manifest(
+            tilesets: [_tileset(id: 'tileset-main', name: 'Chemins principaux')],
+          ),
+        );
+
+        await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+        await _pumpPathStudioAsync(tester);
+        tester
+            .widget<MacosPopupButton<String>>(
+              find.byKey(const Key('path-studio-new-path-tileset-popup')),
+            )
+            .onChanged
+            ?.call('tileset-main');
+        await _pumpPathStudioAsync(tester);
+        await _tapNewPathTile(tester, tileX: 0, tileY: 0);
+
+        final generateBtn =
+            find.byKey(const Key('path-studio-new-path-seq-generate'));
+        await tester.ensureVisible(generateBtn);
+        await _pumpPathStudioAsync(tester);
+        await tester.tap(generateBtn);
+        await _pumpPathStudioAsync(tester);
+
+        expect(find.text('Animée — 4 frames'), findsWidgets);
+        expect(
+          find.text('Animation générée pour la cellule A.'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets('sequence assistant all-center target updates animation summary',
+        (tester) async {
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          tilesets: [_tileset(id: 'tileset-main', name: 'Chemins principaux')],
+        ),
+      );
+
+      await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+      await _pumpPathStudioAsync(tester);
+      tester
+          .widget<MacosPopupButton<String>>(
+            find.byKey(const Key('path-studio-new-path-tileset-popup')),
+          )
+          .onChanged
+          ?.call('tileset-main');
+      await _pumpPathStudioAsync(tester);
+
+      await tester.ensureVisible(find.byKey(const Key('path-studio-new-path-size-2x2')));
+      await _pumpPathStudioAsync(tester);
+      await tester.tap(find.byKey(const Key('path-studio-new-path-size-2x2')));
+      await _pumpPathStudioAsync(tester);
+
+      await _assignNewPathTile(tester, cellX: 0, cellY: 0, tileX: 0, tileY: 0);
+      await _assignNewPathTile(tester, cellX: 1, cellY: 0, tileX: 1, tileY: 0);
+      await _assignNewPathTile(tester, cellX: 0, cellY: 1, tileX: 0, tileY: 1);
+      await _assignNewPathTile(tester, cellX: 1, cellY: 1, tileX: 1, tileY: 1);
+
+      await tester.ensureVisible(find.byKey(
+        const Key('path-studio-new-path-seq-target-all-center'),
+      ));
+      await _pumpPathStudioAsync(tester);
+      await tester
+          .tap(find.byKey(const Key('path-studio-new-path-seq-target-all-center')));
+      await _pumpPathStudioAsync(tester);
+
+      final generateBtn =
+          find.byKey(const Key('path-studio-new-path-seq-generate'));
+      await tester.ensureVisible(generateBtn);
+      await _pumpPathStudioAsync(tester);
+      await tester.tap(generateBtn);
+      await _pumpPathStudioAsync(tester);
+
+      expect(
+        find.text('Animation générée pour les 4 cellules du centre.'),
+        findsOneWidget,
+      );
+      final summary = tester.widget<Text>(
+        find.byKey(const Key('path-studio-new-path-center-animation-summary')),
+      );
+      expect(summary.data ?? '', contains('16 frames'));
+      expect(summary.data ?? '', contains('4 cellules animées'));
+    });
+
+    testWidgets('sequence assistant rejects stepX=0 and stepY=0 with feedback',
+        (tester) async {
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          tilesets: [_tileset(id: 'tileset-main', name: 'Chemins principaux')],
+        ),
+      );
+
+      await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+      await _pumpPathStudioAsync(tester);
+      tester
+          .widget<MacosPopupButton<String>>(
+            find.byKey(const Key('path-studio-new-path-tileset-popup')),
+          )
+          .onChanged
+          ?.call('tileset-main');
+      await _pumpPathStudioAsync(tester);
+      await _tapNewPathTile(tester, tileX: 0, tileY: 0);
+
+      await tester.enterText(
+        find.byKey(const Key('path-studio-new-path-seq-step-x')),
+        '0',
+      );
+      await _pumpPathStudioAsync(tester);
+      final generateBtn =
+          find.byKey(const Key('path-studio-new-path-seq-generate'));
+      await tester.ensureVisible(generateBtn);
+      await tester.tap(generateBtn);
+      await _pumpPathStudioAsync(tester);
+
+      final feedbackText = tester.widget<Text>(
+        find.byKey(const Key('path-studio-new-path-seq-feedback')),
+      );
+      expect(feedbackText.data ?? '', contains('pas X'));
+    });
+
+    testWidgets(
+      'sequence assistant then variant mapping keeps save actionable',
+      (tester) async {
+        await _pumpPathStudio(
+          tester,
+          manifest: _manifest(
+            tilesets: [_tileset(id: 'tileset-main', name: 'Chemins principaux')],
+          ),
+          onNewPathSaveRequested: (_) {},
+        );
+
+        await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+        await _pumpPathStudioAsync(tester);
+        tester
+            .widget<MacosPopupButton<String>>(
+              find.byKey(const Key('path-studio-new-path-tileset-popup')),
+            )
+            .onChanged
+            ?.call('tileset-main');
+        await _pumpPathStudioAsync(tester);
+        await _tapNewPathTile(tester, tileX: 0, tileY: 0);
+
+        final generateBtn =
+            find.byKey(const Key('path-studio-new-path-seq-generate'));
+        await tester.ensureVisible(generateBtn);
+        await _pumpPathStudioAsync(tester);
+        await tester.tap(generateBtn);
+        await _pumpPathStudioAsync(tester);
+
+        expect(find.text('Animée — 4 frames'), findsWidgets);
+
+        final isolated =
+            find.byKey(const Key('path-studio-new-path-variant-isolated'));
+        await tester.ensureVisible(isolated);
+        await _pumpPathStudioAsync(tester);
+        await tester.tap(isolated);
+        await _pumpPathStudioAsync(tester);
+        await _tapNewPathTile(tester, tileX: 4, tileY: 1);
+
+        final saveButton = tester.widget<CupertinoButton>(
+          find.byKey(const Key('path-studio-save-button')),
+        );
+        expect(saveButton.onPressed, isNotNull);
+      },
+    );
+
     testWidgets('edit save remplace en mémoire et nettoie le brouillon',
         (tester) async {
       var parentManifest = _manifest(

@@ -742,4 +742,285 @@ void main() {
       expect(draft.issues, isEmpty);
     });
   });
+
+  group('generatePathStudioCenterAnimationSequence', () {
+    PathStudioNewPathDraft withTileset(PathStudioNewPathDraft d) =>
+        selectPathStudioNewPathDraftTileset(d, 'tileset-main');
+
+    PathStudioNewPathDraft assignCell(
+      PathStudioNewPathDraft draft,
+      int lx,
+      int ly,
+      int sx,
+      int sy,
+    ) {
+      return assignPathStudioNewPathDraftCellTile(
+        draft: draft,
+        localX: lx,
+        localY: ly,
+        sourceX: sx,
+        sourceY: sy,
+      );
+    }
+
+    PathStudioNewPathDraft deepWaterStarts2x2() {
+      var d = withTileset(createInitialPathStudioNewPathDraft());
+      d = resizePathStudioNewPathDraftCenter(draft: d, width: 2, height: 2);
+      d = selectPathStudioNewPathDraftCell(draft: d, localX: 0, localY: 0);
+      d = assignCell(d, 0, 0, 0, 0);
+      d = assignCell(d, 1, 0, 1, 0);
+      d = assignCell(d, 0, 1, 0, 1);
+      d = assignCell(d, 1, 1, 1, 1);
+      return d;
+    }
+
+    test('génère une séquence pour la cellule active uniquement', () {
+      final base =
+          assignCell(withTileset(createInitialPathStudioNewPathDraft()), 0, 0, 5, 1);
+      final result = generatePathStudioCenterAnimationSequence(
+        draft: base,
+        target: PathStudioCenterAnimationSequenceTarget.selectedCell,
+        frameCount: 2,
+        stepX: 1,
+        stepY: -1,
+        durationMs: 50,
+      );
+      expect(result, isA<PathStudioCenterAnimationSequenceSuccess>());
+      final ok = result as PathStudioCenterAnimationSequenceSuccess;
+      expect(ok.message, 'Animation générée pour la cellule A.');
+      final cell = ok.draft.cells.single;
+      expect(cell.frames.length, 2);
+      expect(cell.frames[0].tile.sourceX, 5);
+      expect(cell.frames[0].tile.sourceY, 1);
+      expect(cell.frames[1].tile.sourceX, 6);
+      expect(cell.frames[1].tile.sourceY, 0);
+      expect(cell.frames.every((f) => f.durationMs == 50), isTrue);
+    });
+
+    test('génère pour toutes les cellules du centre', () {
+      final base = deepWaterStarts2x2();
+      final result = generatePathStudioCenterAnimationSequence(
+        draft: base,
+        target: PathStudioCenterAnimationSequenceTarget.allCenterCells,
+        frameCount: 3,
+        stepX: 1,
+        stepY: 0,
+        durationMs: 111,
+      );
+      expect(result, isA<PathStudioCenterAnimationSequenceSuccess>());
+      final ok = result as PathStudioCenterAnimationSequenceSuccess;
+      expect(ok.message, 'Animation générée pour les 4 cellules du centre.');
+      for (final cell in ok.draft.cells) {
+        expect(cell.frames.length, 3);
+        expect(cell.frames.every((f) => f.durationMs == 111), isTrue);
+        expect(cell.frames.map((f) => f.tile.sourceX),
+            equals([cell.localX, cell.localX + 1, cell.localX + 2]));
+      }
+    });
+
+    test('deep_water 2×2 : stepX=3, stepY=0 reproduit colonnes régulières', () {
+      final base = deepWaterStarts2x2();
+      final result = generatePathStudioCenterAnimationSequence(
+        draft: base,
+        target: PathStudioCenterAnimationSequenceTarget.allCenterCells,
+        frameCount: 4,
+        stepX: 3,
+        stepY: 0,
+        durationMs: 200,
+      );
+      expect(result, isA<PathStudioCenterAnimationSequenceSuccess>());
+      final ok = result as PathStudioCenterAnimationSequenceSuccess;
+
+      Iterable<int> sourcesX(PathStudioNewPathDraftCell c) =>
+          c.frames.map((f) => f.tile.sourceX);
+
+      final a = ok.draft.cells[0];
+      final b = ok.draft.cells[1];
+      final cCell = ok.draft.cells[2];
+      final dCell = ok.draft.cells[3];
+      expect(sourcesX(a), equals([0, 3, 6, 9]));
+      expect(sourcesX(b), equals([1, 4, 7, 10]));
+      expect(sourcesX(cCell), equals([0, 3, 6, 9]));
+      expect(sourcesX(dCell), equals([1, 4, 7, 10]));
+      expect(ok.draft.cells.every(
+        (cell) =>
+            cell.frames.every(
+              (f) => f.tile.sourceY == cell.localY && f.durationMs == 200,
+            ),
+      ), isTrue);
+    });
+
+    test('conserve tilesetId de la première frame pour chaque cellule', () {
+      var base = resizePathStudioNewPathDraftCenter(
+        draft: withTileset(createInitialPathStudioNewPathDraft()),
+        width: 1,
+        height: 2,
+      );
+      base = assignCell(base, 0, 0, 0, 0);
+      base = assignCell(base, 0, 1, 0, 1);
+      final result = generatePathStudioCenterAnimationSequence(
+        draft: base,
+        target: PathStudioCenterAnimationSequenceTarget.allCenterCells,
+        frameCount: 2,
+        stepX: 0,
+        stepY: 1,
+        durationMs: 120,
+      );
+      expect(result, isA<PathStudioCenterAnimationSequenceSuccess>());
+      final ok = result as PathStudioCenterAnimationSequenceSuccess;
+      for (final cell in ok.draft.cells) {
+        for (final f in cell.frames) {
+          expect(f.tile.tilesetId, 'tileset-main');
+        }
+      }
+    });
+
+    test('rejette frameCount < 2', () {
+      final base = assignCell(withTileset(createInitialPathStudioNewPathDraft()), 0, 0, 0, 0);
+      final r = generatePathStudioCenterAnimationSequence(
+        draft: base,
+        target: PathStudioCenterAnimationSequenceTarget.selectedCell,
+        frameCount: 1,
+        stepX: 1,
+        stepY: 0,
+        durationMs: 10,
+      );
+      expect(r, isA<PathStudioCenterAnimationSequenceFailure>());
+    });
+
+    test('rejette durationMs <= 0', () {
+      final base = assignCell(withTileset(createInitialPathStudioNewPathDraft()), 0, 0, 0, 0);
+      final r = generatePathStudioCenterAnimationSequence(
+        draft: base,
+        target: PathStudioCenterAnimationSequenceTarget.selectedCell,
+        frameCount: 2,
+        stepX: 1,
+        stepY: 0,
+        durationMs: 0,
+      );
+      expect(r, isA<PathStudioCenterAnimationSequenceFailure>());
+    });
+
+    test('rejette pasX=0 et pasY=0', () {
+      final base = assignCell(withTileset(createInitialPathStudioNewPathDraft()), 0, 0, 0, 0);
+      final r = generatePathStudioCenterAnimationSequence(
+        draft: base,
+        target: PathStudioCenterAnimationSequenceTarget.selectedCell,
+        frameCount: 2,
+        stepX: 0,
+        stepY: 0,
+        durationMs: 80,
+      );
+      expect(r, isA<PathStudioCenterAnimationSequenceFailure>());
+      expect(
+        (r as PathStudioCenterAnimationSequenceFailure).message,
+        contains('pas X et pas Y'),
+      );
+    });
+
+    test('rejette coordonnées négatives projetées par le pas', () {
+      final base =
+          assignCell(withTileset(createInitialPathStudioNewPathDraft()), 0, 0, 0, 1);
+      final r = generatePathStudioCenterAnimationSequence(
+        draft: base,
+        target: PathStudioCenterAnimationSequenceTarget.selectedCell,
+        frameCount: 3,
+        stepX: 0,
+        stepY: -1,
+        durationMs: 50,
+      );
+      expect(r, isA<PathStudioCenterAnimationSequenceFailure>());
+    });
+
+    test('rejette cellule sans frame de départ (active)', () {
+      final base = withTileset(
+        resizePathStudioNewPathDraftCenter(
+          draft: createInitialPathStudioNewPathDraft(),
+          width: 2,
+          height: 1,
+        ),
+      );
+      expect(base.centerCellFrames.isEmpty, isTrue);
+      final r = generatePathStudioCenterAnimationSequence(
+        draft: base,
+        target: PathStudioCenterAnimationSequenceTarget.selectedCell,
+        frameCount: 2,
+        stepX: 1,
+        stepY: 0,
+        durationMs: 10,
+      );
+      expect(r, isA<PathStudioCenterAnimationSequenceFailure>());
+      expect(
+        (r as PathStudioCenterAnimationSequenceFailure).message,
+        contains('cellule active'),
+      );
+    });
+
+    test('ne mute pas le brouillon source', () {
+      final base =
+          assignCell(withTileset(createInitialPathStudioNewPathDraft()), 0, 0, 1, 1);
+      final beforeFrames = base.centerCellFrames['0,0'];
+      final r = generatePathStudioCenterAnimationSequence(
+        draft: base,
+        target: PathStudioCenterAnimationSequenceTarget.selectedCell,
+        frameCount: 2,
+        stepX: 4,
+        stepY: -1,
+        durationMs: 99,
+      );
+      expect(base.centerCellFrames['0,0'], same(beforeFrames));
+      expect(r, isA<PathStudioCenterAnimationSequenceSuccess>());
+    });
+
+    test('après agrandissement 2×2, tout le centre exige une frame par cellule', () {
+      var d = assignCell(withTileset(createInitialPathStudioNewPathDraft()), 0, 0, 0, 0);
+      d = resizePathStudioNewPathDraftCenter(draft: d, width: 2, height: 2);
+      expect(
+        generatePathStudioCenterAnimationSequence(
+          draft: d,
+          target: PathStudioCenterAnimationSequenceTarget.allCenterCells,
+          frameCount: 2,
+          stepX: 1,
+          stepY: 0,
+          durationMs: 90,
+        ),
+        isA<PathStudioCenterAnimationSequenceFailure>(),
+      );
+      d = assignCell(d, 1, 0, 10, 0);
+      d = assignCell(d, 0, 1, 0, 3);
+      d = assignCell(d, 1, 1, 2, 2);
+      expect(
+        generatePathStudioCenterAnimationSequence(
+          draft: d,
+          target: PathStudioCenterAnimationSequenceTarget.allCenterCells,
+          frameCount: 2,
+          stepX: 1,
+          stepY: 0,
+          durationMs: 40,
+        ),
+        isA<PathStudioCenterAnimationSequenceSuccess>(),
+      );
+    });
+
+    test('réinitialise l’index de frame active sur la première après succès', () {
+      var d = assignCell(withTileset(createInitialPathStudioNewPathDraft()), 0, 0, 2, 2);
+      d = appendPathStudioNewPathDraftCenterFrame(draft: d, localX: 0, localY: 0);
+      d = selectPathStudioNewPathDraftCenterFrame(
+        draft: d,
+        localX: 0,
+        localY: 0,
+        frameIndex: 1,
+      );
+      expect(d.selectedCenterFrameIndex, 1);
+      final ok = generatePathStudioCenterAnimationSequence(
+        draft: d,
+        target: PathStudioCenterAnimationSequenceTarget.selectedCell,
+        frameCount: 2,
+        stepX: 2,
+        stepY: 0,
+        durationMs: 10,
+      ) as PathStudioCenterAnimationSequenceSuccess;
+      expect(ok.draft.selectedCenterFrameIndex, 0);
+    });
+  });
 }

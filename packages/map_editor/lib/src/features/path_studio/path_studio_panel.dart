@@ -112,6 +112,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
   String? _saveErrorMessage;
   String? _pendingSavedPathPatternId;
   String? _pendingSavedSuccessMessage;
+  String? _newPathCenterSeqFeedback;
 
   /// Index dans `readModel.presets`, pas id métier.
   ///
@@ -142,6 +143,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
           _saveErrorMessage = null;
           _pendingSavedPathPatternId = null;
           _pendingSavedSuccessMessage = null;
+          _newPathCenterSeqFeedback = null;
           return;
         }
       }
@@ -155,6 +157,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
       _saveErrorMessage = null;
       _pendingSavedPathPatternId = null;
       _pendingSavedSuccessMessage = null;
+      _newPathCenterSeqFeedback = null;
     }
   }
 
@@ -324,6 +327,9 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
                           _updateNewPathDraftCenterFrameDuration,
                       onNewPathCellCleared: _clearNewPathDraftCell,
                       onNewPathVariantCleared: _clearNewPathDraftVariant,
+                      newPathCenterSeqFeedback: _newPathCenterSeqFeedback,
+                      onNewPathCenterAnimationSequenceRequested:
+                          _generateNewPathDraftCenterAnimationSequence,
                       onDraftSizeChanged: _resizeDraft,
                       onDraftCellSelected: _selectDraftCell,
                     ),
@@ -426,6 +432,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
       _draftSelected = false;
       _draftMessage = null;
       _saveFeedbackMessage = null;
+      _newPathCenterSeqFeedback = null;
       _pendingSavedPathPatternId = null;
     });
   }
@@ -447,6 +454,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
       _saveErrorMessage = null;
       _pendingSavedPathPatternId = null;
       _pendingSavedSuccessMessage = null;
+      _newPathCenterSeqFeedback = null;
     });
   }
 
@@ -495,6 +503,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
     setState(() {
       _newPathDraft = renamePathStudioNewPathDraft(draft, name);
       _saveFeedbackMessage = null;
+      _newPathCenterSeqFeedback = null;
     });
   }
 
@@ -510,6 +519,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         height: height,
       );
       _saveFeedbackMessage = null;
+      _newPathCenterSeqFeedback = null;
     });
   }
 
@@ -521,6 +531,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
     setState(() {
       _newPathDraft = selectPathStudioNewPathDraftTileset(draft, tilesetId);
       _saveFeedbackMessage = null;
+      _newPathCenterSeqFeedback = null;
     });
   }
 
@@ -535,6 +546,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         surfaceKind: surfaceKind,
       );
       _saveFeedbackMessage = null;
+      _newPathCenterSeqFeedback = null;
     });
   }
 
@@ -550,6 +562,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         localY: localY,
       );
       _saveFeedbackMessage = null;
+      _newPathCenterSeqFeedback = null;
     });
   }
 
@@ -575,6 +588,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
               sourceY: sourceY,
             );
       _saveFeedbackMessage = null;
+      _newPathCenterSeqFeedback = null;
     });
   }
 
@@ -591,6 +605,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         frameIndex: frameIndex,
       );
       _saveFeedbackMessage = null;
+      _newPathCenterSeqFeedback = null;
     });
   }
 
@@ -606,6 +621,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         localY: draft.selectedCellY,
       );
       _saveFeedbackMessage = null;
+      _newPathCenterSeqFeedback = null;
     });
   }
 
@@ -622,6 +638,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         frameIndex: frameIndex,
       );
       _saveFeedbackMessage = null;
+      _newPathCenterSeqFeedback = null;
     });
   }
 
@@ -639,6 +656,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         durationMs: durationMs,
       );
       _saveFeedbackMessage = null;
+      _newPathCenterSeqFeedback = null;
     });
   }
 
@@ -654,6 +672,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         localY: localY,
       );
       _saveFeedbackMessage = null;
+      _newPathCenterSeqFeedback = null;
     });
   }
 
@@ -668,6 +687,7 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         variant: variant,
       );
       _saveFeedbackMessage = null;
+      _newPathCenterSeqFeedback = null;
     });
   }
 
@@ -681,6 +701,38 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
         draft: draft,
         variant: variant,
       );
+      _saveFeedbackMessage = null;
+      _newPathCenterSeqFeedback = null;
+    });
+  }
+
+  void _generateNewPathDraftCenterAnimationSequence(
+    PathStudioCenterAnimationSequenceTarget target,
+    int frameCount,
+    int stepX,
+    int stepY,
+    int durationMs,
+  ) {
+    final draft = _newPathDraft;
+    if (draft == null) {
+      return;
+    }
+    final result = generatePathStudioCenterAnimationSequence(
+      draft: draft,
+      target: target,
+      frameCount: frameCount,
+      stepX: stepX,
+      stepY: stepY,
+      durationMs: durationMs,
+    );
+    setState(() {
+      switch (result) {
+        case PathStudioCenterAnimationSequenceSuccess(:final draft, :final message):
+          _newPathDraft = draft;
+          _newPathCenterSeqFeedback = message;
+        case PathStudioCenterAnimationSequenceFailure(:final message):
+          _newPathCenterSeqFeedback = message;
+      }
       _saveFeedbackMessage = null;
     });
   }
@@ -1929,6 +1981,8 @@ class _CenterWorkspace extends StatelessWidget {
     required this.onNewPathCenterFrameDurationChanged,
     required this.onNewPathCellCleared,
     required this.onNewPathVariantCleared,
+    this.newPathCenterSeqFeedback,
+    required this.onNewPathCenterAnimationSequenceRequested,
     required this.onDraftSizeChanged,
     required this.onDraftCellSelected,
   });
@@ -1961,6 +2015,14 @@ class _CenterWorkspace extends StatelessWidget {
       onNewPathCenterFrameDurationChanged;
   final void Function(int localX, int localY) onNewPathCellCleared;
   final ValueChanged<TerrainPathVariant> onNewPathVariantCleared;
+  final String? newPathCenterSeqFeedback;
+  final void Function(
+    PathStudioCenterAnimationSequenceTarget target,
+    int frameCount,
+    int stepX,
+    int stepY,
+    int durationMs,
+  ) onNewPathCenterAnimationSequenceRequested;
   final void Function(int width, int height) onDraftSizeChanged;
   final void Function(int localX, int localY) onDraftCellSelected;
 
@@ -1988,6 +2050,9 @@ class _CenterWorkspace extends StatelessWidget {
         onCenterFrameDurationChanged: onNewPathCenterFrameDurationChanged,
         onCellCleared: onNewPathCellCleared,
         onVariantCleared: onNewPathVariantCleared,
+        centerSequenceFeedback: newPathCenterSeqFeedback,
+        onCenterAnimationSequenceRequested:
+            onNewPathCenterAnimationSequenceRequested,
       );
     }
     final draft = this.draft;

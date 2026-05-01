@@ -23,9 +23,8 @@ final class PathStudioPathDraftSource {
 
 /// Tuile V0 assignée à une cellule du centre.
 ///
-/// Le Path Studio ne gère pas encore les animations ni les frames multiples.
-/// Cette valeur locale représente donc exactement une frame statique : un
-/// tileset projet et une coordonnée de tuile dans cet atlas.
+/// Chaque cellule dispose d’une timeline locale (une ou plusieurs frames). Cette
+/// valeur encapsule le tileset projet et la coordonnée de tuile dans l’atlas.
 final class PathStudioNewPathDraftTile {
   const PathStudioNewPathDraftTile({
     required this.tilesetId,
@@ -812,6 +811,140 @@ PathStudioNewPathDraft clearPathStudioNewPathDraftVariant({
     selectedVariant: variant,
     selectedTarget: PathStudioNewPathDraftSelectionTarget.variant,
     isDirty: true,
+  );
+}
+
+/// Cible de l’assistant de séquence d’animation (lot PathPattern-39 V0).
+enum PathStudioCenterAnimationSequenceTarget {
+  selectedCell,
+  allCenterCells,
+}
+
+sealed class PathStudioCenterAnimationSequenceResult {
+  const PathStudioCenterAnimationSequenceResult();
+}
+
+final class PathStudioCenterAnimationSequenceSuccess
+    extends PathStudioCenterAnimationSequenceResult {
+  const PathStudioCenterAnimationSequenceSuccess({
+    required this.draft,
+    required this.message,
+  });
+
+  final PathStudioNewPathDraft draft;
+  final String message;
+}
+
+final class PathStudioCenterAnimationSequenceFailure
+    extends PathStudioCenterAnimationSequenceResult {
+  const PathStudioCenterAnimationSequenceFailure(this.message);
+
+  final String message;
+}
+
+/// Construit un brouillon où les cellules ciblées ont leurs frames remplacées
+/// par une séquence géométrique à partir de la **première** frame existante.
+///
+/// Ne modifie pas [draft] : retour succès avec une nouvelle instance, ou échec
+/// avec un message utilisateur localisé FR.
+PathStudioCenterAnimationSequenceResult generatePathStudioCenterAnimationSequence({
+  required PathStudioNewPathDraft draft,
+  required PathStudioCenterAnimationSequenceTarget target,
+  required int frameCount,
+  required int stepX,
+  required int stepY,
+  required int durationMs,
+}) {
+  if (frameCount < 2 || frameCount > 64) {
+    return const PathStudioCenterAnimationSequenceFailure(
+      'Impossible de générer l’animation : le nombre de frames doit être '
+      'compris entre 2 et 64.',
+    );
+  }
+  if (durationMs <= 0) {
+    return const PathStudioCenterAnimationSequenceFailure(
+      'Impossible de générer l’animation : la durée par frame doit être positive.',
+    );
+  }
+  if (stepX == 0 && stepY == 0) {
+    return const PathStudioCenterAnimationSequenceFailure(
+      'Impossible de générer l’animation : pas X et pas Y ne peuvent pas tous '
+      'les deux être 0.',
+    );
+  }
+
+  final coords = switch (target) {
+    PathStudioCenterAnimationSequenceTarget.selectedCell => [
+      (draft.selectedCellX, draft.selectedCellY),
+    ],
+    PathStudioCenterAnimationSequenceTarget.allCenterCells => [
+      for (var y = 0; y < draft.centerHeight; y += 1)
+        for (var x = 0; x < draft.centerWidth; x += 1)
+          (x, y),
+    ],
+  };
+
+  for (final coord in coords) {
+    final key = _cellKey(coord.$1, coord.$2);
+    final existing = draft.centerCellFrames[key];
+    if (existing == null || existing.isEmpty) {
+      return PathStudioCenterAnimationSequenceFailure(
+        target == PathStudioCenterAnimationSequenceTarget.selectedCell
+            ? 'Impossible de générer l’animation : la cellule active n’a pas '
+                'de frame de départ.'
+            : 'Impossible de générer l’animation : une cellule du centre n’a '
+                'pas de frame de départ.',
+      );
+    }
+    final start = existing.first.tile;
+    for (var i = 0; i < frameCount; i += 1) {
+      final gx = start.sourceX + stepX * i;
+      final gy = start.sourceY + stepY * i;
+      if (gx < 0 || gy < 0) {
+        return const PathStudioCenterAnimationSequenceFailure(
+          'Impossible de générer l’animation : une coordonnée générée serait '
+          'négative.',
+        );
+      }
+    }
+  }
+
+  final nextFramesMap =
+      Map<String, List<PathStudioNewPathDraftCenterFrame>>.from(
+    draft.centerCellFrames,
+  );
+  for (final coord in coords) {
+    final key = _cellKey(coord.$1, coord.$2);
+    final start = draft.centerCellFrames[key]!.first.tile;
+    final built = <PathStudioNewPathDraftCenterFrame>[
+      for (var i = 0; i < frameCount; i += 1)
+        PathStudioNewPathDraftCenterFrame(
+          tile: PathStudioNewPathDraftTile(
+            tilesetId: start.tilesetId,
+            sourceX: start.sourceX + stepX * i,
+            sourceY: start.sourceY + stepY * i,
+          ),
+          durationMs: durationMs,
+        ),
+    ];
+    nextFramesMap[key] = built;
+  }
+
+  final feedback = switch (target) {
+    PathStudioCenterAnimationSequenceTarget.selectedCell =>
+      'Animation générée pour la cellule ${draft.selectedCell.label}.',
+    PathStudioCenterAnimationSequenceTarget.allCenterCells =>
+      'Animation générée pour les ${draft.centerCellCount} cellules du '
+          'centre.',
+  };
+
+  return PathStudioCenterAnimationSequenceSuccess(
+    draft: draft.copyWith(
+      centerCellFrames: nextFramesMap,
+      selectedCenterFrameIndex: 0,
+      isDirty: true,
+    ),
+    message: feedback,
   );
 }
 
