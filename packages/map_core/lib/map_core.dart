@@ -34,6 +34,7 @@ export 'src/operations/map_path.dart';
 export 'src/operations/map_terrain.dart';
 export 'src/operations/map_terrain_autotile.dart';
 export 'src/operations/path_center_pattern_resolver.dart';
+export 'src/operations/path_pattern_visual_resolution.dart';
 export 'src/operations/project_path_preset_center_pattern_adapter.dart';
 export 'src/operations/project_path_pattern_preset_json_codec.dart';
 export 'src/operations/project_json_migrations.dart';
