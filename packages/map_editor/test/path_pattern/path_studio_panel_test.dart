@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/path_studio/path_studio_panel.dart';
+import 'package:map_editor/src/features/path_studio/path_studio_new_path_build_request.dart';
 import 'package:map_editor/src/features/path_studio/path_studio_save_flow.dart';
 import 'package:path/path.dart' as p;
 
@@ -841,7 +842,7 @@ void main() {
       expect(find.text('Couverture partielle des variants'), findsNothing);
       expect(
         find.text(
-            'Cette préparation reste locale: aucune mutation du manifest et aucune écriture disque.'),
+            'Corrigez les erreurs bloquantes pour préparer la création en mémoire.'),
         findsWidgets,
       );
       expect(find.text('Aucun variant legacy configuré'), findsWidgets);
@@ -852,7 +853,7 @@ void main() {
       expect(saveButton.onPressed, isNull);
     });
 
-    testWidgets('new path with complete center stays blocked for save',
+    testWidgets('new path with complete center stays disabled without callback',
         (tester) async {
       await _pumpPathStudio(
         tester,
@@ -874,13 +875,133 @@ void main() {
 
       expect(find.text('prêt'), findsWidgets);
       expect(find.text('Cellules du centre à configurer'), findsNothing);
-      expect(find.text('Requête locale prête'), findsWidgets);
+      expect(find.text('Callback de sauvegarde absent'), findsWidgets);
       expect(find.text('Aucun variant legacy configuré'), findsWidgets);
 
       final saveButton = tester.widget<CupertinoButton>(
         find.byKey(const Key('path-studio-save-button')),
       );
       expect(saveButton.onPressed, isNull);
+    });
+
+    testWidgets(
+        'new path with variants partiels enables save when callback exists',
+        (tester) async {
+      await _pumpPathStudio(
+        tester,
+        manifest: _manifest(
+          tilesets: [_tileset(id: 'tileset-main', name: 'Chemins principaux')],
+        ),
+        onNewPathSaveRequested: (_) {},
+      );
+
+      await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+      await tester.pumpAndSettle();
+      tester
+          .widget<MacosPopupButton<String>>(
+            find.byKey(const Key('path-studio-new-path-tileset-popup')),
+          )
+          .onChanged
+          ?.call('tileset-main');
+      await tester.pumpAndSettle();
+      await _tapNewPathTile(tester, tileX: 2, tileY: 1);
+
+      expect(find.text('Requête locale prête'), findsWidgets);
+      expect(
+        find.text('Warnings présents, mais création en mémoire possible.'),
+        findsWidgets,
+      );
+      expect(find.text('Aucun variant legacy configuré'), findsWidgets);
+
+      final saveButton = tester.widget<CupertinoButton>(
+        find.byKey(const Key('path-studio-save-button')),
+      );
+      expect(saveButton.onPressed, isNotNull);
+    });
+
+    testWidgets(
+        'new path save updates parent manifest and selects saved preset',
+        (tester) async {
+      var parentManifest = _manifest(
+        tilesets: [_tileset(id: 'tileset-main', name: 'Chemins principaux')],
+      );
+      var callbackCount = 0;
+
+      await tester.binding.setSurfaceSize(const Size(1440, 920));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        MacosApp(
+          theme: MacosThemeData.dark(),
+          home: MacosScaffold(
+            children: [
+              ContentArea(
+                builder: (context, scrollController) {
+                  return StatefulBuilder(
+                    builder: (context, setParentState) {
+                      return PathStudioPanel(
+                        manifest: parentManifest,
+                        onNewPathSaveRequested: (request) {
+                          callbackCount += 1;
+                          setParentState(() {
+                            parentManifest = applyNewPathBuildRequestToManifest(
+                              manifest: parentManifest,
+                              request: request,
+                            );
+                          });
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+      await _pumpPathStudioAsync(tester);
+
+      await tester.tap(find.widgetWithText(CupertinoButton, 'Nouveau chemin'));
+      await _pumpPathStudioAsync(tester);
+      tester
+          .widget<MacosPopupButton<String>>(
+            find.byKey(const Key('path-studio-new-path-tileset-popup')),
+          )
+          .onChanged
+          ?.call('tileset-main');
+      await _pumpPathStudioAsync(tester);
+      await _tapNewPathTile(tester, tileX: 2, tileY: 1);
+      final isolatedVariant =
+          find.byKey(const Key('path-studio-new-path-variant-isolated'));
+      await tester.ensureVisible(isolatedVariant);
+      await tester.pumpAndSettle();
+      await tester.tap(isolatedVariant);
+      await _pumpPathStudioAsync(tester);
+      await _tapNewPathTile(tester, tileX: 4, tileY: 1);
+
+      await tester.tap(find.byKey(const Key('path-studio-save-button')));
+      await tester.pumpAndSettle();
+
+      expect(callbackCount, 1);
+      expect(
+        parentManifest.pathPresets
+            .any((preset) => preset.id == 'nouveau-chemin'),
+        isTrue,
+      );
+      expect(
+        parentManifest.pathPatternPresets
+            .any((preset) => preset.id == 'nouveau-chemin-pattern'),
+        isTrue,
+      );
+      expect(find.byKey(const Key('path-studio-new-path-draft-card')),
+          findsNothing);
+      expect(
+        find.byKey(const Key('path-studio-save-success-message')),
+        findsOneWidget,
+      );
+      expect(find.text('Nouveau chemin créé dans le projet'), findsOneWidget);
+      expect(find.text('PathPattern sauvegardé'), findsOneWidget);
+      expect(find.text('nouveau-chemin-pattern'), findsWidgets);
     });
 
     testWidgets('legacy save request is prepared but disabled without callback',
@@ -1162,7 +1283,7 @@ void main() {
 
       expect(find.text('Couverture partielle des variants'), findsNothing);
       expect(find.text('Aucun variant legacy configuré'), findsNothing);
-      expect(find.text('Requête locale prête'), findsWidgets);
+      expect(find.text('Callback de sauvegarde absent'), findsWidgets);
 
       final saveButton = tester.widget<CupertinoButton>(
         find.byKey(const Key('path-studio-save-button')),
@@ -1198,6 +1319,7 @@ Future<void> _pumpPathStudio(
   required ProjectManifest manifest,
   String? projectRootPath,
   ValueChanged<ProjectPathPatternPreset>? onPathPatternPresetSaveRequested,
+  ValueChanged<PathStudioNewPathBuildRequest>? onNewPathSaveRequested,
 }) async {
   await tester.binding.setSurfaceSize(const Size(1440, 920));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -1214,6 +1336,7 @@ Future<void> _pumpPathStudio(
                 projectRootPath: projectRootPath,
                 onPathPatternPresetSaveRequested:
                     onPathPatternPresetSaveRequested,
+                onNewPathSaveRequested: onNewPathSaveRequested,
               );
             },
           ),

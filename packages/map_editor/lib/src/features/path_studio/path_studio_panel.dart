@@ -46,6 +46,17 @@ class PathStudioWorkspace extends ConsumerWidget {
             .read(editorNotifierProvider.notifier)
             .applyInMemoryProjectManifest(updatedManifest);
       },
+      onNewPathSaveRequested: (request) {
+        final currentManifest = ref.read(editorProjectManifestProvider);
+        if (currentManifest == null) return;
+        final updatedManifest = applyNewPathBuildRequestToManifest(
+          manifest: currentManifest,
+          request: request,
+        );
+        ref
+            .read(editorNotifierProvider.notifier)
+            .applyInMemoryProjectManifest(updatedManifest);
+      },
     );
   }
 }
@@ -62,12 +73,14 @@ class PathStudioPanel extends StatefulWidget {
     required this.manifest,
     this.projectRootPath,
     this.onPathPatternPresetSaveRequested,
+    this.onNewPathSaveRequested,
   });
 
   final ProjectManifest manifest;
   final String? projectRootPath;
   final ValueChanged<ProjectPathPatternPreset>?
       onPathPatternPresetSaveRequested;
+  final ValueChanged<PathStudioNewPathBuildRequest>? onNewPathSaveRequested;
 
   @override
   State<PathStudioPanel> createState() => _PathStudioPanelState();
@@ -81,7 +94,9 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
   bool _draftSelected = false;
   String? _draftMessage;
   String? _saveFeedbackMessage;
+  String? _saveErrorMessage;
   String? _pendingSavedPathPatternId;
+  String? _pendingSavedSuccessMessage;
 
   /// Index dans `readModel.presets`, pas id métier.
   ///
@@ -107,8 +122,11 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
           _draft = null;
           _draftSelected = false;
           _draftMessage = null;
-          _saveFeedbackMessage = 'Motif enregistré dans le projet';
+          _saveFeedbackMessage =
+              _pendingSavedSuccessMessage ?? 'Motif enregistré dans le projet';
+          _saveErrorMessage = null;
           _pendingSavedPathPatternId = null;
+          _pendingSavedSuccessMessage = null;
           return;
         }
       }
@@ -119,7 +137,9 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
       _draftSelected = false;
       _draftMessage = null;
       _saveFeedbackMessage = null;
+      _saveErrorMessage = null;
       _pendingSavedPathPatternId = null;
+      _pendingSavedSuccessMessage = null;
     }
   }
 
@@ -150,11 +170,15 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
             manifest: widget.manifest,
             draft: selectedDraft,
           );
-    final saveCallback = widget.onPathPatternPresetSaveRequested;
-    final onSavePressed =
-        legacySavePlan?.canSaveNow == true && saveCallback != null
+    final legacySaveCallback = widget.onPathPatternPresetSaveRequested;
+    final newPathSaveCallback = widget.onNewPathSaveRequested;
+    final onSavePressed = newPathSavePlan != null
+        ? (newPathSavePlan.canBuildRequest && newPathSaveCallback != null
+            ? _requestNewPathSave
+            : null)
+        : (legacySavePlan?.canSaveNow == true && legacySaveCallback != null
             ? _requestLegacyPathPatternSave
-            : null;
+            : null);
 
     return DecoratedBox(
       decoration: const BoxDecoration(
@@ -173,12 +197,17 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
               saveHint: _saveButtonHint(
                 newPathSavePlan: newPathSavePlan,
                 legacySavePlan: legacySavePlan,
-                hasSaveCallback: saveCallback != null,
+                hasNewPathSaveCallback: newPathSaveCallback != null,
+                hasLegacySaveCallback: legacySaveCallback != null,
               ),
             ),
             if (_saveFeedbackMessage != null) ...[
               const SizedBox(height: 10),
               _SaveFeedbackBanner(message: _saveFeedbackMessage!),
+            ],
+            if (_saveErrorMessage != null) ...[
+              const SizedBox(height: 10),
+              _SaveErrorBanner(message: _saveErrorMessage!),
             ],
             const SizedBox(height: 16),
             Expanded(
@@ -237,13 +266,15 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
                       newPathSavePlan: newPathSavePlan,
                       draft: selectedDraft,
                       legacySavePlan: legacySavePlan,
-                      hasSaveCallback: saveCallback != null,
+                      hasSaveCallback: legacySaveCallback != null,
+                      hasNewPathSaveCallback: newPathSaveCallback != null,
                       saveFeedbackMessage: _saveFeedbackMessage,
                       selected: selected?.card,
                       selectedPreset: selectedPreset,
                       hasAnyPreset: readModel.presets.isNotEmpty,
                       onNewPathSizeChanged: _resizeNewPathDraft,
-                      onNewPathSurfaceKindChanged: _selectNewPathDraftSurfaceKind,
+                      onNewPathSurfaceKindChanged:
+                          _selectNewPathDraftSurfaceKind,
                       onNewPathCellSelected: _selectNewPathDraftCell,
                       onNewPathVariantSelected: _selectNewPathDraftVariant,
                       onNewPathTileSelected: _assignNewPathDraftTile,
@@ -603,15 +634,50 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
     }
     setState(() {
       _pendingSavedPathPatternId = request.preset.id;
+      _pendingSavedSuccessMessage = 'Motif enregistré dans le projet';
       _saveFeedbackMessage = null;
+      _saveErrorMessage = null;
     });
     try {
       callback(request.preset);
     } catch (_) {
       setState(() {
         _pendingSavedPathPatternId = null;
+        _pendingSavedSuccessMessage = null;
         _saveFeedbackMessage = null;
-        _draftMessage = 'La sauvegarde a échoué';
+        _saveErrorMessage = 'La sauvegarde a échoué';
+      });
+    }
+  }
+
+  void _requestNewPathSave() {
+    final draft = _newPathDraft;
+    final callback = widget.onNewPathSaveRequested;
+    if (draft == null || !_newPathDraftSelected || callback == null) {
+      return;
+    }
+    final plan = createPathStudioNewPathBuildPlan(
+      manifest: widget.manifest,
+      draft: draft,
+    );
+    final request = plan.buildRequest;
+    if (!plan.canBuildRequest || request == null) {
+      return;
+    }
+    setState(() {
+      _pendingSavedPathPatternId = request.pathPatternPreset.id;
+      _pendingSavedSuccessMessage = 'Nouveau chemin créé dans le projet';
+      _saveFeedbackMessage = null;
+      _saveErrorMessage = null;
+    });
+    try {
+      callback(request);
+    } catch (_) {
+      setState(() {
+        _pendingSavedPathPatternId = null;
+        _pendingSavedSuccessMessage = null;
+        _saveFeedbackMessage = null;
+        _saveErrorMessage = 'La création du nouveau chemin a échoué';
       });
     }
   }
@@ -619,18 +685,22 @@ class _PathStudioPanelState extends State<PathStudioPanel> {
   String _saveButtonHint({
     required PathStudioNewPathBuildPlan? newPathSavePlan,
     required PathStudioLegacyPathPatternSavePlan? legacySavePlan,
-    required bool hasSaveCallback,
+    required bool hasNewPathSaveCallback,
+    required bool hasLegacySaveCallback,
   }) {
     if (newPathSavePlan != null) {
-      return newPathSavePlan.canBuildRequest
+      if (!newPathSavePlan.canBuildRequest) {
+        return 'non sauvegardable';
+      }
+      return hasNewPathSaveCallback
           ? 'requête locale prête'
-          : 'non sauvegardable';
+          : 'callback absent';
     }
     if (legacySavePlan != null) {
       if (!legacySavePlan.canSaveNow) {
         return 'à corriger';
       }
-      return hasSaveCallback ? 'préparer' : 'callback absent';
+      return hasLegacySaveCallback ? 'préparer' : 'callback absent';
     }
     return 'aucun brouillon';
   }
@@ -692,6 +762,44 @@ class _SaveFeedbackBanner extends StatelessWidget {
             CupertinoIcons.check_mark_circled_solid,
             size: 16,
             color: PathStudioTheme.success,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              message,
+              style: const TextStyle(
+                color: PathStudioTheme.textPrimary,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SaveErrorBanner extends StatelessWidget {
+  const _SaveErrorBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('path-studio-save-error-message'),
+      decoration: PathStudioTheme.panelDecoration(
+        color: PathStudioTheme.error.withValues(alpha: 0.14),
+        radius: 14,
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Row(
+        children: [
+          const MacosIcon(
+            CupertinoIcons.exclamationmark_triangle_fill,
+            size: 16,
+            color: PathStudioTheme.error,
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -1542,6 +1650,7 @@ class _CenterWorkspace extends StatelessWidget {
     required this.draft,
     required this.legacySavePlan,
     required this.hasSaveCallback,
+    required this.hasNewPathSaveCallback,
     required this.saveFeedbackMessage,
     required this.selected,
     required this.selectedPreset,
@@ -1566,6 +1675,7 @@ class _CenterWorkspace extends StatelessWidget {
   final PathPatternDraft? draft;
   final PathStudioLegacyPathPatternSavePlan? legacySavePlan;
   final bool hasSaveCallback;
+  final bool hasNewPathSaveCallback;
   final String? saveFeedbackMessage;
   final PathPatternPresetCardModel? selected;
   final ProjectPathPatternPreset? selectedPreset;
@@ -1591,6 +1701,7 @@ class _CenterWorkspace extends StatelessWidget {
         projectRootPath: projectRootPath,
         draft: newPathDraft,
         savePlan: newPathSavePlan,
+        hasSaveCallback: hasNewPathSaveCallback,
         onSizeChanged: onNewPathSizeChanged,
         onSurfaceKindChanged: onNewPathSurfaceKindChanged,
         onCellSelected: onNewPathCellSelected,

@@ -1,4 +1,5 @@
 import 'package:map_core/map_core.dart';
+import 'path_studio_new_path_build_request.dart';
 
 /// Helper pour appliquer la sauvegarde d'un ProjectPathPatternPreset dans le manifest.
 ///
@@ -19,5 +20,33 @@ ProjectManifest applyLegacyPathPatternSaveToManifest({
   return upsertProjectPathPatternPreset(
     manifest: manifest,
     preset: preset,
+  );
+}
+
+ProjectManifest applyNewPathBuildRequestToManifest({
+  required ProjectManifest manifest,
+  required PathStudioNewPathBuildRequest request,
+}) {
+  if (manifest.pathPresets
+      .any((preset) => preset.id == request.basePathPreset.id)) {
+    throw ArgumentError(
+      'ProjectPathPreset id collision: ${request.basePathPreset.id}',
+    );
+  }
+  if (manifest.pathPatternPresets
+      .any((preset) => preset.id == request.pathPatternPreset.id)) {
+    throw ArgumentError(
+      'ProjectPathPatternPreset id collision: ${request.pathPatternPreset.id}',
+    );
+  }
+  return manifest.copyWith(
+    pathPresets: [
+      ...manifest.pathPresets,
+      request.basePathPreset,
+    ],
+    pathPatternPresets: [
+      ...manifest.pathPatternPresets,
+      request.pathPatternPreset,
+    ],
   );
 }

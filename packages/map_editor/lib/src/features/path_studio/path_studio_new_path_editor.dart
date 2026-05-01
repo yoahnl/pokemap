@@ -7,6 +7,7 @@ class _NewPathCenterWorkspace extends StatelessWidget {
     required this.projectRootPath,
     required this.draft,
     required this.savePlan,
+    required this.hasSaveCallback,
     required this.onSizeChanged,
     required this.onSurfaceKindChanged,
     required this.onCellSelected,
@@ -21,6 +22,7 @@ class _NewPathCenterWorkspace extends StatelessWidget {
   final String? projectRootPath;
   final PathStudioNewPathDraft draft;
   final PathStudioNewPathBuildPlan savePlan;
+  final bool hasSaveCallback;
   final void Function(int width, int height) onSizeChanged;
   final ValueChanged<PathSurfaceKind> onSurfaceKindChanged;
   final void Function(int localX, int localY) onCellSelected;
@@ -61,7 +63,10 @@ class _NewPathCenterWorkspace extends StatelessWidget {
           const SizedBox(height: 14),
           _NewPathDiagnosticsCard(plan: savePlan),
           const SizedBox(height: 14),
-          _NewPathSaveStatusCard(plan: savePlan),
+          _NewPathSaveStatusCard(
+            plan: savePlan,
+            hasSaveCallback: hasSaveCallback,
+          ),
         ],
       ),
     );
@@ -1135,9 +1140,13 @@ class _NewPathDiagnosticsCard extends StatelessWidget {
 }
 
 class _NewPathSaveStatusCard extends StatelessWidget {
-  const _NewPathSaveStatusCard({required this.plan});
+  const _NewPathSaveStatusCard({
+    required this.plan,
+    required this.hasSaveCallback,
+  });
 
   final PathStudioNewPathBuildPlan plan;
+  final bool hasSaveCallback;
 
   @override
   Widget build(BuildContext context) {
@@ -1145,9 +1154,13 @@ class _NewPathSaveStatusCard extends StatelessWidget {
       key: const Key('path-studio-save-status-card'),
       title: 'Plan de création local',
       icon: CupertinoIcons.floppy_disk,
-      trailing: const _StatusChip(
-        label: 'Non sauvegardable',
-        color: PathStudioTheme.warning,
+      trailing: _StatusChip(
+        label: plan.canBuildRequest && hasSaveCallback
+            ? 'Requête prête'
+            : 'Non sauvegardable',
+        color: plan.canBuildRequest && hasSaveCallback
+            ? PathStudioTheme.success
+            : PathStudioTheme.warning,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1193,11 +1206,13 @@ class _NewPathSaveStatusCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           Text(
-            plan.canBuildRequest
-                ? 'Requête locale prête'
-                : 'Requête locale bloquée',
+            !plan.canBuildRequest
+                ? 'Requête locale bloquée'
+                : hasSaveCallback
+                    ? 'Requête locale prête'
+                    : 'Callback de sauvegarde absent',
             style: TextStyle(
-              color: plan.canBuildRequest
+              color: plan.canBuildRequest && hasSaveCallback
                   ? PathStudioTheme.success
                   : PathStudioTheme.warning,
               fontSize: 13,
@@ -1205,9 +1220,13 @@ class _NewPathSaveStatusCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Cette préparation reste locale: aucune mutation du manifest et aucune écriture disque.',
-            style: TextStyle(
+          Text(
+            !plan.canBuildRequest
+                ? 'Corrigez les erreurs bloquantes pour préparer la création en mémoire.'
+                : hasSaveCallback
+                    ? 'Warnings présents, mais création en mémoire possible.'
+                    : 'La requête locale est prête, mais aucun callback ne l’applique au manifest.',
+            style: const TextStyle(
               color: PathStudioTheme.textSecondary,
               fontSize: 12,
               height: 1.35,
@@ -1295,7 +1314,8 @@ class _NewPathInspector extends StatelessWidget {
             const SizedBox(height: 12),
             const _InspectorLabel('Type de surface'),
             MacosPopupButton<PathSurfaceKind>(
-              key: const Key('path-studio-new-path-inspector-surface-kind-popup'),
+              key: const Key(
+                  'path-studio-new-path-inspector-surface-kind-popup'),
               value: draft.surfaceKind,
               onChanged: (value) {
                 if (value != null) {
