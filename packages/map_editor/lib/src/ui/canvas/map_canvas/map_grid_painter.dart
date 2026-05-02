@@ -1877,14 +1877,12 @@ class MapGridPainter extends CustomPainter {
     final frameSource = resolvedFrame.source;
     final width = frameSource.width <= 0 ? 1 : frameSource.width;
     final height = frameSource.height <= 0 ? 1 : frameSource.height;
-    final cellSeed = _stableCellSeed(
-      x: x,
-      y: y,
-      salt: frameSource.x * 73856093 + frameSource.y * 19349663,
+    final (offsetX, offsetY) = terrainPresetSubtileOffsetsForMapCell(
+      x,
+      y,
+      frameWidthTiles: width,
+      frameHeightTiles: height,
     );
-    final tileIndex = cellSeed % (width * height);
-    final offsetX = tileIndex % width;
-    final offsetY = tileIndex ~/ width;
     final frameTilesetId = resolvedFrame.tilesetId.trim();
     final resolvedTilesetId =
         frameTilesetId.isNotEmpty ? frameTilesetId : preset.tilesetId.trim();

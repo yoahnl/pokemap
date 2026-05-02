@@ -1089,14 +1089,12 @@ class MapLayersComponent extends PositionComponent {
     final sourceRect = resolved.source;
     final width = sourceRect.width <= 0 ? 1 : sourceRect.width;
     final height = sourceRect.height <= 0 ? 1 : sourceRect.height;
-    final cellSeed = _stableCellSeed(
-      x: x,
-      y: y,
-      salt: sourceRect.x * 73856093 + sourceRect.y * 19349663,
+    final (offsetX, offsetY) = terrainPresetSubtileOffsetsForMapCell(
+      x,
+      y,
+      frameWidthTiles: width,
+      frameHeightTiles: height,
     );
-    final tileIndex = cellSeed % (width * height);
-    final offsetX = tileIndex % width;
-    final offsetY = tileIndex ~/ width;
     final sourceX = (sourceRect.x + offsetX) * tw;
     final sourceY = (sourceRect.y + offsetY) * th;
     final srcRect = Rect.fromLTWH(
