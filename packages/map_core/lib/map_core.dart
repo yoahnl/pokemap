@@ -6,6 +6,7 @@ export 'src/models/tileset.dart';
 export 'src/models/tileset_transparent_color.dart';
 export 'src/models/map_data.dart';
 export 'src/models/element_collision_profile.dart';
+export 'src/models/environment.dart';
 export 'src/models/map_entity_payloads.dart';
 export 'src/models/map_entity_editor_visual.dart';
 export 'src/models/map_gameplay_zone_payloads.dart';
