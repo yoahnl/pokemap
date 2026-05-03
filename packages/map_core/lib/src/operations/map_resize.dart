@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import '../exceptions/map_exceptions.dart';
 import '../models/enums.dart';
+import '../models/environment.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
 
@@ -62,6 +63,34 @@ MapData resizeMapData(
                 .toList(growable: false),
           ),
           object: (l) => l,
+          environment: (l) => l.copyWith(
+            content: EnvironmentLayerContent(
+              targetTileLayerId: l.content.targetTileLayerId,
+              areas: l.content.areas
+                  .map(
+                    (area) => EnvironmentArea(
+                      id: area.id,
+                      name: area.name,
+                      presetId: area.presetId,
+                      mask: EnvironmentAreaMask(
+                        width: width,
+                        height: height,
+                        cells: _resizeFlattened<bool>(
+                          src: area.mask.cells,
+                          srcSize: oldSize,
+                          dstSize: GridSize(width: width, height: height),
+                          defaultValue: false,
+                        ),
+                      ),
+                      seed: area.seed,
+                      paramsOverride: area.paramsOverride,
+                      generatedPlacementIds:
+                          area.generatedPlacementIds.toList(),
+                    ),
+                  )
+                  .toList(growable: false),
+            ),
+          ),
         ),
       )
       .toList(growable: false);

@@ -78,6 +78,7 @@ class AddMapLayerUseCase {
       MapLayerKind.terrain => 'l_terrain',
       MapLayerKind.path => 'l_path',
       MapLayerKind.object => 'l_object',
+      MapLayerKind.environment => 'l_environment',
     };
     final slug = _slugifyLayerName(name);
     final base = slug.isEmpty ? kindPrefix : '${kindPrefix}_$slug';

@@ -73,6 +73,7 @@ export 'src/operations/element_collision_mask_codec.dart';
 export 'src/collision/pixel_rect.dart';
 export 'src/collision/player_collision_conventions_v1.dart';
 export 'src/operations/map_layers.dart';
+export 'src/operations/environment_layer_content_json_codec.dart';
 export 'src/operations/surface_layer_placements.dart';
 export 'src/operations/surface_to_gameplay_zone_generation_assessment.dart';
 export 'src/operations/surface_to_gameplay_zone_generation_plan.dart';

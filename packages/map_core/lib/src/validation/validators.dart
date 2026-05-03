@@ -1292,8 +1292,7 @@ class MapValidator {
       _validateLayer(
         layer,
         expectedCellCount,
-        mapWidth: map.size.width,
-        mapHeight: map.size.height,
+        map: map,
       );
     }
 
@@ -1991,9 +1990,14 @@ class MapValidator {
   static void _validateLayer(
     MapLayer layer,
     int expectedCellCount, {
-    required int mapWidth,
-    required int mapHeight,
+    required MapData map,
   }) {
+    final mapWidth = map.size.width;
+    final mapHeight = map.size.height;
+    final layerById = <String, MapLayer>{
+      for (final l in map.layers) l.id: l,
+    };
+
     final layerId = _requireNonBlank(layer.id, 'Layer ID cannot be empty');
     _requireNonBlank(layer.name, 'Layer $layerId name cannot be empty');
     if (layer.opacity < 0.0 || layer.opacity > 1.0) {
@@ -2104,6 +2108,41 @@ class MapValidator {
         }
       },
       object: (_) {},
+      environment: (environmentLayer) {
+        for (final key in environmentLayer.properties.keys) {
+          if (key.trim().isEmpty) {
+            throw ValidationException(
+                'Environment layer $layerId has an empty property key');
+          }
+        }
+        final tid = environmentLayer.content.targetTileLayerId;
+        if (tid != null) {
+          final target = layerById[tid];
+          if (target == null) {
+            throw ValidationException(
+              'Environment layer $layerId references unknown targetTileLayerId: $tid',
+            );
+          }
+          if (target is! TileLayer) {
+            throw ValidationException(
+              'Environment layer $layerId targetTileLayerId must reference a tile layer: $tid',
+            );
+          }
+          if (tid == layerId) {
+            throw ValidationException(
+              'Environment layer $layerId cannot target itself as targetTileLayerId',
+            );
+          }
+        }
+        for (final area in environmentLayer.content.areas) {
+          if (area.mask.width != mapWidth || area.mask.height != mapHeight) {
+            throw ValidationException(
+              'Environment layer $layerId area "${area.id}" mask size '
+              '(${area.mask.width}x${area.mask.height}) must match map size (${mapWidth}x$mapHeight)',
+            );
+          }
+        }
+      },
     );
   }
 

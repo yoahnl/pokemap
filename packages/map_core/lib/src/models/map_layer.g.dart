@@ -196,3 +196,32 @@ Map<String, dynamic> _$$ObjectLayerImplToJson(_$ObjectLayerImpl instance) =>
       'opacity': instance.opacity,
       'runtimeType': instance.$type,
     };
+
+_$EnvironmentLayerImpl _$$EnvironmentLayerImplFromJson(
+        Map<String, dynamic> json) =>
+    _$EnvironmentLayerImpl(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      isVisible: json['isVisible'] as bool? ?? true,
+      opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
+      content: json['content'] == null
+          ? EnvironmentLayerContent.emptyContent
+          : decodeEnvironmentLayerContent(json['content']),
+      properties: (json['properties'] as Map<String, dynamic>?)?.map(
+            (k, e) => MapEntry(k, e as String),
+          ) ??
+          const <String, String>{},
+      $type: json['runtimeType'] as String?,
+    );
+
+Map<String, dynamic> _$$EnvironmentLayerImplToJson(
+        _$EnvironmentLayerImpl instance) =>
+    <String, dynamic>{
+      'id': instance.id,
+      'name': instance.name,
+      'isVisible': instance.isVisible,
+      'opacity': instance.opacity,
+      'content': encodeEnvironmentLayerContent(instance.content),
+      'properties': instance.properties,
+      'runtimeType': instance.$type,
+    };

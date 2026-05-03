@@ -154,6 +154,8 @@ enum MapLayerKind {
   path,
   @JsonValue('object')
   object,
+  @JsonValue('environment')
+  environment,
 }
 
 enum TerrainType {

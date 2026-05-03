@@ -488,6 +488,12 @@ final class EnvironmentPreset {
 /// Porte les [EnvironmentArea] et éventuellement l’id du [TileLayer] décoratif cible
 /// pour une génération ultérieure. Ne représente pas visibilité, z-order ni kind de layer.
 final class EnvironmentLayerContent {
+  /// Valeur par défaut sérialisable (`MapLayer.environment`, `@Default`).
+  static const EnvironmentLayerContent emptyContent = EnvironmentLayerContent._(
+    targetTileLayerId: null,
+    areas: <EnvironmentArea>[],
+  );
+
   factory EnvironmentLayerContent({
     String? targetTileLayerId,
     List<EnvironmentArea>? areas,
@@ -518,8 +524,12 @@ final class EnvironmentLayerContent {
   factory EnvironmentLayerContent.empty({
     String? targetTileLayerId,
   }) {
+    final String? resolvedTarget = _normalizeOptionalLayerId(targetTileLayerId);
+    if (resolvedTarget == null) {
+      return emptyContent;
+    }
     return EnvironmentLayerContent(
-      targetTileLayerId: targetTileLayerId,
+      targetTileLayerId: resolvedTarget,
       areas: null,
     );
   }

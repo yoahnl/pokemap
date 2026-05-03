@@ -652,6 +652,7 @@ class _LayerList extends StatelessWidget {
       // neutrally so maps containing SurfaceLayer do not break the panel.
       surface: (_) => CupertinoIcons.map,
       object: (_) => CupertinoIcons.square_stack_3d_up,
+      environment: (_) => CupertinoIcons.cloud,
     );
   }
 
@@ -664,6 +665,8 @@ class _LayerList extends StatelessWidget {
       surface: (surfaceLayer) =>
           'surface · ${surfaceLayer.placements.length} placement(s)',
       object: (_) => 'object',
+      environment: (el) =>
+          'environment · ${el.content.areaCount} area(s)',
     );
   }
 

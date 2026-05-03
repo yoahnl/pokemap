@@ -1,6 +1,8 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
+import '../operations/environment_layer_content_json_codec.dart';
 import 'enums.dart';
+import 'environment.dart';
 import 'project_manifest.dart';
 
 part 'map_layer.freezed.dart';
@@ -82,6 +84,22 @@ sealed class MapLayer with _$MapLayer {
     @Default(true) bool isVisible,
     @Default(1.0) double opacity,
   }) = ObjectLayer;
+
+  @FreezedUnionValue('environment')
+  @JsonSerializable(explicitToJson: true)
+  const factory MapLayer.environment({
+    required String id,
+    required String name,
+    @Default(true) bool isVisible,
+    @Default(1.0) double opacity,
+    @JsonKey(
+      fromJson: decodeEnvironmentLayerContent,
+      toJson: encodeEnvironmentLayerContent,
+    )
+    @Default(EnvironmentLayerContent.emptyContent)
+    EnvironmentLayerContent content,
+    @Default(<String, String>{}) Map<String, String> properties,
+  }) = EnvironmentLayer;
 
   factory MapLayer.fromJson(Map<String, dynamic> json) =>
       _$MapLayerFromJson(json);

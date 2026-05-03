@@ -42,6 +42,7 @@ Set<String> collectTilesetIdsReferencedOnMap(MapData map) {
       // will resolve placed preset ids into catalog atlas/tileset references.
       surface: (id, name, isVisible, opacity, placements, properties) {},
       object: (id, name, isVisible, opacity) {},
+      environment: (id, name, isVisible, opacity, content, properties) {},
     );
   }
   return ids;
@@ -121,6 +122,7 @@ void addTerrainAndPathPresetTilesetIds(
       // atlas tilesets used by placed Surface presets below.
       surface: (id, name, isVisible, opacity, placements, properties) {},
       object: (id, name, isVisible, opacity) {},
+      environment: (id, name, isVisible, opacity, content, properties) {},
     );
   }
 }

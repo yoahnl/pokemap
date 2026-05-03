@@ -1,5 +1,6 @@
 import '../exceptions/map_exceptions.dart';
 import '../models/enums.dart';
+import '../models/environment.dart';
 import '../models/map_data.dart';
 import '../models/map_layer.dart';
 
@@ -52,6 +53,10 @@ MapData addMapLayer(
         cells: List<bool>.filled(cellCount, false, growable: false),
       ),
     MapLayerKind.object => MapLayer.object(
+        id: normalizedId,
+        name: normalizedName,
+      ),
+    MapLayerKind.environment => MapLayer.environment(
         id: normalizedId,
         name: normalizedName,
       ),
@@ -256,5 +261,37 @@ MapLayer _copyLayer(
       isVisible: isVisible ?? objectLayer.isVisible,
       opacity: opacity ?? objectLayer.opacity,
     ),
+    environment: (environmentLayer) => environmentLayer.copyWith(
+      name: name ?? environmentLayer.name,
+      isVisible: isVisible ?? environmentLayer.isVisible,
+      opacity: opacity ?? environmentLayer.opacity,
+    ),
   );
+}
+
+/// Remplace uniquement le payload [EnvironmentLayerContent] du layer indiqué.
+MapData setEnvironmentLayerContent(
+  MapData map, {
+  required String layerId,
+  required EnvironmentLayerContent content,
+}) {
+  final normalizedId = layerId.trim();
+  if (normalizedId.isEmpty) {
+    throw const ValidationException('Layer ID cannot be empty');
+  }
+
+  final layerIndex = map.layers.indexWhere((layer) => layer.id == normalizedId);
+  if (layerIndex < 0) {
+    throw ValidationException('Layer not found: $normalizedId');
+  }
+
+  final existing = map.layers[layerIndex];
+  if (existing is! EnvironmentLayer) {
+    throw ValidationException(
+        'Layer is not an environment layer: $normalizedId');
+  }
+
+  final updatedLayers = List<MapLayer>.from(map.layers, growable: false);
+  updatedLayers[layerIndex] = existing.copyWith(content: content);
+  return map.copyWith(layers: updatedLayers);
 }

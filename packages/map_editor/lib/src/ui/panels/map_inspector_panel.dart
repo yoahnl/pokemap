@@ -432,6 +432,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
       PathLayer _ => 'Path Layer',
       SurfaceLayer _ => 'Surface Layer',
       ObjectLayer _ => 'Object Layer',
+      EnvironmentLayer _ => 'Environment Layer',
     };
   }
 }
@@ -460,6 +461,7 @@ class _InspectorOverviewCard extends StatelessWidget {
             SurfaceLayer _ => 'Surface placement layer active',
             CollisionLayer _ => 'Collision layer active',
             ObjectLayer _ => 'Object layer active',
+            EnvironmentLayer _ => 'Environment layer active',
           };
 
     final hi = EditorChrome.islandFillElevated(context);
