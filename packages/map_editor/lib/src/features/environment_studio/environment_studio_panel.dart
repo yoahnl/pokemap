@@ -2,8 +2,19 @@ import 'package:flutter/cupertino.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../ui/shared/cupertino_editor_widgets.dart';
+import 'authoring/environment_preset_draft.dart';
 import 'widgets/environment_preset_detail.dart';
+import 'widgets/environment_preset_draft_form.dart';
 import 'widgets/environment_preset_list.dart';
+
+/// Modes locaux du panneau Environment Studio (Lot Environment-13).
+enum EnvironmentStudioPanelMode {
+  /// Liste + détail des presets existants (non mutateur).
+  browser,
+
+  /// Formulaire de brouillon sans persistance manifest.
+  createDraft,
+}
 
 /// Browser read-only des presets Environment (Lot Environment-10, polish 11).
 ///
@@ -12,6 +23,10 @@ import 'widgets/environment_preset_list.dart';
 ///
 /// [knownTemplateIds] non vide active les diagnostics `unknownTemplateId` pour
 /// les [EnvironmentPreset.templateId] absents du set (défaut `{}` = désactivé).
+///
+/// Le mode [EnvironmentStudioPanelMode.createDraft] permet un brouillon local
+/// ([EnvironmentPresetDraft]) sans [upsertProjectEnvironmentPreset] ni
+/// [buildEnvironmentPresetFromDraft] côté UI.
 class EnvironmentStudioPanel extends StatefulWidget {
   const EnvironmentStudioPanel({
     super.key,
@@ -30,6 +45,9 @@ class EnvironmentStudioPanel extends StatefulWidget {
 
 class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
   String? _selectedPresetId;
+  EnvironmentStudioPanelMode _panelMode = EnvironmentStudioPanelMode.browser;
+  EnvironmentPresetDraft _draft = EnvironmentPresetDraft.empty();
+  int _draftFormEpoch = 0;
 
   @override
   void initState() {
@@ -87,6 +105,27 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
     return null;
   }
 
+  void _openDraftForm() {
+    setState(() {
+      _panelMode = EnvironmentStudioPanelMode.createDraft;
+      _draft = EnvironmentPresetDraft.empty();
+      _draftFormEpoch++;
+    });
+  }
+
+  void _closeDraftForm() {
+    setState(() {
+      _panelMode = EnvironmentStudioPanelMode.browser;
+    });
+  }
+
+  void _resetDraft() {
+    setState(() {
+      _draft = EnvironmentPresetDraft.empty();
+      _draftFormEpoch++;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final label = EditorChrome.primaryLabel(context);
@@ -99,6 +138,14 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
       knownTemplateIds: widget.knownTemplateIds,
     );
     final s = report.summary;
+
+    final draftValidation = _panelMode == EnvironmentStudioPanelMode.createDraft
+        ? validateEnvironmentPresetDraft(
+            _draft,
+            manifest: widget.manifest,
+            knownTemplateIds: const <String>{},
+          )
+        : null;
 
     return ColoredBox(
       color: EditorChrome.largeIslandSurfaceColor(
@@ -115,19 +162,55 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildHeader(context, label, subtle, n),
-                  const SizedBox(height: 20),
-                  if (n == 0)
-                    Expanded(
-                      child: _buildEmptyPresets(context, subtle),
-                    )
+                  const SizedBox(height: 12),
+                  if (_panelMode == EnvironmentStudioPanelMode.browser)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: CupertinoButton(
+                        key: const Key('environment-studio-open-draft'),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        onPressed: _openDraftForm,
+                        child: const Text('Préparer un preset'),
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                  if (_panelMode == EnvironmentStudioPanelMode.browser)
+                    if (n == 0)
+                      Expanded(
+                        child: _buildEmptyPresets(context, subtle),
+                      )
+                    else
+                      Expanded(
+                        child: _buildBrowser(
+                          context,
+                          label,
+                          subtle,
+                          presets,
+                          report,
+                        ),
+                      )
                   else
                     Expanded(
-                      child: _buildBrowser(
-                        context,
-                        label,
-                        subtle,
-                        presets,
-                        report,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: EditorChrome.chipFill(context),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color:
+                                CupertinoColors.separator.resolveFrom(context),
+                          ),
+                        ),
+                        child: EnvironmentPresetDraftForm(
+                          key: ValueKey<int>(_draftFormEpoch),
+                          draft: _draft,
+                          validation: draftValidation!,
+                          onChanged: (d) => setState(() => _draft = d),
+                          onCancel: _closeDraftForm,
+                          onReset: _resetDraft,
+                        ),
                       ),
                     ),
                   const SizedBox(height: 20),
@@ -149,6 +232,7 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
     Color subtle,
     int presetCount,
   ) {
+    final isDraft = _panelMode == EnvironmentStudioPanelMode.createDraft;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -181,10 +265,14 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
               color: EditorChrome.accentJade.withValues(alpha: 0.35),
             ),
           ),
-          child: const Text(
-            'Lecture seule — édition et génération arrivent dans les prochains lots.',
-            key: Key('environment-studio-read-only-banner'),
-            style: TextStyle(
+          child: Text(
+            isDraft
+                ? 'Brouillon local — aucune écriture dans le projet. '
+                    'Création réelle et palette éditables arrivent dans les prochains lots.'
+                : 'Lecture seule sur les presets existants — édition manifest et '
+                    'génération arrivent dans les prochains lots.',
+            key: const Key('environment-studio-read-only-banner'),
+            style: const TextStyle(
               color: EditorChrome.accentJade,
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -208,17 +296,22 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
   Widget _buildEmptyPresets(BuildContext context, Color subtle) {
     return Align(
       alignment: Alignment.topCenter,
-      child: Text(
-        'Aucun preset d’environnement pour le moment.\n'
-        'Les presets seront créés ici dans un prochain lot.',
-        key: const Key('environment-studio-empty-presets'),
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          color: subtle,
-          fontSize: 14,
-          height: 1.4,
-          fontWeight: FontWeight.w500,
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Aucun preset d’environnement pour le moment.\n'
+            'Les presets seront enregistrés dans le projet dans un prochain lot.',
+            key: const Key('environment-studio-empty-presets'),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: subtle,
+              fontSize: 14,
+              height: 1.4,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -33,6 +33,9 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('génération organique'), findsOneWidget);
+      expect(find.byKey(const Key('environment-studio-open-draft')),
+          findsOneWidget);
+      expect(find.text('Préparer un preset'), findsOneWidget);
       expect(find.byKey(const Key('environment-studio-preset-list')),
           findsNothing);
       expect(find.byKey(const Key('environment-studio-detail-root')),
@@ -96,7 +99,7 @@ void main() {
       );
     });
 
-    testWidgets('ne propose aucun CupertinoButton dans le panneau', (
+    testWidgets('browser : un seul CupertinoButton « Préparer un preset »', (
       tester,
     ) async {
       await _pumpPanel(
@@ -110,7 +113,14 @@ void main() {
       final panel = find.byType(EnvironmentStudioPanel);
       expect(
         find.descendant(of: panel, matching: find.byType(CupertinoButton)),
-        findsNothing,
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: panel,
+          matching: find.byKey(const Key('environment-studio-open-draft')),
+        ),
+        findsOneWidget,
       );
     });
   });

@@ -325,6 +325,30 @@ void main() {
       expect(find.textContaining('Generate'), findsNothing);
       expect(find.textContaining('Save'), findsNothing);
     });
+
+    testWidgets('browser : bouton Préparer un preset visible', (tester) async {
+      await _pump(
+        tester,
+        _manifest(
+          environmentPresets: [
+            EnvironmentPreset(
+              id: 'x',
+              name: 'X',
+              templateId: 'tpl',
+              palette: [
+                EnvironmentPaletteItem(elementId: 'e1', weight: 1),
+              ],
+              defaultParams: EnvironmentGenerationParams.standard(),
+              sortOrder: 0,
+            ),
+          ],
+          elements: [_element(id: 'e1')],
+        ),
+      );
+      expect(find.byKey(const Key('environment-studio-open-draft')),
+          findsOneWidget);
+      expect(find.text('Préparer un preset'), findsOneWidget);
+    });
   });
 }
 
