@@ -2,18 +2,27 @@ import 'package:flutter/cupertino.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../ui/shared/cupertino_editor_widgets.dart';
+import 'widgets/environment_preset_detail.dart';
+import 'widgets/environment_preset_list.dart';
 
-/// Browser read-only des presets Environment (Lot Environment-10).
+/// Browser read-only des presets Environment (Lot Environment-10, polish 11).
 ///
 /// Sélection locale uniquement ([StatefulWidget]) : aucune mutation du
 /// [ProjectManifest], aucun provider, aucune persistance.
+///
+/// [knownTemplateIds] non vide active les diagnostics `unknownTemplateId` pour
+/// les [EnvironmentPreset.templateId] absents du set (défaut `{}` = désactivé).
 class EnvironmentStudioPanel extends StatefulWidget {
   const EnvironmentStudioPanel({
     super.key,
     required this.manifest,
+    this.knownTemplateIds = const <String>{},
   });
 
   final ProjectManifest manifest;
+
+  /// Quand non vide, restreint les templates reconnus (diagnostics auteur).
+  final Set<String> knownTemplateIds;
 
   @override
   State<EnvironmentStudioPanel> createState() => _EnvironmentStudioPanelState();
@@ -87,6 +96,7 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
     final report = diagnoseProjectEnvironmentAuthoring(
       widget.manifest,
       maps: const [],
+      knownTemplateIds: widget.knownTemplateIds,
     );
     final s = report.summary;
 
@@ -227,41 +237,11 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
       children: [
         SizedBox(
           width: 300,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: EditorChrome.chipFill(context),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: CupertinoColors.separator.resolveFrom(context),
-              ),
-            ),
-            child: ListView.builder(
-              key: const Key('environment-studio-preset-list'),
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              itemCount: presets.length,
-              itemBuilder: (context, index) {
-                final p = presets[index];
-                final isSelected = p.id == _selectedPresetId;
-                final diag = report.diagnosticsForPreset(p.id);
-                var err = 0;
-                var warn = 0;
-                for (final d in diag) {
-                  switch (d.severity) {
-                    case EnvironmentAuthoringDiagnosticSeverity.error:
-                      err++;
-                    case EnvironmentAuthoringDiagnosticSeverity.warning:
-                      warn++;
-                  }
-                }
-                return _PresetListTile(
-                  preset: p,
-                  selected: isSelected,
-                  errorCount: err,
-                  warningCount: warn,
-                  onTap: () => setState(() => _selectedPresetId = p.id),
-                );
-              },
-            ),
+          child: EnvironmentPresetList(
+            presets: presets,
+            selectedPresetId: _selectedPresetId,
+            report: report,
+            onSelect: (id) => setState(() => _selectedPresetId = id),
           ),
         ),
         const SizedBox(width: 16),
@@ -289,7 +269,7 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
                 : SingleChildScrollView(
                     key: const Key('environment-studio-detail-scroll'),
                     padding: const EdgeInsets.all(20),
-                    child: _PresetDetail(
+                    child: EnvironmentPresetDetail(
                       preset: selected,
                       report: report,
                       labelColor: label,
@@ -373,383 +353,5 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
         ),
       ],
     );
-  }
-}
-
-class _PresetListTile extends StatelessWidget {
-  const _PresetListTile({
-    required this.preset,
-    required this.selected,
-    required this.errorCount,
-    required this.warningCount,
-    required this.onTap,
-  });
-
-  final EnvironmentPreset preset;
-  final bool selected;
-  final int errorCount;
-  final int warningCount;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = EditorChrome.primaryLabel(context);
-    final subtle = EditorChrome.subtleLabel(context);
-    const accent = EditorChrome.accentJade;
-    final nPalette = preset.palette.length;
-    final badge = StringBuffer();
-    if (errorCount > 0) {
-      badge.write('$errorCount erreur${errorCount > 1 ? 's' : ''}');
-    }
-    if (warningCount > 0) {
-      if (badge.isNotEmpty) {
-        badge.write(' · ');
-      }
-      badge.write(
-        '$warningCount avertissement${warningCount > 1 ? 's' : ''}',
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      child: GestureDetector(
-        key: Key('environment-studio-preset-row-${preset.id}'),
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-          decoration: BoxDecoration(
-            color: selected
-                ? accent.withValues(alpha: 0.14)
-                : CupertinoColors.transparent,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: selected
-                  ? accent.withValues(alpha: 0.65)
-                  : CupertinoColors.separator.resolveFrom(context),
-            ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      preset.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: label,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  if (selected)
-                    const Icon(
-                      CupertinoIcons.check_mark_circled_solid,
-                      size: 16,
-                      color: accent,
-                    ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${preset.id} · $nPalette items · ${preset.templateId}',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: subtle,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              if (badge.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  badge.toString(),
-                  key: Key('environment-studio-preset-row-diag-${preset.id}'),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: errorCount > 0
-                        ? CupertinoColors.systemRed.resolveFrom(context)
-                        : CupertinoColors.systemOrange.resolveFrom(context),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _PresetDetail extends StatelessWidget {
-  const _PresetDetail({
-    required this.preset,
-    required this.report,
-    required this.labelColor,
-    required this.subtleColor,
-  });
-
-  final EnvironmentPreset preset;
-  final EnvironmentAuthoringDiagnosticsReport report;
-  final Color labelColor;
-  final Color subtleColor;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = preset;
-    final diag = report.diagnosticsForPreset(p.id);
-    var err = 0;
-    var warn = 0;
-    for (final d in diag) {
-      switch (d.severity) {
-        case EnvironmentAuthoringDiagnosticSeverity.error:
-          err++;
-        case EnvironmentAuthoringDiagnosticSeverity.warning:
-          warn++;
-      }
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      key: const Key('environment-studio-detail-root'),
-      children: [
-        Text(
-          'Détail du preset',
-          style: TextStyle(
-            color: labelColor,
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 14),
-        _detailLine('Nom', p.name, const Key('environment-studio-detail-name')),
-        _detailLine('Id', p.id, const Key('environment-studio-detail-id')),
-        _detailLine(
-          'Template',
-          p.templateId,
-          const Key('environment-studio-detail-template'),
-        ),
-        _detailLine(
-          'Catégorie',
-          p.categoryId ?? '—',
-          const Key('environment-studio-detail-category'),
-        ),
-        _detailLine(
-          'Ordre d’affichage',
-          '${p.sortOrder}',
-          const Key('environment-studio-detail-sort'),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'Paramètres par défaut',
-          style: TextStyle(
-            color: labelColor,
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 8),
-        _detailLine(
-          'Densité',
-          _formatDouble(p.defaultParams.density),
-          const Key('environment-studio-detail-param-density'),
-        ),
-        _detailLine(
-          'Variation',
-          _formatDouble(p.defaultParams.variation),
-          const Key('environment-studio-detail-param-variation'),
-        ),
-        _detailLine(
-          'Densité des bords',
-          _formatDouble(p.defaultParams.edgeDensity),
-          const Key('environment-studio-detail-param-edge'),
-        ),
-        _detailLine(
-          'Espacement minimal (cases)',
-          '${p.defaultParams.minSpacingCells}',
-          const Key('environment-studio-detail-param-spacing'),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'Palette',
-          style: TextStyle(
-            color: labelColor,
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 8),
-        if (p.palette.isEmpty)
-          Text(
-            'Palette vide.',
-            key: const Key('environment-studio-palette-empty'),
-            style: TextStyle(color: subtleColor, fontSize: 13),
-          )
-        else
-          ...p.palette.map(
-            (item) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: _PaletteItemBlock(item: item, subtle: subtleColor),
-            ),
-          ),
-        const SizedBox(height: 18),
-        Text(
-          'Diagnostics (preset)',
-          style: TextStyle(
-            color: labelColor,
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 8),
-        if (diag.isEmpty)
-          Text(
-            'Aucun diagnostic pour ce preset.',
-            key: const Key('environment-studio-preset-diagnostics-empty'),
-            style: TextStyle(
-              color: subtleColor,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          )
-        else ...[
-          Text(
-            '$err erreur${err == 1 ? '' : 's'} · '
-            '$warn avertissement${warn == 1 ? '' : 's'}',
-            key: const Key('environment-studio-preset-diagnostics-summary'),
-            style: TextStyle(
-              color: subtleColor,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 8),
-          ...diag.asMap().entries.map(
-                (e) => Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Text(
-                    e.value.message,
-                    key: Key('environment-studio-preset-diag-line-${e.key}'),
-                    style: TextStyle(
-                      color: e.value.severity ==
-                              EnvironmentAuthoringDiagnosticSeverity.error
-                          ? CupertinoColors.systemRed.resolveFrom(context)
-                          : CupertinoColors.systemOrange.resolveFrom(context),
-                      fontSize: 12.5,
-                      height: 1.35,
-                    ),
-                  ),
-                ),
-              ),
-        ],
-      ],
-    );
-  }
-
-  static String _formatDouble(double v) => v.toStringAsFixed(2);
-
-  Widget _detailLine(String title, String value, Key valueKey) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 150,
-            child: Text(
-              title,
-              style: TextStyle(
-                color: subtleColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              key: valueKey,
-              style: TextStyle(
-                color: labelColor,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PaletteItemBlock extends StatelessWidget {
-  const _PaletteItemBlock({
-    required this.item,
-    required this.subtle,
-  });
-
-  final EnvironmentPaletteItem item;
-  final Color subtle;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = EditorChrome.primaryLabel(context);
-    final tagStr =
-        item.tags.isEmpty ? '—' : (item.tags.toList()..sort()).join(', ');
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: CupertinoColors.separator.resolveFrom(context),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              item.elementId,
-              key: Key('environment-studio-palette-item-${item.elementId}'),
-              style: TextStyle(
-                color: label,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Poids ${item.weight} · ${_collisionLabel(item.collisionMode)} · tags: $tagStr',
-              key:
-                  Key('environment-studio-palette-item-meta-${item.elementId}'),
-              style: TextStyle(
-                color: subtle,
-                fontSize: 12,
-                height: 1.35,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  static String _collisionLabel(EnvironmentCollisionMode m) {
-    return switch (m) {
-      EnvironmentCollisionMode.useElementDefault => 'Défaut élément',
-      EnvironmentCollisionMode.forceEnabled => 'Collision forcée',
-      EnvironmentCollisionMode.forceDisabled => 'Collision désactivée',
-    };
   }
 }

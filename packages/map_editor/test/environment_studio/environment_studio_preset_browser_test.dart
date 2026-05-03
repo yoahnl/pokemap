@@ -3,10 +3,35 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/environment_studio/environment_studio_panel.dart';
+import 'package:map_editor/src/features/environment_studio/widgets/environment_diagnostic_presentation.dart';
 
 void main() {
+  group('environmentDiagnosticKindLabel', () {
+    test('quelques kinds FR stables', () {
+      expect(
+        environmentDiagnosticKindLabel(
+          EnvironmentAuthoringDiagnosticKind.missingPaletteElement,
+        ),
+        'Élément introuvable',
+      );
+      expect(
+        environmentDiagnosticKindLabel(
+          EnvironmentAuthoringDiagnosticKind.unknownTemplateId,
+        ),
+        'Template inconnu',
+      );
+      expect(
+        environmentDiagnosticKindLabel(
+          EnvironmentAuthoringDiagnosticKind.duplicatePresetId,
+        ),
+        'Preset dupliqué',
+      );
+    });
+  });
+
   group('EnvironmentStudioPanel — browser read-only', () {
-    testWidgets('détail : id, nom, template, catégorie, tri, params, palette',
+    testWidgets(
+        'sections identité, paramètres, palette et diagnostics visibles',
         (tester) async {
       await _pump(
         tester,
@@ -21,7 +46,7 @@ void main() {
                 EnvironmentPaletteItem(
                   elementId: 'oak',
                   weight: 5,
-                  collisionMode: EnvironmentCollisionMode.forceEnabled,
+                  collisionMode: EnvironmentCollisionMode.forceDisabled,
                   tags: {'tree', 'canopy'},
                 ),
               ],
@@ -38,6 +63,23 @@ void main() {
         ),
       );
 
+      expect(
+        find.byKey(const Key('environment-studio-section-identity')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('environment-studio-section-params')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('environment-studio-section-palette')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('environment-studio-section-diagnostics')),
+        findsOneWidget,
+      );
+
       expect(find.byKey(const Key('environment-studio-detail-id')),
           findsOneWidget);
       expect(find.text('p1'), findsWidgets);
@@ -52,7 +94,7 @@ void main() {
       expect(find.byKey(const Key('environment-studio-palette-item-oak')),
           findsOneWidget);
       expect(
-        find.byKey(const Key('environment-studio-palette-item-meta-oak')),
+        find.byKey(const Key('environment-studio-palette-weight-oak')),
         findsOneWidget,
       );
       expect(
@@ -60,11 +102,20 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.textContaining('Collision forcée'),
+        find.byKey(const Key('environment-studio-palette-collision-oak')),
         findsOneWidget,
       );
       expect(
-        find.textContaining('canopy'),
+        find.textContaining('Collision désactivée'),
+        findsOneWidget,
+      );
+      // Tags triés alphabétiquement : canopy puis tree
+      expect(
+        find.byKey(const Key('environment-studio-palette-tag-oak-canopy')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('environment-studio-palette-tag-oak-tree')),
         findsOneWidget,
       );
     });
@@ -124,7 +175,8 @@ void main() {
       expect(find.text('Aucun diagnostic pour ce preset.'), findsOneWidget);
     });
 
-    testWidgets('diagnostic erreur élément palette manquant', (tester) async {
+    testWidgets('diagnostic erreur élément palette : drilldown',
+        (tester) async {
       await _pump(
         tester,
         _manifest(
@@ -153,8 +205,38 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.byKey(const Key('environment-studio-preset-diag-line-0')),
+        find.byKey(const Key('environment-studio-diag-severity-0')),
         findsOneWidget,
+      );
+      expect(
+        (tester.widget<Text>(
+                find.byKey(const Key('environment-studio-diag-severity-0'))))
+            .data,
+        'Erreur',
+      );
+      expect(
+        find.byKey(const Key('environment-studio-diag-kind-0')),
+        findsOneWidget,
+      );
+      expect(
+        (tester.widget<Text>(
+                find.byKey(const Key('environment-studio-diag-kind-0'))))
+            .data,
+        'Élément introuvable',
+      );
+      expect(
+        find.byKey(const Key('environment-studio-diag-message-0')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('environment-studio-diag-field-elementId-0')),
+        findsOneWidget,
+      );
+      expect(
+        (tester.widget<Text>(find
+                .byKey(const Key('environment-studio-diag-field-elementId-0'))))
+            .data,
+        'missing_tree',
       );
       expect(
         find.byKey(const Key('environment-studio-preset-row-diag-bad')),
@@ -162,7 +244,61 @@ void main() {
       );
     });
 
-    testWidgets('read-only : pas de libellés Create / Edit / Delete / Generate',
+    testWidgets(
+        'unknownTemplateId : kind FR et templateId affiché si knownTemplateIds',
+        (tester) async {
+      await tester.pumpWidget(
+        MacosApp(
+          home: CupertinoPageScaffold(
+            child: EnvironmentStudioPanel(
+              manifest: _manifest(
+                environmentPresets: [
+                  EnvironmentPreset(
+                    id: 'u1',
+                    name: 'U',
+                    templateId: 'not_in_set',
+                    palette: [
+                      EnvironmentPaletteItem(elementId: 'e1', weight: 1),
+                    ],
+                    defaultParams: EnvironmentGenerationParams.standard(),
+                    sortOrder: 0,
+                  ),
+                ],
+                elements: [_element(id: 'e1')],
+              ),
+              knownTemplateIds: const {'forest_dense'},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        (tester.widget<Text>(
+                find.byKey(const Key('environment-studio-diag-kind-0'))))
+            .data,
+        'Template inconnu',
+      );
+      expect(
+        find.byKey(const Key('environment-studio-diag-field-templateId-0')),
+        findsOneWidget,
+      );
+      expect(
+        (tester.widget<Text>(find.byKey(
+                const Key('environment-studio-diag-field-templateId-0'))))
+            .data,
+        'not_in_set',
+      );
+      expect(
+        (tester.widget<Text>(
+                find.byKey(const Key('environment-studio-diag-severity-0'))))
+            .data,
+        'Avertissement',
+      );
+    });
+
+    testWidgets(
+        'read-only : pas de libellés Create / Edit / Delete / Generate / Save',
         (tester) async {
       await _pump(
         tester,
@@ -187,6 +323,7 @@ void main() {
       expect(find.textContaining('Edit'), findsNothing);
       expect(find.textContaining('Delete'), findsNothing);
       expect(find.textContaining('Generate'), findsNothing);
+      expect(find.textContaining('Save'), findsNothing);
     });
   });
 }
