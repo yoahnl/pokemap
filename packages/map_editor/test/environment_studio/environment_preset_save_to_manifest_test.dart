@@ -10,9 +10,9 @@ import 'package:map_editor/src/features/environment_studio/environment_studio_pa
 import '../shell_chrome_test_harness.dart';
 
 void main() {
-  group('EnvironmentPresetDraftForm — Enregistrer dans le projet', () {
+  group('EnvironmentPresetDraftForm — ajout mémoire (Lot 17)', () {
     testWidgets(
-      'brouillon initial invalide : bouton désactivé + aide visible',
+      'brouillon initial invalide : libellé bouton, aide, pas Save/Create/Generate',
       (tester) async {
         await _pumpPanel(
           tester,
@@ -23,6 +23,10 @@ void main() {
             .tap(find.byKey(const Key('environment-studio-open-draft')));
         await tester.pumpAndSettle();
 
+        expect(find.text('Ajouter au projet en mémoire'), findsOneWidget);
+        expect(find.textContaining('Save'), findsNothing);
+        expect(find.textContaining('Create'), findsNothing);
+        expect(find.textContaining('Generate'), findsNothing);
         expect(
           find.byKey(const Key('environment-studio-draft-save-project')),
           findsOneWidget,
@@ -37,7 +41,7 @@ void main() {
         );
         expect(
           find.text(
-            'Corrigez les erreurs du brouillon pour l’enregistrer dans le projet.',
+            'Corrigez les erreurs du brouillon pour l’ajouter au projet.',
           ),
           findsOneWidget,
         );
@@ -62,6 +66,10 @@ void main() {
         expect(
           find.byKey(
               const Key('environment-studio-draft-save-unavailable-note')),
+          findsOneWidget,
+        );
+        expect(
+          find.text('Ajout au projet indisponible dans ce contexte.'),
           findsOneWidget,
         );
       },
@@ -132,6 +140,31 @@ void main() {
         expect(find.byKey(const Key('environment-studio-preset-list')),
             findsOneWidget);
         expect(find.text('Prairie test'), findsWidgets);
+
+        expect(
+          find.byKey(const Key('environment-studio-post-save-local-feedback')),
+          findsOneWidget,
+        );
+        expect(
+          find.textContaining('ajouté au projet en mémoire'),
+          findsOneWidget,
+        );
+        expect(
+          find.textContaining('sauvegarder le projet'),
+          findsOneWidget,
+        );
+        expect(
+          (tester.widget<Text>(
+                  find.byKey(const Key('environment-studio-detail-id'))))
+              .data,
+          'meadow_new',
+        );
+        expect(
+          (tester.widget<Text>(
+                  find.byKey(const Key('environment-studio-detail-name'))))
+              .data,
+          'Prairie test',
+        );
       },
     );
 
@@ -228,7 +261,7 @@ void main() {
       expect(calls, 0);
     });
 
-    testWidgets('warning template inconnu ne bloque pas l’enregistrement',
+    testWidgets('warning template inconnu ne bloque pas l’ajout au projet',
         (tester) async {
       var calls = 0;
       await _pumpPanel(
@@ -264,6 +297,14 @@ void main() {
 
       expect(find.textContaining('Template inconnu'), findsOneWidget);
       expect(
+        find.byKey(const Key('environment-studio-draft-save-warnings-hint')),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Les avertissements ne bloquent pas l’ajout au projet.'),
+        findsOneWidget,
+      );
+      expect(
         tester
             .widget<CupertinoButton>(
               find.byKey(const Key('environment-studio-draft-save-project')),
@@ -277,6 +318,125 @@ void main() {
       await tester.pumpAndSettle();
       expect(calls, 1);
     });
+
+    testWidgets(
+      'ouvrir un nouveau brouillon efface le feedback local post-save',
+      (tester) async {
+        await _pumpPanel(
+          tester,
+          manifest: _manifest(elements: [_element(id: 'e1')]),
+          onSaved: (_, __) {},
+        );
+        await tester
+            .tap(find.byKey(const Key('environment-studio-open-draft')));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const Key('environment-studio-draft-field-id')),
+          'fb_clear',
+        );
+        await tester.enterText(
+          find.byKey(const Key('environment-studio-draft-field-name')),
+          'NomFb',
+        );
+        await tester.enterText(
+          find.byKey(const Key('environment-studio-draft-field-template')),
+          't',
+        );
+        await tester.tap(
+          find.byKey(const Key('environment-studio-draft-palette-add-item')),
+        );
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const Key('environment-studio-palette-draft-element-0')),
+          'e1',
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const Key('environment-studio-draft-save-project')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('environment-studio-post-save-local-feedback')),
+          findsOneWidget,
+        );
+
+        await tester
+            .tap(find.byKey(const Key('environment-studio-open-draft')));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('environment-studio-post-save-local-feedback')),
+          findsNothing,
+        );
+      },
+    );
+
+    testWidgets(
+      'callback qui lève : formulaire visible, erreur locale, pas de browser',
+      (tester) async {
+        await _pumpPanel(
+          tester,
+          manifest: _manifest(elements: [_element(id: 'e1')]),
+          onSaved: (_, __) => throw StateError('simulé'),
+        );
+        await tester
+            .tap(find.byKey(const Key('environment-studio-open-draft')));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const Key('environment-studio-draft-field-id')),
+          'boom_id',
+        );
+        await tester.enterText(
+          find.byKey(const Key('environment-studio-draft-field-name')),
+          'Boom',
+        );
+        await tester.enterText(
+          find.byKey(const Key('environment-studio-draft-field-template')),
+          't',
+        );
+        await tester.tap(
+          find.byKey(const Key('environment-studio-draft-palette-add-item')),
+        );
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const Key('environment-studio-palette-draft-element-0')),
+          'e1',
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(
+          find.byKey(const Key('environment-studio-draft-save-project')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          find.byKey(const Key('environment-studio-draft-form-title')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('environment-studio-draft-save-error-message')),
+          findsOneWidget,
+        );
+        expect(
+          find.text(
+            'Impossible d’ajouter le preset au projet en mémoire.',
+          ),
+          findsOneWidget,
+        );
+        expect(
+          (tester.widget<CupertinoTextField>(
+                  find.byKey(const Key('environment-studio-draft-field-id'))))
+              .controller
+              ?.text,
+          'boom_id',
+        );
+        expect(
+          find.byKey(const Key('environment-studio-preset-list')),
+          findsNothing,
+        );
+      },
+    );
   });
 
   group('EditorNotifier — applyInMemoryProjectManifest (Lot 16)', () {
@@ -414,6 +574,14 @@ void main() {
         );
         expect(find.byKey(const Key('environment-studio-preset-list')),
             findsOneWidget);
+        expect(
+          find.byKey(const Key('environment-studio-post-save-local-feedback')),
+          findsOneWidget,
+        );
+        expect(
+          find.textContaining('ajouté au projet en mémoire'),
+          findsOneWidget,
+        );
       },
     );
   });

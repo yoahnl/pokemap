@@ -6,6 +6,7 @@ import 'authoring/environment_preset_draft.dart';
 import 'widgets/environment_preset_detail.dart';
 import 'widgets/environment_preset_draft_form.dart';
 import 'widgets/environment_preset_list.dart';
+import 'widgets/environment_preset_save_feedback.dart';
 
 /// Modes locaux du panneau Environment Studio (Lot Environment-13).
 enum EnvironmentStudioPanelMode {
@@ -55,6 +56,9 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
   EnvironmentStudioPanelMode _panelMode = EnvironmentStudioPanelMode.browser;
   EnvironmentPresetDraft _draft = EnvironmentPresetDraft.empty();
   int _draftFormEpoch = 0;
+
+  /// Lot 17 : message local browser après ajout mémoire (pas au 1er chargement).
+  String? _localSaveFeedbackPresetName;
 
   @override
   void initState() {
@@ -114,6 +118,7 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
 
   void _openDraftForm() {
     setState(() {
+      _localSaveFeedbackPresetName = null;
       _panelMode = EnvironmentStudioPanelMode.createDraft;
       _draft = EnvironmentPresetDraft.empty();
       _draftFormEpoch++;
@@ -137,12 +142,13 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
     ProjectManifest nextManifest,
     EnvironmentPreset savedPreset,
   ) {
-    widget.onEnvironmentPresetSaved?.call(nextManifest, savedPreset);
+    widget.onEnvironmentPresetSaved!.call(nextManifest, savedPreset);
     setState(() {
       _panelMode = EnvironmentStudioPanelMode.browser;
       _selectedPresetId = savedPreset.id;
       _draft = EnvironmentPresetDraft.empty();
       _draftFormEpoch++;
+      _localSaveFeedbackPresetName = savedPreset.name;
     });
   }
 
@@ -294,9 +300,9 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
           ),
           child: Text(
             isDraft
-                ? 'Brouillon : vous pouvez enregistrer le preset dans le projet '
-                    '(mémoire de l’éditeur uniquement, pas de fichier project.json). '
-                    'La sauvegarde disque et la génération sur carte restent à venir.'
+                ? 'Brouillon : utilisez « Ajouter au projet en mémoire » pour intégrer '
+                    'le preset au manifest en session. Aucune sauvegarde disque automatique. '
+                    'La génération sur carte reste à venir.'
                 : 'Lecture seule sur les presets existants — édition d’un preset '
                     'existant et génération sur carte arrivent dans les prochains lots.',
             key: const Key('environment-studio-read-only-banner'),
@@ -329,8 +335,8 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
         children: [
           Text(
             'Aucun preset d’environnement pour le moment.\n'
-            'Utilisez « Préparer un preset », puis « Enregistrer dans le projet » '
-            '(mémoire de session, sans écriture disque automatique).',
+            'Utilisez « Préparer un preset », puis « Ajouter au projet en mémoire » '
+            '(aucune écriture disque tant que vous n’avez pas sauvegardé le projet).',
             key: const Key('environment-studio-empty-presets'),
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -354,50 +360,63 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
   ) {
     final selected = _selectedPreset(presets);
 
-    return Row(
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(
-          width: 300,
-          child: EnvironmentPresetList(
-            presets: presets,
-            selectedPresetId: _selectedPresetId,
-            report: report,
-            onSelect: (id) => setState(() => _selectedPresetId = id),
+        if (_localSaveFeedbackPresetName != null) ...[
+          EnvironmentPresetSaveFeedback(
+            presetName: _localSaveFeedbackPresetName!,
           ),
-        ),
-        const SizedBox(width: 16),
+          const SizedBox(height: 12),
+        ],
         Expanded(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: EditorChrome.chipFill(context),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: CupertinoColors.separator.resolveFrom(context),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                width: 300,
+                child: EnvironmentPresetList(
+                  presets: presets,
+                  selectedPresetId: _selectedPresetId,
+                  report: report,
+                  onSelect: (id) => setState(() => _selectedPresetId = id),
+                ),
               ),
-            ),
-            child: selected == null
-                ? Center(
-                    child: Text(
-                      'Preset sélectionné introuvable.',
-                      key: const Key('environment-studio-preset-missing'),
-                      style: TextStyle(
-                        color: subtle,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  )
-                : SingleChildScrollView(
-                    key: const Key('environment-studio-detail-scroll'),
-                    padding: const EdgeInsets.all(20),
-                    child: EnvironmentPresetDetail(
-                      preset: selected,
-                      report: report,
-                      labelColor: label,
-                      subtleColor: subtle,
+              const SizedBox(width: 16),
+              Expanded(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: EditorChrome.chipFill(context),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: CupertinoColors.separator.resolveFrom(context),
                     ),
                   ),
+                  child: selected == null
+                      ? Center(
+                          child: Text(
+                            'Preset sélectionné introuvable.',
+                            key: const Key('environment-studio-preset-missing'),
+                            style: TextStyle(
+                              color: subtle,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        )
+                      : SingleChildScrollView(
+                          key: const Key('environment-studio-detail-scroll'),
+                          padding: const EdgeInsets.all(20),
+                          child: EnvironmentPresetDetail(
+                            preset: selected,
+                            report: report,
+                            labelColor: label,
+                            subtleColor: subtle,
+                          ),
+                        ),
+                ),
+              ),
+            ],
           ),
         ),
       ],

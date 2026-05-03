@@ -56,6 +56,9 @@ class _EnvironmentPresetDraftFormState
   late final TextEditingController _categoryCtrl;
   late final TextEditingController _sortCtrl;
 
+  /// Lot 17 : échec du callback parent ou exception build/upsert après validation.
+  String? _saveErrorMessage;
+
   @override
   void initState() {
     super.initState();
@@ -94,6 +97,9 @@ class _EnvironmentPresetDraftFormState
     List<EnvironmentPaletteItemDraft>? palette,
     EnvironmentGenerationParamsDraft? defaultParams,
   }) {
+    if (_saveErrorMessage != null) {
+      setState(() => _saveErrorMessage = null);
+    }
     final so = int.tryParse(_sortCtrl.text.trim());
     widget.onChanged(
       EnvironmentPresetDraft(
@@ -134,6 +140,7 @@ class _EnvironmentPresetDraftFormState
     if (save == null) {
       return;
     }
+    setState(() => _saveErrorMessage = null);
     final draft = _draftFromControllers();
     final validation = validateEnvironmentPresetDraft(
       draft,
@@ -143,12 +150,21 @@ class _EnvironmentPresetDraftFormState
     if (validation.hasErrors) {
       return;
     }
-    final preset = buildEnvironmentPresetFromDraft(draft);
-    final nextManifest = upsertProjectEnvironmentPreset(
-      widget.manifest,
-      preset,
-    );
-    save(nextManifest, preset);
+    try {
+      final preset = buildEnvironmentPresetFromDraft(draft);
+      final nextManifest = upsertProjectEnvironmentPreset(
+        widget.manifest,
+        preset,
+      );
+      save(nextManifest, preset);
+    } catch (e, st) {
+      debugPrint('EnvironmentPresetDraftForm: ajout mémoire impossible: $e');
+      debugPrint('$st');
+      setState(() {
+        _saveErrorMessage =
+            'Impossible d’ajouter le preset au projet en mémoire.';
+      });
+    }
   }
 
   @override
@@ -195,9 +211,9 @@ class _EnvironmentPresetDraftFormState
           ),
           const SizedBox(height: 10),
           Text(
-            'Remplissez le brouillon puis « Enregistrer dans le projet » pour '
-            'l’ajouter au manifest en mémoire (marque le projet modifié ; '
-            'aucune écriture disque automatique).',
+            'Remplissez le brouillon puis « Ajouter au projet en mémoire » pour '
+            'l’intégrer au manifest de la session (projet marqué modifié ; '
+            'aucune sauvegarde disque automatique).',
             key: const Key('environment-studio-draft-form-intro'),
             style: TextStyle(
               color: subtle,
@@ -275,7 +291,7 @@ class _EnvironmentPresetDraftFormState
           const SizedBox(height: 8),
           Text(
             'Les éléments doivent exister dans le projet ; ils sont copiés dans le '
-            'preset lors de l’enregistrement.',
+            'preset lors de l’ajout en mémoire.',
             key: const Key('environment-studio-draft-palette-local-note'),
             style: TextStyle(color: subtle, fontSize: 11.5, height: 1.35),
           ),
@@ -330,10 +346,37 @@ class _EnvironmentPresetDraftFormState
           if (widget.validation.hasErrors) ...[
             const SizedBox(height: 10),
             Text(
-              'Corrigez les erreurs du brouillon pour l’enregistrer dans le projet.',
+              'Corrigez les erreurs du brouillon pour l’ajouter au projet.',
               key: const Key('environment-studio-draft-save-disabled-hint'),
               style: TextStyle(
                 color: CupertinoColors.systemOrange.resolveFrom(context),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+              ),
+            ),
+          ],
+          if (widget.validation.hasWarnings &&
+              !widget.validation.hasErrors) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Les avertissements ne bloquent pas l’ajout au projet.',
+              key: const Key('environment-studio-draft-save-warnings-hint'),
+              style: TextStyle(
+                color: CupertinoColors.systemYellow.resolveFrom(context),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+              ),
+            ),
+          ],
+          if (_saveErrorMessage != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              _saveErrorMessage!,
+              key: const Key('environment-studio-draft-save-error-message'),
+              style: TextStyle(
+                color: CupertinoColors.systemRed.resolveFrom(context),
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
                 height: 1.35,
@@ -364,14 +407,14 @@ class _EnvironmentPresetDraftFormState
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 onPressed: canSaveToProject ? _saveDraftToProject : null,
-                child: const Text('Enregistrer dans le projet'),
+                child: const Text('Ajouter au projet en mémoire'),
               ),
             ],
           ),
           if (widget.onEnvironmentPresetSaved == null) ...[
             const SizedBox(height: 8),
             Text(
-              'Enregistrement indisponible dans ce contexte.',
+              'Ajout au projet indisponible dans ce contexte.',
               key: const Key('environment-studio-draft-save-unavailable-note'),
               style: TextStyle(color: subtle, fontSize: 11.5, height: 1.35),
             ),
