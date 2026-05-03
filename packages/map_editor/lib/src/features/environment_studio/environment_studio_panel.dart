@@ -207,6 +207,7 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
                           key: ValueKey<int>(_draftFormEpoch),
                           draft: _draft,
                           validation: draftValidation!,
+                          projectElements: widget.manifest.elements,
                           onChanged: (d) => setState(() => _draft = d),
                           onCancel: _closeDraftForm,
                           onReset: _resetDraft,

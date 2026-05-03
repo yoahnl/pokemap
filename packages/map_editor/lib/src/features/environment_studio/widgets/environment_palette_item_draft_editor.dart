@@ -15,12 +15,17 @@ class EnvironmentPaletteItemDraftEditor extends StatefulWidget {
     super.key,
     required this.index,
     required this.item,
+    required this.projectElements,
     required this.onChanged,
     required this.onRemove,
   });
 
   final int index;
   final EnvironmentPaletteItemDraft item;
+
+  /// Éléments du manifeste (`ProjectManifest.elements`) pour le picker.
+  final List<ProjectElementEntry> projectElements;
+
   final ValueChanged<EnvironmentPaletteItemDraft> onChanged;
   final VoidCallback onRemove;
 
@@ -102,6 +107,47 @@ class _EnvironmentPaletteItemDraftEditorState
     );
   }
 
+  Future<void> _pickElementFromLibrary(BuildContext context) async {
+    final sorted = [...widget.projectElements]
+      ..sort((a, b) => a.id.compareTo(b.id));
+    if (sorted.isEmpty) {
+      return;
+    }
+    final choice = await showCupertinoModalPopup<String>(
+      context: context,
+      builder: (ctx) {
+        return CupertinoActionSheet(
+          title: const Text('Éléments du projet'),
+          message: const Text(
+            'Sélectionnez un élément de la bibliothèque du projet.',
+          ),
+          actions: [
+            for (final e in sorted)
+              CupertinoActionSheetAction(
+                onPressed: () => Navigator.pop(ctx, e.id),
+                child: Text(
+                  '${e.id} — ${e.name}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+          ],
+          cancelButton: CupertinoActionSheetAction(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annuler'),
+          ),
+        );
+      },
+    );
+    if (!context.mounted) {
+      return;
+    }
+    if (choice != null && choice.isNotEmpty) {
+      _elementIdCtrl.text = choice;
+      _emit(elementId: choice);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final label = EditorChrome.primaryLabel(context);
@@ -156,12 +202,34 @@ class _EnvironmentPaletteItemDraftEditorState
               ),
             ),
             const SizedBox(height: 4),
+            if (widget.projectElements.isNotEmpty) ...[
+              Align(
+                alignment: Alignment.centerLeft,
+                child: CupertinoButton(
+                  key: Key(
+                    'environment-studio-palette-draft-pick-element-${widget.index}',
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  minimumSize: Size.zero,
+                  onPressed: () => _pickElementFromLibrary(context),
+                  child: const Text('Choisir dans la bibliothèque du projet'),
+                ),
+              ),
+              const SizedBox(height: 6),
+            ] else ...[
+              Text(
+                'Aucun élément dans le manifeste — saisie manuelle uniquement.',
+                style: TextStyle(color: subtle, fontSize: 11.5, height: 1.3),
+              ),
+              const SizedBox(height: 6),
+            ],
             CupertinoTextField(
               key: Key(
                 'environment-studio-palette-draft-element-${widget.index}',
               ),
               controller: _elementIdCtrl,
-              placeholder: 'Identifiant d’élément',
+              placeholder: 'Identifiant d’élément (saisie manuelle possible)',
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               onChanged: (v) => _emit(elementId: v),
             ),

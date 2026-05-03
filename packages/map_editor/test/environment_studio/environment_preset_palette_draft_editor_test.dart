@@ -65,6 +65,43 @@ void main() {
       );
     });
 
+    testWidgets('picker bibliothèque remplit elementId', (tester) async {
+      await _pump(tester, _manifest(elements: [_element(id: 'elm')]));
+      await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const Key('environment-studio-draft-palette-add-item')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(
+        find.byKey(
+            const Key('environment-studio-palette-draft-pick-element-0')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+            const Key('environment-studio-palette-draft-pick-element-0')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('elm — El elm'));
+      await tester.pumpAndSettle();
+
+      expect(
+        (tester.widget<CupertinoTextField>(find.byKey(
+                const Key('environment-studio-palette-draft-element-0'))))
+            .controller
+            ?.text,
+        'elm',
+      );
+      expect(
+        _validationHas(tester, 'Élément de palette vide'),
+        isFalse,
+      );
+    });
+
     testWidgets('elementId absent : Élément introuvable', (tester) async {
       await _pump(tester, _manifest(elements: [_element(id: 'elm')]));
       await tester.tap(find.byKey(const Key('environment-studio-open-draft')));

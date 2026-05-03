@@ -102,8 +102,37 @@ void main() {
         '0',
       );
       expect(
-        find.byKey(const Key('environment-studio-draft-params-readonly')),
+        find.byKey(const Key('environment-studio-draft-params-section-title')),
         findsOneWidget,
+      );
+      expect(find.text('Paramètres de génération'), findsOneWidget);
+      expect(
+        (tester.widget<CupertinoTextField>(find
+                .byKey(const Key('environment-studio-draft-params-density'))))
+            .controller
+            ?.text,
+        '0.5',
+      );
+      expect(
+        (tester.widget<CupertinoTextField>(find
+                .byKey(const Key('environment-studio-draft-params-variation'))))
+            .controller
+            ?.text,
+        '0.5',
+      );
+      expect(
+        (tester.widget<CupertinoTextField>(find.byKey(
+                const Key('environment-studio-draft-params-edge-density'))))
+            .controller
+            ?.text,
+        '0.5',
+      );
+      expect(
+        (tester.widget<CupertinoTextField>(find.byKey(
+                const Key('environment-studio-draft-params-min-spacing'))))
+            .controller
+            ?.text,
+        '0',
       );
       expect(
         find.byKey(const Key('environment-studio-draft-palette-section-title')),

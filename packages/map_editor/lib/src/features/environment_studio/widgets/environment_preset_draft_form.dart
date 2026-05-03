@@ -1,7 +1,9 @@
 import 'package:flutter/cupertino.dart';
+import 'package:map_core/map_core.dart';
 
 import '../../../ui/shared/cupertino_editor_widgets.dart';
 import '../authoring/environment_preset_draft.dart';
+import 'environment_generation_params_draft_editor.dart';
 import 'environment_palette_item_draft_editor.dart';
 import 'environment_preset_draft_validation_view.dart';
 
@@ -11,10 +13,14 @@ class EnvironmentPresetDraftForm extends StatefulWidget {
     super.key,
     required this.draft,
     required this.validation,
+    required this.projectElements,
     required this.onChanged,
     required this.onCancel,
     required this.onReset,
   });
+
+  /// Éléments du projet (`manifest.elements`) pour le picker de palette.
+  final List<ProjectElementEntry> projectElements;
 
   final EnvironmentPresetDraft draft;
   final EnvironmentPresetDraftValidationReport validation;
@@ -56,7 +62,10 @@ class _EnvironmentPresetDraftFormState
     super.dispose();
   }
 
-  void _emit({List<EnvironmentPaletteItemDraft>? palette}) {
+  void _emit({
+    List<EnvironmentPaletteItemDraft>? palette,
+    EnvironmentGenerationParamsDraft? defaultParams,
+  }) {
     final so = int.tryParse(_sortCtrl.text.trim());
     widget.onChanged(
       EnvironmentPresetDraft(
@@ -64,7 +73,7 @@ class _EnvironmentPresetDraftFormState
         name: _nameCtrl.text,
         templateId: _templateCtrl.text,
         palette: palette ?? widget.draft.palette,
-        defaultParams: widget.draft.defaultParams,
+        defaultParams: defaultParams ?? widget.draft.defaultParams,
         categoryId:
             _categoryCtrl.text.trim().isEmpty ? null : _categoryCtrl.text,
         sortOrder: so ?? widget.draft.sortOrder,
@@ -96,9 +105,6 @@ class _EnvironmentPresetDraftFormState
   Widget build(BuildContext context) {
     final label = EditorChrome.primaryLabel(context);
     final subtle = EditorChrome.subtleLabel(context);
-    final fill = EditorChrome.chipFill(context);
-    final border = CupertinoColors.separator.resolveFrom(context);
-    final p = widget.draft.defaultParams;
 
     return SingleChildScrollView(
       key: const Key('environment-studio-draft-form-scroll'),
@@ -198,32 +204,10 @@ class _EnvironmentPresetDraftFormState
             onChanged: (_) => _emit(),
           ),
           const SizedBox(height: 22),
-          Text(
-            'Paramètres par défaut (lecture seule pour l’instant)',
-            style: TextStyle(
-              color: label,
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 8),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: fill,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: border),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Text(
-                'Densité ${p.density.toStringAsFixed(2)} · '
-                'Variation ${p.variation.toStringAsFixed(2)} · '
-                'Densité des bords ${p.edgeDensity.toStringAsFixed(2)} · '
-                'Espacement min. ${p.minSpacingCells} cases',
-                key: const Key('environment-studio-draft-params-readonly'),
-                style: TextStyle(color: subtle, fontSize: 12.5, height: 1.35),
-              ),
-            ),
+          EnvironmentGenerationParamsDraftEditor(
+            key: const Key('environment-studio-draft-params-editor'),
+            params: widget.draft.defaultParams,
+            onChanged: (p) => _emit(defaultParams: p),
           ),
           const SizedBox(height: 22),
           Text(
@@ -269,6 +253,7 @@ class _EnvironmentPresetDraftFormState
                   key: ValueKey('palette-draft-slot-$i'),
                   index: i,
                   item: widget.draft.palette[i],
+                  projectElements: widget.projectElements,
                   onChanged: (it) => _replacePaletteItem(i, it),
                   onRemove: () => _removePaletteItem(i),
                 ),
