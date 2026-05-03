@@ -60,6 +60,9 @@ _$ProjectManifestImpl _$$ProjectManifestImplFromJson(
       pathPatternPresets: json['pathPatternPresets'] == null
           ? const []
           : decodeProjectPathPatternPresets(json['pathPatternPresets']),
+      environmentPresets: json['environmentPresets'] == null
+          ? const []
+          : decodeEnvironmentPresets(json['environmentPresets']),
       encounterTables: (json['encounterTables'] as List<dynamic>?)
               ?.map((e) =>
                   ProjectEncounterTable.fromJson(e as Map<String, dynamic>))
@@ -125,6 +128,8 @@ Map<String, dynamic> _$$ProjectManifestImplToJson(
       'pathPresets': instance.pathPresets.map((e) => e.toJson()).toList(),
       'pathPatternPresets':
           encodeProjectPathPatternPresets(instance.pathPatternPresets),
+      'environmentPresets':
+          encodeEnvironmentPresets(instance.environmentPresets),
       'encounterTables':
           instance.encounterTables.map((e) => e.toJson()).toList(),
       'dialogueFolders':

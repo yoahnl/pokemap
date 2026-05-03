@@ -2,6 +2,7 @@
 
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'element_collision_profile.dart';
+import 'environment.dart';
 import 'enums.dart';
 import 'project_trainer.dart';
 import 'project_path_pattern_preset.dart';
@@ -12,6 +13,7 @@ import 'tileset_transparent_color.dart';
 import 'visual_frame_json.dart';
 
 import '../exceptions/map_exceptions.dart';
+import '../operations/environment_preset_json_codec.dart';
 import '../operations/project_path_pattern_preset_json_codec.dart';
 import '../operations/project_surface_catalog_json_codec.dart';
 
@@ -101,6 +103,13 @@ class ProjectManifest with _$ProjectManifest {
       toJson: encodeProjectPathPatternPresets,
     )
     List<ProjectPathPatternPreset> pathPatternPresets,
+    @Default([])
+    @JsonKey(
+      name: 'environmentPresets',
+      fromJson: decodeEnvironmentPresets,
+      toJson: encodeEnvironmentPresets,
+    )
+    List<EnvironmentPreset> environmentPresets,
     @Default([]) List<ProjectEncounterTable> encounterTables,
     @Default([]) List<ProjectDialogueFolder> dialogueFolders,
     @Default([]) List<ProjectDialogueEntry> dialogues,
