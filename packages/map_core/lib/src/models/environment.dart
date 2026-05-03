@@ -483,6 +483,121 @@ final class EnvironmentPreset {
       );
 }
 
+/// Payload métier d’un futur Environment Layer sur carte (sans `MapLayer`, sans JSON).
+///
+/// Porte les [EnvironmentArea] et éventuellement l’id du [TileLayer] décoratif cible
+/// pour une génération ultérieure. Ne représente pas visibilité, z-order ni kind de layer.
+final class EnvironmentLayerContent {
+  factory EnvironmentLayerContent({
+    String? targetTileLayerId,
+    List<EnvironmentArea>? areas,
+  }) {
+    final String? resolvedTarget = _normalizeOptionalLayerId(targetTileLayerId);
+    final raw = areas ?? const <EnvironmentArea>[];
+    final seenAreaIds = <String>{};
+    final copy = <EnvironmentArea>[];
+    for (final area in raw) {
+      final aid = area.id;
+      if (seenAreaIds.contains(aid)) {
+        throw ArgumentError.value(
+          area.id,
+          'areas',
+          'EnvironmentLayerContent areas cannot contain duplicate area id.',
+        );
+      }
+      seenAreaIds.add(aid);
+      copy.add(area);
+    }
+    return EnvironmentLayerContent._(
+      targetTileLayerId: resolvedTarget,
+      areas: List<EnvironmentArea>.unmodifiable(copy),
+    );
+  }
+
+  /// Contenu sans zones ; utile pour un layer encore non dessiné.
+  factory EnvironmentLayerContent.empty({
+    String? targetTileLayerId,
+  }) {
+    return EnvironmentLayerContent(
+      targetTileLayerId: targetTileLayerId,
+      areas: null,
+    );
+  }
+
+  const EnvironmentLayerContent._({
+    required this.targetTileLayerId,
+    required this.areas,
+  });
+
+  /// TileLayer où la génération pourra appliquer des patchs de tuiles ; pas de validation carte.
+  final String? targetTileLayerId;
+
+  /// Zones d’environnement ; ordre significatif pour [generatedPlacementIds].
+  final List<EnvironmentArea> areas;
+
+  bool get hasAreas => areas.isNotEmpty;
+
+  int get areaCount => areas.length;
+
+  bool get hasGeneratedPlacements => areas.any((a) => a.hasGeneratedPlacements);
+
+  /// Identifiants de placements générés : ordre des areas, puis ordre interne de chaque area.
+  List<String> get generatedPlacementIds {
+    final out = <String>[];
+    for (final area in areas) {
+      out.addAll(area.generatedPlacementIds);
+    }
+    return List<String>.unmodifiable(out);
+  }
+
+  bool containsArea(String areaId) {
+    final key = areaId.trim();
+    if (key.isEmpty) {
+      return false;
+    }
+    return areas.any((a) => a.id == key);
+  }
+
+  EnvironmentArea? areaById(String areaId) {
+    final key = areaId.trim();
+    if (key.isEmpty) {
+      return null;
+    }
+    for (final area in areas) {
+      if (area.id == key) {
+        return area;
+      }
+    }
+    return null;
+  }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is EnvironmentLayerContent &&
+            targetTileLayerId == other.targetTileLayerId &&
+            _listEquals(areas, other.areas);
+  }
+
+  @override
+  int get hashCode => Object.hash(targetTileLayerId, Object.hashAll(areas));
+}
+
+String? _normalizeOptionalLayerId(String? targetTileLayerId) {
+  if (targetTileLayerId == null) {
+    return null;
+  }
+  final t = targetTileLayerId.trim();
+  if (t.isEmpty) {
+    throw ArgumentError.value(
+      targetTileLayerId,
+      'targetTileLayerId',
+      'EnvironmentLayerContent targetTileLayerId cannot be empty when provided.',
+    );
+  }
+  return t;
+}
+
 bool _listEquals<T>(List<T> a, List<T> b) {
   if (identical(a, b)) {
     return true;
