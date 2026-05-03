@@ -6,6 +6,7 @@ import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/ui/canvas/editor_canvas_host.dart';
 import 'package:map_editor/src/ui/editor_shell_page.dart';
 import 'package:map_editor/src/ui/shared/status_bar.dart';
 import 'package:map_editor/src/ui/shared/top_toolbar.dart';
@@ -36,6 +37,7 @@ ProjectManifest buildShellChromeProject({
   List<ProjectPathPreset> pathPresets = const <ProjectPathPreset>[],
   List<ProjectPathPatternPreset> pathPatternPresets =
       const <ProjectPathPatternPreset>[],
+  List<EnvironmentPreset> environmentPresets = const <EnvironmentPreset>[],
 }) {
   return ProjectManifest(
     name: name,
@@ -43,6 +45,7 @@ ProjectManifest buildShellChromeProject({
     tilesets: tilesets,
     pathPresets: pathPresets,
     pathPatternPresets: pathPatternPresets,
+    environmentPresets: environmentPresets,
     surfaceCatalog: ProjectSurfaceCatalog(),
   );
 }
@@ -96,6 +99,46 @@ Future<ProviderContainer> pumpEditorShellPage(
       container: container,
       child: const MacosApp(
         home: EditorShellPage(),
+      ),
+    ),
+  );
+  await tester.pump();
+  await tester.pumpAndSettle(const Duration(milliseconds: 1));
+  return container;
+}
+
+Future<ProviderContainer> pumpEditorCanvasHostHarness(
+  WidgetTester tester, {
+  required EditorState initialState,
+  Size surfaceSize = const Size(960, 640),
+}) async {
+  _installMacosAccentColorMock();
+  final container = ProviderContainer();
+  final editorStateSubscription = container.listen<EditorState>(
+    editorNotifierProvider,
+    (_, __) {},
+    fireImmediately: true,
+  );
+  addTearDown(() async {
+    editorStateSubscription.close();
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.pump();
+    container.dispose();
+  });
+
+  await tester.binding.setSurfaceSize(surfaceSize);
+  addTearDown(() => tester.binding.setSurfaceSize(null));
+
+  container.read(editorNotifierProvider.notifier).state = initialState;
+
+  await tester.pumpWidget(
+    UncontrolledProviderScope(
+      container: container,
+      child: const MacosApp(
+        home: CupertinoPageScaffold(
+          child: EditorCanvasHost(),
+        ),
       ),
     ),
   );

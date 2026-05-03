@@ -34,6 +34,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
   bool _expandWorld = true;
   bool _expandTerrains = true;
   bool _expandPaths = true;
+  bool _expandEnvironment = true;
   bool _expandTrainers = false;
   bool _expandCharacters = false;
 
@@ -222,6 +223,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
     final hWorld = (screenH * 0.30).clamp(240.0, 400.0);
     final hTerrains = (screenH * 0.36).clamp(280.0, 500.0);
     final hPaths = (screenH * 0.36).clamp(280.0, 500.0);
+    final hEnvironment = (screenH * 0.22).clamp(180.0, 280.0);
     final hTrainers = (screenH * 0.18).clamp(180.0, 240.0);
     final hCharacters = (screenH * 0.35).clamp(260.0, 480.0);
     const explorerTileRadius = 28.0;
@@ -346,6 +348,19 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         ),
         InspectorSectionCard(
           borderRadius: explorerTileRadius,
+          title: 'Environment Studio',
+          subtitle: 'Presets d’environnements organiques (shell read-only)',
+          icon: CupertinoIcons.tree,
+          accentColor: EditorChrome.accentJade,
+          badgeText: '${project.environmentPresets.length}',
+          expanded: _expandEnvironment,
+          onToggle: () =>
+              setState(() => _expandEnvironment = !_expandEnvironment),
+          expandedHeight: hEnvironment,
+          child: _buildEnvironmentStudioCard(context, snapshot, notifier),
+        ),
+        InspectorSectionCard(
+          borderRadius: explorerTileRadius,
           title: 'Trainer Studio',
           subtitle: 'Battle rosters and teams (opens the central workspace)',
           icon: CupertinoIcons.person_2_fill,
@@ -447,6 +462,32 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildEnvironmentStudioCard(
+    BuildContext context,
+    EditorProjectExplorerSnapshot snapshot,
+    EditorNotifier notifier,
+  ) {
+    final isEnvironment =
+        snapshot.workspaceMode == EditorWorkspaceMode.environmentStudio;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        EditorSidebarListRow(
+          key: const Key('project-explorer-environment-studio-entry'),
+          selected: isEnvironment,
+          onTap: notifier.selectEnvironmentStudioWorkspace,
+          leading: const MacosIcon(CupertinoIcons.tree),
+          title: const Text('Environment Studio'),
+          subtitle: const Text(
+            'Résumé presets et diagnostics — lecture seule',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 

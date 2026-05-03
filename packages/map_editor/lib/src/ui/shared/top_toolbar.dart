@@ -264,6 +264,15 @@ class TopToolbar extends ConsumerWidget {
                 ? notifier.selectPathStudioWorkspace
                 : null,
           ),
+          ToolbarCapsuleButton(
+            icon: CupertinoIcons.tree,
+            tooltip: 'Switch to Environment Studio',
+            selected:
+                toolbar.workspaceMode == EditorWorkspaceMode.environmentStudio,
+            onPressed: toolbar.project != null
+                ? notifier.selectEnvironmentStudioWorkspace
+                : null,
+          ),
         ],
       ),
       if (showWorldTools)
@@ -468,6 +477,7 @@ class TopToolbar extends ConsumerWidget {
           EditorWorkspaceMode.cutscene => 'Cutscene Studio',
           EditorWorkspaceMode.dialogue => 'Dialogue Studio',
           EditorWorkspaceMode.pathStudio => 'Path Studio',
+          EditorWorkspaceMode.environmentStudio => 'Environment Studio',
         },
       ),
       titleWidth: 236,

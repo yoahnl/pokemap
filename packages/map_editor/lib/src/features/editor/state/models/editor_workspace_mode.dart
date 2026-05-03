@@ -43,4 +43,10 @@ enum EditorWorkspaceMode {
   /// liste, recherche, sélection, diagnostics et inspecteur. Il ne branche ni
   /// painter, ni save flow, ni éditeur réel du motif.
   pathStudio,
+
+  /// Shell Environment Studio V0 (Lot Environment-9).
+  ///
+  /// Surface centrale read-only : résumé des presets Environment et
+  /// diagnostics agrégés (`map_core`), sans édition ni génération.
+  environmentStudio,
 }

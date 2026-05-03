@@ -1464,6 +1464,11 @@ class EditorNotifier extends _$EditorNotifier {
     state = _editorWorkspaceController.selectPathStudioWorkspace(state);
   }
 
+  /// Bascule vers Environment Studio (shell read-only Lot Environment-9).
+  void selectEnvironmentStudioWorkspace() {
+    state = _editorWorkspaceController.selectEnvironmentStudioWorkspace(state);
+  }
+
   /// Écrit uniquement le fichier `.yarn` (le manifest projet reste inchangé).
   Future<void> saveProjectDialogueYarnBody({
     required String dialogueId,

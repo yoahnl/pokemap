@@ -131,6 +131,68 @@ void main() {
       expect(saveButton.selected, isFalse);
     });
 
+    testWidgets(
+        'enables project save and disables map history in Environment Studio',
+        (tester) async {
+      final projectDir = Directory('/tmp/top_toolbar_environment_studio');
+      if (!projectDir.existsSync()) {
+        projectDir.createSync(recursive: true);
+      }
+      await pumpTopToolbarHarness(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/top_toolbar_environment_studio',
+          project: buildShellChromeProject(name: 'Pokemon Map'),
+          workspaceMode: EditorWorkspaceMode.environmentStudio,
+          activeMap: buildShellChromeMap(),
+          isProjectDirty: true,
+          canUndoMap: true,
+          canRedoMap: true,
+        ),
+      );
+
+      ToolbarCapsuleButton buttonWithTooltip(String tooltip) {
+        return tester.widget<ToolbarCapsuleButton>(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is ToolbarCapsuleButton && widget.tooltip == tooltip,
+          ),
+        );
+      }
+
+      final saveButton =
+          buttonWithTooltip('Save Project — unsaved project changes');
+      expect(saveButton.onPressed, isNotNull);
+      expect(saveButton.selected, isTrue);
+      expect(buttonWithTooltip('Undo').onPressed, isNull);
+      expect(buttonWithTooltip('Redo').onPressed, isNull);
+
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is ToolbarCapsuleButton && widget.tooltip == 'Save Map',
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('shows Environment Studio in the workspace brand strip',
+        (tester) async {
+      await pumpTopToolbarHarness(
+        tester,
+        initialState: EditorState(
+          projectRootPath: '/tmp/top_toolbar_env_label',
+          project: buildShellChromeProject(name: 'Pokemon Map'),
+          workspaceMode: EditorWorkspaceMode.environmentStudio,
+        ),
+      );
+
+      expect(
+        find.text('Pokemon Map  •  Environment Studio'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('keeps map save action in map workspace', (tester) async {
       await pumpTopToolbarHarness(
         tester,

@@ -62,6 +62,10 @@ class EditorWorkspaceController {
     return _openWorkspace(current, EditorWorkspaceMode.pathStudio);
   }
 
+  EditorState selectEnvironmentStudioWorkspace(EditorState current) {
+    return _openWorkspace(current, EditorWorkspaceMode.environmentStudio);
+  }
+
   /// Normalise les transitions de workspace :
   /// - on conserve tout l'état métier courant ;
   /// - on bascule seulement la surface centrale active ;

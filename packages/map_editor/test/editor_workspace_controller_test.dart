@@ -48,6 +48,21 @@ void main() {
     });
 
     test(
+        'selectEnvironmentStudioWorkspace switches mode and clears stale errors',
+        () {
+      const current = EditorState(
+        workspaceMode: EditorWorkspaceMode.map,
+        errorMessage: 'Old failure',
+      );
+
+      final next = controller.selectEnvironmentStudioWorkspace(current);
+
+      expect(next.workspaceMode, EditorWorkspaceMode.environmentStudio);
+      expect(next.errorMessage, isNull);
+      expect(next.statusMessage, current.statusMessage);
+    });
+
+    test(
         'selectPokemonCatalogSection opens the parent workspace and stores the section',
         () {
       const current = EditorState(

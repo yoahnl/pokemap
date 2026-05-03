@@ -152,6 +152,7 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
     EditorWorkspaceMode.cutscene => 'Cutscene Studio',
     EditorWorkspaceMode.dialogue => 'Dialogue Studio',
     EditorWorkspaceMode.pathStudio => 'Path Studio',
+    EditorWorkspaceMode.environmentStudio => 'Environment Studio',
   };
 
   final workspaceSubtitle = switch (workspaceMode) {
@@ -175,6 +176,8 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
       'Conversation authoring: visual blocks, preview, Yarn export — not a raw script IDE.',
     EditorWorkspaceMode.pathStudio =>
       'Créer des motifs de chemin à partir des presets PathPattern du projet.',
+    EditorWorkspaceMode.environmentStudio =>
+      'Presets d’environnements organiques et diagnostics — shell read-only.',
   };
 
   final exposesMapActions = workspaceMode == EditorWorkspaceMode.map;
