@@ -5164,6 +5164,11 @@ mixin _$TerrainPresetVariant {
   List<TilesetVisualFrame> get frames => throw _privateConstructorUsedError;
   int get weight => throw _privateConstructorUsedError;
 
+  /// When [frames] primary source spans W×H tiles (>1), controls sub-tile
+  /// choice per map cell (see [terrainPresetSubtileOffsetsForMapCell]).
+  TerrainVariantMultiTileLayout get multiTileLayout =>
+      throw _privateConstructorUsedError;
+
   /// Serializes this TerrainPresetVariant to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
@@ -5180,7 +5185,10 @@ abstract class $TerrainPresetVariantCopyWith<$Res> {
           $Res Function(TerrainPresetVariant) then) =
       _$TerrainPresetVariantCopyWithImpl<$Res, TerrainPresetVariant>;
   @useResult
-  $Res call({List<TilesetVisualFrame> frames, int weight});
+  $Res call(
+      {List<TilesetVisualFrame> frames,
+      int weight,
+      TerrainVariantMultiTileLayout multiTileLayout});
 }
 
 /// @nodoc
@@ -5201,6 +5209,7 @@ class _$TerrainPresetVariantCopyWithImpl<$Res,
   $Res call({
     Object? frames = null,
     Object? weight = null,
+    Object? multiTileLayout = null,
   }) {
     return _then(_value.copyWith(
       frames: null == frames
@@ -5211,6 +5220,10 @@ class _$TerrainPresetVariantCopyWithImpl<$Res,
           ? _value.weight
           : weight // ignore: cast_nullable_to_non_nullable
               as int,
+      multiTileLayout: null == multiTileLayout
+          ? _value.multiTileLayout
+          : multiTileLayout // ignore: cast_nullable_to_non_nullable
+              as TerrainVariantMultiTileLayout,
     ) as $Val);
   }
 }
@@ -5223,7 +5236,10 @@ abstract class _$$TerrainPresetVariantImplCopyWith<$Res>
       __$$TerrainPresetVariantImplCopyWithImpl<$Res>;
   @override
   @useResult
-  $Res call({List<TilesetVisualFrame> frames, int weight});
+  $Res call(
+      {List<TilesetVisualFrame> frames,
+      int weight,
+      TerrainVariantMultiTileLayout multiTileLayout});
 }
 
 /// @nodoc
@@ -5241,6 +5257,7 @@ class __$$TerrainPresetVariantImplCopyWithImpl<$Res>
   $Res call({
     Object? frames = null,
     Object? weight = null,
+    Object? multiTileLayout = null,
   }) {
     return _then(_$TerrainPresetVariantImpl(
       frames: null == frames
@@ -5251,6 +5268,10 @@ class __$$TerrainPresetVariantImplCopyWithImpl<$Res>
           ? _value.weight
           : weight // ignore: cast_nullable_to_non_nullable
               as int,
+      multiTileLayout: null == multiTileLayout
+          ? _value.multiTileLayout
+          : multiTileLayout // ignore: cast_nullable_to_non_nullable
+              as TerrainVariantMultiTileLayout,
     ));
   }
 }
@@ -5260,7 +5281,9 @@ class __$$TerrainPresetVariantImplCopyWithImpl<$Res>
 @JsonSerializable(explicitToJson: true)
 class _$TerrainPresetVariantImpl implements _TerrainPresetVariant {
   const _$TerrainPresetVariantImpl(
-      {required final List<TilesetVisualFrame> frames, this.weight = 1})
+      {required final List<TilesetVisualFrame> frames,
+      this.weight = 1,
+      this.multiTileLayout = TerrainVariantMultiTileLayout.tessellated})
       : _frames = frames;
 
   factory _$TerrainPresetVariantImpl.fromJson(Map<String, dynamic> json) =>
@@ -5281,9 +5304,15 @@ class _$TerrainPresetVariantImpl implements _TerrainPresetVariant {
   @JsonKey()
   final int weight;
 
+  /// When [frames] primary source spans W×H tiles (>1), controls sub-tile
+  /// choice per map cell (see [terrainPresetSubtileOffsetsForMapCell]).
+  @override
+  @JsonKey()
+  final TerrainVariantMultiTileLayout multiTileLayout;
+
   @override
   String toString() {
-    return 'TerrainPresetVariant(frames: $frames, weight: $weight)';
+    return 'TerrainPresetVariant(frames: $frames, weight: $weight, multiTileLayout: $multiTileLayout)';
   }
 
   @override
@@ -5292,13 +5321,15 @@ class _$TerrainPresetVariantImpl implements _TerrainPresetVariant {
         (other.runtimeType == runtimeType &&
             other is _$TerrainPresetVariantImpl &&
             const DeepCollectionEquality().equals(other._frames, _frames) &&
-            (identical(other.weight, weight) || other.weight == weight));
+            (identical(other.weight, weight) || other.weight == weight) &&
+            (identical(other.multiTileLayout, multiTileLayout) ||
+                other.multiTileLayout == multiTileLayout));
   }
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
-  int get hashCode => Object.hash(
-      runtimeType, const DeepCollectionEquality().hash(_frames), weight);
+  int get hashCode => Object.hash(runtimeType,
+      const DeepCollectionEquality().hash(_frames), weight, multiTileLayout);
 
   /// Create a copy of TerrainPresetVariant
   /// with the given fields replaced by the non-null parameter values.
@@ -5320,8 +5351,10 @@ class _$TerrainPresetVariantImpl implements _TerrainPresetVariant {
 
 abstract class _TerrainPresetVariant implements TerrainPresetVariant {
   const factory _TerrainPresetVariant(
-      {required final List<TilesetVisualFrame> frames,
-      final int weight}) = _$TerrainPresetVariantImpl;
+          {required final List<TilesetVisualFrame> frames,
+          final int weight,
+          final TerrainVariantMultiTileLayout multiTileLayout}) =
+      _$TerrainPresetVariantImpl;
 
   factory _TerrainPresetVariant.fromJson(Map<String, dynamic> json) =
       _$TerrainPresetVariantImpl.fromJson;
@@ -5331,6 +5364,11 @@ abstract class _TerrainPresetVariant implements TerrainPresetVariant {
   List<TilesetVisualFrame> get frames;
   @override
   int get weight;
+
+  /// When [frames] primary source spans W×H tiles (>1), controls sub-tile
+  /// choice per map cell (see [terrainPresetSubtileOffsetsForMapCell]).
+  @override
+  TerrainVariantMultiTileLayout get multiTileLayout;
 
   /// Create a copy of TerrainPresetVariant
   /// with the given fields replaced by the non-null parameter values.

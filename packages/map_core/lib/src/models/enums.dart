@@ -177,6 +177,17 @@ extension TerrainTypeX on TerrainType {
   bool get isBackgroundPaintable => this != TerrainType.none;
 }
 
+/// How a terrain variant’s multi-tile atlas rectangle maps onto map cells.
+enum TerrainVariantMultiTileLayout {
+  /// Row-major tiling: map (x,y) maps to sub-tile (x mod W, y mod H).
+  @JsonValue('tessellated')
+  tessellated,
+
+  /// Each map cell picks a sub-tile index from a stable hash (legacy variety).
+  @JsonValue('stable_random')
+  stableRandom,
+}
+
 enum TerrainPathVariant {
   isolated,
   endNorth,

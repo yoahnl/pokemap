@@ -591,6 +591,10 @@ _$TerrainPresetVariantImpl _$$TerrainPresetVariantImplFromJson(
           .map((e) => TilesetVisualFrame.fromJson(e as Map<String, dynamic>))
           .toList(),
       weight: (json['weight'] as num?)?.toInt() ?? 1,
+      multiTileLayout: $enumDecodeNullable(
+              _$TerrainVariantMultiTileLayoutEnumMap,
+              json['multiTileLayout']) ??
+          TerrainVariantMultiTileLayout.tessellated,
     );
 
 Map<String, dynamic> _$$TerrainPresetVariantImplToJson(
@@ -598,7 +602,14 @@ Map<String, dynamic> _$$TerrainPresetVariantImplToJson(
     <String, dynamic>{
       'frames': instance.frames.map((e) => e.toJson()).toList(),
       'weight': instance.weight,
+      'multiTileLayout':
+          _$TerrainVariantMultiTileLayoutEnumMap[instance.multiTileLayout]!,
     };
+
+const _$TerrainVariantMultiTileLayoutEnumMap = {
+  TerrainVariantMultiTileLayout.tessellated: 'tessellated',
+  TerrainVariantMultiTileLayout.stableRandom: 'stable_random',
+};
 
 _$ProjectPathPresetImpl _$$ProjectPathPresetImplFromJson(
         Map<String, dynamic> json) =>

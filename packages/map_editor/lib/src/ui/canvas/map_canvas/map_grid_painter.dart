@@ -1841,23 +1841,12 @@ class MapGridPainter extends CustomPainter {
   }) {
     final variants = preset.variants;
     if (variants.isEmpty) return null;
-    var totalWeight = 0;
-    for (final variant in variants) {
-      totalWeight += variant.weight <= 0 ? 1 : variant.weight;
-    }
-    if (totalWeight <= 0) return null;
-
-    final seed = _stableCellSeed(x: x, y: y, salt: preset.id.hashCode);
-    var selectedWeight = seed % totalWeight;
-    TerrainPresetVariant chosen = variants.first;
-    for (final variant in variants) {
-      final weight = variant.weight <= 0 ? 1 : variant.weight;
-      if (selectedWeight < weight) {
-        chosen = variant;
-        break;
-      }
-      selectedWeight -= weight;
-    }
+    final chosen = pickTerrainPresetVariantForMapCell(
+      variants: variants,
+      mapX: x,
+      mapY: y,
+      phase: preset.id.hashCode,
+    );
 
     if (chosen.frames.isEmpty) {
       return null;
@@ -1882,6 +1871,9 @@ class MapGridPainter extends CustomPainter {
       y,
       frameWidthTiles: width,
       frameHeightTiles: height,
+      layout: chosen.multiTileLayout,
+      subtileSalt:
+          frameSource.x * 73856093 + frameSource.y * 19349663,
     );
     final frameTilesetId = resolvedFrame.tilesetId.trim();
     final resolvedTilesetId =
@@ -1896,15 +1888,6 @@ class MapGridPainter extends CustomPainter {
         y: frameSource.y + offsetY,
       ),
     );
-  }
-
-  int _stableCellSeed({
-    required int x,
-    required int y,
-    required int salt,
-  }) {
-    final raw = ((x + 1) * 73856093) ^ ((y + 1) * 19349663) ^ salt;
-    return raw & 0x7fffffff;
   }
 
   PathLayer? _resolveActivePathLayer() {

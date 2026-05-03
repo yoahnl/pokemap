@@ -868,149 +868,206 @@ Future<TerrainPresetVariant?> _showTerrainVariantDialog(
       TextEditingController(text: (initial?.weight ?? 1).toString());
 
   TerrainPresetVariant? result;
+  var multiTileLayout =
+      initial?.multiTileLayout ?? TerrainVariantMultiTileLayout.tessellated;
 
   await showMacosEditorModalSheet<void>(
     context: context,
-    maxWidth: 400,
-    builder: (ctx) => Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          initial == null ? 'Add Variant' : 'Edit Variant',
-          style: editorMacosSheetTitleStyle(ctx),
-        ),
-        const SizedBox(height: 12),
-        if (tilesetId.trim().isNotEmpty) ...[
-          PushButton(
-            controlSize: ControlSize.large,
-            secondary: true,
-            onPressed: () async {
-              final currentSource = TilesetSourceRect(
-                x: int.tryParse(xController.text.trim()) ?? 0,
-                y: int.tryParse(yController.text.trim()) ?? 0,
-                width: int.tryParse(widthController.text.trim()) ?? 1,
-                height: int.tryParse(heightController.text.trim()) ?? 1,
-              );
-              final picked = await _showTilesetRectPickerDialog(
-                context,
-                notifier: notifier,
-                settings: settings,
-                tilesetId: tilesetId,
-                initial: currentSource,
-              );
-              if (picked == null) {
-                return;
-              }
-              xController.text = picked.x.toString();
-              yController.text = picked.y.toString();
-              widthController.text = picked.width.toString();
-              heightController.text = picked.height.toString();
-            },
-            child: const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(CupertinoIcons.square_grid_2x2, size: 16),
-                SizedBox(width: 8),
-                Text('Pick From Tileset'),
-              ],
-            ),
+    maxWidth: 420,
+    builder: (ctx) => StatefulBuilder(
+      builder: (ctx, setSheet) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            initial == null ? 'Add Variant' : 'Edit Variant',
+            style: editorMacosSheetTitleStyle(ctx),
           ),
-          const SizedBox(height: 8),
-        ],
-        Row(
-          children: [
-            Expanded(
-              child: MacosTextField(
-                controller: xController,
-                keyboardType: TextInputType.number,
-                placeholder: 'X',
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: MacosTextField(
-                controller: yController,
-                keyboardType: TextInputType.number,
-                placeholder: 'Y',
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: MacosTextField(
-                controller: widthController,
-                keyboardType: TextInputType.number,
-                placeholder: 'Width',
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: MacosTextField(
-                controller: heightController,
-                keyboardType: TextInputType.number,
-                placeholder: 'Height',
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        MacosTextField(
-          controller: weightController,
-          keyboardType: TextInputType.number,
-          placeholder: 'Weight',
-        ),
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
+          const SizedBox(height: 12),
+          if (tilesetId.trim().isNotEmpty) ...[
             PushButton(
               controlSize: ControlSize.large,
               secondary: true,
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            const SizedBox(width: 10),
-            PushButton(
-              controlSize: ControlSize.large,
               onPressed: () async {
-                final errs = [
-                  _positiveOrZeroValidator(xController.text),
-                  _positiveOrZeroValidator(yController.text),
-                  _positiveValidator(widthController.text),
-                  _positiveValidator(heightController.text),
-                  _positiveValidator(weightController.text),
-                ].whereType<String>();
-                if (errs.isNotEmpty) {
-                  await showCupertinoEditorAlert(
-                    ctx,
-                    message: errs.first,
-                  );
+                final currentSource = TilesetSourceRect(
+                  x: int.tryParse(xController.text.trim()) ?? 0,
+                  y: int.tryParse(yController.text.trim()) ?? 0,
+                  width: int.tryParse(widthController.text.trim()) ?? 1,
+                  height: int.tryParse(heightController.text.trim()) ?? 1,
+                );
+                final picked = await _showTilesetRectPickerDialog(
+                  context,
+                  notifier: notifier,
+                  settings: settings,
+                  tilesetId: tilesetId,
+                  initial: currentSource,
+                );
+                if (picked == null) {
                   return;
                 }
-                result = TerrainPresetVariant(
-                  frames: [
-                    TilesetVisualFrame(
-                      source: TilesetSourceRect(
-                        x: int.parse(xController.text.trim()),
-                        y: int.parse(yController.text.trim()),
-                        width: int.parse(widthController.text.trim()),
-                        height: int.parse(heightController.text.trim()),
-                      ),
-                    ),
-                  ],
-                  weight: int.parse(weightController.text.trim()),
-                );
-                Navigator.pop(ctx);
+                xController.text = picked.x.toString();
+                yController.text = picked.y.toString();
+                widthController.text = picked.width.toString();
+                heightController.text = picked.height.toString();
               },
-              child: const Text('Apply'),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(CupertinoIcons.square_grid_2x2, size: 16),
+                  SizedBox(width: 8),
+                  Text('Pick From Tileset'),
+                ],
+              ),
             ),
+            const SizedBox(height: 8),
           ],
-        ),
-      ],
+          Row(
+            children: [
+              Expanded(
+                child: MacosTextField(
+                  controller: xController,
+                  keyboardType: TextInputType.number,
+                  placeholder: 'X',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: MacosTextField(
+                  controller: yController,
+                  keyboardType: TextInputType.number,
+                  placeholder: 'Y',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: MacosTextField(
+                  controller: widthController,
+                  keyboardType: TextInputType.number,
+                  placeholder: 'Width',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: MacosTextField(
+                  controller: heightController,
+                  keyboardType: TextInputType.number,
+                  placeholder: 'Height',
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          MacosTextField(
+            controller: weightController,
+            keyboardType: TextInputType.number,
+            placeholder: 'Weight',
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Multi-tile layout (width × height > 1)',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: CupertinoColors.label.resolveFrom(ctx),
+            ),
+          ),
+          const SizedBox(height: 6),
+          CupertinoSlidingSegmentedControl<TerrainVariantMultiTileLayout>(
+            groupValue: multiTileLayout,
+            children: {
+              TerrainVariantMultiTileLayout.tessellated: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                child: Text(
+                  'Ordered',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: CupertinoColors.label.resolveFrom(ctx),
+                  ),
+                ),
+              ),
+              TerrainVariantMultiTileLayout.stableRandom: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                child: Text(
+                  'Random',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: CupertinoColors.label.resolveFrom(ctx),
+                  ),
+                ),
+              ),
+            },
+            onValueChanged: (value) {
+              if (value == null) {
+                return;
+              }
+              setSheet(() => multiTileLayout = value);
+            },
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Ordered: atlas repeats in a grid on the map. Random: each map cell picks a sub-tile from a stable hash (legacy grass variety).',
+            style: TextStyle(
+              fontSize: 10,
+              height: 1.25,
+              color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              PushButton(
+                controlSize: ControlSize.large,
+                secondary: true,
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              const SizedBox(width: 10),
+              PushButton(
+                controlSize: ControlSize.large,
+                onPressed: () async {
+                  final errs = [
+                    _positiveOrZeroValidator(xController.text),
+                    _positiveOrZeroValidator(yController.text),
+                    _positiveValidator(widthController.text),
+                    _positiveValidator(heightController.text),
+                    _positiveValidator(weightController.text),
+                  ].whereType<String>();
+                  if (errs.isNotEmpty) {
+                    await showCupertinoEditorAlert(
+                      ctx,
+                      message: errs.first,
+                    );
+                    return;
+                  }
+                  result = TerrainPresetVariant(
+                    frames: [
+                      TilesetVisualFrame(
+                        source: TilesetSourceRect(
+                          x: int.parse(xController.text.trim()),
+                          y: int.parse(yController.text.trim()),
+                          width: int.parse(widthController.text.trim()),
+                          height: int.parse(heightController.text.trim()),
+                        ),
+                      ),
+                    ],
+                    weight: int.parse(weightController.text.trim()),
+                    multiTileLayout: multiTileLayout,
+                  );
+                  Navigator.pop(ctx);
+                },
+                child: const Text('Apply'),
+              ),
+            ],
+          ),
+        ],
+      ),
     ),
   );
 
@@ -1057,11 +1114,8 @@ Future<TilesetSourceRect?> _showTilesetRectPickerDialog(
   GridPos end = clampedEnd;
   TilesetSourceRect result = _rectFromGridPoints(start, end);
 
-  final cellWidth = math.max(16.0, settings.tileWidth * settings.displayScale);
-  final cellHeight =
-      math.max(16.0, settings.tileHeight * settings.displayScale);
-  final canvasWidth = columns * cellWidth;
-  final canvasHeight = rows * cellHeight;
+  /// Zoom du picker : <1 = cellules plus petites (voir plus de tileset).
+  var pickerZoom = 1.0;
 
   if (!context.mounted) {
     return null;
@@ -1069,42 +1123,103 @@ Future<TilesetSourceRect?> _showTilesetRectPickerDialog(
   return showMacosSheet<TilesetSourceRect>(
     context: context,
     builder: (ctx) => StatefulBuilder(
-      builder: (ctx, setState) => Center(
-        child: MacosSheet(
-          insetPadding:
-              const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-          child: SizedBox(
-            width: 760,
-            height: 560,
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: editorMacosSheetTitleStyle(ctx),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    subtitle ??
-                        'Selection ${result.width}x${result.height} at (${result.x}, ${result.y})',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
+      builder: (ctx, setState) {
+        final baseCellW = settings.tileWidth * settings.displayScale;
+        final baseCellH = settings.tileHeight * settings.displayScale;
+        final cellWidth = math.max(6.0, baseCellW * pickerZoom);
+        final cellHeight = math.max(6.0, baseCellH * pickerZoom);
+        final canvasWidth = columns * cellWidth;
+        final canvasHeight = rows * cellHeight;
+        return Center(
+          child: MacosSheet(
+            insetPadding:
+                const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: SizedBox(
+              width: 760,
+              height: 560,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: editorMacosSheetTitleStyle(ctx),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      primary: false,
+                    const SizedBox(height: 6),
+                    Text(
+                      subtitle ??
+                          'Selection ${result.width}x${result.height} at (${result.x}, ${result.y})',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Text(
+                          'Zoom',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: CupertinoColors.label.resolveFrom(ctx),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        PushButton(
+                          controlSize: ControlSize.regular,
+                          secondary: true,
+                          onPressed: () => setState(() {
+                            pickerZoom =
+                                (pickerZoom / 1.18).clamp(0.12, 8.0);
+                          }),
+                          child: const Icon(CupertinoIcons.minus, size: 16),
+                        ),
+                        const SizedBox(width: 6),
+                        SizedBox(
+                          width: 52,
+                          child: Text(
+                            '${(pickerZoom * 100).round()}%',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: CupertinoColors.secondaryLabel
+                                  .resolveFrom(ctx),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        PushButton(
+                          controlSize: ControlSize.regular,
+                          secondary: true,
+                          onPressed: () => setState(() {
+                            pickerZoom =
+                                (pickerZoom * 1.18).clamp(0.12, 8.0);
+                          }),
+                          child: const Icon(CupertinoIcons.plus, size: 16),
+                        ),
+                        const SizedBox(width: 8),
+                        PushButton(
+                          controlSize: ControlSize.regular,
+                          secondary: true,
+                          onPressed: () =>
+                              setState(() => pickerZoom = 1.0),
+                          child: const Text('Reset'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
                       child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
                         primary: false,
-                        child: SizedBox(
-                          width: canvasWidth,
-                          height: canvasHeight,
-                          child: GestureDetector(
+                        child: SingleChildScrollView(
+                          primary: false,
+                          child: SizedBox(
+                            width: canvasWidth,
+                            height: canvasHeight,
+                            child: GestureDetector(
                             onPanStart: (details) {
                               final pos = _gridFromPickerLocal(
                                 details.localPosition,
@@ -1183,7 +1298,8 @@ Future<TilesetSourceRect?> _showTilesetRectPickerDialog(
             ),
           ),
         ),
-      ),
+      );
+    },
     ),
   );
 }
@@ -2315,7 +2431,13 @@ bool _sameFrameList(
 
 String _terrainVariantLabel(TerrainPresetVariant variant) {
   final s = variant.frames.primarySource;
-  return '(${s.x}, ${s.y}) ${s.width}x${s.height} • w${variant.weight}';
+  final base =
+      '(${s.x}, ${s.y}) ${s.width}x${s.height} • w${variant.weight}';
+  if (variant.multiTileLayout == TerrainVariantMultiTileLayout.stableRandom &&
+      (s.width > 1 || s.height > 1)) {
+    return '$base • rnd';
+  }
+  return base;
 }
 
 String _pathVariantDisplayName(TerrainPathVariant variant) {

@@ -1087,16 +1087,8 @@ class MapLayersComponent extends PositionComponent {
       return false;
     }
     final sourceRect = resolved.source;
-    final width = sourceRect.width <= 0 ? 1 : sourceRect.width;
-    final height = sourceRect.height <= 0 ? 1 : sourceRect.height;
-    final (offsetX, offsetY) = terrainPresetSubtileOffsetsForMapCell(
-      x,
-      y,
-      frameWidthTiles: width,
-      frameHeightTiles: height,
-    );
-    final sourceX = (sourceRect.x + offsetX) * tw;
-    final sourceY = (sourceRect.y + offsetY) * th;
+    final sourceX = sourceRect.x * tw;
+    final sourceY = sourceRect.y * th;
     final srcRect = Rect.fromLTWH(
       sourceX.toDouble(),
       sourceY.toDouble(),
@@ -1128,24 +1120,12 @@ class MapLayersComponent extends PositionComponent {
     if (variants.isEmpty) {
       return null;
     }
-    var totalWeight = 0;
-    for (final variant in variants) {
-      totalWeight += variant.weight <= 0 ? 1 : variant.weight;
-    }
-    if (totalWeight <= 0) {
-      return null;
-    }
-    final seed = _stableCellSeed(x: x, y: y, salt: preset.id.hashCode);
-    var selectedWeight = seed % totalWeight;
-    TerrainPresetVariant chosen = variants.first;
-    for (final variant in variants) {
-      final weight = variant.weight <= 0 ? 1 : variant.weight;
-      if (selectedWeight < weight) {
-        chosen = variant;
-        break;
-      }
-      selectedWeight -= weight;
-    }
+    final chosen = pickTerrainPresetVariantForMapCell(
+      variants: variants,
+      mapX: x,
+      mapY: y,
+      phase: preset.id.hashCode,
+    );
     if (chosen.frames.isEmpty) {
       return null;
     }
@@ -1161,6 +1141,18 @@ class MapLayersComponent extends PositionComponent {
     );
     final resolvedFrame =
         chosen.frames[frameIndex.clamp(0, chosen.frames.length - 1)];
+    final frameSource = resolvedFrame.source;
+    final width = frameSource.width <= 0 ? 1 : frameSource.width;
+    final height = frameSource.height <= 0 ? 1 : frameSource.height;
+    final (offsetX, offsetY) = terrainPresetSubtileOffsetsForMapCell(
+      x,
+      y,
+      frameWidthTiles: width,
+      frameHeightTiles: height,
+      layout: chosen.multiTileLayout,
+      subtileSalt:
+          frameSource.x * 73856093 + frameSource.y * 19349663,
+    );
     final frameTilesetId = resolvedFrame.tilesetId.trim();
     final resolvedTilesetId =
         frameTilesetId.isNotEmpty ? frameTilesetId : preset.tilesetId.trim();
@@ -1169,17 +1161,11 @@ class MapLayersComponent extends PositionComponent {
     }
     return _ResolvedTerrainFrame(
       tilesetId: resolvedTilesetId,
-      source: resolvedFrame.source,
+      source: TilesetSourceRect(
+        x: frameSource.x + offsetX,
+        y: frameSource.y + offsetY,
+      ),
     );
-  }
-
-  int _stableCellSeed({
-    required int x,
-    required int y,
-    required int salt,
-  }) {
-    final raw = ((x + 1) * 73856093) ^ ((y + 1) * 19349663) ^ salt;
-    return raw & 0x7fffffff;
   }
 
   _PathLayerPlayback _resolvePathLayerPlayback({

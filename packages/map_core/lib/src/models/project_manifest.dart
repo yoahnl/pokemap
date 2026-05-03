@@ -395,6 +395,11 @@ class TerrainPresetVariant with _$TerrainPresetVariant {
     /// Au moins une frame ; rendu éditeur = première frame.
     required List<TilesetVisualFrame> frames,
     @Default(1) int weight,
+
+    /// When [frames] primary source spans W×H tiles (>1), controls sub-tile
+    /// choice per map cell (see [terrainPresetSubtileOffsetsForMapCell]).
+    @Default(TerrainVariantMultiTileLayout.tessellated)
+    TerrainVariantMultiTileLayout multiTileLayout,
   }) = _TerrainPresetVariant;
 
   factory TerrainPresetVariant.fromJson(Map<String, dynamic> json) =>

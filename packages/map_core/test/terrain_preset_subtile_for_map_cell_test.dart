@@ -59,5 +59,28 @@ void main() {
         (0, 0),
       );
     });
+
+    test('stableRandom stays in range and is deterministic', () {
+      const salt = 4242;
+      final a = terrainPresetSubtileOffsetsForMapCell(
+        9,
+        -3,
+        frameWidthTiles: 3,
+        frameHeightTiles: 2,
+        layout: TerrainVariantMultiTileLayout.stableRandom,
+        subtileSalt: salt,
+      );
+      expect(a.$1, inInclusiveRange(0, 2));
+      expect(a.$2, inInclusiveRange(0, 1));
+      final b = terrainPresetSubtileOffsetsForMapCell(
+        9,
+        -3,
+        frameWidthTiles: 3,
+        frameHeightTiles: 2,
+        layout: TerrainVariantMultiTileLayout.stableRandom,
+        subtileSalt: salt,
+      );
+      expect(b, a);
+    });
   });
 }
