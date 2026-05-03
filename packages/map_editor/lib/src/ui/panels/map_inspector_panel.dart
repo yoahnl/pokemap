@@ -24,6 +24,7 @@ import 'warp_properties_panel.dart';
 enum _InspectorSectionId {
   mapProperties,
   layers,
+  environmentLayer,
   tiles,
   ground,
   surfacePlacements,
@@ -75,6 +76,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
         activeMap.layers.any((layer) => layer is SurfaceLayer);
     final hasSurfacePresets =
         state.project?.surfaceCatalog.presets.isNotEmpty ?? false;
+    final showEnvironmentLayerSection = activeLayer is EnvironmentLayer;
     final showTilesSection = activeLayer is TileLayer ||
         state.activeTool == EditorToolType.tilePaint ||
         (state.activeLayerId == null && hasTileLayers);
@@ -162,6 +164,23 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                 expandedHeight: 260,
                 child: const LayersPanel(embedded: true),
               ),
+              if (showEnvironmentLayerSection)
+                InspectorSectionCard(
+                  title: 'Environment Layer',
+                  subtitle: null,
+                  icon: CupertinoIcons.cloud,
+                  accentColor: EditorChrome.inspectorJoyMint,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.environmentLayer,
+                    true,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.environmentLayer,
+                    defaultExpanded: true,
+                  ),
+                  expandedHeight: 200,
+                  child: const _EnvironmentLayerInspectorPlaceholder(),
+                ),
               if (showTilesSection)
                 InspectorSectionCard(
                   title: 'Tiles & Elements',
@@ -434,6 +453,47 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
       ObjectLayer _ => 'Object Layer',
       EnvironmentLayer _ => 'Environment Layer',
     };
+  }
+}
+
+/// Lot Environment-19 : pas de contrôles métier tant que zones / cible tuiles absents.
+class _EnvironmentLayerInspectorPlaceholder extends StatelessWidget {
+  const _EnvironmentLayerInspectorPlaceholder();
+
+  @override
+  Widget build(BuildContext context) {
+    final subtle = EditorChrome.subtleLabel(context);
+    final label = EditorChrome.primaryLabel(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 4, 10, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Environment Layer',
+            key: const Key('map-inspector-environment-layer-title'),
+            style: TextStyle(
+              color: label,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Ce layer servira à dessiner des zones organiques et à générer des '
+            'éléments naturels.\n'
+            'La configuration des zones arrive dans un prochain lot.',
+            key: const Key('map-inspector-environment-layer-body'),
+            style: TextStyle(
+              color: subtle,
+              fontSize: 12,
+              height: 1.4,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

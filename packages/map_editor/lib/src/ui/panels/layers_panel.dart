@@ -15,6 +15,7 @@ enum _LayerCreationKind {
   path,
   surface,
   object,
+  environment,
 }
 
 class LayersPanel extends ConsumerWidget {
@@ -33,6 +34,7 @@ class LayersPanel extends ConsumerWidget {
       _LayerCreationKind.path => 'Path Layer',
       _LayerCreationKind.surface => 'Surface Layer',
       _LayerCreationKind.object => 'Object Layer',
+      _LayerCreationKind.environment => 'Environment Layer',
     };
   }
 
@@ -44,9 +46,10 @@ class LayersPanel extends ConsumerWidget {
       _LayerCreationKind.path => MapLayerKind.path,
       // SurfaceLayer is deliberately kept as an editor creation option instead
       // of expanding MapLayerKind here; map_core already models the layer, but
-      // this bis only fixes the editor entry point.
+      // the editor routes surface creation through addSurfaceLayer().
       _LayerCreationKind.surface => null,
       _LayerCreationKind.object => MapLayerKind.object,
+      _LayerCreationKind.environment => MapLayerKind.environment,
     };
   }
 
@@ -150,6 +153,10 @@ class LayersPanel extends ConsumerWidget {
                           nameController.text.trim().isEmpty) {
                         nameController.text = 'Surfaces';
                       }
+                      if (picked == _LayerCreationKind.environment &&
+                          nameController.text.trim().isEmpty) {
+                        nameController.text = 'Environment';
+                      }
                     });
                   }
                 },
@@ -162,6 +169,19 @@ class LayersPanel extends ConsumerWidget {
               autofocus: true,
               placeholder: 'Name',
             ),
+            if (selectedType == _LayerCreationKind.environment) ...[
+              const SizedBox(height: 10),
+              Text(
+                'Zone auteur pour environnements organiques : forêts, bosquets, '
+                'prairies, côtes rocheuses.',
+                key: const Key('layers-panel-add-environment-description'),
+                style: TextStyle(
+                  color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
+                  fontSize: 11.5,
+                  height: 1.35,
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
@@ -480,108 +500,108 @@ class _LayerList extends StatelessWidget {
                                               )!,
                                       ),
                                       const SizedBox(width: 7),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            layer.name,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: isActive
-                                                  ? FontWeight.w600
-                                                  : FontWeight.w500,
-                                              color: isActive
-                                                  ? layerAccent
-                                                  : Color.lerp(
-                                                      label,
-                                                      layerAccent,
-                                                      0.12,
-                                                    )!,
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              layer.name,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: isActive
+                                                    ? FontWeight.w600
+                                                    : FontWeight.w500,
+                                                color: isActive
+                                                    ? layerAccent
+                                                    : Color.lerp(
+                                                        label,
+                                                        layerAccent,
+                                                        0.12,
+                                                      )!,
+                                              ),
                                             ),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            '${_labelForLayer(layer)} • ${layer.id}',
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: metaColor,
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              '${_labelForLayer(layer)} • ${layer.id}',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                color: metaColor,
+                                              ),
                                             ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    _LayersAccentIconButton(
-                                      accent: layerAccent,
-                                      onPressed: () =>
-                                          notifier.setMapLayerVisibility(
-                                        layer.id,
-                                        !layer.isVisible,
+                                      const SizedBox(width: 6),
+                                      _LayersAccentIconButton(
+                                        accent: layerAccent,
+                                        onPressed: () =>
+                                            notifier.setMapLayerVisibility(
+                                          layer.id,
+                                          !layer.isVisible,
+                                        ),
+                                        icon: layer.isVisible
+                                            ? CupertinoIcons.eye
+                                            : CupertinoIcons.eye_slash,
+                                        tooltip: layer.isVisible
+                                            ? 'Hide layer'
+                                            : 'Show layer',
+                                        iconSize: 15,
                                       ),
-                                      icon: layer.isVisible
-                                          ? CupertinoIcons.eye
-                                          : CupertinoIcons.eye_slash,
-                                      tooltip: layer.isVisible
-                                          ? 'Hide layer'
-                                          : 'Show layer',
-                                      iconSize: 15,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    _LayersAccentIconButton(
-                                      accent: layerAccent,
-                                      onPressed: canMoveUp
-                                          ? () =>
-                                              notifier.moveMapLayerUp(layer.id)
-                                          : null,
-                                      icon: CupertinoIcons.arrow_up,
-                                      tooltip: 'Move up',
-                                      iconSize: 15,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    _LayersAccentIconButton(
-                                      accent: layerAccent,
-                                      onPressed: canMoveDown
-                                          ? () => notifier
-                                              .moveMapLayerDown(layer.id)
-                                          : null,
-                                      icon: CupertinoIcons.arrow_down,
-                                      tooltip: 'Move down',
-                                      iconSize: 15,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    _LayersAccentIconButton(
-                                      accent: layerAccent,
-                                      onPressed: () => _showRenameLayerDialog(
-                                        context,
-                                        notifier,
-                                        layer,
+                                      const SizedBox(width: 4),
+                                      _LayersAccentIconButton(
+                                        accent: layerAccent,
+                                        onPressed: canMoveUp
+                                            ? () => notifier
+                                                .moveMapLayerUp(layer.id)
+                                            : null,
+                                        icon: CupertinoIcons.arrow_up,
+                                        tooltip: 'Move up',
+                                        iconSize: 15,
                                       ),
-                                      icon: CupertinoIcons.pencil,
-                                      tooltip: 'Rename layer',
-                                      iconSize: 15,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    _LayersAccentIconButton(
-                                      accent: layerAccent,
-                                      onPressed: () => _showDeleteLayerDialog(
-                                        context,
-                                        notifier,
-                                        layer,
+                                      const SizedBox(width: 4),
+                                      _LayersAccentIconButton(
+                                        accent: layerAccent,
+                                        onPressed: canMoveDown
+                                            ? () => notifier
+                                                .moveMapLayerDown(layer.id)
+                                            : null,
+                                        icon: CupertinoIcons.arrow_down,
+                                        tooltip: 'Move down',
+                                        iconSize: 15,
                                       ),
-                                      icon: CupertinoIcons.trash,
-                                      tooltip: 'Delete layer',
-                                      iconSize: 15,
-                                    ),
-                                  ],
+                                      const SizedBox(width: 4),
+                                      _LayersAccentIconButton(
+                                        accent: layerAccent,
+                                        onPressed: () => _showRenameLayerDialog(
+                                          context,
+                                          notifier,
+                                          layer,
+                                        ),
+                                        icon: CupertinoIcons.pencil,
+                                        tooltip: 'Rename layer',
+                                        iconSize: 15,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      _LayersAccentIconButton(
+                                        accent: layerAccent,
+                                        onPressed: () => _showDeleteLayerDialog(
+                                          context,
+                                          notifier,
+                                          layer,
+                                        ),
+                                        icon: CupertinoIcons.trash,
+                                        tooltip: 'Delete layer',
+                                        iconSize: 15,
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
                             ],
                           ),
                         ),
@@ -665,8 +685,7 @@ class _LayerList extends StatelessWidget {
       surface: (surfaceLayer) =>
           'surface · ${surfaceLayer.placements.length} placement(s)',
       object: (_) => 'object',
-      environment: (el) =>
-          'environment · ${el.content.areaCount} area(s)',
+      environment: (el) => 'environment · ${el.content.areaCount} area(s)',
     );
   }
 
