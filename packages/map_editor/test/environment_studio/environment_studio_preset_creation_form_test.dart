@@ -106,11 +106,16 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.byKey(const Key('environment-studio-draft-palette-empty')),
+        find.byKey(const Key('environment-studio-draft-palette-section-title')),
+        findsOneWidget,
+      );
+      expect(find.text('Palette du brouillon'), findsOneWidget);
+      expect(
+        find.byKey(const Key('environment-studio-draft-palette-add-item')),
         findsOneWidget,
       );
       expect(
-        find.byKey(const Key('environment-studio-draft-palette-note')),
+        find.byKey(const Key('environment-studio-draft-palette-no-items')),
         findsOneWidget,
       );
     });

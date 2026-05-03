@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 
 import '../../../ui/shared/cupertino_editor_widgets.dart';
 import '../authoring/environment_preset_draft.dart';
+import 'environment_palette_item_draft_editor.dart';
 import 'environment_preset_draft_validation_view.dart';
 
 /// Formulaire local de brouillon (aucune persistance manifest).
@@ -55,20 +56,40 @@ class _EnvironmentPresetDraftFormState
     super.dispose();
   }
 
-  void _emit() {
+  void _emit({List<EnvironmentPaletteItemDraft>? palette}) {
     final so = int.tryParse(_sortCtrl.text.trim());
     widget.onChanged(
       EnvironmentPresetDraft(
         id: _idCtrl.text,
         name: _nameCtrl.text,
         templateId: _templateCtrl.text,
-        palette: widget.draft.palette,
+        palette: palette ?? widget.draft.palette,
         defaultParams: widget.draft.defaultParams,
         categoryId:
             _categoryCtrl.text.trim().isEmpty ? null : _categoryCtrl.text,
         sortOrder: so ?? widget.draft.sortOrder,
       ),
     );
+  }
+
+  void _addPaletteItem() {
+    final next = [
+      ...widget.draft.palette,
+      EnvironmentPaletteItemDraft(elementId: '', weight: 1),
+    ];
+    _emit(palette: next);
+  }
+
+  void _replacePaletteItem(int index, EnvironmentPaletteItemDraft item) {
+    final next = List<EnvironmentPaletteItemDraft>.from(widget.draft.palette);
+    next[index] = item;
+    _emit(palette: next);
+  }
+
+  void _removePaletteItem(int index) {
+    final next = List<EnvironmentPaletteItemDraft>.from(widget.draft.palette)
+      ..removeAt(index);
+    _emit(palette: next);
   }
 
   @override
@@ -206,7 +227,8 @@ class _EnvironmentPresetDraftFormState
           ),
           const SizedBox(height: 22),
           Text(
-            'Palette',
+            'Palette du brouillon',
+            key: const Key('environment-studio-draft-palette-section-title'),
             style: TextStyle(
               color: label,
               fontSize: 14,
@@ -215,16 +237,43 @@ class _EnvironmentPresetDraftFormState
           ),
           const SizedBox(height: 8),
           Text(
-            'État : aucune entrée de palette (non éditable en V0).',
-            key: const Key('environment-studio-draft-palette-empty'),
-            style: TextStyle(color: subtle, fontSize: 13),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'L’édition de palette arrive dans un prochain lot.',
-            key: const Key('environment-studio-draft-palette-note'),
+            'Les éléments ajoutés ici restent dans le brouillon local tant que la '
+            'création réelle n’est pas branchée.',
+            key: const Key('environment-studio-draft-palette-local-note'),
             style: TextStyle(color: subtle, fontSize: 11.5, height: 1.35),
           ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: CupertinoButton(
+              key: const Key('environment-studio-draft-palette-add-item'),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              onPressed: _addPaletteItem,
+              child: const Text('Ajouter un item de palette'),
+            ),
+          ),
+          const SizedBox(height: 10),
+          if (widget.draft.palette.isEmpty)
+            Text(
+              'Aucun item pour l’instant.',
+              key: const Key('environment-studio-draft-palette-no-items'),
+              style: TextStyle(color: subtle, fontSize: 13),
+            )
+          else ...[
+            for (var i = 0; i < widget.draft.palette.length; i++)
+              Padding(
+                padding: EdgeInsets.only(
+                  bottom: i < widget.draft.palette.length - 1 ? 12 : 0,
+                ),
+                child: EnvironmentPaletteItemDraftEditor(
+                  key: ValueKey('palette-draft-slot-$i'),
+                  index: i,
+                  item: widget.draft.palette[i],
+                  onChanged: (it) => _replacePaletteItem(i, it),
+                  onRemove: () => _removePaletteItem(i),
+                ),
+              ),
+          ],
           const SizedBox(height: 22),
           Text(
             'Validation du brouillon',
