@@ -7,17 +7,27 @@ import 'environment_generation_params_draft_editor.dart';
 import 'environment_palette_item_draft_editor.dart';
 import 'environment_preset_draft_validation_view.dart';
 
-/// Formulaire local de brouillon (aucune persistance manifest).
+/// Formulaire local de brouillon ; enregistrement manifest mémoire via
+/// [onEnvironmentPresetSaved] (Lot Environment-16, sans disque).
 class EnvironmentPresetDraftForm extends StatefulWidget {
   const EnvironmentPresetDraftForm({
     super.key,
+    required this.manifest,
+    this.knownTemplateIds = const <String>{},
     required this.draft,
     required this.validation,
     required this.projectElements,
     required this.onChanged,
     required this.onCancel,
     required this.onReset,
+    this.onEnvironmentPresetSaved,
   });
+
+  /// Manifest courant (validation + upsert avant callback).
+  final ProjectManifest manifest;
+
+  /// Aligné sur [EnvironmentStudioPanel.knownTemplateIds].
+  final Set<String> knownTemplateIds;
 
   /// Éléments du projet (`manifest.elements`) pour le picker de palette.
   final List<ProjectElementEntry> projectElements;
@@ -27,6 +37,11 @@ class EnvironmentPresetDraftForm extends StatefulWidget {
   final ValueChanged<EnvironmentPresetDraft> onChanged;
   final VoidCallback onCancel;
   final VoidCallback onReset;
+
+  /// `null` : enregistrement indisponible (bouton désactivé + note).
+  final void Function(
+          ProjectManifest nextManifest, EnvironmentPreset savedPreset)?
+      onEnvironmentPresetSaved;
 
   @override
   State<EnvironmentPresetDraftForm> createState() =>
@@ -60,6 +75,19 @@ class _EnvironmentPresetDraftFormState
     _categoryCtrl.dispose();
     _sortCtrl.dispose();
     super.dispose();
+  }
+
+  EnvironmentPresetDraft _draftFromControllers() {
+    final so = int.tryParse(_sortCtrl.text.trim());
+    return EnvironmentPresetDraft(
+      id: _idCtrl.text,
+      name: _nameCtrl.text,
+      templateId: _templateCtrl.text,
+      palette: widget.draft.palette,
+      defaultParams: widget.draft.defaultParams,
+      categoryId: _categoryCtrl.text.trim().isEmpty ? null : _categoryCtrl.text,
+      sortOrder: so ?? widget.draft.sortOrder,
+    );
   }
 
   void _emit({
@@ -101,10 +129,34 @@ class _EnvironmentPresetDraftFormState
     _emit(palette: next);
   }
 
+  void _saveDraftToProject() {
+    final save = widget.onEnvironmentPresetSaved;
+    if (save == null) {
+      return;
+    }
+    final draft = _draftFromControllers();
+    final validation = validateEnvironmentPresetDraft(
+      draft,
+      manifest: widget.manifest,
+      knownTemplateIds: widget.knownTemplateIds,
+    );
+    if (validation.hasErrors) {
+      return;
+    }
+    final preset = buildEnvironmentPresetFromDraft(draft);
+    final nextManifest = upsertProjectEnvironmentPreset(
+      widget.manifest,
+      preset,
+    );
+    save(nextManifest, preset);
+  }
+
   @override
   Widget build(BuildContext context) {
     final label = EditorChrome.primaryLabel(context);
     final subtle = EditorChrome.subtleLabel(context);
+    final canSaveToProject =
+        widget.onEnvironmentPresetSaved != null && !widget.validation.hasErrors;
 
     return SingleChildScrollView(
       key: const Key('environment-studio-draft-form-scroll'),
@@ -143,8 +195,9 @@ class _EnvironmentPresetDraftFormState
           ),
           const SizedBox(height: 10),
           Text(
-            'Ce formulaire prépare un preset. L’enregistrement dans le projet sera '
-            'ajouté dans un prochain lot.',
+            'Remplissez le brouillon puis « Enregistrer dans le projet » pour '
+            'l’ajouter au manifest en mémoire (marque le projet modifié ; '
+            'aucune écriture disque automatique).',
             key: const Key('environment-studio-draft-form-intro'),
             style: TextStyle(
               color: subtle,
@@ -221,8 +274,8 @@ class _EnvironmentPresetDraftFormState
           ),
           const SizedBox(height: 8),
           Text(
-            'Les éléments ajoutés ici restent dans le brouillon local tant que la '
-            'création réelle n’est pas branchée.',
+            'Les éléments doivent exister dans le projet ; ils sont copiés dans le '
+            'preset lors de l’enregistrement.',
             key: const Key('environment-studio-draft-palette-local-note'),
             style: TextStyle(color: subtle, fontSize: 11.5, height: 1.35),
           ),
@@ -274,6 +327,19 @@ class _EnvironmentPresetDraftFormState
             labelColor: label,
             subtleColor: subtle,
           ),
+          if (widget.validation.hasErrors) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Corrigez les erreurs du brouillon pour l’enregistrer dans le projet.',
+              key: const Key('environment-studio-draft-save-disabled-hint'),
+              style: TextStyle(
+                color: CupertinoColors.systemOrange.resolveFrom(context),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+              ),
+            ),
+          ],
           const SizedBox(height: 24),
           Wrap(
             spacing: 8,
@@ -293,8 +359,23 @@ class _EnvironmentPresetDraftFormState
                 onPressed: widget.onReset,
                 child: const Text('Réinitialiser brouillon'),
               ),
+              CupertinoButton(
+                key: const Key('environment-studio-draft-save-project'),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                onPressed: canSaveToProject ? _saveDraftToProject : null,
+                child: const Text('Enregistrer dans le projet'),
+              ),
             ],
           ),
+          if (widget.onEnvironmentPresetSaved == null) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Enregistrement indisponible dans ce contexte.',
+              key: const Key('environment-studio-draft-save-unavailable-note'),
+              style: TextStyle(color: subtle, fontSize: 11.5, height: 1.35),
+            ),
+          ],
         ],
       ),
     );

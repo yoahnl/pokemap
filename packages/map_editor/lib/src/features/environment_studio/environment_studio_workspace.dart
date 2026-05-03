@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../editor/state/editor_notifier.dart';
 import '../editor/state/editor_selectors.dart';
 import 'environment_studio_panel.dart';
 
@@ -17,7 +18,16 @@ class EnvironmentStudioWorkspace extends ConsumerWidget {
     if (manifest == null) {
       return const _EnvironmentStudioProjectMissingState();
     }
-    return EnvironmentStudioPanel(manifest: manifest);
+    return EnvironmentStudioPanel(
+      manifest: manifest,
+      onEnvironmentPresetSaved: (nextManifest, preset) {
+        ref.read(editorNotifierProvider.notifier).applyInMemoryProjectManifest(
+              nextManifest,
+              statusMessage:
+                  'Preset d’environnement « ${preset.name} » ajouté au projet.',
+            );
+      },
+    );
   }
 }
 

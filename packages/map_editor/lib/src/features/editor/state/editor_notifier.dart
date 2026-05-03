@@ -412,11 +412,26 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
-  void applyInMemoryProjectManifest(ProjectManifest manifest) {
-    state = state.copyWith(
-      project: manifest,
-      isProjectDirty: true,
-    );
+  /// Remplace le manifest projet en mémoire (aucune écriture disque).
+  ///
+  /// Lot Environment-16 : [statusMessage] optionnel pour feedback shell ;
+  /// [errorMessage] est effacé sur succès pour éviter un message obsolète.
+  void applyInMemoryProjectManifest(
+    ProjectManifest manifest, {
+    String? statusMessage,
+  }) {
+    state = statusMessage == null
+        ? state.copyWith(
+            project: manifest,
+            isProjectDirty: true,
+            errorMessage: null,
+          )
+        : state.copyWith(
+            project: manifest,
+            isProjectDirty: true,
+            errorMessage: null,
+            statusMessage: statusMessage,
+          );
   }
 
   Future<bool> saveProjectManifest() async {

@@ -12,7 +12,7 @@ enum EnvironmentStudioPanelMode {
   /// Liste + détail des presets existants (non mutateur).
   browser,
 
-  /// Formulaire de brouillon sans persistance manifest.
+  /// Formulaire de brouillon ; persistance manifest via callback parent (mémoire).
   createDraft,
 }
 
@@ -25,19 +25,26 @@ enum EnvironmentStudioPanelMode {
 /// les [EnvironmentPreset.templateId] absents du set (défaut `{}` = désactivé).
 ///
 /// Le mode [EnvironmentStudioPanelMode.createDraft] permet un brouillon local
-/// ([EnvironmentPresetDraft]) sans [upsertProjectEnvironmentPreset] ni
-/// [buildEnvironmentPresetFromDraft] côté UI.
+/// ([EnvironmentPresetDraft]) ; l’enregistrement manifest mémoire passe par
+/// [onEnvironmentPresetSaved] (Lot Environment-16, sans disque).
 class EnvironmentStudioPanel extends StatefulWidget {
   const EnvironmentStudioPanel({
     super.key,
     required this.manifest,
     this.knownTemplateIds = const <String>{},
+    this.onEnvironmentPresetSaved,
   });
 
   final ProjectManifest manifest;
 
   /// Quand non vide, restreint les templates reconnus (diagnostics auteur).
   final Set<String> knownTemplateIds;
+
+  /// Après validation sans erreur : manifest mis à jour + preset créé ;
+  /// le parent (ex. workspace) applique l’état éditeur ; pas d’I/O disque ici.
+  final void Function(
+          ProjectManifest nextManifest, EnvironmentPreset savedPreset)?
+      onEnvironmentPresetSaved;
 
   @override
   State<EnvironmentStudioPanel> createState() => _EnvironmentStudioPanelState();
@@ -126,6 +133,19 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
     });
   }
 
+  void _onEnvironmentPresetSavedInMemory(
+    ProjectManifest nextManifest,
+    EnvironmentPreset savedPreset,
+  ) {
+    widget.onEnvironmentPresetSaved?.call(nextManifest, savedPreset);
+    setState(() {
+      _panelMode = EnvironmentStudioPanelMode.browser;
+      _selectedPresetId = savedPreset.id;
+      _draft = EnvironmentPresetDraft.empty();
+      _draftFormEpoch++;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final label = EditorChrome.primaryLabel(context);
@@ -143,7 +163,7 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
         ? validateEnvironmentPresetDraft(
             _draft,
             manifest: widget.manifest,
-            knownTemplateIds: const <String>{},
+            knownTemplateIds: widget.knownTemplateIds,
           )
         : null;
 
@@ -205,12 +225,18 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
                         ),
                         child: EnvironmentPresetDraftForm(
                           key: ValueKey<int>(_draftFormEpoch),
+                          manifest: widget.manifest,
+                          knownTemplateIds: widget.knownTemplateIds,
                           draft: _draft,
                           validation: draftValidation!,
                           projectElements: widget.manifest.elements,
                           onChanged: (d) => setState(() => _draft = d),
                           onCancel: _closeDraftForm,
                           onReset: _resetDraft,
+                          onEnvironmentPresetSaved:
+                              widget.onEnvironmentPresetSaved == null
+                                  ? null
+                                  : _onEnvironmentPresetSavedInMemory,
                         ),
                       ),
                     ),
@@ -268,10 +294,11 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
           ),
           child: Text(
             isDraft
-                ? 'Brouillon local — aucune écriture dans le projet. '
-                    'Création réelle et palette éditables arrivent dans les prochains lots.'
-                : 'Lecture seule sur les presets existants — édition manifest et '
-                    'génération arrivent dans les prochains lots.',
+                ? 'Brouillon : vous pouvez enregistrer le preset dans le projet '
+                    '(mémoire de l’éditeur uniquement, pas de fichier project.json). '
+                    'La sauvegarde disque et la génération sur carte restent à venir.'
+                : 'Lecture seule sur les presets existants — édition d’un preset '
+                    'existant et génération sur carte arrivent dans les prochains lots.',
             key: const Key('environment-studio-read-only-banner'),
             style: const TextStyle(
               color: EditorChrome.accentJade,
@@ -302,7 +329,8 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
         children: [
           Text(
             'Aucun preset d’environnement pour le moment.\n'
-            'Les presets seront enregistrés dans le projet dans un prochain lot.',
+            'Utilisez « Préparer un preset », puis « Enregistrer dans le projet » '
+            '(mémoire de session, sans écriture disque automatique).',
             key: const Key('environment-studio-empty-presets'),
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -434,8 +462,8 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
         ),
         const SizedBox(height: 8),
         Text(
-          '• création de presets ;\n'
-          '• édition de palettes ;\n'
+          '• sauvegarde disque du manifest projet ;\n'
+          '• édition des presets existants ;\n'
           '• utilisation dans les Environment Layers ;\n'
           '• génération organique sur les maps.',
           key: const Key('environment-studio-soon-bullets'),

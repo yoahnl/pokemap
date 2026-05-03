@@ -38,6 +38,7 @@ ProjectManifest buildShellChromeProject({
   List<ProjectPathPatternPreset> pathPatternPresets =
       const <ProjectPathPatternPreset>[],
   List<EnvironmentPreset> environmentPresets = const <EnvironmentPreset>[],
+  List<ProjectElementEntry> elements = const <ProjectElementEntry>[],
 }) {
   return ProjectManifest(
     name: name,
@@ -46,6 +47,7 @@ ProjectManifest buildShellChromeProject({
     pathPresets: pathPresets,
     pathPatternPresets: pathPatternPresets,
     environmentPresets: environmentPresets,
+    elements: elements,
     surfaceCatalog: ProjectSurfaceCatalog(),
   );
 }
