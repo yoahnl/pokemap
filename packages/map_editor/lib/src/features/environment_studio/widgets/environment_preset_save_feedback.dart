@@ -1,22 +1,31 @@
 import 'package:flutter/cupertino.dart';
 
 import '../../../ui/shared/cupertino_editor_widgets.dart';
+import '../environment_preset_memory_write_kind.dart';
 
-/// Retour visuel local après ajout d’un preset au manifest en mémoire (Lot 17).
+/// Retour visuel local après écriture mémoire d’un preset (Lots 17–18).
 ///
 /// Complète le [statusMessage] du shell sans le remplacer ; reste dans le panel.
 class EnvironmentPresetSaveFeedback extends StatelessWidget {
   const EnvironmentPresetSaveFeedback({
     super.key,
     required this.presetName,
+    required this.writeKind,
   });
 
   final String presetName;
+  final EnvironmentPresetMemoryWriteKind writeKind;
 
   @override
   Widget build(BuildContext context) {
     final label = EditorChrome.primaryLabel(context);
     final subtle = EditorChrome.subtleLabel(context);
+    final line1 = switch (writeKind) {
+      EnvironmentPresetMemoryWriteKind.create =>
+        'Preset « $presetName » ajouté au projet en mémoire.',
+      EnvironmentPresetMemoryWriteKind.update =>
+        'Preset « $presetName » mis à jour dans le projet en mémoire.',
+    };
     return DecoratedBox(
       key: const Key('environment-studio-post-save-local-feedback'),
       decoration: BoxDecoration(
@@ -32,7 +41,7 @@ class EnvironmentPresetSaveFeedback extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Preset « $presetName » ajouté au projet en mémoire.',
+              line1,
               key: const Key('environment-studio-post-save-line-1'),
               style: TextStyle(
                 color: label,

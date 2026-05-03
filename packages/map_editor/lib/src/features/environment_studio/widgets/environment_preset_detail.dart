@@ -13,12 +13,16 @@ class EnvironmentPresetDetail extends StatelessWidget {
     required this.report,
     required this.labelColor,
     required this.subtleColor,
+    this.onEditAsDraft,
   });
 
   final EnvironmentPreset preset;
   final EnvironmentAuthoringDiagnosticsReport report;
   final Color labelColor;
   final Color subtleColor;
+
+  /// Lot 18 : ouvre le brouillon d’édition (null = action masquée).
+  final VoidCallback? onEditAsDraft;
 
   @override
   Widget build(BuildContext context) {
@@ -31,13 +35,30 @@ class EnvironmentPresetDetail extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       key: const Key('environment-studio-detail-root'),
       children: [
-        Text(
-          'Détail du preset',
-          style: TextStyle(
-            color: labelColor,
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
-          ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                'Détail du preset',
+                style: TextStyle(
+                  color: labelColor,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            if (onEditAsDraft != null) ...[
+              const SizedBox(width: 10),
+              CupertinoButton(
+                key: const Key('environment-studio-edit-as-draft'),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                onPressed: onEditAsDraft,
+                child: const Text('Modifier en brouillon'),
+              ),
+            ],
+          ],
         ),
         const SizedBox(height: 14),
         _sectionCard(

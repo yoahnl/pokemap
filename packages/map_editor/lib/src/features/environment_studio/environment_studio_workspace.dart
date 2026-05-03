@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../editor/state/editor_notifier.dart';
 import '../editor/state/editor_selectors.dart';
+import 'environment_preset_memory_write_kind.dart';
 import 'environment_studio_panel.dart';
 
 /// Point d’entrée Riverpod pour le workspace Environment Studio.
@@ -20,11 +21,16 @@ class EnvironmentStudioWorkspace extends ConsumerWidget {
     }
     return EnvironmentStudioPanel(
       manifest: manifest,
-      onEnvironmentPresetSaved: (nextManifest, preset) {
+      onEnvironmentPresetSaved: (nextManifest, preset, kind) {
+        final msg = switch (kind) {
+          EnvironmentPresetMemoryWriteKind.create =>
+            'Preset d’environnement « ${preset.name} » ajouté au projet.',
+          EnvironmentPresetMemoryWriteKind.update =>
+            'Preset d’environnement « ${preset.name} » mis à jour dans le projet.',
+        };
         ref.read(editorNotifierProvider.notifier).applyInMemoryProjectManifest(
               nextManifest,
-              statusMessage:
-                  'Preset d’environnement « ${preset.name} » ajouté au projet.',
+              statusMessage: msg,
             );
       },
     );

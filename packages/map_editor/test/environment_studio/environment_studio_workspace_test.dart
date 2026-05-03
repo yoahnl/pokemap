@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/environment_studio/environment_preset_memory_write_kind.dart';
 import 'package:map_editor/src/features/environment_studio/environment_studio_panel.dart';
 
 void main() {
@@ -99,38 +100,41 @@ void main() {
       );
     });
 
-    testWidgets('browser : un seul CupertinoButton « Préparer un preset »', (
-      tester,
-    ) async {
+    testWidgets(
+        'browser : « Préparer un preset » + « Modifier en brouillon » (détail)',
+        (tester) async {
       await _pumpPanel(
         tester,
         _manifest(
           environmentPresets: [_preset(id: 'x')],
           elements: [_element(id: 'elm')],
         ),
+        onEnvironmentPresetSaved: (_, __, ___) {},
       );
 
-      final panel = find.byType(EnvironmentStudioPanel);
-      expect(
-        find.descendant(of: panel, matching: find.byType(CupertinoButton)),
-        findsOneWidget,
-      );
-      expect(
-        find.descendant(
-          of: panel,
-          matching: find.byKey(const Key('environment-studio-open-draft')),
-        ),
-        findsOneWidget,
-      );
+      expect(find.text('Préparer un preset'), findsOneWidget);
+      expect(find.byKey(const Key('environment-studio-edit-as-draft')),
+          findsOneWidget);
     });
   });
 }
 
-Future<void> _pumpPanel(WidgetTester tester, ProjectManifest manifest) async {
+Future<void> _pumpPanel(
+  WidgetTester tester,
+  ProjectManifest manifest, {
+  void Function(
+    ProjectManifest,
+    EnvironmentPreset,
+    EnvironmentPresetMemoryWriteKind,
+  )? onEnvironmentPresetSaved,
+}) async {
   await tester.pumpWidget(
     MacosApp(
       home: CupertinoPageScaffold(
-        child: EnvironmentStudioPanel(manifest: manifest),
+        child: EnvironmentStudioPanel(
+          manifest: manifest,
+          onEnvironmentPresetSaved: onEnvironmentPresetSaved,
+        ),
       ),
     ),
   );

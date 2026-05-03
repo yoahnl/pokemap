@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../ui/shared/cupertino_editor_widgets.dart';
 import '../authoring/environment_preset_draft.dart';
+import '../environment_preset_memory_write_kind.dart';
 import 'environment_generation_params_draft_editor.dart';
 import 'environment_palette_item_draft_editor.dart';
 import 'environment_preset_draft_validation_view.dart';
@@ -15,6 +16,7 @@ class EnvironmentPresetDraftForm extends StatefulWidget {
     required this.manifest,
     this.knownTemplateIds = const <String>{},
     required this.draft,
+    this.existingPresetId,
     required this.validation,
     required this.projectElements,
     required this.onChanged,
@@ -33,6 +35,10 @@ class EnvironmentPresetDraftForm extends StatefulWidget {
   final List<ProjectElementEntry> projectElements;
 
   final EnvironmentPresetDraft draft;
+
+  /// Lot 18 : si non null, id verrouillé + validation `existingPresetId`.
+  final String? existingPresetId;
+
   final EnvironmentPresetDraftValidationReport validation;
   final ValueChanged<EnvironmentPresetDraft> onChanged;
   final VoidCallback onCancel;
@@ -40,8 +46,10 @@ class EnvironmentPresetDraftForm extends StatefulWidget {
 
   /// `null` : enregistrement indisponible (bouton désactivé + note).
   final void Function(
-          ProjectManifest nextManifest, EnvironmentPreset savedPreset)?
-      onEnvironmentPresetSaved;
+    ProjectManifest nextManifest,
+    EnvironmentPreset savedPreset,
+    EnvironmentPresetMemoryWriteKind kind,
+  )? onEnvironmentPresetSaved;
 
   @override
   State<EnvironmentPresetDraftForm> createState() =>
@@ -70,6 +78,19 @@ class _EnvironmentPresetDraftFormState
     _sortCtrl = TextEditingController(text: d.sortOrder.toString());
   }
 
+  String _lockedIdText() {
+    final id = widget.existingPresetId?.trim();
+    return (id == null || id.isEmpty) ? '' : id;
+  }
+
+  String _effectiveIdForDraft() {
+    final locked = _lockedIdText();
+    if (locked.isNotEmpty) {
+      return locked;
+    }
+    return _idCtrl.text;
+  }
+
   @override
   void dispose() {
     _idCtrl.dispose();
@@ -83,7 +104,7 @@ class _EnvironmentPresetDraftFormState
   EnvironmentPresetDraft _draftFromControllers() {
     final so = int.tryParse(_sortCtrl.text.trim());
     return EnvironmentPresetDraft(
-      id: _idCtrl.text,
+      id: _effectiveIdForDraft(),
       name: _nameCtrl.text,
       templateId: _templateCtrl.text,
       palette: widget.draft.palette,
@@ -103,7 +124,7 @@ class _EnvironmentPresetDraftFormState
     final so = int.tryParse(_sortCtrl.text.trim());
     widget.onChanged(
       EnvironmentPresetDraft(
-        id: _idCtrl.text,
+        id: _effectiveIdForDraft(),
         name: _nameCtrl.text,
         templateId: _templateCtrl.text,
         palette: palette ?? widget.draft.palette,
@@ -146,6 +167,7 @@ class _EnvironmentPresetDraftFormState
       draft,
       manifest: widget.manifest,
       knownTemplateIds: widget.knownTemplateIds,
+      existingPresetId: widget.existingPresetId,
     );
     if (validation.hasErrors) {
       return;
@@ -156,13 +178,16 @@ class _EnvironmentPresetDraftFormState
         widget.manifest,
         preset,
       );
-      save(nextManifest, preset);
+      final kind = widget.existingPresetId != null
+          ? EnvironmentPresetMemoryWriteKind.update
+          : EnvironmentPresetMemoryWriteKind.create;
+      save(nextManifest, preset, kind);
     } catch (e, st) {
       debugPrint('EnvironmentPresetDraftForm: ajout mémoire impossible: $e');
       debugPrint('$st');
       setState(() {
         _saveErrorMessage =
-            'Impossible d’ajouter le preset au projet en mémoire.';
+            'Impossible d’appliquer le preset au projet en mémoire.';
       });
     }
   }
@@ -173,6 +198,7 @@ class _EnvironmentPresetDraftFormState
     final subtle = EditorChrome.subtleLabel(context);
     final canSaveToProject =
         widget.onEnvironmentPresetSaved != null && !widget.validation.hasErrors;
+    final isEdit = widget.existingPresetId != null;
 
     return SingleChildScrollView(
       key: const Key('environment-studio-draft-form-scroll'),
@@ -181,7 +207,9 @@ class _EnvironmentPresetDraftFormState
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'Nouveau preset d’environnement',
+            isEdit
+                ? 'Modifier un preset d’environnement'
+                : 'Nouveau preset d’environnement',
             key: const Key('environment-studio-draft-form-title'),
             style: TextStyle(
               color: label,
@@ -199,10 +227,16 @@ class _EnvironmentPresetDraftFormState
                 color: EditorChrome.accentWarm.withValues(alpha: 0.45),
               ),
             ),
-            child: const Text(
-              'Brouillon local non sauvegardé',
-              key: Key('environment-studio-draft-local-badge'),
-              style: TextStyle(
+            child: Text(
+              isEdit
+                  ? 'Brouillon de modification non sauvegardé'
+                  : 'Brouillon local non sauvegardé',
+              key: Key(
+                isEdit
+                    ? 'environment-studio-draft-edit-badge'
+                    : 'environment-studio-draft-local-badge',
+              ),
+              style: const TextStyle(
                 color: EditorChrome.accentWarm,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
@@ -211,9 +245,12 @@ class _EnvironmentPresetDraftFormState
           ),
           const SizedBox(height: 10),
           Text(
-            'Remplissez le brouillon puis « Ajouter au projet en mémoire » pour '
-            'l’intégrer au manifest de la session (projet marqué modifié ; '
-            'aucune sauvegarde disque automatique).',
+            isEdit
+                ? 'Modifiez ce preset en brouillon, puis mettez à jour le projet en mémoire. '
+                    'Aucune sauvegarde disque automatique.'
+                : 'Remplissez le brouillon puis « Ajouter au projet en mémoire » pour '
+                    'l’intégrer au manifest de la session (projet marqué modifié ; '
+                    'aucune sauvegarde disque automatique).',
             key: const Key('environment-studio-draft-form-intro'),
             style: TextStyle(
               color: subtle,
@@ -227,10 +264,24 @@ class _EnvironmentPresetDraftFormState
           CupertinoTextField(
             key: const Key('environment-studio-draft-field-id'),
             controller: _idCtrl,
+            enabled: !isEdit,
             placeholder: 'Identifiant unique',
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             onChanged: (_) => _emit(),
           ),
+          if (isEdit) ...[
+            const SizedBox(height: 6),
+            Text(
+              'L’id est verrouillé dans cette version pour préserver les références des maps.',
+              key: const Key('environment-studio-draft-id-locked-hint'),
+              style: TextStyle(
+                color: subtle,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+              ),
+            ),
+          ],
           const SizedBox(height: 14),
           _fieldLabel(context, 'Nom'),
           const SizedBox(height: 4),
@@ -291,7 +342,7 @@ class _EnvironmentPresetDraftFormState
           const SizedBox(height: 8),
           Text(
             'Les éléments doivent exister dans le projet ; ils sont copiés dans le '
-            'preset lors de l’ajout en mémoire.',
+            'preset lors de l’application au projet en mémoire.',
             key: const Key('environment-studio-draft-palette-local-note'),
             style: TextStyle(color: subtle, fontSize: 11.5, height: 1.35),
           ),
@@ -346,7 +397,7 @@ class _EnvironmentPresetDraftFormState
           if (widget.validation.hasErrors) ...[
             const SizedBox(height: 10),
             Text(
-              'Corrigez les erreurs du brouillon pour l’ajouter au projet.',
+              'Corrigez les erreurs du brouillon pour appliquer au projet en mémoire.',
               key: const Key('environment-studio-draft-save-disabled-hint'),
               style: TextStyle(
                 color: CupertinoColors.systemOrange.resolveFrom(context),
@@ -360,7 +411,7 @@ class _EnvironmentPresetDraftFormState
               !widget.validation.hasErrors) ...[
             const SizedBox(height: 10),
             Text(
-              'Les avertissements ne bloquent pas l’ajout au projet.',
+              'Les avertissements ne bloquent pas l’application au projet en mémoire.',
               key: const Key('environment-studio-draft-save-warnings-hint'),
               style: TextStyle(
                 color: CupertinoColors.systemYellow.resolveFrom(context),
@@ -407,7 +458,11 @@ class _EnvironmentPresetDraftFormState
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 onPressed: canSaveToProject ? _saveDraftToProject : null,
-                child: const Text('Ajouter au projet en mémoire'),
+                child: Text(
+                  isEdit
+                      ? 'Mettre à jour le projet en mémoire'
+                      : 'Ajouter au projet en mémoire',
+                ),
               ),
             ],
           ),

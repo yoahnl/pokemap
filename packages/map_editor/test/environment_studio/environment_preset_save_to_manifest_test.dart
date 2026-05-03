@@ -5,6 +5,7 @@ import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/environment_studio/environment_preset_memory_write_kind.dart';
 import 'package:map_editor/src/features/environment_studio/environment_studio_panel.dart';
 
 import '../shell_chrome_test_harness.dart';
@@ -17,7 +18,7 @@ void main() {
         await _pumpPanel(
           tester,
           manifest: _manifest(elements: [_element(id: 'e1')]),
-          onSaved: (_, __) {},
+          onSaved: (_, __, ___) {},
         );
         await tester
             .tap(find.byKey(const Key('environment-studio-open-draft')));
@@ -41,7 +42,7 @@ void main() {
         );
         expect(
           find.text(
-            'Corrigez les erreurs du brouillon pour l’ajouter au projet.',
+            'Corrigez les erreurs du brouillon pour appliquer au projet en mémoire.',
           ),
           findsOneWidget,
         );
@@ -85,9 +86,10 @@ void main() {
         await _pumpPanel(
           tester,
           manifest: initial,
-          onSaved: (m, p) {
+          onSaved: (m, p, k) {
             receivedManifest = m;
             receivedPreset = p;
+            expect(k, EnvironmentPresetMemoryWriteKind.create);
           },
         );
         await tester
@@ -177,7 +179,7 @@ void main() {
           environmentPresets: [_preset(id: 'forest')],
           elements: [_element(id: 'e1')],
         ),
-        onSaved: (_, __) => calls++,
+        onSaved: (_, __, ___) => calls++,
       );
       await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
       await tester.pumpAndSettle();
@@ -222,7 +224,7 @@ void main() {
       await _pumpPanel(
         tester,
         manifest: _manifest(elements: [_element(id: 'e1')]),
-        onSaved: (_, __) => calls++,
+        onSaved: (_, __, ___) => calls++,
       );
       await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
       await tester.pumpAndSettle();
@@ -268,7 +270,7 @@ void main() {
         tester,
         manifest: _manifest(elements: [_element(id: 'e1')]),
         knownTemplateIds: {'only_this'},
-        onSaved: (_, __) => calls++,
+        onSaved: (_, __, ___) => calls++,
       );
       await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
       await tester.pumpAndSettle();
@@ -301,7 +303,8 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.text('Les avertissements ne bloquent pas l’ajout au projet.'),
+        find.text(
+            'Les avertissements ne bloquent pas l’application au projet en mémoire.'),
         findsOneWidget,
       );
       expect(
@@ -325,7 +328,7 @@ void main() {
         await _pumpPanel(
           tester,
           manifest: _manifest(elements: [_element(id: 'e1')]),
-          onSaved: (_, __) {},
+          onSaved: (_, __, ___) {},
         );
         await tester
             .tap(find.byKey(const Key('environment-studio-open-draft')));
@@ -378,7 +381,7 @@ void main() {
         await _pumpPanel(
           tester,
           manifest: _manifest(elements: [_element(id: 'e1')]),
-          onSaved: (_, __) => throw StateError('simulé'),
+          onSaved: (_, __, ___) => throw StateError('simulé'),
         );
         await tester
             .tap(find.byKey(const Key('environment-studio-open-draft')));
@@ -420,7 +423,7 @@ void main() {
         );
         expect(
           find.text(
-            'Impossible d’ajouter le preset au projet en mémoire.',
+            'Impossible d’appliquer le preset au projet en mémoire.',
           ),
           findsOneWidget,
         );
@@ -597,7 +600,11 @@ class _ManifestSyncPanelHost extends StatefulWidget {
 
   final ProjectManifest initialManifest;
   final Set<String> knownTemplateIds;
-  final void Function(ProjectManifest, EnvironmentPreset)? onSaved;
+  final void Function(
+    ProjectManifest,
+    EnvironmentPreset,
+    EnvironmentPresetMemoryWriteKind,
+  )? onSaved;
 
   @override
   State<_ManifestSyncPanelHost> createState() => _ManifestSyncPanelHostState();
@@ -627,8 +634,8 @@ class _ManifestSyncPanelHostState extends State<_ManifestSyncPanelHost> {
       knownTemplateIds: widget.knownTemplateIds,
       onEnvironmentPresetSaved: widget.onSaved == null
           ? null
-          : (next, preset) {
-              widget.onSaved!(next, preset);
+          : (next, preset, kind) {
+              widget.onSaved!(next, preset, kind);
               setState(() => _manifest = next);
             },
     );
@@ -639,7 +646,11 @@ Future<void> _pumpPanel(
   WidgetTester tester, {
   required ProjectManifest manifest,
   Set<String> knownTemplateIds = const {},
-  void Function(ProjectManifest, EnvironmentPreset)? onSaved,
+  void Function(
+    ProjectManifest,
+    EnvironmentPreset,
+    EnvironmentPresetMemoryWriteKind,
+  )? onSaved,
 }) async {
   tester.view.physicalSize = const Size(900, 2200);
   tester.view.devicePixelRatio = 1.0;

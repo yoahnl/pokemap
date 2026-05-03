@@ -3,18 +3,22 @@ import 'package:map_core/map_core.dart';
 
 import '../../ui/shared/cupertino_editor_widgets.dart';
 import 'authoring/environment_preset_draft.dart';
+import 'environment_preset_memory_write_kind.dart';
 import 'widgets/environment_preset_detail.dart';
 import 'widgets/environment_preset_draft_form.dart';
 import 'widgets/environment_preset_list.dart';
 import 'widgets/environment_preset_save_feedback.dart';
 
-/// Modes locaux du panneau Environment Studio (Lot Environment-13).
+/// Modes locaux du panneau Environment Studio (Lot Environment-13, 18).
 enum EnvironmentStudioPanelMode {
   /// Liste + détail des presets existants (non mutateur).
   browser,
 
   /// Formulaire de brouillon ; persistance manifest via callback parent (mémoire).
   createDraft,
+
+  /// Brouillon prérempli depuis un preset existant ; id verrouillé (Lot 18).
+  editDraft,
 }
 
 /// Browser read-only des presets Environment (Lot Environment-10, polish 11).
@@ -41,11 +45,14 @@ class EnvironmentStudioPanel extends StatefulWidget {
   /// Quand non vide, restreint les templates reconnus (diagnostics auteur).
   final Set<String> knownTemplateIds;
 
-  /// Après validation sans erreur : manifest mis à jour + preset créé ;
-  /// le parent (ex. workspace) applique l’état éditeur ; pas d’I/O disque ici.
+  /// Après validation sans erreur : manifest mis à jour + preset créé ou mis
+  /// à jour ; le parent (ex. workspace) applique l’état éditeur ; pas d’I/O
+  /// disque ici.
   final void Function(
-          ProjectManifest nextManifest, EnvironmentPreset savedPreset)?
-      onEnvironmentPresetSaved;
+    ProjectManifest nextManifest,
+    EnvironmentPreset savedPreset,
+    EnvironmentPresetMemoryWriteKind kind,
+  )? onEnvironmentPresetSaved;
 
   @override
   State<EnvironmentStudioPanel> createState() => _EnvironmentStudioPanelState();
@@ -57,8 +64,14 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
   EnvironmentPresetDraft _draft = EnvironmentPresetDraft.empty();
   int _draftFormEpoch = 0;
 
-  /// Lot 17 : message local browser après ajout mémoire (pas au 1er chargement).
+  /// Lot 18 : id du preset en cours d’édition (brouillon) ; `null` en création.
+  String? _editingPresetId;
+
+  /// Lot 17–18 : message local browser après écriture mémoire (pas au 1er chargement).
   String? _localSaveFeedbackPresetName;
+
+  /// Lot 18 : dernier type d’écriture pour le feedback local (create/update).
+  EnvironmentPresetMemoryWriteKind? _lastMemoryWriteKind;
 
   @override
   void initState() {
@@ -119,8 +132,21 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
   void _openDraftForm() {
     setState(() {
       _localSaveFeedbackPresetName = null;
+      _lastMemoryWriteKind = null;
+      _editingPresetId = null;
       _panelMode = EnvironmentStudioPanelMode.createDraft;
       _draft = EnvironmentPresetDraft.empty();
+      _draftFormEpoch++;
+    });
+  }
+
+  void _openEditDraftFromPreset(EnvironmentPreset preset) {
+    setState(() {
+      _localSaveFeedbackPresetName = null;
+      _lastMemoryWriteKind = null;
+      _panelMode = EnvironmentStudioPanelMode.editDraft;
+      _editingPresetId = preset.id;
+      _draft = EnvironmentPresetDraft.fromPreset(preset);
       _draftFormEpoch++;
     });
   }
@@ -128,12 +154,27 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
   void _closeDraftForm() {
     setState(() {
       _panelMode = EnvironmentStudioPanelMode.browser;
+      _editingPresetId = null;
     });
   }
 
   void _resetDraft() {
     setState(() {
-      _draft = EnvironmentPresetDraft.empty();
+      if (_panelMode == EnvironmentStudioPanelMode.editDraft &&
+          _editingPresetId != null) {
+        EnvironmentPreset? source;
+        for (final p in widget.manifest.environmentPresets) {
+          if (p.id == _editingPresetId) {
+            source = p;
+            break;
+          }
+        }
+        _draft = source != null
+            ? EnvironmentPresetDraft.fromPreset(source)
+            : EnvironmentPresetDraft.empty();
+      } else {
+        _draft = EnvironmentPresetDraft.empty();
+      }
       _draftFormEpoch++;
     });
   }
@@ -141,14 +182,17 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
   void _onEnvironmentPresetSavedInMemory(
     ProjectManifest nextManifest,
     EnvironmentPreset savedPreset,
+    EnvironmentPresetMemoryWriteKind kind,
   ) {
-    widget.onEnvironmentPresetSaved!.call(nextManifest, savedPreset);
+    widget.onEnvironmentPresetSaved!.call(nextManifest, savedPreset, kind);
     setState(() {
       _panelMode = EnvironmentStudioPanelMode.browser;
       _selectedPresetId = savedPreset.id;
       _draft = EnvironmentPresetDraft.empty();
+      _editingPresetId = null;
       _draftFormEpoch++;
       _localSaveFeedbackPresetName = savedPreset.name;
+      _lastMemoryWriteKind = kind;
     });
   }
 
@@ -165,11 +209,16 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
     );
     final s = report.summary;
 
-    final draftValidation = _panelMode == EnvironmentStudioPanelMode.createDraft
+    final isDraftMode = _panelMode == EnvironmentStudioPanelMode.createDraft ||
+        _panelMode == EnvironmentStudioPanelMode.editDraft;
+    final draftValidation = isDraftMode
         ? validateEnvironmentPresetDraft(
             _draft,
             manifest: widget.manifest,
             knownTemplateIds: widget.knownTemplateIds,
+            existingPresetId: _panelMode == EnvironmentStudioPanelMode.editDraft
+                ? _editingPresetId
+                : null,
           )
         : null;
 
@@ -234,6 +283,7 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
                           manifest: widget.manifest,
                           knownTemplateIds: widget.knownTemplateIds,
                           draft: _draft,
+                          existingPresetId: _editingPresetId,
                           validation: draftValidation!,
                           projectElements: widget.manifest.elements,
                           onChanged: (d) => setState(() => _draft = d),
@@ -265,7 +315,9 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
     Color subtle,
     int presetCount,
   ) {
-    final isDraft = _panelMode == EnvironmentStudioPanelMode.createDraft;
+    final isDraft = _panelMode == EnvironmentStudioPanelMode.createDraft ||
+        _panelMode == EnvironmentStudioPanelMode.editDraft;
+    final isEditDraft = _panelMode == EnvironmentStudioPanelMode.editDraft;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -299,12 +351,16 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
             ),
           ),
           child: Text(
-            isDraft
-                ? 'Brouillon : utilisez « Ajouter au projet en mémoire » pour intégrer '
-                    'le preset au manifest en session. Aucune sauvegarde disque automatique. '
-                    'La génération sur carte reste à venir.'
-                : 'Lecture seule sur les presets existants — édition d’un preset '
-                    'existant et génération sur carte arrivent dans les prochains lots.',
+            !isDraft
+                ? 'Lecture seule sur les presets existants — génération sur carte et '
+                    'renommage d’id arrivent dans les prochains lots.'
+                : isEditDraft
+                    ? 'Brouillon de modification : utilisez « Mettre à jour le projet en mémoire » '
+                        'pour intégrer les changements au manifest en session. Aucune sauvegarde disque '
+                        'automatique. L’id du preset reste verrouillé dans cette version.'
+                    : 'Brouillon : utilisez « Ajouter au projet en mémoire » pour intégrer '
+                        'le preset au manifest en session. Aucune sauvegarde disque automatique. '
+                        'La génération sur carte reste à venir.',
             key: const Key('environment-studio-read-only-banner'),
             style: const TextStyle(
               color: EditorChrome.accentJade,
@@ -363,9 +419,11 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (_localSaveFeedbackPresetName != null) ...[
+        if (_localSaveFeedbackPresetName != null &&
+            _lastMemoryWriteKind != null) ...[
           EnvironmentPresetSaveFeedback(
             presetName: _localSaveFeedbackPresetName!,
+            writeKind: _lastMemoryWriteKind!,
           ),
           const SizedBox(height: 12),
         ],
@@ -412,6 +470,10 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
                             report: report,
                             labelColor: label,
                             subtleColor: subtle,
+                            onEditAsDraft:
+                                widget.onEnvironmentPresetSaved == null
+                                    ? null
+                                    : () => _openEditDraftFromPreset(selected),
                           ),
                         ),
                 ),
@@ -482,7 +544,7 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
         const SizedBox(height: 8),
         Text(
           '• sauvegarde disque du manifest projet ;\n'
-          '• édition des presets existants ;\n'
+          '• renommage d’id preset (migration des références) ;\n'
           '• utilisation dans les Environment Layers ;\n'
           '• génération organique sur les maps.',
           key: const Key('environment-studio-soon-bullets'),
