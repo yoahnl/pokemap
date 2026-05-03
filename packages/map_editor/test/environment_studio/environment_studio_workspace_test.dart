@@ -6,9 +6,8 @@ import 'package:map_editor/src/features/environment_studio/environment_studio_pa
 
 void main() {
   group('EnvironmentStudioPanel', () {
-    testWidgets('affiche titre, description, état vide et diagnostics', (
-      tester,
-    ) async {
+    testWidgets('état vide : titre, badge read-only, pas de liste ni détail',
+        (tester) async {
       final manifest = _manifest();
       final report = diagnoseProjectEnvironmentAuthoring(
         manifest,
@@ -22,11 +21,7 @@ void main() {
       expect(find.byKey(const Key('environment-studio-title')), findsOneWidget);
       expect(find.text('Environment Studio'), findsOneWidget);
       expect(
-        find.byKey(const Key('environment-studio-description')),
-        findsOneWidget,
-      );
-      expect(
-        find.textContaining('forêts, bosquets, prairies'),
+        find.byKey(const Key('environment-studio-read-only-banner')),
         findsOneWidget,
       );
       expect(find.byKey(const Key('environment-studio-empty-presets')),
@@ -38,29 +33,79 @@ void main() {
         findsOneWidget,
       );
       expect(find.textContaining('génération organique'), findsOneWidget);
+      expect(find.byKey(const Key('environment-studio-preset-list')),
+          findsNothing);
+      expect(find.byKey(const Key('environment-studio-detail-root')),
+          findsNothing);
     });
 
-    testWidgets('affiche le nombre de presets quand le manifest en définit',
-        (tester) async {
+    testWidgets('liste presets et sélection du premier par défaut', (
+      tester,
+    ) async {
       await _pumpPanel(
         tester,
         _manifest(
           environmentPresets: [
-            _preset(id: 'a'),
-            _preset(id: 'b'),
+            _preset(id: 'meadow', name: 'Prairie', sortOrder: 0),
+            _preset(id: 'forest', name: 'Forêt', sortOrder: 1),
           ],
+          elements: [_element(id: 'elm')],
         ),
       );
 
       expect(find.text('2 presets'), findsOneWidget);
+      expect(find.byKey(const Key('environment-studio-preset-list')),
+          findsOneWidget);
       expect(
         find.byKey(const Key('environment-studio-empty-presets')),
         findsNothing,
       );
+      expect(find.byKey(const Key('environment-studio-detail-id')),
+          findsOneWidget);
+      expect(find.text('meadow'), findsWidgets);
     });
 
-    testWidgets('ne propose aucun bouton d’action actif', (tester) async {
-      await _pumpPanel(tester, _manifest());
+    testWidgets('tap sur un autre preset met à jour le détail', (tester) async {
+      await _pumpPanel(
+        tester,
+        _manifest(
+          environmentPresets: [
+            _preset(id: 'meadow', name: 'Prairie', sortOrder: 0),
+            _preset(id: 'forest', name: 'Forêt', sortOrder: 1),
+          ],
+          elements: [_element(id: 'elm')],
+        ),
+      );
+
+      expect(
+        (tester.widget<Text>(
+                find.byKey(const Key('environment-studio-detail-id'))))
+            .data,
+        'meadow',
+      );
+
+      await tester
+          .tap(find.byKey(const Key('environment-studio-preset-row-forest')));
+      await tester.pumpAndSettle();
+
+      expect(
+        (tester.widget<Text>(
+                find.byKey(const Key('environment-studio-detail-id'))))
+            .data,
+        'forest',
+      );
+    });
+
+    testWidgets('ne propose aucun CupertinoButton dans le panneau', (
+      tester,
+    ) async {
+      await _pumpPanel(
+        tester,
+        _manifest(
+          environmentPresets: [_preset(id: 'x')],
+          elements: [_element(id: 'elm')],
+        ),
+      );
 
       final panel = find.byType(EnvironmentStudioPanel);
       expect(
@@ -84,25 +129,45 @@ Future<void> _pumpPanel(WidgetTester tester, ProjectManifest manifest) async {
 
 ProjectManifest _manifest({
   List<EnvironmentPreset> environmentPresets = const [],
+  List<ProjectElementEntry> elements = const [],
 }) {
   return ProjectManifest(
     name: 'env-shell-test',
     maps: const [],
     tilesets: const [],
     environmentPresets: environmentPresets,
+    elements: elements,
     surfaceCatalog: ProjectSurfaceCatalog(),
   );
 }
 
-EnvironmentPreset _preset({required String id}) {
+EnvironmentPreset _preset({
+  required String id,
+  String? name,
+  int sortOrder = 0,
+}) {
   return EnvironmentPreset(
     id: id,
-    name: 'Preset $id',
+    name: name ?? 'Preset $id',
     templateId: 'tpl',
     palette: [
       EnvironmentPaletteItem(elementId: 'elm', weight: 1),
     ],
     defaultParams: EnvironmentGenerationParams.standard(),
-    sortOrder: 0,
+    sortOrder: sortOrder,
+  );
+}
+
+ProjectElementEntry _element({required String id}) {
+  return ProjectElementEntry(
+    id: id,
+    name: 'El $id',
+    tilesetId: 'ts',
+    categoryId: 'cat',
+    frames: const [
+      TilesetVisualFrame(
+        source: TilesetSourceRect(x: 0, y: 0),
+      ),
+    ],
   );
 }
