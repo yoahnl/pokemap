@@ -4882,8 +4882,9 @@ class EditorNotifier extends _$EditorNotifier {
       state = state.copyWith(
         errorMessage: null,
         statusMessage:
-            'Cette zone possède déjà des placements générés. Utilisez « Effacer », '
-            '« Régénérer » ou « Mélanger et régénérer ».',
+            'Cette zone possède déjà des placements générés. Utilisez '
+            '« Effacer les placements générés », « Régénérer » ou '
+            '« Mélanger et régénérer ».',
       );
       return;
     }

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../application/models/environment_area_generation_readiness.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_selectors.dart';
 import '../../features/editor/tools/editor_tool.dart';
@@ -139,6 +140,7 @@ class EnvironmentLayerInspectorPanel extends ConsumerWidget {
                     subtleColor: subtle,
                     resolvedTargetTileLayer: target,
                     targetTileLayerInvalid: invalidTarget,
+                    hasTargetTileLayerId: tid != null,
                   ),
                 ),
               const SizedBox(height: 10),
@@ -339,6 +341,7 @@ class _EnvironmentAreaCard extends ConsumerWidget {
     required this.subtleColor,
     required this.resolvedTargetTileLayer,
     required this.targetTileLayerInvalid,
+    required this.hasTargetTileLayerId,
   });
 
   final EnvironmentArea area;
@@ -350,61 +353,13 @@ class _EnvironmentAreaCard extends ConsumerWidget {
   /// `null` si pas de cible ou cible non résolue.
   final TileLayer? resolvedTargetTileLayer;
   final bool targetTileLayerInvalid;
+  final bool hasTargetTileLayerId;
 
   EnvironmentPreset? _presetForArea() {
     final m = manifest;
     if (m == null) return null;
     for (final p in m.environmentPresets) {
       if (p.id == area.presetId) return p;
-    }
-    return null;
-  }
-
-  /// Premier blocage UX pour désactiver « Générer dans la map » (ordre stable).
-  String? _generateDisabledReason(EnvironmentPreset? preset) {
-    if (resolvedTargetTileLayer == null || targetTileLayerInvalid) {
-      return 'Choisissez un TileLayer cible avant de générer.';
-    }
-    if (preset == null) {
-      return 'Le preset associé est introuvable.';
-    }
-    if (area.generatedPlacementIds.isNotEmpty) {
-      return 'Cette zone possède déjà des placements générés. Utilisez « Effacer », '
-          '« Régénérer » ou « Mélanger et régénérer ».';
-    }
-    if (area.mask.activeCellCount == 0) {
-      return 'Peignez le masque avant de générer.';
-    }
-    return null;
-  }
-
-  /// Ordre stable des blocages UX pour « Régénérer » (Lot 27).
-  String? _regenerateDisabledReason(EnvironmentPreset? preset) {
-    if (area.generatedPlacementIds.isEmpty) {
-      return 'Aucun placement généré à régénérer.';
-    }
-    if (area.mask.activeCellCount == 0) {
-      return 'Peignez le masque avant de régénérer.';
-    }
-    if (resolvedTargetTileLayer == null || targetTileLayerInvalid) {
-      return 'Choisissez un TileLayer cible avant de régénérer.';
-    }
-    if (preset == null) {
-      return 'Le preset associé est introuvable.';
-    }
-    return null;
-  }
-
-  /// Ordre stable pour « Mélanger et régénérer » (Lot 27).
-  String? _shuffleDisabledReason(EnvironmentPreset? preset) {
-    if (area.mask.activeCellCount == 0) {
-      return 'Peignez le masque avant de mélanger et régénérer.';
-    }
-    if (resolvedTargetTileLayer == null || targetTileLayerInvalid) {
-      return 'Choisissez un TileLayer cible avant de mélanger et régénérer.';
-    }
-    if (preset == null) {
-      return 'Le preset associé est introuvable.';
     }
     return null;
   }
@@ -416,17 +371,18 @@ class _EnvironmentAreaCard extends ConsumerWidget {
     final manifestPresets =
         manifest?.environmentPresets ?? const <EnvironmentPreset>[];
     final preset = _presetForArea();
-    final generateReason = _generateDisabledReason(preset);
-    final generateEnabled = generateReason == null;
-    final regenerateReason = _regenerateDisabledReason(preset);
-    final shuffleReason = _shuffleDisabledReason(preset);
-    final hasGeneratedPlacements = area.generatedPlacementIds.isNotEmpty;
+    final readiness = EnvironmentAreaGenerationReadiness.evaluate(
+      area: area,
+      preset: preset,
+      hasTargetTileLayerId: hasTargetTileLayerId,
+      targetTileLayerInvalid: targetTileLayerInvalid,
+      resolvedTargetTileLayer: resolvedTargetTileLayer,
+    );
+    final regenerateEnabled = readiness.canRegenerate;
+    final shuffleEnabled = readiness.canShuffle;
     final totalCells = area.mask.width * area.mask.height;
     final activeCount = area.mask.activeCellCount;
-    final maskLabel = activeCount == 0
-        ? 'Masque vide — cliquez « Peindre le masque », puis dessinez sur la map.\n'
-            '($activeCount / $totalCells cellules actives)'
-        : 'Masque : $activeCount / $totalCells cellules actives';
+    final maskLabel = 'Masque : $activeCount / $totalCells cellules actives';
     final warnPlacements = area.generatedPlacementIds.isNotEmpty;
     final isThisAreaActiveForMask = editorState.activeLayerId == layerId &&
         editorState.selectedEnvironmentAreaId == area.id;
@@ -535,6 +491,16 @@ class _EnvironmentAreaCard extends ConsumerWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
+              const SizedBox(height: 6),
+              Text(
+                readiness.stateSummaryLine,
+                key: Key('env-area-readiness-summary-${area.id}'),
+                style: TextStyle(
+                  color: labelColor,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               if (warnPlacements) ...[
                 const SizedBox(height: 6),
                 Text(
@@ -581,7 +547,7 @@ class _EnvironmentAreaCard extends ConsumerWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                generateReason ?? _kGenerateHelp,
+                readiness.generateDisabledMessage ?? _kGenerateHelp,
                 key: Key('env-area-generate-hint-${area.id}'),
                 style: TextStyle(
                   color: subtleColor,
@@ -594,7 +560,7 @@ class _EnvironmentAreaCard extends ConsumerWidget {
               PushButton(
                 key: Key('env-area-generate-${area.id}'),
                 controlSize: ControlSize.regular,
-                onPressed: generateEnabled
+                onPressed: readiness.canGenerate
                     ? () => notifier.generateEnvironmentAreaPlacements(
                           environmentLayerId: layerId,
                           areaId: area.id,
@@ -604,57 +570,9 @@ class _EnvironmentAreaCard extends ConsumerWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                regenerateReason ?? _kRegenerateHelp,
-                key: Key('env-area-regenerate-hint-${area.id}'),
-                style: TextStyle(
-                  color: subtleColor,
-                  fontSize: 10.5,
-                  height: 1.25,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 6),
-              PushButton(
-                key: Key('env-area-regenerate-${area.id}'),
-                controlSize: ControlSize.regular,
-                secondary: true,
-                onPressed: regenerateReason == null
-                    ? () => notifier.regenerateEnvironmentAreaPlacements(
-                          environmentLayerId: layerId,
-                          areaId: area.id,
-                        )
-                    : null,
-                child: const Text('Régénérer'),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                shuffleReason ?? _kShuffleHelp,
-                key: Key('env-area-shuffle-hint-${area.id}'),
-                style: TextStyle(
-                  color: subtleColor,
-                  fontSize: 10.5,
-                  height: 1.25,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 6),
-              PushButton(
-                key: Key('env-area-shuffle-${area.id}'),
-                controlSize: ControlSize.regular,
-                secondary: true,
-                onPressed: shuffleReason == null
-                    ? () => notifier.shuffleEnvironmentAreaPlacements(
-                          environmentLayerId: layerId,
-                          areaId: area.id,
-                        )
-                    : null,
-                child: const Text('Mélanger et régénérer'),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                hasGeneratedPlacements
+                readiness.clearDisabledMessage == null
                     ? _kClearHelp
-                    : 'Aucun placement généré à effacer.',
+                    : readiness.clearDisabledMessage!,
                 key: Key('env-area-clear-hint-${area.id}'),
                 style: TextStyle(
                   color: subtleColor,
@@ -668,13 +586,61 @@ class _EnvironmentAreaCard extends ConsumerWidget {
                 key: Key('env-area-clear-${area.id}'),
                 controlSize: ControlSize.regular,
                 secondary: true,
-                onPressed: hasGeneratedPlacements
+                onPressed: readiness.canClear
                     ? () => notifier.clearEnvironmentGeneratedPlacements(
                           environmentLayerId: layerId,
                           areaId: area.id,
                         )
                     : null,
                 child: const Text('Effacer les placements générés'),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                readiness.regenerateDisabledMessage ?? _kRegenerateHelp,
+                key: Key('env-area-regenerate-hint-${area.id}'),
+                style: TextStyle(
+                  color: subtleColor,
+                  fontSize: 10.5,
+                  height: 1.25,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 6),
+              PushButton(
+                key: Key('env-area-regenerate-${area.id}'),
+                controlSize: ControlSize.regular,
+                secondary: true,
+                onPressed: regenerateEnabled
+                    ? () => notifier.regenerateEnvironmentAreaPlacements(
+                          environmentLayerId: layerId,
+                          areaId: area.id,
+                        )
+                    : null,
+                child: const Text('Régénérer'),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                readiness.shuffleDisabledMessage ?? _kShuffleHelp,
+                key: Key('env-area-shuffle-hint-${area.id}'),
+                style: TextStyle(
+                  color: subtleColor,
+                  fontSize: 10.5,
+                  height: 1.25,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 6),
+              PushButton(
+                key: Key('env-area-shuffle-${area.id}'),
+                controlSize: ControlSize.regular,
+                secondary: true,
+                onPressed: shuffleEnabled
+                    ? () => notifier.shuffleEnvironmentAreaPlacements(
+                          environmentLayerId: layerId,
+                          areaId: area.id,
+                        )
+                    : null,
+                child: const Text('Mélanger et régénérer'),
               ),
               const SizedBox(height: 10),
               PushButton(
