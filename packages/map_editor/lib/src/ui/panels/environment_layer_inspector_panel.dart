@@ -137,6 +137,8 @@ class EnvironmentLayerInspectorPanel extends ConsumerWidget {
                     layerId: layer.id,
                     labelColor: label,
                     subtleColor: subtle,
+                    resolvedTargetTileLayer: target,
+                    targetTileLayerInvalid: invalidTarget,
                   ),
                 ),
               const SizedBox(height: 10),
@@ -314,6 +316,10 @@ class EnvironmentLayerInspectorPanel extends ConsumerWidget {
   }
 }
 
+const _kGenerateHelp =
+    'Crée des placements dans le TileLayer cible en utilisant le preset et le '
+    'masque de cette zone.';
+
 class _EnvironmentAreaCard extends ConsumerWidget {
   const _EnvironmentAreaCard({
     required this.area,
@@ -321,6 +327,8 @@ class _EnvironmentAreaCard extends ConsumerWidget {
     required this.layerId,
     required this.labelColor,
     required this.subtleColor,
+    required this.resolvedTargetTileLayer,
+    required this.targetTileLayerInvalid,
   });
 
   final EnvironmentArea area;
@@ -329,11 +337,33 @@ class _EnvironmentAreaCard extends ConsumerWidget {
   final Color labelColor;
   final Color subtleColor;
 
+  /// `null` si pas de cible ou cible non résolue.
+  final TileLayer? resolvedTargetTileLayer;
+  final bool targetTileLayerInvalid;
+
   EnvironmentPreset? _presetForArea() {
     final m = manifest;
     if (m == null) return null;
     for (final p in m.environmentPresets) {
       if (p.id == area.presetId) return p;
+    }
+    return null;
+  }
+
+  /// Premier blocage UX pour désactiver « Générer dans la map » (ordre stable).
+  String? _generateDisabledReason(EnvironmentPreset? preset) {
+    if (resolvedTargetTileLayer == null || targetTileLayerInvalid) {
+      return 'Choisissez un TileLayer cible avant de générer.';
+    }
+    if (preset == null) {
+      return 'Le preset associé est introuvable.';
+    }
+    if (area.generatedPlacementIds.isNotEmpty) {
+      return 'Cette zone possède déjà des placements générés. Clear / Regenerate '
+          'arrive dans un prochain lot.';
+    }
+    if (area.mask.activeCellCount == 0) {
+      return 'Peignez le masque avant de générer.';
     }
     return null;
   }
@@ -345,6 +375,8 @@ class _EnvironmentAreaCard extends ConsumerWidget {
     final manifestPresets =
         manifest?.environmentPresets ?? const <EnvironmentPreset>[];
     final preset = _presetForArea();
+    final generateReason = _generateDisabledReason(preset);
+    final generateEnabled = generateReason == null;
     final totalCells = area.mask.width * area.mask.height;
     final activeCount = area.mask.activeCellCount;
     final maskLabel = activeCount == 0
@@ -492,6 +524,29 @@ class _EnvironmentAreaCard extends ConsumerWidget {
                     ? notifier.stopEnvironmentAreaMaskEditing
                     : null,
                 child: const Text('Arrêter l’édition'),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                generateReason ?? _kGenerateHelp,
+                key: Key('env-area-generate-hint-${area.id}'),
+                style: TextStyle(
+                  color: subtleColor,
+                  fontSize: 10.5,
+                  height: 1.25,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 6),
+              PushButton(
+                key: Key('env-area-generate-${area.id}'),
+                controlSize: ControlSize.regular,
+                onPressed: generateEnabled
+                    ? () => notifier.generateEnvironmentAreaPlacements(
+                          environmentLayerId: layerId,
+                          areaId: area.id,
+                        )
+                    : null,
+                child: const Text('Générer dans la map'),
               ),
               const SizedBox(height: 10),
               PushButton(

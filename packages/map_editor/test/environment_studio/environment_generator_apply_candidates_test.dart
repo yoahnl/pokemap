@@ -243,13 +243,13 @@ void main() {
       );
       expect(identical(r1.map, ctx.map), isTrue);
 
-      final tileMap = MapData(
+      const tileMap = MapData(
         id: 'm',
         name: 'M',
-        size: const GridSize(width: 2, height: 1),
+        size: GridSize(width: 2, height: 1),
         layers: [
-          const MapLayer.tile(id: 'env', name: 'E', tiles: [0, 0]),
-          TileLayer(id: 'tiles', name: 'T', tiles: const [0, 0]),
+          MapLayer.tile(id: 'env', name: 'E', tiles: [0, 0]),
+          TileLayer(id: 'tiles', name: 'T', tiles: [0, 0]),
         ],
       );
       final r2 = uc.execute(
@@ -451,11 +451,11 @@ void main() {
         isNotEmpty,
       );
 
-      final placed = MapPlacedElement(
+      const placed = MapPlacedElement(
         id: 'env_gen_area1_0_0_e1',
         layerId: 'tiles',
         elementId: 'e1',
-        pos: const GridPos(x: 0, y: 0),
+        pos: GridPos(x: 0, y: 0),
       );
       final mapWith = ctx.map.copyWith(placedElements: [placed]);
       expect(
@@ -600,12 +600,12 @@ void main() {
         maps: const [],
         tilesets: const [],
         elements: [
-          ProjectElementEntry(
+          const ProjectElementEntry(
             id: 'e1',
             name: 'E',
             tilesetId: 'tsB',
             categoryId: 'c',
-            frames: const [
+            frames: [
               TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
             ],
           ),
@@ -768,12 +768,12 @@ _HappyContext _happyContext({
 }
 
 MapData _minimalMap() {
-  return MapData(
+  return const MapData(
     id: 'm',
     name: 'M',
-    size: const GridSize(width: 1, height: 1),
+    size: GridSize(width: 1, height: 1),
     layers: [
-      TileLayer(id: 't', name: 'T', tiles: const [0]),
+      TileLayer(id: 't', name: 'T', tiles: [0]),
     ],
   );
 }
@@ -805,7 +805,7 @@ MapData _minimalMap() {
     size: const GridSize(width: 2, height: 1),
     layers: [
       env,
-      TileLayer(id: 'tiles', name: 'T', tiles: const [0, 0]),
+      const TileLayer(id: 'tiles', name: 'T', tiles: [0, 0]),
     ],
   );
   return (map: map);
