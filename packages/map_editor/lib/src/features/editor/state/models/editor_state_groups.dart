@@ -73,6 +73,8 @@ class EditorSelectionState {
     required this.selectedWarpId,
     required this.selectedTriggerId,
     required this.selectedGameplayZoneId,
+    required this.selectedEnvironmentAreaId,
+    required this.environmentMaskEditMode,
     required this.gameplayZoneDraftArea,
     required this.selectedTilesetEditorId,
     required this.selectedTilesetElementGroupId,
@@ -102,6 +104,8 @@ class EditorSelectionState {
   final String? selectedWarpId;
   final String? selectedTriggerId;
   final String? selectedGameplayZoneId;
+  final String? selectedEnvironmentAreaId;
+  final EnvironmentMaskEditMode? environmentMaskEditMode;
   final MapRect? gameplayZoneDraftArea;
   final String? selectedTilesetEditorId;
   final String? selectedTilesetElementGroupId;
@@ -131,6 +135,8 @@ class EditorSelectionState {
     Object? selectedWarpId = _editorStateGroupsUnset,
     Object? selectedTriggerId = _editorStateGroupsUnset,
     Object? selectedGameplayZoneId = _editorStateGroupsUnset,
+    Object? selectedEnvironmentAreaId = _editorStateGroupsUnset,
+    Object? environmentMaskEditMode = _editorStateGroupsUnset,
     Object? gameplayZoneDraftArea = _editorStateGroupsUnset,
     Object? selectedTilesetEditorId = _editorStateGroupsUnset,
     Object? selectedTilesetElementGroupId = _editorStateGroupsUnset,
@@ -189,6 +195,14 @@ class EditorSelectionState {
           identical(selectedGameplayZoneId, _editorStateGroupsUnset)
               ? this.selectedGameplayZoneId
               : selectedGameplayZoneId as String?,
+      selectedEnvironmentAreaId:
+          identical(selectedEnvironmentAreaId, _editorStateGroupsUnset)
+              ? this.selectedEnvironmentAreaId
+              : selectedEnvironmentAreaId as String?,
+      environmentMaskEditMode:
+          identical(environmentMaskEditMode, _editorStateGroupsUnset)
+              ? this.environmentMaskEditMode
+              : environmentMaskEditMode as EnvironmentMaskEditMode?,
       gameplayZoneDraftArea:
           identical(gameplayZoneDraftArea, _editorStateGroupsUnset)
               ? this.gameplayZoneDraftArea
@@ -344,6 +358,8 @@ extension EditorStateGroups on EditorState {
         selectedWarpId: selectedWarpId,
         selectedTriggerId: selectedTriggerId,
         selectedGameplayZoneId: selectedGameplayZoneId,
+        selectedEnvironmentAreaId: selectedEnvironmentAreaId,
+        environmentMaskEditMode: environmentMaskEditMode,
         gameplayZoneDraftArea: gameplayZoneDraftArea,
         selectedTilesetEditorId: selectedTilesetEditorId,
         selectedTilesetElementGroupId: selectedTilesetElementGroupId,
@@ -404,6 +420,8 @@ extension EditorStateGroups on EditorState {
       selectedWarpId: next.selectedWarpId,
       selectedTriggerId: next.selectedTriggerId,
       selectedGameplayZoneId: next.selectedGameplayZoneId,
+      selectedEnvironmentAreaId: next.selectedEnvironmentAreaId,
+      environmentMaskEditMode: next.environmentMaskEditMode,
       gameplayZoneDraftArea: next.gameplayZoneDraftArea,
       selectedTilesetEditorId: next.selectedTilesetEditorId,
       selectedTilesetElementGroupId: next.selectedTilesetElementGroupId,

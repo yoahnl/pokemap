@@ -39,6 +39,9 @@ class MapSelectionController {
     return current.copyWith(
       activeTool: tool,
       terrainSelectionMode: terrainMode,
+      // Lot Environment-22 : un outil toolbar classique sort du mode masque.
+      selectedEnvironmentAreaId: null,
+      environmentMaskEditMode: null,
     );
   }
 

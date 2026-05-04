@@ -1,3 +1,2947 @@
+# Environment Studio Lot 21 — Environment Area Model Editing V0
+
+## 1. Résumé exécutif
+
+Le Lot 21 ajoute la gestion des **`EnvironmentArea`** dans l’inspecteur d’un **Environment Layer** : liste des zones, ajout avec choix d’un **`EnvironmentPreset`** du manifeste projet, changement de preset, retrait d’une zone. Chaque zone créée reçoit un **masque vide** aux dimensions de la **`MapData`**, des **`generatedPlacementIds`** vides, un **id** unique (`env_area_<slug preset>_…`), et le **`targetTileLayerId`** du layer est préservé. Les mutations passent par **`AddEnvironmentAreaUseCase`**, **`SetEnvironmentAreaPresetUseCase`**, **`RemoveEnvironmentAreaUseCase`** → **`setEnvironmentLayerContent`** + **`MapValidator.validate`** → **`EditorNotifier`** + **`_applyMapMutation`**. Aucun dessin canvas, aucun brush, aucune modification cellule par cellule du mask, aucune écriture disque, aucun changement **`map_core`**.
+
+## 2. Périmètre du lot
+
+**Inclus** : CRUD métier des areas au niveau modèle carte (contenu du layer) ; UI section « Zones d’environnement » ; pickers presets ; messages sans preset / mask vide / placements orphelins ; tests use case + notifier + widgets ; régression **`test/environment_studio`**.
+
+**Exclus** : peinture de mask, outils brush/erase, génération, **`MapPlacedElement`**, patch **`TileLayer`**, modification de **`ProjectManifest.environmentPresets`**, sélection globale d’area dans **`EditorState`**, **`build_runner`**, packages hors **`map_editor`** (sauf lecture **`map_core`**).
+
+## 3. Audit initial EnvironmentArea / mask / inspector
+
+Fichiers relus (lecture) : `packages/map_core/lib/src/models/environment.dart` (**`EnvironmentArea`** : `id`, `name`, `presetId`, **`EnvironmentAreaMask`**, `seed`, `paramsOverride`, `generatedPlacementIds`), **`EnvironmentLayerContent`**, opérations **`setEnvironmentLayerContent`** dans `map_layers.dart`, tests map_core environnement, **`environment_layer_inspector_panel.dart`** (Lot 20), **`layer_use_cases.dart`**, **`editor_notifier.dart`**.
+
+Constats :
+
+- **`EnvironmentAreaMask`** : factory `EnvironmentAreaMask(width, height, cells)` ; pas de factory « empty map » dans map_core — masque vide = `cells: List.filled(w*h, false)` aux dimensions **`map.size`**.
+- **`setEnvironmentLayerContent`** remplace tout le **`EnvironmentLayerContent`** : il faut reconstruire **`areas`** + préserver **`targetTileLayerId`** explicitement.
+- **`MapValidator.validate`** impose une **`targetTileLayerId`** valide si renseignée (tests remove corrigés avec **`TileLayer`** présent sur la carte).
+
+Recherches grep (extraits) : `class EnvironmentArea` et **`EnvironmentAreaMask`** dans **`environment.dart`** ; **`setEnvironmentLayerContent`** dans **`map_layers.dart`** ; **`environmentPresets`** consommé via **`ProjectManifest`** dans l’éditeur (**`editorProjectManifestProvider`**).
+
+**Pourquoi aucun changement `map_core`** : toutes les primitives nécessaires existent déjà.
+
+## 4. Décisions UI zones d’environnement
+
+- Section **« Zones d’environnement »** placée **avant** la section **TileLayer cible** (dépendance logique : où générer → où patcher).
+- **`SingleChildScrollView`** sur tout le panneau pour tenir dans **`InspectorSectionCard`** (hauteur fixe **`expandedHeight: 560`** dans **`map_inspector_panel.dart`**).
+- Sans presets : message + **pas** de bouton « Ajouter une zone ».
+- Carte area : id, preset (nom + id ou introuvable), état mask (vide → message Lot masque), compteur **`generatedPlacementIds`**, avertissement orange si placements non vides, actions **Changer de preset** / **Retirer**.
+- Picker preset : libellé **`${name} — ${id}`** (tiret cadratin) pour tests **`find.textContaining`**.
+
+## 5. Ajout d’EnvironmentArea
+
+- **`AddEnvironmentAreaUseCase`** : valide layer Environment, preset dans **`manifest.environmentPresets`**, génère **id** unique, **`EnvironmentArea`** avec **`emptyEnvironmentAreaMaskForMap(map)`**, **`seed: 0`**, **`name: preset.name`**, **`generatedPlacementIds`** par défaut vides, concatène en fin de liste **`areas`**, préserve **`targetTileLayerId`**.
+
+## 6. Changement de preset d’une zone
+
+- **`SetEnvironmentAreaPresetUseCase`** : remplace uniquement **`presetId`** en reconstruisant **`EnvironmentArea`** avec les mêmes **`mask`**, **`seed`**, **`paramsOverride`**, **`generatedPlacementIds`**, **`name`**, **`id`**.
+
+## 7. Retrait d’une zone
+
+- **`RemoveEnvironmentAreaUseCase`** : filtre **`areas`** par **`areaId`**, préserve **`targetTileLayerId`** et les autres zones. Aucun effet sur **`placedElements`**.
+
+## 8. Dirty state / sélection active
+
+Identique au Lot 20 : **`_applyMapMutation`** avec **`preferredActiveLayerId: environmentLayerId`**.
+
+## 9. Préservation targetTileLayerId / masks / generatedPlacementIds
+
+Garantie par reconstruction explicite du **`EnvironmentLayerContent`** et, pour changement de preset, recopie des champs de **`EnvironmentArea`** inchangés.
+
+## 10. Non-persistance disque garantie
+
+Aucun appel **`FileProjectRepository`**, **`saveProject`**, **`saveProjectManifest`** dans **`environment_layer_inspector_panel.dart`**, **`layer_use_cases.dart`**. Le grep sur **`editor_notifier`** ne remonte que des méthodes **hors** flux areas (voir §15).
+
+## 11. Pourquoi aucun dessin de mask / canvas / génération dans ce lot
+
+Périmètre V0 : modèle + inspecteur uniquement ; le masque reste entièrement inactif jusqu’au lot pinceau.
+
+## 12. Fichiers modifiés
+
+| Fichier | Rôle |
+|---------|------|
+| `packages/map_editor/lib/src/application/use_cases/layer_use_cases.dart` | Use cases + helper mask vide + ids uniques. |
+| `packages/map_editor/lib/src/features/editor/state/editor_notifier.dart` | `addEnvironmentAreaToLayer`, `setEnvironmentAreaPreset`, `removeEnvironmentArea`. |
+| `packages/map_editor/lib/src/ui/panels/environment_layer_inspector_panel.dart` | Section zones + cartes area + scroll. |
+| `packages/map_editor/lib/src/ui/panels/map_inspector_panel.dart` | **`expandedHeight` 360 → 560**. |
+| `packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart` | **Nouveau** — tests Lot 21. |
+| `packages/map_editor/test/environment_studio/environment_layer_creation_test.dart` | Assertion texte inspecteur (évolution copy Lot 21). |
+| `reports/forest/environment_studio_lot_21_environment_area_model_editing.md` | Ce rapport. |
+
+## 13. Tests ajoutés ou modifiés
+
+- **Nouveau** : `environment_layer_area_model_editing_test.dart` (use cases, notifier, widgets MapInspector / panneau isolé).
+- **Modifié** : `environment_layer_creation_test.dart` (texte « masque » dans la zone d’intro / description zones).
+
+## 14. Commandes exécutées
+
+```bash
+cd /Users/karim/Project/pokemonProject/packages/map_editor
+dart format lib/src/application/use_cases/layer_use_cases.dart lib/src/features/editor/state/editor_notifier.dart lib/src/ui/panels/environment_layer_inspector_panel.dart lib/src/ui/panels/map_inspector_panel.dart test/environment_studio/environment_layer_area_model_editing_test.dart test/environment_studio/environment_layer_creation_test.dart
+flutter analyze lib/src/application/use_cases/layer_use_cases.dart lib/src/features/editor/state/editor_notifier.dart lib/src/ui/panels/environment_layer_inspector_panel.dart lib/src/ui/panels/map_inspector_panel.dart test/environment_studio/environment_layer_area_model_editing_test.dart test/environment_studio/environment_layer_creation_test.dart test/environment_studio/environment_layer_target_tile_layer_test.dart
+grep -R "FileProjectRepository\|saveProject\|saveProjectManifest" -n lib/src/ui/panels/environment_layer_inspector_panel.dart lib/src/features/editor/state/editor_notifier.dart lib/src/application/use_cases/layer_use_cases.dart || true
+flutter test test/environment_studio/environment_layer_area_model_editing_test.dart test/environment_studio/environment_layer_target_tile_layer_test.dart test/environment_studio/environment_layer_creation_test.dart --reporter expanded
+flutter test test/environment_studio --reporter expanded
+flutter test test/editor_workspace_controller_test.dart test/top_toolbar_test.dart --reporter expanded
+flutter test
+```
+
+## 15. Résultats des commandes
+
+### `dart format`
+
+Exit code **0** (fichiers listés §14).
+
+### `flutter analyze` (7 items)
+
+```
+Analyzing 7 items...
+No issues found! (ran in 1.7s)
+```
+
+### Grep persistance (chemins lot)
+
+```
+lib/src/features/editor/state/editor_notifier.dart:438:  Future<bool> saveProjectManifest() async {
+lib/src/features/editor/state/editor_notifier.dart:447:    debugPrint('EditorNotifier: saveProjectManifest()');
+lib/src/features/editor/state/editor_notifier.dart:449:      await ref.read(projectRepositoryProvider).saveProject(
+lib/src/features/editor/state/editor_notifier.dart:1489:  Future<void> saveProjectDialogueYarnBody({
+lib/src/features/editor/state/editor_notifier.dart:1493:      state = await _projectContentController.saveProjectDialogueYarnBody(
+```
+
+### `flutter test` — `environment_layer_area_model_editing_test` + Lot 20 + Lot 19
+
+```
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart: Lot 21 — EnvironmentArea model (inspector) AddEnvironmentAreaUseCase ajoute une area : mask taille map, vide, placements vides, cible préservée
+00:00 +1: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart: Lot 21 — EnvironmentArea model (inspector) AddEnvironmentAreaUseCase deux areas même preset → ids différents, ordre stable
+00:00 +2: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart: Lot 21 — EnvironmentArea model (inspector) AddEnvironmentAreaUseCase rejette environmentLayerId inconnu
+00:00 +3: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart: Lot 21 — EnvironmentArea model (inspector) AddEnvironmentAreaUseCase rejette environmentLayerId TileLayer
+00:00 +4: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart: Lot 21 — EnvironmentArea model (inspector) AddEnvironmentAreaUseCase rejette presetId inconnu
+00:00 +5: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart: Lot 21 — EnvironmentArea model (inspector) AddEnvironmentAreaUseCase rejette presetId vide
+00:00 +6: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart: Lot 21 — EnvironmentArea model (inspector) SetEnvironmentAreaPresetUseCase change presetId, préserve mask et generatedPlacementIds et cible
+00:00 +7: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart: Lot 21 — EnvironmentArea model (inspector) SetEnvironmentAreaPresetUseCase rejette areaId inconnu
+00:00 +8: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart: Lot 21 — EnvironmentArea model (inspector) RemoveEnvironmentAreaUseCase retire une area, préserve l’autre et targetTileLayerId
+00:00 +9: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart: Lot 21 — EnvironmentArea model (inspector) RemoveEnvironmentAreaUseCase rejette areaId inconnu
+00:00 +10: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart: Lot 21 — EnvironmentArea model (inspector) EditorNotifier — areas add / set preset / remove : activeMap, activeLayerId, dirty, chemins
+00:00 +11: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart: Lot 21 — EnvironmentArea model (inspector) inspecteur : aucun preset → message et pas d’ajout
+00:00 +12: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart: Lot 21 — EnvironmentArea model (inspector) inspecteur : aucun preset → message et pas d’ajout
+00:00 +13: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart: Lot 21 — EnvironmentArea model (inspector) inspecteur : aucun preset → message et pas d’ajout
+00:00 +14: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart: Lot 21 — EnvironmentArea model (inspector) inspecteur : aucun preset → message et pas d’ajout
+00:00 +15: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart: Lot 21 — EnvironmentArea model (inspector) inspecteur : aucun preset → message et pas d’ajout
+00:00 +16: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart: Lot 21 — EnvironmentArea model (inspector) inspecteur : aucun preset → message et pas d’ajout
+00:00 +17: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart: Lot 21 — EnvironmentArea model (inspector) inspecteur : aucun preset → message et pas d’ajout
+00:00 +18: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart: Lot 21 — EnvironmentArea model (inspector) inspecteur : aucun preset → message et pas d’ajout
+00:00 +19: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart: Lot 20 — EnvironmentLayer target TileLayer inspecteur : aucun TileLayer
+00:01 +20: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_creation_test.dart: Lot 19 — Environment Layer dans l’éditeur de map picker d’ajout de layer expose Environment Layer
+00:01 +21: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_creation_test.dart: Lot 19 — Environment Layer dans l’éditeur de map picker d’ajout de layer expose Environment Layer
+00:01 +22: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_creation_test.dart: Lot 19 — Environment Layer dans l’éditeur de map picker d’ajout de layer expose Environment Layer
+00:01 +23: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart: Lot 20 — EnvironmentLayer target TileLayer choix TileLayer via picker met à jour la cible et dirty
+00:01 +24: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart: Lot 20 — EnvironmentLayer target TileLayer choix TileLayer via picker met à jour la cible et dirty
+00:01 +25: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_creation_test.dart: Lot 19 — Environment Layer dans l’éditeur de map ajout Environment Layer : MapLayer.environment, contenu vide, sélection, dirty
+00:01 +26: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_creation_test.dart: Lot 19 — Environment Layer dans l’éditeur de map ajout Environment Layer : MapLayer.environment, contenu vide, sélection, dirty
+00:01 +27: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_creation_test.dart: Lot 19 — Environment Layer dans l’éditeur de map ajout Environment Layer : MapLayer.environment, contenu vide, sélection, dirty
+00:01 +28: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart: Lot 20 — EnvironmentLayer target TileLayer picker ne liste que les TileLayer (ObjectLayer exclu)
+00:01 +29: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart: Lot 20 — EnvironmentLayer target TileLayer picker ne liste que les TileLayer (ObjectLayer exclu)
+00:01 +30: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_creation_test.dart: Lot 19 — Environment Layer dans l’éditeur de map MapInspector : section neutre quand EnvironmentLayer actif
+00:01 +31: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart: Lot 20 — EnvironmentLayer target TileLayer retirer la cible remet null
+00:01 +32: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_creation_test.dart: Lot 19 — Environment Layer dans l’éditeur de map MapGridPainter : map avec TileLayer + EnvironmentLayer ne lève pas
+00:01 +33: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart: Lot 20 — EnvironmentLayer target TileLayer cible invalide affiche avertissement et actions
+00:01 +34: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart: Lot 20 — EnvironmentLayer target TileLayer EnvironmentLayerInspectorPanel seul : pas de crash
+00:01 +35: All tests passed!
+```
+
+### `flutter test test/environment_studio`
+
+Dernière ligne :
+
+```
+00:06 +141: All tests passed!
+```
+
+Nombre de lignes du journal : `wc -l /tmp/lot21_env_studio.log` → **244** (fichier local d’exécution agent).
+
+### `flutter test` workspace + top toolbar
+
+Dernière ligne :
+
+```
+00:01 +14: All tests passed!
+```
+
+### `flutter test` (suite complète `packages/map_editor`)
+
+Exit code **1**. Dernières lignes du journal `/tmp/lot21_full_map_editor.log` :
+
+```
+00:57 +974 -34: /Users/karim/Project/pokemonProject/packages/map_editor/test/sync_pokemon_items_catalog_use_case_test.dart: load use case reads the synced catalog after a real sync
+00:57 +974 -34: Some tests failed.
+```
+
+Dette hors lot (catalogue/sync Pokémon et tests associés), inchangée par le Lot 21.
+
+---
+
+## 16. Git status initial et final
+
+**État initial (référence Lot 21)** : au démarrage de l’implémentation, le dépôt contenait déjà les modifications Lot 20 sur `map_editor` (fichiers modifiés non listés ici de façon exhaustive) ; aucun fichier du présent rapport ni du test `environment_layer_area_model_editing_test.dart` n’existait encore.
+
+**État final** (`git status --short --untracked-files=all`, racine du repo) :
+
+```
+ M packages/map_editor/lib/src/application/use_cases/layer_use_cases.dart
+ M packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
+ M packages/map_editor/lib/src/ui/panels/environment_layer_inspector_panel.dart
+ M packages/map_editor/lib/src/ui/panels/map_inspector_panel.dart
+ M packages/map_editor/test/environment_studio/environment_layer_creation_test.dart
+?? packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart
+?? reports/forest/environment_studio_lot_21_environment_area_model_editing.md
+```
+
+---
+
+## 17. Contenu complet des fichiers créés ou modifiés
+
+### `packages/map_editor/lib/src/application/use_cases/layer_use_cases.dart`
+
+```dart
+import 'package:map_core/map_core.dart';
+
+import '../errors/application_errors.dart';
+
+class AddMapLayerResult {
+  final MapData map;
+  final MapLayer layer;
+
+  AddMapLayerResult(this.map, this.layer);
+}
+
+class AddMapLayerUseCase {
+  AddMapLayerResult execute(
+    MapData map, {
+    required MapLayerKind kind,
+    required String name,
+    String? tileTilesetId,
+    int? insertIndex,
+  }) {
+    final normalizedName = name.trim();
+    if (normalizedName.isEmpty) {
+      throw const EditorValidationException('Layer name cannot be empty');
+    }
+
+    final layerId = _generateUniqueLayerId(
+      map,
+      kind: kind,
+      name: normalizedName,
+    );
+
+    final updated = addMapLayer(
+      map,
+      kind: kind,
+      id: layerId,
+      name: normalizedName,
+      tileTilesetId: tileTilesetId,
+      insertIndex: insertIndex,
+    );
+    MapValidator.validate(updated);
+
+    final created = updated.layers.firstWhere((layer) => layer.id == layerId);
+    return AddMapLayerResult(updated, created);
+  }
+
+  AddMapLayerResult executeSurface(
+    MapData map, {
+    String name = 'Surfaces',
+    int? insertIndex,
+  }) {
+    final normalizedName = name.trim().isEmpty ? 'Surfaces' : name.trim();
+    final layerId = _generateUniqueSurfaceLayerId(map);
+    final layerName = _resolveSurfaceLayerName(map, normalizedName);
+    final layer = MapLayer.surface(
+      id: layerId,
+      name: layerName,
+    );
+
+    var targetIndex = insertIndex ?? map.layers.length;
+    if (targetIndex < 0) targetIndex = 0;
+    if (targetIndex > map.layers.length) targetIndex = map.layers.length;
+
+    final updatedLayers = List<MapLayer>.from(map.layers, growable: true)
+      ..insert(targetIndex, layer);
+    final updated = map.copyWith(layers: updatedLayers);
+    MapValidator.validate(updated);
+    return AddMapLayerResult(updated, layer);
+  }
+
+  String _generateUniqueLayerId(
+    MapData map, {
+    required MapLayerKind kind,
+    required String name,
+  }) {
+    final existing = map.layers.map((layer) => layer.id).toSet();
+    final kindPrefix = switch (kind) {
+      MapLayerKind.tile => 'l_tile',
+      MapLayerKind.collision => 'l_collision',
+      MapLayerKind.terrain => 'l_terrain',
+      MapLayerKind.path => 'l_path',
+      MapLayerKind.object => 'l_object',
+      MapLayerKind.environment => 'l_environment',
+    };
+    final slug = _slugifyLayerName(name);
+    final base = slug.isEmpty ? kindPrefix : '${kindPrefix}_$slug';
+    var candidate = base;
+    var suffix = 1;
+    while (existing.contains(candidate)) {
+      candidate = '${base}_$suffix';
+      suffix++;
+    }
+    return candidate;
+  }
+
+  String _generateUniqueSurfaceLayerId(MapData map) {
+    final existing = map.layers.map((layer) => layer.id).toSet();
+    const base = 'surface-main';
+    if (!existing.contains(base)) {
+      return base;
+    }
+    var suffix = 2;
+    while (existing.contains('surface-$suffix')) {
+      suffix++;
+    }
+    return 'surface-$suffix';
+  }
+
+  String _resolveSurfaceLayerName(MapData map, String requestedName) {
+    if (requestedName != 'Surfaces') {
+      return requestedName;
+    }
+    final existing = map.layers.map((layer) => layer.name).toSet();
+    const base = 'Surfaces';
+    if (!existing.contains(base)) {
+      return base;
+    }
+    var suffix = 2;
+    while (existing.contains('$base $suffix')) {
+      suffix++;
+    }
+    return '$base $suffix';
+  }
+
+  String _slugifyLayerName(String value) {
+    final lowered = value.toLowerCase().trim();
+    final replaced = lowered.replaceAll(RegExp(r'[^a-z0-9]+'), '_');
+    final normalized = replaced.replaceAll(RegExp(r'^_+|_+$'), '');
+    return normalized;
+  }
+}
+
+class RenameMapLayerUseCase {
+  MapData execute(
+    MapData map, {
+    required String layerId,
+    required String name,
+  }) {
+    final updated = renameMapLayer(
+      map,
+      layerId: layerId,
+      name: name,
+    );
+    MapValidator.validate(updated);
+    return updated;
+  }
+}
+
+class DeleteMapLayerUseCase {
+  MapData execute(
+    MapData map, {
+    required String layerId,
+  }) {
+    final updated = removeMapLayer(map, layerId: layerId);
+    MapValidator.validate(updated);
+    return updated;
+  }
+}
+
+class DeleteAllMapLayersUseCase {
+  MapData execute(MapData map) {
+    final updated = removeAllMapLayers(map);
+    MapValidator.validate(updated);
+    return updated;
+  }
+}
+
+class MoveMapLayerUseCase {
+  MapData execute(
+    MapData map, {
+    required String layerId,
+    required int direction,
+  }) {
+    final updated = moveMapLayer(
+      map,
+      layerId: layerId,
+      direction: direction,
+    );
+    MapValidator.validate(updated);
+    return updated;
+  }
+}
+
+class ReorderMapLayersUseCase {
+  MapData execute(
+    MapData map, {
+    required int oldIndex,
+    required int newIndex,
+  }) {
+    final updated = reorderMapLayers(
+      map,
+      oldIndex: oldIndex,
+      newIndex: newIndex,
+    );
+    MapValidator.validate(updated);
+    return updated;
+  }
+}
+
+class SetMapLayerVisibilityUseCase {
+  MapData execute(
+    MapData map, {
+    required String layerId,
+    required bool isVisible,
+  }) {
+    final updated = setMapLayerVisibility(
+      map,
+      layerId: layerId,
+      isVisible: isVisible,
+    );
+    MapValidator.validate(updated);
+    return updated;
+  }
+}
+
+class SetMapLayerOpacityUseCase {
+  MapData execute(
+    MapData map, {
+    required String layerId,
+    required double opacity,
+  }) {
+    final updated = setMapLayerOpacity(
+      map,
+      layerId: layerId,
+      opacity: opacity,
+    );
+    MapValidator.validate(updated);
+    return updated;
+  }
+}
+
+/// Lot Environment-20 : cible tuile pour un [EnvironmentLayer] (mutation map pure).
+class SetEnvironmentLayerTargetTileLayerUseCase {
+  MapData execute(
+    MapData map, {
+    required String environmentLayerId,
+    required String? targetTileLayerId,
+  }) {
+    final envId = environmentLayerId.trim();
+    if (envId.isEmpty) {
+      throw const EditorValidationException(
+          'Environment layer id cannot be empty');
+    }
+
+    MapLayer? envLayer;
+    for (final layer in map.layers) {
+      if (layer.id == envId) {
+        envLayer = layer;
+        break;
+      }
+    }
+    if (envLayer == null) {
+      throw EditorValidationException('Environment layer not found: $envId');
+    }
+    if (envLayer is! EnvironmentLayer) {
+      throw EditorValidationException(
+          'Layer is not an environment layer: $envId');
+    }
+
+    if (targetTileLayerId == null) {
+      final nextContent = EnvironmentLayerContent(
+        targetTileLayerId: null,
+        areas: envLayer.content.areas,
+      );
+      try {
+        final updated = setEnvironmentLayerContent(
+          map,
+          layerId: envId,
+          content: nextContent,
+        );
+        MapValidator.validate(updated);
+        return updated;
+      } on ValidationException catch (e) {
+        throw EditorValidationException(e.message);
+      }
+    }
+
+    final tid = targetTileLayerId.trim();
+    if (tid.isEmpty) {
+      throw const EditorValidationException(
+          'Target tile layer id cannot be empty');
+    }
+    if (tid == envId) {
+      throw const EditorValidationException(
+        'Environment layer cannot target itself as targetTileLayerId',
+      );
+    }
+
+    MapLayer? targetLayer;
+    for (final layer in map.layers) {
+      if (layer.id == tid) {
+        targetLayer = layer;
+        break;
+      }
+    }
+    if (targetLayer == null) {
+      throw EditorValidationException('Target tile layer not found: $tid');
+    }
+    if (targetLayer is! TileLayer) {
+      throw EditorValidationException(
+        'targetTileLayerId must reference a TileLayer, got ${targetLayer.runtimeType}',
+      );
+    }
+
+    final nextContent = EnvironmentLayerContent(
+      targetTileLayerId: tid,
+      areas: envLayer.content.areas,
+    );
+    try {
+      final updated = setEnvironmentLayerContent(
+        map,
+        layerId: envId,
+        content: nextContent,
+      );
+      MapValidator.validate(updated);
+      return updated;
+    } on ValidationException catch (e) {
+      throw EditorValidationException(e.message);
+    }
+  }
+}
+
+/// Masque booléen vide aligné sur [MapData.size] (toutes les cellules inactives).
+EnvironmentAreaMask emptyEnvironmentAreaMaskForMap(MapData map) {
+  final w = map.size.width;
+  final h = map.size.height;
+  return EnvironmentAreaMask(
+    width: w,
+    height: h,
+    cells: List<bool>.filled(w * h, false, growable: false),
+  );
+}
+
+String _slugifyEnvAreaToken(String value) {
+  final lowered = value.toLowerCase().trim();
+  final replaced = lowered.replaceAll(RegExp(r'[^a-z0-9]+'), '_');
+  return replaced.replaceAll(RegExp(r'^_+|_+$'), '');
+}
+
+String _uniqueEnvironmentAreaId({
+  required String presetId,
+  required Iterable<String> existingAreaIds,
+}) {
+  final slug = _slugifyEnvAreaToken(presetId);
+  final baseToken = slug.isEmpty ? 'area' : slug;
+  final base = 'env_area_$baseToken';
+  final existing = existingAreaIds.toSet();
+  if (!existing.contains(base)) {
+    return base;
+  }
+  var n = 2;
+  while (true) {
+    final candidate = '${base}_$n';
+    if (!existing.contains(candidate)) {
+      return candidate;
+    }
+    n++;
+  }
+}
+
+/// Lot Environment-21 : résultat de [AddEnvironmentAreaUseCase].
+final class AddEnvironmentAreaResult {
+  const AddEnvironmentAreaResult({
+    required this.map,
+    required this.area,
+  });
+
+  final MapData map;
+  final EnvironmentArea area;
+}
+
+/// Lot Environment-21 : ajoute une [EnvironmentArea] (mask vide, map size).
+class AddEnvironmentAreaUseCase {
+  AddEnvironmentAreaResult execute(
+    MapData map, {
+    required ProjectManifest manifest,
+    required String environmentLayerId,
+    required String presetId,
+  }) {
+    final envId = environmentLayerId.trim();
+    if (envId.isEmpty) {
+      throw const EditorValidationException(
+        'Environment layer id cannot be empty',
+      );
+    }
+    final pid = presetId.trim();
+    if (pid.isEmpty) {
+      throw const EditorValidationException('Preset id cannot be empty');
+    }
+
+    EnvironmentPreset? preset;
+    for (final p in manifest.environmentPresets) {
+      if (p.id == pid) {
+        preset = p;
+        break;
+      }
+    }
+    if (preset == null) {
+      throw EditorValidationException('Environment preset not found: $pid');
+    }
+
+    MapLayer? envLayer;
+    for (final layer in map.layers) {
+      if (layer.id == envId) {
+        envLayer = layer;
+        break;
+      }
+    }
+    if (envLayer == null) {
+      throw EditorValidationException('Environment layer not found: $envId');
+    }
+    if (envLayer is! EnvironmentLayer) {
+      throw EditorValidationException(
+        'Layer is not an environment layer: $envId',
+      );
+    }
+
+    final existingIds = envLayer.content.areas.map((a) => a.id).toList();
+    final newId = _uniqueEnvironmentAreaId(
+      presetId: pid,
+      existingAreaIds: existingIds,
+    );
+    final mask = emptyEnvironmentAreaMaskForMap(map);
+    final area = EnvironmentArea(
+      id: newId,
+      name: preset.name,
+      presetId: pid,
+      mask: mask,
+      seed: 0,
+    );
+
+    final nextAreas = <EnvironmentArea>[...envLayer.content.areas, area];
+    final nextContent = EnvironmentLayerContent(
+      targetTileLayerId: envLayer.content.targetTileLayerId,
+      areas: nextAreas,
+    );
+    try {
+      final updated = setEnvironmentLayerContent(
+        map,
+        layerId: envId,
+        content: nextContent,
+      );
+      MapValidator.validate(updated);
+      return AddEnvironmentAreaResult(map: updated, area: area);
+    } on ValidationException catch (e) {
+      throw EditorValidationException(e.message);
+    }
+  }
+}
+
+/// Lot Environment-21 : change uniquement le [EnvironmentArea.presetId].
+class SetEnvironmentAreaPresetUseCase {
+  MapData execute(
+    MapData map, {
+    required ProjectManifest manifest,
+    required String environmentLayerId,
+    required String areaId,
+    required String presetId,
+  }) {
+    final envId = environmentLayerId.trim();
+    if (envId.isEmpty) {
+      throw const EditorValidationException(
+        'Environment layer id cannot be empty',
+      );
+    }
+    final aid = areaId.trim();
+    if (aid.isEmpty) {
+      throw const EditorValidationException('Area id cannot be empty');
+    }
+    final pid = presetId.trim();
+    if (pid.isEmpty) {
+      throw const EditorValidationException('Preset id cannot be empty');
+    }
+
+    EnvironmentPreset? preset;
+    for (final p in manifest.environmentPresets) {
+      if (p.id == pid) {
+        preset = p;
+        break;
+      }
+    }
+    if (preset == null) {
+      throw EditorValidationException('Environment preset not found: $pid');
+    }
+
+    MapLayer? envLayer;
+    for (final layer in map.layers) {
+      if (layer.id == envId) {
+        envLayer = layer;
+        break;
+      }
+    }
+    if (envLayer == null) {
+      throw EditorValidationException('Environment layer not found: $envId');
+    }
+    if (envLayer is! EnvironmentLayer) {
+      throw EditorValidationException(
+        'Layer is not an environment layer: $envId',
+      );
+    }
+
+    EnvironmentArea? found;
+    for (final a in envLayer.content.areas) {
+      if (a.id == aid) {
+        found = a;
+        break;
+      }
+    }
+    if (found == null) {
+      throw EditorValidationException('Environment area not found: $aid');
+    }
+
+    final updatedArea = EnvironmentArea(
+      id: found.id,
+      name: found.name,
+      presetId: pid,
+      mask: found.mask,
+      seed: found.seed,
+      paramsOverride: found.paramsOverride,
+      generatedPlacementIds: found.generatedPlacementIds,
+    );
+
+    final nextAreas = envLayer.content.areas
+        .map((a) => a.id == aid ? updatedArea : a)
+        .toList(growable: false);
+    final nextContent = EnvironmentLayerContent(
+      targetTileLayerId: envLayer.content.targetTileLayerId,
+      areas: nextAreas,
+    );
+    try {
+      final updated = setEnvironmentLayerContent(
+        map,
+        layerId: envId,
+        content: nextContent,
+      );
+      MapValidator.validate(updated);
+      return updated;
+    } on ValidationException catch (e) {
+      throw EditorValidationException(e.message);
+    }
+  }
+}
+
+/// Lot Environment-21 : retire une [EnvironmentArea] du layer.
+class RemoveEnvironmentAreaUseCase {
+  MapData execute(
+    MapData map, {
+    required String environmentLayerId,
+    required String areaId,
+  }) {
+    final envId = environmentLayerId.trim();
+    if (envId.isEmpty) {
+      throw const EditorValidationException(
+        'Environment layer id cannot be empty',
+      );
+    }
+    final aid = areaId.trim();
+    if (aid.isEmpty) {
+      throw const EditorValidationException('Area id cannot be empty');
+    }
+
+    MapLayer? envLayer;
+    for (final layer in map.layers) {
+      if (layer.id == envId) {
+        envLayer = layer;
+        break;
+      }
+    }
+    if (envLayer == null) {
+      throw EditorValidationException('Environment layer not found: $envId');
+    }
+    if (envLayer is! EnvironmentLayer) {
+      throw EditorValidationException(
+        'Layer is not an environment layer: $envId',
+      );
+    }
+
+    final had = envLayer.content.areas.any((a) => a.id == aid);
+    if (!had) {
+      throw EditorValidationException('Environment area not found: $aid');
+    }
+
+    final nextAreas = envLayer.content.areas
+        .where((a) => a.id != aid)
+        .toList(growable: false);
+    final nextContent = EnvironmentLayerContent(
+      targetTileLayerId: envLayer.content.targetTileLayerId,
+      areas: nextAreas,
+    );
+    try {
+      final updated = setEnvironmentLayerContent(
+        map,
+        layerId: envId,
+        content: nextContent,
+      );
+      MapValidator.validate(updated);
+      return updated;
+    } on ValidationException catch (e) {
+      throw EditorValidationException(e.message);
+    }
+  }
+}
+```
+
+### `packages/map_editor/lib/src/ui/panels/environment_layer_inspector_panel.dart`
+
+```dart
+import 'package:flutter/cupertino.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:macos_ui/macos_ui.dart';
+import 'package:map_core/map_core.dart';
+
+import '../../features/editor/state/editor_notifier.dart';
+import '../../features/editor/state/editor_selectors.dart';
+import '../shared/cupertino_editor_widgets.dart';
+
+/// Inspecteur Environment Studio : cible tuile (Lot 20) + zones (Lot 21), sans canvas.
+class EnvironmentLayerInspectorPanel extends ConsumerWidget {
+  const EnvironmentLayerInspectorPanel({
+    super.key,
+    required this.map,
+    required this.layer,
+    this.embedded = false,
+  });
+
+  final MapData map;
+  final EnvironmentLayer layer;
+  final bool embedded;
+
+  List<TileLayer> _tileLayers() {
+    final out = <TileLayer>[];
+    for (final l in map.layers) {
+      if (l is TileLayer) {
+        out.add(l);
+      }
+    }
+    return out;
+  }
+
+  TileLayer? _resolveTarget() {
+    final tid = layer.content.targetTileLayerId;
+    if (tid == null) return null;
+    for (final l in map.layers) {
+      if (l.id == tid && l is TileLayer) {
+        return l;
+      }
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final subtle = EditorChrome.subtleLabel(context);
+    final label = EditorChrome.primaryLabel(context);
+    final notifier = ref.read(editorNotifierProvider.notifier);
+    final manifest = ref.watch(editorProjectManifestProvider);
+    final tiles = _tileLayers();
+    final target = _resolveTarget();
+    final tid = layer.content.targetTileLayerId;
+    final invalidTarget = tid != null && target == null;
+    final presets = manifest?.environmentPresets ?? const <EnvironmentPreset>[];
+
+    return SingleChildScrollView(
+      child: Padding(
+        padding:
+            EdgeInsets.fromLTRB(embedded ? 8 : 10, 4, embedded ? 8 : 10, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Environment Layer',
+              key: const Key('map-inspector-environment-layer-title'),
+              style: TextStyle(
+                color: label,
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Ce layer servira à dessiner des zones organiques et à générer des '
+              'éléments naturels.',
+              key: const Key('map-inspector-environment-layer-body'),
+              style: TextStyle(
+                color: subtle,
+                fontSize: 12,
+                height: 1.4,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Zones d’environnement',
+              key: const Key('env-layer-inspector-zones-title'),
+              style: TextStyle(
+                color: label,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Les zones définissent où les presets organiques seront générés. '
+              'Le dessin du masque arrive dans un prochain lot.',
+              key: const Key('env-layer-inspector-zones-desc'),
+              style: TextStyle(
+                color: subtle,
+                fontSize: 11.5,
+                height: 1.35,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 10),
+            if (presets.isEmpty) ...[
+              Text(
+                'Aucun preset d’environnement disponible.\n'
+                'Créez d’abord un preset dans Environment Studio.',
+                key: const Key('env-layer-inspector-no-presets'),
+                style: TextStyle(
+                  color: subtle,
+                  fontSize: 12,
+                  height: 1.35,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ] else ...[
+              if (layer.content.areas.isEmpty)
+                Text(
+                  'Aucune zone d’environnement pour ce layer.',
+                  key: const Key('env-layer-inspector-no-areas'),
+                  style: TextStyle(
+                    color: subtle,
+                    fontSize: 12,
+                    height: 1.35,
+                    fontWeight: FontWeight.w600,
+                  ),
+                )
+              else
+                ...layer.content.areas.map(
+                  (area) => _EnvironmentAreaCard(
+                    area: area,
+                    manifest: manifest,
+                    layerId: layer.id,
+                    notifier: notifier,
+                    labelColor: label,
+                    subtleColor: subtle,
+                  ),
+                ),
+              const SizedBox(height: 10),
+              PushButton(
+                key: const Key('env-layer-inspector-add-area'),
+                controlSize: ControlSize.regular,
+                onPressed: () => _pickPresetAndAddArea(
+                  context,
+                  notifier,
+                  presets,
+                ),
+                child: const Text('Ajouter une zone'),
+              ),
+            ],
+            const SizedBox(height: 18),
+            Text(
+              'TileLayer cible',
+              style: TextStyle(
+                color: label,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (tiles.isEmpty) ...[
+              Text(
+                'Aucun TileLayer disponible dans cette map.\n'
+                'Ajoutez d’abord un TileLayer pour recevoir les résultats générés.',
+                key: const Key('env-layer-inspector-no-tile-layers'),
+                style: TextStyle(
+                  color: subtle,
+                  fontSize: 12,
+                  height: 1.35,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ] else if (invalidTarget) ...[
+              Text(
+                'La cible configurée est introuvable ou invalide : $tid',
+                key: const Key('env-layer-inspector-invalid-target'),
+                style: TextStyle(
+                  color: CupertinoColors.systemOrange.resolveFrom(context),
+                  fontSize: 12,
+                  height: 1.35,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 10),
+              PushButton(
+                key: const Key('env-layer-inspector-change-invalid'),
+                controlSize: ControlSize.regular,
+                onPressed: () => _pickTileLayer(context, notifier, tiles),
+                child: const Text('Choisir un autre TileLayer cible'),
+              ),
+              const SizedBox(height: 8),
+              PushButton(
+                key: const Key('env-layer-inspector-remove-invalid'),
+                controlSize: ControlSize.regular,
+                secondary: true,
+                onPressed: () => notifier.setEnvironmentLayerTargetTileLayer(
+                  environmentLayerId: layer.id,
+                  targetTileLayerId: null,
+                ),
+                child: const Text('Retirer la cible'),
+              ),
+            ] else if (target == null) ...[
+              Text(
+                'Aucun TileLayer cible sélectionné.',
+                key: const Key('env-layer-inspector-no-target'),
+                style: TextStyle(
+                  color: subtle,
+                  fontSize: 12,
+                  height: 1.35,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 10),
+              PushButton(
+                key: const Key('env-layer-inspector-choose-target'),
+                controlSize: ControlSize.regular,
+                onPressed: () => _pickTileLayer(context, notifier, tiles),
+                child: const Text('Choisir le TileLayer cible'),
+              ),
+            ] else ...[
+              Text(
+                'Cible actuelle : ${target.name}',
+                key: const Key('env-layer-inspector-current-target-name'),
+                style: TextStyle(
+                  color: label,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Id : ${target.id}',
+                key: const Key('env-layer-inspector-current-target-id'),
+                style: TextStyle(
+                  color: subtle,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 10),
+              PushButton(
+                key: const Key('env-layer-inspector-change-target'),
+                controlSize: ControlSize.regular,
+                onPressed: () => _pickTileLayer(context, notifier, tiles),
+                child: const Text('Changer de TileLayer cible'),
+              ),
+              const SizedBox(height: 8),
+              PushButton(
+                key: const Key('env-layer-inspector-remove-target'),
+                controlSize: ControlSize.regular,
+                secondary: true,
+                onPressed: () => notifier.setEnvironmentLayerTargetTileLayer(
+                  environmentLayerId: layer.id,
+                  targetTileLayerId: null,
+                ),
+                child: const Text('Retirer la cible'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickTileLayer(
+    BuildContext context,
+    EditorNotifier notifier,
+    List<TileLayer> tiles,
+  ) async {
+    final picked = await showCupertinoListPicker<TileLayer>(
+      context: context,
+      title: 'TileLayer cible',
+      items: tiles,
+      labelOf: (t) => t.name,
+    );
+    if (picked == null) return;
+    notifier.setEnvironmentLayerTargetTileLayer(
+      environmentLayerId: layer.id,
+      targetTileLayerId: picked.id,
+    );
+  }
+
+  Future<void> _pickPresetAndAddArea(
+    BuildContext context,
+    EditorNotifier notifier,
+    List<EnvironmentPreset> presets,
+  ) async {
+    final picked = await showCupertinoListPicker<EnvironmentPreset>(
+      context: context,
+      title: 'Preset d’environnement',
+      items: presets,
+      labelOf: (p) => '${p.name} — ${p.id}',
+    );
+    if (picked == null) return;
+    notifier.addEnvironmentAreaToLayer(
+      environmentLayerId: layer.id,
+      presetId: picked.id,
+    );
+  }
+}
+
+class _EnvironmentAreaCard extends StatelessWidget {
+  const _EnvironmentAreaCard({
+    required this.area,
+    required this.manifest,
+    required this.layerId,
+    required this.notifier,
+    required this.labelColor,
+    required this.subtleColor,
+  });
+
+  final EnvironmentArea area;
+  final ProjectManifest? manifest;
+  final String layerId;
+  final EditorNotifier notifier;
+  final Color labelColor;
+  final Color subtleColor;
+
+  EnvironmentPreset? _preset() {
+    final m = manifest;
+    if (m == null) return null;
+    for (final p in m.environmentPresets) {
+      if (p.id == area.presetId) return p;
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final manifestPresets =
+        manifest?.environmentPresets ?? const <EnvironmentPreset>[];
+    final preset = _preset();
+    final maskLabel = area.mask.activeCellCount == 0
+        ? 'Masque vide — le dessin de zone arrive dans un prochain lot.'
+        : '${area.mask.activeCellCount} cellule(s) active(s) sur '
+            '${area.mask.width}×${area.mask.height}';
+    final warnPlacements = area.generatedPlacementIds.isNotEmpty;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: CupertinoColors.tertiarySystemFill.resolveFrom(context),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: CupertinoColors.separator.resolveFrom(context),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Zone : ${area.id}',
+                key: Key('env-area-card-id-${area.id}'),
+                style: TextStyle(
+                  color: labelColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 6),
+              if (preset != null) ...[
+                Text(
+                  'Preset : ${preset.name}',
+                  key: Key('env-area-card-preset-name-${area.id}'),
+                  style: TextStyle(
+                    color: labelColor,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  'Id preset : ${preset.id}',
+                  key: Key('env-area-card-preset-id-${area.id}'),
+                  style: TextStyle(
+                    color: subtleColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ] else
+                Text(
+                  'Preset associé introuvable : ${area.presetId}',
+                  key: Key('env-area-card-preset-missing-${area.id}'),
+                  style: TextStyle(
+                    color: CupertinoColors.systemOrange.resolveFrom(context),
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              const SizedBox(height: 6),
+              Text(
+                maskLabel,
+                key: Key('env-area-card-mask-${area.id}'),
+                style: TextStyle(
+                  color: subtleColor,
+                  fontSize: 11,
+                  height: 1.3,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Placements générés : ${area.generatedPlacementIds.length}',
+                key: Key('env-area-card-placements-count-${area.id}'),
+                style: TextStyle(
+                  color: subtleColor,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (warnPlacements) ...[
+                const SizedBox(height: 6),
+                Text(
+                  'Cette zone référence des placements générés ; le retrait ne les '
+                  'supprime pas automatiquement.',
+                  key: Key('env-area-card-placements-warn-${area.id}'),
+                  style: TextStyle(
+                    color: CupertinoColors.systemOrange.resolveFrom(context),
+                    fontSize: 10.5,
+                    height: 1.25,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 10),
+              PushButton(
+                key: Key('env-area-change-preset-${area.id}'),
+                controlSize: ControlSize.small,
+                onPressed: manifestPresets.isEmpty
+                    ? null
+                    : () => _pickPresetForArea(
+                          context,
+                          notifier,
+                          manifestPresets,
+                        ),
+                child: const Text('Changer de preset'),
+              ),
+              const SizedBox(height: 6),
+              PushButton(
+                key: Key('env-area-remove-${area.id}'),
+                controlSize: ControlSize.small,
+                secondary: true,
+                onPressed: () => notifier.removeEnvironmentArea(
+                  environmentLayerId: layerId,
+                  areaId: area.id,
+                ),
+                child: const Text('Retirer'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickPresetForArea(
+    BuildContext context,
+    EditorNotifier notifier,
+    List<EnvironmentPreset> presets,
+  ) async {
+    final picked = await showCupertinoListPicker<EnvironmentPreset>(
+      context: context,
+      title: 'Nouveau preset',
+      items: presets,
+      labelOf: (p) => '${p.name} — ${p.id}',
+    );
+    if (picked == null) return;
+    notifier.setEnvironmentAreaPreset(
+      environmentLayerId: layerId,
+      areaId: area.id,
+      presetId: picked.id,
+    );
+  }
+}
+```
+
+### `packages/map_editor/lib/src/ui/panels/map_inspector_panel.dart`
+
+```dart
+import 'package:flutter/cupertino.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:macos_ui/macos_ui.dart';
+import 'package:map_core/map_core.dart';
+
+import '../../application/models/terrain_selection_mode.dart';
+import '../../features/editor/state/editor_notifier.dart';
+import '../../features/editor/tools/editor_tool.dart';
+import '../../features/surface_painter/surface_palette_panel.dart';
+import '../shared/cupertino_editor_widgets.dart';
+import '../shared/inspector_section_card.dart';
+import 'encounter_tables_panel.dart';
+import 'entity_properties_panel.dart';
+import 'event_properties_panel.dart';
+import 'gameplay_zone_properties_panel.dart';
+import 'environment_layer_inspector_panel.dart';
+import 'layers_panel.dart';
+import 'map_connections_panel.dart';
+import 'map_properties_panel.dart';
+import 'terrain_map_panel.dart';
+import 'tileset_palette_panel.dart';
+import 'trigger_properties_panel.dart';
+import 'warp_properties_panel.dart';
+
+enum _InspectorSectionId {
+  mapProperties,
+  layers,
+  environmentLayer,
+  tiles,
+  ground,
+  surfacePlacements,
+  surfaces,
+  entities,
+  events,
+  connections,
+  triggers,
+  warps,
+  gameplayZones,
+  encounterTables,
+}
+
+class MapInspectorPanel extends ConsumerStatefulWidget {
+  const MapInspectorPanel({super.key});
+
+  @override
+  ConsumerState<MapInspectorPanel> createState() => _MapInspectorPanelState();
+}
+
+class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
+  final Map<_InspectorSectionId, bool> _expandedSections =
+      <_InspectorSectionId, bool>{};
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(editorNotifierProvider);
+    final activeMap = state.activeMap;
+    final activeLayer = _findActiveLayer(activeMap, state.activeLayerId);
+
+    if (activeMap == null) {
+      return Container(
+        alignment: Alignment.center,
+        child: Text(
+          'Open a map to inspect layers and map systems',
+          style: TextStyle(
+            color: EditorChrome.subtleLabel(context),
+          ),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    final hasTileLayers = activeMap.layers.any((layer) => layer is TileLayer);
+    final hasTerrainLayers =
+        activeMap.layers.any((layer) => layer is TerrainLayer);
+    final hasPathLayers = activeMap.layers.any((layer) => layer is PathLayer);
+    final hasSurfaceLayers =
+        activeMap.layers.any((layer) => layer is SurfaceLayer);
+    final hasSurfacePresets =
+        state.project?.surfaceCatalog.presets.isNotEmpty ?? false;
+    final showEnvironmentLayerSection = activeLayer is EnvironmentLayer;
+    final showTilesSection = activeLayer is TileLayer ||
+        state.activeTool == EditorToolType.tilePaint ||
+        (state.activeLayerId == null && hasTileLayers);
+    final showGroundSection = hasTerrainLayers &&
+        (activeLayer is TerrainLayer ||
+            (activeLayer is! PathLayer &&
+                state.activeTool == EditorToolType.terrainPaint &&
+                state.terrainSelectionMode == TerrainSelectionMode.terrain));
+    final showSurfaceSection = hasPathLayers && activeLayer is PathLayer;
+    final showSurfacePlacementSection = hasSurfaceLayers ||
+        hasSurfacePresets ||
+        activeLayer is SurfaceLayer ||
+        state.activeTool == EditorToolType.surfacePaint;
+    const showConnectionsSection = true;
+    final showEntitySection =
+        state.activeTool == EditorToolType.entityPlacement ||
+            state.selectedEntityId != null ||
+            activeMap.entities.isNotEmpty;
+    final showEventSection =
+        state.activeTool == EditorToolType.eventPlacement ||
+            state.selectedMapEventId != null ||
+            activeMap.events.isNotEmpty;
+    final showTriggerSection =
+        state.activeTool == EditorToolType.triggerPlacement ||
+            state.selectedTriggerId != null ||
+            activeMap.triggers.isNotEmpty;
+    final showWarpSection = state.activeTool == EditorToolType.warpPlacement ||
+        state.selectedWarpId != null ||
+        activeMap.warps.isNotEmpty;
+    final showGameplayZoneSection =
+        state.activeTool == EditorToolType.gameplayZonePlacement ||
+            state.selectedGameplayZoneId != null ||
+            activeMap.gameplayZones.isNotEmpty;
+    final showEncounterTablesSection =
+        (state.project?.encounterTables.isNotEmpty ?? false) ||
+            showGameplayZoneSection;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final paletteHeight = constraints.maxHeight.isFinite
+            ? constraints.maxHeight.clamp(420.0, 760.0).toDouble()
+            : 560.0;
+
+        return SingleChildScrollView(
+          primary: false,
+          padding: const EdgeInsets.only(top: 10, bottom: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              _InspectorOverviewCard(
+                map: activeMap,
+                activeLayer: activeLayer,
+              ),
+              InspectorSectionCard(
+                title: 'Propriétés de carte',
+                subtitle:
+                    'Gameplay et présentation (météo, musique, spawn par défaut…)',
+                icon: CupertinoIcons.slider_horizontal_3,
+                accentColor: EditorChrome.inspectorJoyPlum,
+                expanded: _isExpanded(
+                  _InspectorSectionId.mapProperties,
+                  false,
+                ),
+                onToggle: () => _toggleSection(
+                  _InspectorSectionId.mapProperties,
+                  defaultExpanded: false,
+                ),
+                expandedHeight: 460,
+                child: const MapPropertiesPanel(embedded: true),
+              ),
+              InspectorSectionCard(
+                title: 'Layers',
+                subtitle: activeLayer == null
+                    ? 'Select the active layer for this map'
+                    : 'Active: ${_layerLabel(activeLayer)}',
+                icon: CupertinoIcons.layers,
+                badgeText: '${activeMap.layers.length}',
+                accentColor: EditorChrome.inspectorJoyBlue,
+                expanded: _isExpanded(_InspectorSectionId.layers, true),
+                onToggle: () => _toggleSection(
+                  _InspectorSectionId.layers,
+                  defaultExpanded: true,
+                ),
+                expandedHeight: 260,
+                child: const LayersPanel(embedded: true),
+              ),
+              if (showEnvironmentLayerSection)
+                InspectorSectionCard(
+                  title: 'Environment Layer',
+                  subtitle: null,
+                  icon: CupertinoIcons.cloud,
+                  accentColor: EditorChrome.inspectorJoyMint,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.environmentLayer,
+                    true,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.environmentLayer,
+                    defaultExpanded: true,
+                  ),
+                  expandedHeight: 560,
+                  child: EnvironmentLayerInspectorPanel(
+                    map: activeMap,
+                    layer: activeLayer,
+                    embedded: true,
+                  ),
+                ),
+              if (showTilesSection)
+                InspectorSectionCard(
+                  title: 'Tiles & Elements',
+                  subtitle:
+                      'Palette de placement et gestion des instances posées sur le layer actif.',
+                  icon: CupertinoIcons.square_grid_2x2,
+                  accentColor: EditorChrome.inspectorJoyLilac,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.tiles,
+                    activeLayer is TileLayer ||
+                        state.activeTool == EditorToolType.tilePaint,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.tiles,
+                    defaultExpanded: activeLayer is TileLayer ||
+                        state.activeTool == EditorToolType.tilePaint,
+                  ),
+                  expandedHeight: paletteHeight,
+                  child: const TilesetPalettePanel(embedded: true),
+                ),
+              if (showGroundSection)
+                InspectorSectionCard(
+                  title: 'Base Ground',
+                  subtitle: 'Terrain-only editing for the map background.',
+                  icon: CupertinoIcons.tree,
+                  accentColor: EditorChrome.inspectorJoyMint,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.ground,
+                    true,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.ground,
+                    defaultExpanded: true,
+                  ),
+                  expandedHeight: 300,
+                  child: const TerrainMapPanel(
+                    embedded: true,
+                    mode: TerrainMapPanelMode.groundOnly,
+                  ),
+                ),
+              if (showSurfacePlacementSection)
+                InspectorSectionCard(
+                  title: 'Surfaces',
+                  subtitle:
+                      'Choisir une surface et poser des placements dans la map.',
+                  icon: CupertinoIcons.drop,
+                  accentColor: EditorChrome.inspectorJoyCyan,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.surfacePlacements,
+                    activeLayer is SurfaceLayer ||
+                        state.activeTool == EditorToolType.surfacePaint,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.surfacePlacements,
+                    defaultExpanded: activeLayer is SurfaceLayer ||
+                        state.activeTool == EditorToolType.surfacePaint,
+                  ),
+                  expandedHeight: 380,
+                  child: const SurfacePainterPanel(embedded: true),
+                ),
+              if (showSurfaceSection)
+                InspectorSectionCard(
+                  title: 'Paths',
+                  subtitle:
+                      'Edit the active path layer for roads and specialized surfaces.',
+                  icon: CupertinoIcons.map,
+                  accentColor: EditorChrome.inspectorJoyAmber,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.surfaces,
+                    true,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.surfaces,
+                    defaultExpanded: true,
+                  ),
+                  expandedHeight: 340,
+                  child: const TerrainMapPanel(
+                    embedded: true,
+                    mode: TerrainMapPanelMode.surfaceOnly,
+                  ),
+                ),
+              if (showEntitySection)
+                InspectorSectionCard(
+                  title: 'Map Entities',
+                  subtitle: state.selectedEntityId != null
+                      ? 'Selected entity ready for editing.'
+                      : 'Visible world content such as NPCs, signs, items and spawn points.',
+                  icon: CupertinoIcons.sparkles,
+                  badgeText: '${activeMap.entities.length}',
+                  accentColor: EditorChrome.inspectorJoyCyan,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.entities,
+                    state.activeTool == EditorToolType.entityPlacement ||
+                        state.selectedEntityId != null,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.entities,
+                    defaultExpanded:
+                        state.activeTool == EditorToolType.entityPlacement ||
+                            state.selectedEntityId != null,
+                  ),
+                  expandedHeight: 560,
+                  child: const EntityPropertiesPanel(embedded: true),
+                ),
+              if (showEventSection)
+                InspectorSectionCard(
+                  title: 'Map Events',
+                  subtitle: state.selectedMapEventId != null
+                      ? 'Selected event ready for editing.'
+                      : 'Conditional event pages and script/message authoring.',
+                  icon: CupertinoIcons.flag,
+                  badgeText: '${activeMap.events.length}',
+                  accentColor: EditorChrome.inspectorJoyCyan,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.events,
+                    state.activeTool == EditorToolType.eventPlacement ||
+                        state.selectedMapEventId != null,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.events,
+                    defaultExpanded:
+                        state.activeTool == EditorToolType.eventPlacement ||
+                            state.selectedMapEventId != null,
+                  ),
+                  expandedHeight: 620,
+                  child: const EventPropertiesPanel(embedded: true),
+                ),
+              if (showConnectionsSection)
+                InspectorSectionCard(
+                  title: 'Connections',
+                  subtitle: 'Link the current map to adjacent world maps.',
+                  icon: CupertinoIcons.arrow_branch,
+                  badgeText: '${activeMap.connections.length}',
+                  accentColor: EditorChrome.inspectorJoyPlum,
+                  expanded: _isExpanded(_InspectorSectionId.connections, false),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.connections,
+                    defaultExpanded: false,
+                  ),
+                  expandedHeight: 520,
+                  child: const MapConnectionsPanel(embedded: true),
+                ),
+              if (showTriggerSection)
+                InspectorSectionCard(
+                  title: 'Triggers',
+                  subtitle: state.selectedTriggerId != null
+                      ? 'Selected trigger ready for editing.'
+                      : 'Gameplay zones and editable trigger areas.',
+                  icon: CupertinoIcons.square,
+                  badgeText: '${activeMap.triggers.length}',
+                  accentColor: EditorChrome.inspectorJoyCoral,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.triggers,
+                    state.activeTool == EditorToolType.triggerPlacement ||
+                        state.selectedTriggerId != null,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.triggers,
+                    defaultExpanded:
+                        state.activeTool == EditorToolType.triggerPlacement ||
+                            state.selectedTriggerId != null,
+                  ),
+                  expandedHeight: 520,
+                  child: const TriggerPropertiesPanel(embedded: true),
+                ),
+              if (showWarpSection)
+                InspectorSectionCard(
+                  title: 'Warps',
+                  subtitle: state.selectedWarpId != null
+                      ? 'Selected warp ready for editing.'
+                      : 'Map transitions such as doors, stairs and exits.',
+                  icon: CupertinoIcons.arrow_down_circle,
+                  badgeText: '${activeMap.warps.length}',
+                  accentColor: EditorChrome.inspectorJoyOrchid,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.warps,
+                    state.activeTool == EditorToolType.warpPlacement ||
+                        state.selectedWarpId != null,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.warps,
+                    defaultExpanded:
+                        state.activeTool == EditorToolType.warpPlacement ||
+                            state.selectedWarpId != null,
+                  ),
+                  expandedHeight: 320,
+                  child: const WarpPropertiesPanel(embedded: true),
+                ),
+              if (showGameplayZoneSection)
+                InspectorSectionCard(
+                  title: 'Gameplay Zones',
+                  subtitle: state.selectedGameplayZoneId != null
+                      ? 'Selected zone ready for editing.'
+                      : 'Encounter areas, movement constraints and special zones.',
+                  icon: CupertinoIcons.leaf_arrow_circlepath,
+                  badgeText: '${activeMap.gameplayZones.length}',
+                  accentColor: EditorChrome.inspectorJoyMint,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.gameplayZones,
+                    state.activeTool == EditorToolType.gameplayZonePlacement ||
+                        state.selectedGameplayZoneId != null,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.gameplayZones,
+                    defaultExpanded: state.activeTool ==
+                            EditorToolType.gameplayZonePlacement ||
+                        state.selectedGameplayZoneId != null,
+                  ),
+                  expandedHeight: 520,
+                  child: const GameplayZonePropertiesPanel(embedded: true),
+                ),
+              if (showEncounterTablesSection)
+                InspectorSectionCard(
+                  title: 'Encounter Tables',
+                  subtitle: 'Project-level encounter tables for wild Pokémon.',
+                  icon: CupertinoIcons.list_bullet,
+                  badgeText: '${state.project?.encounterTables.length ?? 0}',
+                  accentColor: EditorChrome.inspectorJoyCyan,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.encounterTables,
+                    false,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.encounterTables,
+                    defaultExpanded: false,
+                  ),
+                  expandedHeight: 480,
+                  child: const EncounterTablesPanel(embedded: true),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  bool _isExpanded(_InspectorSectionId section, bool defaultExpanded) {
+    return _expandedSections[section] ?? defaultExpanded;
+  }
+
+  void _toggleSection(
+    _InspectorSectionId section, {
+    required bool defaultExpanded,
+  }) {
+    setState(() {
+      _expandedSections[section] =
+          !(_expandedSections[section] ?? defaultExpanded);
+    });
+  }
+
+  MapLayer? _findActiveLayer(MapData? map, String? activeLayerId) {
+    if (map == null || activeLayerId == null) {
+      return null;
+    }
+    for (final layer in map.layers) {
+      if (layer.id == activeLayerId) {
+        return layer;
+      }
+    }
+    return null;
+  }
+
+  String _layerLabel(MapLayer layer) {
+    return switch (layer) {
+      TileLayer _ => 'Tile Layer',
+      CollisionLayer _ => 'Collision Layer',
+      TerrainLayer _ => 'Terrain Layer',
+      PathLayer _ => 'Path Layer',
+      SurfaceLayer _ => 'Surface Layer',
+      ObjectLayer _ => 'Object Layer',
+      EnvironmentLayer _ => 'Environment Layer',
+    };
+  }
+}
+
+class _InspectorOverviewCard extends StatelessWidget {
+  const _InspectorOverviewCard({
+    required this.map,
+    required this.activeLayer,
+  });
+
+  final MapData map;
+  final MapLayer? activeLayer;
+
+  @override
+  Widget build(BuildContext context) {
+    final subtle = EditorChrome.subtleLabel(context);
+    final label = EditorChrome.primaryLabel(context);
+    const accentA = EditorChrome.inspectorJoyHoney;
+    const accentB = EditorChrome.inspectorJoyApricot;
+    final activeLayerText = activeLayer == null
+        ? 'No active layer'
+        : switch (activeLayer!) {
+            TileLayer _ => 'Tile layer active',
+            TerrainLayer _ => 'Ground layer active',
+            PathLayer _ => 'Surface layer active',
+            SurfaceLayer _ => 'Surface placement layer active',
+            CollisionLayer _ => 'Collision layer active',
+            ObjectLayer _ => 'Object layer active',
+            EnvironmentLayer _ => 'Environment layer active',
+          };
+
+    final hi = EditorChrome.islandFillElevated(context);
+    final lo = EditorChrome.islandFill(context);
+    return Container(
+      margin: const EdgeInsets.fromLTRB(10, 2, 10, 12),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.lerp(hi, accentA, 0.44)!,
+            Color.lerp(lo, accentB, 0.38)!,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Color.lerp(accentA, accentB, 0.5)!.withValues(alpha: 0.75),
+          width: 1,
+        ),
+        boxShadow: EditorChrome.inspectorTileHardShadows(context),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color.lerp(CupertinoColors.white, accentA, 0.78)!,
+                  Color.lerp(accentB, const Color(0xFF1A0804), 0.35)!,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: accentA.withValues(alpha: 0.9),
+                width: 1.25,
+              ),
+            ),
+            alignment: Alignment.center,
+            child: const MacosIcon(
+              CupertinoIcons.slider_horizontal_3,
+              color: CupertinoColors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  map.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: label,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${map.size.width} x ${map.size.height} tiles  •  ${map.layers.length} layers',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: subtle,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  activeLayerText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: subtle,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+```
+
+### `packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart`
+
+```dart
+// ignore_for_file: prefer_const_constructors — fixtures MapData / MaterialApp non const
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:macos_ui/macos_ui.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/errors/application_errors.dart';
+import 'package:map_editor/src/application/use_cases/layer_use_cases.dart';
+import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
+import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/ui/panels/environment_layer_inspector_panel.dart';
+import 'package:map_editor/src/ui/panels/map_inspector_panel.dart';
+
+import '../shell_chrome_test_harness.dart';
+
+EnvironmentPreset _preset({
+  String id = 'preset_forest',
+  String name = 'Forêt test',
+}) {
+  return EnvironmentPreset(
+    id: id,
+    name: name,
+    templateId: 'forest_dense',
+    palette: [
+      EnvironmentPaletteItem(elementId: 'elem_tree', weight: 1),
+    ],
+    defaultParams: EnvironmentGenerationParams.standard(),
+    sortOrder: 0,
+  );
+}
+
+void main() {
+  group('Lot 21 — EnvironmentArea model (inspector)', () {
+    group('AddEnvironmentAreaUseCase', () {
+      test(
+          'ajoute une area : mask taille map, vide, placements vides, cible préservée',
+          () {
+        final tile = TileLayer(
+          id: 'tiles_main',
+          name: 'Sol',
+          tiles: List<int>.filled(12, 0, growable: false),
+        );
+        final env = MapLayer.environment(
+          id: 'env1',
+          name: 'Nature',
+          content: EnvironmentLayerContent(
+            targetTileLayerId: 'tiles_main',
+            areas: const [],
+          ),
+        );
+        final map = MapData(
+          id: 'm',
+          name: 'M',
+          size: const GridSize(width: 4, height: 3),
+          layers: [env, tile],
+          placedElements: [
+            MapPlacedElement(
+              id: 'pe1',
+              layerId: 'tiles_main',
+              elementId: 'x',
+              pos: const GridPos(x: 0, y: 0),
+            ),
+          ],
+        );
+        final manifest = buildShellChromeProject(
+          environmentPresets: [_preset()],
+        );
+        final uc = AddEnvironmentAreaUseCase();
+        final result = uc.execute(
+          map,
+          manifest: manifest,
+          environmentLayerId: 'env1',
+          presetId: 'preset_forest',
+        );
+        final layer = result.map.layers.first as EnvironmentLayer;
+        expect(layer.content.areas.length, 1);
+        expect(layer.content.areas.single.presetId, 'preset_forest');
+        expect(layer.content.targetTileLayerId, 'tiles_main');
+        expect(layer.content.areas.single.mask.width, 4);
+        expect(layer.content.areas.single.mask.height, 3);
+        expect(layer.content.areas.single.mask.activeCellCount, 0);
+        expect(layer.content.areas.single.generatedPlacementIds, isEmpty);
+        expect(result.map.placedElements, map.placedElements);
+      });
+
+      test('deux areas même preset → ids différents, ordre stable', () {
+        final env = MapLayer.environment(id: 'env1', name: 'E');
+        final map = MapData(
+          id: 'm',
+          name: 'M',
+          size: const GridSize(width: 2, height: 2),
+          layers: [env],
+        );
+        final manifest = buildShellChromeProject(
+          environmentPresets: [_preset()],
+        );
+        final uc = AddEnvironmentAreaUseCase();
+        final r1 = uc.execute(
+          map,
+          manifest: manifest,
+          environmentLayerId: 'env1',
+          presetId: 'preset_forest',
+        );
+        final r2 = AddEnvironmentAreaUseCase().execute(
+          r1.map,
+          manifest: manifest,
+          environmentLayerId: 'env1',
+          presetId: 'preset_forest',
+        );
+        final areas = (r2.map.layers.first as EnvironmentLayer).content.areas;
+        expect(areas.length, 2);
+        expect(areas[0].id, isNot(areas[1].id));
+        expect(areas.map((a) => a.id).toSet().length, 2);
+      });
+
+      test('rejette environmentLayerId inconnu', () {
+        final map = MapData(
+          id: 'm',
+          name: 'M',
+          size: const GridSize(width: 1, height: 1),
+          layers: [MapLayer.environment(id: 'env1', name: 'E')],
+        );
+        final manifest = buildShellChromeProject(
+          environmentPresets: [_preset()],
+        );
+        expect(
+          () => AddEnvironmentAreaUseCase().execute(
+            map,
+            manifest: manifest,
+            environmentLayerId: 'missing',
+            presetId: 'preset_forest',
+          ),
+          throwsA(isA<EditorValidationException>()),
+        );
+      });
+
+      test('rejette environmentLayerId TileLayer', () {
+        final tile = TileLayer(
+          id: 't1',
+          name: 'T',
+          tiles: const <int>[0],
+        );
+        final map = MapData(
+          id: 'm',
+          name: 'M',
+          size: const GridSize(width: 1, height: 1),
+          layers: [tile],
+        );
+        final manifest = buildShellChromeProject(
+          environmentPresets: [_preset()],
+        );
+        expect(
+          () => AddEnvironmentAreaUseCase().execute(
+            map,
+            manifest: manifest,
+            environmentLayerId: 't1',
+            presetId: 'preset_forest',
+          ),
+          throwsA(isA<EditorValidationException>()),
+        );
+      });
+
+      test('rejette presetId inconnu', () {
+        final map = MapData(
+          id: 'm',
+          name: 'M',
+          size: const GridSize(width: 1, height: 1),
+          layers: [MapLayer.environment(id: 'env1', name: 'E')],
+        );
+        final manifest = buildShellChromeProject(
+          environmentPresets: [_preset()],
+        );
+        expect(
+          () => AddEnvironmentAreaUseCase().execute(
+            map,
+            manifest: manifest,
+            environmentLayerId: 'env1',
+            presetId: 'nope',
+          ),
+          throwsA(isA<EditorValidationException>()),
+        );
+      });
+
+      test('rejette presetId vide', () {
+        final map = MapData(
+          id: 'm',
+          name: 'M',
+          size: const GridSize(width: 1, height: 1),
+          layers: [MapLayer.environment(id: 'env1', name: 'E')],
+        );
+        final manifest = buildShellChromeProject(
+          environmentPresets: [_preset()],
+        );
+        expect(
+          () => AddEnvironmentAreaUseCase().execute(
+            map,
+            manifest: manifest,
+            environmentLayerId: 'env1',
+            presetId: '   ',
+          ),
+          throwsA(isA<EditorValidationException>()),
+        );
+      });
+    });
+
+    group('SetEnvironmentAreaPresetUseCase', () {
+      test('change presetId, préserve mask et generatedPlacementIds et cible',
+          () {
+        final mask = EnvironmentAreaMask(
+          width: 2,
+          height: 2,
+          cells: const [true, false, false, false],
+        );
+        final area = EnvironmentArea(
+          id: 'a1',
+          name: 'Z1',
+          presetId: 'preset_a',
+          mask: mask,
+          seed: 7,
+          generatedPlacementIds: const ['pl1', 'pl2'],
+        );
+        final env = MapLayer.environment(
+          id: 'env1',
+          name: 'E',
+          content: EnvironmentLayerContent(
+            targetTileLayerId: 't1',
+            areas: [area],
+          ),
+        );
+        final tile = TileLayer(
+          id: 't1',
+          name: 'T',
+          tiles: const <int>[0, 0, 0, 0],
+        );
+        final map = MapData(
+          id: 'm',
+          name: 'M',
+          size: const GridSize(width: 2, height: 2),
+          layers: [env, tile],
+        );
+        final manifest = buildShellChromeProject(
+          environmentPresets: [
+            _preset(id: 'preset_a', name: 'A'),
+            _preset(id: 'preset_b', name: 'B'),
+          ],
+        );
+        final uc = SetEnvironmentAreaPresetUseCase();
+        final out = uc.execute(
+          map,
+          manifest: manifest,
+          environmentLayerId: 'env1',
+          areaId: 'a1',
+          presetId: 'preset_b',
+        );
+        final layer = out.layers.first as EnvironmentLayer;
+        final updated = layer.content.areas.single;
+        expect(updated.presetId, 'preset_b');
+        expect(updated.mask, mask);
+        expect(updated.generatedPlacementIds, const ['pl1', 'pl2']);
+        expect(updated.seed, 7);
+        expect(layer.content.targetTileLayerId, 't1');
+      });
+
+      test('rejette areaId inconnu', () {
+        final env = MapLayer.environment(
+          id: 'env1',
+          name: 'E',
+          content: EnvironmentLayerContent(
+            areas: [
+              EnvironmentArea(
+                id: 'a1',
+                name: 'Z',
+                presetId: 'preset_a',
+                mask: EnvironmentAreaMask(
+                  width: 1,
+                  height: 1,
+                  cells: const [false],
+                ),
+                seed: 0,
+              ),
+            ],
+          ),
+        );
+        final map = MapData(
+          id: 'm',
+          name: 'M',
+          size: const GridSize(width: 1, height: 1),
+          layers: [env],
+        );
+        final manifest = buildShellChromeProject(
+          environmentPresets: [
+            _preset(id: 'preset_a'),
+            _preset(id: 'preset_b'),
+          ],
+        );
+        expect(
+          () => SetEnvironmentAreaPresetUseCase().execute(
+            map,
+            manifest: manifest,
+            environmentLayerId: 'env1',
+            areaId: 'ghost',
+            presetId: 'preset_b',
+          ),
+          throwsA(isA<EditorValidationException>()),
+        );
+      });
+    });
+
+    group('RemoveEnvironmentAreaUseCase', () {
+      test('retire une area, préserve l’autre et targetTileLayerId', () {
+        final m =
+            EnvironmentAreaMask(width: 1, height: 1, cells: const [false]);
+        final a1 = EnvironmentArea(
+          id: 'a1',
+          name: '1',
+          presetId: 'p',
+          mask: m,
+          seed: 0,
+        );
+        final a2 = EnvironmentArea(
+          id: 'a2',
+          name: '2',
+          presetId: 'p',
+          mask: m,
+          seed: 0,
+        );
+        final tile = TileLayer(
+          id: 't1',
+          name: 'T',
+          tiles: const <int>[0],
+        );
+        final env = MapLayer.environment(
+          id: 'env1',
+          name: 'E',
+          content: EnvironmentLayerContent(
+            targetTileLayerId: 't1',
+            areas: [a1, a2],
+          ),
+        );
+        final map = MapData(
+          id: 'm',
+          name: 'M',
+          size: const GridSize(width: 1, height: 1),
+          layers: [env, tile],
+          placedElements: const [],
+        );
+        final uc = RemoveEnvironmentAreaUseCase();
+        final out = uc.execute(
+          map,
+          environmentLayerId: 'env1',
+          areaId: 'a1',
+        );
+        final layer = out.layers.first as EnvironmentLayer;
+        expect(layer.content.areas.length, 1);
+        expect(layer.content.areas.single.id, 'a2');
+        expect(layer.content.targetTileLayerId, 't1');
+        expect(out.placedElements, map.placedElements);
+      });
+
+      test('rejette areaId inconnu', () {
+        final env = MapLayer.environment(
+          id: 'env1',
+          name: 'E',
+          content: EnvironmentLayerContent(
+            areas: [
+              EnvironmentArea(
+                id: 'a1',
+                name: 'Z',
+                presetId: 'p',
+                mask: EnvironmentAreaMask(
+                  width: 1,
+                  height: 1,
+                  cells: const [false],
+                ),
+                seed: 0,
+              ),
+            ],
+          ),
+        );
+        final map = MapData(
+          id: 'm',
+          name: 'M',
+          size: const GridSize(width: 1, height: 1),
+          layers: [env],
+        );
+        expect(
+          () => RemoveEnvironmentAreaUseCase().execute(
+            map,
+            environmentLayerId: 'env1',
+            areaId: 'nope',
+          ),
+          throwsA(isA<EditorValidationException>()),
+        );
+      });
+    });
+
+    group('EditorNotifier — areas', () {
+      test(
+          'add / set preset / remove : activeMap, activeLayerId, dirty, chemins',
+          () {
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+        final env = MapLayer.environment(id: 'env1', name: 'E');
+        final map = MapData(
+          id: 'm1',
+          name: 'M1',
+          size: const GridSize(width: 2, height: 2),
+          layers: [env],
+        );
+        const root = '/tmp/lot21';
+        const mapPath = 'maps/y.json';
+        final manifest = buildShellChromeProject(
+          environmentPresets: [
+            _preset(id: 'pa', name: 'A'),
+            _preset(id: 'pb', name: 'B'),
+          ],
+        );
+        container.read(editorNotifierProvider.notifier).state = EditorState(
+          projectRootPath: root,
+          project: manifest,
+          activeMap: map,
+          activeMapPath: mapPath,
+          activeLayerId: 'env1',
+          savedMapSnapshot: map,
+        );
+        final notifier = container.read(editorNotifierProvider.notifier);
+        notifier.addEnvironmentAreaToLayer(
+          environmentLayerId: 'env1',
+          presetId: 'pa',
+        );
+        var state = container.read(editorNotifierProvider);
+        final areaId = (state.activeMap!.layers.first as EnvironmentLayer)
+            .content
+            .areas
+            .single
+            .id;
+        expect(state.activeLayerId, 'env1');
+        expect(state.isDirty, isTrue);
+        expect(state.projectRootPath, root);
+        expect(state.activeMapPath, mapPath);
+
+        notifier.setEnvironmentAreaPreset(
+          environmentLayerId: 'env1',
+          areaId: areaId,
+          presetId: 'pb',
+        );
+        state = container.read(editorNotifierProvider);
+        expect(
+          (state.activeMap!.layers.first as EnvironmentLayer)
+              .content
+              .areas
+              .single
+              .presetId,
+          'pb',
+        );
+        expect(state.activeLayerId, 'env1');
+
+        notifier.removeEnvironmentArea(
+          environmentLayerId: 'env1',
+          areaId: areaId,
+        );
+        state = container.read(editorNotifierProvider);
+        expect(
+          (state.activeMap!.layers.first as EnvironmentLayer).content.areas,
+          isEmpty,
+        );
+        expect(state.activeLayerId, 'env1');
+      });
+    });
+
+    testWidgets('inspecteur : aucun preset → message et pas d’ajout',
+        (tester) async {
+      final env = MapLayer.environment(id: 'env1', name: 'E');
+      final map = MapData(
+        id: 'mx',
+        name: 'Mx',
+        size: const GridSize(width: 2, height: 2),
+        layers: [env],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/tmp',
+        project: buildShellChromeProject(environmentPresets: const []),
+        activeMap: map,
+        activeMapPath: 'maps/x.json',
+        activeLayerId: env.id,
+      );
+      await tester.binding.setSurfaceSize(const Size(480, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: MaterialApp(
+              home: CupertinoPageScaffold(
+                child: SizedBox(
+                  width: 400,
+                  height: 900,
+                  child: MapInspectorPanel(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('env-layer-inspector-no-presets')),
+          findsOneWidget);
+      expect(
+          find.byKey(const Key('env-layer-inspector-add-area')), findsNothing);
+    });
+
+    testWidgets('ajout zone via picker + affichage + dirty', (tester) async {
+      final env = MapLayer.environment(id: 'env1', name: 'E');
+      final map = MapData(
+        id: 'mx',
+        name: 'Mx',
+        size: const GridSize(width: 2, height: 2),
+        layers: [env],
+      );
+      final p1 = _preset(id: 'preset_one', name: 'Un');
+      final p2 = _preset(id: 'preset_two', name: 'Deux');
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/tmp',
+        project: buildShellChromeProject(environmentPresets: [p1, p2]),
+        activeMap: map,
+        activeMapPath: 'maps/x.json',
+        activeLayerId: env.id,
+        savedMapSnapshot: map,
+      );
+      await tester.binding.setSurfaceSize(const Size(520, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: MaterialApp(
+              home: CupertinoPageScaffold(
+                child: SizedBox(
+                  width: 420,
+                  height: 1000,
+                  child: MapInspectorPanel(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('env-layer-inspector-add-area')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('Un — preset_one').last);
+      await tester.pumpAndSettle();
+      final state = container.read(editorNotifierProvider);
+      final areas =
+          (state.activeMap!.layers.first as EnvironmentLayer).content.areas;
+      expect(areas.length, 1);
+      expect(areas.single.presetId, 'preset_one');
+      expect(state.isDirty, isTrue);
+      expect(find.byKey(Key('env-area-card-id-${areas.single.id}')),
+          findsOneWidget);
+    });
+
+    testWidgets('changer de preset sur une area', (tester) async {
+      final mask = EnvironmentAreaMask(
+        width: 2,
+        height: 2,
+        cells: List<bool>.filled(4, false),
+      );
+      final area = EnvironmentArea(
+        id: 'area_x',
+        name: 'Z',
+        presetId: 'preset_one',
+        mask: mask,
+        seed: 0,
+      );
+      final env = MapLayer.environment(
+        id: 'env1',
+        name: 'E',
+        content: EnvironmentLayerContent(areas: [area]),
+      );
+      final map = MapData(
+        id: 'mx',
+        name: 'Mx',
+        size: const GridSize(width: 2, height: 2),
+        layers: [env],
+      );
+      final p1 = _preset(id: 'preset_one', name: 'Un');
+      final p2 = _preset(id: 'preset_two', name: 'Deux');
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/tmp',
+        project: buildShellChromeProject(environmentPresets: [p1, p2]),
+        activeMap: map,
+        activeMapPath: 'maps/x.json',
+        activeLayerId: env.id,
+        savedMapSnapshot: map,
+      );
+      await tester.binding.setSurfaceSize(const Size(520, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: MaterialApp(
+              home: CupertinoPageScaffold(
+                child: SizedBox(
+                  width: 420,
+                  height: 1000,
+                  child: MapInspectorPanel(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('env-area-change-preset-area_x')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.textContaining('Deux — preset_two').last);
+      await tester.pumpAndSettle();
+      expect(
+        (container.read(editorNotifierProvider).activeMap!.layers.first
+                as EnvironmentLayer)
+            .content
+            .areas
+            .single
+            .presetId,
+        'preset_two',
+      );
+      expect(
+        find.byKey(const Key('env-area-card-preset-id-area_x')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('retirer une area', (tester) async {
+      final mask = EnvironmentAreaMask(
+        width: 2,
+        height: 2,
+        cells: List<bool>.filled(4, false),
+      );
+      final area = EnvironmentArea(
+        id: 'area_rm',
+        name: 'Z',
+        presetId: 'preset_one',
+        mask: mask,
+        seed: 0,
+      );
+      final env = MapLayer.environment(
+        id: 'env1',
+        name: 'E',
+        content: EnvironmentLayerContent(areas: [area]),
+      );
+      final map = MapData(
+        id: 'mx',
+        name: 'Mx',
+        size: const GridSize(width: 2, height: 2),
+        layers: [env],
+      );
+      final p1 = _preset(id: 'preset_one', name: 'Un');
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/tmp',
+        project: buildShellChromeProject(environmentPresets: [p1]),
+        activeMap: map,
+        activeMapPath: 'maps/x.json',
+        activeLayerId: env.id,
+        savedMapSnapshot: map,
+      );
+      await tester.binding.setSurfaceSize(const Size(520, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: MaterialApp(
+              home: CupertinoPageScaffold(
+                child: SizedBox(
+                  width: 420,
+                  height: 1000,
+                  child: MapInspectorPanel(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('env-area-remove-area_rm')));
+      await tester.pumpAndSettle();
+      expect(
+        (container.read(editorNotifierProvider).activeMap!.layers.first
+                as EnvironmentLayer)
+            .content
+            .areas,
+        isEmpty,
+      );
+      expect(find.byKey(const Key('env-layer-inspector-no-areas')),
+          findsOneWidget);
+    });
+
+    testWidgets('avertissement placements si generatedPlacementIds non vides',
+        (tester) async {
+      final mask = EnvironmentAreaMask(
+        width: 1,
+        height: 1,
+        cells: const [false],
+      );
+      final area = EnvironmentArea(
+        id: 'area_pl',
+        name: 'Z',
+        presetId: 'preset_one',
+        mask: mask,
+        seed: 0,
+        generatedPlacementIds: const ['x1'],
+      );
+      final env = MapLayer.environment(
+        id: 'env1',
+        name: 'E',
+        content: EnvironmentLayerContent(areas: [area]),
+      );
+      final map = MapData(
+        id: 'mx',
+        name: 'Mx',
+        size: const GridSize(width: 1, height: 1),
+        layers: [env],
+      );
+      final envLayer = map.layers.first as EnvironmentLayer;
+      final p1 = _preset(id: 'preset_one', name: 'Un');
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/tmp',
+        project: buildShellChromeProject(environmentPresets: [p1]),
+        activeMap: map,
+        activeMapPath: 'maps/x.json',
+        activeLayerId: env.id,
+      );
+      await tester.binding.setSurfaceSize(const Size(480, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: MaterialApp(
+              home: CupertinoPageScaffold(
+                child: SizedBox(
+                  width: 400,
+                  height: 900,
+                  child: EnvironmentLayerInspectorPanel(
+                    map: map,
+                    layer: envLayer,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('env-area-card-placements-warn-area_pl')),
+        findsOneWidget,
+      );
+    });
+  });
+}
+```
+
+### `packages/map_editor/test/environment_studio/environment_layer_creation_test.dart`
+
+```dart
+import 'dart:ui' as ui;
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:macos_ui/macos_ui.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/models/path_autotile_set.dart';
+import 'package:map_editor/src/application/use_cases/layer_use_cases.dart';
+import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
+import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/ui/canvas/map_canvas.dart';
+import 'package:map_editor/src/ui/panels/layers_panel.dart';
+import 'package:map_editor/src/ui/panels/map_inspector_panel.dart';
+
+import '../shell_chrome_test_harness.dart';
+
+void main() {
+  group('Lot 19 — Environment Layer dans l’éditeur de map', () {
+    testWidgets('picker d’ajout de layer expose Environment Layer', (
+      tester,
+    ) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        activeMap: MapData(
+          id: 'map_1',
+          name: 'Map 1',
+          size: GridSize(width: 3, height: 3),
+        ),
+      );
+
+      await tester.binding.setSurfaceSize(const Size(900, 700));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: const MaterialApp(
+              home: CupertinoPageScaffold(
+                child: SizedBox(
+                  width: 360,
+                  height: 520,
+                  child: LayersPanel(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(
+        find.byWidgetPredicate(
+          (widget) => widget is MacosTooltip && widget.message == 'Add Layer',
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Type: Tile Layer'));
+      await tester.pumpAndSettle();
+      expect(find.text('Environment Layer'), findsOneWidget);
+    });
+
+    testWidgets(
+        'ajout Environment Layer : MapLayer.environment, contenu vide, sélection, dirty',
+        (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = const EditorState(
+        activeMap: MapData(
+          id: 'map_1',
+          name: 'Map 1',
+          size: GridSize(width: 3, height: 3),
+        ),
+      );
+
+      await tester.binding.setSurfaceSize(const Size(900, 700));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: const MaterialApp(
+              home: CupertinoPageScaffold(
+                child: SizedBox(
+                  width: 360,
+                  height: 520,
+                  child: LayersPanel(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final placedBefore = container
+          .read(editorNotifierProvider)
+          .activeMap!
+          .placedElements
+          .length;
+
+      await tester.tap(
+        find.byWidgetPredicate(
+          (widget) => widget is MacosTooltip && widget.message == 'Add Layer',
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Type: Tile Layer'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Environment Layer'));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const Key('layers-panel-add-environment-description')),
+        findsOneWidget,
+      );
+      await tester.tap(find.text('Add'));
+      await tester.pumpAndSettle();
+
+      final state = container.read(editorNotifierProvider);
+      final layer = state.activeMap!.layers.single;
+      expect(layer, isA<EnvironmentLayer>());
+      final env = layer as EnvironmentLayer;
+      expect(env.content.areas, isEmpty);
+      expect(env.content.targetTileLayerId, isNull);
+      expect(env.isVisible, isTrue);
+      expect(env.opacity, 1.0);
+      expect(env.properties, isEmpty);
+      expect(state.activeLayerId, env.id);
+      expect(state.isDirty, isTrue);
+      expect(
+        state.activeMap!.placedElements.length,
+        placedBefore,
+      );
+    });
+
+    test('AddMapLayerUseCase crée MapLayer.environment via map_core', () {
+      const map = MapData(
+        id: 'm',
+        name: 'M',
+        size: GridSize(width: 2, height: 2),
+      );
+      final uc = AddMapLayerUseCase();
+      final r = uc.execute(
+        map,
+        kind: MapLayerKind.environment,
+        name: 'Forêt auteur',
+      );
+      final layer = r.layer as EnvironmentLayer;
+      expect(layer.id, startsWith('l_environment'));
+      expect(layer.name, 'Forêt auteur');
+      expect(layer.content, EnvironmentLayerContent.emptyContent);
+    });
+
+    testWidgets('MapInspector : section neutre quand EnvironmentLayer actif', (
+      tester,
+    ) async {
+      const env = MapLayer.environment(
+        id: 'l_environment_demo',
+        name: 'Zones bio',
+      );
+      const map = MapData(
+        id: 'map_x',
+        name: 'Map X',
+        size: GridSize(width: 4, height: 4),
+        layers: [env],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/tmp/lot19_insp',
+        project: buildShellChromeProject(),
+        activeMap: map,
+        activeMapPath: 'maps/map_x.json',
+        activeLayerId: env.id,
+      );
+
+      await tester.binding.setSurfaceSize(const Size(520, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: const MaterialApp(
+              home: CupertinoPageScaffold(
+                child: SizedBox(
+                  width: 400,
+                  height: 1100,
+                  child: MapInspectorPanel(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('map-inspector-environment-layer-title')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('map-inspector-environment-layer-body')),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Le dessin du masque arrive dans un prochain lot'),
+        findsOneWidget,
+      );
+    });
+
+    test('MapGridPainter : map avec TileLayer + EnvironmentLayer ne lève pas',
+        () {
+      const map = MapData(
+        id: 'lab',
+        name: 'lab',
+        size: GridSize(width: 2, height: 2),
+        layers: <MapLayer>[
+          MapLayer.environment(id: 'env1', name: 'E'),
+          TileLayer(
+            id: 't1',
+            name: 'T',
+            tiles: <int>[1, 0, 0, 1],
+          ),
+        ],
+      );
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder);
+
+      MapGridPainter(
+        map: map,
+        zoom: 1,
+        offset: ui.Offset.zero,
+        hoveredTile: null,
+        activeLayerId: null,
+        tileWidth: 32,
+        tileHeight: 32,
+        tilesetImagesById: const <String, ui.Image?>{},
+        sourceTileWidth: 32,
+        sourceTileHeight: 32,
+        tilesPerRowById: const <String, int>{},
+        toolPreview: null,
+        warps: const <MapWarp>[],
+        gameplayZones: const <MapGameplayZone>[],
+        gameplayZoneDraftArea: null,
+        selectedEntityId: null,
+        selectedMapEventId: null,
+        selectedWarpId: null,
+        selectedTriggerId: null,
+        selectedGameplayZoneId: null,
+        selectedPlacedElementInstanceId: null,
+        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+        selectedPathAutotileSet: null,
+        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
+        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
+        project: null,
+      ).paint(canvas, const ui.Size(64, 64));
+
+      final picture = recorder.endRecording();
+      picture.dispose();
+    });
+  });
+}
+```
+
+### `packages/map_editor/lib/src/features/editor/state/editor_notifier.dart`
+
+```dart
 import 'dart:convert';
 import 'dart:io';
 
@@ -13,7 +2957,6 @@ import '../../../app/providers/core_providers.dart';
 import '../../../app/providers/editor_workspace_providers.dart';
 import '../../../app/providers/use_case_providers.dart';
 import '../../../application/errors/application_errors.dart';
-import '../../../application/use_cases/environment_mask_use_cases.dart';
 import '../../../application/use_cases/layer_use_cases.dart';
 import '../../../application/models/trainer_field_update.dart';
 import '../../../application/models/map_tool_preview.dart';
@@ -4768,115 +7711,9 @@ class EditorNotifier extends _$EditorNotifier {
         preferredActiveLayerId: environmentLayerId,
         statusMessage: 'Environment area removed',
       );
-      _coerceEnvironmentMaskSelectionAfterMapChange();
     } catch (e) {
       state = state.copyWith(
         errorMessage: 'Failed to remove environment area: $e',
-      );
-    }
-  }
-
-  /// Lot Environment-22 : area sélectionnée pour édition masque, sans activer paint/erase.
-  void selectEnvironmentAreaForMaskEditing({
-    required String environmentLayerId,
-    required String areaId,
-  }) {
-    final map = state.activeMap;
-    if (map == null) return;
-    final layer = _findLayerById(map, environmentLayerId);
-    if (layer is! EnvironmentLayer) return;
-    if (!layer.content.areas.any((a) => a.id == areaId)) return;
-    state = state.copyWith(
-      activeLayerId: environmentLayerId,
-      selectedEnvironmentAreaId: areaId,
-      errorMessage: null,
-    );
-  }
-
-  /// Lot Environment-22 : active la peinture du masque pour une zone.
-  void startEnvironmentAreaMaskPaint({
-    required String environmentLayerId,
-    required String areaId,
-  }) {
-    final map = state.activeMap;
-    if (map == null) return;
-    final layer = _findLayerById(map, environmentLayerId);
-    if (layer is! EnvironmentLayer) return;
-    if (!layer.content.areas.any((a) => a.id == areaId)) return;
-    state = state.copyWith(
-      activeLayerId: environmentLayerId,
-      selectedEnvironmentAreaId: areaId,
-      environmentMaskEditMode: EnvironmentMaskEditMode.paint,
-      errorMessage: null,
-    );
-  }
-
-  /// Lot Environment-22 : active l’effacement du masque pour une zone.
-  void startEnvironmentAreaMaskErase({
-    required String environmentLayerId,
-    required String areaId,
-  }) {
-    final map = state.activeMap;
-    if (map == null) return;
-    final layer = _findLayerById(map, environmentLayerId);
-    if (layer is! EnvironmentLayer) return;
-    if (!layer.content.areas.any((a) => a.id == areaId)) return;
-    state = state.copyWith(
-      activeLayerId: environmentLayerId,
-      selectedEnvironmentAreaId: areaId,
-      environmentMaskEditMode: EnvironmentMaskEditMode.erase,
-      errorMessage: null,
-    );
-  }
-
-  /// Lot Environment-22 : quitte paint/erase sans changer l’area sélectionnée.
-  void stopEnvironmentAreaMaskEditing() {
-    state = state.copyWith(environmentMaskEditMode: null, errorMessage: null);
-  }
-
-  /// Lot Environment-22 : applique paint ou erase selon [environmentMaskEditMode].
-  void paintEnvironmentAreaMaskAt(
-    GridPos pos, {
-    bool partOfStroke = false,
-  }) {
-    final map = state.activeMap;
-    if (map == null) return;
-    final layerId = state.activeLayerId;
-    final areaId = state.selectedEnvironmentAreaId;
-    final mode = state.environmentMaskEditMode;
-    if (layerId == null || areaId == null || mode == null) {
-      return;
-    }
-    final layer = _findLayerById(map, layerId);
-    if (layer is! EnvironmentLayer) {
-      return;
-    }
-    if (!layer.content.areas.any((a) => a.id == areaId)) {
-      return;
-    }
-    final isActive = mode == EnvironmentMaskEditMode.paint;
-    try {
-      final useCase = PaintEnvironmentAreaMaskCellUseCase();
-      final updated = useCase.execute(
-        map,
-        environmentLayerId: layerId,
-        areaId: areaId,
-        pos: pos,
-        isActive: isActive,
-      );
-      if (identical(updated, map)) {
-        return;
-      }
-      _applyMapMutation(
-        previousMap: map,
-        updatedMap: updated,
-        preferredActiveLayerId: layerId,
-        partOfStroke: partOfStroke,
-        statusMessage: 'Environment mask updated',
-      );
-    } catch (e) {
-      state = state.copyWith(
-        errorMessage: 'Failed to edit environment mask: $e',
       );
     }
   }
@@ -4925,7 +7762,6 @@ class EditorNotifier extends _$EditorNotifier {
         preferredActiveLayerId: nextActiveLayerId,
         statusMessage: 'Layer deleted',
       );
-      _coerceEnvironmentMaskSelectionAfterMapChange();
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to delete layer: $e');
     }
@@ -4944,7 +7780,6 @@ class EditorNotifier extends _$EditorNotifier {
             _editorMapSessionCoordinator.resolveActiveLayerId(updated),
         statusMessage: 'All layers removed',
       );
-      _coerceEnvironmentMaskSelectionAfterMapChange();
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to remove all layers: $e');
     }
@@ -5993,8 +8828,6 @@ class EditorNotifier extends _$EditorNotifier {
     state = state.copyWith(
       activeLayerId: layerId,
       selectedPlacedElementInstanceId: null,
-      selectedEnvironmentAreaId: null,
-      environmentMaskEditMode: null,
       errorMessage: null,
     );
     _coerceActiveToolIfIncompatibleWithLayer();
@@ -6308,38 +9141,6 @@ class EditorNotifier extends _$EditorNotifier {
       }
     }
     return null;
-  }
-
-  /// Lot Environment-22 : évite une sélection masque fantôme si le layer ou l’area disparaît.
-  void _coerceEnvironmentMaskSelectionAfterMapChange() {
-    final map = state.activeMap;
-    final lid = state.activeLayerId;
-    if (map == null || lid == null) {
-      state = state.copyWith(
-        selectedEnvironmentAreaId: null,
-        environmentMaskEditMode: null,
-      );
-      return;
-    }
-    final layer = _findLayerById(map, lid);
-    if (layer is! EnvironmentLayer) {
-      state = state.copyWith(
-        selectedEnvironmentAreaId: null,
-        environmentMaskEditMode: null,
-      );
-      return;
-    }
-    final sid = state.selectedEnvironmentAreaId?.trim();
-    if (sid == null || sid.isEmpty) {
-      return;
-    }
-    final stillExists = layer.content.areas.any((a) => a.id == sid);
-    if (!stillExists) {
-      state = state.copyWith(
-        selectedEnvironmentAreaId: null,
-        environmentMaskEditMode: null,
-      );
-    }
   }
 
   String? _resolveEventPlacementLayerId(MapData map) {
@@ -6847,3 +9648,1812 @@ class _ActivePathLayerContext {
   final String layerId;
   final PathLayer layer;
 }
+```
+
+## 18. Diff complet
+
+### Fichiers trackés modifiés
+
+```diff
+diff --git a/packages/map_editor/lib/src/application/use_cases/layer_use_cases.dart b/packages/map_editor/lib/src/application/use_cases/layer_use_cases.dart
+index a935859e..51e7f726 100644
+--- a/packages/map_editor/lib/src/application/use_cases/layer_use_cases.dart
++++ b/packages/map_editor/lib/src/application/use_cases/layer_use_cases.dart
+@@ -317,3 +317,284 @@ class SetEnvironmentLayerTargetTileLayerUseCase {
+     }
+   }
+ }
++
++/// Masque booléen vide aligné sur [MapData.size] (toutes les cellules inactives).
++EnvironmentAreaMask emptyEnvironmentAreaMaskForMap(MapData map) {
++  final w = map.size.width;
++  final h = map.size.height;
++  return EnvironmentAreaMask(
++    width: w,
++    height: h,
++    cells: List<bool>.filled(w * h, false, growable: false),
++  );
++}
++
++String _slugifyEnvAreaToken(String value) {
++  final lowered = value.toLowerCase().trim();
++  final replaced = lowered.replaceAll(RegExp(r'[^a-z0-9]+'), '_');
++  return replaced.replaceAll(RegExp(r'^_+|_+$'), '');
++}
++
++String _uniqueEnvironmentAreaId({
++  required String presetId,
++  required Iterable<String> existingAreaIds,
++}) {
++  final slug = _slugifyEnvAreaToken(presetId);
++  final baseToken = slug.isEmpty ? 'area' : slug;
++  final base = 'env_area_$baseToken';
++  final existing = existingAreaIds.toSet();
++  if (!existing.contains(base)) {
++    return base;
++  }
++  var n = 2;
++  while (true) {
++    final candidate = '${base}_$n';
++    if (!existing.contains(candidate)) {
++      return candidate;
++    }
++    n++;
++  }
++}
++
++/// Lot Environment-21 : résultat de [AddEnvironmentAreaUseCase].
++final class AddEnvironmentAreaResult {
++  const AddEnvironmentAreaResult({
++    required this.map,
++    required this.area,
++  });
++
++  final MapData map;
++  final EnvironmentArea area;
++}
++
++/// Lot Environment-21 : ajoute une [EnvironmentArea] (mask vide, map size).
++class AddEnvironmentAreaUseCase {
++  AddEnvironmentAreaResult execute(
++    MapData map, {
++    required ProjectManifest manifest,
++    required String environmentLayerId,
++    required String presetId,
++  }) {
++    final envId = environmentLayerId.trim();
++    if (envId.isEmpty) {
++      throw const EditorValidationException(
++        'Environment layer id cannot be empty',
++      );
++    }
++    final pid = presetId.trim();
++    if (pid.isEmpty) {
++      throw const EditorValidationException('Preset id cannot be empty');
++    }
++
++    EnvironmentPreset? preset;
++    for (final p in manifest.environmentPresets) {
++      if (p.id == pid) {
++        preset = p;
++        break;
++      }
++    }
++    if (preset == null) {
++      throw EditorValidationException('Environment preset not found: $pid');
++    }
++
++    MapLayer? envLayer;
++    for (final layer in map.layers) {
++      if (layer.id == envId) {
++        envLayer = layer;
++        break;
++      }
++    }
++    if (envLayer == null) {
++      throw EditorValidationException('Environment layer not found: $envId');
++    }
++    if (envLayer is! EnvironmentLayer) {
++      throw EditorValidationException(
++        'Layer is not an environment layer: $envId',
++      );
++    }
++
++    final existingIds = envLayer.content.areas.map((a) => a.id).toList();
++    final newId = _uniqueEnvironmentAreaId(
++      presetId: pid,
++      existingAreaIds: existingIds,
++    );
++    final mask = emptyEnvironmentAreaMaskForMap(map);
++    final area = EnvironmentArea(
++      id: newId,
++      name: preset.name,
++      presetId: pid,
++      mask: mask,
++      seed: 0,
++    );
++
++    final nextAreas = <EnvironmentArea>[...envLayer.content.areas, area];
++    final nextContent = EnvironmentLayerContent(
++      targetTileLayerId: envLayer.content.targetTileLayerId,
++      areas: nextAreas,
++    );
++    try {
++      final updated = setEnvironmentLayerContent(
++        map,
++        layerId: envId,
++        content: nextContent,
++      );
++      MapValidator.validate(updated);
++      return AddEnvironmentAreaResult(map: updated, area: area);
++    } on ValidationException catch (e) {
++      throw EditorValidationException(e.message);
++    }
++  }
++}
++
++/// Lot Environment-21 : change uniquement le [EnvironmentArea.presetId].
++class SetEnvironmentAreaPresetUseCase {
++  MapData execute(
++    MapData map, {
++    required ProjectManifest manifest,
++    required String environmentLayerId,
++    required String areaId,
++    required String presetId,
++  }) {
++    final envId = environmentLayerId.trim();
++    if (envId.isEmpty) {
++      throw const EditorValidationException(
++        'Environment layer id cannot be empty',
++      );
++    }
++    final aid = areaId.trim();
++    if (aid.isEmpty) {
++      throw const EditorValidationException('Area id cannot be empty');
++    }
++    final pid = presetId.trim();
++    if (pid.isEmpty) {
++      throw const EditorValidationException('Preset id cannot be empty');
++    }
++
++    EnvironmentPreset? preset;
++    for (final p in manifest.environmentPresets) {
++      if (p.id == pid) {
++        preset = p;
++        break;
++      }
++    }
++    if (preset == null) {
++      throw EditorValidationException('Environment preset not found: $pid');
++    }
++
++    MapLayer? envLayer;
++    for (final layer in map.layers) {
++      if (layer.id == envId) {
++        envLayer = layer;
++        break;
++      }
++    }
++    if (envLayer == null) {
++      throw EditorValidationException('Environment layer not found: $envId');
++    }
++    if (envLayer is! EnvironmentLayer) {
++      throw EditorValidationException(
++        'Layer is not an environment layer: $envId',
++      );
++    }
++
++    EnvironmentArea? found;
++    for (final a in envLayer.content.areas) {
++      if (a.id == aid) {
++        found = a;
++        break;
++      }
++    }
++    if (found == null) {
++      throw EditorValidationException('Environment area not found: $aid');
++    }
++
++    final updatedArea = EnvironmentArea(
++      id: found.id,
++      name: found.name,
++      presetId: pid,
++      mask: found.mask,
++      seed: found.seed,
++      paramsOverride: found.paramsOverride,
++      generatedPlacementIds: found.generatedPlacementIds,
++    );
++
++    final nextAreas = envLayer.content.areas
++        .map((a) => a.id == aid ? updatedArea : a)
++        .toList(growable: false);
++    final nextContent = EnvironmentLayerContent(
++      targetTileLayerId: envLayer.content.targetTileLayerId,
++      areas: nextAreas,
++    );
++    try {
++      final updated = setEnvironmentLayerContent(
++        map,
++        layerId: envId,
++        content: nextContent,
++      );
++      MapValidator.validate(updated);
++      return updated;
++    } on ValidationException catch (e) {
++      throw EditorValidationException(e.message);
++    }
++  }
++}
++
++/// Lot Environment-21 : retire une [EnvironmentArea] du layer.
++class RemoveEnvironmentAreaUseCase {
++  MapData execute(
++    MapData map, {
++    required String environmentLayerId,
++    required String areaId,
++  }) {
++    final envId = environmentLayerId.trim();
++    if (envId.isEmpty) {
++      throw const EditorValidationException(
++        'Environment layer id cannot be empty',
++      );
++    }
++    final aid = areaId.trim();
++    if (aid.isEmpty) {
++      throw const EditorValidationException('Area id cannot be empty');
++    }
++
++    MapLayer? envLayer;
++    for (final layer in map.layers) {
++      if (layer.id == envId) {
++        envLayer = layer;
++        break;
++      }
++    }
++    if (envLayer == null) {
++      throw EditorValidationException('Environment layer not found: $envId');
++    }
++    if (envLayer is! EnvironmentLayer) {
++      throw EditorValidationException(
++        'Layer is not an environment layer: $envId',
++      );
++    }
++
++    final had = envLayer.content.areas.any((a) => a.id == aid);
++    if (!had) {
++      throw EditorValidationException('Environment area not found: $aid');
++    }
++
++    final nextAreas = envLayer.content.areas
++        .where((a) => a.id != aid)
++        .toList(growable: false);
++    final nextContent = EnvironmentLayerContent(
++      targetTileLayerId: envLayer.content.targetTileLayerId,
++      areas: nextAreas,
++    );
++    try {
++      final updated = setEnvironmentLayerContent(
++        map,
++        layerId: envId,
++        content: nextContent,
++      );
++      MapValidator.validate(updated);
++      return updated;
++    } on ValidationException catch (e) {
++      throw EditorValidationException(e.message);
++    }
++  }
++}
+diff --git a/packages/map_editor/lib/src/features/editor/state/editor_notifier.dart b/packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
+index 91457a73..40a13192 100644
+--- a/packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
++++ b/packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
+@@ -4675,6 +4675,105 @@ class EditorNotifier extends _$EditorNotifier {
+     }
+   }
+ 
++  /// Lot Environment-21 : ajoute une [EnvironmentArea] (mask vide, preset manifest).
++  void addEnvironmentAreaToLayer({
++    required String environmentLayerId,
++    required String presetId,
++  }) {
++    final map = state.activeMap;
++    final project = state.project;
++    if (map == null || project == null) {
++      state = state.copyWith(
++        errorMessage:
++            'Cannot add environment area: no active map or project manifest.',
++      );
++      return;
++    }
++    try {
++      final useCase = AddEnvironmentAreaUseCase();
++      final result = useCase.execute(
++        map,
++        manifest: project,
++        environmentLayerId: environmentLayerId,
++        presetId: presetId,
++      );
++      _applyMapMutation(
++        previousMap: map,
++        updatedMap: result.map,
++        preferredActiveLayerId: environmentLayerId,
++        statusMessage: 'Environment area added',
++      );
++    } catch (e) {
++      state = state.copyWith(
++        errorMessage: 'Failed to add environment area: $e',
++      );
++    }
++  }
++
++  /// Lot Environment-21 : change le preset d’une zone existante.
++  void setEnvironmentAreaPreset({
++    required String environmentLayerId,
++    required String areaId,
++    required String presetId,
++  }) {
++    final map = state.activeMap;
++    final project = state.project;
++    if (map == null || project == null) {
++      state = state.copyWith(
++        errorMessage:
++            'Cannot set environment area preset: no active map or project manifest.',
++      );
++      return;
++    }
++    try {
++      final useCase = SetEnvironmentAreaPresetUseCase();
++      final updated = useCase.execute(
++        map,
++        manifest: project,
++        environmentLayerId: environmentLayerId,
++        areaId: areaId,
++        presetId: presetId,
++      );
++      _applyMapMutation(
++        previousMap: map,
++        updatedMap: updated,
++        preferredActiveLayerId: environmentLayerId,
++        statusMessage: 'Environment area preset updated',
++      );
++    } catch (e) {
++      state = state.copyWith(
++        errorMessage: 'Failed to set environment area preset: $e',
++      );
++    }
++  }
++
++  /// Lot Environment-21 : retire une [EnvironmentArea].
++  void removeEnvironmentArea({
++    required String environmentLayerId,
++    required String areaId,
++  }) {
++    final map = state.activeMap;
++    if (map == null) return;
++    try {
++      final useCase = RemoveEnvironmentAreaUseCase();
++      final updated = useCase.execute(
++        map,
++        environmentLayerId: environmentLayerId,
++        areaId: areaId,
++      );
++      _applyMapMutation(
++        previousMap: map,
++        updatedMap: updated,
++        preferredActiveLayerId: environmentLayerId,
++        statusMessage: 'Environment area removed',
++      );
++    } catch (e) {
++      state = state.copyWith(
++        errorMessage: 'Failed to remove environment area: $e',
++      );
++    }
++  }
++
+   void renameMapLayer(String layerId, String name) {
+     final map = state.activeMap;
+     if (map == null) return;
+diff --git a/packages/map_editor/lib/src/ui/panels/environment_layer_inspector_panel.dart b/packages/map_editor/lib/src/ui/panels/environment_layer_inspector_panel.dart
+index ef566811..59e9bfb1 100644
+--- a/packages/map_editor/lib/src/ui/panels/environment_layer_inspector_panel.dart
++++ b/packages/map_editor/lib/src/ui/panels/environment_layer_inspector_panel.dart
+@@ -4,9 +4,10 @@ import 'package:macos_ui/macos_ui.dart';
+ import 'package:map_core/map_core.dart';
+ 
+ import '../../features/editor/state/editor_notifier.dart';
++import '../../features/editor/state/editor_selectors.dart';
+ import '../shared/cupertino_editor_widgets.dart';
+ 
+-/// Inspecteur Lot Environment-19/20 : meta layer + cible [TileLayer] pour génération future.
++/// Inspecteur Environment Studio : cible tuile (Lot 20) + zones (Lot 21), sans canvas.
+ class EnvironmentLayerInspectorPanel extends ConsumerWidget {
+   const EnvironmentLayerInspectorPanel({
+     super.key,
+@@ -45,147 +46,221 @@ class EnvironmentLayerInspectorPanel extends ConsumerWidget {
+     final subtle = EditorChrome.subtleLabel(context);
+     final label = EditorChrome.primaryLabel(context);
+     final notifier = ref.read(editorNotifierProvider.notifier);
++    final manifest = ref.watch(editorProjectManifestProvider);
+     final tiles = _tileLayers();
+     final target = _resolveTarget();
+     final tid = layer.content.targetTileLayerId;
+     final invalidTarget = tid != null && target == null;
++    final presets = manifest?.environmentPresets ?? const <EnvironmentPreset>[];
+ 
+-    return Padding(
+-      padding: EdgeInsets.fromLTRB(embedded ? 8 : 10, 4, embedded ? 8 : 10, 10),
+-      child: Column(
+-        crossAxisAlignment: CrossAxisAlignment.stretch,
+-        children: [
+-          Text(
+-            'Environment Layer',
+-            key: const Key('map-inspector-environment-layer-title'),
+-            style: TextStyle(
+-              color: label,
+-              fontSize: 14,
+-              fontWeight: FontWeight.w800,
+-            ),
+-          ),
+-          const SizedBox(height: 8),
+-          Text(
+-            'Ce layer servira à dessiner des zones organiques et à générer des '
+-            'éléments naturels.\n'
+-            'La configuration des zones arrive dans un prochain lot.',
+-            key: const Key('map-inspector-environment-layer-body'),
+-            style: TextStyle(
+-              color: subtle,
+-              fontSize: 12,
+-              height: 1.4,
+-              fontWeight: FontWeight.w600,
+-            ),
+-          ),
+-          const SizedBox(height: 14),
+-          Text(
+-            'TileLayer cible',
+-            style: TextStyle(
+-              color: label,
+-              fontSize: 13,
+-              fontWeight: FontWeight.w700,
+-            ),
+-          ),
+-          const SizedBox(height: 8),
+-          if (tiles.isEmpty) ...[
+-            Text(
+-              'Aucun TileLayer disponible dans cette map.\n'
+-              'Ajoutez d’abord un TileLayer pour recevoir les résultats générés.',
+-              key: const Key('env-layer-inspector-no-tile-layers'),
+-              style: TextStyle(
+-                color: subtle,
+-                fontSize: 12,
+-                height: 1.35,
+-                fontWeight: FontWeight.w600,
+-              ),
+-            ),
+-          ] else if (invalidTarget) ...[
++    return SingleChildScrollView(
++      child: Padding(
++        padding:
++            EdgeInsets.fromLTRB(embedded ? 8 : 10, 4, embedded ? 8 : 10, 10),
++        child: Column(
++          crossAxisAlignment: CrossAxisAlignment.stretch,
++          children: [
+             Text(
+-              'La cible configurée est introuvable ou invalide : $tid',
+-              key: const Key('env-layer-inspector-invalid-target'),
++              'Environment Layer',
++              key: const Key('map-inspector-environment-layer-title'),
+               style: TextStyle(
+-                color: CupertinoColors.systemOrange.resolveFrom(context),
+-                fontSize: 12,
+-                height: 1.35,
+-                fontWeight: FontWeight.w600,
++                color: label,
++                fontSize: 14,
++                fontWeight: FontWeight.w800,
+               ),
+             ),
+-            const SizedBox(height: 10),
+-            PushButton(
+-              key: const Key('env-layer-inspector-change-invalid'),
+-              controlSize: ControlSize.regular,
+-              onPressed: () => _pickTileLayer(context, notifier, tiles),
+-              child: const Text('Choisir un autre TileLayer cible'),
+-            ),
+             const SizedBox(height: 8),
+-            PushButton(
+-              key: const Key('env-layer-inspector-remove-invalid'),
+-              controlSize: ControlSize.regular,
+-              secondary: true,
+-              onPressed: () => notifier.setEnvironmentLayerTargetTileLayer(
+-                environmentLayerId: layer.id,
+-                targetTileLayerId: null,
+-              ),
+-              child: const Text('Retirer la cible'),
+-            ),
+-          ] else if (target == null) ...[
+             Text(
+-              'Aucun TileLayer cible sélectionné.',
+-              key: const Key('env-layer-inspector-no-target'),
++              'Ce layer servira à dessiner des zones organiques et à générer des '
++              'éléments naturels.',
++              key: const Key('map-inspector-environment-layer-body'),
+               style: TextStyle(
+                 color: subtle,
+                 fontSize: 12,
+-                height: 1.35,
++                height: 1.4,
+                 fontWeight: FontWeight.w600,
+               ),
+             ),
+-            const SizedBox(height: 10),
+-            PushButton(
+-              key: const Key('env-layer-inspector-choose-target'),
+-              controlSize: ControlSize.regular,
+-              onPressed: () => _pickTileLayer(context, notifier, tiles),
+-              child: const Text('Choisir le TileLayer cible'),
+-            ),
+-          ] else ...[
++            const SizedBox(height: 16),
+             Text(
+-              'Cible actuelle : ${target.name}',
+-              key: const Key('env-layer-inspector-current-target-name'),
++              'Zones d’environnement',
++              key: const Key('env-layer-inspector-zones-title'),
+               style: TextStyle(
+                 color: label,
+-                fontSize: 12,
++                fontSize: 13,
+                 fontWeight: FontWeight.w700,
+               ),
+             ),
+-            const SizedBox(height: 4),
++            const SizedBox(height: 6),
+             Text(
+-              'Id : ${target.id}',
+-              key: const Key('env-layer-inspector-current-target-id'),
++              'Les zones définissent où les presets organiques seront générés. '
++              'Le dessin du masque arrive dans un prochain lot.',
++              key: const Key('env-layer-inspector-zones-desc'),
+               style: TextStyle(
+                 color: subtle,
+                 fontSize: 11.5,
++                height: 1.35,
+                 fontWeight: FontWeight.w600,
+               ),
+             ),
+             const SizedBox(height: 10),
+-            PushButton(
+-              key: const Key('env-layer-inspector-change-target'),
+-              controlSize: ControlSize.regular,
+-              onPressed: () => _pickTileLayer(context, notifier, tiles),
+-              child: const Text('Changer de TileLayer cible'),
++            if (presets.isEmpty) ...[
++              Text(
++                'Aucun preset d’environnement disponible.\n'
++                'Créez d’abord un preset dans Environment Studio.',
++                key: const Key('env-layer-inspector-no-presets'),
++                style: TextStyle(
++                  color: subtle,
++                  fontSize: 12,
++                  height: 1.35,
++                  fontWeight: FontWeight.w600,
++                ),
++              ),
++            ] else ...[
++              if (layer.content.areas.isEmpty)
++                Text(
++                  'Aucune zone d’environnement pour ce layer.',
++                  key: const Key('env-layer-inspector-no-areas'),
++                  style: TextStyle(
++                    color: subtle,
++                    fontSize: 12,
++                    height: 1.35,
++                    fontWeight: FontWeight.w600,
++                  ),
++                )
++              else
++                ...layer.content.areas.map(
++                  (area) => _EnvironmentAreaCard(
++                    area: area,
++                    manifest: manifest,
++                    layerId: layer.id,
++                    notifier: notifier,
++                    labelColor: label,
++                    subtleColor: subtle,
++                  ),
++                ),
++              const SizedBox(height: 10),
++              PushButton(
++                key: const Key('env-layer-inspector-add-area'),
++                controlSize: ControlSize.regular,
++                onPressed: () => _pickPresetAndAddArea(
++                  context,
++                  notifier,
++                  presets,
++                ),
++                child: const Text('Ajouter une zone'),
++              ),
++            ],
++            const SizedBox(height: 18),
++            Text(
++              'TileLayer cible',
++              style: TextStyle(
++                color: label,
++                fontSize: 13,
++                fontWeight: FontWeight.w700,
++              ),
+             ),
+             const SizedBox(height: 8),
+-            PushButton(
+-              key: const Key('env-layer-inspector-remove-target'),
+-              controlSize: ControlSize.regular,
+-              secondary: true,
+-              onPressed: () => notifier.setEnvironmentLayerTargetTileLayer(
+-                environmentLayerId: layer.id,
+-                targetTileLayerId: null,
+-              ),
+-              child: const Text('Retirer la cible'),
+-            ),
++            if (tiles.isEmpty) ...[
++              Text(
++                'Aucun TileLayer disponible dans cette map.\n'
++                'Ajoutez d’abord un TileLayer pour recevoir les résultats générés.',
++                key: const Key('env-layer-inspector-no-tile-layers'),
++                style: TextStyle(
++                  color: subtle,
++                  fontSize: 12,
++                  height: 1.35,
++                  fontWeight: FontWeight.w600,
++                ),
++              ),
++            ] else if (invalidTarget) ...[
++              Text(
++                'La cible configurée est introuvable ou invalide : $tid',
++                key: const Key('env-layer-inspector-invalid-target'),
++                style: TextStyle(
++                  color: CupertinoColors.systemOrange.resolveFrom(context),
++                  fontSize: 12,
++                  height: 1.35,
++                  fontWeight: FontWeight.w600,
++                ),
++              ),
++              const SizedBox(height: 10),
++              PushButton(
++                key: const Key('env-layer-inspector-change-invalid'),
++                controlSize: ControlSize.regular,
++                onPressed: () => _pickTileLayer(context, notifier, tiles),
++                child: const Text('Choisir un autre TileLayer cible'),
++              ),
++              const SizedBox(height: 8),
++              PushButton(
++                key: const Key('env-layer-inspector-remove-invalid'),
++                controlSize: ControlSize.regular,
++                secondary: true,
++                onPressed: () => notifier.setEnvironmentLayerTargetTileLayer(
++                  environmentLayerId: layer.id,
++                  targetTileLayerId: null,
++                ),
++                child: const Text('Retirer la cible'),
++              ),
++            ] else if (target == null) ...[
++              Text(
++                'Aucun TileLayer cible sélectionné.',
++                key: const Key('env-layer-inspector-no-target'),
++                style: TextStyle(
++                  color: subtle,
++                  fontSize: 12,
++                  height: 1.35,
++                  fontWeight: FontWeight.w600,
++                ),
++              ),
++              const SizedBox(height: 10),
++              PushButton(
++                key: const Key('env-layer-inspector-choose-target'),
++                controlSize: ControlSize.regular,
++                onPressed: () => _pickTileLayer(context, notifier, tiles),
++                child: const Text('Choisir le TileLayer cible'),
++              ),
++            ] else ...[
++              Text(
++                'Cible actuelle : ${target.name}',
++                key: const Key('env-layer-inspector-current-target-name'),
++                style: TextStyle(
++                  color: label,
++                  fontSize: 12,
++                  fontWeight: FontWeight.w700,
++                ),
++              ),
++              const SizedBox(height: 4),
++              Text(
++                'Id : ${target.id}',
++                key: const Key('env-layer-inspector-current-target-id'),
++                style: TextStyle(
++                  color: subtle,
++                  fontSize: 11.5,
++                  fontWeight: FontWeight.w600,
++                ),
++              ),
++              const SizedBox(height: 10),
++              PushButton(
++                key: const Key('env-layer-inspector-change-target'),
++                controlSize: ControlSize.regular,
++                onPressed: () => _pickTileLayer(context, notifier, tiles),
++                child: const Text('Changer de TileLayer cible'),
++              ),
++              const SizedBox(height: 8),
++              PushButton(
++                key: const Key('env-layer-inspector-remove-target'),
++                controlSize: ControlSize.regular,
++                secondary: true,
++                onPressed: () => notifier.setEnvironmentLayerTargetTileLayer(
++                  environmentLayerId: layer.id,
++                  targetTileLayerId: null,
++                ),
++                child: const Text('Retirer la cible'),
++              ),
++            ],
+           ],
+-        ],
++        ),
+       ),
+     );
+   }
+@@ -207,4 +282,199 @@ class EnvironmentLayerInspectorPanel extends ConsumerWidget {
+       targetTileLayerId: picked.id,
+     );
+   }
++
++  Future<void> _pickPresetAndAddArea(
++    BuildContext context,
++    EditorNotifier notifier,
++    List<EnvironmentPreset> presets,
++  ) async {
++    final picked = await showCupertinoListPicker<EnvironmentPreset>(
++      context: context,
++      title: 'Preset d’environnement',
++      items: presets,
++      labelOf: (p) => '${p.name} — ${p.id}',
++    );
++    if (picked == null) return;
++    notifier.addEnvironmentAreaToLayer(
++      environmentLayerId: layer.id,
++      presetId: picked.id,
++    );
++  }
++}
++
++class _EnvironmentAreaCard extends StatelessWidget {
++  const _EnvironmentAreaCard({
++    required this.area,
++    required this.manifest,
++    required this.layerId,
++    required this.notifier,
++    required this.labelColor,
++    required this.subtleColor,
++  });
++
++  final EnvironmentArea area;
++  final ProjectManifest? manifest;
++  final String layerId;
++  final EditorNotifier notifier;
++  final Color labelColor;
++  final Color subtleColor;
++
++  EnvironmentPreset? _preset() {
++    final m = manifest;
++    if (m == null) return null;
++    for (final p in m.environmentPresets) {
++      if (p.id == area.presetId) return p;
++    }
++    return null;
++  }
++
++  @override
++  Widget build(BuildContext context) {
++    final manifestPresets =
++        manifest?.environmentPresets ?? const <EnvironmentPreset>[];
++    final preset = _preset();
++    final maskLabel = area.mask.activeCellCount == 0
++        ? 'Masque vide — le dessin de zone arrive dans un prochain lot.'
++        : '${area.mask.activeCellCount} cellule(s) active(s) sur '
++            '${area.mask.width}×${area.mask.height}';
++    final warnPlacements = area.generatedPlacementIds.isNotEmpty;
++
++    return Padding(
++      padding: const EdgeInsets.only(bottom: 10),
++      child: DecoratedBox(
++        decoration: BoxDecoration(
++          color: CupertinoColors.tertiarySystemFill.resolveFrom(context),
++          borderRadius: BorderRadius.circular(10),
++          border: Border.all(
++            color: CupertinoColors.separator.resolveFrom(context),
++          ),
++        ),
++        child: Padding(
++          padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
++          child: Column(
++            crossAxisAlignment: CrossAxisAlignment.stretch,
++            children: [
++              Text(
++                'Zone : ${area.id}',
++                key: Key('env-area-card-id-${area.id}'),
++                style: TextStyle(
++                  color: labelColor,
++                  fontSize: 12,
++                  fontWeight: FontWeight.w800,
++                ),
++              ),
++              const SizedBox(height: 6),
++              if (preset != null) ...[
++                Text(
++                  'Preset : ${preset.name}',
++                  key: Key('env-area-card-preset-name-${area.id}'),
++                  style: TextStyle(
++                    color: labelColor,
++                    fontSize: 11.5,
++                    fontWeight: FontWeight.w700,
++                  ),
++                ),
++                Text(
++                  'Id preset : ${preset.id}',
++                  key: Key('env-area-card-preset-id-${area.id}'),
++                  style: TextStyle(
++                    color: subtleColor,
++                    fontSize: 11,
++                    fontWeight: FontWeight.w600,
++                  ),
++                ),
++              ] else
++                Text(
++                  'Preset associé introuvable : ${area.presetId}',
++                  key: Key('env-area-card-preset-missing-${area.id}'),
++                  style: TextStyle(
++                    color: CupertinoColors.systemOrange.resolveFrom(context),
++                    fontSize: 11.5,
++                    fontWeight: FontWeight.w600,
++                  ),
++                ),
++              const SizedBox(height: 6),
++              Text(
++                maskLabel,
++                key: Key('env-area-card-mask-${area.id}'),
++                style: TextStyle(
++                  color: subtleColor,
++                  fontSize: 11,
++                  height: 1.3,
++                  fontWeight: FontWeight.w600,
++                ),
++              ),
++              const SizedBox(height: 4),
++              Text(
++                'Placements générés : ${area.generatedPlacementIds.length}',
++                key: Key('env-area-card-placements-count-${area.id}'),
++                style: TextStyle(
++                  color: subtleColor,
++                  fontSize: 11,
++                  fontWeight: FontWeight.w600,
++                ),
++              ),
++              if (warnPlacements) ...[
++                const SizedBox(height: 6),
++                Text(
++                  'Cette zone référence des placements générés ; le retrait ne les '
++                  'supprime pas automatiquement.',
++                  key: Key('env-area-card-placements-warn-${area.id}'),
++                  style: TextStyle(
++                    color: CupertinoColors.systemOrange.resolveFrom(context),
++                    fontSize: 10.5,
++                    height: 1.25,
++                    fontWeight: FontWeight.w600,
++                  ),
++                ),
++              ],
++              const SizedBox(height: 10),
++              PushButton(
++                key: Key('env-area-change-preset-${area.id}'),
++                controlSize: ControlSize.small,
++                onPressed: manifestPresets.isEmpty
++                    ? null
++                    : () => _pickPresetForArea(
++                          context,
++                          notifier,
++                          manifestPresets,
++                        ),
++                child: const Text('Changer de preset'),
++              ),
++              const SizedBox(height: 6),
++              PushButton(
++                key: Key('env-area-remove-${area.id}'),
++                controlSize: ControlSize.small,
++                secondary: true,
++                onPressed: () => notifier.removeEnvironmentArea(
++                  environmentLayerId: layerId,
++                  areaId: area.id,
++                ),
++                child: const Text('Retirer'),
++              ),
++            ],
++          ),
++        ),
++      ),
++    );
++  }
++
++  Future<void> _pickPresetForArea(
++    BuildContext context,
++    EditorNotifier notifier,
++    List<EnvironmentPreset> presets,
++  ) async {
++    final picked = await showCupertinoListPicker<EnvironmentPreset>(
++      context: context,
++      title: 'Nouveau preset',
++      items: presets,
++      labelOf: (p) => '${p.name} — ${p.id}',
++    );
++    if (picked == null) return;
++    notifier.setEnvironmentAreaPreset(
++      environmentLayerId: layerId,
++      areaId: area.id,
++      presetId: picked.id,
++    );
++  }
+ }
+diff --git a/packages/map_editor/lib/src/ui/panels/map_inspector_panel.dart b/packages/map_editor/lib/src/ui/panels/map_inspector_panel.dart
+index 14e6a459..85458f00 100644
+--- a/packages/map_editor/lib/src/ui/panels/map_inspector_panel.dart
++++ b/packages/map_editor/lib/src/ui/panels/map_inspector_panel.dart
+@@ -179,7 +179,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
+                     _InspectorSectionId.environmentLayer,
+                     defaultExpanded: true,
+                   ),
+-                  expandedHeight: 360,
++                  expandedHeight: 560,
+                   child: EnvironmentLayerInspectorPanel(
+                     map: activeMap,
+                     layer: activeLayer,
+diff --git a/packages/map_editor/test/environment_studio/environment_layer_creation_test.dart b/packages/map_editor/test/environment_studio/environment_layer_creation_test.dart
+index 0786051a..fee7d0fd 100644
+--- a/packages/map_editor/test/environment_studio/environment_layer_creation_test.dart
++++ b/packages/map_editor/test/environment_studio/environment_layer_creation_test.dart
+@@ -206,7 +206,7 @@ void main() {
+         findsOneWidget,
+       );
+       expect(
+-        find.textContaining('La configuration des zones arrive'),
++        find.textContaining('Le dessin du masque arrive dans un prochain lot'),
+         findsOneWidget,
+       );
+     });
+```
+
+### Nouveau fichier de test (`git diff --no-index /dev/null …`)
+
+```diff
+diff --git a/packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart b/packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart
+new file mode 100644
+index 00000000..290ab481
+--- /dev/null
++++ b/packages/map_editor/test/environment_studio/environment_layer_area_model_editing_test.dart
+@@ -0,0 +1,780 @@
++// ignore_for_file: prefer_const_constructors — fixtures MapData / MaterialApp non const
++
++import 'package:flutter/cupertino.dart';
++import 'package:flutter/material.dart';
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:macos_ui/macos_ui.dart';
++import 'package:map_core/map_core.dart';
++import 'package:map_editor/src/application/errors/application_errors.dart';
++import 'package:map_editor/src/application/use_cases/layer_use_cases.dart';
++import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
++import 'package:map_editor/src/features/editor/state/editor_state.dart';
++import 'package:map_editor/src/ui/panels/environment_layer_inspector_panel.dart';
++import 'package:map_editor/src/ui/panels/map_inspector_panel.dart';
++
++import '../shell_chrome_test_harness.dart';
++
++EnvironmentPreset _preset({
++  String id = 'preset_forest',
++  String name = 'Forêt test',
++}) {
++  return EnvironmentPreset(
++    id: id,
++    name: name,
++    templateId: 'forest_dense',
++    palette: [
++      EnvironmentPaletteItem(elementId: 'elem_tree', weight: 1),
++    ],
++    defaultParams: EnvironmentGenerationParams.standard(),
++    sortOrder: 0,
++  );
++}
++
++void main() {
++  group('Lot 21 — EnvironmentArea model (inspector)', () {
++    group('AddEnvironmentAreaUseCase', () {
++      test(
++          'ajoute une area : mask taille map, vide, placements vides, cible préservée',
++          () {
++        final tile = TileLayer(
++          id: 'tiles_main',
++          name: 'Sol',
++          tiles: List<int>.filled(12, 0, growable: false),
++        );
++        final env = MapLayer.environment(
++          id: 'env1',
++          name: 'Nature',
++          content: EnvironmentLayerContent(
++            targetTileLayerId: 'tiles_main',
++            areas: const [],
++          ),
++        );
++        final map = MapData(
++          id: 'm',
++          name: 'M',
++          size: const GridSize(width: 4, height: 3),
++          layers: [env, tile],
++          placedElements: [
++            MapPlacedElement(
++              id: 'pe1',
++              layerId: 'tiles_main',
++              elementId: 'x',
++              pos: const GridPos(x: 0, y: 0),
++            ),
++          ],
++        );
++        final manifest = buildShellChromeProject(
++          environmentPresets: [_preset()],
++        );
++        final uc = AddEnvironmentAreaUseCase();
++        final result = uc.execute(
++          map,
++          manifest: manifest,
++          environmentLayerId: 'env1',
++          presetId: 'preset_forest',
++        );
++        final layer = result.map.layers.first as EnvironmentLayer;
++        expect(layer.content.areas.length, 1);
++        expect(layer.content.areas.single.presetId, 'preset_forest');
++        expect(layer.content.targetTileLayerId, 'tiles_main');
++        expect(layer.content.areas.single.mask.width, 4);
++        expect(layer.content.areas.single.mask.height, 3);
++        expect(layer.content.areas.single.mask.activeCellCount, 0);
++        expect(layer.content.areas.single.generatedPlacementIds, isEmpty);
++        expect(result.map.placedElements, map.placedElements);
++      });
++
++      test('deux areas même preset → ids différents, ordre stable', () {
++        final env = MapLayer.environment(id: 'env1', name: 'E');
++        final map = MapData(
++          id: 'm',
++          name: 'M',
++          size: const GridSize(width: 2, height: 2),
++          layers: [env],
++        );
++        final manifest = buildShellChromeProject(
++          environmentPresets: [_preset()],
++        );
++        final uc = AddEnvironmentAreaUseCase();
++        final r1 = uc.execute(
++          map,
++          manifest: manifest,
++          environmentLayerId: 'env1',
++          presetId: 'preset_forest',
++        );
++        final r2 = AddEnvironmentAreaUseCase().execute(
++          r1.map,
++          manifest: manifest,
++          environmentLayerId: 'env1',
++          presetId: 'preset_forest',
++        );
++        final areas = (r2.map.layers.first as EnvironmentLayer).content.areas;
++        expect(areas.length, 2);
++        expect(areas[0].id, isNot(areas[1].id));
++        expect(areas.map((a) => a.id).toSet().length, 2);
++      });
++
++      test('rejette environmentLayerId inconnu', () {
++        final map = MapData(
++          id: 'm',
++          name: 'M',
++          size: const GridSize(width: 1, height: 1),
++          layers: [MapLayer.environment(id: 'env1', name: 'E')],
++        );
++        final manifest = buildShellChromeProject(
++          environmentPresets: [_preset()],
++        );
++        expect(
++          () => AddEnvironmentAreaUseCase().execute(
++            map,
++            manifest: manifest,
++            environmentLayerId: 'missing',
++            presetId: 'preset_forest',
++          ),
++          throwsA(isA<EditorValidationException>()),
++        );
++      });
++
++      test('rejette environmentLayerId TileLayer', () {
++        final tile = TileLayer(
++          id: 't1',
++          name: 'T',
++          tiles: const <int>[0],
++        );
++        final map = MapData(
++          id: 'm',
++          name: 'M',
++          size: const GridSize(width: 1, height: 1),
++          layers: [tile],
++        );
++        final manifest = buildShellChromeProject(
++          environmentPresets: [_preset()],
++        );
++        expect(
++          () => AddEnvironmentAreaUseCase().execute(
++            map,
++            manifest: manifest,
++            environmentLayerId: 't1',
++            presetId: 'preset_forest',
++          ),
++          throwsA(isA<EditorValidationException>()),
++        );
++      });
++
++      test('rejette presetId inconnu', () {
++        final map = MapData(
++          id: 'm',
++          name: 'M',
++          size: const GridSize(width: 1, height: 1),
++          layers: [MapLayer.environment(id: 'env1', name: 'E')],
++        );
++        final manifest = buildShellChromeProject(
++          environmentPresets: [_preset()],
++        );
++        expect(
++          () => AddEnvironmentAreaUseCase().execute(
++            map,
++            manifest: manifest,
++            environmentLayerId: 'env1',
++            presetId: 'nope',
++          ),
++          throwsA(isA<EditorValidationException>()),
++        );
++      });
++
++      test('rejette presetId vide', () {
++        final map = MapData(
++          id: 'm',
++          name: 'M',
++          size: const GridSize(width: 1, height: 1),
++          layers: [MapLayer.environment(id: 'env1', name: 'E')],
++        );
++        final manifest = buildShellChromeProject(
++          environmentPresets: [_preset()],
++        );
++        expect(
++          () => AddEnvironmentAreaUseCase().execute(
++            map,
++            manifest: manifest,
++            environmentLayerId: 'env1',
++            presetId: '   ',
++          ),
++          throwsA(isA<EditorValidationException>()),
++        );
++      });
++    });
++
++    group('SetEnvironmentAreaPresetUseCase', () {
++      test('change presetId, préserve mask et generatedPlacementIds et cible',
++          () {
++        final mask = EnvironmentAreaMask(
++          width: 2,
++          height: 2,
++          cells: const [true, false, false, false],
++        );
++        final area = EnvironmentArea(
++          id: 'a1',
++          name: 'Z1',
++          presetId: 'preset_a',
++          mask: mask,
++          seed: 7,
++          generatedPlacementIds: const ['pl1', 'pl2'],
++        );
++        final env = MapLayer.environment(
++          id: 'env1',
++          name: 'E',
++          content: EnvironmentLayerContent(
++            targetTileLayerId: 't1',
++            areas: [area],
++          ),
++        );
++        final tile = TileLayer(
++          id: 't1',
++          name: 'T',
++          tiles: const <int>[0, 0, 0, 0],
++        );
++        final map = MapData(
++          id: 'm',
++          name: 'M',
++          size: const GridSize(width: 2, height: 2),
++          layers: [env, tile],
++        );
++        final manifest = buildShellChromeProject(
++          environmentPresets: [
++            _preset(id: 'preset_a', name: 'A'),
++            _preset(id: 'preset_b', name: 'B'),
++          ],
++        );
++        final uc = SetEnvironmentAreaPresetUseCase();
++        final out = uc.execute(
++          map,
++          manifest: manifest,
++          environmentLayerId: 'env1',
++          areaId: 'a1',
++          presetId: 'preset_b',
++        );
++        final layer = out.layers.first as EnvironmentLayer;
++        final updated = layer.content.areas.single;
++        expect(updated.presetId, 'preset_b');
++        expect(updated.mask, mask);
++        expect(updated.generatedPlacementIds, const ['pl1', 'pl2']);
++        expect(updated.seed, 7);
++        expect(layer.content.targetTileLayerId, 't1');
++      });
++
++      test('rejette areaId inconnu', () {
++        final env = MapLayer.environment(
++          id: 'env1',
++          name: 'E',
++          content: EnvironmentLayerContent(
++            areas: [
++              EnvironmentArea(
++                id: 'a1',
++                name: 'Z',
++                presetId: 'preset_a',
++                mask: EnvironmentAreaMask(
++                  width: 1,
++                  height: 1,
++                  cells: const [false],
++                ),
++                seed: 0,
++              ),
++            ],
++          ),
++        );
++        final map = MapData(
++          id: 'm',
++          name: 'M',
++          size: const GridSize(width: 1, height: 1),
++          layers: [env],
++        );
++        final manifest = buildShellChromeProject(
++          environmentPresets: [
++            _preset(id: 'preset_a'),
++            _preset(id: 'preset_b'),
++          ],
++        );
++        expect(
++          () => SetEnvironmentAreaPresetUseCase().execute(
++            map,
++            manifest: manifest,
++            environmentLayerId: 'env1',
++            areaId: 'ghost',
++            presetId: 'preset_b',
++          ),
++          throwsA(isA<EditorValidationException>()),
++        );
++      });
++    });
++
++    group('RemoveEnvironmentAreaUseCase', () {
++      test('retire une area, préserve l’autre et targetTileLayerId', () {
++        final m =
++            EnvironmentAreaMask(width: 1, height: 1, cells: const [false]);
++        final a1 = EnvironmentArea(
++          id: 'a1',
++          name: '1',
++          presetId: 'p',
++          mask: m,
++          seed: 0,
++        );
++        final a2 = EnvironmentArea(
++          id: 'a2',
++          name: '2',
++          presetId: 'p',
++          mask: m,
++          seed: 0,
++        );
++        final tile = TileLayer(
++          id: 't1',
++          name: 'T',
++          tiles: const <int>[0],
++        );
++        final env = MapLayer.environment(
++          id: 'env1',
++          name: 'E',
++          content: EnvironmentLayerContent(
++            targetTileLayerId: 't1',
++            areas: [a1, a2],
++          ),
++        );
++        final map = MapData(
++          id: 'm',
++          name: 'M',
++          size: const GridSize(width: 1, height: 1),
++          layers: [env, tile],
++          placedElements: const [],
++        );
++        final uc = RemoveEnvironmentAreaUseCase();
++        final out = uc.execute(
++          map,
++          environmentLayerId: 'env1',
++          areaId: 'a1',
++        );
++        final layer = out.layers.first as EnvironmentLayer;
++        expect(layer.content.areas.length, 1);
++        expect(layer.content.areas.single.id, 'a2');
++        expect(layer.content.targetTileLayerId, 't1');
++        expect(out.placedElements, map.placedElements);
++      });
++
++      test('rejette areaId inconnu', () {
++        final env = MapLayer.environment(
++          id: 'env1',
++          name: 'E',
++          content: EnvironmentLayerContent(
++            areas: [
++              EnvironmentArea(
++                id: 'a1',
++                name: 'Z',
++                presetId: 'p',
++                mask: EnvironmentAreaMask(
++                  width: 1,
++                  height: 1,
++                  cells: const [false],
++                ),
++                seed: 0,
++              ),
++            ],
++          ),
++        );
++        final map = MapData(
++          id: 'm',
++          name: 'M',
++          size: const GridSize(width: 1, height: 1),
++          layers: [env],
++        );
++        expect(
++          () => RemoveEnvironmentAreaUseCase().execute(
++            map,
++            environmentLayerId: 'env1',
++            areaId: 'nope',
++          ),
++          throwsA(isA<EditorValidationException>()),
++        );
++      });
++    });
++
++    group('EditorNotifier — areas', () {
++      test(
++          'add / set preset / remove : activeMap, activeLayerId, dirty, chemins',
++          () {
++        final container = ProviderContainer();
++        addTearDown(container.dispose);
++        final env = MapLayer.environment(id: 'env1', name: 'E');
++        final map = MapData(
++          id: 'm1',
++          name: 'M1',
++          size: const GridSize(width: 2, height: 2),
++          layers: [env],
++        );
++        const root = '/tmp/lot21';
++        const mapPath = 'maps/y.json';
++        final manifest = buildShellChromeProject(
++          environmentPresets: [
++            _preset(id: 'pa', name: 'A'),
++            _preset(id: 'pb', name: 'B'),
++          ],
++        );
++        container.read(editorNotifierProvider.notifier).state = EditorState(
++          projectRootPath: root,
++          project: manifest,
++          activeMap: map,
++          activeMapPath: mapPath,
++          activeLayerId: 'env1',
++          savedMapSnapshot: map,
++        );
++        final notifier = container.read(editorNotifierProvider.notifier);
++        notifier.addEnvironmentAreaToLayer(
++          environmentLayerId: 'env1',
++          presetId: 'pa',
++        );
++        var state = container.read(editorNotifierProvider);
++        final areaId = (state.activeMap!.layers.first as EnvironmentLayer)
++            .content
++            .areas
++            .single
++            .id;
++        expect(state.activeLayerId, 'env1');
++        expect(state.isDirty, isTrue);
++        expect(state.projectRootPath, root);
++        expect(state.activeMapPath, mapPath);
++
++        notifier.setEnvironmentAreaPreset(
++          environmentLayerId: 'env1',
++          areaId: areaId,
++          presetId: 'pb',
++        );
++        state = container.read(editorNotifierProvider);
++        expect(
++          (state.activeMap!.layers.first as EnvironmentLayer)
++              .content
++              .areas
++              .single
++              .presetId,
++          'pb',
++        );
++        expect(state.activeLayerId, 'env1');
++
++        notifier.removeEnvironmentArea(
++          environmentLayerId: 'env1',
++          areaId: areaId,
++        );
++        state = container.read(editorNotifierProvider);
++        expect(
++          (state.activeMap!.layers.first as EnvironmentLayer).content.areas,
++          isEmpty,
++        );
++        expect(state.activeLayerId, 'env1');
++      });
++    });
++
++    testWidgets('inspecteur : aucun preset → message et pas d’ajout',
++        (tester) async {
++      final env = MapLayer.environment(id: 'env1', name: 'E');
++      final map = MapData(
++        id: 'mx',
++        name: 'Mx',
++        size: const GridSize(width: 2, height: 2),
++        layers: [env],
++      );
++      final container = ProviderContainer();
++      addTearDown(container.dispose);
++      container.read(editorNotifierProvider.notifier).state = EditorState(
++        projectRootPath: '/tmp',
++        project: buildShellChromeProject(environmentPresets: const []),
++        activeMap: map,
++        activeMapPath: 'maps/x.json',
++        activeLayerId: env.id,
++      );
++      await tester.binding.setSurfaceSize(const Size(480, 900));
++      addTearDown(() => tester.binding.setSurfaceSize(null));
++      await tester.pumpWidget(
++        UncontrolledProviderScope(
++          container: container,
++          child: MacosTheme(
++            data: MacosThemeData.light(),
++            child: MaterialApp(
++              home: CupertinoPageScaffold(
++                child: SizedBox(
++                  width: 400,
++                  height: 900,
++                  child: MapInspectorPanel(),
++                ),
++              ),
++            ),
++          ),
++        ),
++      );
++      await tester.pumpAndSettle();
++      expect(find.byKey(const Key('env-layer-inspector-no-presets')),
++          findsOneWidget);
++      expect(
++          find.byKey(const Key('env-layer-inspector-add-area')), findsNothing);
++    });
++
++    testWidgets('ajout zone via picker + affichage + dirty', (tester) async {
++      final env = MapLayer.environment(id: 'env1', name: 'E');
++      final map = MapData(
++        id: 'mx',
++        name: 'Mx',
++        size: const GridSize(width: 2, height: 2),
++        layers: [env],
++      );
++      final p1 = _preset(id: 'preset_one', name: 'Un');
++      final p2 = _preset(id: 'preset_two', name: 'Deux');
++      final container = ProviderContainer();
++      addTearDown(container.dispose);
++      container.read(editorNotifierProvider.notifier).state = EditorState(
++        projectRootPath: '/tmp',
++        project: buildShellChromeProject(environmentPresets: [p1, p2]),
++        activeMap: map,
++        activeMapPath: 'maps/x.json',
++        activeLayerId: env.id,
++        savedMapSnapshot: map,
++      );
++      await tester.binding.setSurfaceSize(const Size(520, 1000));
++      addTearDown(() => tester.binding.setSurfaceSize(null));
++      await tester.pumpWidget(
++        UncontrolledProviderScope(
++          container: container,
++          child: MacosTheme(
++            data: MacosThemeData.light(),
++            child: MaterialApp(
++              home: CupertinoPageScaffold(
++                child: SizedBox(
++                  width: 420,
++                  height: 1000,
++                  child: MapInspectorPanel(),
++                ),
++              ),
++            ),
++          ),
++        ),
++      );
++      await tester.pumpAndSettle();
++      await tester.tap(find.byKey(const Key('env-layer-inspector-add-area')));
++      await tester.pumpAndSettle();
++      await tester.tap(find.textContaining('Un — preset_one').last);
++      await tester.pumpAndSettle();
++      final state = container.read(editorNotifierProvider);
++      final areas =
++          (state.activeMap!.layers.first as EnvironmentLayer).content.areas;
++      expect(areas.length, 1);
++      expect(areas.single.presetId, 'preset_one');
++      expect(state.isDirty, isTrue);
++      expect(find.byKey(Key('env-area-card-id-${areas.single.id}')),
++          findsOneWidget);
++    });
++
++    testWidgets('changer de preset sur une area', (tester) async {
++      final mask = EnvironmentAreaMask(
++        width: 2,
++        height: 2,
++        cells: List<bool>.filled(4, false),
++      );
++      final area = EnvironmentArea(
++        id: 'area_x',
++        name: 'Z',
++        presetId: 'preset_one',
++        mask: mask,
++        seed: 0,
++      );
++      final env = MapLayer.environment(
++        id: 'env1',
++        name: 'E',
++        content: EnvironmentLayerContent(areas: [area]),
++      );
++      final map = MapData(
++        id: 'mx',
++        name: 'Mx',
++        size: const GridSize(width: 2, height: 2),
++        layers: [env],
++      );
++      final p1 = _preset(id: 'preset_one', name: 'Un');
++      final p2 = _preset(id: 'preset_two', name: 'Deux');
++      final container = ProviderContainer();
++      addTearDown(container.dispose);
++      container.read(editorNotifierProvider.notifier).state = EditorState(
++        projectRootPath: '/tmp',
++        project: buildShellChromeProject(environmentPresets: [p1, p2]),
++        activeMap: map,
++        activeMapPath: 'maps/x.json',
++        activeLayerId: env.id,
++        savedMapSnapshot: map,
++      );
++      await tester.binding.setSurfaceSize(const Size(520, 1000));
++      addTearDown(() => tester.binding.setSurfaceSize(null));
++      await tester.pumpWidget(
++        UncontrolledProviderScope(
++          container: container,
++          child: MacosTheme(
++            data: MacosThemeData.light(),
++            child: MaterialApp(
++              home: CupertinoPageScaffold(
++                child: SizedBox(
++                  width: 420,
++                  height: 1000,
++                  child: MapInspectorPanel(),
++                ),
++              ),
++            ),
++          ),
++        ),
++      );
++      await tester.pumpAndSettle();
++      await tester.tap(find.byKey(const Key('env-area-change-preset-area_x')));
++      await tester.pumpAndSettle();
++      await tester.tap(find.textContaining('Deux — preset_two').last);
++      await tester.pumpAndSettle();
++      expect(
++        (container.read(editorNotifierProvider).activeMap!.layers.first
++                as EnvironmentLayer)
++            .content
++            .areas
++            .single
++            .presetId,
++        'preset_two',
++      );
++      expect(
++        find.byKey(const Key('env-area-card-preset-id-area_x')),
++        findsOneWidget,
++      );
++    });
++
++    testWidgets('retirer une area', (tester) async {
++      final mask = EnvironmentAreaMask(
++        width: 2,
++        height: 2,
++        cells: List<bool>.filled(4, false),
++      );
++      final area = EnvironmentArea(
++        id: 'area_rm',
++        name: 'Z',
++        presetId: 'preset_one',
++        mask: mask,
++        seed: 0,
++      );
++      final env = MapLayer.environment(
++        id: 'env1',
++        name: 'E',
++        content: EnvironmentLayerContent(areas: [area]),
++      );
++      final map = MapData(
++        id: 'mx',
++        name: 'Mx',
++        size: const GridSize(width: 2, height: 2),
++        layers: [env],
++      );
++      final p1 = _preset(id: 'preset_one', name: 'Un');
++      final container = ProviderContainer();
++      addTearDown(container.dispose);
++      container.read(editorNotifierProvider.notifier).state = EditorState(
++        projectRootPath: '/tmp',
++        project: buildShellChromeProject(environmentPresets: [p1]),
++        activeMap: map,
++        activeMapPath: 'maps/x.json',
++        activeLayerId: env.id,
++        savedMapSnapshot: map,
++      );
++      await tester.binding.setSurfaceSize(const Size(520, 1000));
++      addTearDown(() => tester.binding.setSurfaceSize(null));
++      await tester.pumpWidget(
++        UncontrolledProviderScope(
++          container: container,
++          child: MacosTheme(
++            data: MacosThemeData.light(),
++            child: MaterialApp(
++              home: CupertinoPageScaffold(
++                child: SizedBox(
++                  width: 420,
++                  height: 1000,
++                  child: MapInspectorPanel(),
++                ),
++              ),
++            ),
++          ),
++        ),
++      );
++      await tester.pumpAndSettle();
++      await tester.tap(find.byKey(const Key('env-area-remove-area_rm')));
++      await tester.pumpAndSettle();
++      expect(
++        (container.read(editorNotifierProvider).activeMap!.layers.first
++                as EnvironmentLayer)
++            .content
++            .areas,
++        isEmpty,
++      );
++      expect(find.byKey(const Key('env-layer-inspector-no-areas')),
++          findsOneWidget);
++    });
++
++    testWidgets('avertissement placements si generatedPlacementIds non vides',
++        (tester) async {
++      final mask = EnvironmentAreaMask(
++        width: 1,
++        height: 1,
++        cells: const [false],
++      );
++      final area = EnvironmentArea(
++        id: 'area_pl',
++        name: 'Z',
++        presetId: 'preset_one',
++        mask: mask,
++        seed: 0,
++        generatedPlacementIds: const ['x1'],
++      );
++      final env = MapLayer.environment(
++        id: 'env1',
++        name: 'E',
++        content: EnvironmentLayerContent(areas: [area]),
++      );
++      final map = MapData(
++        id: 'mx',
++        name: 'Mx',
++        size: const GridSize(width: 1, height: 1),
++        layers: [env],
++      );
++      final envLayer = map.layers.first as EnvironmentLayer;
++      final p1 = _preset(id: 'preset_one', name: 'Un');
++      final container = ProviderContainer();
++      addTearDown(container.dispose);
++      container.read(editorNotifierProvider.notifier).state = EditorState(
++        projectRootPath: '/tmp',
++        project: buildShellChromeProject(environmentPresets: [p1]),
++        activeMap: map,
++        activeMapPath: 'maps/x.json',
++        activeLayerId: env.id,
++      );
++      await tester.binding.setSurfaceSize(const Size(480, 900));
++      addTearDown(() => tester.binding.setSurfaceSize(null));
++      await tester.pumpWidget(
++        UncontrolledProviderScope(
++          container: container,
++          child: MacosTheme(
++            data: MacosThemeData.light(),
++            child: MaterialApp(
++              home: CupertinoPageScaffold(
++                child: SizedBox(
++                  width: 400,
++                  height: 900,
++                  child: EnvironmentLayerInspectorPanel(
++                    map: map,
++                    layer: envLayer,
++                  ),
++                ),
++              ),
++            ),
++          ),
++        ),
++      );
++      await tester.pumpAndSettle();
++      expect(
++        find.byKey(const Key('env-area-card-placements-warn-area_pl')),
++        findsOneWidget,
++      );
++    });
++  });
++}
+```
+
+## 19. Auto-review
+
+- **Points solides** : réutilisation **`setEnvironmentLayerContent`** + **`MapValidator`** ; ids d’area déterministes ; UI séparée **`_EnvironmentAreaCard`** ; avertissement placements sans nettoyage magique.
+- **Points discutables** : **`name`** de zone = nom du preset à la création (pas renommé au changement de preset) ; densité de l’inspecteur accrue ; tests widget « aucun preset » pompent plusieurs frames (**+18** lignes de log pour un seul test) — acceptable mais bruyant.
+- **Corrections après auto-review** : test remove + **`targetTileLayerId`** avec **`TileLayer`** réel pour la validation carte ; assertion Lot 19 sur le texte masque.
+- **Risques restants** : diagnostics **`emptyAreaMask`** / **`missingTargetTileLayerId`** possibles — acceptés cahier.
+- **Regard critique (prompt)** : oui, il fallait des **`EnvironmentArea`** avant le brush pour ancrer le modèle ; mask vide + warning OK ; ne pas bloquer la suppression malgré **`generatedPlacementIds`** évite un lot « nettoyage placements » prématuré ; inspecteur plus dense → scroll ; canvas / brush / génération absents.
+
+## 20. Verdict
+
+Statut du lot :
+
+- [x] Validé
+
+Résumé :
+
+```
+Lot 21 livré : trois use cases + trois méthodes EditorNotifier + UI zones/presets/mask vide ; tests Lot 21 + régression environment_studio (+141) + workspace/toolbar verts ; analyze ciblé sans issue ; flutter test complet map_editor +974 -34 (hors lot).
+```
+
+Prochain lot recommandé :
+
+```
+Environment-22 — Environment Area Mask Brush Tool V0
+```
+
+### Evidence Pack (confirmations explicites)
+
+- Aucun fichier modèle **`ProjectManifest`** sous `examples/` modifié.
+- Aucun fichier sous **`packages/map_core`** modifié.
+- Aucune cellule d’**`EnvironmentAreaMask`** modifiée après création (liste **`false`** uniquement à la création).
+- Aucun outil brush / erase ajouté.
+- Aucun preset **`environmentPresets`** du manifest modifié par ce flux.
+- Aucun **`MapPlacedElement`** créé.
+- Aucune génération / bouton Generate ajouté.
+- Aucune sauvegarde disque dans ce flux ; grep §15 sans hit sur panneaux / use cases ; uniquement méthodes hors chemin dans **`editor_notifier`**.
+- Aucun **`SurfaceLayer`** legacy utilisé.
+- Aucun **`build_runner`** lancé ; aucun fichier **`*.freezed.dart` / `*.g.dart`** modifié.
+- Aucun **`git commit`**, **`git add`**, **`git push`**, **`git checkout`**, **`git restore`**, **`git stash`**, merge, rebase ou tag exécuté par l’agent.

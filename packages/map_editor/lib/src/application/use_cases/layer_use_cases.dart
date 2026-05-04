@@ -317,3 +317,284 @@ class SetEnvironmentLayerTargetTileLayerUseCase {
     }
   }
 }
+
+/// Masque booléen vide aligné sur [MapData.size] (toutes les cellules inactives).
+EnvironmentAreaMask emptyEnvironmentAreaMaskForMap(MapData map) {
+  final w = map.size.width;
+  final h = map.size.height;
+  return EnvironmentAreaMask(
+    width: w,
+    height: h,
+    cells: List<bool>.filled(w * h, false, growable: false),
+  );
+}
+
+String _slugifyEnvAreaToken(String value) {
+  final lowered = value.toLowerCase().trim();
+  final replaced = lowered.replaceAll(RegExp(r'[^a-z0-9]+'), '_');
+  return replaced.replaceAll(RegExp(r'^_+|_+$'), '');
+}
+
+String _uniqueEnvironmentAreaId({
+  required String presetId,
+  required Iterable<String> existingAreaIds,
+}) {
+  final slug = _slugifyEnvAreaToken(presetId);
+  final baseToken = slug.isEmpty ? 'area' : slug;
+  final base = 'env_area_$baseToken';
+  final existing = existingAreaIds.toSet();
+  if (!existing.contains(base)) {
+    return base;
+  }
+  var n = 2;
+  while (true) {
+    final candidate = '${base}_$n';
+    if (!existing.contains(candidate)) {
+      return candidate;
+    }
+    n++;
+  }
+}
+
+/// Lot Environment-21 : résultat de [AddEnvironmentAreaUseCase].
+final class AddEnvironmentAreaResult {
+  const AddEnvironmentAreaResult({
+    required this.map,
+    required this.area,
+  });
+
+  final MapData map;
+  final EnvironmentArea area;
+}
+
+/// Lot Environment-21 : ajoute une [EnvironmentArea] (mask vide, map size).
+class AddEnvironmentAreaUseCase {
+  AddEnvironmentAreaResult execute(
+    MapData map, {
+    required ProjectManifest manifest,
+    required String environmentLayerId,
+    required String presetId,
+  }) {
+    final envId = environmentLayerId.trim();
+    if (envId.isEmpty) {
+      throw const EditorValidationException(
+        'Environment layer id cannot be empty',
+      );
+    }
+    final pid = presetId.trim();
+    if (pid.isEmpty) {
+      throw const EditorValidationException('Preset id cannot be empty');
+    }
+
+    EnvironmentPreset? preset;
+    for (final p in manifest.environmentPresets) {
+      if (p.id == pid) {
+        preset = p;
+        break;
+      }
+    }
+    if (preset == null) {
+      throw EditorValidationException('Environment preset not found: $pid');
+    }
+
+    MapLayer? envLayer;
+    for (final layer in map.layers) {
+      if (layer.id == envId) {
+        envLayer = layer;
+        break;
+      }
+    }
+    if (envLayer == null) {
+      throw EditorValidationException('Environment layer not found: $envId');
+    }
+    if (envLayer is! EnvironmentLayer) {
+      throw EditorValidationException(
+        'Layer is not an environment layer: $envId',
+      );
+    }
+
+    final existingIds = envLayer.content.areas.map((a) => a.id).toList();
+    final newId = _uniqueEnvironmentAreaId(
+      presetId: pid,
+      existingAreaIds: existingIds,
+    );
+    final mask = emptyEnvironmentAreaMaskForMap(map);
+    final area = EnvironmentArea(
+      id: newId,
+      name: preset.name,
+      presetId: pid,
+      mask: mask,
+      seed: 0,
+    );
+
+    final nextAreas = <EnvironmentArea>[...envLayer.content.areas, area];
+    final nextContent = EnvironmentLayerContent(
+      targetTileLayerId: envLayer.content.targetTileLayerId,
+      areas: nextAreas,
+    );
+    try {
+      final updated = setEnvironmentLayerContent(
+        map,
+        layerId: envId,
+        content: nextContent,
+      );
+      MapValidator.validate(updated);
+      return AddEnvironmentAreaResult(map: updated, area: area);
+    } on ValidationException catch (e) {
+      throw EditorValidationException(e.message);
+    }
+  }
+}
+
+/// Lot Environment-21 : change uniquement le [EnvironmentArea.presetId].
+class SetEnvironmentAreaPresetUseCase {
+  MapData execute(
+    MapData map, {
+    required ProjectManifest manifest,
+    required String environmentLayerId,
+    required String areaId,
+    required String presetId,
+  }) {
+    final envId = environmentLayerId.trim();
+    if (envId.isEmpty) {
+      throw const EditorValidationException(
+        'Environment layer id cannot be empty',
+      );
+    }
+    final aid = areaId.trim();
+    if (aid.isEmpty) {
+      throw const EditorValidationException('Area id cannot be empty');
+    }
+    final pid = presetId.trim();
+    if (pid.isEmpty) {
+      throw const EditorValidationException('Preset id cannot be empty');
+    }
+
+    EnvironmentPreset? preset;
+    for (final p in manifest.environmentPresets) {
+      if (p.id == pid) {
+        preset = p;
+        break;
+      }
+    }
+    if (preset == null) {
+      throw EditorValidationException('Environment preset not found: $pid');
+    }
+
+    MapLayer? envLayer;
+    for (final layer in map.layers) {
+      if (layer.id == envId) {
+        envLayer = layer;
+        break;
+      }
+    }
+    if (envLayer == null) {
+      throw EditorValidationException('Environment layer not found: $envId');
+    }
+    if (envLayer is! EnvironmentLayer) {
+      throw EditorValidationException(
+        'Layer is not an environment layer: $envId',
+      );
+    }
+
+    EnvironmentArea? found;
+    for (final a in envLayer.content.areas) {
+      if (a.id == aid) {
+        found = a;
+        break;
+      }
+    }
+    if (found == null) {
+      throw EditorValidationException('Environment area not found: $aid');
+    }
+
+    final updatedArea = EnvironmentArea(
+      id: found.id,
+      name: found.name,
+      presetId: pid,
+      mask: found.mask,
+      seed: found.seed,
+      paramsOverride: found.paramsOverride,
+      generatedPlacementIds: found.generatedPlacementIds,
+    );
+
+    final nextAreas = envLayer.content.areas
+        .map((a) => a.id == aid ? updatedArea : a)
+        .toList(growable: false);
+    final nextContent = EnvironmentLayerContent(
+      targetTileLayerId: envLayer.content.targetTileLayerId,
+      areas: nextAreas,
+    );
+    try {
+      final updated = setEnvironmentLayerContent(
+        map,
+        layerId: envId,
+        content: nextContent,
+      );
+      MapValidator.validate(updated);
+      return updated;
+    } on ValidationException catch (e) {
+      throw EditorValidationException(e.message);
+    }
+  }
+}
+
+/// Lot Environment-21 : retire une [EnvironmentArea] du layer.
+class RemoveEnvironmentAreaUseCase {
+  MapData execute(
+    MapData map, {
+    required String environmentLayerId,
+    required String areaId,
+  }) {
+    final envId = environmentLayerId.trim();
+    if (envId.isEmpty) {
+      throw const EditorValidationException(
+        'Environment layer id cannot be empty',
+      );
+    }
+    final aid = areaId.trim();
+    if (aid.isEmpty) {
+      throw const EditorValidationException('Area id cannot be empty');
+    }
+
+    MapLayer? envLayer;
+    for (final layer in map.layers) {
+      if (layer.id == envId) {
+        envLayer = layer;
+        break;
+      }
+    }
+    if (envLayer == null) {
+      throw EditorValidationException('Environment layer not found: $envId');
+    }
+    if (envLayer is! EnvironmentLayer) {
+      throw EditorValidationException(
+        'Layer is not an environment layer: $envId',
+      );
+    }
+
+    final had = envLayer.content.areas.any((a) => a.id == aid);
+    if (!had) {
+      throw EditorValidationException('Environment area not found: $aid');
+    }
+
+    final nextAreas = envLayer.content.areas
+        .where((a) => a.id != aid)
+        .toList(growable: false);
+    final nextContent = EnvironmentLayerContent(
+      targetTileLayerId: envLayer.content.targetTileLayerId,
+      areas: nextAreas,
+    );
+    try {
+      final updated = setEnvironmentLayerContent(
+        map,
+        layerId: envId,
+        content: nextContent,
+      );
+      MapValidator.validate(updated);
+      return updated;
+    } on ValidationException catch (e) {
+      throw EditorValidationException(e.message);
+    }
+  }
+}

@@ -188,6 +188,9 @@ class MapGridPainter extends CustomPainter {
   final ProjectManifest? project;
   final int editorEntityAnimationMs;
 
+  /// Lot Environment-22 : surcouche semi-transparente des cellules masque actives.
+  final EnvironmentAreaMask? environmentMaskOverlay;
+
   MapGridPainter({
     required this.map,
     required this.zoom,
@@ -216,6 +219,7 @@ class MapGridPainter extends CustomPainter {
     required this.terrainPresetsByType,
     this.project,
     this.editorEntityAnimationMs = 0,
+    this.environmentMaskOverlay,
   });
 
   @override
@@ -360,6 +364,7 @@ class MapGridPainter extends CustomPainter {
     );
     _paintSelectedPlacedElementInstance(canvas);
     _paintToolPreview(canvas);
+    _paintEnvironmentMaskOverlay(canvas);
     _paintMapEvents(canvas);
     _paintTriggers(canvas);
     _paintWarps(canvas);
@@ -373,6 +378,36 @@ class MapGridPainter extends CustomPainter {
     );
 
     canvas.restore();
+  }
+
+  void _paintEnvironmentMaskOverlay(Canvas canvas) {
+    final mask = environmentMaskOverlay;
+    if (mask == null) return;
+    final expected = mask.width * mask.height;
+    if (mask.cells.length != expected) return;
+
+    final fill = Paint()
+      ..color = const Color(0x664CAF50)
+      ..style = PaintingStyle.fill;
+    final border = Paint()
+      ..color = const Color(0x992E7D32)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0 / zoom;
+
+    for (var y = 0; y < mask.height; y++) {
+      for (var x = 0; x < mask.width; x++) {
+        final i = y * mask.width + x;
+        if (i >= mask.cells.length || !mask.cells[i]) continue;
+        final rect = Rect.fromLTWH(
+          x * tileWidth,
+          y * tileHeight,
+          tileWidth,
+          tileHeight,
+        );
+        canvas.drawRect(rect, fill);
+        canvas.drawRect(rect, border);
+      }
+    }
   }
 
   void _paintWarps(Canvas canvas) {
@@ -1872,8 +1907,7 @@ class MapGridPainter extends CustomPainter {
       frameWidthTiles: width,
       frameHeightTiles: height,
       layout: chosen.multiTileLayout,
-      subtileSalt:
-          frameSource.x * 73856093 + frameSource.y * 19349663,
+      subtileSalt: frameSource.x * 73856093 + frameSource.y * 19349663,
     );
     final frameTilesetId = resolvedFrame.tilesetId.trim();
     final resolvedTilesetId =
@@ -2113,7 +2147,23 @@ class MapGridPainter extends CustomPainter {
         oldDelegate.sourceTileWidth != sourceTileWidth ||
         oldDelegate.sourceTileHeight != sourceTileHeight ||
         !mapEquals(oldDelegate.tilesPerRowById, tilesPerRowById) ||
-        oldDelegate.editorEntityAnimationMs != editorEntityAnimationMs;
+        oldDelegate.editorEntityAnimationMs != editorEntityAnimationMs ||
+        !_sameEnvironmentMaskOverlay(
+          oldDelegate.environmentMaskOverlay,
+          environmentMaskOverlay,
+        );
+  }
+
+  bool _sameEnvironmentMaskOverlay(
+    EnvironmentAreaMask? previous,
+    EnvironmentAreaMask? next,
+  ) {
+    if (identical(previous, next)) return true;
+    if (previous == null || next == null) return previous == next;
+    if (previous.width != next.width || previous.height != next.height) {
+      return false;
+    }
+    return listEquals(previous.cells, next.cells);
   }
 
   bool _sameToolPreview(MapToolPreview? previous, MapToolPreview? next) {

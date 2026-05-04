@@ -108,6 +108,8 @@ void main() {
               selectedWarpId: null,
               selectedTriggerId: null,
               selectedGameplayZoneId: null,
+              selectedEnvironmentAreaId: null,
+              environmentMaskEditMode: null,
               gameplayZoneDraftArea: null,
               selectedTilesetEditorId: 'tileset_world',
               selectedTilesetElementGroupId: null,

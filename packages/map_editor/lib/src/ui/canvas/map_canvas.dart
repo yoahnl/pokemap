@@ -14,6 +14,7 @@ import '../../application/models/map_tool_preview.dart';
 import '../../application/models/path_autotile_set.dart';
 import '../../application/services/tileset_transparent_color_processor.dart';
 import '../../features/editor/state/editor_notifier.dart';
+import '../../features/editor/state/editor_state.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../../features/path_pattern/path_pattern_editor_render_resolution.dart';
 import '../../features/surface_painter/surface_layer_static_preview.dart';
@@ -25,6 +26,19 @@ import 'entity_editor_element_visual.dart';
 // des part files dédiés pour rendre cette surface re-reviewable.
 part 'map_canvas/map_canvas_assets.dart';
 part 'map_canvas/map_grid_painter.dart';
+
+bool _isEnvironmentMaskEditing(EditorState state, MapData map) {
+  if (state.environmentMaskEditMode == null) return false;
+  if (state.selectedEnvironmentAreaId == null) return false;
+  final lid = state.activeLayerId;
+  if (lid == null) return false;
+  for (final l in map.layers) {
+    if (l.id == lid && l is EnvironmentLayer) {
+      return true;
+    }
+  }
+  return false;
+}
 
 class MapCanvas extends ConsumerStatefulWidget {
   const MapCanvas({super.key});
@@ -46,6 +60,9 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
 
   /// Cellule de départ pour le tracé d'une zone par clic+glisser.
   GridPos? _zoneDragStart;
+
+  /// Lot Environment-22 : évite de repeindre la même cellule masque pendant un drag.
+  GridPos? _lastEnvironmentMaskPaintCell;
 
   Timer? _entityEditorAnimTimer;
   bool _entityEditorAnimTimerRunning = false;
@@ -181,12 +198,15 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           hoveredTile: _hoveredTile,
           tilesetColumnsById: tilesPerRowById,
         );
+        final isEnvironmentMaskEditing =
+            _isEnvironmentMaskEditing(state, activeMap);
         final isStrokeEditingTool =
             state.activeTool == EditorToolType.tilePaint ||
                 state.activeTool == EditorToolType.terrainPaint ||
                 state.activeTool == EditorToolType.surfacePaint ||
                 state.activeTool == EditorToolType.collisionPaint ||
-                state.activeTool == EditorToolType.eraser;
+                state.activeTool == EditorToolType.eraser ||
+                isEnvironmentMaskEditing;
         final isNpcWaypointPlacementActive =
             (state.npcWaypointPlacementEntityId?.trim().isNotEmpty ?? false);
         final isTapEditingTool = isStrokeEditingTool ||
@@ -196,7 +216,29 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
             state.activeTool == EditorToolType.triggerPlacement ||
             state.activeTool == EditorToolType.gameplayZonePlacement;
 
-        void applyToolAt(GridPos gridPos) {
+        EnvironmentAreaMask? environmentMaskOverlay;
+        if (isEnvironmentMaskEditing &&
+            state.selectedEnvironmentAreaId != null) {
+          for (final l in activeMap.layers) {
+            if (l.id != state.activeLayerId || l is! EnvironmentLayer) continue;
+            for (final a in l.content.areas) {
+              if (a.id == state.selectedEnvironmentAreaId) {
+                environmentMaskOverlay = a.mask;
+                break;
+              }
+            }
+            break;
+          }
+        }
+
+        void applyToolAt(GridPos gridPos, {bool partOfStroke = false}) {
+          if (isEnvironmentMaskEditing) {
+            notifier.paintEnvironmentAreaMaskAt(
+              gridPos,
+              partOfStroke: partOfStroke,
+            );
+            return;
+          }
           if (state.activeTool == EditorToolType.tilePaint) {
             notifier.paintSelectedBrushAt(
               gridPos,
@@ -274,7 +316,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
               if (isStrokeEditingTool) {
                 notifier.beginMapStroke();
               }
-              applyToolAt(gridPos);
+              applyToolAt(gridPos, partOfStroke: isStrokeEditingTool);
               if (isStrokeEditingTool) {
                 notifier.endMapStroke();
               }
@@ -309,8 +351,14 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 tileHeight,
               );
               if (gridPos == null) return;
+              if (isEnvironmentMaskEditing) {
+                _lastEnvironmentMaskPaintCell = null;
+              }
               notifier.beginMapStroke();
-              applyToolAt(gridPos);
+              applyToolAt(gridPos, partOfStroke: true);
+              if (isEnvironmentMaskEditing) {
+                _lastEnvironmentMaskPaintCell = gridPos;
+              }
             },
             onPanUpdate: (details) {
               if (state.activeTool == EditorToolType.gameplayZonePlacement &&
@@ -340,7 +388,14 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 tileHeight,
               );
               if (gridPos != null) {
-                applyToolAt(gridPos);
+                if (isEnvironmentMaskEditing &&
+                    _lastEnvironmentMaskPaintCell == gridPos) {
+                  return;
+                }
+                applyToolAt(gridPos, partOfStroke: true);
+                if (isEnvironmentMaskEditing) {
+                  _lastEnvironmentMaskPaintCell = gridPos;
+                }
               }
             },
             onPanEnd: (_) {
@@ -351,6 +406,9 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 return;
               }
               if (isStrokeEditingTool) {
+                if (isEnvironmentMaskEditing) {
+                  _lastEnvironmentMaskPaintCell = null;
+                }
                 notifier.endMapStroke();
               }
             },
@@ -362,6 +420,9 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 return;
               }
               if (isStrokeEditingTool) {
+                if (isEnvironmentMaskEditing) {
+                  _lastEnvironmentMaskPaintCell = null;
+                }
                 notifier.endMapStroke();
               }
             },
@@ -410,6 +471,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                           terrainPresetsByType: terrainPresetsByType,
                           project: state.project,
                           editorEntityAnimationMs: _editorEntityAnimationMs,
+                          environmentMaskOverlay: environmentMaskOverlay,
                         ),
                       ),
                     ),

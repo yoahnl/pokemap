@@ -179,7 +179,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     _InspectorSectionId.environmentLayer,
                     defaultExpanded: true,
                   ),
-                  expandedHeight: 360,
+                  expandedHeight: 560,
                   child: EnvironmentLayerInspectorPanel(
                     map: activeMap,
                     layer: activeLayer,

@@ -12,6 +12,12 @@ enum EditorToolType {
   eraser,
 }
 
+/// Lot Environment-22 : édition du masque d’une [EnvironmentArea] sur la carte.
+enum EnvironmentMaskEditMode {
+  paint,
+  erase,
+}
+
 abstract class EditorTool {
   final EditorToolType type;
 

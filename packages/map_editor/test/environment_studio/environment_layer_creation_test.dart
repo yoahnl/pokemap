@@ -206,7 +206,7 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.textContaining('La configuration des zones arrive'),
+        find.textContaining('Peignez le masque par zone pour marquer'),
         findsOneWidget,
       );
     });

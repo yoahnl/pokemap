@@ -76,6 +76,10 @@ class EditorState with _$EditorState {
     String? selectedTriggerId,
     String? selectedGameplayZoneId,
 
+    /// Lot Environment-22 : area dont le masque est édité (layer actif = Environment).
+    String? selectedEnvironmentAreaId,
+    EnvironmentMaskEditMode? environmentMaskEditMode,
+
     /// Zone en cours de tracé par clic+glisser (fantôme, pas encore persistée).
     MapRect? gameplayZoneDraftArea,
     String? selectedTilesetEditorId,

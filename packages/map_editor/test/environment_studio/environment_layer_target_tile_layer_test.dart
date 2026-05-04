@@ -356,8 +356,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester
-          .tap(find.byKey(const Key('env-layer-inspector-choose-target')));
+      final chooseTarget =
+          find.byKey(const Key('env-layer-inspector-choose-target'));
+      await tester.ensureVisible(chooseTarget);
+      await tester.pumpAndSettle();
+      await tester.tap(chooseTarget);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Tuiles sol').last);
       await tester.pumpAndSettle();
@@ -418,8 +421,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester
-          .tap(find.byKey(const Key('env-layer-inspector-choose-target')));
+      final chooseTarget2 =
+          find.byKey(const Key('env-layer-inspector-choose-target'));
+      await tester.ensureVisible(chooseTarget2);
+      await tester.pumpAndSettle();
+      await tester.tap(chooseTarget2);
       await tester.pumpAndSettle();
       final sheetFinder = find.byType(MacosSheet).last;
       expect(
@@ -491,8 +497,11 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester
-          .tap(find.byKey(const Key('env-layer-inspector-remove-target')));
+      final removeTarget =
+          find.byKey(const Key('env-layer-inspector-remove-target'));
+      await tester.ensureVisible(removeTarget);
+      await tester.pumpAndSettle();
+      await tester.tap(removeTarget);
       await tester.pumpAndSettle();
       final state = container.read(editorNotifierProvider);
       expect(

@@ -738,6 +738,11 @@ mixin _$EditorState {
   String? get selectedTriggerId => throw _privateConstructorUsedError;
   String? get selectedGameplayZoneId => throw _privateConstructorUsedError;
 
+  /// Lot Environment-22 : area dont le masque est édité (layer actif = Environment).
+  String? get selectedEnvironmentAreaId => throw _privateConstructorUsedError;
+  EnvironmentMaskEditMode? get environmentMaskEditMode =>
+      throw _privateConstructorUsedError;
+
   /// Zone en cours de tracé par clic+glisser (fantôme, pas encore persistée).
   MapRect? get gameplayZoneDraftArea => throw _privateConstructorUsedError;
   String? get selectedTilesetEditorId => throw _privateConstructorUsedError;
@@ -816,6 +821,8 @@ abstract class $EditorStateCopyWith<$Res> {
       String? selectedWarpId,
       String? selectedTriggerId,
       String? selectedGameplayZoneId,
+      String? selectedEnvironmentAreaId,
+      EnvironmentMaskEditMode? environmentMaskEditMode,
       MapRect? gameplayZoneDraftArea,
       String? selectedTilesetEditorId,
       String? selectedTilesetElementGroupId,
@@ -887,6 +894,8 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
     Object? selectedWarpId = freezed,
     Object? selectedTriggerId = freezed,
     Object? selectedGameplayZoneId = freezed,
+    Object? selectedEnvironmentAreaId = freezed,
+    Object? environmentMaskEditMode = freezed,
     Object? gameplayZoneDraftArea = freezed,
     Object? selectedTilesetEditorId = freezed,
     Object? selectedTilesetElementGroupId = freezed,
@@ -1007,6 +1016,14 @@ class _$EditorStateCopyWithImpl<$Res, $Val extends EditorState>
           ? _value.selectedGameplayZoneId
           : selectedGameplayZoneId // ignore: cast_nullable_to_non_nullable
               as String?,
+      selectedEnvironmentAreaId: freezed == selectedEnvironmentAreaId
+          ? _value.selectedEnvironmentAreaId
+          : selectedEnvironmentAreaId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      environmentMaskEditMode: freezed == environmentMaskEditMode
+          ? _value.environmentMaskEditMode
+          : environmentMaskEditMode // ignore: cast_nullable_to_non_nullable
+              as EnvironmentMaskEditMode?,
       gameplayZoneDraftArea: freezed == gameplayZoneDraftArea
           ? _value.gameplayZoneDraftArea
           : gameplayZoneDraftArea // ignore: cast_nullable_to_non_nullable
@@ -1227,6 +1244,8 @@ abstract class _$$EditorStateImplCopyWith<$Res>
       String? selectedWarpId,
       String? selectedTriggerId,
       String? selectedGameplayZoneId,
+      String? selectedEnvironmentAreaId,
+      EnvironmentMaskEditMode? environmentMaskEditMode,
       MapRect? gameplayZoneDraftArea,
       String? selectedTilesetEditorId,
       String? selectedTilesetElementGroupId,
@@ -1303,6 +1322,8 @@ class __$$EditorStateImplCopyWithImpl<$Res>
     Object? selectedWarpId = freezed,
     Object? selectedTriggerId = freezed,
     Object? selectedGameplayZoneId = freezed,
+    Object? selectedEnvironmentAreaId = freezed,
+    Object? environmentMaskEditMode = freezed,
     Object? gameplayZoneDraftArea = freezed,
     Object? selectedTilesetEditorId = freezed,
     Object? selectedTilesetElementGroupId = freezed,
@@ -1423,6 +1444,14 @@ class __$$EditorStateImplCopyWithImpl<$Res>
           ? _value.selectedGameplayZoneId
           : selectedGameplayZoneId // ignore: cast_nullable_to_non_nullable
               as String?,
+      selectedEnvironmentAreaId: freezed == selectedEnvironmentAreaId
+          ? _value.selectedEnvironmentAreaId
+          : selectedEnvironmentAreaId // ignore: cast_nullable_to_non_nullable
+              as String?,
+      environmentMaskEditMode: freezed == environmentMaskEditMode
+          ? _value.environmentMaskEditMode
+          : environmentMaskEditMode // ignore: cast_nullable_to_non_nullable
+              as EnvironmentMaskEditMode?,
       gameplayZoneDraftArea: freezed == gameplayZoneDraftArea
           ? _value.gameplayZoneDraftArea
           : gameplayZoneDraftArea // ignore: cast_nullable_to_non_nullable
@@ -1544,6 +1573,8 @@ class _$EditorStateImpl implements _EditorState {
       this.selectedWarpId,
       this.selectedTriggerId,
       this.selectedGameplayZoneId,
+      this.selectedEnvironmentAreaId,
+      this.environmentMaskEditMode,
       this.gameplayZoneDraftArea,
       this.selectedTilesetEditorId,
       this.selectedTilesetElementGroupId,
@@ -1646,6 +1677,12 @@ class _$EditorStateImpl implements _EditorState {
   @override
   final String? selectedGameplayZoneId;
 
+  /// Lot Environment-22 : area dont le masque est édité (layer actif = Environment).
+  @override
+  final String? selectedEnvironmentAreaId;
+  @override
+  final EnvironmentMaskEditMode? environmentMaskEditMode;
+
   /// Zone en cours de tracé par clic+glisser (fantôme, pas encore persistée).
   @override
   final MapRect? gameplayZoneDraftArea;
@@ -1728,7 +1765,7 @@ class _$EditorStateImpl implements _EditorState {
 
   @override
   String toString() {
-    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, pokemonCatalogSection: $pokemonCatalogSection, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedSurfacePresetId: $selectedSurfacePresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, npcWaypointPlacementEntityId: $npcWaypointPlacementEntityId, selectedMapEventId: $selectedMapEventId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, tilesElementsPanelMode: $tilesElementsPanelMode, selectedPlacedElementInstanceId: $selectedPlacedElementInstanceId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isProjectDirty: $isProjectDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
+    return 'EditorState(projectRootPath: $projectRootPath, project: $project, workspaceMode: $workspaceMode, pokemonCatalogSection: $pokemonCatalogSection, activeMap: $activeMap, activeMapPath: $activeMapPath, activeTool: $activeTool, activeLayerId: $activeLayerId, hoveredTile: $hoveredTile, activeBrush: $activeBrush, terrainSelectionMode: $terrainSelectionMode, selectedTerrainType: $selectedTerrainType, selectedEntityKind: $selectedEntityKind, selectedTerrainPresetId: $selectedTerrainPresetId, selectedPathPresetId: $selectedPathPresetId, selectedSurfacePresetId: $selectedSurfacePresetId, selectedTerrainPresetByType: $selectedTerrainPresetByType, collisionBrushSizeMode: $collisionBrushSizeMode, selectedEntityId: $selectedEntityId, npcWaypointPlacementEntityId: $npcWaypointPlacementEntityId, selectedMapEventId: $selectedMapEventId, selectedWarpId: $selectedWarpId, selectedTriggerId: $selectedTriggerId, selectedGameplayZoneId: $selectedGameplayZoneId, selectedEnvironmentAreaId: $selectedEnvironmentAreaId, environmentMaskEditMode: $environmentMaskEditMode, gameplayZoneDraftArea: $gameplayZoneDraftArea, selectedTilesetEditorId: $selectedTilesetEditorId, selectedTilesetElementGroupId: $selectedTilesetElementGroupId, tilesElementsPanelMode: $tilesElementsPanelMode, selectedPlacedElementInstanceId: $selectedPlacedElementInstanceId, selectedProjectDialogueId: $selectedProjectDialogueId, selectedTrainerId: $selectedTrainerId, selectedCharacterId: $selectedCharacterId, paletteCategoryFilter: $paletteCategoryFilter, zoom: $zoom, panOffset: $panOffset, mapUndoStack: $mapUndoStack, mapRedoStack: $mapRedoStack, mapStrokeStart: $mapStrokeStart, savedMapSnapshot: $savedMapSnapshot, canUndoMap: $canUndoMap, canRedoMap: $canRedoMap, isDirty: $isDirty, isProjectDirty: $isProjectDirty, isSaving: $isSaving, statusMessage: $statusMessage, errorMessage: $errorMessage)';
   }
 
   @override
@@ -1785,6 +1822,10 @@ class _$EditorStateImpl implements _EditorState {
                 other.selectedTriggerId == selectedTriggerId) &&
             (identical(other.selectedGameplayZoneId, selectedGameplayZoneId) ||
                 other.selectedGameplayZoneId == selectedGameplayZoneId) &&
+            (identical(other.selectedEnvironmentAreaId, selectedEnvironmentAreaId) ||
+                other.selectedEnvironmentAreaId == selectedEnvironmentAreaId) &&
+            (identical(other.environmentMaskEditMode, environmentMaskEditMode) ||
+                other.environmentMaskEditMode == environmentMaskEditMode) &&
             (identical(other.gameplayZoneDraftArea, gameplayZoneDraftArea) ||
                 other.gameplayZoneDraftArea == gameplayZoneDraftArea) &&
             (identical(other.selectedTilesetEditorId, selectedTilesetEditorId) ||
@@ -1795,10 +1836,8 @@ class _$EditorStateImpl implements _EditorState {
             (identical(other.tilesElementsPanelMode, tilesElementsPanelMode) ||
                 other.tilesElementsPanelMode == tilesElementsPanelMode) &&
             (identical(other.selectedPlacedElementInstanceId, selectedPlacedElementInstanceId) ||
-                other.selectedPlacedElementInstanceId ==
-                    selectedPlacedElementInstanceId) &&
-            (identical(other.selectedProjectDialogueId, selectedProjectDialogueId) ||
-                other.selectedProjectDialogueId == selectedProjectDialogueId) &&
+                other.selectedPlacedElementInstanceId == selectedPlacedElementInstanceId) &&
+            (identical(other.selectedProjectDialogueId, selectedProjectDialogueId) || other.selectedProjectDialogueId == selectedProjectDialogueId) &&
             (identical(other.selectedTrainerId, selectedTrainerId) || other.selectedTrainerId == selectedTrainerId) &&
             (identical(other.selectedCharacterId, selectedCharacterId) || other.selectedCharacterId == selectedCharacterId) &&
             (identical(other.paletteCategoryFilter, paletteCategoryFilter) || other.paletteCategoryFilter == paletteCategoryFilter) &&
@@ -1844,6 +1883,8 @@ class _$EditorStateImpl implements _EditorState {
         selectedWarpId,
         selectedTriggerId,
         selectedGameplayZoneId,
+        selectedEnvironmentAreaId,
+        environmentMaskEditMode,
         gameplayZoneDraftArea,
         selectedTilesetEditorId,
         selectedTilesetElementGroupId,
@@ -1903,6 +1944,8 @@ abstract class _EditorState implements EditorState {
       final String? selectedWarpId,
       final String? selectedTriggerId,
       final String? selectedGameplayZoneId,
+      final String? selectedEnvironmentAreaId,
+      final EnvironmentMaskEditMode? environmentMaskEditMode,
       final MapRect? gameplayZoneDraftArea,
       final String? selectedTilesetEditorId,
       final String? selectedTilesetElementGroupId,
@@ -1983,6 +2026,12 @@ abstract class _EditorState implements EditorState {
   String? get selectedTriggerId;
   @override
   String? get selectedGameplayZoneId;
+
+  /// Lot Environment-22 : area dont le masque est édité (layer actif = Environment).
+  @override
+  String? get selectedEnvironmentAreaId;
+  @override
+  EnvironmentMaskEditMode? get environmentMaskEditMode;
 
   /// Zone en cours de tracé par clic+glisser (fantôme, pas encore persistée).
   @override
