@@ -514,10 +514,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(tester.widget<PushButton>(genFinder).onPressed, isNull);
-      expect(
-        find.textContaining('déjà des placements générés'),
-        findsOneWidget,
-      );
+      expect(find.byKey(const Key('env-area-regenerate-area1')), findsOneWidget);
     });
 
     testWidgets('preset manifest introuvable : désactivé', (tester) async {
@@ -571,7 +568,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(
-        find.text('Le preset associé est introuvable.'),
+        find.byKey(const Key('env-area-card-preset-missing-area1')),
         findsOneWidget,
       );
       expect(

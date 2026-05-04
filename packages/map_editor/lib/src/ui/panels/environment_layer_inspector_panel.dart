@@ -324,6 +324,12 @@ const _kClearHelp =
     'Supprime uniquement les placements listés pour cette zone (pas le masque, '
     'pas les placements posés manuellement ailleurs).';
 
+const _kShuffleHelp =
+    'Change la seed de cette zone puis génère de nouveaux placements.';
+
+const _kRegenerateHelp =
+    'Recrée les placements générés en conservant la seed actuelle.';
+
 class _EnvironmentAreaCard extends ConsumerWidget {
   const _EnvironmentAreaCard({
     required this.area,
@@ -363,11 +369,42 @@ class _EnvironmentAreaCard extends ConsumerWidget {
       return 'Le preset associé est introuvable.';
     }
     if (area.generatedPlacementIds.isNotEmpty) {
-      return 'Cette zone possède déjà des placements générés. Clear / Regenerate '
-          'arrive dans un prochain lot.';
+      return 'Cette zone possède déjà des placements générés. Utilisez « Effacer », '
+          '« Régénérer » ou « Mélanger et régénérer ».';
     }
     if (area.mask.activeCellCount == 0) {
       return 'Peignez le masque avant de générer.';
+    }
+    return null;
+  }
+
+  /// Ordre stable des blocages UX pour « Régénérer » (Lot 27).
+  String? _regenerateDisabledReason(EnvironmentPreset? preset) {
+    if (area.generatedPlacementIds.isEmpty) {
+      return 'Aucun placement généré à régénérer.';
+    }
+    if (area.mask.activeCellCount == 0) {
+      return 'Peignez le masque avant de régénérer.';
+    }
+    if (resolvedTargetTileLayer == null || targetTileLayerInvalid) {
+      return 'Choisissez un TileLayer cible avant de régénérer.';
+    }
+    if (preset == null) {
+      return 'Le preset associé est introuvable.';
+    }
+    return null;
+  }
+
+  /// Ordre stable pour « Mélanger et régénérer » (Lot 27).
+  String? _shuffleDisabledReason(EnvironmentPreset? preset) {
+    if (area.mask.activeCellCount == 0) {
+      return 'Peignez le masque avant de mélanger et régénérer.';
+    }
+    if (resolvedTargetTileLayer == null || targetTileLayerInvalid) {
+      return 'Choisissez un TileLayer cible avant de mélanger et régénérer.';
+    }
+    if (preset == null) {
+      return 'Le preset associé est introuvable.';
     }
     return null;
   }
@@ -381,6 +418,8 @@ class _EnvironmentAreaCard extends ConsumerWidget {
     final preset = _presetForArea();
     final generateReason = _generateDisabledReason(preset);
     final generateEnabled = generateReason == null;
+    final regenerateReason = _regenerateDisabledReason(preset);
+    final shuffleReason = _shuffleDisabledReason(preset);
     final hasGeneratedPlacements = area.generatedPlacementIds.isNotEmpty;
     final totalCells = area.mask.width * area.mask.height;
     final activeCount = area.mask.activeCellCount;
@@ -486,6 +525,16 @@ class _EnvironmentAreaCard extends ConsumerWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
+              const SizedBox(height: 4),
+              Text(
+                'Seed : ${area.seed}',
+                key: Key('env-area-seed-${area.id}'),
+                style: TextStyle(
+                  color: subtleColor,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               if (warnPlacements) ...[
                 const SizedBox(height: 6),
                 Text(
@@ -552,6 +601,54 @@ class _EnvironmentAreaCard extends ConsumerWidget {
                         )
                     : null,
                 child: const Text('Générer dans la map'),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                regenerateReason ?? _kRegenerateHelp,
+                key: Key('env-area-regenerate-hint-${area.id}'),
+                style: TextStyle(
+                  color: subtleColor,
+                  fontSize: 10.5,
+                  height: 1.25,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 6),
+              PushButton(
+                key: Key('env-area-regenerate-${area.id}'),
+                controlSize: ControlSize.regular,
+                secondary: true,
+                onPressed: regenerateReason == null
+                    ? () => notifier.regenerateEnvironmentAreaPlacements(
+                          environmentLayerId: layerId,
+                          areaId: area.id,
+                        )
+                    : null,
+                child: const Text('Régénérer'),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                shuffleReason ?? _kShuffleHelp,
+                key: Key('env-area-shuffle-hint-${area.id}'),
+                style: TextStyle(
+                  color: subtleColor,
+                  fontSize: 10.5,
+                  height: 1.25,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 6),
+              PushButton(
+                key: Key('env-area-shuffle-${area.id}'),
+                controlSize: ControlSize.regular,
+                secondary: true,
+                onPressed: shuffleReason == null
+                    ? () => notifier.shuffleEnvironmentAreaPlacements(
+                          environmentLayerId: layerId,
+                          areaId: area.id,
+                        )
+                    : null,
+                child: const Text('Mélanger et régénérer'),
               ),
               const SizedBox(height: 10),
               Text(

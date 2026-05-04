@@ -15,6 +15,7 @@ import '../../../app/providers/use_case_providers.dart';
 import '../../../application/errors/application_errors.dart';
 import '../../../application/use_cases/environment_generator_apply_use_cases.dart';
 import '../../../application/use_cases/environment_generator_clear_use_cases.dart';
+import '../../../application/use_cases/environment_generator_regenerate_use_cases.dart';
 import '../../../application/use_cases/environment_generator_use_cases.dart';
 import '../../../application/use_cases/environment_mask_use_cases.dart';
 import '../../../application/use_cases/layer_use_cases.dart';
@@ -4881,8 +4882,8 @@ class EditorNotifier extends _$EditorNotifier {
       state = state.copyWith(
         errorMessage: null,
         statusMessage:
-            'Cette zone possède déjà des placements générés. Clear / Regenerate '
-            'arrive dans un prochain lot.',
+            'Cette zone possède déjà des placements générés. Utilisez « Effacer », '
+            '« Régénérer » ou « Mélanger et régénérer ».',
       );
       return;
     }
@@ -5024,6 +5025,221 @@ class EditorNotifier extends _$EditorNotifier {
           'nettoyée(s).';
     }
     return '$n placement(s) généré(s) effacé(s) pour la zone « $areaId ».';
+  }
+
+  /// Lot Environment-27 : efface les placements générés, garde la seed, regénère et applique.
+  void regenerateEnvironmentAreaPlacements({
+    required String environmentLayerId,
+    required String areaId,
+  }) {
+    _regenerateOrShuffleEnvironmentAreaPlacements(
+      environmentLayerId: environmentLayerId,
+      areaId: areaId,
+      shuffle: false,
+    );
+  }
+
+  /// Lot Environment-27 : optionnellement clear, nouvelle seed LCG, generate + apply.
+  void shuffleEnvironmentAreaPlacements({
+    required String environmentLayerId,
+    required String areaId,
+  }) {
+    _regenerateOrShuffleEnvironmentAreaPlacements(
+      environmentLayerId: environmentLayerId,
+      areaId: areaId,
+      shuffle: true,
+    );
+  }
+
+  void _regenerateOrShuffleEnvironmentAreaPlacements({
+    required String environmentLayerId,
+    required String areaId,
+    required bool shuffle,
+  }) {
+    final original = state.activeMap;
+    final manifest = state.project;
+    final envId = environmentLayerId.trim();
+    final aid = areaId.trim();
+    if (original == null || manifest == null) {
+      state = state.copyWith(
+        errorMessage: 'Impossible : aucune carte active ou manifeste projet.',
+      );
+      return;
+    }
+    final layer = _findLayerById(original, envId);
+    if (layer is! EnvironmentLayer) {
+      state = state.copyWith(
+        errorMessage: 'Impossible : calque environnement introuvable.',
+      );
+      return;
+    }
+    EnvironmentArea? area;
+    for (final a in layer.content.areas) {
+      if (a.id == aid) {
+        area = a;
+        break;
+      }
+    }
+    if (area == null) {
+      state = state.copyWith(
+        errorMessage: 'Impossible : zone introuvable.',
+      );
+      return;
+    }
+
+    if (!shuffle && area.generatedPlacementIds.isEmpty) {
+      state = state.copyWith(
+        errorMessage: null,
+        statusMessage: 'Aucun placement généré à régénérer pour cette zone.',
+      );
+      return;
+    }
+
+    var working = original;
+    var staged = false;
+
+    final shouldClear = shuffle ? area.generatedPlacementIds.isNotEmpty : true;
+
+    if (shouldClear) {
+      final clearR = ClearEnvironmentGeneratedPlacementsUseCase().execute(
+        working,
+        environmentLayerId: envId,
+        areaId: aid,
+      );
+      if (clearR.hasErrors) {
+        final first = clearR.issues.firstWhere(
+          (i) => i.severity == EnvironmentClearIssueSeverity.error,
+          orElse: () => clearR.issues.first,
+        );
+        state = state.copyWith(
+          errorMessage:
+              'Impossible de ${shuffle ? 'mélanger et régénérer' : 'régénérer'} '
+              'cette zone : ${first.message}',
+        );
+        return;
+      }
+      working = clearR.map;
+      staged = true;
+    }
+
+    if (shuffle) {
+      final layerNow = _findLayerById(working, envId);
+      if (layerNow is! EnvironmentLayer) {
+        state = state.copyWith(
+          errorMessage:
+              'Impossible de mélanger : calque environnement introuvable.',
+        );
+        return;
+      }
+      EnvironmentArea? areaNow;
+      for (final a in layerNow.content.areas) {
+        if (a.id == aid) {
+          areaNow = a;
+          break;
+        }
+      }
+      if (areaNow == null) {
+        state = state.copyWith(
+          errorMessage: 'Impossible de mélanger : zone introuvable.',
+        );
+        return;
+      }
+      final nextS = nextEnvironmentAreaSeed(areaNow.seed);
+      final seedRes = SetEnvironmentAreaSeedUseCase().execute(
+        working,
+        environmentLayerId: envId,
+        areaId: aid,
+        seed: nextS,
+      );
+      if (!seedRes.isSuccess) {
+        state = state.copyWith(
+          errorMessage:
+              'Impossible de mélanger la seed : ${seedRes.failureMessage}',
+        );
+        return;
+      }
+      working = seedRes.map!;
+      staged = true;
+    }
+
+    final gen = GenerateEnvironmentAreaPlacementsUseCase().execute(
+      working,
+      manifest: manifest,
+      environmentLayerId: envId,
+      areaId: aid,
+    );
+    if (gen.hasErrors) {
+      final first = gen.issues.firstWhere(
+        (i) => i.severity == EnvironmentGenerationIssueSeverity.error,
+        orElse: () => gen.issues.first,
+      );
+      state = state.copyWith(
+        errorMessage:
+            'Impossible de ${shuffle ? 'mélanger et régénérer' : 'régénérer'} '
+            'cette zone : ${_environmentGenerationIssueMessage(first)}',
+      );
+      return;
+    }
+
+    if (gen.placements.isEmpty) {
+      if (!staged) {
+        state = state.copyWith(
+          errorMessage: null,
+          statusMessage: 'Aucun placement généré pour cette zone.',
+        );
+        return;
+      }
+      _applyMapMutation(
+        previousMap: original,
+        updatedMap: working,
+        preferredActiveLayerId: envId,
+        statusMessage: shuffle
+            ? 'Mélangé : seed mise à jour ; aucun nouveau placement pour la '
+                'zone « $aid » (effacement des placements précédents effectué).'
+            : 'Les placements générés ont été effacés ; aucun nouveau placement '
+                'n’a été généré pour la zone « $aid ».',
+      );
+      state = state.copyWith(
+        selectedEnvironmentAreaId: aid,
+        environmentMaskEditMode: null,
+      );
+      return;
+    }
+
+    final apply = ApplyEnvironmentGeneratedPlacementsUseCase().execute(
+      working,
+      manifest: manifest,
+      environmentLayerId: envId,
+      areaId: aid,
+      candidates: gen.placements,
+    );
+    if (apply.hasErrors) {
+      final first = apply.issues.firstWhere(
+        (i) => i.severity == EnvironmentApplyIssueSeverity.error,
+        orElse: () => apply.issues.first,
+      );
+      state = state.copyWith(
+        errorMessage: 'Impossible d’appliquer après '
+            '${shuffle ? 'mélange' : 'régénération'} : '
+            '${_environmentApplyIssueMessage(first)}',
+      );
+      return;
+    }
+
+    final n = apply.appliedPlacementCount;
+    final status = shuffle
+        ? 'Seed mélangée : $n placement(s) régénéré(s) pour la zone « $aid ».'
+        : 'Zone « $aid » régénérée : $n placement(s).';
+    _applyMapMutation(
+      previousMap: original,
+      updatedMap: apply.map,
+      preferredActiveLayerId: envId,
+      statusMessage: status,
+    );
+    state = state.copyWith(
+      selectedEnvironmentAreaId: aid,
+      environmentMaskEditMode: null,
+    );
   }
 
   /// Lot Environment-22 : applique paint ou erase selon [environmentMaskEditMode].
