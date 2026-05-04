@@ -320,6 +320,10 @@ const _kGenerateHelp =
     'Crée des placements dans le TileLayer cible en utilisant le preset et le '
     'masque de cette zone.';
 
+const _kClearHelp =
+    'Supprime uniquement les placements listés pour cette zone (pas le masque, '
+    'pas les placements posés manuellement ailleurs).';
+
 class _EnvironmentAreaCard extends ConsumerWidget {
   const _EnvironmentAreaCard({
     required this.area,
@@ -377,6 +381,7 @@ class _EnvironmentAreaCard extends ConsumerWidget {
     final preset = _presetForArea();
     final generateReason = _generateDisabledReason(preset);
     final generateEnabled = generateReason == null;
+    final hasGeneratedPlacements = area.generatedPlacementIds.isNotEmpty;
     final totalCells = area.mask.width * area.mask.height;
     final activeCount = area.mask.activeCellCount;
     final maskLabel = activeCount == 0
@@ -547,6 +552,32 @@ class _EnvironmentAreaCard extends ConsumerWidget {
                         )
                     : null,
                 child: const Text('Générer dans la map'),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                hasGeneratedPlacements
+                    ? _kClearHelp
+                    : 'Aucun placement généré à effacer.',
+                key: Key('env-area-clear-hint-${area.id}'),
+                style: TextStyle(
+                  color: subtleColor,
+                  fontSize: 10.5,
+                  height: 1.25,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 6),
+              PushButton(
+                key: Key('env-area-clear-${area.id}'),
+                controlSize: ControlSize.regular,
+                secondary: true,
+                onPressed: hasGeneratedPlacements
+                    ? () => notifier.clearEnvironmentGeneratedPlacements(
+                          environmentLayerId: layerId,
+                          areaId: area.id,
+                        )
+                    : null,
+                child: const Text('Effacer les placements générés'),
               ),
               const SizedBox(height: 10),
               PushButton(

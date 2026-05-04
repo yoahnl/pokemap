@@ -1,3 +1,1899 @@
+# Environment Studio Lot 26 — Generated Placements Clear V0
+
+## 1. Résumé exécutif
+
+Ajout de `ClearEnvironmentGeneratedPlacementsUseCase` (purge des ids listés dans `generatedPlacementIds`, liste vidée, warnings si ids absents de la carte), méthode `EditorNotifier.clearEnvironmentGeneratedPlacements`, bouton **Effacer les placements générés** dans l’inspecteur. Tests unitaires + notifier + widget. Aucun `map_core` modifié, pas de sauvegarde disque dans ce flux.
+
+## 2. Périmètre du lot
+
+**Inclus** : use case Clear, DTOs, notifier, inspecteur, tests, régressions Lots 19–25.
+
+**Exclus** : Regenerate, Shuffle, auto-generate, suppression hors liste d’area, patch tuiles, mutation manifest.
+
+## 3. Audit initial placedElements / generatedPlacementIds / inspector
+
+- `map.placedElements` : liste d’instances `MapPlacedElement` ; filtrage par id pour retirer uniquement les entrées dont `id ∈ area.generatedPlacementIds`.
+- `generatedPlacementIds` : liste immuable sur `EnvironmentArea` ; après Clear : `EnvironmentArea(..., generatedPlacementIds: null)` → liste vide via fabrique.
+- Inspecteur : compteur et boutons Generate/Clear sur `_EnvironmentAreaCard`.
+- Suppression ciblée : pas d’usage obligatoire de `removeMapPlacedElement` map_core — reconstruction de la liste côté `MapData.copyWith`.
+
+## 4. Décisions d’architecture
+
+- Fichier dédié `environment_generator_clear_use_cases.dart` (séparation apply/clear).
+- Ids manquants : **warning** `missingGeneratedPlacement`, Clear **réussit** et vide quand même `generatedPlacementIds`.
+- Liste vide : **warning** `noGeneratedPlacements`, map inchangée, **pas** d’`hasErrors`.
+- `MapValidator.validate(updated)` sans `projectDialogueContext` (même carte, pas de nouvelles refs dialogue).
+- Notifier : no-op Clear → `statusMessage` sans `_applyMapMutation` ; succès → `_applyMapMutation` ; `environmentMaskEditMode` **non modifié** ; `selectedPlacedElementInstanceId` → `null` si id supprimé.
+
+## 5. Modèles de résultat Clear
+
+`EnvironmentClearedGeneratedPlacement`, `EnvironmentClearIssueSeverity`, `EnvironmentClearIssueKind`, `EnvironmentClearIssue`, `EnvironmentClearResult` (listes unmodifiable, getters `hasErrors` / `hasWarnings`, `issuesForKind`, égalité).
+
+## 6. ClearEnvironmentGeneratedPlacementsUseCase
+
+Résolution `EnvironmentLayer` / `EnvironmentArea` → erreurs bloquantes ; ids vides → warning early ; sinon filtre `placedElements`, reconstruit l’`EnvironmentArea` avec ids vides, `setEnvironmentLayerContent` + `copyWith(placedElements:)`, validation.
+
+## 7. Suppression ciblée des MapPlacedElement
+
+Uniquement `placedElement.id` présent dans `area.generatedPlacementIds` au moment de l’appel.
+
+## 8. Vidage EnvironmentArea.generatedPlacementIds
+
+Toujours vidé après succès (y compris si tous les ids étaient absents de `placedElements`).
+
+## 9. Gestion des ids manquants / warnings
+
+Un `EnvironmentClearIssue` par id absent ; `hasWarnings` true ; mutation appliquée.
+
+## 10. EditorNotifier clear flow
+
+`clearEnvironmentGeneratedPlacements` → use case → erreurs → message ; `noGeneratedPlacements` → message no-op ; sinon `_applyMapMutation` + message de succès (avec comptage manquants si besoin) + nettoyage sélection instance.
+
+## 11. Bouton Clear dans l’inspecteur
+
+Texte d’aide `_kClearHelp` ou « Aucun placement généré à effacer. » ; bouton `secondary: true`, clé `env-area-clear-<areaId>`.
+
+## 12. Transactionnalité / absence de mutation en erreur
+
+Erreurs résolution / `MapValidator` → `_failure(map)` avec map d’entrée ; pas de mutation partielle.
+
+## 13. Non-persistance disque garantie
+
+Sortie grep :
+
+```text
+lib/src/features/editor/state/editor_notifier.dart:442:  Future<bool> saveProjectManifest() async {
+lib/src/features/editor/state/editor_notifier.dart:451:    debugPrint('EditorNotifier: saveProjectManifest()');
+lib/src/features/editor/state/editor_notifier.dart:453:      await ref.read(projectRepositoryProvider).saveProject(
+lib/src/features/editor/state/editor_notifier.dart:1493:  Future<void> saveProjectDialogueYarnBody({
+lib/src/features/editor/state/editor_notifier.dart:1497:    state = await _projectContentController.saveProjectDialogueYarnBody(
+```
+
+Interprétation : occurrences dans `editor_notifier.dart` hors méthode Clear (méthodes `saveProject*` existantes).
+
+## 14. Pourquoi aucun Regenerate / Shuffle dans ce lot
+
+Périmètre strict Lot 26 ; Lot 27 suggéré.
+
+## 15. Fichiers modifiés
+
+- `packages/map_editor/lib/src/application/use_cases/environment_generator_clear_use_cases.dart` (nouveau)
+- `packages/map_editor/lib/src/features/editor/state/editor_notifier.dart`
+- `packages/map_editor/lib/src/ui/panels/environment_layer_inspector_panel.dart`
+- `packages/map_editor/test/environment_studio/environment_generated_placements_clear_test.dart` (nouveau)
+- `reports/forest/environment_studio_lot_26_generated_placements_clear.md` (ce fichier)
+
+## 16. Tests ajoutés ou modifiés
+
+`environment_generated_placements_clear_test.dart` : modèles, clear heureux, deux areas, ids manquants, vide, erreurs, notifier succès/no-op, widget disabled, widget clear+generate.
+
+## 17. Commandes exécutées
+
+`dart format`, `flutter analyze` (4 fichiers), greps audit + persistance, `flutter test` clear, bundle Lots 19–26, `flutter test test/environment_studio`, `flutter test` editor_workspace+top_toolbar, `flutter test` package complet.
+
+## 18. Résultats des commandes
+
+### Greps audit
+
+```text
+lib/src/features/editor/state/editor_notifier.dart:4915:    final apply = ApplyEnvironmentGeneratedPlacementsUseCase().execute(
+lib/src/application/use_cases/environment_generator_apply_use_cases.dart:247:class ApplyEnvironmentGeneratedPlacementsUseCase {
+test/environment_studio/environment_generator_apply_candidates_test.dart:79:  group('ApplyEnvironmentGeneratedPlacementsUseCase', () {
+test/environment_studio/environment_generator_apply_candidates_test.dart:103:      final uc = ApplyEnvironmentGeneratedPlacementsUseCase();
+test/environment_studio/environment_generator_apply_candidates_test.dart:157:      final uc = ApplyEnvironmentGeneratedPlacementsUseCase();
+test/environment_studio/environment_generator_apply_candidates_test.dart:191:        final uc = ApplyEnvironmentGeneratedPlacementsUseCase();
+test/environment_studio/environment_generator_apply_candidates_test.dart:218:      final uc = ApplyEnvironmentGeneratedPlacementsUseCase();
+test/environment_studio/environment_generator_apply_candidates_test.dart:231:      final uc = ApplyEnvironmentGeneratedPlacementsUseCase();
+test/environment_studio/environment_generator_apply_candidates_test.dart:306:      final uc = ApplyEnvironmentGeneratedPlacementsUseCase();
+test/environment_studio/environment_generator_apply_candidates_test.dart:338:      final uc = ApplyEnvironmentGeneratedPlacementsUseCase();
+test/environment_studio/environment_generator_apply_candidates_test.dart:430:      final uc = ApplyEnvironmentGeneratedPlacementsUseCase();
+test/environment_studio/environment_generator_apply_candidates_test.dart:507:      final uc = ApplyEnvironmentGeneratedPlacementsUseCase();
+---
+../map_core/lib/src/models/environment.dart:260:    List<String>? generatedPlacementIds,
+../map_core/lib/src/models/environment.dart:283:    final rawIds = generatedPlacementIds ?? const <String>[];
+../map_core/lib/src/models/environment.dart:291:          'generatedPlacementIds',
+../map_core/lib/src/models/environment.dart:292:          'EnvironmentArea generatedPlacementIds cannot contain empty strings.',
+../map_core/lib/src/models/environment.dart:298:          'generatedPlacementIds',
+../map_core/lib/src/models/environment.dart:299:          'EnvironmentArea generatedPlacementIds cannot contain duplicates.',
+../map_core/lib/src/models/environment.dart:312:      generatedPlacementIds: List<String>.unmodifiable(ordered),
+../map_core/lib/src/models/environment.dart:323:    required this.generatedPlacementIds,
+../map_core/lib/src/models/environment.dart:332:  final List<String> generatedPlacementIds;
+../map_core/lib/src/models/environment.dart:334:  bool get hasGeneratedPlacements => generatedPlacementIds.isNotEmpty;
+../map_core/lib/src/models/environment.dart:346:            _listEquals(generatedPlacementIds, other.generatedPlacementIds);
+../map_core/lib/src/models/environment.dart:357:        Object.hashAll(generatedPlacementIds),
+../map_core/lib/src/models/environment.dart:545:  /// Zones d’environnement ; ordre significatif pour [generatedPlacementIds].
+../map_core/lib/src/models/environment.dart:555:  List<String> get generatedPlacementIds {
+../map_core/lib/src/models/environment.dart:558:      out.addAll(area.generatedPlacementIds);
+../map_core/lib/src/operations/map_resize.dart:87:                      generatedPlacementIds:
+../map_core/lib/src/operations/map_resize.dart:88:                          area.generatedPlacementIds.toList(),
+../map_core/lib/src/operations/environment_layer_usage_diagnostics.dart:316:      for (final pid in area.generatedPlacementIds) {
+../map_core/lib/src/operations/environment_layer_content_json_codec.dart:96:    final rawPlacementIds = json['generatedPlacementIds'];
+../map_core/lib/src/operations/environment_layer_content_json_codec.dart:97:    final List<String>? generatedPlacementIds =
+../map_core/lib/src/operations/environment_layer_content_json_codec.dart:107:      generatedPlacementIds: generatedPlacementIds,
+../map_core/lib/src/operations/environment_layer_content_json_codec.dart:121:      'generatedPlacementIds must be a List or null, got ${raw.runtimeType}',
+../map_core/lib/src/operations/environment_layer_content_json_codec.dart:130:        'generatedPlacementIds[$i] must be a String, got ${e.runtimeType}',
+../map_core/lib/src/operations/environment_layer_content_json_codec.dart:136:        'generatedPlacementIds[$i] cannot be empty or whitespace-only',
+../map_core/lib/src/operations/environment_layer_content_json_codec.dart:141:        'generatedPlacementIds contains duplicate placement id: $t',
+---
+../map_core/lib/src/operations/map_placed_elements.dart:40:MapData removeMapPlacedElement(
+../map_core/lib/src/operations/map_placed_elements.dart:257:MapData removeMapPlacedElementBehaviorAt(
+lib/src/ui/panels/tileset_palette_panel.dart:2881:    notifier.deletePlacedElementInstance(instanceId: instance.instanceId);
+lib/src/features/editor/state/editor_notifier.dart:6344:  void deletePlacedElementInstance({
+---
+lib/src/ui/panels/environment_layer_inspector_panel.dart:549:                    ? () => notifier.generateEnvironmentAreaPlacements(
+lib/src/features/editor/state/editor_notifier.dart:4844:  void generateEnvironmentAreaPlacements({
+test/environment_studio/environment_generate_button_wiring_test.dart:72:  group('Lot 25 — EditorNotifier.generateEnvironmentAreaPlacements', () {
+test/environment_studio/environment_generate_button_wiring_test.dart:110:      notifier.generateEnvironmentAreaPlacements(
+test/environment_studio/environment_generate_button_wiring_test.dart:159:      notifier.generateEnvironmentAreaPlacements(
+test/environment_studio/environment_generate_button_wiring_test.dart:216:          .generateEnvironmentAreaPlacements(
+test/environment_studio/environment_generate_button_wiring_test.dart:260:          .generateEnvironmentAreaPlacements(
+test/environment_studio/environment_generate_button_wiring_test.dart:312:          .generateEnvironmentAreaPlacements(
+---
+lib/src/ui/panels/environment_layer_inspector_panel.dart:357:  /// Premier blocage UX pour désactiver « Générer dans la map » (ordre stable).
+lib/src/ui/panels/environment_layer_inspector_panel.dart:554:                child: const Text('Générer dans la map'),
+```
+
+### flutter analyze
+
+```text
+Analyzing 4 items...                                            
+No issues found! (ran in 1.8s)
+```
+
+### flutter test clear (expanded, intégral)
+
+```text
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_generated_placements_clear_test.dart
+00:00 +0: ClearEnvironmentGeneratedPlacementsUseCase — modèles EnvironmentClearResult copie défensivement et listes immuables
+00:00 +1: ClearEnvironmentGeneratedPlacementsUseCase — modèles EnvironmentClearedGeneratedPlacement et EnvironmentClearIssue
+00:00 +2: ClearEnvironmentGeneratedPlacementsUseCase clear heureux : ids supprimés, manuel conservé, masque et cible préservés
+00:00 +3: ClearEnvironmentGeneratedPlacementsUseCase deux areas : clear A ne touche pas B
+00:00 +4: ClearEnvironmentGeneratedPlacementsUseCase ids manquants : warning, liste vidée, existant supprimé
+00:00 +5: ClearEnvironmentGeneratedPlacementsUseCase generatedPlacementIds vide : map inchangée, warning
+00:00 +6: ClearEnvironmentGeneratedPlacementsUseCase erreurs bloquantes : layer / area inconnus
+00:00 +7: EditorNotifier.clearEnvironmentGeneratedPlacements succès : dirty, sélection placé nettoyée, status effacé
+00:00 +8: EditorNotifier.clearEnvironmentGeneratedPlacements no-op ids vides : map inchangée, isDirty inchangé
+00:00 +9: EnvironmentLayerInspectorPanel — Clear sans placements générés : bouton disabled + texte
+00:00 +10: EnvironmentLayerInspectorPanel — Clear clear puis generate disponible
+00:00 +11: All tests passed!
+```
+
+### Bundle Lots 19–26 — ligne finale
+
+```text
+00:06 +98: All tests passed!
+```
+
+### test/environment_studio — ligne finale
+
+```text
+00:11 +204: All tests passed!
+```
+
+### editor_workspace + top_toolbar — ligne finale
+
+```text
+00:04 +14: All tests passed!
+```
+
+### flutter test map_editor complet — ligne finale
+
+```text
+01:05 +1037 -33: Some tests failed.
+```
+
+Échecs hors lot (sync catalog).
+
+## 19. Git status initial et final
+
+### Initial
+
+```text
+(état workspace au début de la tâche : suivre git status final ci-dessous pour les fichiers Lot 26.)
+```
+
+### Final
+
+```text
+ M packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
+ M packages/map_editor/lib/src/ui/panels/environment_layer_inspector_panel.dart
+?? packages/map_editor/lib/src/application/use_cases/environment_generator_clear_use_cases.dart
+?? packages/map_editor/test/environment_studio/environment_generated_placements_clear_test.dart
+?? reports/forest/environment_studio_lot_26_generated_placements_clear.md
+```
+
+## 20. Contenu complet des fichiers créés ou modifiés
+
+### 20.1 `environment_generator_clear_use_cases.dart`
+
+```dart
+import 'package:map_core/map_core.dart';
+
+// ---------------------------------------------------------------------------
+// Lot Environment-26 — suppression des placements générés d’une EnvironmentArea.
+// Pur Dart, pas de Flutter / I/O ; pas de mutation si erreur bloquante.
+// ---------------------------------------------------------------------------
+
+/// Enregistrement d’un [MapPlacedElement] retiré par Clear.
+final class EnvironmentClearedGeneratedPlacement {
+  const EnvironmentClearedGeneratedPlacement({
+    required this.placedElementId,
+    required this.elementId,
+    required this.layerId,
+    required this.pos,
+  });
+
+  final String placedElementId;
+  final String elementId;
+  final String layerId;
+  final GridPos pos;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is EnvironmentClearedGeneratedPlacement &&
+            placedElementId == other.placedElementId &&
+            elementId == other.elementId &&
+            layerId == other.layerId &&
+            pos == other.pos;
+  }
+
+  @override
+  int get hashCode => Object.hash(placedElementId, elementId, layerId, pos);
+}
+
+enum EnvironmentClearIssueSeverity {
+  error,
+  warning,
+}
+
+enum EnvironmentClearIssueKind {
+  environmentLayerNotFound,
+  layerIsNotEnvironmentLayer,
+  areaNotFound,
+  noGeneratedPlacements,
+  missingGeneratedPlacement,
+  mapValidationFailed,
+}
+
+final class EnvironmentClearIssue {
+  const EnvironmentClearIssue({
+    required this.severity,
+    required this.kind,
+    required this.message,
+    this.environmentLayerId,
+    this.areaId,
+    this.placedElementId,
+  });
+
+  final EnvironmentClearIssueSeverity severity;
+  final EnvironmentClearIssueKind kind;
+  final String message;
+  final String? environmentLayerId;
+  final String? areaId;
+  final String? placedElementId;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is EnvironmentClearIssue &&
+            severity == other.severity &&
+            kind == other.kind &&
+            message == other.message &&
+            environmentLayerId == other.environmentLayerId &&
+            areaId == other.areaId &&
+            placedElementId == other.placedElementId;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        severity,
+        kind,
+        message,
+        environmentLayerId,
+        areaId,
+        placedElementId,
+      );
+}
+
+final class EnvironmentClearResult {
+  factory EnvironmentClearResult({
+    required MapData map,
+    required List<EnvironmentClearedGeneratedPlacement> clearedPlacements,
+    required List<EnvironmentClearIssue> issues,
+  }) {
+    return EnvironmentClearResult._(
+      map: map,
+      clearedPlacements:
+          List<EnvironmentClearedGeneratedPlacement>.unmodifiable(
+        List<EnvironmentClearedGeneratedPlacement>.from(clearedPlacements),
+      ),
+      issues: List<EnvironmentClearIssue>.unmodifiable(
+        List<EnvironmentClearIssue>.from(issues),
+      ),
+    );
+  }
+
+  const EnvironmentClearResult._({
+    required this.map,
+    required this.clearedPlacements,
+    required this.issues,
+  });
+
+  final MapData map;
+  final List<EnvironmentClearedGeneratedPlacement> clearedPlacements;
+  final List<EnvironmentClearIssue> issues;
+
+  bool get hasErrors =>
+      issues.any((i) => i.severity == EnvironmentClearIssueSeverity.error);
+
+  bool get hasWarnings =>
+      issues.any((i) => i.severity == EnvironmentClearIssueSeverity.warning);
+
+  int get errorCount => issues
+      .where((i) => i.severity == EnvironmentClearIssueSeverity.error)
+      .length;
+
+  int get warningCount => issues
+      .where((i) => i.severity == EnvironmentClearIssueSeverity.warning)
+      .length;
+
+  int get clearedPlacementCount => clearedPlacements.length;
+
+  List<EnvironmentClearIssue> issuesForKind(EnvironmentClearIssueKind kind) {
+    return List<EnvironmentClearIssue>.unmodifiable(
+      issues.where((i) => i.kind == kind).toList(growable: false),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is EnvironmentClearResult &&
+        map == other.map &&
+        clearedPlacementCount == other.clearedPlacementCount &&
+        _listEqualsCleared(clearedPlacements, other.clearedPlacements) &&
+        _listEqualsClearIssues(issues, other.issues);
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        map,
+        clearedPlacementCount,
+        Object.hashAll(clearedPlacements),
+        Object.hashAll(issues),
+      );
+}
+
+bool _listEqualsCleared(
+  List<EnvironmentClearedGeneratedPlacement> a,
+  List<EnvironmentClearedGeneratedPlacement> b,
+) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
+bool _listEqualsClearIssues(
+  List<EnvironmentClearIssue> a,
+  List<EnvironmentClearIssue> b,
+) {
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
+  }
+  return true;
+}
+
+EnvironmentClearResult _failure(
+  MapData original, {
+  required List<EnvironmentClearIssue> issues,
+}) {
+  return EnvironmentClearResult(
+    map: original,
+    clearedPlacements: const [],
+    issues: issues,
+  );
+}
+
+/// Retire les [MapPlacedElement] dont l’id est listé dans
+/// [EnvironmentArea.generatedPlacementIds], puis vide cette liste.
+///
+/// Tolérant aux ids manquants (warning, nettoyage quand même).
+/// Aucune suppression hors de la liste de l’area.
+class ClearEnvironmentGeneratedPlacementsUseCase {
+  EnvironmentClearResult execute(
+    MapData map, {
+    required String environmentLayerId,
+    required String areaId,
+  }) {
+    final issues = <EnvironmentClearIssue>[];
+    final envId = environmentLayerId.trim();
+    final aid = areaId.trim();
+
+    EnvironmentLayer? envLayer;
+    for (final layer in map.layers) {
+      if (layer.id == envId) {
+        if (layer is EnvironmentLayer) {
+          envLayer = layer;
+        } else {
+          issues.add(
+            EnvironmentClearIssue(
+              severity: EnvironmentClearIssueSeverity.error,
+              kind: EnvironmentClearIssueKind.layerIsNotEnvironmentLayer,
+              message: 'Layer is not an environment layer: $envId',
+              environmentLayerId: envId,
+            ),
+          );
+          return _failure(map, issues: issues);
+        }
+        break;
+      }
+    }
+    if (envLayer == null) {
+      issues.add(
+        EnvironmentClearIssue(
+          severity: EnvironmentClearIssueSeverity.error,
+          kind: EnvironmentClearIssueKind.environmentLayerNotFound,
+          message: 'Environment layer not found: $envId',
+          environmentLayerId: envId,
+        ),
+      );
+      return _failure(map, issues: issues);
+    }
+
+    EnvironmentArea? area;
+    for (final a in envLayer.content.areas) {
+      if (a.id == aid) {
+        area = a;
+        break;
+      }
+    }
+    if (area == null) {
+      issues.add(
+        EnvironmentClearIssue(
+          severity: EnvironmentClearIssueSeverity.error,
+          kind: EnvironmentClearIssueKind.areaNotFound,
+          message: 'Environment area not found: $aid',
+          environmentLayerId: envId,
+          areaId: aid,
+        ),
+      );
+      return _failure(map, issues: issues);
+    }
+
+    final ids = area.generatedPlacementIds;
+    if (ids.isEmpty) {
+      issues.add(
+        const EnvironmentClearIssue(
+          severity: EnvironmentClearIssueSeverity.warning,
+          kind: EnvironmentClearIssueKind.noGeneratedPlacements,
+          message: 'Cette zone n’a aucun placement généré référencé.',
+        ),
+      );
+      return EnvironmentClearResult(
+        map: map,
+        clearedPlacements: const [],
+        issues: issues,
+      );
+    }
+
+    final idSet = ids.toSet();
+    final placedById = <String, MapPlacedElement>{
+      for (final p in map.placedElements) p.id: p,
+    };
+
+    final cleared = <EnvironmentClearedGeneratedPlacement>[];
+    for (final pid in ids) {
+      final placed = placedById[pid];
+      if (placed == null) {
+        issues.add(
+          EnvironmentClearIssue(
+            severity: EnvironmentClearIssueSeverity.warning,
+            kind: EnvironmentClearIssueKind.missingGeneratedPlacement,
+            message: 'Placement généré absent de la carte : $pid',
+            environmentLayerId: envId,
+            areaId: aid,
+            placedElementId: pid,
+          ),
+        );
+      } else {
+        cleared.add(
+          EnvironmentClearedGeneratedPlacement(
+            placedElementId: placed.id,
+            elementId: placed.elementId,
+            layerId: placed.layerId,
+            pos: placed.pos,
+          ),
+        );
+      }
+    }
+
+    final newPlaced = <MapPlacedElement>[
+      for (final p in map.placedElements)
+        if (!idSet.contains(p.id)) p,
+    ];
+
+    final newAreas = <EnvironmentArea>[
+      for (final a in envLayer.content.areas)
+        if (a.id == aid)
+          EnvironmentArea(
+            id: a.id,
+            name: a.name,
+            presetId: a.presetId,
+            mask: a.mask,
+            seed: a.seed,
+            paramsOverride: a.paramsOverride,
+            generatedPlacementIds: const [],
+          )
+        else
+          a,
+    ];
+
+    final newContent = EnvironmentLayerContent(
+      targetTileLayerId: envLayer.content.targetTileLayerId,
+      areas: newAreas,
+    );
+
+    MapData updated;
+    try {
+      updated = setEnvironmentLayerContent(
+        map,
+        layerId: envId,
+        content: newContent,
+      ).copyWith(placedElements: newPlaced);
+      MapValidator.validate(updated);
+    } catch (e) {
+      issues.add(
+        EnvironmentClearIssue(
+          severity: EnvironmentClearIssueSeverity.error,
+          kind: EnvironmentClearIssueKind.mapValidationFailed,
+          message: 'MapValidator.validate failed: $e',
+          environmentLayerId: envId,
+          areaId: aid,
+        ),
+      );
+      return _failure(map, issues: issues);
+    }
+
+    return EnvironmentClearResult(
+      map: updated,
+      clearedPlacements: cleared,
+      issues: issues,
+    );
+  }
+}
+```
+
+### 20.2 `environment_generated_placements_clear_test.dart`
+
+```dart
+// ignore_for_file: prefer_const_constructors — fixtures MapData lisibles
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:macos_ui/macos_ui.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/use_cases/environment_generator_clear_use_cases.dart';
+import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
+import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/ui/panels/environment_layer_inspector_panel.dart';
+import 'package:map_editor/src/ui/panels/map_inspector_panel.dart';
+
+import '../shell_chrome_test_harness.dart';
+
+ProjectManifest _minimalEnvManifest() {
+  return buildShellChromeProject(
+    environmentPresets: [
+      EnvironmentPreset(
+        id: 'p1',
+        name: 'P',
+        templateId: 't',
+        palette: [
+          EnvironmentPaletteItem(elementId: 'e1', weight: 1),
+        ],
+        defaultParams: EnvironmentGenerationParams.standard(),
+        sortOrder: 0,
+      ),
+    ],
+  );
+}
+
+EnvironmentArea _area({
+  required String id,
+  required String presetId,
+  List<String>? generatedPlacementIds,
+  List<bool>? cells,
+  int w = 2,
+  int h = 2,
+}) {
+  final c = cells ?? List<bool>.filled(w * h, true);
+  return EnvironmentArea(
+    id: id,
+    name: 'Z',
+    presetId: presetId,
+    mask: EnvironmentAreaMask(width: w, height: h, cells: c),
+    seed: 1,
+    generatedPlacementIds: generatedPlacementIds,
+  );
+}
+
+void main() {
+  group('ClearEnvironmentGeneratedPlacementsUseCase — modèles', () {
+    test('EnvironmentClearResult copie défensivement et listes immuables', () {
+      final m = MapData(
+        id: 'm',
+        name: 'M',
+        size: const GridSize(width: 1, height: 1),
+        layers: [
+          TileLayer(id: 't', name: 'T', tiles: const [0]),
+        ],
+      );
+      final rawCleared = <EnvironmentClearedGeneratedPlacement>[
+        const EnvironmentClearedGeneratedPlacement(
+          placedElementId: 'p1',
+          elementId: 'e1',
+          layerId: 't',
+          pos: GridPos(x: 0, y: 0),
+        ),
+      ];
+      final rawIssues = <EnvironmentClearIssue>[
+        const EnvironmentClearIssue(
+          severity: EnvironmentClearIssueSeverity.warning,
+          kind: EnvironmentClearIssueKind.noGeneratedPlacements,
+          message: 'x',
+        ),
+      ];
+      final r = EnvironmentClearResult(
+        map: m,
+        clearedPlacements: rawCleared,
+        issues: rawIssues,
+      );
+      rawCleared.clear();
+      rawIssues.clear();
+      expect(r.clearedPlacementCount, 1);
+      expect(r.warningCount, 1);
+      expect(() => r.clearedPlacements.clear(), throwsUnsupportedError);
+      expect(() => r.issues.clear(), throwsUnsupportedError);
+      expect(
+        r.issuesForKind(EnvironmentClearIssueKind.noGeneratedPlacements).length,
+        1,
+      );
+    });
+
+    test('EnvironmentClearedGeneratedPlacement et EnvironmentClearIssue', () {
+      const a = EnvironmentClearedGeneratedPlacement(
+        placedElementId: 'p',
+        elementId: 'e',
+        layerId: 'l',
+        pos: GridPos(x: 1, y: 2),
+      );
+      const b = EnvironmentClearedGeneratedPlacement(
+        placedElementId: 'p',
+        elementId: 'e',
+        layerId: 'l',
+        pos: GridPos(x: 1, y: 2),
+      );
+      expect(a, b);
+      expect(a.hashCode, b.hashCode);
+
+      const i1 = EnvironmentClearIssue(
+        severity: EnvironmentClearIssueSeverity.error,
+        kind: EnvironmentClearIssueKind.areaNotFound,
+        message: 'm',
+        placedElementId: 'p',
+      );
+      const i2 = EnvironmentClearIssue(
+        severity: EnvironmentClearIssueSeverity.error,
+        kind: EnvironmentClearIssueKind.areaNotFound,
+        message: 'm',
+        placedElementId: 'p',
+      );
+      expect(i1, i2);
+    });
+  });
+
+  group('ClearEnvironmentGeneratedPlacementsUseCase', () {
+    test(
+        'clear heureux : ids supprimés, manuel conservé, masque et cible préservés',
+        () {
+      final area = _area(
+        id: 'a1',
+        presetId: 'p1',
+        generatedPlacementIds: const ['g1', 'g2'],
+      );
+      final env = MapLayer.environment(
+        id: 'env',
+        name: 'E',
+        content: EnvironmentLayerContent(
+          targetTileLayerId: 'tiles',
+          areas: [area],
+        ),
+      );
+      final tile = TileLayer(
+        id: 'tiles',
+        name: 'T',
+        tiles: List<int>.filled(4, 5),
+      );
+      final map = MapData(
+        id: 'm',
+        name: 'M',
+        size: const GridSize(width: 2, height: 2),
+        layers: [env, tile],
+        placedElements: [
+          const MapPlacedElement(
+            id: 'g1',
+            layerId: 'tiles',
+            elementId: 'e1',
+            pos: GridPos(x: 0, y: 0),
+          ),
+          const MapPlacedElement(
+            id: 'g2',
+            layerId: 'tiles',
+            elementId: 'e1',
+            pos: GridPos(x: 1, y: 0),
+          ),
+          const MapPlacedElement(
+            id: 'manual',
+            layerId: 'tiles',
+            elementId: 'e1',
+            pos: GridPos(x: 0, y: 1),
+          ),
+        ],
+      );
+      final uc = ClearEnvironmentGeneratedPlacementsUseCase();
+      final r = uc.execute(
+        map,
+        environmentLayerId: 'env',
+        areaId: 'a1',
+      );
+      expect(r.hasErrors, isFalse);
+      expect(r.clearedPlacementCount, 2);
+      expect(r.map.placedElements.map((e) => e.id).toList(), ['manual']);
+      final outArea =
+          (r.map.layers.first as EnvironmentLayer).content.areas.single;
+      expect(outArea.generatedPlacementIds, isEmpty);
+      expect(outArea.presetId, 'p1');
+      expect(outArea.mask, area.mask);
+      expect(
+        (r.map.layers[1] as TileLayer).tiles,
+        (map.layers[1] as TileLayer).tiles,
+      );
+    });
+
+    test('deux areas : clear A ne touche pas B', () {
+      final a = _area(
+        id: 'A',
+        presetId: 'p1',
+        generatedPlacementIds: const ['a_only'],
+      );
+      final b = _area(
+        id: 'B',
+        presetId: 'p1',
+        generatedPlacementIds: const ['b_only'],
+      );
+      final env = MapLayer.environment(
+        id: 'env',
+        name: 'E',
+        content: EnvironmentLayerContent(
+          targetTileLayerId: 'tiles',
+          areas: [a, b],
+        ),
+      );
+      final tile = TileLayer(
+        id: 'tiles',
+        name: 'T',
+        tiles: List<int>.filled(4, 0),
+      );
+      final map = MapData(
+        id: 'm',
+        name: 'M',
+        size: const GridSize(width: 2, height: 2),
+        layers: [env, tile],
+        placedElements: const [
+          MapPlacedElement(
+            id: 'a_only',
+            layerId: 'tiles',
+            elementId: 'e1',
+            pos: GridPos(x: 0, y: 0),
+          ),
+          MapPlacedElement(
+            id: 'b_only',
+            layerId: 'tiles',
+            elementId: 'e1',
+            pos: GridPos(x: 1, y: 0),
+          ),
+        ],
+      );
+      final r = ClearEnvironmentGeneratedPlacementsUseCase().execute(
+        map,
+        environmentLayerId: 'env',
+        areaId: 'A',
+      );
+      expect(r.hasErrors, isFalse);
+      expect(r.map.placedElements.single.id, 'b_only');
+      final areas = (r.map.layers.first as EnvironmentLayer).content.areas;
+      expect(
+          areas.firstWhere((x) => x.id == 'A').generatedPlacementIds, isEmpty);
+      expect(
+        areas.firstWhere((x) => x.id == 'B').generatedPlacementIds,
+        const ['b_only'],
+      );
+    });
+
+    test('ids manquants : warning, liste vidée, existant supprimé', () {
+      final area = _area(
+        id: 'a1',
+        presetId: 'p1',
+        generatedPlacementIds: const ['ok', 'ghost'],
+      );
+      final env = MapLayer.environment(
+        id: 'env',
+        name: 'E',
+        content: EnvironmentLayerContent(
+          targetTileLayerId: 'tiles',
+          areas: [area],
+        ),
+      );
+      final tile = TileLayer(
+        id: 'tiles',
+        name: 'T',
+        tiles: List<int>.filled(4, 0),
+      );
+      final map = MapData(
+        id: 'm',
+        name: 'M',
+        size: const GridSize(width: 2, height: 2),
+        layers: [env, tile],
+        placedElements: const [
+          MapPlacedElement(
+            id: 'ok',
+            layerId: 'tiles',
+            elementId: 'e1',
+            pos: GridPos(x: 0, y: 0),
+          ),
+        ],
+      );
+      final r = ClearEnvironmentGeneratedPlacementsUseCase().execute(
+        map,
+        environmentLayerId: 'env',
+        areaId: 'a1',
+      );
+      expect(r.hasErrors, isFalse);
+      expect(r.hasWarnings, isTrue);
+      expect(
+        r.issuesForKind(EnvironmentClearIssueKind.missingGeneratedPlacement),
+        isNotEmpty,
+      );
+      expect(r.map.placedElements, isEmpty);
+      expect(
+        (r.map.layers.first as EnvironmentLayer)
+            .content
+            .areas
+            .single
+            .generatedPlacementIds,
+        isEmpty,
+      );
+    });
+
+    test('generatedPlacementIds vide : map inchangée, warning', () {
+      final area = _area(id: 'a1', presetId: 'p1');
+      final env = MapLayer.environment(
+        id: 'env',
+        name: 'E',
+        content: EnvironmentLayerContent(
+          targetTileLayerId: 'tiles',
+          areas: [area],
+        ),
+      );
+      final tile = TileLayer(
+        id: 'tiles',
+        name: 'T',
+        tiles: List<int>.filled(4, 0),
+      );
+      final map = MapData(
+        id: 'm',
+        name: 'M',
+        size: const GridSize(width: 2, height: 2),
+        layers: [env, tile],
+      );
+      final r = ClearEnvironmentGeneratedPlacementsUseCase().execute(
+        map,
+        environmentLayerId: 'env',
+        areaId: 'a1',
+      );
+      expect(identical(r.map, map), isTrue);
+      expect(r.clearedPlacementCount, 0);
+      expect(
+        r.issuesForKind(EnvironmentClearIssueKind.noGeneratedPlacements),
+        isNotEmpty,
+      );
+    });
+
+    test('erreurs bloquantes : layer / area inconnus', () {
+      final area = _area(
+        id: 'a1',
+        presetId: 'p1',
+        generatedPlacementIds: const ['x'],
+      );
+      final env = MapLayer.environment(
+        id: 'env',
+        name: 'E',
+        content: EnvironmentLayerContent(areas: [area]),
+      );
+      final map = MapData(
+        id: 'm',
+        name: 'M',
+        size: const GridSize(width: 2, height: 2),
+        layers: [env],
+      );
+      final uc = ClearEnvironmentGeneratedPlacementsUseCase();
+      final r1 = uc.execute(map, environmentLayerId: 'missing', areaId: 'a1');
+      expect(r1.hasErrors, isTrue);
+      expect(identical(r1.map, map), isTrue);
+
+      final tileMap = MapData(
+        id: 'm2',
+        name: 'M',
+        size: const GridSize(width: 2, height: 2),
+        layers: [
+          const MapLayer.tile(id: 'env', name: 'E', tiles: [0, 0, 0, 0]),
+        ],
+      );
+      final r2 = uc.execute(tileMap, environmentLayerId: 'env', areaId: 'a1');
+      expect(r2.hasErrors, isTrue);
+
+      final r3 = uc.execute(map, environmentLayerId: 'env', areaId: 'ghost');
+      expect(r3.hasErrors, isTrue);
+      expect(
+        r3.issuesForKind(EnvironmentClearIssueKind.areaNotFound),
+        isNotEmpty,
+      );
+    });
+  });
+
+  group('EditorNotifier.clearEnvironmentGeneratedPlacements', () {
+    test('succès : dirty, sélection placé nettoyée, status effacé', () {
+      final area = _area(
+        id: 'a1',
+        presetId: 'p1',
+        generatedPlacementIds: const ['g1'],
+      );
+      final env = MapLayer.environment(
+        id: 'env',
+        name: 'E',
+        content: EnvironmentLayerContent(
+          targetTileLayerId: 'tiles',
+          areas: [area],
+        ),
+      );
+      final tile = TileLayer(
+        id: 'tiles',
+        name: 'T',
+        tiles: List<int>.filled(4, 0),
+      );
+      final map = MapData(
+        id: 'm',
+        name: 'M',
+        size: const GridSize(width: 2, height: 2),
+        layers: [env, tile],
+        placedElements: const [
+          MapPlacedElement(
+            id: 'g1',
+            layerId: 'tiles',
+            elementId: 'e1',
+            pos: GridPos(x: 0, y: 0),
+          ),
+        ],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/r',
+        project: buildShellChromeProject(),
+        activeMap: map,
+        activeMapPath: 'maps/x.json',
+        activeLayerId: 'env',
+        selectedEnvironmentAreaId: 'a1',
+        selectedPlacedElementInstanceId: 'g1',
+        savedMapSnapshot: map,
+      );
+      container
+          .read(editorNotifierProvider.notifier)
+          .clearEnvironmentGeneratedPlacements(
+            environmentLayerId: 'env',
+            areaId: 'a1',
+          );
+      final s = container.read(editorNotifierProvider);
+      expect(s.isDirty, isTrue);
+      expect(s.activeLayerId, 'env');
+      expect(s.selectedEnvironmentAreaId, 'a1');
+      expect(s.selectedPlacedElementInstanceId, isNull);
+      expect(s.statusMessage, contains('effacé'));
+      expect(s.activeMap!.placedElements, isEmpty);
+    });
+
+    test('no-op ids vides : map inchangée, isDirty inchangé', () {
+      final area = _area(id: 'a1', presetId: 'p1');
+      final env = MapLayer.environment(
+        id: 'env',
+        name: 'E',
+        content: EnvironmentLayerContent(
+          targetTileLayerId: 'tiles',
+          areas: [area],
+        ),
+      );
+      final tile = TileLayer(
+        id: 'tiles',
+        name: 'T',
+        tiles: List<int>.filled(4, 0),
+      );
+      final map = MapData(
+        id: 'm',
+        name: 'M',
+        size: const GridSize(width: 2, height: 2),
+        layers: [env, tile],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/r',
+        project: buildShellChromeProject(),
+        activeMap: map,
+        activeMapPath: 'maps/x.json',
+        activeLayerId: 'env',
+        isDirty: false,
+        savedMapSnapshot: map,
+      );
+      final before = container.read(editorNotifierProvider).activeMap!;
+      container
+          .read(editorNotifierProvider.notifier)
+          .clearEnvironmentGeneratedPlacements(
+            environmentLayerId: 'env',
+            areaId: 'a1',
+          );
+      final s = container.read(editorNotifierProvider);
+      expect(identical(s.activeMap, before), isTrue);
+      expect(s.isDirty, isFalse);
+      expect(s.statusMessage, contains('Aucun placement'));
+    });
+  });
+
+  group('EnvironmentLayerInspectorPanel — Clear', () {
+    testWidgets('sans placements générés : bouton disabled + texte', (
+      tester,
+    ) async {
+      final area = _area(id: 'a1', presetId: 'p1');
+      final envLayer = MapLayer.environment(
+        id: 'env',
+        name: 'E',
+        content: EnvironmentLayerContent(
+          targetTileLayerId: 'tiles',
+          areas: [area],
+        ),
+      );
+      final tile = TileLayer(
+        id: 'tiles',
+        name: 'T',
+        tiles: List<int>.filled(4, 0),
+      );
+      final map = MapData(
+        id: 'm',
+        name: 'M',
+        size: const GridSize(width: 2, height: 2),
+        layers: [envLayer, tile],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/r',
+        project: _minimalEnvManifest(),
+        activeMap: map,
+        activeMapPath: 'maps/x.json',
+        activeLayerId: 'env',
+      );
+      await tester.binding.setSurfaceSize(const Size(480, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: MaterialApp(
+              home: CupertinoPageScaffold(
+                child: EnvironmentLayerInspectorPanel(
+                  map: map,
+                  layer: envLayer as EnvironmentLayer,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Aucun placement généré à effacer.'), findsWidgets);
+      expect(
+        tester
+            .widget<PushButton>(find.byKey(const Key('env-area-clear-a1')))
+            .onPressed,
+        isNull,
+      );
+    });
+
+    testWidgets('clear puis generate disponible', (tester) async {
+      final area = _area(
+        id: 'a1',
+        presetId: 'p1',
+        generatedPlacementIds: const ['g1'],
+      );
+      final envLayer = MapLayer.environment(
+        id: 'env',
+        name: 'E',
+        content: EnvironmentLayerContent(
+          targetTileLayerId: 'tiles',
+          areas: [area],
+        ),
+      );
+      final tile = TileLayer(
+        id: 'tiles',
+        name: 'T',
+        tiles: List<int>.filled(4, 0),
+      );
+      final map = MapData(
+        id: 'm',
+        name: 'M',
+        size: const GridSize(width: 2, height: 2),
+        tilesetId: 'tsA',
+        layers: [envLayer, tile],
+        placedElements: const [
+          MapPlacedElement(
+            id: 'g1',
+            layerId: 'tiles',
+            elementId: 'e1',
+            pos: GridPos(x: 0, y: 0),
+          ),
+        ],
+      );
+      final manifest = buildShellChromeProject(
+        environmentPresets: [
+          EnvironmentPreset(
+            id: 'p1',
+            name: 'P',
+            templateId: 't',
+            palette: [
+              EnvironmentPaletteItem(elementId: 'e1', weight: 1),
+            ],
+            defaultParams: EnvironmentGenerationParams(
+              density: 1,
+              edgeDensity: 1,
+              variation: 0,
+              minSpacingCells: 0,
+            ),
+            sortOrder: 0,
+          ),
+        ],
+        elements: [
+          const ProjectElementEntry(
+            id: 'e1',
+            name: 'E',
+            tilesetId: 'tsA',
+            categoryId: 'c',
+            frames: [
+              TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
+            ],
+          ),
+        ],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/r',
+        project: manifest,
+        activeMap: map,
+        activeMapPath: 'maps/x.json',
+        activeLayerId: 'env',
+        savedMapSnapshot: map,
+      );
+      await tester.binding.setSurfaceSize(const Size(520, 2000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: MaterialApp(
+              home: CupertinoPageScaffold(
+                child: SizedBox(
+                  width: 440,
+                  height: 2000,
+                  child: MapInspectorPanel(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final clearBtn = find.byKey(const Key('env-area-clear-a1'));
+      expect(tester.widget<PushButton>(clearBtn).onPressed, isNotNull);
+      await tester.ensureVisible(clearBtn);
+      await tester.pumpAndSettle();
+      await tester.tap(clearBtn);
+      await tester.pumpAndSettle();
+      expect(container.read(editorNotifierProvider).activeMap!.placedElements,
+          isEmpty);
+      await tester.pumpAndSettle();
+      final genBtn = find.byKey(const Key('env-area-generate-a1'));
+      expect(tester.widget<PushButton>(genBtn).onPressed, isNotNull);
+      expect(tester.widget<PushButton>(clearBtn).onPressed, isNull);
+    });
+  });
+}
+```
+
+### 20.3 `environment_layer_inspector_panel.dart`
+
+```dart
+import 'package:flutter/cupertino.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:macos_ui/macos_ui.dart';
+import 'package:map_core/map_core.dart';
+
+import '../../features/editor/state/editor_notifier.dart';
+import '../../features/editor/state/editor_selectors.dart';
+import '../../features/editor/tools/editor_tool.dart';
+import '../shared/cupertino_editor_widgets.dart';
+
+/// Inspecteur Environment Studio : cible tuile (Lot 20) + zones (Lot 21), sans canvas.
+class EnvironmentLayerInspectorPanel extends ConsumerWidget {
+  const EnvironmentLayerInspectorPanel({
+    super.key,
+    required this.map,
+    required this.layer,
+    this.embedded = false,
+  });
+
+  final MapData map;
+  final EnvironmentLayer layer;
+  final bool embedded;
+
+  List<TileLayer> _tileLayers() {
+    final out = <TileLayer>[];
+    for (final l in map.layers) {
+      if (l is TileLayer) {
+        out.add(l);
+      }
+    }
+    return out;
+  }
+
+  TileLayer? _resolveTarget() {
+    final tid = layer.content.targetTileLayerId;
+    if (tid == null) return null;
+    for (final l in map.layers) {
+      if (l.id == tid && l is TileLayer) {
+        return l;
+      }
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final subtle = EditorChrome.subtleLabel(context);
+    final label = EditorChrome.primaryLabel(context);
+    final notifier = ref.read(editorNotifierProvider.notifier);
+    final manifest = ref.watch(editorProjectManifestProvider);
+    final tiles = _tileLayers();
+    final target = _resolveTarget();
+    final tid = layer.content.targetTileLayerId;
+    final invalidTarget = tid != null && target == null;
+    final presets = manifest?.environmentPresets ?? const <EnvironmentPreset>[];
+
+    return SingleChildScrollView(
+      child: Padding(
+        padding:
+            EdgeInsets.fromLTRB(embedded ? 8 : 10, 4, embedded ? 8 : 10, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Environment Layer',
+              key: const Key('map-inspector-environment-layer-title'),
+              style: TextStyle(
+                color: label,
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Ce layer servira à dessiner des zones organiques et à générer des '
+              'éléments naturels.',
+              key: const Key('map-inspector-environment-layer-body'),
+              style: TextStyle(
+                color: subtle,
+                fontSize: 12,
+                height: 1.4,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Zones d’environnement',
+              key: const Key('env-layer-inspector-zones-title'),
+              style: TextStyle(
+                color: label,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Les zones définissent où les presets organiques seront générés. '
+              'Peignez le masque par zone pour marquer les cellules actives.',
+              key: const Key('env-layer-inspector-zones-desc'),
+              style: TextStyle(
+                color: subtle,
+                fontSize: 11.5,
+                height: 1.35,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 10),
+            if (presets.isEmpty) ...[
+              Text(
+                'Aucun preset d’environnement disponible.\n'
+                'Créez d’abord un preset dans Environment Studio.',
+                key: const Key('env-layer-inspector-no-presets'),
+                style: TextStyle(
+                  color: subtle,
+                  fontSize: 12,
+                  height: 1.35,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ] else ...[
+              if (layer.content.areas.isEmpty)
+                Text(
+                  'Aucune zone d’environnement pour ce layer.',
+                  key: const Key('env-layer-inspector-no-areas'),
+                  style: TextStyle(
+                    color: subtle,
+                    fontSize: 12,
+                    height: 1.35,
+                    fontWeight: FontWeight.w600,
+                  ),
+                )
+              else
+                ...layer.content.areas.map(
+                  (area) => _EnvironmentAreaCard(
+                    area: area,
+                    manifest: manifest,
+                    layerId: layer.id,
+                    labelColor: label,
+                    subtleColor: subtle,
+                    resolvedTargetTileLayer: target,
+                    targetTileLayerInvalid: invalidTarget,
+                  ),
+                ),
+              const SizedBox(height: 10),
+              PushButton(
+                key: const Key('env-layer-inspector-add-area'),
+                controlSize: ControlSize.regular,
+                onPressed: () => _pickPresetAndAddArea(
+                  context,
+                  notifier,
+                  presets,
+                ),
+                child: const Text('Ajouter une zone'),
+              ),
+            ],
+            const SizedBox(height: 18),
+            Text(
+              'TileLayer cible',
+              style: TextStyle(
+                color: label,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (tiles.isEmpty) ...[
+              Text(
+                'Aucun TileLayer disponible dans cette map.\n'
+                'Ajoutez d’abord un TileLayer pour recevoir les résultats générés.',
+                key: const Key('env-layer-inspector-no-tile-layers'),
+                style: TextStyle(
+                  color: subtle,
+                  fontSize: 12,
+                  height: 1.35,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ] else if (invalidTarget) ...[
+              Text(
+                'La cible configurée est introuvable ou invalide : $tid',
+                key: const Key('env-layer-inspector-invalid-target'),
+                style: TextStyle(
+                  color: CupertinoColors.systemOrange.resolveFrom(context),
+                  fontSize: 12,
+                  height: 1.35,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 10),
+              PushButton(
+                key: const Key('env-layer-inspector-change-invalid'),
+                controlSize: ControlSize.regular,
+                onPressed: () => _pickTileLayer(context, notifier, tiles),
+                child: const Text('Choisir un autre TileLayer cible'),
+              ),
+              const SizedBox(height: 8),
+              PushButton(
+                key: const Key('env-layer-inspector-remove-invalid'),
+                controlSize: ControlSize.regular,
+                secondary: true,
+                onPressed: () => notifier.setEnvironmentLayerTargetTileLayer(
+                  environmentLayerId: layer.id,
+                  targetTileLayerId: null,
+                ),
+                child: const Text('Retirer la cible'),
+              ),
+            ] else if (target == null) ...[
+              Text(
+                'Aucun TileLayer cible sélectionné.',
+                key: const Key('env-layer-inspector-no-target'),
+                style: TextStyle(
+                  color: subtle,
+                  fontSize: 12,
+                  height: 1.35,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Vous pouvez peindre le masque maintenant. Le TileLayer cible '
+                'sera nécessaire pour générer plus tard.',
+                key: const Key('env-layer-inspector-mask-without-target-note'),
+                style: TextStyle(
+                  color: subtle,
+                  fontSize: 11,
+                  height: 1.35,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 10),
+              PushButton(
+                key: const Key('env-layer-inspector-choose-target'),
+                controlSize: ControlSize.regular,
+                onPressed: () => _pickTileLayer(context, notifier, tiles),
+                child: const Text('Choisir le TileLayer cible'),
+              ),
+            ] else ...[
+              Text(
+                'Cible actuelle : ${target.name}',
+                key: const Key('env-layer-inspector-current-target-name'),
+                style: TextStyle(
+                  color: label,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Id : ${target.id}',
+                key: const Key('env-layer-inspector-current-target-id'),
+                style: TextStyle(
+                  color: subtle,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 10),
+              PushButton(
+                key: const Key('env-layer-inspector-change-target'),
+                controlSize: ControlSize.regular,
+                onPressed: () => _pickTileLayer(context, notifier, tiles),
+                child: const Text('Changer de TileLayer cible'),
+              ),
+              const SizedBox(height: 8),
+              PushButton(
+                key: const Key('env-layer-inspector-remove-target'),
+                controlSize: ControlSize.regular,
+                secondary: true,
+                onPressed: () => notifier.setEnvironmentLayerTargetTileLayer(
+                  environmentLayerId: layer.id,
+                  targetTileLayerId: null,
+                ),
+                child: const Text('Retirer la cible'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickTileLayer(
+    BuildContext context,
+    EditorNotifier notifier,
+    List<TileLayer> tiles,
+  ) async {
+    final picked = await showCupertinoListPicker<TileLayer>(
+      context: context,
+      title: 'TileLayer cible',
+      items: tiles,
+      labelOf: (t) => t.name,
+    );
+    if (picked == null) return;
+    notifier.setEnvironmentLayerTargetTileLayer(
+      environmentLayerId: layer.id,
+      targetTileLayerId: picked.id,
+    );
+  }
+
+  Future<void> _pickPresetAndAddArea(
+    BuildContext context,
+    EditorNotifier notifier,
+    List<EnvironmentPreset> presets,
+  ) async {
+    final picked = await showCupertinoListPicker<EnvironmentPreset>(
+      context: context,
+      title: 'Preset d’environnement',
+      items: presets,
+      labelOf: (p) => '${p.name} — ${p.id}',
+    );
+    if (picked == null) return;
+    notifier.addEnvironmentAreaToLayer(
+      environmentLayerId: layer.id,
+      presetId: picked.id,
+    );
+  }
+}
+
+const _kGenerateHelp =
+    'Crée des placements dans le TileLayer cible en utilisant le preset et le '
+    'masque de cette zone.';
+
+const _kClearHelp =
+    'Supprime uniquement les placements listés pour cette zone (pas le masque, '
+    'pas les placements posés manuellement ailleurs).';
+
+class _EnvironmentAreaCard extends ConsumerWidget {
+  const _EnvironmentAreaCard({
+    required this.area,
+    required this.manifest,
+    required this.layerId,
+    required this.labelColor,
+    required this.subtleColor,
+    required this.resolvedTargetTileLayer,
+    required this.targetTileLayerInvalid,
+  });
+
+  final EnvironmentArea area;
+  final ProjectManifest? manifest;
+  final String layerId;
+  final Color labelColor;
+  final Color subtleColor;
+
+  /// `null` si pas de cible ou cible non résolue.
+  final TileLayer? resolvedTargetTileLayer;
+  final bool targetTileLayerInvalid;
+
+  EnvironmentPreset? _presetForArea() {
+    final m = manifest;
+    if (m == null) return null;
+    for (final p in m.environmentPresets) {
+      if (p.id == area.presetId) return p;
+    }
+    return null;
+  }
+
+  /// Premier blocage UX pour désactiver « Générer dans la map » (ordre stable).
+  String? _generateDisabledReason(EnvironmentPreset? preset) {
+    if (resolvedTargetTileLayer == null || targetTileLayerInvalid) {
+      return 'Choisissez un TileLayer cible avant de générer.';
+    }
+    if (preset == null) {
+      return 'Le preset associé est introuvable.';
+    }
+    if (area.generatedPlacementIds.isNotEmpty) {
+      return 'Cette zone possède déjà des placements générés. Clear / Regenerate '
+          'arrive dans un prochain lot.';
+    }
+    if (area.mask.activeCellCount == 0) {
+      return 'Peignez le masque avant de générer.';
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final notifier = ref.read(editorNotifierProvider.notifier);
+    final editorState = ref.watch(editorNotifierProvider);
+    final manifestPresets =
+        manifest?.environmentPresets ?? const <EnvironmentPreset>[];
+    final preset = _presetForArea();
+    final generateReason = _generateDisabledReason(preset);
+    final generateEnabled = generateReason == null;
+    final hasGeneratedPlacements = area.generatedPlacementIds.isNotEmpty;
+    final totalCells = area.mask.width * area.mask.height;
+    final activeCount = area.mask.activeCellCount;
+    final maskLabel = activeCount == 0
+        ? 'Masque vide — cliquez « Peindre le masque », puis dessinez sur la map.\n'
+            '($activeCount / $totalCells cellules actives)'
+        : 'Masque : $activeCount / $totalCells cellules actives';
+    final warnPlacements = area.generatedPlacementIds.isNotEmpty;
+    final isThisAreaActiveForMask = editorState.activeLayerId == layerId &&
+        editorState.selectedEnvironmentAreaId == area.id;
+    final maskMode = editorState.environmentMaskEditMode;
+    String? editModeLabel;
+    if (isThisAreaActiveForMask && maskMode != null) {
+      editModeLabel = maskMode == EnvironmentMaskEditMode.paint
+          ? 'Édition active : peinture'
+          : 'Édition active : effacement';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: CupertinoColors.tertiarySystemFill.resolveFrom(context),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: CupertinoColors.separator.resolveFrom(context),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Zone : ${area.id}',
+                key: Key('env-area-card-id-${area.id}'),
+                style: TextStyle(
+                  color: labelColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 6),
+              if (preset != null) ...[
+                Text(
+                  'Preset : ${preset.name}',
+                  key: Key('env-area-card-preset-name-${area.id}'),
+                  style: TextStyle(
+                    color: labelColor,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                Text(
+                  'Id preset : ${preset.id}',
+                  key: Key('env-area-card-preset-id-${area.id}'),
+                  style: TextStyle(
+                    color: subtleColor,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ] else
+                Text(
+                  'Preset associé introuvable : ${area.presetId}',
+                  key: Key('env-area-card-preset-missing-${area.id}'),
+                  style: TextStyle(
+                    color: CupertinoColors.systemOrange.resolveFrom(context),
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              const SizedBox(height: 6),
+              Text(
+                maskLabel,
+                key: Key('env-area-card-mask-${area.id}'),
+                style: TextStyle(
+                  color: subtleColor,
+                  fontSize: 11,
+                  height: 1.3,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (editModeLabel != null) ...[
+                const SizedBox(height: 6),
+                Text(
+                  editModeLabel,
+                  key: Key('env-area-card-mask-edit-active-${area.id}'),
+                  style: TextStyle(
+                    color: labelColor,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 4),
+              Text(
+                'Placements générés : ${area.generatedPlacementIds.length}',
+                key: Key('env-area-card-placements-count-${area.id}'),
+                style: TextStyle(
+                  color: subtleColor,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              if (warnPlacements) ...[
+                const SizedBox(height: 6),
+                Text(
+                  'Cette zone référence des placements générés ; le retrait ne les '
+                  'supprime pas automatiquement.',
+                  key: Key('env-area-card-placements-warn-${area.id}'),
+                  style: TextStyle(
+                    color: CupertinoColors.systemOrange.resolveFrom(context),
+                    fontSize: 10.5,
+                    height: 1.25,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 10),
+              PushButton(
+                key: Key('env-area-mask-paint-${area.id}'),
+                controlSize: ControlSize.small,
+                onPressed: () => notifier.startEnvironmentAreaMaskPaint(
+                  environmentLayerId: layerId,
+                  areaId: area.id,
+                ),
+                child: const Text('Peindre le masque'),
+              ),
+              const SizedBox(height: 6),
+              PushButton(
+                key: Key('env-area-mask-erase-${area.id}'),
+                controlSize: ControlSize.small,
+                onPressed: () => notifier.startEnvironmentAreaMaskErase(
+                  environmentLayerId: layerId,
+                  areaId: area.id,
+                ),
+                child: const Text('Effacer du masque'),
+              ),
+              const SizedBox(height: 6),
+              PushButton(
+                key: Key('env-area-mask-stop-${area.id}'),
+                controlSize: ControlSize.small,
+                secondary: true,
+                onPressed: isThisAreaActiveForMask && maskMode != null
+                    ? notifier.stopEnvironmentAreaMaskEditing
+                    : null,
+                child: const Text('Arrêter l’édition'),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                generateReason ?? _kGenerateHelp,
+                key: Key('env-area-generate-hint-${area.id}'),
+                style: TextStyle(
+                  color: subtleColor,
+                  fontSize: 10.5,
+                  height: 1.25,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 6),
+              PushButton(
+                key: Key('env-area-generate-${area.id}'),
+                controlSize: ControlSize.regular,
+                onPressed: generateEnabled
+                    ? () => notifier.generateEnvironmentAreaPlacements(
+                          environmentLayerId: layerId,
+                          areaId: area.id,
+                        )
+                    : null,
+                child: const Text('Générer dans la map'),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                hasGeneratedPlacements
+                    ? _kClearHelp
+                    : 'Aucun placement généré à effacer.',
+                key: Key('env-area-clear-hint-${area.id}'),
+                style: TextStyle(
+                  color: subtleColor,
+                  fontSize: 10.5,
+                  height: 1.25,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 6),
+              PushButton(
+                key: Key('env-area-clear-${area.id}'),
+                controlSize: ControlSize.regular,
+                secondary: true,
+                onPressed: hasGeneratedPlacements
+                    ? () => notifier.clearEnvironmentGeneratedPlacements(
+                          environmentLayerId: layerId,
+                          areaId: area.id,
+                        )
+                    : null,
+                child: const Text('Effacer les placements générés'),
+              ),
+              const SizedBox(height: 10),
+              PushButton(
+                key: Key('env-area-change-preset-${area.id}'),
+                controlSize: ControlSize.small,
+                onPressed: manifestPresets.isEmpty
+                    ? null
+                    : () => _pickPresetForArea(
+                          context,
+                          notifier,
+                          manifestPresets,
+                        ),
+                child: const Text('Changer de preset'),
+              ),
+              const SizedBox(height: 6),
+              PushButton(
+                key: Key('env-area-remove-${area.id}'),
+                controlSize: ControlSize.small,
+                secondary: true,
+                onPressed: () => notifier.removeEnvironmentArea(
+                  environmentLayerId: layerId,
+                  areaId: area.id,
+                ),
+                child: const Text('Retirer'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickPresetForArea(
+    BuildContext context,
+    EditorNotifier notifier,
+    List<EnvironmentPreset> presets,
+  ) async {
+    final picked = await showCupertinoListPicker<EnvironmentPreset>(
+      context: context,
+      title: 'Nouveau preset',
+      items: presets,
+      labelOf: (p) => '${p.name} — ${p.id}',
+    );
+    if (picked == null) return;
+    notifier.setEnvironmentAreaPreset(
+      environmentLayerId: layerId,
+      areaId: area.id,
+      presetId: picked.id,
+    );
+  }
+}
+```
+
+### 20.4 `editor_notifier.dart` (fichier complet — 7042 lignes)
+
+```dart
 import 'dart:convert';
 import 'dart:io';
 
@@ -7039,3 +8935,1241 @@ class _ActivePathLayerContext {
   final String layerId;
   final PathLayer layer;
 }
+```
+
+## 21. Diff complet
+
+### 21.1 Fichiers trackés modifiés
+
+```diff
+diff --git a/packages/map_editor/lib/src/features/editor/state/editor_notifier.dart b/packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
+index 08aa3591..8778e334 100644
+--- a/packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
++++ b/packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
+@@ -14,6 +14,7 @@ import '../../../app/providers/editor_workspace_providers.dart';
+ import '../../../app/providers/use_case_providers.dart';
+ import '../../../application/errors/application_errors.dart';
+ import '../../../application/use_cases/environment_generator_apply_use_cases.dart';
++import '../../../application/use_cases/environment_generator_clear_use_cases.dart';
+ import '../../../application/use_cases/environment_generator_use_cases.dart';
+ import '../../../application/use_cases/environment_mask_use_cases.dart';
+ import '../../../application/use_cases/layer_use_cases.dart';
+@@ -4951,6 +4952,80 @@ class EditorNotifier extends _$EditorNotifier {
+     return issue.message;
+   }
+ 
++  /// Lot Environment-26 : retire les [MapPlacedElement] listés dans
++  /// [EnvironmentArea.generatedPlacementIds] puis vide cette liste.
++  void clearEnvironmentGeneratedPlacements({
++    required String environmentLayerId,
++    required String areaId,
++  }) {
++    final map = state.activeMap;
++    final envId = environmentLayerId.trim();
++    final aid = areaId.trim();
++    if (map == null) {
++      state = state.copyWith(
++        errorMessage: 'Impossible d’effacer : aucune carte active.',
++      );
++      return;
++    }
++    final selectionBefore = state.selectedPlacedElementInstanceId?.trim();
++    final result = ClearEnvironmentGeneratedPlacementsUseCase().execute(
++      map,
++      environmentLayerId: envId,
++      areaId: aid,
++    );
++    if (result.hasErrors) {
++      final first = result.issues.firstWhere(
++        (i) => i.severity == EnvironmentClearIssueSeverity.error,
++        orElse: () => result.issues.first,
++      );
++      state = state.copyWith(
++        errorMessage:
++            'Impossible d’effacer les placements générés : ${first.message}',
++      );
++      return;
++    }
++    if (result
++        .issuesForKind(EnvironmentClearIssueKind.noGeneratedPlacements)
++        .isNotEmpty) {
++      state = state.copyWith(
++        errorMessage: null,
++        statusMessage: 'Aucun placement généré à effacer pour cette zone.',
++      );
++      return;
++    }
++
++    final removedIds =
++        result.clearedPlacements.map((c) => c.placedElementId).toSet();
++    final clearSelection = selectionBefore != null &&
++        selectionBefore.isNotEmpty &&
++        removedIds.contains(selectionBefore);
++
++    _applyMapMutation(
++      previousMap: map,
++      updatedMap: result.map,
++      preferredActiveLayerId: envId,
++      statusMessage: _clearGeneratedPlacementsStatusMessage(result, aid),
++    );
++    if (clearSelection) {
++      state = state.copyWith(selectedPlacedElementInstanceId: null);
++    }
++  }
++
++  String _clearGeneratedPlacementsStatusMessage(
++    EnvironmentClearResult result,
++    String areaId,
++  ) {
++    final n = result.clearedPlacementCount;
++    final missing = result
++        .issuesForKind(EnvironmentClearIssueKind.missingGeneratedPlacement)
++        .length;
++    if (missing > 0) {
++      return '$n placement(s) effacé(s), $missing référence(s) introuvable(s) '
++          'nettoyée(s).';
++    }
++    return '$n placement(s) généré(s) effacé(s) pour la zone « $areaId ».';
++  }
++
+   /// Lot Environment-22 : applique paint ou erase selon [environmentMaskEditMode].
+   void paintEnvironmentAreaMaskAt(
+     GridPos pos, {
+diff --git a/packages/map_editor/lib/src/ui/panels/environment_layer_inspector_panel.dart b/packages/map_editor/lib/src/ui/panels/environment_layer_inspector_panel.dart
+index ff1cc2c9..188aef25 100644
+--- a/packages/map_editor/lib/src/ui/panels/environment_layer_inspector_panel.dart
++++ b/packages/map_editor/lib/src/ui/panels/environment_layer_inspector_panel.dart
+@@ -320,6 +320,10 @@ const _kGenerateHelp =
+     'Crée des placements dans le TileLayer cible en utilisant le preset et le '
+     'masque de cette zone.';
+ 
++const _kClearHelp =
++    'Supprime uniquement les placements listés pour cette zone (pas le masque, '
++    'pas les placements posés manuellement ailleurs).';
++
+ class _EnvironmentAreaCard extends ConsumerWidget {
+   const _EnvironmentAreaCard({
+     required this.area,
+@@ -377,6 +381,7 @@ class _EnvironmentAreaCard extends ConsumerWidget {
+     final preset = _presetForArea();
+     final generateReason = _generateDisabledReason(preset);
+     final generateEnabled = generateReason == null;
++    final hasGeneratedPlacements = area.generatedPlacementIds.isNotEmpty;
+     final totalCells = area.mask.width * area.mask.height;
+     final activeCount = area.mask.activeCellCount;
+     final maskLabel = activeCount == 0
+@@ -549,6 +554,32 @@ class _EnvironmentAreaCard extends ConsumerWidget {
+                 child: const Text('Générer dans la map'),
+               ),
+               const SizedBox(height: 10),
++              Text(
++                hasGeneratedPlacements
++                    ? _kClearHelp
++                    : 'Aucun placement généré à effacer.',
++                key: Key('env-area-clear-hint-${area.id}'),
++                style: TextStyle(
++                  color: subtleColor,
++                  fontSize: 10.5,
++                  height: 1.25,
++                  fontWeight: FontWeight.w600,
++                ),
++              ),
++              const SizedBox(height: 6),
++              PushButton(
++                key: Key('env-area-clear-${area.id}'),
++                controlSize: ControlSize.regular,
++                secondary: true,
++                onPressed: hasGeneratedPlacements
++                    ? () => notifier.clearEnvironmentGeneratedPlacements(
++                          environmentLayerId: layerId,
++                          areaId: area.id,
++                        )
++                    : null,
++                child: const Text('Effacer les placements générés'),
++              ),
++              const SizedBox(height: 10),
+               PushButton(
+                 key: Key('env-area-change-preset-${area.id}'),
+                 controlSize: ControlSize.small,
+```
+
+### 21.2 Nouveau use case
+
+```diff
+diff --git a/packages/map_editor/lib/src/application/use_cases/environment_generator_clear_use_cases.dart b/packages/map_editor/lib/src/application/use_cases/environment_generator_clear_use_cases.dart
+new file mode 100644
+index 00000000..5f8f4936
+--- /dev/null
++++ b/packages/map_editor/lib/src/application/use_cases/environment_generator_clear_use_cases.dart
+@@ -0,0 +1,358 @@
++import 'package:map_core/map_core.dart';
++
++// ---------------------------------------------------------------------------
++// Lot Environment-26 — suppression des placements générés d’une EnvironmentArea.
++// Pur Dart, pas de Flutter / I/O ; pas de mutation si erreur bloquante.
++// ---------------------------------------------------------------------------
++
++/// Enregistrement d’un [MapPlacedElement] retiré par Clear.
++final class EnvironmentClearedGeneratedPlacement {
++  const EnvironmentClearedGeneratedPlacement({
++    required this.placedElementId,
++    required this.elementId,
++    required this.layerId,
++    required this.pos,
++  });
++
++  final String placedElementId;
++  final String elementId;
++  final String layerId;
++  final GridPos pos;
++
++  @override
++  bool operator ==(Object other) {
++    return identical(this, other) ||
++        other is EnvironmentClearedGeneratedPlacement &&
++            placedElementId == other.placedElementId &&
++            elementId == other.elementId &&
++            layerId == other.layerId &&
++            pos == other.pos;
++  }
++
++  @override
++  int get hashCode => Object.hash(placedElementId, elementId, layerId, pos);
++}
++
++enum EnvironmentClearIssueSeverity {
++  error,
++  warning,
++}
++
++enum EnvironmentClearIssueKind {
++  environmentLayerNotFound,
++  layerIsNotEnvironmentLayer,
++  areaNotFound,
++  noGeneratedPlacements,
++  missingGeneratedPlacement,
++  mapValidationFailed,
++}
++
++final class EnvironmentClearIssue {
++  const EnvironmentClearIssue({
++    required this.severity,
++    required this.kind,
++    required this.message,
++    this.environmentLayerId,
++    this.areaId,
++    this.placedElementId,
++  });
++
++  final EnvironmentClearIssueSeverity severity;
++  final EnvironmentClearIssueKind kind;
++  final String message;
++  final String? environmentLayerId;
++  final String? areaId;
++  final String? placedElementId;
++
++  @override
++  bool operator ==(Object other) {
++    return identical(this, other) ||
++        other is EnvironmentClearIssue &&
++            severity == other.severity &&
++            kind == other.kind &&
++            message == other.message &&
++            environmentLayerId == other.environmentLayerId &&
++            areaId == other.areaId &&
++            placedElementId == other.placedElementId;
++  }
++
++  @override
++  int get hashCode => Object.hash(
++        severity,
++        kind,
++        message,
++        environmentLayerId,
++        areaId,
++        placedElementId,
++      );
++}
++
++final class EnvironmentClearResult {
++  factory EnvironmentClearResult({
++    required MapData map,
++    required List<EnvironmentClearedGeneratedPlacement> clearedPlacements,
++    required List<EnvironmentClearIssue> issues,
++  }) {
++    return EnvironmentClearResult._(
++      map: map,
++      clearedPlacements:
++          List<EnvironmentClearedGeneratedPlacement>.unmodifiable(
++        List<EnvironmentClearedGeneratedPlacement>.from(clearedPlacements),
++      ),
++      issues: List<EnvironmentClearIssue>.unmodifiable(
++        List<EnvironmentClearIssue>.from(issues),
++      ),
++    );
++  }
++
++  const EnvironmentClearResult._({
++    required this.map,
++    required this.clearedPlacements,
++    required this.issues,
++  });
++
++  final MapData map;
++  final List<EnvironmentClearedGeneratedPlacement> clearedPlacements;
++  final List<EnvironmentClearIssue> issues;
++
++  bool get hasErrors =>
++      issues.any((i) => i.severity == EnvironmentClearIssueSeverity.error);
++
++  bool get hasWarnings =>
++      issues.any((i) => i.severity == EnvironmentClearIssueSeverity.warning);
++
++  int get errorCount => issues
++      .where((i) => i.severity == EnvironmentClearIssueSeverity.error)
++      .length;
++
++  int get warningCount => issues
++      .where((i) => i.severity == EnvironmentClearIssueSeverity.warning)
++      .length;
++
++  int get clearedPlacementCount => clearedPlacements.length;
++
++  List<EnvironmentClearIssue> issuesForKind(EnvironmentClearIssueKind kind) {
++    return List<EnvironmentClearIssue>.unmodifiable(
++      issues.where((i) => i.kind == kind).toList(growable: false),
++    );
++  }
++
++  @override
++  bool operator ==(Object other) {
++    if (identical(this, other)) return true;
++    return other is EnvironmentClearResult &&
++        map == other.map &&
++        clearedPlacementCount == other.clearedPlacementCount &&
++        _listEqualsCleared(clearedPlacements, other.clearedPlacements) &&
++        _listEqualsClearIssues(issues, other.issues);
++  }
++
++  @override
++  int get hashCode => Object.hash(
++        map,
++        clearedPlacementCount,
++        Object.hashAll(clearedPlacements),
++        Object.hashAll(issues),
++      );
++}
++
++bool _listEqualsCleared(
++  List<EnvironmentClearedGeneratedPlacement> a,
++  List<EnvironmentClearedGeneratedPlacement> b,
++) {
++  if (a.length != b.length) return false;
++  for (var i = 0; i < a.length; i++) {
++    if (a[i] != b[i]) return false;
++  }
++  return true;
++}
++
++bool _listEqualsClearIssues(
++  List<EnvironmentClearIssue> a,
++  List<EnvironmentClearIssue> b,
++) {
++  if (a.length != b.length) return false;
++  for (var i = 0; i < a.length; i++) {
++    if (a[i] != b[i]) return false;
++  }
++  return true;
++}
++
++EnvironmentClearResult _failure(
++  MapData original, {
++  required List<EnvironmentClearIssue> issues,
++}) {
++  return EnvironmentClearResult(
++    map: original,
++    clearedPlacements: const [],
++    issues: issues,
++  );
++}
++
++/// Retire les [MapPlacedElement] dont l’id est listé dans
++/// [EnvironmentArea.generatedPlacementIds], puis vide cette liste.
++///
++/// Tolérant aux ids manquants (warning, nettoyage quand même).
++/// Aucune suppression hors de la liste de l’area.
++class ClearEnvironmentGeneratedPlacementsUseCase {
++  EnvironmentClearResult execute(
++    MapData map, {
++    required String environmentLayerId,
++    required String areaId,
++  }) {
++    final issues = <EnvironmentClearIssue>[];
++    final envId = environmentLayerId.trim();
++    final aid = areaId.trim();
++
++    EnvironmentLayer? envLayer;
++    for (final layer in map.layers) {
++      if (layer.id == envId) {
++        if (layer is EnvironmentLayer) {
++          envLayer = layer;
++        } else {
++          issues.add(
++            EnvironmentClearIssue(
++              severity: EnvironmentClearIssueSeverity.error,
++              kind: EnvironmentClearIssueKind.layerIsNotEnvironmentLayer,
++              message: 'Layer is not an environment layer: $envId',
++              environmentLayerId: envId,
++            ),
++          );
++          return _failure(map, issues: issues);
++        }
++        break;
++      }
++    }
++    if (envLayer == null) {
++      issues.add(
++        EnvironmentClearIssue(
++          severity: EnvironmentClearIssueSeverity.error,
++          kind: EnvironmentClearIssueKind.environmentLayerNotFound,
++          message: 'Environment layer not found: $envId',
++          environmentLayerId: envId,
++        ),
++      );
++      return _failure(map, issues: issues);
++    }
++
++    EnvironmentArea? area;
++    for (final a in envLayer.content.areas) {
++      if (a.id == aid) {
++        area = a;
++        break;
++      }
++    }
++    if (area == null) {
++      issues.add(
++        EnvironmentClearIssue(
++          severity: EnvironmentClearIssueSeverity.error,
++          kind: EnvironmentClearIssueKind.areaNotFound,
++          message: 'Environment area not found: $aid',
++          environmentLayerId: envId,
++          areaId: aid,
++        ),
++      );
++      return _failure(map, issues: issues);
++    }
++
++    final ids = area.generatedPlacementIds;
++    if (ids.isEmpty) {
++      issues.add(
++        const EnvironmentClearIssue(
++          severity: EnvironmentClearIssueSeverity.warning,
++          kind: EnvironmentClearIssueKind.noGeneratedPlacements,
++          message: 'Cette zone n’a aucun placement généré référencé.',
++        ),
++      );
++      return EnvironmentClearResult(
++        map: map,
++        clearedPlacements: const [],
++        issues: issues,
++      );
++    }
++
++    final idSet = ids.toSet();
++    final placedById = <String, MapPlacedElement>{
++      for (final p in map.placedElements) p.id: p,
++    };
++
++    final cleared = <EnvironmentClearedGeneratedPlacement>[];
++    for (final pid in ids) {
++      final placed = placedById[pid];
++      if (placed == null) {
++        issues.add(
++          EnvironmentClearIssue(
++            severity: EnvironmentClearIssueSeverity.warning,
++            kind: EnvironmentClearIssueKind.missingGeneratedPlacement,
++            message: 'Placement généré absent de la carte : $pid',
++            environmentLayerId: envId,
++            areaId: aid,
++            placedElementId: pid,
++          ),
++        );
++      } else {
++        cleared.add(
++          EnvironmentClearedGeneratedPlacement(
++            placedElementId: placed.id,
++            elementId: placed.elementId,
++            layerId: placed.layerId,
++            pos: placed.pos,
++          ),
++        );
++      }
++    }
++
++    final newPlaced = <MapPlacedElement>[
++      for (final p in map.placedElements)
++        if (!idSet.contains(p.id)) p,
++    ];
++
++    final newAreas = <EnvironmentArea>[
++      for (final a in envLayer.content.areas)
++        if (a.id == aid)
++          EnvironmentArea(
++            id: a.id,
++            name: a.name,
++            presetId: a.presetId,
++            mask: a.mask,
++            seed: a.seed,
++            paramsOverride: a.paramsOverride,
++            generatedPlacementIds: const [],
++          )
++        else
++          a,
++    ];
++
++    final newContent = EnvironmentLayerContent(
++      targetTileLayerId: envLayer.content.targetTileLayerId,
++      areas: newAreas,
++    );
++
++    MapData updated;
++    try {
++      updated = setEnvironmentLayerContent(
++        map,
++        layerId: envId,
++        content: newContent,
++      ).copyWith(placedElements: newPlaced);
++      MapValidator.validate(updated);
++    } catch (e) {
++      issues.add(
++        EnvironmentClearIssue(
++          severity: EnvironmentClearIssueSeverity.error,
++          kind: EnvironmentClearIssueKind.mapValidationFailed,
++          message: 'MapValidator.validate failed: $e',
++          environmentLayerId: envId,
++          areaId: aid,
++        ),
++      );
++      return _failure(map, issues: issues);
++    }
++
++    return EnvironmentClearResult(
++      map: updated,
++      clearedPlacements: cleared,
++      issues: issues,
++    );
++  }
++}
+```
+
+### 21.3 Nouveau test
+
+```diff
+diff --git a/packages/map_editor/test/environment_studio/environment_generated_placements_clear_test.dart b/packages/map_editor/test/environment_studio/environment_generated_placements_clear_test.dart
+new file mode 100644
+index 00000000..ea95f16b
+--- /dev/null
++++ b/packages/map_editor/test/environment_studio/environment_generated_placements_clear_test.dart
+@@ -0,0 +1,663 @@
++// ignore_for_file: prefer_const_constructors — fixtures MapData lisibles
++
++import 'package:flutter/cupertino.dart';
++import 'package:flutter/material.dart';
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:macos_ui/macos_ui.dart';
++import 'package:map_core/map_core.dart';
++import 'package:map_editor/src/application/use_cases/environment_generator_clear_use_cases.dart';
++import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
++import 'package:map_editor/src/features/editor/state/editor_state.dart';
++import 'package:map_editor/src/ui/panels/environment_layer_inspector_panel.dart';
++import 'package:map_editor/src/ui/panels/map_inspector_panel.dart';
++
++import '../shell_chrome_test_harness.dart';
++
++ProjectManifest _minimalEnvManifest() {
++  return buildShellChromeProject(
++    environmentPresets: [
++      EnvironmentPreset(
++        id: 'p1',
++        name: 'P',
++        templateId: 't',
++        palette: [
++          EnvironmentPaletteItem(elementId: 'e1', weight: 1),
++        ],
++        defaultParams: EnvironmentGenerationParams.standard(),
++        sortOrder: 0,
++      ),
++    ],
++  );
++}
++
++EnvironmentArea _area({
++  required String id,
++  required String presetId,
++  List<String>? generatedPlacementIds,
++  List<bool>? cells,
++  int w = 2,
++  int h = 2,
++}) {
++  final c = cells ?? List<bool>.filled(w * h, true);
++  return EnvironmentArea(
++    id: id,
++    name: 'Z',
++    presetId: presetId,
++    mask: EnvironmentAreaMask(width: w, height: h, cells: c),
++    seed: 1,
++    generatedPlacementIds: generatedPlacementIds,
++  );
++}
++
++void main() {
++  group('ClearEnvironmentGeneratedPlacementsUseCase — modèles', () {
++    test('EnvironmentClearResult copie défensivement et listes immuables', () {
++      final m = MapData(
++        id: 'm',
++        name: 'M',
++        size: const GridSize(width: 1, height: 1),
++        layers: [
++          TileLayer(id: 't', name: 'T', tiles: const [0]),
++        ],
++      );
++      final rawCleared = <EnvironmentClearedGeneratedPlacement>[
++        const EnvironmentClearedGeneratedPlacement(
++          placedElementId: 'p1',
++          elementId: 'e1',
++          layerId: 't',
++          pos: GridPos(x: 0, y: 0),
++        ),
++      ];
++      final rawIssues = <EnvironmentClearIssue>[
++        const EnvironmentClearIssue(
++          severity: EnvironmentClearIssueSeverity.warning,
++          kind: EnvironmentClearIssueKind.noGeneratedPlacements,
++          message: 'x',
++        ),
++      ];
++      final r = EnvironmentClearResult(
++        map: m,
++        clearedPlacements: rawCleared,
++        issues: rawIssues,
++      );
++      rawCleared.clear();
++      rawIssues.clear();
++      expect(r.clearedPlacementCount, 1);
++      expect(r.warningCount, 1);
++      expect(() => r.clearedPlacements.clear(), throwsUnsupportedError);
++      expect(() => r.issues.clear(), throwsUnsupportedError);
++      expect(
++        r.issuesForKind(EnvironmentClearIssueKind.noGeneratedPlacements).length,
++        1,
++      );
++    });
++
++    test('EnvironmentClearedGeneratedPlacement et EnvironmentClearIssue', () {
++      const a = EnvironmentClearedGeneratedPlacement(
++        placedElementId: 'p',
++        elementId: 'e',
++        layerId: 'l',
++        pos: GridPos(x: 1, y: 2),
++      );
++      const b = EnvironmentClearedGeneratedPlacement(
++        placedElementId: 'p',
++        elementId: 'e',
++        layerId: 'l',
++        pos: GridPos(x: 1, y: 2),
++      );
++      expect(a, b);
++      expect(a.hashCode, b.hashCode);
++
++      const i1 = EnvironmentClearIssue(
++        severity: EnvironmentClearIssueSeverity.error,
++        kind: EnvironmentClearIssueKind.areaNotFound,
++        message: 'm',
++        placedElementId: 'p',
++      );
++      const i2 = EnvironmentClearIssue(
++        severity: EnvironmentClearIssueSeverity.error,
++        kind: EnvironmentClearIssueKind.areaNotFound,
++        message: 'm',
++        placedElementId: 'p',
++      );
++      expect(i1, i2);
++    });
++  });
++
++  group('ClearEnvironmentGeneratedPlacementsUseCase', () {
++    test(
++        'clear heureux : ids supprimés, manuel conservé, masque et cible préservés',
++        () {
++      final area = _area(
++        id: 'a1',
++        presetId: 'p1',
++        generatedPlacementIds: const ['g1', 'g2'],
++      );
++      final env = MapLayer.environment(
++        id: 'env',
++        name: 'E',
++        content: EnvironmentLayerContent(
++          targetTileLayerId: 'tiles',
++          areas: [area],
++        ),
++      );
++      final tile = TileLayer(
++        id: 'tiles',
++        name: 'T',
++        tiles: List<int>.filled(4, 5),
++      );
++      final map = MapData(
++        id: 'm',
++        name: 'M',
++        size: const GridSize(width: 2, height: 2),
++        layers: [env, tile],
++        placedElements: [
++          const MapPlacedElement(
++            id: 'g1',
++            layerId: 'tiles',
++            elementId: 'e1',
++            pos: GridPos(x: 0, y: 0),
++          ),
++          const MapPlacedElement(
++            id: 'g2',
++            layerId: 'tiles',
++            elementId: 'e1',
++            pos: GridPos(x: 1, y: 0),
++          ),
++          const MapPlacedElement(
++            id: 'manual',
++            layerId: 'tiles',
++            elementId: 'e1',
++            pos: GridPos(x: 0, y: 1),
++          ),
++        ],
++      );
++      final uc = ClearEnvironmentGeneratedPlacementsUseCase();
++      final r = uc.execute(
++        map,
++        environmentLayerId: 'env',
++        areaId: 'a1',
++      );
++      expect(r.hasErrors, isFalse);
++      expect(r.clearedPlacementCount, 2);
++      expect(r.map.placedElements.map((e) => e.id).toList(), ['manual']);
++      final outArea =
++          (r.map.layers.first as EnvironmentLayer).content.areas.single;
++      expect(outArea.generatedPlacementIds, isEmpty);
++      expect(outArea.presetId, 'p1');
++      expect(outArea.mask, area.mask);
++      expect(
++        (r.map.layers[1] as TileLayer).tiles,
++        (map.layers[1] as TileLayer).tiles,
++      );
++    });
++
++    test('deux areas : clear A ne touche pas B', () {
++      final a = _area(
++        id: 'A',
++        presetId: 'p1',
++        generatedPlacementIds: const ['a_only'],
++      );
++      final b = _area(
++        id: 'B',
++        presetId: 'p1',
++        generatedPlacementIds: const ['b_only'],
++      );
++      final env = MapLayer.environment(
++        id: 'env',
++        name: 'E',
++        content: EnvironmentLayerContent(
++          targetTileLayerId: 'tiles',
++          areas: [a, b],
++        ),
++      );
++      final tile = TileLayer(
++        id: 'tiles',
++        name: 'T',
++        tiles: List<int>.filled(4, 0),
++      );
++      final map = MapData(
++        id: 'm',
++        name: 'M',
++        size: const GridSize(width: 2, height: 2),
++        layers: [env, tile],
++        placedElements: const [
++          MapPlacedElement(
++            id: 'a_only',
++            layerId: 'tiles',
++            elementId: 'e1',
++            pos: GridPos(x: 0, y: 0),
++          ),
++          MapPlacedElement(
++            id: 'b_only',
++            layerId: 'tiles',
++            elementId: 'e1',
++            pos: GridPos(x: 1, y: 0),
++          ),
++        ],
++      );
++      final r = ClearEnvironmentGeneratedPlacementsUseCase().execute(
++        map,
++        environmentLayerId: 'env',
++        areaId: 'A',
++      );
++      expect(r.hasErrors, isFalse);
++      expect(r.map.placedElements.single.id, 'b_only');
++      final areas = (r.map.layers.first as EnvironmentLayer).content.areas;
++      expect(
++          areas.firstWhere((x) => x.id == 'A').generatedPlacementIds, isEmpty);
++      expect(
++        areas.firstWhere((x) => x.id == 'B').generatedPlacementIds,
++        const ['b_only'],
++      );
++    });
++
++    test('ids manquants : warning, liste vidée, existant supprimé', () {
++      final area = _area(
++        id: 'a1',
++        presetId: 'p1',
++        generatedPlacementIds: const ['ok', 'ghost'],
++      );
++      final env = MapLayer.environment(
++        id: 'env',
++        name: 'E',
++        content: EnvironmentLayerContent(
++          targetTileLayerId: 'tiles',
++          areas: [area],
++        ),
++      );
++      final tile = TileLayer(
++        id: 'tiles',
++        name: 'T',
++        tiles: List<int>.filled(4, 0),
++      );
++      final map = MapData(
++        id: 'm',
++        name: 'M',
++        size: const GridSize(width: 2, height: 2),
++        layers: [env, tile],
++        placedElements: const [
++          MapPlacedElement(
++            id: 'ok',
++            layerId: 'tiles',
++            elementId: 'e1',
++            pos: GridPos(x: 0, y: 0),
++          ),
++        ],
++      );
++      final r = ClearEnvironmentGeneratedPlacementsUseCase().execute(
++        map,
++        environmentLayerId: 'env',
++        areaId: 'a1',
++      );
++      expect(r.hasErrors, isFalse);
++      expect(r.hasWarnings, isTrue);
++      expect(
++        r.issuesForKind(EnvironmentClearIssueKind.missingGeneratedPlacement),
++        isNotEmpty,
++      );
++      expect(r.map.placedElements, isEmpty);
++      expect(
++        (r.map.layers.first as EnvironmentLayer)
++            .content
++            .areas
++            .single
++            .generatedPlacementIds,
++        isEmpty,
++      );
++    });
++
++    test('generatedPlacementIds vide : map inchangée, warning', () {
++      final area = _area(id: 'a1', presetId: 'p1');
++      final env = MapLayer.environment(
++        id: 'env',
++        name: 'E',
++        content: EnvironmentLayerContent(
++          targetTileLayerId: 'tiles',
++          areas: [area],
++        ),
++      );
++      final tile = TileLayer(
++        id: 'tiles',
++        name: 'T',
++        tiles: List<int>.filled(4, 0),
++      );
++      final map = MapData(
++        id: 'm',
++        name: 'M',
++        size: const GridSize(width: 2, height: 2),
++        layers: [env, tile],
++      );
++      final r = ClearEnvironmentGeneratedPlacementsUseCase().execute(
++        map,
++        environmentLayerId: 'env',
++        areaId: 'a1',
++      );
++      expect(identical(r.map, map), isTrue);
++      expect(r.clearedPlacementCount, 0);
++      expect(
++        r.issuesForKind(EnvironmentClearIssueKind.noGeneratedPlacements),
++        isNotEmpty,
++      );
++    });
++
++    test('erreurs bloquantes : layer / area inconnus', () {
++      final area = _area(
++        id: 'a1',
++        presetId: 'p1',
++        generatedPlacementIds: const ['x'],
++      );
++      final env = MapLayer.environment(
++        id: 'env',
++        name: 'E',
++        content: EnvironmentLayerContent(areas: [area]),
++      );
++      final map = MapData(
++        id: 'm',
++        name: 'M',
++        size: const GridSize(width: 2, height: 2),
++        layers: [env],
++      );
++      final uc = ClearEnvironmentGeneratedPlacementsUseCase();
++      final r1 = uc.execute(map, environmentLayerId: 'missing', areaId: 'a1');
++      expect(r1.hasErrors, isTrue);
++      expect(identical(r1.map, map), isTrue);
++
++      final tileMap = MapData(
++        id: 'm2',
++        name: 'M',
++        size: const GridSize(width: 2, height: 2),
++        layers: [
++          const MapLayer.tile(id: 'env', name: 'E', tiles: [0, 0, 0, 0]),
++        ],
++      );
++      final r2 = uc.execute(tileMap, environmentLayerId: 'env', areaId: 'a1');
++      expect(r2.hasErrors, isTrue);
++
++      final r3 = uc.execute(map, environmentLayerId: 'env', areaId: 'ghost');
++      expect(r3.hasErrors, isTrue);
++      expect(
++        r3.issuesForKind(EnvironmentClearIssueKind.areaNotFound),
++        isNotEmpty,
++      );
++    });
++  });
++
++  group('EditorNotifier.clearEnvironmentGeneratedPlacements', () {
++    test('succès : dirty, sélection placé nettoyée, status effacé', () {
++      final area = _area(
++        id: 'a1',
++        presetId: 'p1',
++        generatedPlacementIds: const ['g1'],
++      );
++      final env = MapLayer.environment(
++        id: 'env',
++        name: 'E',
++        content: EnvironmentLayerContent(
++          targetTileLayerId: 'tiles',
++          areas: [area],
++        ),
++      );
++      final tile = TileLayer(
++        id: 'tiles',
++        name: 'T',
++        tiles: List<int>.filled(4, 0),
++      );
++      final map = MapData(
++        id: 'm',
++        name: 'M',
++        size: const GridSize(width: 2, height: 2),
++        layers: [env, tile],
++        placedElements: const [
++          MapPlacedElement(
++            id: 'g1',
++            layerId: 'tiles',
++            elementId: 'e1',
++            pos: GridPos(x: 0, y: 0),
++          ),
++        ],
++      );
++      final container = ProviderContainer();
++      addTearDown(container.dispose);
++      container.read(editorNotifierProvider.notifier).state = EditorState(
++        projectRootPath: '/r',
++        project: buildShellChromeProject(),
++        activeMap: map,
++        activeMapPath: 'maps/x.json',
++        activeLayerId: 'env',
++        selectedEnvironmentAreaId: 'a1',
++        selectedPlacedElementInstanceId: 'g1',
++        savedMapSnapshot: map,
++      );
++      container
++          .read(editorNotifierProvider.notifier)
++          .clearEnvironmentGeneratedPlacements(
++            environmentLayerId: 'env',
++            areaId: 'a1',
++          );
++      final s = container.read(editorNotifierProvider);
++      expect(s.isDirty, isTrue);
++      expect(s.activeLayerId, 'env');
++      expect(s.selectedEnvironmentAreaId, 'a1');
++      expect(s.selectedPlacedElementInstanceId, isNull);
++      expect(s.statusMessage, contains('effacé'));
++      expect(s.activeMap!.placedElements, isEmpty);
++    });
++
++    test('no-op ids vides : map inchangée, isDirty inchangé', () {
++      final area = _area(id: 'a1', presetId: 'p1');
++      final env = MapLayer.environment(
++        id: 'env',
++        name: 'E',
++        content: EnvironmentLayerContent(
++          targetTileLayerId: 'tiles',
++          areas: [area],
++        ),
++      );
++      final tile = TileLayer(
++        id: 'tiles',
++        name: 'T',
++        tiles: List<int>.filled(4, 0),
++      );
++      final map = MapData(
++        id: 'm',
++        name: 'M',
++        size: const GridSize(width: 2, height: 2),
++        layers: [env, tile],
++      );
++      final container = ProviderContainer();
++      addTearDown(container.dispose);
++      container.read(editorNotifierProvider.notifier).state = EditorState(
++        projectRootPath: '/r',
++        project: buildShellChromeProject(),
++        activeMap: map,
++        activeMapPath: 'maps/x.json',
++        activeLayerId: 'env',
++        isDirty: false,
++        savedMapSnapshot: map,
++      );
++      final before = container.read(editorNotifierProvider).activeMap!;
++      container
++          .read(editorNotifierProvider.notifier)
++          .clearEnvironmentGeneratedPlacements(
++            environmentLayerId: 'env',
++            areaId: 'a1',
++          );
++      final s = container.read(editorNotifierProvider);
++      expect(identical(s.activeMap, before), isTrue);
++      expect(s.isDirty, isFalse);
++      expect(s.statusMessage, contains('Aucun placement'));
++    });
++  });
++
++  group('EnvironmentLayerInspectorPanel — Clear', () {
++    testWidgets('sans placements générés : bouton disabled + texte', (
++      tester,
++    ) async {
++      final area = _area(id: 'a1', presetId: 'p1');
++      final envLayer = MapLayer.environment(
++        id: 'env',
++        name: 'E',
++        content: EnvironmentLayerContent(
++          targetTileLayerId: 'tiles',
++          areas: [area],
++        ),
++      );
++      final tile = TileLayer(
++        id: 'tiles',
++        name: 'T',
++        tiles: List<int>.filled(4, 0),
++      );
++      final map = MapData(
++        id: 'm',
++        name: 'M',
++        size: const GridSize(width: 2, height: 2),
++        layers: [envLayer, tile],
++      );
++      final container = ProviderContainer();
++      addTearDown(container.dispose);
++      container.read(editorNotifierProvider.notifier).state = EditorState(
++        projectRootPath: '/r',
++        project: _minimalEnvManifest(),
++        activeMap: map,
++        activeMapPath: 'maps/x.json',
++        activeLayerId: 'env',
++      );
++      await tester.binding.setSurfaceSize(const Size(480, 900));
++      addTearDown(() => tester.binding.setSurfaceSize(null));
++      await tester.pumpWidget(
++        UncontrolledProviderScope(
++          container: container,
++          child: MacosTheme(
++            data: MacosThemeData.light(),
++            child: MaterialApp(
++              home: CupertinoPageScaffold(
++                child: EnvironmentLayerInspectorPanel(
++                  map: map,
++                  layer: envLayer as EnvironmentLayer,
++                ),
++              ),
++            ),
++          ),
++        ),
++      );
++      await tester.pumpAndSettle();
++      expect(find.text('Aucun placement généré à effacer.'), findsWidgets);
++      expect(
++        tester
++            .widget<PushButton>(find.byKey(const Key('env-area-clear-a1')))
++            .onPressed,
++        isNull,
++      );
++    });
++
++    testWidgets('clear puis generate disponible', (tester) async {
++      final area = _area(
++        id: 'a1',
++        presetId: 'p1',
++        generatedPlacementIds: const ['g1'],
++      );
++      final envLayer = MapLayer.environment(
++        id: 'env',
++        name: 'E',
++        content: EnvironmentLayerContent(
++          targetTileLayerId: 'tiles',
++          areas: [area],
++        ),
++      );
++      final tile = TileLayer(
++        id: 'tiles',
++        name: 'T',
++        tiles: List<int>.filled(4, 0),
++      );
++      final map = MapData(
++        id: 'm',
++        name: 'M',
++        size: const GridSize(width: 2, height: 2),
++        tilesetId: 'tsA',
++        layers: [envLayer, tile],
++        placedElements: const [
++          MapPlacedElement(
++            id: 'g1',
++            layerId: 'tiles',
++            elementId: 'e1',
++            pos: GridPos(x: 0, y: 0),
++          ),
++        ],
++      );
++      final manifest = buildShellChromeProject(
++        environmentPresets: [
++          EnvironmentPreset(
++            id: 'p1',
++            name: 'P',
++            templateId: 't',
++            palette: [
++              EnvironmentPaletteItem(elementId: 'e1', weight: 1),
++            ],
++            defaultParams: EnvironmentGenerationParams(
++              density: 1,
++              edgeDensity: 1,
++              variation: 0,
++              minSpacingCells: 0,
++            ),
++            sortOrder: 0,
++          ),
++        ],
++        elements: [
++          const ProjectElementEntry(
++            id: 'e1',
++            name: 'E',
++            tilesetId: 'tsA',
++            categoryId: 'c',
++            frames: [
++              TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
++            ],
++          ),
++        ],
++      );
++      final container = ProviderContainer();
++      addTearDown(container.dispose);
++      container.read(editorNotifierProvider.notifier).state = EditorState(
++        projectRootPath: '/r',
++        project: manifest,
++        activeMap: map,
++        activeMapPath: 'maps/x.json',
++        activeLayerId: 'env',
++        savedMapSnapshot: map,
++      );
++      await tester.binding.setSurfaceSize(const Size(520, 2000));
++      addTearDown(() => tester.binding.setSurfaceSize(null));
++      await tester.pumpWidget(
++        UncontrolledProviderScope(
++          container: container,
++          child: MacosTheme(
++            data: MacosThemeData.light(),
++            child: MaterialApp(
++              home: CupertinoPageScaffold(
++                child: SizedBox(
++                  width: 440,
++                  height: 2000,
++                  child: MapInspectorPanel(),
++                ),
++              ),
++            ),
++          ),
++        ),
++      );
++      await tester.pumpAndSettle();
++      final clearBtn = find.byKey(const Key('env-area-clear-a1'));
++      expect(tester.widget<PushButton>(clearBtn).onPressed, isNotNull);
++      await tester.ensureVisible(clearBtn);
++      await tester.pumpAndSettle();
++      await tester.tap(clearBtn);
++      await tester.pumpAndSettle();
++      expect(container.read(editorNotifierProvider).activeMap!.placedElements,
++          isEmpty);
++      await tester.pumpAndSettle();
++      final genBtn = find.byKey(const Key('env-area-generate-a1'));
++      expect(tester.widget<PushButton>(genBtn).onPressed, isNotNull);
++      expect(tester.widget<PushButton>(clearBtn).onPressed, isNull);
++    });
++  });
++}
+```
+
+## 22. Auto-review
+
+**Points solides** : tolérance ids manquants ; tests widget `ensureVisible` pour scroll inspecteur ; pas de toucher `map_core`.
+
+**Points discutables** : `MapValidator.validate` sans manifest — acceptable pour cette mutation ; message succès « généré(s) effacé(s) » un peu lourd lexicalement.
+
+**Corrections après auto-review** : `findsWidgets` pour texte clear ; manifest minimal dans test widget ; surface 2000px + `ensureVisible` pour tap Clear.
+
+**Risques restants** : si une future règle validate exige manifest pour placed elements, ajouter paramètre optionnel.
+
+**Regard critique** :
+
+- Clear avec ids manquants : **oui**, réparateur.
+- Ne pas supprimer `env_gen_*` non référencés : **oui**, périmètre liste uniquement.
+- Pas de dialog destructif : **V0** OK.
+- Ne pas arrêter paint : **oui**.
+- Hors Regenerate/Shuffle : **oui**.
+
+## 23. Verdict
+
+Statut du lot :
+
+- [x] Validé
+- [ ] Validé avec réserve
+- [ ] Non livré
+
+Résumé :
+
+```text
+Clear use case + notifier + inspecteur + 11 tests ; +204 environment_studio ; bundle +98 ; flutter test complet +1037 -33 hors lot.
+```
+
+Prochain lot recommandé :
+
+```text
+Environment-27 — Environment Regenerate / Shuffle V0
+```
