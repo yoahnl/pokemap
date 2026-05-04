@@ -13,6 +13,7 @@ import 'encounter_tables_panel.dart';
 import 'entity_properties_panel.dart';
 import 'event_properties_panel.dart';
 import 'gameplay_zone_properties_panel.dart';
+import 'environment_layer_inspector_panel.dart';
 import 'layers_panel.dart';
 import 'map_connections_panel.dart';
 import 'map_properties_panel.dart';
@@ -178,8 +179,12 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     _InspectorSectionId.environmentLayer,
                     defaultExpanded: true,
                   ),
-                  expandedHeight: 200,
-                  child: const _EnvironmentLayerInspectorPlaceholder(),
+                  expandedHeight: 360,
+                  child: EnvironmentLayerInspectorPanel(
+                    map: activeMap,
+                    layer: activeLayer,
+                    embedded: true,
+                  ),
                 ),
               if (showTilesSection)
                 InspectorSectionCard(
@@ -453,47 +458,6 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
       ObjectLayer _ => 'Object Layer',
       EnvironmentLayer _ => 'Environment Layer',
     };
-  }
-}
-
-/// Lot Environment-19 : pas de contrôles métier tant que zones / cible tuiles absents.
-class _EnvironmentLayerInspectorPlaceholder extends StatelessWidget {
-  const _EnvironmentLayerInspectorPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    final subtle = EditorChrome.subtleLabel(context);
-    final label = EditorChrome.primaryLabel(context);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 4, 10, 10),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Environment Layer',
-            key: const Key('map-inspector-environment-layer-title'),
-            style: TextStyle(
-              color: label,
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Ce layer servira à dessiner des zones organiques et à générer des '
-            'éléments naturels.\n'
-            'La configuration des zones arrive dans un prochain lot.',
-            key: const Key('map-inspector-environment-layer-body'),
-            style: TextStyle(
-              color: subtle,
-              fontSize: 12,
-              height: 1.4,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 

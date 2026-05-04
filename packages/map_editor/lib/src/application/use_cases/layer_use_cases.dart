@@ -226,3 +226,94 @@ class SetMapLayerOpacityUseCase {
     return updated;
   }
 }
+
+/// Lot Environment-20 : cible tuile pour un [EnvironmentLayer] (mutation map pure).
+class SetEnvironmentLayerTargetTileLayerUseCase {
+  MapData execute(
+    MapData map, {
+    required String environmentLayerId,
+    required String? targetTileLayerId,
+  }) {
+    final envId = environmentLayerId.trim();
+    if (envId.isEmpty) {
+      throw const EditorValidationException(
+          'Environment layer id cannot be empty');
+    }
+
+    MapLayer? envLayer;
+    for (final layer in map.layers) {
+      if (layer.id == envId) {
+        envLayer = layer;
+        break;
+      }
+    }
+    if (envLayer == null) {
+      throw EditorValidationException('Environment layer not found: $envId');
+    }
+    if (envLayer is! EnvironmentLayer) {
+      throw EditorValidationException(
+          'Layer is not an environment layer: $envId');
+    }
+
+    if (targetTileLayerId == null) {
+      final nextContent = EnvironmentLayerContent(
+        targetTileLayerId: null,
+        areas: envLayer.content.areas,
+      );
+      try {
+        final updated = setEnvironmentLayerContent(
+          map,
+          layerId: envId,
+          content: nextContent,
+        );
+        MapValidator.validate(updated);
+        return updated;
+      } on ValidationException catch (e) {
+        throw EditorValidationException(e.message);
+      }
+    }
+
+    final tid = targetTileLayerId.trim();
+    if (tid.isEmpty) {
+      throw const EditorValidationException(
+          'Target tile layer id cannot be empty');
+    }
+    if (tid == envId) {
+      throw const EditorValidationException(
+        'Environment layer cannot target itself as targetTileLayerId',
+      );
+    }
+
+    MapLayer? targetLayer;
+    for (final layer in map.layers) {
+      if (layer.id == tid) {
+        targetLayer = layer;
+        break;
+      }
+    }
+    if (targetLayer == null) {
+      throw EditorValidationException('Target tile layer not found: $tid');
+    }
+    if (targetLayer is! TileLayer) {
+      throw EditorValidationException(
+        'targetTileLayerId must reference a TileLayer, got ${targetLayer.runtimeType}',
+      );
+    }
+
+    final nextContent = EnvironmentLayerContent(
+      targetTileLayerId: tid,
+      areas: envLayer.content.areas,
+    );
+    try {
+      final updated = setEnvironmentLayerContent(
+        map,
+        layerId: envId,
+        content: nextContent,
+      );
+      MapValidator.validate(updated);
+      return updated;
+    } on ValidationException catch (e) {
+      throw EditorValidationException(e.message);
+    }
+  }
+}

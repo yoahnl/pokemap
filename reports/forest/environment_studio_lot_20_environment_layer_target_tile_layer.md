@@ -1,3 +1,542 @@
+# Environment Studio Lot 20 — Environment Layer Target TileLayer V0
+
+## 1. Résumé exécutif
+
+L’inspecteur **Environment Layer** permet désormais de lire et de modifier **`EnvironmentLayerContent.targetTileLayerId`** : affichage de l’état (aucune tuile, pas de cible, cible valide, cible invalide conservée), choix exclusif parmi les **TileLayer** de la map via le picker existant (`showCupertinoListPicker`), retrait de la cible (`null`). La mutation passe par **`SetEnvironmentLayerTargetTileLayerUseCase`** qui s’appuie sur **`setEnvironmentLayerContent`** (map_core, inchangé) + **`MapValidator.validate`**, puis **`EditorNotifier.setEnvironmentLayerTargetTileLayer`** et **`_applyMapMutation`** (même pattern dirty / sélection que les autres éditions de map). Aucune `EnvironmentArea` créée, aucun `map_core` modifié, aucune persistance disque sur ce flux.
+
+## 2. Périmètre du lot
+
+Inclus : UI inspecteur + use case + méthode notifier + tests ciblés + régressions `environment_studio` et barre d’outils / workspace. Exclus : areas, masques, presets par area, génération, `MapPlacedElement`, patch tuiles, `ProjectManifest`, `map_runtime`, `build_runner`, commits git.
+
+## 3. Audit initial EnvironmentLayer / inspector / mutations
+
+Fichiers relus : `layer_use_cases.dart`, `editor_notifier.dart` (`_applyMapMutation`), `map_inspector_panel.dart`, `layers_panel.dart`, `environment.dart` / `map_layer.dart` / `map_layers.dart` (lecture seule), tests Lot 19.
+
+Constats :
+
+- **map_core** expose déjà **`setEnvironmentLayerContent(map, layerId, content)`** qui remplace le contenu d’un `EnvironmentLayer` en conservant id / nom / visibilité / opacité / properties.
+- **`MapValidator`** valide qu’une cible non nulle référence un **TileLayer** existant et interdit l’auto-référence (`targetTileLayerId == layerId`).
+- Les mutations carte passent par **`EditorNotifier`** → **`_applyMapMutation`** → `MapEditingController.applyMutation` (dirty via `savedMapSnapshot`).
+- L’inspecteur lit **`activeMap`** + **`activeLayer`** via `editorNotifierProvider` ; la section Environment est affichée quand `activeLayer is EnvironmentLayer`.
+
+Recherches grep (extraits pertinents) :
+
+- `setEnvironmentLayerContent` : défini dans `packages/map_core/lib/src/operations/map_layers.dart` (non modifié ce lot).
+- `targetTileLayerId` : modèle `EnvironmentLayerContent` + usages diagnostics / tests map_core (non modifiés).
+- **`map_core` n’est pas modifié** : seuls les appels existants sont utilisés depuis `map_editor`.
+
+## 4. Décisions UI target TileLayer
+
+- Textes FR conformes au cahier (aucune cible, aucun TileLayer, cible actuelle nom + id, invalide avec id affiché, boutons « Choisir / Changer / Retirer / Choisir un autre »).
+- Sous-titre de section **TileLayer cible** distinct du bloc d’introduction Lot 19 (titres + corps conservés avec les mêmes `Key` pour non-régression tests Lot 19).
+- Picker : uniquement les instances **`TileLayer`** collectées sur `map.layers`.
+- Cible invalide : **pas de suppression automatique** ; l’UI propose correction ou retrait.
+
+## 5. Mutation targetTileLayerId
+
+- **`SetEnvironmentLayerTargetTileLayerUseCase.execute`** : vérifie l’id du layer Environment, valide la cible si non null (existe, est `TileLayer`, ≠ id du layer Environment), construit **`EnvironmentLayerContent(targetTileLayerId: …, areas: contenu.areas existant)`** pour préserver les zones, appelle **`setEnvironmentLayerContent`**, puis **`MapValidator.validate`**. Les **`ValidationException`** map_core sont enveloppées en **`EditorValidationException`** pour homogénéité côté éditeur.
+- **`EditorNotifier.setEnvironmentLayerTargetTileLayer`** : instancie le use case (sans nouveau provider Riverpod pour éviter **`build_runner`**), applique **`_applyMapMutation`** avec **`preferredActiveLayerId: environmentLayerId`**.
+
+## 6. Inspector Environment Layer
+
+- Nouveau fichier **`environment_layer_inspector_panel.dart`** : widget **`EnvironmentLayerInspectorPanel`** (`ConsumerWidget`).
+- **`map_inspector_panel.dart`** : remplace le placeholder interne par ce panneau, **`expandedHeight`** porté à **360**.
+
+## 7. Dirty state / sélection active
+
+Comportement identique aux autres mutations : **`_applyMapMutation`** avec carte mise à jour ; **`activeLayerId`** forcé sur l’Environment layer ; **`isDirty`** si la carte diffère du **`savedMapSnapshot`** (test notifier avec snapshot initial explicite).
+
+## 8. Validation des cibles TileLayer
+
+- Picker UI : seuls des **`TileLayer`** peuvent être choisis.
+- Use case : rejette **`ObjectLayer`**, **`TileLayer`** passé comme `environmentLayerId`, id inconnu, auto-cible.
+
+## 9. Non-persistance disque garantie
+
+Aucun appel **`FileProjectRepository`**, **`saveProject`**, **`saveProjectManifest`** dans les fichiers du flux (`environment_layer_inspector_panel`, `map_inspector_panel`, `layer_use_cases`). Le grep sur **`editor_notifier`** ne trouve que des méthodes hors chemin `setEnvironmentLayerTargetTileLayer` (sortie en section 14).
+
+## 10. Pourquoi aucune area / mask / preset / génération dans ce lot
+
+Périmètre V0 strict : seule la **référence** au TileLayer cible pour les lots futurs (zones, génération, patchs). Aucune édition de **`EnvironmentArea`** ni de masque.
+
+## 11. Fichiers modifiés
+
+| Fichier | Rôle |
+|---------|------|
+| `packages/map_editor/lib/src/application/use_cases/layer_use_cases.dart` | `SetEnvironmentLayerTargetTileLayerUseCase`. |
+| `packages/map_editor/lib/src/features/editor/state/editor_notifier.dart` | `setEnvironmentLayerTargetTileLayer` + import use case. |
+| `packages/map_editor/lib/src/ui/panels/map_inspector_panel.dart` | Intégration panneau + hauteur section. |
+| `packages/map_editor/lib/src/ui/panels/environment_layer_inspector_panel.dart` | **Nouveau** — UI cible tuile. |
+| `packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart` | **Nouveau** — tests use case, notifier, widgets. |
+| `reports/forest/environment_studio_lot_20_environment_layer_target_tile_layer.md` | Ce rapport. |
+
+## 12. Tests ajoutés ou modifiés
+
+- **Nouveau** : `environment_layer_target_tile_layer_test.dart` (use case, notifier, inspecteur MapInspector, picker, retrait, invalide, panneau isolé, exclusion Object dans `MacosSheet`).
+- **Non modifié** : `environment_layer_creation_test.dart` (régression Lot 19 ; toujours vert).
+
+## 13. Commandes exécutées
+
+```bash
+cd /Users/karim/Project/pokemonProject/packages/map_editor
+dart format lib/src/application/use_cases/layer_use_cases.dart lib/src/features/editor/state/editor_notifier.dart lib/src/ui/panels/map_inspector_panel.dart lib/src/ui/panels/environment_layer_inspector_panel.dart test/environment_studio/environment_layer_target_tile_layer_test.dart
+flutter analyze lib/src/application/use_cases/layer_use_cases.dart lib/src/features/editor/state/editor_notifier.dart lib/src/ui/panels/map_inspector_panel.dart lib/src/ui/panels/environment_layer_inspector_panel.dart test/environment_studio/environment_layer_target_tile_layer_test.dart test/environment_studio/environment_layer_creation_test.dart
+grep -R "FileProjectRepository\|saveProject\|saveProjectManifest" -n lib/src/ui/panels/environment_layer_inspector_panel.dart lib/src/ui/panels/map_inspector_panel.dart lib/src/features/editor/state/editor_notifier.dart lib/src/application/use_cases/layer_use_cases.dart || true
+flutter test test/environment_studio/environment_layer_target_tile_layer_test.dart test/environment_studio/environment_layer_creation_test.dart --reporter expanded
+flutter test test/environment_studio --reporter expanded
+flutter test test/editor_workspace_controller_test.dart test/top_toolbar_test.dart --reporter expanded
+flutter test
+```
+
+## 14. Résultats des commandes
+
+### `dart format`
+
+Exécuté sur les chemins du lot (voir §13) : exit code 0.
+
+### `flutter analyze` (6 fichiers)
+
+```
+Analyzing 6 items...                                            
+No issues found! (ran in 1.7s)
+```
+
+### Grep persistance (chemins lot)
+
+Commande :
+
+```bash
+grep -R "FileProjectRepository\|saveProject\|saveProjectManifest" -n \
+  lib/src/ui/panels/environment_layer_inspector_panel.dart \
+  lib/src/ui/panels/map_inspector_panel.dart \
+  lib/src/features/editor/state/editor_notifier.dart \
+  lib/src/application/use_cases/layer_use_cases.dart || true
+```
+
+Sortie (répertoire `packages/map_editor`) :
+
+```
+lib/src/features/editor/state/editor_notifier.dart:438:  Future<bool> saveProjectManifest() async {
+lib/src/features/editor/state/editor_notifier.dart:447:    debugPrint('EditorNotifier: saveProjectManifest()');
+lib/src/features/editor/state/editor_notifier.dart:449:      await ref.read(projectRepositoryProvider).saveProject(
+lib/src/features/editor/state/editor_notifier.dart:1489:  Future<void> saveProjectDialogueYarnBody({
+lib/src/features/editor/state/editor_notifier.dart:1493:    state = await _projectContentController.saveProjectDialogueYarnBody(
+```
+
+### `flutter test` Lot 19 + Lot 20 (fichiers cibles)
+
+```
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart: Lot 20 — EnvironmentLayer target TileLayer SetEnvironmentLayerTargetTileLayerUseCase définit targetTileLayerId et préserve areas
+00:00 +1: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart: Lot 20 — EnvironmentLayer target TileLayer SetEnvironmentLayerTargetTileLayerUseCase target null remet targetTileLayerId à null
+00:00 +2: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart: Lot 20 — EnvironmentLayer target TileLayer SetEnvironmentLayerTargetTileLayerUseCase rejette cible ObjectLayer
+00:00 +3: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart: Lot 20 — EnvironmentLayer target TileLayer SetEnvironmentLayerTargetTileLayerUseCase rejette environmentLayerId TileLayer
+00:00 +4: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart: Lot 20 — EnvironmentLayer target TileLayer SetEnvironmentLayerTargetTileLayerUseCase rejette id inconnu pour environmentLayerId
+00:00 +5: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart: Lot 20 — EnvironmentLayer target TileLayer SetEnvironmentLayerTargetTileLayerUseCase rejette auto-cible
+00:00 +6: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart: Lot 20 — EnvironmentLayer target TileLayer EditorNotifier.setEnvironmentLayerTargetTileLayer met à jour activeMap, garde activeLayerId, isDirty, chemins stables
+00:00 +7: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart: Lot 20 — EnvironmentLayer target TileLayer inspecteur : aucun TileLayer
+00:00 +8: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_creation_test.dart: Lot 19 — Environment Layer dans l’éditeur de map picker d’ajout de layer expose Environment Layer
+00:00 +9: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_creation_test.dart: Lot 19 — Environment Layer dans l’éditeur de map picker d’ajout de layer expose Environment Layer
+00:01 +10: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart: Lot 20 — EnvironmentLayer target TileLayer choix TileLayer via picker met à jour la cible et dirty
+00:01 +11: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_creation_test.dart: Lot 19 — Environment Layer dans l’éditeur de map ajout Environment Layer : MapLayer.environment, contenu vide, sélection, dirty
+00:01 +12: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_creation_test.dart: Lot 19 — Environment Layer dans l’éditeur de map ajout Environment Layer : MapLayer.environment, contenu vide, sélection, dirty
+00:01 +13: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart: Lot 20 — EnvironmentLayer target TileLayer retirer la cible remet null
+00:01 +14: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart: Lot 20 — EnvironmentLayer target TileLayer retirer la cible remet null
+00:01 +15: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_creation_test.dart: Lot 19 — Environment Layer dans l’éditeur de map MapInspector : section neutre quand EnvironmentLayer actif
+00:01 +16: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart: Lot 20 — EnvironmentLayer target TileLayer cible invalide affiche avertissement et actions
+00:01 +17: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart: Lot 20 — EnvironmentLayer target TileLayer cible invalide affiche avertissement et actions
+00:01 +18: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart: Lot 20 — EnvironmentLayer target TileLayer EnvironmentLayerInspectorPanel seul : pas de crash
+00:01 +19: All tests passed!
+```
+
+### `flutter test test/environment_studio` (régression dossier)
+
+Dernières lignes du journal `/tmp/lot20_env_studio.log` :
+
+```
+00:05 +121: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_preset_palette_draft_editor_test.dart: EnvironmentStudioPanel — palette brouillon (Lot 14) tags : tree, canopy OK ; tree, , canopy → Tag vide
+00:05 +122: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_preset_palette_draft_editor_test.dart: EnvironmentStudioPanel — palette brouillon (Lot 14) Retirer : palette vide, emptyPalette revient
+00:06 +123: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_preset_palette_draft_editor_test.dart: EnvironmentStudioPanel — palette brouillon (Lot 14) deux items même elementId : Élément dupliqué
+00:06 +124: /Users/karim/Project/pokemonProject/packages/map_editor/test/environment_studio/environment_preset_palette_draft_editor_test.dart: EnvironmentStudioPanel — palette brouillon (Lot 14) édition palette + retour browser : manifest.environmentPresets inchangé
+00:06 +125: All tests passed!
+     227 /tmp/lot20_env_studio.log
+```
+
+### `flutter test` workspace + top toolbar
+
+```
+00:00 +0: loading /Users/karim/Project/pokemonProject/packages/map_editor/test/editor_workspace_controller_test.dart
+00:00 +0: /Users/karim/Project/pokemonProject/packages/map_editor/test/editor_workspace_controller_test.dart: EditorWorkspaceController selectPokedexWorkspace switches mode and clears stale errors
+00:00 +1: /Users/karim/Project/pokemonProject/packages/map_editor/test/editor_workspace_controller_test.dart: EditorWorkspaceController selectTrainerWorkspace switches mode and clears stale errors
+00:00 +2: /Users/karim/Project/pokemonProject/packages/map_editor/test/editor_workspace_controller_test.dart: EditorWorkspaceController selectDialogueWorkspace keeps project session and only changes mode
+00:00 +3: /Users/karim/Project/pokemonProject/packages/map_editor/test/editor_workspace_controller_test.dart: EditorWorkspaceController selectEnvironmentStudioWorkspace switches mode and clears stale errors
+00:00 +4: /Users/karim/Project/pokemonProject/packages/map_editor/test/editor_workspace_controller_test.dart: EditorWorkspaceController selectPokemonCatalogSection opens the parent workspace and stores the section
+00:00 +5: /Users/karim/Project/pokemonProject/packages/map_editor/test/top_toolbar_test.dart: TopToolbar shows the app brand and project workspace label
+Warning: Falling back on slow accent color resolution. It’s possible that the accent colors have changed in a recent version of macOS, thus invalidating macos_ui’s accent colors, which were captured on macOS Ventura. If you see this message, please notify a maintainer of the macos_ui package.
+00:00 +6: /Users/karim/Project/pokemonProject/packages/map_editor/test/top_toolbar_test.dart: TopToolbar falls back to the workspace label when no project is loaded
+00:00 +7: /Users/karim/Project/pokemonProject/packages/map_editor/test/top_toolbar_test.dart: TopToolbar shows the toolbar status chip when a status is present
+00:00 +8: /Users/karim/Project/pokemonProject/packages/map_editor/test/top_toolbar_test.dart: TopToolbar shows the trainer studio label for the trainer workspace
+00:00 +9: /Users/karim/Project/pokemonProject/packages/map_editor/test/top_toolbar_test.dart: TopToolbar enables project save and disables map history in Path Studio
+00:00 +10: /Users/karim/Project/pokemonProject/packages/map_editor/test/top_toolbar_test.dart: TopToolbar shows neutral Save Project when project is clean in Path Studio
+00:00 +11: /Users/karim/Project/pokemonProject/packages/map_editor/test/top_toolbar_test.dart: TopToolbar enables project save and disables map history in Environment Studio
+00:01 +12: /Users/karim/Project/pokemonProject/packages/map_editor/test/top_toolbar_test.dart: TopToolbar shows Environment Studio in the workspace brand strip
+00:01 +13: /Users/karim/Project/pokemonProject/packages/map_editor/test/top_toolbar_test.dart: TopToolbar keeps map save action in map workspace
+00:01 +14: All tests passed!
+```
+
+### `flutter test` (suite complète `packages/map_editor`)
+
+Exit code **1** (dette hors lot : nombreux échecs préexistants, ex. suite catalogue/sync Pokémon). Dernières lignes observées :
+
+```
+01:03 +958 -34: /Users/karim/Project/pokemonProject/packages/map_editor/test/sync_pokemon_items_catalog_use_case_test.dart: load use case reads the synced catalog after a real sync
+01:03 +958 -34: Some tests failed.
+```
+
+## 15. Git status initial et final
+
+**État initial** : le dépôt présentait déjà des modifications non commit hors périmètre Lot 20 au début de la session utilisateur (voir `git status` initial dans le fil de discussion / worktree).
+
+**État final** (`git status --short --untracked-files=all`, racine du repo) :
+
+```
+ M packages/map_editor/lib/src/application/use_cases/layer_use_cases.dart
+ M packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
+ M packages/map_editor/lib/src/ui/panels/map_inspector_panel.dart
+?? packages/map_editor/lib/src/ui/panels/environment_layer_inspector_panel.dart
+?? packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart
+?? reports/forest/environment_studio_lot_20_environment_layer_target_tile_layer.md
+```
+
+## 16. Contenu complet des fichiers créés ou modifiés
+
+### `packages/map_editor/lib/src/application/use_cases/layer_use_cases.dart`
+
+```dart
+import 'package:map_core/map_core.dart';
+
+import '../errors/application_errors.dart';
+
+class AddMapLayerResult {
+  final MapData map;
+  final MapLayer layer;
+
+  AddMapLayerResult(this.map, this.layer);
+}
+
+class AddMapLayerUseCase {
+  AddMapLayerResult execute(
+    MapData map, {
+    required MapLayerKind kind,
+    required String name,
+    String? tileTilesetId,
+    int? insertIndex,
+  }) {
+    final normalizedName = name.trim();
+    if (normalizedName.isEmpty) {
+      throw const EditorValidationException('Layer name cannot be empty');
+    }
+
+    final layerId = _generateUniqueLayerId(
+      map,
+      kind: kind,
+      name: normalizedName,
+    );
+
+    final updated = addMapLayer(
+      map,
+      kind: kind,
+      id: layerId,
+      name: normalizedName,
+      tileTilesetId: tileTilesetId,
+      insertIndex: insertIndex,
+    );
+    MapValidator.validate(updated);
+
+    final created = updated.layers.firstWhere((layer) => layer.id == layerId);
+    return AddMapLayerResult(updated, created);
+  }
+
+  AddMapLayerResult executeSurface(
+    MapData map, {
+    String name = 'Surfaces',
+    int? insertIndex,
+  }) {
+    final normalizedName = name.trim().isEmpty ? 'Surfaces' : name.trim();
+    final layerId = _generateUniqueSurfaceLayerId(map);
+    final layerName = _resolveSurfaceLayerName(map, normalizedName);
+    final layer = MapLayer.surface(
+      id: layerId,
+      name: layerName,
+    );
+
+    var targetIndex = insertIndex ?? map.layers.length;
+    if (targetIndex < 0) targetIndex = 0;
+    if (targetIndex > map.layers.length) targetIndex = map.layers.length;
+
+    final updatedLayers = List<MapLayer>.from(map.layers, growable: true)
+      ..insert(targetIndex, layer);
+    final updated = map.copyWith(layers: updatedLayers);
+    MapValidator.validate(updated);
+    return AddMapLayerResult(updated, layer);
+  }
+
+  String _generateUniqueLayerId(
+    MapData map, {
+    required MapLayerKind kind,
+    required String name,
+  }) {
+    final existing = map.layers.map((layer) => layer.id).toSet();
+    final kindPrefix = switch (kind) {
+      MapLayerKind.tile => 'l_tile',
+      MapLayerKind.collision => 'l_collision',
+      MapLayerKind.terrain => 'l_terrain',
+      MapLayerKind.path => 'l_path',
+      MapLayerKind.object => 'l_object',
+      MapLayerKind.environment => 'l_environment',
+    };
+    final slug = _slugifyLayerName(name);
+    final base = slug.isEmpty ? kindPrefix : '${kindPrefix}_$slug';
+    var candidate = base;
+    var suffix = 1;
+    while (existing.contains(candidate)) {
+      candidate = '${base}_$suffix';
+      suffix++;
+    }
+    return candidate;
+  }
+
+  String _generateUniqueSurfaceLayerId(MapData map) {
+    final existing = map.layers.map((layer) => layer.id).toSet();
+    const base = 'surface-main';
+    if (!existing.contains(base)) {
+      return base;
+    }
+    var suffix = 2;
+    while (existing.contains('surface-$suffix')) {
+      suffix++;
+    }
+    return 'surface-$suffix';
+  }
+
+  String _resolveSurfaceLayerName(MapData map, String requestedName) {
+    if (requestedName != 'Surfaces') {
+      return requestedName;
+    }
+    final existing = map.layers.map((layer) => layer.name).toSet();
+    const base = 'Surfaces';
+    if (!existing.contains(base)) {
+      return base;
+    }
+    var suffix = 2;
+    while (existing.contains('$base $suffix')) {
+      suffix++;
+    }
+    return '$base $suffix';
+  }
+
+  String _slugifyLayerName(String value) {
+    final lowered = value.toLowerCase().trim();
+    final replaced = lowered.replaceAll(RegExp(r'[^a-z0-9]+'), '_');
+    final normalized = replaced.replaceAll(RegExp(r'^_+|_+$'), '');
+    return normalized;
+  }
+}
+
+class RenameMapLayerUseCase {
+  MapData execute(
+    MapData map, {
+    required String layerId,
+    required String name,
+  }) {
+    final updated = renameMapLayer(
+      map,
+      layerId: layerId,
+      name: name,
+    );
+    MapValidator.validate(updated);
+    return updated;
+  }
+}
+
+class DeleteMapLayerUseCase {
+  MapData execute(
+    MapData map, {
+    required String layerId,
+  }) {
+    final updated = removeMapLayer(map, layerId: layerId);
+    MapValidator.validate(updated);
+    return updated;
+  }
+}
+
+class DeleteAllMapLayersUseCase {
+  MapData execute(MapData map) {
+    final updated = removeAllMapLayers(map);
+    MapValidator.validate(updated);
+    return updated;
+  }
+}
+
+class MoveMapLayerUseCase {
+  MapData execute(
+    MapData map, {
+    required String layerId,
+    required int direction,
+  }) {
+    final updated = moveMapLayer(
+      map,
+      layerId: layerId,
+      direction: direction,
+    );
+    MapValidator.validate(updated);
+    return updated;
+  }
+}
+
+class ReorderMapLayersUseCase {
+  MapData execute(
+    MapData map, {
+    required int oldIndex,
+    required int newIndex,
+  }) {
+    final updated = reorderMapLayers(
+      map,
+      oldIndex: oldIndex,
+      newIndex: newIndex,
+    );
+    MapValidator.validate(updated);
+    return updated;
+  }
+}
+
+class SetMapLayerVisibilityUseCase {
+  MapData execute(
+    MapData map, {
+    required String layerId,
+    required bool isVisible,
+  }) {
+    final updated = setMapLayerVisibility(
+      map,
+      layerId: layerId,
+      isVisible: isVisible,
+    );
+    MapValidator.validate(updated);
+    return updated;
+  }
+}
+
+class SetMapLayerOpacityUseCase {
+  MapData execute(
+    MapData map, {
+    required String layerId,
+    required double opacity,
+  }) {
+    final updated = setMapLayerOpacity(
+      map,
+      layerId: layerId,
+      opacity: opacity,
+    );
+    MapValidator.validate(updated);
+    return updated;
+  }
+}
+
+/// Lot Environment-20 : cible tuile pour un [EnvironmentLayer] (mutation map pure).
+class SetEnvironmentLayerTargetTileLayerUseCase {
+  MapData execute(
+    MapData map, {
+    required String environmentLayerId,
+    required String? targetTileLayerId,
+  }) {
+    final envId = environmentLayerId.trim();
+    if (envId.isEmpty) {
+      throw const EditorValidationException(
+          'Environment layer id cannot be empty');
+    }
+
+    MapLayer? envLayer;
+    for (final layer in map.layers) {
+      if (layer.id == envId) {
+        envLayer = layer;
+        break;
+      }
+    }
+    if (envLayer == null) {
+      throw EditorValidationException('Environment layer not found: $envId');
+    }
+    if (envLayer is! EnvironmentLayer) {
+      throw EditorValidationException(
+          'Layer is not an environment layer: $envId');
+    }
+
+    if (targetTileLayerId == null) {
+      final nextContent = EnvironmentLayerContent(
+        targetTileLayerId: null,
+        areas: envLayer.content.areas,
+      );
+      try {
+        final updated = setEnvironmentLayerContent(
+          map,
+          layerId: envId,
+          content: nextContent,
+        );
+        MapValidator.validate(updated);
+        return updated;
+      } on ValidationException catch (e) {
+        throw EditorValidationException(e.message);
+      }
+    }
+
+    final tid = targetTileLayerId.trim();
+    if (tid.isEmpty) {
+      throw const EditorValidationException(
+          'Target tile layer id cannot be empty');
+    }
+    if (tid == envId) {
+      throw const EditorValidationException(
+        'Environment layer cannot target itself as targetTileLayerId',
+      );
+    }
+
+    MapLayer? targetLayer;
+    for (final layer in map.layers) {
+      if (layer.id == tid) {
+        targetLayer = layer;
+        break;
+      }
+    }
+    if (targetLayer == null) {
+      throw EditorValidationException('Target tile layer not found: $tid');
+    }
+    if (targetLayer is! TileLayer) {
+      throw EditorValidationException(
+        'targetTileLayerId must reference a TileLayer, got ${targetLayer.runtimeType}',
+      );
+    }
+
+    final nextContent = EnvironmentLayerContent(
+      targetTileLayerId: tid,
+      areas: envLayer.content.areas,
+    );
+    try {
+      final updated = setEnvironmentLayerContent(
+        map,
+        layerId: envId,
+        content: nextContent,
+      );
+      MapValidator.validate(updated);
+      return updated;
+    } on ValidationException catch (e) {
+      throw EditorValidationException(e.message);
+    }
+  }
+}
+```
+
+### `packages/map_editor/lib/src/features/editor/state/editor_notifier.dart`
+
+```dart
 import 'dart:convert';
 import 'dart:io';
 
@@ -6605,3 +7144,2498 @@ class _ActivePathLayerContext {
   final String layerId;
   final PathLayer layer;
 }
+```
+
+### `packages/map_editor/lib/src/ui/panels/map_inspector_panel.dart`
+
+```dart
+import 'package:flutter/cupertino.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:macos_ui/macos_ui.dart';
+import 'package:map_core/map_core.dart';
+
+import '../../application/models/terrain_selection_mode.dart';
+import '../../features/editor/state/editor_notifier.dart';
+import '../../features/editor/tools/editor_tool.dart';
+import '../../features/surface_painter/surface_palette_panel.dart';
+import '../shared/cupertino_editor_widgets.dart';
+import '../shared/inspector_section_card.dart';
+import 'encounter_tables_panel.dart';
+import 'entity_properties_panel.dart';
+import 'event_properties_panel.dart';
+import 'gameplay_zone_properties_panel.dart';
+import 'environment_layer_inspector_panel.dart';
+import 'layers_panel.dart';
+import 'map_connections_panel.dart';
+import 'map_properties_panel.dart';
+import 'terrain_map_panel.dart';
+import 'tileset_palette_panel.dart';
+import 'trigger_properties_panel.dart';
+import 'warp_properties_panel.dart';
+
+enum _InspectorSectionId {
+  mapProperties,
+  layers,
+  environmentLayer,
+  tiles,
+  ground,
+  surfacePlacements,
+  surfaces,
+  entities,
+  events,
+  connections,
+  triggers,
+  warps,
+  gameplayZones,
+  encounterTables,
+}
+
+class MapInspectorPanel extends ConsumerStatefulWidget {
+  const MapInspectorPanel({super.key});
+
+  @override
+  ConsumerState<MapInspectorPanel> createState() => _MapInspectorPanelState();
+}
+
+class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
+  final Map<_InspectorSectionId, bool> _expandedSections =
+      <_InspectorSectionId, bool>{};
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(editorNotifierProvider);
+    final activeMap = state.activeMap;
+    final activeLayer = _findActiveLayer(activeMap, state.activeLayerId);
+
+    if (activeMap == null) {
+      return Container(
+        alignment: Alignment.center,
+        child: Text(
+          'Open a map to inspect layers and map systems',
+          style: TextStyle(
+            color: EditorChrome.subtleLabel(context),
+          ),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+
+    final hasTileLayers = activeMap.layers.any((layer) => layer is TileLayer);
+    final hasTerrainLayers =
+        activeMap.layers.any((layer) => layer is TerrainLayer);
+    final hasPathLayers = activeMap.layers.any((layer) => layer is PathLayer);
+    final hasSurfaceLayers =
+        activeMap.layers.any((layer) => layer is SurfaceLayer);
+    final hasSurfacePresets =
+        state.project?.surfaceCatalog.presets.isNotEmpty ?? false;
+    final showEnvironmentLayerSection = activeLayer is EnvironmentLayer;
+    final showTilesSection = activeLayer is TileLayer ||
+        state.activeTool == EditorToolType.tilePaint ||
+        (state.activeLayerId == null && hasTileLayers);
+    final showGroundSection = hasTerrainLayers &&
+        (activeLayer is TerrainLayer ||
+            (activeLayer is! PathLayer &&
+                state.activeTool == EditorToolType.terrainPaint &&
+                state.terrainSelectionMode == TerrainSelectionMode.terrain));
+    final showSurfaceSection = hasPathLayers && activeLayer is PathLayer;
+    final showSurfacePlacementSection = hasSurfaceLayers ||
+        hasSurfacePresets ||
+        activeLayer is SurfaceLayer ||
+        state.activeTool == EditorToolType.surfacePaint;
+    const showConnectionsSection = true;
+    final showEntitySection =
+        state.activeTool == EditorToolType.entityPlacement ||
+            state.selectedEntityId != null ||
+            activeMap.entities.isNotEmpty;
+    final showEventSection =
+        state.activeTool == EditorToolType.eventPlacement ||
+            state.selectedMapEventId != null ||
+            activeMap.events.isNotEmpty;
+    final showTriggerSection =
+        state.activeTool == EditorToolType.triggerPlacement ||
+            state.selectedTriggerId != null ||
+            activeMap.triggers.isNotEmpty;
+    final showWarpSection = state.activeTool == EditorToolType.warpPlacement ||
+        state.selectedWarpId != null ||
+        activeMap.warps.isNotEmpty;
+    final showGameplayZoneSection =
+        state.activeTool == EditorToolType.gameplayZonePlacement ||
+            state.selectedGameplayZoneId != null ||
+            activeMap.gameplayZones.isNotEmpty;
+    final showEncounterTablesSection =
+        (state.project?.encounterTables.isNotEmpty ?? false) ||
+            showGameplayZoneSection;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final paletteHeight = constraints.maxHeight.isFinite
+            ? constraints.maxHeight.clamp(420.0, 760.0).toDouble()
+            : 560.0;
+
+        return SingleChildScrollView(
+          primary: false,
+          padding: const EdgeInsets.only(top: 10, bottom: 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              _InspectorOverviewCard(
+                map: activeMap,
+                activeLayer: activeLayer,
+              ),
+              InspectorSectionCard(
+                title: 'Propriétés de carte',
+                subtitle:
+                    'Gameplay et présentation (météo, musique, spawn par défaut…)',
+                icon: CupertinoIcons.slider_horizontal_3,
+                accentColor: EditorChrome.inspectorJoyPlum,
+                expanded: _isExpanded(
+                  _InspectorSectionId.mapProperties,
+                  false,
+                ),
+                onToggle: () => _toggleSection(
+                  _InspectorSectionId.mapProperties,
+                  defaultExpanded: false,
+                ),
+                expandedHeight: 460,
+                child: const MapPropertiesPanel(embedded: true),
+              ),
+              InspectorSectionCard(
+                title: 'Layers',
+                subtitle: activeLayer == null
+                    ? 'Select the active layer for this map'
+                    : 'Active: ${_layerLabel(activeLayer)}',
+                icon: CupertinoIcons.layers,
+                badgeText: '${activeMap.layers.length}',
+                accentColor: EditorChrome.inspectorJoyBlue,
+                expanded: _isExpanded(_InspectorSectionId.layers, true),
+                onToggle: () => _toggleSection(
+                  _InspectorSectionId.layers,
+                  defaultExpanded: true,
+                ),
+                expandedHeight: 260,
+                child: const LayersPanel(embedded: true),
+              ),
+              if (showEnvironmentLayerSection)
+                InspectorSectionCard(
+                  title: 'Environment Layer',
+                  subtitle: null,
+                  icon: CupertinoIcons.cloud,
+                  accentColor: EditorChrome.inspectorJoyMint,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.environmentLayer,
+                    true,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.environmentLayer,
+                    defaultExpanded: true,
+                  ),
+                  expandedHeight: 360,
+                  child: EnvironmentLayerInspectorPanel(
+                    map: activeMap,
+                    layer: activeLayer,
+                    embedded: true,
+                  ),
+                ),
+              if (showTilesSection)
+                InspectorSectionCard(
+                  title: 'Tiles & Elements',
+                  subtitle:
+                      'Palette de placement et gestion des instances posées sur le layer actif.',
+                  icon: CupertinoIcons.square_grid_2x2,
+                  accentColor: EditorChrome.inspectorJoyLilac,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.tiles,
+                    activeLayer is TileLayer ||
+                        state.activeTool == EditorToolType.tilePaint,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.tiles,
+                    defaultExpanded: activeLayer is TileLayer ||
+                        state.activeTool == EditorToolType.tilePaint,
+                  ),
+                  expandedHeight: paletteHeight,
+                  child: const TilesetPalettePanel(embedded: true),
+                ),
+              if (showGroundSection)
+                InspectorSectionCard(
+                  title: 'Base Ground',
+                  subtitle: 'Terrain-only editing for the map background.',
+                  icon: CupertinoIcons.tree,
+                  accentColor: EditorChrome.inspectorJoyMint,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.ground,
+                    true,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.ground,
+                    defaultExpanded: true,
+                  ),
+                  expandedHeight: 300,
+                  child: const TerrainMapPanel(
+                    embedded: true,
+                    mode: TerrainMapPanelMode.groundOnly,
+                  ),
+                ),
+              if (showSurfacePlacementSection)
+                InspectorSectionCard(
+                  title: 'Surfaces',
+                  subtitle:
+                      'Choisir une surface et poser des placements dans la map.',
+                  icon: CupertinoIcons.drop,
+                  accentColor: EditorChrome.inspectorJoyCyan,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.surfacePlacements,
+                    activeLayer is SurfaceLayer ||
+                        state.activeTool == EditorToolType.surfacePaint,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.surfacePlacements,
+                    defaultExpanded: activeLayer is SurfaceLayer ||
+                        state.activeTool == EditorToolType.surfacePaint,
+                  ),
+                  expandedHeight: 380,
+                  child: const SurfacePainterPanel(embedded: true),
+                ),
+              if (showSurfaceSection)
+                InspectorSectionCard(
+                  title: 'Paths',
+                  subtitle:
+                      'Edit the active path layer for roads and specialized surfaces.',
+                  icon: CupertinoIcons.map,
+                  accentColor: EditorChrome.inspectorJoyAmber,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.surfaces,
+                    true,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.surfaces,
+                    defaultExpanded: true,
+                  ),
+                  expandedHeight: 340,
+                  child: const TerrainMapPanel(
+                    embedded: true,
+                    mode: TerrainMapPanelMode.surfaceOnly,
+                  ),
+                ),
+              if (showEntitySection)
+                InspectorSectionCard(
+                  title: 'Map Entities',
+                  subtitle: state.selectedEntityId != null
+                      ? 'Selected entity ready for editing.'
+                      : 'Visible world content such as NPCs, signs, items and spawn points.',
+                  icon: CupertinoIcons.sparkles,
+                  badgeText: '${activeMap.entities.length}',
+                  accentColor: EditorChrome.inspectorJoyCyan,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.entities,
+                    state.activeTool == EditorToolType.entityPlacement ||
+                        state.selectedEntityId != null,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.entities,
+                    defaultExpanded:
+                        state.activeTool == EditorToolType.entityPlacement ||
+                            state.selectedEntityId != null,
+                  ),
+                  expandedHeight: 560,
+                  child: const EntityPropertiesPanel(embedded: true),
+                ),
+              if (showEventSection)
+                InspectorSectionCard(
+                  title: 'Map Events',
+                  subtitle: state.selectedMapEventId != null
+                      ? 'Selected event ready for editing.'
+                      : 'Conditional event pages and script/message authoring.',
+                  icon: CupertinoIcons.flag,
+                  badgeText: '${activeMap.events.length}',
+                  accentColor: EditorChrome.inspectorJoyCyan,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.events,
+                    state.activeTool == EditorToolType.eventPlacement ||
+                        state.selectedMapEventId != null,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.events,
+                    defaultExpanded:
+                        state.activeTool == EditorToolType.eventPlacement ||
+                            state.selectedMapEventId != null,
+                  ),
+                  expandedHeight: 620,
+                  child: const EventPropertiesPanel(embedded: true),
+                ),
+              if (showConnectionsSection)
+                InspectorSectionCard(
+                  title: 'Connections',
+                  subtitle: 'Link the current map to adjacent world maps.',
+                  icon: CupertinoIcons.arrow_branch,
+                  badgeText: '${activeMap.connections.length}',
+                  accentColor: EditorChrome.inspectorJoyPlum,
+                  expanded: _isExpanded(_InspectorSectionId.connections, false),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.connections,
+                    defaultExpanded: false,
+                  ),
+                  expandedHeight: 520,
+                  child: const MapConnectionsPanel(embedded: true),
+                ),
+              if (showTriggerSection)
+                InspectorSectionCard(
+                  title: 'Triggers',
+                  subtitle: state.selectedTriggerId != null
+                      ? 'Selected trigger ready for editing.'
+                      : 'Gameplay zones and editable trigger areas.',
+                  icon: CupertinoIcons.square,
+                  badgeText: '${activeMap.triggers.length}',
+                  accentColor: EditorChrome.inspectorJoyCoral,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.triggers,
+                    state.activeTool == EditorToolType.triggerPlacement ||
+                        state.selectedTriggerId != null,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.triggers,
+                    defaultExpanded:
+                        state.activeTool == EditorToolType.triggerPlacement ||
+                            state.selectedTriggerId != null,
+                  ),
+                  expandedHeight: 520,
+                  child: const TriggerPropertiesPanel(embedded: true),
+                ),
+              if (showWarpSection)
+                InspectorSectionCard(
+                  title: 'Warps',
+                  subtitle: state.selectedWarpId != null
+                      ? 'Selected warp ready for editing.'
+                      : 'Map transitions such as doors, stairs and exits.',
+                  icon: CupertinoIcons.arrow_down_circle,
+                  badgeText: '${activeMap.warps.length}',
+                  accentColor: EditorChrome.inspectorJoyOrchid,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.warps,
+                    state.activeTool == EditorToolType.warpPlacement ||
+                        state.selectedWarpId != null,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.warps,
+                    defaultExpanded:
+                        state.activeTool == EditorToolType.warpPlacement ||
+                            state.selectedWarpId != null,
+                  ),
+                  expandedHeight: 320,
+                  child: const WarpPropertiesPanel(embedded: true),
+                ),
+              if (showGameplayZoneSection)
+                InspectorSectionCard(
+                  title: 'Gameplay Zones',
+                  subtitle: state.selectedGameplayZoneId != null
+                      ? 'Selected zone ready for editing.'
+                      : 'Encounter areas, movement constraints and special zones.',
+                  icon: CupertinoIcons.leaf_arrow_circlepath,
+                  badgeText: '${activeMap.gameplayZones.length}',
+                  accentColor: EditorChrome.inspectorJoyMint,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.gameplayZones,
+                    state.activeTool == EditorToolType.gameplayZonePlacement ||
+                        state.selectedGameplayZoneId != null,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.gameplayZones,
+                    defaultExpanded: state.activeTool ==
+                            EditorToolType.gameplayZonePlacement ||
+                        state.selectedGameplayZoneId != null,
+                  ),
+                  expandedHeight: 520,
+                  child: const GameplayZonePropertiesPanel(embedded: true),
+                ),
+              if (showEncounterTablesSection)
+                InspectorSectionCard(
+                  title: 'Encounter Tables',
+                  subtitle: 'Project-level encounter tables for wild Pokémon.',
+                  icon: CupertinoIcons.list_bullet,
+                  badgeText: '${state.project?.encounterTables.length ?? 0}',
+                  accentColor: EditorChrome.inspectorJoyCyan,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.encounterTables,
+                    false,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.encounterTables,
+                    defaultExpanded: false,
+                  ),
+                  expandedHeight: 480,
+                  child: const EncounterTablesPanel(embedded: true),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  bool _isExpanded(_InspectorSectionId section, bool defaultExpanded) {
+    return _expandedSections[section] ?? defaultExpanded;
+  }
+
+  void _toggleSection(
+    _InspectorSectionId section, {
+    required bool defaultExpanded,
+  }) {
+    setState(() {
+      _expandedSections[section] =
+          !(_expandedSections[section] ?? defaultExpanded);
+    });
+  }
+
+  MapLayer? _findActiveLayer(MapData? map, String? activeLayerId) {
+    if (map == null || activeLayerId == null) {
+      return null;
+    }
+    for (final layer in map.layers) {
+      if (layer.id == activeLayerId) {
+        return layer;
+      }
+    }
+    return null;
+  }
+
+  String _layerLabel(MapLayer layer) {
+    return switch (layer) {
+      TileLayer _ => 'Tile Layer',
+      CollisionLayer _ => 'Collision Layer',
+      TerrainLayer _ => 'Terrain Layer',
+      PathLayer _ => 'Path Layer',
+      SurfaceLayer _ => 'Surface Layer',
+      ObjectLayer _ => 'Object Layer',
+      EnvironmentLayer _ => 'Environment Layer',
+    };
+  }
+}
+
+class _InspectorOverviewCard extends StatelessWidget {
+  const _InspectorOverviewCard({
+    required this.map,
+    required this.activeLayer,
+  });
+
+  final MapData map;
+  final MapLayer? activeLayer;
+
+  @override
+  Widget build(BuildContext context) {
+    final subtle = EditorChrome.subtleLabel(context);
+    final label = EditorChrome.primaryLabel(context);
+    const accentA = EditorChrome.inspectorJoyHoney;
+    const accentB = EditorChrome.inspectorJoyApricot;
+    final activeLayerText = activeLayer == null
+        ? 'No active layer'
+        : switch (activeLayer!) {
+            TileLayer _ => 'Tile layer active',
+            TerrainLayer _ => 'Ground layer active',
+            PathLayer _ => 'Surface layer active',
+            SurfaceLayer _ => 'Surface placement layer active',
+            CollisionLayer _ => 'Collision layer active',
+            ObjectLayer _ => 'Object layer active',
+            EnvironmentLayer _ => 'Environment layer active',
+          };
+
+    final hi = EditorChrome.islandFillElevated(context);
+    final lo = EditorChrome.islandFill(context);
+    return Container(
+      margin: const EdgeInsets.fromLTRB(10, 2, 10, 12),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.lerp(hi, accentA, 0.44)!,
+            Color.lerp(lo, accentB, 0.38)!,
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Color.lerp(accentA, accentB, 0.5)!.withValues(alpha: 0.75),
+          width: 1,
+        ),
+        boxShadow: EditorChrome.inspectorTileHardShadows(context),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Color.lerp(CupertinoColors.white, accentA, 0.78)!,
+                  Color.lerp(accentB, const Color(0xFF1A0804), 0.35)!,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: accentA.withValues(alpha: 0.9),
+                width: 1.25,
+              ),
+            ),
+            alignment: Alignment.center,
+            child: const MacosIcon(
+              CupertinoIcons.slider_horizontal_3,
+              color: CupertinoColors.white,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  map.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: label,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${map.size.width} x ${map.size.height} tiles  •  ${map.layers.length} layers',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: subtle,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  activeLayerText,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: subtle,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+```
+
+### `packages/map_editor/lib/src/ui/panels/environment_layer_inspector_panel.dart`
+
+```dart
+import 'package:flutter/cupertino.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:macos_ui/macos_ui.dart';
+import 'package:map_core/map_core.dart';
+
+import '../../features/editor/state/editor_notifier.dart';
+import '../shared/cupertino_editor_widgets.dart';
+
+/// Inspecteur Lot Environment-19/20 : meta layer + cible [TileLayer] pour génération future.
+class EnvironmentLayerInspectorPanel extends ConsumerWidget {
+  const EnvironmentLayerInspectorPanel({
+    super.key,
+    required this.map,
+    required this.layer,
+    this.embedded = false,
+  });
+
+  final MapData map;
+  final EnvironmentLayer layer;
+  final bool embedded;
+
+  List<TileLayer> _tileLayers() {
+    final out = <TileLayer>[];
+    for (final l in map.layers) {
+      if (l is TileLayer) {
+        out.add(l);
+      }
+    }
+    return out;
+  }
+
+  TileLayer? _resolveTarget() {
+    final tid = layer.content.targetTileLayerId;
+    if (tid == null) return null;
+    for (final l in map.layers) {
+      if (l.id == tid && l is TileLayer) {
+        return l;
+      }
+    }
+    return null;
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final subtle = EditorChrome.subtleLabel(context);
+    final label = EditorChrome.primaryLabel(context);
+    final notifier = ref.read(editorNotifierProvider.notifier);
+    final tiles = _tileLayers();
+    final target = _resolveTarget();
+    final tid = layer.content.targetTileLayerId;
+    final invalidTarget = tid != null && target == null;
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(embedded ? 8 : 10, 4, embedded ? 8 : 10, 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Environment Layer',
+            key: const Key('map-inspector-environment-layer-title'),
+            style: TextStyle(
+              color: label,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Ce layer servira à dessiner des zones organiques et à générer des '
+            'éléments naturels.\n'
+            'La configuration des zones arrive dans un prochain lot.',
+            key: const Key('map-inspector-environment-layer-body'),
+            style: TextStyle(
+              color: subtle,
+              fontSize: 12,
+              height: 1.4,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'TileLayer cible',
+            style: TextStyle(
+              color: label,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (tiles.isEmpty) ...[
+            Text(
+              'Aucun TileLayer disponible dans cette map.\n'
+              'Ajoutez d’abord un TileLayer pour recevoir les résultats générés.',
+              key: const Key('env-layer-inspector-no-tile-layers'),
+              style: TextStyle(
+                color: subtle,
+                fontSize: 12,
+                height: 1.35,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ] else if (invalidTarget) ...[
+            Text(
+              'La cible configurée est introuvable ou invalide : $tid',
+              key: const Key('env-layer-inspector-invalid-target'),
+              style: TextStyle(
+                color: CupertinoColors.systemOrange.resolveFrom(context),
+                fontSize: 12,
+                height: 1.35,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 10),
+            PushButton(
+              key: const Key('env-layer-inspector-change-invalid'),
+              controlSize: ControlSize.regular,
+              onPressed: () => _pickTileLayer(context, notifier, tiles),
+              child: const Text('Choisir un autre TileLayer cible'),
+            ),
+            const SizedBox(height: 8),
+            PushButton(
+              key: const Key('env-layer-inspector-remove-invalid'),
+              controlSize: ControlSize.regular,
+              secondary: true,
+              onPressed: () => notifier.setEnvironmentLayerTargetTileLayer(
+                environmentLayerId: layer.id,
+                targetTileLayerId: null,
+              ),
+              child: const Text('Retirer la cible'),
+            ),
+          ] else if (target == null) ...[
+            Text(
+              'Aucun TileLayer cible sélectionné.',
+              key: const Key('env-layer-inspector-no-target'),
+              style: TextStyle(
+                color: subtle,
+                fontSize: 12,
+                height: 1.35,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 10),
+            PushButton(
+              key: const Key('env-layer-inspector-choose-target'),
+              controlSize: ControlSize.regular,
+              onPressed: () => _pickTileLayer(context, notifier, tiles),
+              child: const Text('Choisir le TileLayer cible'),
+            ),
+          ] else ...[
+            Text(
+              'Cible actuelle : ${target.name}',
+              key: const Key('env-layer-inspector-current-target-name'),
+              style: TextStyle(
+                color: label,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Id : ${target.id}',
+              key: const Key('env-layer-inspector-current-target-id'),
+              style: TextStyle(
+                color: subtle,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 10),
+            PushButton(
+              key: const Key('env-layer-inspector-change-target'),
+              controlSize: ControlSize.regular,
+              onPressed: () => _pickTileLayer(context, notifier, tiles),
+              child: const Text('Changer de TileLayer cible'),
+            ),
+            const SizedBox(height: 8),
+            PushButton(
+              key: const Key('env-layer-inspector-remove-target'),
+              controlSize: ControlSize.regular,
+              secondary: true,
+              onPressed: () => notifier.setEnvironmentLayerTargetTileLayer(
+                environmentLayerId: layer.id,
+                targetTileLayerId: null,
+              ),
+              child: const Text('Retirer la cible'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickTileLayer(
+    BuildContext context,
+    EditorNotifier notifier,
+    List<TileLayer> tiles,
+  ) async {
+    final picked = await showCupertinoListPicker<TileLayer>(
+      context: context,
+      title: 'TileLayer cible',
+      items: tiles,
+      labelOf: (t) => t.name,
+    );
+    if (picked == null) return;
+    notifier.setEnvironmentLayerTargetTileLayer(
+      environmentLayerId: layer.id,
+      targetTileLayerId: picked.id,
+    );
+  }
+}
+```
+
+### `packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart`
+
+```dart
+// ignore_for_file: prefer_const_constructors — fixtures MapData / MaterialApp non const pour lisibilité Lot 20
+
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:macos_ui/macos_ui.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/errors/application_errors.dart';
+import 'package:map_editor/src/application/use_cases/layer_use_cases.dart';
+import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
+import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/ui/panels/environment_layer_inspector_panel.dart';
+import 'package:map_editor/src/ui/panels/map_inspector_panel.dart';
+
+import '../shell_chrome_test_harness.dart';
+
+void main() {
+  group('Lot 20 — EnvironmentLayer target TileLayer', () {
+    group('SetEnvironmentLayerTargetTileLayerUseCase', () {
+      test('définit targetTileLayerId et préserve areas', () {
+        final mask = EnvironmentAreaMask(
+          width: 2,
+          height: 2,
+          cells: <bool>[false, false, false, false],
+        );
+        final area = EnvironmentArea(
+          id: 'z1',
+          name: 'Z',
+          presetId: 'p1',
+          mask: mask,
+          seed: 0,
+        );
+        final env = MapLayer.environment(
+          id: 'env',
+          name: 'E',
+          content: EnvironmentLayerContent(
+            targetTileLayerId: null,
+            areas: [area],
+          ),
+        );
+        final tile = TileLayer(
+          id: 'tiles_main',
+          name: 'Sol',
+          tiles: const <int>[0, 0, 0, 0],
+        );
+        final map = MapData(
+          id: 'm',
+          name: 'M',
+          size: const GridSize(width: 2, height: 2),
+          layers: [env, tile],
+        );
+        final uc = SetEnvironmentLayerTargetTileLayerUseCase();
+        final out = uc.execute(
+          map,
+          environmentLayerId: 'env',
+          targetTileLayerId: 'tiles_main',
+        );
+        final layer = out.layers.first as EnvironmentLayer;
+        expect(layer.content.targetTileLayerId, 'tiles_main');
+        expect(layer.content.areas.length, 1);
+        expect(layer.content.areas.single.id, 'z1');
+        expect(out.placedElements, map.placedElements);
+      });
+
+      test('target null remet targetTileLayerId à null', () {
+        final env = MapLayer.environment(
+          id: 'env',
+          name: 'E',
+          content: EnvironmentLayerContent(targetTileLayerId: 't1'),
+        );
+        final tile = TileLayer(
+          id: 't1',
+          name: 'T',
+          tiles: const <int>[0, 0],
+        );
+        final map = MapData(
+          id: 'm',
+          name: 'M',
+          size: const GridSize(width: 1, height: 2),
+          layers: [env, tile],
+        );
+        final uc = SetEnvironmentLayerTargetTileLayerUseCase();
+        final out = uc.execute(
+          map,
+          environmentLayerId: 'env',
+          targetTileLayerId: null,
+        );
+        final layer = out.layers.first as EnvironmentLayer;
+        expect(layer.content.targetTileLayerId, isNull);
+      });
+
+      test('rejette cible ObjectLayer', () {
+        final env = MapLayer.environment(id: 'env', name: 'E');
+        final obj = MapLayer.object(id: 'obj', name: 'O');
+        final map = MapData(
+          id: 'm',
+          name: 'M',
+          size: const GridSize(width: 1, height: 1),
+          layers: [env, obj],
+        );
+        final uc = SetEnvironmentLayerTargetTileLayerUseCase();
+        expect(
+          () => uc.execute(
+            map,
+            environmentLayerId: 'env',
+            targetTileLayerId: 'obj',
+          ),
+          throwsA(isA<EditorValidationException>()),
+        );
+      });
+
+      test('rejette environmentLayerId TileLayer', () {
+        final tile = TileLayer(
+          id: 't1',
+          name: 'T',
+          tiles: const <int>[0],
+        );
+        final map = MapData(
+          id: 'm',
+          name: 'M',
+          size: const GridSize(width: 1, height: 1),
+          layers: [tile],
+        );
+        final uc = SetEnvironmentLayerTargetTileLayerUseCase();
+        expect(
+          () => uc.execute(
+            map,
+            environmentLayerId: 't1',
+            targetTileLayerId: 't1',
+          ),
+          throwsA(isA<EditorValidationException>()),
+        );
+      });
+
+      test('rejette id inconnu pour environmentLayerId', () {
+        final map = MapData(
+          id: 'm',
+          name: 'M',
+          size: const GridSize(width: 1, height: 1),
+          layers: [
+            MapLayer.environment(id: 'env', name: 'E'),
+            TileLayer(id: 't1', name: 'T', tiles: const <int>[0]),
+          ],
+        );
+        final uc = SetEnvironmentLayerTargetTileLayerUseCase();
+        expect(
+          () => uc.execute(
+            map,
+            environmentLayerId: 'missing',
+            targetTileLayerId: 't1',
+          ),
+          throwsA(isA<EditorValidationException>()),
+        );
+      });
+
+      test('rejette auto-cible', () {
+        final env = MapLayer.environment(id: 'env', name: 'E');
+        final tile = TileLayer(
+          id: 't1',
+          name: 'T',
+          tiles: const <int>[0],
+        );
+        final map = MapData(
+          id: 'm',
+          name: 'M',
+          size: const GridSize(width: 1, height: 1),
+          layers: [env, tile],
+        );
+        final uc = SetEnvironmentLayerTargetTileLayerUseCase();
+        expect(
+          () => uc.execute(
+            map,
+            environmentLayerId: 'env',
+            targetTileLayerId: 'env',
+          ),
+          throwsA(isA<EditorValidationException>()),
+        );
+      });
+    });
+
+    group('EditorNotifier.setEnvironmentLayerTargetTileLayer', () {
+      test(
+          'met à jour activeMap, garde activeLayerId, isDirty, chemins stables',
+          () {
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+        final env = MapLayer.environment(id: 'env', name: 'E');
+        final tile = TileLayer(
+          id: 't1',
+          name: 'Sol',
+          tiles: const <int>[0, 0, 0, 0],
+        );
+        const root = '/tmp/lot20';
+        const mapPath = 'maps/x.json';
+        final map = MapData(
+          id: 'm1',
+          name: 'M1',
+          size: const GridSize(width: 2, height: 2),
+          layers: [env, tile],
+        );
+        container.read(editorNotifierProvider.notifier).state = EditorState(
+          projectRootPath: root,
+          project: buildShellChromeProject(),
+          activeMap: map,
+          activeMapPath: mapPath,
+          activeLayerId: 'env',
+          savedMapSnapshot: map,
+        );
+        final notifier = container.read(editorNotifierProvider.notifier);
+        notifier.setEnvironmentLayerTargetTileLayer(
+          environmentLayerId: 'env',
+          targetTileLayerId: 't1',
+        );
+        final state = container.read(editorNotifierProvider);
+        expect(state.activeLayerId, 'env');
+        expect(state.isDirty, isTrue);
+        expect(state.projectRootPath, root);
+        expect(state.activeMapPath, mapPath);
+        final el = state.activeMap!.layers.first as EnvironmentLayer;
+        expect(el.content.targetTileLayerId, 't1');
+      });
+    });
+
+    testWidgets('inspecteur : aucun TileLayer', (tester) async {
+      final env = MapLayer.environment(id: 'env', name: 'E');
+      final map = MapData(
+        id: 'mx',
+        name: 'Mx',
+        size: const GridSize(width: 2, height: 2),
+        layers: [env],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/tmp',
+        project: buildShellChromeProject(),
+        activeMap: map,
+        activeMapPath: 'maps/x.json',
+        activeLayerId: env.id,
+      );
+      await tester.binding.setSurfaceSize(const Size(480, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: MaterialApp(
+              home: CupertinoPageScaffold(
+                child: SizedBox(
+                  width: 400,
+                  height: 900,
+                  child: MapInspectorPanel(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('env-layer-inspector-no-tile-layers')),
+          findsOneWidget);
+    });
+
+    testWidgets('inspecteur : TileLayer présents, pas de cible',
+        (tester) async {
+      final env = MapLayer.environment(id: 'env', name: 'E');
+      final tile = TileLayer(
+        id: 'tdecor',
+        name: 'Décor',
+        tiles: const <int>[0, 0, 0, 0],
+      );
+      final map = MapData(
+        id: 'mx',
+        name: 'Mx',
+        size: const GridSize(width: 2, height: 2),
+        layers: [env, tile],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/tmp',
+        project: buildShellChromeProject(),
+        activeMap: map,
+        activeMapPath: 'maps/x.json',
+        activeLayerId: env.id,
+      );
+      await tester.binding.setSurfaceSize(const Size(480, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: MaterialApp(
+              home: CupertinoPageScaffold(
+                child: SizedBox(
+                  width: 400,
+                  height: 900,
+                  child: MapInspectorPanel(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('env-layer-inspector-no-target')),
+          findsOneWidget);
+      expect(find.byKey(const Key('env-layer-inspector-choose-target')),
+          findsOneWidget);
+    });
+
+    testWidgets('choix TileLayer via picker met à jour la cible et dirty',
+        (tester) async {
+      final env = MapLayer.environment(id: 'env', name: 'E');
+      final tile = TileLayer(
+        id: 'tuniq',
+        name: 'Tuiles sol',
+        tiles: const <int>[0, 0, 0, 0],
+      );
+      final map = MapData(
+        id: 'mx',
+        name: 'Mx',
+        size: const GridSize(width: 2, height: 2),
+        layers: [env, tile],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/tmp',
+        project: buildShellChromeProject(),
+        activeMap: map,
+        activeMapPath: 'maps/x.json',
+        activeLayerId: env.id,
+        savedMapSnapshot: map,
+      );
+      await tester.binding.setSurfaceSize(const Size(520, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: MaterialApp(
+              home: CupertinoPageScaffold(
+                child: SizedBox(
+                  width: 420,
+                  height: 1000,
+                  child: MapInspectorPanel(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester
+          .tap(find.byKey(const Key('env-layer-inspector-choose-target')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Tuiles sol').last);
+      await tester.pumpAndSettle();
+      final state = container.read(editorNotifierProvider);
+      expect(
+        (state.activeMap!.layers.first as EnvironmentLayer)
+            .content
+            .targetTileLayerId,
+        'tuniq',
+      );
+      expect(state.isDirty, isTrue);
+      expect(find.byKey(const Key('env-layer-inspector-current-target-name')),
+          findsOneWidget);
+      expect(find.textContaining('Cible actuelle :'), findsWidgets);
+    });
+
+    testWidgets('picker ne liste que les TileLayer (ObjectLayer exclu)',
+        (tester) async {
+      final env = MapLayer.environment(id: 'env', name: 'E');
+      final tile = TileLayer(
+        id: 'only_tile',
+        name: 'Couche tuiles',
+        tiles: const <int>[0, 0, 0, 0],
+      );
+      final obj = MapLayer.object(id: 'obj', name: 'Objets');
+      final map = MapData(
+        id: 'mx',
+        name: 'Mx',
+        size: const GridSize(width: 2, height: 2),
+        layers: [env, obj, tile],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/tmp',
+        project: buildShellChromeProject(),
+        activeMap: map,
+        activeMapPath: 'maps/x.json',
+        activeLayerId: env.id,
+      );
+      await tester.binding.setSurfaceSize(const Size(520, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: MaterialApp(
+              home: CupertinoPageScaffold(
+                child: SizedBox(
+                  width: 420,
+                  height: 1000,
+                  child: MapInspectorPanel(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester
+          .tap(find.byKey(const Key('env-layer-inspector-choose-target')));
+      await tester.pumpAndSettle();
+      final sheetFinder = find.byType(MacosSheet).last;
+      expect(
+        find.descendant(of: sheetFinder, matching: find.text('Objets')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: sheetFinder, matching: find.text('Couche tuiles')),
+        findsOneWidget,
+      );
+      await tester.tap(find.descendant(
+        of: sheetFinder,
+        matching: find.text('Couche tuiles'),
+      ));
+      await tester.pumpAndSettle();
+      expect(
+        (container.read(editorNotifierProvider).activeMap!.layers.first
+                as EnvironmentLayer)
+            .content
+            .targetTileLayerId,
+        'only_tile',
+      );
+    });
+
+    testWidgets('retirer la cible remet null', (tester) async {
+      final tile = TileLayer(
+        id: 't1',
+        name: 'T',
+        tiles: const <int>[0, 0, 0, 0],
+      );
+      final env = MapLayer.environment(
+        id: 'env',
+        name: 'E',
+        content: EnvironmentLayerContent(targetTileLayerId: 't1'),
+      );
+      final map = MapData(
+        id: 'mx',
+        name: 'Mx',
+        size: const GridSize(width: 2, height: 2),
+        layers: [env, tile],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/tmp',
+        project: buildShellChromeProject(),
+        activeMap: map,
+        activeMapPath: 'maps/x.json',
+        activeLayerId: env.id,
+        savedMapSnapshot: map,
+      );
+      await tester.binding.setSurfaceSize(const Size(520, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: MaterialApp(
+              home: CupertinoPageScaffold(
+                child: SizedBox(
+                  width: 420,
+                  height: 1000,
+                  child: MapInspectorPanel(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester
+          .tap(find.byKey(const Key('env-layer-inspector-remove-target')));
+      await tester.pumpAndSettle();
+      final state = container.read(editorNotifierProvider);
+      expect(
+        (state.activeMap!.layers.first as EnvironmentLayer)
+            .content
+            .targetTileLayerId,
+        isNull,
+      );
+      expect(find.byKey(const Key('env-layer-inspector-no-target')),
+          findsOneWidget);
+    });
+
+    testWidgets('cible invalide affiche avertissement et actions',
+        (tester) async {
+      final tile = TileLayer(
+        id: 't1',
+        name: 'T',
+        tiles: const <int>[0, 0, 0, 0],
+      );
+      final env = MapLayer.environment(
+        id: 'env',
+        name: 'E',
+        content: EnvironmentLayerContent(targetTileLayerId: 'missing_layer'),
+      );
+      final map = MapData(
+        id: 'mx',
+        name: 'Mx',
+        size: const GridSize(width: 2, height: 2),
+        layers: [env, tile],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/tmp',
+        project: buildShellChromeProject(),
+        activeMap: map,
+        activeMapPath: 'maps/x.json',
+        activeLayerId: env.id,
+      );
+      await tester.binding.setSurfaceSize(const Size(520, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: MaterialApp(
+              home: CupertinoPageScaffold(
+                child: SizedBox(
+                  width: 420,
+                  height: 1000,
+                  child: MapInspectorPanel(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('env-layer-inspector-invalid-target')),
+          findsOneWidget);
+      expect(find.textContaining('missing_layer'), findsOneWidget);
+      expect(find.byKey(const Key('env-layer-inspector-remove-invalid')),
+          findsOneWidget);
+    });
+
+    testWidgets('EnvironmentLayerInspectorPanel seul : pas de crash', (
+      tester,
+    ) async {
+      final envLayer = MapLayer.environment(id: 'e', name: 'E') as EnvironmentLayer;
+      final map = MapData(
+        id: 'm',
+        name: 'M',
+        size: const GridSize(width: 1, height: 1),
+        layers: [envLayer],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: MaterialApp(
+              home: CupertinoPageScaffold(
+                child: EnvironmentLayerInspectorPanel(
+                  map: map,
+                  layer: envLayer,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('env-layer-inspector-no-tile-layers')),
+          findsOneWidget);
+    });
+  });
+}
+```
+
+## 17. Diff complet
+
+### Fichiers trackés modifiés
+
+```diff
+diff --git a/packages/map_editor/lib/src/application/use_cases/layer_use_cases.dart b/packages/map_editor/lib/src/application/use_cases/layer_use_cases.dart
+index 043b364c..a935859e 100644
+--- a/packages/map_editor/lib/src/application/use_cases/layer_use_cases.dart
++++ b/packages/map_editor/lib/src/application/use_cases/layer_use_cases.dart
+@@ -226,3 +226,94 @@ class SetMapLayerOpacityUseCase {
+     return updated;
+   }
+ }
++
++/// Lot Environment-20 : cible tuile pour un [EnvironmentLayer] (mutation map pure).
++class SetEnvironmentLayerTargetTileLayerUseCase {
++  MapData execute(
++    MapData map, {
++    required String environmentLayerId,
++    required String? targetTileLayerId,
++  }) {
++    final envId = environmentLayerId.trim();
++    if (envId.isEmpty) {
++      throw const EditorValidationException(
++          'Environment layer id cannot be empty');
++    }
++
++    MapLayer? envLayer;
++    for (final layer in map.layers) {
++      if (layer.id == envId) {
++        envLayer = layer;
++        break;
++      }
++    }
++    if (envLayer == null) {
++      throw EditorValidationException('Environment layer not found: $envId');
++    }
++    if (envLayer is! EnvironmentLayer) {
++      throw EditorValidationException(
++          'Layer is not an environment layer: $envId');
++    }
++
++    if (targetTileLayerId == null) {
++      final nextContent = EnvironmentLayerContent(
++        targetTileLayerId: null,
++        areas: envLayer.content.areas,
++      );
++      try {
++        final updated = setEnvironmentLayerContent(
++          map,
++          layerId: envId,
++          content: nextContent,
++        );
++        MapValidator.validate(updated);
++        return updated;
++      } on ValidationException catch (e) {
++        throw EditorValidationException(e.message);
++      }
++    }
++
++    final tid = targetTileLayerId.trim();
++    if (tid.isEmpty) {
++      throw const EditorValidationException(
++          'Target tile layer id cannot be empty');
++    }
++    if (tid == envId) {
++      throw const EditorValidationException(
++        'Environment layer cannot target itself as targetTileLayerId',
++      );
++    }
++
++    MapLayer? targetLayer;
++    for (final layer in map.layers) {
++      if (layer.id == tid) {
++        targetLayer = layer;
++        break;
++      }
++    }
++    if (targetLayer == null) {
++      throw EditorValidationException('Target tile layer not found: $tid');
++    }
++    if (targetLayer is! TileLayer) {
++      throw EditorValidationException(
++        'targetTileLayerId must reference a TileLayer, got ${targetLayer.runtimeType}',
++      );
++    }
++
++    final nextContent = EnvironmentLayerContent(
++      targetTileLayerId: tid,
++      areas: envLayer.content.areas,
++    );
++    try {
++      final updated = setEnvironmentLayerContent(
++        map,
++        layerId: envId,
++        content: nextContent,
++      );
++      MapValidator.validate(updated);
++      return updated;
++    } on ValidationException catch (e) {
++      throw EditorValidationException(e.message);
++    }
++  }
++}
+diff --git a/packages/map_editor/lib/src/features/editor/state/editor_notifier.dart b/packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
+index 4eef4fce..91457a73 100644
+--- a/packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
++++ b/packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
+@@ -13,6 +13,7 @@ import '../../../app/providers/core_providers.dart';
+ import '../../../app/providers/editor_workspace_providers.dart';
+ import '../../../app/providers/use_case_providers.dart';
+ import '../../../application/errors/application_errors.dart';
++import '../../../application/use_cases/layer_use_cases.dart';
+ import '../../../application/models/trainer_field_update.dart';
+ import '../../../application/models/map_tool_preview.dart';
+ import '../../../application/models/path_autotile_set.dart';
+@@ -4645,6 +4646,35 @@ class EditorNotifier extends _$EditorNotifier {
+     }
+   }
+ 
++  /// Lot Environment-20 : [EnvironmentLayerContent.targetTileLayerId] uniquement.
++  void setEnvironmentLayerTargetTileLayer({
++    required String environmentLayerId,
++    required String? targetTileLayerId,
++  }) {
++    final map = state.activeMap;
++    if (map == null) return;
++    try {
++      final useCase = SetEnvironmentLayerTargetTileLayerUseCase();
++      final updated = useCase.execute(
++        map,
++        environmentLayerId: environmentLayerId,
++        targetTileLayerId: targetTileLayerId,
++      );
++      _applyMapMutation(
++        previousMap: map,
++        updatedMap: updated,
++        preferredActiveLayerId: environmentLayerId,
++        statusMessage: targetTileLayerId == null
++            ? 'Environment layer target tile layer cleared'
++            : 'Environment layer target tile layer updated',
++      );
++    } catch (e) {
++      state = state.copyWith(
++        errorMessage: 'Failed to set environment target tile layer: $e',
++      );
++    }
++  }
++
+   void renameMapLayer(String layerId, String name) {
+     final map = state.activeMap;
+     if (map == null) return;
+diff --git a/packages/map_editor/lib/src/ui/panels/map_inspector_panel.dart b/packages/map_editor/lib/src/ui/panels/map_inspector_panel.dart
+index b9d1bc5d..14e6a459 100644
+--- a/packages/map_editor/lib/src/ui/panels/map_inspector_panel.dart
++++ b/packages/map_editor/lib/src/ui/panels/map_inspector_panel.dart
+@@ -13,6 +13,7 @@ import 'encounter_tables_panel.dart';
+ import 'entity_properties_panel.dart';
+ import 'event_properties_panel.dart';
+ import 'gameplay_zone_properties_panel.dart';
++import 'environment_layer_inspector_panel.dart';
+ import 'layers_panel.dart';
+ import 'map_connections_panel.dart';
+ import 'map_properties_panel.dart';
+@@ -178,8 +179,12 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
+                     _InspectorSectionId.environmentLayer,
+                     defaultExpanded: true,
+                   ),
+-                  expandedHeight: 200,
+-                  child: const _EnvironmentLayerInspectorPlaceholder(),
++                  expandedHeight: 360,
++                  child: EnvironmentLayerInspectorPanel(
++                    map: activeMap,
++                    layer: activeLayer,
++                    embedded: true,
++                  ),
+                 ),
+               if (showTilesSection)
+                 InspectorSectionCard(
+@@ -456,47 +461,6 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
+   }
+ }
+ 
+-/// Lot Environment-19 : pas de contrôles métier tant que zones / cible tuiles absents.
+-class _EnvironmentLayerInspectorPlaceholder extends StatelessWidget {
+-  const _EnvironmentLayerInspectorPlaceholder();
+-
+-  @override
+-  Widget build(BuildContext context) {
+-    final subtle = EditorChrome.subtleLabel(context);
+-    final label = EditorChrome.primaryLabel(context);
+-    return Padding(
+-      padding: const EdgeInsets.fromLTRB(10, 4, 10, 10),
+-      child: Column(
+-        crossAxisAlignment: CrossAxisAlignment.stretch,
+-        children: [
+-          Text(
+-            'Environment Layer',
+-            key: const Key('map-inspector-environment-layer-title'),
+-            style: TextStyle(
+-              color: label,
+-              fontSize: 14,
+-              fontWeight: FontWeight.w800,
+-            ),
+-          ),
+-          const SizedBox(height: 8),
+-          Text(
+-            'Ce layer servira à dessiner des zones organiques et à générer des '
+-            'éléments naturels.\n'
+-            'La configuration des zones arrive dans un prochain lot.',
+-            key: const Key('map-inspector-environment-layer-body'),
+-            style: TextStyle(
+-              color: subtle,
+-              fontSize: 12,
+-              height: 1.4,
+-              fontWeight: FontWeight.w600,
+-            ),
+-          ),
+-        ],
+-      ),
+-    );
+-  }
+-}
+-
+ class _InspectorOverviewCard extends StatelessWidget {
+   const _InspectorOverviewCard({
+     required this.map,
+```
+
+### Nouveaux fichiers (`git diff --no-index /dev/null …`)
+
+```diff
+diff --git a/packages/map_editor/lib/src/ui/panels/environment_layer_inspector_panel.dart b/packages/map_editor/lib/src/ui/panels/environment_layer_inspector_panel.dart
+new file mode 100644
+index 00000000..ef566811
+--- /dev/null
++++ b/packages/map_editor/lib/src/ui/panels/environment_layer_inspector_panel.dart
+@@ -0,0 +1,210 @@
++import 'package:flutter/cupertino.dart';
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:macos_ui/macos_ui.dart';
++import 'package:map_core/map_core.dart';
++
++import '../../features/editor/state/editor_notifier.dart';
++import '../shared/cupertino_editor_widgets.dart';
++
++/// Inspecteur Lot Environment-19/20 : meta layer + cible [TileLayer] pour génération future.
++class EnvironmentLayerInspectorPanel extends ConsumerWidget {
++  const EnvironmentLayerInspectorPanel({
++    super.key,
++    required this.map,
++    required this.layer,
++    this.embedded = false,
++  });
++
++  final MapData map;
++  final EnvironmentLayer layer;
++  final bool embedded;
++
++  List<TileLayer> _tileLayers() {
++    final out = <TileLayer>[];
++    for (final l in map.layers) {
++      if (l is TileLayer) {
++        out.add(l);
++      }
++    }
++    return out;
++  }
++
++  TileLayer? _resolveTarget() {
++    final tid = layer.content.targetTileLayerId;
++    if (tid == null) return null;
++    for (final l in map.layers) {
++      if (l.id == tid && l is TileLayer) {
++        return l;
++      }
++    }
++    return null;
++  }
++
++  @override
++  Widget build(BuildContext context, WidgetRef ref) {
++    final subtle = EditorChrome.subtleLabel(context);
++    final label = EditorChrome.primaryLabel(context);
++    final notifier = ref.read(editorNotifierProvider.notifier);
++    final tiles = _tileLayers();
++    final target = _resolveTarget();
++    final tid = layer.content.targetTileLayerId;
++    final invalidTarget = tid != null && target == null;
++
++    return Padding(
++      padding: EdgeInsets.fromLTRB(embedded ? 8 : 10, 4, embedded ? 8 : 10, 10),
++      child: Column(
++        crossAxisAlignment: CrossAxisAlignment.stretch,
++        children: [
++          Text(
++            'Environment Layer',
++            key: const Key('map-inspector-environment-layer-title'),
++            style: TextStyle(
++              color: label,
++              fontSize: 14,
++              fontWeight: FontWeight.w800,
++            ),
++          ),
++          const SizedBox(height: 8),
++          Text(
++            'Ce layer servira à dessiner des zones organiques et à générer des '
++            'éléments naturels.\n'
++            'La configuration des zones arrive dans un prochain lot.',
++            key: const Key('map-inspector-environment-layer-body'),
++            style: TextStyle(
++              color: subtle,
++              fontSize: 12,
++              height: 1.4,
++              fontWeight: FontWeight.w600,
++            ),
++          ),
++          const SizedBox(height: 14),
++          Text(
++            'TileLayer cible',
++            style: TextStyle(
++              color: label,
++              fontSize: 13,
++              fontWeight: FontWeight.w700,
++            ),
++          ),
++          const SizedBox(height: 8),
++          if (tiles.isEmpty) ...[
++            Text(
++              'Aucun TileLayer disponible dans cette map.\n'
++              'Ajoutez d’abord un TileLayer pour recevoir les résultats générés.',
++              key: const Key('env-layer-inspector-no-tile-layers'),
++              style: TextStyle(
++                color: subtle,
++                fontSize: 12,
++                height: 1.35,
++                fontWeight: FontWeight.w600,
++              ),
++            ),
++          ] else if (invalidTarget) ...[
++            Text(
++              'La cible configurée est introuvable ou invalide : $tid',
++              key: const Key('env-layer-inspector-invalid-target'),
++              style: TextStyle(
++                color: CupertinoColors.systemOrange.resolveFrom(context),
++                fontSize: 12,
++                height: 1.35,
++                fontWeight: FontWeight.w600,
++              ),
++            ),
++            const SizedBox(height: 10),
++            PushButton(
++              key: const Key('env-layer-inspector-change-invalid'),
++              controlSize: ControlSize.regular,
++              onPressed: () => _pickTileLayer(context, notifier, tiles),
++              child: const Text('Choisir un autre TileLayer cible'),
++            ),
++            const SizedBox(height: 8),
++            PushButton(
++              key: const Key('env-layer-inspector-remove-invalid'),
++              controlSize: ControlSize.regular,
++              secondary: true,
++              onPressed: () => notifier.setEnvironmentLayerTargetTileLayer(
++                environmentLayerId: layer.id,
++                targetTileLayerId: null,
++              ),
++              child: const Text('Retirer la cible'),
++            ),
++          ] else if (target == null) ...[
++            Text(
++              'Aucun TileLayer cible sélectionné.',
++              key: const Key('env-layer-inspector-no-target'),
++              style: TextStyle(
++                color: subtle,
++                fontSize: 12,
++                height: 1.35,
++                fontWeight: FontWeight.w600,
++              ),
++            ),
++            const SizedBox(height: 10),
++            PushButton(
++              key: const Key('env-layer-inspector-choose-target'),
++              controlSize: ControlSize.regular,
++              onPressed: () => _pickTileLayer(context, notifier, tiles),
++              child: const Text('Choisir le TileLayer cible'),
++            ),
++          ] else ...[
++            Text(
++              'Cible actuelle : ${target.name}',
++              key: const Key('env-layer-inspector-current-target-name'),
++              style: TextStyle(
++                color: label,
++                fontSize: 12,
++                fontWeight: FontWeight.w700,
++              ),
++            ),
++            const SizedBox(height: 4),
++            Text(
++              'Id : ${target.id}',
++              key: const Key('env-layer-inspector-current-target-id'),
++              style: TextStyle(
++                color: subtle,
++                fontSize: 11.5,
++                fontWeight: FontWeight.w600,
++              ),
++            ),
++            const SizedBox(height: 10),
++            PushButton(
++              key: const Key('env-layer-inspector-change-target'),
++              controlSize: ControlSize.regular,
++              onPressed: () => _pickTileLayer(context, notifier, tiles),
++              child: const Text('Changer de TileLayer cible'),
++            ),
++            const SizedBox(height: 8),
++            PushButton(
++              key: const Key('env-layer-inspector-remove-target'),
++              controlSize: ControlSize.regular,
++              secondary: true,
++              onPressed: () => notifier.setEnvironmentLayerTargetTileLayer(
++                environmentLayerId: layer.id,
++                targetTileLayerId: null,
++              ),
++              child: const Text('Retirer la cible'),
++            ),
++          ],
++        ],
++      ),
++    );
++  }
++
++  Future<void> _pickTileLayer(
++    BuildContext context,
++    EditorNotifier notifier,
++    List<TileLayer> tiles,
++  ) async {
++    final picked = await showCupertinoListPicker<TileLayer>(
++      context: context,
++      title: 'TileLayer cible',
++      items: tiles,
++      labelOf: (t) => t.name,
++    );
++    if (picked == null) return;
++    notifier.setEnvironmentLayerTargetTileLayer(
++      environmentLayerId: layer.id,
++      targetTileLayerId: picked.id,
++    );
++  }
++}
+diff --git a/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart b/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart
+new file mode 100644
+index 00000000..42dd2402
+--- /dev/null
++++ b/packages/map_editor/test/environment_studio/environment_layer_target_tile_layer_test.dart
+@@ -0,0 +1,595 @@
++// ignore_for_file: prefer_const_constructors — fixtures MapData / MaterialApp non const pour lisibilité Lot 20
++
++import 'package:flutter/cupertino.dart';
++import 'package:flutter/material.dart';
++import 'package:flutter_riverpod/flutter_riverpod.dart';
++import 'package:flutter_test/flutter_test.dart';
++import 'package:macos_ui/macos_ui.dart';
++import 'package:map_core/map_core.dart';
++import 'package:map_editor/src/application/errors/application_errors.dart';
++import 'package:map_editor/src/application/use_cases/layer_use_cases.dart';
++import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
++import 'package:map_editor/src/features/editor/state/editor_state.dart';
++import 'package:map_editor/src/ui/panels/environment_layer_inspector_panel.dart';
++import 'package:map_editor/src/ui/panels/map_inspector_panel.dart';
++
++import '../shell_chrome_test_harness.dart';
++
++void main() {
++  group('Lot 20 — EnvironmentLayer target TileLayer', () {
++    group('SetEnvironmentLayerTargetTileLayerUseCase', () {
++      test('définit targetTileLayerId et préserve areas', () {
++        final mask = EnvironmentAreaMask(
++          width: 2,
++          height: 2,
++          cells: <bool>[false, false, false, false],
++        );
++        final area = EnvironmentArea(
++          id: 'z1',
++          name: 'Z',
++          presetId: 'p1',
++          mask: mask,
++          seed: 0,
++        );
++        final env = MapLayer.environment(
++          id: 'env',
++          name: 'E',
++          content: EnvironmentLayerContent(
++            targetTileLayerId: null,
++            areas: [area],
++          ),
++        );
++        final tile = TileLayer(
++          id: 'tiles_main',
++          name: 'Sol',
++          tiles: const <int>[0, 0, 0, 0],
++        );
++        final map = MapData(
++          id: 'm',
++          name: 'M',
++          size: const GridSize(width: 2, height: 2),
++          layers: [env, tile],
++        );
++        final uc = SetEnvironmentLayerTargetTileLayerUseCase();
++        final out = uc.execute(
++          map,
++          environmentLayerId: 'env',
++          targetTileLayerId: 'tiles_main',
++        );
++        final layer = out.layers.first as EnvironmentLayer;
++        expect(layer.content.targetTileLayerId, 'tiles_main');
++        expect(layer.content.areas.length, 1);
++        expect(layer.content.areas.single.id, 'z1');
++        expect(out.placedElements, map.placedElements);
++      });
++
++      test('target null remet targetTileLayerId à null', () {
++        final env = MapLayer.environment(
++          id: 'env',
++          name: 'E',
++          content: EnvironmentLayerContent(targetTileLayerId: 't1'),
++        );
++        final tile = TileLayer(
++          id: 't1',
++          name: 'T',
++          tiles: const <int>[0, 0],
++        );
++        final map = MapData(
++          id: 'm',
++          name: 'M',
++          size: const GridSize(width: 1, height: 2),
++          layers: [env, tile],
++        );
++        final uc = SetEnvironmentLayerTargetTileLayerUseCase();
++        final out = uc.execute(
++          map,
++          environmentLayerId: 'env',
++          targetTileLayerId: null,
++        );
++        final layer = out.layers.first as EnvironmentLayer;
++        expect(layer.content.targetTileLayerId, isNull);
++      });
++
++      test('rejette cible ObjectLayer', () {
++        final env = MapLayer.environment(id: 'env', name: 'E');
++        final obj = MapLayer.object(id: 'obj', name: 'O');
++        final map = MapData(
++          id: 'm',
++          name: 'M',
++          size: const GridSize(width: 1, height: 1),
++          layers: [env, obj],
++        );
++        final uc = SetEnvironmentLayerTargetTileLayerUseCase();
++        expect(
++          () => uc.execute(
++            map,
++            environmentLayerId: 'env',
++            targetTileLayerId: 'obj',
++          ),
++          throwsA(isA<EditorValidationException>()),
++        );
++      });
++
++      test('rejette environmentLayerId TileLayer', () {
++        final tile = TileLayer(
++          id: 't1',
++          name: 'T',
++          tiles: const <int>[0],
++        );
++        final map = MapData(
++          id: 'm',
++          name: 'M',
++          size: const GridSize(width: 1, height: 1),
++          layers: [tile],
++        );
++        final uc = SetEnvironmentLayerTargetTileLayerUseCase();
++        expect(
++          () => uc.execute(
++            map,
++            environmentLayerId: 't1',
++            targetTileLayerId: 't1',
++          ),
++          throwsA(isA<EditorValidationException>()),
++        );
++      });
++
++      test('rejette id inconnu pour environmentLayerId', () {
++        final map = MapData(
++          id: 'm',
++          name: 'M',
++          size: const GridSize(width: 1, height: 1),
++          layers: [
++            MapLayer.environment(id: 'env', name: 'E'),
++            TileLayer(id: 't1', name: 'T', tiles: const <int>[0]),
++          ],
++        );
++        final uc = SetEnvironmentLayerTargetTileLayerUseCase();
++        expect(
++          () => uc.execute(
++            map,
++            environmentLayerId: 'missing',
++            targetTileLayerId: 't1',
++          ),
++          throwsA(isA<EditorValidationException>()),
++        );
++      });
++
++      test('rejette auto-cible', () {
++        final env = MapLayer.environment(id: 'env', name: 'E');
++        final tile = TileLayer(
++          id: 't1',
++          name: 'T',
++          tiles: const <int>[0],
++        );
++        final map = MapData(
++          id: 'm',
++          name: 'M',
++          size: const GridSize(width: 1, height: 1),
++          layers: [env, tile],
++        );
++        final uc = SetEnvironmentLayerTargetTileLayerUseCase();
++        expect(
++          () => uc.execute(
++            map,
++            environmentLayerId: 'env',
++            targetTileLayerId: 'env',
++          ),
++          throwsA(isA<EditorValidationException>()),
++        );
++      });
++    });
++
++    group('EditorNotifier.setEnvironmentLayerTargetTileLayer', () {
++      test(
++          'met à jour activeMap, garde activeLayerId, isDirty, chemins stables',
++          () {
++        final container = ProviderContainer();
++        addTearDown(container.dispose);
++        final env = MapLayer.environment(id: 'env', name: 'E');
++        final tile = TileLayer(
++          id: 't1',
++          name: 'Sol',
++          tiles: const <int>[0, 0, 0, 0],
++        );
++        const root = '/tmp/lot20';
++        const mapPath = 'maps/x.json';
++        final map = MapData(
++          id: 'm1',
++          name: 'M1',
++          size: const GridSize(width: 2, height: 2),
++          layers: [env, tile],
++        );
++        container.read(editorNotifierProvider.notifier).state = EditorState(
++          projectRootPath: root,
++          project: buildShellChromeProject(),
++          activeMap: map,
++          activeMapPath: mapPath,
++          activeLayerId: 'env',
++          savedMapSnapshot: map,
++        );
++        final notifier = container.read(editorNotifierProvider.notifier);
++        notifier.setEnvironmentLayerTargetTileLayer(
++          environmentLayerId: 'env',
++          targetTileLayerId: 't1',
++        );
++        final state = container.read(editorNotifierProvider);
++        expect(state.activeLayerId, 'env');
++        expect(state.isDirty, isTrue);
++        expect(state.projectRootPath, root);
++        expect(state.activeMapPath, mapPath);
++        final el = state.activeMap!.layers.first as EnvironmentLayer;
++        expect(el.content.targetTileLayerId, 't1');
++      });
++    });
++
++    testWidgets('inspecteur : aucun TileLayer', (tester) async {
++      final env = MapLayer.environment(id: 'env', name: 'E');
++      final map = MapData(
++        id: 'mx',
++        name: 'Mx',
++        size: const GridSize(width: 2, height: 2),
++        layers: [env],
++      );
++      final container = ProviderContainer();
++      addTearDown(container.dispose);
++      container.read(editorNotifierProvider.notifier).state = EditorState(
++        projectRootPath: '/tmp',
++        project: buildShellChromeProject(),
++        activeMap: map,
++        activeMapPath: 'maps/x.json',
++        activeLayerId: env.id,
++      );
++      await tester.binding.setSurfaceSize(const Size(480, 900));
++      addTearDown(() => tester.binding.setSurfaceSize(null));
++      await tester.pumpWidget(
++        UncontrolledProviderScope(
++          container: container,
++          child: MacosTheme(
++            data: MacosThemeData.light(),
++            child: MaterialApp(
++              home: CupertinoPageScaffold(
++                child: SizedBox(
++                  width: 400,
++                  height: 900,
++                  child: MapInspectorPanel(),
++                ),
++              ),
++            ),
++          ),
++        ),
++      );
++      await tester.pumpAndSettle();
++      expect(find.byKey(const Key('env-layer-inspector-no-tile-layers')),
++          findsOneWidget);
++    });
++
++    testWidgets('inspecteur : TileLayer présents, pas de cible',
++        (tester) async {
++      final env = MapLayer.environment(id: 'env', name: 'E');
++      final tile = TileLayer(
++        id: 'tdecor',
++        name: 'Décor',
++        tiles: const <int>[0, 0, 0, 0],
++      );
++      final map = MapData(
++        id: 'mx',
++        name: 'Mx',
++        size: const GridSize(width: 2, height: 2),
++        layers: [env, tile],
++      );
++      final container = ProviderContainer();
++      addTearDown(container.dispose);
++      container.read(editorNotifierProvider.notifier).state = EditorState(
++        projectRootPath: '/tmp',
++        project: buildShellChromeProject(),
++        activeMap: map,
++        activeMapPath: 'maps/x.json',
++        activeLayerId: env.id,
++      );
++      await tester.binding.setSurfaceSize(const Size(480, 900));
++      addTearDown(() => tester.binding.setSurfaceSize(null));
++      await tester.pumpWidget(
++        UncontrolledProviderScope(
++          container: container,
++          child: MacosTheme(
++            data: MacosThemeData.light(),
++            child: MaterialApp(
++              home: CupertinoPageScaffold(
++                child: SizedBox(
++                  width: 400,
++                  height: 900,
++                  child: MapInspectorPanel(),
++                ),
++              ),
++            ),
++          ),
++        ),
++      );
++      await tester.pumpAndSettle();
++      expect(find.byKey(const Key('env-layer-inspector-no-target')),
++          findsOneWidget);
++      expect(find.byKey(const Key('env-layer-inspector-choose-target')),
++          findsOneWidget);
++    });
++
++    testWidgets('choix TileLayer via picker met à jour la cible et dirty',
++        (tester) async {
++      final env = MapLayer.environment(id: 'env', name: 'E');
++      final tile = TileLayer(
++        id: 'tuniq',
++        name: 'Tuiles sol',
++        tiles: const <int>[0, 0, 0, 0],
++      );
++      final map = MapData(
++        id: 'mx',
++        name: 'Mx',
++        size: const GridSize(width: 2, height: 2),
++        layers: [env, tile],
++      );
++      final container = ProviderContainer();
++      addTearDown(container.dispose);
++      container.read(editorNotifierProvider.notifier).state = EditorState(
++        projectRootPath: '/tmp',
++        project: buildShellChromeProject(),
++        activeMap: map,
++        activeMapPath: 'maps/x.json',
++        activeLayerId: env.id,
++        savedMapSnapshot: map,
++      );
++      await tester.binding.setSurfaceSize(const Size(520, 1000));
++      addTearDown(() => tester.binding.setSurfaceSize(null));
++      await tester.pumpWidget(
++        UncontrolledProviderScope(
++          container: container,
++          child: MacosTheme(
++            data: MacosThemeData.light(),
++            child: MaterialApp(
++              home: CupertinoPageScaffold(
++                child: SizedBox(
++                  width: 420,
++                  height: 1000,
++                  child: MapInspectorPanel(),
++                ),
++              ),
++            ),
++          ),
++        ),
++      );
++      await tester.pumpAndSettle();
++      await tester
++          .tap(find.byKey(const Key('env-layer-inspector-choose-target')));
++      await tester.pumpAndSettle();
++      await tester.tap(find.text('Tuiles sol').last);
++      await tester.pumpAndSettle();
++      final state = container.read(editorNotifierProvider);
++      expect(
++        (state.activeMap!.layers.first as EnvironmentLayer)
++            .content
++            .targetTileLayerId,
++        'tuniq',
++      );
++      expect(state.isDirty, isTrue);
++      expect(find.byKey(const Key('env-layer-inspector-current-target-name')),
++          findsOneWidget);
++      expect(find.textContaining('Cible actuelle :'), findsWidgets);
++    });
++
++    testWidgets('picker ne liste que les TileLayer (ObjectLayer exclu)',
++        (tester) async {
++      final env = MapLayer.environment(id: 'env', name: 'E');
++      final tile = TileLayer(
++        id: 'only_tile',
++        name: 'Couche tuiles',
++        tiles: const <int>[0, 0, 0, 0],
++      );
++      final obj = MapLayer.object(id: 'obj', name: 'Objets');
++      final map = MapData(
++        id: 'mx',
++        name: 'Mx',
++        size: const GridSize(width: 2, height: 2),
++        layers: [env, obj, tile],
++      );
++      final container = ProviderContainer();
++      addTearDown(container.dispose);
++      container.read(editorNotifierProvider.notifier).state = EditorState(
++        projectRootPath: '/tmp',
++        project: buildShellChromeProject(),
++        activeMap: map,
++        activeMapPath: 'maps/x.json',
++        activeLayerId: env.id,
++      );
++      await tester.binding.setSurfaceSize(const Size(520, 1000));
++      addTearDown(() => tester.binding.setSurfaceSize(null));
++      await tester.pumpWidget(
++        UncontrolledProviderScope(
++          container: container,
++          child: MacosTheme(
++            data: MacosThemeData.light(),
++            child: MaterialApp(
++              home: CupertinoPageScaffold(
++                child: SizedBox(
++                  width: 420,
++                  height: 1000,
++                  child: MapInspectorPanel(),
++                ),
++              ),
++            ),
++          ),
++        ),
++      );
++      await tester.pumpAndSettle();
++      await tester
++          .tap(find.byKey(const Key('env-layer-inspector-choose-target')));
++      await tester.pumpAndSettle();
++      final sheetFinder = find.byType(MacosSheet).last;
++      expect(
++        find.descendant(of: sheetFinder, matching: find.text('Objets')),
++        findsNothing,
++      );
++      expect(
++        find.descendant(of: sheetFinder, matching: find.text('Couche tuiles')),
++        findsOneWidget,
++      );
++      await tester.tap(find.descendant(
++        of: sheetFinder,
++        matching: find.text('Couche tuiles'),
++      ));
++      await tester.pumpAndSettle();
++      expect(
++        (container.read(editorNotifierProvider).activeMap!.layers.first
++                as EnvironmentLayer)
++            .content
++            .targetTileLayerId,
++        'only_tile',
++      );
++    });
++
++    testWidgets('retirer la cible remet null', (tester) async {
++      final tile = TileLayer(
++        id: 't1',
++        name: 'T',
++        tiles: const <int>[0, 0, 0, 0],
++      );
++      final env = MapLayer.environment(
++        id: 'env',
++        name: 'E',
++        content: EnvironmentLayerContent(targetTileLayerId: 't1'),
++      );
++      final map = MapData(
++        id: 'mx',
++        name: 'Mx',
++        size: const GridSize(width: 2, height: 2),
++        layers: [env, tile],
++      );
++      final container = ProviderContainer();
++      addTearDown(container.dispose);
++      container.read(editorNotifierProvider.notifier).state = EditorState(
++        projectRootPath: '/tmp',
++        project: buildShellChromeProject(),
++        activeMap: map,
++        activeMapPath: 'maps/x.json',
++        activeLayerId: env.id,
++        savedMapSnapshot: map,
++      );
++      await tester.binding.setSurfaceSize(const Size(520, 1000));
++      addTearDown(() => tester.binding.setSurfaceSize(null));
++      await tester.pumpWidget(
++        UncontrolledProviderScope(
++          container: container,
++          child: MacosTheme(
++            data: MacosThemeData.light(),
++            child: MaterialApp(
++              home: CupertinoPageScaffold(
++                child: SizedBox(
++                  width: 420,
++                  height: 1000,
++                  child: MapInspectorPanel(),
++                ),
++              ),
++            ),
++          ),
++        ),
++      );
++      await tester.pumpAndSettle();
++      await tester
++          .tap(find.byKey(const Key('env-layer-inspector-remove-target')));
++      await tester.pumpAndSettle();
++      final state = container.read(editorNotifierProvider);
++      expect(
++        (state.activeMap!.layers.first as EnvironmentLayer)
++            .content
++            .targetTileLayerId,
++        isNull,
++      );
++      expect(find.byKey(const Key('env-layer-inspector-no-target')),
++          findsOneWidget);
++    });
++
++    testWidgets('cible invalide affiche avertissement et actions',
++        (tester) async {
++      final tile = TileLayer(
++        id: 't1',
++        name: 'T',
++        tiles: const <int>[0, 0, 0, 0],
++      );
++      final env = MapLayer.environment(
++        id: 'env',
++        name: 'E',
++        content: EnvironmentLayerContent(targetTileLayerId: 'missing_layer'),
++      );
++      final map = MapData(
++        id: 'mx',
++        name: 'Mx',
++        size: const GridSize(width: 2, height: 2),
++        layers: [env, tile],
++      );
++      final container = ProviderContainer();
++      addTearDown(container.dispose);
++      container.read(editorNotifierProvider.notifier).state = EditorState(
++        projectRootPath: '/tmp',
++        project: buildShellChromeProject(),
++        activeMap: map,
++        activeMapPath: 'maps/x.json',
++        activeLayerId: env.id,
++      );
++      await tester.binding.setSurfaceSize(const Size(520, 1000));
++      addTearDown(() => tester.binding.setSurfaceSize(null));
++      await tester.pumpWidget(
++        UncontrolledProviderScope(
++          container: container,
++          child: MacosTheme(
++            data: MacosThemeData.light(),
++            child: MaterialApp(
++              home: CupertinoPageScaffold(
++                child: SizedBox(
++                  width: 420,
++                  height: 1000,
++                  child: MapInspectorPanel(),
++                ),
++              ),
++            ),
++          ),
++        ),
++      );
++      await tester.pumpAndSettle();
++      expect(find.byKey(const Key('env-layer-inspector-invalid-target')),
++          findsOneWidget);
++      expect(find.textContaining('missing_layer'), findsOneWidget);
++      expect(find.byKey(const Key('env-layer-inspector-remove-invalid')),
++          findsOneWidget);
++    });
++
++    testWidgets('EnvironmentLayerInspectorPanel seul : pas de crash', (
++      tester,
++    ) async {
++      final envLayer = MapLayer.environment(id: 'e', name: 'E') as EnvironmentLayer;
++      final map = MapData(
++        id: 'm',
++        name: 'M',
++        size: const GridSize(width: 1, height: 1),
++        layers: [envLayer],
++      );
++      final container = ProviderContainer();
++      addTearDown(container.dispose);
++      await tester.pumpWidget(
++        UncontrolledProviderScope(
++          container: container,
++          child: MacosTheme(
++            data: MacosThemeData.light(),
++            child: MaterialApp(
++              home: CupertinoPageScaffold(
++                child: EnvironmentLayerInspectorPanel(
++                  map: map,
++                  layer: envLayer,
++                ),
++              ),
++            ),
++          ),
++        ),
++      );
++      await tester.pumpAndSettle();
++      expect(find.byKey(const Key('env-layer-inspector-no-tile-layers')),
++          findsOneWidget);
++    });
++  });
++}
+```
+
+## 18. Auto-review
+
+- **Points solides** : réutilisation de **`setEnvironmentLayerContent`** ; validation **`MapValidator`** alignée sur map_core ; UI couvrant cible invalide sans auto-clear ; tests picker bornés au **`MacosSheet`** pour l’exclusion des non-TileLayer.
+- **Points discutables** : use case instancié **inline** dans le notifier (pas de nouveau `@riverpod`) pour respecter l’interdiction **`build_runner`** sur ce lot — cohérent avec la contrainte, moins homogène que les providers existants.
+- **Corrections après auto-review** : `ignore_for_file: prefer_const_constructors` sur le fichier de test ; assertions picker ajustées (libellés dupliqués section / feuille) ; exclusion des entrées « Objets » par ancêtre **`MacosSheet`**.
+- **Risques restants** : carte avec cible invalide issue de données externes reste invalide jusqu’à action utilisateur (comportement voulu).
+- **Regard critique (prompt)** : configurer **`targetTileLayerId`** avant les areas est logique (cible de rendu avant masques). Restreindre aux TileLayer est adapté au pipeline « patch tuiles ». Cible invalide via API use case : refusée ; via données corrompues : affichage d’avertissement sans auto-suppression. L’inspecteur gagne une sous-section mais reste dans une carte repliée existante. Aucune area / mask / preset / génération ajoutée.
+
+## 19. Verdict
+
+Statut du lot :
+
+- [x] Validé
+
+Résumé :
+
+```
+Lot 20 livré : SetEnvironmentLayerTargetTileLayerUseCase + EditorNotifier.setEnvironmentLayerTargetTileLayer + EnvironmentLayerInspectorPanel ; tests ciblés et dossier test/environment_studio verts ; flutter analyze ciblé sans issue. flutter test complet map_editor : +958 -34 (dettes hors lot).
+```
+
+Prochain lot recommandé :
+
+```
+Environment-21 — Environment Area Model Editing in Inspector V0
+```
+
+### Evidence Pack (confirmations explicites)
+
+- Aucun fichier modèle **`ProjectManifest`** sous `examples/` ou ailleurs modifié par ce lot.
+- Aucun fichier sous **`packages/map_core`** modifié (y compris `map_layer.dart`, `environment.dart`, `map_layers.dart`).
+- Aucune **`EnvironmentArea`** créée ni modifiée par ce lot (le use case ne fait que recopier la liste **`areas`** existante dans le nouveau **`EnvironmentLayerContent`**).
+- Aucun **`EnvironmentAreaMask`** créé.
+- Aucun preset **`environmentPresets`** du manifest modifié.
+- Aucun **`MapPlacedElement`** créé ; **`placedElements`** inchangés dans les tests du use case.
+- Aucune génération / bouton Generate ajouté.
+- Aucune sauvegarde disque dans ce flux ; le grep §14 montre uniquement des définitions hors chemin `setEnvironmentLayerTargetTileLayer` dans **`editor_notifier`** ; aucun hit dans les panneaux ni **`layer_use_cases`**.
+- Aucun **`SurfaceLayer`** legacy utilisé pour la cible.
+- Aucun **`build_runner`** lancé ; aucun fichier généré modifié.
+- Aucun **`git commit`**, **`git add`**, **`git push`**, **`git checkout`**, **`git restore`**, **`git stash`**, merge, rebase ou tag exécuté par l’agent.
