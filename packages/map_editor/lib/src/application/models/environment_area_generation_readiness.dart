@@ -11,6 +11,7 @@ enum EnvironmentAreaGenerationPrimaryBlocker {
   missingPreset,
   invalidTargetTileLayer,
   missingTargetTileLayer,
+  incompatibleTargetTileLayerTileset,
   emptyMask,
   alreadyGenerated,
 }
@@ -56,12 +57,18 @@ final class EnvironmentAreaGenerationReadiness {
     required bool hasTargetTileLayerId,
     required bool targetTileLayerInvalid,
     required TileLayer? resolvedTargetTileLayer,
+    bool targetTileLayerTilesetMismatch = false,
   }) {
     final missingTarget = !hasTargetTileLayerId;
     final invalidTarget = hasTargetTileLayerId && targetTileLayerInvalid;
+    final incompatibleTargetTileset = hasTargetTileLayerId &&
+        !targetTileLayerInvalid &&
+        resolvedTargetTileLayer != null &&
+        targetTileLayerTilesetMismatch;
     final targetOk = hasTargetTileLayerId &&
         !targetTileLayerInvalid &&
-        resolvedTargetTileLayer != null;
+        resolvedTargetTileLayer != null &&
+        !incompatibleTargetTileset;
 
     final maskOk = area.mask.activeCellCount > 0;
     final presetOk = preset != null;
@@ -79,6 +86,9 @@ final class EnvironmentAreaGenerationReadiness {
         genMsg = 'Choisissez un TileLayer cible avant de générer.';
       } else if (invalidTarget) {
         genMsg = 'Le TileLayer cible est introuvable ou invalide.';
+      } else if (incompatibleTargetTileset) {
+        genMsg =
+            'Le TileLayer cible utilise un tileset incompatible avec ce preset.';
       } else if (!presetOk) {
         genMsg = 'Le preset associé est introuvable.';
       } else if (!noGeneratedYet) {
@@ -100,6 +110,9 @@ final class EnvironmentAreaGenerationReadiness {
         regMsg = 'Choisissez un TileLayer cible avant de régénérer.';
       } else if (invalidTarget) {
         regMsg = 'Le TileLayer cible est introuvable ou invalide.';
+      } else if (incompatibleTargetTileset) {
+        regMsg =
+            'Le TileLayer cible utilise un tileset incompatible avec ce preset.';
       } else if (!presetOk) {
         regMsg = 'Le preset associé est introuvable.';
       } else if (!maskOk) {
@@ -113,6 +126,9 @@ final class EnvironmentAreaGenerationReadiness {
         shufMsg = 'Choisissez un TileLayer cible avant de mélanger.';
       } else if (invalidTarget) {
         shufMsg = 'Le TileLayer cible est introuvable ou invalide.';
+      } else if (incompatibleTargetTileset) {
+        shufMsg =
+            'Le TileLayer cible utilise un tileset incompatible avec ce preset.';
       } else if (!presetOk) {
         shufMsg = 'Le preset associé est introuvable.';
       } else if (!maskOk) {
@@ -134,6 +150,10 @@ final class EnvironmentAreaGenerationReadiness {
     } else if (missingTarget) {
       blocker = EnvironmentAreaGenerationPrimaryBlocker.missingTargetTileLayer;
       summary = 'État : cible manquante';
+    } else if (incompatibleTargetTileset) {
+      blocker = EnvironmentAreaGenerationPrimaryBlocker
+          .incompatibleTargetTileLayerTileset;
+      summary = 'État : tileset cible incompatible';
     } else if (!maskOk) {
       blocker = EnvironmentAreaGenerationPrimaryBlocker.emptyMask;
       summary = 'État : masque vide';

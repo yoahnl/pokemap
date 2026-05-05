@@ -16,6 +16,8 @@ enum EditorToolType {
 enum EnvironmentMaskEditMode {
   paint,
   erase,
+  generatedAdd,
+  generatedDelete,
 }
 
 abstract class EditorTool {

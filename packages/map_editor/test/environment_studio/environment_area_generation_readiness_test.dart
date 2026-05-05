@@ -108,6 +108,30 @@ void main() {
       expect(r.stateSummaryLine, 'État : cible invalide');
     });
 
+    test('Generate désactivé : tileset cible incompatible', () {
+      final r = EnvironmentAreaGenerationReadiness.evaluate(
+        area: _area(),
+        preset: _preset(),
+        hasTargetTileLayerId: true,
+        targetTileLayerInvalid: false,
+        targetTileLayerTilesetMismatch: true,
+        resolvedTargetTileLayer: TileLayer(
+          id: 'tiles',
+          name: 'T',
+          tilesetId: 'cliff',
+          tiles: List<int>.filled(4, 0),
+        ),
+      );
+      expect(r.canGenerate, isFalse);
+      expect(r.canRegenerate, isFalse);
+      expect(r.canShuffle, isFalse);
+      expect(
+        r.generateDisabledMessage,
+        'Le TileLayer cible utilise un tileset incompatible avec ce preset.',
+      );
+      expect(r.stateSummaryLine, 'État : tileset cible incompatible');
+    });
+
     test('Generate désactivé : masque vide', () {
       final r = EnvironmentAreaGenerationReadiness.evaluate(
         area: _area(cells: List<bool>.filled(4, false)),

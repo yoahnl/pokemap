@@ -4802,16 +4802,10 @@ class EditorNotifier extends _$EditorNotifier {
     required String environmentLayerId,
     required String areaId,
   }) {
-    final map = state.activeMap;
-    if (map == null) return;
-    final layer = _findLayerById(map, environmentLayerId);
-    if (layer is! EnvironmentLayer) return;
-    if (!layer.content.areas.any((a) => a.id == areaId)) return;
-    state = state.copyWith(
-      activeLayerId: environmentLayerId,
-      selectedEnvironmentAreaId: areaId,
-      environmentMaskEditMode: EnvironmentMaskEditMode.paint,
-      errorMessage: null,
+    _startEnvironmentAreaEditMode(
+      environmentLayerId: environmentLayerId,
+      areaId: areaId,
+      mode: EnvironmentMaskEditMode.paint,
     );
   }
 
@@ -4819,6 +4813,42 @@ class EditorNotifier extends _$EditorNotifier {
   void startEnvironmentAreaMaskErase({
     required String environmentLayerId,
     required String areaId,
+  }) {
+    _startEnvironmentAreaEditMode(
+      environmentLayerId: environmentLayerId,
+      areaId: areaId,
+      mode: EnvironmentMaskEditMode.erase,
+    );
+  }
+
+  /// Active l’ajout manuel d’un placement généré pour une zone.
+  void startEnvironmentAreaGeneratedPlacementAdd({
+    required String environmentLayerId,
+    required String areaId,
+  }) {
+    _startEnvironmentAreaEditMode(
+      environmentLayerId: environmentLayerId,
+      areaId: areaId,
+      mode: EnvironmentMaskEditMode.generatedAdd,
+    );
+  }
+
+  /// Active la suppression au clic d’un placement généré pour une zone.
+  void startEnvironmentAreaGeneratedPlacementDelete({
+    required String environmentLayerId,
+    required String areaId,
+  }) {
+    _startEnvironmentAreaEditMode(
+      environmentLayerId: environmentLayerId,
+      areaId: areaId,
+      mode: EnvironmentMaskEditMode.generatedDelete,
+    );
+  }
+
+  void _startEnvironmentAreaEditMode({
+    required String environmentLayerId,
+    required String areaId,
+    required EnvironmentMaskEditMode mode,
   }) {
     final map = state.activeMap;
     if (map == null) return;
@@ -4828,12 +4858,12 @@ class EditorNotifier extends _$EditorNotifier {
     state = state.copyWith(
       activeLayerId: environmentLayerId,
       selectedEnvironmentAreaId: areaId,
-      environmentMaskEditMode: EnvironmentMaskEditMode.erase,
+      environmentMaskEditMode: mode,
       errorMessage: null,
     );
   }
 
-  /// Lot Environment-22 : quitte paint/erase sans changer l’area sélectionnée.
+  /// Lot Environment-22 : quitte le mode d’édition sans changer l’area sélectionnée.
   void stopEnvironmentAreaMaskEditing() {
     state = state.copyWith(environmentMaskEditMode: null, errorMessage: null);
   }
@@ -5254,6 +5284,10 @@ class EditorNotifier extends _$EditorNotifier {
     final areaId = state.selectedEnvironmentAreaId;
     final mode = state.environmentMaskEditMode;
     if (layerId == null || areaId == null || mode == null) {
+      return;
+    }
+    if (mode != EnvironmentMaskEditMode.paint &&
+        mode != EnvironmentMaskEditMode.erase) {
       return;
     }
     final layer = _findLayerById(map, layerId);
@@ -6578,6 +6612,30 @@ class EditorNotifier extends _$EditorNotifier {
       return;
     }
     final instance = map.placedElements[index];
+    final generatedDeletion = _deleteEnvironmentGeneratedPlacedElement(
+      map,
+      placedElementId: trimmedId,
+    );
+    if (generatedDeletion != null) {
+      try {
+        MapValidator.validate(generatedDeletion);
+        _applyMapMutation(
+          previousMap: map,
+          updatedMap: generatedDeletion,
+          preferredActiveLayerId: state.activeLayerId,
+          statusMessage: 'Instance générée supprimée (${instance.elementId})',
+        );
+        debugPrint(
+          '[editor][elements] deleted generated placed instance id=$trimmedId elementId=${instance.elementId} layer=${instance.layerId} pos=(${instance.pos.x},${instance.pos.y})',
+        );
+      } catch (e) {
+        state = state.copyWith(
+          errorMessage: 'Failed to delete generated placed element: $e',
+        );
+      }
+      return;
+    }
+
     final layer = _findLayerById(map, instance.layerId);
     if (layer is! TileLayer) {
       state = state.copyWith(
@@ -6648,6 +6706,443 @@ class EditorNotifier extends _$EditorNotifier {
         errorMessage: 'Failed to delete placed element instance: $e',
       );
     }
+  }
+
+  bool addGeneratedEnvironmentPlacementAt(GridPos pos) {
+    final map = state.activeMap;
+    final project = state.project;
+    if (map == null || project == null) {
+      return false;
+    }
+    final activeLayerId = state.activeLayerId?.trim();
+    final selectedAreaId = state.selectedEnvironmentAreaId?.trim();
+    if (activeLayerId == null ||
+        activeLayerId.isEmpty ||
+        selectedAreaId == null ||
+        selectedAreaId.isEmpty) {
+      return false;
+    }
+    final activeLayer = _findLayerById(map, activeLayerId);
+    if (activeLayer is! EnvironmentLayer) {
+      return false;
+    }
+
+    EnvironmentArea? area;
+    for (final candidate in activeLayer.content.areas) {
+      if (candidate.id == selectedAreaId) {
+        area = candidate;
+        break;
+      }
+    }
+    if (area == null) {
+      return false;
+    }
+
+    final targetLayerId = activeLayer.content.targetTileLayerId?.trim();
+    if (targetLayerId == null || targetLayerId.isEmpty) {
+      state = state.copyWith(
+        errorMessage: 'Impossible d’ajouter : aucun TileLayer cible.',
+      );
+      return false;
+    }
+    final targetLayer = _findLayerById(map, targetLayerId);
+    if (targetLayer is! TileLayer) {
+      state = state.copyWith(
+        errorMessage: 'Impossible d’ajouter : TileLayer cible introuvable.',
+      );
+      return false;
+    }
+
+    final preset = _environmentPresetById(project, area.presetId);
+    if (preset == null) {
+      state = state.copyWith(
+        errorMessage: 'Impossible d’ajouter : preset introuvable.',
+      );
+      return false;
+    }
+
+    EnvironmentPaletteItem? item;
+    ProjectElementEntry? element;
+    final targetTilesetId = _effectiveTileLayerTilesetId(targetLayer, map);
+    for (final candidate in preset.palette) {
+      final candidateElement = _projectElementById(
+        project,
+        candidate.elementId,
+      );
+      if (candidateElement == null) continue;
+      final elementTilesetId = _elementPrimaryTilesetId(candidateElement);
+      if (targetTilesetId.isNotEmpty &&
+          elementTilesetId.isNotEmpty &&
+          targetTilesetId != elementTilesetId) {
+        continue;
+      }
+      item = candidate;
+      element = candidateElement;
+      break;
+    }
+    if (item == null || element == null) {
+      state = state.copyWith(
+        errorMessage:
+            'Impossible d’ajouter : aucun élément du preset ne correspond au TileLayer cible.',
+      );
+      return false;
+    }
+
+    final footprint = _elementFootprint(element);
+    if (!_elementFootprintInBounds(
+      pos: pos,
+      footprint: footprint,
+      mapSize: map.size,
+    )) {
+      state = state.copyWith(
+        errorMessage:
+            'Impossible d’ajouter : l’élément dépasserait les limites de la map.',
+      );
+      return false;
+    }
+
+    final placedId = _generatedEnvironmentPlacementId(
+      areaId: area.id,
+      pos: pos,
+      elementId: item.elementId,
+    );
+    if (area.generatedPlacementIds.contains(placedId) ||
+        map.placedElements.any((placed) => placed.id == placedId)) {
+      state = state.copyWith(
+        errorMessage: null,
+        statusMessage: 'Placement généré déjà présent ici.',
+      );
+      return false;
+    }
+
+    final placed = MapPlacedElement(
+      id: placedId,
+      layerId: targetLayer.id,
+      elementId: item.elementId,
+      pos: pos,
+      applyCollision: _applyCollisionFromEnvironmentMode(item.collisionMode),
+    );
+    final updatedMap = _addEnvironmentGeneratedPlacedElement(
+      map,
+      environmentLayerId: activeLayer.id,
+      areaId: area.id,
+      placed: placed,
+    );
+
+    try {
+      MapValidator.validate(updatedMap, projectDialogueContext: project);
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updatedMap,
+        preferredActiveLayerId: activeLayer.id,
+        statusMessage: 'Placement généré ajouté (${item.elementId})',
+      );
+      debugPrint(
+        '[editor][environment] added generated placement by click id=${placed.id} elementId=${placed.elementId} pos=(${pos.x},${pos.y})',
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to add generated placement: $e',
+      );
+      return false;
+    }
+  }
+
+  bool deleteGeneratedEnvironmentPlacementAt(GridPos pos) {
+    final map = state.activeMap;
+    if (map == null) {
+      return false;
+    }
+    final activeLayerId = state.activeLayerId?.trim();
+    if (activeLayerId == null || activeLayerId.isEmpty) {
+      return false;
+    }
+    final activeLayer = _findLayerById(map, activeLayerId);
+    if (activeLayer is! EnvironmentLayer) {
+      return false;
+    }
+
+    final generatedIds = <String>{};
+    final selectedAreaId = state.selectedEnvironmentAreaId?.trim();
+    for (final area in activeLayer.content.areas) {
+      if (selectedAreaId != null &&
+          selectedAreaId.isNotEmpty &&
+          area.id != selectedAreaId) {
+        continue;
+      }
+      generatedIds.addAll(area.generatedPlacementIds);
+    }
+    if (generatedIds.isEmpty) {
+      return false;
+    }
+
+    final project = state.project;
+    final elementById = <String, ProjectElementEntry>{
+      if (project != null)
+        for (final element in project.elements) element.id: element,
+    };
+    for (final instance in map.placedElements.reversed) {
+      if (!generatedIds.contains(instance.id)) {
+        continue;
+      }
+      if (!_placedElementContainsGridPos(
+        instance: instance,
+        element: elementById[instance.elementId],
+        pos: pos,
+      )) {
+        continue;
+      }
+
+      final updatedMap = _deleteEnvironmentGeneratedPlacedElement(
+        map,
+        placedElementId: instance.id,
+      );
+      if (updatedMap == null) {
+        return false;
+      }
+      try {
+        MapValidator.validate(updatedMap);
+        _applyMapMutation(
+          previousMap: map,
+          updatedMap: updatedMap,
+          preferredActiveLayerId: activeLayer.id,
+          statusMessage: 'Placement généré supprimé (${instance.elementId})',
+        );
+        debugPrint(
+          '[editor][environment] deleted generated placement by click id=${instance.id} elementId=${instance.elementId} pos=(${instance.pos.x},${instance.pos.y})',
+        );
+        return true;
+      } catch (e) {
+        state = state.copyWith(
+          errorMessage: 'Failed to delete generated placement: $e',
+        );
+        return false;
+      }
+    }
+    return false;
+  }
+
+  bool _placedElementContainsGridPos({
+    required MapPlacedElement instance,
+    required ProjectElementEntry? element,
+    required GridPos pos,
+  }) {
+    final source = element?.frames.primarySource;
+    final width = source == null || source.width <= 0 ? 1 : source.width;
+    final height = source == null || source.height <= 0 ? 1 : source.height;
+    return pos.x >= instance.pos.x &&
+        pos.y >= instance.pos.y &&
+        pos.x < instance.pos.x + width &&
+        pos.y < instance.pos.y + height;
+  }
+
+  MapData _addEnvironmentGeneratedPlacedElement(
+    MapData map, {
+    required String environmentLayerId,
+    required String areaId,
+    required MapPlacedElement placed,
+  }) {
+    final updatedLayers = <MapLayer>[];
+    for (final layer in map.layers) {
+      if (layer is! EnvironmentLayer || layer.id != environmentLayerId) {
+        updatedLayers.add(layer);
+        continue;
+      }
+
+      final updatedAreas = <EnvironmentArea>[];
+      for (final area in layer.content.areas) {
+        if (area.id != areaId) {
+          updatedAreas.add(area);
+          continue;
+        }
+        updatedAreas.add(
+          EnvironmentArea(
+            id: area.id,
+            name: area.name,
+            presetId: area.presetId,
+            mask: area.mask,
+            seed: area.seed,
+            paramsOverride: area.paramsOverride,
+            generatedPlacementIds: [
+              ...area.generatedPlacementIds,
+              placed.id,
+            ],
+          ),
+        );
+      }
+
+      updatedLayers.add(
+        MapLayer.environment(
+          id: layer.id,
+          name: layer.name,
+          isVisible: layer.isVisible,
+          opacity: layer.opacity,
+          content: EnvironmentLayerContent(
+            targetTileLayerId: layer.content.targetTileLayerId,
+            areas: updatedAreas,
+          ),
+          properties: layer.properties,
+        ),
+      );
+    }
+
+    return map.copyWith(
+      layers: updatedLayers,
+      placedElements: [
+        ...map.placedElements,
+        placed,
+      ],
+    );
+  }
+
+  MapData? _deleteEnvironmentGeneratedPlacedElement(
+    MapData map, {
+    required String placedElementId,
+  }) {
+    var didRemoveReference = false;
+    final updatedLayers = <MapLayer>[];
+    for (final layer in map.layers) {
+      if (layer is! EnvironmentLayer) {
+        updatedLayers.add(layer);
+        continue;
+      }
+
+      var didUpdateLayer = false;
+      final updatedAreas = <EnvironmentArea>[];
+      for (final area in layer.content.areas) {
+        if (!area.generatedPlacementIds.contains(placedElementId)) {
+          updatedAreas.add(area);
+          continue;
+        }
+
+        didRemoveReference = true;
+        didUpdateLayer = true;
+        updatedAreas.add(
+          EnvironmentArea(
+            id: area.id,
+            name: area.name,
+            presetId: area.presetId,
+            mask: area.mask,
+            seed: area.seed,
+            paramsOverride: area.paramsOverride,
+            generatedPlacementIds: [
+              for (final id in area.generatedPlacementIds)
+                if (id != placedElementId) id,
+            ],
+          ),
+        );
+      }
+
+      if (!didUpdateLayer) {
+        updatedLayers.add(layer);
+        continue;
+      }
+
+      updatedLayers.add(
+        MapLayer.environment(
+          id: layer.id,
+          name: layer.name,
+          isVisible: layer.isVisible,
+          opacity: layer.opacity,
+          content: EnvironmentLayerContent(
+            targetTileLayerId: layer.content.targetTileLayerId,
+            areas: updatedAreas,
+          ),
+          properties: layer.properties,
+        ),
+      );
+    }
+
+    if (!didRemoveReference) {
+      return null;
+    }
+
+    return map.copyWith(
+      layers: updatedLayers,
+      placedElements: [
+        for (final placed in map.placedElements)
+          if (placed.id != placedElementId) placed,
+      ],
+    );
+  }
+
+  EnvironmentPreset? _environmentPresetById(
+    ProjectManifest project,
+    String presetId,
+  ) {
+    final normalizedId = presetId.trim();
+    for (final preset in project.environmentPresets) {
+      if (preset.id == normalizedId) {
+        return preset;
+      }
+    }
+    return null;
+  }
+
+  ProjectElementEntry? _projectElementById(
+    ProjectManifest project,
+    String elementId,
+  ) {
+    final normalizedId = elementId.trim();
+    for (final element in project.elements) {
+      if (element.id == normalizedId) {
+        return element;
+      }
+    }
+    return null;
+  }
+
+  GridSize _elementFootprint(ProjectElementEntry element) {
+    final source = element.frames.primarySource;
+    return GridSize(
+      width: source.width <= 0 ? 1 : source.width,
+      height: source.height <= 0 ? 1 : source.height,
+    );
+  }
+
+  bool _elementFootprintInBounds({
+    required GridPos pos,
+    required GridSize footprint,
+    required GridSize mapSize,
+  }) {
+    return pos.x >= 0 &&
+        pos.y >= 0 &&
+        pos.x + footprint.width <= mapSize.width &&
+        pos.y + footprint.height <= mapSize.height;
+  }
+
+  String _effectiveTileLayerTilesetId(TileLayer layer, MapData map) {
+    return (layer.tilesetId ?? map.tilesetId).trim();
+  }
+
+  String _elementPrimaryTilesetId(ProjectElementEntry element) {
+    final frameTilesetId = element.frames.primaryFrame.tilesetId.trim();
+    if (frameTilesetId.isNotEmpty) return frameTilesetId;
+    return element.tilesetId.trim();
+  }
+
+  bool _applyCollisionFromEnvironmentMode(EnvironmentCollisionMode mode) {
+    switch (mode) {
+      case EnvironmentCollisionMode.forceEnabled:
+        return true;
+      case EnvironmentCollisionMode.forceDisabled:
+        return false;
+      case EnvironmentCollisionMode.useElementDefault:
+        return true;
+    }
+  }
+
+  String _generatedEnvironmentPlacementId({
+    required String areaId,
+    required GridPos pos,
+    required String elementId,
+  }) {
+    return 'env_gen_${_sanitizeEnvironmentIdPart(areaId)}_${pos.x}_${pos.y}_${_sanitizeEnvironmentIdPart(elementId)}';
+  }
+
+  String _sanitizeEnvironmentIdPart(String value) {
+    return value.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
   }
 
   /// Bascule vers la sélection si l’outil courant ne peut pas agir sur le calque actif.

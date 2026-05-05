@@ -262,6 +262,11 @@ class MapGridPainter extends CustomPainter {
           foregroundTileCellIndicesByLayerId:
               foregroundTileCellIndicesByLayerId,
         );
+        _paintPlacedElementsForLayer(
+          canvas,
+          layer,
+          renderPass: _EditorMapTileRenderPass.background,
+        );
       }
     }
 
@@ -355,6 +360,11 @@ class MapGridPainter extends CustomPainter {
           renderPass: _EditorMapTileRenderPass.foreground,
           foregroundTileCellIndicesByLayerId:
               foregroundTileCellIndicesByLayerId,
+        );
+        _paintPlacedElementsForLayer(
+          canvas,
+          layer,
+          renderPass: _EditorMapTileRenderPass.foreground,
         );
       }
     }
@@ -1584,6 +1594,134 @@ class MapGridPainter extends CustomPainter {
         canvas.drawImageRect(tilesetImage, srcRect, dstRect, layerPaint);
       }
     }
+  }
+
+  void _paintPlacedElementsForLayer(
+    Canvas canvas,
+    TileLayer layer, {
+    required _EditorMapTileRenderPass renderPass,
+  }) {
+    final projectContext = project;
+    if (projectContext == null || map.placedElements.isEmpty) {
+      return;
+    }
+    if (sourceTileWidth <= 0 || sourceTileHeight <= 0) {
+      return;
+    }
+    final elementById = <String, ProjectElementEntry>{
+      for (final entry in projectContext.elements) entry.id: entry,
+    };
+    if (elementById.isEmpty) {
+      return;
+    }
+    final layerId = layer.id.trim();
+    for (final instance in map.placedElements) {
+      if (instance.layerId.trim() != layerId) {
+        continue;
+      }
+      _paintPlacedElement(
+        canvas,
+        instance,
+        elementById: elementById,
+        renderPass: renderPass,
+      );
+    }
+  }
+
+  void _paintPlacedElement(
+    Canvas canvas,
+    MapPlacedElement instance, {
+    required Map<String, ProjectElementEntry> elementById,
+    required _EditorMapTileRenderPass renderPass,
+  }) {
+    final entry = elementById[instance.elementId.trim()];
+    if (entry == null || entry.frames.isEmpty) {
+      return;
+    }
+    final frame = entityEditorPickFrame(
+      entry.frames,
+      editorEntityAnimationMs,
+    );
+    final tilesetId = frame.tilesetId.trim().isNotEmpty
+        ? frame.tilesetId.trim()
+        : entry.tilesetId.trim();
+    if (tilesetId.isEmpty) {
+      return;
+    }
+    final tilesetImage = tilesetImagesById[tilesetId];
+    if (tilesetImage == null) {
+      return;
+    }
+
+    final source = frame.source;
+    final width = source.width <= 0 ? 1 : source.width;
+    final height = source.height <= 0 ? 1 : source.height;
+    final paint = Paint();
+
+    for (var localY = 0; localY < height; localY++) {
+      for (var localX = 0; localX < width; localX++) {
+        if (!_shouldPaintPlacedElementCellInRenderPass(
+          instance: instance,
+          entry: entry,
+          localX: localX,
+          localY: localY,
+          foregroundPass: renderPass == _EditorMapTileRenderPass.foreground,
+        )) {
+          continue;
+        }
+
+        final x = instance.pos.x + localX;
+        final y = instance.pos.y + localY;
+        if (x < 0 || y < 0 || x >= map.size.width || y >= map.size.height) {
+          continue;
+        }
+
+        final sourceX = (source.x + localX) * sourceTileWidth;
+        final sourceY = (source.y + localY) * sourceTileHeight;
+        if (sourceX < 0 ||
+            sourceY < 0 ||
+            sourceX + sourceTileWidth > tilesetImage.width ||
+            sourceY + sourceTileHeight > tilesetImage.height) {
+          continue;
+        }
+
+        final srcRect = Rect.fromLTWH(
+          sourceX.toDouble(),
+          sourceY.toDouble(),
+          sourceTileWidth.toDouble(),
+          sourceTileHeight.toDouble(),
+        );
+        final dstRect = Rect.fromLTWH(
+          x * tileWidth,
+          y * tileHeight,
+          tileWidth,
+          tileHeight,
+        );
+        canvas.drawImageRect(tilesetImage, srcRect, dstRect, paint);
+      }
+    }
+  }
+
+  bool _shouldPaintPlacedElementCellInRenderPass({
+    required MapPlacedElement instance,
+    required ProjectElementEntry entry,
+    required int localX,
+    required int localY,
+    required bool foregroundPass,
+  }) {
+    final collisionCells =
+        instance.applyCollision ? entry.collisionProfile?.cells : null;
+    if (collisionCells == null || collisionCells.isEmpty) {
+      return !foregroundPass;
+    }
+    var isCollisionCell = false;
+    for (final cell in collisionCells) {
+      if (cell.x == localX && cell.y == localY) {
+        isCollisionCell = true;
+        break;
+      }
+    }
+    return foregroundPass ? !isCollisionCell : isCollisionCell;
   }
 
   void _paintCollisionLayer(

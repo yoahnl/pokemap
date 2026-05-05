@@ -444,6 +444,71 @@ void main() {
       expect(genBtn.onPressed, isNull);
     });
 
+    testWidgets('cible tileset incompatible : bouton désactivé', (
+      tester,
+    ) async {
+      final area = _area(id: 'area1', w: 2, h: 2);
+      final env = MapLayer.environment(
+        id: 'env',
+        name: 'E',
+        content: EnvironmentLayerContent(
+          targetTileLayerId: 'tiles',
+          areas: [area],
+        ),
+      );
+      final tile = TileLayer(
+        id: 'tiles',
+        name: 'T',
+        tilesetId: 'cliff',
+        tiles: List<int>.filled(4, 0),
+      );
+      final map = MapData(
+        id: 'm1',
+        name: 'M1',
+        size: const GridSize(width: 2, height: 2),
+        tilesetId: 'tsA',
+        layers: [env, tile],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/r',
+        project: _manifest(),
+        activeMap: map,
+        activeMapPath: 'maps/x.json',
+        activeLayerId: 'env',
+      );
+      await tester.binding.setSurfaceSize(const Size(480, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: MaterialApp(
+              home: CupertinoPageScaffold(
+                child: EnvironmentLayerInspectorPanel(
+                  map: map,
+                  layer: env as EnvironmentLayer,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<Text>(find.byKey(const Key('env-area-generate-hint-area1')))
+            .data,
+        'Le TileLayer cible utilise un tileset incompatible avec ce preset.',
+      );
+      final genBtn = tester.widget<PushButton>(
+        find.byKey(const Key('env-area-generate-area1')),
+      );
+      expect(genBtn.onPressed, isNull);
+    });
+
     testWidgets('clic Générer : placements + bouton désactivé ensuite', (
       tester,
     ) async {
@@ -514,7 +579,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(tester.widget<PushButton>(genFinder).onPressed, isNull);
-      expect(find.byKey(const Key('env-area-regenerate-area1')), findsOneWidget);
+      expect(
+          find.byKey(const Key('env-area-regenerate-area1')), findsOneWidget);
     });
 
     testWidgets('preset manifest introuvable : désactivé', (tester) async {

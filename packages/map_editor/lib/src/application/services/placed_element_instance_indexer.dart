@@ -26,6 +26,8 @@ class PlacedElementInstanceIndexer {
     required ProjectManifest project,
     required String layerId,
   }) {
+    final preservedGenerated =
+        _environmentGeneratedPlacedElementsForLayer(map, layerId);
     final layer = map.layers
         .whereType<TileLayer>()
         .where((entry) => entry.id == layerId)
@@ -39,10 +41,11 @@ class PlacedElementInstanceIndexer {
     }
     final layerTilesetId = (layer.tilesetId ?? map.tilesetId).trim();
     if (layerTilesetId.isEmpty) {
-      return replaceMapPlacedElementsForLayer(
+      return _replaceLayerPlacedElements(
         map,
         layerId: layerId,
-        instances: const [],
+        preservedGenerated: preservedGenerated,
+        indexedInstances: const [],
       );
     }
 
@@ -70,20 +73,22 @@ class PlacedElementInstanceIndexer {
         return a.name.toLowerCase().compareTo(b.name.toLowerCase());
       });
     if (elements.isEmpty) {
-      return replaceMapPlacedElementsForLayer(
+      return _replaceLayerPlacedElements(
         map,
         layerId: layerId,
-        instances: const [],
+        preservedGenerated: preservedGenerated,
+        indexedInstances: const [],
       );
     }
 
     final mapWidth = map.size.width;
     final mapHeight = map.size.height;
     if (mapWidth <= 0 || mapHeight <= 0) {
-      return replaceMapPlacedElementsForLayer(
+      return _replaceLayerPlacedElements(
         map,
         layerId: layerId,
-        instances: const [],
+        preservedGenerated: preservedGenerated,
+        indexedInstances: const [],
       );
     }
 
@@ -118,6 +123,12 @@ class PlacedElementInstanceIndexer {
     final covered =
         List<bool>.filled(mapWidth * mapHeight, false, growable: false);
     final instances = <MapPlacedElement>[];
+    final preservedPositions = <String>{};
+    for (final instance in preservedGenerated) {
+      preservedPositions.add(
+        _keyForPos(layerId: instance.layerId, pos: instance.pos),
+      );
+    }
 
     for (var y = 0; y < mapHeight; y++) {
       for (var x = 0; x < mapWidth; x++) {
@@ -174,13 +185,24 @@ class PlacedElementInstanceIndexer {
         }
 
         final pos = GridPos(x: x, y: y);
+        final posKey = _keyForPos(layerId: layerId, pos: pos);
+        if (preservedPositions.contains(posKey)) {
+          _markCellsAsCovered(
+            covered: covered,
+            mapWidth: mapWidth,
+            x: x,
+            y: y,
+            width: source.width,
+            height: source.height,
+          );
+          continue;
+        }
         final key = _keyFor(
           layerId: layerId,
           elementId: matched.id,
           pos: pos,
         );
-        final existing = existingByKey[key] ??
-            existingByPos[_keyForPos(layerId: layerId, pos: pos)];
+        final existing = existingByKey[key] ?? existingByPos[posKey];
         final instance = existing ??
             MapPlacedElement(
               id: buildMapPlacedElementId(
@@ -225,10 +247,54 @@ class PlacedElementInstanceIndexer {
       return a.elementId.compareTo(b.elementId);
     });
 
+    return _replaceLayerPlacedElements(
+      map,
+      layerId: layerId,
+      preservedGenerated: preservedGenerated,
+      indexedInstances: instances,
+    );
+  }
+
+  List<MapPlacedElement> _environmentGeneratedPlacedElementsForLayer(
+    MapData map,
+    String layerId,
+  ) {
+    final generatedIds = <String>{};
+    for (final layer in map.layers.whereType<EnvironmentLayer>()) {
+      for (final area in layer.content.areas) {
+        for (final id in area.generatedPlacementIds) {
+          final trimmed = id.trim();
+          if (trimmed.isNotEmpty) {
+            generatedIds.add(trimmed);
+          }
+        }
+      }
+    }
+    if (generatedIds.isEmpty) {
+      return const <MapPlacedElement>[];
+    }
+    return map.placedElements
+        .where(
+          (entry) =>
+              entry.layerId == layerId && generatedIds.contains(entry.id),
+        )
+        .toList(growable: false);
+  }
+
+  MapData _replaceLayerPlacedElements(
+    MapData map, {
+    required String layerId,
+    required List<MapPlacedElement> preservedGenerated,
+    required List<MapPlacedElement> indexedInstances,
+  }) {
+    final preservedIds = preservedGenerated.map((entry) => entry.id).toSet();
     return replaceMapPlacedElementsForLayer(
       map,
       layerId: layerId,
-      instances: instances,
+      instances: [
+        ...preservedGenerated,
+        ...indexedInstances.where((entry) => !preservedIds.contains(entry.id)),
+      ],
     );
   }
 

@@ -57,6 +57,7 @@ enum EnvironmentApplyIssueKind {
   candidateWrongTargetLayer,
   candidateElementMissing,
   candidateOutOfBounds,
+  candidateTargetLayerTilesetMismatch,
   candidateDuplicateId,
   placedElementIdConflict,
   candidatePositionDuplicate,
@@ -217,6 +218,16 @@ bool _footprintInBounds({
   return right <= mapSize.width && bottom <= mapSize.height;
 }
 
+String _effectiveTileLayerTilesetId(TileLayer layer, MapData map) {
+  return (layer.tilesetId ?? map.tilesetId).trim();
+}
+
+String _elementPrimaryTilesetId(ProjectElementEntry element) {
+  final frameTilesetId = element.frames.primaryFrame.tilesetId.trim();
+  if (frameTilesetId.isNotEmpty) return frameTilesetId;
+  return element.tilesetId.trim();
+}
+
 bool _applyCollisionFromCandidate(EnvironmentCollisionMode mode) {
   switch (mode) {
     case EnvironmentCollisionMode.forceEnabled:
@@ -300,7 +311,7 @@ class ApplyEnvironmentGeneratedPlacementsUseCase {
       return _failure(map, issues: issues);
     }
 
-    var targetTileLayerFound = false;
+    TileLayer? targetTileLayer;
     for (final layer in map.layers) {
       if (layer.id == targetId) {
         if (layer is! TileLayer) {
@@ -316,11 +327,11 @@ class ApplyEnvironmentGeneratedPlacementsUseCase {
           );
           return _failure(map, issues: issues);
         }
-        targetTileLayerFound = true;
+        targetTileLayer = layer;
         break;
       }
     }
-    if (!targetTileLayerFound) {
+    if (targetTileLayer == null) {
       issues.add(
         EnvironmentApplyIssue(
           severity: EnvironmentApplyIssueSeverity.error,
@@ -485,6 +496,29 @@ class ApplyEnvironmentGeneratedPlacementsUseCase {
             environmentLayerId: envId,
             areaId: aid,
             candidateId: c.id,
+            elementId: c.elementId,
+          ),
+        );
+        return _failure(map, issues: issues);
+      }
+
+      final targetTilesetId =
+          _effectiveTileLayerTilesetId(targetTileLayer, map);
+      final elementTilesetId = _elementPrimaryTilesetId(entry);
+      if (targetTilesetId.isNotEmpty &&
+          elementTilesetId.isNotEmpty &&
+          targetTilesetId != elementTilesetId) {
+        issues.add(
+          EnvironmentApplyIssue(
+            severity: EnvironmentApplyIssueSeverity.error,
+            kind: EnvironmentApplyIssueKind.candidateTargetLayerTilesetMismatch,
+            message: 'Candidate ${c.id} uses element ${c.elementId} from '
+                'tileset $elementTilesetId, but target layer $targetId '
+                'uses tileset $targetTilesetId.',
+            environmentLayerId: envId,
+            areaId: aid,
+            candidateId: c.id,
+            targetLayerId: targetId,
             elementId: c.elementId,
           ),
         );

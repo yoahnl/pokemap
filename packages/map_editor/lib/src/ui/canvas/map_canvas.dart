@@ -28,7 +28,11 @@ part 'map_canvas/map_canvas_assets.dart';
 part 'map_canvas/map_grid_painter.dart';
 
 bool _isEnvironmentMaskEditing(EditorState state, MapData map) {
-  if (state.environmentMaskEditMode == null) return false;
+  final mode = state.environmentMaskEditMode;
+  if (mode != EnvironmentMaskEditMode.paint &&
+      mode != EnvironmentMaskEditMode.erase) {
+    return false;
+  }
   if (state.selectedEnvironmentAreaId == null) return false;
   final lid = state.activeLayerId;
   if (lid == null) return false;
@@ -310,6 +314,18 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 if (handled) {
                   return;
                 }
+              }
+
+              if (state.environmentMaskEditMode ==
+                  EnvironmentMaskEditMode.generatedAdd) {
+                notifier.addGeneratedEnvironmentPlacementAt(gridPos);
+                return;
+              }
+
+              if (state.environmentMaskEditMode ==
+                  EnvironmentMaskEditMode.generatedDelete) {
+                notifier.deleteGeneratedEnvironmentPlacementAt(gridPos);
+                return;
               }
 
               if (!isTapEditingTool) return;

@@ -593,7 +593,8 @@ void main() {
       expect(area.generatedPlacementIds, ids);
     });
 
-    test('mapValidationFailed : tileset layer vs element incompatible', () {
+    test('candidateTargetLayerTilesetMismatch : layer vs element incompatible',
+        () {
       final ctx = _happyContext(layerTilesetId: 'tsA');
       final manifestBad = ProjectManifest(
         name: 'p',
@@ -633,8 +634,12 @@ void main() {
         areaId: 'area1',
         candidates: [cand],
       );
-      expect(r.issuesForKind(EnvironmentApplyIssueKind.mapValidationFailed),
-          isNotEmpty);
+      expect(
+        r.issuesForKind(
+          EnvironmentApplyIssueKind.candidateTargetLayerTilesetMismatch,
+        ),
+        isNotEmpty,
+      );
       expect(identical(r.map, ctx.map), isTrue);
     });
   });

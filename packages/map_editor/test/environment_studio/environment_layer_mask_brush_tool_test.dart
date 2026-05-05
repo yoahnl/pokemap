@@ -42,12 +42,8 @@ EnvironmentArea _area({
 }
 
 MapData _mapWithEnv(EnvironmentLayer env) {
-  final w = env.content.areas.isEmpty
-      ? 4
-      : env.content.areas.first.mask.width;
-  final h = env.content.areas.isEmpty
-      ? 3
-      : env.content.areas.first.mask.height;
+  final w = env.content.areas.isEmpty ? 4 : env.content.areas.first.mask.width;
+  final h = env.content.areas.isEmpty ? 3 : env.content.areas.first.mask.height;
   final cellCount = w * h;
   return MapData(
     id: 'm',
@@ -322,6 +318,23 @@ void main() {
       s = container.read(editorNotifierProvider);
       expect(s.environmentMaskEditMode, EnvironmentMaskEditMode.erase);
 
+      notifier.startEnvironmentAreaGeneratedPlacementAdd(
+        environmentLayerId: 'env1',
+        areaId: 'area_1',
+      );
+      s = container.read(editorNotifierProvider);
+      expect(s.environmentMaskEditMode, EnvironmentMaskEditMode.generatedAdd);
+
+      notifier.startEnvironmentAreaGeneratedPlacementDelete(
+        environmentLayerId: 'env1',
+        areaId: 'area_1',
+      );
+      s = container.read(editorNotifierProvider);
+      expect(
+        s.environmentMaskEditMode,
+        EnvironmentMaskEditMode.generatedDelete,
+      );
+
       notifier.stopEnvironmentAreaMaskEditing();
       s = container.read(editorNotifierProvider);
       expect(s.environmentMaskEditMode, isNull);
@@ -463,6 +476,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(Key('env-area-mask-paint-${area.id}')), findsOneWidget);
       expect(find.byKey(Key('env-area-mask-erase-${area.id}')), findsOneWidget);
+      expect(
+        find.byKey(Key('env-area-placement-add-${area.id}')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(Key('env-area-placement-delete-${area.id}')),
+        findsOneWidget,
+      );
       await tester.tap(find.byKey(Key('env-area-mask-paint-${area.id}')));
       await tester.pumpAndSettle();
       expect(
@@ -474,6 +495,15 @@ void main() {
       await tester.pumpAndSettle();
       expect(
           find.textContaining('Édition active : effacement'), findsOneWidget);
+      await tester.tap(find.byKey(Key('env-area-placement-add-${area.id}')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Édition active : ajout'), findsOneWidget);
+      await tester.tap(find.byKey(Key('env-area-placement-delete-${area.id}')));
+      await tester.pumpAndSettle();
+      expect(
+        find.textContaining('Édition active : suppression'),
+        findsOneWidget,
+      );
       await tester.tap(find.byKey(Key('env-area-mask-stop-${area.id}')));
       await tester.pumpAndSettle();
       expect(
@@ -632,6 +662,198 @@ void main() {
           .areas
           .single;
       expect(painted.mask.isActiveAt(1, 1), isFalse);
+    });
+
+    testWidgets('tap sans mode placement ne supprime pas un arbre généré', (
+      tester,
+    ) async {
+      final area = _area(
+        id: 'a_delete',
+        w: 4,
+        h: 4,
+        generatedPlacementIds: const ['tree_a'],
+      );
+      final env = MapLayer.environment(
+        id: 'env1',
+        name: 'E',
+        content: EnvironmentLayerContent(
+          targetTileLayerId: 'tiles',
+          areas: [area],
+        ),
+      ) as EnvironmentLayer;
+      final map = MapData(
+        id: 'route_1',
+        name: 'Route 1',
+        size: const GridSize(width: 4, height: 4),
+        layers: <MapLayer>[
+          env,
+          TileLayer(id: 'tiles', name: 'T', tiles: List<int>.filled(16, 0)),
+        ],
+        placedElements: const [
+          MapPlacedElement(
+            id: 'tree_a',
+            layerId: 'tiles',
+            elementId: 'tree',
+            pos: GridPos(x: 0, y: 0),
+          ),
+        ],
+      );
+      final project = ProjectManifest(
+        name: 'p',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[],
+        surfaceCatalog: ProjectSurfaceCatalog(),
+        elements: const [
+          ProjectElementEntry(
+            id: 'tree',
+            name: 'Tree',
+            tilesetId: 'ts',
+            categoryId: 'flora',
+            frames: [
+              TilesetVisualFrame(
+                source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
+              ),
+            ],
+          ),
+        ],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: tempDir.path,
+        project: project,
+        activeMap: map,
+        activeLayerId: 'env1',
+        selectedEnvironmentAreaId: area.id,
+        environmentMaskEditMode: null,
+      );
+
+      await tester.binding.setSurfaceSize(const Size(900, 700));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: MaterialApp(
+              home: CupertinoPageScaffold(
+                child: Center(
+                  child: SizedBox(
+                    width: 900,
+                    height: 700,
+                    child: MapCanvas(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final mapBox = tester.getRect(find.byType(MapCanvas));
+      await tester.tapAt(mapBox.topLeft + const Offset(48, 48));
+      await tester.pumpAndSettle();
+
+      final s = container.read(editorNotifierProvider);
+      expect(s.activeMap!.placedElements.map((p) => p.id), ['tree_a']);
+    });
+
+    testWidgets('mode suppression + tap retire un arbre généré',
+        (tester) async {
+      final area = _area(
+        id: 'a_delete',
+        w: 4,
+        h: 4,
+        generatedPlacementIds: const ['tree_a'],
+      );
+      final env = MapLayer.environment(
+        id: 'env1',
+        name: 'E',
+        content: EnvironmentLayerContent(
+          targetTileLayerId: 'tiles',
+          areas: [area],
+        ),
+      ) as EnvironmentLayer;
+      final map = MapData(
+        id: 'route_1',
+        name: 'Route 1',
+        size: const GridSize(width: 4, height: 4),
+        layers: <MapLayer>[
+          env,
+          TileLayer(id: 'tiles', name: 'T', tiles: List<int>.filled(16, 0)),
+        ],
+        placedElements: const [
+          MapPlacedElement(
+            id: 'tree_a',
+            layerId: 'tiles',
+            elementId: 'tree',
+            pos: GridPos(x: 0, y: 0),
+          ),
+        ],
+      );
+      final project = ProjectManifest(
+        name: 'p',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[],
+        surfaceCatalog: ProjectSurfaceCatalog(),
+        elements: const [
+          ProjectElementEntry(
+            id: 'tree',
+            name: 'Tree',
+            tilesetId: 'ts',
+            categoryId: 'flora',
+            frames: [
+              TilesetVisualFrame(
+                source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
+              ),
+            ],
+          ),
+        ],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: tempDir.path,
+        project: project,
+        activeMap: map,
+        activeLayerId: 'env1',
+        selectedEnvironmentAreaId: area.id,
+        environmentMaskEditMode: EnvironmentMaskEditMode.generatedDelete,
+      );
+
+      await tester.binding.setSurfaceSize(const Size(900, 700));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: MaterialApp(
+              home: CupertinoPageScaffold(
+                child: Center(
+                  child: SizedBox(
+                    width: 900,
+                    height: 700,
+                    child: MapCanvas(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final mapBox = tester.getRect(find.byType(MapCanvas));
+      await tester.tapAt(mapBox.topLeft + const Offset(48, 48));
+      await tester.pumpAndSettle();
+
+      final s = container.read(editorNotifierProvider);
+      expect(s.activeMap!.placedElements, isEmpty);
+      expect(s.statusMessage, contains('Placement généré supprimé'));
     });
   });
 

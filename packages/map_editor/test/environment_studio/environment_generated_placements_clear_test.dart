@@ -445,6 +445,266 @@ void main() {
       expect(s.activeMap!.placedElements, isEmpty);
     });
 
+    test(
+        'deletePlacedElementInstance retire un placement généré individuel et sa référence',
+        () {
+      final area = _area(
+        id: 'a1',
+        presetId: 'p1',
+        generatedPlacementIds: const ['g1', 'g2'],
+      );
+      final env = MapLayer.environment(
+        id: 'env',
+        name: 'E',
+        content: EnvironmentLayerContent(
+          targetTileLayerId: 'tiles',
+          areas: [area],
+        ),
+      );
+      final tile = TileLayer(
+        id: 'tiles',
+        name: 'T',
+        tiles: List<int>.filled(4, 0),
+      );
+      final map = MapData(
+        id: 'm',
+        name: 'M',
+        size: const GridSize(width: 2, height: 2),
+        layers: [env, tile],
+        placedElements: const [
+          MapPlacedElement(
+            id: 'g1',
+            layerId: 'tiles',
+            elementId: 'e1',
+            pos: GridPos(x: 0, y: 0),
+          ),
+          MapPlacedElement(
+            id: 'g2',
+            layerId: 'tiles',
+            elementId: 'e1',
+            pos: GridPos(x: 1, y: 0),
+          ),
+          MapPlacedElement(
+            id: 'manual',
+            layerId: 'tiles',
+            elementId: 'e1',
+            pos: GridPos(x: 0, y: 1),
+          ),
+        ],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/r',
+        project: buildShellChromeProject(),
+        activeMap: map,
+        activeMapPath: 'maps/x.json',
+        activeLayerId: 'env',
+        selectedEnvironmentAreaId: 'a1',
+        selectedPlacedElementInstanceId: 'g1',
+        savedMapSnapshot: map,
+      );
+
+      container
+          .read(editorNotifierProvider.notifier)
+          .deletePlacedElementInstance(instanceId: 'g1');
+
+      final s = container.read(editorNotifierProvider);
+      final outMap = s.activeMap!;
+      final outEnv = outMap.layers.first as EnvironmentLayer;
+      expect(outMap.placedElements.map((p) => p.id).toList(), [
+        'g2',
+        'manual',
+      ]);
+      expect(outEnv.content.areas.single.generatedPlacementIds, const ['g2']);
+      expect(s.selectedPlacedElementInstanceId, isNull);
+      expect(s.isDirty, isTrue);
+      expect(s.statusMessage, contains('Instance générée supprimée'));
+    });
+
+    test(
+        'deleteGeneratedEnvironmentPlacementAt supprime le placement généré cliqué dans son footprint',
+        () {
+      final area = _area(
+        id: 'a1',
+        presetId: 'p1',
+        generatedPlacementIds: const ['tree_a', 'tree_b'],
+        w: 4,
+        h: 4,
+      );
+      final env = MapLayer.environment(
+        id: 'env',
+        name: 'E',
+        content: EnvironmentLayerContent(
+          targetTileLayerId: 'tiles',
+          areas: [area],
+        ),
+      );
+      final tile = TileLayer(
+        id: 'tiles',
+        name: 'T',
+        tiles: List<int>.filled(16, 0),
+      );
+      final map = MapData(
+        id: 'm',
+        name: 'M',
+        size: const GridSize(width: 4, height: 4),
+        layers: [env, tile],
+        placedElements: const [
+          MapPlacedElement(
+            id: 'tree_a',
+            layerId: 'tiles',
+            elementId: 'tree',
+            pos: GridPos(x: 0, y: 0),
+          ),
+          MapPlacedElement(
+            id: 'tree_b',
+            layerId: 'tiles',
+            elementId: 'tree',
+            pos: GridPos(x: 2, y: 0),
+          ),
+        ],
+      );
+      final project = buildShellChromeProject(
+        elements: const [
+          ProjectElementEntry(
+            id: 'tree',
+            name: 'Tree',
+            tilesetId: 'ts',
+            categoryId: 'flora',
+            frames: [
+              TilesetVisualFrame(
+                source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
+              ),
+            ],
+          ),
+        ],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/r',
+        project: project,
+        activeMap: map,
+        activeMapPath: 'maps/x.json',
+        activeLayerId: 'env',
+        selectedEnvironmentAreaId: 'a1',
+        savedMapSnapshot: map,
+      );
+
+      final deleted = container
+          .read(editorNotifierProvider.notifier)
+          .deleteGeneratedEnvironmentPlacementAt(const GridPos(x: 1, y: 1));
+
+      final s = container.read(editorNotifierProvider);
+      final outMap = s.activeMap!;
+      final outEnv = outMap.layers.first as EnvironmentLayer;
+      expect(s.errorMessage, isNull);
+      expect(deleted, isTrue);
+      expect(outMap.placedElements.map((p) => p.id).toList(), ['tree_b']);
+      expect(
+        outEnv.content.areas.single.generatedPlacementIds,
+        const ['tree_b'],
+      );
+      expect(s.statusMessage, contains('Placement généré supprimé'));
+    });
+
+    test(
+        'addGeneratedEnvironmentPlacementAt ajoute un placement individuel du preset',
+        () {
+      final area = _area(
+        id: 'a1',
+        presetId: 'p1',
+        generatedPlacementIds: const ['tree_a'],
+        w: 4,
+        h: 4,
+      );
+      final env = MapLayer.environment(
+        id: 'env',
+        name: 'E',
+        content: EnvironmentLayerContent(
+          targetTileLayerId: 'tiles',
+          areas: [area],
+        ),
+      );
+      final tile = TileLayer(
+        id: 'tiles',
+        name: 'T',
+        tilesetId: 'ts',
+        tiles: List<int>.filled(16, 0),
+      );
+      final map = MapData(
+        id: 'm',
+        name: 'M',
+        size: const GridSize(width: 4, height: 4),
+        layers: [env, tile],
+        placedElements: const [
+          MapPlacedElement(
+            id: 'tree_a',
+            layerId: 'tiles',
+            elementId: 'tree',
+            pos: GridPos(x: 0, y: 0),
+          ),
+        ],
+      );
+      final project = buildShellChromeProject(
+        environmentPresets: [
+          EnvironmentPreset(
+            id: 'p1',
+            name: 'Forest',
+            templateId: 'forest',
+            palette: [
+              EnvironmentPaletteItem(elementId: 'tree', weight: 1),
+            ],
+            defaultParams: EnvironmentGenerationParams.standard(),
+            sortOrder: 0,
+          ),
+        ],
+        elements: const [
+          ProjectElementEntry(
+            id: 'tree',
+            name: 'Tree',
+            tilesetId: 'ts',
+            categoryId: 'flora',
+            frames: [
+              TilesetVisualFrame(
+                source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
+              ),
+            ],
+          ),
+        ],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/r',
+        project: project,
+        activeMap: map,
+        activeMapPath: 'maps/x.json',
+        activeLayerId: 'env',
+        selectedEnvironmentAreaId: 'a1',
+        savedMapSnapshot: map,
+      );
+
+      final added = container
+          .read(editorNotifierProvider.notifier)
+          .addGeneratedEnvironmentPlacementAt(const GridPos(x: 1, y: 1));
+
+      final s = container.read(editorNotifierProvider);
+      final outMap = s.activeMap!;
+      final outEnv = outMap.layers.first as EnvironmentLayer;
+      expect(added, isTrue);
+      expect(outMap.placedElements.map((p) => p.id).toList(), [
+        'tree_a',
+        'env_gen_a1_1_1_tree',
+      ]);
+      expect(outEnv.content.areas.single.generatedPlacementIds, const [
+        'tree_a',
+        'env_gen_a1_1_1_tree',
+      ]);
+      expect(s.statusMessage, contains('Placement généré ajouté'));
+    });
+
     test('no-op ids vides : map inchangée, isDirty inchangé', () {
       final area = _area(id: 'a1', presetId: 'p1');
       final env = MapLayer.environment(
