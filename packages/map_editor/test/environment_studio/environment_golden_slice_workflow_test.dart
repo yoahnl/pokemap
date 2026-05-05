@@ -92,6 +92,53 @@ MapData _map(EnvironmentArea area) {
   );
 }
 
+TileLayer _tileLayer(MapData map) =>
+    map.layers.whereType<TileLayer>().firstWhere((l) => l.id == 'tiles');
+
+EnvironmentArea _envArea(MapData map) =>
+    (map.layers.first as EnvironmentLayer).content.areas.single;
+
+List<int> _tilesSnapshot(MapData map) => List<int>.from(_tileLayer(map).tiles);
+
+/// Invariants Lot 29 : manifest et tuiles intacts, masque / preset / cible stables,
+/// sélection cohérente, chaque id généré référence un placement existant (≠ manuel).
+void _assertGoldenSliceFinalInvariants(
+  EditorState s,
+  ProjectManifest manifestRef,
+  List<int> initialTiles,
+  int initialMaskActive,
+  String expectedPresetId,
+  String expectedTargetId,
+) {
+  expect(s.project, isNotNull);
+  expect(identical(s.project, manifestRef), isTrue,
+      reason:
+          'ProjectManifest ne doit pas être remplacé par les flux Golden Slice');
+  final map = s.activeMap!;
+  expect(_tilesSnapshot(map), initialTiles,
+      reason: 'TileLayer.tiles ne doit pas être modifié');
+  final area = _envArea(map);
+  expect(area.mask.activeCellCount, initialMaskActive,
+      reason:
+          'Le masque ne doit pas changer (generate/clear/regenerate/shuffle)');
+  expect(area.presetId, expectedPresetId);
+  expect(
+    (map.layers.first as EnvironmentLayer).content.targetTileLayerId,
+    expectedTargetId,
+  );
+  expect(s.activeLayerId, 'env');
+  expect(s.selectedEnvironmentAreaId, 'area1');
+  expect(s.environmentMaskEditMode, isNull);
+  for (final pid in area.generatedPlacementIds) {
+    expect(pid, isNot('manual_keep'));
+    expect(
+      map.placedElements.any((e) => e.id == pid),
+      isTrue,
+      reason: 'generatedPlacementIds ne référence que des placements présents',
+    );
+  }
+}
+
 void main() {
   group('Golden Slice — workflow notifier complet', () {
     test('generate → clear → generate → regenerate → shuffle ; manuel conservé',
@@ -380,5 +427,105 @@ void main() {
       expect(
           find.textContaining('Choisissez un TileLayer cible'), findsWidgets);
     });
+  });
+
+  group('Golden Slice — validation finale (Lot 29)', () {
+    test(
+      'generate → clear → generate → regenerate → shuffle : invariants manifest, '
+      'tuiles, masque, sélection, ids',
+      () {
+        final container = ProviderContainer();
+        addTearDown(container.dispose);
+        final manifest = _manifest();
+        final area = _area();
+        final map = _map(area);
+        final initialTiles = _tilesSnapshot(map);
+        final initialMask = _envArea(map).mask.activeCellCount;
+        expect(initialMask, 4);
+
+        container.read(editorNotifierProvider.notifier).state = EditorState(
+          projectRootPath: '/golden',
+          project: manifest,
+          activeMap: map,
+          activeMapPath: 'maps/x.json',
+          activeLayerId: 'env',
+          selectedEnvironmentAreaId: 'area1',
+          environmentMaskEditMode: EnvironmentMaskEditMode.paint,
+          savedMapSnapshot: map,
+        );
+        final notifier = container.read(editorNotifierProvider.notifier);
+
+        void check() {
+          _assertGoldenSliceFinalInvariants(
+            container.read(editorNotifierProvider),
+            manifest,
+            initialTiles,
+            initialMask,
+            'p1',
+            'tiles',
+          );
+        }
+
+        notifier.generateEnvironmentAreaPlacements(
+          environmentLayerId: 'env',
+          areaId: 'area1',
+        );
+        check();
+        final s1 = container.read(editorNotifierProvider);
+        expect(s1.activeMap!.placedElements.length, greaterThan(1));
+        expect(_envArea(s1.activeMap!).generatedPlacementIds, isNotEmpty);
+
+        notifier.clearEnvironmentGeneratedPlacements(
+          environmentLayerId: 'env',
+          areaId: 'area1',
+        );
+        check();
+        final s2 = container.read(editorNotifierProvider);
+        expect(_envArea(s2.activeMap!).generatedPlacementIds, isEmpty);
+        expect(
+          s2.activeMap!.placedElements.map((e) => e.id).toList(),
+          ['manual_keep'],
+        );
+
+        notifier.generateEnvironmentAreaPlacements(
+          environmentLayerId: 'env',
+          areaId: 'area1',
+        );
+        check();
+        final seedBeforeRegen =
+            _envArea(container.read(editorNotifierProvider).activeMap!).seed;
+
+        notifier.regenerateEnvironmentAreaPlacements(
+          environmentLayerId: 'env',
+          areaId: 'area1',
+        );
+        check();
+        expect(
+          _envArea(container.read(editorNotifierProvider).activeMap!).seed,
+          seedBeforeRegen,
+        );
+
+        final seedBeforeShuffle =
+            _envArea(container.read(editorNotifierProvider).activeMap!).seed;
+        notifier.shuffleEnvironmentAreaPlacements(
+          environmentLayerId: 'env',
+          areaId: 'area1',
+        );
+        check();
+        final areaOut = _envArea(
+          container.read(editorNotifierProvider).activeMap!,
+        );
+        expect(areaOut.seed, isNot(seedBeforeShuffle));
+        expect(areaOut.generatedPlacementIds, isNotEmpty);
+        expect(
+          container
+              .read(editorNotifierProvider)
+              .activeMap!
+              .placedElements
+              .any((p) => p.id == 'manual_keep'),
+          isTrue,
+        );
+      },
+    );
   });
 }
