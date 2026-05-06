@@ -248,14 +248,22 @@ class MapLayersComponent extends PositionComponent {
     if (renderPass == MapLayerRenderPass.foreground) {
       for (var i = visible.length - 1; i >= 0; i--) {
         visible[i].whenOrNull(
-          tile: (id, name, tilesetId, v, o, tiles) => _paintTileLayer(
-            canvas,
-            layerId: id,
-            layerName: name,
-            tilesetId: tilesetId,
-            tiles: tiles,
-            opacity: o,
-          ),
+          tile: (id, name, tilesetId, v, o, tiles) {
+            _paintTileLayer(
+              canvas,
+              layerId: id,
+              layerName: name,
+              tilesetId: tilesetId,
+              tiles: tiles,
+              opacity: o,
+            );
+            _paintPlacedElementsForLayer(
+              canvas,
+              layerId: id,
+              layerName: name,
+              opacity: o,
+            );
+          },
         );
       }
       _paintEntities(canvas);
@@ -282,14 +290,22 @@ class MapLayersComponent extends PositionComponent {
     }
     for (var i = visible.length - 1; i >= 0; i--) {
       visible[i].whenOrNull(
-        tile: (id, name, tilesetId, v, o, tiles) => _paintTileLayer(
-          canvas,
-          layerId: id,
-          layerName: name,
-          tilesetId: tilesetId,
-          tiles: tiles,
-          opacity: o,
-        ),
+        tile: (id, name, tilesetId, v, o, tiles) {
+          _paintTileLayer(
+            canvas,
+            layerId: id,
+            layerName: name,
+            tilesetId: tilesetId,
+            tiles: tiles,
+            opacity: o,
+          );
+          _paintPlacedElementsForLayer(
+            canvas,
+            layerId: id,
+            layerName: name,
+            opacity: o,
+          );
+        },
       );
     }
     _paintEntities(canvas);
@@ -558,6 +574,83 @@ class MapLayersComponent extends PositionComponent {
         final dst = Rect.fromLTWH(x * cw, y * ch, cw, ch);
         image.drawImageRect(canvas, src, dst, paint);
       }
+    }
+  }
+
+  void _paintPlacedElementsForLayer(
+    Canvas canvas, {
+    required String layerId,
+    required String layerName,
+    required double opacity,
+  }) {
+    if (bundle.map.placedElements.isEmpty || opacity <= 0) {
+      return;
+    }
+    final explicitForeground = _isExplicitForegroundTileLayer(
+      layerId: layerId,
+      layerName: layerName,
+    );
+    final shouldRenderThisLayer = switch (renderPass) {
+      MapLayerRenderPass.background => !explicitForeground,
+      MapLayerRenderPass.foreground => explicitForeground,
+    };
+    if (!shouldRenderThisLayer) {
+      return;
+    }
+    final tw = bundle.manifest.settings.tileWidth;
+    final th = bundle.manifest.settings.tileHeight;
+    if (tw <= 0 || th <= 0) {
+      return;
+    }
+    final cw = bundle.cellWidth;
+    final ch = bundle.cellHeight;
+    final elapsedMs = (_animElapsed * 1000).toInt();
+    final paint = Paint()
+      ..isAntiAlias = false
+      ..filterQuality = FilterQuality.none;
+    if (opacity < 1) {
+      paint.color = Color.fromRGBO(255, 255, 255, opacity);
+    }
+
+    for (final instance in bundle.map.placedElements) {
+      if (instance.layerId.trim() != layerId) {
+        continue;
+      }
+      final entry = _elementById[instance.elementId.trim()];
+      if (entry == null || entry.frames.isEmpty) {
+        continue;
+      }
+      final frame = _pickEntityFrame(entry.frames, elapsedMs);
+      final tilesetId = frame.tilesetId.trim().isNotEmpty
+          ? frame.tilesetId.trim()
+          : entry.tilesetId.trim();
+      if (tilesetId.isEmpty) {
+        continue;
+      }
+      final image = tileImagesByTilesetId[tilesetId];
+      if (image == null) {
+        continue;
+      }
+      final source = frame.source;
+      if (source.width <= 0 || source.height <= 0) {
+        continue;
+      }
+      final src = Rect.fromLTWH(
+        (source.x * tw).toDouble(),
+        (source.y * th).toDouble(),
+        (source.width * tw).toDouble(),
+        (source.height * th).toDouble(),
+      );
+      if (!image.containsSourceRect(src)) {
+        continue;
+      }
+      final dst = Rect.fromLTWH(
+        instance.pos.x * cw,
+        instance.pos.y * ch,
+        source.width * cw,
+        source.height * ch,
+      );
+      image.drawImageRect(canvas, src, dst, paint);
     }
   }
 
