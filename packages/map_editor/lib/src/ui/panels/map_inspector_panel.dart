@@ -4,6 +4,7 @@ import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../application/models/terrain_selection_mode.dart';
+import '../../application/services/tile_layer_environment_attachment_read_model_builder.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../../features/surface_painter/surface_palette_panel.dart';
@@ -18,6 +19,7 @@ import 'layers_panel.dart';
 import 'map_connections_panel.dart';
 import 'map_properties_panel.dart';
 import 'terrain_map_panel.dart';
+import 'tile_layer_environment_inspector_section.dart';
 import 'tileset_palette_panel.dart';
 import 'trigger_properties_panel.dart';
 import 'warp_properties_panel.dart';
@@ -25,6 +27,7 @@ import 'warp_properties_panel.dart';
 enum _InspectorSectionId {
   mapProperties,
   layers,
+  tileLayerEnvironment,
   environmentLayer,
   tiles,
   ground,
@@ -77,6 +80,16 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
         activeMap.layers.any((layer) => layer is SurfaceLayer);
     final hasSurfacePresets =
         state.project?.surfaceCatalog.presets.isNotEmpty ?? false;
+    final showTileLayerEnvironmentSection =
+        activeLayer is TileLayer || activeLayer is EnvironmentLayer;
+    final tileLayerEnvironmentReadModel = showTileLayerEnvironmentSection
+        ? buildTileLayerEnvironmentAttachmentReadModel(
+            manifest: state.project,
+            map: activeMap,
+            selectedLayerId: state.activeLayerId,
+            selectedEnvironmentAreaId: state.selectedEnvironmentAreaId,
+          )
+        : null;
     final showEnvironmentLayerSection = activeLayer is EnvironmentLayer;
     final showTilesSection = activeLayer is TileLayer ||
         state.activeTool == EditorToolType.tilePaint ||
@@ -165,6 +178,25 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                 expandedHeight: 260,
                 child: const LayersPanel(embedded: true),
               ),
+              if (tileLayerEnvironmentReadModel != null)
+                InspectorSectionCard(
+                  title: 'Environnement du layer',
+                  subtitle: tileLayerEnvironmentReadModel.emptyStateTitle,
+                  icon: CupertinoIcons.tree,
+                  accentColor: EditorChrome.inspectorJoyMint,
+                  expanded: _isExpanded(
+                    _InspectorSectionId.tileLayerEnvironment,
+                    true,
+                  ),
+                  onToggle: () => _toggleSection(
+                    _InspectorSectionId.tileLayerEnvironment,
+                    defaultExpanded: true,
+                  ),
+                  expandedHeight: 320,
+                  child: TileLayerEnvironmentInspectorSection(
+                    readModel: tileLayerEnvironmentReadModel,
+                  ),
+                ),
               if (showEnvironmentLayerSection)
                 InspectorSectionCard(
                   title: 'Environment Layer',
