@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import '../errors/application_errors.dart';
+import '../services/environment_mask_brush_footprint_resolver.dart';
 
 /// Lot Environment-22 : peinture / effacement d’une cellule du masque d’une zone.
 ///
@@ -123,8 +124,6 @@ class PaintEnvironmentAreaMaskCellUseCase {
 }
 
 class PaintEnvironmentAreaMaskBrushStrokeUseCase {
-  static const allowedBrushSizes = {1, 3, 5, 7};
-
   MapData execute(
     MapData map, {
     required String environmentLayerId,
@@ -143,15 +142,12 @@ class PaintEnvironmentAreaMaskBrushStrokeUseCase {
     if (aid.isEmpty) {
       throw const EditorValidationException('Area id cannot be empty');
     }
-    if (!allowedBrushSizes.contains(brushSize)) {
-      throw EditorValidationException(
-        'Environment mask brush size must be one of 1, 3, 5 or 7: $brushSize',
-      );
-    }
-    if (center.x < 0 ||
-        center.y < 0 ||
-        center.x >= map.size.width ||
-        center.y >= map.size.height) {
+    final footprint = resolveEnvironmentMaskBrushFootprint(
+      mapSize: map.size,
+      center: center,
+      brushSize: brushSize,
+    );
+    if (footprint.isEmpty) {
       return map;
     }
 
@@ -196,22 +192,14 @@ class PaintEnvironmentAreaMaskBrushStrokeUseCase {
       );
     }
 
-    final radius = (brushSize - 1) ~/ 2;
-    final minX = (center.x - radius).clamp(0, mask.width - 1);
-    final maxX = (center.x + radius).clamp(0, mask.width - 1);
-    final minY = (center.y - radius).clamp(0, mask.height - 1);
-    final maxY = (center.y + radius).clamp(0, mask.height - 1);
-
     List<bool>? nextCells;
-    for (var y = minY; y <= maxY; y++) {
-      for (var x = minX; x <= maxX; x++) {
-        final index = y * mask.width + x;
-        if (mask.cells[index] == isActive) {
-          continue;
-        }
-        nextCells ??= List<bool>.from(mask.cells, growable: false);
-        nextCells[index] = isActive;
+    for (final cell in footprint.cells) {
+      final index = cell.y * mask.width + cell.x;
+      if (mask.cells[index] == isActive) {
+        continue;
       }
+      nextCells ??= List<bool>.from(mask.cells, growable: false);
+      nextCells[index] = isActive;
     }
 
     if (nextCells == null) {

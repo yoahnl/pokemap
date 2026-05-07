@@ -13,10 +13,12 @@ import 'package:map_core/map_core.dart';
 import '../../application/models/map_tool_preview.dart';
 import '../../application/models/path_autotile_set.dart';
 import '../../application/services/environment_generated_placement_hover_resolver.dart';
+import '../../application/services/environment_mask_brush_footprint_resolver.dart';
 import '../../application/services/environment_mask_paint_target_resolver.dart';
 import '../../application/services/tileset_transparent_color_processor.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
+import '../../features/editor/state/environment_mask_brush_size_provider.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../../features/path_pattern/path_pattern_editor_render_resolution.dart';
 import '../../features/surface_painter/surface_layer_static_preview.dart';
@@ -129,6 +131,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   Widget build(BuildContext context) {
     final state = ref.watch(editorNotifierProvider);
     final notifier = ref.read(editorNotifierProvider.notifier);
+    final environmentMaskBrushSize =
+        ref.watch(environmentMaskBrushSizeProvider);
     final activeMap = state.activeMap;
     final settings = state.project?.settings ?? const ProjectSettings();
     final connectionLabelsByDirection =
@@ -255,6 +259,14 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                 selectedAreaId: state.selectedEnvironmentAreaId,
               )?.area.mask
             : null;
+        final environmentBrushCursorOverlay =
+            isEnvironmentMaskEditing && hoveredTile != null
+                ? EnvironmentMaskBrushCursorOverlay(
+                    center: hoveredTile,
+                    brushSize: environmentMaskBrushSize,
+                    mode: state.environmentMaskEditMode!,
+                  )
+                : null;
 
         void applyToolAt(GridPos gridPos, {bool partOfStroke = false}) {
           if (isEnvironmentMaskEditing) {
@@ -481,7 +493,9 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                           map: activeMap,
                           zoom: state.zoom,
                           offset: state.panOffset,
-                          hoveredTile: _hoveredTile,
+                          hoveredTile: environmentBrushCursorOverlay == null
+                              ? _hoveredTile
+                              : null,
                           activeLayerId: state.activeLayerId,
                           tileWidth: tileWidth,
                           tileHeight: tileHeight,
@@ -509,6 +523,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                           project: state.project,
                           editorEntityAnimationMs: _editorEntityAnimationMs,
                           environmentMaskOverlay: environmentMaskOverlay,
+                          environmentBrushCursorOverlay:
+                              environmentBrushCursorOverlay,
                           environmentGeneratedAddPreview:
                               environmentGeneratedAddPreview?.placed,
                           environmentGeneratedDeletePreviewId:

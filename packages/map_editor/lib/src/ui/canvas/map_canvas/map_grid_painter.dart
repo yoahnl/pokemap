@@ -154,6 +154,30 @@ bool _isExplicitForegroundTileLayerForEditor({
   return containsMarker(id) || containsMarker(name);
 }
 
+@visibleForTesting
+final class EnvironmentMaskBrushCursorOverlay {
+  const EnvironmentMaskBrushCursorOverlay({
+    required this.center,
+    required this.brushSize,
+    required this.mode,
+  });
+
+  final GridPos center;
+  final int brushSize;
+  final EnvironmentMaskEditMode mode;
+
+  @override
+  bool operator ==(Object other) {
+    return other is EnvironmentMaskBrushCursorOverlay &&
+        other.center == center &&
+        other.brushSize == brushSize &&
+        other.mode == mode;
+  }
+
+  @override
+  int get hashCode => Object.hash(center, brushSize, mode);
+}
+
 /// Painter massif extrait tel quel du shell `MapCanvas`.
 ///
 /// Cette extraction est volontairement mécanique : on ne change pas la
@@ -190,6 +214,7 @@ class MapGridPainter extends CustomPainter {
 
   /// Lot Environment-22 : surcouche semi-transparente des cellules masque actives.
   final EnvironmentAreaMask? environmentMaskOverlay;
+  final EnvironmentMaskBrushCursorOverlay? environmentBrushCursorOverlay;
   final MapPlacedElement? environmentGeneratedAddPreview;
   final String? environmentGeneratedDeletePreviewId;
 
@@ -222,6 +247,7 @@ class MapGridPainter extends CustomPainter {
     this.project,
     this.editorEntityAnimationMs = 0,
     this.environmentMaskOverlay,
+    this.environmentBrushCursorOverlay,
     this.environmentGeneratedAddPreview,
     this.environmentGeneratedDeletePreviewId,
   });
@@ -381,6 +407,7 @@ class MapGridPainter extends CustomPainter {
     _paintToolPreview(canvas);
     _paintEnvironmentGeneratedAddPreview(canvas);
     _paintEnvironmentMaskOverlay(canvas);
+    _paintEnvironmentBrushCursorOverlay(canvas);
     _paintMapEvents(canvas);
     _paintTriggers(canvas);
     _paintWarps(canvas);
@@ -423,6 +450,38 @@ class MapGridPainter extends CustomPainter {
         canvas.drawRect(rect, fill);
         canvas.drawRect(rect, border);
       }
+    }
+  }
+
+  void _paintEnvironmentBrushCursorOverlay(Canvas canvas) {
+    final overlay = environmentBrushCursorOverlay;
+    if (overlay == null) return;
+
+    final footprint = resolveEnvironmentMaskBrushFootprint(
+      mapSize: map.size,
+      center: overlay.center,
+      brushSize: overlay.brushSize,
+    );
+    if (footprint.isEmpty) return;
+
+    final isErase = overlay.mode == EnvironmentMaskEditMode.erase;
+    final fill = Paint()
+      ..color = (isErase ? const Color(0x66FF7043) : const Color(0x6626C6DA))
+      ..style = PaintingStyle.fill;
+    final border = Paint()
+      ..color = isErase ? const Color(0xFFFFB199) : const Color(0xFF80DEEA)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0 / zoom;
+
+    for (final cell in footprint.cells) {
+      final rect = Rect.fromLTWH(
+        cell.x * tileWidth,
+        cell.y * tileHeight,
+        tileWidth,
+        tileHeight,
+      );
+      canvas.drawRect(rect, fill);
+      canvas.drawRect(rect, border);
     }
   }
 
@@ -2406,6 +2465,8 @@ class MapGridPainter extends CustomPainter {
             environmentGeneratedAddPreview ||
         oldDelegate.environmentGeneratedDeletePreviewId !=
             environmentGeneratedDeletePreviewId ||
+        oldDelegate.environmentBrushCursorOverlay !=
+            environmentBrushCursorOverlay ||
         !_sameEnvironmentMaskOverlay(
           oldDelegate.environmentMaskOverlay,
           environmentMaskOverlay,
