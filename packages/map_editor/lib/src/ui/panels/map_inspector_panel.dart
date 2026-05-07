@@ -129,6 +129,11 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
             tileLayerEnvironmentReadModel != null &&
             tileLayerEnvironmentReadModel.canEditSelectedAreaGenerationParams &&
             state.selectedEnvironmentAreaId != null;
+    final canGenerateTileLayerEnvironment = activeLayer is TileLayer &&
+        tileLayerEnvironmentReadModel != null &&
+        tileLayerEnvironmentReadModel.canGenerate &&
+        !tileLayerEnvironmentReadModel.hasErrors &&
+        state.selectedEnvironmentAreaId != null;
     final showEnvironmentLayerSection = activeLayer is EnvironmentLayer;
     final showTilesSection = activeLayer is TileLayer ||
         state.activeTool == EditorToolType.tilePaint ||
@@ -287,6 +292,10 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                             : null,
                     onSetSeed: canEditTileLayerEnvironmentGenerationParams
                         ? notifier.setEnvironmentAreaSeedForActiveTileLayer
+                        : null,
+                    onGenerateEnvironment: canGenerateTileLayerEnvironment
+                        ? notifier
+                            .generateEnvironmentAreaPlacementsForActiveTileLayer
                         : null,
                   ),
                 ),

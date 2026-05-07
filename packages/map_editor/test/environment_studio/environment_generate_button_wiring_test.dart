@@ -565,6 +565,8 @@ void main() {
       await tester.pumpAndSettle();
       final genFinder = find.byKey(const Key('env-area-generate-area1'));
       expect(tester.widget<PushButton>(genFinder).onPressed, isNotNull);
+      await tester.ensureVisible(genFinder);
+      await tester.pumpAndSettle();
       await tester.tap(genFinder);
       await tester.pumpAndSettle();
       final s = container.read(editorNotifierProvider);

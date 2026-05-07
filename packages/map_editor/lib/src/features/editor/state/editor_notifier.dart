@@ -21,6 +21,7 @@ import '../../../application/use_cases/environment_mask_use_cases.dart';
 import '../../../application/use_cases/layer_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_area_settings_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_attachment_use_cases.dart';
+import '../../../application/use_cases/tile_layer_environment_generation_use_cases.dart';
 import '../../../application/models/trainer_field_update.dart';
 import '../../../application/models/map_tool_preview.dart';
 import '../../../application/models/path_autotile_set.dart';
@@ -4964,6 +4965,78 @@ class EditorNotifier extends _$EditorNotifier {
       state = state.copyWith(
         errorMessage:
             'Impossible de modifier les paramètres de génération : $e',
+      );
+    }
+  }
+
+  void generateEnvironmentAreaPlacementsForActiveTileLayer() {
+    final map = state.activeMap;
+    final manifest = state.project;
+    if (map == null || manifest == null) {
+      state = state.copyWith(
+        errorMessage:
+            'Impossible de générer : aucune carte active ou manifeste projet.',
+      );
+      return;
+    }
+    final layerId = state.activeLayerId?.trim();
+    if (layerId == null || layerId.isEmpty) {
+      state = state.copyWith(
+        errorMessage: 'Sélectionnez un TileLayer pour générer cette zone.',
+      );
+      return;
+    }
+    final activeLayer = _findLayerById(map, layerId);
+    if (activeLayer is! TileLayer) {
+      state = state.copyWith(
+        errorMessage: 'Sélectionnez un TileLayer pour générer cette zone.',
+      );
+      return;
+    }
+    final areaId = state.selectedEnvironmentAreaId?.trim();
+    if (areaId == null || areaId.isEmpty) {
+      state = state.copyWith(
+        errorMessage: 'Sélectionnez une zone d’environnement avant de générer.',
+      );
+      return;
+    }
+
+    try {
+      final result =
+          GenerateTileLayerEnvironmentAreaPlacementsUseCase().execute(
+        map,
+        manifest: manifest,
+        tileLayerId: layerId,
+        areaId: areaId,
+      );
+      if (result.generatedPlacementCount == 0) {
+        state = state.copyWith(
+          activeLayerId: result.tileLayerId,
+          selectedEnvironmentAreaId: result.areaId,
+          environmentMaskEditMode: null,
+          statusMessage: 'Aucun placement généré pour cette zone.',
+          errorMessage: null,
+        );
+        return;
+      }
+
+      final count = result.generatedPlacementCount;
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.map,
+        preferredActiveLayerId: result.tileLayerId,
+        statusMessage:
+            '$count placement(s) généré(s) dans ce layer pour la zone « ${result.areaId} ».',
+      );
+      state = state.copyWith(
+        activeLayerId: result.tileLayerId,
+        selectedEnvironmentAreaId: result.areaId,
+        environmentMaskEditMode: null,
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de générer cette zone : $e',
       );
     }
   }

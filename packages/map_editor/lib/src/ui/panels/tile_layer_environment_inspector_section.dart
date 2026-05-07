@@ -27,6 +27,7 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
     this.onSetGenerationParams,
     this.onResetGenerationParams,
     this.onSetSeed,
+    this.onGenerateEnvironment,
   });
 
   final TileLayerEnvironmentAttachmentReadModel readModel;
@@ -46,6 +47,7 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
   final ValueChanged<EnvironmentGenerationParams>? onSetGenerationParams;
   final VoidCallback? onResetGenerationParams;
   final ValueChanged<int>? onSetSeed;
+  final VoidCallback? onGenerateEnvironment;
 
   @override
   Widget build(BuildContext context) {
@@ -149,12 +151,7 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
             onStartMaskPainting: onStartMaskPainting,
             onStartMaskErasing: onStartMaskErasing,
             onStopMaskPainting: onStopMaskPainting,
-          ),
-          const SizedBox(height: 8),
-          const InspectorEmbeddedFootnote(
-            text:
-                'Section de lecture uniquement : les actions seront activées dans un prochain lot.',
-            accent: accent,
+            onGenerateEnvironment: onGenerateEnvironment,
           ),
         ],
       ),
@@ -1213,6 +1210,7 @@ class _FutureActions extends StatelessWidget {
     required this.onStartMaskPainting,
     required this.onStartMaskErasing,
     required this.onStopMaskPainting,
+    required this.onGenerateEnvironment,
   });
 
   final TileLayerEnvironmentAttachmentReadModel readModel;
@@ -1225,6 +1223,7 @@ class _FutureActions extends StatelessWidget {
   final VoidCallback? onStartMaskPainting;
   final VoidCallback? onStartMaskErasing;
   final VoidCallback? onStopMaskPainting;
+  final VoidCallback? onGenerateEnvironment;
 
   @override
   Widget build(BuildContext context) {
@@ -1281,11 +1280,15 @@ class _FutureActions extends StatelessWidget {
         ),
       );
     }
-    if (readModel.canGenerate) {
+    if (readModel.canGenerate || readModel.canPaintMask) {
       actions.add(
-        const _ActionData(
+        _ActionData(
           icon: CupertinoIcons.play,
           label: 'Générer dans ce layer',
+          enabled: readModel.canGenerate &&
+              !readModel.hasErrors &&
+              onGenerateEnvironment != null,
+          onPressed: readModel.canGenerate ? onGenerateEnvironment : null,
         ),
       );
     }

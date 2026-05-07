@@ -514,7 +514,7 @@ void main() {
       );
     });
 
-    testWidgets('n’affiche pas d’action active de génération dans ce lot',
+    testWidgets('Générer dans ce layer reste désactivé sans callback',
         (tester) async {
       await _pump(
         tester,
@@ -538,6 +538,64 @@ void main() {
       expect(_buttonFor(tester, 'Générer dans ce layer').onPressed, isNull);
       expect(find.text('Peindre le masque'), findsOneWidget);
       expect(_buttonFor(tester, 'Peindre le masque').onPressed, isNull);
+    });
+
+    testWidgets('Générer dans ce layer est actif avec callback',
+        (tester) async {
+      var generated = 0;
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.ready,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          canPaintMask: true,
+          canGenerate: true,
+          emptyStateTitle: 'Prêt à générer',
+          emptyStateMessage: 'Le preset, le layer et le masque sont valides.',
+        ),
+        onGenerateEnvironment: () {
+          generated++;
+        },
+      );
+
+      expect(find.text('Générer dans ce layer'), findsOneWidget);
+      expect(_buttonFor(tester, 'Générer dans ce layer').onPressed, isNotNull);
+
+      await tester.tap(find.text('Générer dans ce layer'));
+      await tester.pump();
+
+      expect(generated, 1);
+    });
+
+    testWidgets('Générer dans ce layer reste désactivé si canGenerate false',
+        (tester) async {
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.emptyMask,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 0,
+          hasMask: false,
+          canPaintMask: true,
+          canGenerate: false,
+          emptyStateTitle: 'Masque vide',
+          emptyStateMessage: 'Peignez une zone sur la carte avant de générer.',
+        ),
+        onGenerateEnvironment: () {},
+      );
+
+      expect(find.text('Générer dans ce layer'), findsOneWidget);
+      expect(_buttonFor(tester, 'Générer dans ce layer').onPressed, isNull);
     });
 
     testWidgets('active Peindre le masque avec callback', (tester) async {
@@ -1151,6 +1209,7 @@ Future<void> _pump(
   ValueChanged<EnvironmentGenerationParams>? onSetGenerationParams,
   VoidCallback? onResetGenerationParams,
   ValueChanged<int>? onSetSeed,
+  VoidCallback? onGenerateEnvironment,
 }) {
   return tester.pumpWidget(
     MaterialApp(
@@ -1176,6 +1235,7 @@ Future<void> _pump(
             onSetGenerationParams: onSetGenerationParams,
             onResetGenerationParams: onResetGenerationParams,
             onSetSeed: onSetSeed,
+            onGenerateEnvironment: onGenerateEnvironment,
           ),
         ),
       ),
