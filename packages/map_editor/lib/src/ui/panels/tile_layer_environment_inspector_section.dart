@@ -13,6 +13,9 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
     this.selectedPresetIdForNewArea,
     this.onSelectPresetForNewArea,
     this.onCreateArea,
+    this.isMaskPaintingActive = false,
+    this.onStartMaskPainting,
+    this.onStopMaskPainting,
   });
 
   final TileLayerEnvironmentAttachmentReadModel readModel;
@@ -21,6 +24,9 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
   final String? selectedPresetIdForNewArea;
   final ValueChanged<String>? onSelectPresetForNewArea;
   final VoidCallback? onCreateArea;
+  final bool isMaskPaintingActive;
+  final VoidCallback? onStartMaskPainting;
+  final VoidCallback? onStopMaskPainting;
 
   @override
   Widget build(BuildContext context) {
@@ -76,6 +82,10 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
               ),
             ),
           ],
+          if (isMaskPaintingActive) ...[
+            const SizedBox(height: 12),
+            const _ActivePaintingBanner(),
+          ],
           const SizedBox(height: 12),
           if (_shouldShowCreateAreaGate(readModel)) ...[
             _CreateAreaPresetGate(
@@ -91,6 +101,9 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
             availablePresets: availablePresets,
             selectedPresetIdForNewArea: selectedPresetIdForNewArea,
             onCreateArea: onCreateArea,
+            isMaskPaintingActive: isMaskPaintingActive,
+            onStartMaskPainting: onStartMaskPainting,
+            onStopMaskPainting: onStopMaskPainting,
           ),
           const SizedBox(height: 8),
           const InspectorEmbeddedFootnote(
@@ -112,6 +125,50 @@ final class TileLayerEnvironmentPresetOption {
 
   final String id;
   final String name;
+}
+
+class _ActivePaintingBanner extends StatelessWidget {
+  const _ActivePaintingBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: EditorChrome.inspectorJoyMint.withValues(alpha: 0.12),
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: EditorChrome.inspectorJoyMint.withValues(alpha: 0.42),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Peinture active',
+            style: TextStyle(
+              color: EditorChrome.primaryLabel(context),
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            'Mode peinture actif : cliquez sur la carte pour peindre le masque.',
+            style: TextStyle(
+              color: EditorChrome.subtleLabel(context),
+              fontSize: 11,
+              height: 1.25,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _SummaryRows extends StatelessWidget {
@@ -329,6 +386,9 @@ class _FutureActions extends StatelessWidget {
     required this.availablePresets,
     required this.selectedPresetIdForNewArea,
     required this.onCreateArea,
+    required this.isMaskPaintingActive,
+    required this.onStartMaskPainting,
+    required this.onStopMaskPainting,
   });
 
   final TileLayerEnvironmentAttachmentReadModel readModel;
@@ -336,6 +396,9 @@ class _FutureActions extends StatelessWidget {
   final List<TileLayerEnvironmentPresetOption> availablePresets;
   final String? selectedPresetIdForNewArea;
   final VoidCallback? onCreateArea;
+  final bool isMaskPaintingActive;
+  final VoidCallback? onStartMaskPainting;
+  final VoidCallback? onStopMaskPainting;
 
   @override
   Widget build(BuildContext context) {
@@ -364,11 +427,22 @@ class _FutureActions extends StatelessWidget {
         ),
       );
     }
-    if (readModel.canPaintMask) {
+    if (isMaskPaintingActive) {
       actions.add(
-        const _ActionData(
+        _ActionData(
+          icon: CupertinoIcons.stop_circle,
+          label: 'Arrêter la peinture',
+          enabled: onStopMaskPainting != null,
+          onPressed: onStopMaskPainting,
+        ),
+      );
+    } else if (readModel.canPaintMask) {
+      actions.add(
+        _ActionData(
           icon: CupertinoIcons.paintbrush,
           label: 'Peindre le masque',
+          enabled: !readModel.hasErrors && onStartMaskPainting != null,
+          onPressed: onStartMaskPainting,
         ),
       );
     }

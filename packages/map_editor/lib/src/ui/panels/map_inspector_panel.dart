@@ -101,6 +101,16 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
         tileLayerEnvironmentReadModel != null &&
         _canCreateEnvironmentArea(tileLayerEnvironmentReadModel) &&
         selectedPresetIdForNewArea != null;
+    final isTileLayerMaskPaintingActive = activeLayer is TileLayer &&
+        tileLayerEnvironmentReadModel != null &&
+        state.environmentMaskEditMode == EnvironmentMaskEditMode.paint &&
+        state.selectedEnvironmentAreaId != null;
+    final canStartTileLayerMaskPainting = activeLayer is TileLayer &&
+        tileLayerEnvironmentReadModel != null &&
+        tileLayerEnvironmentReadModel.canPaintMask &&
+        !tileLayerEnvironmentReadModel.hasErrors &&
+        state.selectedEnvironmentAreaId != null &&
+        !isTileLayerMaskPaintingActive;
     final showEnvironmentLayerSection = activeLayer is EnvironmentLayer;
     final showTilesSection = activeLayer is TileLayer ||
         state.activeTool == EditorToolType.tilePaint ||
@@ -203,7 +213,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     _InspectorSectionId.tileLayerEnvironment,
                     defaultExpanded: true,
                   ),
-                  expandedHeight: 400,
+                  expandedHeight: 430,
                   child: TileLayerEnvironmentInspectorSection(
                     readModel: tileLayerEnvironmentReadModel,
                     onEnableEnvironment: activeLayer is TileLayer &&
@@ -226,6 +236,14 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                               presetId: selectedPresetIdForNewArea,
                             );
                           }
+                        : null,
+                    isMaskPaintingActive: isTileLayerMaskPaintingActive,
+                    onStartMaskPainting: canStartTileLayerMaskPainting
+                        ? notifier
+                            .startEnvironmentMaskPaintingForActiveTileLayer
+                        : null,
+                    onStopMaskPainting: isTileLayerMaskPaintingActive
+                        ? notifier.stopEnvironmentMaskPainting
                         : null,
                   ),
                 ),

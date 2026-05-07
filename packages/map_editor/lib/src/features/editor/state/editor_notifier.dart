@@ -27,6 +27,7 @@ import '../../../application/ports/project_workspace.dart';
 import '../../../application/services/editor_map_session_coordinator.dart';
 import '../../../application/services/editor_map_mutation_coordinator.dart';
 import '../../../application/services/element_collision_profile_generator.dart';
+import '../../../application/services/environment_mask_paint_target_resolver.dart';
 import '../../../application/services/entity_editing_service.dart';
 import '../../../application/services/gameplay_zone_editing_service.dart';
 import '../../../application/services/map_connection_editing_service.dart';
@@ -4794,6 +4795,67 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  void startEnvironmentMaskPaintingForActiveTileLayer() {
+    final map = state.activeMap;
+    if (map == null) return;
+    final layerId = state.activeLayerId?.trim();
+    if (layerId == null || layerId.isEmpty) {
+      state = state.copyWith(
+        errorMessage: 'Sélectionnez un TileLayer pour peindre le masque.',
+      );
+      return;
+    }
+    final activeLayer = _findLayerById(map, layerId);
+    if (activeLayer is! TileLayer) {
+      state = state.copyWith(
+        errorMessage: 'Sélectionnez un TileLayer pour peindre le masque.',
+      );
+      return;
+    }
+    final areaId = state.selectedEnvironmentAreaId?.trim();
+    if (areaId == null || areaId.isEmpty) {
+      state = state.copyWith(
+        errorMessage: 'Sélectionnez une zone d’environnement avant de peindre.',
+      );
+      return;
+    }
+    final target = resolveEnvironmentMaskPaintTarget(
+      map: map,
+      activeLayerId: layerId,
+      selectedAreaId: areaId,
+    );
+    if (target == null) {
+      final hasAttachment = map.layers.any(
+        (layer) =>
+            layer is EnvironmentLayer &&
+            layer.content.targetTileLayerId?.trim() == layerId,
+      );
+      state = state.copyWith(
+        errorMessage: hasAttachment
+            ? 'La zone d’environnement sélectionnée est introuvable.'
+            : 'Activez d’abord l’environnement sur ce layer.',
+      );
+      return;
+    }
+
+    state = state.copyWith(
+      activeLayerId: layerId,
+      selectedEnvironmentAreaId: target.areaId,
+      environmentMaskEditMode: EnvironmentMaskEditMode.paint,
+      statusMessage:
+          'Mode peinture actif : cliquez sur la carte pour peindre le masque.',
+      errorMessage: null,
+    );
+  }
+
+  void stopEnvironmentMaskPainting() {
+    state = state.copyWith(
+      environmentMaskEditMode: null,
+      statusMessage: 'Peinture du masque arrêtée.',
+      errorMessage: null,
+    );
+  }
+
   /// Lot Environment-21 : ajoute une [EnvironmentArea] (mask vide, preset manifest).
   void addEnvironmentAreaToLayer({
     required String environmentLayerId,
@@ -5404,11 +5466,12 @@ class EditorNotifier extends _$EditorNotifier {
         mode != EnvironmentMaskEditMode.erase) {
       return;
     }
-    final layer = _findLayerById(map, layerId);
-    if (layer is! EnvironmentLayer) {
-      return;
-    }
-    if (!layer.content.areas.any((a) => a.id == areaId)) {
+    final target = resolveEnvironmentMaskPaintTarget(
+      map: map,
+      activeLayerId: layerId,
+      selectedAreaId: areaId,
+    );
+    if (target == null) {
       return;
     }
     final isActive = mode == EnvironmentMaskEditMode.paint;
@@ -5416,8 +5479,8 @@ class EditorNotifier extends _$EditorNotifier {
       final useCase = PaintEnvironmentAreaMaskCellUseCase();
       final updated = useCase.execute(
         map,
-        environmentLayerId: layerId,
-        areaId: areaId,
+        environmentLayerId: target.environmentLayerId,
+        areaId: target.areaId,
         pos: pos,
         isActive: isActive,
       );
@@ -5427,7 +5490,7 @@ class EditorNotifier extends _$EditorNotifier {
       _applyMapMutation(
         previousMap: map,
         updatedMap: updated,
-        preferredActiveLayerId: layerId,
+        preferredActiveLayerId: target.activeLayerId,
         partOfStroke: partOfStroke,
         statusMessage: 'Environment mask updated',
       );

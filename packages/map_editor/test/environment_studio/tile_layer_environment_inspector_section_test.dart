@@ -410,6 +410,74 @@ void main() {
       expect(_buttonFor(tester, 'Peindre le masque').onPressed, isNull);
     });
 
+    testWidgets('active Peindre le masque avec callback', (tester) async {
+      var pressed = 0;
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.emptyMask,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaId: 'area',
+          selectedEnvironmentAreaName: 'Forêt',
+          selectedPresetName: 'Forêt',
+          canPaintMask: true,
+          emptyStateTitle: 'Masque vide',
+          emptyStateMessage: 'Peignez une zone sur la carte avant de générer.',
+        ),
+        onStartMaskPainting: () {
+          pressed++;
+        },
+      );
+
+      expect(_buttonFor(tester, 'Peindre le masque').onPressed, isNotNull);
+
+      await tester.tap(find.text('Peindre le masque'));
+      await tester.pump();
+
+      expect(pressed, 1);
+    });
+
+    testWidgets('affiche Peinture active et stop quand le mode est actif',
+        (tester) async {
+      var stopped = 0;
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.emptyMask,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaId: 'area',
+          selectedEnvironmentAreaName: 'Forêt',
+          selectedPresetName: 'Forêt',
+          canPaintMask: true,
+          emptyStateTitle: 'Masque vide',
+          emptyStateMessage: 'Peignez une zone sur la carte avant de générer.',
+        ),
+        isMaskPaintingActive: true,
+        onStopMaskPainting: () {
+          stopped++;
+        },
+      );
+
+      expect(find.text('Peinture active'), findsOneWidget);
+      expect(
+        find.text(
+          'Mode peinture actif : cliquez sur la carte pour peindre le masque.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Arrêter la peinture'), findsOneWidget);
+      expect(_buttonFor(tester, 'Arrêter la peinture').onPressed, isNotNull);
+
+      await tester.tap(find.text('Arrêter la peinture'));
+      await tester.pump();
+
+      expect(stopped, 1);
+    });
+
     testWidgets('après création avec masque vide la brush reste désactivée',
         (tester) async {
       await _pump(
@@ -472,6 +540,9 @@ Future<void> _pump(
   String? selectedPresetIdForNewArea,
   ValueChanged<String>? onSelectPresetForNewArea,
   VoidCallback? onCreateArea,
+  bool isMaskPaintingActive = false,
+  VoidCallback? onStartMaskPainting,
+  VoidCallback? onStopMaskPainting,
 }) {
   return tester.pumpWidget(
     MaterialApp(
@@ -486,6 +557,9 @@ Future<void> _pump(
             selectedPresetIdForNewArea: selectedPresetIdForNewArea,
             onSelectPresetForNewArea: onSelectPresetForNewArea,
             onCreateArea: onCreateArea,
+            isMaskPaintingActive: isMaskPaintingActive,
+            onStartMaskPainting: onStartMaskPainting,
+            onStopMaskPainting: onStopMaskPainting,
           ),
         ),
       ),

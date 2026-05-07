@@ -13,6 +13,7 @@ import 'package:map_core/map_core.dart';
 import '../../application/models/map_tool_preview.dart';
 import '../../application/models/path_autotile_set.dart';
 import '../../application/services/environment_generated_placement_hover_resolver.dart';
+import '../../application/services/environment_mask_paint_target_resolver.dart';
 import '../../application/services/tileset_transparent_color_processor.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
@@ -34,15 +35,12 @@ bool _isEnvironmentMaskEditing(EditorState state, MapData map) {
       mode != EnvironmentMaskEditMode.erase) {
     return false;
   }
-  if (state.selectedEnvironmentAreaId == null) return false;
-  final lid = state.activeLayerId;
-  if (lid == null) return false;
-  for (final l in map.layers) {
-    if (l.id == lid && l is EnvironmentLayer) {
-      return true;
-    }
-  }
-  return false;
+  return resolveEnvironmentMaskPaintTarget(
+        map: map,
+        activeLayerId: state.activeLayerId,
+        selectedAreaId: state.selectedEnvironmentAreaId,
+      ) !=
+      null;
 }
 
 class MapCanvas extends ConsumerStatefulWidget {
@@ -250,20 +248,13 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
             state.activeTool == EditorToolType.triggerPlacement ||
             state.activeTool == EditorToolType.gameplayZonePlacement;
 
-        EnvironmentAreaMask? environmentMaskOverlay;
-        if (isEnvironmentMaskEditing &&
-            state.selectedEnvironmentAreaId != null) {
-          for (final l in activeMap.layers) {
-            if (l.id != state.activeLayerId || l is! EnvironmentLayer) continue;
-            for (final a in l.content.areas) {
-              if (a.id == state.selectedEnvironmentAreaId) {
-                environmentMaskOverlay = a.mask;
-                break;
-              }
-            }
-            break;
-          }
-        }
+        final environmentMaskOverlay = isEnvironmentMaskEditing
+            ? resolveEnvironmentMaskPaintTarget(
+                map: activeMap,
+                activeLayerId: state.activeLayerId,
+                selectedAreaId: state.selectedEnvironmentAreaId,
+              )?.area.mask
+            : null;
 
         void applyToolAt(GridPos gridPos, {bool partOfStroke = false}) {
           if (isEnvironmentMaskEditing) {
