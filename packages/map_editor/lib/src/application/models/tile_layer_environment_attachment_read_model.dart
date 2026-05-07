@@ -1,3 +1,5 @@
+import 'package:map_core/map_core.dart';
+
 enum TileLayerEnvironmentSelectedLayerKind {
   none,
   missing,
@@ -99,6 +101,12 @@ final class TileLayerEnvironmentAttachmentReadModel {
     this.primaryActionLabel,
     this.issues = const [],
     this.areaSummaries = const [],
+    this.selectedAreaEffectiveParams,
+    this.selectedAreaDefaultParams,
+    this.selectedAreaParamsOverride,
+    this.selectedAreaHasParamsOverride = false,
+    this.selectedAreaSeed,
+    this.canEditSelectedAreaGenerationParams = false,
   });
 
   final TileLayerEnvironmentAttachmentState state;
@@ -134,6 +142,12 @@ final class TileLayerEnvironmentAttachmentReadModel {
   final String? primaryActionLabel;
   final List<TileLayerEnvironmentAttachmentIssue> issues;
   final List<TileLayerEnvironmentAreaSummary> areaSummaries;
+  final EnvironmentGenerationParams? selectedAreaEffectiveParams;
+  final EnvironmentGenerationParams? selectedAreaDefaultParams;
+  final EnvironmentGenerationParams? selectedAreaParamsOverride;
+  final bool selectedAreaHasParamsOverride;
+  final int? selectedAreaSeed;
+  final bool canEditSelectedAreaGenerationParams;
 
   List<String> get warnings {
     return [

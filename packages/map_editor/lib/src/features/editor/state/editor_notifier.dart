@@ -19,6 +19,7 @@ import '../../../application/use_cases/environment_generator_regenerate_use_case
 import '../../../application/use_cases/environment_generator_use_cases.dart';
 import '../../../application/use_cases/environment_mask_use_cases.dart';
 import '../../../application/use_cases/layer_use_cases.dart';
+import '../../../application/use_cases/tile_layer_environment_area_settings_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_attachment_use_cases.dart';
 import '../../../application/models/trainer_field_update.dart';
 import '../../../application/models/map_tool_preview.dart';
@@ -4848,6 +4849,123 @@ class EditorNotifier extends _$EditorNotifier {
       statusMessage: 'Zone d’environnement sélectionnée.',
       errorMessage: null,
     );
+  }
+
+  void setEnvironmentAreaParamsOverrideForActiveTileLayer(
+    EnvironmentGenerationParams params,
+  ) {
+    _updateEnvironmentAreaSettingsForActiveTileLayer(
+      statusMessage: 'Paramètres locaux de génération mis à jour.',
+      update: (map, layerId, areaId) {
+        return SetTileLayerEnvironmentAreaParamsOverrideUseCase().execute(
+          map,
+          tileLayerId: layerId,
+          areaId: areaId,
+          paramsOverride: params,
+        );
+      },
+    );
+  }
+
+  void resetEnvironmentAreaParamsOverrideForActiveTileLayer() {
+    _updateEnvironmentAreaSettingsForActiveTileLayer(
+      statusMessage:
+          'Paramètres locaux réinitialisés sur les valeurs du preset.',
+      update: (map, layerId, areaId) {
+        return ResetTileLayerEnvironmentAreaParamsOverrideUseCase().execute(
+          map,
+          tileLayerId: layerId,
+          areaId: areaId,
+        );
+      },
+    );
+  }
+
+  void setEnvironmentAreaSeedForActiveTileLayer(int seed) {
+    _updateEnvironmentAreaSettingsForActiveTileLayer(
+      statusMessage: 'Seed de la zone d’environnement mis à jour.',
+      update: (map, layerId, areaId) {
+        return SetTileLayerEnvironmentAreaSeedForTileLayerUseCase().execute(
+          map,
+          tileLayerId: layerId,
+          areaId: areaId,
+          seed: seed,
+        );
+      },
+    );
+  }
+
+  void _updateEnvironmentAreaSettingsForActiveTileLayer({
+    required String statusMessage,
+    required MapData Function(MapData map, String layerId, String areaId)
+        update,
+  }) {
+    final map = state.activeMap;
+    if (map == null) return;
+    final layerId = state.activeLayerId?.trim();
+    if (layerId == null || layerId.isEmpty) {
+      state = state.copyWith(
+        errorMessage:
+            'Sélectionnez un TileLayer pour modifier les paramètres de zone.',
+      );
+      return;
+    }
+    final activeLayer = _findLayerById(map, layerId);
+    if (activeLayer is! TileLayer) {
+      state = state.copyWith(
+        errorMessage:
+            'Sélectionnez un TileLayer pour modifier les paramètres de zone.',
+      );
+      return;
+    }
+    final areaId = state.selectedEnvironmentAreaId?.trim();
+    if (areaId == null || areaId.isEmpty) {
+      state = state.copyWith(
+        errorMessage:
+            'Sélectionnez une zone d’environnement avant de modifier ses paramètres.',
+      );
+      return;
+    }
+    final target = resolveEnvironmentMaskPaintTarget(
+      map: map,
+      activeLayerId: layerId,
+      selectedAreaId: areaId,
+    );
+    if (target == null) {
+      final hasAttachment = map.layers.any(
+        (layer) =>
+            layer is EnvironmentLayer &&
+            layer.content.targetTileLayerId?.trim() == layerId,
+      );
+      state = state.copyWith(
+        errorMessage: hasAttachment
+            ? 'La zone d’environnement sélectionnée est introuvable.'
+            : 'Activez d’abord l’environnement sur ce layer.',
+      );
+      return;
+    }
+    final mode = state.environmentMaskEditMode;
+
+    try {
+      final updated = update(map, layerId, target.areaId);
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: updated,
+        preferredActiveLayerId: layerId,
+        statusMessage: statusMessage,
+      );
+      state = state.copyWith(
+        activeLayerId: layerId,
+        selectedEnvironmentAreaId: target.areaId,
+        environmentMaskEditMode: mode,
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage:
+            'Impossible de modifier les paramètres de génération : $e',
+      );
+    }
   }
 
   void startEnvironmentMaskPaintingForActiveTileLayer() {

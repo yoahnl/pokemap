@@ -352,6 +352,116 @@ void main() {
       expect(model.errors, isEmpty);
     });
 
+    test('expose les paramètres effectifs depuis le preset sans override', () {
+      final defaultParams = _params(
+        density: 0.45,
+        variation: 0.15,
+        edgeDensity: 0.85,
+        minSpacingCells: 2,
+      );
+
+      final model = buildTileLayerEnvironmentAttachmentReadModel(
+        manifest: _manifest(defaultParams: defaultParams),
+        map: _map(areas: [_area(activeCells: 1, seed: 123)]),
+        selectedLayerId: 'tiles',
+        selectedEnvironmentAreaId: 'area1',
+      );
+
+      expect(model.selectedAreaDefaultParams, defaultParams);
+      expect(model.selectedAreaEffectiveParams, defaultParams);
+      expect(model.selectedAreaParamsOverride, isNull);
+      expect(model.selectedAreaHasParamsOverride, isFalse);
+      expect(model.selectedAreaSeed, 123);
+      expect(model.canEditSelectedAreaGenerationParams, isTrue);
+    });
+
+    test('expose les paramètres effectifs depuis paramsOverride', () {
+      final defaultParams = _params(
+        density: 0.45,
+        variation: 0.15,
+        edgeDensity: 0.85,
+        minSpacingCells: 2,
+      );
+      final override = _params(
+        density: 0.8,
+        variation: 0.25,
+        edgeDensity: 0.6,
+        minSpacingCells: 4,
+      );
+
+      final model = buildTileLayerEnvironmentAttachmentReadModel(
+        manifest: _manifest(defaultParams: defaultParams),
+        map: _map(
+          areas: [
+            _area(
+              activeCells: 1,
+              seed: 77,
+              paramsOverride: override,
+            ),
+          ],
+        ),
+        selectedLayerId: 'tiles',
+        selectedEnvironmentAreaId: 'area1',
+      );
+
+      expect(model.selectedAreaDefaultParams, defaultParams);
+      expect(model.selectedAreaEffectiveParams, override);
+      expect(model.selectedAreaParamsOverride, override);
+      expect(model.selectedAreaHasParamsOverride, isTrue);
+      expect(model.selectedAreaSeed, 77);
+      expect(model.canEditSelectedAreaGenerationParams, isTrue);
+    });
+
+    test('désactive les paramètres si le preset est manquant', () {
+      final override = _params(
+        density: 0.7,
+        variation: 0.2,
+        edgeDensity: 0.9,
+        minSpacingCells: 1,
+      );
+
+      final model = buildTileLayerEnvironmentAttachmentReadModel(
+        manifest: _manifest(environmentPresets: const []),
+        map: _map(
+          areas: [
+            _area(
+              activeCells: 1,
+              paramsOverride: override,
+              seed: 9,
+            ),
+          ],
+        ),
+        selectedLayerId: 'tiles',
+        selectedEnvironmentAreaId: 'area1',
+      );
+
+      expect(model.selectedAreaDefaultParams, isNull);
+      expect(model.selectedAreaEffectiveParams, isNull);
+      expect(model.selectedAreaParamsOverride, override);
+      expect(model.selectedAreaHasParamsOverride, isTrue);
+      expect(model.selectedAreaSeed, 9);
+      expect(model.canEditSelectedAreaGenerationParams, isFalse);
+    });
+
+    test('désactive les paramètres si aucune area effective est sélectionnée',
+        () {
+      final model = buildTileLayerEnvironmentAttachmentReadModel(
+        manifest: _manifest(),
+        map: _map(areas: [_area(id: 'area1'), _area(id: 'area2')]),
+        selectedLayerId: 'tiles',
+        selectedEnvironmentAreaId: null,
+      );
+
+      expect(model.state,
+          TileLayerEnvironmentAttachmentState.areaSelectionRequired);
+      expect(model.selectedAreaDefaultParams, isNull);
+      expect(model.selectedAreaEffectiveParams, isNull);
+      expect(model.selectedAreaParamsOverride, isNull);
+      expect(model.selectedAreaHasParamsOverride, isFalse);
+      expect(model.selectedAreaSeed, isNull);
+      expect(model.canEditSelectedAreaGenerationParams, isFalse);
+    });
+
     test('détecte preset manquant', () {
       final model = buildTileLayerEnvironmentAttachmentReadModel(
         manifest: _manifest(environmentPresets: const []),
@@ -453,6 +563,7 @@ void main() {
 
 ProjectManifest _manifest({
   List<EnvironmentPreset>? environmentPresets,
+  EnvironmentGenerationParams? defaultParams,
 }) {
   return ProjectManifest(
     name: 'Project',
@@ -479,12 +590,13 @@ ProjectManifest _manifest({
             palette: [
               EnvironmentPaletteItem(elementId: 'tree', weight: 1),
             ],
-            defaultParams: EnvironmentGenerationParams(
-              density: 1,
-              variation: 0,
-              edgeDensity: 1,
-              minSpacingCells: 0,
-            ),
+            defaultParams: defaultParams ??
+                EnvironmentGenerationParams(
+                  density: 1,
+                  variation: 0,
+                  edgeDensity: 1,
+                  minSpacingCells: 0,
+                ),
             sortOrder: 0,
           ),
         ],
@@ -531,6 +643,8 @@ EnvironmentArea _area({
   String id = 'area1',
   String presetId = 'forest',
   int activeCells = 0,
+  int seed = 1,
+  EnvironmentGenerationParams? paramsOverride,
   List<String> generatedPlacementIds = const [],
 }) {
   final cells = List<bool>.filled(4, false);
@@ -542,7 +656,22 @@ EnvironmentArea _area({
     name: 'Zone $id',
     presetId: presetId,
     mask: EnvironmentAreaMask(width: 2, height: 2, cells: cells),
-    seed: 1,
+    seed: seed,
+    paramsOverride: paramsOverride,
     generatedPlacementIds: generatedPlacementIds,
+  );
+}
+
+EnvironmentGenerationParams _params({
+  required double density,
+  required double variation,
+  required double edgeDensity,
+  required int minSpacingCells,
+}) {
+  return EnvironmentGenerationParams(
+    density: density,
+    variation: variation,
+    edgeDensity: edgeDensity,
+    minSpacingCells: minSpacingCells,
   );
 }

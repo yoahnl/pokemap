@@ -1,6 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show MaterialApp;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:macos_ui/macos_ui.dart';
+import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/models/tile_layer_environment_attachment_read_model.dart';
 import 'package:map_editor/src/ui/panels/tile_layer_environment_inspector_section.dart';
 
@@ -775,6 +777,307 @@ void main() {
       expect(stopped, 1);
     });
 
+    testWidgets('affiche les paramètres de génération éditables du preset',
+        (tester) async {
+      final params = _params(
+        density: 0.5,
+        variation: 0.25,
+        edgeDensity: 0.75,
+        minSpacingCells: 2,
+      );
+      await _pump(
+        tester,
+        TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.ready,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaId: 'area',
+          selectedEnvironmentAreaName: 'Forêt',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 1,
+          hasMask: true,
+          canPaintMask: true,
+          canGenerate: true,
+          emptyStateTitle: 'Prêt à générer',
+          emptyStateMessage: 'Le preset, le layer et le masque sont valides.',
+          selectedAreaDefaultParams: params,
+          selectedAreaEffectiveParams: params,
+          selectedAreaParamsOverride: null,
+          selectedAreaHasParamsOverride: false,
+          selectedAreaSeed: 123,
+          canEditSelectedAreaGenerationParams: true,
+        ),
+      );
+
+      expect(find.text('Paramètres de génération'), findsOneWidget);
+      expect(find.text('Valeurs du preset'), findsOneWidget);
+      expect(find.text('Densité'), findsOneWidget);
+      expect(find.text('Variation'), findsOneWidget);
+      expect(find.text('Densité des bords'), findsOneWidget);
+      expect(find.text('Espacement minimal'), findsOneWidget);
+      expect(find.text('Seed'), findsOneWidget);
+      expect(find.text('0.50'), findsOneWidget);
+      expect(find.text('0.25'), findsOneWidget);
+      expect(find.text('0.75'), findsOneWidget);
+      expect(find.text('2'), findsOneWidget);
+      expect(find.text('123'), findsOneWidget);
+      expect(find.byKey(const ValueKey('env-generation-density-slider')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('env-generation-variation-slider')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('env-generation-edge-density-slider')),
+          findsOneWidget);
+      expect(find.byKey(const ValueKey('env-generation-min-spacing-slider')),
+          findsOneWidget);
+      expect(find.byType(MacosSlider), findsNWidgets(4));
+      expect(find.text('Densité +'), findsNothing);
+      expect(find.text('Variation +'), findsNothing);
+      expect(find.text('Densité des bords +'), findsNothing);
+      expect(find.text('Espacement minimal +'), findsNothing);
+      expect(find.text('Seed +'), findsOneWidget);
+      expect(
+          _buttonFor(tester, 'Réinitialiser les paramètres').onPressed, isNull);
+    });
+
+    testWidgets('changer le slider density construit un override complet',
+        (tester) async {
+      EnvironmentGenerationParams? changed;
+      final params = _params(
+        density: 0.5,
+        variation: 0.25,
+        edgeDensity: 0.75,
+        minSpacingCells: 2,
+      );
+      await _pump(
+        tester,
+        TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.ready,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaId: 'area',
+          selectedEnvironmentAreaName: 'Forêt',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 1,
+          hasMask: true,
+          canPaintMask: true,
+          canGenerate: true,
+          emptyStateTitle: 'Prêt à générer',
+          emptyStateMessage: 'Le preset, le layer et le masque sont valides.',
+          selectedAreaDefaultParams: params,
+          selectedAreaEffectiveParams: params,
+          selectedAreaSeed: 123,
+          canEditSelectedAreaGenerationParams: true,
+        ),
+        onSetGenerationParams: (params) {
+          changed = params;
+        },
+      );
+
+      final slider = tester.widget<MacosSlider>(
+        find.byKey(const ValueKey('env-generation-density-slider')),
+      );
+      slider.onChanged(0.8);
+      await tester.pump();
+
+      expect(changed, isNotNull);
+      expect(changed!.density, 0.8);
+      expect(changed!.variation, 0.25);
+      expect(changed!.edgeDensity, 0.75);
+      expect(changed!.minSpacingCells, 2);
+    });
+
+    testWidgets('changer le slider spacing construit un override entier',
+        (tester) async {
+      EnvironmentGenerationParams? changed;
+      final params = _params(
+        density: 0.5,
+        variation: 0.25,
+        edgeDensity: 0.75,
+        minSpacingCells: 2,
+      );
+      await _pump(
+        tester,
+        TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.ready,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaId: 'area',
+          selectedEnvironmentAreaName: 'Forêt',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 1,
+          hasMask: true,
+          canPaintMask: true,
+          canGenerate: true,
+          emptyStateTitle: 'Prêt à générer',
+          emptyStateMessage: 'Le preset, le layer et le masque sont valides.',
+          selectedAreaDefaultParams: params,
+          selectedAreaEffectiveParams: params,
+          selectedAreaSeed: 123,
+          canEditSelectedAreaGenerationParams: true,
+        ),
+        onSetGenerationParams: (params) {
+          changed = params;
+        },
+      );
+
+      final slider = tester.widget<MacosSlider>(
+        find.byKey(const ValueKey('env-generation-min-spacing-slider')),
+      );
+      slider.onChanged(6.4);
+      await tester.pump();
+
+      expect(changed, isNotNull);
+      expect(changed!.density, 0.5);
+      expect(changed!.variation, 0.25);
+      expect(changed!.edgeDensity, 0.75);
+      expect(changed!.minSpacingCells, 6);
+    });
+
+    testWidgets('sans callback les sliders de génération sont grisés',
+        (tester) async {
+      EnvironmentGenerationParams? changed;
+      final params = _params(
+        density: 0.5,
+        variation: 0.25,
+        edgeDensity: 0.75,
+        minSpacingCells: 2,
+      );
+      await _pump(
+        tester,
+        TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.ready,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaId: 'area',
+          selectedEnvironmentAreaName: 'Forêt',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 1,
+          hasMask: true,
+          canPaintMask: true,
+          canGenerate: true,
+          emptyStateTitle: 'Prêt à générer',
+          emptyStateMessage: 'Le preset, le layer et le masque sont valides.',
+          selectedAreaDefaultParams: params,
+          selectedAreaEffectiveParams: params,
+          selectedAreaSeed: 123,
+          canEditSelectedAreaGenerationParams: true,
+        ),
+      );
+
+      final disabledSlider = find.byKey(
+        const ValueKey('env-generation-density-slider-disabled'),
+      );
+      expect(disabledSlider, findsOneWidget);
+      expect(tester.widget<IgnorePointer>(disabledSlider).ignoring, isTrue);
+      final disabledOpacity = tester.widget<Opacity>(
+        find.byKey(const ValueKey('env-generation-density-slider-opacity')),
+      );
+      expect(disabledOpacity.opacity, lessThan(1));
+
+      final slider = tester.widget<MacosSlider>(
+        find.byKey(const ValueKey('env-generation-density-slider')),
+      );
+      slider.onChanged(0.8);
+      await tester.pump();
+
+      expect(changed, isNull);
+    });
+
+    testWidgets('override local active reset et seed', (tester) async {
+      var reset = 0;
+      int? seed;
+      final defaults = _params(
+        density: 0.5,
+        variation: 0.25,
+        edgeDensity: 0.75,
+        minSpacingCells: 2,
+      );
+      final override = _params(
+        density: 0.8,
+        variation: 0.2,
+        edgeDensity: 0.6,
+        minSpacingCells: 3,
+      );
+      await _pump(
+        tester,
+        TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.ready,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaId: 'area',
+          selectedEnvironmentAreaName: 'Forêt',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 1,
+          hasMask: true,
+          canPaintMask: true,
+          canGenerate: true,
+          emptyStateTitle: 'Prêt à générer',
+          emptyStateMessage: 'Le preset, le layer et le masque sont valides.',
+          selectedAreaDefaultParams: defaults,
+          selectedAreaEffectiveParams: override,
+          selectedAreaParamsOverride: override,
+          selectedAreaHasParamsOverride: true,
+          selectedAreaSeed: 123,
+          canEditSelectedAreaGenerationParams: true,
+        ),
+        onResetGenerationParams: () {
+          reset++;
+        },
+        onSetSeed: (nextSeed) {
+          seed = nextSeed;
+        },
+      );
+
+      expect(find.text('Override local'), findsOneWidget);
+      expect(_buttonFor(tester, 'Réinitialiser les paramètres').onPressed,
+          isNotNull);
+
+      await tester.ensureVisible(find.text('Seed +'));
+      await tester.tap(find.text('Seed +'));
+      await tester.pump();
+      await tester.tap(find.text('Réinitialiser les paramètres'));
+      await tester.pump();
+
+      expect(seed, 124);
+      expect(reset, 1);
+    });
+
+    testWidgets('preset manquant affiche des paramètres non modifiables',
+        (tester) async {
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.missingPreset,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaId: 'area',
+          selectedEnvironmentAreaName: 'Forêt',
+          selectedPresetId: 'missing',
+          maskActiveCellCount: 1,
+          hasMask: true,
+          canPaintMask: true,
+          emptyStateTitle: 'Preset introuvable',
+          emptyStateMessage:
+              'Choisissez un preset disponible avant de générer cette zone.',
+          selectedAreaSeed: 123,
+          canEditSelectedAreaGenerationParams: false,
+        ),
+      );
+
+      expect(find.text('Paramètres de génération'), findsOneWidget);
+      expect(
+        find.text('Preset introuvable : paramètres non modifiables.'),
+        findsOneWidget,
+      );
+      expect(find.text('Densité +'), findsNothing);
+    });
+
     testWidgets('après création avec masque vide la brush reste désactivée',
         (tester) async {
       await _pump(
@@ -845,6 +1148,9 @@ Future<void> _pump(
   VoidCallback? onStopMaskPainting,
   int environmentMaskBrushSize = 1,
   ValueChanged<int>? onSetEnvironmentMaskBrushSize,
+  ValueChanged<EnvironmentGenerationParams>? onSetGenerationParams,
+  VoidCallback? onResetGenerationParams,
+  ValueChanged<int>? onSetSeed,
 }) {
   return tester.pumpWidget(
     MaterialApp(
@@ -867,6 +1173,9 @@ Future<void> _pump(
             onStopMaskPainting: onStopMaskPainting,
             environmentMaskBrushSize: environmentMaskBrushSize,
             onSetEnvironmentMaskBrushSize: onSetEnvironmentMaskBrushSize,
+            onSetGenerationParams: onSetGenerationParams,
+            onResetGenerationParams: onResetGenerationParams,
+            onSetSeed: onSetSeed,
           ),
         ),
       ),
@@ -880,4 +1189,18 @@ CupertinoButton _buttonFor(WidgetTester tester, String label) {
     matching: find.byType(CupertinoButton),
   );
   return tester.widget<CupertinoButton>(finder.first);
+}
+
+EnvironmentGenerationParams _params({
+  required double density,
+  required double variation,
+  required double edgeDensity,
+  required int minSpacingCells,
+}) {
+  return EnvironmentGenerationParams(
+    density: density,
+    variation: variation,
+    edgeDensity: edgeDensity,
+    minSpacingCells: minSpacingCells,
+  );
 }

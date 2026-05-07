@@ -537,6 +537,13 @@ TileLayerEnvironmentAttachmentReadModel _areaReadModel({
     emptyStateMessage: emptyStateMessage,
     primaryActionLabel: primaryActionLabel,
     issues: List.unmodifiable(issues),
+    selectedAreaEffectiveParams:
+        preset == null ? null : area.paramsOverride ?? preset.defaultParams,
+    selectedAreaDefaultParams: preset?.defaultParams,
+    selectedAreaParamsOverride: area.paramsOverride,
+    selectedAreaHasParamsOverride: area.paramsOverride != null,
+    selectedAreaSeed: area.seed,
+    canEditSelectedAreaGenerationParams: preset != null,
   );
 }
 

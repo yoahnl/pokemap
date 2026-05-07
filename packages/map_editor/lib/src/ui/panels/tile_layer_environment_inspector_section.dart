@@ -1,4 +1,6 @@
 import 'package:flutter/cupertino.dart';
+import 'package:macos_ui/macos_ui.dart';
+import 'package:map_core/map_core.dart';
 
 import '../../application/models/tile_layer_environment_attachment_read_model.dart';
 import '../../features/editor/state/environment_mask_brush_size_provider.dart';
@@ -22,6 +24,9 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
     this.onStopMaskPainting,
     this.environmentMaskBrushSize = kDefaultEnvironmentMaskBrushSize,
     this.onSetEnvironmentMaskBrushSize,
+    this.onSetGenerationParams,
+    this.onResetGenerationParams,
+    this.onSetSeed,
   });
 
   final TileLayerEnvironmentAttachmentReadModel readModel;
@@ -38,6 +43,9 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
   final VoidCallback? onStopMaskPainting;
   final int environmentMaskBrushSize;
   final ValueChanged<int>? onSetEnvironmentMaskBrushSize;
+  final ValueChanged<EnvironmentGenerationParams>? onSetGenerationParams;
+  final VoidCallback? onResetGenerationParams;
+  final ValueChanged<int>? onSetSeed;
 
   @override
   Widget build(BuildContext context) {
@@ -110,6 +118,15 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
             _BrushSizeSelector(
               selectedSize: environmentMaskBrushSize,
               onChanged: onSetEnvironmentMaskBrushSize,
+            ),
+          ],
+          if (_shouldShowGenerationParamsSection(readModel)) ...[
+            const SizedBox(height: 12),
+            _GenerationParamsSection(
+              readModel: readModel,
+              onSetGenerationParams: onSetGenerationParams,
+              onResetGenerationParams: onResetGenerationParams,
+              onSetSeed: onSetSeed,
             ),
           ],
           const SizedBox(height: 12),
@@ -364,6 +381,506 @@ class _BrushSizeButton extends StatelessWidget {
                 : EditorChrome.primaryLabel(context),
             fontSize: 12,
             fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GenerationParamsSection extends StatelessWidget {
+  const _GenerationParamsSection({
+    required this.readModel,
+    required this.onSetGenerationParams,
+    required this.onResetGenerationParams,
+    required this.onSetSeed,
+  });
+
+  final TileLayerEnvironmentAttachmentReadModel readModel;
+  final ValueChanged<EnvironmentGenerationParams>? onSetGenerationParams;
+  final VoidCallback? onResetGenerationParams;
+  final ValueChanged<int>? onSetSeed;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
+    final params = readModel.selectedAreaEffectiveParams;
+    final canEdit = readModel.canEditSelectedAreaGenerationParams &&
+        params != null &&
+        onSetGenerationParams != null;
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: EditorChrome.inspectorJoyMint.withValues(alpha: 0.06),
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: EditorChrome.inspectorJoyMint.withValues(alpha: 0.22),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Paramètres de génération',
+            style: TextStyle(
+              color: label,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            readModel.canEditSelectedAreaGenerationParams && params != null
+                ? readModel.selectedAreaHasParamsOverride
+                    ? 'Override local'
+                    : 'Valeurs du preset'
+                : 'Preset introuvable : paramètres non modifiables.',
+            style: TextStyle(
+              color: subtle,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              height: 1.25,
+            ),
+          ),
+          if (params != null &&
+              readModel.canEditSelectedAreaGenerationParams) ...[
+            const SizedBox(height: 9),
+            _GenerationParamSlider(
+              key: const ValueKey('env-generation-density-slider-row'),
+              sliderKey: const ValueKey('env-generation-density-slider'),
+              disabledKey:
+                  const ValueKey('env-generation-density-slider-disabled'),
+              opacityKey:
+                  const ValueKey('env-generation-density-slider-opacity'),
+              label: 'Densité',
+              value: params.density.toStringAsFixed(2),
+              sliderValue: params.density,
+              enabled: canEdit,
+              onChanged: (value) => _emitParams(
+                params,
+                density: _roundUnit(value),
+              ),
+            ),
+            _GenerationParamSlider(
+              key: const ValueKey('env-generation-variation-slider-row'),
+              sliderKey: const ValueKey('env-generation-variation-slider'),
+              disabledKey:
+                  const ValueKey('env-generation-variation-slider-disabled'),
+              opacityKey:
+                  const ValueKey('env-generation-variation-slider-opacity'),
+              label: 'Variation',
+              value: params.variation.toStringAsFixed(2),
+              sliderValue: params.variation,
+              enabled: canEdit,
+              onChanged: (value) => _emitParams(
+                params,
+                variation: _roundUnit(value),
+              ),
+            ),
+            _GenerationParamSlider(
+              key: const ValueKey('env-generation-edge-density-slider-row'),
+              sliderKey: const ValueKey('env-generation-edge-density-slider'),
+              disabledKey: const ValueKey(
+                'env-generation-edge-density-slider-disabled',
+              ),
+              opacityKey:
+                  const ValueKey('env-generation-edge-density-slider-opacity'),
+              label: 'Densité des bords',
+              value: params.edgeDensity.toStringAsFixed(2),
+              sliderValue: params.edgeDensity,
+              enabled: canEdit,
+              onChanged: (value) => _emitParams(
+                params,
+                edgeDensity: _roundUnit(value),
+              ),
+            ),
+            _GenerationIntSlider(
+              key: const ValueKey('env-generation-min-spacing-slider-row'),
+              sliderKey: const ValueKey('env-generation-min-spacing-slider'),
+              disabledKey:
+                  const ValueKey('env-generation-min-spacing-slider-disabled'),
+              opacityKey:
+                  const ValueKey('env-generation-min-spacing-slider-opacity'),
+              label: 'Espacement minimal',
+              value: '${params.minSpacingCells}',
+              sliderValue: params.minSpacingCells,
+              enabled: canEdit,
+              onChanged: (value) => _emitParams(
+                params,
+                minSpacingCells: value,
+              ),
+            ),
+            if (readModel.selectedAreaSeed != null)
+              _GenerationParamStepper(
+                label: 'Seed',
+                value: '${readModel.selectedAreaSeed}',
+                decreaseLabel: 'Seed -',
+                increaseLabel: 'Seed +',
+                canDecrease:
+                    onSetSeed != null && readModel.selectedAreaSeed! > 0,
+                canIncrease: onSetSeed != null,
+                onDecrease: () => onSetSeed!(readModel.selectedAreaSeed! - 1),
+                onIncrease: () => onSetSeed!(readModel.selectedAreaSeed! + 1),
+              ),
+            const SizedBox(height: 8),
+            CupertinoButton(
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(30, 30),
+              onPressed: readModel.selectedAreaHasParamsOverride &&
+                      onResetGenerationParams != null
+                  ? onResetGenerationParams
+                  : null,
+              child: Container(
+                height: 30,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: EditorChrome.largeIslandSurfaceColor(
+                    context,
+                    tint: EditorChrome.inspectorJoyMint.withValues(
+                      alpha:
+                          readModel.selectedAreaHasParamsOverride ? 0.12 : 0.04,
+                    ),
+                  ),
+                  borderRadius: BorderRadius.circular(7),
+                  border: Border.all(
+                    color: EditorChrome.inspectorJoyMint.withValues(
+                      alpha:
+                          readModel.selectedAreaHasParamsOverride ? 0.4 : 0.16,
+                    ),
+                  ),
+                ),
+                child: Text(
+                  'Réinitialiser les paramètres',
+                  style: TextStyle(
+                    color: readModel.selectedAreaHasParamsOverride &&
+                            onResetGenerationParams != null
+                        ? label
+                        : subtle,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _emitParams(
+    EnvironmentGenerationParams current, {
+    double? density,
+    double? variation,
+    double? edgeDensity,
+    int? minSpacingCells,
+  }) {
+    onSetGenerationParams!(
+      EnvironmentGenerationParams(
+        density: density ?? current.density,
+        variation: variation ?? current.variation,
+        edgeDensity: edgeDensity ?? current.edgeDensity,
+        minSpacingCells: minSpacingCells ?? current.minSpacingCells,
+      ),
+    );
+  }
+}
+
+class _GenerationParamSlider extends StatelessWidget {
+  const _GenerationParamSlider({
+    super.key,
+    required this.sliderKey,
+    required this.disabledKey,
+    required this.opacityKey,
+    required this.label,
+    required this.value,
+    required this.sliderValue,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final Key sliderKey;
+  final Key disabledKey;
+  final Key opacityKey;
+  final String label;
+  final String value;
+  final double sliderValue;
+  final bool enabled;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _GenerationParamHeader(
+            label: label,
+            value: value,
+            enabled: enabled,
+          ),
+          IgnorePointer(
+            key: disabledKey,
+            ignoring: !enabled,
+            child: Opacity(
+              key: opacityKey,
+              opacity: enabled ? 1 : 0.42,
+              child: MacosSlider(
+                key: sliderKey,
+                value: _clampUnit(sliderValue),
+                min: 0,
+                max: 1,
+                discrete: true,
+                splits: 21,
+                color: MacosTheme.of(context).primaryColor,
+                onChanged: enabled ? onChanged : (_) {},
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GenerationIntSlider extends StatelessWidget {
+  const _GenerationIntSlider({
+    super.key,
+    required this.sliderKey,
+    required this.disabledKey,
+    required this.opacityKey,
+    required this.label,
+    required this.value,
+    required this.sliderValue,
+    required this.enabled,
+    required this.onChanged,
+  });
+
+  final Key sliderKey;
+  final Key disabledKey;
+  final Key opacityKey;
+  final String label;
+  final String value;
+  final int sliderValue;
+  final bool enabled;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final maxValue = sliderValue > 10 ? sliderValue : 10;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _GenerationParamHeader(
+            label: label,
+            value: value,
+            enabled: enabled,
+          ),
+          IgnorePointer(
+            key: disabledKey,
+            ignoring: !enabled,
+            child: Opacity(
+              key: opacityKey,
+              opacity: enabled ? 1 : 0.42,
+              child: MacosSlider(
+                key: sliderKey,
+                value: sliderValue.clamp(0, maxValue).toDouble(),
+                min: 0,
+                max: maxValue.toDouble(),
+                discrete: true,
+                splits: maxValue + 1,
+                color: MacosTheme.of(context).primaryColor,
+                onChanged:
+                    enabled ? (value) => onChanged(value.round()) : (_) {},
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GenerationParamHeader extends StatelessWidget {
+  const _GenerationParamHeader({
+    required this.label,
+    required this.value,
+    required this.enabled,
+  });
+
+  final String label;
+  final String value;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = enabled
+        ? EditorChrome.primaryLabel(context)
+        : MacosColors.disabledControlTextColor;
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: color,
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          value,
+          textAlign: TextAlign.right,
+          style: TextStyle(
+            color: color,
+            fontSize: 11.5,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GenerationParamStepper extends StatelessWidget {
+  const _GenerationParamStepper({
+    required this.label,
+    required this.value,
+    required this.decreaseLabel,
+    required this.increaseLabel,
+    required this.canDecrease,
+    required this.canIncrease,
+    required this.onDecrease,
+    required this.onIncrease,
+  });
+
+  final String label;
+  final String value;
+  final String decreaseLabel;
+  final String increaseLabel;
+  final bool canDecrease;
+  final bool canIncrease;
+  final VoidCallback onDecrease;
+  final VoidCallback onIncrease;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 7),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: EditorChrome.primaryLabel(context),
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                value,
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  color: EditorChrome.primaryLabel(context),
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              Expanded(
+                child: _StepButton(
+                  label: decreaseLabel,
+                  enabled: canDecrease,
+                  onPressed: onDecrease,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: _StepButton(
+                  label: increaseLabel,
+                  enabled: canIncrease,
+                  onPressed: onIncrease,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepButton extends StatelessWidget {
+  const _StepButton({
+    required this.label,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  final String label;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: const Size(44, 28),
+      onPressed: enabled ? onPressed : null,
+      child: Container(
+        height: 28,
+        width: double.infinity,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 7),
+        decoration: BoxDecoration(
+          color: EditorChrome.largeIslandSurfaceColor(
+            context,
+            tint: EditorChrome.inspectorJoyMint.withValues(
+              alpha: enabled ? 0.12 : 0.04,
+            ),
+          ),
+          borderRadius: BorderRadius.circular(7),
+          border: Border.all(
+            color: EditorChrome.inspectorJoyMint.withValues(
+              alpha: enabled ? 0.36 : 0.14,
+            ),
+          ),
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            maxLines: 1,
+            style: TextStyle(
+              color: enabled
+                  ? EditorChrome.primaryLabel(context)
+                  : EditorChrome.subtleLabel(context),
+              fontSize: 10.5,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ),
       ),
@@ -871,6 +1388,16 @@ bool _shouldShowCreateAreaGate(TileLayerEnvironmentAttachmentReadModel model) {
               TileLayerEnvironmentAttachmentState.areaSelectionRequired);
 }
 
+bool _shouldShowGenerationParamsSection(
+  TileLayerEnvironmentAttachmentReadModel model,
+) {
+  return model.selectedEnvironmentAreaId != null &&
+      (model.canEditSelectedAreaGenerationParams ||
+          model.selectedAreaSeed != null ||
+          model.selectedAreaParamsOverride != null ||
+          model.state == TileLayerEnvironmentAttachmentState.missingPreset);
+}
+
 TileLayerEnvironmentPresetOption? _selectedPreset(
   List<TileLayerEnvironmentPresetOption> presets,
   String? selectedPresetId,
@@ -962,4 +1489,12 @@ String _paintedCellsLabel(int count) {
     return '1 case peinte';
   }
   return '$count cases peintes';
+}
+
+double _clampUnit(double value) {
+  return value.clamp(0.0, 1.0).toDouble();
+}
+
+double _roundUnit(double value) {
+  return (_clampUnit(value) * 100).round() / 100;
 }
