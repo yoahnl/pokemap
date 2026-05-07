@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 
+import '../../application/models/tile_layer_environment_attachment_read_model.dart';
 import '../../application/models/terrain_selection_mode.dart';
 import '../../application/services/tile_layer_environment_attachment_read_model_builder.dart';
 import '../../features/editor/state/editor_notifier.dart';
@@ -52,10 +53,12 @@ class MapInspectorPanel extends ConsumerStatefulWidget {
 class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
   final Map<_InspectorSectionId, bool> _expandedSections =
       <_InspectorSectionId, bool>{};
+  String? _selectedEnvironmentPresetIdForNewArea;
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(editorNotifierProvider);
+    final notifier = ref.read(editorNotifierProvider.notifier);
     final activeMap = state.activeMap;
     final activeLayer = _findActiveLayer(activeMap, state.activeLayerId);
 
@@ -90,6 +93,14 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
             selectedEnvironmentAreaId: state.selectedEnvironmentAreaId,
           )
         : null;
+    final environmentPresetOptions = _environmentPresetOptions(
+        state.project?.environmentPresets ?? const []);
+    final selectedPresetIdForNewArea =
+        _selectedPresetIdForNewArea(environmentPresetOptions);
+    final canCreateEnvironmentArea = activeLayer is TileLayer &&
+        tileLayerEnvironmentReadModel != null &&
+        _canCreateEnvironmentArea(tileLayerEnvironmentReadModel) &&
+        selectedPresetIdForNewArea != null;
     final showEnvironmentLayerSection = activeLayer is EnvironmentLayer;
     final showTilesSection = activeLayer is TileLayer ||
         state.activeTool == EditorToolType.tilePaint ||
@@ -192,9 +203,30 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     _InspectorSectionId.tileLayerEnvironment,
                     defaultExpanded: true,
                   ),
-                  expandedHeight: 320,
+                  expandedHeight: 400,
                   child: TileLayerEnvironmentInspectorSection(
                     readModel: tileLayerEnvironmentReadModel,
+                    onEnableEnvironment: activeLayer is TileLayer &&
+                            tileLayerEnvironmentReadModel.canEnableEnvironment
+                        ? notifier.enableEnvironmentForActiveTileLayer
+                        : null,
+                    availablePresets: environmentPresetOptions,
+                    selectedPresetIdForNewArea: selectedPresetIdForNewArea,
+                    onSelectPresetForNewArea: environmentPresetOptions.length >
+                            1
+                        ? (presetId) {
+                            setState(() {
+                              _selectedEnvironmentPresetIdForNewArea = presetId;
+                            });
+                          }
+                        : null,
+                    onCreateArea: canCreateEnvironmentArea
+                        ? () {
+                            notifier.createEnvironmentAreaForActiveTileLayer(
+                              presetId: selectedPresetIdForNewArea,
+                            );
+                          }
+                        : null,
                   ),
                 ),
               if (showEnvironmentLayerSection)
@@ -491,6 +523,43 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
       EnvironmentLayer _ => 'Environment Layer',
     };
   }
+
+  String? _selectedPresetIdForNewArea(
+    List<TileLayerEnvironmentPresetOption> presets,
+  ) {
+    if (presets.length == 1) {
+      return presets.single.id;
+    }
+    final selected = _selectedEnvironmentPresetIdForNewArea?.trim();
+    if (selected == null || selected.isEmpty) {
+      return null;
+    }
+    for (final preset in presets) {
+      if (preset.id == selected) {
+        return selected;
+      }
+    }
+    return null;
+  }
+}
+
+List<TileLayerEnvironmentPresetOption> _environmentPresetOptions(
+  List<EnvironmentPreset> presets,
+) {
+  return [
+    for (final preset in presets)
+      TileLayerEnvironmentPresetOption(id: preset.id, name: preset.name),
+  ];
+}
+
+bool _canCreateEnvironmentArea(
+  TileLayerEnvironmentAttachmentReadModel model,
+) {
+  return model.hasAttachment &&
+      !model.hasErrors &&
+      (model.state == TileLayerEnvironmentAttachmentState.noArea ||
+          model.state ==
+              TileLayerEnvironmentAttachmentState.areaSelectionRequired);
 }
 
 class _InspectorOverviewCard extends StatelessWidget {

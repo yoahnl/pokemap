@@ -19,6 +19,7 @@ import '../../../application/use_cases/environment_generator_regenerate_use_case
 import '../../../application/use_cases/environment_generator_use_cases.dart';
 import '../../../application/use_cases/environment_mask_use_cases.dart';
 import '../../../application/use_cases/layer_use_cases.dart';
+import '../../../application/use_cases/tile_layer_environment_attachment_use_cases.dart';
 import '../../../application/models/trainer_field_update.dart';
 import '../../../application/models/map_tool_preview.dart';
 import '../../../application/models/path_autotile_set.dart';
@@ -4676,6 +4677,119 @@ class EditorNotifier extends _$EditorNotifier {
     } catch (e) {
       state = state.copyWith(
         errorMessage: 'Failed to set environment target tile layer: $e',
+      );
+    }
+  }
+
+  void enableEnvironmentForActiveTileLayer() {
+    final map = state.activeMap;
+    if (map == null) return;
+    final layerId = state.activeLayerId?.trim();
+    if (layerId == null || layerId.isEmpty) {
+      state = state.copyWith(
+        errorMessage: 'Sélectionnez un TileLayer pour activer l’environnement.',
+      );
+      return;
+    }
+    final activeLayer = _findLayerById(map, layerId);
+    if (activeLayer is! TileLayer) {
+      state = state.copyWith(
+        errorMessage: 'Sélectionnez un TileLayer pour activer l’environnement.',
+      );
+      return;
+    }
+
+    try {
+      final result = EnableTileLayerEnvironmentAttachmentUseCase().execute(
+        map,
+        tileLayerId: layerId,
+      );
+      if (!result.created) {
+        state = state.copyWith(
+          activeLayerId: layerId,
+          selectedEnvironmentAreaId: null,
+          environmentMaskEditMode: null,
+          statusMessage: 'L’environnement est déjà activé sur ce layer.',
+          errorMessage: null,
+        );
+        return;
+      }
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.map,
+        preferredActiveLayerId: layerId,
+        statusMessage: 'Environnement activé sur "${activeLayer.name}"',
+      );
+      state = state.copyWith(
+        activeLayerId: layerId,
+        selectedEnvironmentAreaId: null,
+        environmentMaskEditMode: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Impossible d’activer l’environnement : $e',
+      );
+    }
+  }
+
+  void createEnvironmentAreaForActiveTileLayer({
+    required String presetId,
+  }) {
+    final map = state.activeMap;
+    final project = state.project;
+    if (map == null || project == null) {
+      state = state.copyWith(
+        errorMessage:
+            'Impossible d’ajouter une zone : aucune carte ou projet actif.',
+      );
+      return;
+    }
+    final layerId = state.activeLayerId?.trim();
+    if (layerId == null || layerId.isEmpty) {
+      state = state.copyWith(
+        errorMessage: 'Sélectionnez un TileLayer pour ajouter une zone.',
+      );
+      return;
+    }
+    final activeLayer = _findLayerById(map, layerId);
+    if (activeLayer is! TileLayer) {
+      state = state.copyWith(
+        errorMessage: 'Sélectionnez un TileLayer pour ajouter une zone.',
+      );
+      return;
+    }
+
+    final pid = presetId.trim();
+    if (pid.isEmpty ||
+        !project.environmentPresets.any((preset) => preset.id == pid)) {
+      state = state.copyWith(
+        errorMessage:
+            'Impossible d’ajouter une zone : choisissez un preset valide.',
+      );
+      return;
+    }
+
+    try {
+      final result = CreateTileLayerEnvironmentAreaUseCase().execute(
+        map,
+        manifest: project,
+        tileLayerId: layerId,
+        presetId: pid,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.map,
+        preferredActiveLayerId: layerId,
+        statusMessage: 'Zone d’environnement ajoutée sur "${activeLayer.name}"',
+      );
+      state = state.copyWith(
+        activeLayerId: layerId,
+        selectedEnvironmentAreaId: result.areaId,
+        environmentMaskEditMode: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Impossible d’ajouter une zone : $e',
       );
     }
   }

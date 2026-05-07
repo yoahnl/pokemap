@@ -8,9 +8,19 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
   const TileLayerEnvironmentInspectorSection({
     super.key,
     required this.readModel,
+    this.onEnableEnvironment,
+    this.availablePresets = const [],
+    this.selectedPresetIdForNewArea,
+    this.onSelectPresetForNewArea,
+    this.onCreateArea,
   });
 
   final TileLayerEnvironmentAttachmentReadModel readModel;
+  final VoidCallback? onEnableEnvironment;
+  final List<TileLayerEnvironmentPresetOption> availablePresets;
+  final String? selectedPresetIdForNewArea;
+  final ValueChanged<String>? onSelectPresetForNewArea;
+  final VoidCallback? onCreateArea;
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +77,21 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
             ),
           ],
           const SizedBox(height: 12),
-          _FutureActions(readModel: readModel),
+          if (_shouldShowCreateAreaGate(readModel)) ...[
+            _CreateAreaPresetGate(
+              availablePresets: availablePresets,
+              selectedPresetIdForNewArea: selectedPresetIdForNewArea,
+              onSelectPresetForNewArea: onSelectPresetForNewArea,
+            ),
+            const SizedBox(height: 12),
+          ],
+          _FutureActions(
+            readModel: readModel,
+            onEnableEnvironment: onEnableEnvironment,
+            availablePresets: availablePresets,
+            selectedPresetIdForNewArea: selectedPresetIdForNewArea,
+            onCreateArea: onCreateArea,
+          ),
           const SizedBox(height: 8),
           const InspectorEmbeddedFootnote(
             text:
@@ -78,6 +102,16 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
       ),
     );
   }
+}
+
+final class TileLayerEnvironmentPresetOption {
+  const TileLayerEnvironmentPresetOption({
+    required this.id,
+    required this.name,
+  });
+
+  final String id;
+  final String name;
 }
 
 class _SummaryRows extends StatelessWidget {
@@ -134,6 +168,80 @@ class _SummaryRows extends StatelessWidget {
             child: _SummaryRow(row: row),
           ),
       ],
+    );
+  }
+}
+
+class _CreateAreaPresetGate extends StatelessWidget {
+  const _CreateAreaPresetGate({
+    required this.availablePresets,
+    required this.selectedPresetIdForNewArea,
+    required this.onSelectPresetForNewArea,
+  });
+
+  final List<TileLayerEnvironmentPresetOption> availablePresets;
+  final String? selectedPresetIdForNewArea;
+  final ValueChanged<String>? onSelectPresetForNewArea;
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedPreset = _selectedPreset(
+      availablePresets,
+      selectedPresetIdForNewArea,
+    );
+    if (availablePresets.isEmpty) {
+      return const InspectorEmbeddedFootnote(
+        text:
+            'Créez d’abord un preset dans Environment Studio avant d’ajouter une zone.',
+        accent: EditorChrome.inspectorJoyMint,
+      );
+    }
+    if (availablePresets.length == 1) {
+      return _PresetGateText(
+          'Preset utilisé : ${availablePresets.single.name}');
+    }
+
+    final selectedName = selectedPreset?.name;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _PresetGateText(
+          selectedName == null
+              ? 'Choisissez un preset avant d’ajouter une zone.'
+              : 'Preset pour la nouvelle zone : $selectedName',
+        ),
+        const SizedBox(height: 8),
+        InspectorEmbeddedDropdown(
+          accent: EditorChrome.inspectorJoyMint,
+          fieldLabel: 'Preset pour la nouvelle zone',
+          valueLabel: selectedName ?? 'Choisir un preset',
+          orderedIds: availablePresets.map((preset) => preset.id).toList(),
+          selectedMenuValue: selectedPreset?.id ?? '',
+          selectedIdForCheck: selectedPreset?.id,
+          idToLabel: (id) => _presetNameForId(availablePresets, id) ?? id,
+          onSelected: onSelectPresetForNewArea ?? (_) {},
+          allowUnsetSelection: true,
+        ),
+      ],
+    );
+  }
+}
+
+class _PresetGateText extends StatelessWidget {
+  const _PresetGateText(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: TextStyle(
+        color: EditorChrome.primaryLabel(context),
+        fontSize: 12,
+        height: 1.3,
+        fontWeight: FontWeight.w700,
+      ),
     );
   }
 }
@@ -215,9 +323,19 @@ class _IssueBanner extends StatelessWidget {
 }
 
 class _FutureActions extends StatelessWidget {
-  const _FutureActions({required this.readModel});
+  const _FutureActions({
+    required this.readModel,
+    required this.onEnableEnvironment,
+    required this.availablePresets,
+    required this.selectedPresetIdForNewArea,
+    required this.onCreateArea,
+  });
 
   final TileLayerEnvironmentAttachmentReadModel readModel;
+  final VoidCallback? onEnableEnvironment;
+  final List<TileLayerEnvironmentPresetOption> availablePresets;
+  final String? selectedPresetIdForNewArea;
+  final VoidCallback? onCreateArea;
 
   @override
   Widget build(BuildContext context) {
@@ -227,6 +345,22 @@ class _FutureActions extends StatelessWidget {
         _ActionData(
           icon: CupertinoIcons.add_circled,
           label: readModel.primaryActionLabel ?? 'Activer l’environnement',
+          enabled: onEnableEnvironment != null,
+          onPressed: onEnableEnvironment,
+        ),
+      );
+    }
+    if (_shouldShowCreateAreaGate(readModel)) {
+      final hasPresetForNewArea =
+          _selectedPreset(availablePresets, selectedPresetIdForNewArea) != null;
+      actions.add(
+        _ActionData(
+          icon: CupertinoIcons.add_circled,
+          label: readModel.primaryActionLabel ?? 'Ajouter une zone',
+          enabled: !readModel.hasErrors &&
+              hasPresetForNewArea &&
+              onCreateArea != null,
+          onPressed: onCreateArea,
         ),
       );
     }
@@ -275,8 +409,8 @@ class _FutureActions extends StatelessWidget {
               accent: EditorChrome.inspectorJoyMint,
               icon: action.icon,
               label: action.label,
-              enabled: false,
-              onPressed: () {},
+              enabled: action.enabled,
+              onPressed: action.onPressed ?? () {},
             ),
           ),
       ],
@@ -328,10 +462,52 @@ class _ActionData {
   const _ActionData({
     required this.icon,
     required this.label,
+    this.enabled = false,
+    this.onPressed,
   });
 
   final IconData icon;
   final String label;
+  final bool enabled;
+  final VoidCallback? onPressed;
+}
+
+bool _shouldShowCreateAreaGate(TileLayerEnvironmentAttachmentReadModel model) {
+  return model.hasAttachment &&
+      (model.state == TileLayerEnvironmentAttachmentState.noArea ||
+          model.state ==
+              TileLayerEnvironmentAttachmentState.areaSelectionRequired);
+}
+
+TileLayerEnvironmentPresetOption? _selectedPreset(
+  List<TileLayerEnvironmentPresetOption> presets,
+  String? selectedPresetId,
+) {
+  if (presets.length == 1) {
+    return presets.single;
+  }
+  final id = selectedPresetId?.trim();
+  if (id == null || id.isEmpty) {
+    return null;
+  }
+  for (final preset in presets) {
+    if (preset.id == id) {
+      return preset;
+    }
+  }
+  return null;
+}
+
+String? _presetNameForId(
+  List<TileLayerEnvironmentPresetOption> presets,
+  String id,
+) {
+  for (final preset in presets) {
+    if (preset.id == id) {
+      return preset.name;
+    }
+  }
+  return null;
 }
 
 String _stateTitle(TileLayerEnvironmentAttachmentReadModel model) {

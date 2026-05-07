@@ -190,6 +190,8 @@ class MapGridPainter extends CustomPainter {
 
   /// Lot Environment-22 : surcouche semi-transparente des cellules masque actives.
   final EnvironmentAreaMask? environmentMaskOverlay;
+  final MapPlacedElement? environmentGeneratedAddPreview;
+  final String? environmentGeneratedDeletePreviewId;
 
   MapGridPainter({
     required this.map,
@@ -220,6 +222,8 @@ class MapGridPainter extends CustomPainter {
     this.project,
     this.editorEntityAnimationMs = 0,
     this.environmentMaskOverlay,
+    this.environmentGeneratedAddPreview,
+    this.environmentGeneratedDeletePreviewId,
   });
 
   @override
@@ -373,7 +377,9 @@ class MapGridPainter extends CustomPainter {
       foregroundPass: true,
     );
     _paintSelectedPlacedElementInstance(canvas);
+    _paintEnvironmentGeneratedDeletePreviewHint(canvas);
     _paintToolPreview(canvas);
+    _paintEnvironmentGeneratedAddPreview(canvas);
     _paintEnvironmentMaskOverlay(canvas);
     _paintMapEvents(canvas);
     _paintTriggers(canvas);
@@ -1624,6 +1630,7 @@ class MapGridPainter extends CustomPainter {
         instance,
         elementById: elementById,
         renderPass: renderPass,
+        opacity: instance.id == environmentGeneratedDeletePreviewId ? 0.34 : 1,
       );
     }
   }
@@ -1633,6 +1640,8 @@ class MapGridPainter extends CustomPainter {
     MapPlacedElement instance, {
     required Map<String, ProjectElementEntry> elementById,
     required _EditorMapTileRenderPass renderPass,
+    double opacity = 1,
+    bool ignoreRenderPassSplit = false,
   }) {
     final entry = elementById[instance.elementId.trim()];
     if (entry == null || entry.frames.isEmpty) {
@@ -1656,17 +1665,18 @@ class MapGridPainter extends CustomPainter {
     final source = frame.source;
     final width = source.width <= 0 ? 1 : source.width;
     final height = source.height <= 0 ? 1 : source.height;
-    final paint = Paint();
+    final resolvedOpacity = opacity.clamp(0.0, 1.0).toDouble();
 
     for (var localY = 0; localY < height; localY++) {
       for (var localX = 0; localX < width; localX++) {
-        if (!_shouldPaintPlacedElementCellInRenderPass(
-          instance: instance,
-          entry: entry,
-          localX: localX,
-          localY: localY,
-          foregroundPass: renderPass == _EditorMapTileRenderPass.foreground,
-        )) {
+        if (!ignoreRenderPassSplit &&
+            !_shouldPaintPlacedElementCellInRenderPass(
+              instance: instance,
+              entry: entry,
+              localX: localX,
+              localY: localY,
+              foregroundPass: renderPass == _EditorMapTileRenderPass.foreground,
+            )) {
           continue;
         }
 
@@ -1697,9 +1707,115 @@ class MapGridPainter extends CustomPainter {
           tileWidth,
           tileHeight,
         );
-        canvas.drawImageRect(tilesetImage, srcRect, dstRect, paint);
+        _drawPlacedElementImageRect(
+          canvas,
+          tilesetImage,
+          srcRect,
+          dstRect,
+          opacity: resolvedOpacity,
+        );
       }
     }
+  }
+
+  void _drawPlacedElementImageRect(
+    Canvas canvas,
+    ui.Image image,
+    Rect srcRect,
+    Rect dstRect, {
+    required double opacity,
+  }) {
+    if (opacity >= 1) {
+      canvas.drawImageRect(image, srcRect, dstRect, Paint());
+      return;
+    }
+    canvas.saveLayer(
+      dstRect,
+      Paint()..color = Colors.white.withValues(alpha: opacity),
+    );
+    canvas.drawImageRect(image, srcRect, dstRect, Paint());
+    canvas.restore();
+  }
+
+  void _paintEnvironmentGeneratedAddPreview(Canvas canvas) {
+    final preview = environmentGeneratedAddPreview;
+    final projectContext = project;
+    if (preview == null || projectContext == null) return;
+    final elementById = <String, ProjectElementEntry>{
+      for (final entry in projectContext.elements) entry.id: entry,
+    };
+    _paintPlacedElement(
+      canvas,
+      preview,
+      elementById: elementById,
+      renderPass: _EditorMapTileRenderPass.foreground,
+      opacity: 0.48,
+      ignoreRenderPassSplit: true,
+    );
+    _paintPlacedElementFootprintHint(
+      canvas,
+      preview,
+      elementById: elementById,
+      color: Colors.cyanAccent,
+      fillAlpha: 0.08,
+      strokeAlpha: 0.95,
+    );
+  }
+
+  void _paintEnvironmentGeneratedDeletePreviewHint(Canvas canvas) {
+    final previewId = environmentGeneratedDeletePreviewId?.trim();
+    final projectContext = project;
+    if (previewId == null || previewId.isEmpty || projectContext == null) {
+      return;
+    }
+    final elementById = <String, ProjectElementEntry>{
+      for (final entry in projectContext.elements) entry.id: entry,
+    };
+    for (final instance in map.placedElements.reversed) {
+      if (instance.id != previewId) continue;
+      _paintPlacedElementFootprintHint(
+        canvas,
+        instance,
+        elementById: elementById,
+        color: Colors.redAccent,
+        fillAlpha: 0.10,
+        strokeAlpha: 0.95,
+      );
+      return;
+    }
+  }
+
+  void _paintPlacedElementFootprintHint(
+    Canvas canvas,
+    MapPlacedElement instance, {
+    required Map<String, ProjectElementEntry> elementById,
+    required Color color,
+    required double fillAlpha,
+    required double strokeAlpha,
+  }) {
+    final entry = elementById[instance.elementId.trim()];
+    final source = entry?.frames.primarySource;
+    final width = source == null || source.width <= 0 ? 1 : source.width;
+    final height = source == null || source.height <= 0 ? 1 : source.height;
+    final rect = Rect.fromLTWH(
+      instance.pos.x * tileWidth,
+      instance.pos.y * tileHeight,
+      width * tileWidth,
+      height * tileHeight,
+    );
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..color = color.withValues(alpha: fillAlpha)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..color = color.withValues(alpha: strokeAlpha)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0 / zoom,
+    );
   }
 
   bool _shouldPaintPlacedElementCellInRenderPass({
@@ -2286,6 +2402,10 @@ class MapGridPainter extends CustomPainter {
         oldDelegate.sourceTileHeight != sourceTileHeight ||
         !mapEquals(oldDelegate.tilesPerRowById, tilesPerRowById) ||
         oldDelegate.editorEntityAnimationMs != editorEntityAnimationMs ||
+        oldDelegate.environmentGeneratedAddPreview !=
+            environmentGeneratedAddPreview ||
+        oldDelegate.environmentGeneratedDeletePreviewId !=
+            environmentGeneratedDeletePreviewId ||
         !_sameEnvironmentMaskOverlay(
           oldDelegate.environmentMaskOverlay,
           environmentMaskOverlay,

@@ -12,6 +12,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../application/models/map_tool_preview.dart';
 import '../../application/models/path_autotile_set.dart';
+import '../../application/services/environment_generated_placement_hover_resolver.dart';
 import '../../application/services/tileset_transparent_color_processor.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
@@ -202,6 +203,35 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           hoveredTile: _hoveredTile,
           tilesetColumnsById: tilesPerRowById,
         );
+        final hoveredTile = _hoveredTile;
+        final environmentGeneratedAddPreview =
+            hoveredTile != null && state.project != null
+                ? switch (state.environmentMaskEditMode) {
+                    EnvironmentMaskEditMode.generatedAdd =>
+                      resolveEnvironmentGeneratedPlacementAddPreview(
+                        map: activeMap,
+                        manifest: state.project!,
+                        activeLayerId: state.activeLayerId,
+                        selectedAreaId: state.selectedEnvironmentAreaId,
+                        pos: hoveredTile,
+                      ),
+                    _ => null,
+                  }
+                : null;
+        final environmentGeneratedDeleteTarget =
+            hoveredTile != null && state.project != null
+                ? switch (state.environmentMaskEditMode) {
+                    EnvironmentMaskEditMode.generatedDelete =>
+                      resolveEnvironmentGeneratedPlacementDeleteTarget(
+                        map: activeMap,
+                        manifest: state.project,
+                        activeLayerId: state.activeLayerId,
+                        selectedAreaId: state.selectedEnvironmentAreaId,
+                        pos: hoveredTile,
+                      ),
+                    _ => null,
+                  }
+                : null;
         final isEnvironmentMaskEditing =
             _isEnvironmentMaskEditing(state, activeMap);
         final isStrokeEditingTool =
@@ -488,6 +518,10 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                           project: state.project,
                           editorEntityAnimationMs: _editorEntityAnimationMs,
                           environmentMaskOverlay: environmentMaskOverlay,
+                          environmentGeneratedAddPreview:
+                              environmentGeneratedAddPreview?.placed,
+                          environmentGeneratedDeletePreviewId:
+                              environmentGeneratedDeleteTarget?.placed.id,
                         ),
                       ),
                     ),

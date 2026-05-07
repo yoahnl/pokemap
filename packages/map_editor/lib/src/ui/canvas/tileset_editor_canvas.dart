@@ -10,6 +10,7 @@ import 'package:map_core/map_core.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/editor_paint_palette.dart';
+import 'tileset_grid_metrics.dart';
 
 class TilesetEditorCanvas extends ConsumerStatefulWidget {
   const TilesetEditorCanvas({super.key});
@@ -92,11 +93,15 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
           );
         }
 
-        final columns =
-            settings.tileWidth > 0 ? image.width ~/ settings.tileWidth : 0;
-        final rows =
-            settings.tileHeight > 0 ? image.height ~/ settings.tileHeight : 0;
-        if (columns <= 0 || rows <= 0) {
+        final metrics = TilesetGridMetrics.fromImagePixels(
+          imageWidth: image.width,
+          imageHeight: image.height,
+          tileWidth: settings.tileWidth,
+          tileHeight: settings.tileHeight,
+        );
+        final columns = metrics.columns;
+        final rows = metrics.rows;
+        if (!metrics.isValid) {
           return const Center(
             child: Text('Invalid tile settings for selected tileset'),
           );
@@ -114,8 +119,7 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                 .toList(growable: false) ??
             const <TileLayer>[];
 
-        final subtle =
-            CupertinoColors.secondaryLabel.resolveFrom(context);
+        final subtle = CupertinoColors.secondaryLabel.resolveFrom(context);
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,6 +149,14 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                             fontSize: 12,
                           ),
                         ),
+                        if (metrics.hasTrailingPixels)
+                          Text(
+                            'Usable grid: ${metrics.usablePixelWidth}x${metrics.usablePixelHeight}px of ${image.width}x${image.height}px',
+                            style: TextStyle(
+                              color: subtle,
+                              fontSize: 12,
+                            ),
+                          ),
                         Text(
                           selectionRect == null
                               ? 'No selection'
@@ -159,8 +171,8 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                   ),
                   const SizedBox(width: 8),
                   CupertinoButton.filled(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     onPressed: selectionRect == null
                         ? null
                         : () => _showCreateElementDialog(
@@ -249,6 +261,8 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                                   image: image,
                                   columns: columns,
                                   rows: rows,
+                                  tileWidth: settings.tileWidth,
+                                  tileHeight: settings.tileHeight,
                                   selection: selectionRect,
                                 ),
                                 child: const SizedBox.expand(),
@@ -358,8 +372,7 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                       ),
                     ),
                     MacosIconButton(
-                      icon:
-                          const MacosIcon(CupertinoIcons.xmark_circle_fill),
+                      icon: const MacosIcon(CupertinoIcons.xmark_circle_fill),
                       onPressed: () => Navigator.pop(ctx),
                     ),
                   ],
@@ -370,170 +383,167 @@ class _TilesetEditorCanvasState extends ConsumerState<TilesetEditorCanvas> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                      Text(
-                        'Source: ${source.width}x${source.height} at (${source.x}, ${source.y})',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: CupertinoColors.secondaryLabel
-                              .resolveFrom(ctx),
+                    Text(
+                      'Source: ${source.width}x${source.height} at (${source.x}, ${source.y})',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: CupertinoColors.secondaryLabel.resolveFrom(ctx),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _labeledField(
+                      ctx,
+                      label: 'Name',
+                      controller: nameController,
+                    ),
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: PushButton(
+                        controlSize: ControlSize.regular,
+                        secondary: true,
+                        onPressed: () async {
+                          final picked = await showCupertinoListPicker<String>(
+                            context: ctx,
+                            title: 'Category',
+                            items: categories.map((c) => c.id).toList(),
+                            labelOf: (id) => _buildCategoryPathLabel(
+                              categoriesById: categoriesById,
+                              categoryId: id,
+                            ),
+                          );
+                          if (picked != null) {
+                            setStateDialog(() {
+                              selectedCategoryId = picked;
+                            });
+                          }
+                        },
+                        child: Text(
+                          'Category: ${_buildCategoryPathLabel(categoriesById: categoriesById, categoryId: selectedCategoryId)}',
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      _labeledField(
-                        ctx,
-                        label: 'Name',
-                        controller: nameController,
-                      ),
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: PushButton(
-                          controlSize: ControlSize.regular,
-                          secondary: true,
-                          onPressed: () async {
-                            final picked =
-                                await showCupertinoListPicker<String>(
-                              context: ctx,
-                              title: 'Category',
-                              items: categories.map((c) => c.id).toList(),
-                              labelOf: (id) => _buildCategoryPathLabel(
-                                categoriesById: categoriesById,
-                                categoryId: id,
+                    ),
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: PushButton(
+                        controlSize: ControlSize.regular,
+                        secondary: true,
+                        onPressed: () async {
+                          final picked =
+                              await showMacosEditorActionsSheet<String>(
+                            context: ctx,
+                            title: const Text('Tileset Group'),
+                            actions: [
+                              const MacosEditorSheetAction(
+                                label: 'None',
+                                value: '',
                               ),
-                            );
-                            if (picked != null) {
-                              setStateDialog(() {
-                                selectedCategoryId = picked;
-                              });
-                            }
-                          },
-                          child: Text(
-                            'Category: ${_buildCategoryPathLabel(categoriesById: categoriesById, categoryId: selectedCategoryId)}',
-                          ),
+                              ...sortedTilesetGroups.map(
+                                (g) => MacosEditorSheetAction<String>(
+                                  label: _buildTilesetGroupPathLabel(
+                                      tilesetGroupById, g.id),
+                                  value: g.id,
+                                ),
+                              ),
+                            ],
+                          );
+                          if (picked == null || !ctx.mounted) return;
+                          setStateDialog(() {
+                            selectedTilesetGroupId =
+                                picked.isEmpty ? null : picked;
+                          });
+                        },
+                        child: Text(
+                          selectedTilesetGroupId == null
+                              ? 'Tileset Group: None'
+                              : 'Tileset Group: ${_buildTilesetGroupPathLabel(tilesetGroupById, selectedTilesetGroupId!)}',
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: PushButton(
-                          controlSize: ControlSize.regular,
-                          secondary: true,
-                          onPressed: () async {
-                            final picked =
-                                await showMacosEditorActionsSheet<String>(
-                              context: ctx,
-                              title: const Text('Tileset Group'),
-                              actions: [
-                                const MacosEditorSheetAction(
-                                  label: 'None',
-                                  value: '',
+                    ),
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: PushButton(
+                        controlSize: ControlSize.regular,
+                        secondary: true,
+                        onPressed: () async {
+                          final picked =
+                              await showMacosEditorActionsSheet<String>(
+                            context: ctx,
+                            title: const Text('World Group Scope'),
+                            actions: [
+                              const MacosEditorSheetAction(
+                                label: 'Global',
+                                value: '',
+                              ),
+                              ...groups.map(
+                                (g) => MacosEditorSheetAction<String>(
+                                  label: _buildWorldGroupPathLabel(
+                                      worldGroupById, g.id),
+                                  value: g.id,
                                 ),
-                                ...sortedTilesetGroups.map(
-                                  (g) => MacosEditorSheetAction<String>(
-                                    label: _buildTilesetGroupPathLabel(
-                                        tilesetGroupById, g.id),
-                                    value: g.id,
-                                  ),
-                                ),
-                              ],
-                            );
-                            if (picked == null || !ctx.mounted) return;
-                            setStateDialog(() {
-                              selectedTilesetGroupId =
-                                  picked.isEmpty ? null : picked;
-                            });
-                          },
-                          child: Text(
-                            selectedTilesetGroupId == null
-                                ? 'Tileset Group: None'
-                                : 'Tileset Group: ${_buildTilesetGroupPathLabel(tilesetGroupById, selectedTilesetGroupId!)}',
-                          ),
+                              ),
+                            ],
+                          );
+                          if (picked == null || !ctx.mounted) return;
+                          setStateDialog(() {
+                            selectedWorldGroupId =
+                                picked.isEmpty ? null : picked;
+                          });
+                        },
+                        child: Text(
+                          selectedWorldGroupId == null
+                              ? 'World Group: Global'
+                              : 'World Group: ${_buildWorldGroupPathLabel(worldGroupById, selectedWorldGroupId!)}',
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: PushButton(
-                          controlSize: ControlSize.regular,
-                          secondary: true,
-                          onPressed: () async {
-                            final picked =
-                                await showMacosEditorActionsSheet<String>(
-                              context: ctx,
-                              title: const Text('World Group Scope'),
-                              actions: [
-                                const MacosEditorSheetAction(
-                                  label: 'Global',
-                                  value: '',
+                    ),
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: PushButton(
+                        controlSize: ControlSize.regular,
+                        secondary: true,
+                        onPressed: () async {
+                          final picked =
+                              await showMacosEditorActionsSheet<String>(
+                            context: ctx,
+                            title: const Text('Recommended Layer'),
+                            actions: [
+                              const MacosEditorSheetAction(
+                                label: 'None',
+                                value: '',
+                              ),
+                              ...tileLayers.map(
+                                (layer) => MacosEditorSheetAction<String>(
+                                  label: layer.name,
+                                  value: layer.id,
                                 ),
-                                ...groups.map(
-                                  (g) => MacosEditorSheetAction<String>(
-                                    label: _buildWorldGroupPathLabel(
-                                        worldGroupById, g.id),
-                                    value: g.id,
-                                  ),
-                                ),
-                              ],
-                            );
-                            if (picked == null || !ctx.mounted) return;
-                            setStateDialog(() {
-                              selectedWorldGroupId =
-                                  picked.isEmpty ? null : picked;
-                            });
-                          },
-                          child: Text(
-                            selectedWorldGroupId == null
-                                ? 'World Group: Global'
-                                : 'World Group: ${_buildWorldGroupPathLabel(worldGroupById, selectedWorldGroupId!)}',
-                          ),
+                              ),
+                            ],
+                          );
+                          if (picked == null || !ctx.mounted) return;
+                          setStateDialog(() {
+                            selectedLayerId = picked.isEmpty ? null : picked;
+                          });
+                        },
+                        child: Text(
+                          selectedLayerId == null
+                              ? 'Recommended Layer: None'
+                              : 'Recommended Layer: ${tileLayers.firstWhere((l) => l.id == selectedLayerId).name}',
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: PushButton(
-                          controlSize: ControlSize.regular,
-                          secondary: true,
-                          onPressed: () async {
-                            final picked =
-                                await showMacosEditorActionsSheet<String>(
-                              context: ctx,
-                              title: const Text('Recommended Layer'),
-                              actions: [
-                                const MacosEditorSheetAction(
-                                  label: 'None',
-                                  value: '',
-                                ),
-                                ...tileLayers.map(
-                                  (layer) => MacosEditorSheetAction<String>(
-                                    label: layer.name,
-                                    value: layer.id,
-                                  ),
-                                ),
-                              ],
-                            );
-                            if (picked == null || !ctx.mounted) return;
-                            setStateDialog(() {
-                              selectedLayerId =
-                                  picked.isEmpty ? null : picked;
-                            });
-                          },
-                          child: Text(
-                            selectedLayerId == null
-                                ? 'Recommended Layer: None'
-                                : 'Recommended Layer: ${tileLayers.firstWhere((l) => l.id == selectedLayerId).name}',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _labeledField(
-                        ctx,
-                        label: 'Tags (tree,outdoor,oak)',
-                        controller: tagsController,
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 12),
+                    _labeledField(
+                      ctx,
+                      label: 'Tags (tree,outdoor,oak)',
+                      controller: tagsController,
+                    ),
+                  ],
                 ),
+              ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                 child: Row(
@@ -667,12 +677,16 @@ class _TilesetCanvasPainter extends CustomPainter {
   final ui.Image image;
   final int columns;
   final int rows;
+  final int tileWidth;
+  final int tileHeight;
   final TilesetSourceRect? selection;
 
   _TilesetCanvasPainter({
     required this.image,
     required this.columns,
     required this.rows,
+    required this.tileWidth,
+    required this.tileHeight,
     required this.selection,
   });
 
@@ -681,8 +695,8 @@ class _TilesetCanvasPainter extends CustomPainter {
     final srcRect = Rect.fromLTWH(
       0,
       0,
-      image.width.toDouble(),
-      image.height.toDouble(),
+      (columns * tileWidth).toDouble(),
+      (rows * tileHeight).toDouble(),
     );
     final dstRect = Rect.fromLTWH(0, 0, size.width, size.height);
     canvas.drawImageRect(image, srcRect, dstRect, Paint());
@@ -730,6 +744,8 @@ class _TilesetCanvasPainter extends CustomPainter {
     return oldDelegate.image != image ||
         oldDelegate.columns != columns ||
         oldDelegate.rows != rows ||
+        oldDelegate.tileWidth != tileWidth ||
+        oldDelegate.tileHeight != tileHeight ||
         oldDelegate.selection != selection;
   }
 }

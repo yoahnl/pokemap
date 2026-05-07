@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart' show MaterialApp;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_editor/src/application/models/tile_layer_environment_attachment_read_model.dart';
 import 'package:map_editor/src/ui/panels/tile_layer_environment_inspector_section.dart';
@@ -49,6 +50,175 @@ void main() {
 
       expect(find.text('Activer l’environnement'), findsOneWidget);
       expect(_buttonFor(tester, 'Activer l’environnement').onPressed, isNull);
+    });
+
+    testWidgets('active Activer l’environnement avec callback', (tester) async {
+      var pressed = 0;
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.noAttachment,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          activeTileLayerId: 'tiles',
+          activeTileLayerName: 'Décor',
+          canEnableEnvironment: true,
+          emptyStateTitle: 'Aucun environnement sur ce layer',
+          emptyStateMessage:
+              'Activez l’environnement pour peindre une zone organique sur ce layer.',
+          primaryActionLabel: 'Activer l’environnement',
+        ),
+        onEnableEnvironment: () {
+          pressed++;
+        },
+      );
+
+      final button = _buttonFor(tester, 'Activer l’environnement');
+      expect(button.onPressed, isNotNull);
+
+      await tester.tap(find.text('Activer l’environnement'));
+      await tester.pump();
+
+      expect(pressed, 1);
+    });
+
+    testWidgets('bloque Ajouter une zone si aucun preset existe',
+        (tester) async {
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.noArea,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          activeTileLayerId: 'tiles',
+          activeTileLayerName: 'Décor',
+          attachedEnvironmentLayerId: 'env',
+          attachedEnvironmentLayerName: 'Environnement',
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          emptyStateTitle: 'Aucune zone d’environnement',
+          emptyStateMessage:
+              'Ajoutez une zone, choisissez un preset, puis peignez le masque.',
+          primaryActionLabel: 'Ajouter une zone',
+        ),
+      );
+
+      expect(
+        find.text(
+          'Créez d’abord un preset dans Environment Studio avant d’ajouter une zone.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Ajouter une zone'), findsOneWidget);
+      expect(_buttonFor(tester, 'Ajouter une zone').onPressed, isNull);
+    });
+
+    testWidgets('active Ajouter une zone avec un preset unique',
+        (tester) async {
+      var pressed = 0;
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.noArea,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          activeTileLayerId: 'tiles',
+          activeTileLayerName: 'Décor',
+          attachedEnvironmentLayerId: 'env',
+          attachedEnvironmentLayerName: 'Environnement',
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          emptyStateTitle: 'Aucune zone d’environnement',
+          emptyStateMessage:
+              'Ajoutez une zone, choisissez un preset, puis peignez le masque.',
+          primaryActionLabel: 'Ajouter une zone',
+        ),
+        availablePresets: const [
+          TileLayerEnvironmentPresetOption(id: 'forest', name: 'Forêt'),
+        ],
+        selectedPresetIdForNewArea: 'forest',
+        onCreateArea: () {
+          pressed++;
+        },
+      );
+
+      expect(find.text('Preset utilisé : Forêt'), findsOneWidget);
+      final button = _buttonFor(tester, 'Ajouter une zone');
+      expect(button.onPressed, isNotNull);
+
+      await tester.ensureVisible(find.text('Ajouter une zone'));
+      await tester.tap(find.text('Ajouter une zone'));
+      await tester.pump();
+
+      expect(pressed, 1);
+    });
+
+    testWidgets('bloque Ajouter une zone avec plusieurs presets sans sélection',
+        (tester) async {
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.noArea,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          activeTileLayerId: 'tiles',
+          activeTileLayerName: 'Décor',
+          attachedEnvironmentLayerId: 'env',
+          attachedEnvironmentLayerName: 'Environnement',
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          emptyStateTitle: 'Aucune zone d’environnement',
+          emptyStateMessage:
+              'Ajoutez une zone, choisissez un preset, puis peignez le masque.',
+          primaryActionLabel: 'Ajouter une zone',
+        ),
+        availablePresets: const [
+          TileLayerEnvironmentPresetOption(id: 'forest', name: 'Forêt'),
+          TileLayerEnvironmentPresetOption(id: 'rocks', name: 'Rochers'),
+        ],
+      );
+
+      expect(
+        find.text('Choisissez un preset avant d’ajouter une zone.'),
+        findsOneWidget,
+      );
+      expect(_buttonFor(tester, 'Ajouter une zone').onPressed, isNull);
+    });
+
+    testWidgets('active Ajouter une zone avec plusieurs presets et sélection',
+        (tester) async {
+      var pressed = 0;
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.noArea,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          activeTileLayerId: 'tiles',
+          activeTileLayerName: 'Décor',
+          attachedEnvironmentLayerId: 'env',
+          attachedEnvironmentLayerName: 'Environnement',
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          emptyStateTitle: 'Aucune zone d’environnement',
+          emptyStateMessage:
+              'Ajoutez une zone, choisissez un preset, puis peignez le masque.',
+          primaryActionLabel: 'Ajouter une zone',
+        ),
+        availablePresets: const [
+          TileLayerEnvironmentPresetOption(id: 'forest', name: 'Forêt'),
+          TileLayerEnvironmentPresetOption(id: 'rocks', name: 'Rochers'),
+        ],
+        selectedPresetIdForNewArea: 'rocks',
+        onCreateArea: () {
+          pressed++;
+        },
+      );
+
+      expect(
+          find.text('Preset pour la nouvelle zone : Rochers'), findsOneWidget);
+      expect(_buttonFor(tester, 'Ajouter une zone').onPressed, isNotNull);
+
+      await tester.ensureVisible(find.text('Ajouter une zone'));
+      await tester.tap(find.text('Ajouter une zone'));
+      await tester.pump();
+
+      expect(pressed, 1);
     });
 
     testWidgets('affiche un état prêt avec preset zone et masque',
@@ -236,21 +406,87 @@ void main() {
 
       expect(find.text('Générer dans ce layer'), findsOneWidget);
       expect(_buttonFor(tester, 'Générer dans ce layer').onPressed, isNull);
+      expect(find.text('Peindre le masque'), findsOneWidget);
+      expect(_buttonFor(tester, 'Peindre le masque').onPressed, isNull);
+    });
+
+    testWidgets('après création avec masque vide la brush reste désactivée',
+        (tester) async {
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.emptyMask,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaName: 'Forêt',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 0,
+          hasMask: false,
+          canPaintMask: true,
+          emptyStateTitle: 'Masque vide',
+          emptyStateMessage: 'Peignez une zone sur la carte avant de générer.',
+        ),
+      );
+
+      expect(find.text('Masque vide'), findsOneWidget);
+      expect(find.text('Peindre le masque'), findsOneWidget);
+      expect(_buttonFor(tester, 'Peindre le masque').onPressed, isNull);
+    });
+
+    testWidgets('la suppression des placements générés reste désactivée',
+        (tester) async {
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.generated,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          generatedPlacementCount: 18,
+          hasGeneratedPlacements: true,
+          canClearGeneratedPlacements: true,
+          emptyStateTitle: 'Placements générés',
+          emptyStateMessage: 'Cette zone contient déjà des placements générés.',
+        ),
+      );
+
+      expect(find.text('Effacer les placements générés'), findsOneWidget);
+      expect(
+        _buttonFor(tester, 'Effacer les placements générés').onPressed,
+        isNull,
+      );
     });
   });
 }
 
 Future<void> _pump(
   WidgetTester tester,
-  TileLayerEnvironmentAttachmentReadModel model,
-) {
+  TileLayerEnvironmentAttachmentReadModel model, {
+  VoidCallback? onEnableEnvironment,
+  List<TileLayerEnvironmentPresetOption> availablePresets = const [],
+  String? selectedPresetIdForNewArea,
+  ValueChanged<String>? onSelectPresetForNewArea,
+  VoidCallback? onCreateArea,
+}) {
   return tester.pumpWidget(
-    CupertinoApp(
+    MaterialApp(
       home: CupertinoPageScaffold(
         child: SizedBox(
           width: 360,
           height: 520,
-          child: TileLayerEnvironmentInspectorSection(readModel: model),
+          child: TileLayerEnvironmentInspectorSection(
+            readModel: model,
+            onEnableEnvironment: onEnableEnvironment,
+            availablePresets: availablePresets,
+            selectedPresetIdForNewArea: selectedPresetIdForNewArea,
+            onSelectPresetForNewArea: onSelectPresetForNewArea,
+            onCreateArea: onCreateArea,
+          ),
         ),
       ),
     ),
