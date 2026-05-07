@@ -4797,19 +4797,33 @@ class EditorNotifier extends _$EditorNotifier {
   }
 
   void startEnvironmentMaskPaintingForActiveTileLayer() {
+    _startEnvironmentMaskEditingForActiveTileLayer(
+      mode: EnvironmentMaskEditMode.paint,
+    );
+  }
+
+  void startEnvironmentMaskErasingForActiveTileLayer() {
+    _startEnvironmentMaskEditingForActiveTileLayer(
+      mode: EnvironmentMaskEditMode.erase,
+    );
+  }
+
+  void _startEnvironmentMaskEditingForActiveTileLayer({
+    required EnvironmentMaskEditMode mode,
+  }) {
     final map = state.activeMap;
     if (map == null) return;
     final layerId = state.activeLayerId?.trim();
     if (layerId == null || layerId.isEmpty) {
       state = state.copyWith(
-        errorMessage: 'Sélectionnez un TileLayer pour peindre le masque.',
+        errorMessage: 'Sélectionnez un TileLayer pour éditer le masque.',
       );
       return;
     }
     final activeLayer = _findLayerById(map, layerId);
     if (activeLayer is! TileLayer) {
       state = state.copyWith(
-        errorMessage: 'Sélectionnez un TileLayer pour peindre le masque.',
+        errorMessage: 'Sélectionnez un TileLayer pour éditer le masque.',
       );
       return;
     }
@@ -4842,9 +4856,10 @@ class EditorNotifier extends _$EditorNotifier {
     state = state.copyWith(
       activeLayerId: layerId,
       selectedEnvironmentAreaId: target.areaId,
-      environmentMaskEditMode: EnvironmentMaskEditMode.paint,
-      statusMessage:
-          'Mode peinture actif : cliquez sur la carte pour peindre le masque.',
+      environmentMaskEditMode: mode,
+      statusMessage: mode == EnvironmentMaskEditMode.erase
+          ? 'Mode effacement actif : cliquez sur la carte pour retirer des cellules du masque.'
+          : 'Mode peinture actif : cliquez sur la carte pour peindre le masque.',
       errorMessage: null,
     );
   }

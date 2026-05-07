@@ -108,12 +108,18 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
         tileLayerEnvironmentReadModel != null &&
         state.environmentMaskEditMode == EnvironmentMaskEditMode.paint &&
         state.selectedEnvironmentAreaId != null;
-    final canStartTileLayerMaskPainting = activeLayer is TileLayer &&
+    final isTileLayerMaskErasingActive = activeLayer is TileLayer &&
+        tileLayerEnvironmentReadModel != null &&
+        state.environmentMaskEditMode == EnvironmentMaskEditMode.erase &&
+        state.selectedEnvironmentAreaId != null;
+    final isTileLayerMaskEditingActive =
+        isTileLayerMaskPaintingActive || isTileLayerMaskErasingActive;
+    final canStartTileLayerMaskEditing = activeLayer is TileLayer &&
         tileLayerEnvironmentReadModel != null &&
         tileLayerEnvironmentReadModel.canPaintMask &&
         !tileLayerEnvironmentReadModel.hasErrors &&
         state.selectedEnvironmentAreaId != null &&
-        !isTileLayerMaskPaintingActive;
+        !isTileLayerMaskEditingActive;
     final showEnvironmentLayerSection = activeLayer is EnvironmentLayer;
     final showTilesSection = activeLayer is TileLayer ||
         state.activeTool == EditorToolType.tilePaint ||
@@ -241,11 +247,15 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                           }
                         : null,
                     isMaskPaintingActive: isTileLayerMaskPaintingActive,
-                    onStartMaskPainting: canStartTileLayerMaskPainting
+                    isMaskErasingActive: isTileLayerMaskErasingActive,
+                    onStartMaskPainting: canStartTileLayerMaskEditing
                         ? notifier
                             .startEnvironmentMaskPaintingForActiveTileLayer
                         : null,
-                    onStopMaskPainting: isTileLayerMaskPaintingActive
+                    onStartMaskErasing: canStartTileLayerMaskEditing
+                        ? notifier.startEnvironmentMaskErasingForActiveTileLayer
+                        : null,
+                    onStopMaskPainting: isTileLayerMaskEditingActive
                         ? notifier.stopEnvironmentMaskPainting
                         : null,
                     environmentMaskBrushSize: environmentMaskBrushSize,

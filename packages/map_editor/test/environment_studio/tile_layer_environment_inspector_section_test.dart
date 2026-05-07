@@ -439,6 +439,57 @@ void main() {
       expect(pressed, 1);
     });
 
+    testWidgets('affiche Effacer du masque quand le masque est éditable',
+        (tester) async {
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.emptyMask,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaId: 'area',
+          selectedEnvironmentAreaName: 'Forêt',
+          selectedPresetName: 'Forêt',
+          canPaintMask: true,
+          emptyStateTitle: 'Masque vide',
+          emptyStateMessage: 'Peignez une zone sur la carte avant de générer.',
+        ),
+      );
+
+      expect(find.text('Effacer du masque'), findsOneWidget);
+      expect(_buttonFor(tester, 'Effacer du masque').onPressed, isNull);
+    });
+
+    testWidgets('active Effacer du masque avec callback', (tester) async {
+      var pressed = 0;
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.emptyMask,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaId: 'area',
+          selectedEnvironmentAreaName: 'Forêt',
+          selectedPresetName: 'Forêt',
+          canPaintMask: true,
+          emptyStateTitle: 'Masque vide',
+          emptyStateMessage: 'Peignez une zone sur la carte avant de générer.',
+        ),
+        onStartMaskErasing: () {
+          pressed++;
+        },
+      );
+
+      expect(_buttonFor(tester, 'Effacer du masque').onPressed, isNotNull);
+
+      await tester.tap(find.text('Effacer du masque'));
+      await tester.pump();
+
+      expect(pressed, 1);
+    });
+
     testWidgets('affiche Taille du pinceau et les choix 1 3 5 7',
         (tester) async {
       await _pump(
@@ -556,6 +607,46 @@ void main() {
       expect(stopped, 1);
     });
 
+    testWidgets('affiche Effacement actif et garde la taille visible',
+        (tester) async {
+      var stopped = 0;
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.emptyMask,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaId: 'area',
+          selectedEnvironmentAreaName: 'Forêt',
+          selectedPresetName: 'Forêt',
+          canPaintMask: true,
+          emptyStateTitle: 'Masque vide',
+          emptyStateMessage: 'Peignez une zone sur la carte avant de générer.',
+        ),
+        isMaskErasingActive: true,
+        onStopMaskPainting: () {
+          stopped++;
+        },
+      );
+
+      expect(find.text('Effacement actif'), findsOneWidget);
+      expect(
+        find.text(
+          'Mode effacement actif : cliquez sur la carte pour retirer des cellules du masque.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Taille du pinceau'), findsOneWidget);
+      expect(find.text('Arrêter la peinture'), findsOneWidget);
+      expect(_buttonFor(tester, 'Arrêter la peinture').onPressed, isNotNull);
+
+      await tester.tap(find.text('Arrêter la peinture'));
+      await tester.pump();
+
+      expect(stopped, 1);
+    });
+
     testWidgets('après création avec masque vide la brush reste désactivée',
         (tester) async {
       await _pump(
@@ -619,7 +710,9 @@ Future<void> _pump(
   ValueChanged<String>? onSelectPresetForNewArea,
   VoidCallback? onCreateArea,
   bool isMaskPaintingActive = false,
+  bool isMaskErasingActive = false,
   VoidCallback? onStartMaskPainting,
+  VoidCallback? onStartMaskErasing,
   VoidCallback? onStopMaskPainting,
   int environmentMaskBrushSize = 1,
   ValueChanged<int>? onSetEnvironmentMaskBrushSize,
@@ -638,7 +731,9 @@ Future<void> _pump(
             onSelectPresetForNewArea: onSelectPresetForNewArea,
             onCreateArea: onCreateArea,
             isMaskPaintingActive: isMaskPaintingActive,
+            isMaskErasingActive: isMaskErasingActive,
             onStartMaskPainting: onStartMaskPainting,
+            onStartMaskErasing: onStartMaskErasing,
             onStopMaskPainting: onStopMaskPainting,
             environmentMaskBrushSize: environmentMaskBrushSize,
             onSetEnvironmentMaskBrushSize: onSetEnvironmentMaskBrushSize,

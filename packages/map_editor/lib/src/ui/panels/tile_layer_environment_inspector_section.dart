@@ -15,7 +15,9 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
     this.onSelectPresetForNewArea,
     this.onCreateArea,
     this.isMaskPaintingActive = false,
+    this.isMaskErasingActive = false,
     this.onStartMaskPainting,
+    this.onStartMaskErasing,
     this.onStopMaskPainting,
     this.environmentMaskBrushSize = kDefaultEnvironmentMaskBrushSize,
     this.onSetEnvironmentMaskBrushSize,
@@ -28,7 +30,9 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
   final ValueChanged<String>? onSelectPresetForNewArea;
   final VoidCallback? onCreateArea;
   final bool isMaskPaintingActive;
+  final bool isMaskErasingActive;
   final VoidCallback? onStartMaskPainting;
+  final VoidCallback? onStartMaskErasing;
   final VoidCallback? onStopMaskPainting;
   final int environmentMaskBrushSize;
   final ValueChanged<int>? onSetEnvironmentMaskBrushSize;
@@ -38,6 +42,7 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
     const accent = EditorChrome.inspectorJoyMint;
     final label = EditorChrome.primaryLabel(context);
     final subtle = EditorChrome.subtleLabel(context);
+    final isMaskEditingActive = isMaskPaintingActive || isMaskErasingActive;
 
     return SingleChildScrollView(
       padding: kInspectorTileBodyPadding,
@@ -87,11 +92,11 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
               ),
             ),
           ],
-          if (isMaskPaintingActive) ...[
+          if (isMaskEditingActive) ...[
             const SizedBox(height: 12),
-            const _ActivePaintingBanner(),
+            _ActiveMaskEditingBanner(isErasing: isMaskErasingActive),
           ],
-          if (readModel.canPaintMask || isMaskPaintingActive) ...[
+          if (readModel.canPaintMask || isMaskEditingActive) ...[
             const SizedBox(height: 12),
             _BrushSizeSelector(
               selectedSize: environmentMaskBrushSize,
@@ -114,7 +119,9 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
             selectedPresetIdForNewArea: selectedPresetIdForNewArea,
             onCreateArea: onCreateArea,
             isMaskPaintingActive: isMaskPaintingActive,
+            isMaskErasingActive: isMaskErasingActive,
             onStartMaskPainting: onStartMaskPainting,
+            onStartMaskErasing: onStartMaskErasing,
             onStopMaskPainting: onStopMaskPainting,
           ),
           const SizedBox(height: 8),
@@ -139,11 +146,17 @@ final class TileLayerEnvironmentPresetOption {
   final String name;
 }
 
-class _ActivePaintingBanner extends StatelessWidget {
-  const _ActivePaintingBanner();
+class _ActiveMaskEditingBanner extends StatelessWidget {
+  const _ActiveMaskEditingBanner({required this.isErasing});
+
+  final bool isErasing;
 
   @override
   Widget build(BuildContext context) {
+    final title = isErasing ? 'Effacement actif' : 'Peinture active';
+    final message = isErasing
+        ? 'Mode effacement actif : cliquez sur la carte pour retirer des cellules du masque.'
+        : 'Mode peinture actif : cliquez sur la carte pour peindre le masque.';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
@@ -160,7 +173,7 @@ class _ActivePaintingBanner extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Peinture active',
+            title,
             style: TextStyle(
               color: EditorChrome.primaryLabel(context),
               fontSize: 12,
@@ -169,7 +182,7 @@ class _ActivePaintingBanner extends StatelessWidget {
           ),
           const SizedBox(height: 3),
           Text(
-            'Mode peinture actif : cliquez sur la carte pour peindre le masque.',
+            message,
             style: TextStyle(
               color: EditorChrome.subtleLabel(context),
               fontSize: 11,
@@ -507,7 +520,9 @@ class _FutureActions extends StatelessWidget {
     required this.selectedPresetIdForNewArea,
     required this.onCreateArea,
     required this.isMaskPaintingActive,
+    required this.isMaskErasingActive,
     required this.onStartMaskPainting,
+    required this.onStartMaskErasing,
     required this.onStopMaskPainting,
   });
 
@@ -517,12 +532,15 @@ class _FutureActions extends StatelessWidget {
   final String? selectedPresetIdForNewArea;
   final VoidCallback? onCreateArea;
   final bool isMaskPaintingActive;
+  final bool isMaskErasingActive;
   final VoidCallback? onStartMaskPainting;
+  final VoidCallback? onStartMaskErasing;
   final VoidCallback? onStopMaskPainting;
 
   @override
   Widget build(BuildContext context) {
     final actions = <_ActionData>[];
+    final isMaskEditingActive = isMaskPaintingActive || isMaskErasingActive;
     if (readModel.canEnableEnvironment) {
       actions.add(
         _ActionData(
@@ -547,7 +565,7 @@ class _FutureActions extends StatelessWidget {
         ),
       );
     }
-    if (isMaskPaintingActive) {
+    if (isMaskEditingActive) {
       actions.add(
         _ActionData(
           icon: CupertinoIcons.stop_circle,
@@ -563,6 +581,14 @@ class _FutureActions extends StatelessWidget {
           label: 'Peindre le masque',
           enabled: !readModel.hasErrors && onStartMaskPainting != null,
           onPressed: onStartMaskPainting,
+        ),
+      );
+      actions.add(
+        _ActionData(
+          icon: CupertinoIcons.delete_left,
+          label: 'Effacer du masque',
+          enabled: !readModel.hasErrors && onStartMaskErasing != null,
+          onPressed: onStartMaskErasing,
         ),
       );
     }
