@@ -21,6 +21,7 @@ import '../../../application/use_cases/environment_mask_use_cases.dart';
 import '../../../application/use_cases/layer_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_area_settings_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_attachment_use_cases.dart';
+import '../../../application/use_cases/tile_layer_environment_clear_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_generation_use_cases.dart';
 import '../../../application/models/trainer_field_update.dart';
 import '../../../application/models/map_tool_preview.dart';
@@ -5039,6 +5040,97 @@ class EditorNotifier extends _$EditorNotifier {
         errorMessage: 'Impossible de générer cette zone : $e',
       );
     }
+  }
+
+  void clearEnvironmentGeneratedPlacementsForActiveTileLayer() {
+    final map = state.activeMap;
+    if (map == null) {
+      state = state.copyWith(
+        errorMessage: 'Impossible d’effacer : aucune carte active.',
+      );
+      return;
+    }
+    final layerId = state.activeLayerId?.trim();
+    if (layerId == null || layerId.isEmpty) {
+      state = state.copyWith(
+        errorMessage:
+            'Sélectionnez un TileLayer pour effacer les placements générés.',
+      );
+      return;
+    }
+    final activeLayer = _findLayerById(map, layerId);
+    if (activeLayer is! TileLayer) {
+      state = state.copyWith(
+        errorMessage:
+            'Sélectionnez un TileLayer pour effacer les placements générés.',
+      );
+      return;
+    }
+    final areaId = state.selectedEnvironmentAreaId?.trim();
+    if (areaId == null || areaId.isEmpty) {
+      state = state.copyWith(
+        errorMessage:
+            'Sélectionnez une zone d’environnement avant d’effacer les placements générés.',
+      );
+      return;
+    }
+
+    try {
+      final result =
+          ClearTileLayerEnvironmentAreaGeneratedPlacementsUseCase().execute(
+        map,
+        tileLayerId: layerId,
+        areaId: areaId,
+      );
+      if (result.clearedReferenceCount == 0) {
+        state = state.copyWith(
+          activeLayerId: result.tileLayerId,
+          selectedEnvironmentAreaId: result.areaId,
+          environmentMaskEditMode: null,
+          statusMessage: 'Aucun placement généré à effacer pour cette zone.',
+          errorMessage: null,
+        );
+        return;
+      }
+
+      final removedIds = result.removedPlacementIds.toSet();
+      final selectionBefore = state.selectedPlacedElementInstanceId?.trim();
+      final clearSelection = selectionBefore != null &&
+          selectionBefore.isNotEmpty &&
+          removedIds.contains(selectionBefore);
+
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.map,
+        preferredActiveLayerId: result.tileLayerId,
+        statusMessage: _clearTileLayerGeneratedPlacementsStatusMessage(result),
+      );
+      state = state.copyWith(
+        activeLayerId: result.tileLayerId,
+        selectedEnvironmentAreaId: result.areaId,
+        selectedPlacedElementInstanceId:
+            clearSelection ? null : state.selectedPlacedElementInstanceId,
+        environmentMaskEditMode: null,
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage:
+            'Impossible d’effacer les placements générés de cette zone : $e',
+      );
+    }
+  }
+
+  String _clearTileLayerGeneratedPlacementsStatusMessage(
+    ClearTileLayerEnvironmentAreaGeneratedPlacementsResult result,
+  ) {
+    final removed = result.removedPlacementCount;
+    final missing = result.clearedReferenceCount - removed;
+    if (missing > 0) {
+      return '$removed placement(s) effacé(s), $missing référence(s) '
+          'introuvable(s) nettoyée(s).';
+    }
+    return '$removed placement(s) généré(s) effacé(s) pour la zone « ${result.areaId} ».';
   }
 
   void startEnvironmentMaskPaintingForActiveTileLayer() {

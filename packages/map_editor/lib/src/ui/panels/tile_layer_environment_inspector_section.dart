@@ -28,6 +28,7 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
     this.onResetGenerationParams,
     this.onSetSeed,
     this.onGenerateEnvironment,
+    this.onClearGeneratedPlacements,
   });
 
   final TileLayerEnvironmentAttachmentReadModel readModel;
@@ -48,6 +49,7 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
   final VoidCallback? onResetGenerationParams;
   final ValueChanged<int>? onSetSeed;
   final VoidCallback? onGenerateEnvironment;
+  final VoidCallback? onClearGeneratedPlacements;
 
   @override
   Widget build(BuildContext context) {
@@ -152,6 +154,7 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
             onStartMaskErasing: onStartMaskErasing,
             onStopMaskPainting: onStopMaskPainting,
             onGenerateEnvironment: onGenerateEnvironment,
+            onClearGeneratedPlacements: onClearGeneratedPlacements,
           ),
         ],
       ),
@@ -1211,6 +1214,7 @@ class _FutureActions extends StatelessWidget {
     required this.onStartMaskErasing,
     required this.onStopMaskPainting,
     required this.onGenerateEnvironment,
+    required this.onClearGeneratedPlacements,
   });
 
   final TileLayerEnvironmentAttachmentReadModel readModel;
@@ -1224,6 +1228,7 @@ class _FutureActions extends StatelessWidget {
   final VoidCallback? onStartMaskErasing;
   final VoidCallback? onStopMaskPainting;
   final VoidCallback? onGenerateEnvironment;
+  final VoidCallback? onClearGeneratedPlacements;
 
   @override
   Widget build(BuildContext context) {
@@ -1292,11 +1297,17 @@ class _FutureActions extends StatelessWidget {
         ),
       );
     }
-    if (readModel.canClearGeneratedPlacements) {
+    if (readModel.canClearGeneratedPlacements || readModel.canPaintMask) {
       actions.add(
-        const _ActionData(
+        _ActionData(
           icon: CupertinoIcons.trash,
           label: 'Effacer les placements générés',
+          enabled: readModel.canClearGeneratedPlacements &&
+              !readModel.hasErrors &&
+              onClearGeneratedPlacements != null,
+          onPressed: readModel.canClearGeneratedPlacements
+              ? onClearGeneratedPlacements
+              : null,
         ),
       );
     }

@@ -1160,7 +1160,7 @@ void main() {
       expect(_buttonFor(tester, 'Peindre le masque').onPressed, isNull);
     });
 
-    testWidgets('la suppression des placements générés reste désactivée',
+    testWidgets('Effacer les placements générés reste désactivé sans callback',
         (tester) async {
       await _pump(
         tester,
@@ -1187,6 +1187,76 @@ void main() {
         isNull,
       );
     });
+
+    testWidgets('Effacer les placements générés est actif avec callback',
+        (tester) async {
+      var cleared = 0;
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.generated,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          generatedPlacementCount: 18,
+          hasGeneratedPlacements: true,
+          canClearGeneratedPlacements: true,
+          emptyStateTitle: 'Placements générés',
+          emptyStateMessage: 'Cette zone contient déjà des placements générés.',
+        ),
+        onClearGeneratedPlacements: () {
+          cleared++;
+        },
+      );
+
+      expect(find.text('Effacer les placements générés'), findsOneWidget);
+      expect(
+        _buttonFor(tester, 'Effacer les placements générés').onPressed,
+        isNotNull,
+      );
+
+      await tester.tap(find.text('Effacer les placements générés'));
+      await tester.pump();
+
+      expect(cleared, 1);
+    });
+
+    testWidgets(
+        'Effacer les placements générés reste désactivé sans placement généré',
+        (tester) async {
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.ready,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          canPaintMask: true,
+          generatedPlacementCount: 0,
+          hasGeneratedPlacements: false,
+          canClearGeneratedPlacements: false,
+          emptyStateTitle: 'Prêt à générer',
+          emptyStateMessage: 'Le preset, le layer et le masque sont valides.',
+        ),
+        onClearGeneratedPlacements: () {},
+      );
+
+      expect(find.text('Effacer les placements générés'), findsOneWidget);
+      expect(
+        _buttonFor(tester, 'Effacer les placements générés').onPressed,
+        isNull,
+      );
+      expect(find.text('Régénérer'), findsNothing);
+      expect(find.text('Shuffle'), findsNothing);
+    });
   });
 }
 
@@ -1210,6 +1280,7 @@ Future<void> _pump(
   VoidCallback? onResetGenerationParams,
   ValueChanged<int>? onSetSeed,
   VoidCallback? onGenerateEnvironment,
+  VoidCallback? onClearGeneratedPlacements,
 }) {
   return tester.pumpWidget(
     MaterialApp(
@@ -1236,6 +1307,7 @@ Future<void> _pump(
             onResetGenerationParams: onResetGenerationParams,
             onSetSeed: onSetSeed,
             onGenerateEnvironment: onGenerateEnvironment,
+            onClearGeneratedPlacements: onClearGeneratedPlacements,
           ),
         ),
       ),
