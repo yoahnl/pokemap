@@ -585,6 +585,142 @@ void main() {
           find.byKey(const Key('env-area-regenerate-area1')), findsOneWidget);
     });
 
+    testWidgets(
+        'TileLayer inspector active Générer avec une seule area effective',
+        (tester) async {
+      final area = _area(id: 'area1', w: 2, h: 2);
+      final tile = TileLayer(
+        id: 'tiles',
+        name: 'T',
+        tiles: List<int>.filled(4, 0),
+      );
+      final env = MapLayer.environment(
+        id: 'env',
+        name: 'E',
+        content: EnvironmentLayerContent(
+          targetTileLayerId: 'tiles',
+          areas: [area],
+        ),
+      );
+      final map = MapData(
+        id: 'm1',
+        name: 'M1',
+        size: const GridSize(width: 2, height: 2),
+        tilesetId: 'tsA',
+        layers: [tile, env],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/r',
+        project: _manifest(),
+        activeMap: map,
+        activeMapPath: 'maps/x.json',
+        activeLayerId: 'tiles',
+        savedMapSnapshot: map,
+      );
+      await tester.binding.setSurfaceSize(const Size(520, 1100));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: MaterialApp(
+              home: CupertinoPageScaffold(
+                child: SizedBox(
+                  width: 440,
+                  height: 1100,
+                  child: MapInspectorPanel(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final generateText = find.text('Générer dans ce layer');
+      expect(generateText, findsOneWidget);
+      final button = tester.widget<CupertinoButton>(
+        find.ancestor(
+          of: generateText,
+          matching: find.byType(CupertinoButton),
+        ),
+      );
+      expect(button.onPressed, isNotNull);
+
+      await tester.ensureVisible(generateText);
+      await tester.pumpAndSettle();
+      await tester.tap(generateText);
+      await tester.pumpAndSettle();
+
+      final state = container.read(editorNotifierProvider);
+      expect(state.activeLayerId, 'tiles');
+      expect(state.selectedEnvironmentAreaId, 'area1');
+      expect(state.activeMap!.placedElements, isNotEmpty);
+    });
+
+    testWidgets(
+        'TileLayer inspector désactive Régénérer et Shuffle sans placements générés',
+        (tester) async {
+      final area = _area(id: 'area1', w: 2, h: 2);
+      final tile = TileLayer(
+        id: 'tiles',
+        name: 'T',
+        tiles: List<int>.filled(4, 0),
+      );
+      final env = MapLayer.environment(
+        id: 'env',
+        name: 'E',
+        content: EnvironmentLayerContent(
+          targetTileLayerId: 'tiles',
+          areas: [area],
+        ),
+      );
+      final map = MapData(
+        id: 'm1',
+        name: 'M1',
+        size: const GridSize(width: 2, height: 2),
+        tilesetId: 'tsA',
+        layers: [tile, env],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/r',
+        project: _manifest(),
+        activeMap: map,
+        activeMapPath: 'maps/x.json',
+        activeLayerId: 'tiles',
+        savedMapSnapshot: map,
+      );
+      await tester.binding.setSurfaceSize(const Size(520, 1100));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: MaterialApp(
+              home: CupertinoPageScaffold(
+                child: SizedBox(
+                  width: 440,
+                  height: 1100,
+                  child: MapInspectorPanel(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(_cupertinoButtonFor(tester, 'Générer dans ce layer').onPressed,
+          isNotNull);
+      expect(_cupertinoButtonFor(tester, 'Régénérer').onPressed, isNull);
+      expect(_cupertinoButtonFor(tester, 'Shuffle').onPressed, isNull);
+    });
+
     testWidgets('preset manifest introuvable : désactivé', (tester) async {
       final area = _area(id: 'area1', w: 2, h: 2, presetId: 'fantome');
       final env = MapLayer.environment(
@@ -648,4 +784,13 @@ void main() {
       );
     });
   });
+}
+
+CupertinoButton _cupertinoButtonFor(WidgetTester tester, String label) {
+  return tester.widget<CupertinoButton>(
+    find.ancestor(
+      of: find.text(label),
+      matching: find.byType(CupertinoButton),
+    ),
+  );
 }

@@ -96,6 +96,8 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
             selectedEnvironmentAreaId: state.selectedEnvironmentAreaId,
           )
         : null;
+    final effectiveTileLayerEnvironmentAreaId =
+        tileLayerEnvironmentReadModel?.selectedEnvironmentAreaId;
     final environmentPresetOptions = _environmentPresetOptions(
         state.project?.environmentPresets ?? const []);
     final selectedPresetIdForNewArea =
@@ -111,35 +113,47 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
     final isTileLayerMaskPaintingActive = activeLayer is TileLayer &&
         tileLayerEnvironmentReadModel != null &&
         state.environmentMaskEditMode == EnvironmentMaskEditMode.paint &&
-        state.selectedEnvironmentAreaId != null;
+        effectiveTileLayerEnvironmentAreaId != null;
     final isTileLayerMaskErasingActive = activeLayer is TileLayer &&
         tileLayerEnvironmentReadModel != null &&
         state.environmentMaskEditMode == EnvironmentMaskEditMode.erase &&
-        state.selectedEnvironmentAreaId != null;
+        effectiveTileLayerEnvironmentAreaId != null;
     final isTileLayerMaskEditingActive =
         isTileLayerMaskPaintingActive || isTileLayerMaskErasingActive;
     final canStartTileLayerMaskEditing = activeLayer is TileLayer &&
         tileLayerEnvironmentReadModel != null &&
         tileLayerEnvironmentReadModel.canPaintMask &&
         !tileLayerEnvironmentReadModel.hasErrors &&
-        state.selectedEnvironmentAreaId != null &&
+        effectiveTileLayerEnvironmentAreaId != null &&
         !isTileLayerMaskEditingActive;
     final canEditTileLayerEnvironmentGenerationParams =
         activeLayer is TileLayer &&
             tileLayerEnvironmentReadModel != null &&
             tileLayerEnvironmentReadModel.canEditSelectedAreaGenerationParams &&
-            state.selectedEnvironmentAreaId != null;
+            effectiveTileLayerEnvironmentAreaId != null;
     final canGenerateTileLayerEnvironment = activeLayer is TileLayer &&
         tileLayerEnvironmentReadModel != null &&
         tileLayerEnvironmentReadModel.canGenerate &&
         !tileLayerEnvironmentReadModel.hasErrors &&
-        state.selectedEnvironmentAreaId != null;
+        effectiveTileLayerEnvironmentAreaId != null;
     final canClearTileLayerEnvironmentGeneratedPlacements =
         activeLayer is TileLayer &&
             tileLayerEnvironmentReadModel != null &&
             tileLayerEnvironmentReadModel.canClearGeneratedPlacements &&
             !tileLayerEnvironmentReadModel.hasErrors &&
-            state.selectedEnvironmentAreaId != null;
+            effectiveTileLayerEnvironmentAreaId != null;
+    final canRegenerateTileLayerEnvironment = activeLayer is TileLayer &&
+        tileLayerEnvironmentReadModel != null &&
+        tileLayerEnvironmentReadModel.canRegenerate &&
+        tileLayerEnvironmentReadModel.hasGeneratedPlacements &&
+        !tileLayerEnvironmentReadModel.hasErrors &&
+        effectiveTileLayerEnvironmentAreaId != null;
+    final canShuffleTileLayerEnvironment = activeLayer is TileLayer &&
+        tileLayerEnvironmentReadModel != null &&
+        tileLayerEnvironmentReadModel.canShuffle &&
+        tileLayerEnvironmentReadModel.hasGeneratedPlacements &&
+        !tileLayerEnvironmentReadModel.hasErrors &&
+        effectiveTileLayerEnvironmentAreaId != null;
     final showEnvironmentLayerSection = activeLayer is EnvironmentLayer;
     final showTilesSection = activeLayer is TileLayer ||
         state.activeTool == EditorToolType.tilePaint ||
@@ -308,6 +322,14 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                             ? notifier
                                 .clearEnvironmentGeneratedPlacementsForActiveTileLayer
                             : null,
+                    onRegenerateEnvironment: canRegenerateTileLayerEnvironment
+                        ? notifier
+                            .regenerateEnvironmentAreaPlacementsForActiveTileLayer
+                        : null,
+                    onShuffleEnvironment: canShuffleTileLayerEnvironment
+                        ? notifier
+                            .shuffleEnvironmentAreaPlacementsForActiveTileLayer
+                        : null,
                   ),
                 ),
               if (showEnvironmentLayerSection)

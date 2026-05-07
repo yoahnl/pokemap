@@ -470,7 +470,7 @@ TileLayerEnvironmentAttachmentReadModel _buildFromResolvedAttachment({
     canGenerate: true,
     canClearGeneratedPlacements: false,
     canRegenerate: false,
-    canShuffle: true,
+    canShuffle: false,
     emptyStateTitle: 'Prêt à générer',
     emptyStateMessage: 'Le preset, le layer et le masque sont valides.',
     primaryActionLabel: 'Générer',

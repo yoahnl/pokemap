@@ -1,14 +1,46 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/use_cases/environment_generator_regenerate_use_cases.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 
 void main() {
-  group('EditorNotifier TileLayer environment clear', () {
-    test('efface les placements générés et garde la sélection TileLayer stable',
-        () {
+  group('EditorNotifier TileLayer regenerate / shuffle', () {
+    test('regenerate garde la sélection TileLayer et conserve le seed', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final map = _map();
+      notifier.state = EditorState(
+        project: _manifest(),
+        activeMap: map,
+        activeLayerId: 'tiles',
+        selectedEnvironmentAreaId: 'area',
+        environmentMaskEditMode: EnvironmentMaskEditMode.paint,
+        savedMapSnapshot: map,
+      );
+
+      notifier.regenerateEnvironmentAreaPlacementsForActiveTileLayer();
+
+      final state = notifier.state;
+      final area = _areaById(state.activeMap!, 'area');
+      expect(state.activeMap, isNot(same(map)));
+      expect(state.activeLayerId, 'tiles');
+      expect(state.selectedEnvironmentAreaId, 'area');
+      expect(state.environmentMaskEditMode, isNull);
+      expect(state.errorMessage, isNull);
+      expect(state.statusMessage, contains('régénér'));
+      expect(state.isDirty, isTrue);
+      expect(area.seed, 7);
+      expect(area.generatedPlacementIds, isNotEmpty);
+      expect(area.generatedPlacementIds, isNot(contains('old_a')));
+      expect(
+          state.activeMap!.placedElements.any((e) => e.id == 'manual'), isTrue);
+    });
+
+    test('shuffle garde la sélection TileLayer et change le seed', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
       final notifier = container.read(editorNotifierProvider.notifier);
@@ -19,75 +51,64 @@ void main() {
         activeLayerId: 'tiles',
         selectedEnvironmentAreaId: 'area',
         environmentMaskEditMode: EnvironmentMaskEditMode.erase,
-        selectedPlacedElementInstanceId: 'generated_a',
         savedMapSnapshot: map,
       );
 
-      notifier.clearEnvironmentGeneratedPlacementsForActiveTileLayer();
+      notifier.shuffleEnvironmentAreaPlacementsForActiveTileLayer();
 
       final state = notifier.state;
-      expect(state.activeMap, isNot(same(map)));
+      final area = _areaById(state.activeMap!, 'area');
       expect(state.activeLayerId, 'tiles');
       expect(state.selectedEnvironmentAreaId, 'area');
       expect(state.environmentMaskEditMode, isNull);
-      expect(state.selectedPlacedElementInstanceId, isNull);
       expect(state.errorMessage, isNull);
-      expect(state.statusMessage, contains('effacé'));
-      expect(state.isDirty, isTrue);
+      expect(state.statusMessage, contains('Seed'));
+      expect(area.seed, nextEnvironmentAreaSeed(7));
+      expect(area.generatedPlacementIds, isNotEmpty);
       expect(
-        state.activeMap!.placedElements.map((element) => element.id).toList(),
-        const ['manual'],
-      );
-      final area = _areaById(state.activeMap!, 'area');
-      expect(area.generatedPlacementIds, isEmpty);
-      expect(area.mask, _areaById(map, 'area').mask);
-      expect(area.paramsOverride, _params);
-      expect(area.seed, 5);
-      expect(area.presetId, 'forest');
+          state.activeMap!.placedElements.any((e) => e.id == 'manual'), isTrue);
     });
 
-    test('refuse si aucun TileLayer actif', () {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-      final notifier = container.read(editorNotifierProvider.notifier);
+    test('refuse sans TileLayer actif ou sans area sélectionnée', () {
+      final noTileContainer = ProviderContainer();
+      addTearDown(noTileContainer.dispose);
+      final noTileNotifier =
+          noTileContainer.read(editorNotifierProvider.notifier);
       final map = _map();
-      notifier.state = EditorState(
+      noTileNotifier.state = EditorState(
         project: _manifest(),
         activeMap: map,
         activeLayerId: 'env',
         selectedEnvironmentAreaId: 'area',
       );
 
-      notifier.clearEnvironmentGeneratedPlacementsForActiveTileLayer();
+      noTileNotifier.regenerateEnvironmentAreaPlacementsForActiveTileLayer();
 
-      final state = notifier.state;
-      expect(state.activeMap, same(map));
-      expect(state.activeLayerId, 'env');
-      expect(state.selectedEnvironmentAreaId, 'area');
-      expect(state.errorMessage, contains('TileLayer'));
-    });
+      expect(noTileNotifier.state.activeMap, same(map));
+      expect(noTileNotifier.state.activeLayerId, 'env');
+      expect(noTileNotifier.state.selectedEnvironmentAreaId, 'area');
+      expect(noTileNotifier.state.errorMessage, contains('TileLayer'));
 
-    test('refuse si aucune area est sélectionnée', () {
-      final container = ProviderContainer();
-      addTearDown(container.dispose);
-      final notifier = container.read(editorNotifierProvider.notifier);
-      final map = _mapWithTwoAreas();
-      notifier.state = EditorState(
+      final noAreaContainer = ProviderContainer();
+      addTearDown(noAreaContainer.dispose);
+      final noAreaNotifier =
+          noAreaContainer.read(editorNotifierProvider.notifier);
+      final noAreaMap = _mapWithTwoAreas();
+      noAreaNotifier.state = EditorState(
         project: _manifest(),
-        activeMap: map,
+        activeMap: noAreaMap,
         activeLayerId: 'tiles',
       );
 
-      notifier.clearEnvironmentGeneratedPlacementsForActiveTileLayer();
+      noAreaNotifier.shuffleEnvironmentAreaPlacementsForActiveTileLayer();
 
-      final state = notifier.state;
-      expect(state.activeMap, same(map));
-      expect(state.activeLayerId, 'tiles');
-      expect(state.selectedEnvironmentAreaId, isNull);
-      expect(state.errorMessage, contains('zone'));
+      expect(noAreaNotifier.state.activeMap, same(noAreaMap));
+      expect(noAreaNotifier.state.activeLayerId, 'tiles');
+      expect(noAreaNotifier.state.selectedEnvironmentAreaId, isNull);
+      expect(noAreaNotifier.state.errorMessage, contains('zone'));
     });
 
-    test('aucun generatedPlacementId ne mute pas la MapData', () {
+    test('refuse si generatedPlacementIds est vide', () {
       final container = ProviderContainer();
       addTearDown(container.dispose);
       final notifier = container.read(editorNotifierProvider.notifier);
@@ -97,18 +118,12 @@ void main() {
         activeMap: map,
         activeLayerId: 'tiles',
         selectedEnvironmentAreaId: 'area',
-        environmentMaskEditMode: EnvironmentMaskEditMode.paint,
       );
 
-      notifier.clearEnvironmentGeneratedPlacementsForActiveTileLayer();
+      notifier.regenerateEnvironmentAreaPlacementsForActiveTileLayer();
 
-      final state = notifier.state;
-      expect(state.activeMap, same(map));
-      expect(state.activeLayerId, 'tiles');
-      expect(state.selectedEnvironmentAreaId, 'area');
-      expect(state.environmentMaskEditMode, isNull);
-      expect(state.statusMessage, contains('Aucun placement'));
-      expect(state.errorMessage, isNull);
+      expect(notifier.state.activeMap, same(map));
+      expect(notifier.state.errorMessage, contains('placement'));
     });
   });
 }
@@ -121,7 +136,7 @@ final _params = EnvironmentGenerationParams(
 );
 
 MapData _map({
-  List<String> generatedPlacementIds = const ['generated_a', 'generated_b'],
+  List<String> generatedPlacementIds = const ['old_a', 'old_b'],
 }) {
   return MapData(
     id: 'map',
@@ -150,7 +165,7 @@ MapData _map({
                 height: 2,
                 cells: List<bool>.filled(4, true),
               ),
-              seed: 5,
+              seed: 7,
               paramsOverride: _params,
               generatedPlacementIds: generatedPlacementIds,
             ),
@@ -166,13 +181,13 @@ MapData _map({
         pos: GridPos(x: 0, y: 0),
       ),
       MapPlacedElement(
-        id: 'generated_a',
+        id: 'old_a',
         layerId: 'tiles',
         elementId: 'tree',
         pos: GridPos(x: 0, y: 1),
       ),
       MapPlacedElement(
-        id: 'generated_b',
+        id: 'old_b',
         layerId: 'tiles',
         elementId: 'tree',
         pos: GridPos(x: 1, y: 0),
@@ -203,9 +218,9 @@ MapData _mapWithTwoAreas() {
                     height: 2,
                     cells: List<bool>.filled(4, true),
                   ),
-                  seed: 6,
+                  seed: 8,
                   paramsOverride: _params,
-                  generatedPlacementIds: const ['generated_b'],
+                  generatedPlacementIds: const ['old_b'],
                 ),
               ],
             ),

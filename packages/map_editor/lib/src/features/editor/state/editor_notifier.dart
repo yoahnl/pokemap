@@ -23,6 +23,7 @@ import '../../../application/use_cases/tile_layer_environment_area_settings_use_
 import '../../../application/use_cases/tile_layer_environment_attachment_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_clear_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_generation_use_cases.dart';
+import '../../../application/use_cases/tile_layer_environment_regenerate_use_cases.dart';
 import '../../../application/models/trainer_field_update.dart';
 import '../../../application/models/map_tool_preview.dart';
 import '../../../application/models/path_autotile_set.dart';
@@ -4897,6 +4898,31 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  String? _effectiveEnvironmentAreaIdForActiveTileLayer(
+    MapData map,
+    String tileLayerId,
+  ) {
+    final selected = state.selectedEnvironmentAreaId?.trim();
+    if (selected != null && selected.isNotEmpty) {
+      return selected;
+    }
+
+    EnvironmentLayer? attachedEnvironmentLayer;
+    var attachedCount = 0;
+    for (final layer in map.layers) {
+      if (layer is EnvironmentLayer &&
+          layer.content.targetTileLayerId?.trim() == tileLayerId) {
+        attachedEnvironmentLayer = layer;
+        attachedCount++;
+      }
+    }
+    if (attachedCount != 1) return null;
+
+    final areas = attachedEnvironmentLayer!.content.areas;
+    if (areas.length != 1) return null;
+    return areas.single.id;
+  }
+
   void _updateEnvironmentAreaSettingsForActiveTileLayer({
     required String statusMessage,
     required MapData Function(MapData map, String layerId, String areaId)
@@ -4920,7 +4946,7 @@ class EditorNotifier extends _$EditorNotifier {
       );
       return;
     }
-    final areaId = state.selectedEnvironmentAreaId?.trim();
+    final areaId = _effectiveEnvironmentAreaIdForActiveTileLayer(map, layerId);
     if (areaId == null || areaId.isEmpty) {
       state = state.copyWith(
         errorMessage:
@@ -4994,7 +5020,7 @@ class EditorNotifier extends _$EditorNotifier {
       );
       return;
     }
-    final areaId = state.selectedEnvironmentAreaId?.trim();
+    final areaId = _effectiveEnvironmentAreaIdForActiveTileLayer(map, layerId);
     if (areaId == null || areaId.isEmpty) {
       state = state.copyWith(
         errorMessage: 'Sélectionnez une zone d’environnement avant de générer.',
@@ -5066,7 +5092,7 @@ class EditorNotifier extends _$EditorNotifier {
       );
       return;
     }
-    final areaId = state.selectedEnvironmentAreaId?.trim();
+    final areaId = _effectiveEnvironmentAreaIdForActiveTileLayer(map, layerId);
     if (areaId == null || areaId.isEmpty) {
       state = state.copyWith(
         errorMessage:
@@ -5133,6 +5159,120 @@ class EditorNotifier extends _$EditorNotifier {
     return '$removed placement(s) généré(s) effacé(s) pour la zone « ${result.areaId} ».';
   }
 
+  void regenerateEnvironmentAreaPlacementsForActiveTileLayer() {
+    _regenerateOrShuffleEnvironmentAreaPlacementsForActiveTileLayer(
+      shuffle: false,
+    );
+  }
+
+  void shuffleEnvironmentAreaPlacementsForActiveTileLayer() {
+    _regenerateOrShuffleEnvironmentAreaPlacementsForActiveTileLayer(
+      shuffle: true,
+    );
+  }
+
+  void _regenerateOrShuffleEnvironmentAreaPlacementsForActiveTileLayer({
+    required bool shuffle,
+  }) {
+    final map = state.activeMap;
+    final manifest = state.project;
+    if (map == null || manifest == null) {
+      state = state.copyWith(
+        errorMessage: shuffle
+            ? 'Impossible de shuffler : aucune carte active ou manifeste projet.'
+            : 'Impossible de régénérer : aucune carte active ou manifeste projet.',
+      );
+      return;
+    }
+    final layerId = state.activeLayerId?.trim();
+    if (layerId == null || layerId.isEmpty) {
+      state = state.copyWith(
+        errorMessage: shuffle
+            ? 'Sélectionnez un TileLayer pour shuffler cette zone.'
+            : 'Sélectionnez un TileLayer pour régénérer cette zone.',
+      );
+      return;
+    }
+    final activeLayer = _findLayerById(map, layerId);
+    if (activeLayer is! TileLayer) {
+      state = state.copyWith(
+        errorMessage: shuffle
+            ? 'Sélectionnez un TileLayer pour shuffler cette zone.'
+            : 'Sélectionnez un TileLayer pour régénérer cette zone.',
+      );
+      return;
+    }
+    final areaId = _effectiveEnvironmentAreaIdForActiveTileLayer(map, layerId);
+    if (areaId == null || areaId.isEmpty) {
+      state = state.copyWith(
+        errorMessage: shuffle
+            ? 'Sélectionnez une zone d’environnement avant de shuffler.'
+            : 'Sélectionnez une zone d’environnement avant de régénérer.',
+      );
+      return;
+    }
+
+    try {
+      final result = shuffle
+          ? ShuffleTileLayerEnvironmentAreaPlacementsUseCase().execute(
+              map,
+              manifest: manifest,
+              tileLayerId: layerId,
+              areaId: areaId,
+            )
+          : RegenerateTileLayerEnvironmentAreaPlacementsUseCase().execute(
+              map,
+              manifest: manifest,
+              tileLayerId: layerId,
+              areaId: areaId,
+            );
+
+      final removedIds = result.removedPlacementIds.toSet();
+      final selectionBefore = state.selectedPlacedElementInstanceId?.trim();
+      final clearSelection = selectionBefore != null &&
+          selectionBefore.isNotEmpty &&
+          removedIds.contains(selectionBefore);
+
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.map,
+        preferredActiveLayerId: result.tileLayerId,
+        statusMessage: _tileLayerRegenerationStatusMessage(
+          result,
+          shuffle: shuffle,
+        ),
+      );
+      state = state.copyWith(
+        activeLayerId: result.tileLayerId,
+        selectedEnvironmentAreaId: result.areaId,
+        selectedPlacedElementInstanceId:
+            clearSelection ? null : state.selectedPlacedElementInstanceId,
+        environmentMaskEditMode: null,
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: shuffle
+            ? 'Impossible de shuffler cette zone : $e'
+            : 'Impossible de régénérer cette zone : $e',
+      );
+    }
+  }
+
+  String _tileLayerRegenerationStatusMessage(
+    TileLayerEnvironmentRegenerationResult result, {
+    required bool shuffle,
+  }) {
+    if (result.generatedPlacementCount == 0) {
+      return shuffle
+          ? 'Seed mélangée : aucun nouveau placement pour la zone « ${result.areaId} ».'
+          : 'Les placements générés ont été effacés ; aucun nouveau placement n’a été généré pour la zone « ${result.areaId} ».';
+    }
+    return shuffle
+        ? 'Seed mélangée : ${result.generatedPlacementCount} placement(s) régénéré(s) pour la zone « ${result.areaId} ».'
+        : 'Zone « ${result.areaId} » régénérée : ${result.generatedPlacementCount} placement(s).';
+  }
+
   void startEnvironmentMaskPaintingForActiveTileLayer() {
     _startEnvironmentMaskEditingForActiveTileLayer(
       mode: EnvironmentMaskEditMode.paint,
@@ -5164,7 +5304,7 @@ class EditorNotifier extends _$EditorNotifier {
       );
       return;
     }
-    final areaId = state.selectedEnvironmentAreaId?.trim();
+    final areaId = _effectiveEnvironmentAreaIdForActiveTileLayer(map, layerId);
     if (areaId == null || areaId.isEmpty) {
       state = state.copyWith(
         errorMessage: 'Sélectionnez une zone d’environnement avant de peindre.',

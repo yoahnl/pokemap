@@ -68,7 +68,7 @@ void main() {
       final container = ProviderContainer();
       addTearDown(container.dispose);
       final notifier = container.read(editorNotifierProvider.notifier);
-      final map = _map();
+      final map = _mapWithTwoAreas();
       notifier.state = EditorState(
         project: _manifest(),
         activeMap: map,
@@ -82,6 +82,31 @@ void main() {
       expect(state.activeLayerId, 'tiles');
       expect(state.selectedEnvironmentAreaId, isNull);
       expect(state.errorMessage, contains('zone'));
+    });
+
+    test('utilise l’unique area effective sans sélection explicite', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final map = _map();
+      notifier.state = EditorState(
+        project: _manifest(),
+        activeMap: map,
+        activeLayerId: 'tiles',
+        savedMapSnapshot: map,
+      );
+
+      notifier.generateEnvironmentAreaPlacementsForActiveTileLayer();
+
+      final state = notifier.state;
+      expect(state.activeMap, isNot(same(map)));
+      expect(state.activeLayerId, 'tiles');
+      expect(state.selectedEnvironmentAreaId, 'area');
+      expect(state.environmentMaskEditMode, isNull);
+      expect(state.errorMessage, isNull);
+      expect(state.activeMap!.placedElements.length, greaterThan(1));
+      expect(_areaById(state.activeMap!, 'area').generatedPlacementIds,
+          isNotEmpty);
     });
 
     test('refuse masque vide et preset manquant sans mutation', () {
@@ -175,6 +200,38 @@ MapData _map({
         elementId: 'tree',
         pos: GridPos(x: 0, y: 0),
       ),
+    ],
+  );
+}
+
+MapData _mapWithTwoAreas() {
+  final map = _map();
+  final env = map.layers.whereType<EnvironmentLayer>().single;
+  final first = env.content.areas.single;
+  final updatedEnv = env.copyWith(
+    content: EnvironmentLayerContent(
+      targetTileLayerId: env.content.targetTileLayerId,
+      areas: [
+        first,
+        EnvironmentArea(
+          id: 'area_other',
+          name: 'Autre zone',
+          presetId: 'forest',
+          mask: EnvironmentAreaMask(
+            width: 2,
+            height: 2,
+            cells: List<bool>.filled(4, true),
+          ),
+          seed: 5,
+          paramsOverride: _params,
+        ),
+      ],
+    ),
+  );
+  return map.copyWith(
+    layers: [
+      for (final layer in map.layers)
+        if (layer.id == env.id) updatedEnv else layer,
     ],
   );
 }

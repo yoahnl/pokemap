@@ -82,6 +82,9 @@ void main() {
       expect(model.activeTileLayerId, 'tiles');
       expect(model.canPaintMask, isTrue);
       expect(model.canGenerate, isTrue);
+      expect(model.canClearGeneratedPlacements, isFalse);
+      expect(model.canRegenerate, isFalse);
+      expect(model.canShuffle, isFalse);
     });
 
     test('détecte plusieurs EnvironmentLayers attachés au même TileLayer', () {
@@ -477,6 +480,8 @@ void main() {
               'Le preset d’environnement utilisé par cette zone est introuvable.'));
       expect(model.canPaintMask, isTrue);
       expect(model.canGenerate, isFalse);
+      expect(model.canRegenerate, isFalse);
+      expect(model.canShuffle, isFalse);
     });
 
     test('détecte masque vide', () {
@@ -492,6 +497,8 @@ void main() {
       expect(model.maskActiveCellCount, 0);
       expect(model.canPaintMask, isTrue);
       expect(model.canGenerate, isFalse);
+      expect(model.canRegenerate, isFalse);
+      expect(model.canShuffle, isFalse);
     });
 
     test('détecte masque non vide', () {
@@ -535,6 +542,8 @@ void main() {
       expect(model.hasGeneratedPlacements, isTrue);
       expect(model.canClearGeneratedPlacements, isTrue);
       expect(model.canGenerate, isFalse);
+      expect(model.canRegenerate, isTrue);
+      expect(model.canShuffle, isTrue);
       expect(model.warnings,
           contains('2 placements générés référencés sont introuvables.'));
     });

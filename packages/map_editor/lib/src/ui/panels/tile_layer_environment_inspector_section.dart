@@ -29,6 +29,8 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
     this.onSetSeed,
     this.onGenerateEnvironment,
     this.onClearGeneratedPlacements,
+    this.onRegenerateEnvironment,
+    this.onShuffleEnvironment,
   });
 
   final TileLayerEnvironmentAttachmentReadModel readModel;
@@ -50,6 +52,8 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
   final ValueChanged<int>? onSetSeed;
   final VoidCallback? onGenerateEnvironment;
   final VoidCallback? onClearGeneratedPlacements;
+  final VoidCallback? onRegenerateEnvironment;
+  final VoidCallback? onShuffleEnvironment;
 
   @override
   Widget build(BuildContext context) {
@@ -155,6 +159,8 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
             onStopMaskPainting: onStopMaskPainting,
             onGenerateEnvironment: onGenerateEnvironment,
             onClearGeneratedPlacements: onClearGeneratedPlacements,
+            onRegenerateEnvironment: onRegenerateEnvironment,
+            onShuffleEnvironment: onShuffleEnvironment,
           ),
         ],
       ),
@@ -1215,6 +1221,8 @@ class _FutureActions extends StatelessWidget {
     required this.onStopMaskPainting,
     required this.onGenerateEnvironment,
     required this.onClearGeneratedPlacements,
+    required this.onRegenerateEnvironment,
+    required this.onShuffleEnvironment,
   });
 
   final TileLayerEnvironmentAttachmentReadModel readModel;
@@ -1229,6 +1237,8 @@ class _FutureActions extends StatelessWidget {
   final VoidCallback? onStopMaskPainting;
   final VoidCallback? onGenerateEnvironment;
   final VoidCallback? onClearGeneratedPlacements;
+  final VoidCallback? onRegenerateEnvironment;
+  final VoidCallback? onShuffleEnvironment;
 
   @override
   Widget build(BuildContext context) {
@@ -1308,6 +1318,30 @@ class _FutureActions extends StatelessWidget {
           onPressed: readModel.canClearGeneratedPlacements
               ? onClearGeneratedPlacements
               : null,
+        ),
+      );
+    }
+    if (readModel.canRegenerate || readModel.canPaintMask) {
+      actions.add(
+        _ActionData(
+          icon: CupertinoIcons.arrow_clockwise,
+          label: 'Régénérer',
+          enabled: readModel.canRegenerate &&
+              !readModel.hasErrors &&
+              onRegenerateEnvironment != null,
+          onPressed: readModel.canRegenerate ? onRegenerateEnvironment : null,
+        ),
+      );
+    }
+    if (readModel.canShuffle || readModel.canPaintMask) {
+      actions.add(
+        _ActionData(
+          icon: CupertinoIcons.shuffle,
+          label: 'Shuffle',
+          enabled: readModel.canShuffle &&
+              !readModel.hasErrors &&
+              onShuffleEnvironment != null,
+          onPressed: readModel.canShuffle ? onShuffleEnvironment : null,
         ),
       );
     }

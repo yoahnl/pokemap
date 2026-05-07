@@ -94,7 +94,7 @@ void main() {
       final notifier = container.read(editorNotifierProvider.notifier);
       notifier.state = EditorState(
         project: _manifest(),
-        activeMap: _mapWithAttachedArea(),
+        activeMap: _mapWithTwoAttachedAreas(),
         activeLayerId: 'tiles',
       );
 
@@ -103,6 +103,27 @@ void main() {
       final state = notifier.state;
       expect(state.environmentMaskEditMode, isNull);
       expect(state.errorMessage, contains('zone'));
+    });
+
+    test('utilise l’unique area effective sans sélection explicite', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final map = _mapWithAttachedArea();
+      notifier.state = EditorState(
+        project: _manifest(),
+        activeMap: map,
+        activeLayerId: 'tiles',
+      );
+
+      notifier.startEnvironmentMaskPaintingForActiveTileLayer();
+
+      final state = notifier.state;
+      expect(state.activeMap, same(map));
+      expect(state.activeLayerId, 'tiles');
+      expect(state.selectedEnvironmentAreaId, 'area_forest');
+      expect(state.environmentMaskEditMode, EnvironmentMaskEditMode.paint);
+      expect(state.errorMessage, isNull);
     });
 
     test('refuse si area sélectionnée introuvable', () {
@@ -150,6 +171,37 @@ void main() {
       expect(state.activeMap!.placedElements, isEmpty);
     });
   });
+}
+
+MapData _mapWithTwoAttachedAreas() {
+  final map = _mapWithAttachedArea();
+  final env = map.layers.whereType<EnvironmentLayer>().single;
+  final first = env.content.areas.single;
+  final updatedEnv = env.copyWith(
+    content: EnvironmentLayerContent(
+      targetTileLayerId: env.content.targetTileLayerId,
+      areas: [
+        first,
+        EnvironmentArea(
+          id: 'area_meadow',
+          name: 'Prairie',
+          presetId: 'forest',
+          mask: EnvironmentAreaMask(
+            width: 3,
+            height: 3,
+            cells: List<bool>.filled(9, false),
+          ),
+          seed: 1,
+        ),
+      ],
+    ),
+  );
+  return map.copyWith(
+    layers: [
+      for (final layer in map.layers)
+        if (layer.id == env.id) updatedEnv else layer,
+    ],
+  );
 }
 
 MapData _mapWithAttachedArea() {

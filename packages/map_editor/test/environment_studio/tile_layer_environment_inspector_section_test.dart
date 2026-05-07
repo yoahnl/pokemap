@@ -1254,8 +1254,194 @@ void main() {
         _buttonFor(tester, 'Effacer les placements générés').onPressed,
         isNull,
       );
-      expect(find.text('Régénérer'), findsNothing);
-      expect(find.text('Shuffle'), findsNothing);
+      expect(find.text('Régénérer'), findsOneWidget);
+      expect(_buttonFor(tester, 'Régénérer').onPressed, isNull);
+      expect(find.text('Shuffle'), findsOneWidget);
+      expect(_buttonFor(tester, 'Shuffle').onPressed, isNull);
+    });
+
+    testWidgets('Régénérer reste désactivé sans callback', (tester) async {
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.generated,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          generatedPlacementCount: 18,
+          hasGeneratedPlacements: true,
+          canRegenerate: true,
+          emptyStateTitle: 'Placements générés',
+          emptyStateMessage: 'Cette zone contient déjà des placements générés.',
+        ),
+      );
+
+      expect(find.text('Régénérer'), findsOneWidget);
+      expect(_buttonFor(tester, 'Régénérer').onPressed, isNull);
+    });
+
+    testWidgets('Régénérer est actif avec callback', (tester) async {
+      var regenerated = 0;
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.generated,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          generatedPlacementCount: 18,
+          hasGeneratedPlacements: true,
+          canRegenerate: true,
+          emptyStateTitle: 'Placements générés',
+          emptyStateMessage: 'Cette zone contient déjà des placements générés.',
+        ),
+        onRegenerateEnvironment: () {
+          regenerated++;
+        },
+      );
+
+      expect(find.text('Régénérer'), findsOneWidget);
+      expect(_buttonFor(tester, 'Régénérer').onPressed, isNotNull);
+
+      await tester.tap(find.text('Régénérer'));
+      await tester.pump();
+
+      expect(regenerated, 1);
+    });
+
+    testWidgets(
+        'Régénérer reste désactivé sans generatedPlacementIds même avec callback',
+        (tester) async {
+      var regenerated = 0;
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.ready,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          canPaintMask: true,
+          canGenerate: true,
+          canRegenerate: false,
+          emptyStateTitle: 'Prêt à générer',
+          emptyStateMessage: 'Le preset, le layer et le masque sont valides.',
+        ),
+        onRegenerateEnvironment: () {
+          regenerated++;
+        },
+      );
+
+      expect(find.text('Régénérer'), findsOneWidget);
+      expect(_buttonFor(tester, 'Régénérer').onPressed, isNull);
+
+      await tester.tap(find.text('Régénérer'));
+      await tester.pump();
+
+      expect(regenerated, 0);
+    });
+
+    testWidgets('Shuffle reste désactivé sans callback', (tester) async {
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.generated,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          generatedPlacementCount: 18,
+          hasGeneratedPlacements: true,
+          canShuffle: true,
+          emptyStateTitle: 'Placements générés',
+          emptyStateMessage: 'Cette zone contient déjà des placements générés.',
+        ),
+      );
+
+      expect(find.text('Shuffle'), findsOneWidget);
+      expect(_buttonFor(tester, 'Shuffle').onPressed, isNull);
+    });
+
+    testWidgets('Shuffle est actif avec callback', (tester) async {
+      var shuffled = 0;
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.generated,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          generatedPlacementCount: 18,
+          hasGeneratedPlacements: true,
+          canShuffle: true,
+          emptyStateTitle: 'Placements générés',
+          emptyStateMessage: 'Cette zone contient déjà des placements générés.',
+        ),
+        onShuffleEnvironment: () {
+          shuffled++;
+        },
+      );
+
+      expect(find.text('Shuffle'), findsOneWidget);
+      expect(_buttonFor(tester, 'Shuffle').onPressed, isNotNull);
+
+      await tester.tap(find.text('Shuffle'));
+      await tester.pump();
+
+      expect(shuffled, 1);
+    });
+
+    testWidgets(
+        'Shuffle reste désactivé sans generatedPlacementIds même avec callback',
+        (tester) async {
+      var shuffled = 0;
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.ready,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          canPaintMask: true,
+          canGenerate: true,
+          canShuffle: false,
+          emptyStateTitle: 'Prêt à générer',
+          emptyStateMessage: 'Le preset, le layer et le masque sont valides.',
+        ),
+        onShuffleEnvironment: () {
+          shuffled++;
+        },
+      );
+
+      expect(find.text('Shuffle'), findsOneWidget);
+      expect(_buttonFor(tester, 'Shuffle').onPressed, isNull);
+
+      await tester.tap(find.text('Shuffle'));
+      await tester.pump();
+
+      expect(shuffled, 0);
     });
   });
 }
@@ -1281,6 +1467,8 @@ Future<void> _pump(
   ValueChanged<int>? onSetSeed,
   VoidCallback? onGenerateEnvironment,
   VoidCallback? onClearGeneratedPlacements,
+  VoidCallback? onRegenerateEnvironment,
+  VoidCallback? onShuffleEnvironment,
 }) {
   return tester.pumpWidget(
     MaterialApp(
@@ -1308,6 +1496,8 @@ Future<void> _pump(
             onSetSeed: onSetSeed,
             onGenerateEnvironment: onGenerateEnvironment,
             onClearGeneratedPlacements: onClearGeneratedPlacements,
+            onRegenerateEnvironment: onRegenerateEnvironment,
+            onShuffleEnvironment: onShuffleEnvironment,
           ),
         ),
       ),
