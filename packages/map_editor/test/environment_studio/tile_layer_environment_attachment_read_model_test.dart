@@ -204,6 +204,7 @@ void main() {
       expect(model.emptyStateTitle, 'Aucune zone d’environnement');
       expect(model.primaryActionLabel, 'Ajouter une zone');
       expect(model.canPaintMask, isFalse);
+      expect(model.areaSummaries, isEmpty);
     });
 
     test('détecte area sélectionnée valide', () {
@@ -218,6 +219,15 @@ void main() {
       expect(model.selectedEnvironmentAreaId, 'area2');
       expect(model.selectedEnvironmentAreaName, 'Zone area2');
       expect(model.maskActiveCellCount, 1);
+      expect(model.areaSummaries.map((summary) => summary.id), [
+        'area1',
+        'area2',
+      ]);
+      expect(
+          model.areaSummaries
+              .singleWhere((summary) => summary.id == 'area2')
+              .isSelected,
+          isTrue);
     });
 
     test('détecte area sélectionnée absente', () {
@@ -233,6 +243,8 @@ void main() {
       expect(model.errors,
           contains('La zone d’environnement sélectionnée est introuvable.'));
       expect(model.canGenerate, isFalse);
+      expect(model.areaSummaries, hasLength(1));
+      expect(model.areaSummaries.single.isSelected, isFalse);
     });
 
     test('utilise la seule area existante quand aucune sélection est fournie',
@@ -247,6 +259,8 @@ void main() {
       expect(model.state, TileLayerEnvironmentAttachmentState.ready);
       expect(model.selectedEnvironmentAreaId, 'area1');
       expect(model.canGenerate, isTrue);
+      expect(model.areaSummaries, hasLength(1));
+      expect(model.areaSummaries.single.isSelected, isTrue);
     });
 
     test('demande une sélection quand plusieurs areas existent sans sélection',
@@ -262,6 +276,67 @@ void main() {
           TileLayerEnvironmentAttachmentState.areaSelectionRequired);
       expect(model.emptyStateTitle, 'Sélectionnez une zone d’environnement');
       expect(model.canGenerate, isFalse);
+      expect(model.areaSummaries.map((summary) => summary.id), [
+        'area1',
+        'area2',
+      ]);
+      expect(
+        model.areaSummaries.where((summary) => summary.isSelected),
+        isEmpty,
+      );
+    });
+
+    test('expose les summaries de zones dans l’ordre avec compteurs', () {
+      final model = buildTileLayerEnvironmentAttachmentReadModel(
+        manifest: _manifest(),
+        map: _map(
+          areas: [
+            _area(
+              id: 'area1',
+              activeCells: 2,
+              generatedPlacementIds: const ['g1', 'missing'],
+            ),
+            _area(id: 'area2', activeCells: 1),
+          ],
+          placedElements: const [
+            MapPlacedElement(
+              id: 'g1',
+              layerId: 'tiles',
+              elementId: 'tree',
+              pos: GridPos(x: 0, y: 0),
+            ),
+          ],
+        ),
+        selectedLayerId: 'tiles',
+        selectedEnvironmentAreaId: 'area1',
+      );
+
+      expect(model.areaSummaries, hasLength(2));
+      final first = model.areaSummaries[0];
+      expect(first.id, 'area1');
+      expect(first.name, 'Zone area1');
+      expect(first.presetId, 'forest');
+      expect(first.presetName, 'Forêt');
+      expect(first.isSelected, isTrue);
+      expect(first.maskActiveCellCount, 2);
+      expect(first.generatedPlacementCount, 2);
+      expect(first.missingGeneratedPlacementCount, 1);
+      expect(first.hasMissingPreset, isFalse);
+      expect(model.areaSummaries[1].id, 'area2');
+    });
+
+    test('summary signale un preset manquant', () {
+      final model = buildTileLayerEnvironmentAttachmentReadModel(
+        manifest: _manifest(environmentPresets: const []),
+        map: _map(areas: [_area(presetId: 'missing_preset')]),
+        selectedLayerId: 'tiles',
+        selectedEnvironmentAreaId: 'area1',
+      );
+
+      final summary = model.areaSummaries.single;
+      expect(summary.presetId, 'missing_preset');
+      expect(summary.presetName, isNull);
+      expect(summary.hasMissingPreset, isTrue);
     });
 
     test('détecte preset valide', () {
@@ -454,6 +529,7 @@ MapData _map({
 
 EnvironmentArea _area({
   String id = 'area1',
+  String presetId = 'forest',
   int activeCells = 0,
   List<String> generatedPlacementIds = const [],
 }) {
@@ -464,7 +540,7 @@ EnvironmentArea _area({
   return EnvironmentArea(
     id: id,
     name: 'Zone $id',
-    presetId: 'forest',
+    presetId: presetId,
     mask: EnvironmentAreaMask(width: 2, height: 2, cells: cells),
     seed: 1,
     generatedPlacementIds: generatedPlacementIds,

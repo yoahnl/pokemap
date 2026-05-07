@@ -269,6 +269,18 @@ TileLayerEnvironmentAttachmentReadModel _buildFromResolvedAttachment({
     );
   }
 
+  final placedElementIds = map.placedElements.map((e) => e.id).toSet();
+  List<TileLayerEnvironmentAreaSummary> areaSummariesFor(
+    String? effectiveSelectedAreaId,
+  ) {
+    return _buildAreaSummaries(
+      manifest: manifest,
+      areas: areas,
+      selectedEnvironmentAreaId: effectiveSelectedAreaId,
+      placedElementIds: placedElementIds,
+    );
+  }
+
   final trimmedAreaId = selectedEnvironmentAreaId?.trim();
   final EnvironmentArea? area;
   if (trimmedAreaId != null && trimmedAreaId.isNotEmpty) {
@@ -294,6 +306,7 @@ TileLayerEnvironmentAttachmentReadModel _buildFromResolvedAttachment({
         hasValidTargetTileLayer: true,
         hasMultipleAttachments: attachmentCount > 1,
         attachmentCount: attachmentCount,
+        areaSummaries: areaSummariesFor(null),
         emptyStateTitle: 'Zone introuvable',
         emptyStateMessage:
             'La zone d’environnement sélectionnée n’existe plus sur ce layer.',
@@ -316,6 +329,7 @@ TileLayerEnvironmentAttachmentReadModel _buildFromResolvedAttachment({
       hasValidTargetTileLayer: true,
       hasMultipleAttachments: attachmentCount > 1,
       attachmentCount: attachmentCount,
+      areaSummaries: areaSummariesFor(null),
       emptyStateTitle: 'Sélectionnez une zone d’environnement',
       emptyStateMessage:
           'Choisissez la zone à modifier avant de peindre ou générer.',
@@ -328,7 +342,6 @@ TileLayerEnvironmentAttachmentReadModel _buildFromResolvedAttachment({
   final hasMask = maskActiveCellCount > 0;
   final generatedPlacementIds = area.generatedPlacementIds;
   final generatedPlacementCount = generatedPlacementIds.length;
-  final placedElementIds = map.placedElements.map((e) => e.id).toSet();
   final existingGeneratedPlacementCount =
       generatedPlacementIds.where((id) => placedElementIds.contains(id)).length;
   final missingGeneratedPlacementCount =
@@ -367,6 +380,7 @@ TileLayerEnvironmentAttachmentReadModel _buildFromResolvedAttachment({
       generatedPlacementCount: generatedPlacementCount,
       existingGeneratedPlacementCount: existingGeneratedPlacementCount,
       missingGeneratedPlacementCount: missingGeneratedPlacementCount,
+      areaSummaries: areaSummariesFor(area.id),
       canPaintMask: true,
       canGenerate: false,
       canClearGeneratedPlacements: generatedPlacementCount > 0,
@@ -395,6 +409,7 @@ TileLayerEnvironmentAttachmentReadModel _buildFromResolvedAttachment({
       generatedPlacementCount: generatedPlacementCount,
       existingGeneratedPlacementCount: existingGeneratedPlacementCount,
       missingGeneratedPlacementCount: missingGeneratedPlacementCount,
+      areaSummaries: areaSummariesFor(area.id),
       canPaintMask: true,
       canGenerate: false,
       canClearGeneratedPlacements: generatedPlacementCount > 0,
@@ -422,6 +437,7 @@ TileLayerEnvironmentAttachmentReadModel _buildFromResolvedAttachment({
       generatedPlacementCount: generatedPlacementCount,
       existingGeneratedPlacementCount: existingGeneratedPlacementCount,
       missingGeneratedPlacementCount: missingGeneratedPlacementCount,
+      areaSummaries: areaSummariesFor(area.id),
       canPaintMask: true,
       canGenerate: false,
       canClearGeneratedPlacements: true,
@@ -449,6 +465,7 @@ TileLayerEnvironmentAttachmentReadModel _buildFromResolvedAttachment({
     generatedPlacementCount: 0,
     existingGeneratedPlacementCount: 0,
     missingGeneratedPlacementCount: 0,
+    areaSummaries: areaSummariesFor(area.id),
     canPaintMask: true,
     canGenerate: true,
     canClearGeneratedPlacements: false,
@@ -476,6 +493,7 @@ TileLayerEnvironmentAttachmentReadModel _areaReadModel({
   required int generatedPlacementCount,
   required int existingGeneratedPlacementCount,
   required int missingGeneratedPlacementCount,
+  required List<TileLayerEnvironmentAreaSummary> areaSummaries,
   required bool canPaintMask,
   required bool canGenerate,
   required bool canClearGeneratedPlacements,
@@ -509,6 +527,7 @@ TileLayerEnvironmentAttachmentReadModel _areaReadModel({
     generatedPlacementCount: generatedPlacementCount,
     existingGeneratedPlacementCount: existingGeneratedPlacementCount,
     missingGeneratedPlacementCount: missingGeneratedPlacementCount,
+    areaSummaries: areaSummaries,
     canPaintMask: canPaintMask,
     canGenerate: canGenerate,
     canClearGeneratedPlacements: canClearGeneratedPlacements,
@@ -518,6 +537,53 @@ TileLayerEnvironmentAttachmentReadModel _areaReadModel({
     emptyStateMessage: emptyStateMessage,
     primaryActionLabel: primaryActionLabel,
     issues: List.unmodifiable(issues),
+  );
+}
+
+List<TileLayerEnvironmentAreaSummary> _buildAreaSummaries({
+  required ProjectManifest manifest,
+  required List<EnvironmentArea> areas,
+  required String? selectedEnvironmentAreaId,
+  required Set<String> placedElementIds,
+}) {
+  final selectedId = selectedEnvironmentAreaId?.trim();
+  return List.unmodifiable(
+    [
+      for (final area in areas)
+        _areaSummary(
+          manifest: manifest,
+          area: area,
+          isSelected: selectedId != null &&
+              selectedId.isNotEmpty &&
+              area.id == selectedId,
+          placedElementIds: placedElementIds,
+        ),
+    ],
+  );
+}
+
+TileLayerEnvironmentAreaSummary _areaSummary({
+  required ProjectManifest manifest,
+  required EnvironmentArea area,
+  required bool isSelected,
+  required Set<String> placedElementIds,
+}) {
+  final preset = _findEnvironmentPreset(manifest, area.presetId);
+  final generatedPlacementCount = area.generatedPlacementIds.length;
+  final existingGeneratedPlacementCount = area.generatedPlacementIds
+      .where((id) => placedElementIds.contains(id))
+      .length;
+  return TileLayerEnvironmentAreaSummary(
+    id: area.id,
+    name: area.name,
+    presetId: area.presetId,
+    presetName: preset?.name,
+    isSelected: isSelected,
+    maskActiveCellCount: area.mask.activeCellCount,
+    generatedPlacementCount: generatedPlacementCount,
+    missingGeneratedPlacementCount:
+        generatedPlacementCount - existingGeneratedPlacementCount,
+    hasMissingPreset: preset == null,
   );
 }
 

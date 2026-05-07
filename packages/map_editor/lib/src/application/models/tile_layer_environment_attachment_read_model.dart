@@ -40,6 +40,30 @@ final class TileLayerEnvironmentAttachmentIssue {
   final String message;
 }
 
+final class TileLayerEnvironmentAreaSummary {
+  const TileLayerEnvironmentAreaSummary({
+    required this.id,
+    required this.name,
+    required this.presetId,
+    required this.presetName,
+    required this.isSelected,
+    required this.maskActiveCellCount,
+    required this.generatedPlacementCount,
+    required this.missingGeneratedPlacementCount,
+    required this.hasMissingPreset,
+  });
+
+  final String id;
+  final String name;
+  final String presetId;
+  final String? presetName;
+  final bool isSelected;
+  final int maskActiveCellCount;
+  final int generatedPlacementCount;
+  final int missingGeneratedPlacementCount;
+  final bool hasMissingPreset;
+}
+
 final class TileLayerEnvironmentAttachmentReadModel {
   const TileLayerEnvironmentAttachmentReadModel({
     required this.state,
@@ -74,6 +98,7 @@ final class TileLayerEnvironmentAttachmentReadModel {
     this.emptyStateMessage = '',
     this.primaryActionLabel,
     this.issues = const [],
+    this.areaSummaries = const [],
   });
 
   final TileLayerEnvironmentAttachmentState state;
@@ -108,6 +133,7 @@ final class TileLayerEnvironmentAttachmentReadModel {
   final String emptyStateMessage;
   final String? primaryActionLabel;
   final List<TileLayerEnvironmentAttachmentIssue> issues;
+  final List<TileLayerEnvironmentAreaSummary> areaSummaries;
 
   List<String> get warnings {
     return [

@@ -14,6 +14,7 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
     this.selectedPresetIdForNewArea,
     this.onSelectPresetForNewArea,
     this.onCreateArea,
+    this.onSelectEnvironmentArea,
     this.isMaskPaintingActive = false,
     this.isMaskErasingActive = false,
     this.onStartMaskPainting,
@@ -29,6 +30,7 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
   final String? selectedPresetIdForNewArea;
   final ValueChanged<String>? onSelectPresetForNewArea;
   final VoidCallback? onCreateArea;
+  final ValueChanged<String>? onSelectEnvironmentArea;
   final bool isMaskPaintingActive;
   final bool isMaskErasingActive;
   final VoidCallback? onStartMaskPainting;
@@ -83,6 +85,13 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
           ],
           const SizedBox(height: 12),
           _SummaryRows(readModel: readModel),
+          if (readModel.areaSummaries.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _EnvironmentAreaSummaryList(
+              summaries: readModel.areaSummaries,
+              onSelectEnvironmentArea: onSelectEnvironmentArea,
+            ),
+          ],
           if (readModel.issues.isNotEmpty) ...[
             const SizedBox(height: 12),
             ...readModel.issues.map(
@@ -357,6 +366,169 @@ class _BrushSizeButton extends StatelessWidget {
             fontWeight: FontWeight.w800,
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _EnvironmentAreaSummaryList extends StatelessWidget {
+  const _EnvironmentAreaSummaryList({
+    required this.summaries,
+    required this.onSelectEnvironmentArea,
+  });
+
+  final List<TileLayerEnvironmentAreaSummary> summaries;
+  final ValueChanged<String>? onSelectEnvironmentArea;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = EditorChrome.primaryLabel(context);
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: EditorChrome.inspectorJoyMint.withValues(alpha: 0.06),
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: EditorChrome.inspectorJoyMint.withValues(alpha: 0.22),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Zones d’environnement',
+            style: TextStyle(
+              color: label,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          for (final summary in summaries)
+            Padding(
+              padding: EdgeInsets.only(
+                bottom: summary == summaries.last ? 0 : 8,
+              ),
+              child: _EnvironmentAreaSummaryRow(
+                summary: summary,
+                onSelectEnvironmentArea: onSelectEnvironmentArea,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EnvironmentAreaSummaryRow extends StatelessWidget {
+  const _EnvironmentAreaSummaryRow({
+    required this.summary,
+    required this.onSelectEnvironmentArea,
+  });
+
+  final TileLayerEnvironmentAreaSummary summary;
+  final ValueChanged<String>? onSelectEnvironmentArea;
+
+  @override
+  Widget build(BuildContext context) {
+    const accent = EditorChrome.inspectorJoyMint;
+    final label = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
+    final canSelect = !summary.isSelected && onSelectEnvironmentArea != null;
+    final details = _areaSummaryDetails(summary);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: summary.isSelected
+              ? accent.withValues(alpha: 0.12)
+              : accent.withValues(alpha: 0.04),
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: summary.isSelected
+              ? accent.withValues(alpha: 0.55)
+              : accent.withValues(alpha: 0.18),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  summary.name.trim().isEmpty ? 'Zone sans nom' : summary.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: label,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (summary.isSelected)
+                const _StatusPill(label: 'Zone active', accent: accent)
+              else
+                CupertinoButton(
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(92, 28),
+                  onPressed: canSelect
+                      ? () => onSelectEnvironmentArea!(summary.id)
+                      : null,
+                  child: Container(
+                    height: 28,
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(horizontal: 9),
+                    decoration: BoxDecoration(
+                      color: canSelect
+                          ? accent.withValues(alpha: 0.2)
+                          : EditorChrome.largeIslandSurfaceColor(
+                              context,
+                              tint: accent.withValues(alpha: 0.04),
+                            ),
+                      borderRadius: BorderRadius.circular(7),
+                      border: Border.all(
+                        color: accent.withValues(
+                          alpha: canSelect ? 0.46 : 0.16,
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      'Sélectionner',
+                      style: TextStyle(
+                        color: canSelect ? label : subtle,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          for (final detail in details)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                detail,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: subtle,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  height: 1.2,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -728,6 +900,24 @@ String? _presetNameForId(
     }
   }
   return null;
+}
+
+List<String> _areaSummaryDetails(TileLayerEnvironmentAreaSummary summary) {
+  final presetName = summary.presetName?.trim();
+  final presetLabel = summary.hasMissingPreset
+      ? 'Preset introuvable : ${summary.presetId}'
+      : 'Preset : ${presetName == null || presetName.isEmpty ? summary.presetId : presetName}';
+  final details = <String>[
+    presetLabel,
+    'Masque : ${_paintedCellsLabel(summary.maskActiveCellCount)}',
+    'Placements : ${summary.generatedPlacementCount}',
+  ];
+  if (summary.missingGeneratedPlacementCount > 0) {
+    final count = summary.missingGeneratedPlacementCount;
+    details.add(
+        count == 1 ? '1 placement manquant' : '$count placements manquants');
+  }
+  return details;
 }
 
 String _stateTitle(TileLayerEnvironmentAttachmentReadModel model) {

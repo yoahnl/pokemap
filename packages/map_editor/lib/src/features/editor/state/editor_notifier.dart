@@ -4796,6 +4796,60 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  void selectEnvironmentAreaForActiveTileLayer(String areaId) {
+    final map = state.activeMap;
+    if (map == null) return;
+    final layerId = state.activeLayerId?.trim();
+    if (layerId == null || layerId.isEmpty) {
+      state = state.copyWith(
+        errorMessage: 'Sélectionnez un TileLayer pour choisir une zone.',
+      );
+      return;
+    }
+    final activeLayer = _findLayerById(map, layerId);
+    if (activeLayer is! TileLayer) {
+      state = state.copyWith(
+        errorMessage: 'Sélectionnez un TileLayer pour choisir une zone.',
+      );
+      return;
+    }
+
+    final aid = areaId.trim();
+    if (aid.isEmpty) {
+      state = state.copyWith(
+        errorMessage: 'Sélectionnez une zone d’environnement valide.',
+      );
+      return;
+    }
+
+    final target = resolveEnvironmentMaskPaintTarget(
+      map: map,
+      activeLayerId: layerId,
+      selectedAreaId: aid,
+    );
+    if (target == null) {
+      final hasAttachment = map.layers.any(
+        (layer) =>
+            layer is EnvironmentLayer &&
+            layer.content.targetTileLayerId?.trim() == layerId,
+      );
+      state = state.copyWith(
+        errorMessage: hasAttachment
+            ? 'La zone d’environnement sélectionnée est introuvable.'
+            : 'Activez d’abord l’environnement sur ce layer.',
+      );
+      return;
+    }
+
+    state = state.copyWith(
+      activeLayerId: layerId,
+      selectedEnvironmentAreaId: target.areaId,
+      environmentMaskEditMode: null,
+      statusMessage: 'Zone d’environnement sélectionnée.',
+      errorMessage: null,
+    );
+  }
+
   void startEnvironmentMaskPaintingForActiveTileLayer() {
     _startEnvironmentMaskEditingForActiveTileLayer(
       mode: EnvironmentMaskEditMode.paint,

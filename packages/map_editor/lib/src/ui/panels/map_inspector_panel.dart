@@ -104,6 +104,10 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
         tileLayerEnvironmentReadModel != null &&
         _canCreateEnvironmentArea(tileLayerEnvironmentReadModel) &&
         selectedPresetIdForNewArea != null;
+    final canSelectTileLayerEnvironmentArea = activeLayer is TileLayer &&
+        tileLayerEnvironmentReadModel != null &&
+        tileLayerEnvironmentReadModel.hasAttachment &&
+        tileLayerEnvironmentReadModel.areaSummaries.isNotEmpty;
     final isTileLayerMaskPaintingActive = activeLayer is TileLayer &&
         tileLayerEnvironmentReadModel != null &&
         state.environmentMaskEditMode == EnvironmentMaskEditMode.paint &&
@@ -245,6 +249,9 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                               presetId: selectedPresetIdForNewArea,
                             );
                           }
+                        : null,
+                    onSelectEnvironmentArea: canSelectTileLayerEnvironmentArea
+                        ? notifier.selectEnvironmentAreaForActiveTileLayer
                         : null,
                     isMaskPaintingActive: isTileLayerMaskPaintingActive,
                     isMaskErasingActive: isTileLayerMaskErasingActive,

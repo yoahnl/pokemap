@@ -276,6 +276,134 @@ void main() {
       expect(find.text('Placements générés : 18'), findsOneWidget);
     });
 
+    testWidgets('affiche la liste des zones d’environnement', (tester) async {
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.ready,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaId: 'area_a',
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          canPaintMask: true,
+          emptyStateTitle: 'Prêt à générer',
+          emptyStateMessage: 'Le preset, le layer et le masque sont valides.',
+          areaSummaries: [
+            TileLayerEnvironmentAreaSummary(
+              id: 'area_a',
+              name: 'Bosquet nord',
+              presetId: 'forest',
+              presetName: 'Forêt',
+              isSelected: true,
+              maskActiveCellCount: 42,
+              generatedPlacementCount: 18,
+              missingGeneratedPlacementCount: 0,
+              hasMissingPreset: false,
+            ),
+            TileLayerEnvironmentAreaSummary(
+              id: 'area_b',
+              name: 'Rochers sud',
+              presetId: 'rocks',
+              presetName: 'Rochers',
+              isSelected: false,
+              maskActiveCellCount: 3,
+              generatedPlacementCount: 0,
+              missingGeneratedPlacementCount: 0,
+              hasMissingPreset: false,
+            ),
+          ],
+        ),
+      );
+
+      expect(find.text('Zones d’environnement'), findsOneWidget);
+      expect(find.text('Bosquet nord'), findsOneWidget);
+      expect(find.text('Rochers sud'), findsOneWidget);
+      expect(find.text('Zone active'), findsOneWidget);
+      expect(find.text('Preset : Forêt'), findsWidgets);
+      expect(find.text('Masque : 42 cases peintes'), findsWidgets);
+      expect(find.text('Placements : 18'), findsOneWidget);
+      expect(find.text('Sélectionner'), findsOneWidget);
+    });
+
+    testWidgets('cliquer sur Sélectionner déclenche le callback area',
+        (tester) async {
+      String? selected;
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.areaSelectionRequired,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          emptyStateTitle: 'Sélectionnez une zone d’environnement',
+          emptyStateMessage:
+              'Choisissez la zone à modifier avant de peindre ou générer.',
+          areaSummaries: [
+            TileLayerEnvironmentAreaSummary(
+              id: 'area_a',
+              name: 'Bosquet nord',
+              presetId: 'forest',
+              presetName: 'Forêt',
+              isSelected: false,
+              maskActiveCellCount: 0,
+              generatedPlacementCount: 0,
+              missingGeneratedPlacementCount: 0,
+              hasMissingPreset: false,
+            ),
+          ],
+        ),
+        onSelectEnvironmentArea: (areaId) {
+          selected = areaId;
+        },
+      );
+
+      expect(_buttonFor(tester, 'Sélectionner').onPressed, isNotNull);
+
+      await tester.ensureVisible(find.text('Sélectionner'));
+      await tester.tap(find.text('Sélectionner'));
+      await tester.pump();
+
+      expect(selected, 'area_a');
+    });
+
+    testWidgets('affiche preset et placements manquants dans une summary',
+        (tester) async {
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.selectedAreaMissing,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          emptyStateTitle: 'Zone introuvable',
+          emptyStateMessage:
+              'La zone d’environnement sélectionnée n’existe plus sur ce layer.',
+          areaSummaries: [
+            TileLayerEnvironmentAreaSummary(
+              id: 'area_a',
+              name: 'Bosquet nord',
+              presetId: 'forest_missing',
+              presetName: null,
+              isSelected: false,
+              maskActiveCellCount: 1,
+              generatedPlacementCount: 4,
+              missingGeneratedPlacementCount: 2,
+              hasMissingPreset: true,
+            ),
+          ],
+        ),
+      );
+
+      expect(find.text('Preset introuvable : forest_missing'), findsOneWidget);
+      expect(find.text('2 placements manquants'), findsOneWidget);
+      expect(find.text('Sélectionner'), findsOneWidget);
+      expect(_buttonFor(tester, 'Sélectionner').onPressed, isNull);
+    });
+
     testWidgets('affiche un warning si des placements sont manquants',
         (tester) async {
       await _pump(
@@ -709,6 +837,7 @@ Future<void> _pump(
   String? selectedPresetIdForNewArea,
   ValueChanged<String>? onSelectPresetForNewArea,
   VoidCallback? onCreateArea,
+  ValueChanged<String>? onSelectEnvironmentArea,
   bool isMaskPaintingActive = false,
   bool isMaskErasingActive = false,
   VoidCallback? onStartMaskPainting,
@@ -730,6 +859,7 @@ Future<void> _pump(
             selectedPresetIdForNewArea: selectedPresetIdForNewArea,
             onSelectPresetForNewArea: onSelectPresetForNewArea,
             onCreateArea: onCreateArea,
+            onSelectEnvironmentArea: onSelectEnvironmentArea,
             isMaskPaintingActive: isMaskPaintingActive,
             isMaskErasingActive: isMaskErasingActive,
             onStartMaskPainting: onStartMaskPainting,
