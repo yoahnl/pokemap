@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 
 import '../../application/models/tile_layer_environment_attachment_read_model.dart';
+import '../../features/editor/state/environment_mask_brush_size_provider.dart';
 import '../shared/cupertino_editor_widgets.dart';
 import '../shared/inspector_embedded_widgets.dart';
 
@@ -16,6 +17,8 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
     this.isMaskPaintingActive = false,
     this.onStartMaskPainting,
     this.onStopMaskPainting,
+    this.environmentMaskBrushSize = kDefaultEnvironmentMaskBrushSize,
+    this.onSetEnvironmentMaskBrushSize,
   });
 
   final TileLayerEnvironmentAttachmentReadModel readModel;
@@ -27,6 +30,8 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
   final bool isMaskPaintingActive;
   final VoidCallback? onStartMaskPainting;
   final VoidCallback? onStopMaskPainting;
+  final int environmentMaskBrushSize;
+  final ValueChanged<int>? onSetEnvironmentMaskBrushSize;
 
   @override
   Widget build(BuildContext context) {
@@ -85,6 +90,13 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
           if (isMaskPaintingActive) ...[
             const SizedBox(height: 12),
             const _ActivePaintingBanner(),
+          ],
+          if (readModel.canPaintMask || isMaskPaintingActive) ...[
+            const SizedBox(height: 12),
+            _BrushSizeSelector(
+              selectedSize: environmentMaskBrushSize,
+              onChanged: onSetEnvironmentMaskBrushSize,
+            ),
           ],
           const SizedBox(height: 12),
           if (_shouldShowCreateAreaGate(readModel)) ...[
@@ -225,6 +237,114 @@ class _SummaryRows extends StatelessWidget {
             child: _SummaryRow(row: row),
           ),
       ],
+    );
+  }
+}
+
+class _BrushSizeSelector extends StatelessWidget {
+  const _BrushSizeSelector({
+    required this.selectedSize,
+    required this.onChanged,
+  });
+
+  final int selectedSize;
+  final ValueChanged<int>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = EditorChrome.primaryLabel(context);
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: EditorChrome.inspectorJoyMint.withValues(alpha: 0.06),
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: EditorChrome.inspectorJoyMint.withValues(alpha: 0.22),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Taille du pinceau',
+            style: TextStyle(
+              color: label,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              for (final size in kEnvironmentMaskBrushSizes) ...[
+                Expanded(
+                  child: _BrushSizeButton(
+                    size: size,
+                    selected: size == selectedSize,
+                    onChanged: onChanged,
+                  ),
+                ),
+                if (size != kEnvironmentMaskBrushSizes.last)
+                  const SizedBox(width: 6),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BrushSizeButton extends StatelessWidget {
+  const _BrushSizeButton({
+    required this.size,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  final int size;
+  final bool selected;
+  final ValueChanged<int>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    const accent = EditorChrome.inspectorJoyMint;
+    final enabled = onChanged != null;
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: const Size(30, 30),
+      onPressed: enabled ? () => onChanged!(size) : null,
+      child: Container(
+        height: 30,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected
+              ? accent.withValues(alpha: enabled ? 0.78 : 0.34)
+              : EditorChrome.largeIslandSurfaceColor(
+                  context,
+                  tint: accent.withValues(alpha: 0.04),
+                ),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: selected
+                ? accent.withValues(alpha: 0.88)
+                : accent.withValues(alpha: enabled ? 0.28 : 0.16),
+          ),
+        ),
+        child: Text(
+          '$size',
+          style: TextStyle(
+            color: selected
+                ? CupertinoColors.white
+                : EditorChrome.primaryLabel(context),
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
     );
   }
 }

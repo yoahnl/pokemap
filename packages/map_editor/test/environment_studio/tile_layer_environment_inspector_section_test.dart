@@ -439,6 +439,84 @@ void main() {
       expect(pressed, 1);
     });
 
+    testWidgets('affiche Taille du pinceau et les choix 1 3 5 7',
+        (tester) async {
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.emptyMask,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaId: 'area',
+          selectedEnvironmentAreaName: 'Forêt',
+          selectedPresetName: 'Forêt',
+          canPaintMask: true,
+          emptyStateTitle: 'Masque vide',
+          emptyStateMessage: 'Peignez une zone sur la carte avant de générer.',
+        ),
+      );
+
+      expect(find.text('Taille du pinceau'), findsOneWidget);
+      for (final size in [1, 3, 5, 7]) {
+        expect(find.text('$size'), findsOneWidget);
+      }
+    });
+
+    testWidgets('cliquer sur 3 change la taille du pinceau', (tester) async {
+      var selected = 1;
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.emptyMask,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaId: 'area',
+          selectedEnvironmentAreaName: 'Forêt',
+          selectedPresetName: 'Forêt',
+          canPaintMask: true,
+          emptyStateTitle: 'Masque vide',
+          emptyStateMessage: 'Peignez une zone sur la carte avant de générer.',
+        ),
+        environmentMaskBrushSize: 1,
+        onSetEnvironmentMaskBrushSize: (size) {
+          selected = size;
+        },
+      );
+
+      expect(_buttonFor(tester, '3').onPressed, isNotNull);
+
+      await tester.tap(find.text('3'));
+      await tester.pump();
+
+      expect(selected, 3);
+    });
+
+    testWidgets('sans callback les tailles de pinceau sont désactivées',
+        (tester) async {
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.emptyMask,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaId: 'area',
+          selectedEnvironmentAreaName: 'Forêt',
+          selectedPresetName: 'Forêt',
+          canPaintMask: true,
+          emptyStateTitle: 'Masque vide',
+          emptyStateMessage: 'Peignez une zone sur la carte avant de générer.',
+        ),
+      );
+
+      expect(_buttonFor(tester, '1').onPressed, isNull);
+      expect(_buttonFor(tester, '3').onPressed, isNull);
+      expect(_buttonFor(tester, '5').onPressed, isNull);
+      expect(_buttonFor(tester, '7').onPressed, isNull);
+    });
+
     testWidgets('affiche Peinture active et stop quand le mode est actif',
         (tester) async {
       var stopped = 0;
@@ -543,6 +621,8 @@ Future<void> _pump(
   bool isMaskPaintingActive = false,
   VoidCallback? onStartMaskPainting,
   VoidCallback? onStopMaskPainting,
+  int environmentMaskBrushSize = 1,
+  ValueChanged<int>? onSetEnvironmentMaskBrushSize,
 }) {
   return tester.pumpWidget(
     MaterialApp(
@@ -560,6 +640,8 @@ Future<void> _pump(
             isMaskPaintingActive: isMaskPaintingActive,
             onStartMaskPainting: onStartMaskPainting,
             onStopMaskPainting: onStopMaskPainting,
+            environmentMaskBrushSize: environmentMaskBrushSize,
+            onSetEnvironmentMaskBrushSize: onSetEnvironmentMaskBrushSize,
           ),
         ),
       ),

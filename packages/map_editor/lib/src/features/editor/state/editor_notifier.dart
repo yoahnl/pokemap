@@ -47,6 +47,7 @@ import '../application/project_session_controller.dart';
 import '../application/project_session_models.dart';
 import '../tools/editor_tool.dart';
 import 'editor_state.dart';
+import 'environment_mask_brush_size_provider.dart';
 import '../../surface_painter/surface_painting_controller.dart';
 
 part 'editor_notifier.g.dart';
@@ -4856,6 +4857,22 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  void setEnvironmentMaskBrushSize(int size) {
+    if (!isValidEnvironmentMaskBrushSize(size)) {
+      state = state.copyWith(
+        errorMessage: 'taille du pinceau invalide : choisissez 1, 3, 5 ou 7.',
+      );
+      return;
+    }
+    final current = ref.read(environmentMaskBrushSizeProvider);
+    if (current == size) {
+      state = state.copyWith(errorMessage: null);
+      return;
+    }
+    ref.read(environmentMaskBrushSizeProvider.notifier).state = size;
+    state = state.copyWith(errorMessage: null);
+  }
+
   /// Lot Environment-21 : ajoute une [EnvironmentArea] (mask vide, preset manifest).
   void addEnvironmentAreaToLayer({
     required String environmentLayerId,
@@ -5476,12 +5493,13 @@ class EditorNotifier extends _$EditorNotifier {
     }
     final isActive = mode == EnvironmentMaskEditMode.paint;
     try {
-      final useCase = PaintEnvironmentAreaMaskCellUseCase();
+      final useCase = PaintEnvironmentAreaMaskBrushStrokeUseCase();
       final updated = useCase.execute(
         map,
         environmentLayerId: target.environmentLayerId,
         areaId: target.areaId,
-        pos: pos,
+        center: pos,
+        brushSize: ref.read(environmentMaskBrushSizeProvider),
         isActive: isActive,
       );
       if (identical(updated, map)) {

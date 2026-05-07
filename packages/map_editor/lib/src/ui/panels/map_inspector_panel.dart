@@ -7,6 +7,7 @@ import '../../application/models/tile_layer_environment_attachment_read_model.da
 import '../../application/models/terrain_selection_mode.dart';
 import '../../application/services/tile_layer_environment_attachment_read_model_builder.dart';
 import '../../features/editor/state/editor_notifier.dart';
+import '../../features/editor/state/environment_mask_brush_size_provider.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../../features/surface_painter/surface_palette_panel.dart';
 import '../shared/cupertino_editor_widgets.dart';
@@ -58,6 +59,8 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(editorNotifierProvider);
+    final environmentMaskBrushSize =
+        ref.watch(environmentMaskBrushSizeProvider);
     final notifier = ref.read(editorNotifierProvider.notifier);
     final activeMap = state.activeMap;
     final activeLayer = _findActiveLayer(activeMap, state.activeLayerId);
@@ -213,7 +216,7 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     _InspectorSectionId.tileLayerEnvironment,
                     defaultExpanded: true,
                   ),
-                  expandedHeight: 430,
+                  expandedHeight: 470,
                   child: TileLayerEnvironmentInspectorSection(
                     readModel: tileLayerEnvironmentReadModel,
                     onEnableEnvironment: activeLayer is TileLayer &&
@@ -245,6 +248,9 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     onStopMaskPainting: isTileLayerMaskPaintingActive
                         ? notifier.stopEnvironmentMaskPainting
                         : null,
+                    environmentMaskBrushSize: environmentMaskBrushSize,
+                    onSetEnvironmentMaskBrushSize:
+                        notifier.setEnvironmentMaskBrushSize,
                   ),
                 ),
               if (showEnvironmentLayerSection)
