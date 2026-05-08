@@ -92,8 +92,8 @@ class AddTileLayerEnvironmentGeneratedPlacementAtUseCase {
       );
     }
 
-    final footprint = _elementFootprint(element);
-    if (!_elementFootprintInBounds(
+    final footprint = environmentGeneratedPlacementElementFootprint(element);
+    if (!isEnvironmentGeneratedPlacementFootprintInBounds(
       pos: pos,
       footprint: footprint,
       mapSize: map.size,
@@ -103,7 +103,7 @@ class AddTileLayerEnvironmentGeneratedPlacementAtUseCase {
       );
     }
 
-    final placedId = _uniqueGeneratedEnvironmentPlacementId(
+    final placedId = uniqueGeneratedEnvironmentPlacementId(
       map,
       area: target.area,
       pos: pos,
@@ -374,25 +374,6 @@ ProjectElementEntry? _projectElementById(
   return null;
 }
 
-GridSize _elementFootprint(ProjectElementEntry element) {
-  final source = element.frames.primarySource;
-  return GridSize(
-    width: source.width <= 0 ? 1 : source.width,
-    height: source.height <= 0 ? 1 : source.height,
-  );
-}
-
-bool _elementFootprintInBounds({
-  required GridPos pos,
-  required GridSize footprint,
-  required GridSize mapSize,
-}) {
-  return pos.x >= 0 &&
-      pos.y >= 0 &&
-      pos.x + footprint.width <= mapSize.width &&
-      pos.y + footprint.height <= mapSize.height;
-}
-
 String _effectiveTileLayerTilesetId(TileLayer layer, MapData map) {
   return (layer.tilesetId ?? map.tilesetId).trim();
 }
@@ -412,29 +393,6 @@ bool _applyCollisionFromEnvironmentMode(EnvironmentCollisionMode mode) {
     case EnvironmentCollisionMode.useElementDefault:
       return true;
   }
-}
-
-String _uniqueGeneratedEnvironmentPlacementId(
-  MapData map, {
-  required EnvironmentArea area,
-  required GridPos pos,
-  required String elementId,
-}) {
-  final baseId = generatedEnvironmentPlacementId(
-    areaId: area.id,
-    pos: pos,
-    elementId: elementId,
-  );
-  final usedIds = {
-    ...area.generatedPlacementIds,
-    for (final placed in map.placedElements) placed.id,
-  };
-  if (!usedIds.contains(baseId)) return baseId;
-  var suffix = 2;
-  while (usedIds.contains('${baseId}_$suffix')) {
-    suffix++;
-  }
-  return '${baseId}_$suffix';
 }
 
 final class _TileLayerEnvironmentGeneratedPlacementEditTarget {

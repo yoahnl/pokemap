@@ -4,10 +4,16 @@ final class EnvironmentGeneratedPlacementAddPreview {
   const EnvironmentGeneratedPlacementAddPreview({
     required this.placed,
     required this.element,
+    required this.footprint,
+    required this.isValid,
+    this.invalidReason,
   });
 
   final MapPlacedElement placed;
   final ProjectElementEntry element;
+  final GridSize footprint;
+  final bool isValid;
+  final String? invalidReason;
 }
 
 final class EnvironmentGeneratedPlacementDeleteTarget {
@@ -26,63 +32,63 @@ EnvironmentGeneratedPlacementAddPreview?
   required ProjectManifest manifest,
   required String? activeLayerId,
   required String? selectedAreaId,
+  String? selectedElementId,
   required GridPos pos,
 }) {
-  final envLayer = _activeEnvironmentLayer(map, activeLayerId);
+  final envLayer = _activeOrAttachedEnvironmentLayer(map, activeLayerId);
   if (envLayer == null) return null;
   final area = _environmentAreaById(envLayer, selectedAreaId);
   if (area == null) return null;
+  if (area.generatedPlacementIds.isEmpty) return null;
   final targetLayer = _targetTileLayer(map, envLayer);
   if (targetLayer == null) return null;
   final preset = _environmentPresetById(manifest, area.presetId);
   if (preset == null) return null;
 
   final targetTilesetId = _effectiveTileLayerTilesetId(targetLayer, map);
-  EnvironmentPaletteItem? item;
-  ProjectElementEntry? element;
-  for (final candidate in preset.palette) {
-    final candidateElement = _projectElementById(manifest, candidate.elementId);
-    if (candidateElement == null) continue;
-    final elementTilesetId = _elementPrimaryTilesetId(candidateElement);
-    if (targetTilesetId.isNotEmpty &&
-        elementTilesetId.isNotEmpty &&
-        targetTilesetId != elementTilesetId) {
-      continue;
-    }
-    item = candidate;
-    element = candidateElement;
-    break;
-  }
-  if (item == null || element == null) return null;
+  final selection = _resolveAddPreviewPaletteSelection(
+    manifest: manifest,
+    preset: preset,
+    selectedElementId: selectedElementId,
+    targetTilesetId: targetTilesetId,
+  );
+  if (selection == null) return null;
 
-  final footprint = _elementFootprint(element);
-  if (!_elementFootprintInBounds(
+  final footprint =
+      environmentGeneratedPlacementElementFootprint(selection.element);
+  final isInBounds = isEnvironmentGeneratedPlacementFootprintInBounds(
     pos: pos,
     footprint: footprint,
     mapSize: map.size,
-  )) {
-    return null;
-  }
-
-  final placedId = generatedEnvironmentPlacementId(
-    areaId: area.id,
-    pos: pos,
-    elementId: item.elementId,
   );
-  if (area.generatedPlacementIds.contains(placedId) ||
-      map.placedElements.any((placed) => placed.id == placedId)) {
-    return null;
-  }
+  final isCompatible = _elementMatchesTargetTileset(
+    element: selection.element,
+    targetTilesetId: targetTilesetId,
+  );
 
+  final placedId = uniqueGeneratedEnvironmentPlacementId(
+    map,
+    area: area,
+    pos: pos,
+    elementId: selection.item.elementId,
+  );
   return EnvironmentGeneratedPlacementAddPreview(
     placed: MapPlacedElement(
       id: placedId,
       layerId: targetLayer.id,
-      elementId: item.elementId,
+      elementId: selection.item.elementId,
       pos: pos,
-      applyCollision: _applyCollisionFromEnvironmentMode(item.collisionMode),
+      applyCollision:
+          _applyCollisionFromEnvironmentMode(selection.item.collisionMode),
     ),
-    element: element,
+    element: selection.element,
+    footprint: footprint,
+    isValid: isInBounds && isCompatible,
+    invalidReason: !isCompatible
+        ? 'Élément incompatible avec ce layer'
+        : !isInBounds
+            ? 'Position hors carte'
+            : null,
   );
 }
 
@@ -138,18 +144,27 @@ String generatedEnvironmentPlacementId({
   return 'env_gen_${_sanitizeEnvironmentIdPart(areaId)}_${pos.x}_${pos.y}_${_sanitizeEnvironmentIdPart(elementId)}';
 }
 
-EnvironmentLayer? _activeEnvironmentLayer(
-  MapData map,
-  String? activeLayerId,
-) {
-  final layerId = activeLayerId?.trim();
-  if (layerId == null || layerId.isEmpty) return null;
-  for (final layer in map.layers) {
-    if (layer.id == layerId && layer is EnvironmentLayer) {
-      return layer;
-    }
+String uniqueGeneratedEnvironmentPlacementId(
+  MapData map, {
+  required EnvironmentArea area,
+  required GridPos pos,
+  required String elementId,
+}) {
+  final baseId = generatedEnvironmentPlacementId(
+    areaId: area.id,
+    pos: pos,
+    elementId: elementId,
+  );
+  final usedIds = {
+    ...area.generatedPlacementIds,
+    for (final placed in map.placedElements) placed.id,
+  };
+  if (!usedIds.contains(baseId)) return baseId;
+  var suffix = 2;
+  while (usedIds.contains('${baseId}_$suffix')) {
+    suffix++;
   }
-  return null;
+  return '${baseId}_$suffix';
 }
 
 EnvironmentLayer? _activeOrAttachedEnvironmentLayer(
@@ -217,7 +232,20 @@ ProjectElementEntry? _projectElementById(
   return null;
 }
 
-GridSize _elementFootprint(ProjectElementEntry element) {
+EnvironmentPaletteItem? _paletteItemByElementId(
+  EnvironmentPreset preset,
+  String elementId,
+) {
+  final normalizedId = elementId.trim();
+  for (final item in preset.palette) {
+    if (item.elementId == normalizedId) return item;
+  }
+  return null;
+}
+
+GridSize environmentGeneratedPlacementElementFootprint(
+  ProjectElementEntry element,
+) {
   final source = element.frames.primarySource;
   return GridSize(
     width: source.width <= 0 ? 1 : source.width,
@@ -225,7 +253,7 @@ GridSize _elementFootprint(ProjectElementEntry element) {
   );
 }
 
-bool _elementFootprintInBounds({
+bool isEnvironmentGeneratedPlacementFootprintInBounds({
   required GridPos pos,
   required GridSize footprint,
   required GridSize mapSize,
@@ -244,6 +272,16 @@ String _elementPrimaryTilesetId(ProjectElementEntry element) {
   final frameTilesetId = element.frames.primaryFrame.tilesetId.trim();
   if (frameTilesetId.isNotEmpty) return frameTilesetId;
   return element.tilesetId.trim();
+}
+
+bool _elementMatchesTargetTileset({
+  required ProjectElementEntry element,
+  required String targetTilesetId,
+}) {
+  final elementTilesetId = _elementPrimaryTilesetId(element);
+  return targetTilesetId.isEmpty ||
+      elementTilesetId.isEmpty ||
+      targetTilesetId == elementTilesetId;
 }
 
 bool _applyCollisionFromEnvironmentMode(EnvironmentCollisionMode mode) {
@@ -273,4 +311,53 @@ bool _placedElementContainsGridPos({
 
 String _sanitizeEnvironmentIdPart(String value) {
   return value.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+}
+
+_EnvironmentGeneratedPlacementAddSelection? _resolveAddPreviewPaletteSelection({
+  required ProjectManifest manifest,
+  required EnvironmentPreset preset,
+  required String? selectedElementId,
+  required String targetTilesetId,
+}) {
+  final selectedId = selectedElementId?.trim();
+  if (selectedId != null && selectedId.isNotEmpty) {
+    final item = _paletteItemByElementId(preset, selectedId);
+    if (item == null) return null;
+    final element = _projectElementById(manifest, item.elementId);
+    if (element == null) return null;
+    return _EnvironmentGeneratedPlacementAddSelection(
+      item: item,
+      element: element,
+    );
+  }
+
+  final candidates = <_EnvironmentGeneratedPlacementAddSelection>[];
+  for (final item in preset.palette) {
+    final element = _projectElementById(manifest, item.elementId);
+    if (element == null) continue;
+    if (!_elementMatchesTargetTileset(
+      element: element,
+      targetTilesetId: targetTilesetId,
+    )) {
+      continue;
+    }
+    candidates.add(
+      _EnvironmentGeneratedPlacementAddSelection(
+        item: item,
+        element: element,
+      ),
+    );
+  }
+  if (candidates.length != 1) return null;
+  return candidates.single;
+}
+
+final class _EnvironmentGeneratedPlacementAddSelection {
+  const _EnvironmentGeneratedPlacementAddSelection({
+    required this.item,
+    required this.element,
+  });
+
+  final EnvironmentPaletteItem item;
+  final ProjectElementEntry element;
 }

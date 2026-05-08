@@ -24,7 +24,8 @@ void main() {
       expect(preview.element.id, 'tree_large');
     });
 
-    test('does not preview add when the element footprint leaves the map', () {
+    test('previews add as invalid when the element footprint leaves the map',
+        () {
       final ctx = _previewContext();
 
       final preview = resolveEnvironmentGeneratedPlacementAddPreview(
@@ -35,7 +36,9 @@ void main() {
         pos: const GridPos(x: 4, y: 4),
       );
 
-      expect(preview, isNull);
+      expect(preview, isNotNull);
+      expect(preview!.isValid, isFalse);
+      expect(preview.invalidReason, contains('Position hors carte'));
     });
 
     test('resolves the topmost generated placement that delete would remove',

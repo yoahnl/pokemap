@@ -215,7 +215,7 @@ class MapGridPainter extends CustomPainter {
   /// Lot Environment-22 : surcouche semi-transparente des cellules masque actives.
   final EnvironmentAreaMask? environmentMaskOverlay;
   final EnvironmentMaskBrushCursorOverlay? environmentBrushCursorOverlay;
-  final MapPlacedElement? environmentGeneratedAddPreview;
+  final EnvironmentGeneratedPlacementAddPreview? environmentGeneratedAddPreview;
   final String? environmentGeneratedDeletePreviewId;
 
   MapGridPainter({
@@ -1826,23 +1826,24 @@ class MapGridPainter extends CustomPainter {
     final preview = environmentGeneratedAddPreview;
     final projectContext = project;
     if (preview == null || projectContext == null) return;
+    final placed = preview.placed;
     final elementById = <String, ProjectElementEntry>{
       for (final entry in projectContext.elements) entry.id: entry,
     };
     _paintPlacedElement(
       canvas,
-      preview,
+      placed,
       elementById: elementById,
       renderPass: _EditorMapTileRenderPass.foreground,
-      opacity: 0.48,
+      opacity: preview.isValid ? 0.52 : 0.34,
       ignoreRenderPassSplit: true,
     );
     _paintPlacedElementFootprintHint(
       canvas,
-      preview,
+      placed,
       elementById: elementById,
-      color: Colors.cyanAccent,
-      fillAlpha: 0.08,
+      color: preview.isValid ? Colors.cyanAccent : Colors.deepOrangeAccent,
+      fillAlpha: preview.isValid ? 0.08 : 0.14,
       strokeAlpha: 0.95,
     );
   }

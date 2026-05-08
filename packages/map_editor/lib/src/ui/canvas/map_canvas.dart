@@ -18,6 +18,7 @@ import '../../application/services/environment_mask_paint_target_resolver.dart';
 import '../../application/services/tileset_transparent_color_processor.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_state.dart';
+import '../../features/editor/state/environment_generated_placement_add_element_provider.dart';
 import '../../features/editor/state/environment_mask_brush_size_provider.dart';
 import '../../features/editor/tools/editor_tool.dart';
 import '../../features/path_pattern/path_pattern_editor_render_resolution.dart';
@@ -133,6 +134,8 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
     final notifier = ref.read(editorNotifierProvider.notifier);
     final environmentMaskBrushSize =
         ref.watch(environmentMaskBrushSizeProvider);
+    final selectedGeneratedPlacementElementId =
+        ref.watch(environmentGeneratedPlacementAddElementProvider);
     final activeMap = state.activeMap;
     final settings = state.project?.settings ?? const ProjectSettings();
     final connectionLabelsByDirection =
@@ -215,6 +218,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                         manifest: state.project!,
                         activeLayerId: state.activeLayerId,
                         selectedAreaId: state.selectedEnvironmentAreaId,
+                        selectedElementId: selectedGeneratedPlacementElementId,
                         pos: hoveredTile,
                       ),
                     _ => null,
@@ -493,7 +497,9 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                           map: activeMap,
                           zoom: state.zoom,
                           offset: state.panOffset,
-                          hoveredTile: environmentBrushCursorOverlay == null
+                          hoveredTile: environmentBrushCursorOverlay == null &&
+                                  state.environmentMaskEditMode !=
+                                      EnvironmentMaskEditMode.generatedAdd
                               ? _hoveredTile
                               : null,
                           activeLayerId: state.activeLayerId,
@@ -526,7 +532,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                           environmentBrushCursorOverlay:
                               environmentBrushCursorOverlay,
                           environmentGeneratedAddPreview:
-                              environmentGeneratedAddPreview?.placed,
+                              environmentGeneratedAddPreview,
                           environmentGeneratedDeletePreviewId:
                               environmentGeneratedDeleteTarget?.placed.id,
                         ),
