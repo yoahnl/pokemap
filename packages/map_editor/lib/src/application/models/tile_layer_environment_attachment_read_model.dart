@@ -66,6 +66,24 @@ final class TileLayerEnvironmentAreaSummary {
   final bool hasMissingPreset;
 }
 
+final class TileLayerEnvironmentPaletteItemSummary {
+  const TileLayerEnvironmentPaletteItemSummary({
+    required this.elementId,
+    required this.elementName,
+    required this.weight,
+    required this.collisionMode,
+    required this.hasMissingElement,
+    required this.isSelected,
+  });
+
+  final String elementId;
+  final String? elementName;
+  final int weight;
+  final EnvironmentCollisionMode collisionMode;
+  final bool hasMissingElement;
+  final bool isSelected;
+}
+
 final class TileLayerEnvironmentAttachmentReadModel {
   const TileLayerEnvironmentAttachmentReadModel({
     required this.state,
@@ -96,11 +114,13 @@ final class TileLayerEnvironmentAttachmentReadModel {
     this.canClearGeneratedPlacements = false,
     this.canRegenerate = false,
     this.canShuffle = false,
+    this.canAddGeneratedPlacement = false,
     this.emptyStateTitle = '',
     this.emptyStateMessage = '',
     this.primaryActionLabel,
     this.issues = const [],
     this.areaSummaries = const [],
+    this.selectedAreaPaletteItems = const [],
     this.selectedAreaEffectiveParams,
     this.selectedAreaDefaultParams,
     this.selectedAreaParamsOverride,
@@ -137,11 +157,13 @@ final class TileLayerEnvironmentAttachmentReadModel {
   final bool canClearGeneratedPlacements;
   final bool canRegenerate;
   final bool canShuffle;
+  final bool canAddGeneratedPlacement;
   final String emptyStateTitle;
   final String emptyStateMessage;
   final String? primaryActionLabel;
   final List<TileLayerEnvironmentAttachmentIssue> issues;
   final List<TileLayerEnvironmentAreaSummary> areaSummaries;
+  final List<TileLayerEnvironmentPaletteItemSummary> selectedAreaPaletteItems;
   final EnvironmentGenerationParams? selectedAreaEffectiveParams;
   final EnvironmentGenerationParams? selectedAreaDefaultParams;
   final EnvironmentGenerationParams? selectedAreaParamsOverride;

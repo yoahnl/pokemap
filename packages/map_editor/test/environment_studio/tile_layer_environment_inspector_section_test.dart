@@ -1541,6 +1541,203 @@ void main() {
       expect(shuffled, 0);
     });
 
+    testWidgets('affiche Palette du preset et les éléments disponibles',
+        (tester) async {
+      await _pump(
+        tester,
+        TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.generated,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          generatedPlacementCount: 18,
+          hasGeneratedPlacements: true,
+          selectedAreaPaletteItems: _paletteItems(),
+          canAddGeneratedPlacement: true,
+          emptyStateTitle: 'Placements générés',
+          emptyStateMessage: 'Cette zone contient déjà des placements générés.',
+        ),
+      );
+
+      expect(find.text('Palette du preset'), findsOneWidget);
+      expect(find.text('Élément à ajouter'), findsOneWidget);
+      expect(find.text('Tree'), findsOneWidget);
+      expect(find.text('Big Tree'), findsOneWidget);
+      expect(find.text('Introuvable (missing_bush)'), findsOneWidget);
+    });
+
+    testWidgets('sélection d’un élément généré déclenche le callback',
+        (tester) async {
+      var selected = '';
+      await _pump(
+        tester,
+        TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.generated,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          generatedPlacementCount: 18,
+          hasGeneratedPlacements: true,
+          selectedAreaPaletteItems: _paletteItems(selectedId: 'tree'),
+          canAddGeneratedPlacement: true,
+          emptyStateTitle: 'Placements générés',
+          emptyStateMessage: 'Cette zone contient déjà des placements générés.',
+        ),
+        onSelectGeneratedPlacementElement: (elementId) {
+          selected = elementId;
+        },
+      );
+
+      await tester.ensureVisible(find.text('Big Tree'));
+      await tester.tap(find.text('Big Tree'));
+      await tester.pump();
+
+      expect(selected, 'big_tree');
+    });
+
+    testWidgets('Ajouter un élément généré désactivé sans generated placements',
+        (tester) async {
+      var started = 0;
+      await _pump(
+        tester,
+        TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.ready,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          canGenerate: true,
+          selectedAreaPaletteItems: _paletteItems(selectedId: 'tree'),
+          emptyStateTitle: 'Prêt à générer',
+          emptyStateMessage: 'Le preset, le layer et le masque sont valides.',
+        ),
+        onStartAddGeneratedPlacement: () {
+          started++;
+        },
+      );
+
+      expect(find.text('Ajouter un élément généré'), findsOneWidget);
+      expect(_buttonFor(tester, 'Ajouter un élément généré').onPressed, isNull);
+      await tester.ensureVisible(find.text('Ajouter un élément généré'));
+      await tester.tap(find.text('Ajouter un élément généré'));
+      await tester.pump();
+      expect(started, 0);
+    });
+
+    testWidgets(
+        'Ajouter un élément généré désactivé sans sélection quand plusieurs items',
+        (tester) async {
+      await _pump(
+        tester,
+        TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.generated,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          generatedPlacementCount: 18,
+          hasGeneratedPlacements: true,
+          selectedAreaPaletteItems: _paletteItems(),
+          canAddGeneratedPlacement: false,
+          emptyStateTitle: 'Placements générés',
+          emptyStateMessage: 'Cette zone contient déjà des placements générés.',
+        ),
+        onStartAddGeneratedPlacement: () {},
+      );
+
+      expect(_buttonFor(tester, 'Ajouter un élément généré').onPressed, isNull);
+    });
+
+    testWidgets('Ajouter un élément généré actif avec élément sélectionné',
+        (tester) async {
+      var started = 0;
+      await _pump(
+        tester,
+        TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.generated,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          generatedPlacementCount: 18,
+          hasGeneratedPlacements: true,
+          selectedAreaPaletteItems: _paletteItems(selectedId: 'tree'),
+          canAddGeneratedPlacement: true,
+          emptyStateTitle: 'Placements générés',
+          emptyStateMessage: 'Cette zone contient déjà des placements générés.',
+        ),
+        onStartAddGeneratedPlacement: () {
+          started++;
+        },
+      );
+
+      expect(
+          _buttonFor(tester, 'Ajouter un élément généré').onPressed, isNotNull);
+      await tester.ensureVisible(find.text('Ajouter un élément généré'));
+      await tester.tap(find.text('Ajouter un élément généré'));
+      await tester.pump();
+      expect(started, 1);
+    });
+
+    testWidgets('mode ajout actif affiche stop et aide', (tester) async {
+      var stopped = 0;
+      await _pump(
+        tester,
+        TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.generated,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          generatedPlacementCount: 18,
+          hasGeneratedPlacements: true,
+          selectedAreaPaletteItems: _paletteItems(selectedId: 'tree'),
+          canAddGeneratedPlacement: true,
+          emptyStateTitle: 'Placements générés',
+          emptyStateMessage: 'Cette zone contient déjà des placements générés.',
+        ),
+        isAddingGeneratedPlacement: true,
+        onStopAddGeneratedPlacement: () {
+          stopped++;
+        },
+      );
+
+      expect(find.text('Ajout actif'), findsOneWidget);
+      expect(
+        find.text(
+            'Cliquez sur la carte pour ajouter cet élément à cette zone.'),
+        findsOneWidget,
+      );
+      expect(find.text('Arrêter l’ajout'), findsOneWidget);
+      expect(_buttonFor(tester, 'Arrêter l’ajout').onPressed, isNotNull);
+
+      await tester.ensureVisible(find.text('Arrêter l’ajout'));
+      await tester.tap(find.text('Arrêter l’ajout'));
+      await tester.pump();
+
+      expect(stopped, 1);
+    });
+
     testWidgets(
         'Supprimer un élément généré reste désactivé sans generated placements',
         (tester) async {
@@ -1693,9 +1890,13 @@ Future<void> _pump(
   bool isMaskPaintingActive = false,
   bool isMaskErasingActive = false,
   bool isDeletingGeneratedPlacement = false,
+  bool isAddingGeneratedPlacement = false,
   VoidCallback? onStartMaskPainting,
   VoidCallback? onStartMaskErasing,
   VoidCallback? onStopMaskPainting,
+  ValueChanged<String>? onSelectGeneratedPlacementElement,
+  VoidCallback? onStartAddGeneratedPlacement,
+  VoidCallback? onStopAddGeneratedPlacement,
   VoidCallback? onStartDeleteGeneratedPlacement,
   VoidCallback? onStopDeleteGeneratedPlacement,
   int environmentMaskBrushSize = 1,
@@ -1725,9 +1926,14 @@ Future<void> _pump(
             isMaskPaintingActive: isMaskPaintingActive,
             isMaskErasingActive: isMaskErasingActive,
             isDeletingGeneratedPlacement: isDeletingGeneratedPlacement,
+            isAddingGeneratedPlacement: isAddingGeneratedPlacement,
             onStartMaskPainting: onStartMaskPainting,
             onStartMaskErasing: onStartMaskErasing,
             onStopMaskPainting: onStopMaskPainting,
+            onSelectGeneratedPlacementElement:
+                onSelectGeneratedPlacementElement,
+            onStartAddGeneratedPlacement: onStartAddGeneratedPlacement,
+            onStopAddGeneratedPlacement: onStopAddGeneratedPlacement,
             onStartDeleteGeneratedPlacement: onStartDeleteGeneratedPlacement,
             onStopDeleteGeneratedPlacement: onStopDeleteGeneratedPlacement,
             environmentMaskBrushSize: environmentMaskBrushSize,
@@ -1744,6 +1950,37 @@ Future<void> _pump(
       ),
     ),
   );
+}
+
+List<TileLayerEnvironmentPaletteItemSummary> _paletteItems({
+  String? selectedId,
+}) {
+  return [
+    TileLayerEnvironmentPaletteItemSummary(
+      elementId: 'tree',
+      elementName: 'Tree',
+      weight: 1,
+      collisionMode: EnvironmentCollisionMode.useElementDefault,
+      hasMissingElement: false,
+      isSelected: selectedId == 'tree',
+    ),
+    TileLayerEnvironmentPaletteItemSummary(
+      elementId: 'big_tree',
+      elementName: 'Big Tree',
+      weight: 2,
+      collisionMode: EnvironmentCollisionMode.forceDisabled,
+      hasMissingElement: false,
+      isSelected: selectedId == 'big_tree',
+    ),
+    TileLayerEnvironmentPaletteItemSummary(
+      elementId: 'missing_bush',
+      elementName: null,
+      weight: 1,
+      collisionMode: EnvironmentCollisionMode.useElementDefault,
+      hasMissingElement: true,
+      isSelected: selectedId == 'missing_bush',
+    ),
+  ];
 }
 
 CupertinoButton _buttonFor(WidgetTester tester, String label) {

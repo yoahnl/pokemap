@@ -94,7 +94,7 @@ EnvironmentGeneratedPlacementDeleteTarget?
   required String? selectedAreaId,
   required GridPos pos,
 }) {
-  final envLayer = _activeEnvironmentLayer(map, activeLayerId);
+  final envLayer = _activeOrAttachedEnvironmentLayer(map, activeLayerId);
   if (envLayer == null) return null;
 
   final generatedIds = <String>{};
@@ -146,6 +146,26 @@ EnvironmentLayer? _activeEnvironmentLayer(
   if (layerId == null || layerId.isEmpty) return null;
   for (final layer in map.layers) {
     if (layer.id == layerId && layer is EnvironmentLayer) {
+      return layer;
+    }
+  }
+  return null;
+}
+
+EnvironmentLayer? _activeOrAttachedEnvironmentLayer(
+  MapData map,
+  String? activeLayerId,
+) {
+  final layerId = activeLayerId?.trim();
+  if (layerId == null || layerId.isEmpty) return null;
+  for (final layer in map.layers) {
+    if (layer.id == layerId && layer is EnvironmentLayer) {
+      return layer;
+    }
+  }
+  for (final layer in map.layers) {
+    if (layer is EnvironmentLayer &&
+        layer.content.targetTileLayerId?.trim() == layerId) {
       return layer;
     }
   }

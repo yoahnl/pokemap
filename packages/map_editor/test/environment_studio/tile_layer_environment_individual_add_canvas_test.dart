@@ -2,16 +2,16 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/gestures.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
 import 'package:map_editor/src/features/editor/state/editor_state.dart';
+import 'package:map_editor/src/features/editor/state/environment_generated_placement_add_element_provider.dart';
 import 'package:map_editor/src/features/editor/tools/editor_tool.dart';
 import 'package:map_editor/src/ui/canvas/map_canvas.dart';
 
 void main() {
-  testWidgets('tap canvas supprime un placement généré du TileLayer actif',
+  testWidgets('tap canvas ajoute un placement généré au TileLayer actif',
       (tester) async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
@@ -21,9 +21,12 @@ void main() {
       activeMap: map,
       activeLayerId: 'tiles',
       selectedEnvironmentAreaId: 'area',
-      environmentMaskEditMode: EnvironmentMaskEditMode.generatedDelete,
+      environmentMaskEditMode: EnvironmentMaskEditMode.generatedAdd,
       savedMapSnapshot: map,
     );
+    container
+        .read(environmentGeneratedPlacementAddElementProvider.notifier)
+        .state = 'tree';
 
     await _pumpCanvas(tester, container);
 
@@ -34,20 +37,32 @@ void main() {
     final state = container.read(editorNotifierProvider);
     expect(state.activeLayerId, 'tiles');
     expect(state.selectedEnvironmentAreaId, 'area');
+    expect(state.environmentMaskEditMode, EnvironmentMaskEditMode.generatedAdd);
     expect(
-        state.environmentMaskEditMode, EnvironmentMaskEditMode.generatedDelete);
-    expect(
-      state.activeMap!.placedElements.map((element) => element.id).toList(),
-      const ['manual', 'other_generated'],
+      state.activeMap!.placedElements.map((element) => element.id),
+      contains('env_gen_area_1_1_tree'),
     );
-    expect(_areaById(state.activeMap!, 'area').generatedPlacementIds, isEmpty);
+    final added = state.activeMap!.placedElements.singleWhere(
+      (element) => element.id == 'env_gen_area_1_1_tree',
+    );
+    expect(added.layerId, 'tiles');
+    expect(added.elementId, 'tree');
+    expect(added.pos, const GridPos(x: 1, y: 1));
+    expect(
+      _areaById(state.activeMap!, 'area').generatedPlacementIds,
+      const ['generated_a', 'env_gen_area_1_1_tree'],
+    );
     expect(
       _areaById(state.activeMap!, 'other').generatedPlacementIds,
       const ['other_generated'],
     );
+    expect(
+      state.activeMap!.placedElements.map((element) => element.id),
+      containsAll(const ['manual', 'other_generated']),
+    );
   });
 
-  testWidgets('hover canvas met en surbrillance le placement supprimable',
+  testWidgets('tap canvas avec footprint invalide ne mute pas la MapData',
       (tester) async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
@@ -57,64 +72,24 @@ void main() {
       activeMap: map,
       activeLayerId: 'tiles',
       selectedEnvironmentAreaId: 'area',
-      environmentMaskEditMode: EnvironmentMaskEditMode.generatedDelete,
+      environmentMaskEditMode: EnvironmentMaskEditMode.generatedAdd,
     );
+    container
+        .read(environmentGeneratedPlacementAddElementProvider.notifier)
+        .state = 'big_tree';
 
     await _pumpCanvas(tester, container);
 
     final mapBox = tester.getRect(find.byType(MapCanvas));
-    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
-    addTearDown(gesture.removePointer);
-    await gesture.addPointer(location: mapBox.topLeft + const Offset(48, 48));
-    await gesture.moveTo(mapBox.topLeft + const Offset(48, 48));
-    await tester.pump();
-
-    final customPaint = tester.widget<CustomPaint>(
-      find.byWidgetPredicate(
-        (widget) => widget is CustomPaint && widget.painter is MapGridPainter,
-      ),
-    );
-    final painter = customPaint.painter as MapGridPainter;
-    expect(painter.environmentGeneratedDeletePreviewId, 'generated');
-
-    await gesture.moveTo(mapBox.topLeft + const Offset(16, 16));
-    await tester.pump();
-
-    final manualHoverPaint = tester.widget<CustomPaint>(
-      find.byWidgetPredicate(
-        (widget) => widget is CustomPaint && widget.painter is MapGridPainter,
-      ),
-    );
-    final manualHoverPainter = manualHoverPaint.painter as MapGridPainter;
-    expect(manualHoverPainter.environmentGeneratedDeletePreviewId, isNull);
-  });
-
-  testWidgets('tap canvas sur placement manuel ne supprime rien',
-      (tester) async {
-    final container = ProviderContainer();
-    addTearDown(container.dispose);
-    final map = _map();
-    container.read(editorNotifierProvider.notifier).state = EditorState(
-      project: _manifest(),
-      activeMap: map,
-      activeLayerId: 'tiles',
-      selectedEnvironmentAreaId: 'area',
-      environmentMaskEditMode: EnvironmentMaskEditMode.generatedDelete,
-    );
-
-    await _pumpCanvas(tester, container);
-
-    final mapBox = tester.getRect(find.byType(MapCanvas));
-    await tester.tapAt(mapBox.topLeft + const Offset(16, 16));
+    await tester.tapAt(mapBox.topLeft + const Offset(112, 112));
     await tester.pump();
 
     final state = container.read(editorNotifierProvider);
     expect(state.activeMap, same(map));
     expect(state.activeLayerId, 'tiles');
     expect(state.selectedEnvironmentAreaId, 'area');
-    expect(
-        state.environmentMaskEditMode, EnvironmentMaskEditMode.generatedDelete);
-    expect(state.statusMessage, contains('Aucun placement généré'));
+    expect(state.environmentMaskEditMode, EnvironmentMaskEditMode.generatedAdd);
+    expect(state.errorMessage, contains('Impossible d’ajouter ici'));
   });
 }
 
@@ -176,7 +151,7 @@ MapData _map() {
                 cells: List<bool>.filled(16, true),
               ),
               seed: 11,
-              generatedPlacementIds: const ['generated'],
+              generatedPlacementIds: const ['generated_a'],
             ),
             EnvironmentArea(
               id: 'other',
@@ -202,10 +177,10 @@ MapData _map() {
         pos: GridPos(x: 0, y: 0),
       ),
       MapPlacedElement(
-        id: 'generated',
+        id: 'generated_a',
         layerId: 'tiles',
         elementId: 'tree',
-        pos: GridPos(x: 1, y: 1),
+        pos: GridPos(x: 0, y: 2),
       ),
       MapPlacedElement(
         id: 'other_generated',
@@ -241,6 +216,17 @@ ProjectManifest _manifest() {
           TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
         ],
       ),
+      ProjectElementEntry(
+        id: 'big_tree',
+        name: 'Big Tree',
+        tilesetId: 'nature',
+        categoryId: 'trees',
+        frames: [
+          TilesetVisualFrame(
+            source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
+          ),
+        ],
+      ),
     ],
     surfaceCatalog: ProjectSurfaceCatalog(),
     environmentPresets: [
@@ -250,6 +236,7 @@ ProjectManifest _manifest() {
         templateId: 'forest',
         palette: [
           EnvironmentPaletteItem(elementId: 'tree', weight: 1),
+          EnvironmentPaletteItem(elementId: 'big_tree', weight: 1),
         ],
         defaultParams: EnvironmentGenerationParams(
           density: 1,

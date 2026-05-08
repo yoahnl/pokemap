@@ -548,6 +548,94 @@ void main() {
           contains('2 placements générés référencés sont introuvables.'));
     });
 
+    test(
+        'expose la palette du preset avec la sélection et les éléments manquants',
+        () {
+      final model = buildTileLayerEnvironmentAttachmentReadModel(
+        manifest: _manifest(
+          environmentPresets: [
+            EnvironmentPreset(
+              id: 'forest',
+              name: 'Forêt',
+              templateId: 'forest',
+              palette: [
+                EnvironmentPaletteItem(elementId: 'tree', weight: 2),
+                EnvironmentPaletteItem(elementId: 'missing_bush', weight: 3),
+              ],
+              defaultParams: EnvironmentGenerationParams(
+                density: 1,
+                variation: 0,
+                edgeDensity: 1,
+                minSpacingCells: 0,
+              ),
+              sortOrder: 0,
+            ),
+          ],
+        ),
+        map: _map(
+          areas: [
+            _area(
+              activeCells: 1,
+              generatedPlacementIds: const ['g1'],
+            ),
+          ],
+        ),
+        selectedLayerId: 'tiles',
+        selectedEnvironmentAreaId: 'area1',
+        selectedGeneratedPlacementElementId: 'tree',
+      );
+
+      expect(model.selectedAreaPaletteItems, hasLength(2));
+      expect(model.selectedAreaPaletteItems[0].elementId, 'tree');
+      expect(model.selectedAreaPaletteItems[0].elementName, 'Tree');
+      expect(model.selectedAreaPaletteItems[0].weight, 2);
+      expect(model.selectedAreaPaletteItems[0].hasMissingElement, isFalse);
+      expect(model.selectedAreaPaletteItems[0].isSelected, isTrue);
+      expect(model.selectedAreaPaletteItems[1].elementId, 'missing_bush');
+      expect(model.selectedAreaPaletteItems[1].elementName, isNull);
+      expect(model.selectedAreaPaletteItems[1].hasMissingElement, isTrue);
+      expect(model.canAddGeneratedPlacement, isTrue);
+    });
+
+    test('désactive l’ajout individuel si tous les éléments sont manquants',
+        () {
+      final model = buildTileLayerEnvironmentAttachmentReadModel(
+        manifest: _manifest(
+          environmentPresets: [
+            EnvironmentPreset(
+              id: 'forest',
+              name: 'Forêt',
+              templateId: 'forest',
+              palette: [
+                EnvironmentPaletteItem(elementId: 'missing_tree', weight: 1),
+              ],
+              defaultParams: EnvironmentGenerationParams(
+                density: 1,
+                variation: 0,
+                edgeDensity: 1,
+                minSpacingCells: 0,
+              ),
+              sortOrder: 0,
+            ),
+          ],
+        ),
+        map: _map(
+          areas: [
+            _area(
+              activeCells: 1,
+              generatedPlacementIds: const ['g1'],
+            ),
+          ],
+        ),
+        selectedLayerId: 'tiles',
+        selectedEnvironmentAreaId: 'area1',
+      );
+
+      expect(model.selectedAreaPaletteItems, hasLength(1));
+      expect(model.selectedAreaPaletteItems.single.hasMissingElement, isTrue);
+      expect(model.canAddGeneratedPlacement, isFalse);
+    });
+
     test('retourne un état neutre pour un layer non TileLayer', () {
       final model = buildTileLayerEnvironmentAttachmentReadModel(
         manifest: _manifest(),

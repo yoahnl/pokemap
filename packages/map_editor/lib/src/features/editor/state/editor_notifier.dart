@@ -52,6 +52,7 @@ import '../application/project_session_controller.dart';
 import '../application/project_session_models.dart';
 import '../tools/editor_tool.dart';
 import 'editor_state.dart';
+import 'environment_generated_placement_add_element_provider.dart';
 import 'environment_mask_brush_size_provider.dart';
 import '../../surface_painter/surface_painting_controller.dart';
 
@@ -5512,6 +5513,112 @@ class EditorNotifier extends _$EditorNotifier {
     }
   }
 
+  void selectEnvironmentGeneratedPlacementElementForActiveTileLayer(
+    String elementId,
+  ) {
+    try {
+      final selection = _resolveGeneratedPlacementAddSelectionForTileLayer(
+        requestedElementId: elementId,
+        requireGeneratedPlacements: false,
+        allowImplicitSelection: false,
+      );
+      ref.read(environmentGeneratedPlacementAddElementProvider.notifier).state =
+          selection.item.elementId;
+      state = state.copyWith(
+        activeLayerId: selection.tileLayerId,
+        selectedEnvironmentAreaId: selection.areaId,
+        statusMessage:
+            'Élément à ajouter : ${selection.element.name.isEmpty ? selection.element.id : selection.element.name}.',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de sélectionner cet élément généré : $e',
+      );
+    }
+  }
+
+  void startAddingGeneratedEnvironmentPlacementForActiveTileLayer() {
+    try {
+      final selection = _resolveGeneratedPlacementAddSelectionForTileLayer(
+        requireGeneratedPlacements: true,
+        allowImplicitSelection: true,
+      );
+      ref.read(environmentGeneratedPlacementAddElementProvider.notifier).state =
+          selection.item.elementId;
+      state = state.copyWith(
+        activeLayerId: selection.tileLayerId,
+        selectedEnvironmentAreaId: selection.areaId,
+        environmentMaskEditMode: EnvironmentMaskEditMode.generatedAdd,
+        statusMessage:
+            'Ajout actif : cliquez sur la carte pour ajouter cet élément.',
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        environmentMaskEditMode: null,
+        errorMessage: 'Impossible d’activer l’ajout : $e',
+      );
+    }
+  }
+
+  void stopAddingGeneratedEnvironmentPlacement() {
+    state = state.copyWith(
+      environmentMaskEditMode: null,
+      statusMessage: 'Ajout des éléments générés arrêté.',
+      errorMessage: null,
+    );
+  }
+
+  bool addGeneratedEnvironmentPlacementAtForActiveTileLayer(GridPos pos) {
+    final map = state.activeMap;
+    if (map == null) {
+      return false;
+    }
+    if (state.environmentMaskEditMode != EnvironmentMaskEditMode.generatedAdd) {
+      state = state.copyWith(
+        errorMessage: 'Activez l’ajout d’un élément généré avant de cliquer.',
+      );
+      return false;
+    }
+
+    try {
+      final selection = _resolveGeneratedPlacementAddSelectionForTileLayer(
+        requireGeneratedPlacements: true,
+        allowImplicitSelection: true,
+      );
+      final result =
+          AddTileLayerEnvironmentGeneratedPlacementAtUseCase().execute(
+        map,
+        manifest: selection.project,
+        tileLayerId: selection.tileLayerId,
+        areaId: selection.areaId,
+        elementId: selection.item.elementId,
+        pos: pos,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.map,
+        preferredActiveLayerId: result.tileLayerId,
+        statusMessage: 'Élément généré ajouté.',
+      );
+      state = state.copyWith(
+        activeLayerId: result.tileLayerId,
+        selectedEnvironmentAreaId: result.areaId,
+        environmentMaskEditMode: EnvironmentMaskEditMode.generatedAdd,
+        errorMessage: null,
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        environmentMaskEditMode: EnvironmentMaskEditMode.generatedAdd,
+        errorMessage:
+            'Impossible d’ajouter ici : position hors carte ou footprint invalide. $e',
+      );
+      return false;
+    }
+  }
+
   void setEnvironmentMaskBrushSize(int size) {
     if (!isValidEnvironmentMaskBrushSize(size)) {
       state = state.copyWith(
@@ -7573,6 +7680,9 @@ class EditorNotifier extends _$EditorNotifier {
       return false;
     }
     final activeLayer = _findLayerById(map, activeLayerId);
+    if (activeLayer is TileLayer) {
+      return addGeneratedEnvironmentPlacementAtForActiveTileLayer(pos);
+    }
     if (activeLayer is! EnvironmentLayer) {
       return false;
     }
@@ -7917,6 +8027,121 @@ class EditorNotifier extends _$EditorNotifier {
         for (final placed in map.placedElements)
           if (placed.id != placedElementId) placed,
       ],
+    );
+  }
+
+  _TileLayerGeneratedPlacementAddSelection
+      _resolveGeneratedPlacementAddSelectionForTileLayer({
+    String? requestedElementId,
+    required bool requireGeneratedPlacements,
+    required bool allowImplicitSelection,
+  }) {
+    final map = state.activeMap;
+    if (map == null) {
+      throw const EditorValidationException('Aucune carte active.');
+    }
+    final project = state.project;
+    if (project == null) {
+      throw const EditorValidationException('Aucun projet chargé.');
+    }
+    final layerId = state.activeLayerId?.trim();
+    if (layerId == null || layerId.isEmpty) {
+      throw const EditorValidationException(
+        'Sélectionnez un TileLayer avant d’ajouter un élément généré.',
+      );
+    }
+    final activeLayer = _findLayerById(map, layerId);
+    if (activeLayer is! TileLayer) {
+      throw const EditorValidationException(
+        'Sélectionnez un TileLayer avant d’ajouter un élément généré.',
+      );
+    }
+    final areaId = _effectiveEnvironmentAreaIdForActiveTileLayer(map, layerId);
+    if (areaId == null || areaId.isEmpty) {
+      throw const EditorValidationException(
+        'Sélectionnez une zone d’environnement avant d’ajouter un élément généré.',
+      );
+    }
+    final target = resolveEnvironmentMaskPaintTarget(
+      map: map,
+      activeLayerId: layerId,
+      selectedAreaId: areaId,
+    );
+    if (target == null) {
+      throw const EditorValidationException(
+        'Activez d’abord l’environnement sur ce layer.',
+      );
+    }
+    if (requireGeneratedPlacements &&
+        target.area.generatedPlacementIds.isEmpty) {
+      throw const EditorValidationException(
+        'Générez d’abord la zone avant d’affiner manuellement.',
+      );
+    }
+    final preset = _environmentPresetById(project, target.area.presetId);
+    if (preset == null) {
+      throw const EditorValidationException('Preset introuvable.');
+    }
+
+    final selectedId = (requestedElementId ??
+            ref.read(environmentGeneratedPlacementAddElementProvider))
+        ?.trim();
+    if (selectedId != null && selectedId.isNotEmpty) {
+      for (final item in preset.palette) {
+        if (item.elementId != selectedId) continue;
+        final element = _projectElementById(project, item.elementId);
+        if (element == null) {
+          throw const EditorValidationException(
+            'Élément introuvable dans le projet.',
+          );
+        }
+        return _TileLayerGeneratedPlacementAddSelection(
+          project: project,
+          tileLayerId: activeLayer.id,
+          environmentLayerId: target.environmentLayerId,
+          areaId: target.areaId,
+          item: item,
+          element: element,
+        );
+      }
+      throw const EditorValidationException(
+        'L’élément choisi n’appartient pas à la palette du preset.',
+      );
+    }
+
+    if (!allowImplicitSelection) {
+      throw const EditorValidationException(
+        'Choisissez un élément à ajouter.',
+      );
+    }
+
+    final available =
+        <({EnvironmentPaletteItem item, ProjectElementEntry element})>[];
+    final targetTilesetId = _effectiveTileLayerTilesetId(activeLayer, map);
+    for (final item in preset.palette) {
+      final element = _projectElementById(project, item.elementId);
+      if (element == null) continue;
+      final elementTilesetId = _elementPrimaryTilesetId(element);
+      if (targetTilesetId.isNotEmpty &&
+          elementTilesetId.isNotEmpty &&
+          targetTilesetId != elementTilesetId) {
+        continue;
+      }
+      available.add((item: item, element: element));
+    }
+    if (available.length != 1) {
+      throw const EditorValidationException(
+        'Choisissez un élément à ajouter.',
+      );
+    }
+    final implicit = available.single;
+    return _TileLayerGeneratedPlacementAddSelection(
+      project: project,
+      tileLayerId: activeLayer.id,
+      environmentLayerId: target.environmentLayerId,
+      areaId: target.areaId,
+      item: implicit.item,
+      element: implicit.element,
     );
   }
 
@@ -8603,4 +8828,22 @@ class _ActivePathLayerContext {
   final MapData map;
   final String layerId;
   final PathLayer layer;
+}
+
+class _TileLayerGeneratedPlacementAddSelection {
+  const _TileLayerGeneratedPlacementAddSelection({
+    required this.project,
+    required this.tileLayerId,
+    required this.environmentLayerId,
+    required this.areaId,
+    required this.item,
+    required this.element,
+  });
+
+  final ProjectManifest project;
+  final String tileLayerId;
+  final String environmentLayerId;
+  final String areaId;
+  final EnvironmentPaletteItem item;
+  final ProjectElementEntry element;
 }

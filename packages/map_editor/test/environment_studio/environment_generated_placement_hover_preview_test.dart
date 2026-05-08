@@ -76,6 +76,44 @@ void main() {
       expect(target!.placed.id, 'generated_top');
       expect(target.element?.id, 'tree_large');
     });
+
+    test('resolves delete target from active TileLayer attachment', () {
+      final ctx = _previewContext();
+      final map = ctx.map.copyWith(
+        placedElements: const [
+          MapPlacedElement(
+            id: 'manual_tree',
+            layerId: 'tiles',
+            elementId: 'tree_large',
+            pos: GridPos(x: 2, y: 2),
+          ),
+          MapPlacedElement(
+            id: 'generated_bottom',
+            layerId: 'tiles',
+            elementId: 'tree_large',
+            pos: GridPos(x: 1, y: 1),
+          ),
+          MapPlacedElement(
+            id: 'generated_top',
+            layerId: 'tiles',
+            elementId: 'tree_large',
+            pos: GridPos(x: 2, y: 2),
+          ),
+        ],
+      );
+
+      final target = resolveEnvironmentGeneratedPlacementDeleteTarget(
+        map: map,
+        manifest: ctx.manifest,
+        activeLayerId: 'tiles',
+        selectedAreaId: 'area one',
+        pos: const GridPos(x: 2, y: 2),
+      );
+
+      expect(target, isNotNull);
+      expect(target!.placed.id, 'generated_top');
+      expect(target.element?.id, 'tree_large');
+    });
   });
 }
 

@@ -8,6 +8,7 @@ TileLayerEnvironmentAttachmentReadModel
   required MapData? map,
   required String? selectedLayerId,
   required String? selectedEnvironmentAreaId,
+  String? selectedGeneratedPlacementElementId,
 }) {
   if (manifest == null) {
     return const TileLayerEnvironmentAttachmentReadModel(
@@ -60,6 +61,7 @@ TileLayerEnvironmentAttachmentReadModel
       map: map,
       selectedTileLayer: selectedLayer,
       selectedEnvironmentAreaId: selectedEnvironmentAreaId,
+      selectedGeneratedPlacementElementId: selectedGeneratedPlacementElementId,
     );
   }
 
@@ -69,6 +71,7 @@ TileLayerEnvironmentAttachmentReadModel
       map: map,
       selectedEnvironmentLayer: selectedLayer,
       selectedEnvironmentAreaId: selectedEnvironmentAreaId,
+      selectedGeneratedPlacementElementId: selectedGeneratedPlacementElementId,
     );
   }
 
@@ -87,6 +90,7 @@ TileLayerEnvironmentAttachmentReadModel _buildFromTileLayerSelection({
   required MapData map,
   required TileLayer selectedTileLayer,
   required String? selectedEnvironmentAreaId,
+  required String? selectedGeneratedPlacementElementId,
 }) {
   final attachments = _environmentLayersTargeting(map, selectedTileLayer.id);
   if (attachments.isEmpty) {
@@ -124,6 +128,7 @@ TileLayerEnvironmentAttachmentReadModel _buildFromTileLayerSelection({
     activeTileLayer: selectedTileLayer,
     environmentLayer: attachments.first,
     selectedEnvironmentAreaId: selectedEnvironmentAreaId,
+    selectedGeneratedPlacementElementId: selectedGeneratedPlacementElementId,
     isLegacyEnvironmentLayerSelection: false,
     attachmentCount: attachments.length,
     issues: issues,
@@ -136,6 +141,7 @@ TileLayerEnvironmentAttachmentReadModel
   required MapData map,
   required EnvironmentLayer selectedEnvironmentLayer,
   required String? selectedEnvironmentAreaId,
+  required String? selectedGeneratedPlacementElementId,
 }) {
   final issues = <TileLayerEnvironmentAttachmentIssue>[
     const TileLayerEnvironmentAttachmentIssue(
@@ -227,6 +233,7 @@ TileLayerEnvironmentAttachmentReadModel
     activeTileLayer: targetLayer,
     environmentLayer: selectedEnvironmentLayer,
     selectedEnvironmentAreaId: selectedEnvironmentAreaId,
+    selectedGeneratedPlacementElementId: selectedGeneratedPlacementElementId,
     isLegacyEnvironmentLayerSelection: true,
     attachmentCount: 1,
     issues: issues,
@@ -241,6 +248,7 @@ TileLayerEnvironmentAttachmentReadModel _buildFromResolvedAttachment({
   required TileLayer activeTileLayer,
   required EnvironmentLayer environmentLayer,
   required String? selectedEnvironmentAreaId,
+  required String? selectedGeneratedPlacementElementId,
   required bool isLegacyEnvironmentLayerSelection,
   required int attachmentCount,
   required List<TileLayerEnvironmentAttachmentIssue> issues,
@@ -342,6 +350,16 @@ TileLayerEnvironmentAttachmentReadModel _buildFromResolvedAttachment({
   final hasMask = maskActiveCellCount > 0;
   final generatedPlacementIds = area.generatedPlacementIds;
   final generatedPlacementCount = generatedPlacementIds.length;
+  final selectedPaletteItems = preset == null
+      ? const <TileLayerEnvironmentPaletteItemSummary>[]
+      : _buildPaletteSummaries(
+          manifest: manifest,
+          preset: preset,
+          selectedGeneratedPlacementElementId:
+              selectedGeneratedPlacementElementId,
+        );
+  final canAddGeneratedPlacement = generatedPlacementCount > 0 &&
+      _hasSelectablePaletteItem(selectedPaletteItems);
   final existingGeneratedPlacementCount =
       generatedPlacementIds.where((id) => placedElementIds.contains(id)).length;
   final missingGeneratedPlacementCount =
@@ -381,6 +399,8 @@ TileLayerEnvironmentAttachmentReadModel _buildFromResolvedAttachment({
       existingGeneratedPlacementCount: existingGeneratedPlacementCount,
       missingGeneratedPlacementCount: missingGeneratedPlacementCount,
       areaSummaries: areaSummariesFor(area.id),
+      selectedAreaPaletteItems: selectedPaletteItems,
+      canAddGeneratedPlacement: false,
       canPaintMask: true,
       canGenerate: false,
       canClearGeneratedPlacements: generatedPlacementCount > 0,
@@ -410,6 +430,8 @@ TileLayerEnvironmentAttachmentReadModel _buildFromResolvedAttachment({
       existingGeneratedPlacementCount: existingGeneratedPlacementCount,
       missingGeneratedPlacementCount: missingGeneratedPlacementCount,
       areaSummaries: areaSummariesFor(area.id),
+      selectedAreaPaletteItems: selectedPaletteItems,
+      canAddGeneratedPlacement: false,
       canPaintMask: true,
       canGenerate: false,
       canClearGeneratedPlacements: generatedPlacementCount > 0,
@@ -438,6 +460,8 @@ TileLayerEnvironmentAttachmentReadModel _buildFromResolvedAttachment({
       existingGeneratedPlacementCount: existingGeneratedPlacementCount,
       missingGeneratedPlacementCount: missingGeneratedPlacementCount,
       areaSummaries: areaSummariesFor(area.id),
+      selectedAreaPaletteItems: selectedPaletteItems,
+      canAddGeneratedPlacement: canAddGeneratedPlacement,
       canPaintMask: true,
       canGenerate: false,
       canClearGeneratedPlacements: true,
@@ -466,6 +490,8 @@ TileLayerEnvironmentAttachmentReadModel _buildFromResolvedAttachment({
     existingGeneratedPlacementCount: 0,
     missingGeneratedPlacementCount: 0,
     areaSummaries: areaSummariesFor(area.id),
+    selectedAreaPaletteItems: selectedPaletteItems,
+    canAddGeneratedPlacement: false,
     canPaintMask: true,
     canGenerate: true,
     canClearGeneratedPlacements: false,
@@ -494,6 +520,9 @@ TileLayerEnvironmentAttachmentReadModel _areaReadModel({
   required int existingGeneratedPlacementCount,
   required int missingGeneratedPlacementCount,
   required List<TileLayerEnvironmentAreaSummary> areaSummaries,
+  required List<TileLayerEnvironmentPaletteItemSummary>
+      selectedAreaPaletteItems,
+  required bool canAddGeneratedPlacement,
   required bool canPaintMask,
   required bool canGenerate,
   required bool canClearGeneratedPlacements,
@@ -533,10 +562,12 @@ TileLayerEnvironmentAttachmentReadModel _areaReadModel({
     canClearGeneratedPlacements: canClearGeneratedPlacements,
     canRegenerate: canRegenerate,
     canShuffle: canShuffle,
+    canAddGeneratedPlacement: canAddGeneratedPlacement,
     emptyStateTitle: emptyStateTitle,
     emptyStateMessage: emptyStateMessage,
     primaryActionLabel: primaryActionLabel,
     issues: List.unmodifiable(issues),
+    selectedAreaPaletteItems: selectedAreaPaletteItems,
     selectedAreaEffectiveParams:
         preset == null ? null : area.paramsOverride ?? preset.defaultParams,
     selectedAreaDefaultParams: preset?.defaultParams,
@@ -594,6 +625,53 @@ TileLayerEnvironmentAreaSummary _areaSummary({
   );
 }
 
+List<TileLayerEnvironmentPaletteItemSummary> _buildPaletteSummaries({
+  required ProjectManifest manifest,
+  required EnvironmentPreset preset,
+  required String? selectedGeneratedPlacementElementId,
+}) {
+  final selectedId = selectedGeneratedPlacementElementId?.trim();
+  return List.unmodifiable(
+    [
+      for (final item in preset.palette)
+        _paletteSummary(
+          manifest: manifest,
+          item: item,
+          isSelected: selectedId != null &&
+              selectedId.isNotEmpty &&
+              item.elementId == selectedId,
+        ),
+    ],
+  );
+}
+
+TileLayerEnvironmentPaletteItemSummary _paletteSummary({
+  required ProjectManifest manifest,
+  required EnvironmentPaletteItem item,
+  required bool isSelected,
+}) {
+  final element = _findProjectElement(manifest, item.elementId);
+  return TileLayerEnvironmentPaletteItemSummary(
+    elementId: item.elementId,
+    elementName: element?.name,
+    weight: item.weight,
+    collisionMode: item.collisionMode,
+    hasMissingElement: element == null,
+    isSelected: isSelected,
+  );
+}
+
+bool _hasSelectablePaletteItem(
+  List<TileLayerEnvironmentPaletteItemSummary> items,
+) {
+  final available = [
+    for (final item in items)
+      if (!item.hasMissingElement) item,
+  ];
+  if (available.length == 1) return true;
+  return available.any((item) => item.isSelected);
+}
+
 MapLayer? _findLayerById(MapData map, String layerId) {
   for (final layer in map.layers) {
     if (layer.id == layerId) {
@@ -613,6 +691,16 @@ List<EnvironmentLayer> _environmentLayersTargeting(
           layer.content.targetTileLayerId == tileLayerId)
         layer,
   ];
+}
+
+ProjectElementEntry? _findProjectElement(
+  ProjectManifest manifest,
+  String elementId,
+) {
+  for (final element in manifest.elements) {
+    if (element.id == elementId) return element;
+  }
+  return null;
 }
 
 EnvironmentPreset? _findEnvironmentPreset(

@@ -20,9 +20,13 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
     this.isMaskPaintingActive = false,
     this.isMaskErasingActive = false,
     this.isDeletingGeneratedPlacement = false,
+    this.isAddingGeneratedPlacement = false,
     this.onStartMaskPainting,
     this.onStartMaskErasing,
     this.onStopMaskPainting,
+    this.onSelectGeneratedPlacementElement,
+    this.onStartAddGeneratedPlacement,
+    this.onStopAddGeneratedPlacement,
     this.onStartDeleteGeneratedPlacement,
     this.onStopDeleteGeneratedPlacement,
     this.environmentMaskBrushSize = kDefaultEnvironmentMaskBrushSize,
@@ -46,9 +50,13 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
   final bool isMaskPaintingActive;
   final bool isMaskErasingActive;
   final bool isDeletingGeneratedPlacement;
+  final bool isAddingGeneratedPlacement;
   final VoidCallback? onStartMaskPainting;
   final VoidCallback? onStartMaskErasing;
   final VoidCallback? onStopMaskPainting;
+  final ValueChanged<String>? onSelectGeneratedPlacementElement;
+  final VoidCallback? onStartAddGeneratedPlacement;
+  final VoidCallback? onStopAddGeneratedPlacement;
   final VoidCallback? onStartDeleteGeneratedPlacement;
   final VoidCallback? onStopDeleteGeneratedPlacement;
   final int environmentMaskBrushSize;
@@ -64,8 +72,9 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMaskEditingActive = isMaskPaintingActive || isMaskErasingActive;
-    final isEnvironmentActionActive =
-        isMaskEditingActive || isDeletingGeneratedPlacement;
+    final isEnvironmentActionActive = isMaskEditingActive ||
+        isDeletingGeneratedPlacement ||
+        isAddingGeneratedPlacement;
 
     return SingleChildScrollView(
       padding: kInspectorTileBodyPadding,
@@ -99,6 +108,10 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
             const SizedBox(height: 12),
             const _ActiveGeneratedPlacementDeleteBanner(),
           ],
+          if (isAddingGeneratedPlacement) ...[
+            const SizedBox(height: 12),
+            const _ActiveGeneratedPlacementAddBanner(),
+          ],
           if (readModel.canPaintMask || isEnvironmentActionActive) ...[
             const SizedBox(height: 12),
             _BrushSizeSelector(
@@ -113,6 +126,14 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
               onSetGenerationParams: onSetGenerationParams,
               onResetGenerationParams: onResetGenerationParams,
               onSetSeed: onSetSeed,
+            ),
+          ],
+          if (_shouldShowGeneratedPlacementPalette(readModel)) ...[
+            const SizedBox(height: 12),
+            _GeneratedPlacementPaletteSection(
+              items: readModel.selectedAreaPaletteItems,
+              onSelectGeneratedPlacementElement:
+                  onSelectGeneratedPlacementElement,
             ),
           ],
           const SizedBox(height: 12),
@@ -133,9 +154,12 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
             isMaskPaintingActive: isMaskPaintingActive,
             isMaskErasingActive: isMaskErasingActive,
             isDeletingGeneratedPlacement: isDeletingGeneratedPlacement,
+            isAddingGeneratedPlacement: isAddingGeneratedPlacement,
             onStartMaskPainting: onStartMaskPainting,
             onStartMaskErasing: onStartMaskErasing,
             onStopMaskPainting: onStopMaskPainting,
+            onStartAddGeneratedPlacement: onStartAddGeneratedPlacement,
+            onStopAddGeneratedPlacement: onStopAddGeneratedPlacement,
             onStartDeleteGeneratedPlacement: onStartDeleteGeneratedPlacement,
             onStopDeleteGeneratedPlacement: onStopDeleteGeneratedPlacement,
             onGenerateEnvironment: onGenerateEnvironment,
@@ -363,6 +387,50 @@ class _ActiveGeneratedPlacementDeleteBanner extends StatelessWidget {
   }
 }
 
+class _ActiveGeneratedPlacementAddBanner extends StatelessWidget {
+  const _ActiveGeneratedPlacementAddBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: EditorChrome.inspectorJoyMint.withValues(alpha: 0.12),
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: EditorChrome.inspectorJoyMint.withValues(alpha: 0.42),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Ajout actif',
+            style: TextStyle(
+              color: EditorChrome.primaryLabel(context),
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            'Cliquez sur la carte pour ajouter cet élément à cette zone.',
+            style: TextStyle(
+              color: EditorChrome.subtleLabel(context),
+              fontSize: 11,
+              height: 1.25,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _SummaryRows extends StatelessWidget {
   const _SummaryRows({required this.readModel});
 
@@ -521,6 +589,139 @@ class _BrushSizeButton extends StatelessWidget {
                 ? CupertinoColors.white
                 : EditorChrome.primaryLabel(context),
             fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GeneratedPlacementPaletteSection extends StatelessWidget {
+  const _GeneratedPlacementPaletteSection({
+    required this.items,
+    required this.onSelectGeneratedPlacementElement,
+  });
+
+  final List<TileLayerEnvironmentPaletteItemSummary> items;
+  final ValueChanged<String>? onSelectGeneratedPlacementElement;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: EditorChrome.inspectorJoyMint.withValues(alpha: 0.06),
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: EditorChrome.inspectorJoyMint.withValues(alpha: 0.22),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Palette du preset',
+            style: TextStyle(
+              color: label,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            items.isEmpty
+                ? 'Aucun élément disponible dans le preset.'
+                : 'Élément à ajouter',
+            style: TextStyle(
+              color: subtle,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              height: 1.25,
+            ),
+          ),
+          if (items.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final item in items)
+                  _GeneratedPlacementPaletteItemChip(
+                    item: item,
+                    onSelectGeneratedPlacementElement:
+                        onSelectGeneratedPlacementElement,
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _GeneratedPlacementPaletteItemChip extends StatelessWidget {
+  const _GeneratedPlacementPaletteItemChip({
+    required this.item,
+    required this.onSelectGeneratedPlacementElement,
+  });
+
+  final TileLayerEnvironmentPaletteItemSummary item;
+  final ValueChanged<String>? onSelectGeneratedPlacementElement;
+
+  @override
+  Widget build(BuildContext context) {
+    const accent = EditorChrome.inspectorJoyMint;
+    final selected = item.isSelected;
+    final enabled =
+        !item.hasMissingElement && onSelectGeneratedPlacementElement != null;
+    final foreground = enabled
+        ? EditorChrome.primaryLabel(context)
+        : EditorChrome.subtleLabel(context);
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: const Size(44, 28),
+      onPressed: enabled
+          ? () => onSelectGeneratedPlacementElement!(item.elementId)
+          : null,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 28, maxWidth: 170),
+        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+        decoration: BoxDecoration(
+          color: EditorChrome.largeIslandSurfaceColor(
+            context,
+            tint: accent.withValues(
+              alpha: selected
+                  ? 0.18
+                  : enabled
+                      ? 0.08
+                      : 0.03,
+            ),
+          ),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: accent.withValues(
+              alpha: selected
+                  ? 0.62
+                  : enabled
+                      ? 0.28
+                      : 0.12,
+            ),
+          ),
+        ),
+        child: Text(
+          _paletteItemLabel(item),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: foreground,
+            fontSize: 10.5,
             fontWeight: FontWeight.w800,
           ),
         ),
@@ -1352,9 +1553,12 @@ class _FutureActions extends StatelessWidget {
     required this.isMaskPaintingActive,
     required this.isMaskErasingActive,
     required this.isDeletingGeneratedPlacement,
+    required this.isAddingGeneratedPlacement,
     required this.onStartMaskPainting,
     required this.onStartMaskErasing,
     required this.onStopMaskPainting,
+    required this.onStartAddGeneratedPlacement,
+    required this.onStopAddGeneratedPlacement,
     required this.onStartDeleteGeneratedPlacement,
     required this.onStopDeleteGeneratedPlacement,
     required this.onGenerateEnvironment,
@@ -1371,9 +1575,12 @@ class _FutureActions extends StatelessWidget {
   final bool isMaskPaintingActive;
   final bool isMaskErasingActive;
   final bool isDeletingGeneratedPlacement;
+  final bool isAddingGeneratedPlacement;
   final VoidCallback? onStartMaskPainting;
   final VoidCallback? onStartMaskErasing;
   final VoidCallback? onStopMaskPainting;
+  final VoidCallback? onStartAddGeneratedPlacement;
+  final VoidCallback? onStopAddGeneratedPlacement;
   final VoidCallback? onStartDeleteGeneratedPlacement;
   final VoidCallback? onStopDeleteGeneratedPlacement;
   final VoidCallback? onGenerateEnvironment;
@@ -1385,8 +1592,9 @@ class _FutureActions extends StatelessWidget {
   Widget build(BuildContext context) {
     final actions = <_ActionData>[];
     final isMaskEditingActive = isMaskPaintingActive || isMaskErasingActive;
-    final isEnvironmentActionActive =
-        isMaskEditingActive || isDeletingGeneratedPlacement;
+    final isEnvironmentActionActive = isMaskEditingActive ||
+        isDeletingGeneratedPlacement ||
+        isAddingGeneratedPlacement;
     if (readModel.canEnableEnvironment) {
       actions.add(
         _ActionData(
@@ -1411,7 +1619,16 @@ class _FutureActions extends StatelessWidget {
         ),
       );
     }
-    if (isDeletingGeneratedPlacement) {
+    if (isAddingGeneratedPlacement) {
+      actions.add(
+        _ActionData(
+          icon: CupertinoIcons.stop_circle,
+          label: 'Arrêter l’ajout',
+          enabled: onStopAddGeneratedPlacement != null,
+          onPressed: onStopAddGeneratedPlacement,
+        ),
+      );
+    } else if (isDeletingGeneratedPlacement) {
       actions.add(
         _ActionData(
           icon: CupertinoIcons.stop_circle,
@@ -1494,6 +1711,23 @@ class _FutureActions extends StatelessWidget {
               !readModel.hasErrors &&
               onShuffleEnvironment != null,
           onPressed: readModel.canShuffle ? onShuffleEnvironment : null,
+        ),
+      );
+    }
+    if (!isEnvironmentActionActive &&
+        (readModel.hasGeneratedPlacements ||
+            readModel.canPaintMask ||
+            readModel.selectedAreaPaletteItems.isNotEmpty)) {
+      actions.add(
+        _ActionData(
+          icon: CupertinoIcons.plus_circle,
+          label: 'Ajouter un élément généré',
+          enabled: readModel.canAddGeneratedPlacement &&
+              !readModel.hasErrors &&
+              onStartAddGeneratedPlacement != null,
+          onPressed: readModel.canAddGeneratedPlacement
+              ? onStartAddGeneratedPlacement
+              : null,
         ),
       );
     }
@@ -1611,6 +1845,25 @@ bool _shouldShowGenerationParamsSection(
           model.selectedAreaSeed != null ||
           model.selectedAreaParamsOverride != null ||
           model.state == TileLayerEnvironmentAttachmentState.missingPreset);
+}
+
+bool _shouldShowGeneratedPlacementPalette(
+  TileLayerEnvironmentAttachmentReadModel model,
+) {
+  return model.selectedPresetName != null &&
+      (model.hasGeneratedPlacements ||
+          model.selectedAreaPaletteItems.isNotEmpty);
+}
+
+String _paletteItemLabel(TileLayerEnvironmentPaletteItemSummary item) {
+  if (item.hasMissingElement) {
+    return 'Introuvable (${item.elementId})';
+  }
+  final name = item.elementName?.trim();
+  if (name == null || name.isEmpty) {
+    return item.elementId;
+  }
+  return name;
 }
 
 TileLayerEnvironmentPresetOption? _selectedPreset(
