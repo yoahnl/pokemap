@@ -7,6 +7,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../features/editor/state/editor_notifier.dart';
 import '../shared/cupertino_editor_widgets.dart';
+import 'layers_panel_presentation.dart';
 
 enum _LayerCreationKind {
   tile,
@@ -323,11 +324,16 @@ class _LayerList extends StatelessWidget {
       );
     }
 
+    final rows = buildLayerPanelPresentationRows(
+      map,
+      activeLayerId: activeLayerId,
+    );
+
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
-      itemCount: map.layers.length + 1,
+      itemCount: rows.length + 1,
       itemBuilder: (context, index) {
-        if (index == map.layers.length) {
+        if (index == rows.length) {
           return DragTarget<String>(
             onWillAcceptWithDetails: (_) => true,
             onAcceptWithDetails: (details) {
@@ -362,10 +368,11 @@ class _LayerList extends StatelessWidget {
           );
         }
 
-        final layer = map.layers[index];
-        final isActive = layer.id == activeLayerId;
-        final canMoveUp = index > 0;
-        final canMoveDown = index < map.layers.length - 1;
+        final row = rows[index];
+        final layer = row.layer;
+        final isActive = row.isActive;
+        final canMoveUp = row.layerIndex > 0;
+        final canMoveDown = row.layerIndex < map.layers.length - 1;
 
         final inactiveFill = Color.lerp(
           EditorChrome.islandFillElevated(context),
@@ -383,7 +390,7 @@ class _LayerList extends StatelessWidget {
         return DragTarget<String>(
           onWillAcceptWithDetails: (_) => true,
           onAcceptWithDetails: (details) {
-            notifier.moveMapLayerBeforeIndex(details.data, index);
+            notifier.moveMapLayerBeforeIndex(details.data, row.layerIndex);
           },
           builder: (context, candidateData, _) {
             final dropHovering = candidateData.isNotEmpty;
@@ -533,6 +540,32 @@ class _LayerList extends StatelessWidget {
                                                 color: metaColor,
                                               ),
                                             ),
+                                            if (row.environmentAttachmentLabel !=
+                                                null) ...[
+                                              const SizedBox(height: 4),
+                                              _LayerStatusText(
+                                                row.environmentAttachmentLabel!,
+                                                color: metaColor,
+                                              ),
+                                            ],
+                                            if (row.technicalEnvironmentSelectionLabel !=
+                                                null) ...[
+                                              const SizedBox(height: 3),
+                                              _LayerStatusText(
+                                                row.technicalEnvironmentSelectionLabel!,
+                                                color: metaColor,
+                                              ),
+                                            ],
+                                            if (row.environmentWarningLabel !=
+                                                null) ...[
+                                              const SizedBox(height: 3),
+                                              _LayerStatusText(
+                                                row.environmentWarningLabel!,
+                                                color: CupertinoColors
+                                                    .systemOrange
+                                                    .resolveFrom(context),
+                                              ),
+                                            ],
                                           ],
                                         ),
                                       ),
@@ -720,6 +753,30 @@ class _LayerList extends StatelessWidget {
     );
     if (!shouldDelete) return;
     notifier.deleteMapLayer(layer.id);
+  }
+}
+
+class _LayerStatusText extends StatelessWidget {
+  const _LayerStatusText(
+    this.text, {
+    required this.color,
+  });
+
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        fontSize: 10,
+        fontWeight: FontWeight.w600,
+        color: color,
+      ),
+    );
   }
 }
 
