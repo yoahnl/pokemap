@@ -19,9 +19,12 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
     this.onSelectEnvironmentArea,
     this.isMaskPaintingActive = false,
     this.isMaskErasingActive = false,
+    this.isDeletingGeneratedPlacement = false,
     this.onStartMaskPainting,
     this.onStartMaskErasing,
     this.onStopMaskPainting,
+    this.onStartDeleteGeneratedPlacement,
+    this.onStopDeleteGeneratedPlacement,
     this.environmentMaskBrushSize = kDefaultEnvironmentMaskBrushSize,
     this.onSetEnvironmentMaskBrushSize,
     this.onSetGenerationParams,
@@ -42,9 +45,12 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
   final ValueChanged<String>? onSelectEnvironmentArea;
   final bool isMaskPaintingActive;
   final bool isMaskErasingActive;
+  final bool isDeletingGeneratedPlacement;
   final VoidCallback? onStartMaskPainting;
   final VoidCallback? onStartMaskErasing;
   final VoidCallback? onStopMaskPainting;
+  final VoidCallback? onStartDeleteGeneratedPlacement;
+  final VoidCallback? onStopDeleteGeneratedPlacement;
   final int environmentMaskBrushSize;
   final ValueChanged<int>? onSetEnvironmentMaskBrushSize;
   final ValueChanged<EnvironmentGenerationParams>? onSetGenerationParams;
@@ -58,6 +64,8 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMaskEditingActive = isMaskPaintingActive || isMaskErasingActive;
+    final isEnvironmentActionActive =
+        isMaskEditingActive || isDeletingGeneratedPlacement;
 
     return SingleChildScrollView(
       padding: kInspectorTileBodyPadding,
@@ -87,7 +95,11 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
             const SizedBox(height: 12),
             _ActiveMaskEditingBanner(isErasing: isMaskErasingActive),
           ],
-          if (readModel.canPaintMask || isMaskEditingActive) ...[
+          if (isDeletingGeneratedPlacement) ...[
+            const SizedBox(height: 12),
+            const _ActiveGeneratedPlacementDeleteBanner(),
+          ],
+          if (readModel.canPaintMask || isEnvironmentActionActive) ...[
             const SizedBox(height: 12),
             _BrushSizeSelector(
               selectedSize: environmentMaskBrushSize,
@@ -120,9 +132,12 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
             onCreateArea: onCreateArea,
             isMaskPaintingActive: isMaskPaintingActive,
             isMaskErasingActive: isMaskErasingActive,
+            isDeletingGeneratedPlacement: isDeletingGeneratedPlacement,
             onStartMaskPainting: onStartMaskPainting,
             onStartMaskErasing: onStartMaskErasing,
             onStopMaskPainting: onStopMaskPainting,
+            onStartDeleteGeneratedPlacement: onStartDeleteGeneratedPlacement,
+            onStopDeleteGeneratedPlacement: onStopDeleteGeneratedPlacement,
             onGenerateEnvironment: onGenerateEnvironment,
             onClearGeneratedPlacements: onClearGeneratedPlacements,
             onRegenerateEnvironment: onRegenerateEnvironment,
@@ -291,6 +306,50 @@ class _ActiveMaskEditingBanner extends StatelessWidget {
           const SizedBox(height: 3),
           Text(
             message,
+            style: TextStyle(
+              color: EditorChrome.subtleLabel(context),
+              fontSize: 11,
+              height: 1.25,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActiveGeneratedPlacementDeleteBanner extends StatelessWidget {
+  const _ActiveGeneratedPlacementDeleteBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: EditorChrome.inspectorJoyMint.withValues(alpha: 0.12),
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: EditorChrome.inspectorJoyMint.withValues(alpha: 0.42),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Suppression active',
+            style: TextStyle(
+              color: EditorChrome.primaryLabel(context),
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            'Cliquez un élément généré pour le retirer de cette zone.',
             style: TextStyle(
               color: EditorChrome.subtleLabel(context),
               fontSize: 11,
@@ -1292,9 +1351,12 @@ class _FutureActions extends StatelessWidget {
     required this.onCreateArea,
     required this.isMaskPaintingActive,
     required this.isMaskErasingActive,
+    required this.isDeletingGeneratedPlacement,
     required this.onStartMaskPainting,
     required this.onStartMaskErasing,
     required this.onStopMaskPainting,
+    required this.onStartDeleteGeneratedPlacement,
+    required this.onStopDeleteGeneratedPlacement,
     required this.onGenerateEnvironment,
     required this.onClearGeneratedPlacements,
     required this.onRegenerateEnvironment,
@@ -1308,9 +1370,12 @@ class _FutureActions extends StatelessWidget {
   final VoidCallback? onCreateArea;
   final bool isMaskPaintingActive;
   final bool isMaskErasingActive;
+  final bool isDeletingGeneratedPlacement;
   final VoidCallback? onStartMaskPainting;
   final VoidCallback? onStartMaskErasing;
   final VoidCallback? onStopMaskPainting;
+  final VoidCallback? onStartDeleteGeneratedPlacement;
+  final VoidCallback? onStopDeleteGeneratedPlacement;
   final VoidCallback? onGenerateEnvironment;
   final VoidCallback? onClearGeneratedPlacements;
   final VoidCallback? onRegenerateEnvironment;
@@ -1320,6 +1385,8 @@ class _FutureActions extends StatelessWidget {
   Widget build(BuildContext context) {
     final actions = <_ActionData>[];
     final isMaskEditingActive = isMaskPaintingActive || isMaskErasingActive;
+    final isEnvironmentActionActive =
+        isMaskEditingActive || isDeletingGeneratedPlacement;
     if (readModel.canEnableEnvironment) {
       actions.add(
         _ActionData(
@@ -1344,7 +1411,16 @@ class _FutureActions extends StatelessWidget {
         ),
       );
     }
-    if (isMaskEditingActive) {
+    if (isDeletingGeneratedPlacement) {
+      actions.add(
+        _ActionData(
+          icon: CupertinoIcons.stop_circle,
+          label: 'Arrêter la suppression',
+          enabled: onStopDeleteGeneratedPlacement != null,
+          onPressed: onStopDeleteGeneratedPlacement,
+        ),
+      );
+    } else if (isMaskEditingActive) {
       actions.add(
         _ActionData(
           icon: CupertinoIcons.stop_circle,
@@ -1418,6 +1494,21 @@ class _FutureActions extends StatelessWidget {
               !readModel.hasErrors &&
               onShuffleEnvironment != null,
           onPressed: readModel.canShuffle ? onShuffleEnvironment : null,
+        ),
+      );
+    }
+    if (!isEnvironmentActionActive &&
+        (readModel.hasGeneratedPlacements || readModel.canPaintMask)) {
+      actions.add(
+        _ActionData(
+          icon: CupertinoIcons.minus_circle,
+          label: 'Supprimer un élément généré',
+          enabled: readModel.hasGeneratedPlacements &&
+              !readModel.hasErrors &&
+              onStartDeleteGeneratedPlacement != null,
+          onPressed: readModel.hasGeneratedPlacements
+              ? onStartDeleteGeneratedPlacement
+              : null,
         ),
       );
     }

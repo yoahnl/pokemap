@@ -721,6 +721,105 @@ void main() {
       expect(_cupertinoButtonFor(tester, 'Shuffle').onPressed, isNull);
     });
 
+    testWidgets(
+        'TileLayer inspector active et stoppe la suppression individuelle',
+        (tester) async {
+      final area = _area(
+        id: 'area1',
+        w: 2,
+        h: 2,
+        generatedPlacementIds: const ['generated'],
+      );
+      final tile = TileLayer(
+        id: 'tiles',
+        name: 'T',
+        tiles: List<int>.filled(4, 0),
+      );
+      final env = MapLayer.environment(
+        id: 'env',
+        name: 'E',
+        content: EnvironmentLayerContent(
+          targetTileLayerId: 'tiles',
+          areas: [area],
+        ),
+      );
+      final generated = MapPlacedElement(
+        id: 'generated',
+        layerId: 'tiles',
+        elementId: 'e1',
+        pos: const GridPos(x: 1, y: 1),
+      );
+      final map = MapData(
+        id: 'm1',
+        name: 'M1',
+        size: const GridSize(width: 2, height: 2),
+        tilesetId: 'tsA',
+        layers: [tile, env],
+        placedElements: [generated],
+      );
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        projectRootPath: '/r',
+        project: _manifest(),
+        activeMap: map,
+        activeMapPath: 'maps/x.json',
+        activeLayerId: 'tiles',
+        selectedEnvironmentAreaId: 'area1',
+        savedMapSnapshot: map,
+      );
+      await tester.binding.setSurfaceSize(const Size(520, 1300));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MacosTheme(
+            data: MacosThemeData.light(),
+            child: MaterialApp(
+              home: CupertinoPageScaffold(
+                child: SizedBox(
+                  width: 440,
+                  height: 1300,
+                  child: MapInspectorPanel(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final startDelete = find.text('Supprimer un élément généré');
+      expect(startDelete, findsOneWidget);
+      expect(
+          _cupertinoButtonFor(tester, 'Supprimer un élément généré').onPressed,
+          isNotNull);
+
+      await tester.ensureVisible(startDelete);
+      await tester.pumpAndSettle();
+      await tester.tap(startDelete);
+      await tester.pumpAndSettle();
+
+      var state = container.read(editorNotifierProvider);
+      expect(state.activeLayerId, 'tiles');
+      expect(state.selectedEnvironmentAreaId, 'area1');
+      expect(state.environmentMaskEditMode,
+          EnvironmentMaskEditMode.generatedDelete);
+      expect(find.text('Suppression active'), findsOneWidget);
+      expect(find.text('Arrêter la suppression'), findsOneWidget);
+
+      final stopDelete = find.text('Arrêter la suppression');
+      await tester.ensureVisible(stopDelete);
+      await tester.pumpAndSettle();
+      await tester.tap(stopDelete);
+      await tester.pumpAndSettle();
+
+      state = container.read(editorNotifierProvider);
+      expect(state.activeLayerId, 'tiles');
+      expect(state.selectedEnvironmentAreaId, 'area1');
+      expect(state.environmentMaskEditMode, isNull);
+    });
+
     testWidgets('preset manifest introuvable : désactivé', (tester) async {
       final area = _area(id: 'area1', w: 2, h: 2, presetId: 'fantome');
       final env = MapLayer.environment(

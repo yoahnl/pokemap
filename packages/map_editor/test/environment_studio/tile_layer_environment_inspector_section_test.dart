@@ -1540,6 +1540,144 @@ void main() {
 
       expect(shuffled, 0);
     });
+
+    testWidgets(
+        'Supprimer un élément généré reste désactivé sans generated placements',
+        (tester) async {
+      var started = 0;
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.ready,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          canPaintMask: true,
+          canGenerate: true,
+          emptyStateTitle: 'Prêt à générer',
+          emptyStateMessage: 'Le preset, le layer et le masque sont valides.',
+        ),
+        onStartDeleteGeneratedPlacement: () {
+          started++;
+        },
+      );
+
+      expect(find.text('Supprimer un élément généré'), findsOneWidget);
+      expect(
+          _buttonFor(tester, 'Supprimer un élément généré').onPressed, isNull);
+
+      await tester.ensureVisible(find.text('Supprimer un élément généré'));
+      await tester.tap(find.text('Supprimer un élément généré'));
+      await tester.pump();
+
+      expect(started, 0);
+    });
+
+    testWidgets('Supprimer un élément généré reste désactivé sans callback',
+        (tester) async {
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.generated,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          generatedPlacementCount: 18,
+          hasGeneratedPlacements: true,
+          canClearGeneratedPlacements: true,
+          emptyStateTitle: 'Placements générés',
+          emptyStateMessage: 'Cette zone contient déjà des placements générés.',
+        ),
+      );
+
+      expect(find.text('Supprimer un élément généré'), findsOneWidget);
+      expect(
+          _buttonFor(tester, 'Supprimer un élément généré').onPressed, isNull);
+      expect(find.text('Effacer les placements générés'), findsOneWidget);
+    });
+
+    testWidgets('Supprimer un élément généré est actif avec callback',
+        (tester) async {
+      var started = 0;
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.generated,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          generatedPlacementCount: 18,
+          hasGeneratedPlacements: true,
+          canClearGeneratedPlacements: true,
+          emptyStateTitle: 'Placements générés',
+          emptyStateMessage: 'Cette zone contient déjà des placements générés.',
+        ),
+        onStartDeleteGeneratedPlacement: () {
+          started++;
+        },
+      );
+
+      expect(_buttonFor(tester, 'Supprimer un élément généré').onPressed,
+          isNotNull);
+
+      await tester.ensureVisible(find.text('Supprimer un élément généré'));
+      await tester.tap(find.text('Supprimer un élément généré'));
+      await tester.pump();
+
+      expect(started, 1);
+    });
+
+    testWidgets('mode suppression actif affiche stop et aide', (tester) async {
+      var stopped = 0;
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.generated,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          generatedPlacementCount: 18,
+          hasGeneratedPlacements: true,
+          canClearGeneratedPlacements: true,
+          emptyStateTitle: 'Placements générés',
+          emptyStateMessage: 'Cette zone contient déjà des placements générés.',
+        ),
+        isDeletingGeneratedPlacement: true,
+        onStopDeleteGeneratedPlacement: () {
+          stopped++;
+        },
+      );
+
+      expect(find.text('Suppression active'), findsOneWidget);
+      expect(
+        find.text('Cliquez un élément généré pour le retirer de cette zone.'),
+        findsOneWidget,
+      );
+      expect(find.text('Arrêter la suppression'), findsOneWidget);
+      expect(_buttonFor(tester, 'Arrêter la suppression').onPressed, isNotNull);
+
+      await tester.ensureVisible(find.text('Arrêter la suppression'));
+      await tester.tap(find.text('Arrêter la suppression'));
+      await tester.pump();
+
+      expect(stopped, 1);
+    });
   });
 }
 
@@ -1554,9 +1692,12 @@ Future<void> _pump(
   ValueChanged<String>? onSelectEnvironmentArea,
   bool isMaskPaintingActive = false,
   bool isMaskErasingActive = false,
+  bool isDeletingGeneratedPlacement = false,
   VoidCallback? onStartMaskPainting,
   VoidCallback? onStartMaskErasing,
   VoidCallback? onStopMaskPainting,
+  VoidCallback? onStartDeleteGeneratedPlacement,
+  VoidCallback? onStopDeleteGeneratedPlacement,
   int environmentMaskBrushSize = 1,
   ValueChanged<int>? onSetEnvironmentMaskBrushSize,
   ValueChanged<EnvironmentGenerationParams>? onSetGenerationParams,
@@ -1583,9 +1724,12 @@ Future<void> _pump(
             onSelectEnvironmentArea: onSelectEnvironmentArea,
             isMaskPaintingActive: isMaskPaintingActive,
             isMaskErasingActive: isMaskErasingActive,
+            isDeletingGeneratedPlacement: isDeletingGeneratedPlacement,
             onStartMaskPainting: onStartMaskPainting,
             onStartMaskErasing: onStartMaskErasing,
             onStopMaskPainting: onStopMaskPainting,
+            onStartDeleteGeneratedPlacement: onStartDeleteGeneratedPlacement,
+            onStopDeleteGeneratedPlacement: onStopDeleteGeneratedPlacement,
             environmentMaskBrushSize: environmentMaskBrushSize,
             onSetEnvironmentMaskBrushSize: onSetEnvironmentMaskBrushSize,
             onSetGenerationParams: onSetGenerationParams,

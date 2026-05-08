@@ -118,14 +118,29 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
         tileLayerEnvironmentReadModel != null &&
         state.environmentMaskEditMode == EnvironmentMaskEditMode.erase &&
         effectiveTileLayerEnvironmentAreaId != null;
+    final isTileLayerGeneratedPlacementDeleteActive =
+        activeLayer is TileLayer &&
+            tileLayerEnvironmentReadModel != null &&
+            state.environmentMaskEditMode ==
+                EnvironmentMaskEditMode.generatedDelete &&
+            effectiveTileLayerEnvironmentAreaId != null;
     final isTileLayerMaskEditingActive =
         isTileLayerMaskPaintingActive || isTileLayerMaskErasingActive;
+    final isTileLayerEnvironmentActionActive = isTileLayerMaskEditingActive ||
+        isTileLayerGeneratedPlacementDeleteActive;
     final canStartTileLayerMaskEditing = activeLayer is TileLayer &&
         tileLayerEnvironmentReadModel != null &&
         tileLayerEnvironmentReadModel.canPaintMask &&
         !tileLayerEnvironmentReadModel.hasErrors &&
         effectiveTileLayerEnvironmentAreaId != null &&
-        !isTileLayerMaskEditingActive;
+        !isTileLayerEnvironmentActionActive;
+    final canStartTileLayerGeneratedPlacementDelete =
+        activeLayer is TileLayer &&
+            tileLayerEnvironmentReadModel != null &&
+            tileLayerEnvironmentReadModel.hasGeneratedPlacements &&
+            !tileLayerEnvironmentReadModel.hasErrors &&
+            effectiveTileLayerEnvironmentAreaId != null &&
+            !isTileLayerEnvironmentActionActive;
     final canEditTileLayerEnvironmentGenerationParams =
         activeLayer is TileLayer &&
             tileLayerEnvironmentReadModel != null &&
@@ -285,6 +300,8 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                         : null,
                     isMaskPaintingActive: isTileLayerMaskPaintingActive,
                     isMaskErasingActive: isTileLayerMaskErasingActive,
+                    isDeletingGeneratedPlacement:
+                        isTileLayerGeneratedPlacementDeleteActive,
                     onStartMaskPainting: canStartTileLayerMaskEditing
                         ? notifier
                             .startEnvironmentMaskPaintingForActiveTileLayer
@@ -295,6 +312,15 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     onStopMaskPainting: isTileLayerMaskEditingActive
                         ? notifier.stopEnvironmentMaskPainting
                         : null,
+                    onStartDeleteGeneratedPlacement:
+                        canStartTileLayerGeneratedPlacementDelete
+                            ? notifier
+                                .startDeletingGeneratedEnvironmentPlacementForActiveTileLayer
+                            : null,
+                    onStopDeleteGeneratedPlacement:
+                        isTileLayerGeneratedPlacementDeleteActive
+                            ? notifier.stopDeletingGeneratedEnvironmentPlacement
+                            : null,
                     environmentMaskBrushSize: environmentMaskBrushSize,
                     onSetEnvironmentMaskBrushSize:
                         notifier.setEnvironmentMaskBrushSize,

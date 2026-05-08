@@ -22,6 +22,7 @@ import '../../../application/use_cases/layer_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_area_settings_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_attachment_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_clear_use_cases.dart';
+import '../../../application/use_cases/tile_layer_environment_generated_placement_edit_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_generation_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_regenerate_use_cases.dart';
 import '../../../application/models/trainer_field_update.dart';
@@ -5349,6 +5350,168 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  void startDeletingGeneratedEnvironmentPlacementForActiveTileLayer() {
+    final map = state.activeMap;
+    if (map == null) return;
+    final layerId = state.activeLayerId?.trim();
+    if (layerId == null || layerId.isEmpty) {
+      state = state.copyWith(
+        errorMessage:
+            'Sélectionnez un TileLayer pour supprimer un élément généré.',
+      );
+      return;
+    }
+    final activeLayer = _findLayerById(map, layerId);
+    if (activeLayer is! TileLayer) {
+      state = state.copyWith(
+        errorMessage:
+            'Sélectionnez un TileLayer pour supprimer un élément généré.',
+      );
+      return;
+    }
+    final areaId = _effectiveEnvironmentAreaIdForActiveTileLayer(map, layerId);
+    if (areaId == null || areaId.isEmpty) {
+      state = state.copyWith(
+        errorMessage:
+            'Sélectionnez une zone d’environnement avant de supprimer un élément généré.',
+      );
+      return;
+    }
+    final target = resolveEnvironmentMaskPaintTarget(
+      map: map,
+      activeLayerId: layerId,
+      selectedAreaId: areaId,
+    );
+    if (target == null) {
+      final hasAttachment = map.layers.any(
+        (layer) =>
+            layer is EnvironmentLayer &&
+            layer.content.targetTileLayerId?.trim() == layerId,
+      );
+      state = state.copyWith(
+        errorMessage: hasAttachment
+            ? 'La zone d’environnement sélectionnée est introuvable.'
+            : 'Activez d’abord l’environnement sur ce layer.',
+      );
+      return;
+    }
+    if (target.area.generatedPlacementIds.isEmpty) {
+      state = state.copyWith(
+        activeLayerId: layerId,
+        selectedEnvironmentAreaId: target.areaId,
+        environmentMaskEditMode: null,
+        statusMessage:
+            'Aucun placement généré à supprimer individuellement pour cette zone.',
+        errorMessage: null,
+      );
+      return;
+    }
+
+    state = state.copyWith(
+      activeLayerId: layerId,
+      selectedEnvironmentAreaId: target.areaId,
+      environmentMaskEditMode: EnvironmentMaskEditMode.generatedDelete,
+      statusMessage:
+          'Suppression active : cliquez un élément généré pour le retirer.',
+      errorMessage: null,
+    );
+  }
+
+  void stopDeletingGeneratedEnvironmentPlacement() {
+    state = state.copyWith(
+      environmentMaskEditMode: null,
+      statusMessage: 'Suppression des éléments générés arrêtée.',
+      errorMessage: null,
+    );
+  }
+
+  bool deleteGeneratedEnvironmentPlacementAtForActiveTileLayer(GridPos pos) {
+    final map = state.activeMap;
+    if (map == null) {
+      return false;
+    }
+    if (state.environmentMaskEditMode !=
+        EnvironmentMaskEditMode.generatedDelete) {
+      state = state.copyWith(
+        errorMessage:
+            'Activez la suppression d’un élément généré avant de cliquer.',
+      );
+      return false;
+    }
+    final layerId = state.activeLayerId?.trim();
+    if (layerId == null || layerId.isEmpty) {
+      state = state.copyWith(
+        errorMessage:
+            'Sélectionnez un TileLayer pour supprimer un élément généré.',
+      );
+      return false;
+    }
+    final activeLayer = _findLayerById(map, layerId);
+    if (activeLayer is! TileLayer) {
+      state = state.copyWith(
+        errorMessage:
+            'Sélectionnez un TileLayer pour supprimer un élément généré.',
+      );
+      return false;
+    }
+    final areaId = _effectiveEnvironmentAreaIdForActiveTileLayer(map, layerId);
+    if (areaId == null || areaId.isEmpty) {
+      state = state.copyWith(
+        errorMessage:
+            'Sélectionnez une zone d’environnement avant de supprimer un élément généré.',
+      );
+      return false;
+    }
+
+    try {
+      final result =
+          DeleteTileLayerEnvironmentGeneratedPlacementAtUseCase().execute(
+        map,
+        manifest: state.project,
+        tileLayerId: layerId,
+        areaId: areaId,
+        pos: pos,
+      );
+      if (!result.removed) {
+        state = state.copyWith(
+          activeLayerId: result.tileLayerId,
+          selectedEnvironmentAreaId: result.areaId,
+          environmentMaskEditMode: EnvironmentMaskEditMode.generatedDelete,
+          statusMessage:
+              'Aucun placement généré de cette zone à supprimer ici.',
+          errorMessage: null,
+        );
+        return false;
+      }
+
+      final removedId = result.removedPlacementId!;
+      final selectionBefore = state.selectedPlacedElementInstanceId?.trim();
+      final clearSelection = selectionBefore != null &&
+          selectionBefore.isNotEmpty &&
+          selectionBefore == removedId;
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.map,
+        preferredActiveLayerId: result.tileLayerId,
+        statusMessage: 'Placement généré supprimé.',
+      );
+      state = state.copyWith(
+        activeLayerId: result.tileLayerId,
+        selectedEnvironmentAreaId: result.areaId,
+        selectedPlacedElementInstanceId:
+            clearSelection ? null : state.selectedPlacedElementInstanceId,
+        environmentMaskEditMode: EnvironmentMaskEditMode.generatedDelete,
+        errorMessage: null,
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de supprimer cet élément généré : $e',
+      );
+      return false;
+    }
+  }
+
   void setEnvironmentMaskBrushSize(int size) {
     if (!isValidEnvironmentMaskBrushSize(size)) {
       state = state.copyWith(
@@ -7546,6 +7709,9 @@ class EditorNotifier extends _$EditorNotifier {
       return false;
     }
     final activeLayer = _findLayerById(map, activeLayerId);
+    if (activeLayer is TileLayer) {
+      return deleteGeneratedEnvironmentPlacementAtForActiveTileLayer(pos);
+    }
     if (activeLayer is! EnvironmentLayer) {
       return false;
     }
