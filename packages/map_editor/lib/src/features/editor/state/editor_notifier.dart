@@ -7471,6 +7471,44 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  void setPlacedElementInstanceOpacity({
+    required String instanceId,
+    required double opacity,
+  }) {
+    final map = state.activeMap;
+    if (map == null) {
+      return;
+    }
+    final trimmedId = instanceId.trim();
+    if (trimmedId.isEmpty) {
+      return;
+    }
+    final index =
+        map.placedElements.indexWhere((entry) => entry.id == trimmedId);
+    if (index < 0) {
+      state = state.copyWith(
+        errorMessage: 'Placed element instance not found: $trimmedId',
+      );
+      return;
+    }
+    final previous = map.placedElements[index];
+    final normalizedOpacity = opacity.clamp(0.0, 1.0).toDouble();
+    if (previous.opacity == normalizedOpacity) {
+      return;
+    }
+    final updatedMap = setMapPlacedElementOpacity(
+      map,
+      instanceId: trimmedId,
+      opacity: normalizedOpacity,
+    );
+    _applyMapMutation(
+      previousMap: map,
+      updatedMap: updatedMap,
+      preferredActiveLayerId: state.activeLayerId,
+      statusMessage: 'Opacité mise à jour pour ${previous.elementId}',
+    );
+  }
+
   void setPlacedElementInstanceAnimationConfig({
     required String instanceId,
     required MapPlacedElementAnimation? animation,

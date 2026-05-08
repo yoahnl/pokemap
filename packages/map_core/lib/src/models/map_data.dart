@@ -101,6 +101,7 @@ class MapPlacedElement with _$MapPlacedElement {
     required String elementId,
     required GridPos pos,
     @Default(true) bool applyCollision,
+    @Default(1.0) double opacity,
     MapPlacedElementAnimation? animation,
     @Default([]) List<MapPlacedElementBehavior> behaviors,
     @Default({}) Map<String, String> properties,

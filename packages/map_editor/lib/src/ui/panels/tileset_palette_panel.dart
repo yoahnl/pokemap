@@ -1358,6 +1358,12 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                 applyCollision: applyCollision,
               );
             },
+            onOpacityChanged: (instance, opacity) {
+              notifier.setPlacedElementInstanceOpacity(
+                instanceId: instance.instanceId,
+                opacity: opacity,
+              );
+            },
             onAnimationConfigChanged: (instance, animation) {
               notifier.setPlacedElementInstanceAnimationConfig(
                 instanceId: instance.instanceId,

@@ -1382,6 +1382,11 @@ class MapValidator {
         map.size,
         errorLabel: 'Placed element instance $instanceId origin',
       );
+      if (instance.opacity < 0 || instance.opacity > 1) {
+        throw ValidationException(
+          'Placed element instance $instanceId has invalid opacity: ${instance.opacity}',
+        );
+      }
       for (final key in instance.properties.keys) {
         if (key.trim().isEmpty) {
           throw ValidationException(

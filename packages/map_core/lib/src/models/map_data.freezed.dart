@@ -1071,6 +1071,7 @@ mixin _$MapPlacedElement {
   String get elementId => throw _privateConstructorUsedError;
   GridPos get pos => throw _privateConstructorUsedError;
   bool get applyCollision => throw _privateConstructorUsedError;
+  double get opacity => throw _privateConstructorUsedError;
   MapPlacedElementAnimation? get animation =>
       throw _privateConstructorUsedError;
   List<MapPlacedElementBehavior> get behaviors =>
@@ -1099,6 +1100,7 @@ abstract class $MapPlacedElementCopyWith<$Res> {
       String elementId,
       GridPos pos,
       bool applyCollision,
+      double opacity,
       MapPlacedElementAnimation? animation,
       List<MapPlacedElementBehavior> behaviors,
       Map<String, String> properties});
@@ -1127,6 +1129,7 @@ class _$MapPlacedElementCopyWithImpl<$Res, $Val extends MapPlacedElement>
     Object? elementId = null,
     Object? pos = null,
     Object? applyCollision = null,
+    Object? opacity = null,
     Object? animation = freezed,
     Object? behaviors = null,
     Object? properties = null,
@@ -1152,6 +1155,10 @@ class _$MapPlacedElementCopyWithImpl<$Res, $Val extends MapPlacedElement>
           ? _value.applyCollision
           : applyCollision // ignore: cast_nullable_to_non_nullable
               as bool,
+      opacity: null == opacity
+          ? _value.opacity
+          : opacity // ignore: cast_nullable_to_non_nullable
+              as double,
       animation: freezed == animation
           ? _value.animation
           : animation // ignore: cast_nullable_to_non_nullable
@@ -1206,6 +1213,7 @@ abstract class _$$MapPlacedElementImplCopyWith<$Res>
       String elementId,
       GridPos pos,
       bool applyCollision,
+      double opacity,
       MapPlacedElementAnimation? animation,
       List<MapPlacedElementBehavior> behaviors,
       Map<String, String> properties});
@@ -1234,6 +1242,7 @@ class __$$MapPlacedElementImplCopyWithImpl<$Res>
     Object? elementId = null,
     Object? pos = null,
     Object? applyCollision = null,
+    Object? opacity = null,
     Object? animation = freezed,
     Object? behaviors = null,
     Object? properties = null,
@@ -1259,6 +1268,10 @@ class __$$MapPlacedElementImplCopyWithImpl<$Res>
           ? _value.applyCollision
           : applyCollision // ignore: cast_nullable_to_non_nullable
               as bool,
+      opacity: null == opacity
+          ? _value.opacity
+          : opacity // ignore: cast_nullable_to_non_nullable
+              as double,
       animation: freezed == animation
           ? _value.animation
           : animation // ignore: cast_nullable_to_non_nullable
@@ -1285,6 +1298,7 @@ class _$MapPlacedElementImpl implements _MapPlacedElement {
       required this.elementId,
       required this.pos,
       this.applyCollision = true,
+      this.opacity = 1.0,
       this.animation,
       final List<MapPlacedElementBehavior> behaviors = const [],
       final Map<String, String> properties = const {}})
@@ -1305,6 +1319,9 @@ class _$MapPlacedElementImpl implements _MapPlacedElement {
   @override
   @JsonKey()
   final bool applyCollision;
+  @override
+  @JsonKey()
+  final double opacity;
   @override
   final MapPlacedElementAnimation? animation;
   final List<MapPlacedElementBehavior> _behaviors;
@@ -1327,7 +1344,7 @@ class _$MapPlacedElementImpl implements _MapPlacedElement {
 
   @override
   String toString() {
-    return 'MapPlacedElement(id: $id, layerId: $layerId, elementId: $elementId, pos: $pos, applyCollision: $applyCollision, animation: $animation, behaviors: $behaviors, properties: $properties)';
+    return 'MapPlacedElement(id: $id, layerId: $layerId, elementId: $elementId, pos: $pos, applyCollision: $applyCollision, opacity: $opacity, animation: $animation, behaviors: $behaviors, properties: $properties)';
   }
 
   @override
@@ -1342,6 +1359,7 @@ class _$MapPlacedElementImpl implements _MapPlacedElement {
             (identical(other.pos, pos) || other.pos == pos) &&
             (identical(other.applyCollision, applyCollision) ||
                 other.applyCollision == applyCollision) &&
+            (identical(other.opacity, opacity) || other.opacity == opacity) &&
             (identical(other.animation, animation) ||
                 other.animation == animation) &&
             const DeepCollectionEquality()
@@ -1359,6 +1377,7 @@ class _$MapPlacedElementImpl implements _MapPlacedElement {
       elementId,
       pos,
       applyCollision,
+      opacity,
       animation,
       const DeepCollectionEquality().hash(_behaviors),
       const DeepCollectionEquality().hash(_properties));
@@ -1387,6 +1406,7 @@ abstract class _MapPlacedElement implements MapPlacedElement {
       required final String elementId,
       required final GridPos pos,
       final bool applyCollision,
+      final double opacity,
       final MapPlacedElementAnimation? animation,
       final List<MapPlacedElementBehavior> behaviors,
       final Map<String, String> properties}) = _$MapPlacedElementImpl;
@@ -1404,6 +1424,8 @@ abstract class _MapPlacedElement implements MapPlacedElement {
   GridPos get pos;
   @override
   bool get applyCollision;
+  @override
+  double get opacity;
   @override
   MapPlacedElementAnimation? get animation;
   @override

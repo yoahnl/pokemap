@@ -1598,6 +1598,11 @@ class MapGridPainter extends CustomPainter {
     if (tilesetImage == null || tilesPerRow <= 0) {
       return;
     }
+    final placedElementTileMask = _matchingPlacedElementTileIndicesForLayer(
+      layer: layer,
+      layerTilesetId: layerTilesetId,
+      tilesPerRow: tilesPerRow,
+    );
 
     final explicitForeground = _isExplicitForegroundTileLayerForEditor(
       layerId: layer.id,
@@ -1623,6 +1628,7 @@ class MapGridPainter extends CustomPainter {
         if (tileIndex < 0 || tileIndex >= layer.tiles.length) continue;
         final tileId = layer.tiles[tileIndex];
         if (tileId <= 0) continue;
+        if (placedElementTileMask.contains(tileIndex)) continue;
         final shouldDrawCell = shouldPaintEditorTileCellInRenderPass(
           explicitForeground: explicitForeground,
           isForegroundCell: foregroundCells?.contains(tileIndex) ?? false,
@@ -1658,6 +1664,66 @@ class MapGridPainter extends CustomPainter {
         canvas.drawImageRect(tilesetImage, srcRect, dstRect, layerPaint);
       }
     }
+  }
+
+  Set<int> _matchingPlacedElementTileIndicesForLayer({
+    required TileLayer layer,
+    required String layerTilesetId,
+    required int tilesPerRow,
+  }) {
+    final projectContext = project;
+    if (projectContext == null || map.placedElements.isEmpty) {
+      return const <int>{};
+    }
+    final elementById = <String, ProjectElementEntry>{
+      for (final entry in projectContext.elements) entry.id: entry,
+    };
+    if (elementById.isEmpty) {
+      return const <int>{};
+    }
+    final layerId = layer.id.trim();
+    final out = <int>{};
+    for (final instance in map.placedElements) {
+      if (instance.layerId.trim() != layerId) {
+        continue;
+      }
+      final entry = elementById[instance.elementId.trim()];
+      if (entry == null || entry.frames.isEmpty) {
+        continue;
+      }
+      final frame = entityEditorPickFrame(
+        entry.frames,
+        editorEntityAnimationMs,
+      );
+      final tilesetId = frame.tilesetId.trim().isNotEmpty
+          ? frame.tilesetId.trim()
+          : entry.tilesetId.trim();
+      if (tilesetId != layerTilesetId) {
+        continue;
+      }
+      final source = frame.source;
+      final width = source.width <= 0 ? 1 : source.width;
+      final height = source.height <= 0 ? 1 : source.height;
+      for (var localY = 0; localY < height; localY++) {
+        for (var localX = 0; localX < width; localX++) {
+          final x = instance.pos.x + localX;
+          final y = instance.pos.y + localY;
+          if (x < 0 || y < 0 || x >= map.size.width || y >= map.size.height) {
+            continue;
+          }
+          final tileIndex = y * map.size.width + x;
+          if (tileIndex < 0 || tileIndex >= layer.tiles.length) {
+            continue;
+          }
+          final sourceTileId =
+              (source.y + localY) * tilesPerRow + source.x + localX + 1;
+          if (layer.tiles[tileIndex] == sourceTileId) {
+            out.add(tileIndex);
+          }
+        }
+      }
+    }
+    return out;
   }
 
   void _paintPlacedElementsForLayer(
@@ -1724,7 +1790,8 @@ class MapGridPainter extends CustomPainter {
     final source = frame.source;
     final width = source.width <= 0 ? 1 : source.width;
     final height = source.height <= 0 ? 1 : source.height;
-    final resolvedOpacity = opacity.clamp(0.0, 1.0).toDouble();
+    final resolvedOpacity =
+        (opacity * instance.opacity).clamp(0.0, 1.0).toDouble();
 
     for (var localY = 0; localY < height; localY++) {
       for (var localX = 0; localX < width; localX++) {

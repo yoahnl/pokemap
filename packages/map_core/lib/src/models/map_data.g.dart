@@ -137,6 +137,7 @@ _$MapPlacedElementImpl _$$MapPlacedElementImplFromJson(
       elementId: json['elementId'] as String,
       pos: GridPos.fromJson(json['pos'] as Map<String, dynamic>),
       applyCollision: json['applyCollision'] as bool? ?? true,
+      opacity: (json['opacity'] as num?)?.toDouble() ?? 1.0,
       animation: json['animation'] == null
           ? null
           : MapPlacedElementAnimation.fromJson(
@@ -160,6 +161,7 @@ Map<String, dynamic> _$$MapPlacedElementImplToJson(
       'elementId': instance.elementId,
       'pos': instance.pos.toJson(),
       'applyCollision': instance.applyCollision,
+      'opacity': instance.opacity,
       'animation': instance.animation?.toJson(),
       'behaviors': instance.behaviors.map((e) => e.toJson()).toList(),
       'properties': instance.properties,

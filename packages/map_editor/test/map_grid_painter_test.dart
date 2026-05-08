@@ -343,6 +343,175 @@ void main() {
       tilesetImage.dispose();
     });
 
+    test(
+        'does not double-paint matching baked tiles under translucent elements',
+        () async {
+      const map = MapData(
+        id: 'forest',
+        name: 'Forest',
+        size: GridSize(width: 1, height: 1),
+        layers: <MapLayer>[
+          TileLayer(
+            id: 'environment',
+            name: 'Environment',
+            tilesetId: 'element-tileset',
+            tiles: <int>[3],
+          ),
+        ],
+        placedElements: <MapPlacedElement>[
+          MapPlacedElement(
+            id: 'tree_1',
+            layerId: 'environment',
+            elementId: 'tree',
+            pos: GridPos(x: 0, y: 0),
+            opacity: 0.5,
+          ),
+        ],
+      );
+      final project = ProjectManifest(
+        name: 'editor',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[
+          ProjectTilesetEntry(
+            id: 'element-tileset',
+            name: 'Element Tileset',
+            relativePath: 'tilesets/elements.png',
+          ),
+        ],
+        surfaceCatalog: ProjectSurfaceCatalog(),
+        elements: const <ProjectElementEntry>[
+          ProjectElementEntry(
+            id: 'tree',
+            name: 'Tree',
+            tilesetId: 'element-tileset',
+            categoryId: 'nature',
+            frames: <TilesetVisualFrame>[
+              TilesetVisualFrame(
+                source: TilesetSourceRect(x: 2, y: 0),
+              ),
+            ],
+          ),
+        ],
+      );
+      final tilesetImage = await _testTilesetImage();
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder);
+
+      MapGridPainter(
+        map: map,
+        zoom: 1,
+        offset: ui.Offset.zero,
+        tileWidth: 32,
+        tileHeight: 32,
+        tilesetImagesById: {'element-tileset': tilesetImage},
+        sourceTileWidth: 32,
+        sourceTileHeight: 32,
+        tilesPerRowById: const <String, int>{'element-tileset': 4},
+        warps: const <MapWarp>[],
+        gameplayZones: const <MapGameplayZone>[],
+        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
+        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
+        project: project,
+      ).paint(canvas, const ui.Size(32, 32));
+
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(32, 32);
+      final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      final offset = ((16 * image.width) + 16) * 4;
+      expect(pixels!.getUint8(offset), inInclusiveRange(110, 150));
+      expect(pixels.getUint8(offset + 1), lessThan(40));
+      expect(pixels.getUint8(offset + 2), lessThan(40));
+      expect(pixels.getUint8(offset + 3), inInclusiveRange(110, 150));
+      picture.dispose();
+      image.dispose();
+      tilesetImage.dispose();
+    });
+
+    test('keeps non-matching base tiles visible under translucent elements',
+        () async {
+      const map = MapData(
+        id: 'forest',
+        name: 'Forest',
+        size: GridSize(width: 1, height: 1),
+        layers: <MapLayer>[
+          TileLayer(
+            id: 'environment',
+            name: 'Environment',
+            tilesetId: 'element-tileset',
+            tiles: <int>[4],
+          ),
+        ],
+        placedElements: <MapPlacedElement>[
+          MapPlacedElement(
+            id: 'tree_1',
+            layerId: 'environment',
+            elementId: 'tree',
+            pos: GridPos(x: 0, y: 0),
+            opacity: 0.5,
+          ),
+        ],
+      );
+      final project = ProjectManifest(
+        name: 'editor',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[
+          ProjectTilesetEntry(
+            id: 'element-tileset',
+            name: 'Element Tileset',
+            relativePath: 'tilesets/elements.png',
+          ),
+        ],
+        surfaceCatalog: ProjectSurfaceCatalog(),
+        elements: const <ProjectElementEntry>[
+          ProjectElementEntry(
+            id: 'tree',
+            name: 'Tree',
+            tilesetId: 'element-tileset',
+            categoryId: 'nature',
+            frames: <TilesetVisualFrame>[
+              TilesetVisualFrame(
+                source: TilesetSourceRect(x: 2, y: 0),
+              ),
+            ],
+          ),
+        ],
+      );
+      final tilesetImage = await _testTilesetImage();
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder);
+
+      MapGridPainter(
+        map: map,
+        zoom: 1,
+        offset: ui.Offset.zero,
+        tileWidth: 32,
+        tileHeight: 32,
+        tilesetImagesById: {'element-tileset': tilesetImage},
+        sourceTileWidth: 32,
+        sourceTileHeight: 32,
+        tilesPerRowById: const <String, int>{'element-tileset': 4},
+        warps: const <MapWarp>[],
+        gameplayZones: const <MapGameplayZone>[],
+        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
+        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
+        project: project,
+      ).paint(canvas, const ui.Size(32, 32));
+
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(32, 32);
+      final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      final offset = ((16 * image.width) + 16) * 4;
+      expect(pixels!.getUint8(offset), inInclusiveRange(110, 150));
+      expect(pixels.getUint8(offset + 1), lessThan(40));
+      expect(pixels.getUint8(offset + 2), inInclusiveRange(110, 150));
+      expect(pixels.getUint8(offset + 3), greaterThan(240));
+      picture.dispose();
+      image.dispose();
+      tilesetImage.dispose();
+    });
+
     test('delete preview highlights sprite without footprint rectangle',
         () async {
       const map = MapData(

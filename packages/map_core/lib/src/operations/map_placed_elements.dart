@@ -95,6 +95,31 @@ MapData setMapPlacedElementCollisionApplied(
   return map.copyWith(placedElements: next);
 }
 
+MapData setMapPlacedElementOpacity(
+  MapData map, {
+  required String instanceId,
+  required double opacity,
+}) {
+  if (opacity < 0 || opacity > 1) {
+    throw ValidationException(
+        'Placed element opacity must be between 0 and 1: $opacity');
+  }
+  final normalizedId = instanceId.trim();
+  if (normalizedId.isEmpty) {
+    throw const ValidationException(
+        'Placed element instance id cannot be empty');
+  }
+  final index =
+      map.placedElements.indexWhere((entry) => entry.id == normalizedId);
+  if (index < 0) {
+    throw ValidationException(
+        'Placed element instance not found: $normalizedId');
+  }
+  final next = List<MapPlacedElement>.from(map.placedElements, growable: true);
+  next[index] = next[index].copyWith(opacity: opacity);
+  return map.copyWith(placedElements: next);
+}
+
 MapData setMapPlacedElementAnimation(
   MapData map, {
   required String instanceId,
@@ -336,6 +361,10 @@ MapPlacedElement _normalizePlacedElement(MapPlacedElement instance) {
   if (normalizedElementId.isEmpty) {
     throw const ValidationException(
         'Placed element element id cannot be empty');
+  }
+  if (instance.opacity < 0 || instance.opacity > 1) {
+    throw ValidationException(
+        'Placed element opacity must be between 0 and 1: ${instance.opacity}');
   }
   return instance.copyWith(
     id: normalizedId,

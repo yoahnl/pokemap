@@ -40,6 +40,7 @@ class _PlacedElementInstanceVm {
   String get layerId => instance.layerId;
   String get instanceId => instance.id;
   bool get applyCollision => instance.applyCollision;
+  double get opacity => instance.opacity;
   MapPlacedElementAnimation? get animation => instance.animation;
   List<MapPlacedElementBehavior> get behaviors => instance.behaviors;
   int get frameCount => element?.frames.length ?? 1;
@@ -58,6 +59,7 @@ class _PlacedInstancesSection extends StatelessWidget {
     required this.selectedInstance,
     required this.onSelectInstance,
     required this.onCollisionAppliedChanged,
+    required this.onOpacityChanged,
     required this.onAnimationConfigChanged,
     required this.onBehaviorsChanged,
     required this.dialogues,
@@ -76,6 +78,8 @@ class _PlacedInstancesSection extends StatelessWidget {
   final ValueChanged<_PlacedElementInstanceVm?> onSelectInstance;
   final void Function(_PlacedElementInstanceVm instance, bool applyCollision)
       onCollisionAppliedChanged;
+  final void Function(_PlacedElementInstanceVm instance, double opacity)
+      onOpacityChanged;
   final void Function(
     _PlacedElementInstanceVm instance,
     MapPlacedElementAnimation? animation,
@@ -296,6 +300,11 @@ class _PlacedInstancesSection extends StatelessWidget {
                     }
                     onCollisionAppliedChanged(selected, value);
                   },
+                ),
+                const SizedBox(height: 8),
+                _OpacitySliderRow(
+                  value: selected.opacity,
+                  onChanged: (value) => onOpacityChanged(selected, value),
                 ),
                 const SizedBox(height: 8),
                 _PlacedElementAnimationSection(
@@ -571,3 +580,88 @@ class _CollisionToggleRow extends StatelessWidget {
     );
   }
 }
+
+class _OpacitySliderRow extends StatelessWidget {
+  const _OpacitySliderRow({
+    required this.value,
+    required this.onChanged,
+  });
+
+  final double value;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final label = CupertinoColors.label.resolveFrom(context);
+    final normalized = _normalizeInstanceOpacity(value);
+    final percent = (normalized * 100).round();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: Colors.white.withValues(alpha: 0.015),
+        ),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: CupertinoColors.separator.resolveFrom(context),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Opacité',
+                      style: TextStyle(
+                        color: label,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Transparence visuelle de cette instance',
+                      style: TextStyle(
+                        color: secondary,
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Text(
+                '$percent %',
+                style: TextStyle(
+                  color: label,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          MacosSlider(
+            key: const ValueKey('placed-instance-opacity-slider'),
+            value: normalized,
+            min: 0,
+            max: 1,
+            discrete: true,
+            splits: 21,
+            color: EditorChrome.inspectorJoyMint,
+            onChanged: (next) => onChanged(_normalizeInstanceOpacity(next)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+double _normalizeInstanceOpacity(double value) =>
+    (value.clamp(0.0, 1.0).toDouble() * 100).round() / 100;
