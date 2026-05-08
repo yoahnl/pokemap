@@ -403,7 +403,6 @@ class MapGridPainter extends CustomPainter {
       foregroundPass: true,
     );
     _paintSelectedPlacedElementInstance(canvas);
-    _paintEnvironmentGeneratedDeletePreviewHint(canvas);
     _paintToolPreview(canvas);
     _paintEnvironmentGeneratedAddPreview(canvas);
     _paintEnvironmentMaskOverlay(canvas);
@@ -1689,7 +1688,7 @@ class MapGridPainter extends CustomPainter {
         instance,
         elementById: elementById,
         renderPass: renderPass,
-        opacity: instance.id == environmentGeneratedDeletePreviewId ? 0.34 : 1,
+        highlight: instance.id == environmentGeneratedDeletePreviewId,
       );
     }
   }
@@ -1700,6 +1699,7 @@ class MapGridPainter extends CustomPainter {
     required Map<String, ProjectElementEntry> elementById,
     required _EditorMapTileRenderPass renderPass,
     double opacity = 1,
+    bool highlight = false,
     bool ignoreRenderPassSplit = false,
   }) {
     final entry = elementById[instance.elementId.trim()];
@@ -1772,6 +1772,7 @@ class MapGridPainter extends CustomPainter {
           srcRect,
           dstRect,
           opacity: resolvedOpacity,
+          highlight: highlight,
         );
       }
     }
@@ -1783,9 +1784,22 @@ class MapGridPainter extends CustomPainter {
     Rect srcRect,
     Rect dstRect, {
     required double opacity,
+    bool highlight = false,
   }) {
     if (opacity >= 1) {
       canvas.drawImageRect(image, srcRect, dstRect, Paint());
+      if (highlight) {
+        canvas.drawImageRect(
+          image,
+          srcRect,
+          dstRect,
+          Paint()
+            ..colorFilter = ui.ColorFilter.mode(
+              Colors.white.withValues(alpha: 0.45),
+              ui.BlendMode.srcATop,
+            ),
+        );
+      }
       return;
     }
     canvas.saveLayer(
@@ -1793,6 +1807,18 @@ class MapGridPainter extends CustomPainter {
       Paint()..color = Colors.white.withValues(alpha: opacity),
     );
     canvas.drawImageRect(image, srcRect, dstRect, Paint());
+    if (highlight) {
+      canvas.drawImageRect(
+        image,
+        srcRect,
+        dstRect,
+        Paint()
+          ..colorFilter = ui.ColorFilter.mode(
+            Colors.white.withValues(alpha: 0.45),
+            ui.BlendMode.srcATop,
+          ),
+      );
+    }
     canvas.restore();
   }
 
@@ -1819,29 +1845,6 @@ class MapGridPainter extends CustomPainter {
       fillAlpha: 0.08,
       strokeAlpha: 0.95,
     );
-  }
-
-  void _paintEnvironmentGeneratedDeletePreviewHint(Canvas canvas) {
-    final previewId = environmentGeneratedDeletePreviewId?.trim();
-    final projectContext = project;
-    if (previewId == null || previewId.isEmpty || projectContext == null) {
-      return;
-    }
-    final elementById = <String, ProjectElementEntry>{
-      for (final entry in projectContext.elements) entry.id: entry,
-    };
-    for (final instance in map.placedElements.reversed) {
-      if (instance.id != previewId) continue;
-      _paintPlacedElementFootprintHint(
-        canvas,
-        instance,
-        elementById: elementById,
-        color: Colors.redAccent,
-        fillAlpha: 0.10,
-        strokeAlpha: 0.95,
-      );
-      return;
-    }
   }
 
   void _paintPlacedElementFootprintHint(
