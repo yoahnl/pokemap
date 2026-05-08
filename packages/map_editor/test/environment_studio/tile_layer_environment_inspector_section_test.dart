@@ -24,11 +24,16 @@ void main() {
         ),
       );
 
+      expect(find.text('État de génération'), findsOneWidget);
       expect(find.text('Aucun environnement sur ce layer'), findsOneWidget);
       expect(
         find.text(
           'Activez l’environnement pour peindre une zone organique sur ce layer.',
         ),
+        findsOneWidget,
+      );
+      expect(
+        find.text('Action recommandée : Activer l’environnement'),
         findsOneWidget,
       );
     });
@@ -103,6 +108,12 @@ void main() {
         ),
       );
 
+      expect(find.text('État de génération'), findsOneWidget);
+      expect(find.text('Aucune zone d’environnement'), findsOneWidget);
+      expect(
+        find.text('Action recommandée : Ajouter une zone'),
+        findsOneWidget,
+      );
       expect(
         find.text(
           'Créez d’abord un preset dans Environment Studio avant d’ajouter une zone.',
@@ -250,9 +261,60 @@ void main() {
       );
 
       expect(find.text('Prêt à générer'), findsOneWidget);
+      expect(
+        find.text('Action recommandée : Générer dans ce layer'),
+        findsOneWidget,
+      );
+      expect(find.text('42 cases'), findsOneWidget);
       expect(find.text('Preset : Forêt'), findsOneWidget);
       expect(find.text('Zone : Bosquet nord'), findsOneWidget);
       expect(find.text('Masque : 42 cases peintes'), findsOneWidget);
+    });
+
+    testWidgets('affiche le feedback prêt avec seed et densité',
+        (tester) async {
+      final params = _params(
+        density: 0.65,
+        variation: 0.1,
+        edgeDensity: 0.2,
+        minSpacingCells: 2,
+      );
+      await _pump(
+        tester,
+        TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.ready,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaId: 'zone_nord',
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetId: 'forest',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          canPaintMask: true,
+          canGenerate: true,
+          emptyStateTitle: 'Prêt à générer',
+          emptyStateMessage: 'Le preset, le layer et le masque sont valides.',
+          selectedAreaEffectiveParams: params,
+          selectedAreaDefaultParams: params,
+          selectedAreaHasParamsOverride: false,
+          selectedAreaSeed: 12,
+          canEditSelectedAreaGenerationParams: true,
+        ),
+        onGenerateEnvironment: () {},
+        onRegenerateEnvironment: () {},
+        onShuffleEnvironment: () {},
+      );
+
+      expect(find.text('État de génération'), findsOneWidget);
+      expect(find.text('Prêt à générer'), findsOneWidget);
+      expect(find.text('Seed 12'), findsOneWidget);
+      expect(find.text('Densité 0.65'), findsOneWidget);
+      expect(find.text('Valeurs du preset'), findsOneWidget);
+      expect(_buttonFor(tester, 'Générer dans ce layer').onPressed, isNotNull);
+      expect(_buttonFor(tester, 'Régénérer').onPressed, isNull);
+      expect(_buttonFor(tester, 'Shuffle').onPressed, isNull);
     });
 
     testWidgets('affiche le nombre de placements générés', (tester) async {
@@ -275,7 +337,13 @@ void main() {
         ),
       );
 
+      expect(find.text('État de génération'), findsOneWidget);
       expect(find.text('Placements générés : 18'), findsOneWidget);
+      expect(find.text('18 placements'), findsOneWidget);
+      expect(
+        find.text('Actions disponibles : Effacer · Régénérer · Shuffle'),
+        findsOneWidget,
+      );
     });
 
     testWidgets('affiche la liste des zones d’environnement', (tester) async {
@@ -363,6 +431,12 @@ void main() {
         },
       );
 
+      expect(
+          find.text('Sélectionnez une zone d’environnement'), findsOneWidget);
+      expect(
+        find.text('Action recommandée : Sélectionner une zone'),
+        findsOneWidget,
+      );
       expect(_buttonFor(tester, 'Sélectionner').onPressed, isNotNull);
 
       await tester.ensureVisible(find.text('Sélectionner'));
@@ -400,6 +474,13 @@ void main() {
         ),
       );
 
+      expect(find.text('Zone introuvable'), findsOneWidget);
+      expect(
+        find.text(
+          'La zone sélectionnée n’existe plus. Sélectionnez une zone valide.',
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Preset introuvable : forest_missing'), findsOneWidget);
       expect(find.text('2 placements manquants'), findsOneWidget);
       expect(find.text('Sélectionner'), findsOneWidget);
@@ -433,6 +514,11 @@ void main() {
         ),
       );
 
+      expect(find.text('3 références manquantes'), findsOneWidget);
+      expect(
+        find.text('Effacer ou régénérer nettoiera ces références.'),
+        findsOneWidget,
+      );
       expect(
         find.text(
           'Attention : 3 placements générés référencés sont introuvables.',
@@ -468,6 +554,10 @@ void main() {
       );
 
       expect(find.text('Preset introuvable'), findsOneWidget);
+      expect(
+        find.text('Cette zone référence un preset qui n’existe plus.'),
+        findsOneWidget,
+      );
       expect(
         find.text(
           'Erreur : Le preset d’environnement utilisé par cette zone est introuvable.',
@@ -1092,6 +1182,7 @@ void main() {
       );
 
       expect(find.text('Override local'), findsOneWidget);
+      expect(find.text('Seed 123'), findsOneWidget);
       expect(_buttonFor(tester, 'Réinitialiser les paramètres').onPressed,
           isNotNull);
 
@@ -1156,6 +1247,10 @@ void main() {
       );
 
       expect(find.text('Masque vide'), findsOneWidget);
+      expect(
+        find.text('Action recommandée : Peindre le masque'),
+        findsOneWidget,
+      );
       expect(find.text('Peindre le masque'), findsOneWidget);
       expect(_buttonFor(tester, 'Peindre le masque').onPressed, isNull);
     });
@@ -1346,6 +1441,7 @@ void main() {
       expect(find.text('Régénérer'), findsOneWidget);
       expect(_buttonFor(tester, 'Régénérer').onPressed, isNull);
 
+      await tester.ensureVisible(find.text('Régénérer'));
       await tester.tap(find.text('Régénérer'));
       await tester.pump();
 
@@ -1438,6 +1534,7 @@ void main() {
       expect(find.text('Shuffle'), findsOneWidget);
       expect(_buttonFor(tester, 'Shuffle').onPressed, isNull);
 
+      await tester.ensureVisible(find.text('Shuffle'));
       await tester.tap(find.text('Shuffle'));
       await tester.pump();
 

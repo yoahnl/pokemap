@@ -57,9 +57,6 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const accent = EditorChrome.inspectorJoyMint;
-    final label = EditorChrome.primaryLabel(context);
-    final subtle = EditorChrome.subtleLabel(context);
     final isMaskEditingActive = isMaskPaintingActive || isMaskErasingActive;
 
     return SingleChildScrollView(
@@ -67,38 +64,7 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Text(
-                  _stateTitle(readModel),
-                  style: TextStyle(
-                    color: label,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              if (readModel.isLegacyEnvironmentLayerSelection)
-                const _StatusPill(
-                  label: 'Mode legacy',
-                  accent: accent,
-                ),
-            ],
-          ),
-          if (readModel.emptyStateMessage.trim().isNotEmpty) ...[
-            const SizedBox(height: 7),
-            Text(
-              readModel.emptyStateMessage,
-              style: TextStyle(
-                color: subtle,
-                fontSize: 12,
-                height: 1.32,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
+          _GenerationFeedbackSection(readModel: readModel),
           const SizedBox(height: 12),
           _SummaryRows(readModel: readModel),
           if (readModel.areaSummaries.isNotEmpty) ...[
@@ -176,6 +142,116 @@ final class TileLayerEnvironmentPresetOption {
 
   final String id;
   final String name;
+}
+
+class _GenerationFeedbackSection extends StatelessWidget {
+  const _GenerationFeedbackSection({required this.readModel});
+
+  final TileLayerEnvironmentAttachmentReadModel readModel;
+
+  @override
+  Widget build(BuildContext context) {
+    const accent = EditorChrome.inspectorJoyMint;
+    final label = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
+    final title = _stateTitle(readModel);
+    final message = _generationFeedbackMessage(readModel);
+    final actionHint = _generationActionHint(readModel);
+    final chips = _generationFeedbackChips(readModel);
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: accent.withValues(alpha: 0.06),
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: accent.withValues(alpha: 0.22)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text(
+                  'État de génération',
+                  style: TextStyle(
+                    color: subtle,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              if (readModel.isLegacyEnvironmentLayerSelection)
+                const _StatusPill(
+                  label: 'Mode legacy',
+                  accent: accent,
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            title,
+            style: TextStyle(
+              color: label,
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          if (message != null) ...[
+            const SizedBox(height: 5),
+            Text(
+              message,
+              style: TextStyle(
+                color: subtle,
+                fontSize: 12,
+                height: 1.32,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          if (chips.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final chip in chips)
+                  _StatusPill(label: chip, accent: accent),
+              ],
+            ),
+          ],
+          if (actionHint != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              actionHint,
+              style: TextStyle(
+                color: label,
+                fontSize: 11.5,
+                height: 1.25,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+          if (readModel.missingGeneratedPlacementCount > 0) ...[
+            const SizedBox(height: 5),
+            Text(
+              'Effacer ou régénérer nettoiera ces références.',
+              style: TextStyle(
+                color: subtle,
+                fontSize: 11.5,
+                height: 1.25,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
 }
 
 class _ActiveMaskEditingBanner extends StatelessWidget {
@@ -1493,6 +1569,93 @@ List<String> _areaSummaryDetails(TileLayerEnvironmentAreaSummary summary) {
         count == 1 ? '1 placement manquant' : '$count placements manquants');
   }
   return details;
+}
+
+String? _generationFeedbackMessage(
+  TileLayerEnvironmentAttachmentReadModel model,
+) {
+  return switch (model.state) {
+    TileLayerEnvironmentAttachmentState.selectedAreaMissing =>
+      'La zone sélectionnée n’existe plus. Sélectionnez une zone valide.',
+    TileLayerEnvironmentAttachmentState.missingPreset =>
+      'Cette zone référence un preset qui n’existe plus.',
+    _ => _trimmedOrNull(model.emptyStateMessage),
+  };
+}
+
+String? _generationActionHint(TileLayerEnvironmentAttachmentReadModel model) {
+  return switch (model.state) {
+    TileLayerEnvironmentAttachmentState.noAttachment =>
+      'Action recommandée : ${model.primaryActionLabel ?? 'Activer l’environnement'}',
+    TileLayerEnvironmentAttachmentState.noArea =>
+      'Action recommandée : ${model.primaryActionLabel ?? 'Ajouter une zone'}',
+    TileLayerEnvironmentAttachmentState.areaSelectionRequired =>
+      'Action recommandée : Sélectionner une zone',
+    TileLayerEnvironmentAttachmentState.emptyMask =>
+      'Action recommandée : Peindre le masque',
+    TileLayerEnvironmentAttachmentState.ready when model.canGenerate =>
+      'Action recommandée : Générer dans ce layer',
+    TileLayerEnvironmentAttachmentState.generated
+        when model.canClearGeneratedPlacements ||
+            model.canRegenerate ||
+            model.canShuffle =>
+      'Actions disponibles : Effacer · Régénérer · Shuffle',
+    _ => null,
+  };
+}
+
+List<String> _generationFeedbackChips(
+  TileLayerEnvironmentAttachmentReadModel model,
+) {
+  final chips = <String>[];
+  if (model.maskActiveCellCount > 0) {
+    chips.add(_compactCellsLabel(model.maskActiveCellCount));
+  }
+  if (model.selectedAreaSeed != null) {
+    chips.add('Seed ${model.selectedAreaSeed}');
+  }
+  final params = model.selectedAreaEffectiveParams;
+  if (params != null) {
+    chips.add('Densité ${params.density.toStringAsFixed(2)}');
+  }
+  if (model.generatedPlacementCount > 0) {
+    chips.add(_compactPlacementsLabel(model.generatedPlacementCount));
+  }
+  if (model.missingGeneratedPlacementCount > 0) {
+    chips.add(
+      _compactMissingReferencesLabel(model.missingGeneratedPlacementCount),
+    );
+  }
+  return chips;
+}
+
+String? _trimmedOrNull(String value) {
+  final trimmed = value.trim();
+  if (trimmed.isEmpty) {
+    return null;
+  }
+  return trimmed;
+}
+
+String _compactCellsLabel(int count) {
+  if (count == 1) {
+    return '1 case';
+  }
+  return '$count cases';
+}
+
+String _compactPlacementsLabel(int count) {
+  if (count == 1) {
+    return '1 placement';
+  }
+  return '$count placements';
+}
+
+String _compactMissingReferencesLabel(int count) {
+  if (count == 1) {
+    return '1 référence manquante';
+  }
+  return '$count références manquantes';
 }
 
 String _stateTitle(TileLayerEnvironmentAttachmentReadModel model) {
