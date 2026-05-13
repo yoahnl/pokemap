@@ -1356,6 +1356,22 @@ class _EnvironmentAreaManagementPanelState
     setState(() {});
   }
 
+  Future<void> _confirmDeleteArea(BuildContext context) async {
+    final shouldDelete = await showMacosEditorTwoChoiceAlert(
+      context,
+      title: 'Supprimer cette zone ?',
+      message:
+          'Cette action supprimera la zone, son masque, ses réglages locaux et ses placements générés. Les placements manuels et les autres zones seront conservés.',
+      secondaryLabel: 'Annuler',
+      primaryLabel: 'Supprimer la zone',
+      primaryIsDestructive: true,
+    );
+    if (!shouldDelete) {
+      return;
+    }
+    widget.onDeleteEnvironmentArea?.call();
+  }
+
   @override
   Widget build(BuildContext context) {
     const accent = EditorChrome.inspectorJoyMint;
@@ -1443,14 +1459,15 @@ class _EnvironmentAreaManagementPanelState
                   label: 'Supprimer la zone',
                   accent: CupertinoColors.systemRed,
                   enabled: canDelete,
-                  onPressed: widget.onDeleteEnvironmentArea,
+                  onPressed:
+                      canDelete ? () => _confirmDeleteArea(context) : null,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 7),
           Text(
-            'Supprime la zone et ses placements générés. Le masque et les réglages de cette zone seront perdus.',
+            'Supprime la zone, son masque, ses réglages et ses placements générés.',
             style: TextStyle(
               color: subtle,
               fontSize: 10.5,
@@ -1932,6 +1949,8 @@ class _GenerationActionsSection extends StatelessWidget {
         _ActionData(
           icon: CupertinoIcons.trash,
           label: 'Effacer les placements générés',
+          helperText:
+              'Retire tous les éléments générés de cette zone, sans supprimer le masque ni les réglages.',
           enabled: readModel.canClearGeneratedPlacements &&
               !readModel.hasErrors &&
               onClearGeneratedPlacements != null,
@@ -1946,6 +1965,8 @@ class _GenerationActionsSection extends StatelessWidget {
         _ActionData(
           icon: CupertinoIcons.arrow_clockwise,
           label: 'Régénérer',
+          helperText:
+              'Remplace les placements générés de cette zone en gardant le seed actuel.',
           enabled: readModel.canRegenerate &&
               !readModel.hasErrors &&
               onRegenerateEnvironment != null,
@@ -1958,6 +1979,8 @@ class _GenerationActionsSection extends StatelessWidget {
         _ActionData(
           icon: CupertinoIcons.shuffle,
           label: 'Shuffle',
+          helperText:
+              'Remplace les placements générés de cette zone avec un nouveau seed.',
           enabled: readModel.canShuffle &&
               !readModel.hasErrors &&
               onShuffleEnvironment != null,
@@ -2025,6 +2048,8 @@ class _ManualRefinementSection extends StatelessWidget {
           _ActionData(
             icon: CupertinoIcons.plus_circle,
             label: 'Ajouter un élément généré',
+            helperText:
+                'Choisissez un élément du preset, puis cliquez sur la carte pour l’ajouter à cette zone.',
             enabled: readModel.canAddGeneratedPlacement &&
                 !readModel.hasErrors &&
                 onStartAddGeneratedPlacement != null,
@@ -2039,6 +2064,8 @@ class _ManualRefinementSection extends StatelessWidget {
           _ActionData(
             icon: CupertinoIcons.minus_circle,
             label: 'Supprimer un élément généré',
+            helperText:
+                'Cliquez un élément généré pour le retirer de cette zone.',
             enabled: readModel.hasGeneratedPlacements &&
                 !readModel.hasErrors &&
                 onStartDeleteGeneratedPlacement != null,
@@ -2137,12 +2164,29 @@ class _ActionButtonColumn extends StatelessWidget {
         for (final action in actions)
           Padding(
             padding: const EdgeInsets.only(bottom: 7),
-            child: InspectorEmbeddedPrimaryCapsule(
-              accent: EditorChrome.inspectorJoyMint,
-              icon: action.icon,
-              label: action.label,
-              enabled: action.enabled,
-              onPressed: action.onPressed ?? () {},
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                InspectorEmbeddedPrimaryCapsule(
+                  accent: EditorChrome.inspectorJoyMint,
+                  icon: action.icon,
+                  label: action.label,
+                  enabled: action.enabled,
+                  onPressed: action.onPressed ?? () {},
+                ),
+                if (action.helperText != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    action.helperText!,
+                    style: TextStyle(
+                      color: EditorChrome.subtleLabel(context),
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w600,
+                      height: 1.25,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
       ],
@@ -2194,12 +2238,14 @@ class _ActionData {
   const _ActionData({
     required this.icon,
     required this.label,
+    this.helperText,
     this.enabled = false,
     this.onPressed,
   });
 
   final IconData icon;
   final String label;
+  final String? helperText;
   final bool enabled;
   final VoidCallback? onPressed;
 }

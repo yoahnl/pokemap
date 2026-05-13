@@ -651,7 +651,7 @@ void main() {
       expect(_buttonFor(tester, 'Renommer la zone').onPressed, isNull);
     });
 
-    testWidgets('Supprimer la zone déclenche le callback et affiche l’aide',
+    testWidgets('Supprimer la zone ouvre une confirmation et Annuler bloque',
         (tester) async {
       var deleted = 0;
       await _pump(
@@ -691,16 +691,79 @@ void main() {
       expect(find.text('Supprimer la zone'), findsOneWidget);
       expect(
         find.text(
-          'Supprime la zone et ses placements générés. Le masque et les réglages de cette zone seront perdus.',
+          'Supprime la zone, son masque, ses réglages et ses placements générés.',
         ),
         findsOneWidget,
       );
 
       await tester.ensureVisible(find.text('Supprimer la zone'));
       await tester.tap(find.text('Supprimer la zone'));
-      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(find.text('Supprimer cette zone ?'), findsOneWidget);
+      expect(
+        find.text(
+          'Cette action supprimera la zone, son masque, ses réglages locaux et ses placements générés. Les placements manuels et les autres zones seront conservés.',
+        ),
+        findsOneWidget,
+      );
+      expect(deleted, 0);
+
+      await tester.tap(find.text('Annuler'));
+      await tester.pumpAndSettle();
+
+      expect(deleted, 0);
+      expect(find.text('Supprimer cette zone ?'), findsNothing);
+    });
+
+    testWidgets('Confirmer Supprimer la zone déclenche le callback',
+        (tester) async {
+      var deleted = 0;
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.ready,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaId: 'area_a',
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          canPaintMask: true,
+          emptyStateTitle: 'Prêt à générer',
+          emptyStateMessage: 'Le preset, le layer et le masque sont valides.',
+          areaSummaries: [
+            TileLayerEnvironmentAreaSummary(
+              id: 'area_a',
+              name: 'Bosquet nord',
+              presetId: 'forest',
+              presetName: 'Forêt',
+              isSelected: true,
+              maskActiveCellCount: 42,
+              generatedPlacementCount: 18,
+              missingGeneratedPlacementCount: 0,
+              hasMissingPreset: false,
+            ),
+          ],
+        ),
+        onDeleteEnvironmentArea: () {
+          deleted++;
+        },
+      );
+
+      await tester.ensureVisible(find.text('Supprimer la zone'));
+      await tester.tap(find.text('Supprimer la zone'));
+      await tester.pumpAndSettle();
+
+      expect(deleted, 0);
+
+      await tester.tap(find.text('Supprimer la zone').last);
+      await tester.pumpAndSettle();
 
       expect(deleted, 1);
+      expect(find.text('Supprimer cette zone ?'), findsNothing);
     });
 
     testWidgets('gestion de zone absente sans area active', (tester) async {
@@ -1610,6 +1673,12 @@ void main() {
 
       expect(find.text('Effacer les placements générés'), findsOneWidget);
       expect(
+        find.text(
+          'Retire tous les éléments générés de cette zone, sans supprimer le masque ni les réglages.',
+        ),
+        findsOneWidget,
+      );
+      expect(
         _buttonFor(tester, 'Effacer les placements générés').onPressed,
         isNotNull,
       );
@@ -1705,6 +1774,12 @@ void main() {
 
       expect(find.text('Régénérer'), findsOneWidget);
       expect(_buttonFor(tester, 'Régénérer').onPressed, isNotNull);
+      expect(
+        find.text(
+          'Remplace les placements générés de cette zone en gardant le seed actuel.',
+        ),
+        findsOneWidget,
+      );
 
       await tester.tap(find.text('Régénérer'));
       await tester.pump();
@@ -1798,6 +1873,12 @@ void main() {
 
       expect(find.text('Shuffle'), findsOneWidget);
       expect(_buttonFor(tester, 'Shuffle').onPressed, isNotNull);
+      expect(
+        find.text(
+          'Remplace les placements générés de cette zone avec un nouveau seed.',
+        ),
+        findsOneWidget,
+      );
 
       await tester.tap(find.text('Shuffle'));
       await tester.pump();
@@ -1990,6 +2071,12 @@ void main() {
 
       expect(
           _buttonFor(tester, 'Ajouter un élément généré').onPressed, isNotNull);
+      expect(
+        find.text(
+          'Choisissez un élément du preset, puis cliquez sur la carte pour l’ajouter à cette zone.',
+        ),
+        findsOneWidget,
+      );
       await tester.ensureVisible(find.text('Ajouter un élément généré'));
       await tester.tap(find.text('Ajouter un élément généré'));
       await tester.pump();
@@ -2128,6 +2215,10 @@ void main() {
 
       expect(_buttonFor(tester, 'Supprimer un élément généré').onPressed,
           isNotNull);
+      expect(
+        find.text('Cliquez un élément généré pour le retirer de cette zone.'),
+        findsOneWidget,
+      );
 
       await tester.ensureVisible(find.text('Supprimer un élément généré'));
       await tester.tap(find.text('Supprimer un élément généré'));
@@ -2212,43 +2303,46 @@ Future<void> _pump(
   VoidCallback? onShuffleEnvironment,
 }) {
   return tester.pumpWidget(
-    MaterialApp(
-      home: CupertinoPageScaffold(
-        child: SizedBox(
-          width: 360,
-          height: 520,
-          child: TileLayerEnvironmentInspectorSection(
-            readModel: model,
-            onEnableEnvironment: onEnableEnvironment,
-            availablePresets: availablePresets,
-            selectedPresetIdForNewArea: selectedPresetIdForNewArea,
-            onSelectPresetForNewArea: onSelectPresetForNewArea,
-            onCreateArea: onCreateArea,
-            onSelectEnvironmentArea: onSelectEnvironmentArea,
-            onRenameEnvironmentArea: onRenameEnvironmentArea,
-            onDeleteEnvironmentArea: onDeleteEnvironmentArea,
-            isMaskPaintingActive: isMaskPaintingActive,
-            isMaskErasingActive: isMaskErasingActive,
-            isDeletingGeneratedPlacement: isDeletingGeneratedPlacement,
-            isAddingGeneratedPlacement: isAddingGeneratedPlacement,
-            onStartMaskPainting: onStartMaskPainting,
-            onStartMaskErasing: onStartMaskErasing,
-            onStopMaskPainting: onStopMaskPainting,
-            onSelectGeneratedPlacementElement:
-                onSelectGeneratedPlacementElement,
-            onStartAddGeneratedPlacement: onStartAddGeneratedPlacement,
-            onStopAddGeneratedPlacement: onStopAddGeneratedPlacement,
-            onStartDeleteGeneratedPlacement: onStartDeleteGeneratedPlacement,
-            onStopDeleteGeneratedPlacement: onStopDeleteGeneratedPlacement,
-            environmentMaskBrushSize: environmentMaskBrushSize,
-            onSetEnvironmentMaskBrushSize: onSetEnvironmentMaskBrushSize,
-            onSetGenerationParams: onSetGenerationParams,
-            onResetGenerationParams: onResetGenerationParams,
-            onSetSeed: onSetSeed,
-            onGenerateEnvironment: onGenerateEnvironment,
-            onClearGeneratedPlacements: onClearGeneratedPlacements,
-            onRegenerateEnvironment: onRegenerateEnvironment,
-            onShuffleEnvironment: onShuffleEnvironment,
+    MacosTheme(
+      data: MacosThemeData.light(),
+      child: MaterialApp(
+        home: CupertinoPageScaffold(
+          child: SizedBox(
+            width: 360,
+            height: 520,
+            child: TileLayerEnvironmentInspectorSection(
+              readModel: model,
+              onEnableEnvironment: onEnableEnvironment,
+              availablePresets: availablePresets,
+              selectedPresetIdForNewArea: selectedPresetIdForNewArea,
+              onSelectPresetForNewArea: onSelectPresetForNewArea,
+              onCreateArea: onCreateArea,
+              onSelectEnvironmentArea: onSelectEnvironmentArea,
+              onRenameEnvironmentArea: onRenameEnvironmentArea,
+              onDeleteEnvironmentArea: onDeleteEnvironmentArea,
+              isMaskPaintingActive: isMaskPaintingActive,
+              isMaskErasingActive: isMaskErasingActive,
+              isDeletingGeneratedPlacement: isDeletingGeneratedPlacement,
+              isAddingGeneratedPlacement: isAddingGeneratedPlacement,
+              onStartMaskPainting: onStartMaskPainting,
+              onStartMaskErasing: onStartMaskErasing,
+              onStopMaskPainting: onStopMaskPainting,
+              onSelectGeneratedPlacementElement:
+                  onSelectGeneratedPlacementElement,
+              onStartAddGeneratedPlacement: onStartAddGeneratedPlacement,
+              onStopAddGeneratedPlacement: onStopAddGeneratedPlacement,
+              onStartDeleteGeneratedPlacement: onStartDeleteGeneratedPlacement,
+              onStopDeleteGeneratedPlacement: onStopDeleteGeneratedPlacement,
+              environmentMaskBrushSize: environmentMaskBrushSize,
+              onSetEnvironmentMaskBrushSize: onSetEnvironmentMaskBrushSize,
+              onSetGenerationParams: onSetGenerationParams,
+              onResetGenerationParams: onResetGenerationParams,
+              onSetSeed: onSetSeed,
+              onGenerateEnvironment: onGenerateEnvironment,
+              onClearGeneratedPlacements: onClearGeneratedPlacements,
+              onRegenerateEnvironment: onRegenerateEnvironment,
+              onShuffleEnvironment: onShuffleEnvironment,
+            ),
           ),
         ),
       ),
