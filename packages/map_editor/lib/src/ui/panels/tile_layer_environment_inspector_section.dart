@@ -75,6 +75,14 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
     final isEnvironmentActionActive = isMaskEditingActive ||
         isDeletingGeneratedPlacement ||
         isAddingGeneratedPlacement;
+    final showSetupActions = _shouldShowSetupActions(readModel);
+    final showMaskTools =
+        readModel.canPaintMask || isMaskPaintingActive || isMaskErasingActive;
+    final showGenerationActions = _shouldShowGenerationActions(readModel);
+    final showManualRefinement = _shouldShowManualRefinement(
+      readModel,
+      isEnvironmentActionActive: isEnvironmentActionActive,
+    );
 
     return SingleChildScrollView(
       padding: kInspectorTileBodyPadding,
@@ -91,32 +99,35 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
               onSelectEnvironmentArea: onSelectEnvironmentArea,
             ),
           ],
-          if (readModel.issues.isNotEmpty) ...[
+          if (showSetupActions) ...[
             const SizedBox(height: 12),
-            ...readModel.issues.map(
-              (issue) => Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: _IssueBanner(issue: issue),
-              ),
+            _SetupActionsSection(
+              readModel: readModel,
+              onEnableEnvironment: onEnableEnvironment,
+              availablePresets: availablePresets,
+              selectedPresetIdForNewArea: selectedPresetIdForNewArea,
+              onCreateArea: onCreateArea,
             ),
           ],
-          if (isMaskEditingActive) ...[
+          if (_shouldShowCreateAreaGate(readModel)) ...[
             const SizedBox(height: 12),
-            _ActiveMaskEditingBanner(isErasing: isMaskErasingActive),
+            _CreateAreaPresetGate(
+              availablePresets: availablePresets,
+              selectedPresetIdForNewArea: selectedPresetIdForNewArea,
+              onSelectPresetForNewArea: onSelectPresetForNewArea,
+            ),
           ],
-          if (isDeletingGeneratedPlacement) ...[
+          if (showMaskTools) ...[
             const SizedBox(height: 12),
-            const _ActiveGeneratedPlacementDeleteBanner(),
-          ],
-          if (isAddingGeneratedPlacement) ...[
-            const SizedBox(height: 12),
-            const _ActiveGeneratedPlacementAddBanner(),
-          ],
-          if (readModel.canPaintMask || isEnvironmentActionActive) ...[
-            const SizedBox(height: 12),
-            _BrushSizeSelector(
-              selectedSize: environmentMaskBrushSize,
-              onChanged: onSetEnvironmentMaskBrushSize,
+            _MaskEditingSection(
+              isMaskPaintingActive: isMaskPaintingActive,
+              isMaskErasingActive: isMaskErasingActive,
+              environmentMaskBrushSize: environmentMaskBrushSize,
+              onStartMaskPainting: onStartMaskPainting,
+              onStartMaskErasing: onStartMaskErasing,
+              onStopMaskPainting: onStopMaskPainting,
+              onSetEnvironmentMaskBrushSize: onSetEnvironmentMaskBrushSize,
+              readModel: readModel,
             ),
           ],
           if (_shouldShowGenerationParamsSection(readModel)) ...[
@@ -128,45 +139,35 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
               onSetSeed: onSetSeed,
             ),
           ],
-          if (_shouldShowGeneratedPlacementPalette(readModel)) ...[
+          if (showGenerationActions) ...[
             const SizedBox(height: 12),
-            _GeneratedPlacementPaletteSection(
-              items: readModel.selectedAreaPaletteItems,
+            _GenerationActionsSection(
+              readModel: readModel,
+              onGenerateEnvironment: onGenerateEnvironment,
+              onClearGeneratedPlacements: onClearGeneratedPlacements,
+              onRegenerateEnvironment: onRegenerateEnvironment,
+              onShuffleEnvironment: onShuffleEnvironment,
+            ),
+          ],
+          if (showManualRefinement) ...[
+            const SizedBox(height: 12),
+            _ManualRefinementSection(
+              readModel: readModel,
+              isMaskEditingActive: isMaskEditingActive,
+              isDeletingGeneratedPlacement: isDeletingGeneratedPlacement,
+              isAddingGeneratedPlacement: isAddingGeneratedPlacement,
               onSelectGeneratedPlacementElement:
                   onSelectGeneratedPlacementElement,
+              onStartAddGeneratedPlacement: onStartAddGeneratedPlacement,
+              onStopAddGeneratedPlacement: onStopAddGeneratedPlacement,
+              onStartDeleteGeneratedPlacement: onStartDeleteGeneratedPlacement,
+              onStopDeleteGeneratedPlacement: onStopDeleteGeneratedPlacement,
             ),
           ],
-          const SizedBox(height: 12),
-          if (_shouldShowCreateAreaGate(readModel)) ...[
-            _CreateAreaPresetGate(
-              availablePresets: availablePresets,
-              selectedPresetIdForNewArea: selectedPresetIdForNewArea,
-              onSelectPresetForNewArea: onSelectPresetForNewArea,
-            ),
+          if (readModel.issues.isNotEmpty) ...[
             const SizedBox(height: 12),
+            _DiagnosticsSection(issues: readModel.issues),
           ],
-          _FutureActions(
-            readModel: readModel,
-            onEnableEnvironment: onEnableEnvironment,
-            availablePresets: availablePresets,
-            selectedPresetIdForNewArea: selectedPresetIdForNewArea,
-            onCreateArea: onCreateArea,
-            isMaskPaintingActive: isMaskPaintingActive,
-            isMaskErasingActive: isMaskErasingActive,
-            isDeletingGeneratedPlacement: isDeletingGeneratedPlacement,
-            isAddingGeneratedPlacement: isAddingGeneratedPlacement,
-            onStartMaskPainting: onStartMaskPainting,
-            onStartMaskErasing: onStartMaskErasing,
-            onStopMaskPainting: onStopMaskPainting,
-            onStartAddGeneratedPlacement: onStartAddGeneratedPlacement,
-            onStopAddGeneratedPlacement: onStopAddGeneratedPlacement,
-            onStartDeleteGeneratedPlacement: onStartDeleteGeneratedPlacement,
-            onStopDeleteGeneratedPlacement: onStopDeleteGeneratedPlacement,
-            onGenerateEnvironment: onGenerateEnvironment,
-            onClearGeneratedPlacements: onClearGeneratedPlacements,
-            onRegenerateEnvironment: onRegenerateEnvironment,
-            onShuffleEnvironment: onShuffleEnvironment,
-          ),
         ],
       ),
     );
@@ -302,8 +303,8 @@ class _ActiveMaskEditingBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final title = isErasing ? 'Effacement actif' : 'Peinture active';
     final message = isErasing
-        ? 'Mode effacement actif : cliquez sur la carte pour retirer des cellules du masque.'
-        : 'Mode peinture actif : cliquez sur la carte pour peindre le masque.';
+        ? 'Cliquez sur la carte pour retirer des cellules du masque.'
+        : 'Cliquez sur la carte pour ajouter des cellules au masque.';
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
@@ -1543,28 +1544,13 @@ class _IssueBanner extends StatelessWidget {
   }
 }
 
-class _FutureActions extends StatelessWidget {
-  const _FutureActions({
+class _SetupActionsSection extends StatelessWidget {
+  const _SetupActionsSection({
     required this.readModel,
     required this.onEnableEnvironment,
     required this.availablePresets,
     required this.selectedPresetIdForNewArea,
     required this.onCreateArea,
-    required this.isMaskPaintingActive,
-    required this.isMaskErasingActive,
-    required this.isDeletingGeneratedPlacement,
-    required this.isAddingGeneratedPlacement,
-    required this.onStartMaskPainting,
-    required this.onStartMaskErasing,
-    required this.onStopMaskPainting,
-    required this.onStartAddGeneratedPlacement,
-    required this.onStopAddGeneratedPlacement,
-    required this.onStartDeleteGeneratedPlacement,
-    required this.onStopDeleteGeneratedPlacement,
-    required this.onGenerateEnvironment,
-    required this.onClearGeneratedPlacements,
-    required this.onRegenerateEnvironment,
-    required this.onShuffleEnvironment,
   });
 
   final TileLayerEnvironmentAttachmentReadModel readModel;
@@ -1572,29 +1558,10 @@ class _FutureActions extends StatelessWidget {
   final List<TileLayerEnvironmentPresetOption> availablePresets;
   final String? selectedPresetIdForNewArea;
   final VoidCallback? onCreateArea;
-  final bool isMaskPaintingActive;
-  final bool isMaskErasingActive;
-  final bool isDeletingGeneratedPlacement;
-  final bool isAddingGeneratedPlacement;
-  final VoidCallback? onStartMaskPainting;
-  final VoidCallback? onStartMaskErasing;
-  final VoidCallback? onStopMaskPainting;
-  final VoidCallback? onStartAddGeneratedPlacement;
-  final VoidCallback? onStopAddGeneratedPlacement;
-  final VoidCallback? onStartDeleteGeneratedPlacement;
-  final VoidCallback? onStopDeleteGeneratedPlacement;
-  final VoidCallback? onGenerateEnvironment;
-  final VoidCallback? onClearGeneratedPlacements;
-  final VoidCallback? onRegenerateEnvironment;
-  final VoidCallback? onShuffleEnvironment;
 
   @override
   Widget build(BuildContext context) {
     final actions = <_ActionData>[];
-    final isMaskEditingActive = isMaskPaintingActive || isMaskErasingActive;
-    final isEnvironmentActionActive = isMaskEditingActive ||
-        isDeletingGeneratedPlacement ||
-        isAddingGeneratedPlacement;
     if (readModel.canEnableEnvironment) {
       actions.add(
         _ActionData(
@@ -1619,29 +1586,40 @@ class _FutureActions extends StatelessWidget {
         ),
       );
     }
-    if (isAddingGeneratedPlacement) {
+    return _ActionButtonColumn(actions: actions);
+  }
+}
+
+class _MaskEditingSection extends StatelessWidget {
+  const _MaskEditingSection({
+    required this.readModel,
+    required this.isMaskPaintingActive,
+    required this.isMaskErasingActive,
+    required this.environmentMaskBrushSize,
+    required this.onStartMaskPainting,
+    required this.onStartMaskErasing,
+    required this.onStopMaskPainting,
+    required this.onSetEnvironmentMaskBrushSize,
+  });
+
+  final TileLayerEnvironmentAttachmentReadModel readModel;
+  final bool isMaskPaintingActive;
+  final bool isMaskErasingActive;
+  final int environmentMaskBrushSize;
+  final VoidCallback? onStartMaskPainting;
+  final VoidCallback? onStartMaskErasing;
+  final VoidCallback? onStopMaskPainting;
+  final ValueChanged<int>? onSetEnvironmentMaskBrushSize;
+
+  @override
+  Widget build(BuildContext context) {
+    final actions = <_ActionData>[];
+    final isMaskEditingActive = isMaskPaintingActive || isMaskErasingActive;
+    if (isMaskEditingActive) {
       actions.add(
         _ActionData(
           icon: CupertinoIcons.stop_circle,
-          label: 'Arrêter l’ajout',
-          enabled: onStopAddGeneratedPlacement != null,
-          onPressed: onStopAddGeneratedPlacement,
-        ),
-      );
-    } else if (isDeletingGeneratedPlacement) {
-      actions.add(
-        _ActionData(
-          icon: CupertinoIcons.stop_circle,
-          label: 'Arrêter la suppression',
-          enabled: onStopDeleteGeneratedPlacement != null,
-          onPressed: onStopDeleteGeneratedPlacement,
-        ),
-      );
-    } else if (isMaskEditingActive) {
-      actions.add(
-        _ActionData(
-          icon: CupertinoIcons.stop_circle,
-          label: 'Arrêter la peinture',
+          label: 'Arrêter l’édition du masque',
           enabled: onStopMaskPainting != null,
           onPressed: onStopMaskPainting,
         ),
@@ -1664,6 +1642,45 @@ class _FutureActions extends StatelessWidget {
         ),
       );
     }
+
+    return _EnvironmentSubsection(
+      title: 'Éditer le masque',
+      children: [
+        if (isMaskEditingActive) ...[
+          _ActiveMaskEditingBanner(isErasing: isMaskErasingActive),
+          const SizedBox(height: 8),
+        ],
+        if (actions.isNotEmpty) ...[
+          _ActionButtonColumn(actions: actions),
+          const SizedBox(height: 8),
+        ],
+        _BrushSizeSelector(
+          selectedSize: environmentMaskBrushSize,
+          onChanged: onSetEnvironmentMaskBrushSize,
+        ),
+      ],
+    );
+  }
+}
+
+class _GenerationActionsSection extends StatelessWidget {
+  const _GenerationActionsSection({
+    required this.readModel,
+    required this.onGenerateEnvironment,
+    required this.onClearGeneratedPlacements,
+    required this.onRegenerateEnvironment,
+    required this.onShuffleEnvironment,
+  });
+
+  final TileLayerEnvironmentAttachmentReadModel readModel;
+  final VoidCallback? onGenerateEnvironment;
+  final VoidCallback? onClearGeneratedPlacements;
+  final VoidCallback? onRegenerateEnvironment;
+  final VoidCallback? onShuffleEnvironment;
+
+  @override
+  Widget build(BuildContext context) {
+    final actions = <_ActionData>[];
     if (readModel.canGenerate || readModel.canPaintMask) {
       actions.add(
         _ActionData(
@@ -1714,49 +1731,172 @@ class _FutureActions extends StatelessWidget {
         ),
       );
     }
-    if (!isEnvironmentActionActive &&
-        (readModel.hasGeneratedPlacements ||
-            readModel.canPaintMask ||
-            readModel.selectedAreaPaletteItems.isNotEmpty)) {
+
+    return _EnvironmentSubsection(
+      title: 'Génération',
+      children: [_ActionButtonColumn(actions: actions)],
+    );
+  }
+}
+
+class _ManualRefinementSection extends StatelessWidget {
+  const _ManualRefinementSection({
+    required this.readModel,
+    required this.isMaskEditingActive,
+    required this.isDeletingGeneratedPlacement,
+    required this.isAddingGeneratedPlacement,
+    required this.onSelectGeneratedPlacementElement,
+    required this.onStartAddGeneratedPlacement,
+    required this.onStopAddGeneratedPlacement,
+    required this.onStartDeleteGeneratedPlacement,
+    required this.onStopDeleteGeneratedPlacement,
+  });
+
+  final TileLayerEnvironmentAttachmentReadModel readModel;
+  final bool isMaskEditingActive;
+  final bool isDeletingGeneratedPlacement;
+  final bool isAddingGeneratedPlacement;
+  final ValueChanged<String>? onSelectGeneratedPlacementElement;
+  final VoidCallback? onStartAddGeneratedPlacement;
+  final VoidCallback? onStopAddGeneratedPlacement;
+  final VoidCallback? onStartDeleteGeneratedPlacement;
+  final VoidCallback? onStopDeleteGeneratedPlacement;
+
+  @override
+  Widget build(BuildContext context) {
+    final actions = <_ActionData>[];
+    if (isAddingGeneratedPlacement) {
       actions.add(
         _ActionData(
-          icon: CupertinoIcons.plus_circle,
-          label: 'Ajouter un élément généré',
-          enabled: readModel.canAddGeneratedPlacement &&
-              !readModel.hasErrors &&
-              onStartAddGeneratedPlacement != null,
-          onPressed: readModel.canAddGeneratedPlacement
-              ? onStartAddGeneratedPlacement
-              : null,
+          icon: CupertinoIcons.stop_circle,
+          label: 'Arrêter l’ajout',
+          enabled: onStopAddGeneratedPlacement != null,
+          onPressed: onStopAddGeneratedPlacement,
         ),
       );
-    }
-    if (!isEnvironmentActionActive &&
-        (readModel.hasGeneratedPlacements || readModel.canPaintMask)) {
+    } else if (isDeletingGeneratedPlacement) {
       actions.add(
         _ActionData(
-          icon: CupertinoIcons.minus_circle,
-          label: 'Supprimer un élément généré',
-          enabled: readModel.hasGeneratedPlacements &&
-              !readModel.hasErrors &&
-              onStartDeleteGeneratedPlacement != null,
-          onPressed: readModel.hasGeneratedPlacements
-              ? onStartDeleteGeneratedPlacement
-              : null,
+          icon: CupertinoIcons.stop_circle,
+          label: 'Arrêter la suppression',
+          enabled: onStopDeleteGeneratedPlacement != null,
+          onPressed: onStopDeleteGeneratedPlacement,
         ),
       );
+    } else if (!isMaskEditingActive) {
+      if (readModel.hasGeneratedPlacements ||
+          readModel.canPaintMask ||
+          readModel.selectedAreaPaletteItems.isNotEmpty) {
+        actions.add(
+          _ActionData(
+            icon: CupertinoIcons.plus_circle,
+            label: 'Ajouter un élément généré',
+            enabled: readModel.canAddGeneratedPlacement &&
+                !readModel.hasErrors &&
+                onStartAddGeneratedPlacement != null,
+            onPressed: readModel.canAddGeneratedPlacement
+                ? onStartAddGeneratedPlacement
+                : null,
+          ),
+        );
+      }
+      if (readModel.hasGeneratedPlacements || readModel.canPaintMask) {
+        actions.add(
+          _ActionData(
+            icon: CupertinoIcons.minus_circle,
+            label: 'Supprimer un élément généré',
+            enabled: readModel.hasGeneratedPlacements &&
+                !readModel.hasErrors &&
+                onStartDeleteGeneratedPlacement != null,
+            onPressed: readModel.hasGeneratedPlacements
+                ? onStartDeleteGeneratedPlacement
+                : null,
+          ),
+        );
+      }
     }
 
-    if (actions.isEmpty) {
-      return InspectorEmbeddedSecondaryCapsule(
-        accent: EditorChrome.inspectorJoyMint,
-        icon: CupertinoIcons.clock,
-        label: 'Actions bientôt disponibles',
-        enabled: false,
-        onPressed: () {},
-      );
-    }
+    return _EnvironmentSubsection(
+      title: 'Affinage manuel',
+      children: [
+        if (isDeletingGeneratedPlacement) ...[
+          const _ActiveGeneratedPlacementDeleteBanner(),
+          const SizedBox(height: 8),
+        ],
+        if (isAddingGeneratedPlacement) ...[
+          const _ActiveGeneratedPlacementAddBanner(),
+          const SizedBox(height: 8),
+        ],
+        if (_shouldShowGeneratedPlacementPalette(readModel)) ...[
+          _GeneratedPlacementPaletteSection(
+            items: readModel.selectedAreaPaletteItems,
+            onSelectGeneratedPlacementElement:
+                onSelectGeneratedPlacementElement,
+          ),
+          const SizedBox(height: 8),
+        ],
+        _ActionButtonColumn(actions: actions),
+      ],
+    );
+  }
+}
 
+class _DiagnosticsSection extends StatelessWidget {
+  const _DiagnosticsSection({required this.issues});
+
+  final List<TileLayerEnvironmentAttachmentIssue> issues;
+
+  @override
+  Widget build(BuildContext context) {
+    return _EnvironmentSubsection(
+      title: 'Diagnostics',
+      children: [
+        for (final issue in issues)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: _IssueBanner(issue: issue),
+          ),
+      ],
+    );
+  }
+}
+
+class _EnvironmentSubsection extends StatelessWidget {
+  const _EnvironmentSubsection({
+    required this.title,
+    required this.children,
+  });
+
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            color: EditorChrome.primaryLabel(context),
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...children,
+      ],
+    );
+  }
+}
+
+class _ActionButtonColumn extends StatelessWidget {
+  const _ActionButtonColumn({required this.actions});
+
+  final List<_ActionData> actions;
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1835,6 +1975,29 @@ bool _shouldShowCreateAreaGate(TileLayerEnvironmentAttachmentReadModel model) {
       (model.state == TileLayerEnvironmentAttachmentState.noArea ||
           model.state ==
               TileLayerEnvironmentAttachmentState.areaSelectionRequired);
+}
+
+bool _shouldShowSetupActions(TileLayerEnvironmentAttachmentReadModel model) {
+  return model.canEnableEnvironment || _shouldShowCreateAreaGate(model);
+}
+
+bool _shouldShowGenerationActions(
+    TileLayerEnvironmentAttachmentReadModel model) {
+  return model.canGenerate ||
+      model.canPaintMask ||
+      model.canClearGeneratedPlacements ||
+      model.canRegenerate ||
+      model.canShuffle;
+}
+
+bool _shouldShowManualRefinement(
+  TileLayerEnvironmentAttachmentReadModel model, {
+  required bool isEnvironmentActionActive,
+}) {
+  return isEnvironmentActionActive ||
+      model.hasGeneratedPlacements ||
+      model.canPaintMask ||
+      model.selectedAreaPaletteItems.isNotEmpty;
 }
 
 bool _shouldShowGenerationParamsSection(

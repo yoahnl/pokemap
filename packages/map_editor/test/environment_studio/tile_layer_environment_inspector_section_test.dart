@@ -317,6 +317,105 @@ void main() {
       expect(_buttonFor(tester, 'Shuffle').onPressed, isNull);
     });
 
+    testWidgets('organise les sections principales dans l’ordre UX cible',
+        (tester) async {
+      final params = _params(
+        density: 0.65,
+        variation: 0.1,
+        edgeDensity: 0.2,
+        minSpacingCells: 2,
+      );
+      await _pump(
+        tester,
+        TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.generated,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          activeTileLayerId: 'tiles',
+          activeTileLayerName: 'Décor',
+          attachedEnvironmentLayerId: 'env',
+          attachedEnvironmentLayerName: 'Environnement',
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaId: 'area_a',
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetId: 'forest',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          generatedPlacementCount: 18,
+          missingGeneratedPlacementCount: 3,
+          hasGeneratedPlacements: true,
+          canPaintMask: true,
+          canClearGeneratedPlacements: true,
+          canRegenerate: true,
+          canShuffle: true,
+          canAddGeneratedPlacement: true,
+          emptyStateTitle: 'Placements générés',
+          emptyStateMessage: 'Cette zone contient déjà des placements générés.',
+          selectedAreaEffectiveParams: params,
+          selectedAreaDefaultParams: params,
+          selectedAreaHasParamsOverride: false,
+          selectedAreaSeed: 12,
+          canEditSelectedAreaGenerationParams: true,
+          selectedAreaPaletteItems: _paletteItems(selectedId: 'tree'),
+          areaSummaries: const [
+            TileLayerEnvironmentAreaSummary(
+              id: 'area_a',
+              name: 'Bosquet nord',
+              presetId: 'forest',
+              presetName: 'Forêt',
+              isSelected: true,
+              maskActiveCellCount: 42,
+              generatedPlacementCount: 18,
+              missingGeneratedPlacementCount: 3,
+              hasMissingPreset: false,
+            ),
+          ],
+          issues: const [
+            TileLayerEnvironmentAttachmentIssue(
+              severity: TileLayerEnvironmentAttachmentIssueSeverity.warning,
+              message: '3 placements générés référencés sont introuvables.',
+            ),
+          ],
+        ),
+        onStartMaskPainting: () {},
+        onStartMaskErasing: () {},
+        onSetEnvironmentMaskBrushSize: (_) {},
+        onSetGenerationParams: (_) {},
+        onSetSeed: (_) {},
+        onGenerateEnvironment: () {},
+        onClearGeneratedPlacements: () {},
+        onRegenerateEnvironment: () {},
+        onShuffleEnvironment: () {},
+        onSelectGeneratedPlacementElement: (_) {},
+        onStartAddGeneratedPlacement: () {},
+        onStartDeleteGeneratedPlacement: () {},
+      );
+
+      _expectTextOrder(tester, const [
+        'État de génération',
+        'Zones d’environnement',
+        'Éditer le masque',
+        'Paramètres de génération',
+        'Génération',
+        'Affinage manuel',
+        'Palette du preset',
+        'Diagnostics',
+      ]);
+      expect(find.text('Peindre le masque'), findsOneWidget);
+      expect(find.text('Effacer du masque'), findsOneWidget);
+      expect(find.text('Effacer les placements générés'), findsOneWidget);
+      expect(find.text('Régénérer'), findsOneWidget);
+      expect(find.text('Shuffle'), findsOneWidget);
+      expect(find.text('Ajouter un élément généré'), findsOneWidget);
+      expect(find.text('Supprimer un élément généré'), findsOneWidget);
+      expect(
+        find.text(
+            'Attention : 3 placements générés référencés sont introuvables.'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('affiche le nombre de placements générés', (tester) async {
       await _pump(
         tester,
@@ -657,6 +756,7 @@ void main() {
       expect(find.text('Générer dans ce layer'), findsOneWidget);
       expect(_buttonFor(tester, 'Générer dans ce layer').onPressed, isNotNull);
 
+      await tester.ensureVisible(find.text('Générer dans ce layer'));
       await tester.tap(find.text('Générer dans ce layer'));
       await tester.pump();
 
@@ -872,14 +972,17 @@ void main() {
       expect(find.text('Peinture active'), findsOneWidget);
       expect(
         find.text(
-          'Mode peinture actif : cliquez sur la carte pour peindre le masque.',
+          'Cliquez sur la carte pour ajouter des cellules au masque.',
         ),
         findsOneWidget,
       );
-      expect(find.text('Arrêter la peinture'), findsOneWidget);
-      expect(_buttonFor(tester, 'Arrêter la peinture').onPressed, isNotNull);
+      expect(find.text('Arrêter l’édition du masque'), findsOneWidget);
+      expect(
+        _buttonFor(tester, 'Arrêter l’édition du masque').onPressed,
+        isNotNull,
+      );
 
-      await tester.tap(find.text('Arrêter la peinture'));
+      await tester.tap(find.text('Arrêter l’édition du masque'));
       await tester.pump();
 
       expect(stopped, 1);
@@ -911,15 +1014,18 @@ void main() {
       expect(find.text('Effacement actif'), findsOneWidget);
       expect(
         find.text(
-          'Mode effacement actif : cliquez sur la carte pour retirer des cellules du masque.',
+          'Cliquez sur la carte pour retirer des cellules du masque.',
         ),
         findsOneWidget,
       );
       expect(find.text('Taille du pinceau'), findsOneWidget);
-      expect(find.text('Arrêter la peinture'), findsOneWidget);
-      expect(_buttonFor(tester, 'Arrêter la peinture').onPressed, isNotNull);
+      expect(find.text('Arrêter l’édition du masque'), findsOneWidget);
+      expect(
+        _buttonFor(tester, 'Arrêter l’édition du masque').onPressed,
+        isNotNull,
+      );
 
-      await tester.tap(find.text('Arrêter la peinture'));
+      await tester.tap(find.text('Arrêter l’édition du masque'));
       await tester.pump();
 
       expect(stopped, 1);
@@ -1989,6 +2095,25 @@ CupertinoButton _buttonFor(WidgetTester tester, String label) {
     matching: find.byType(CupertinoButton),
   );
   return tester.widget<CupertinoButton>(finder.first);
+}
+
+void _expectTextOrder(WidgetTester tester, List<String> labels) {
+  final texts = tester
+      .widgetList<Text>(find.byType(Text))
+      .map((text) => text.data)
+      .whereType<String>()
+      .toList();
+  var previousIndex = -1;
+  for (final label in labels) {
+    final index = texts.indexOf(label);
+    expect(index, greaterThanOrEqualTo(0), reason: 'Texte absent : $label');
+    expect(
+      index,
+      greaterThan(previousIndex),
+      reason: 'Texte hors ordre : $label',
+    );
+    previousIndex = index;
+  }
 }
 
 EnvironmentGenerationParams _params({
