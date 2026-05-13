@@ -19,6 +19,7 @@ import '../../../application/use_cases/environment_generator_regenerate_use_case
 import '../../../application/use_cases/environment_generator_use_cases.dart';
 import '../../../application/use_cases/environment_mask_use_cases.dart';
 import '../../../application/use_cases/layer_use_cases.dart';
+import '../../../application/use_cases/tile_layer_environment_area_management_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_area_settings_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_attachment_use_cases.dart';
 import '../../../application/use_cases/tile_layer_environment_clear_use_cases.dart';
@@ -4854,6 +4855,120 @@ class EditorNotifier extends _$EditorNotifier {
       statusMessage: 'Zone d’environnement sélectionnée.',
       errorMessage: null,
     );
+  }
+
+  void renameEnvironmentAreaForActiveTileLayer(String name) {
+    final map = state.activeMap;
+    if (map == null) return;
+    final layerId = state.activeLayerId?.trim();
+    if (layerId == null || layerId.isEmpty) {
+      state = state.copyWith(
+        errorMessage: 'Sélectionnez un TileLayer pour renommer une zone.',
+      );
+      return;
+    }
+    final activeLayer = _findLayerById(map, layerId);
+    if (activeLayer is! TileLayer) {
+      state = state.copyWith(
+        errorMessage: 'Sélectionnez un TileLayer pour renommer une zone.',
+      );
+      return;
+    }
+    final areaId = _effectiveEnvironmentAreaIdForActiveTileLayer(map, layerId);
+    if (areaId == null || areaId.isEmpty) {
+      state = state.copyWith(
+        errorMessage:
+            'Sélectionnez une zone d’environnement avant de la renommer.',
+      );
+      return;
+    }
+    final mode = state.environmentMaskEditMode;
+
+    try {
+      final result = RenameTileLayerEnvironmentAreaUseCase().execute(
+        map,
+        tileLayerId: layerId,
+        areaId: areaId,
+        name: name,
+      );
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.map,
+        preferredActiveLayerId: result.tileLayerId,
+        statusMessage: 'Zone renommée : ${result.name}.',
+      );
+      state = state.copyWith(
+        activeLayerId: result.tileLayerId,
+        selectedEnvironmentAreaId: result.areaId,
+        environmentMaskEditMode: mode,
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de renommer la zone : $e',
+      );
+    }
+  }
+
+  void deleteEnvironmentAreaForActiveTileLayer() {
+    final map = state.activeMap;
+    if (map == null) return;
+    final layerId = state.activeLayerId?.trim();
+    if (layerId == null || layerId.isEmpty) {
+      state = state.copyWith(
+        errorMessage: 'Sélectionnez un TileLayer pour supprimer une zone.',
+      );
+      return;
+    }
+    final activeLayer = _findLayerById(map, layerId);
+    if (activeLayer is! TileLayer) {
+      state = state.copyWith(
+        errorMessage: 'Sélectionnez un TileLayer pour supprimer une zone.',
+      );
+      return;
+    }
+    final areaId = _effectiveEnvironmentAreaIdForActiveTileLayer(map, layerId);
+    if (areaId == null || areaId.isEmpty) {
+      state = state.copyWith(
+        errorMessage:
+            'Sélectionnez une zone d’environnement avant de la supprimer.',
+      );
+      return;
+    }
+    final selectedPlacementId = state.selectedPlacedElementInstanceId?.trim();
+
+    try {
+      final result = DeleteTileLayerEnvironmentAreaUseCase().execute(
+        map,
+        tileLayerId: layerId,
+        areaId: areaId,
+      );
+      final removedPlacementIds = result.removedPlacementIds.toSet();
+      final shouldClearPlacedSelection = selectedPlacementId != null &&
+          selectedPlacementId.isNotEmpty &&
+          removedPlacementIds.contains(selectedPlacementId);
+      ref.read(environmentGeneratedPlacementAddElementProvider.notifier).state =
+          null;
+      _applyMapMutation(
+        previousMap: map,
+        updatedMap: result.map,
+        preferredActiveLayerId: result.tileLayerId,
+        statusMessage: 'Zone supprimée.',
+      );
+      state = state.copyWith(
+        activeLayerId: result.tileLayerId,
+        selectedEnvironmentAreaId: null,
+        selectedPlacedElementInstanceId: shouldClearPlacedSelection
+            ? null
+            : state.selectedPlacedElementInstanceId,
+        environmentMaskEditMode: null,
+        errorMessage: null,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Impossible de supprimer la zone : $e',
+      );
+    }
   }
 
   void setEnvironmentAreaParamsOverrideForActiveTileLayer(

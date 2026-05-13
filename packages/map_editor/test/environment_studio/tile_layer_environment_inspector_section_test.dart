@@ -489,7 +489,7 @@ void main() {
       );
 
       expect(find.text('Zones d’environnement'), findsOneWidget);
-      expect(find.text('Bosquet nord'), findsOneWidget);
+      expect(find.text('Bosquet nord'), findsWidgets);
       expect(find.text('Rochers sud'), findsOneWidget);
       expect(find.text('Zone active'), findsOneWidget);
       expect(find.text('Preset : Forêt'), findsWidgets);
@@ -543,6 +543,200 @@ void main() {
       await tester.pump();
 
       expect(selected, 'area_a');
+    });
+
+    testWidgets('affiche et renomme la zone active', (tester) async {
+      String? renamed;
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.ready,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaId: 'area_a',
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          canPaintMask: true,
+          emptyStateTitle: 'Prêt à générer',
+          emptyStateMessage: 'Le preset, le layer et le masque sont valides.',
+          areaSummaries: [
+            TileLayerEnvironmentAreaSummary(
+              id: 'area_a',
+              name: 'Bosquet nord',
+              presetId: 'forest',
+              presetName: 'Forêt',
+              isSelected: true,
+              maskActiveCellCount: 42,
+              generatedPlacementCount: 18,
+              missingGeneratedPlacementCount: 0,
+              hasMissingPreset: false,
+            ),
+          ],
+        ),
+        onRenameEnvironmentArea: (name) {
+          renamed = name;
+        },
+      );
+
+      expect(find.text('Zone active'), findsOneWidget);
+      expect(find.text('Nom de la zone'), findsWidgets);
+      expect(find.text('Renommer la zone'), findsOneWidget);
+      expect(
+        tester
+            .widget<CupertinoTextField>(
+              find.byKey(
+                const ValueKey('tile-layer-environment-area-name-field'),
+              ),
+            )
+            .controller!
+            .text,
+        'Bosquet nord',
+      );
+
+      final nameField =
+          find.byKey(const ValueKey('tile-layer-environment-area-name-field'));
+      await tester.ensureVisible(nameField);
+      await tester.tap(nameField);
+      await tester.enterText(nameField, '  Bosquet plage  ');
+      await tester.pump();
+      await tester.ensureVisible(find.text('Renommer la zone'));
+      await tester.tap(find.text('Renommer la zone'));
+      await tester.pump();
+
+      expect(renamed, 'Bosquet plage');
+    });
+
+    testWidgets('Renommer la zone refuse le texte vide', (tester) async {
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.ready,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaId: 'area_a',
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          canPaintMask: true,
+          emptyStateTitle: 'Prêt à générer',
+          emptyStateMessage: 'Le preset, le layer et le masque sont valides.',
+          areaSummaries: [
+            TileLayerEnvironmentAreaSummary(
+              id: 'area_a',
+              name: 'Bosquet nord',
+              presetId: 'forest',
+              presetName: 'Forêt',
+              isSelected: true,
+              maskActiveCellCount: 42,
+              generatedPlacementCount: 18,
+              missingGeneratedPlacementCount: 0,
+              hasMissingPreset: false,
+            ),
+          ],
+        ),
+        onRenameEnvironmentArea: (_) {},
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('tile-layer-environment-area-name-field')),
+        '   ',
+      );
+      await tester.pump();
+
+      expect(_buttonFor(tester, 'Renommer la zone').onPressed, isNull);
+    });
+
+    testWidgets('Supprimer la zone déclenche le callback et affiche l’aide',
+        (tester) async {
+      var deleted = 0;
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.ready,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          selectedEnvironmentAreaId: 'area_a',
+          selectedEnvironmentAreaName: 'Bosquet nord',
+          selectedPresetName: 'Forêt',
+          maskActiveCellCount: 42,
+          hasMask: true,
+          canPaintMask: true,
+          emptyStateTitle: 'Prêt à générer',
+          emptyStateMessage: 'Le preset, le layer et le masque sont valides.',
+          areaSummaries: [
+            TileLayerEnvironmentAreaSummary(
+              id: 'area_a',
+              name: 'Bosquet nord',
+              presetId: 'forest',
+              presetName: 'Forêt',
+              isSelected: true,
+              maskActiveCellCount: 42,
+              generatedPlacementCount: 18,
+              missingGeneratedPlacementCount: 0,
+              hasMissingPreset: false,
+            ),
+          ],
+        ),
+        onDeleteEnvironmentArea: () {
+          deleted++;
+        },
+      );
+
+      expect(find.text('Supprimer la zone'), findsOneWidget);
+      expect(
+        find.text(
+          'Supprime la zone et ses placements générés. Le masque et les réglages de cette zone seront perdus.',
+        ),
+        findsOneWidget,
+      );
+
+      await tester.ensureVisible(find.text('Supprimer la zone'));
+      await tester.tap(find.text('Supprimer la zone'));
+      await tester.pump();
+
+      expect(deleted, 1);
+    });
+
+    testWidgets('gestion de zone absente sans area active', (tester) async {
+      await _pump(
+        tester,
+        const TileLayerEnvironmentAttachmentReadModel(
+          state: TileLayerEnvironmentAttachmentState.areaSelectionRequired,
+          selectedLayerKind: TileLayerEnvironmentSelectedLayerKind.tile,
+          hasAttachment: true,
+          hasValidTargetTileLayer: true,
+          emptyStateTitle: 'Sélectionnez une zone d’environnement',
+          emptyStateMessage:
+              'Choisissez la zone à modifier avant de peindre ou générer.',
+          areaSummaries: [
+            TileLayerEnvironmentAreaSummary(
+              id: 'area_a',
+              name: 'Bosquet nord',
+              presetId: 'forest',
+              presetName: 'Forêt',
+              isSelected: false,
+              maskActiveCellCount: 0,
+              generatedPlacementCount: 0,
+              missingGeneratedPlacementCount: 0,
+              hasMissingPreset: false,
+            ),
+          ],
+        ),
+        onRenameEnvironmentArea: (_) {},
+        onDeleteEnvironmentArea: () {},
+      );
+
+      expect(find.text('Zones d’environnement'), findsOneWidget);
+      expect(find.text('Nom de la zone'), findsNothing);
+      expect(find.text('Renommer la zone'), findsNothing);
+      expect(find.text('Supprimer la zone'), findsNothing);
+      expect(find.text('Sélectionner'), findsOneWidget);
     });
 
     testWidgets('affiche preset et placements manquants dans une summary',
@@ -1993,6 +2187,8 @@ Future<void> _pump(
   ValueChanged<String>? onSelectPresetForNewArea,
   VoidCallback? onCreateArea,
   ValueChanged<String>? onSelectEnvironmentArea,
+  ValueChanged<String>? onRenameEnvironmentArea,
+  VoidCallback? onDeleteEnvironmentArea,
   bool isMaskPaintingActive = false,
   bool isMaskErasingActive = false,
   bool isDeletingGeneratedPlacement = false,
@@ -2029,6 +2225,8 @@ Future<void> _pump(
             onSelectPresetForNewArea: onSelectPresetForNewArea,
             onCreateArea: onCreateArea,
             onSelectEnvironmentArea: onSelectEnvironmentArea,
+            onRenameEnvironmentArea: onRenameEnvironmentArea,
+            onDeleteEnvironmentArea: onDeleteEnvironmentArea,
             isMaskPaintingActive: isMaskPaintingActive,
             isMaskErasingActive: isMaskErasingActive,
             isDeletingGeneratedPlacement: isDeletingGeneratedPlacement,

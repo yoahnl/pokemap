@@ -17,6 +17,8 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
     this.onSelectPresetForNewArea,
     this.onCreateArea,
     this.onSelectEnvironmentArea,
+    this.onRenameEnvironmentArea,
+    this.onDeleteEnvironmentArea,
     this.isMaskPaintingActive = false,
     this.isMaskErasingActive = false,
     this.isDeletingGeneratedPlacement = false,
@@ -47,6 +49,8 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
   final ValueChanged<String>? onSelectPresetForNewArea;
   final VoidCallback? onCreateArea;
   final ValueChanged<String>? onSelectEnvironmentArea;
+  final ValueChanged<String>? onRenameEnvironmentArea;
+  final VoidCallback? onDeleteEnvironmentArea;
   final bool isMaskPaintingActive;
   final bool isMaskErasingActive;
   final bool isDeletingGeneratedPlacement;
@@ -97,6 +101,8 @@ class TileLayerEnvironmentInspectorSection extends StatelessWidget {
             _EnvironmentAreaSummaryList(
               summaries: readModel.areaSummaries,
               onSelectEnvironmentArea: onSelectEnvironmentArea,
+              onRenameEnvironmentArea: onRenameEnvironmentArea,
+              onDeleteEnvironmentArea: onDeleteEnvironmentArea,
             ),
           ],
           if (showSetupActions) ...[
@@ -1235,14 +1241,25 @@ class _EnvironmentAreaSummaryList extends StatelessWidget {
   const _EnvironmentAreaSummaryList({
     required this.summaries,
     required this.onSelectEnvironmentArea,
+    required this.onRenameEnvironmentArea,
+    required this.onDeleteEnvironmentArea,
   });
 
   final List<TileLayerEnvironmentAreaSummary> summaries;
   final ValueChanged<String>? onSelectEnvironmentArea;
+  final ValueChanged<String>? onRenameEnvironmentArea;
+  final VoidCallback? onDeleteEnvironmentArea;
 
   @override
   Widget build(BuildContext context) {
     final label = EditorChrome.primaryLabel(context);
+    TileLayerEnvironmentAreaSummary? selectedSummary;
+    for (final summary in summaries) {
+      if (summary.isSelected) {
+        selectedSummary = summary;
+        break;
+      }
+    }
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
@@ -1277,7 +1294,224 @@ class _EnvironmentAreaSummaryList extends StatelessWidget {
                 onSelectEnvironmentArea: onSelectEnvironmentArea,
               ),
             ),
+          if (selectedSummary != null) ...[
+            const SizedBox(height: 10),
+            _EnvironmentAreaManagementPanel(
+              summary: selectedSummary,
+              onRenameEnvironmentArea: onRenameEnvironmentArea,
+              onDeleteEnvironmentArea: onDeleteEnvironmentArea,
+            ),
+          ],
         ],
+      ),
+    );
+  }
+}
+
+class _EnvironmentAreaManagementPanel extends StatefulWidget {
+  const _EnvironmentAreaManagementPanel({
+    required this.summary,
+    required this.onRenameEnvironmentArea,
+    required this.onDeleteEnvironmentArea,
+  });
+
+  final TileLayerEnvironmentAreaSummary summary;
+  final ValueChanged<String>? onRenameEnvironmentArea;
+  final VoidCallback? onDeleteEnvironmentArea;
+
+  @override
+  State<_EnvironmentAreaManagementPanel> createState() =>
+      _EnvironmentAreaManagementPanelState();
+}
+
+class _EnvironmentAreaManagementPanelState
+    extends State<_EnvironmentAreaManagementPanel> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.summary.name);
+    _controller.addListener(_handleTextChanged);
+  }
+
+  @override
+  void didUpdateWidget(_EnvironmentAreaManagementPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.summary.id != widget.summary.id ||
+        oldWidget.summary.name != widget.summary.name) {
+      _controller.text = widget.summary.name;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller
+      ..removeListener(_handleTextChanged)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _handleTextChanged() {
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const accent = EditorChrome.inspectorJoyMint;
+    final label = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
+    final trimmedName = _controller.text.trim();
+    final canRename =
+        widget.onRenameEnvironmentArea != null && trimmedName.isNotEmpty;
+    final canDelete = widget.onDeleteEnvironmentArea != null;
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: EditorChrome.largeIslandSurfaceColor(
+          context,
+          tint: accent.withValues(alpha: 0.08),
+        ),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: accent.withValues(alpha: 0.24),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Gestion de la zone active',
+            style: TextStyle(
+              color: label,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Nom de la zone',
+            style: TextStyle(
+              color: subtle,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 5),
+          CupertinoTextField(
+            key: const ValueKey('tile-layer-environment-area-name-field'),
+            controller: _controller,
+            placeholder: 'Nom de la zone',
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            style: TextStyle(
+              color: label,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+            placeholderStyle: TextStyle(
+              color: subtle,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+            decoration: BoxDecoration(
+              color: EditorChrome.largeIslandSurfaceColor(
+                context,
+                tint: accent.withValues(alpha: 0.04),
+              ),
+              borderRadius: BorderRadius.circular(7),
+              border: Border.all(
+                color: accent.withValues(alpha: 0.22),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: _AreaManagementButton(
+                  label: 'Renommer la zone',
+                  accent: accent,
+                  enabled: canRename,
+                  onPressed: canRename
+                      ? () => widget.onRenameEnvironmentArea!(trimmedName)
+                      : null,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _AreaManagementButton(
+                  label: 'Supprimer la zone',
+                  accent: CupertinoColors.systemRed,
+                  enabled: canDelete,
+                  onPressed: widget.onDeleteEnvironmentArea,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 7),
+          Text(
+            'Supprime la zone et ses placements générés. Le masque et les réglages de cette zone seront perdus.',
+            style: TextStyle(
+              color: subtle,
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+              height: 1.25,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AreaManagementButton extends StatelessWidget {
+  const _AreaManagementButton({
+    required this.label,
+    required this.accent,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  final String label;
+  final Color accent;
+  final bool enabled;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = enabled
+        ? EditorChrome.primaryLabel(context)
+        : EditorChrome.subtleLabel(context);
+    return CupertinoButton(
+      padding: EdgeInsets.zero,
+      minimumSize: const Size(0, 30),
+      onPressed: enabled ? onPressed : null,
+      child: Container(
+        height: 30,
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          color: EditorChrome.largeIslandSurfaceColor(
+            context,
+            tint: accent.withValues(alpha: enabled ? 0.16 : 0.04),
+          ),
+          borderRadius: BorderRadius.circular(7),
+          border: Border.all(
+            color: accent.withValues(alpha: enabled ? 0.42 : 0.14),
+          ),
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            label,
+            maxLines: 1,
+            style: TextStyle(
+              color: textColor,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
       ),
     );
   }

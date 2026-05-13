@@ -314,6 +314,18 @@ class _MapInspectorPanelState extends ConsumerState<MapInspectorPanel> {
                     onSelectEnvironmentArea: canSelectTileLayerEnvironmentArea
                         ? notifier.selectEnvironmentAreaForActiveTileLayer
                         : null,
+                    onRenameEnvironmentArea: activeLayer is TileLayer &&
+                            tileLayerEnvironmentReadModel
+                                    .selectedEnvironmentAreaId !=
+                                null
+                        ? notifier.renameEnvironmentAreaForActiveTileLayer
+                        : null,
+                    onDeleteEnvironmentArea: activeLayer is TileLayer &&
+                            tileLayerEnvironmentReadModel
+                                    .selectedEnvironmentAreaId !=
+                                null
+                        ? notifier.deleteEnvironmentAreaForActiveTileLayer
+                        : null,
                     isMaskPaintingActive: isTileLayerMaskPaintingActive,
                     isMaskErasingActive: isTileLayerMaskErasingActive,
                     isDeletingGeneratedPlacement:
