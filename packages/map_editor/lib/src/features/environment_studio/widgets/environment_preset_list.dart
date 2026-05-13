@@ -80,6 +80,8 @@ class _PresetListTile extends StatelessWidget {
     final subtle = EditorChrome.subtleLabel(context);
     const accent = EditorChrome.accentJade;
     final nPalette = preset.palette.length;
+    final paletteLabel = nPalette == 1 ? '1 élément' : '$nPalette éléments';
+    final category = preset.categoryId ?? 'sans catégorie';
     final badge = StringBuffer();
     if (errorCount > 0) {
       badge.write('$errorCount erreur${errorCount > 1 ? 's' : ''}');
@@ -141,7 +143,7 @@ class _PresetListTile extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                '${preset.id} · $nPalette items · ${preset.templateId}',
+                'Catégorie : $category • $paletteLabel',
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(

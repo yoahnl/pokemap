@@ -29,9 +29,9 @@ void main() {
     });
   });
 
-  group('EnvironmentStudioPanel — browser read-only', () {
+  group('EnvironmentStudioPanel — browser', () {
     testWidgets(
-        'sections identité, paramètres, palette et diagnostics visibles',
+        'sections identité, paramètres, palette, tileset et diagnostics visibles',
         (tester) async {
       await _pump(
         tester,
@@ -76,7 +76,19 @@ void main() {
         findsOneWidget,
       );
       expect(
+        find.byKey(const Key('environment-studio-section-tileset-source')),
+        findsOneWidget,
+      );
+      expect(
         find.byKey(const Key('environment-studio-section-diagnostics')),
+        findsOneWidget,
+      );
+      expect(find.text('Éditer le preset'), findsOneWidget);
+      expect(find.text('Palette du preset'), findsOneWidget);
+      expect(find.text('Tileset source'), findsOneWidget);
+      expect(find.text('ts'), findsOneWidget);
+      expect(
+        find.text('Protection anti-mélange de tilesets activée'),
         findsOneWidget,
       );
 
@@ -298,7 +310,7 @@ void main() {
     });
 
     testWidgets(
-        'read-only : pas de libellés Create / Edit / Delete / Generate / Save',
+        'studio preset : pas de libellés Create / Delete / Generate / Save',
         (tester) async {
       await _pump(
         tester,
@@ -326,7 +338,7 @@ void main() {
       expect(find.textContaining('Save'), findsNothing);
     });
 
-    testWidgets('browser : bouton Préparer un preset visible', (tester) async {
+    testWidgets('browser : bouton Nouveau preset visible', (tester) async {
       await _pump(
         tester,
         _manifest(
@@ -347,7 +359,44 @@ void main() {
       );
       expect(find.byKey(const Key('environment-studio-open-draft')),
           findsOneWidget);
-      expect(find.text('Préparer un preset'), findsOneWidget);
+      expect(find.text('Nouveau preset'), findsOneWidget);
+    });
+
+    testWidgets('preset mixte : warning tileset visible', (tester) async {
+      await _pump(
+        tester,
+        _manifest(
+          environmentPresets: [
+            EnvironmentPreset(
+              id: 'mixed',
+              name: 'Mix',
+              templateId: 'tpl',
+              palette: [
+                EnvironmentPaletteItem(elementId: 'grass_a', weight: 1),
+                EnvironmentPaletteItem(elementId: 'rock_a', weight: 1),
+              ],
+              defaultParams: EnvironmentGenerationParams.standard(),
+              sortOrder: 0,
+            ),
+          ],
+          elements: [
+            _element(id: 'grass_a', tilesetId: 'grass'),
+            _element(id: 'rock_a', tilesetId: 'rocks'),
+          ],
+        ),
+      );
+
+      expect(find.text('grass'), findsOneWidget);
+      expect(
+        find.text(
+          'Ce preset contient des éléments provenant de plusieurs tilesets.',
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('environment-studio-palette-incompatible-rock_a')),
+        findsOneWidget,
+      );
     });
   });
 }
@@ -377,11 +426,14 @@ ProjectManifest _manifest({
   );
 }
 
-ProjectElementEntry _element({required String id}) {
+ProjectElementEntry _element({
+  required String id,
+  String tilesetId = 'ts',
+}) {
   return ProjectElementEntry(
     id: id,
     name: 'El $id',
-    tilesetId: 'ts',
+    tilesetId: tilesetId,
     categoryId: 'cat',
     frames: const [
       TilesetVisualFrame(

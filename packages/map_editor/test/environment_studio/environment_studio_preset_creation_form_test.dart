@@ -21,11 +21,17 @@ void main() {
         ),
         'Palette vide',
       );
+      expect(
+        environmentPresetDraftIssueKindLabel(
+          EnvironmentPresetDraftIssueKind.mixedPaletteTilesets,
+        ),
+        'Tilesets mélangés',
+      );
     });
   });
 
   group('EnvironmentStudioPanel — formulaire brouillon', () {
-    testWidgets('action Préparer un preset visible puis formulaire', (
+    testWidgets('action Nouveau preset visible puis formulaire', (
       tester,
     ) async {
       await _pump(
@@ -40,7 +46,7 @@ void main() {
 
       expect(find.byKey(const Key('environment-studio-open-draft')),
           findsOneWidget);
-      expect(find.text('Préparer un preset'), findsOneWidget);
+      expect(find.text('Nouveau preset'), findsOneWidget);
 
       await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
       await tester.pumpAndSettle();
@@ -105,7 +111,7 @@ void main() {
         find.byKey(const Key('environment-studio-draft-params-section-title')),
         findsOneWidget,
       );
-      expect(find.text('Paramètres de génération'), findsOneWidget);
+      expect(find.text('Paramètres par défaut'), findsOneWidget);
       expect(
         (tester.widget<CupertinoTextField>(find
                 .byKey(const Key('environment-studio-draft-params-density'))))
@@ -138,7 +144,7 @@ void main() {
         find.byKey(const Key('environment-studio-draft-palette-section-title')),
         findsOneWidget,
       );
-      expect(find.text('Palette du brouillon'), findsOneWidget);
+      expect(find.text('Palette du preset'), findsOneWidget);
       expect(
         find.byKey(const Key('environment-studio-draft-palette-add-item')),
         findsOneWidget,

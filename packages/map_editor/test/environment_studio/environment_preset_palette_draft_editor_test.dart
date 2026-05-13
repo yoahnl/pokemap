@@ -102,6 +102,93 @@ void main() {
       );
     });
 
+    testWidgets('picker bibliothèque filtre les éléments du tileset source',
+        (tester) async {
+      await _pump(
+        tester,
+        _manifest(
+          elements: [
+            _element(id: 'grass_a', tilesetId: 'grass'),
+            _element(id: 'grass_b', tilesetId: 'grass'),
+            _element(id: 'rock_a', tilesetId: 'rocks'),
+          ],
+        ),
+      );
+      await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const Key('environment-studio-draft-palette-add-item')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('environment-studio-palette-draft-element-0')),
+        'grass_a',
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const Key('environment-studio-draft-palette-add-item')),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(
+            const Key('environment-studio-palette-draft-pick-element-1')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+            const Key('environment-studio-palette-draft-pick-element-1')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('grass_b — El grass_b'), findsOneWidget);
+      expect(find.text('rock_a — El rock_a'), findsNothing);
+    });
+
+    testWidgets('saisie manuelle incompatible déclenche Tilesets mélangés',
+        (tester) async {
+      await _pump(
+        tester,
+        _manifest(
+          elements: [
+            _element(id: 'grass_a', tilesetId: 'grass'),
+            _element(id: 'rock_a', tilesetId: 'rocks'),
+          ],
+        ),
+      );
+      await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const Key('environment-studio-draft-palette-add-item')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('environment-studio-palette-draft-element-0')),
+        'grass_a',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('environment-studio-draft-palette-add-item')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('environment-studio-palette-draft-element-1')),
+        'rock_a',
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        _validationHas(tester, 'Tilesets mélangés'),
+        isTrue,
+      );
+      expect(
+        find.textContaining('mélange plusieurs tilesets'),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('elementId absent : Élément introuvable', (tester) async {
       await _pump(tester, _manifest(elements: [_element(id: 'elm')]));
       await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
@@ -383,11 +470,14 @@ EnvironmentPreset _preset({required String id}) {
   );
 }
 
-ProjectElementEntry _element({required String id}) {
+ProjectElementEntry _element({
+  required String id,
+  String tilesetId = 'ts',
+}) {
   return ProjectElementEntry(
     id: id,
     name: 'El $id',
-    tilesetId: 'ts',
+    tilesetId: tilesetId,
     categoryId: 'cat',
     frames: const [
       TilesetVisualFrame(

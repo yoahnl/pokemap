@@ -20,7 +20,7 @@ void main() {
         find.byKey(const Key('environment-studio-draft-params-section-title')),
         findsOneWidget,
       );
-      expect(find.text('Paramètres de génération'), findsOneWidget);
+      expect(find.text('Paramètres par défaut'), findsOneWidget);
       expect(
         (tester.widget<CupertinoTextField>(find
                 .byKey(const Key('environment-studio-draft-params-density'))))

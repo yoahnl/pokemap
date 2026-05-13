@@ -462,6 +462,31 @@ void main() {
       );
     });
 
+    test('mixedPaletteTilesets bloque un brouillon qui mélange deux tilesets',
+        () {
+      final r = validateEnvironmentPresetDraft(
+        _validDraft().copyWith(
+          palette: [
+            EnvironmentPaletteItemDraft(elementId: 'element_a', weight: 1),
+            EnvironmentPaletteItemDraft(elementId: 'element_b', weight: 1),
+          ],
+        ),
+        manifest: _manifest(
+          elements: [
+            _element(id: 'element_a', tilesetId: 'tileset_a'),
+            _element(id: 'element_b', tilesetId: 'tileset_b'),
+          ],
+        ),
+      );
+
+      final issues =
+          r.issuesForKind(EnvironmentPresetDraftIssueKind.mixedPaletteTilesets);
+      expect(issues, hasLength(1));
+      expect(issues.single.severity, EnvironmentPresetDraftIssueSeverity.error);
+      expect(issues.single.elementId, 'element_b');
+      expect(issues.single.message, contains('mélange plusieurs tilesets'));
+    });
+
     test('invalidPaletteWeight', () {
       final r = validateEnvironmentPresetDraft(
         _validDraft().copyWith(
@@ -685,7 +710,9 @@ void main() {
 
 // --- helpers ---
 
-ProjectManifest _manifest() {
+ProjectManifest _manifest({
+  List<ProjectElementEntry>? elements,
+}) {
   return ProjectManifest(
     name: 'draft-test',
     maps: const [],
@@ -712,16 +739,19 @@ ProjectManifest _manifest() {
         sortOrder: 1,
       ),
     ],
-    elements: [_element(id: 'oak')],
+    elements: elements ?? [_element(id: 'oak')],
     surfaceCatalog: ProjectSurfaceCatalog(),
   );
 }
 
-ProjectElementEntry _element({required String id}) {
+ProjectElementEntry _element({
+  required String id,
+  String tilesetId = 'ts',
+}) {
   return ProjectElementEntry(
     id: id,
     name: 'El $id',
-    tilesetId: 'ts',
+    tilesetId: tilesetId,
     categoryId: 'cat',
     frames: const [
       TilesetVisualFrame(

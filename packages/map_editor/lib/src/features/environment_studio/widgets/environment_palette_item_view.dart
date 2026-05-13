@@ -9,10 +9,12 @@ class EnvironmentPaletteItemView extends StatelessWidget {
     super.key,
     required this.item,
     required this.subtleColor,
+    this.isIncompatibleTileset = false,
   });
 
   final EnvironmentPaletteItem item;
   final Color subtleColor;
+  final bool isIncompatibleTileset;
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +24,9 @@ class EnvironmentPaletteItemView extends StatelessWidget {
     final tags = item.tags.toList()..sort();
 
     return DecoratedBox(
+      key: isIncompatibleTileset
+          ? Key('environment-studio-palette-incompatible-${item.elementId}')
+          : null,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: border),
@@ -43,7 +48,7 @@ class EnvironmentPaletteItemView extends StatelessWidget {
                       color: label,
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
-                      letterSpacing: -0.2,
+                      letterSpacing: 0,
                     ),
                   ),
                 ),
@@ -53,6 +58,13 @@ class EnvironmentPaletteItemView extends StatelessWidget {
                   key: Key(
                       'environment-studio-palette-weight-${item.elementId}'),
                 ),
+                if (isIncompatibleTileset) ...[
+                  const SizedBox(width: 6),
+                  _warningChip(
+                    context,
+                    label: 'Tileset incompatible',
+                  ),
+                ],
               ],
             ),
             const SizedBox(height: 8),
@@ -118,6 +130,30 @@ class EnvironmentPaletteItemView extends StatelessWidget {
         label,
         style: TextStyle(
           color: subtle,
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+
+  Widget _warningChip(
+    BuildContext context, {
+    required String label,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: EditorChrome.accentWarm.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: EditorChrome.accentWarm.withValues(alpha: 0.45),
+        ),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: EditorChrome.accentWarm,
           fontSize: 11,
           fontWeight: FontWeight.w700,
         ),

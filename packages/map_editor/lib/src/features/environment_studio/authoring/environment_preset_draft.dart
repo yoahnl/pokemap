@@ -1,5 +1,7 @@
 import 'package:map_core/map_core.dart';
 
+import 'environment_preset_tileset_compatibility.dart';
+
 // ---------------------------------------------------------------------------
 // Generation params draft
 // ---------------------------------------------------------------------------
@@ -270,6 +272,7 @@ enum EnvironmentPresetDraftIssueKind {
   emptyPaletteElementId,
   duplicatePaletteElementId,
   missingPaletteElement,
+  mixedPaletteTilesets,
   invalidPaletteWeight,
   emptyPaletteTag,
   invalidDensity,
@@ -607,6 +610,22 @@ EnvironmentPresetDraftValidationReport validateEnvironmentPresetDraft(
         ));
       }
     }
+  }
+
+  final tilesetCompatibility = buildEnvironmentPresetTilesetCompatibility(
+    paletteElementIds: [
+      for (final item in draft.palette) item.elementId,
+    ],
+    projectElements: manifest.elements,
+  );
+  for (final elementId in tilesetCompatibility.incompatiblePaletteElementIds) {
+    add(EnvironmentPresetDraftIssue(
+      severity: EnvironmentPresetDraftIssueSeverity.error,
+      kind: EnvironmentPresetDraftIssueKind.mixedPaletteTilesets,
+      message:
+          'Le brouillon mélange plusieurs tilesets. Gardez une palette compatible avec le tileset source "${tilesetCompatibility.sourceTilesetId}".',
+      elementId: elementId,
+    ));
   }
 
   return EnvironmentPresetDraftValidationReport(issues: issues);

@@ -144,7 +144,7 @@ class _EnvironmentGenerationParamsDraftEditorState
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Paramètres de génération',
+              'Paramètres par défaut',
               key: const Key('environment-studio-draft-params-section-title'),
               style: TextStyle(
                 color: label,

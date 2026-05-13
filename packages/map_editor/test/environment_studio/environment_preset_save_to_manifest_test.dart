@@ -263,6 +263,74 @@ void main() {
       expect(calls, 0);
     });
 
+    testWidgets(
+        'palette mixte tilesets : bouton désactivé, callback non invoqué',
+        (tester) async {
+      var calls = 0;
+      await _pumpPanel(
+        tester,
+        manifest: _manifest(
+          elements: [
+            _element(id: 'grass_a', tilesetId: 'grass'),
+            _element(id: 'rock_a', tilesetId: 'rocks'),
+          ],
+        ),
+        onSaved: (_, __, ___) => calls++,
+      );
+      await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('environment-studio-draft-field-id')),
+        'mixed_tilesets',
+      );
+      await tester.enterText(
+        find.byKey(const Key('environment-studio-draft-field-name')),
+        'Mix',
+      );
+      await tester.enterText(
+        find.byKey(const Key('environment-studio-draft-field-template')),
+        't',
+      );
+      await tester.tap(
+        find.byKey(const Key('environment-studio-draft-palette-add-item')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('environment-studio-palette-draft-element-0')),
+        'grass_a',
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('environment-studio-draft-palette-add-item')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('environment-studio-palette-draft-element-1')),
+        'rock_a',
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('Tilesets mélangés'), findsOneWidget);
+      expect(
+        tester
+            .widget<CupertinoButton>(
+              find.byKey(const Key('environment-studio-draft-save-project')),
+            )
+            .onPressed,
+        isNull,
+      );
+      await tester.ensureVisible(
+        find.byKey(const Key('environment-studio-draft-save-project')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('environment-studio-draft-save-project')),
+      );
+      await tester.pumpAndSettle();
+      expect(calls, 0);
+    });
+
     testWidgets('warning template inconnu ne bloque pas l’ajout au projet',
         (tester) async {
       var calls = 0;
@@ -700,11 +768,14 @@ EnvironmentPreset _preset({required String id}) {
   );
 }
 
-ProjectElementEntry _element({required String id}) {
+ProjectElementEntry _element({
+  required String id,
+  String tilesetId = 'ts',
+}) {
   return ProjectElementEntry(
     id: id,
     name: 'El $id',
-    tilesetId: 'ts',
+    tilesetId: tilesetId,
     categoryId: 'cat',
     frames: const [
       TilesetVisualFrame(

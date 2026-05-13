@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../ui/shared/cupertino_editor_widgets.dart';
+import '../authoring/environment_preset_tileset_compatibility.dart';
 import 'environment_palette_item_view.dart';
 import 'environment_preset_diagnostics_view.dart';
 
@@ -10,6 +11,7 @@ class EnvironmentPresetDetail extends StatelessWidget {
   const EnvironmentPresetDetail({
     super.key,
     required this.preset,
+    required this.projectElements,
     required this.report,
     required this.labelColor,
     required this.subtleColor,
@@ -17,6 +19,7 @@ class EnvironmentPresetDetail extends StatelessWidget {
   });
 
   final EnvironmentPreset preset;
+  final List<ProjectElementEntry> projectElements;
   final EnvironmentAuthoringDiagnosticsReport report;
   final Color labelColor;
   final Color subtleColor;
@@ -28,6 +31,14 @@ class EnvironmentPresetDetail extends StatelessWidget {
   Widget build(BuildContext context) {
     final p = preset;
     final diag = report.diagnosticsForPreset(p.id);
+    final tilesetCompatibility = buildEnvironmentPresetTilesetCompatibility(
+      paletteElementIds: [
+        for (final item in p.palette) item.elementId,
+      ],
+      projectElements: projectElements,
+    );
+    final incompatibleElementIds =
+        tilesetCompatibility.incompatiblePaletteElementIds.toSet();
     final fill = EditorChrome.chipFill(context);
     final border = CupertinoColors.separator.resolveFrom(context);
 
@@ -40,7 +51,7 @@ class EnvironmentPresetDetail extends StatelessWidget {
           children: [
             Expanded(
               child: Text(
-                'Détail du preset',
+                'Éditer le preset',
                 style: TextStyle(
                   color: labelColor,
                   fontSize: 17,
@@ -134,8 +145,17 @@ class EnvironmentPresetDetail extends StatelessWidget {
         const SizedBox(height: 14),
         _sectionCard(
           context,
+          key: const Key('environment-studio-section-tileset-source'),
+          title: 'Tileset source',
+          child: _tilesetSourceBlock(context, tilesetCompatibility),
+          fill: fill,
+          border: border,
+        ),
+        const SizedBox(height: 14),
+        _sectionCard(
+          context,
           key: const Key('environment-studio-section-palette'),
-          title: 'Palette',
+          title: 'Palette du preset',
           child: p.palette.isEmpty
               ? Text(
                   'Palette vide.',
@@ -151,6 +171,8 @@ class EnvironmentPresetDetail extends StatelessWidget {
                         child: EnvironmentPaletteItemView(
                           item: item,
                           subtleColor: subtleColor,
+                          isIncompatibleTileset:
+                              incompatibleElementIds.contains(item.elementId),
                         ),
                       ),
                   ],
@@ -203,12 +225,94 @@ class EnvironmentPresetDetail extends StatelessWidget {
                 color: labelColor,
                 fontSize: 13,
                 fontWeight: FontWeight.w800,
-                letterSpacing: -0.1,
+                letterSpacing: 0,
               ),
             ),
             const SizedBox(height: 10),
             child,
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _tilesetSourceBlock(
+    BuildContext context,
+    EnvironmentPresetTilesetCompatibility compatibility,
+  ) {
+    final source = compatibility.sourceTilesetId;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          source ?? 'Tileset source non défini',
+          key: const Key('environment-studio-tileset-source-value'),
+          style: TextStyle(
+            color: labelColor,
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          source == null
+              ? 'Ajoutez un premier élément ou choisissez un tileset source.'
+              : 'Seuls les éléments compatibles avec ce tileset sont proposés.',
+          key: const Key('environment-studio-tileset-source-help'),
+          style: TextStyle(
+            color: subtleColor,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            height: 1.35,
+          ),
+        ),
+        const SizedBox(height: 8),
+        _protectionPill(),
+        if (compatibility.hasMixedTilesets) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Ce preset contient des éléments provenant de plusieurs tilesets.',
+            key: const Key('environment-studio-tileset-mixed-warning'),
+            style: TextStyle(
+              color: CupertinoColors.systemOrange.resolveFrom(context),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 3),
+          Text(
+            'Nettoyez la palette avant de l’utiliser en génération.',
+            style: TextStyle(
+              color: subtleColor,
+              fontSize: 11.5,
+              height: 1.35,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _protectionPill() {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: EditorChrome.accentWarm.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: EditorChrome.accentWarm.withValues(alpha: 0.42),
+          ),
+        ),
+        child: const Text(
+          'Protection anti-mélange de tilesets activée',
+          style: TextStyle(
+            color: EditorChrome.accentWarm,
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+          ),
         ),
       ),
     );

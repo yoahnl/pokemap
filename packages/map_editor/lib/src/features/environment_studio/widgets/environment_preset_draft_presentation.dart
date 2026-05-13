@@ -16,6 +16,7 @@ String environmentPresetDraftIssueKindLabel(
       'Élément dupliqué',
     EnvironmentPresetDraftIssueKind.missingPaletteElement =>
       'Élément introuvable',
+    EnvironmentPresetDraftIssueKind.mixedPaletteTilesets => 'Tilesets mélangés',
     EnvironmentPresetDraftIssueKind.invalidPaletteWeight => 'Poids invalide',
     EnvironmentPresetDraftIssueKind.emptyPaletteTag => 'Tag vide',
     EnvironmentPresetDraftIssueKind.invalidDensity => 'Densité invalide',

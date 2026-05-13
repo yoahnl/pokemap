@@ -7,7 +7,7 @@ import 'package:map_editor/src/features/environment_studio/environment_studio_pa
 
 void main() {
   group('EnvironmentStudioPanel', () {
-    testWidgets('état vide : titre, badge read-only, pas de liste ni détail',
+    testWidgets('état vide : titre, banner actuel, pas de liste ni détail',
         (tester) async {
       final manifest = _manifest();
       final report = diagnoseProjectEnvironmentAuthoring(
@@ -22,21 +22,29 @@ void main() {
       expect(find.byKey(const Key('environment-studio-title')), findsOneWidget);
       expect(find.text('Environment Studio'), findsOneWidget);
       expect(
-        find.byKey(const Key('environment-studio-read-only-banner')),
+          find.text('Presets d’environnements réutilisables'), findsOneWidget);
+      expect(
+        find.byKey(const Key('environment-studio-info-banner')),
         findsOneWidget,
       );
+      expect(
+        find.text(
+          'Les presets se préparent ici. La peinture et la génération se font dans l’éditeur de carte.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.textContaining('Lecture seule'), findsNothing);
+      expect(find.textContaining('arrivent dans les prochains lots'),
+          findsNothing);
       expect(find.byKey(const Key('environment-studio-empty-presets')),
           findsOneWidget);
       expect(find.text('0 presets'), findsOneWidget);
       expect(find.text(expectedDiag), findsOneWidget);
-      expect(
-        find.byKey(const Key('environment-studio-soon-bullets')),
-        findsOneWidget,
-      );
-      expect(find.textContaining('génération organique'), findsOneWidget);
+      expect(find.byKey(const Key('environment-studio-soon-bullets')),
+          findsNothing);
       expect(find.byKey(const Key('environment-studio-open-draft')),
           findsOneWidget);
-      expect(find.text('Préparer un preset'), findsOneWidget);
+      expect(find.text('Nouveau preset'), findsOneWidget);
       expect(find.byKey(const Key('environment-studio-preset-list')),
           findsNothing);
       expect(find.byKey(const Key('environment-studio-detail-root')),
@@ -101,7 +109,7 @@ void main() {
     });
 
     testWidgets(
-        'browser : « Préparer un preset » + « Modifier en brouillon » (détail)',
+        'browser : « Nouveau preset » + « Modifier en brouillon » (détail)',
         (tester) async {
       await _pumpPanel(
         tester,
@@ -112,7 +120,7 @@ void main() {
         onEnvironmentPresetSaved: (_, __, ___) {},
       );
 
-      expect(find.text('Préparer un preset'), findsOneWidget);
+      expect(find.text('Nouveau preset'), findsOneWidget);
       expect(find.byKey(const Key('environment-studio-edit-as-draft')),
           findsOneWidget);
     });

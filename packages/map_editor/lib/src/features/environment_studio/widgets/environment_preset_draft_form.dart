@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../ui/shared/cupertino_editor_widgets.dart';
 import '../authoring/environment_preset_draft.dart';
+import '../authoring/environment_preset_tileset_compatibility.dart';
 import '../environment_preset_memory_write_kind.dart';
 import 'environment_generation_params_draft_editor.dart';
 import 'environment_palette_item_draft_editor.dart';
@@ -199,6 +200,12 @@ class _EnvironmentPresetDraftFormState
     final canSaveToProject =
         widget.onEnvironmentPresetSaved != null && !widget.validation.hasErrors;
     final isEdit = widget.existingPresetId != null;
+    final tilesetCompatibility = buildEnvironmentPresetTilesetCompatibility(
+      paletteElementIds: [
+        for (final item in widget.draft.palette) item.elementId,
+      ],
+      projectElements: widget.projectElements,
+    );
 
     return SingleChildScrollView(
       key: const Key('environment-studio-draft-form-scroll'),
@@ -331,7 +338,7 @@ class _EnvironmentPresetDraftFormState
           ),
           const SizedBox(height: 22),
           Text(
-            'Palette du brouillon',
+            'Palette du preset',
             key: const Key('environment-studio-draft-palette-section-title'),
             style: TextStyle(
               color: label,
@@ -341,11 +348,12 @@ class _EnvironmentPresetDraftFormState
           ),
           const SizedBox(height: 8),
           Text(
-            'Les éléments doivent exister dans le projet ; ils sont copiés dans le '
-            'preset lors de l’application au projet en mémoire.',
+            'Les éléments doivent exister dans le projet et partager le même tileset source.',
             key: const Key('environment-studio-draft-palette-local-note'),
             style: TextStyle(color: subtle, fontSize: 11.5, height: 1.35),
           ),
+          const SizedBox(height: 12),
+          _buildTilesetSourceBlock(context, tilesetCompatibility),
           const SizedBox(height: 12),
           Align(
             alignment: Alignment.centerLeft,
@@ -373,7 +381,8 @@ class _EnvironmentPresetDraftFormState
                   key: ValueKey('palette-draft-slot-$i'),
                   index: i,
                   item: widget.draft.palette[i],
-                  projectElements: widget.projectElements,
+                  projectElements:
+                      tilesetCompatibility.availableCompatibleElements,
                   onChanged: (it) => _replacePaletteItem(i, it),
                   onRemove: () => _removePaletteItem(i),
                 ),
@@ -486,6 +495,78 @@ class _EnvironmentPresetDraftFormState
         color: EditorChrome.subtleLabel(context),
         fontSize: 11,
         fontWeight: FontWeight.w700,
+      ),
+    );
+  }
+
+  Widget _buildTilesetSourceBlock(
+    BuildContext context,
+    EnvironmentPresetTilesetCompatibility compatibility,
+  ) {
+    final label = EditorChrome.primaryLabel(context);
+    final subtle = EditorChrome.subtleLabel(context);
+    final source = compatibility.sourceTilesetId;
+    return DecoratedBox(
+      key: const Key('environment-studio-draft-tileset-source'),
+      decoration: BoxDecoration(
+        color: EditorChrome.chipFill(context),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: CupertinoColors.separator.resolveFrom(context),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Tileset source',
+              style: TextStyle(
+                color: subtle,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              source ?? 'Tileset source non défini',
+              key: const Key('environment-studio-draft-tileset-source-value'),
+              style: TextStyle(
+                color: label,
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              source == null
+                  ? 'Ajoutez un premier élément ou choisissez un tileset source.'
+                  : 'Seuls les éléments compatibles avec ce tileset sont proposés.',
+              style: TextStyle(color: subtle, fontSize: 11.5, height: 1.35),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Protection anti-mélange de tilesets activée',
+              style: TextStyle(
+                color: EditorChrome.accentWarm,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            if (compatibility.hasMixedTilesets) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Ce preset contient des éléments provenant de plusieurs tilesets.',
+                style: TextStyle(
+                  color: CupertinoColors.systemOrange.resolveFrom(context),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
