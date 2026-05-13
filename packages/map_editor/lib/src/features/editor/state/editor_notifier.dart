@@ -6441,6 +6441,8 @@ class EditorNotifier extends _$EditorNotifier {
         statusMessage: 'Layer deleted',
       );
       _coerceEnvironmentMaskSelectionAfterMapChange();
+    } on EditorValidationException catch (e) {
+      state = state.copyWith(errorMessage: e.message);
     } catch (e) {
       state = state.copyWith(errorMessage: 'Failed to delete layer: $e');
     }

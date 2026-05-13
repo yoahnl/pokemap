@@ -21,6 +21,12 @@ final class LayerPanelPresentationRow {
 
   bool get isTechnicalEnvironmentSelection =>
       technicalEnvironmentSelectionLabel != null;
+
+  bool get hasAttachedEnvironmentLayers =>
+      attachedEnvironmentLayerIds.isNotEmpty;
+
+  bool get isDeleteProtectedByEnvironmentAttachment =>
+      layer is TileLayer && hasAttachedEnvironmentLayers;
 }
 
 List<LayerPanelPresentationRow> buildLayerPanelPresentationRows(

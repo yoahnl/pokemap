@@ -1,6 +1,7 @@
 import 'package:map_core/map_core.dart';
 
 import '../errors/application_errors.dart';
+import '../services/environment_layer_tile_layer_attachment_resolver.dart';
 
 class AddMapLayerResult {
   final MapData map;
@@ -149,6 +150,11 @@ class DeleteMapLayerUseCase {
     MapData map, {
     required String layerId,
   }) {
+    if (layerHasValidEnvironmentAttachments(map, layerId)) {
+      throw const EditorValidationException(
+        'Impossible de supprimer ce layer : un environnement lui est attaché.',
+      );
+    }
     final updated = removeMapLayer(map, layerId: layerId);
     MapValidator.validate(updated);
     return updated;

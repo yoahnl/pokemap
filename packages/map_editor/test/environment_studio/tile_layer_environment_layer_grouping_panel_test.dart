@@ -78,6 +78,58 @@ void main() {
       expect(find.text('Décor'), findsOneWidget);
       expect(find.text('Objects'), findsOneWidget);
     });
+
+    testWidgets('TileLayer avec EnvironmentLayer attaché protège delete',
+        (tester) async {
+      final container = await _pumpLayersPanel(
+        tester,
+        activeLayerId: 'decor',
+        map: _mapWithAttachedEnvironment(),
+      );
+
+      final deleteButton = _deleteLayerButton(tester, 'decor');
+
+      expect(deleteButton.onPressed, isNull);
+
+      await tester.tap(find.byKey(const ValueKey('delete-layer-decor')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Delete Layer'), findsNothing);
+      expect(
+        container
+            .read(editorNotifierProvider)
+            .activeMap!
+            .layers
+            .map((layer) => layer.id),
+        ['decor', 'env_decor', 'objects'],
+      );
+    });
+
+    testWidgets('EnvironmentLayer invalide reste supprimable', (tester) async {
+      final container = await _pumpLayersPanel(
+        tester,
+        activeLayerId: 'env_missing',
+        map: _mapWithInvalidEnvironment(),
+      );
+
+      final deleteButton = _deleteLayerButton(tester, 'env_missing');
+
+      expect(deleteButton.onPressed, isNotNull);
+
+      await tester.tap(find.byKey(const ValueKey('delete-layer-env_missing')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete'));
+      await tester.pumpAndSettle();
+
+      expect(
+        container
+            .read(editorNotifierProvider)
+            .activeMap!
+            .layers
+            .map((layer) => layer.id),
+        ['decor'],
+      );
+    });
   });
 }
 
@@ -183,4 +235,13 @@ EnvironmentLayer _environmentLayer({
     name: name,
     content: EnvironmentLayerContent(targetTileLayerId: targetLayerId),
   ) as EnvironmentLayer;
+}
+
+CupertinoButton _deleteLayerButton(WidgetTester tester, String layerId) {
+  return tester.widget<CupertinoButton>(
+    find.descendant(
+      of: find.byKey(ValueKey('delete-layer-$layerId')),
+      matching: find.byType(CupertinoButton),
+    ),
+  );
 }

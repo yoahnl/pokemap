@@ -373,6 +373,7 @@ class _LayerList extends StatelessWidget {
         final isActive = row.isActive;
         final canMoveUp = row.layerIndex > 0;
         final canMoveDown = row.layerIndex < map.layers.length - 1;
+        final canDeleteLayer = !row.isDeleteProtectedByEnvironmentAttachment;
 
         final inactiveFill = Color.lerp(
           EditorChrome.islandFillElevated(context),
@@ -621,14 +622,21 @@ class _LayerList extends StatelessWidget {
                                       ),
                                       const SizedBox(width: 4),
                                       _LayersAccentIconButton(
-                                        accent: layerAccent,
-                                        onPressed: () => _showDeleteLayerDialog(
-                                          context,
-                                          notifier,
-                                          layer,
+                                        key: ValueKey(
+                                          'delete-layer-${layer.id}',
                                         ),
+                                        accent: layerAccent,
+                                        onPressed: canDeleteLayer
+                                            ? () => _showDeleteLayerDialog(
+                                                  context,
+                                                  notifier,
+                                                  layer,
+                                                )
+                                            : null,
                                         icon: CupertinoIcons.trash,
-                                        tooltip: 'Delete layer',
+                                        tooltip: canDeleteLayer
+                                            ? 'Delete layer'
+                                            : 'Suppression protégée : environnement attaché',
                                         iconSize: 15,
                                       ),
                                     ],
@@ -783,6 +791,7 @@ class _LayerStatusText extends StatelessWidget {
 /// Pastilles icônes chaudes / acides, cohérentes avec la tuile « Layers ».
 class _LayersAccentIconButton extends StatefulWidget {
   const _LayersAccentIconButton({
+    super.key,
     required this.accent,
     required this.onPressed,
     required this.icon,
