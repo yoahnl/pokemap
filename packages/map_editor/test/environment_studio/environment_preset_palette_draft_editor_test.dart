@@ -2,9 +2,85 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/environment_studio/environment_preset_memory_write_kind.dart';
 import 'package:map_editor/src/features/environment_studio/environment_studio_panel.dart';
 
 void main() {
+  group('EnvironmentStudioPanel — visual shell layout (EnvironmentStudio-3A)',
+      () {
+    testWidgets('affiche le shell large, la bannière et le layout 2 colonnes',
+        (tester) async {
+      await _pumpWithSave(
+        tester,
+        _manifest(
+          environmentPresets: [_preset(id: 'forest')],
+          elements: [_element(id: 'elm')],
+        ),
+      );
+
+      expect(find.byKey(const Key('environment-studio-shell')), findsOneWidget);
+      expect(find.text('Environment Studio'), findsOneWidget);
+      expect(
+          find.text('Presets d’environnements réutilisables'), findsOneWidget);
+      expect(
+        find.text(
+          'Les presets se préparent ici. La peinture et la génération se font dans l’éditeur de carte.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.byKey(const Key('environment-studio-main-layout')),
+          findsOneWidget);
+      expect(find.byKey(const Key('environment-studio-preset-column')),
+          findsOneWidget);
+      expect(find.byKey(const Key('environment-studio-editor-panel')),
+          findsOneWidget);
+      expect(find.text('Presets'), findsOneWidget);
+      expect(find.text('Nouveau preset'), findsOneWidget);
+      expect(find.text('Éditer le preset'), findsOneWidget);
+    });
+
+    testWidgets('structure les sections numérotées du preset sélectionné',
+        (tester) async {
+      await _pumpWithSave(
+        tester,
+        _manifest(
+          environmentPresets: [_preset(id: 'forest')],
+          elements: [_element(id: 'elm')],
+        ),
+      );
+
+      expect(find.byKey(const Key('environment-studio-section-number-1')),
+          findsOneWidget);
+      expect(find.byKey(const Key('environment-studio-section-number-2')),
+          findsOneWidget);
+      expect(find.byKey(const Key('environment-studio-section-number-3')),
+          findsOneWidget);
+      expect(find.text('Identité'), findsOneWidget);
+      expect(find.text('Paramètres par défaut'), findsWidgets);
+      expect(find.text('Palette du preset'), findsOneWidget);
+    });
+
+    testWidgets('garde Studio limité aux presets sans commandes de map',
+        (tester) async {
+      await _pumpWithSave(
+        tester,
+        _manifest(
+          environmentPresets: [_preset(id: 'forest')],
+          elements: [_element(id: 'elm')],
+        ),
+      );
+
+      expect(find.textContaining('shell read-only'), findsNothing);
+      expect(find.textContaining('lecture seule'), findsNothing);
+      expect(find.textContaining('génération sur carte arrive bientôt'),
+          findsNothing);
+      expect(find.text('Generate'), findsNothing);
+      expect(find.text('Regenerate'), findsNothing);
+      expect(find.text('Clear'), findsNothing);
+      expect(find.text('Peindre le masque'), findsNothing);
+    });
+  });
+
   group('EnvironmentStudioPanel — palette brouillon (Lot 14)', () {
     testWidgets(
         'ajouter un item : emptyPalette disparaît, emptyPaletteElementId',
@@ -416,6 +492,209 @@ void main() {
       expect(manifest.environmentPresets.length, 1);
     });
   });
+
+  group('EnvironmentStudioPanel — palette save flow (EnvironmentStudio-2)', () {
+    testWidgets(
+        'modifier palette affiche un brouillon sale puis annuler restaure',
+        (tester) async {
+      final manifest = _manifest(
+        environmentPresets: [_preset(id: 'forest')],
+        elements: [
+          _element(id: 'elm'),
+          _element(id: 'elm_b'),
+        ],
+      );
+
+      await _pumpWithSave(tester, manifest);
+      await tester
+          .tap(find.byKey(const Key('environment-studio-edit-palette')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Brouillon non enregistré'), findsOneWidget);
+      final saveBefore = tester.widget<CupertinoButton>(
+        find.byKey(const Key('environment-studio-palette-save')),
+      );
+      final cancelBefore = tester.widget<CupertinoButton>(
+        find.byKey(const Key('environment-studio-palette-cancel')),
+      );
+      expect(saveBefore.onPressed, isNull);
+      expect(cancelBefore.onPressed, isNull);
+
+      await tester.tap(
+        find.byKey(const Key('environment-studio-draft-palette-add-item')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('environment-studio-palette-draft-element-1')),
+        'elm_b',
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+          find.text('Palette modifiée — enregistrez pour appliquer au projet.'),
+          findsOneWidget);
+      final saveDirty = tester.widget<CupertinoButton>(
+        find.byKey(const Key('environment-studio-palette-save')),
+      );
+      final cancelDirty = tester.widget<CupertinoButton>(
+        find.byKey(const Key('environment-studio-palette-cancel')),
+      );
+      expect(saveDirty.onPressed, isNotNull);
+      expect(cancelDirty.onPressed, isNotNull);
+
+      await tester
+          .tap(find.byKey(const Key('environment-studio-palette-cancel')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('environment-studio-palette-draft-item-1')),
+          findsNothing);
+      expect(
+        find.byKey(const Key('environment-studio-palette-item-elm')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('enregistrer la palette appelle le callback et garde le preset',
+        (tester) async {
+      ProjectManifest? receivedManifest;
+      EnvironmentPreset? receivedPreset;
+      EnvironmentPresetMemoryWriteKind? receivedKind;
+      final manifest = _manifest(
+        environmentPresets: [_preset(id: 'forest')],
+        elements: [
+          _element(id: 'elm'),
+          _element(id: 'elm_b'),
+        ],
+      );
+
+      await _pumpWithSave(
+        tester,
+        manifest,
+        onSaved: (m, p, k) {
+          receivedManifest = m;
+          receivedPreset = p;
+          receivedKind = k;
+        },
+      );
+      await tester
+          .tap(find.byKey(const Key('environment-studio-edit-palette')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('environment-studio-draft-palette-add-item')),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('environment-studio-palette-draft-element-1')),
+        'elm_b',
+      );
+      await tester.pumpAndSettle();
+
+      await tester
+          .tap(find.byKey(const Key('environment-studio-palette-save')));
+      await tester.pumpAndSettle();
+
+      expect(receivedManifest, isNotNull);
+      expect(receivedPreset, isNotNull);
+      expect(receivedKind, EnvironmentPresetMemoryWriteKind.update);
+      expect(receivedPreset!.id, 'forest');
+      expect(receivedPreset!.name, 'P forest');
+      expect(receivedPreset!.templateId, 'tpl');
+      expect(receivedPreset!.defaultParams,
+          EnvironmentGenerationParams.standard());
+      expect(receivedPreset!.palette.map((item) => item.elementId),
+          ['elm', 'elm_b']);
+      expect(
+        findProjectEnvironmentPresetById(receivedManifest!, 'forest')!
+            .palette
+            .map((item) => item.elementId),
+        ['elm', 'elm_b'],
+      );
+      expect(find.byKey(const Key('environment-studio-detail-id')),
+          findsOneWidget);
+      expect(
+          find.textContaining('Palette enregistrée dans le projet en mémoire.'),
+          findsOneWidget);
+    });
+
+    testWidgets('picker palette exclut un élément incompatible',
+        (tester) async {
+      await _pumpWithSave(
+        tester,
+        _manifest(
+          environmentPresets: [
+            _preset(id: 'forest', elementId: 'grass_a'),
+          ],
+          elements: [
+            _element(id: 'grass_a', tilesetId: 'grass'),
+            _element(id: 'grass_b', tilesetId: 'grass'),
+            _element(id: 'rock_a', tilesetId: 'rocks'),
+          ],
+        ),
+      );
+
+      await tester
+          .tap(find.byKey(const Key('environment-studio-edit-palette')));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const Key('environment-studio-draft-palette-add-item')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(
+            const Key('environment-studio-palette-draft-pick-element-1')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('grass_b — El grass_b'), findsOneWidget);
+      expect(find.text('rock_a — El rock_a'), findsNothing);
+    });
+
+    testWidgets('preset mixte bloque save mais permet retirer incompatible',
+        (tester) async {
+      await _pumpWithSave(
+        tester,
+        _manifest(
+          environmentPresets: [
+            EnvironmentPreset(
+              id: 'mixed',
+              name: 'Mixed',
+              templateId: 'tpl',
+              palette: [
+                EnvironmentPaletteItem(elementId: 'grass_a', weight: 1),
+                EnvironmentPaletteItem(elementId: 'rock_a', weight: 1),
+              ],
+              defaultParams: EnvironmentGenerationParams.standard(),
+              sortOrder: 0,
+            ),
+          ],
+          elements: [
+            _element(id: 'grass_a', tilesetId: 'grass'),
+            _element(id: 'rock_a', tilesetId: 'rocks'),
+          ],
+        ),
+      );
+      await tester
+          .tap(find.byKey(const Key('environment-studio-edit-palette')));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('mélange plusieurs tilesets'), findsOneWidget);
+      final saveMixed = tester.widget<CupertinoButton>(
+        find.byKey(const Key('environment-studio-palette-save')),
+      );
+      expect(saveMixed.onPressed, isNull);
+
+      await tester.tap(
+        find.byKey(const Key('environment-studio-palette-draft-remove-1')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('mélange plusieurs tilesets'), findsNothing);
+      final saveAfterCleanup = tester.widget<CupertinoButton>(
+        find.byKey(const Key('environment-studio-palette-save')),
+      );
+      expect(saveAfterCleanup.onPressed, isNotNull);
+    });
+  });
 }
 
 bool _validationHas(WidgetTester tester, String substring) {
@@ -443,6 +722,34 @@ Future<void> _pump(WidgetTester tester, ProjectManifest manifest) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> _pumpWithSave(
+  WidgetTester tester,
+  ProjectManifest manifest, {
+  void Function(
+    ProjectManifest nextManifest,
+    EnvironmentPreset savedPreset,
+    EnvironmentPresetMemoryWriteKind kind,
+  )? onSaved,
+}) async {
+  tester.view.physicalSize = const Size(900, 2200);
+  tester.view.devicePixelRatio = 1.0;
+  addTearDown(() {
+    tester.view.resetPhysicalSize();
+    tester.view.resetDevicePixelRatio();
+  });
+  await tester.pumpWidget(
+    MacosApp(
+      home: CupertinoPageScaffold(
+        child: EnvironmentStudioPanel(
+          manifest: manifest,
+          onEnvironmentPresetSaved: onSaved ?? (_, __, ___) {},
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
 ProjectManifest _manifest({
   List<EnvironmentPreset> environmentPresets = const [],
   List<ProjectElementEntry> elements = const [],
@@ -457,13 +764,16 @@ ProjectManifest _manifest({
   );
 }
 
-EnvironmentPreset _preset({required String id}) {
+EnvironmentPreset _preset({
+  required String id,
+  String elementId = 'elm',
+}) {
   return EnvironmentPreset(
     id: id,
     name: 'P $id',
     templateId: 'tpl',
     palette: [
-      EnvironmentPaletteItem(elementId: 'elm', weight: 1),
+      EnvironmentPaletteItem(elementId: elementId, weight: 1),
     ],
     defaultParams: EnvironmentGenerationParams.standard(),
     sortOrder: 0,

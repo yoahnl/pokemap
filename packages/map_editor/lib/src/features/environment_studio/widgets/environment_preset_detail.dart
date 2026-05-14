@@ -16,6 +16,7 @@ class EnvironmentPresetDetail extends StatelessWidget {
     required this.labelColor,
     required this.subtleColor,
     this.onEditAsDraft,
+    this.onEditPalette,
   });
 
   final EnvironmentPreset preset;
@@ -26,6 +27,7 @@ class EnvironmentPresetDetail extends StatelessWidget {
 
   /// Lot 18 : ouvre le brouillon d’édition (null = action masquée).
   final VoidCallback? onEditAsDraft;
+  final VoidCallback? onEditPalette;
 
   @override
   Widget build(BuildContext context) {
@@ -46,35 +48,46 @@ class EnvironmentPresetDetail extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       key: const Key('environment-studio-detail-root'),
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Text(
-                'Éditer le preset',
-                style: TextStyle(
-                  color: labelColor,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ),
-            if (onEditAsDraft != null) ...[
-              const SizedBox(width: 10),
-              CupertinoButton(
-                key: const Key('environment-studio-edit-as-draft'),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                onPressed: onEditAsDraft,
-                child: const Text('Modifier en brouillon'),
-              ),
-            ],
-          ],
+        Text(
+          'Éditer le preset',
+          style: TextStyle(
+            color: labelColor,
+            fontSize: 17,
+            fontWeight: FontWeight.w800,
+          ),
         ),
+        if (onEditAsDraft != null || onEditPalette != null) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              if (onEditAsDraft != null)
+                CupertinoButton(
+                  key: const Key('environment-studio-edit-as-draft'),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  onPressed: onEditAsDraft,
+                  child: const Text('Modifier en brouillon'),
+                ),
+              if (onEditPalette != null)
+                CupertinoButton(
+                  key: const Key('environment-studio-edit-palette'),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  onPressed: onEditPalette,
+                  child: const Text('Modifier la palette'),
+                ),
+            ],
+          ),
+        ],
+        const SizedBox(height: 14),
+        _tilesetSourcePanel(context, tilesetCompatibility, fill, border),
         const SizedBox(height: 14),
         _sectionCard(
           context,
           key: const Key('environment-studio-section-identity'),
+          number: 1,
           title: 'Identité',
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -107,6 +120,7 @@ class EnvironmentPresetDetail extends StatelessWidget {
         _sectionCard(
           context,
           key: const Key('environment-studio-section-params'),
+          number: 2,
           title: 'Paramètres par défaut',
           child: Wrap(
             spacing: 8,
@@ -145,16 +159,8 @@ class EnvironmentPresetDetail extends StatelessWidget {
         const SizedBox(height: 14),
         _sectionCard(
           context,
-          key: const Key('environment-studio-section-tileset-source'),
-          title: 'Tileset source',
-          child: _tilesetSourceBlock(context, tilesetCompatibility),
-          fill: fill,
-          border: border,
-        ),
-        const SizedBox(height: 14),
-        _sectionCard(
-          context,
           key: const Key('environment-studio-section-palette'),
+          number: 3,
           title: 'Palette du preset',
           child: p.palette.isEmpty
               ? Text(
@@ -202,6 +208,7 @@ class EnvironmentPresetDetail extends StatelessWidget {
   Widget _sectionCard(
     BuildContext context, {
     required Key key,
+    int? number,
     required String title,
     required Widget child,
     required Color fill,
@@ -219,17 +226,81 @@ class EnvironmentPresetDetail extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              title,
-              style: TextStyle(
-                color: labelColor,
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0,
-              ),
+            Row(
+              children: [
+                if (number != null) ...[
+                  Container(
+                    key: Key('environment-studio-section-number-$number'),
+                    width: 22,
+                    height: 22,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: EditorChrome.accentJade.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: EditorChrome.accentJade.withValues(alpha: 0.45),
+                      ),
+                    ),
+                    child: Text(
+                      '$number',
+                      style: const TextStyle(
+                        color: EditorChrome.accentJade,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      color: labelColor,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 10),
             child,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _tilesetSourcePanel(
+    BuildContext context,
+    EnvironmentPresetTilesetCompatibility compatibility,
+    Color fill,
+    Color border,
+  ) {
+    return DecoratedBox(
+      key: const Key('environment-studio-section-tileset-source'),
+      decoration: BoxDecoration(
+        color: fill,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Tileset source',
+              style: TextStyle(
+                color: subtleColor,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 6),
+            _tilesetSourceBlock(context, compatibility),
           ],
         ),
       ),

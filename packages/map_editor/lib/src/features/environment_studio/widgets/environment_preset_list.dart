@@ -20,41 +20,32 @@ class EnvironmentPresetList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: EditorChrome.chipFill(context),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: CupertinoColors.separator.resolveFrom(context),
-        ),
-      ),
-      child: ListView.builder(
-        key: const Key('environment-studio-preset-list'),
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: presets.length,
-        itemBuilder: (context, index) {
-          final p = presets[index];
-          final isSelected = p.id == selectedPresetId;
-          final diag = report.diagnosticsForPreset(p.id);
-          var err = 0;
-          var warn = 0;
-          for (final d in diag) {
-            switch (d.severity) {
-              case EnvironmentAuthoringDiagnosticSeverity.error:
-                err++;
-              case EnvironmentAuthoringDiagnosticSeverity.warning:
-                warn++;
-            }
+    return ListView.builder(
+      key: const Key('environment-studio-preset-list'),
+      padding: EdgeInsets.zero,
+      itemCount: presets.length,
+      itemBuilder: (context, index) {
+        final p = presets[index];
+        final isSelected = p.id == selectedPresetId;
+        final diag = report.diagnosticsForPreset(p.id);
+        var err = 0;
+        var warn = 0;
+        for (final d in diag) {
+          switch (d.severity) {
+            case EnvironmentAuthoringDiagnosticSeverity.error:
+              err++;
+            case EnvironmentAuthoringDiagnosticSeverity.warning:
+              warn++;
           }
-          return _PresetListTile(
-            preset: p,
-            selected: isSelected,
-            errorCount: err,
-            warningCount: warn,
-            onTap: () => onSelect(p.id),
-          );
-        },
-      ),
+        }
+        return _PresetListTile(
+          preset: p,
+          selected: isSelected,
+          errorCount: err,
+          warningCount: warn,
+          onTap: () => onSelect(p.id),
+        );
+      },
     );
   }
 }
@@ -96,7 +87,7 @@ class _PresetListTile extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.only(bottom: 8),
       child: GestureDetector(
         key: Key('environment-studio-preset-row-${preset.id}'),
         behavior: HitTestBehavior.opaque,
