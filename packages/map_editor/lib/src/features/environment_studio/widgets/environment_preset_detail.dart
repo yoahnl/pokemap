@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../ui/shared/cupertino_editor_widgets.dart';
 import '../authoring/environment_preset_tileset_compatibility.dart';
+import 'environment_element_thumbnail.dart';
 import 'environment_palette_item_view.dart';
 import 'environment_preset_diagnostics_view.dart';
 
@@ -15,15 +16,19 @@ class EnvironmentPresetDetail extends StatelessWidget {
     required this.report,
     required this.labelColor,
     required this.subtleColor,
+    required this.manifest,
+    this.resolveTilesetPathById,
     this.onEditAsDraft,
     this.onEditPalette,
   });
 
   final EnvironmentPreset preset;
+  final ProjectManifest manifest;
   final List<ProjectElementEntry> projectElements;
   final EnvironmentAuthoringDiagnosticsReport report;
   final Color labelColor;
   final Color subtleColor;
+  final EnvironmentTilesetPathResolver? resolveTilesetPathById;
 
   /// Lot 18 : ouvre le brouillon d’édition (null = action masquée).
   final VoidCallback? onEditAsDraft;
@@ -611,6 +616,9 @@ class EnvironmentPresetDetail extends StatelessWidget {
                       child: EnvironmentPaletteItemView(
                         item: item,
                         subtleColor: subtleColor,
+                        manifest: manifest,
+                        element: _projectElement(item.elementId),
+                        resolveTilesetPathById: resolveTilesetPathById,
                         isIncompatibleTileset:
                             incompatibleElementIds.contains(item.elementId),
                       ),
@@ -621,6 +629,15 @@ class EnvironmentPresetDetail extends StatelessWidget {
           ),
       ],
     );
+  }
+
+  ProjectElementEntry? _projectElement(String id) {
+    for (final element in projectElements) {
+      if (element.id == id) {
+        return element;
+      }
+    }
+    return null;
   }
 
   Widget _compatibleFilterBox(BuildContext context) {

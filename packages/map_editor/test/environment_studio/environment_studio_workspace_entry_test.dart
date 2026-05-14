@@ -53,6 +53,8 @@ void main() {
         find.byKey(const Key('project-explorer-environment-studio-entry')),
         findsOneWidget,
       );
+      expect(find.textContaining('shell read-only'), findsNothing);
+      expect(find.textContaining('lecture seule'), findsNothing);
 
       await tester.ensureVisible(
         find.byKey(const Key('project-explorer-environment-studio-entry')),

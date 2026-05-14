@@ -6,6 +6,7 @@ import '../authoring/environment_preset_draft.dart';
 import '../authoring/environment_preset_tileset_compatibility.dart';
 import '../environment_preset_memory_write_kind.dart';
 import 'environment_generation_params_draft_editor.dart';
+import 'environment_element_thumbnail.dart';
 import 'environment_palette_item_draft_editor.dart';
 import 'environment_preset_draft_validation_view.dart';
 
@@ -23,6 +24,7 @@ class EnvironmentPresetDraftForm extends StatefulWidget {
     required this.onChanged,
     required this.onCancel,
     required this.onReset,
+    this.resolveTilesetPathById,
     this.onEnvironmentPresetSaved,
   });
 
@@ -34,6 +36,7 @@ class EnvironmentPresetDraftForm extends StatefulWidget {
 
   /// Éléments du projet (`manifest.elements`) pour le picker de palette.
   final List<ProjectElementEntry> projectElements;
+  final EnvironmentTilesetPathResolver? resolveTilesetPathById;
 
   final EnvironmentPresetDraft draft;
 
@@ -381,6 +384,8 @@ class _EnvironmentPresetDraftFormState
                   key: ValueKey('palette-draft-slot-$i'),
                   index: i,
                   item: widget.draft.palette[i],
+                  manifest: widget.manifest,
+                  resolveTilesetPathById: widget.resolveTilesetPathById,
                   projectElements:
                       tilesetCompatibility.availableCompatibleElements,
                   onChanged: (it) => _replacePaletteItem(i, it),

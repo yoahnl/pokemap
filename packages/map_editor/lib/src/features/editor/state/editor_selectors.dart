@@ -177,7 +177,7 @@ final editorShellSnapshotProvider = Provider<EditorShellSnapshot>((ref) {
     EditorWorkspaceMode.pathStudio =>
       'Créer des motifs de chemin à partir des presets PathPattern du projet.',
     EditorWorkspaceMode.environmentStudio =>
-      'Presets d’environnements organiques et diagnostics — shell read-only.',
+      'Presets d’environnements réutilisables',
   };
 
   final exposesMapActions = workspaceMode == EditorWorkspaceMode.map;

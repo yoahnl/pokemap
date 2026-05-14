@@ -7,6 +7,7 @@ import 'authoring/environment_preset_palette_use_cases.dart';
 import 'authoring/environment_preset_tileset_compatibility.dart';
 import 'environment_preset_memory_write_kind.dart';
 import 'widgets/environment_palette_item_draft_editor.dart';
+import 'widgets/environment_element_thumbnail.dart';
 import 'widgets/environment_preset_creation_wizard.dart';
 import 'widgets/environment_preset_detail.dart';
 import 'widgets/environment_preset_draft_form.dart';
@@ -41,6 +42,7 @@ class EnvironmentStudioPanel extends StatefulWidget {
     super.key,
     required this.manifest,
     this.knownTemplateIds = const <String>{},
+    this.resolveTilesetPathById,
     this.onEnvironmentPresetSaved,
   });
 
@@ -48,6 +50,7 @@ class EnvironmentStudioPanel extends StatefulWidget {
 
   /// Quand non vide, restreint les templates reconnus (diagnostics auteur).
   final Set<String> knownTemplateIds;
+  final EnvironmentTilesetPathResolver? resolveTilesetPathById;
 
   /// Après validation sans erreur : manifest mis à jour + preset créé ou mis
   /// à jour ; le parent (ex. workspace) applique l’état éditeur ; pas d’I/O
@@ -379,6 +382,7 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
                       key: ValueKey<int>(_draftFormEpoch),
                       manifest: widget.manifest,
                       knownTemplateIds: widget.knownTemplateIds,
+                      resolveTilesetPathById: widget.resolveTilesetPathById,
                       draft: _draft,
                       onChanged: (d) => setState(() => _draft = d),
                       onCancel: _closeDraftForm,
@@ -408,6 +412,7 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
                       existingPresetId: _editingPresetId,
                       validation: draftValidation!,
                       projectElements: widget.manifest.elements,
+                      resolveTilesetPathById: widget.resolveTilesetPathById,
                       onChanged: (d) => setState(() => _draft = d),
                       onCancel: _closeDraftForm,
                       onReset: _resetDraft,
@@ -688,6 +693,9 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
                                   report: report,
                                   labelColor: label,
                                   subtleColor: subtle,
+                                  manifest: widget.manifest,
+                                  resolveTilesetPathById:
+                                      widget.resolveTilesetPathById,
                                   onEditAsDraft: widget
                                               .onEnvironmentPresetSaved ==
                                           null
@@ -793,6 +801,8 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
                         key: ValueKey('palette-draft-slot-$i'),
                         index: i,
                         item: _paletteDraft[i],
+                        manifest: widget.manifest,
+                        resolveTilesetPathById: widget.resolveTilesetPathById,
                         projectElements:
                             compatibility.availableCompatibleElements,
                         onChanged: (item) => _replacePaletteDraftItem(i, item),

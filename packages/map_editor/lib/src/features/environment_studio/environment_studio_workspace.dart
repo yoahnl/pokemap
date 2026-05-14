@@ -19,8 +19,10 @@ class EnvironmentStudioWorkspace extends ConsumerWidget {
     if (manifest == null) {
       return const _EnvironmentStudioProjectMissingState();
     }
+    final notifier = ref.read(editorNotifierProvider.notifier);
     return EnvironmentStudioPanel(
       manifest: manifest,
+      resolveTilesetPathById: notifier.getTilesetAbsolutePathById,
       onEnvironmentPresetSaved: (nextManifest, preset, kind) {
         final msg = switch (kind) {
           EnvironmentPresetMemoryWriteKind.create =>
@@ -28,10 +30,10 @@ class EnvironmentStudioWorkspace extends ConsumerWidget {
           EnvironmentPresetMemoryWriteKind.update =>
             'Preset d’environnement « ${preset.name} » mis à jour dans le projet.',
         };
-        ref.read(editorNotifierProvider.notifier).applyInMemoryProjectManifest(
-              nextManifest,
-              statusMessage: msg,
-            );
+        notifier.applyInMemoryProjectManifest(
+          nextManifest,
+          statusMessage: msg,
+        );
       },
     );
   }

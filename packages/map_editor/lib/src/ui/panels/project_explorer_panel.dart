@@ -336,7 +336,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         InspectorSectionCard(
           borderRadius: explorerTileRadius,
           title: 'Path Library',
-          subtitle: 'Legacy paths and Path Studio shell',
+          subtitle: 'Legacy paths and Path Studio recipes',
           icon: CupertinoIcons.arrow_branch,
           accentColor: EditorChrome.accentWarm,
           badgeText:
@@ -349,7 +349,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
         InspectorSectionCard(
           borderRadius: explorerTileRadius,
           title: 'Environment Studio',
-          subtitle: 'Presets d’environnements organiques (shell read-only)',
+          subtitle: 'Presets d’environnements réutilisables',
           icon: CupertinoIcons.tree,
           accentColor: EditorChrome.accentJade,
           badgeText: '${project.environmentPresets.length}',
@@ -482,7 +482,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           leading: const MacosIcon(CupertinoIcons.tree),
           title: const Text('Environment Studio'),
           subtitle: const Text(
-            'Résumé presets et diagnostics — lecture seule',
+            'Créez et organisez vos presets d’environnements.',
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
@@ -510,7 +510,7 @@ class _ProjectExplorerPanelState extends ConsumerState<ProjectExplorerPanel> {
           leading: const MacosIcon(CupertinoIcons.arrow_branch),
           title: const Text('Path Studio'),
           subtitle: Text(
-            '${project.pathPatternPresets.length} motifs PathPattern — shell read-only',
+            '${project.pathPatternPresets.length} motifs PathPattern',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:macos_ui/macos_ui.dart';
@@ -82,10 +84,12 @@ void main() {
 
     testWidgets('sélectionner un tileset active l’étape éléments compatibles',
         (tester) async {
+      final tilesetImage = _testTilesetPng();
       await _pump(
         tester,
         _manifest(
           environmentPresets: [_preset(id: 'forest')],
+          settings: const ProjectSettings(tileWidth: 1, tileHeight: 1),
           tilesets: [
             _tileset(id: 'grass', name: 'Herbes'),
             _tileset(id: 'rocks', name: 'Rochers'),
@@ -96,6 +100,8 @@ void main() {
             _element(id: 'unknown_a', name: 'Sans source', tilesetId: ''),
           ],
         ),
+        resolveTilesetPathById: (tilesetId) =>
+            tilesetId == 'grass' ? tilesetImage.path : null,
       );
 
       await _openWizard(tester);
@@ -168,11 +174,47 @@ void main() {
         find.byKey(const Key('environment-creation-element-preview-grass_a')),
         findsOneWidget,
       );
+      expect(
+        find.byKey(const Key('environment-element-preview-grass_a')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('environment-element-preview-fallback-grass_a')),
+        findsNothing,
+      );
+    });
+
+    testWidgets('prévisualise le fallback si le tileset image est introuvable',
+        (tester) async {
+      await _pump(
+        tester,
+        _manifest(
+          environmentPresets: [_preset(id: 'forest')],
+          tilesets: [_tileset(id: 'grass', name: 'Herbes')],
+          elements: [
+            _element(id: 'grass_a', name: 'Herbe A', tilesetId: 'grass'),
+          ],
+        ),
+        resolveTilesetPathById: (_) => null,
+      );
+
+      await _openWizard(tester);
+      await _selectTilesetAndContinue(tester, 'grass');
+
+      expect(
+        find.byKey(const Key('environment-element-preview-fallback-grass_a')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('environment-element-preview-grass_a')),
+        findsNothing,
+      );
     });
 
     testWidgets(
         'ajout, retrait et création mémoire restent guidés par le tileset',
         (tester) async {
+      final tilesetImage = _testTilesetPng();
       ProjectManifest? receivedManifest;
       EnvironmentPreset? receivedPreset;
       EnvironmentPresetMemoryWriteKind? receivedKind;
@@ -181,6 +223,7 @@ void main() {
         tester,
         _manifest(
           environmentPresets: [_preset(id: 'forest')],
+          settings: const ProjectSettings(tileWidth: 1, tileHeight: 1),
           tilesets: [_tileset(id: 'grass', name: 'Herbes')],
           elements: [
             _element(id: 'grass_a', name: 'Herbe A', tilesetId: 'grass')
@@ -191,6 +234,8 @@ void main() {
           receivedPreset = preset;
           receivedKind = kind;
         },
+        resolveTilesetPathById: (tilesetId) =>
+            tilesetId == 'grass' ? tilesetImage.path : null,
       );
 
       await _openWizard(tester);
@@ -211,6 +256,10 @@ void main() {
 
       expect(
         find.byKey(const Key('environment-studio-palette-draft-item-0')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('environment-selected-palette-preview-grass_a')),
         findsOneWidget,
       );
       expect(find.text('Ajouté à la palette'), findsOneWidget);
@@ -381,6 +430,7 @@ Future<void> _pump(
     EnvironmentPreset,
     EnvironmentPresetMemoryWriteKind,
   )? onSaved,
+  String? Function(String tilesetId)? resolveTilesetPathById,
 }) async {
   tester.view.physicalSize = const Size(1100, 2200);
   tester.view.devicePixelRatio = 1.0;
@@ -393,6 +443,7 @@ Future<void> _pump(
       home: CupertinoPageScaffold(
         child: EnvironmentStudioPanel(
           manifest: manifest,
+          resolveTilesetPathById: resolveTilesetPathById,
           onEnvironmentPresetSaved: onSaved ?? (_, __, ___) {},
         ),
       ),
@@ -424,6 +475,7 @@ ProjectManifest _manifest({
   List<EnvironmentPreset> environmentPresets = const [],
   List<ProjectTilesetEntry> tilesets = const [],
   List<ProjectElementEntry> elements = const [],
+  ProjectSettings settings = const ProjectSettings(),
 }) {
   return ProjectManifest(
     name: 'form-shell-test',
@@ -431,6 +483,7 @@ ProjectManifest _manifest({
     tilesets: tilesets,
     environmentPresets: environmentPresets,
     elements: elements,
+    settings: settings,
     surfaceCatalog: ProjectSurfaceCatalog(),
   );
 }
@@ -438,11 +491,12 @@ ProjectManifest _manifest({
 ProjectTilesetEntry _tileset({
   required String id,
   String? name,
+  String? relativePath,
 }) {
   return ProjectTilesetEntry(
     id: id,
     name: name ?? id,
-    relativePath: 'tilesets/$id.png',
+    relativePath: relativePath ?? 'tilesets/$id.png',
   );
 }
 
@@ -456,6 +510,12 @@ EnvironmentPreset _preset({required String id}) {
     ],
     defaultParams: EnvironmentGenerationParams.standard(),
     sortOrder: 0,
+  );
+}
+
+File _testTilesetPng() {
+  return File(
+    '${Directory.current.path}/macos/Runner/Assets.xcassets/AppIcon.appiconset/16.png',
   );
 }
 

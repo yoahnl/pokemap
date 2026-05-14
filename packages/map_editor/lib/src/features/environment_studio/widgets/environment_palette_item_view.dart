@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../../ui/shared/cupertino_editor_widgets.dart';
+import 'environment_element_thumbnail.dart';
 
 /// Carte d’un item de palette Environment (read-only).
 class EnvironmentPaletteItemView extends StatelessWidget {
@@ -10,11 +11,17 @@ class EnvironmentPaletteItemView extends StatelessWidget {
     required this.item,
     required this.subtleColor,
     this.isIncompatibleTileset = false,
+    this.manifest,
+    this.element,
+    this.resolveTilesetPathById,
   });
 
   final EnvironmentPaletteItem item;
   final Color subtleColor;
   final bool isIncompatibleTileset;
+  final ProjectManifest? manifest;
+  final ProjectElementEntry? element;
+  final EnvironmentTilesetPathResolver? resolveTilesetPathById;
 
   @override
   Widget build(BuildContext context) {
@@ -41,23 +48,21 @@ class EnvironmentPaletteItemView extends StatelessWidget {
               width: 270,
               child: Row(
                 children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: EditorChrome.accentJade.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(7),
-                      border: Border.all(
-                        color: EditorChrome.accentJade.withValues(alpha: 0.32),
-                      ),
-                    ),
-                    child: const Icon(
-                      CupertinoIcons.tree,
-                      color: EditorChrome.accentJade,
-                      size: 15,
-                    ),
-                  ),
+                  manifest == null
+                      ? _legacyIcon()
+                      : EnvironmentElementThumbnail(
+                          manifest: manifest!,
+                          element: element,
+                          elementId: item.elementId,
+                          resolveTilesetPathById: resolveTilesetPathById,
+                          size: 30,
+                          previewKey: Key(
+                            'environment-selected-palette-preview-${item.elementId}',
+                          ),
+                          fallbackKey: Key(
+                            'environment-selected-palette-preview-fallback-${item.elementId}',
+                          ),
+                        ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Column(
@@ -161,6 +166,26 @@ class EnvironmentPaletteItemView extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _legacyIcon() {
+    return Container(
+      width: 28,
+      height: 28,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: EditorChrome.accentJade.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(
+          color: EditorChrome.accentJade.withValues(alpha: 0.32),
+        ),
+      ),
+      child: const Icon(
+        CupertinoIcons.tree,
+        color: EditorChrome.accentJade,
+        size: 15,
       ),
     );
   }

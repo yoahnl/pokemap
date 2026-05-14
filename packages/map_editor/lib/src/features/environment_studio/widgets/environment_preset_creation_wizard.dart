@@ -5,6 +5,7 @@ import '../../../ui/shared/cupertino_editor_widgets.dart';
 import '../authoring/environment_preset_draft.dart';
 import '../authoring/environment_preset_tileset_compatibility.dart';
 import '../environment_preset_memory_write_kind.dart';
+import 'environment_element_thumbnail.dart';
 import 'environment_palette_item_draft_editor.dart';
 import 'environment_preset_draft_validation_view.dart';
 
@@ -17,6 +18,7 @@ class EnvironmentPresetCreationWizard extends StatefulWidget {
     required this.onChanged,
     required this.onCancel,
     required this.onReset,
+    this.resolveTilesetPathById,
     this.onEnvironmentPresetSaved,
   });
 
@@ -26,6 +28,7 @@ class EnvironmentPresetCreationWizard extends StatefulWidget {
   final ValueChanged<EnvironmentPresetDraft> onChanged;
   final VoidCallback onCancel;
   final VoidCallback onReset;
+  final EnvironmentTilesetPathResolver? resolveTilesetPathById;
   final void Function(
     ProjectManifest nextManifest,
     EnvironmentPreset savedPreset,
@@ -1301,20 +1304,17 @@ class _EnvironmentPresetCreationWizardState
     ProjectElementEntry element,
     Color accent,
   ) {
-    return Container(
+    return KeyedSubtree(
       key: Key('environment-creation-element-preview-${element.id}'),
-      width: 42,
-      height: 42,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: accent.withValues(alpha: 0.45)),
-      ),
-      child: Icon(
-        CupertinoIcons.square_grid_2x2_fill,
-        color: accent,
-        size: 20,
+      child: EnvironmentElementThumbnail(
+        manifest: widget.manifest,
+        element: element,
+        elementId: element.id,
+        resolveTilesetPathById: widget.resolveTilesetPathById,
+        size: 42,
+        previewKey: Key('environment-element-preview-${element.id}'),
+        fallbackKey: Key('environment-element-preview-fallback-${element.id}'),
+        fallbackAccent: accent,
       ),
     );
   }
@@ -1436,6 +1436,8 @@ class _EnvironmentPresetCreationWizardState
                           key: ValueKey('palette-draft-slot-$i'),
                           index: i,
                           item: widget.draft.palette[i],
+                          manifest: widget.manifest,
+                          resolveTilesetPathById: widget.resolveTilesetPathById,
                           projectElements: compatibleElements,
                           onChanged: (item) => _replacePaletteItem(i, item),
                           onRemove: () => _removePaletteItem(i),

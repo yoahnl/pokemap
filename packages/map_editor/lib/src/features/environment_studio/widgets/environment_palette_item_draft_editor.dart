@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../../ui/shared/cupertino_editor_widgets.dart';
 import '../authoring/environment_preset_draft.dart';
+import 'environment_element_thumbnail.dart';
 
 /// Carte éditable d’un [EnvironmentPaletteItemDraft] (Lot Environment-14).
 ///
@@ -18,6 +19,8 @@ class EnvironmentPaletteItemDraftEditor extends StatefulWidget {
     required this.projectElements,
     required this.onChanged,
     required this.onRemove,
+    this.manifest,
+    this.resolveTilesetPathById,
   });
 
   final int index;
@@ -25,6 +28,8 @@ class EnvironmentPaletteItemDraftEditor extends StatefulWidget {
 
   /// Éléments du manifeste (`ProjectManifest.elements`) pour le picker.
   final List<ProjectElementEntry> projectElements;
+  final ProjectManifest? manifest;
+  final EnvironmentTilesetPathResolver? resolveTilesetPathById;
 
   final ValueChanged<EnvironmentPaletteItemDraft> onChanged;
   final VoidCallback onRemove;
@@ -107,6 +112,19 @@ class _EnvironmentPaletteItemDraftEditorState
     );
   }
 
+  ProjectElementEntry? _selectedProjectElement() {
+    final id = widget.item.elementId.trim();
+    if (id.isEmpty) {
+      return null;
+    }
+    for (final element in widget.projectElements) {
+      if (element.id == id) {
+        return element;
+      }
+    }
+    return null;
+  }
+
   Future<void> _pickElementFromLibrary(BuildContext context) async {
     final sorted = [...widget.projectElements]
       ..sort((a, b) => a.id.compareTo(b.id));
@@ -155,6 +173,10 @@ class _EnvironmentPaletteItemDraftEditorState
     final fill = EditorChrome.chipFill(context);
     final border = CupertinoColors.separator.resolveFrom(context);
     final seg = _collisionToSegment(widget.item.collisionMode);
+    final previewId = widget.item.elementId.trim().isEmpty
+        ? 'empty-${widget.index}'
+        : widget.item.elementId.trim();
+    final selectedElement = _selectedProjectElement();
 
     return DecoratedBox(
       key: Key('environment-studio-palette-draft-item-${widget.index}'),
@@ -168,68 +190,92 @@ class _EnvironmentPaletteItemDraftEditorState
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: SizedBox(
-            width: 852,
+            width: 920,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(
-                  width: 290,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                  width: 358,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Item ${widget.index + 1}',
-                              style: TextStyle(
-                                color: subtle,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                      if (widget.manifest != null) ...[
+                        EnvironmentElementThumbnail(
+                          manifest: widget.manifest!,
+                          element: selectedElement,
+                          elementId: widget.item.elementId,
+                          resolveTilesetPathById: widget.resolveTilesetPathById,
+                          size: 34,
+                          previewKey: Key(
+                            'environment-selected-palette-preview-$previewId',
                           ),
-                          if (widget.projectElements.isNotEmpty)
-                            CupertinoButton(
+                          fallbackKey: Key(
+                            'environment-selected-palette-preview-fallback-$previewId',
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    'Item ${widget.index + 1}',
+                                    style: TextStyle(
+                                      color: subtle,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                if (widget.projectElements.isNotEmpty)
+                                  CupertinoButton(
+                                    key: Key(
+                                      'environment-studio-palette-draft-pick-element-${widget.index}',
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    minimumSize: Size.zero,
+                                    onPressed: () =>
+                                        _pickElementFromLibrary(context),
+                                    child: const Text('Choisir'),
+                                  ),
+                                CupertinoButton(
+                                  key: Key(
+                                    'environment-studio-palette-draft-remove-${widget.index}',
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  minimumSize: Size.zero,
+                                  onPressed: widget.onRemove,
+                                  child: const Text('Retirer'),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 5),
+                            CupertinoTextField(
                               key: Key(
-                                'environment-studio-palette-draft-pick-element-${widget.index}',
+                                'environment-studio-palette-draft-element-${widget.index}',
                               ),
+                              controller: _elementIdCtrl,
+                              placeholder: widget.projectElements.isEmpty
+                                  ? 'Identifiant d’élément'
+                                  : 'Élément compatible',
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
+                                horizontal: 10,
+                                vertical: 8,
                               ),
-                              minimumSize: Size.zero,
-                              onPressed: () => _pickElementFromLibrary(context),
-                              child: const Text('Choisir'),
+                              onChanged: (v) => _emit(elementId: v),
                             ),
-                          CupertinoButton(
-                            key: Key(
-                              'environment-studio-palette-draft-remove-${widget.index}',
-                            ),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            minimumSize: Size.zero,
-                            onPressed: widget.onRemove,
-                            child: const Text('Retirer'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 5),
-                      CupertinoTextField(
-                        key: Key(
-                          'environment-studio-palette-draft-element-${widget.index}',
+                          ],
                         ),
-                        controller: _elementIdCtrl,
-                        placeholder: widget.projectElements.isEmpty
-                            ? 'Identifiant d’élément'
-                            : 'Élément compatible',
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 8,
-                        ),
-                        onChanged: (v) => _emit(elementId: v),
                       ),
                     ],
                   ),

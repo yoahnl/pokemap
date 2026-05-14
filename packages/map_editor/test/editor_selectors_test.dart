@@ -176,6 +176,30 @@ void main() {
       expect(shell.workspaceSubtitle, contains('Pokédex, Moves et Items'));
     });
 
+    test('editorShellSnapshotProvider exposes clean Environment Studio labels',
+        () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      container.read(editorNotifierProvider.notifier).state = EditorState(
+        workspaceMode: EditorWorkspaceMode.environmentStudio,
+        project: ProjectManifest(
+          name: 'demo',
+          maps: <ProjectMapEntry>[],
+          tilesets: <ProjectTilesetEntry>[],
+          surfaceCatalog: ProjectSurfaceCatalog(),
+        ),
+      );
+
+      final shell = container.read(editorShellSnapshotProvider);
+      expect(shell.workspaceTitle, 'Environment Studio');
+      expect(
+        shell.workspaceSubtitle,
+        'Presets d’environnements réutilisables',
+      );
+      expect(shell.workspaceSubtitle, isNot(contains('shell read-only')));
+    });
+
     test('editorTerrainLibrarySnapshotProvider exposes preset selection inputs',
         () {
       final container = ProviderContainer();

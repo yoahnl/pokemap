@@ -1495,7 +1495,7 @@ class EditorNotifier extends _$EditorNotifier {
     state = _editorWorkspaceController.selectPathStudioWorkspace(state);
   }
 
-  /// Bascule vers Environment Studio (shell read-only Lot Environment-9).
+  /// Bascule vers Environment Studio.
   void selectEnvironmentStudioWorkspace() {
     state = _editorWorkspaceController.selectEnvironmentStudioWorkspace(state);
   }
