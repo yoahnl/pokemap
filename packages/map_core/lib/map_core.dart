@@ -26,6 +26,8 @@ export 'src/models/map_event_definition.dart';
 export 'src/models/project_trainer.dart';
 export 'src/models/scenario_asset.dart';
 export 'src/models/visual_frame_json.dart';
+export 'src/models/shadow.dart';
+export 'src/models/shadow_catalog.dart';
 export 'src/models/surface.dart';
 export 'src/models/surface_catalog.dart';
 export 'src/operations/map_resize.dart';
