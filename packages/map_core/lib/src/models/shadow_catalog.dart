@@ -20,19 +20,18 @@ bool _projectShadowProfilesEqualInOrder(
 
 /// Pure in-memory catalog of project shadow profiles.
 ///
-/// The catalog is not attached to [ProjectManifest] in Shadow-2 and has no JSON
-/// API. It only owns list immutability, order, id uniqueness, and lookup.
+/// Introduced as a standalone value object in Shadow-2, then persisted through
+/// [ProjectManifest] in Shadow-5. It owns list immutability, order, id
+/// uniqueness, and lookup.
 @immutable
 final class ProjectShadowCatalog {
+  const ProjectShadowCatalog.empty() : _profiles = const [];
+
   ProjectShadowCatalog({
     List<ProjectShadowProfile> profiles = const [],
-  }) {
-    final copiedProfiles = List<ProjectShadowProfile>.from(profiles);
-    _rejectDuplicateProfileIds(copiedProfiles);
-    _profiles = List<ProjectShadowProfile>.unmodifiable(copiedProfiles);
-  }
+  }) : _profiles = _copyProfiles(profiles);
 
-  late final List<ProjectShadowProfile> _profiles;
+  final List<ProjectShadowProfile> _profiles;
 
   /// Profiles in insertion order. The returned list is unmodifiable.
   List<ProjectShadowProfile> get profiles => _profiles;
@@ -61,6 +60,12 @@ final class ProjectShadowCatalog {
 
   @override
   int get hashCode => Object.hashAll(_profiles);
+}
+
+List<ProjectShadowProfile> _copyProfiles(List<ProjectShadowProfile> profiles) {
+  final copiedProfiles = List<ProjectShadowProfile>.from(profiles);
+  _rejectDuplicateProfileIds(copiedProfiles);
+  return List<ProjectShadowProfile>.unmodifiable(copiedProfiles);
 }
 
 void _rejectDuplicateProfileIds(List<ProjectShadowProfile> profiles) {

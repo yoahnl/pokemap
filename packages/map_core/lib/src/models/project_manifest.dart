@@ -9,6 +9,7 @@ import 'project_path_pattern_preset.dart';
 import 'scenario_asset.dart';
 import 'script_asset.dart';
 import 'shadow.dart';
+import 'shadow_catalog.dart';
 import 'surface_catalog.dart';
 import 'tileset_transparent_color.dart';
 import 'visual_frame_json.dart';
@@ -17,6 +18,7 @@ import '../exceptions/map_exceptions.dart';
 import '../operations/environment_preset_json_codec.dart';
 import '../operations/project_element_shadow_config_json_codec.dart';
 import '../operations/project_path_pattern_preset_json_codec.dart';
+import '../operations/project_shadow_catalog_json_codec.dart';
 import '../operations/project_surface_catalog_json_codec.dart';
 
 part 'project_manifest.freezed.dart';
@@ -128,6 +130,9 @@ class ProjectManifest with _$ProjectManifest {
       toJson: _projectSurfaceCatalogToJson,
     )
     required ProjectSurfaceCatalog surfaceCatalog,
+    @Default(ProjectShadowCatalog.empty())
+    @ProjectShadowCatalogJsonConverter()
+    ProjectShadowCatalog shadowCatalog,
   }) = _ProjectManifest;
 
   factory ProjectManifest.fromJson(Map<String, dynamic> json) =>

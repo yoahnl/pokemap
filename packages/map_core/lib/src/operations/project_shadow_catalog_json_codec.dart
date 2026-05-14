@@ -1,3 +1,5 @@
+import 'package:json_annotation/json_annotation.dart';
+
 import '../exceptions/map_exceptions.dart';
 import '../models/shadow.dart';
 import '../models/shadow_catalog.dart';
@@ -63,4 +65,19 @@ ProjectShadowCatalog decodeProjectShadowCatalog(Object? json) {
   }
 
   return ProjectShadowCatalog(profiles: profiles);
+}
+
+class ProjectShadowCatalogJsonConverter
+    implements JsonConverter<ProjectShadowCatalog, Object?> {
+  const ProjectShadowCatalogJsonConverter();
+
+  @override
+  ProjectShadowCatalog fromJson(Object? json) {
+    return decodeProjectShadowCatalog(json);
+  }
+
+  @override
+  Object? toJson(ProjectShadowCatalog catalog) {
+    return encodeProjectShadowCatalog(catalog);
+  }
 }
