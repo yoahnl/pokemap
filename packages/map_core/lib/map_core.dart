@@ -86,6 +86,7 @@ export 'src/operations/environment_preset_diagnostics.dart';
 export 'src/operations/environment_layer_usage_diagnostics.dart';
 export 'src/operations/environment_authoring_diagnostics.dart';
 export 'src/operations/shadow_authoring_diagnostics.dart';
+export 'src/operations/shadow_config_resolver.dart';
 export 'src/operations/surface_layer_placements.dart';
 export 'src/operations/surface_to_gameplay_zone_generation_assessment.dart';
 export 'src/operations/surface_to_gameplay_zone_generation_plan.dart';
