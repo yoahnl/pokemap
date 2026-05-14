@@ -142,6 +142,8 @@ _$MapPlacedElementImpl _$$MapPlacedElementImplFromJson(
           ? null
           : MapPlacedElementAnimation.fromJson(
               json['animation'] as Map<String, dynamic>),
+      shadowOverride: const MapPlacedElementShadowOverrideJsonConverter()
+          .fromJson(json['shadowOverride']),
       behaviors: (json['behaviors'] as List<dynamic>?)
               ?.map((e) =>
                   MapPlacedElementBehavior.fromJson(e as Map<String, dynamic>))
@@ -163,6 +165,8 @@ Map<String, dynamic> _$$MapPlacedElementImplToJson(
       'applyCollision': instance.applyCollision,
       'opacity': instance.opacity,
       'animation': instance.animation?.toJson(),
+      'shadowOverride': const MapPlacedElementShadowOverrideJsonConverter()
+          .toJson(instance.shadowOverride),
       'behaviors': instance.behaviors.map((e) => e.toJson()).toList(),
       'properties': instance.properties,
     };

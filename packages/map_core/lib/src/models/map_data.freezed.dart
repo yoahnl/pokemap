@@ -1074,6 +1074,9 @@ mixin _$MapPlacedElement {
   double get opacity => throw _privateConstructorUsedError;
   MapPlacedElementAnimation? get animation =>
       throw _privateConstructorUsedError;
+  @MapPlacedElementShadowOverrideJsonConverter()
+  MapPlacedElementShadowOverride? get shadowOverride =>
+      throw _privateConstructorUsedError;
   List<MapPlacedElementBehavior> get behaviors =>
       throw _privateConstructorUsedError;
   Map<String, String> get properties => throw _privateConstructorUsedError;
@@ -1102,6 +1105,8 @@ abstract class $MapPlacedElementCopyWith<$Res> {
       bool applyCollision,
       double opacity,
       MapPlacedElementAnimation? animation,
+      @MapPlacedElementShadowOverrideJsonConverter()
+      MapPlacedElementShadowOverride? shadowOverride,
       List<MapPlacedElementBehavior> behaviors,
       Map<String, String> properties});
 
@@ -1131,6 +1136,7 @@ class _$MapPlacedElementCopyWithImpl<$Res, $Val extends MapPlacedElement>
     Object? applyCollision = null,
     Object? opacity = null,
     Object? animation = freezed,
+    Object? shadowOverride = freezed,
     Object? behaviors = null,
     Object? properties = null,
   }) {
@@ -1163,6 +1169,10 @@ class _$MapPlacedElementCopyWithImpl<$Res, $Val extends MapPlacedElement>
           ? _value.animation
           : animation // ignore: cast_nullable_to_non_nullable
               as MapPlacedElementAnimation?,
+      shadowOverride: freezed == shadowOverride
+          ? _value.shadowOverride
+          : shadowOverride // ignore: cast_nullable_to_non_nullable
+              as MapPlacedElementShadowOverride?,
       behaviors: null == behaviors
           ? _value.behaviors
           : behaviors // ignore: cast_nullable_to_non_nullable
@@ -1215,6 +1225,8 @@ abstract class _$$MapPlacedElementImplCopyWith<$Res>
       bool applyCollision,
       double opacity,
       MapPlacedElementAnimation? animation,
+      @MapPlacedElementShadowOverrideJsonConverter()
+      MapPlacedElementShadowOverride? shadowOverride,
       List<MapPlacedElementBehavior> behaviors,
       Map<String, String> properties});
 
@@ -1244,6 +1256,7 @@ class __$$MapPlacedElementImplCopyWithImpl<$Res>
     Object? applyCollision = null,
     Object? opacity = null,
     Object? animation = freezed,
+    Object? shadowOverride = freezed,
     Object? behaviors = null,
     Object? properties = null,
   }) {
@@ -1276,6 +1289,10 @@ class __$$MapPlacedElementImplCopyWithImpl<$Res>
           ? _value.animation
           : animation // ignore: cast_nullable_to_non_nullable
               as MapPlacedElementAnimation?,
+      shadowOverride: freezed == shadowOverride
+          ? _value.shadowOverride
+          : shadowOverride // ignore: cast_nullable_to_non_nullable
+              as MapPlacedElementShadowOverride?,
       behaviors: null == behaviors
           ? _value._behaviors
           : behaviors // ignore: cast_nullable_to_non_nullable
@@ -1300,6 +1317,7 @@ class _$MapPlacedElementImpl implements _MapPlacedElement {
       this.applyCollision = true,
       this.opacity = 1.0,
       this.animation,
+      @MapPlacedElementShadowOverrideJsonConverter() this.shadowOverride,
       final List<MapPlacedElementBehavior> behaviors = const [],
       final Map<String, String> properties = const {}})
       : _behaviors = behaviors,
@@ -1324,6 +1342,9 @@ class _$MapPlacedElementImpl implements _MapPlacedElement {
   final double opacity;
   @override
   final MapPlacedElementAnimation? animation;
+  @override
+  @MapPlacedElementShadowOverrideJsonConverter()
+  final MapPlacedElementShadowOverride? shadowOverride;
   final List<MapPlacedElementBehavior> _behaviors;
   @override
   @JsonKey()
@@ -1344,7 +1365,7 @@ class _$MapPlacedElementImpl implements _MapPlacedElement {
 
   @override
   String toString() {
-    return 'MapPlacedElement(id: $id, layerId: $layerId, elementId: $elementId, pos: $pos, applyCollision: $applyCollision, opacity: $opacity, animation: $animation, behaviors: $behaviors, properties: $properties)';
+    return 'MapPlacedElement(id: $id, layerId: $layerId, elementId: $elementId, pos: $pos, applyCollision: $applyCollision, opacity: $opacity, animation: $animation, shadowOverride: $shadowOverride, behaviors: $behaviors, properties: $properties)';
   }
 
   @override
@@ -1362,6 +1383,8 @@ class _$MapPlacedElementImpl implements _MapPlacedElement {
             (identical(other.opacity, opacity) || other.opacity == opacity) &&
             (identical(other.animation, animation) ||
                 other.animation == animation) &&
+            (identical(other.shadowOverride, shadowOverride) ||
+                other.shadowOverride == shadowOverride) &&
             const DeepCollectionEquality()
                 .equals(other._behaviors, _behaviors) &&
             const DeepCollectionEquality()
@@ -1379,6 +1402,7 @@ class _$MapPlacedElementImpl implements _MapPlacedElement {
       applyCollision,
       opacity,
       animation,
+      shadowOverride,
       const DeepCollectionEquality().hash(_behaviors),
       const DeepCollectionEquality().hash(_properties));
 
@@ -1408,6 +1432,8 @@ abstract class _MapPlacedElement implements MapPlacedElement {
       final bool applyCollision,
       final double opacity,
       final MapPlacedElementAnimation? animation,
+      @MapPlacedElementShadowOverrideJsonConverter()
+      final MapPlacedElementShadowOverride? shadowOverride,
       final List<MapPlacedElementBehavior> behaviors,
       final Map<String, String> properties}) = _$MapPlacedElementImpl;
 
@@ -1428,6 +1454,9 @@ abstract class _MapPlacedElement implements MapPlacedElement {
   double get opacity;
   @override
   MapPlacedElementAnimation? get animation;
+  @override
+  @MapPlacedElementShadowOverrideJsonConverter()
+  MapPlacedElementShadowOverride? get shadowOverride;
   @override
   List<MapPlacedElementBehavior> get behaviors;
   @override

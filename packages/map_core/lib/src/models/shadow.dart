@@ -29,6 +29,18 @@ enum ShadowSoftnessMode {
   hardEdge,
 }
 
+/// Per-instance V0 override mode for a placed element shadow.
+enum ShadowOverrideMode {
+  /// Use the default shadow configuration from the project element.
+  inherit,
+
+  /// Disable the shadow for this placed element instance.
+  disabled,
+
+  /// Apply limited per-instance profile and numeric overrides later.
+  custom,
+}
+
 /// Pure authoring profile for a simple V0 shadow.
 ///
 /// This model has no JSON API and no dependency on Flutter or Flame.
@@ -168,6 +180,129 @@ final class ProjectElementShadowConfig {
         scaleY,
         opacity,
       );
+}
+
+/// Optional per-instance shadow override carried by a placed element.
+///
+/// This is only an authoring/data contract. Shadow-6 does not resolve profiles,
+/// merge element defaults, affect collision, or render anything.
+@immutable
+final class MapPlacedElementShadowOverride {
+  MapPlacedElementShadowOverride({
+    this.mode = ShadowOverrideMode.inherit,
+    this.shadowProfileId,
+    this.offsetX,
+    this.offsetY,
+    this.scaleX,
+    this.scaleY,
+    this.opacity,
+  }) {
+    final profileId = shadowProfileId;
+    if (profileId != null) {
+      _validateMapPlacedElementShadowProfileId(profileId);
+    }
+    _validateMapPlacedElementShadowOptionalFinite(offsetX, 'offsetX');
+    _validateMapPlacedElementShadowOptionalFinite(offsetY, 'offsetY');
+    _validateMapPlacedElementShadowOptionalPositive(scaleX, 'scaleX');
+    _validateMapPlacedElementShadowOptionalPositive(scaleY, 'scaleY');
+    _validateMapPlacedElementShadowOptionalOpacity(opacity);
+
+    if (mode != ShadowOverrideMode.custom &&
+        _hasMapPlacedElementShadowCustomFields) {
+      throw ValidationException(
+        'MapPlacedElementShadowOverride.${mode.name} cannot carry custom shadow fields',
+      );
+    }
+  }
+
+  /// Whether this instance inherits, disables, or customizes its shadow.
+  final ShadowOverrideMode mode;
+
+  /// Optional profile replacement for [ShadowOverrideMode.custom].
+  ///
+  /// Shadow-6 intentionally does not resolve this id against a catalog.
+  final String? shadowProfileId;
+
+  /// Optional numeric instance overrides applied later by the Shadow resolver.
+  final double? offsetX;
+  final double? offsetY;
+  final double? scaleX;
+  final double? scaleY;
+  final double? opacity;
+
+  bool get _hasMapPlacedElementShadowCustomFields =>
+      shadowProfileId != null ||
+      offsetX != null ||
+      offsetY != null ||
+      scaleX != null ||
+      scaleY != null ||
+      opacity != null;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is MapPlacedElementShadowOverride &&
+          other.mode == mode &&
+          other.shadowProfileId == shadowProfileId &&
+          other.offsetX == offsetX &&
+          other.offsetY == offsetY &&
+          other.scaleX == scaleX &&
+          other.scaleY == scaleY &&
+          other.opacity == opacity;
+
+  @override
+  int get hashCode => Object.hash(
+        mode,
+        shadowProfileId,
+        offsetX,
+        offsetY,
+        scaleX,
+        scaleY,
+        opacity,
+      );
+}
+
+void _validateMapPlacedElementShadowProfileId(String value) {
+  if (value.trim().isEmpty) {
+    throw const ValidationException(
+      'MapPlacedElementShadowOverride.shadowProfileId must be non-empty',
+    );
+  }
+}
+
+void _validateMapPlacedElementShadowOptionalFinite(
+  double? value,
+  String name,
+) {
+  if (value == null) {
+    return;
+  }
+  if (!value.isFinite) {
+    throw ValidationException(
+      'MapPlacedElementShadowOverride.$name must be finite',
+    );
+  }
+}
+
+void _validateMapPlacedElementShadowOptionalPositive(
+  double? value,
+  String name,
+) {
+  _validateMapPlacedElementShadowOptionalFinite(value, name);
+  if (value != null && value <= 0) {
+    throw ValidationException(
+      'MapPlacedElementShadowOverride.$name must be > 0',
+    );
+  }
+}
+
+void _validateMapPlacedElementShadowOptionalOpacity(double? value) {
+  _validateMapPlacedElementShadowOptionalFinite(value, 'opacity');
+  if (value != null && (value < 0 || value > 1)) {
+    throw const ValidationException(
+      'MapPlacedElementShadowOverride.opacity must be between 0 and 1',
+    );
+  }
 }
 
 void _validateProjectElementShadowProfileId(String value) {
