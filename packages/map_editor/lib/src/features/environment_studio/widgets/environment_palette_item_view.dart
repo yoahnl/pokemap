@@ -28,74 +28,137 @@ class EnvironmentPaletteItemView extends StatelessWidget {
           ? Key('environment-studio-palette-incompatible-${item.elementId}')
           : null,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: border),
         color: fill,
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    item.elementId,
-                    key: Key(
-                        'environment-studio-palette-item-${item.elementId}'),
-                    style: TextStyle(
-                      color: label,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 0,
-                    ),
-                  ),
-                ),
-                _miniChip(
-                  context,
-                  label: 'Poids ${item.weight}',
-                  key: Key(
-                      'environment-studio-palette-weight-${item.elementId}'),
-                ),
-                if (isIncompatibleTileset) ...[
-                  const SizedBox(width: 6),
-                  _warningChip(
-                    context,
-                    label: 'Tileset incompatible',
-                  ),
-                ],
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _collisionLabel(item.collisionMode),
-              key: Key(
-                'environment-studio-palette-collision-${item.elementId}',
-              ),
-              style: TextStyle(
-                color: subtleColor,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            if (tags.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
+            SizedBox(
+              width: 270,
+              child: Row(
                 children: [
-                  for (final t in tags)
-                    _miniChip(
-                      context,
-                      label: t,
-                      key: Key(
-                        'environment-studio-palette-tag-${item.elementId}-$t',
+                  Container(
+                    width: 28,
+                    height: 28,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: EditorChrome.accentJade.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(7),
+                      border: Border.all(
+                        color: EditorChrome.accentJade.withValues(alpha: 0.32),
                       ),
                     ),
+                    child: const Icon(
+                      CupertinoIcons.tree,
+                      color: EditorChrome.accentJade,
+                      size: 15,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          item.elementId,
+                          key: Key(
+                            'environment-studio-palette-item-${item.elementId}',
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: label,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          item.elementId,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: subtleColor,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
-            ],
+            ),
+            SizedBox(
+              width: 92,
+              child: _miniChip(
+                context,
+                label: 'Poids ${item.weight}',
+                key: Key('environment-studio-palette-weight-${item.elementId}'),
+              ),
+            ),
+            SizedBox(
+              width: 150,
+              child: Text(
+                _collisionLabel(item.collisionMode),
+                key: Key(
+                  'environment-studio-palette-collision-${item.elementId}',
+                ),
+                style: TextStyle(
+                  color: subtleColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            SizedBox(
+              width: 230,
+              child: Wrap(
+                spacing: 5,
+                runSpacing: 5,
+                children: [
+                  if (tags.isEmpty)
+                    Text(
+                      '—',
+                      style: TextStyle(
+                        color: subtleColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    )
+                  else
+                    for (final t in tags)
+                      _miniChip(
+                        context,
+                        label: t,
+                        key: Key(
+                          'environment-studio-palette-tag-${item.elementId}-$t',
+                        ),
+                      ),
+                ],
+              ),
+            ),
+            SizedBox(
+              width: 78,
+              child: isIncompatibleTileset
+                  ? _warningChip(
+                      context,
+                      label: 'Tileset incompatible',
+                    )
+                  : Text(
+                      '—',
+                      style: TextStyle(
+                        color: subtleColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+            ),
           ],
         ),
       ),

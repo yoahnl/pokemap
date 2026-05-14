@@ -159,181 +159,181 @@ class _EnvironmentPaletteItemDraftEditorState
     return DecoratedBox(
       key: Key('environment-studio-palette-draft-item-${widget.index}'),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: border),
         color: fill,
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SizedBox(
+            width: 852,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
+                SizedBox(
+                  width: 290,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Item ${widget.index + 1}',
+                              style: TextStyle(
+                                color: subtle,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          if (widget.projectElements.isNotEmpty)
+                            CupertinoButton(
+                              key: Key(
+                                'environment-studio-palette-draft-pick-element-${widget.index}',
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              minimumSize: Size.zero,
+                              onPressed: () => _pickElementFromLibrary(context),
+                              child: const Text('Choisir'),
+                            ),
+                          CupertinoButton(
+                            key: Key(
+                              'environment-studio-palette-draft-remove-${widget.index}',
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            minimumSize: Size.zero,
+                            onPressed: widget.onRemove,
+                            child: const Text('Retirer'),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 5),
+                      CupertinoTextField(
+                        key: Key(
+                          'environment-studio-palette-draft-element-${widget.index}',
+                        ),
+                        controller: _elementIdCtrl,
+                        placeholder: widget.projectElements.isEmpty
+                            ? 'Identifiant d’élément'
+                            : 'Élément compatible',
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
+                        onChanged: (v) => _emit(elementId: v),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 78,
+                  child: CupertinoTextField(
+                    key: Key(
+                      'environment-studio-palette-draft-weight-${widget.index}',
+                    ),
+                    controller: _weightCtrl,
+                    placeholder: '1',
+                    keyboardType: TextInputType.number,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    onChanged: (raw) {
+                      final t = raw.trim();
+                      if (t.isEmpty) {
+                        return;
+                      }
+                      final parsed = int.tryParse(t);
+                      if (parsed == null) {
+                        return;
+                      }
+                      _emit(weight: parsed);
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 222,
+                  child: CupertinoSlidingSegmentedControl<int>(
+                    key: Key(
+                      'environment-studio-palette-draft-collision-${widget.index}',
+                    ),
+                    groupValue: seg,
+                    children: {
+                      0: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          'Défaut élément',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 10, color: label),
+                        ),
+                      ),
+                      1: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          'Collision forcée',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 10, color: label),
+                        ),
+                      ),
+                      2: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          'Collision désactivée',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 10, color: label),
+                        ),
+                      ),
+                    },
+                    onValueChanged: (v) {
+                      if (v == null) {
+                        return;
+                      }
+                      _emit(collisionMode: _segmentToCollision(v));
+                    },
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 172,
+                  child: CupertinoTextField(
+                    key: Key(
+                      'environment-studio-palette-draft-tags-${widget.index}',
+                    ),
+                    controller: _tagsCtrl,
+                    placeholder: 'tree, canopy',
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    onChanged: (v) => _emit(tags: _fieldToTags(v)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  width: 58,
                   child: Text(
-                    'Item ${widget.index + 1}',
+                    '—',
                     style: TextStyle(
                       color: subtle,
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                 ),
-                CupertinoButton(
-                  key: Key(
-                    'environment-studio-palette-draft-remove-${widget.index}',
-                  ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  minimumSize: Size.zero,
-                  onPressed: widget.onRemove,
-                  child: const Text('Retirer'),
-                ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Element id',
-              style: TextStyle(
-                color: subtle,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 4),
-            if (widget.projectElements.isNotEmpty) ...[
-              Align(
-                alignment: Alignment.centerLeft,
-                child: CupertinoButton(
-                  key: Key(
-                    'environment-studio-palette-draft-pick-element-${widget.index}',
-                  ),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  minimumSize: Size.zero,
-                  onPressed: () => _pickElementFromLibrary(context),
-                  child: const Text('Choisir dans la bibliothèque du projet'),
-                ),
-              ),
-              const SizedBox(height: 6),
-            ] else ...[
-              Text(
-                'Aucun élément dans le manifeste — saisie manuelle uniquement.',
-                style: TextStyle(color: subtle, fontSize: 11.5, height: 1.3),
-              ),
-              const SizedBox(height: 6),
-            ],
-            CupertinoTextField(
-              key: Key(
-                'environment-studio-palette-draft-element-${widget.index}',
-              ),
-              controller: _elementIdCtrl,
-              placeholder: 'Identifiant d’élément (saisie manuelle possible)',
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              onChanged: (v) => _emit(elementId: v),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Poids',
-              style: TextStyle(
-                color: subtle,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 4),
-            CupertinoTextField(
-              key: Key(
-                'environment-studio-palette-draft-weight-${widget.index}',
-              ),
-              controller: _weightCtrl,
-              placeholder: '1',
-              keyboardType: TextInputType.number,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              onChanged: (raw) {
-                final t = raw.trim();
-                if (t.isEmpty) {
-                  return;
-                }
-                final parsed = int.tryParse(t);
-                if (parsed == null) {
-                  return;
-                }
-                _emit(weight: parsed);
-              },
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Collision',
-              style: TextStyle(
-                color: subtle,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 6),
-            SizedBox(
-              width: double.infinity,
-              child: CupertinoSlidingSegmentedControl<int>(
-                key: Key(
-                  'environment-studio-palette-draft-collision-${widget.index}',
-                ),
-                groupValue: seg,
-                children: {
-                  0: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      'Défaut élément',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 11, color: label),
-                    ),
-                  ),
-                  1: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      'Collision forcée',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 11, color: label),
-                    ),
-                  ),
-                  2: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Text(
-                      'Collision désactivée',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 11, color: label),
-                    ),
-                  ),
-                },
-                onValueChanged: (v) {
-                  if (v == null) {
-                    return;
-                  }
-                  _emit(collisionMode: _segmentToCollision(v));
-                },
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Tags',
-              style: TextStyle(
-                color: subtle,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 4),
-            CupertinoTextField(
-              key: Key(
-                'environment-studio-palette-draft-tags-${widget.index}',
-              ),
-              controller: _tagsCtrl,
-              placeholder: 'tree, canopy',
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              onChanged: (v) => _emit(tags: _fieldToTags(v)),
-            ),
-          ],
+          ),
         ),
       ),
     );

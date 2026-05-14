@@ -310,7 +310,6 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
       maps: const [],
       knownTemplateIds: widget.knownTemplateIds,
     );
-    final s = report.summary;
 
     final isDraftMode = _panelMode == EnvironmentStudioPanelMode.createDraft ||
         _panelMode == EnvironmentStudioPanelMode.editDraft;
@@ -363,7 +362,6 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
                       subtle,
                       presets,
                       report,
-                      s,
                     ),
                   )
               else
@@ -553,7 +551,6 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
     Color subtle,
     List<EnvironmentPreset> presets,
     EnvironmentAuthoringDiagnosticsReport report,
-    EnvironmentAuthoringDiagnosticsSummary summary,
   ) {
     final selected = _selectedPreset(presets);
 
@@ -621,9 +618,6 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
                             }),
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        _buildGlobalDiagnostics(
-                            context, label, subtle, summary),
                       ],
                     ),
                   ),
@@ -736,36 +730,15 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
       key: const Key('environment-studio-palette-draft-root'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          'Palette du preset',
-          style: TextStyle(
-            color: label,
-            fontSize: 17,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          isDirty
-              ? 'Palette modifiée — enregistrez pour appliquer au projet.'
-              : 'Brouillon non enregistré',
-          style: TextStyle(
-            color: isDirty ? EditorChrome.accentWarm : subtle,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 12),
-        _buildPaletteDraftTilesetBlock(context, compatibility, label, subtle),
-        const SizedBox(height: 12),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: CupertinoButton(
-            key: const Key('environment-studio-draft-palette-add-item'),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            onPressed: _addPaletteDraftItem,
-            child: const Text('Ajouter un élément'),
-          ),
+        _buildPaletteDraftHeader(
+          context,
+          compatibility,
+          isDirty,
+          canSave,
+          canCancel,
+          preset,
+          label,
+          subtle,
         ),
         const SizedBox(height: 10),
         if (_paletteDraft.isEmpty)
@@ -775,20 +748,35 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
             style: TextStyle(color: subtle, fontSize: 13),
           )
         else
-          for (var i = 0; i < _paletteDraft.length; i++)
-            Padding(
-              padding: EdgeInsets.only(
-                bottom: i < _paletteDraft.length - 1 ? 12 : 0,
-              ),
-              child: EnvironmentPaletteItemDraftEditor(
-                key: ValueKey('palette-draft-slot-$i'),
-                index: i,
-                item: _paletteDraft[i],
-                projectElements: compatibility.availableCompatibleElements,
-                onChanged: (item) => _replacePaletteDraftItem(i, item),
-                onRemove: () => _removePaletteDraftItem(i),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              key: const Key('environment-studio-palette-table'),
+              width: 884,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildPaletteTableHeader(context, subtle),
+                  const SizedBox(height: 6),
+                  for (var i = 0; i < _paletteDraft.length; i++)
+                    Padding(
+                      padding: EdgeInsets.only(
+                        bottom: i < _paletteDraft.length - 1 ? 6 : 0,
+                      ),
+                      child: EnvironmentPaletteItemDraftEditor(
+                        key: ValueKey('palette-draft-slot-$i'),
+                        index: i,
+                        item: _paletteDraft[i],
+                        projectElements:
+                            compatibility.availableCompatibleElements,
+                        onChanged: (item) => _replacePaletteDraftItem(i, item),
+                        onRemove: () => _removePaletteDraftItem(i),
+                      ),
+                    ),
+                ],
               ),
             ),
+          ),
         if (issues.isNotEmpty) ...[
           const SizedBox(height: 14),
           _buildPaletteDraftIssues(context, issues),
@@ -805,26 +793,124 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
             ),
           ),
         ],
-        const SizedBox(height: 18),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
+      ],
+    );
+  }
+
+  Widget _buildPaletteDraftHeader(
+    BuildContext context,
+    EnvironmentPresetTilesetCompatibility compatibility,
+    bool isDirty,
+    bool canSave,
+    bool canCancel,
+    EnvironmentPreset preset,
+    Color label,
+    Color subtle,
+  ) {
+    return DecoratedBox(
+      key: const Key('environment-studio-palette-draft-toolbar'),
+      decoration: BoxDecoration(
+        color: EditorChrome.chipFill(context),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: CupertinoColors.separator.resolveFrom(context),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            CupertinoButton(
-              key: const Key('environment-studio-palette-save'),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              onPressed: canSave ? () => _savePaletteDraft(preset) : null,
-              child: const Text('Enregistrer la palette'),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final title = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Palette du preset',
+                      style: TextStyle(
+                        color: label,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      isDirty
+                          ? 'Palette modifiée — enregistrez pour appliquer au projet.'
+                          : 'Brouillon non enregistré',
+                      style: TextStyle(
+                        color: isDirty ? EditorChrome.accentWarm : subtle,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                );
+                final actions = Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.end,
+                  children: [
+                    CupertinoButton(
+                      key: const Key(
+                          'environment-studio-draft-palette-add-item'),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      minimumSize: Size.zero,
+                      onPressed: _addPaletteDraftItem,
+                      child: const Text('Ajouter un élément'),
+                    ),
+                    CupertinoButton(
+                      key: const Key('environment-studio-palette-save'),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      minimumSize: Size.zero,
+                      onPressed:
+                          canSave ? () => _savePaletteDraft(preset) : null,
+                      child: const Text('Enregistrer la palette'),
+                    ),
+                    CupertinoButton(
+                      key: const Key('environment-studio-palette-cancel'),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      minimumSize: Size.zero,
+                      onPressed: canCancel ? _cancelPaletteDraft : null,
+                      child: const Text('Annuler les changements'),
+                    ),
+                  ],
+                );
+                if (constraints.maxWidth < 760) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      title,
+                      const SizedBox(height: 10),
+                      actions,
+                    ],
+                  );
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: title),
+                    const SizedBox(width: 12),
+                    actions,
+                  ],
+                );
+              },
             ),
-            CupertinoButton(
-              key: const Key('environment-studio-palette-cancel'),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              onPressed: canCancel ? _cancelPaletteDraft : null,
-              child: const Text('Annuler les changements'),
+            const SizedBox(height: 12),
+            _buildPaletteDraftTilesetBlock(
+                context, compatibility, label, subtle),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: _buildCompatibleFilter(context, subtle),
             ),
           ],
         ),
-      ],
+      ),
     );
   }
 
@@ -900,6 +986,95 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
     );
   }
 
+  Widget _buildCompatibleFilter(BuildContext context, Color subtle) {
+    return Container(
+      key: const Key('environment-studio-compatible-filter'),
+      width: 260,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: EditorChrome.badgeFill(context),
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(
+          color: CupertinoColors.separator.resolveFrom(context),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Filtrer éléments compatibles...',
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: subtle,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Icon(
+            CupertinoIcons.search,
+            color: subtle,
+            size: 14,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaletteTableHeader(BuildContext context, Color subtle) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: EditorChrome.badgeFill(context),
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(
+          color: CupertinoColors.separator.resolveFrom(context),
+        ),
+      ),
+      child: Row(
+        children: [
+          _tableHeader(
+              'Élément',
+              const Key('environment-studio-palette-header-element'),
+              290,
+              subtle),
+          _tableHeader(
+              'Poids',
+              const Key('environment-studio-palette-header-weight'),
+              86,
+              subtle),
+          _tableHeader(
+              'Collision',
+              const Key('environment-studio-palette-header-collision'),
+              230,
+              subtle),
+          _tableHeader('Tags',
+              const Key('environment-studio-palette-header-tags'), 180, subtle),
+          _tableHeader(
+              'Actions',
+              const Key('environment-studio-palette-header-actions'),
+              74,
+              subtle),
+        ],
+      ),
+    );
+  }
+
+  Widget _tableHeader(String text, Key key, double width, Color subtle) {
+    return SizedBox(
+      key: key,
+      width: width,
+      child: Text(
+        text,
+        style: TextStyle(
+          color: subtle,
+          fontSize: 11,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
   Widget _buildPaletteDraftIssues(BuildContext context, List<String> issues) {
     return DecoratedBox(
       key: const Key('environment-studio-palette-draft-issues'),
@@ -935,49 +1110,6 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildGlobalDiagnostics(
-    BuildContext context,
-    Color label,
-    Color subtle,
-    EnvironmentAuthoringDiagnosticsSummary s,
-  ) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          'Diagnostics Environment (projet)',
-          key: const Key('environment-studio-diagnostics-title'),
-          style: TextStyle(
-            color: label,
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          '${s.errorCount} erreur(s) · ${s.warningCount} avertissement(s)',
-          key: const Key('environment-studio-diagnostics-counts'),
-          style: TextStyle(
-            color: subtle,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Les diagnostics d’usage dans les maps seront activés quand les cartes '
-          'chargées seront connectées au workspace.',
-          key: const Key('environment-studio-diagnostics-map-note'),
-          style: TextStyle(
-            color: subtle,
-            fontSize: 11,
-            height: 1.35,
-          ),
-        ),
-      ],
     );
   }
 }

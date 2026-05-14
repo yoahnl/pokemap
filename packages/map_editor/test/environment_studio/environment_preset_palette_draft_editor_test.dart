@@ -81,6 +81,87 @@ void main() {
     });
   });
 
+  group('EnvironmentStudioPanel — palette table convergence (3B)', () {
+    testWidgets('structure le panneau droit comme un studio compact',
+        (tester) async {
+      await _pumpWithSave(
+        tester,
+        _manifest(
+          environmentPresets: [_preset(id: 'forest')],
+          elements: [_element(id: 'elm')],
+        ),
+      );
+
+      expect(find.byKey(const Key('environment-studio-editor-top-bar')),
+          findsOneWidget);
+      expect(find.byKey(const Key('environment-studio-tileset-source-card')),
+          findsOneWidget);
+      expect(find.byKey(const Key('environment-studio-identity-grid')),
+          findsOneWidget);
+      expect(find.byKey(const Key('environment-studio-default-param-grid')),
+          findsOneWidget);
+      expect(find.byKey(const Key('environment-studio-palette-table')),
+          findsOneWidget);
+      expect(find.byKey(const Key('environment-studio-palette-header-element')),
+          findsOneWidget);
+      expect(find.byKey(const Key('environment-studio-palette-header-weight')),
+          findsOneWidget);
+      expect(
+          find.byKey(const Key('environment-studio-palette-header-collision')),
+          findsOneWidget);
+      expect(find.byKey(const Key('environment-studio-palette-header-tags')),
+          findsOneWidget);
+      expect(find.byKey(const Key('environment-studio-palette-header-actions')),
+          findsOneWidget);
+      expect(
+          find.byKey(const Key('environment-studio-project-diagnostics-card')),
+          findsOneWidget);
+      expect(find.text('Diagnostics projet'), findsOneWidget);
+      expect(find.text('Voir le rapport complet'), findsOneWidget);
+      expect(find.textContaining('shell read-only'), findsNothing);
+      expect(find.textContaining('lecture seule'), findsNothing);
+    });
+
+    testWidgets('le mode palette garde les actions dans une table éditable',
+        (tester) async {
+      await _pumpWithSave(
+        tester,
+        _manifest(
+          environmentPresets: [_preset(id: 'forest')],
+          elements: [
+            _element(id: 'elm'),
+            _element(id: 'elm_b'),
+          ],
+        ),
+      );
+
+      await tester
+          .tap(find.byKey(const Key('environment-studio-edit-palette')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('environment-studio-palette-draft-toolbar')),
+          findsOneWidget);
+      expect(find.byKey(const Key('environment-studio-compatible-filter')),
+          findsOneWidget);
+      expect(find.byKey(const Key('environment-studio-palette-table')),
+          findsOneWidget);
+      expect(find.byKey(const Key('environment-studio-palette-header-element')),
+          findsOneWidget);
+      expect(find.byKey(const Key('environment-studio-palette-header-weight')),
+          findsOneWidget);
+      expect(
+          find.byKey(const Key('environment-studio-palette-header-collision')),
+          findsOneWidget);
+      expect(find.byKey(const Key('environment-studio-palette-header-tags')),
+          findsOneWidget);
+      expect(find.byKey(const Key('environment-studio-palette-header-actions')),
+          findsOneWidget);
+      expect(find.text('Ajouter un élément'), findsOneWidget);
+      expect(find.text('Enregistrer la palette'), findsOneWidget);
+      expect(find.text('Annuler les changements'), findsOneWidget);
+    });
+  });
+
   group('EnvironmentStudioPanel — palette brouillon (Lot 14)', () {
     testWidgets(
         'ajouter un item : emptyPalette disparaît, emptyPaletteElementId',
