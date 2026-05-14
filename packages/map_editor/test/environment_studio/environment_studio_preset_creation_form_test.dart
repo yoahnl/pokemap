@@ -50,6 +50,14 @@ void main() {
         find.byKey(const Key('environment-studio-creation-wizard')),
         findsOneWidget,
       );
+      expect(
+        find.byKey(const Key('environment-creation-stepper')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('environment-creation-tileset-step')),
+        findsOneWidget,
+      );
       expect(find.text('Nouveau preset d’environnement'), findsOneWidget);
       expect(find.text('Brouillon local non sauvegardé'), findsOneWidget);
       expect(find.text('Étape 1 sur 2 — Choisir le tileset source'),
@@ -108,8 +116,45 @@ void main() {
 
       expect(find.text('Étape 2 sur 2 — Choisir les éléments du preset'),
           findsOneWidget);
+      expect(
+        find.byKey(const Key('environment-creation-elements-step')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('environment-creation-tileset-summary')),
+        findsOneWidget,
+      );
+      expect(find.text('Tileset source : grass'), findsOneWidget);
+      expect(find.text('1 éléments compatibles'), findsOneWidget);
+      expect(find.text('Changer de tileset'), findsOneWidget);
       expect(find.byKey(const Key('environment-studio-creation-identity-grid')),
           findsOneWidget);
+      expect(
+        find.byKey(const Key('environment-compatible-elements-panel')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('environment-selected-palette-panel')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('environment-creation-action-bar')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('environment-creation-final-submit')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('environment-creation-empty-palette')),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'Aucun élément sélectionné. Ajoutez au moins un élément compatible pour créer le preset.',
+        ),
+        findsOneWidget,
+      );
       expect(find.text('Herbe A'), findsOneWidget);
       expect(find.text('Rocher A'), findsNothing);
       expect(find.text('Sans source'), findsNothing);
@@ -117,6 +162,10 @@ void main() {
         find.byKey(
           const Key('environment-studio-creation-compatible-element-grass_a'),
         ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('environment-creation-element-preview-grass_a')),
         findsOneWidget,
       );
     });
@@ -164,6 +213,7 @@ void main() {
         find.byKey(const Key('environment-studio-palette-draft-item-0')),
         findsOneWidget,
       );
+      expect(find.text('Ajouté à la palette'), findsOneWidget);
       expect(find.text('Herbe A'), findsWidgets);
 
       await tester.tap(

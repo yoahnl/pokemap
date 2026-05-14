@@ -367,7 +367,7 @@ class _EnvironmentPresetDraftFormState
           const SizedBox(height: 10),
           if (widget.draft.palette.isEmpty)
             Text(
-              'Aucun item pour l’instant.',
+              'Aucun élément sélectionné.',
               key: const Key('environment-studio-draft-palette-no-items'),
               style: TextStyle(color: subtle, fontSize: 13),
             )
@@ -453,7 +453,7 @@ class _EnvironmentPresetDraftFormState
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 onPressed: widget.onCancel,
-                child: const Text('Retour au browser'),
+                child: const Text('Retour aux presets'),
               ),
               CupertinoButton(
                 key: const Key('environment-studio-draft-reset'),

@@ -769,7 +769,7 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
         const SizedBox(height: 10),
         if (_paletteDraft.isEmpty)
           Text(
-            'Aucun item pour l’instant.',
+            'Aucun élément sélectionné.',
             key: const Key('environment-studio-draft-palette-no-items'),
             style: TextStyle(color: subtle, fontSize: 13),
           )

@@ -380,10 +380,138 @@ class _EnvironmentPresetCreationWizardState
         children: [
           _buildWizardHeader(context, label, subtle),
           const SizedBox(height: 16),
+          _buildStepper(context, label, subtle),
+          const SizedBox(height: 16),
           if (_step == 0)
             _buildTilesetStep(context, label, subtle)
           else
             _buildElementsStep(context, label, subtle),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepper(BuildContext context, Color label, Color subtle) {
+    return DecoratedBox(
+      key: const Key('environment-creation-stepper'),
+      decoration: BoxDecoration(
+        color: EditorChrome.chipFill(context).withValues(alpha: 0.72),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: CupertinoColors.separator.resolveFrom(context),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Row(
+          children: [
+            Expanded(
+              child: _buildStepperItem(
+                context,
+                number: '1',
+                title: 'Tileset source',
+                helper: _selectedTilesetId ?? 'À choisir',
+                active: _step == 0,
+                done: _selectedTilesetId != null,
+                label: label,
+                subtle: subtle,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildStepperItem(
+                context,
+                number: '2',
+                title: 'Éléments du preset',
+                helper: widget.draft.palette.isEmpty
+                    ? 'Aucun élément choisi'
+                    : '${widget.draft.palette.length} élément(s)',
+                active: _step == 1,
+                done: widget.draft.palette.isNotEmpty,
+                label: label,
+                subtle: subtle,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStepperItem(
+    BuildContext context, {
+    required String number,
+    required String title,
+    required String helper,
+    required bool active,
+    required bool done,
+    required Color label,
+    required Color subtle,
+  }) {
+    final accent = done ? EditorChrome.accentJade : EditorChrome.accentPrimary;
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 140),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: active
+            ? accent.withValues(alpha: 0.14)
+            : EditorChrome.badgeFill(context).withValues(alpha: 0.42),
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(
+          color: active
+              ? accent.withValues(alpha: 0.72)
+              : CupertinoColors.separator.resolveFrom(context),
+        ),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 24,
+            height: 24,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(7),
+              border: Border.all(color: accent.withValues(alpha: 0.62)),
+            ),
+            child: Text(
+              number,
+              style: TextStyle(
+                color: accent,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: label,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  helper,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: subtle,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -422,7 +550,7 @@ class _EnvironmentPresetCreationWizardState
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   minimumSize: Size.zero,
                   onPressed: widget.onCancel,
-                  child: const Text('Retour au browser'),
+                  child: const Text('Retour aux presets'),
                 ),
               ],
             ),
@@ -464,74 +592,80 @@ class _EnvironmentPresetCreationWizardState
 
   Widget _buildTilesetStep(BuildContext context, Color label, Color subtle) {
     final tilesets = _sortedTilesets();
-    return Column(
-      key: const Key('environment-studio-creation-step-tileset'),
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _buildStepTitle(
-          context,
-          '1',
-          'Étape 1 sur 2 — Choisir le tileset source',
-          'Choisissez le tileset contenant les éléments que ce preset pourra utiliser.',
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Les éléments proposés à l’étape suivante seront filtrés automatiquement.',
-          style: TextStyle(color: subtle, fontSize: 12.5, height: 1.35),
-        ),
-        if (_tilesetChangeMessage != null) ...[
-          const SizedBox(height: 10),
+    return KeyedSubtree(
+      key: const Key('environment-creation-tileset-step'),
+      child: Column(
+        key: const Key('environment-studio-creation-step-tileset'),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildStepTitle(
+            context,
+            '1',
+            'Étape 1 sur 2 — Choisir le tileset source',
+            'Choisissez le tileset contenant les éléments que ce preset pourra utiliser.',
+          ),
+          const SizedBox(height: 12),
           Text(
-            _tilesetChangeMessage!,
-            style: const TextStyle(
-              color: EditorChrome.accentWarm,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-            ),
+            'Les éléments proposés à l’étape suivante seront filtrés automatiquement.',
+            style: TextStyle(color: subtle, fontSize: 12.5, height: 1.35),
           ),
-        ],
-        const SizedBox(height: 14),
-        if (tilesets.isEmpty)
-          _buildEmptyTilesets(context, subtle)
-        else
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              for (final tileset in tilesets)
-                _buildTilesetCard(context, tileset, label, subtle),
-            ],
-          ),
-        const SizedBox(height: 18),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          alignment: WrapAlignment.end,
-          children: [
-            CupertinoButton(
-              key: const Key('environment-studio-draft-reset'),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-              minimumSize: Size.zero,
-              onPressed: () {
-                setState(() {
-                  _selectedTilesetId = null;
-                  _tilesetChangeMessage = null;
-                  _step = 0;
-                });
-                widget.onReset();
-              },
-              child: const Text('Réinitialiser brouillon'),
-            ),
-            CupertinoButton(
-              key: const Key('environment-studio-creation-continue'),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              minimumSize: Size.zero,
-              onPressed: _selectedTilesetId == null ? null : _goToElementsStep,
-              child: const Text('Continuer'),
+          if (_tilesetChangeMessage != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              _tilesetChangeMessage!,
+              style: const TextStyle(
+                color: EditorChrome.accentWarm,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ],
-        ),
-      ],
+          const SizedBox(height: 14),
+          if (tilesets.isEmpty)
+            _buildEmptyTilesets(context, subtle)
+          else
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                for (final tileset in tilesets)
+                  _buildTilesetCard(context, tileset, label, subtle),
+              ],
+            ),
+          const SizedBox(height: 18),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.end,
+            children: [
+              CupertinoButton(
+                key: const Key('environment-studio-draft-reset'),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                minimumSize: Size.zero,
+                onPressed: () {
+                  setState(() {
+                    _selectedTilesetId = null;
+                    _tilesetChangeMessage = null;
+                    _step = 0;
+                  });
+                  widget.onReset();
+                },
+                child: const Text('Réinitialiser brouillon'),
+              ),
+              CupertinoButton(
+                key: const Key('environment-studio-creation-continue'),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                minimumSize: Size.zero,
+                onPressed:
+                    _selectedTilesetId == null ? null : _goToElementsStep,
+                child: const Text('Continuer'),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -671,41 +805,126 @@ class _EnvironmentPresetCreationWizardState
         !validation.hasErrors &&
         sourceIssues.isEmpty;
 
-    return Column(
-      key: const Key('environment-studio-creation-step-elements'),
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _buildStepTitle(
-          context,
-          '2',
-          'Étape 2 sur 2 — Choisir les éléments du preset',
-          selectedTilesetId == null
-              ? 'Revenez à l’étape 1 pour choisir un tileset source.'
-              : 'Seuls les éléments compatibles avec "$selectedTilesetId" sont proposés.',
+    return KeyedSubtree(
+      key: const Key('environment-creation-elements-step'),
+      child: Column(
+        key: const Key('environment-studio-creation-step-elements'),
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildStepTitle(
+            context,
+            '2',
+            'Étape 2 sur 2 — Choisir les éléments du preset',
+            selectedTilesetId == null
+                ? 'Revenez à l’étape 1 pour choisir un tileset source.'
+                : 'Seuls les éléments compatibles avec "$selectedTilesetId" sont proposés.',
+          ),
+          if (selectedTilesetId != null) ...[
+            const SizedBox(height: 12),
+            _buildTilesetSummary(
+              context,
+              selectedTilesetId,
+              compatibleElements.length,
+              label,
+              subtle,
+            ),
+          ],
+          const SizedBox(height: 12),
+          _buildIdentitySection(context, label, subtle),
+          const SizedBox(height: 12),
+          _buildParamsSection(context, label, subtle),
+          const SizedBox(height: 12),
+          _buildCompatibleElementPicker(
+            context,
+            visibleElements,
+            compatibleElements,
+            label,
+            subtle,
+          ),
+          const SizedBox(height: 12),
+          _buildPaletteDraftSection(
+            context,
+            compatibleElements,
+            validation,
+            sourceIssues,
+            canSave,
+            label,
+            subtle,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTilesetSummary(
+    BuildContext context,
+    String tilesetId,
+    int compatibleCount,
+    Color label,
+    Color subtle,
+  ) {
+    return DecoratedBox(
+      key: const Key('environment-creation-tileset-summary'),
+      decoration: BoxDecoration(
+        color: EditorChrome.accentJade.withValues(alpha: 0.09),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: EditorChrome.accentJade.withValues(alpha: 0.32),
         ),
-        const SizedBox(height: 12),
-        _buildIdentitySection(context, label, subtle),
-        const SizedBox(height: 12),
-        _buildParamsSection(context, label, subtle),
-        const SizedBox(height: 12),
-        _buildCompatibleElementPicker(
-          context,
-          visibleElements,
-          compatibleElements,
-          label,
-          subtle,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: EditorChrome.accentJade.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                CupertinoIcons.lock_shield,
+                size: 18,
+                color: EditorChrome.accentJade,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Tileset source : $tilesetId',
+                    style: TextStyle(
+                      color: label,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '$compatibleCount éléments compatibles',
+                    style: TextStyle(
+                      color: subtle,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            CupertinoButton(
+              key: const Key('environment-creation-change-tileset'),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              minimumSize: Size.zero,
+              onPressed: _goToTilesetStep,
+              child: const Text('Changer de tileset'),
+            ),
+          ],
         ),
-        const SizedBox(height: 12),
-        _buildPaletteDraftSection(
-          context,
-          compatibleElements,
-          validation,
-          sourceIssues,
-          canSave,
-          label,
-          subtle,
-        ),
-      ],
+      ),
     );
   }
 
@@ -772,6 +991,7 @@ class _EnvironmentPresetCreationWizardState
   ) {
     return _panel(
       context,
+      key: const Key('environment-compatible-elements-panel'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -899,6 +1119,7 @@ class _EnvironmentPresetCreationWizardState
   ) {
     return _panel(
       context,
+      key: const Key('environment-selected-palette-panel'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -915,13 +1136,31 @@ class _EnvironmentPresetCreationWizardState
                 ),
               ),
               SizedBox(
-                width: 260,
+                width: 300,
                 child: CupertinoTextField(
                   key: const Key('environment-studio-creation-element-filter'),
                   controller: _filterCtrl,
                   placeholder: 'Filtrer éléments compatibles...',
                   padding:
                       const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  prefix: Padding(
+                    padding: const EdgeInsets.only(left: 9),
+                    child: Icon(
+                      CupertinoIcons.search,
+                      size: 15,
+                      color: subtle,
+                    ),
+                  ),
+                  decoration: _inputDecoration(context),
+                  style: TextStyle(
+                    color: label,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  placeholderStyle: TextStyle(
+                    color: subtle.withValues(alpha: 0.82),
+                    fontSize: 12,
+                  ),
                   onChanged: (_) => setState(() {}),
                 ),
               ),
@@ -955,63 +1194,183 @@ class _EnvironmentPresetCreationWizardState
   ) {
     final alreadyAdded =
         widget.draft.palette.any((item) => item.elementId == element.id);
+    final accent = _elementAccent(element.id);
     return SizedBox(
       key: Key('environment-studio-creation-compatible-element-${element.id}'),
-      width: 260,
+      width: 300,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: EditorChrome.chipFill(context),
-          borderRadius: BorderRadius.circular(8),
+          color: alreadyAdded
+              ? EditorChrome.accentJade.withValues(alpha: 0.11)
+              : EditorChrome.chipFill(context).withValues(alpha: 0.82),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: CupertinoColors.separator.resolveFrom(context),
+            color: alreadyAdded
+                ? EditorChrome.accentJade.withValues(alpha: 0.55)
+                : CupertinoColors.separator.resolveFrom(context),
           ),
         ),
         child: Padding(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(11),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                element.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: label,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w800,
-                ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildElementPreview(context, element, accent),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text(
+                          element.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: label,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          element.id,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: subtle,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                element.id,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: subtle, fontSize: 11),
+              const SizedBox(height: 9),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  _metaPill(
+                    context,
+                    element.collisionProfile == null
+                        ? 'Collision par défaut'
+                        : 'Collision définie',
+                  ),
+                  if (alreadyAdded) _metaPill(context, 'Ajouté à la palette'),
+                ],
               ),
               if (element.tags.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(
-                  element.tags.join(' • '),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: subtle, fontSize: 11),
+                const SizedBox(height: 7),
+                Wrap(
+                  spacing: 5,
+                  runSpacing: 5,
+                  children: [
+                    for (final tag in element.tags.take(3))
+                      _tagPill(context, tag),
+                  ],
                 ),
               ],
-              const SizedBox(height: 8),
-              CupertinoButton(
-                key: Key(
-                    'environment-studio-creation-add-element-${element.id}'),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                minimumSize: Size.zero,
-                onPressed: alreadyAdded ? null : () => _addPaletteItem(element),
-                child: Text(alreadyAdded ? 'Déjà ajouté' : 'Ajouter'),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerRight,
+                child: CupertinoButton(
+                  key: Key(
+                      'environment-studio-creation-add-element-${element.id}'),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  minimumSize: Size.zero,
+                  onPressed:
+                      alreadyAdded ? null : () => _addPaletteItem(element),
+                  child: Text(alreadyAdded ? 'Ajouté' : 'Ajouter'),
+                ),
               ),
             ],
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildElementPreview(
+    BuildContext context,
+    ProjectElementEntry element,
+    Color accent,
+  ) {
+    return Container(
+      key: Key('environment-creation-element-preview-${element.id}'),
+      width: 42,
+      height: 42,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: accent.withValues(alpha: 0.45)),
+      ),
+      child: Icon(
+        CupertinoIcons.square_grid_2x2_fill,
+        color: accent,
+        size: 20,
+      ),
+    );
+  }
+
+  Widget _metaPill(BuildContext context, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      decoration: BoxDecoration(
+        color: EditorChrome.badgeFill(context).withValues(alpha: 0.54),
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(
+          color: CupertinoColors.separator.resolveFrom(context),
+        ),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: EditorChrome.subtleLabel(context),
+          fontSize: 10.5,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  Widget _tagPill(BuildContext context, String tag) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      decoration: BoxDecoration(
+        color: EditorChrome.accentPrimary.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(
+          color: EditorChrome.accentPrimary.withValues(alpha: 0.22),
+        ),
+      ),
+      child: Text(
+        tag,
+        style: const TextStyle(
+          color: EditorChrome.accentPrimary,
+          fontSize: 10.5,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+
+  Color _elementAccent(String id) {
+    const colors = [
+      EditorChrome.accentJade,
+      EditorChrome.accentCyan,
+      EditorChrome.accentWarm,
+      EditorChrome.accentLilac,
+      EditorChrome.accentCoral,
+    ];
+    final hash = id.codeUnits.fold<int>(0, (sum, code) => sum + code);
+    return colors[hash % colors.length];
   }
 
   Widget _buildPaletteDraftSection(
@@ -1032,7 +1391,9 @@ class _EnvironmentPresetCreationWizardState
             children: [
               Expanded(
                 child: Text(
-                  'Palette du preset',
+                  widget.draft.palette.isEmpty
+                      ? 'Palette du preset'
+                      : 'Palette du preset • ${widget.draft.palette.length} élément(s)',
                   key: const Key(
                     'environment-studio-draft-palette-section-title',
                   ),
@@ -1057,11 +1418,7 @@ class _EnvironmentPresetCreationWizardState
           _buildPaletteHeader(context, subtle),
           const SizedBox(height: 6),
           if (widget.draft.palette.isEmpty)
-            Text(
-              'Aucun item pour l’instant.',
-              key: const Key('environment-studio-draft-palette-no-items'),
-              style: TextStyle(color: subtle, fontSize: 13),
-            )
+            _buildEmptyPaletteState(context, subtle)
           else
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
@@ -1168,36 +1525,11 @@ class _EnvironmentPresetCreationWizardState
             ),
           ],
           const SizedBox(height: 14),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            alignment: WrapAlignment.end,
-            children: [
-              CupertinoButton(
-                key: const Key('environment-studio-creation-back-to-tilesets'),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                minimumSize: Size.zero,
-                onPressed: _goToTilesetStep,
-                child: const Text('Retour au choix du tileset'),
-              ),
-              CupertinoButton(
-                key: const Key('environment-studio-draft-reset'),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                minimumSize: Size.zero,
-                onPressed: widget.onReset,
-                child: const Text('Réinitialiser brouillon'),
-              ),
-              CupertinoButton(
-                key: const Key('environment-studio-draft-save-project'),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                minimumSize: Size.zero,
-                onPressed: canSave ? _saveDraftToProject : null,
-                child: const Text('Ajouter au projet en mémoire'),
-              ),
-            ],
+          _buildCreationActionBar(
+            context,
+            canSave: canSave,
+            label: label,
+            subtle: subtle,
           ),
           if (widget.onEnvironmentPresetSaved == null) ...[
             const SizedBox(height: 8),
@@ -1208,6 +1540,103 @@ class _EnvironmentPresetCreationWizardState
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyPaletteState(BuildContext context, Color subtle) {
+    return DecoratedBox(
+      key: const Key('environment-creation-empty-palette'),
+      decoration: BoxDecoration(
+        color: EditorChrome.badgeFill(context).withValues(alpha: 0.36),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: CupertinoColors.separator.resolveFrom(context),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Text(
+          'Aucun élément sélectionné. Ajoutez au moins un élément compatible pour créer le preset.',
+          key: const Key('environment-studio-draft-palette-no-items'),
+          style: TextStyle(
+            color: subtle,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            height: 1.35,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCreationActionBar(
+    BuildContext context, {
+    required bool canSave,
+    required Color label,
+    required Color subtle,
+  }) {
+    return DecoratedBox(
+      key: const Key('environment-creation-action-bar'),
+      decoration: BoxDecoration(
+        color: EditorChrome.badgeFill(context).withValues(alpha: 0.42),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: CupertinoColors.separator.resolveFrom(context),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'Le preset sera ajouté au projet en mémoire. Aucune sauvegarde disque automatique.',
+              style: TextStyle(
+                color: subtle,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.end,
+              children: [
+                CupertinoButton(
+                  key:
+                      const Key('environment-studio-creation-back-to-tilesets'),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  minimumSize: Size.zero,
+                  onPressed: _goToTilesetStep,
+                  child: const Text('Retour'),
+                ),
+                CupertinoButton(
+                  key: const Key('environment-studio-draft-reset'),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                  minimumSize: Size.zero,
+                  onPressed: widget.onReset,
+                  child: const Text('Annuler'),
+                ),
+                KeyedSubtree(
+                  key: const Key('environment-creation-final-submit'),
+                  child: CupertinoButton(
+                    key: const Key('environment-studio-draft-save-project'),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    minimumSize: Size.zero,
+                    onPressed: canSave ? _saveDraftToProject : null,
+                    child: const Text('Ajouter au projet en mémoire'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1241,10 +1670,11 @@ class _EnvironmentPresetCreationWizardState
     );
   }
 
-  Widget _panel(BuildContext context, {required Widget child}) {
+  Widget _panel(BuildContext context, {Key? key, required Widget child}) {
     return DecoratedBox(
+      key: key,
       decoration: BoxDecoration(
-        color: EditorChrome.chipFill(context),
+        color: EditorChrome.chipFill(context).withValues(alpha: 0.78),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: CupertinoColors.separator.resolveFrom(context),
@@ -1286,9 +1716,29 @@ class _EnvironmentPresetCreationWizardState
             placeholder: placeholder,
             keyboardType: keyboardType,
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: _inputDecoration(context),
+            style: TextStyle(
+              color: EditorChrome.primaryLabel(context),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+            placeholderStyle: TextStyle(
+              color: EditorChrome.subtleLabel(context).withValues(alpha: 0.78),
+              fontSize: 12,
+            ),
             onChanged: onChanged,
           ),
         ],
+      ),
+    );
+  }
+
+  BoxDecoration _inputDecoration(BuildContext context) {
+    return BoxDecoration(
+      color: EditorChrome.badgeFill(context).withValues(alpha: 0.48),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(
+        color: CupertinoColors.separator.resolveFrom(context),
       ),
     );
   }
