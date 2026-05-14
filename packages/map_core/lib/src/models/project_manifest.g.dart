@@ -517,6 +517,8 @@ _$ProjectElementEntryImpl _$$ProjectElementEntryImplFromJson(
           ? null
           : ElementCollisionProfile.fromJson(
               json['collisionProfile'] as Map<String, dynamic>),
+      shadow: const ProjectElementShadowConfigJsonConverter()
+          .fromJson(json['shadow']),
       groupId: json['groupId'] as String?,
       recommendedLayerId: json['recommendedLayerId'] as String?,
       tags:
@@ -536,6 +538,8 @@ Map<String, dynamic> _$$ProjectElementEntryImplToJson(
       'frames': instance.frames.map((e) => e.toJson()).toList(),
       'presetKind': _$ElementPresetKindEnumMap[instance.presetKind]!,
       'collisionProfile': instance.collisionProfile?.toJson(),
+      'shadow': const ProjectElementShadowConfigJsonConverter()
+          .toJson(instance.shadow),
       'groupId': instance.groupId,
       'recommendedLayerId': instance.recommendedLayerId,
       'tags': instance.tags,

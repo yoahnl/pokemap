@@ -8,12 +8,14 @@ import 'project_trainer.dart';
 import 'project_path_pattern_preset.dart';
 import 'scenario_asset.dart';
 import 'script_asset.dart';
+import 'shadow.dart';
 import 'surface_catalog.dart';
 import 'tileset_transparent_color.dart';
 import 'visual_frame_json.dart';
 
 import '../exceptions/map_exceptions.dart';
 import '../operations/environment_preset_json_codec.dart';
+import '../operations/project_element_shadow_config_json_codec.dart';
 import '../operations/project_path_pattern_preset_json_codec.dart';
 import '../operations/project_surface_catalog_json_codec.dart';
 
@@ -371,6 +373,8 @@ class ProjectElementEntry with _$ProjectElementEntry {
     required List<TilesetVisualFrame> frames,
     @Default(ElementPresetKind.generic) ElementPresetKind presetKind,
     ElementCollisionProfile? collisionProfile,
+    @ProjectElementShadowConfigJsonConverter()
+    ProjectElementShadowConfig? shadow,
     String? groupId,
     String? recommendedLayerId,
     @Default([]) List<String> tags,

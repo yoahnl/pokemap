@@ -100,6 +100,119 @@ final class ProjectShadowProfile {
       );
 }
 
+/// Optional default shadow configuration carried by a project element.
+///
+/// This is an authoring contract only. It does not affect collision,
+/// occlusion, cells, gameplay, Flutter, or Flame.
+@immutable
+final class ProjectElementShadowConfig {
+  ProjectElementShadowConfig({
+    this.castsShadow = false,
+    this.shadowProfileId,
+    this.offsetX,
+    this.offsetY,
+    this.scaleX,
+    this.scaleY,
+    this.opacity,
+  }) {
+    final profileId = shadowProfileId;
+    if (profileId != null) {
+      _validateProjectElementShadowProfileId(profileId);
+    }
+    if (castsShadow && profileId == null) {
+      throw const ValidationException(
+        'ProjectElementShadowConfig.shadowProfileId is required when castsShadow is true',
+      );
+    }
+    _validateProjectElementShadowOptionalFinite(offsetX, 'offsetX');
+    _validateProjectElementShadowOptionalFinite(offsetY, 'offsetY');
+    _validateProjectElementShadowOptionalPositive(scaleX, 'scaleX');
+    _validateProjectElementShadowOptionalPositive(scaleY, 'scaleY');
+    _validateProjectElementShadowOptionalOpacity(opacity);
+  }
+
+  /// Whether the element should cast its default shadow.
+  final bool castsShadow;
+
+  /// Reference to a future [ProjectShadowProfile].
+  ///
+  /// Shadow-4 intentionally does not resolve this id against a catalog.
+  final String? shadowProfileId;
+
+  /// Optional numeric overrides applied later by the Shadow resolver.
+  final double? offsetX;
+  final double? offsetY;
+  final double? scaleX;
+  final double? scaleY;
+  final double? opacity;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ProjectElementShadowConfig &&
+          other.castsShadow == castsShadow &&
+          other.shadowProfileId == shadowProfileId &&
+          other.offsetX == offsetX &&
+          other.offsetY == offsetY &&
+          other.scaleX == scaleX &&
+          other.scaleY == scaleY &&
+          other.opacity == opacity;
+
+  @override
+  int get hashCode => Object.hash(
+        castsShadow,
+        shadowProfileId,
+        offsetX,
+        offsetY,
+        scaleX,
+        scaleY,
+        opacity,
+      );
+}
+
+void _validateProjectElementShadowProfileId(String value) {
+  if (value.trim().isEmpty) {
+    throw const ValidationException(
+      'ProjectElementShadowConfig.shadowProfileId must be non-empty',
+    );
+  }
+}
+
+void _validateProjectElementShadowOptionalFinite(
+  double? value,
+  String name,
+) {
+  if (value == null) {
+    return;
+  }
+  if (!value.isFinite) {
+    throw ValidationException(
+      'ProjectElementShadowConfig.$name must be finite',
+    );
+  }
+}
+
+void _validateProjectElementShadowOptionalPositive(
+  double? value,
+  String name,
+) {
+  _validateProjectElementShadowOptionalFinite(value, name);
+  if (value != null && value <= 0) {
+    throw ValidationException(
+      'ProjectElementShadowConfig.$name must be > 0',
+    );
+  }
+}
+
+void _validateProjectElementShadowOptionalOpacity(double? value) {
+  _validateProjectElementShadowOptionalFinite(value, 'opacity');
+  if (value != null && (value < 0 || value > 1)) {
+    throw const ValidationException(
+      'ProjectElementShadowConfig.opacity must be between 0 and 1',
+    );
+  }
+}
+
 void _validateNonBlank(String value, String name) {
   if (value.trim().isEmpty) {
     throw ValidationException('ProjectShadowProfile.$name must be non-empty');
