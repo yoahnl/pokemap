@@ -42,6 +42,8 @@ export 'src/operations/path_center_pattern_resolver.dart';
 export 'src/operations/path_pattern_visual_resolution.dart';
 export 'src/operations/project_path_preset_center_pattern_adapter.dart';
 export 'src/operations/project_path_pattern_preset_json_codec.dart';
+export 'src/operations/project_shadow_catalog_json_codec.dart';
+export 'src/operations/project_shadow_profile_json_codec.dart';
 export 'src/operations/project_json_migrations.dart';
 export 'src/operations/tile_visual_frame_timeline.dart';
 export 'src/operations/tile_visual_frame_vertical_atlas.dart';
