@@ -167,8 +167,7 @@ void main() {
         'ajouter un item : emptyPalette disparaît, emptyPaletteElementId',
         (tester) async {
       await _pump(tester, _manifest(elements: [_element(id: 'elm')]));
-      await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
-      await tester.pumpAndSettle();
+      await _openCreationPaletteStep(tester);
 
       expect(
         _validationHas(tester, 'Palette vide'),
@@ -198,8 +197,7 @@ void main() {
         'elementId connu : plus d’emptyPaletteElementId ni missingPaletteElement',
         (tester) async {
       await _pump(tester, _manifest(elements: [_element(id: 'elm')]));
-      await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
-      await tester.pumpAndSettle();
+      await _openCreationPaletteStep(tester);
 
       await tester.tap(
         find.byKey(const Key('environment-studio-draft-palette-add-item')),
@@ -224,8 +222,7 @@ void main() {
 
     testWidgets('picker bibliothèque remplit elementId', (tester) async {
       await _pump(tester, _manifest(elements: [_element(id: 'elm')]));
-      await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
-      await tester.pumpAndSettle();
+      await _openCreationPaletteStep(tester);
 
       await tester.tap(
         find.byKey(const Key('environment-studio-draft-palette-add-item')),
@@ -271,8 +268,7 @@ void main() {
           ],
         ),
       );
-      await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
-      await tester.pumpAndSettle();
+      await _openCreationPaletteStep(tester, tilesetId: 'grass');
 
       await tester.tap(
         find.byKey(const Key('environment-studio-draft-palette-add-item')),
@@ -314,8 +310,7 @@ void main() {
           ],
         ),
       );
-      await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
-      await tester.pumpAndSettle();
+      await _openCreationPaletteStep(tester, tilesetId: 'grass');
 
       await tester.tap(
         find.byKey(const Key('environment-studio-draft-palette-add-item')),
@@ -348,8 +343,7 @@ void main() {
 
     testWidgets('elementId absent : Élément introuvable', (tester) async {
       await _pump(tester, _manifest(elements: [_element(id: 'elm')]));
-      await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
-      await tester.pumpAndSettle();
+      await _openCreationPaletteStep(tester);
 
       await tester.tap(
         find.byKey(const Key('environment-studio-draft-palette-add-item')),
@@ -372,8 +366,7 @@ void main() {
         'poids 3 valide, poids 0 invalide, texte non numérique inchangé',
         (tester) async {
       await _pump(tester, _manifest(elements: [_element(id: 'elm')]));
-      await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
-      await tester.pumpAndSettle();
+      await _openCreationPaletteStep(tester);
 
       await tester.tap(
         find.byKey(const Key('environment-studio-draft-palette-add-item')),
@@ -420,8 +413,7 @@ void main() {
         'collision : bascule Collision forcée puis Collision désactivée',
         (tester) async {
       await _pump(tester, _manifest(elements: [_element(id: 'elm')]));
-      await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
-      await tester.pumpAndSettle();
+      await _openCreationPaletteStep(tester);
 
       await tester.tap(
         find.byKey(const Key('environment-studio-draft-palette-add-item')),
@@ -441,8 +433,7 @@ void main() {
       tester,
     ) async {
       await _pump(tester, _manifest(elements: [_element(id: 'elm')]));
-      await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
-      await tester.pumpAndSettle();
+      await _openCreationPaletteStep(tester);
 
       await tester.tap(
         find.byKey(const Key('environment-studio-draft-palette-add-item')),
@@ -469,8 +460,7 @@ void main() {
 
     testWidgets('Retirer : palette vide, emptyPalette revient', (tester) async {
       await _pump(tester, _manifest(elements: [_element(id: 'elm')]));
-      await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
-      await tester.pumpAndSettle();
+      await _openCreationPaletteStep(tester);
 
       await tester.tap(
         find.byKey(const Key('environment-studio-draft-palette-add-item')),
@@ -503,8 +493,7 @@ void main() {
 
     testWidgets('deux items même elementId : Élément dupliqué', (tester) async {
       await _pump(tester, _manifest(elements: [_element(id: 'elm')]));
-      await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
-      await tester.pumpAndSettle();
+      await _openCreationPaletteStep(tester);
 
       await tester.tap(
         find.byKey(const Key('environment-studio-draft-palette-add-item')),
@@ -545,8 +534,7 @@ void main() {
           manifest.environmentPresets.map((p) => p.id).toList(growable: false);
 
       await _pump(tester, manifest);
-      await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
-      await tester.pumpAndSettle();
+      await _openCreationPaletteStep(tester);
 
       await tester.tap(
         find.byKey(const Key('environment-studio-draft-palette-add-item')),
@@ -831,17 +819,50 @@ Future<void> _pumpWithSave(
   await tester.pumpAndSettle();
 }
 
+Future<void> _openCreationPaletteStep(
+  WidgetTester tester, {
+  String tilesetId = 'ts',
+}) async {
+  await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
+  await tester.pumpAndSettle();
+  await tester.tap(
+    find.byKey(Key('environment-studio-creation-tileset-$tilesetId')),
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(
+    find.byKey(const Key('environment-studio-creation-continue')),
+  );
+  await tester.pumpAndSettle();
+}
+
 ProjectManifest _manifest({
   List<EnvironmentPreset> environmentPresets = const [],
   List<ProjectElementEntry> elements = const [],
 }) {
+  final tilesetIds = <String>{};
+  for (final element in elements) {
+    final id = element.tilesetId.trim();
+    if (id.isNotEmpty) {
+      tilesetIds.add(id);
+    }
+  }
   return ProjectManifest(
     name: 'palette-draft-test',
     maps: const [],
-    tilesets: const [],
+    tilesets: [
+      for (final id in tilesetIds) _tileset(id: id),
+    ],
     environmentPresets: environmentPresets,
     elements: elements,
     surfaceCatalog: ProjectSurfaceCatalog(),
+  );
+}
+
+ProjectTilesetEntry _tileset({required String id}) {
+  return ProjectTilesetEntry(
+    id: id,
+    name: id,
+    relativePath: 'tilesets/$id.png',
   );
 }
 

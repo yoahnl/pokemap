@@ -7,6 +7,7 @@ import 'authoring/environment_preset_palette_use_cases.dart';
 import 'authoring/environment_preset_tileset_compatibility.dart';
 import 'environment_preset_memory_write_kind.dart';
 import 'widgets/environment_palette_item_draft_editor.dart';
+import 'widgets/environment_preset_creation_wizard.dart';
 import 'widgets/environment_preset_detail.dart';
 import 'widgets/environment_preset_draft_form.dart';
 import 'widgets/environment_preset_list.dart';
@@ -364,6 +365,31 @@ class _EnvironmentStudioPanelState extends State<EnvironmentStudioPanel> {
                       report,
                     ),
                   )
+              else if (_panelMode == EnvironmentStudioPanelMode.createDraft)
+                Expanded(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: EditorChrome.chipFill(context),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: CupertinoColors.separator.resolveFrom(context),
+                      ),
+                    ),
+                    child: EnvironmentPresetCreationWizard(
+                      key: ValueKey<int>(_draftFormEpoch),
+                      manifest: widget.manifest,
+                      knownTemplateIds: widget.knownTemplateIds,
+                      draft: _draft,
+                      onChanged: (d) => setState(() => _draft = d),
+                      onCancel: _closeDraftForm,
+                      onReset: _resetDraft,
+                      onEnvironmentPresetSaved:
+                          widget.onEnvironmentPresetSaved == null
+                              ? null
+                              : _onEnvironmentPresetSavedInMemory,
+                    ),
+                  ),
+                )
               else
                 Expanded(
                   child: DecoratedBox(

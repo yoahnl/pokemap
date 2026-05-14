@@ -20,9 +20,7 @@ void main() {
           manifest: _manifest(elements: [_element(id: 'e1')]),
           onSaved: (_, __, ___) {},
         );
-        await tester
-            .tap(find.byKey(const Key('environment-studio-open-draft')));
-        await tester.pumpAndSettle();
+        await _openCreationPaletteStep(tester);
 
         expect(find.text('Ajouter au projet en mémoire'), findsOneWidget);
         expect(find.textContaining('Save'), findsNothing);
@@ -56,9 +54,7 @@ void main() {
           tester,
           manifest: _manifest(elements: [_element(id: 'e1')]),
         );
-        await tester
-            .tap(find.byKey(const Key('environment-studio-open-draft')));
-        await tester.pumpAndSettle();
+        await _openCreationPaletteStep(tester);
 
         final saveBtn = tester.widget<CupertinoButton>(
           find.byKey(const Key('environment-studio-draft-save-project')),
@@ -92,9 +88,7 @@ void main() {
             expect(k, EnvironmentPresetMemoryWriteKind.create);
           },
         );
-        await tester
-            .tap(find.byKey(const Key('environment-studio-open-draft')));
-        await tester.pumpAndSettle();
+        await _openCreationPaletteStep(tester);
 
         await tester.enterText(
           find.byKey(const Key('environment-studio-draft-field-id')),
@@ -181,8 +175,7 @@ void main() {
         ),
         onSaved: (_, __, ___) => calls++,
       );
-      await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
-      await tester.pumpAndSettle();
+      await _openCreationPaletteStep(tester);
 
       await tester.enterText(
         find.byKey(const Key('environment-studio-draft-field-id')),
@@ -226,8 +219,7 @@ void main() {
         manifest: _manifest(elements: [_element(id: 'e1')]),
         onSaved: (_, __, ___) => calls++,
       );
-      await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
-      await tester.pumpAndSettle();
+      await _openCreationPaletteStep(tester);
 
       await tester.enterText(
         find.byKey(const Key('environment-studio-draft-field-id')),
@@ -277,8 +269,7 @@ void main() {
         ),
         onSaved: (_, __, ___) => calls++,
       );
-      await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
-      await tester.pumpAndSettle();
+      await _openCreationPaletteStep(tester, tilesetId: 'grass');
 
       await tester.enterText(
         find.byKey(const Key('environment-studio-draft-field-id')),
@@ -340,8 +331,7 @@ void main() {
         knownTemplateIds: {'only_this'},
         onSaved: (_, __, ___) => calls++,
       );
-      await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
-      await tester.pumpAndSettle();
+      await _openCreationPaletteStep(tester);
 
       await tester.enterText(
         find.byKey(const Key('environment-studio-draft-field-id')),
@@ -398,9 +388,7 @@ void main() {
           manifest: _manifest(elements: [_element(id: 'e1')]),
           onSaved: (_, __, ___) {},
         );
-        await tester
-            .tap(find.byKey(const Key('environment-studio-open-draft')));
-        await tester.pumpAndSettle();
+        await _openCreationPaletteStep(tester);
         await tester.enterText(
           find.byKey(const Key('environment-studio-draft-field-id')),
           'fb_clear',
@@ -432,9 +420,7 @@ void main() {
           findsOneWidget,
         );
 
-        await tester
-            .tap(find.byKey(const Key('environment-studio-open-draft')));
-        await tester.pumpAndSettle();
+        await _openCreationPaletteStep(tester);
 
         expect(
           find.byKey(const Key('environment-studio-post-save-local-feedback')),
@@ -451,9 +437,7 @@ void main() {
           manifest: _manifest(elements: [_element(id: 'e1')]),
           onSaved: (_, __, ___) => throw StateError('simulé'),
         );
-        await tester
-            .tap(find.byKey(const Key('environment-studio-open-draft')));
-        await tester.pumpAndSettle();
+        await _openCreationPaletteStep(tester);
         await tester.enterText(
           find.byKey(const Key('environment-studio-draft-field-id')),
           'boom_id',
@@ -584,6 +568,13 @@ void main() {
           initialState: EditorState(
             projectRootPath: '/tmp/lot16_env',
             project: buildShellChromeProject(
+              tilesets: const [
+                ProjectTilesetEntry(
+                  id: 'ts',
+                  name: 'Tileset test',
+                  relativePath: 'tilesets/ts.png',
+                ),
+              ],
               elements: const [
                 ProjectElementEntry(
                   id: 'tree_a',
@@ -602,9 +593,7 @@ void main() {
           ),
         );
 
-        await tester
-            .tap(find.byKey(const Key('environment-studio-open-draft')));
-        await tester.pumpAndSettle();
+        await _openCreationPaletteStep(tester);
 
         await tester.enterText(
           find.byKey(const Key('environment-studio-draft-field-id')),
@@ -740,18 +729,51 @@ Future<void> _pumpPanel(
   await tester.pumpAndSettle();
 }
 
+Future<void> _openCreationPaletteStep(
+  WidgetTester tester, {
+  String tilesetId = 'ts',
+}) async {
+  await tester.tap(find.byKey(const Key('environment-studio-open-draft')));
+  await tester.pumpAndSettle();
+  await tester.tap(
+    find.byKey(Key('environment-studio-creation-tileset-$tilesetId')),
+  );
+  await tester.pumpAndSettle();
+  await tester.tap(
+    find.byKey(const Key('environment-studio-creation-continue')),
+  );
+  await tester.pumpAndSettle();
+}
+
 ProjectManifest _manifest({
   List<EnvironmentPreset> environmentPresets = const [],
   List<ProjectElementEntry> elements = const [],
   String name = 't-save',
 }) {
+  final tilesetIds = <String>{};
+  for (final element in elements) {
+    final id = element.tilesetId.trim();
+    if (id.isNotEmpty) {
+      tilesetIds.add(id);
+    }
+  }
   return ProjectManifest(
     name: name,
     maps: const [],
-    tilesets: const [],
+    tilesets: [
+      for (final id in tilesetIds) _tileset(id: id),
+    ],
     environmentPresets: environmentPresets,
     elements: elements,
     surfaceCatalog: ProjectSurfaceCatalog(),
+  );
+}
+
+ProjectTilesetEntry _tileset({required String id}) {
+  return ProjectTilesetEntry(
+    id: id,
+    name: id,
+    relativePath: 'tilesets/$id.png',
   );
 }
 
