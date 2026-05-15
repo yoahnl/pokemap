@@ -152,6 +152,7 @@ void main() {
         projectFilePath: '/tmp/project.json',
         runtimeTilesetImageLoader: _emptyImageLoader,
         enableActorContactShadows: false,
+        enableStaticPlacedElementShadows: false,
       );
 
       game.onGameResize(Vector2(96, 96));
