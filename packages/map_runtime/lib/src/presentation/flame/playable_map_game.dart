@@ -59,6 +59,7 @@ import '../../application/story_flags_manager.dart';
 import '../../application/trainer_battle_request.dart';
 import '../../infrastructure/runtime_tileset_image.dart';
 import '../../infrastructure/tile_image_loader.dart';
+import '../../shadow/shadow_runtime_collection_provider.dart';
 import 'battle_bag_menu_model.dart';
 import 'battle_bag_item_icon_resolver.dart';
 import 'battle_overlay_component.dart';
@@ -120,6 +121,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     RuntimeDialogueSessionLoader? dialogueSessionLoader,
     RuntimeMapBundleLoader? runtimeMapBundleLoader,
     RuntimeTilesetImageLoader? runtimeTilesetImageLoader,
+    this.shadowCollectionProvider,
   })  : _bundle = bundle,
         _gameState = normalizeLoadedGameState(
           saveData == null
@@ -151,6 +153,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final String projectFilePath;
   final RuntimeMapBundle Function(RuntimeMapBundle bundle)? bundleTransformer;
   final List<RuntimeCutsceneAsset> runtimeCutscenes;
+  final ShadowRuntimeInstructionCollectionProvider? shadowCollectionProvider;
   RuntimeMapBundle _bundle;
   GameState _gameState;
   late GameplayWorldState _world;
@@ -6392,6 +6395,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       tileImagesByTilesetId: tileImagesById,
       showCollisionOverlay: _showCollisionOverlay,
       npcMapPresencePredicate: npcPred,
+      shadowCollectionProvider: shadowCollectionProvider,
     );
     backgroundLayers.position = _originPixels(
       originCellX: originCellX,

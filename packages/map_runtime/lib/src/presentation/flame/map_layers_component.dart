@@ -7,7 +7,7 @@ import '../../application/runtime_character_refs.dart';
 import '../../application/runtime_manifest_tilesets.dart';
 import '../../application/runtime_map_bundle.dart';
 import '../../infrastructure/runtime_tileset_image.dart';
-import '../../shadow/shadow_runtime_instruction_collection.dart';
+import '../../shadow/shadow_runtime_collection_provider.dart';
 import '../../shadow/shadow_runtime_renderer.dart';
 import '../../surface/surface_runtime_resolver.dart';
 import 'path_pattern_runtime_render_resolution.dart';
@@ -19,9 +19,6 @@ enum MapLayerRenderPass {
   background,
   foreground,
 }
-
-typedef ShadowRuntimeInstructionCollectionProvider
-    = ShadowRuntimeInstructionCollection? Function();
 
 @visibleForTesting
 bool shouldRenderProjectElementEntityInForegroundPass(
@@ -1270,8 +1267,7 @@ class MapLayersComponent extends PositionComponent {
       frameWidthTiles: width,
       frameHeightTiles: height,
       layout: chosen.multiTileLayout,
-      subtileSalt:
-          frameSource.x * 73856093 + frameSource.y * 19349663,
+      subtileSalt: frameSource.x * 73856093 + frameSource.y * 19349663,
     );
     final frameTilesetId = resolvedFrame.tilesetId.trim();
     final resolvedTilesetId =

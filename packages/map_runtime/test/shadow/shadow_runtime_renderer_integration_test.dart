@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_runtime/src/presentation/flame/map_layers_component.dart';
+import 'package:map_runtime/src/shadow/shadow_runtime_collection_provider.dart';
 import 'package:map_runtime/src/shadow/shadow_runtime_instruction_collection.dart';
 import 'package:map_runtime/src/shadow/shadow_runtime_render_instruction.dart';
 

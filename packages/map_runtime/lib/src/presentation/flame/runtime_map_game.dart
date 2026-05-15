@@ -3,12 +3,17 @@ import 'package:map_core/map_core.dart';
 
 import '../../application/runtime_map_bundle.dart';
 import '../../infrastructure/tile_image_loader.dart';
+import '../../shadow/shadow_runtime_collection_provider.dart';
 import 'map_layers_component.dart';
 
 class RuntimeMapGame extends FlameGame {
-  RuntimeMapGame({required this.bundle});
+  RuntimeMapGame({
+    required this.bundle,
+    this.shadowCollectionProvider,
+  });
 
   final RuntimeMapBundle bundle;
+  final ShadowRuntimeInstructionCollectionProvider? shadowCollectionProvider;
 
   @override
   Future<void> onLoad() async {
@@ -22,6 +27,7 @@ class RuntimeMapGame extends FlameGame {
       MapLayersComponent(
         bundle: bundle,
         tileImagesByTilesetId: images,
+        shadowCollectionProvider: shadowCollectionProvider,
       ),
     );
     _applyView();
