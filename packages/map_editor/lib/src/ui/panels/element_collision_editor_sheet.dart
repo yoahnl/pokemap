@@ -11,9 +11,15 @@ import '../../application/models/element_collision_truth_summary.dart';
 import '../../application/models/player_collision_hitbox_preview.dart';
 import '../../application/services/element_collision_authoring_service.dart';
 import '../../ui/shared/cupertino_editor_widgets.dart';
+import '../../ui/widgets/element_collision_triple_mask_editor.dart';
 
 const ElementCollisionAuthoringService _authoringService =
     ElementCollisionAuthoringService();
+
+enum _ElementCollisionAuthoringMode {
+  grid,
+  fineMask,
+}
 
 Future<ElementCollisionProfile?> showElementCollisionEditorSheet({
   required BuildContext context,
@@ -74,6 +80,7 @@ class _ElementCollisionEditorSheetState
   bool _showBase = true;
   bool _showFinal = true;
   bool _showOverrides = true;
+  late _ElementCollisionAuthoringMode _authoringMode;
   final List<Offset> _pendingPolygon = <Offset>[];
   Offset? _lastBrushPoint;
   Offset? _hoverGridPoint;
@@ -83,6 +90,9 @@ class _ElementCollisionEditorSheetState
     super.initState();
     _draftProfile = widget.initialProfile;
     _draftPadding = widget.initialProfile?.padding ?? widget.fallbackPadding;
+    _authoringMode = widget.initialProfile?.collisionMask != null
+        ? _ElementCollisionAuthoringMode.fineMask
+        : _ElementCollisionAuthoringMode.grid;
   }
 
   @override
@@ -133,256 +143,310 @@ class _ElementCollisionEditorSheetState
                   onSave: () => Navigator.of(context).pop(_buildSavedProfile()),
                 ),
                 const SizedBox(height: 14),
-                _EditorToolbar(
-                  tool: _tool,
-                  pendingPolygonCount: _pendingPolygon.length,
-                  onToolChanged: (tool) {
-                    setState(() {
-                      _tool = tool;
-                      _lastBrushPoint = null;
-                      _hoverGridPoint = null;
-                      if (!_isPolygonTool(tool)) {
-                        _pendingPolygon.clear();
-                      }
-                    });
-                  },
-                  onClosePolygon: _pendingPolygon.length >= 3
-                      ? _closeAndApplyPendingPolygon
-                      : null,
-                  onClearPolygon: _pendingPolygon.isNotEmpty
-                      ? () => setState(() {
-                            _pendingPolygon.clear();
-                            _hoverGridPoint = null;
-                          })
-                      : null,
-                  onResetOverrides: () {
-                    setState(() {
-                      _draftProfile = _authoringService.resetOverrides(
-                        source: widget.source,
-                        tileWidth: widget.tileWidth,
-                        tileHeight: widget.tileHeight,
-                        current: _draftProfile,
-                        fallbackPadding: _draftPadding,
-                      );
-                      _draftPadding = _draftProfile?.padding ?? _draftPadding;
-                    });
-                  },
-                  onRestoreBase: () {
-                    setState(() {
-                      _draftProfile = _authoringService.usePaddingAsPrimaryBase(
-                        source: widget.source,
-                        tileWidth: widget.tileWidth,
-                        tileHeight: widget.tileHeight,
-                        padding: _draftPadding,
-                      );
-                    });
-                  },
-                  onClearAll: () {
-                    setState(() {
-                      _draftProfile = _authoringService.clearAllCollision(
-                        source: widget.source,
-                        tileWidth: widget.tileWidth,
-                        tileHeight: widget.tileHeight,
-                        current: _draftProfile,
-                        fallbackPadding: _draftPadding,
-                      );
-                    });
-                  },
-                ),
-                const SizedBox(height: 14),
+                if (_authoringMode == _ElementCollisionAuthoringMode.grid) ...[
+                  _EditorToolbar(
+                    tool: _tool,
+                    pendingPolygonCount: _pendingPolygon.length,
+                    onToolChanged: (tool) {
+                      setState(() {
+                        _tool = tool;
+                        _lastBrushPoint = null;
+                        _hoverGridPoint = null;
+                        if (!_isPolygonTool(tool)) {
+                          _pendingPolygon.clear();
+                        }
+                      });
+                    },
+                    onClosePolygon: _pendingPolygon.length >= 3
+                        ? _closeAndApplyPendingPolygon
+                        : null,
+                    onClearPolygon: _pendingPolygon.isNotEmpty
+                        ? () => setState(() {
+                              _pendingPolygon.clear();
+                              _hoverGridPoint = null;
+                            })
+                        : null,
+                    onResetOverrides: () {
+                      setState(() {
+                        final next = _authoringService.resetOverrides(
+                          source: widget.source,
+                          tileWidth: widget.tileWidth,
+                          tileHeight: widget.tileHeight,
+                          current: _draftProfile,
+                          fallbackPadding: _draftPadding,
+                        );
+                        _draftProfile = _preserveDraftMasks(next);
+                        _draftPadding = _draftProfile?.padding ?? _draftPadding;
+                      });
+                    },
+                    onRestoreBase: () {
+                      setState(() {
+                        final next = _authoringService.usePaddingAsPrimaryBase(
+                          source: widget.source,
+                          tileWidth: widget.tileWidth,
+                          tileHeight: widget.tileHeight,
+                          padding: _draftPadding,
+                        );
+                        _draftProfile = _preserveDraftMasks(next);
+                      });
+                    },
+                    onClearAll: () {
+                      setState(() {
+                        _draftProfile = _authoringService.clearAllCollision(
+                          source: widget.source,
+                          tileWidth: widget.tileWidth,
+                          tileHeight: widget.tileHeight,
+                          current: _draftProfile,
+                          fallbackPadding: _draftPadding,
+                        );
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                ],
                 _CollisionTruthBanner(summary: truthSummary),
                 const SizedBox(height: 10),
                 _PlayerFootHitboxPreviewCard(preview: playerHitboxPreview),
-                const SizedBox(height: 14),
+                const SizedBox(height: 8),
+                _CollisionAuthoringModeSelector(
+                  mode: _authoringMode,
+                  onChanged: (mode) {
+                    setState(() {
+                      _authoringMode = mode;
+                      _lastBrushPoint = null;
+                      _hoverGridPoint = null;
+                      _pendingPolygon.clear();
+                    });
+                  },
+                ),
+                const SizedBox(height: 8),
                 Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: EditorChrome.largeIslandSurfaceColor(
-                              context,
-                              tint: Colors.white.withValues(alpha: 0.02),
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: CupertinoColors.separator
-                                  .resolveFrom(context),
+                  child: _authoringMode ==
+                          _ElementCollisionAuthoringMode.fineMask
+                      ? CupertinoScrollbar(
+                          child: SingleChildScrollView(
+                            child: ElementCollisionTripleMaskEditor(
+                              image: widget.image,
+                              source: widget.source,
+                              tileWidth: widget.tileWidth,
+                              tileHeight: widget.tileHeight,
+                              profile: _draftProfile,
+                              draftPadding: _draftPadding,
+                              onProfileChanged: (next) {
+                                setState(() {
+                                  _draftProfile = next;
+                                  _draftPadding =
+                                      next?.padding ?? _draftPadding;
+                                });
+                              },
                             ),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    'Forme de collision',
-                                    style: TextStyle(
-                                      color: label,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                        )
+                      : Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: EditorChrome.largeIslandSurfaceColor(
+                                    context,
+                                    tint: Colors.white.withValues(alpha: 0.02),
                                   ),
-                                  const SizedBox(width: 12),
-                                  Flexible(
-                                    child: Text(
-                                      _tool.helpLabel,
-                                      textAlign: TextAlign.right,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        color: secondary,
-                                        fontSize: 11,
-                                      ),
-                                    ),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: CupertinoColors.separator
+                                        .resolveFrom(context),
                                   ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              Expanded(
-                                child: LayoutBuilder(
-                                  builder: (context, canvasConstraints) {
-                                    final canvasSize = Size(
-                                      canvasConstraints.maxWidth,
-                                      canvasConstraints.maxHeight,
-                                    );
-                                    return MouseRegion(
-                                      cursor: _tool ==
-                                              _ElementCollisionEditorTool
-                                                  .preview
-                                          ? SystemMouseCursors.basic
-                                          : SystemMouseCursors.precise,
-                                      onHover: (event) {
-                                        final next = _localToGridPoint(
-                                          event.localPosition,
-                                          canvasSize,
-                                        );
-                                        if (next == _hoverGridPoint) {
-                                          return;
-                                        }
-                                        setState(() => _hoverGridPoint = next);
-                                      },
-                                      onExit: (_) {
-                                        if (_hoverGridPoint != null) {
-                                          setState(
-                                              () => _hoverGridPoint = null);
-                                        }
-                                      },
-                                      child: GestureDetector(
-                                        behavior: HitTestBehavior.opaque,
-                                        onTapUp: (details) => _handleCanvasTap(
-                                            details.localPosition, canvasSize),
-                                        onDoubleTapDown: (details) =>
-                                            _handleCanvasDoubleTap(
-                                          details.localPosition,
-                                          canvasSize,
-                                        ),
-                                        onPanStart: (details) =>
-                                            _handleCanvasPanStart(
-                                          details.localPosition,
-                                          canvasSize,
-                                        ),
-                                        onPanUpdate: (details) =>
-                                            _handleCanvasPanUpdate(
-                                          details.localPosition,
-                                          canvasSize,
-                                        ),
-                                        onPanEnd: (_) => _lastBrushPoint = null,
-                                        child: DecoratedBox(
-                                          decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(14),
-                                            color: Colors.black
-                                                .withValues(alpha: 0.14),
-                                            border: Border.all(
-                                              color: CupertinoColors.separator
-                                                  .resolveFrom(context),
-                                            ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          'Forme de collision',
+                                          style: TextStyle(
+                                            color: label,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700,
                                           ),
-                                          child: CustomPaint(
-                                            painter:
-                                                _ElementCollisionCanvasPainter(
-                                              image: widget.image,
-                                              source: widget.source,
-                                              tileWidth: widget.tileWidth,
-                                              tileHeight: widget.tileHeight,
-                                              snapshot: snapshot,
-                                              showGrid: _showGrid,
-                                              showBase: _showBase,
-                                              showFinal: _showFinal,
-                                              showOverrides: _showOverrides,
-                                              pendingPolygon: _pendingPolygon,
-                                              pendingPolygonPreviewCells:
-                                                  pendingPolygonPreviewCells,
-                                              hoverGridPoint: _hoverGridPoint,
-                                              highlightPolygonClosure:
-                                                  _shouldHighlightPolygonClosure,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Flexible(
+                                          child: Text(
+                                            _tool.helpLabel,
+                                            textAlign: TextAlign.right,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: secondary,
+                                              fontSize: 11,
                                             ),
                                           ),
                                         ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Expanded(
+                                      child: LayoutBuilder(
+                                        builder: (context, canvasConstraints) {
+                                          final canvasSize = Size(
+                                            canvasConstraints.maxWidth,
+                                            canvasConstraints.maxHeight,
+                                          );
+                                          return MouseRegion(
+                                            cursor: _tool ==
+                                                    _ElementCollisionEditorTool
+                                                        .preview
+                                                ? SystemMouseCursors.basic
+                                                : SystemMouseCursors.precise,
+                                            onHover: (event) {
+                                              final next = _localToGridPoint(
+                                                event.localPosition,
+                                                canvasSize,
+                                              );
+                                              if (next == _hoverGridPoint) {
+                                                return;
+                                              }
+                                              setState(
+                                                  () => _hoverGridPoint = next);
+                                            },
+                                            onExit: (_) {
+                                              if (_hoverGridPoint != null) {
+                                                setState(() =>
+                                                    _hoverGridPoint = null);
+                                              }
+                                            },
+                                            child: GestureDetector(
+                                              behavior: HitTestBehavior.opaque,
+                                              onTapUp: (details) =>
+                                                  _handleCanvasTap(
+                                                      details.localPosition,
+                                                      canvasSize),
+                                              onDoubleTapDown: (details) =>
+                                                  _handleCanvasDoubleTap(
+                                                details.localPosition,
+                                                canvasSize,
+                                              ),
+                                              onPanStart: (details) =>
+                                                  _handleCanvasPanStart(
+                                                details.localPosition,
+                                                canvasSize,
+                                              ),
+                                              onPanUpdate: (details) =>
+                                                  _handleCanvasPanUpdate(
+                                                details.localPosition,
+                                                canvasSize,
+                                              ),
+                                              onPanEnd: (_) =>
+                                                  _lastBrushPoint = null,
+                                              child: DecoratedBox(
+                                                decoration: BoxDecoration(
+                                                  borderRadius:
+                                                      BorderRadius.circular(14),
+                                                  color: Colors.black
+                                                      .withValues(alpha: 0.14),
+                                                  border: Border.all(
+                                                    color: CupertinoColors
+                                                        .separator
+                                                        .resolveFrom(context),
+                                                  ),
+                                                ),
+                                                child: CustomPaint(
+                                                  painter:
+                                                      _ElementCollisionCanvasPainter(
+                                                    image: widget.image,
+                                                    source: widget.source,
+                                                    tileWidth: widget.tileWidth,
+                                                    tileHeight:
+                                                        widget.tileHeight,
+                                                    snapshot: snapshot,
+                                                    showGrid: _showGrid,
+                                                    showBase: _showBase,
+                                                    showFinal: _showFinal,
+                                                    showOverrides:
+                                                        _showOverrides,
+                                                    pendingPolygon:
+                                                        _pendingPolygon,
+                                                    pendingPolygonPreviewCells:
+                                                        pendingPolygonPreviewCells,
+                                                    hoverGridPoint:
+                                                        _hoverGridPoint,
+                                                    highlightPolygonClosure:
+                                                        _shouldHighlightPolygonClosure,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        },
                                       ),
-                                    );
-                                  },
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      SizedBox(
-                        width: 320,
-                        child: CupertinoScrollbar(
-                          child: SingleChildScrollView(
-                            child: _EditorSidebar(
-                              source: widget.source,
-                              snapshot: snapshot,
-                              truthSummary: truthSummary,
-                              showGrid: _showGrid,
-                              showBase: _showBase,
-                              showFinal: _showFinal,
-                              showOverrides: _showOverrides,
-                              pendingPolygonPreviewCount:
-                                  pendingPolygonPreviewCells.length,
-                              onShowGridChanged: (value) =>
-                                  setState(() => _showGrid = value),
-                              onShowBaseChanged: (value) =>
-                                  setState(() => _showBase = value),
-                              onShowFinalChanged: (value) =>
-                                  setState(() => _showFinal = value),
-                              onShowOverridesChanged: (value) =>
-                                  setState(() => _showOverrides = value),
-                              paddingEditor: ElementCollisionPaddingEditor(
-                                padding: _draftPadding,
-                                usesManualPrimaryShape:
-                                    snapshot.usesManualPrimaryShape,
-                                maxHorizontal: math.max(0,
-                                    widget.source.width * widget.tileWidth - 1),
-                                maxVertical: math.max(
-                                    0,
-                                    widget.source.height * widget.tileHeight -
-                                        1),
-                                onChanged: (next) {
-                                  setState(() {
-                                    _draftPadding = next;
-                                    _draftProfile = _authoringService
-                                        .recalculateFromPadding(
-                                      source: widget.source,
-                                      tileWidth: widget.tileWidth,
-                                      tileHeight: widget.tileHeight,
-                                      padding: next,
-                                      current: _draftProfile,
-                                    );
-                                  });
-                                },
+                            ),
+                            const SizedBox(width: 14),
+                            SizedBox(
+                              width: 320,
+                              child: CupertinoScrollbar(
+                                child: SingleChildScrollView(
+                                  child: _EditorSidebar(
+                                    source: widget.source,
+                                    snapshot: snapshot,
+                                    truthSummary: truthSummary,
+                                    showGrid: _showGrid,
+                                    showBase: _showBase,
+                                    showFinal: _showFinal,
+                                    showOverrides: _showOverrides,
+                                    pendingPolygonPreviewCount:
+                                        pendingPolygonPreviewCells.length,
+                                    onShowGridChanged: (value) =>
+                                        setState(() => _showGrid = value),
+                                    onShowBaseChanged: (value) =>
+                                        setState(() => _showBase = value),
+                                    onShowFinalChanged: (value) =>
+                                        setState(() => _showFinal = value),
+                                    onShowOverridesChanged: (value) =>
+                                        setState(() => _showOverrides = value),
+                                    paddingEditor:
+                                        ElementCollisionPaddingEditor(
+                                      padding: _draftPadding,
+                                      usesManualPrimaryShape:
+                                          snapshot.usesManualPrimaryShape,
+                                      maxHorizontal: math.max(
+                                          0,
+                                          widget.source.width *
+                                                  widget.tileWidth -
+                                              1),
+                                      maxVertical: math.max(
+                                          0,
+                                          widget.source.height *
+                                                  widget.tileHeight -
+                                              1),
+                                      onChanged: (next) {
+                                        setState(() {
+                                          _draftPadding = next;
+                                          final recalculated = _authoringService
+                                              .recalculateFromPadding(
+                                            source: widget.source,
+                                            tileWidth: widget.tileWidth,
+                                            tileHeight: widget.tileHeight,
+                                            padding: next,
+                                            current: _draftProfile,
+                                          );
+                                          _draftProfile =
+                                              _preserveDraftMasks(recalculated);
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
                 ),
               ],
             ),
@@ -418,7 +482,7 @@ class _ElementCollisionEditorSheetState
 
   ElementCollisionProfile _buildSavedProfile() {
     final snapshot = _describe();
-    return _authoringService.rebuild(
+    final rebuilt = _authoringService.rebuild(
       source: widget.source,
       tileWidth: widget.tileWidth,
       tileHeight: widget.tileHeight,
@@ -427,6 +491,24 @@ class _ElementCollisionEditorSheetState
       shapeCells: snapshot.shapeCells,
       manualAddedCells: snapshot.manualAddedCells,
       manualRemovedCells: snapshot.manualRemovedCells,
+    );
+    return _preserveDraftMasks(rebuilt);
+  }
+
+  ElementCollisionProfile _preserveDraftMasks(ElementCollisionProfile next) {
+    final current = _draftProfile;
+    if (current == null) {
+      return next;
+    }
+    if (current.visualMask == null &&
+        current.collisionMask == null &&
+        current.occlusionMask == null) {
+      return next;
+    }
+    return next.copyWith(
+      visualMask: current.visualMask,
+      collisionMask: current.collisionMask,
+      occlusionMask: current.occlusionMask,
     );
   }
 
@@ -439,7 +521,7 @@ class _ElementCollisionEditorSheetState
       return;
     }
     setState(() {
-      _draftProfile = _authoringService.applyPolygon(
+      final next = _authoringService.applyPolygon(
         source: widget.source,
         tileWidth: widget.tileWidth,
         tileHeight: widget.tileHeight,
@@ -448,6 +530,7 @@ class _ElementCollisionEditorSheetState
         current: _draftProfile,
         fallbackPadding: _draftPadding,
       );
+      _draftProfile = _preserveDraftMasks(next);
       _pendingPolygon.clear();
       _hoverGridPoint = null;
     });
@@ -478,7 +561,7 @@ class _ElementCollisionEditorSheetState
       return;
     }
     setState(() {
-      _draftProfile = _authoringService.applyBrushStroke(
+      final next = _authoringService.applyBrushStroke(
         source: widget.source,
         tileWidth: widget.tileWidth,
         tileHeight: widget.tileHeight,
@@ -487,6 +570,7 @@ class _ElementCollisionEditorSheetState
         current: _draftProfile,
         fallbackPadding: _draftPadding,
       );
+      _draftProfile = _preserveDraftMasks(next);
     });
   }
 
@@ -516,7 +600,7 @@ class _ElementCollisionEditorSheetState
       return;
     }
     setState(() {
-      _draftProfile = _authoringService.applyBrushStroke(
+      final next = _authoringService.applyBrushStroke(
         source: widget.source,
         tileWidth: widget.tileWidth,
         tileHeight: widget.tileHeight,
@@ -525,6 +609,7 @@ class _ElementCollisionEditorSheetState
         current: _draftProfile,
         fallbackPadding: _draftPadding,
       );
+      _draftProfile = _preserveDraftMasks(next);
     });
   }
 
@@ -546,7 +631,7 @@ class _ElementCollisionEditorSheetState
       return;
     }
     setState(() {
-      _draftProfile = _authoringService.applyBrushStroke(
+      final next = _authoringService.applyBrushStroke(
         source: widget.source,
         tileWidth: widget.tileWidth,
         tileHeight: widget.tileHeight,
@@ -555,6 +640,7 @@ class _ElementCollisionEditorSheetState
         current: _draftProfile,
         fallbackPadding: _draftPadding,
       );
+      _draftProfile = _preserveDraftMasks(next);
       _lastBrushPoint = gridPoint;
     });
   }
@@ -872,6 +958,59 @@ class _EditorSidebar extends StatelessWidget {
               color: secondary,
               fontSize: 11,
             ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CollisionAuthoringModeSelector extends StatelessWidget {
+  const _CollisionAuthoringModeSelector({
+    required this.mode,
+    required this.onChanged,
+  });
+
+  final _ElementCollisionAuthoringMode mode;
+  final ValueChanged<_ElementCollisionAuthoringMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    return Row(
+      children: [
+        CupertinoSlidingSegmentedControl<_ElementCollisionAuthoringMode>(
+          groupValue: mode,
+          children: const {
+            _ElementCollisionAuthoringMode.grid: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              child: Text(
+                'Collision par grille',
+                style: TextStyle(fontSize: 11),
+              ),
+            ),
+            _ElementCollisionAuthoringMode.fineMask: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              child: Text(
+                'Masque fin',
+                style: TextStyle(fontSize: 11),
+              ),
+            ),
+          },
+          onValueChanged: (next) {
+            if (next != null) {
+              onChanged(next);
+            }
+          },
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            mode == _ElementCollisionAuthoringMode.fineMask
+                ? 'Masque pixel fin : priorité gameplay.'
+                : 'Grille : fallback et retouches coarse.',
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: secondary, fontSize: 11),
           ),
         ),
       ],

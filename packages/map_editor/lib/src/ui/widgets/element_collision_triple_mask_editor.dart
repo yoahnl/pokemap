@@ -29,6 +29,11 @@ enum MaskSurfaceMode {
   occlusionPaint,
 }
 
+enum _MaskStrokeOperation {
+  paint,
+  erase,
+}
+
 /// Éditeur **pixel-level** pour les masques d’un [ProjectElementEntry] :
 /// visual (alpha), collision, occlusion — avec fond damier, zoom centré, légende.
 ///
@@ -67,7 +72,9 @@ class ElementCollisionTripleMaskEditor extends StatefulWidget {
 
 class _ElementCollisionTripleMaskEditorState
     extends State<ElementCollisionTripleMaskEditor> {
-  MaskSurfaceMode _mode = MaskSurfaceMode.preview;
+  MaskSurfaceMode _mode = MaskSurfaceMode.collisionPaint;
+  late _MaskStrokeOperation _strokeOperation;
+  late int _brushSizePx;
   bool _showPixelGrid = false;
 
   late List<bool> _collisionBits;
@@ -83,6 +90,8 @@ class _ElementCollisionTripleMaskEditorState
     super.initState();
     _collisionBits = _initialCollisionBits();
     _occlusionBits = _initialOcclusionBits();
+    _strokeOperation = _initialStrokeOperation();
+    _brushSizePx = _defaultBrushSizePx();
     _scheduleVisualLoad();
   }
 
@@ -122,7 +131,10 @@ class _ElementCollisionTripleMaskEditorState
     });
     final bd =
         await widget.image.toByteData(format: ui.ImageByteFormat.rawRgba);
-    if (!mounted || bd == null) {
+    if (!mounted) {
+      return;
+    }
+    if (bd == null) {
       setState(() {
         _loadingVisual = false;
         _visualBits = List<bool>.filled(_wPx * _hPx, false);
@@ -209,6 +221,32 @@ class _ElementCollisionTripleMaskEditorState
     return List<bool>.filled(_wPx * _hPx, false);
   }
 
+  _MaskStrokeOperation _initialStrokeOperation() {
+    final hasFineCollision = widget.profile?.collisionMask != null;
+    final hasLegacyGridCollision =
+        widget.profile?.cells.isNotEmpty == true && !hasFineCollision;
+    return hasLegacyGridCollision
+        ? _MaskStrokeOperation.erase
+        : _MaskStrokeOperation.paint;
+  }
+
+  int _defaultBrushSizePx() {
+    final tileEdge = math.min(widget.tileWidth, widget.tileHeight);
+    return math.max(1, tileEdge ~/ 2);
+  }
+
+  List<int> _brushSizeOptions() {
+    final tileEdge = math.max(1, math.min(widget.tileWidth, widget.tileHeight));
+    final values = <int>{
+      1,
+      math.max(1, tileEdge ~/ 4),
+      math.max(1, tileEdge ~/ 2),
+      tileEdge,
+    }.where((value) => value >= 1 && value <= tileEdge).toList()
+      ..sort();
+    return values;
+  }
+
   ElementCollisionPixelMask _maskFromBits(List<bool> bits) {
     return ElementCollisionPixelMask(
       widthPx: _wPx,
@@ -266,13 +304,34 @@ class _ElementCollisionTripleMaskEditorState
     final ly = local.dy - targetRect.top;
     final px = (lx / targetRect.width * _wPx).floor().clamp(0, _wPx - 1);
     final py = (ly / targetRect.height * _hPx).floor().clamp(0, _hPx - 1);
-    final idx = py * _wPx + px;
     final next = _mode == MaskSurfaceMode.collisionPaint
         ? _collisionBits
         : _occlusionBits;
-    next[idx] = !erase;
+    _paintBrushFootprint(next, centerX: px, centerY: py, erase: erase);
     setState(() {});
     _emitProfile();
+  }
+
+  void _paintBrushFootprint(
+    List<bool> bits, {
+    required int centerX,
+    required int centerY,
+    required bool erase,
+  }) {
+    final size = _brushSizePx.clamp(1, math.max(_wPx, _hPx));
+    final left = centerX - size ~/ 2;
+    final top = centerY - size ~/ 2;
+    for (var y = top; y < top + size; y++) {
+      if (y < 0 || y >= _hPx) {
+        continue;
+      }
+      for (var x = left; x < left + size; x++) {
+        if (x < 0 || x >= _wPx) {
+          continue;
+        }
+        bits[y * _wPx + x] = !erase;
+      }
+    }
   }
 
   @override
@@ -327,11 +386,13 @@ class _ElementCollisionTripleMaskEditorState
               ),
               1: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 6, vertical: 5),
-                child: Text('Collision', style: TextStyle(fontSize: 11)),
+                child:
+                    Text('Peindre collision', style: TextStyle(fontSize: 11)),
               ),
               2: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 6, vertical: 5),
-                child: Text('Occlusion', style: TextStyle(fontSize: 11)),
+                child:
+                    Text('Peindre occlusion', style: TextStyle(fontSize: 11)),
               ),
             },
             onValueChanged: (int? v) {
@@ -340,6 +401,61 @@ class _ElementCollisionTripleMaskEditorState
               }
             },
           ),
+          if (_mode != MaskSurfaceMode.preview) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 10,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                CupertinoSlidingSegmentedControl<_MaskStrokeOperation>(
+                  groupValue: _strokeOperation,
+                  children: const {
+                    _MaskStrokeOperation.paint: Padding(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      child: Text('Peindre', style: TextStyle(fontSize: 11)),
+                    ),
+                    _MaskStrokeOperation.erase: Padding(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      child: Text('Effacer', style: TextStyle(fontSize: 11)),
+                    ),
+                  },
+                  onValueChanged: (next) {
+                    if (next != null) {
+                      setState(() => _strokeOperation = next);
+                    }
+                  },
+                ),
+                Text(
+                  'Taille pinceau',
+                  style: TextStyle(color: secondary, fontSize: 10),
+                ),
+                CupertinoSlidingSegmentedControl<int>(
+                  groupValue: _brushSizePx,
+                  children: {
+                    for (final option in _brushSizeOptions())
+                      option: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 5,
+                        ),
+                        child: Text(
+                          '${option}px',
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                      ),
+                  },
+                  onValueChanged: (next) {
+                    if (next != null) {
+                      setState(() => _brushSizePx = next);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 6),
           Row(
             children: [
@@ -378,20 +494,24 @@ class _ElementCollisionTripleMaskEditorState
                   .toDouble()
                   .clamp(140.0, 260.0);
               return Listener(
+                behavior: HitTestBehavior.opaque,
                 onPointerDown: (e) {
                   _applyStroke(
                     e.localPosition,
                     constraints.biggest,
                     boxHeight,
-                    erase: false,
+                    erase: _strokeOperation == _MaskStrokeOperation.erase,
                   );
                 },
                 onPointerMove: (e) {
                   if (_mode == MaskSurfaceMode.preview) {
                     return;
                   }
-                  // Bouton principal = peindre, secondaire = effacer (style tablette).
-                  final erase = e.buttons == 2;
+                  // Le bouton secondaire reste une gomme rapide, même si
+                  // l'outil visible est sur "Peindre".
+                  final erase =
+                      _strokeOperation == _MaskStrokeOperation.erase ||
+                          e.buttons == 2;
                   _applyStroke(
                     e.localPosition,
                     constraints.biggest,
@@ -462,8 +582,15 @@ class _ElementCollisionTripleMaskEditorState
           Text(
             _mode == MaskSurfaceMode.preview
                 ? 'Mode aperçu : édition désactivée.'
-                : 'Mode ${_mode == MaskSurfaceMode.collisionPaint ? 'collision' : 'occlusion'} : '
-                    'cliquez / tracez pour peindre. Clic droit ou périphérique secondaire = gomme.',
+                : widget.profile?.collisionMask == null &&
+                        widget.profile?.cells.isNotEmpty == true &&
+                        _strokeOperation == _MaskStrokeOperation.erase
+                    ? 'Profil grille détecté : Effacer est sélectionné pour creuser un masque fin depuis la grille existante.'
+                    : _strokeOperation == _MaskStrokeOperation.erase
+                        ? 'Mode ${_mode == MaskSurfaceMode.collisionPaint ? 'collision' : 'occlusion'} : '
+                            'cliquez / tracez pour effacer.'
+                        : 'Mode ${_mode == MaskSurfaceMode.collisionPaint ? 'collision' : 'occlusion'} : '
+                            'cliquez / tracez pour peindre. Le bouton Effacer gomme la zone.',
             style: TextStyle(color: secondary, fontSize: 10),
           ),
         ],
