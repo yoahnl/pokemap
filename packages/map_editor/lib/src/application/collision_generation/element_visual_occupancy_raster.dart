@@ -4,7 +4,8 @@ import 'dart:typed_data';
 /// pixel (sans décision gameplay).
 ///
 /// Sert à centraliser le test `opaque ?` et à documenter l’accès mémoire.
-/// Le masque gameplay est produit ailleurs (ex. copie directe occupation → collision).
+/// Le masque gameplay est produit ailleurs par heuristiques, pas par copie brute
+/// de cette occupation visuelle.
 class ElementVisualOccupancyRaster {
   const ElementVisualOccupancyRaster();
 

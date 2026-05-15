@@ -1,8 +1,9 @@
-/// Paramètres d’auto-génération **sans heuristique grille** (addendum produit).
+/// Paramètres d’auto-génération des masques collision.
 ///
-/// L’auto-génération V1 copie l’occupation visuelle (alpha) vers le masque
-/// gameplay pixel à pixel. L’utilisateur affine ensuite manuellement dans l’éditeur.
-/// Aucune « bande basse », « empreinte de cellule » ou « ratio par cellule » ici.
+/// Le générateur part de l’occupation visuelle alpha, puis applique les
+/// heuristiques V1 pour dériver `collisionMask` et `occlusionMask`.
+/// `cells` reste une projection de compatibilité du `collisionMask`, pas une
+/// source de vérité séparée.
 class PlacedElementCollisionGenerationParams {
   const PlacedElementCollisionGenerationParams({
     this.alphaThreshold = kCollisionAlphaOpaqueThreshold,
@@ -15,5 +16,5 @@ class PlacedElementCollisionGenerationParams {
       PlacedElementCollisionGenerationParams();
 }
 
-/// Seuil alpha : au-dessus = pixel potentiellement solide dans le masque auto.
+/// Seuil alpha : au-dessus = pixel visible pour l’analyse automatique.
 const int kCollisionAlphaOpaqueThreshold = 24;
