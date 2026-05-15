@@ -32,6 +32,71 @@ void main() {
       expect(normalized.cells, const [GridPos(x: 0, y: 1)]);
     });
 
+    test('collisionMask projection handles partial edge tiles', () {
+      final mask = _mask(
+        widthPx: 5,
+        heightPx: 5,
+        solidPixels: _pixels(
+          widthPx: 5,
+          heightPx: 5,
+          solidPoints: const [GridPos(x: 4, y: 4)],
+        ),
+      );
+      const profile = ElementCollisionProfile(
+        cells: [GridPos(x: 0, y: 0)],
+      );
+
+      final normalized = normalizeElementCollisionProfile(
+        profile.copyWith(collisionMask: mask),
+        tileSize: 4,
+      );
+
+      expect(normalized.cells, const [GridPos(x: 1, y: 1)]);
+    });
+
+    test('collisionMask projection matches ElementCollisionMaskCodec contract',
+        () {
+      final mask = _mask(
+        widthPx: 5,
+        heightPx: 5,
+        solidPixels: _pixels(
+          widthPx: 5,
+          heightPx: 5,
+          solidPoints: const [
+            GridPos(x: 4, y: 4),
+            GridPos(x: 0, y: 0),
+            GridPos(x: 4, y: 0),
+          ],
+        ),
+      );
+      final profile = ElementCollisionProfile(
+        collisionMask: mask,
+        cells: const [GridPos(x: 9, y: 9)],
+      );
+      final expectedCells = ElementCollisionMaskCodec.cellsFromPixelMask(
+        mask: mask,
+        tileWidth: 4,
+        tileHeight: 4,
+        sourceWidthInTiles: 2,
+        sourceHeightInTiles: 2,
+      );
+
+      final normalized = normalizeElementCollisionProfile(
+        profile,
+        tileSize: 4,
+      );
+
+      expect(
+        expectedCells,
+        const [
+          GridPos(x: 0, y: 0),
+          GridPos(x: 1, y: 0),
+          GridPos(x: 1, y: 1),
+        ],
+      );
+      expect(normalized.cells, expectedCells);
+    });
+
     test('collisionMask preserves visualMask and occlusionMask', () {
       final collision = _solidMask(widthPx: 2, heightPx: 2);
       final visual = _solidMask(widthPx: 4, heightPx: 4);
