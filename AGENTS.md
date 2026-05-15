@@ -238,11 +238,27 @@ Final reports must include, when relevant:
 - changed files;
 - created files;
 - deleted files;
+- a complete file inventory that lists every created, modified, deleted, generated, and still-untracked file touched by the task;
 - commands run;
 - exact test, analyze, and build outcomes;
 - known limitations;
 - remaining risks;
 - self-review or critique.
+
+The file inventory is mandatory for lot reports and implementation reports.
+Do not summarize it as “see git status” or rely only on `git diff --stat`,
+because untracked files do not appear there. Reconcile the inventory against
+`git status --short --untracked-files=all` and, when useful, `git diff --name-only`.
+If a category is empty, explicitly write `Aucun` / `None`.
+
+Lot reports and implementation reports must also include the complete contents
+of every text/code file created or modified by the task, in fenced code blocks
+under a clearly named section such as `Code complet des fichiers créés/modifiés`.
+Do not replace this with summaries, snippets, diffs, or file paths. Generated
+text files are included when they are part of the task output. Binary assets
+must be listed with path, size, and hash instead of inlined. The report file
+itself does not need to embed a recursive copy of itself; the report is already
+the complete contents of that file.
 
 Context Mode must not be used as an excuse to omit important evidence from the final report.
 
@@ -546,6 +562,8 @@ When a task asks for a report, make it factual.
 Reports should include:
 
 - inspected files;
+- complete files created / modified / deleted inventories, including untracked files and generated files;
+- complete contents of every text/code file created or modified by the task, not just snippets or diffs;
 - exact commands;
 - exact test totals;
 - known gaps;
@@ -951,13 +969,15 @@ For PathPattern and Surface Engine lots, adapt superpowers workflows to lot meth
 1. Follow the 10-point lot report template (Verdict → Audit → Files → Decisions → Non-goals → Tests → Analyze → Git Status → Limits → Next Lot)
 2. Use Context Mode for large audits (as shown in lot reports)
 3. Document all commands run with exact outputs
-4. Never modify files outside lot scope without explicit user consent
+4. List every file created, modified, deleted, generated, and left untracked in the report, verified against `git status --short --untracked-files=all` and `git diff --name-only`
+5. Include the full contents of every text/code file created or modified by the lot in the report
+6. Never modify files outside lot scope without explicit user consent
 
 **After completing a lot:**
 1. Run targeted tests for the lot
 2. Run regression tests for dependent lots
 3. Run full package tests
-4. Include complete Evidence Pack in report
+4. Include complete Evidence Pack in report, including the exhaustive file inventory and full file contents
 
 ### 16.14 Common Anti-Patterns (from skills)
 
