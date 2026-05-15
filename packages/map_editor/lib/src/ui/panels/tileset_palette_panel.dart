@@ -18,6 +18,7 @@ import 'package:flutter/material.dart'
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/ui/panels/tileset_palette/widgets/shadow/element_shadow_section.dart';
 import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';
 import 'package:map_editor/src/ui/shared/editor_paint_palette.dart';
 
@@ -2564,6 +2565,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     }
     var selectedPresetKind = element.presetKind;
     ElementCollisionProfile? collisionProfile = element.collisionProfile;
+    ProjectElementShadowConfig? shadowConfig = element.shadow;
     var collisionPadding =
         collisionProfile?.padding ?? const WarpTriggerPadding();
     var frames = List<TilesetVisualFrame>.from(element.frames);
@@ -2762,6 +2764,17 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                     ),
                   ),
                   const SizedBox(height: 8),
+                  ElementShadowSection(
+                    manifest: project,
+                    element: element,
+                    shadow: shadowConfig,
+                    onChanged: (next) {
+                      setStateDialog(() {
+                        shadowConfig = next;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 8),
                   _ElementCollisionProfileSummaryCard(
                     source: frames.primarySource,
                     tileWidth: tileWidth,
@@ -2846,6 +2859,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
       clearGroupId: selectedGroupId == null,
       recommendedLayerId: selectedLayerId,
       clearRecommendedLayerId: selectedLayerId == null,
+      shadow: shadowConfig,
+      clearShadow: shadowConfig == null,
       frames: frames,
       tags: _parseTags(tagsController.text),
     );

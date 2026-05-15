@@ -371,10 +371,18 @@ class UpdateProjectElementUseCase {
     bool clearGroupId = false,
     String? recommendedLayerId,
     bool clearRecommendedLayerId = false,
+    ProjectElementShadowConfig? shadow,
+    bool clearShadow = false,
     TilesetSourceRect? source,
     List<TilesetVisualFrame>? frames,
     List<String>? tags,
   }) async {
+    if (shadow != null && clearShadow) {
+      throw const EditorValidationException(
+        'Cannot set and clear element shadow in the same update',
+      );
+    }
+
     final current = project.elements.firstWhere(
       (element) => element.id == elementId,
       orElse: () =>
@@ -454,6 +462,7 @@ class UpdateProjectElementUseCase {
     final nextRecommendedLayerId = clearRecommendedLayerId
         ? null
         : (recommendedLayerId ?? current.recommendedLayerId);
+    final nextShadow = clearShadow ? null : (shadow ?? current.shadow);
 
     final updatedElements = project.elements.map((element) {
       if (element.id != elementId) return element;
@@ -466,6 +475,7 @@ class UpdateProjectElementUseCase {
         presetKind: nextPresetKind,
         collisionProfile: nextCollisionProfile,
         recommendedLayerId: nextRecommendedLayerId,
+        shadow: nextShadow,
         tags: nextTags,
       );
     }).toList(growable: false);
