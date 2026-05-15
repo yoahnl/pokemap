@@ -107,25 +107,27 @@ List<EditorStaticShadowPreviewInstruction>
     final visualHeight = source.height * tileHeight;
     final baseLeft = placed.pos.x * tileWidth;
     final baseTop = placed.pos.y * tileHeight;
-    final anchorX = baseLeft + visualWidth * 0.5;
-    final anchorY = baseTop + visualHeight;
-    final shadowWidth = visualWidth * 0.75 * resolved.scaleX;
-    final shadowHeight = visualHeight * 0.25 * resolved.scaleY;
-    if (shadowWidth <= 0 || shadowHeight <= 0) {
-      continue;
-    }
-    final centerX = anchorX + resolved.offsetX;
-    final centerY = anchorY + resolved.offsetY;
+    final geometry = resolveStaticShadowGeometry(
+      metrics: StaticShadowVisualMetrics(
+        left: baseLeft,
+        top: baseTop,
+        visualWidth: visualWidth,
+        visualHeight: visualHeight,
+      ),
+      shadowConfig: resolved,
+      elementFootprint: element.shadow?.footprint,
+      overrideFootprint: placed.shadowOverride?.footprint,
+    );
 
     instructions.add(
       EditorStaticShadowPreviewInstruction(
         instanceId: placed.id,
         elementId: placed.elementId,
         shape: resolved.mode,
-        left: centerX - shadowWidth / 2,
-        top: centerY - shadowHeight / 2,
-        width: shadowWidth,
-        height: shadowHeight,
+        left: geometry.left,
+        top: geometry.top,
+        width: geometry.width,
+        height: geometry.height,
         opacity: resolved.opacity,
         colorHexRgb: resolved.colorHexRgb,
       ),

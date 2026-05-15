@@ -190,6 +190,100 @@ void main() {
       expect(instruction.opacity, 0.2);
     });
 
+    test('uses element footprint for preview anchor and size', () {
+      final instructions = buildEditorStaticShadowPreviewInstructions(
+        manifest: _manifest(
+          elementShadow: ProjectElementShadowConfig(
+            castsShadow: true,
+            shadowProfileId: 'base_shadow',
+            footprint: StaticShadowFootprintConfig(
+              anchorXRatio: 0.25,
+              anchorYRatio: 0.75,
+              footprintWidthRatio: 0.5,
+              footprintHeightRatio: 0.125,
+            ),
+          ),
+        ),
+        map: _map(),
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+
+      final instruction = instructions.single;
+      expect(instruction.left, closeTo(16, 0.001));
+      expect(instruction.top, closeTo(76, 0.001));
+      expect(instruction.width, closeTo(16, 0.001));
+      expect(instruction.height, closeTo(8, 0.001));
+    });
+
+    test('uses override footprint over element footprint field by field', () {
+      final instructions = buildEditorStaticShadowPreviewInstructions(
+        manifest: _manifest(
+          elementShadow: ProjectElementShadowConfig(
+            castsShadow: true,
+            shadowProfileId: 'base_shadow',
+            footprint: StaticShadowFootprintConfig(
+              anchorXRatio: 0.25,
+              anchorYRatio: 0.75,
+              footprintWidthRatio: 0.5,
+              footprintHeightRatio: 0.125,
+            ),
+          ),
+        ),
+        map: _map(
+          shadowOverride: MapPlacedElementShadowOverride(
+            mode: ShadowOverrideMode.custom,
+            footprint: StaticShadowFootprintConfig(
+              anchorYRatio: 0.5,
+              footprintWidthRatio: 0.25,
+            ),
+          ),
+        ),
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+
+      final instruction = instructions.single;
+      expect(instruction.left, closeTo(20, 0.001));
+      expect(instruction.top, closeTo(60, 0.001));
+      expect(instruction.width, closeTo(8, 0.001));
+      expect(instruction.height, closeTo(8, 0.001));
+    });
+
+    test('custom override without footprint keeps element footprint', () {
+      final instructions = buildEditorStaticShadowPreviewInstructions(
+        manifest: _manifest(
+          elementShadow: ProjectElementShadowConfig(
+            castsShadow: true,
+            shadowProfileId: 'base_shadow',
+            footprint: StaticShadowFootprintConfig(
+              anchorXRatio: 0.5,
+              anchorYRatio: 0.5,
+              footprintWidthRatio: 0.5,
+              footprintHeightRatio: 0.5,
+            ),
+          ),
+        ),
+        map: _map(
+          shadowOverride: MapPlacedElementShadowOverride(
+            mode: ShadowOverrideMode.custom,
+            offsetX: 4,
+            offsetY: -2,
+            scaleX: 2,
+            scaleY: 0.5,
+          ),
+        ),
+        tileWidth: 16,
+        tileHeight: 16,
+      );
+
+      final instruction = instructions.single;
+      expect(instruction.left, closeTo(20, 0.001));
+      expect(instruction.top, closeTo(54, 0.001));
+      expect(instruction.width, closeTo(32, 0.001));
+      expect(instruction.height, closeTo(16, 0.001));
+    });
+
     test('custom profile overrides source profile and null profile inherits it',
         () {
       final overrideProfile = _profile(
