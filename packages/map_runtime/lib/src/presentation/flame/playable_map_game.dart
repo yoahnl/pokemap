@@ -1669,8 +1669,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
         id: 'player',
         footWorldX: _player.footPoint.x,
         footWorldY: _player.footPoint.y,
-        visualWidth: _player.size.x,
-        visualHeight: _player.size.y,
+        visualWidth: _player.visualSize.x,
+        visualHeight: _player.visualSize.y,
         isVisible: _player.parent != null,
       ),
     ];

@@ -69,6 +69,24 @@ void main() {
       expect((await pixelAt(image, centerX, centerY))[3], greaterThan(0));
     });
 
+    test('player contact shadow uses rendered actor visual size', () async {
+      final game = PlayableMapGame(
+        bundle: _bundle(playerFrameWidth: 3, playerFrameHeight: 3),
+        projectFilePath: '/tmp/project.json',
+        runtimeTilesetImageLoader: _emptyImageLoader,
+      );
+
+      game.onGameResize(Vector2(160, 160));
+      await game.onLoad();
+      game.update(0);
+      final provider =
+          game.debugShadowCollectionProviderForMap('shadow-actor-test')!;
+      final instruction = provider()!.actorContact.single;
+
+      expect(instruction.width, closeTo(57.6, 0.0001));
+      expect(instruction.height, closeTo(17.28, 0.0001));
+    });
+
     test('NPC actors are included when present', () async {
       final game = PlayableMapGame(
         bundle: _bundle(includeNpc: true),
@@ -210,7 +228,11 @@ void main() {
   });
 }
 
-RuntimeMapBundle _bundle({bool includeNpc = false}) {
+RuntimeMapBundle _bundle({
+  bool includeNpc = false,
+  int playerFrameWidth = 2,
+  int playerFrameHeight = 2,
+}) {
   final entities = <MapEntity>[
     const MapEntity(
       id: 'spawn',
@@ -245,15 +267,15 @@ RuntimeMapBundle _bundle({bool includeNpc = false}) {
         displayScale: 2,
         defaultPlayerCharacterId: 'player',
       ),
-      characters: const <ProjectCharacterEntry>[
+      characters: <ProjectCharacterEntry>[
         ProjectCharacterEntry(
           id: 'player',
           name: 'Player',
           tilesetId: 'player',
-          frameWidth: 2,
-          frameHeight: 2,
+          frameWidth: playerFrameWidth,
+          frameHeight: playerFrameHeight,
         ),
-        ProjectCharacterEntry(
+        const ProjectCharacterEntry(
           id: 'npc',
           name: 'NPC',
           tilesetId: 'npc',

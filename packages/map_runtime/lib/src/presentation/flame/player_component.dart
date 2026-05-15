@@ -111,6 +111,8 @@ class PlayerComponent extends PositionComponent {
 
   Vector2 get mapOrigin => _mapOrigin.clone();
 
+  Vector2 get visualSize => (_actor?.size ?? size).clone();
+
   Vector2? get debugActorLocalPosition => _actor?.position.clone();
 
   void _layoutActor() {
