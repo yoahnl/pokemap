@@ -8,6 +8,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors;
 import 'package:map_core/map_core.dart';
 
+import '../../application/models/element_collision_truth_summary.dart';
 import '../shared/cupertino_editor_widgets.dart';
 
 /// Mode de la surface d’édition : **aperçu** (lecture seule) ou peinture sur
@@ -119,7 +120,8 @@ class _ElementCollisionTripleMaskEditorState
     setState(() {
       _loadingVisual = true;
     });
-    final bd = await widget.image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    final bd =
+        await widget.image.toByteData(format: ui.ImageByteFormat.rawRgba);
     if (!mounted || bd == null) {
       setState(() {
         _loadingVisual = false;
@@ -246,7 +248,8 @@ class _ElementCollisionTripleMaskEditorState
     );
   }
 
-  void _applyStroke(Offset local, Size boxSize, double boxHeight, {required bool erase}) {
+  void _applyStroke(Offset local, Size boxSize, double boxHeight,
+      {required bool erase}) {
     if (_mode == MaskSurfaceMode.preview) {
       return;
     }
@@ -264,7 +267,9 @@ class _ElementCollisionTripleMaskEditorState
     final px = (lx / targetRect.width * _wPx).floor().clamp(0, _wPx - 1);
     final py = (ly / targetRect.height * _hPx).floor().clamp(0, _hPx - 1);
     final idx = py * _wPx + px;
-    final next = _mode == MaskSurfaceMode.collisionPaint ? _collisionBits : _occlusionBits;
+    final next = _mode == MaskSurfaceMode.collisionPaint
+        ? _collisionBits
+        : _occlusionBits;
     next[idx] = !erase;
     setState(() {});
     _emitProfile();
@@ -275,6 +280,7 @@ class _ElementCollisionTripleMaskEditorState
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     final label = CupertinoColors.label.resolveFrom(context);
     final padding = widget.profile?.padding ?? widget.draftPadding;
+    final truthSummary = summarizeElementCollisionTruth(widget.profile);
 
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
@@ -301,9 +307,14 @@ class _ElementCollisionTripleMaskEditorState
           ),
           const SizedBox(height: 6),
           Text(
-            'La collision ne doit pas recopier bêtement l’ombre : éditez la zone '
-            'qui bloque vraiment. L’occlusion définit ce qui peut vous couvrir '
-            'quand vous passez derrière (rendu), sans bloquer le déplacement.',
+            '${truthSummary.title}. ${truthSummary.description} ${truthSummary.detail}',
+            style: TextStyle(color: secondary, fontSize: 10),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Masque collision : bloque le déplacement du joueur. '
+            'Masque occlusion : rendu devant/derrière, ne bloque pas. '
+            'Masque visuel : aide d’analyse / aperçu, ne bloque pas.',
             style: TextStyle(color: secondary, fontSize: 10),
           ),
           const SizedBox(height: 8),
@@ -587,7 +598,8 @@ class _TripleMaskPixelPainter extends CustomPainter {
       math.max(activeLeft, activeRight),
       math.max(activeTop, activeBottom),
     );
-    _paintPaddingBands(canvas, targetRect, leftPad, rightPad, topPad, bottomPad);
+    _paintPaddingBands(
+        canvas, targetRect, leftPad, rightPad, topPad, bottomPad);
 
     if (activeRect.width > 0 && activeRect.height > 0) {
       canvas.drawRect(
@@ -680,19 +692,21 @@ class _TripleMaskPixelPainter extends CustomPainter {
         ..strokeWidth = 0.5;
       for (var x = 0; x <= wPx; x += 4) {
         final dx = targetRect.left + x * scaleX;
-        canvas.drawLine(Offset(dx, targetRect.top), Offset(dx, targetRect.bottom), grid);
+        canvas.drawLine(
+            Offset(dx, targetRect.top), Offset(dx, targetRect.bottom), grid);
       }
       for (var y = 0; y <= hPx; y += 4) {
         final dy = targetRect.top + y * scaleY;
-        canvas.drawLine(Offset(targetRect.left, dy), Offset(targetRect.right, dy), grid);
+        canvas.drawLine(
+            Offset(targetRect.left, dy), Offset(targetRect.right, dy), grid);
       }
     }
   }
 
   void _paintCheckerboard(Canvas canvas, Rect r) {
     const sq = 10.0;
-    final light = const Color(0xFFECEFF1);
-    final dark = const Color(0xFFD0D5D8);
+    const light = Color(0xFFECEFF1);
+    const dark = Color(0xFFD0D5D8);
     var row = 0;
     for (var y = r.top; y < r.bottom; y += sq) {
       var col = 0;

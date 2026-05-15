@@ -22,6 +22,7 @@ import 'package:map_editor/src/ui/panels/tileset_palette/widgets/shadow/element_
 import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';
 import 'package:map_editor/src/ui/shared/editor_paint_palette.dart';
 
+import '../../application/models/element_collision_truth_summary.dart';
 import '../../application/services/element_collision_authoring_service.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_selectors.dart';
@@ -785,7 +786,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                                       tileId: selectedTileId,
                                       columns: columns,
                                       category: picked,
-                                      recommendedLayerId: snapshot.activeLayerId,
+                                      recommendedLayerId:
+                                          snapshot.activeLayerId,
                                     );
                                   }
                                 },
@@ -1274,7 +1276,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                       tileHeight: tileHeight,
                       selectionAccent: tilesAccent,
                       selected: snapshot.activeBrush.maybeMap(
-                        projectElement: (brush) => brush.elementId == element.id,
+                        projectElement: (brush) =>
+                            brush.elementId == element.id,
                         orElse: () => false,
                       ),
                       categoryPath: categoryPath,
@@ -2953,7 +2956,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
   }
 }
 
-
 class _PlacedElementBehaviorsSection extends StatefulWidget {
   const _PlacedElementBehaviorsSection({
     required this.value,
@@ -4300,7 +4302,6 @@ class _PlacedElementBehaviorsSectionState
     );
   }
 }
-
 
 String _resolveElementPrimaryTilesetId(ProjectElementEntry entry) {
   final frameTilesetId = entry.frames.primaryFrame.tilesetId.trim();

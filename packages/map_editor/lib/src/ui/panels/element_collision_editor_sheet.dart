@@ -8,6 +8,7 @@ import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 
 import '../../application/services/element_collision_authoring_service.dart';
+import '../../application/models/element_collision_truth_summary.dart';
 import '../../ui/shared/cupertino_editor_widgets.dart';
 
 const ElementCollisionAuthoringService _authoringService =
@@ -86,6 +87,7 @@ class _ElementCollisionEditorSheetState
   @override
   Widget build(BuildContext context) {
     final snapshot = _describe();
+    final truthSummary = summarizeElementCollisionTruth(_draftProfile);
     final pendingPolygonPreviewCells = _buildPendingPolygonPreviewCells();
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     final label = CupertinoColors.label.resolveFrom(context);
@@ -185,6 +187,8 @@ class _ElementCollisionEditorSheetState
                     });
                   },
                 ),
+                const SizedBox(height: 14),
+                _CollisionTruthBanner(summary: truthSummary),
                 const SizedBox(height: 14),
                 Expanded(
                   child: Row(
@@ -324,6 +328,7 @@ class _ElementCollisionEditorSheetState
                         child: _EditorSidebar(
                           source: widget.source,
                           snapshot: snapshot,
+                          truthSummary: truthSummary,
                           showGrid: _showGrid,
                           showBase: _showBase,
                           showFinal: _showFinal,
@@ -705,6 +710,7 @@ class _EditorSidebar extends StatelessWidget {
   const _EditorSidebar({
     required this.source,
     required this.snapshot,
+    required this.truthSummary,
     required this.showGrid,
     required this.showBase,
     required this.showFinal,
@@ -719,6 +725,7 @@ class _EditorSidebar extends StatelessWidget {
 
   final TilesetSourceRect source;
   final ElementCollisionAuthoringSnapshot snapshot;
+  final ElementCollisionTruthSummary truthSummary;
   final bool showGrid;
   final bool showBase;
   final bool showFinal;
@@ -767,7 +774,9 @@ class _EditorSidebar extends StatelessWidget {
               ),
               const SizedBox(height: 10),
               Text(
-                'Le runtime lira uniquement ${snapshot.finalCells.length} cellule${snapshot.finalCells.length > 1 ? 's' : ''} dans `collisionProfile.cells`.',
+                truthSummary.mode == ElementCollisionTruthMode.fineMask
+                    ? 'Le gameplay utilise le masque fin. Les ${snapshot.finalCells.length} cellule${snapshot.finalCells.length > 1 ? 's' : ''} affichées ici servent de projection de compatibilité.'
+                    : 'Le gameplay utilise ${snapshot.finalCells.length} cellule${snapshot.finalCells.length > 1 ? 's' : ''} de grille quand aucun masque fin n’est défini.',
                 style: TextStyle(
                   color: secondary,
                   fontSize: 11,
@@ -795,7 +804,7 @@ class _EditorSidebar extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   'Preview backend polygone: $pendingPolygonPreviewCount cellule${pendingPolygonPreviewCount > 1 ? 's' : ''}',
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.yellowAccent,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
@@ -844,7 +853,7 @@ class _EditorSidebar extends StatelessWidget {
         _SidebarSection(
           title: 'Aide',
           child: Text(
-            'Polygone forme: définit la forme principale d’un bâtiment. Pinceau + / -: applique des retouches locales. Le padding auto reste un outil secondaire pour les cas simples. Le runtime continue à lire uniquement `collisionProfile.cells`.',
+            'Polygone forme: définit une base coarse de bâtiment. Pinceau + / -: applique des retouches locales. Le padding auto reste un outil secondaire pour les cas simples. Le gameplay suit la source active affichée en haut.',
             style: TextStyle(
               color: secondary,
               fontSize: 11,
@@ -852,6 +861,70 @@ class _EditorSidebar extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _CollisionTruthBanner extends StatelessWidget {
+  const _CollisionTruthBanner({required this.summary});
+
+  final ElementCollisionTruthSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final label = CupertinoColors.label.resolveFrom(context);
+    final accent = switch (summary.mode) {
+      ElementCollisionTruthMode.fineMask => Colors.redAccent,
+      ElementCollisionTruthMode.legacyCells => Colors.orangeAccent,
+      ElementCollisionTruthMode.empty => Colors.greenAccent,
+    };
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: accent.withValues(alpha: 0.38)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'Source utilisée par le gameplay',
+            style: TextStyle(
+              color: secondary,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            summary.title,
+            style: TextStyle(
+              color: label,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            summary.description,
+            style: TextStyle(color: secondary, fontSize: 11),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            summary.detail,
+            style: TextStyle(color: secondary, fontSize: 11),
+          ),
+          for (final note in summary.notes) ...[
+            const SizedBox(height: 2),
+            Text(
+              note,
+              style: TextStyle(color: secondary, fontSize: 11),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
