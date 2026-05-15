@@ -47,6 +47,7 @@ void main() {
       expect(override.scaleX, 0.65);
       expect(override.scaleY, 0.45);
       expect(override.opacity, 0.24);
+      expect(override.footprint, isNull);
     });
 
     test('does not inherit a profile id from disabled overrides', () {
@@ -61,6 +62,7 @@ void main() {
 
       expect(override.mode, ShadowOverrideMode.custom);
       expect(override.shadowProfileId, isNull);
+      expect(override.footprint, isNull);
     });
 
     test('preserves a profile id from custom overrides', () {
@@ -86,6 +88,27 @@ void main() {
       expect(override.scaleX, preset.scaleX);
       expect(override.scaleY, preset.scaleY);
       expect(override.opacity, preset.opacity);
+    });
+
+    test('preserves footprint from custom overrides', () {
+      final preset = _preset('compact-footprint');
+      final footprint = StaticShadowFootprintConfig(
+        anchorXRatio: 0.25,
+        anchorYRatio: 0.75,
+        footprintWidthRatio: 0.5,
+        footprintHeightRatio: 0.2,
+      );
+
+      final override = applyPlacedElementShadowTuningPreset(
+        preset: preset,
+        currentOverride: MapPlacedElementShadowOverride(
+          mode: ShadowOverrideMode.custom,
+          footprint: footprint,
+        ),
+      );
+
+      expect(override.mode, ShadowOverrideMode.custom);
+      expect(override.footprint, footprint);
     });
 
     test('applies exact cast direction values', () {

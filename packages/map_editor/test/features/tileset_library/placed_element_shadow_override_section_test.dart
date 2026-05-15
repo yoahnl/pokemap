@@ -158,6 +158,17 @@ void main() {
       await _pumpSection(tester, harness: inheritHarness);
 
       expect(find.text('Réglages rapides'), findsNothing);
+      expect(find.text('Empreinte de cette instance'), findsNothing);
+
+      final disabledHarness = _Harness(
+        value: MapPlacedElementShadowOverride(
+          mode: ShadowOverrideMode.disabled,
+        ),
+      );
+      await _pumpSection(tester, harness: disabledHarness);
+
+      expect(find.text('Réglages rapides'), findsNothing);
+      expect(find.text('Empreinte de cette instance'), findsNothing);
 
       final customHarness = _Harness(
         value: MapPlacedElementShadowOverride(
@@ -167,9 +178,223 @@ void main() {
       await _pumpSection(tester, harness: customHarness);
 
       expect(find.text('Réglages rapides'), findsOneWidget);
+      expect(find.text('Empreinte de cette instance'), findsOneWidget);
       expect(find.text('Petite ombre'), findsOneWidget);
       expect(find.text('Portée bas-droite'), findsOneWidget);
       expect(find.text('Portée bas-gauche'), findsOneWidget);
+    });
+
+    testWidgets('custom footprint null and partial values sync text fields',
+        (tester) async {
+      final emptyHarness = _Harness(
+        value: MapPlacedElementShadowOverride(
+          mode: ShadowOverrideMode.custom,
+        ),
+      );
+      await _pumpSection(tester, harness: emptyHarness);
+
+      expect(_fieldText(tester, 'placed-shadow-footprint-anchorX-field'), '');
+      expect(_fieldText(tester, 'placed-shadow-footprint-anchorY-field'), '');
+      expect(_fieldText(tester, 'placed-shadow-footprint-width-field'), '');
+      expect(_fieldText(tester, 'placed-shadow-footprint-height-field'), '');
+
+      final partialHarness = _Harness(
+        value: MapPlacedElementShadowOverride(
+          mode: ShadowOverrideMode.custom,
+          footprint: StaticShadowFootprintConfig(
+            anchorXRatio: 0.25,
+            footprintWidthRatio: 0.5,
+          ),
+        ),
+      );
+      await _pumpSection(tester, harness: partialHarness);
+
+      expect(
+          _fieldText(tester, 'placed-shadow-footprint-anchorX-field'), '0.25');
+      expect(_fieldText(tester, 'placed-shadow-footprint-anchorY-field'), '');
+      expect(_fieldText(tester, 'placed-shadow-footprint-width-field'), '0.5');
+      expect(_fieldText(tester, 'placed-shadow-footprint-height-field'), '');
+    });
+
+    testWidgets('footprint fields update ratios and preserve custom fields',
+        (tester) async {
+      final harness = _Harness(
+        value: MapPlacedElementShadowOverride(
+          mode: ShadowOverrideMode.custom,
+          shadowProfileId: 'wide_shadow',
+          offsetX: 1,
+          offsetY: 2,
+          scaleX: 1.2,
+          scaleY: 0.8,
+          opacity: 0.4,
+        ),
+      );
+      await _pumpSection(tester, harness: harness);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('placed-shadow-footprint-anchorX-field')),
+        '0.25',
+      );
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey('placed-shadow-footprint-anchorY-field')),
+        '0.75',
+      );
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey('placed-shadow-footprint-width-field')),
+        '0.5',
+      );
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey('placed-shadow-footprint-height-field')),
+        '0.125',
+      );
+      await tester.pump();
+
+      final override = harness.value!;
+      expect(override.mode, ShadowOverrideMode.custom);
+      expect(override.shadowProfileId, 'wide_shadow');
+      expect(override.offsetX, 1);
+      expect(override.offsetY, 2);
+      expect(override.scaleX, 1.2);
+      expect(override.scaleY, 0.8);
+      expect(override.opacity, 0.4);
+      expect(override.footprint!.anchorXRatio, 0.25);
+      expect(override.footprint!.anchorYRatio, 0.75);
+      expect(override.footprint!.footprintWidthRatio, 0.5);
+      expect(override.footprint!.footprintHeightRatio, 0.125);
+    });
+
+    testWidgets('invalid footprint values show errors and do not emit changes',
+        (tester) async {
+      final initial = MapPlacedElementShadowOverride(
+        mode: ShadowOverrideMode.custom,
+        footprint: StaticShadowFootprintConfig(
+          anchorXRatio: 0.5,
+          footprintWidthRatio: 0.75,
+        ),
+      );
+      final harness = _Harness(value: initial);
+      await _pumpSection(tester, harness: harness);
+      harness.changes.clear();
+
+      await tester.enterText(
+        find.byKey(const ValueKey('placed-shadow-footprint-anchorX-field')),
+        '2',
+      );
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey('placed-shadow-footprint-width-field')),
+        '0',
+      );
+      await tester.pump();
+
+      expect(find.text('Doit être entre 0 et 1'), findsOneWidget);
+      expect(find.text('Doit être > 0'), findsOneWidget);
+      expect(harness.value, initial);
+      expect(harness.changes, isEmpty);
+    });
+
+    testWidgets('reset and clearing last footprint field keep custom override',
+        (tester) async {
+      final harness = _Harness(
+        value: MapPlacedElementShadowOverride(
+          mode: ShadowOverrideMode.custom,
+          shadowProfileId: 'wide_shadow',
+          offsetX: 3,
+          offsetY: 4,
+          scaleX: 1.1,
+          scaleY: 0.9,
+          opacity: 0.35,
+          footprint: StaticShadowFootprintConfig(anchorXRatio: 0.25),
+        ),
+      );
+      await _pumpSection(tester, harness: harness);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('placed-shadow-footprint-anchorX-field')),
+        '',
+      );
+      await tester.pump();
+
+      expect(harness.value!.mode, ShadowOverrideMode.custom);
+      expect(harness.value!.footprint, isNull);
+      expect(harness.value!.shadowProfileId, 'wide_shadow');
+      expect(harness.value!.offsetX, 3);
+      expect(harness.value!.offsetY, 4);
+      expect(harness.value!.scaleX, 1.1);
+      expect(harness.value!.scaleY, 0.9);
+      expect(harness.value!.opacity, 0.35);
+
+      harness.value = MapPlacedElementShadowOverride(
+        mode: ShadowOverrideMode.custom,
+        shadowProfileId: 'wide_shadow',
+        offsetX: 3,
+        footprint: StaticShadowFootprintConfig(anchorXRatio: 0.25),
+      );
+      await _pumpSection(tester, harness: harness);
+
+      await tester.tap(
+        find.byKey(const ValueKey('placed-shadow-footprint-reset-button')),
+      );
+      await tester.pump();
+
+      expect(harness.value!.mode, ShadowOverrideMode.custom);
+      expect(harness.value!.footprint, isNull);
+      expect(harness.value!.shadowProfileId, 'wide_shadow');
+      expect(harness.value!.offsetX, 3);
+
+      await tester
+          .tap(find.byKey(const ValueKey('placed-shadow-reset-button')));
+      await tester.pump();
+
+      expect(harness.value, isNull);
+    });
+
+    testWidgets('profile number changes and presets preserve footprint',
+        (tester) async {
+      final footprint = StaticShadowFootprintConfig(
+        anchorXRatio: 0.25,
+        anchorYRatio: 0.75,
+        footprintWidthRatio: 0.5,
+        footprintHeightRatio: 0.125,
+      );
+      final harness = _Harness(
+        value: MapPlacedElementShadowOverride(
+          mode: ShadowOverrideMode.custom,
+          shadowProfileId: 'base_shadow',
+          offsetX: 4,
+          footprint: footprint,
+        ),
+      );
+      await _pumpSection(tester, harness: harness);
+
+      final popup = tester.widget<MacosPopupButton<String>>(
+        find.byKey(const ValueKey('placed-shadow-profile-popup')),
+      );
+      popup.onChanged!('wide_shadow');
+      await tester.pump();
+      expect(harness.value!.shadowProfileId, 'wide_shadow');
+      expect(harness.value!.footprint, footprint);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('placed-shadow-scaleX-field')),
+        '1.5',
+      );
+      await tester.pump();
+      expect(harness.value!.scaleX, 1.5);
+      expect(harness.value!.footprint, footprint);
+
+      await tester.tap(find.text('Petite ombre'));
+      await tester.pump();
+      expect(harness.value!.mode, ShadowOverrideMode.custom);
+      expect(harness.value!.footprint, footprint);
+      expect(harness.value!.offsetX, 0);
+      expect(harness.value!.offsetY, 2);
+      expect(harness.value!.scaleX, 0.65);
+      expect(harness.value!.scaleY, 0.45);
+      expect(harness.value!.opacity, 0.24);
     });
 
     testWidgets('compact preset emits expected custom override values',
@@ -250,6 +475,13 @@ void main() {
       expect(harness.value!.shadowProfileId, 'wide_shadow');
     });
   });
+}
+
+String _fieldText(WidgetTester tester, String keyName) {
+  return tester
+      .widget<MacosTextField>(find.byKey(ValueKey(keyName)))
+      .controller!
+      .text;
 }
 
 Future<void> _pumpSection(

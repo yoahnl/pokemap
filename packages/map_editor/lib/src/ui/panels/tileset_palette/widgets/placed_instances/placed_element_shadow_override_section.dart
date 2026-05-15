@@ -38,8 +38,14 @@ class _PlacedElementShadowOverrideSectionState
   late final TextEditingController _scaleXController;
   late final TextEditingController _scaleYController;
   late final TextEditingController _opacityController;
+  late final TextEditingController _footprintAnchorXController;
+  late final TextEditingController _footprintAnchorYController;
+  late final TextEditingController _footprintWidthController;
+  late final TextEditingController _footprintHeightController;
   final Map<_PlacedShadowNumberField, String> _errors =
       <_PlacedShadowNumberField, String>{};
+  final Map<_PlacedShadowFootprintField, String> _footprintErrors =
+      <_PlacedShadowFootprintField, String>{};
 
   @override
   void initState() {
@@ -49,6 +55,10 @@ class _PlacedElementShadowOverrideSectionState
     _scaleXController = TextEditingController();
     _scaleYController = TextEditingController();
     _opacityController = TextEditingController();
+    _footprintAnchorXController = TextEditingController();
+    _footprintAnchorYController = TextEditingController();
+    _footprintWidthController = TextEditingController();
+    _footprintHeightController = TextEditingController();
     _syncControllers(widget.shadowOverride);
   }
 
@@ -67,6 +77,10 @@ class _PlacedElementShadowOverrideSectionState
     _scaleXController.dispose();
     _scaleYController.dispose();
     _opacityController.dispose();
+    _footprintAnchorXController.dispose();
+    _footprintAnchorYController.dispose();
+    _footprintWidthController.dispose();
+    _footprintHeightController.dispose();
     super.dispose();
   }
 
@@ -181,6 +195,8 @@ class _PlacedElementShadowOverrideSectionState
             const SizedBox(height: 10),
             _quickTuningPresets(context),
             const SizedBox(height: 10),
+            _footprintSection(context),
+            const SizedBox(height: 10),
             _numberGrid(context),
           ],
           if (widget.shadowOverride != null) ...[
@@ -192,7 +208,10 @@ class _PlacedElementShadowOverrideSectionState
                 controlSize: ControlSize.regular,
                 secondary: true,
                 onPressed: () {
-                  setState(_errors.clear);
+                  setState(() {
+                    _errors.clear();
+                    _footprintErrors.clear();
+                  });
                   widget.onChanged(null);
                 },
                 child: const Text('Réinitialiser l’override'),
@@ -337,6 +356,121 @@ class _PlacedElementShadowOverrideSectionState
     );
   }
 
+  Widget _footprintSection(BuildContext context) {
+    final label = EditorChrome.primaryLabel(context);
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final hasFootprint = widget.shadowOverride?.footprint != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Empreinte de cette instance',
+          style: TextStyle(
+            color: label,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Remplace l’empreinte de l’élément uniquement pour cette instance. Laissez vide pour hériter de l’élément.',
+          style: TextStyle(color: secondary, fontSize: 10),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _footprintField(
+                context,
+                _PlacedShadowFootprintField.anchorX,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _footprintField(
+                context,
+                _PlacedShadowFootprintField.anchorY,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _footprintField(
+                context,
+                _PlacedShadowFootprintField.width,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _footprintField(
+                context,
+                _PlacedShadowFootprintField.height,
+              ),
+            ),
+          ],
+        ),
+        if (hasFootprint) ...[
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: PushButton(
+              key: const ValueKey('placed-shadow-footprint-reset-button'),
+              controlSize: ControlSize.small,
+              secondary: true,
+              onPressed: _resetFootprint,
+              child: const Text('Réinitialiser l’empreinte de l’instance'),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _footprintField(
+    BuildContext context,
+    _PlacedShadowFootprintField field,
+  ) {
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final error = _footprintErrors[field];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          field.label,
+          style: TextStyle(color: secondary, fontSize: 10),
+        ),
+        const SizedBox(height: 4),
+        MacosTextField(
+          key: ValueKey('placed-shadow-footprint-${field.keyName}-field'),
+          controller: _footprintControllerFor(field),
+          placeholder: 'auto',
+          keyboardType: const TextInputType.numberWithOptions(
+            signed: true,
+            decimal: true,
+          ),
+          inputFormatters: <TextInputFormatter>[
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9.\-]')),
+          ],
+          onChanged: (value) => _setFootprintNumber(field, value),
+        ),
+        if (error != null) ...[
+          const SizedBox(height: 3),
+          Text(
+            error,
+            style: TextStyle(
+              color: CupertinoColors.systemRed.resolveFrom(context),
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   Widget _numberField(
     BuildContext context,
     _PlacedShadowNumberField field,
@@ -379,7 +513,10 @@ class _PlacedElementShadowOverrideSectionState
   }
 
   void _setMode(PlacedElementShadowOverrideUiMode mode) {
-    setState(_errors.clear);
+    setState(() {
+      _errors.clear();
+      _footprintErrors.clear();
+    });
     switch (mode) {
       case PlacedElementShadowOverrideUiMode.inherit:
         widget.onChanged(null);
@@ -423,8 +560,33 @@ class _PlacedElementShadowOverrideSectionState
     );
   }
 
+  void _setFootprintNumber(
+    _PlacedShadowFootprintField field,
+    String rawValue,
+  ) {
+    final parsed = _parseFootprintNumber(field, rawValue);
+    if (parsed?.isNaN == true) return;
+    widget.onChanged(
+      _customOverride(
+        footprint: _updatedFootprint(
+          _currentCustomOverride?.footprint,
+          field: field,
+          value: parsed,
+        ),
+      ),
+    );
+  }
+
+  void _resetFootprint() {
+    setState(_footprintErrors.clear);
+    widget.onChanged(_customOverride(footprint: null));
+  }
+
   void _applyTuningPreset(PlacedElementShadowTuningPreset preset) {
-    setState(_errors.clear);
+    setState(() {
+      _errors.clear();
+      _footprintErrors.clear();
+    });
     widget.onChanged(
       applyPlacedElementShadowTuningPreset(
         preset: preset,
@@ -459,6 +621,32 @@ class _PlacedElementShadowOverrideSectionState
     return parsed;
   }
 
+  double? _parseFootprintNumber(
+    _PlacedShadowFootprintField field,
+    String rawValue,
+  ) {
+    final trimmed = rawValue.trim();
+    if (trimmed.isEmpty) {
+      setState(() => _footprintErrors.remove(field));
+      return null;
+    }
+    final parsed = double.tryParse(trimmed);
+    if (parsed == null || !parsed.isFinite) {
+      setState(() => _footprintErrors[field] = 'Nombre invalide');
+      return _invalidPlacedShadowNumber;
+    }
+    if (field.isAnchor && (parsed < 0 || parsed > 1)) {
+      setState(() => _footprintErrors[field] = 'Doit être entre 0 et 1');
+      return _invalidPlacedShadowNumber;
+    }
+    if (!field.isAnchor && parsed <= 0) {
+      setState(() => _footprintErrors[field] = 'Doit être > 0');
+      return _invalidPlacedShadowNumber;
+    }
+    setState(() => _footprintErrors.remove(field));
+    return parsed;
+  }
+
   MapPlacedElementShadowOverride _customOverride({
     Object? shadowProfileId = _preservePlacedShadowValue,
     Object? offsetX = _preservePlacedShadowValue,
@@ -466,6 +654,7 @@ class _PlacedElementShadowOverrideSectionState
     Object? scaleX = _preservePlacedShadowValue,
     Object? scaleY = _preservePlacedShadowValue,
     Object? opacity = _preservePlacedShadowValue,
+    Object? footprint = _preservePlacedShadowValue,
   }) {
     final current = _currentCustomOverride;
     return MapPlacedElementShadowOverride(
@@ -488,6 +677,9 @@ class _PlacedElementShadowOverrideSectionState
       opacity: identical(opacity, _preservePlacedShadowValue)
           ? current?.opacity
           : opacity as double?,
+      footprint: identical(footprint, _preservePlacedShadowValue)
+          ? current?.footprint
+          : footprint as StaticShadowFootprintConfig?,
     );
   }
 
@@ -505,6 +697,19 @@ class _PlacedElementShadowOverrideSectionState
     _scaleXController.text = _formatPlacedShadowNumber(override?.scaleX);
     _scaleYController.text = _formatPlacedShadowNumber(override?.scaleY);
     _opacityController.text = _formatPlacedShadowNumber(override?.opacity);
+    final footprint = override?.footprint;
+    _footprintAnchorXController.text = _formatPlacedShadowNumber(
+      footprint?.anchorXRatio,
+    );
+    _footprintAnchorYController.text = _formatPlacedShadowNumber(
+      footprint?.anchorYRatio,
+    );
+    _footprintWidthController.text = _formatPlacedShadowNumber(
+      footprint?.footprintWidthRatio,
+    );
+    _footprintHeightController.text = _formatPlacedShadowNumber(
+      footprint?.footprintHeightRatio,
+    );
   }
 
   TextEditingController _controllerFor(_PlacedShadowNumberField field) {
@@ -519,6 +724,21 @@ class _PlacedElementShadowOverrideSectionState
         return _scaleYController;
       case _PlacedShadowNumberField.opacity:
         return _opacityController;
+    }
+  }
+
+  TextEditingController _footprintControllerFor(
+    _PlacedShadowFootprintField field,
+  ) {
+    switch (field) {
+      case _PlacedShadowFootprintField.anchorX:
+        return _footprintAnchorXController;
+      case _PlacedShadowFootprintField.anchorY:
+        return _footprintAnchorYController;
+      case _PlacedShadowFootprintField.width:
+        return _footprintWidthController;
+      case _PlacedShadowFootprintField.height:
+        return _footprintHeightController;
     }
   }
 }
@@ -538,6 +758,52 @@ enum _PlacedShadowNumberField {
 
   final String keyName;
   final String label;
+}
+
+enum _PlacedShadowFootprintField {
+  anchorX('anchorX', 'Ancre X'),
+  anchorY('anchorY', 'Ancre Y'),
+  width('width', 'Largeur d’empreinte'),
+  height('height', 'Hauteur d’empreinte');
+
+  const _PlacedShadowFootprintField(this.keyName, this.label);
+
+  final String keyName;
+  final String label;
+
+  bool get isAnchor =>
+      this == _PlacedShadowFootprintField.anchorX ||
+      this == _PlacedShadowFootprintField.anchorY;
+}
+
+StaticShadowFootprintConfig? _updatedFootprint(
+  StaticShadowFootprintConfig? current, {
+  required _PlacedShadowFootprintField field,
+  required double? value,
+}) {
+  final anchorX = field == _PlacedShadowFootprintField.anchorX
+      ? value
+      : current?.anchorXRatio;
+  final anchorY = field == _PlacedShadowFootprintField.anchorY
+      ? value
+      : current?.anchorYRatio;
+  final width = field == _PlacedShadowFootprintField.width
+      ? value
+      : current?.footprintWidthRatio;
+  final height = field == _PlacedShadowFootprintField.height
+      ? value
+      : current?.footprintHeightRatio;
+
+  if (anchorX == null && anchorY == null && width == null && height == null) {
+    return null;
+  }
+
+  return StaticShadowFootprintConfig(
+    anchorXRatio: anchorX,
+    anchorYRatio: anchorY,
+    footprintWidthRatio: width,
+    footprintHeightRatio: height,
+  );
 }
 
 String _formatPlacedShadowNumber(double? value) {

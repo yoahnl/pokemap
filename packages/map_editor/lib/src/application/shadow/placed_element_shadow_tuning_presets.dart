@@ -84,6 +84,9 @@ MapPlacedElementShadowOverride applyPlacedElementShadowTuningPreset({
   final shadowProfileId = currentOverride?.mode == ShadowOverrideMode.custom
       ? currentOverride?.shadowProfileId
       : null;
+  final footprint = currentOverride?.mode == ShadowOverrideMode.custom
+      ? currentOverride?.footprint
+      : null;
   return MapPlacedElementShadowOverride(
     mode: ShadowOverrideMode.custom,
     shadowProfileId: shadowProfileId,
@@ -92,5 +95,6 @@ MapPlacedElementShadowOverride applyPlacedElementShadowTuningPreset({
     scaleX: preset.scaleX,
     scaleY: preset.scaleY,
     opacity: preset.opacity,
+    footprint: footprint,
   );
 }
