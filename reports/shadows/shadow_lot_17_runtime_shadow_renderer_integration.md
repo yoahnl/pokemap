@@ -1,3 +1,397 @@
+# Shadow Lot 17 — Runtime Shadow Renderer Integration V0
+
+## 1. Résumé
+
+Shadow-17 intègre `ShadowRuntimeRenderer` dans `MapLayersComponent` en consommant une `ShadowRuntimeInstructionCollection` optionnelle déjà prête.
+
+Le lot ne génère aucune instruction Shadow, ne résout aucune config, ne lit pas `MapData` pour produire des ombres, ne lit pas `ProjectManifest`, `ProjectElementEntry` ou `MapPlacedElement` pour produire des ombres, ne crée aucun nouveau `Flame Component`, et ne modifie pas les resolvers.
+
+Correction validée appliquée : `shadowCollectionProvider` est appelé une seule fois par render background, puis les passes `groundStatic` et `actorContact` utilisent la même collection dans la même frame.
+
+## 2. Fichiers créés
+
+- `packages/map_runtime/test/shadow/shadow_runtime_renderer_integration_test.dart`
+- `reports/shadows/shadow_lot_17_runtime_shadow_renderer_integration.md`
+
+## 3. Fichiers modifiés
+
+- `packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart`
+
+## 4. Point d’intégration runtime
+
+Fichier modifié :
+
+- `packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart`
+
+Méthode modifiée :
+
+- `MapLayersComponent.render(Canvas canvas)`
+
+Insertion appliquée :
+
+```text
+terrain
+paths
+surfaces
+groundStatic shadows
+actorContact shadows
+tile / placed element sprites
+project element entities
+collision overlays
+```
+
+Le rendu Shadow est appelé juste après la boucle `_paintSurfaceLayer(...)` et avant la boucle des `MapLayer.tile(...)`.
+
+## 5. Provider / collection Shadow
+
+API ajoutée localement dans `map_layers_component.dart` :
+
+```dart
+typedef ShadowRuntimeInstructionCollectionProvider
+    = ShadowRuntimeInstructionCollection? Function();
+```
+
+`MapLayersComponent` reçoit maintenant :
+
+```dart
+final ShadowRuntimeInstructionCollectionProvider? shadowCollectionProvider;
+final ShadowRuntimeRenderer shadowRenderer;
+```
+
+Comportement :
+
+- provider absent -> no-op ;
+- provider retourne `null` -> no-op ;
+- provider retourne une collection vide -> no-op ;
+- provider retourne une collection non vide -> rendu des passes `groundStatic` puis `actorContact` ;
+- provider appelé une seule fois par render background ;
+- la collection n’est pas stockée, modifiée, triée, cullée ou dédupliquée.
+
+Ce choix prépare les futures updates par frame : le provider peut retourner une collection différente à chaque render, tout en gardant une frame cohérente entre les deux passes.
+
+## 6. Ordre de rendu appliqué
+
+Ordre V0 dans `MapLayersComponent` background pass :
+
+```text
+terrain
+path layers
+surface layers
+ShadowRenderPass.groundStatic
+ShadowRenderPass.actorContact
+tile / placed elements
+project element entities
+collision overlays
+```
+
+Cet ordre respecte le contrat Shadow-10 :
+
+```text
+baseTerrain
+groundPaths
+surfaceLayers
+futureStaticPlacedElementShadows
+futureDynamicActorContactShadows
+placedElementSprites
+actorsPlayerNpc
+placedElementOcclusionPatches
+debugOverlays
+hudUi
+```
+
+Le foreground pass ne rend pas les ombres.
+
+## 7. No-op behavior
+
+Les tests couvrent :
+
+- absence de provider ;
+- provider retournant `null` ;
+- provider retournant une collection vide ;
+- foreground pass sans rendu Shadow.
+
+Dans ces cas, le rendu existant reste inchangé.
+
+## 8. Décisions d’implémentation
+
+- Pas de `ShadowLayerComponent` : le lot intègre le renderer dans le point de rendu existant.
+- Pas de nouveau `Flame Component` : une injection optionnelle suffit pour ce V0.
+- Pas de culling ici : Shadow-15 possède déjà la brique de collection/culling.
+- Pas de tri ici : la collection fournie garde déjà l’ordre attendu.
+- Pas de resolver ici : `MapLayersComponent` consomme seulement une collection prête.
+- Pas de lecture `MapData` / manifest pour produire des ombres : l’alimentation de collection appartient à un futur lot.
+- Pas d’export depuis `map_runtime.dart` : les briques Shadow runtime précédentes restent internes au package.
+- Provider appelé une seule fois par render pour éviter de mélanger deux états de collection dans une même frame.
+
+## 9. Tests ajoutés
+
+Nouveau fichier :
+
+- `packages/map_runtime/test/shadow/shadow_runtime_renderer_integration_test.dart`
+
+Couverture :
+
+- no provider -> no-op ;
+- provider `null` -> no-op ;
+- collection vide -> no-op ;
+- `groundStatic` puis `actorContact` rendus après surfaces ;
+- ombres rendues avant tile / placed element sprites ;
+- ombres rendues avant project element entities ;
+- provider appelé une seule fois par render ;
+- deux renders successifs peuvent utiliser deux collections différentes ;
+- foreground pass ne rend pas les ombres.
+
+## 10. Commandes lancées
+
+```bash
+git status --short --untracked-files=all
+find .. -name AGENTS.md -print
+flutter test test/shadow/shadow_runtime_renderer_integration_test.dart
+dart format lib/src/presentation/flame/map_layers_component.dart test/shadow/shadow_runtime_renderer_integration_test.dart
+flutter test test/shadow/shadow_runtime_renderer_integration_test.dart
+flutter test test/shadow
+flutter analyze lib/src/shadow lib/src/presentation/flame/map_layers_component.dart test/shadow
+flutter test
+dart test test/shadow
+rg -n "ShadowLayerComponent|class .*Component|extends .*Component" packages/map_runtime/lib/src/shadow packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart packages/map_runtime/test/shadow
+rg -n "ProjectManifest|ProjectElementEntry|MapPlacedElement|resolveShadowConfig|RuntimeTilesetImage|TileImageLoader" packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart packages/map_runtime/lib/src/shadow
+rg -n "drawImageRect|drawAtlas|saveLayer|ImageFilter|blurRadius|runtimeBlur|customShadowSprite|shadowTilesetId|shadowSource|WorldLightState|ShadowLightProfile|zOrder|zIndex" packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart packages/map_runtime/lib/src/shadow
+rg -n "resolveActorContactShadow|resolveStaticPlacedElementShadow|resolveShadowRuntimeInstruction|collectShadowRuntimeInstructions" packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart
+git diff -U0 -- packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart | rg -n "ProjectManifest|ProjectElementEntry|MapPlacedElement|resolveShadowConfig|RuntimeTilesetImage|TileImageLoader"
+git diff -U0 -- packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart | rg -n "drawImageRect|drawAtlas|saveLayer|ImageFilter|blurRadius|runtimeBlur|customShadowSprite|shadowTilesetId|shadowSource|WorldLightState|ShadowLightProfile|zOrder|zIndex"
+git diff --check
+git diff --stat
+git status --short --untracked-files=all
+flutter test test/shadow/shadow_runtime_renderer_integration_test.dart && flutter analyze lib/src/shadow lib/src/presentation/flame/map_layers_component.dart test/shadow
+python3 - <<'PY' ... PY
+```
+
+## 11. Résultats des tests ciblés
+
+RED attendu avant implémentation :
+
+```text
+flutter test test/shadow/shadow_runtime_renderer_integration_test.dart
+Exit code 1
+Erreur attendue : ShadowRuntimeInstructionCollectionProvider introuvable et paramètre shadowCollectionProvider absent.
+```
+
+GREEN après implémentation :
+
+```text
+flutter test test/shadow/shadow_runtime_renderer_integration_test.dart
+00:00 +9: All tests passed!
+```
+
+Après nettoyage du diff :
+
+```text
+flutter test test/shadow/shadow_runtime_renderer_integration_test.dart && flutter analyze lib/src/shadow lib/src/presentation/flame/map_layers_component.dart test/shadow
+00:00 +9: All tests passed!
+No issues found! (ran in 1.4s)
+```
+
+## 12. Résultat de flutter test test/shadow
+
+Commande :
+
+```bash
+cd packages/map_runtime && flutter test test/shadow
+```
+
+Résultat :
+
+```text
+00:01 +132: All tests passed!
+```
+
+## 13. Résultat de flutter analyze
+
+Commande :
+
+```bash
+cd packages/map_runtime && flutter analyze lib/src/shadow lib/src/presentation/flame/map_layers_component.dart test/shadow
+```
+
+Résultat :
+
+```text
+No issues found! (ran in 1.9s)
+```
+
+Rerun après nettoyage du diff dans la commande combinée ciblée :
+
+```text
+No issues found! (ran in 1.4s)
+```
+
+## 14. Résultat du test complet map_runtime
+
+Commande :
+
+```bash
+cd packages/map_runtime && flutter test
+```
+
+Résultat :
+
+```text
+00:20 +1053: All tests passed!
+```
+
+## 15. Vérifications anti-dérive
+
+`rg -n "ShadowLayerComponent|class .*Component|extends .*Component" ...`
+
+Résultat :
+
+```text
+packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart:38:class MapLayersComponent extends PositionComponent
+```
+
+Interprétation : occurrence existante du composant modifié, aucun `ShadowLayerComponent`, aucun nouveau `class ... Component` ajouté dans le diff.
+
+`rg -n "ProjectManifest|ProjectElementEntry|MapPlacedElement|resolveShadowConfig|RuntimeTilesetImage|TileImageLoader" ...`
+
+Résultat : occurrences préexistantes dans `MapLayersComponent` pour le rendu map existant (`RuntimeTilesetImage`, `ProjectElementEntry`, `MapPlacedElementAnimation`). Vérification diff-only :
+
+```text
+git diff -U0 -- packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart | rg -n "ProjectManifest|ProjectElementEntry|MapPlacedElement|resolveShadowConfig|RuntimeTilesetImage|TileImageLoader"
+```
+
+Résultat :
+
+```text
+aucune sortie
+```
+
+`rg -n "drawImageRect|drawAtlas|saveLayer|ImageFilter|blurRadius|runtimeBlur|customShadowSprite|shadowTilesetId|shadowSource|WorldLightState|ShadowLightProfile|zOrder|zIndex" ...`
+
+Résultat : occurrences préexistantes `drawImageRect` dans `MapLayersComponent`. Vérification diff-only :
+
+```text
+git diff -U0 -- packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart | rg -n "drawImageRect|drawAtlas|saveLayer|ImageFilter|blurRadius|runtimeBlur|customShadowSprite|shadowTilesetId|shadowSource|WorldLightState|ShadowLightProfile|zOrder|zIndex"
+```
+
+Résultat :
+
+```text
+aucune sortie
+```
+
+`rg -n "resolveActorContactShadow|resolveStaticPlacedElementShadow|resolveShadowRuntimeInstruction|collectShadowRuntimeInstructions" packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart`
+
+Résultat :
+
+```text
+aucune sortie
+```
+
+Confirmations :
+
+- aucun `ShadowLayerComponent` ;
+- aucun nouveau `Flame Component` ;
+- aucun `PlayerComponent` modifié ;
+- aucun `OverworldActorComponent` modifié ;
+- aucun `PlacedElementOcclusionPatchComponent` modifié ;
+- aucun `MapData` lu pour produire les ombres ;
+- aucun `ProjectManifest` lu pour produire les ombres ;
+- aucun `ProjectElementEntry` lu pour produire les ombres ;
+- aucun `MapPlacedElement` lu pour produire les ombres ;
+- aucun `resolveShadowConfig` ;
+- aucun resolver Shadow appelé depuis `MapLayersComponent` ;
+- aucun culling ajouté ;
+- aucun tri ajouté ;
+- aucun zOrder/zIndex ;
+- aucun `RuntimeTilesetImage` ajouté au code Shadow ;
+- aucun `TileImageLoader` ajouté au code Shadow ;
+- aucun `drawImageRect` / `drawAtlas` / `saveLayer` / blur ajouté par ce lot ;
+- aucun `map_core` modifié ;
+- aucun `map_editor` modifié ;
+- aucun `map_gameplay` modifié.
+
+## 16. Git status initial
+
+Statut initial du lot avant les changements Shadow-17 :
+
+```text
+aucune sortie
+```
+
+Statut observé après ajout du test RED et avant implémentation :
+
+```text
+?? packages/map_runtime/test/shadow/shadow_runtime_renderer_integration_test.dart
+```
+
+## 17. Git status final
+
+Avant création de ce rapport, le statut était :
+
+```text
+ M packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart
+?? packages/map_runtime/test/shadow/shadow_runtime_renderer_integration_test.dart
+```
+
+Après création de ce rapport, le statut final capturé est :
+
+```text
+ M packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart
+?? packages/map_runtime/test/shadow/shadow_runtime_renderer_integration_test.dart
+?? reports/shadows/shadow_lot_17_runtime_shadow_renderer_integration.md
+```
+
+## 18. Git diff stat final
+
+Commande :
+
+```bash
+git diff --stat
+```
+
+Résultat final après création du rapport :
+
+```text
+ .../presentation/flame/map_layers_component.dart   | 30 ++++++++++++++++++++--
+ 1 file changed, 28 insertions(+), 2 deletions(-)
+```
+
+Note : `git diff --stat` n’inclut pas les fichiers non suivis. Les fichiers créés sont listés dans les sections 2 et 17.
+
+## 19. Non-objectifs respectés
+
+- Pas de `ShadowLayerComponent`.
+- Pas de nouveau composant Flame.
+- Pas de modification de `RuntimeMapGame`.
+- Pas de modification de `PlayableMapGame`.
+- Pas de modification de `PlayerComponent`.
+- Pas de modification de `OverworldActorComponent`.
+- Pas de modification de `PlacedElementOcclusionPatchComponent`.
+- Pas de génération d’instructions Shadow dans `MapLayersComponent`.
+- Pas d’appel aux resolvers Shadow-12 / Shadow-13 / Shadow-14.
+- Pas d’appel à `collectShadowRuntimeInstructions`.
+- Pas de culling.
+- Pas de tri.
+- Pas de déduplication.
+- Pas de `zOrder` / `zIndex`.
+- Pas de modification `map_core`.
+- Pas de modification `map_editor`.
+- Pas de modification `map_gameplay`.
+
+## 20. Risques / réserves
+
+- L’intégration reste artificielle tant qu’aucun futur provider réel n’alimente `MapLayersComponent`.
+- L’ordre est testé par pixels sur des fixtures 1x1 simples ; une vérification visuelle réelle restera nécessaire au lot d’alimentation des ombres.
+- Les acteurs réels ne fournissent pas encore de collection Shadow.
+- Les éléments statiques réels ne fournissent pas encore de collection Shadow.
+
+## 21. Contenu complet des fichiers créés/modifiés
+
+Cette section inclut le contenu complet des fichiers code créés/modifiés par Shadow-17.
+
+### `packages/map_runtime/lib/src/presentation/flame/map_layers_component.dart` — contenu complet
+
+```dart
 import 'package:flame/components.dart';
 import 'package:flutter/material.dart';
 import 'package:map_core/map_core.dart';
@@ -1786,3 +2180,247 @@ Color _terrainBorderColor(TerrainType terrain) {
     TerrainType.none => Colors.transparent,
   };
 }
+```
+
+### `packages/map_runtime/test/shadow/shadow_runtime_renderer_integration_test.dart` — contenu complet
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_runtime/src/presentation/flame/map_layers_component.dart';
+import 'package:map_runtime/src/shadow/shadow_runtime_instruction_collection.dart';
+import 'package:map_runtime/src/shadow/shadow_runtime_render_instruction.dart';
+
+import '../surface/surface_runtime_test_support.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  group('MapLayersComponent shadow renderer integration', () {
+    test('renders without shadow provider as existing no-op behavior',
+        () async {
+      final component = await _componentWithSurface();
+
+      final image = await renderSurfaceTestComponent(component);
+
+      expect(await pixelAt(image, 16, 16), rgba(0, 0, 255, 255));
+    });
+
+    test('treats a null shadow collection as a no-op', () async {
+      final component = await _componentWithSurface(
+        shadowCollectionProvider: () => null,
+      );
+
+      final image = await renderSurfaceTestComponent(component);
+
+      expect(await pixelAt(image, 16, 16), rgba(0, 0, 255, 255));
+    });
+
+    test('treats an empty shadow collection as a no-op', () async {
+      final component = await _componentWithSurface(
+        shadowCollectionProvider: () => ShadowRuntimeInstructionCollection(),
+      );
+
+      final image = await renderSurfaceTestComponent(component);
+
+      expect(await pixelAt(image, 16, 16), rgba(0, 0, 255, 255));
+    });
+
+    test('renders groundStatic and actorContact shadows after surfaces',
+        () async {
+      final component = await _componentWithSurface(
+        shadowCollectionProvider: () => ShadowRuntimeInstructionCollection(
+          instructions: [
+            _shadow(
+              renderPass: ShadowRenderPass.groundStatic,
+              colorHexRgb: 'FF0000',
+            ),
+            _shadow(
+              renderPass: ShadowRenderPass.actorContact,
+              colorHexRgb: '00FF00',
+            ),
+          ],
+        ),
+      );
+
+      final image = await renderSurfaceTestComponent(component);
+
+      expect(await pixelAt(image, 16, 16), rgba(0, 255, 0, 255));
+    });
+
+    test('renders shadows before tile and placed element sprites', () async {
+      final component = MapLayersComponent(
+        bundle: surfaceTestBundle(
+          map: surfaceTestMap(
+            layers: [
+              surfaceTestLayer(),
+              const MapLayer.tile(
+                id: 'tile',
+                name: 'Tile',
+                tilesetId: 'base',
+                tiles: [1],
+              ),
+            ],
+          ),
+        ),
+        tileImagesByTilesetId: {
+          'surface-water': await runtimeTilesetImage([const Color(0xFF0000FF)]),
+          'base': await runtimeTilesetImage([const Color(0xFFFF0000)]),
+        },
+        shadowCollectionProvider: () => ShadowRuntimeInstructionCollection(
+          instructions: [
+            _shadow(colorHexRgb: '000000'),
+          ],
+        ),
+      );
+
+      final image = await renderSurfaceTestComponent(component);
+
+      expect(await pixelAt(image, 16, 16), rgba(255, 0, 0, 255));
+    });
+
+    test('renders shadows before project element entities', () async {
+      final component = MapLayersComponent(
+        bundle: surfaceTestBundle(
+          elements: [surfaceTestElement()],
+          map: surfaceTestMap(
+            layers: [surfaceTestLayer()],
+            entities: const [
+              MapEntity(
+                id: 'entity',
+                kind: MapEntityKind.custom,
+                pos: GridPos(x: 0, y: 0),
+                editorVisual: MapEntityEditorVisual(
+                  elementId: 'entity-prop',
+                ),
+              ),
+            ],
+          ),
+        ),
+        tileImagesByTilesetId: {
+          'surface-water': await runtimeTilesetImage([const Color(0xFF0000FF)]),
+          'entity': await runtimeTilesetImage([const Color(0xFF800080)]),
+        },
+        shadowCollectionProvider: () => ShadowRuntimeInstructionCollection(
+          instructions: [
+            _shadow(colorHexRgb: '000000'),
+          ],
+        ),
+      );
+
+      final image = await renderSurfaceTestComponent(component);
+
+      expect(await pixelAt(image, 16, 16), rgba(128, 0, 128, 255));
+    });
+
+    test('calls the shadow collection provider once per render', () async {
+      var calls = 0;
+      final component = await _componentWithSurface(
+        shadowCollectionProvider: () {
+          calls += 1;
+          return ShadowRuntimeInstructionCollection(
+            instructions: [
+              _shadow(
+                renderPass: ShadowRenderPass.groundStatic,
+                colorHexRgb: 'FF0000',
+              ),
+              _shadow(
+                renderPass: ShadowRenderPass.actorContact,
+                colorHexRgb: '00FF00',
+              ),
+            ],
+          );
+        },
+      );
+
+      final image = await renderSurfaceTestComponent(component);
+
+      expect(calls, 1);
+      expect(await pixelAt(image, 16, 16), rgba(0, 255, 0, 255));
+    });
+
+    test('uses a fresh provider collection on each render', () async {
+      var calls = 0;
+      final component = await _componentWithSurface(
+        shadowCollectionProvider: () {
+          calls += 1;
+          return ShadowRuntimeInstructionCollection(
+            instructions: [
+              _shadow(
+                renderPass: ShadowRenderPass.groundStatic,
+                colorHexRgb: calls == 1 ? 'FF0000' : '00FF00',
+              ),
+            ],
+          );
+        },
+      );
+
+      final firstImage = await renderSurfaceTestComponent(component);
+      final secondImage = await renderSurfaceTestComponent(component);
+
+      expect(await pixelAt(firstImage, 16, 16), rgba(255, 0, 0, 255));
+      expect(await pixelAt(secondImage, 16, 16), rgba(0, 255, 0, 255));
+      expect(calls, 2);
+    });
+
+    test('does not render shadows in the foreground pass', () async {
+      final component = await _componentWithSurface(
+        renderPass: MapLayerRenderPass.foreground,
+        shadowCollectionProvider: () => ShadowRuntimeInstructionCollection(
+          instructions: [
+            _shadow(colorHexRgb: '000000'),
+          ],
+        ),
+      );
+
+      final image = await renderSurfaceTestComponent(component);
+
+      expect(await pixelAt(image, 16, 16), rgba(0, 0, 0, 0));
+    });
+  });
+}
+
+Future<MapLayersComponent> _componentWithSurface({
+  MapLayerRenderPass renderPass = MapLayerRenderPass.background,
+  ShadowRuntimeInstructionCollectionProvider? shadowCollectionProvider,
+}) async {
+  return MapLayersComponent(
+    bundle: surfaceTestBundle(
+      map: surfaceTestMap(layers: [surfaceTestLayer()]),
+    ),
+    tileImagesByTilesetId: {
+      'surface-water': await runtimeTilesetImage([const Color(0xFF0000FF)]),
+    },
+    renderPass: renderPass,
+    shadowCollectionProvider: shadowCollectionProvider,
+  );
+}
+
+ShadowRuntimeRenderInstruction _shadow({
+  ShadowRenderPass renderPass = ShadowRenderPass.groundStatic,
+  String colorHexRgb = '000000',
+}) {
+  return ShadowRuntimeRenderInstruction(
+    shape: ShadowRuntimeShapeKind.ellipse,
+    renderPass: renderPass,
+    worldLeft: 4,
+    worldTop: 4,
+    width: 24,
+    height: 24,
+    opacity: 1,
+    colorHexRgb: colorHexRgb,
+  );
+}
+```
+
+## 22. Autocritique
+
+- Trop strict possible : foreground pass ignore toutes les ombres, ce qui est correct pour V0 mais pourrait être revu si un futur effet foreground existe.
+- Trop permissif possible : `MapLayersComponent` accepte n’importe quelle collection déjà construite ; la validation reste volontairement dans les briques précédentes.
+- Point à vérifier au vrai rendu : interaction visuelle avec actors Flame réels, car le test pixel ne monte pas toute la pile de jeu.
+- Tant que le provider réel n’existe pas, l’intégration prouve le point d’appel mais ne permet pas encore de voir les ombres automatiquement en jeu.
+
+## 23. Prochain lot recommandé
+
+Shadow-18 — Runtime Actor Blob Shadows Integration V0
