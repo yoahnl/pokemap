@@ -225,12 +225,16 @@ class _ElementCollisionEditorSheetState
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
-                                  const Spacer(),
-                                  Text(
-                                    _tool.helpLabel,
-                                    style: TextStyle(
-                                      color: secondary,
-                                      fontSize: 11,
+                                  const SizedBox(width: 12),
+                                  Flexible(
+                                    child: Text(
+                                      _tool.helpLabel,
+                                      textAlign: TextAlign.right,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: secondary,
+                                        fontSize: 11,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -329,45 +333,51 @@ class _ElementCollisionEditorSheetState
                       const SizedBox(width: 14),
                       SizedBox(
                         width: 320,
-                        child: _EditorSidebar(
-                          source: widget.source,
-                          snapshot: snapshot,
-                          truthSummary: truthSummary,
-                          showGrid: _showGrid,
-                          showBase: _showBase,
-                          showFinal: _showFinal,
-                          showOverrides: _showOverrides,
-                          pendingPolygonPreviewCount:
-                              pendingPolygonPreviewCells.length,
-                          onShowGridChanged: (value) =>
-                              setState(() => _showGrid = value),
-                          onShowBaseChanged: (value) =>
-                              setState(() => _showBase = value),
-                          onShowFinalChanged: (value) =>
-                              setState(() => _showFinal = value),
-                          onShowOverridesChanged: (value) =>
-                              setState(() => _showOverrides = value),
-                          paddingEditor: ElementCollisionPaddingEditor(
-                            padding: _draftPadding,
-                            usesManualPrimaryShape:
-                                snapshot.usesManualPrimaryShape,
-                            maxHorizontal: math.max(
-                                0, widget.source.width * widget.tileWidth - 1),
-                            maxVertical: math.max(0,
-                                widget.source.height * widget.tileHeight - 1),
-                            onChanged: (next) {
-                              setState(() {
-                                _draftPadding = next;
-                                _draftProfile =
-                                    _authoringService.recalculateFromPadding(
-                                  source: widget.source,
-                                  tileWidth: widget.tileWidth,
-                                  tileHeight: widget.tileHeight,
-                                  padding: next,
-                                  current: _draftProfile,
-                                );
-                              });
-                            },
+                        child: CupertinoScrollbar(
+                          child: SingleChildScrollView(
+                            child: _EditorSidebar(
+                              source: widget.source,
+                              snapshot: snapshot,
+                              truthSummary: truthSummary,
+                              showGrid: _showGrid,
+                              showBase: _showBase,
+                              showFinal: _showFinal,
+                              showOverrides: _showOverrides,
+                              pendingPolygonPreviewCount:
+                                  pendingPolygonPreviewCells.length,
+                              onShowGridChanged: (value) =>
+                                  setState(() => _showGrid = value),
+                              onShowBaseChanged: (value) =>
+                                  setState(() => _showBase = value),
+                              onShowFinalChanged: (value) =>
+                                  setState(() => _showFinal = value),
+                              onShowOverridesChanged: (value) =>
+                                  setState(() => _showOverrides = value),
+                              paddingEditor: ElementCollisionPaddingEditor(
+                                padding: _draftPadding,
+                                usesManualPrimaryShape:
+                                    snapshot.usesManualPrimaryShape,
+                                maxHorizontal: math.max(0,
+                                    widget.source.width * widget.tileWidth - 1),
+                                maxVertical: math.max(
+                                    0,
+                                    widget.source.height * widget.tileHeight -
+                                        1),
+                                onChanged: (next) {
+                                  setState(() {
+                                    _draftPadding = next;
+                                    _draftProfile = _authoringService
+                                        .recalculateFromPadding(
+                                      source: widget.source,
+                                      tileWidth: widget.tileWidth,
+                                      tileHeight: widget.tileHeight,
+                                      padding: next,
+                                      current: _draftProfile,
+                                    );
+                                  });
+                                },
+                              ),
+                            ),
                           ),
                         ),
                       ),
