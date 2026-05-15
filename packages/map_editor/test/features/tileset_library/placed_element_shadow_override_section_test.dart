@@ -151,6 +151,104 @@ void main() {
 
       expect(harness.seedCount, 1);
     });
+
+    testWidgets('quick tuning presets appear only in custom mode',
+        (tester) async {
+      final inheritHarness = _Harness();
+      await _pumpSection(tester, harness: inheritHarness);
+
+      expect(find.text('Réglages rapides'), findsNothing);
+
+      final customHarness = _Harness(
+        value: MapPlacedElementShadowOverride(
+          mode: ShadowOverrideMode.custom,
+        ),
+      );
+      await _pumpSection(tester, harness: customHarness);
+
+      expect(find.text('Réglages rapides'), findsOneWidget);
+      expect(find.text('Petite ombre'), findsOneWidget);
+      expect(find.text('Portée bas-droite'), findsOneWidget);
+      expect(find.text('Portée bas-gauche'), findsOneWidget);
+    });
+
+    testWidgets('compact preset emits expected custom override values',
+        (tester) async {
+      final harness = _Harness(
+        value: MapPlacedElementShadowOverride(
+          mode: ShadowOverrideMode.custom,
+        ),
+      );
+      await _pumpSection(tester, harness: harness);
+
+      await tester.tap(find.text('Petite ombre'));
+      await tester.pump();
+
+      expect(harness.value!.mode, ShadowOverrideMode.custom);
+      expect(harness.value!.shadowProfileId, isNull);
+      expect(harness.value!.offsetX, 0);
+      expect(harness.value!.offsetY, 2);
+      expect(harness.value!.scaleX, 0.65);
+      expect(harness.value!.scaleY, 0.45);
+      expect(harness.value!.opacity, 0.24);
+      expect(
+        tester
+            .widget<MacosTextField>(
+              find.byKey(const ValueKey('placed-shadow-offsetY-field')),
+            )
+            .controller!
+            .text,
+        '2.0',
+      );
+      expect(
+        tester
+            .widget<MacosTextField>(
+              find.byKey(const ValueKey('placed-shadow-scaleX-field')),
+            )
+            .controller!
+            .text,
+        '0.65',
+      );
+    });
+
+    testWidgets('cast presets apply the expected offset directions',
+        (tester) async {
+      final harness = _Harness(
+        value: MapPlacedElementShadowOverride(
+          mode: ShadowOverrideMode.custom,
+        ),
+      );
+      await _pumpSection(tester, harness: harness);
+
+      await tester.tap(find.text('Portée bas-droite'));
+      await tester.pump();
+
+      expect(harness.value!.offsetX, greaterThan(0));
+      expect(harness.value!.offsetY, greaterThan(0));
+
+      await tester.tap(find.text('Portée bas-gauche'));
+      await tester.pump();
+
+      expect(harness.value!.offsetX, lessThan(0));
+      expect(harness.value!.offsetY, greaterThan(0));
+    });
+
+    testWidgets('preset preserves a selected custom profile id',
+        (tester) async {
+      final harness = _Harness(
+        value: MapPlacedElementShadowOverride(
+          mode: ShadowOverrideMode.custom,
+          shadowProfileId: 'wide_shadow',
+        ),
+      );
+      await _pumpSection(tester, harness: harness);
+
+      await tester.tap(find.text('Petite ombre'));
+      await tester.pump();
+
+      expect(harness.value!.mode, ShadowOverrideMode.custom);
+      expect(harness.value!.shadowProfileId, 'wide_shadow');
+    });
   });
 }
 

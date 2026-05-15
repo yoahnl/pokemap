@@ -5,6 +5,7 @@ import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/shadow/element_shadow_read_model.dart';
 import 'package:map_editor/src/application/shadow/placed_element_shadow_override_read_model.dart';
+import 'package:map_editor/src/application/shadow/placed_element_shadow_tuning_presets.dart';
 import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';
 
 class PlacedElementShadowOverrideSection extends StatefulWidget {
@@ -178,6 +179,8 @@ class _PlacedElementShadowOverrideSectionState
               selectedProfileId: readModel.selectedProfileId,
             ),
             const SizedBox(height: 10),
+            _quickTuningPresets(context),
+            const SizedBox(height: 10),
             _numberGrid(context),
           ],
           if (widget.shadowOverride != null) ...[
@@ -263,6 +266,40 @@ class _PlacedElementShadowOverrideSectionState
               profileId == _inheritProfileValue ? null : profileId,
             );
           },
+        ),
+      ],
+    );
+  }
+
+  Widget _quickTuningPresets(BuildContext context) {
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final presets = createPlacedElementShadowTuningPresets();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Réglages rapides',
+          style: TextStyle(color: secondary, fontSize: 10),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Applique des réglages rapides à cette instance. Vous pouvez ensuite affiner les valeurs manuellement.',
+          style: TextStyle(color: secondary, fontSize: 10),
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final preset in presets)
+              PushButton(
+                key: ValueKey('placed-shadow-preset-${preset.id}-button'),
+                controlSize: ControlSize.small,
+                secondary: true,
+                onPressed: () => _applyTuningPreset(preset),
+                child: Text(preset.label),
+              ),
+          ],
         ),
       ],
     );
@@ -382,6 +419,16 @@ class _PlacedElementShadowOverrideSectionState
         opacity: field == _PlacedShadowNumberField.opacity
             ? parsed
             : current?.opacity,
+      ),
+    );
+  }
+
+  void _applyTuningPreset(PlacedElementShadowTuningPreset preset) {
+    setState(_errors.clear);
+    widget.onChanged(
+      applyPlacedElementShadowTuningPreset(
+        preset: preset,
+        currentOverride: widget.shadowOverride,
       ),
     );
   }
