@@ -36,12 +36,33 @@ Future<ProjectManifest> loadProjectManifestFromFile(String manifestPath) async {
   try {
     final raw = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
     final migrated = migrateProjectManifestJson(raw);
-    final manifest = ProjectManifest.fromJson(migrated);
+    final manifest = _normalizeProjectElementCollisionProfiles(
+      ProjectManifest.fromJson(migrated),
+    );
     ProjectValidator.validate(manifest);
     return manifest;
   } catch (e) {
     throw ProjectLoadException('Failed to load project: $e');
   }
+}
+
+ProjectManifest _normalizeProjectElementCollisionProfiles(
+  ProjectManifest manifest,
+) {
+  final tileSize = manifest.settings.tileWidth;
+  return manifest.copyWith(
+    elements: [
+      for (final element in manifest.elements)
+        element.collisionProfile == null
+            ? element
+            : element.copyWith(
+                collisionProfile: normalizeElementCollisionProfile(
+                  element.collisionProfile!,
+                  tileSize: tileSize,
+                ),
+              ),
+    ],
+  );
 }
 
 Future<MapData> loadMapDataFromFile(

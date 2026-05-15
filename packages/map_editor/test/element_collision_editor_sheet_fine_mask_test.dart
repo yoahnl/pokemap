@@ -298,6 +298,193 @@ void main() {
     expect(bits.where((bit) => bit).length, greaterThan(1));
   });
 
+  testWidgets('triple mask editor can zoom the pixel canvas', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1600, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final image = await _testImage(width: 64, height: 64);
+
+    await tester.pumpWidget(
+      MacosApp(
+        home: MacosTheme(
+          data: MacosThemeData.dark(),
+          child: CupertinoPageScaffold(
+            child: Center(
+              child: SizedBox(
+                width: 720,
+                child: ElementCollisionTripleMaskEditor(
+                  image: image,
+                  source: _source,
+                  tileWidth: 16,
+                  tileHeight: 16,
+                  profile: const ElementCollisionProfile(),
+                  draftPadding: const WarpTriggerPadding(),
+                  onProfileChanged: (_) {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Zoom'), findsOneWidget);
+    final before = tester.getSize(find.byType(CustomPaint).last);
+
+    await tester.tap(find.text('200%'));
+    await tester.pumpAndSettle();
+
+    final after = tester.getSize(find.byType(CustomPaint).last);
+    expect(after.width, greaterThan(before.width));
+    expect(after.height, greaterThan(before.height));
+  });
+
+  testWidgets('triple mask editor can paint after zooming', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1600, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final image = await _testImage(width: 64, height: 64);
+    ElementCollisionProfile? emitted;
+
+    await tester.pumpWidget(
+      MacosApp(
+        home: MacosTheme(
+          data: MacosThemeData.dark(),
+          child: CupertinoPageScaffold(
+            child: Center(
+              child: SizedBox(
+                width: 720,
+                child: ElementCollisionTripleMaskEditor(
+                  image: image,
+                  source: _source,
+                  tileWidth: 16,
+                  tileHeight: 16,
+                  profile: const ElementCollisionProfile(),
+                  draftPadding: const WarpTriggerPadding(),
+                  onProfileChanged: (next) => emitted = next,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('200%'));
+    await tester.pumpAndSettle();
+    final canvasTopLeft = tester.getTopLeft(find.byType(CustomPaint).last);
+    await tester.tapAt(canvasTopLeft + const Offset(360, 120));
+    await tester.pumpAndSettle();
+
+    expect(emitted?.collisionMask, isNotNull);
+    final bits = ElementCollisionMaskCodec.decodePackedBits(
+      widthPx: emitted!.collisionMask!.widthPx,
+      heightPx: emitted!.collisionMask!.heightPx,
+      dataBase64: emitted!.collisionMask!.dataBase64,
+    );
+    expect(bits.where((bit) => bit).length, greaterThan(1));
+  });
+
+  testWidgets('triple mask editor previews the brush footprint on hover',
+      (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1600, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final image = await _testImage(width: 64, height: 64);
+
+    await tester.pumpWidget(
+      MacosApp(
+        home: MacosTheme(
+          data: MacosThemeData.dark(),
+          child: CupertinoPageScaffold(
+            child: Center(
+              child: SizedBox(
+                width: 720,
+                child: ElementCollisionTripleMaskEditor(
+                  image: image,
+                  source: _source,
+                  tileWidth: 16,
+                  tileHeight: 16,
+                  profile: const ElementCollisionProfile(),
+                  draftPadding: const WarpTriggerPadding(),
+                  onProfileChanged: (_) {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final gesture =
+        await tester.createGesture(kind: ui.PointerDeviceKind.mouse);
+    addTearDown(gesture.removePointer);
+    await gesture.addPointer(location: Offset.zero);
+    await gesture.moveTo(tester.getCenter(find.byType(CustomPaint).last));
+    await tester.pumpAndSettle();
+
+    expect(find.bySemanticsLabel('Aperçu pinceau 8px'), findsOneWidget);
+
+    await tester.tap(find.text('16px'));
+    await tester.pumpAndSettle();
+
+    expect(find.bySemanticsLabel('Aperçu pinceau 16px'), findsOneWidget);
+  });
+
+  testWidgets('triple mask editor can erase after zooming', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1600, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final image = await _testImage(width: 64, height: 64);
+    ElementCollisionProfile? emitted;
+
+    await tester.pumpWidget(
+      MacosApp(
+        home: MacosTheme(
+          data: MacosThemeData.dark(),
+          child: CupertinoPageScaffold(
+            child: Center(
+              child: SizedBox(
+                width: 720,
+                child: ElementCollisionTripleMaskEditor(
+                  image: image,
+                  source: _source,
+                  tileWidth: 16,
+                  tileHeight: 16,
+                  profile: ElementCollisionProfile(
+                    collisionMask: _fullMask(widthPx: 64, heightPx: 64),
+                  ),
+                  draftPadding: const WarpTriggerPadding(),
+                  onProfileChanged: (next) => emitted = next,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Effacer'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('200%'));
+    await tester.pumpAndSettle();
+    final canvasTopLeft = tester.getTopLeft(find.byType(CustomPaint).last);
+    await tester.tapAt(canvasTopLeft + const Offset(360, 120));
+    await tester.pumpAndSettle();
+
+    expect(emitted?.collisionMask, isNotNull);
+    final bits = ElementCollisionMaskCodec.decodePackedBits(
+      widthPx: emitted!.collisionMask!.widthPx,
+      heightPx: emitted!.collisionMask!.heightPx,
+      dataBase64: emitted!.collisionMask!.dataBase64,
+    );
+    expect(bits.where((bit) => !bit).length, greaterThan(1));
+  });
+
   testWidgets('triple mask editor sculpts legacy grid collision by default',
       (tester) async {
     await tester.binding.setSurfaceSize(const Size(1600, 900));
