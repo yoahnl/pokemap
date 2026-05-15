@@ -163,16 +163,16 @@ List<ShadowProfileOptionReadModel> buildShadowProfileOptions(
   ProjectShadowCatalog catalog,
 ) {
   return List<ShadowProfileOptionReadModel>.unmodifiable(
-    catalog.profiles.map(
-      (profile) => ShadowProfileOptionReadModel(
-        id: profile.id,
-        name: profile.name,
-        mode: profile.mode,
-        renderPass: profile.renderPass,
-        opacity: profile.opacity,
-        colorHexRgb: profile.colorHexRgb,
-      ),
-    ),
+    catalog.profiles.where(isGroundStaticElementShadowProfile).map(
+          (profile) => ShadowProfileOptionReadModel(
+            id: profile.id,
+            name: profile.name,
+            mode: profile.mode,
+            renderPass: profile.renderPass,
+            opacity: profile.opacity,
+            colorHexRgb: profile.colorHexRgb,
+          ),
+        ),
   );
 }
 

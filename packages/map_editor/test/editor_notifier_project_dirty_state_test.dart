@@ -108,6 +108,68 @@ void main() {
       expect(saved, isTrue);
       expect(notifier.state.isProjectDirty, isFalse);
     });
+
+    test('ensureDefaultShadowProfiles ajoute les defaults et marque dirty', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final element = ProjectElementEntry(
+        id: 'tree',
+        name: 'Tree',
+        tilesetId: 'tileset',
+        categoryId: 'decor',
+        frames: const [
+          TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
+        ],
+        shadow: ProjectElementShadowConfig(
+          castsShadow: true,
+          shadowProfileId: 'missing',
+        ),
+      );
+      notifier.state = notifier.state.copyWith(
+        project: _manifest(name: 'Demo').copyWith(elements: [element]),
+      );
+
+      notifier.ensureDefaultShadowProfiles();
+
+      expect(notifier.state.isProjectDirty, isTrue);
+      expect(
+        notifier.state.project!.shadowCatalog.profiles.map(
+          (profile) => profile.id,
+        ),
+        [
+          'default-ground-soft-ellipse',
+          'default-ground-wide-ellipse',
+          'default-ground-contact-blob',
+        ],
+      );
+      expect(notifier.state.project!.elements, [element]);
+      expect(
+          notifier.state.project!.elements.single.shadow, same(element.shadow));
+    });
+
+    test('ensureDefaultShadowProfiles ne duplique pas à plusieurs appels', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state =
+          notifier.state.copyWith(project: _manifest(name: 'Demo'));
+
+      notifier.ensureDefaultShadowProfiles();
+      notifier.ensureDefaultShadowProfiles();
+
+      expect(notifier.state.project!.shadowCatalog.profileCount, 3);
+      expect(
+        notifier.state.project!.shadowCatalog.profiles.map(
+          (profile) => profile.id,
+        ),
+        [
+          'default-ground-soft-ellipse',
+          'default-ground-wide-ellipse',
+          'default-ground-contact-blob',
+        ],
+      );
+    });
   });
 }
 

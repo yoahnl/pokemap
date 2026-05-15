@@ -450,6 +450,20 @@ class EditorNotifier extends _$EditorNotifier {
           );
   }
 
+  ProjectManifest? ensureDefaultShadowProfiles() {
+    final project = state.project;
+    if (project == null) return null;
+    final updated = ensureDefaultGroundStaticShadowProfilesForProject(project);
+    if (updated == project) {
+      return project;
+    }
+    applyInMemoryProjectManifest(
+      updated,
+      statusMessage: 'Profils Shadow par défaut ajoutés',
+    );
+    return updated;
+  }
+
   Future<bool> saveProjectManifest() async {
     final fs = _projectWorkspace;
     final project = state.project;

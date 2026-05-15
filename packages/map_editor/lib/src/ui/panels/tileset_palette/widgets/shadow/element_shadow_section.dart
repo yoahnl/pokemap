@@ -13,12 +13,14 @@ class ElementShadowSection extends StatefulWidget {
     required this.element,
     required this.shadow,
     required this.onChanged,
+    this.onEnsureDefaultShadowProfiles,
   });
 
   final ProjectManifest manifest;
   final ProjectElementEntry element;
   final ProjectElementShadowConfig? shadow;
   final ValueChanged<ProjectElementShadowConfig?> onChanged;
+  final VoidCallback? onEnsureDefaultShadowProfiles;
 
   @override
   State<ElementShadowSection> createState() => _ElementShadowSectionState();
@@ -132,6 +134,26 @@ class _ElementShadowSectionState extends State<ElementShadowSection> {
                 fontWeight: FontWeight.w600,
               ),
             ),
+            const SizedBox(height: 6),
+            Text(
+              'Ajoutez les profils par défaut pour commencer à configurer les ombres des éléments.',
+              style: TextStyle(color: secondary, fontSize: 10),
+            ),
+            if (widget.onEnsureDefaultShadowProfiles != null) ...[
+              const SizedBox(height: 8),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: PushButton(
+                  key: const ValueKey(
+                    'element-shadow-default-profiles-button',
+                  ),
+                  controlSize: ControlSize.regular,
+                  secondary: true,
+                  onPressed: widget.onEnsureDefaultShadowProfiles,
+                  child: const Text('Ajouter les profils Shadow par défaut'),
+                ),
+              ),
+            ],
           ],
           if (_activationMessage != null) ...[
             const SizedBox(height: 6),
@@ -327,7 +349,7 @@ class _ElementShadowSectionState extends State<ElementShadowSection> {
       return;
     }
 
-    final profiles = widget.manifest.shadowCatalog.profiles;
+    final profiles = buildShadowProfileOptionsForManifest(widget.manifest);
     if (profiles.isEmpty) {
       setState(() {
         _activationMessage = 'Aucun profil Shadow disponible.';
@@ -337,7 +359,7 @@ class _ElementShadowSectionState extends State<ElementShadowSection> {
 
     final currentProfileId = current?.shadowProfileId;
     final selectedProfileId = currentProfileId != null &&
-            widget.manifest.shadowCatalog.profileById(currentProfileId) != null
+            profiles.any((profile) => profile.id == currentProfileId)
         ? currentProfileId
         : profiles.first.id;
     setState(() {

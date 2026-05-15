@@ -43,21 +43,148 @@ void main() {
       expect(harness.shadow, isNull);
     });
 
-    testWidgets('disables activation when the catalog has no profiles',
+    testWidgets('shows seed action when the catalog has no compatible profiles',
+        (tester) async {
+      final harness = _ShadowSectionHarness();
+      var seedCount = 0;
+
+      await _pumpSection(
+        tester,
+        harness: harness,
+        manifest: _project(ProjectShadowCatalog()),
+        onEnsureDefaultShadowProfiles: () => seedCount += 1,
+      );
+
+      expect(find.text('Aucun profil Shadow disponible.'), findsOneWidget);
+      expect(
+        find.text('Ajouter les profils Shadow par défaut'),
+        findsOneWidget,
+      );
+      final toggle = tester.widget<CupertinoSwitch>(
+        find.byKey(const ValueKey('element-shadow-casts-switch')),
+      );
+      expect(toggle.onChanged, isNull);
+
+      await tester.tap(
+        find.byKey(const ValueKey('element-shadow-default-profiles-button')),
+      );
+      await tester.pump();
+
+      expect(seedCount, 1);
+    });
+
+    testWidgets('actorContact-only catalog is treated as no compatible profile',
         (tester) async {
       final harness = _ShadowSectionHarness();
 
       await _pumpSection(
         tester,
         harness: harness,
-        manifest: _project(ProjectShadowCatalog()),
+        manifest: _project(
+          _catalog([
+            _profile(
+              'actor_contact',
+              mode: ShadowCasterMode.contactBlob,
+              renderPass: ShadowRenderPass.actorContact,
+            ),
+          ]),
+        ),
+        onEnsureDefaultShadowProfiles: () {},
       );
 
       expect(find.text('Aucun profil Shadow disponible.'), findsOneWidget);
-      final toggle = tester.widget<CupertinoSwitch>(
-        find.byKey(const ValueKey('element-shadow-casts-switch')),
+      expect(
+        find.text('Ajouter les profils Shadow par défaut'),
+        findsOneWidget,
       );
-      expect(toggle.onChanged, isNull);
+      final popup = tester.widget<MacosPopupButton<String>>(
+        find.byKey(const ValueKey('element-shadow-profile-popup')),
+      );
+      expect(popup.items, isEmpty);
+    });
+
+    testWidgets('none-only catalog is treated as no compatible profile',
+        (tester) async {
+      final harness = _ShadowSectionHarness();
+
+      await _pumpSection(
+        tester,
+        harness: harness,
+        manifest: _project(
+          _catalog([
+            _profile('none_profile', mode: ShadowCasterMode.none),
+          ]),
+        ),
+        onEnsureDefaultShadowProfiles: () {},
+      );
+
+      expect(find.text('Aucun profil Shadow disponible.'), findsOneWidget);
+      expect(
+        find.text('Ajouter les profils Shadow par défaut'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('after seed the default profiles appear in the dropdown',
+        (tester) async {
+      final harness = _ShadowSectionHarness();
+      var manifest = _project(ProjectShadowCatalog());
+
+      await tester.binding.setSurfaceSize(const Size(520, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MacosTheme(
+          data: MacosThemeData.light(),
+          child: MaterialApp(
+            home: CupertinoPageScaffold(
+              child: StatefulBuilder(
+                builder: (context, setState) {
+                  return SizedBox(
+                    width: 460,
+                    child: ElementShadowSection(
+                      manifest: manifest,
+                      element: _element().copyWith(shadow: harness.shadow),
+                      shadow: harness.shadow,
+                      onChanged: (next) {
+                        harness.changes.add(next);
+                        setState(() => harness.shadow = next);
+                      },
+                      onEnsureDefaultShadowProfiles: () {
+                        setState(() {
+                          manifest =
+                              ensureDefaultGroundStaticShadowProfilesForProject(
+                            manifest,
+                          );
+                        });
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Aucun profil Shadow disponible.'), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey('element-shadow-default-profiles-button')),
+      );
+      await tester.pump();
+
+      expect(find.text('Aucun profil Shadow disponible.'), findsNothing);
+      final popup = tester.widget<MacosPopupButton<String>>(
+        find.byKey(const ValueKey('element-shadow-profile-popup')),
+      );
+      expect(
+        popup.items!.map((item) => item.value),
+        [
+          'default-ground-soft-ellipse',
+          'default-ground-wide-ellipse',
+          'default-ground-contact-blob',
+        ],
+      );
     });
 
     testWidgets(
@@ -299,6 +426,7 @@ Future<void> _pumpSection(
   WidgetTester tester, {
   required _ShadowSectionHarness harness,
   required ProjectManifest manifest,
+  VoidCallback? onEnsureDefaultShadowProfiles,
 }) async {
   await tester.binding.setSurfaceSize(const Size(520, 900));
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -322,6 +450,8 @@ Future<void> _pumpSection(
                       harness.changes.add(next);
                       setState(() => harness.shadow = next);
                     },
+                    onEnsureDefaultShadowProfiles:
+                        onEnsureDefaultShadowProfiles,
                   ),
                 ),
               );
@@ -376,11 +506,12 @@ ProjectShadowCatalog _catalog(List<ProjectShadowProfile> profiles) {
 ProjectShadowProfile _profile(
   String id, {
   ShadowCasterMode mode = ShadowCasterMode.ellipse,
+  ShadowRenderPass renderPass = ShadowRenderPass.groundStatic,
 }) {
   return ProjectShadowProfile(
     id: id,
     name: '$id shadow',
     mode: mode,
-    renderPass: ShadowRenderPass.groundStatic,
+    renderPass: renderPass,
   );
 }

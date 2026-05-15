@@ -24,15 +24,15 @@ void main() {
       ]);
     });
 
-    test('exposes profile metadata for a future dropdown', () {
+    test('exposes compatible groundStatic profile metadata for a dropdown', () {
       final options = buildShadowProfileOptions(
         ProjectShadowCatalog(
           profiles: [
             _profile(
-              'actor_contact',
-              name: 'Actor contact',
+              'tree_shadow',
+              name: 'Tree shadow',
               mode: ShadowCasterMode.contactBlob,
-              renderPass: ShadowRenderPass.actorContact,
+              renderPass: ShadowRenderPass.groundStatic,
               opacity: 0.2,
               colorHexRgb: '123ABC',
             ),
@@ -41,27 +41,33 @@ void main() {
       );
 
       final option = options.single;
-      expect(option.id, 'actor_contact');
-      expect(option.name, 'Actor contact');
-      expect(option.label, 'Actor contact');
+      expect(option.id, 'tree_shadow');
+      expect(option.name, 'Tree shadow');
+      expect(option.label, 'Tree shadow');
       expect(option.mode, ShadowCasterMode.contactBlob);
-      expect(option.renderPass, ShadowRenderPass.actorContact);
+      expect(option.renderPass, ShadowRenderPass.groundStatic);
       expect(option.opacity, 0.2);
       expect(option.colorHexRgb, '123ABC');
       expect(option.isNoneMode, isFalse);
     });
 
-    test('keeps none-mode profiles visible', () {
+    test('filters out actorContact and none-mode profiles', () {
       final options = buildShadowProfileOptions(
         ProjectShadowCatalog(
           profiles: [
             _profile('shadow_none', mode: ShadowCasterMode.none),
+            _profile(
+              'actor_contact',
+              mode: ShadowCasterMode.contactBlob,
+              renderPass: ShadowRenderPass.actorContact,
+            ),
+            _profile('tree_shadow'),
           ],
         ),
       );
 
-      expect(options.single.id, 'shadow_none');
-      expect(options.single.isNoneMode, isTrue);
+      expect(options.map((option) => option.id), ['tree_shadow']);
+      expect(options.single.isNoneMode, isFalse);
     });
 
     test('returns an immutable list', () {

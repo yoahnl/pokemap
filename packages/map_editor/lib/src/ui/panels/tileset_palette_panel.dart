@@ -2566,6 +2566,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     var selectedPresetKind = element.presetKind;
     ElementCollisionProfile? collisionProfile = element.collisionProfile;
     ProjectElementShadowConfig? shadowConfig = element.shadow;
+    var shadowManifest = project;
     var collisionPadding =
         collisionProfile?.padding ?? const WarpTriggerPadding();
     var frames = List<TilesetVisualFrame>.from(element.frames);
@@ -2765,12 +2766,19 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                   ),
                   const SizedBox(height: 8),
                   ElementShadowSection(
-                    manifest: project,
+                    manifest: shadowManifest,
                     element: element,
                     shadow: shadowConfig,
                     onChanged: (next) {
                       setStateDialog(() {
                         shadowConfig = next;
+                      });
+                    },
+                    onEnsureDefaultShadowProfiles: () {
+                      final updated = notifier.ensureDefaultShadowProfiles();
+                      if (updated == null) return;
+                      setStateDialog(() {
+                        shadowManifest = updated;
                       });
                     },
                   ),
