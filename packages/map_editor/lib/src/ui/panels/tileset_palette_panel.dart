@@ -18,6 +18,7 @@ import 'package:flutter/material.dart'
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/ui/panels/tileset_palette/widgets/placed_instances/placed_element_shadow_override_section.dart';
 import 'package:map_editor/src/ui/panels/tileset_palette/widgets/shadow/element_shadow_section.dart';
 import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';
 import 'package:map_editor/src/ui/shared/editor_paint_palette.dart';
@@ -785,7 +786,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                                       tileId: selectedTileId,
                                       columns: columns,
                                       category: picked,
-                                      recommendedLayerId: snapshot.activeLayerId,
+                                      recommendedLayerId:
+                                          snapshot.activeLayerId,
                                     );
                                   }
                                 },
@@ -1274,7 +1276,8 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                       tileHeight: tileHeight,
                       selectionAccent: tilesAccent,
                       selected: snapshot.activeBrush.maybeMap(
-                        projectElement: (brush) => brush.elementId == element.id,
+                        projectElement: (brush) =>
+                            brush.elementId == element.id,
                         orElse: () => false,
                       ),
                       categoryPath: categoryPath,
@@ -1337,6 +1340,7 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
         if (panelMode == TilesElementsPanelMode.palette) ...paletteSections,
         if (panelMode == TilesElementsPanelMode.placedInstances)
           _PlacedInstancesSection(
+            manifest: project,
             image: image,
             tileWidth: tileWidth,
             tileHeight: tileHeight,
@@ -1364,6 +1368,15 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                 instanceId: instance.instanceId,
                 opacity: opacity,
               );
+            },
+            onShadowOverrideChanged: (instance, shadowOverride) {
+              notifier.setPlacedElementInstanceShadowOverride(
+                instanceId: instance.instanceId,
+                shadowOverride: shadowOverride,
+              );
+            },
+            onEnsureDefaultShadowProfiles: () {
+              notifier.ensureDefaultShadowProfiles();
             },
             onAnimationConfigChanged: (instance, animation) {
               notifier.setPlacedElementInstanceAnimationConfig(
@@ -2961,7 +2974,6 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
   }
 }
 
-
 class _PlacedElementBehaviorsSection extends StatefulWidget {
   const _PlacedElementBehaviorsSection({
     required this.value,
@@ -4308,7 +4320,6 @@ class _PlacedElementBehaviorsSectionState
     );
   }
 }
-
 
 String _resolveElementPrimaryTilesetId(ProjectElementEntry entry) {
   final frameTilesetId = entry.frames.primaryFrame.tilesetId.trim();

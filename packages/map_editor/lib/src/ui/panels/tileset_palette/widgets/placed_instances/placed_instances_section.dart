@@ -43,6 +43,7 @@ class _PlacedElementInstanceVm {
   double get opacity => instance.opacity;
   MapPlacedElementAnimation? get animation => instance.animation;
   List<MapPlacedElementBehavior> get behaviors => instance.behaviors;
+  MapPlacedElementShadowOverride? get shadowOverride => instance.shadowOverride;
   int get frameCount => element?.frames.length ?? 1;
   TilesetSourceRect get source =>
       element?.frames.primarySource ??
@@ -51,6 +52,7 @@ class _PlacedElementInstanceVm {
 
 class _PlacedInstancesSection extends StatelessWidget {
   const _PlacedInstancesSection({
+    required this.manifest,
     required this.image,
     required this.tileWidth,
     required this.tileHeight,
@@ -60,6 +62,8 @@ class _PlacedInstancesSection extends StatelessWidget {
     required this.onSelectInstance,
     required this.onCollisionAppliedChanged,
     required this.onOpacityChanged,
+    required this.onShadowOverrideChanged,
+    required this.onEnsureDefaultShadowProfiles,
     required this.onAnimationConfigChanged,
     required this.onBehaviorsChanged,
     required this.dialogues,
@@ -67,6 +71,7 @@ class _PlacedInstancesSection extends StatelessWidget {
     required this.onDeleteInstance,
   });
 
+  final ProjectManifest manifest;
   final ui.Image image;
   final int tileWidth;
   final int tileHeight;
@@ -80,6 +85,11 @@ class _PlacedInstancesSection extends StatelessWidget {
       onCollisionAppliedChanged;
   final void Function(_PlacedElementInstanceVm instance, double opacity)
       onOpacityChanged;
+  final void Function(
+    _PlacedElementInstanceVm instance,
+    MapPlacedElementShadowOverride? shadowOverride,
+  ) onShadowOverrideChanged;
+  final VoidCallback onEnsureDefaultShadowProfiles;
   final void Function(
     _PlacedElementInstanceVm instance,
     MapPlacedElementAnimation? animation,
@@ -305,6 +315,18 @@ class _PlacedInstancesSection extends StatelessWidget {
                 _OpacitySliderRow(
                   value: selected.opacity,
                   onChanged: (value) => onOpacityChanged(selected, value),
+                ),
+                const SizedBox(height: 8),
+                PlacedElementShadowOverrideSection(
+                  manifest: manifest,
+                  element: selected.element,
+                  instance: selected.instance,
+                  shadowOverride: selected.shadowOverride,
+                  onChanged: (next) => onShadowOverrideChanged(
+                    selected,
+                    next,
+                  ),
+                  onEnsureDefaultShadowProfiles: onEnsureDefaultShadowProfiles,
                 ),
                 const SizedBox(height: 8),
                 _PlacedElementAnimationSection(

@@ -1,6 +1,7 @@
 import '../exceptions/map_exceptions.dart';
 import '../models/geometry.dart';
 import '../models/map_data.dart';
+import '../models/shadow.dart';
 
 String buildMapPlacedElementId({
   required String layerId,
@@ -117,6 +118,27 @@ MapData setMapPlacedElementOpacity(
   }
   final next = List<MapPlacedElement>.from(map.placedElements, growable: true);
   next[index] = next[index].copyWith(opacity: opacity);
+  return map.copyWith(placedElements: next);
+}
+
+MapData setMapPlacedElementShadowOverride(
+  MapData map, {
+  required String instanceId,
+  required MapPlacedElementShadowOverride? shadowOverride,
+}) {
+  final normalizedId = instanceId.trim();
+  if (normalizedId.isEmpty) {
+    throw const ValidationException(
+        'Placed element instance id cannot be empty');
+  }
+  final index =
+      map.placedElements.indexWhere((entry) => entry.id == normalizedId);
+  if (index < 0) {
+    throw ValidationException(
+        'Placed element instance not found: $normalizedId');
+  }
+  final next = List<MapPlacedElement>.from(map.placedElements, growable: true);
+  next[index] = next[index].copyWith(shadowOverride: shadowOverride);
   return map.copyWith(placedElements: next);
 }
 

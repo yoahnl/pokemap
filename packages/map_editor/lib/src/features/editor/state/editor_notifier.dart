@@ -7644,6 +7644,45 @@ class EditorNotifier extends _$EditorNotifier {
     );
   }
 
+  void setPlacedElementInstanceShadowOverride({
+    required String instanceId,
+    required MapPlacedElementShadowOverride? shadowOverride,
+  }) {
+    final map = state.activeMap;
+    if (map == null) {
+      return;
+    }
+    final trimmedId = instanceId.trim();
+    if (trimmedId.isEmpty) {
+      return;
+    }
+    final index =
+        map.placedElements.indexWhere((entry) => entry.id == trimmedId);
+    if (index < 0) {
+      state = state.copyWith(
+        errorMessage: 'Placed element instance not found: $trimmedId',
+      );
+      return;
+    }
+    final previous = map.placedElements[index];
+    if (previous.shadowOverride == shadowOverride) {
+      return;
+    }
+    final updatedMap = setMapPlacedElementShadowOverride(
+      map,
+      instanceId: trimmedId,
+      shadowOverride: shadowOverride,
+    );
+    _applyMapMutation(
+      previousMap: map,
+      updatedMap: updatedMap,
+      preferredActiveLayerId: state.activeLayerId,
+      statusMessage: shadowOverride == null
+          ? 'Override d’ombre réinitialisé pour ${previous.elementId}'
+          : 'Override d’ombre mis à jour pour ${previous.elementId}',
+    );
+  }
+
   void setPlacedElementInstanceAnimationConfig({
     required String instanceId,
     required MapPlacedElementAnimation? animation,
