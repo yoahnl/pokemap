@@ -69,33 +69,60 @@ final class StaticPlacedElementShadowRuntimeInput {
   const StaticPlacedElementShadowRuntimeInput({
     required this.resolvedConfig,
     required this.metrics,
+    this.elementFootprint,
+    this.overrideFootprint,
   });
 
   final ResolvedShadowConfig resolvedConfig;
   final StaticPlacedElementShadowRuntimeMetrics metrics;
+  final StaticShadowFootprintConfig? elementFootprint;
+  final StaticShadowFootprintConfig? overrideFootprint;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is StaticPlacedElementShadowRuntimeInput &&
           other.resolvedConfig == resolvedConfig &&
-          other.metrics == metrics;
+          other.metrics == metrics &&
+          other.elementFootprint == elementFootprint &&
+          other.overrideFootprint == overrideFootprint;
 
   @override
   int get hashCode => Object.hash(
         resolvedConfig,
         metrics,
+        elementFootprint,
+        overrideFootprint,
       );
 }
 
 ShadowRuntimeAnchor staticPlacedElementShadowAnchorFromMetrics(
-  StaticPlacedElementShadowRuntimeMetrics metrics,
-) {
+  StaticPlacedElementShadowRuntimeMetrics metrics, {
+  ResolvedShadowConfig? shadowConfig,
+  StaticShadowFootprintConfig? elementFootprint,
+  StaticShadowFootprintConfig? overrideFootprint,
+}) {
+  final legacyAndElementFootprint = _mergeLegacyAndElementFootprint(
+    metrics: metrics,
+    elementFootprint: elementFootprint,
+  );
+  final geometry = resolveStaticShadowGeometry(
+    metrics: StaticShadowVisualMetrics(
+      left: metrics.worldLeft,
+      top: metrics.worldTop,
+      visualWidth: metrics.visualWidth,
+      visualHeight: metrics.visualHeight,
+    ),
+    shadowConfig: shadowConfig ?? _identityShadowConfig,
+    elementFootprint: legacyAndElementFootprint,
+    overrideFootprint: overrideFootprint,
+  );
+
   return ShadowRuntimeAnchor(
-    worldX: metrics.worldLeft + metrics.visualWidth * metrics.anchorXRatio,
-    worldY: metrics.worldTop + metrics.visualHeight * metrics.anchorYRatio,
-    baseWidth: metrics.visualWidth * metrics.baseWidthMultiplier,
-    baseHeight: metrics.visualHeight * metrics.baseHeightMultiplier,
+    worldX: geometry.anchorX,
+    worldY: geometry.anchorY,
+    baseWidth: geometry.baseWidth,
+    baseHeight: geometry.baseHeight,
   );
 }
 
@@ -122,7 +149,12 @@ ShadowRuntimeRenderInstruction?
   return resolveShadowRuntimeInstruction(
     ShadowRuntimeResolutionInput(
       resolvedConfig: resolved,
-      anchor: staticPlacedElementShadowAnchorFromMetrics(input.metrics),
+      anchor: staticPlacedElementShadowAnchorFromMetrics(
+        input.metrics,
+        shadowConfig: resolved,
+        elementFootprint: input.elementFootprint,
+        overrideFootprint: input.overrideFootprint,
+      ),
     ),
   );
 }
@@ -167,3 +199,43 @@ void _validateRatio(double value, String name) {
     );
   }
 }
+
+StaticShadowFootprintConfig _legacyFootprintFromMetrics(
+  StaticPlacedElementShadowRuntimeMetrics metrics,
+) {
+  return StaticShadowFootprintConfig(
+    anchorXRatio: metrics.anchorXRatio,
+    anchorYRatio: metrics.anchorYRatio,
+    footprintWidthRatio: metrics.baseWidthMultiplier,
+    footprintHeightRatio: metrics.baseHeightMultiplier,
+  );
+}
+
+StaticShadowFootprintConfig _mergeLegacyAndElementFootprint({
+  required StaticPlacedElementShadowRuntimeMetrics metrics,
+  required StaticShadowFootprintConfig? elementFootprint,
+}) {
+  final resolved = resolveStaticShadowFootprint(
+    elementFootprint: _legacyFootprintFromMetrics(metrics),
+    overrideFootprint: elementFootprint,
+  );
+  return StaticShadowFootprintConfig(
+    anchorXRatio: resolved.anchorXRatio,
+    anchorYRatio: resolved.anchorYRatio,
+    footprintWidthRatio: resolved.footprintWidthRatio,
+    footprintHeightRatio: resolved.footprintHeightRatio,
+  );
+}
+
+const _identityShadowConfig = ResolvedShadowConfig(
+  shadowProfileId: 'runtime-static-shadow-anchor',
+  mode: ShadowCasterMode.ellipse,
+  renderPass: ShadowRenderPass.groundStatic,
+  offsetX: 0,
+  offsetY: 0,
+  scaleX: 1,
+  scaleY: 1,
+  opacity: 1,
+  colorHexRgb: '000000',
+  softnessMode: ShadowSoftnessMode.hardEdge,
+);

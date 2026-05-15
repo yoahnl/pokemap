@@ -213,6 +213,57 @@ void main() {
       expect(collection.groundStatic.single.worldLeft, closeTo(89, 0.0001));
     });
 
+    test('element shadow footprint is transmitted to runtime geometry', () {
+      final collection = buildRuntimeStaticPlacedElementShadowCollection(
+        catalog: _catalog(),
+        sources: [
+          _source(
+            elementShadow: _elementShadow(
+              footprint: StaticShadowFootprintConfig(
+                anchorXRatio: 0.25,
+                footprintWidthRatio: 0.5,
+              ),
+            ),
+          ),
+        ],
+      );
+
+      final instruction = collection.groundStatic.single;
+      expect(instruction.width, closeTo(24, 0.0001));
+      expect(instruction.height, closeTo(7.5, 0.0001));
+      expect(instruction.worldLeft, closeTo(84, 0.0001));
+      expect(instruction.worldTop, closeTo(186.25, 0.0001));
+    });
+
+    test('placed override footprint is transmitted to runtime geometry', () {
+      final collection = buildRuntimeStaticPlacedElementShadowCollection(
+        catalog: _catalog(),
+        sources: [
+          _source(
+            elementShadow: _elementShadow(
+              footprint: StaticShadowFootprintConfig(
+                anchorXRatio: 0.25,
+                footprintWidthRatio: 0.5,
+              ),
+            ),
+            placedOverride: MapPlacedElementShadowOverride(
+              mode: ShadowOverrideMode.custom,
+              footprint: StaticShadowFootprintConfig(
+                anchorYRatio: 0.5,
+                footprintHeightRatio: 0.125,
+              ),
+            ),
+          ),
+        ],
+      );
+
+      final instruction = collection.groundStatic.single;
+      expect(instruction.width, closeTo(24, 0.0001));
+      expect(instruction.height, closeTo(3.75, 0.0001));
+      expect(instruction.worldLeft, closeTo(84, 0.0001));
+      expect(instruction.worldTop, closeTo(158.125, 0.0001));
+    });
+
     test('none profile creates no instruction', () {
       final collection = buildRuntimeStaticPlacedElementShadowCollection(
         catalog: _catalog(),
@@ -334,10 +385,12 @@ const Object _defaultElementShadow = Object();
 
 ProjectElementShadowConfig _elementShadow({
   String profileId = 'ellipse_ground',
+  StaticShadowFootprintConfig? footprint,
 }) {
   return ProjectElementShadowConfig(
     castsShadow: true,
     shadowProfileId: profileId,
+    footprint: footprint,
   );
 }
 

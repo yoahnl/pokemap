@@ -157,6 +157,25 @@ void main() {
       expect(a.hashCode, b.hashCode);
       expect(a, isNot(c));
     });
+
+    test('equality includes element and override footprints', () {
+      final a = _input(
+        elementFootprint: StaticShadowFootprintConfig(anchorXRatio: 0.25),
+        overrideFootprint: StaticShadowFootprintConfig(anchorYRatio: 0.75),
+      );
+      final b = _input(
+        elementFootprint: StaticShadowFootprintConfig(anchorXRatio: 0.25),
+        overrideFootprint: StaticShadowFootprintConfig(anchorYRatio: 0.75),
+      );
+      final c = _input(
+        elementFootprint: StaticShadowFootprintConfig(anchorXRatio: 0.5),
+        overrideFootprint: StaticShadowFootprintConfig(anchorYRatio: 0.75),
+      );
+
+      expect(a, b);
+      expect(a.hashCode, b.hashCode);
+      expect(a, isNot(c));
+    });
   });
 
   group('staticPlacedElementShadowAnchorFromMetrics', () {
@@ -168,6 +187,63 @@ void main() {
       expect(anchor.worldY, closeTo(180, 0.000001));
       expect(anchor.baseWidth, closeTo(30, 0.000001));
       expect(anchor.baseHeight, closeTo(15, 0.000001));
+    });
+
+    test('preserves custom legacy metrics ratios and multipliers', () {
+      final anchor = staticPlacedElementShadowAnchorFromMetrics(
+        _metrics(
+          anchorXRatio: 0.25,
+          anchorYRatio: 0.75,
+          baseWidthMultiplier: 0.5,
+          baseHeightMultiplier: 0.125,
+        ),
+      );
+
+      expect(anchor.worldX, closeTo(90, 0.000001));
+      expect(anchor.worldY, closeTo(165, 0.000001));
+      expect(anchor.baseWidth, closeTo(20, 0.000001));
+      expect(anchor.baseHeight, closeTo(7.5, 0.000001));
+    });
+
+    test('element footprint overrides legacy metrics field by field', () {
+      final anchor = staticPlacedElementShadowAnchorFromMetrics(
+        _metrics(
+          anchorXRatio: 0.25,
+          anchorYRatio: 0.75,
+          baseWidthMultiplier: 0.5,
+          baseHeightMultiplier: 0.125,
+        ),
+        elementFootprint: StaticShadowFootprintConfig(
+          anchorYRatio: 0.5,
+          footprintWidthRatio: 0.25,
+        ),
+      );
+
+      expect(anchor.worldX, closeTo(90, 0.000001));
+      expect(anchor.worldY, closeTo(150, 0.000001));
+      expect(anchor.baseWidth, closeTo(10, 0.000001));
+      expect(anchor.baseHeight, closeTo(7.5, 0.000001));
+    });
+
+    test('override footprint wins over element footprint field by field', () {
+      final anchor = staticPlacedElementShadowAnchorFromMetrics(
+        _metrics(),
+        elementFootprint: StaticShadowFootprintConfig(
+          anchorXRatio: 0.25,
+          anchorYRatio: 0.75,
+          footprintWidthRatio: 0.5,
+          footprintHeightRatio: 0.125,
+        ),
+        overrideFootprint: StaticShadowFootprintConfig(
+          anchorYRatio: 0.5,
+          footprintWidthRatio: 0.25,
+        ),
+      );
+
+      expect(anchor.worldX, closeTo(90, 0.000001));
+      expect(anchor.worldY, closeTo(150, 0.000001));
+      expect(anchor.baseWidth, closeTo(10, 0.000001));
+      expect(anchor.baseHeight, closeTo(7.5, 0.000001));
     });
   });
 
@@ -201,6 +277,38 @@ void main() {
       expect(instruction!.width, closeTo(36, 0.000001));
       expect(instruction.height, closeTo(7.5, 0.000001));
       expect(instruction.worldLeft, closeTo(88, 0.000001));
+      expect(instruction.worldTop, closeTo(186.25, 0.000001));
+    });
+
+    test('applies offset and scale once after core footprint geometry', () {
+      final instruction = resolveStaticPlacedElementShadowRuntimeInstruction(
+        _input(
+          elementFootprint: StaticShadowFootprintConfig(
+            anchorXRatio: 0.25,
+            anchorYRatio: 0.5,
+            footprintWidthRatio: 0.5,
+            footprintHeightRatio: 0.25,
+          ),
+        ),
+      );
+
+      expect(instruction, isNotNull);
+      expect(instruction!.width, closeTo(24, 0.000001));
+      expect(instruction.height, closeTo(7.5, 0.000001));
+      expect(instruction.worldLeft, closeTo(84, 0.000001));
+      expect(instruction.worldTop, closeTo(156.25, 0.000001));
+    });
+
+    test('custom override without footprint keeps element footprint', () {
+      final instruction = resolveStaticPlacedElementShadowRuntimeInstruction(
+        _input(
+          resolvedConfig: _resolvedConfig(offsetX: 4),
+          elementFootprint: StaticShadowFootprintConfig(anchorXRatio: 0.25),
+        ),
+      );
+
+      expect(instruction, isNotNull);
+      expect(instruction!.worldLeft, closeTo(76, 0.000001));
       expect(instruction.worldTop, closeTo(186.25, 0.000001));
     });
 
@@ -377,10 +485,14 @@ StaticPlacedElementShadowRuntimeMetrics _metrics({
 StaticPlacedElementShadowRuntimeInput _input({
   ResolvedShadowConfig? resolvedConfig,
   StaticPlacedElementShadowRuntimeMetrics? metrics,
+  StaticShadowFootprintConfig? elementFootprint,
+  StaticShadowFootprintConfig? overrideFootprint,
 }) {
   return StaticPlacedElementShadowRuntimeInput(
     resolvedConfig: resolvedConfig ?? _resolvedConfig(),
     metrics: metrics ?? _metrics(),
+    elementFootprint: elementFootprint,
+    overrideFootprint: overrideFootprint,
   );
 }
 

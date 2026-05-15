@@ -68,6 +68,8 @@ ShadowRuntimeInstructionCollection
       StaticPlacedElementShadowRuntimeInput(
         resolvedConfig: resolved,
         metrics: source.metrics,
+        elementFootprint: source.elementShadow?.footprint,
+        overrideFootprint: source.placedOverride?.footprint,
       ),
     );
   }
