@@ -267,6 +267,15 @@ class MapGridPainter extends CustomPainter {
       map: map,
       project: project,
     );
+    final projectContext = project;
+    final staticShadowPreviewInstructions = projectContext == null
+        ? const <EditorStaticShadowPreviewInstruction>[]
+        : buildEditorStaticShadowPreviewInstructions(
+            manifest: projectContext,
+            map: map,
+            tileWidth: tileWidth,
+            tileHeight: tileHeight,
+          );
 
     for (var index = visibleLayers.length - 1; index >= 0; index--) {
       final layer = visibleLayers[index];
@@ -292,11 +301,6 @@ class MapGridPainter extends CustomPainter {
           foregroundTileCellIndicesByLayerId:
               foregroundTileCellIndicesByLayerId,
         );
-        _paintPlacedElementsForLayer(
-          canvas,
-          layer,
-          renderPass: _EditorMapTileRenderPass.background,
-        );
       }
     }
 
@@ -313,6 +317,22 @@ class MapGridPainter extends CustomPainter {
           tileHeight: tileHeight,
           zoom: zoom,
           elapsedMs: editorEntityAnimationMs,
+        );
+      }
+    }
+
+    paintEditorStaticShadowPreviewInstructions(
+      canvas,
+      staticShadowPreviewInstructions,
+    );
+
+    for (var index = visibleLayers.length - 1; index >= 0; index--) {
+      final layer = visibleLayers[index];
+      if (layer is TileLayer) {
+        _paintPlacedElementsForLayer(
+          canvas,
+          layer,
+          renderPass: _EditorMapTileRenderPass.background,
         );
       }
     }

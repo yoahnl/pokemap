@@ -12,6 +12,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../application/models/map_tool_preview.dart';
 import '../../application/models/path_autotile_set.dart';
+import '../../application/shadow/editor_static_shadow_preview.dart';
 import '../../application/services/environment_generated_placement_hover_resolver.dart';
 import '../../application/services/environment_mask_brush_footprint_resolver.dart';
 import '../../application/services/environment_mask_paint_target_resolver.dart';
@@ -25,6 +26,7 @@ import '../../features/path_pattern/path_pattern_editor_render_resolution.dart';
 import '../../features/surface_painter/surface_layer_static_preview.dart';
 import '../../features/surface_painter/surface_tile_preview_resolver.dart';
 import 'entity_editor_element_visual.dart';
+import 'shadow/editor_static_shadow_preview_painter.dart';
 
 // Le shell du canvas garde uniquement le widget, l'interaction et la
 // synchronisation des ressources. Le painter et le cache d'images vivent dans

@@ -343,6 +343,120 @@ void main() {
       tilesetImage.dispose();
     });
 
+    test('paints static shadow preview below placed elements', () async {
+      const map = MapData(
+        id: 'market',
+        name: 'Market',
+        size: GridSize(width: 5, height: 5),
+        layers: <MapLayer>[
+          TileLayer(
+            id: 'environment',
+            name: 'Environment',
+            tilesetId: 'element-tileset',
+            tiles: <int>[
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+              0,
+            ],
+          ),
+        ],
+        placedElements: <MapPlacedElement>[
+          MapPlacedElement(
+            id: 'stand_1',
+            layerId: 'environment',
+            elementId: 'stand',
+            pos: GridPos(x: 1, y: 1),
+          ),
+        ],
+      );
+      final project = ProjectManifest(
+        name: 'editor',
+        maps: const <ProjectMapEntry>[],
+        tilesets: const <ProjectTilesetEntry>[],
+        surfaceCatalog: ProjectSurfaceCatalog(),
+        shadowCatalog: ProjectShadowCatalog(
+          profiles: [
+            ProjectShadowProfile(
+              id: 'stand_shadow',
+              name: 'Stand shadow',
+              mode: ShadowCasterMode.ellipse,
+              renderPass: ShadowRenderPass.groundStatic,
+              offsetX: 3,
+              offsetY: 5,
+              opacity: 0.5,
+            ),
+          ],
+        ),
+        elements: [
+          ProjectElementEntry(
+            id: 'stand',
+            name: 'Stand',
+            tilesetId: 'element-tileset',
+            categoryId: 'market',
+            frames: const <TilesetVisualFrame>[
+              TilesetVisualFrame(
+                source: TilesetSourceRect(x: 0, y: 0, width: 2, height: 2),
+              ),
+            ],
+            shadow: ProjectElementShadowConfig(
+              castsShadow: true,
+              shadowProfileId: 'stand_shadow',
+            ),
+          ),
+        ],
+      );
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder);
+
+      MapGridPainter(
+        map: map,
+        zoom: 1,
+        offset: ui.Offset.zero,
+        tileWidth: 16,
+        tileHeight: 16,
+        tilesetImagesById: const <String, ui.Image?>{},
+        sourceTileWidth: 16,
+        sourceTileHeight: 16,
+        tilesPerRowById: const <String, int>{},
+        warps: const <MapWarp>[],
+        gameplayZones: const <MapGameplayZone>[],
+        connectionLabelsByDirection: const <MapConnectionDirection, String>{},
+        pathAutotileSetsByPresetId: const <String, PathAutotileSet>{},
+        terrainPresetsByType: const <TerrainType, ProjectTerrainPreset>{},
+        project: project,
+      ).paint(canvas, const ui.Size(80, 80));
+
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(80, 80);
+      final pixels = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      final offset = ((53 * image.width) + 35) * 4;
+      expect(pixels!.getUint8(offset + 3), greaterThan(0));
+      picture.dispose();
+      image.dispose();
+    });
+
     test(
         'does not double-paint matching baked tiles under translucent elements',
         () async {
