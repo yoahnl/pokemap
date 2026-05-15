@@ -32,8 +32,14 @@ class _ElementShadowSectionState extends State<ElementShadowSection> {
   late final TextEditingController _scaleXController;
   late final TextEditingController _scaleYController;
   late final TextEditingController _opacityController;
+  late final TextEditingController _footprintAnchorXController;
+  late final TextEditingController _footprintAnchorYController;
+  late final TextEditingController _footprintWidthController;
+  late final TextEditingController _footprintHeightController;
   final Map<_ShadowNumberField, String> _errors =
       <_ShadowNumberField, String>{};
+  final Map<_ShadowFootprintField, String> _footprintErrors =
+      <_ShadowFootprintField, String>{};
   String? _activationMessage;
 
   @override
@@ -44,6 +50,10 @@ class _ElementShadowSectionState extends State<ElementShadowSection> {
     _scaleXController = TextEditingController();
     _scaleYController = TextEditingController();
     _opacityController = TextEditingController();
+    _footprintAnchorXController = TextEditingController();
+    _footprintAnchorYController = TextEditingController();
+    _footprintWidthController = TextEditingController();
+    _footprintHeightController = TextEditingController();
     _syncControllers(widget.shadow);
   }
 
@@ -62,6 +72,10 @@ class _ElementShadowSectionState extends State<ElementShadowSection> {
     _scaleXController.dispose();
     _scaleYController.dispose();
     _opacityController.dispose();
+    _footprintAnchorXController.dispose();
+    _footprintAnchorYController.dispose();
+    _footprintWidthController.dispose();
+    _footprintHeightController.dispose();
     super.dispose();
   }
 
@@ -191,6 +205,10 @@ class _ElementShadowSectionState extends State<ElementShadowSection> {
           ),
           if (shadow != null) ...[
             const SizedBox(height: 10),
+            if (shadow.castsShadow) ...[
+              _footprintSection(context),
+              const SizedBox(height: 10),
+            ],
             _numberGrid(context),
             const SizedBox(height: 10),
             Align(
@@ -202,6 +220,7 @@ class _ElementShadowSectionState extends State<ElementShadowSection> {
                 onPressed: () {
                   setState(() {
                     _errors.clear();
+                    _footprintErrors.clear();
                     _activationMessage = null;
                   });
                   widget.onChanged(null);
@@ -292,6 +311,119 @@ class _ElementShadowSectionState extends State<ElementShadowSection> {
     );
   }
 
+  Widget _footprintSection(BuildContext context) {
+    final label = EditorChrome.primaryLabel(context);
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final hasFootprint = widget.shadow?.footprint != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'Empreinte au sol',
+          style: TextStyle(
+            color: label,
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Ajuste la base utilisée pour calculer l’ombre de cet élément. Les instances peuvent encore la personnaliser.',
+          style: TextStyle(color: secondary, fontSize: 10),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _footprintField(
+                context,
+                _ShadowFootprintField.anchorX,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _footprintField(
+                context,
+                _ShadowFootprintField.anchorY,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: _footprintField(
+                context,
+                _ShadowFootprintField.width,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _footprintField(
+                context,
+                _ShadowFootprintField.height,
+              ),
+            ),
+          ],
+        ),
+        if (hasFootprint) ...[
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: PushButton(
+              key: const ValueKey('element-shadow-footprint-reset-button'),
+              controlSize: ControlSize.small,
+              secondary: true,
+              onPressed: _resetFootprint,
+              child: const Text('Réinitialiser l’empreinte'),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _footprintField(BuildContext context, _ShadowFootprintField field) {
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final error = _footprintErrors[field];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          field.label,
+          style: TextStyle(color: secondary, fontSize: 10),
+        ),
+        const SizedBox(height: 4),
+        MacosTextField(
+          key: ValueKey('element-shadow-footprint-${field.keyName}-field'),
+          controller: _footprintControllerFor(field),
+          enabled: widget.shadow?.castsShadow == true,
+          placeholder: 'auto',
+          keyboardType: const TextInputType.numberWithOptions(
+            signed: true,
+            decimal: true,
+          ),
+          inputFormatters: <TextInputFormatter>[
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9.\-]')),
+          ],
+          onChanged: (value) => _setFootprintNumber(field, value),
+        ),
+        if (error != null) ...[
+          const SizedBox(height: 3),
+          Text(
+            error,
+            style: TextStyle(
+              color: CupertinoColors.systemRed.resolveFrom(context),
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   Widget _numberField(BuildContext context, _ShadowNumberField field) {
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     final error = _errors[field];
@@ -344,6 +476,7 @@ class _ElementShadowSectionState extends State<ElementShadowSection> {
           scaleX: current.scaleX,
           scaleY: current.scaleY,
           opacity: current.opacity,
+          footprint: current.footprint,
         ),
       );
       return;
@@ -374,6 +507,7 @@ class _ElementShadowSectionState extends State<ElementShadowSection> {
         scaleX: current?.scaleX,
         scaleY: current?.scaleY,
         opacity: current?.opacity,
+        footprint: current?.footprint,
       ),
     );
   }
@@ -389,6 +523,7 @@ class _ElementShadowSectionState extends State<ElementShadowSection> {
         scaleX: current?.scaleX,
         scaleY: current?.scaleY,
         opacity: current?.opacity,
+        footprint: current?.footprint,
       ),
     );
   }
@@ -408,6 +543,47 @@ class _ElementShadowSectionState extends State<ElementShadowSection> {
         scaleX: field == _ShadowNumberField.scaleX ? value : current.scaleX,
         scaleY: field == _ShadowNumberField.scaleY ? value : current.scaleY,
         opacity: field == _ShadowNumberField.opacity ? value : current.opacity,
+        footprint: current.footprint,
+      ),
+    );
+  }
+
+  void _setFootprintNumber(_ShadowFootprintField field, String rawValue) {
+    final current = widget.shadow;
+    if (current == null) return;
+    final value = _parseFootprintNumber(field, rawValue);
+    if (value?.isNaN == true) return;
+    widget.onChanged(
+      ProjectElementShadowConfig(
+        castsShadow: current.castsShadow,
+        shadowProfileId: current.shadowProfileId,
+        offsetX: current.offsetX,
+        offsetY: current.offsetY,
+        scaleX: current.scaleX,
+        scaleY: current.scaleY,
+        opacity: current.opacity,
+        footprint: _updatedFootprint(
+          current.footprint,
+          field: field,
+          value: value,
+        ),
+      ),
+    );
+  }
+
+  void _resetFootprint() {
+    final current = widget.shadow;
+    if (current == null) return;
+    setState(_footprintErrors.clear);
+    widget.onChanged(
+      ProjectElementShadowConfig(
+        castsShadow: current.castsShadow,
+        shadowProfileId: current.shadowProfileId,
+        offsetX: current.offsetX,
+        offsetY: current.offsetY,
+        scaleX: current.scaleX,
+        scaleY: current.scaleY,
+        opacity: current.opacity,
       ),
     );
   }
@@ -437,12 +613,45 @@ class _ElementShadowSectionState extends State<ElementShadowSection> {
     return parsed;
   }
 
+  double? _parseFootprintNumber(
+    _ShadowFootprintField field,
+    String rawValue,
+  ) {
+    final trimmed = rawValue.trim();
+    if (trimmed.isEmpty) {
+      setState(() => _footprintErrors.remove(field));
+      return null;
+    }
+    final parsed = double.tryParse(trimmed);
+    if (parsed == null || !parsed.isFinite) {
+      setState(() => _footprintErrors[field] = 'Nombre invalide');
+      return _invalidNumber;
+    }
+    if (field.isAnchor && (parsed < 0 || parsed > 1)) {
+      setState(() => _footprintErrors[field] = 'Doit être entre 0 et 1');
+      return _invalidNumber;
+    }
+    if (!field.isAnchor && parsed <= 0) {
+      setState(() => _footprintErrors[field] = 'Doit être > 0');
+      return _invalidNumber;
+    }
+    setState(() => _footprintErrors.remove(field));
+    return parsed;
+  }
+
   void _syncControllers(ProjectElementShadowConfig? shadow) {
     _offsetXController.text = _formatNumber(shadow?.offsetX);
     _offsetYController.text = _formatNumber(shadow?.offsetY);
     _scaleXController.text = _formatNumber(shadow?.scaleX);
     _scaleYController.text = _formatNumber(shadow?.scaleY);
     _opacityController.text = _formatNumber(shadow?.opacity);
+    final footprint = shadow?.footprint;
+    _footprintAnchorXController.text = _formatNumber(footprint?.anchorXRatio);
+    _footprintAnchorYController.text = _formatNumber(footprint?.anchorYRatio);
+    _footprintWidthController.text =
+        _formatNumber(footprint?.footprintWidthRatio);
+    _footprintHeightController.text =
+        _formatNumber(footprint?.footprintHeightRatio);
   }
 
   TextEditingController _controllerFor(_ShadowNumberField field) {
@@ -457,6 +666,21 @@ class _ElementShadowSectionState extends State<ElementShadowSection> {
         return _scaleYController;
       case _ShadowNumberField.opacity:
         return _opacityController;
+    }
+  }
+
+  TextEditingController _footprintControllerFor(
+    _ShadowFootprintField field,
+  ) {
+    switch (field) {
+      case _ShadowFootprintField.anchorX:
+        return _footprintAnchorXController;
+      case _ShadowFootprintField.anchorY:
+        return _footprintAnchorYController;
+      case _ShadowFootprintField.width:
+        return _footprintWidthController;
+      case _ShadowFootprintField.height:
+        return _footprintHeightController;
     }
   }
 }
@@ -474,6 +698,50 @@ enum _ShadowNumberField {
 
   final String keyName;
   final String label;
+}
+
+enum _ShadowFootprintField {
+  anchorX('anchorX', 'Ancre X'),
+  anchorY('anchorY', 'Ancre Y'),
+  width('width', 'Largeur d’empreinte'),
+  height('height', 'Hauteur d’empreinte');
+
+  const _ShadowFootprintField(this.keyName, this.label);
+
+  final String keyName;
+  final String label;
+
+  bool get isAnchor =>
+      this == _ShadowFootprintField.anchorX ||
+      this == _ShadowFootprintField.anchorY;
+}
+
+StaticShadowFootprintConfig? _updatedFootprint(
+  StaticShadowFootprintConfig? current, {
+  required _ShadowFootprintField field,
+  required double? value,
+}) {
+  final anchorX =
+      field == _ShadowFootprintField.anchorX ? value : current?.anchorXRatio;
+  final anchorY =
+      field == _ShadowFootprintField.anchorY ? value : current?.anchorYRatio;
+  final width = field == _ShadowFootprintField.width
+      ? value
+      : current?.footprintWidthRatio;
+  final height = field == _ShadowFootprintField.height
+      ? value
+      : current?.footprintHeightRatio;
+
+  if (anchorX == null && anchorY == null && width == null && height == null) {
+    return null;
+  }
+
+  return StaticShadowFootprintConfig(
+    anchorXRatio: anchorX,
+    anchorYRatio: anchorY,
+    footprintWidthRatio: width,
+    footprintHeightRatio: height,
+  );
 }
 
 String _statusLabel(ElementShadowReadStatus status) {

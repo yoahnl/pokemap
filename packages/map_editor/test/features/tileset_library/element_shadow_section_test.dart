@@ -355,6 +355,274 @@ void main() {
       expect(harness.shadow!.opacity, 0.5);
     });
 
+    testWidgets('footprint block is visible only for active shadows',
+        (tester) async {
+      final activeHarness = _ShadowSectionHarness(
+        ProjectElementShadowConfig(
+          castsShadow: true,
+          shadowProfileId: 'tree_large',
+        ),
+      );
+      await _pumpSection(
+        tester,
+        harness: activeHarness,
+        manifest: _project(_catalog([_profile('tree_large')])),
+      );
+
+      expect(find.text('Empreinte au sol'), findsOneWidget);
+
+      final nullHarness = _ShadowSectionHarness();
+      await _pumpSection(
+        tester,
+        harness: nullHarness,
+        manifest: _project(_catalog([_profile('tree_large')])),
+      );
+
+      expect(find.text('Empreinte au sol'), findsNothing);
+
+      final disabledHarness = _ShadowSectionHarness(
+        ProjectElementShadowConfig(
+          castsShadow: false,
+          shadowProfileId: 'tree_large',
+        ),
+      );
+      await _pumpSection(
+        tester,
+        harness: disabledHarness,
+        manifest: _project(_catalog([_profile('tree_large')])),
+      );
+
+      expect(find.text('Empreinte au sol'), findsNothing);
+    });
+
+    testWidgets('footprint null and partial values sync text fields',
+        (tester) async {
+      final emptyHarness = _ShadowSectionHarness(
+        ProjectElementShadowConfig(
+          castsShadow: true,
+          shadowProfileId: 'tree_large',
+        ),
+      );
+      await _pumpSection(
+        tester,
+        harness: emptyHarness,
+        manifest: _project(_catalog([_profile('tree_large')])),
+      );
+
+      expect(_fieldText(tester, 'element-shadow-footprint-anchorX-field'), '');
+      expect(_fieldText(tester, 'element-shadow-footprint-anchorY-field'), '');
+      expect(_fieldText(tester, 'element-shadow-footprint-width-field'), '');
+      expect(_fieldText(tester, 'element-shadow-footprint-height-field'), '');
+
+      final partialHarness = _ShadowSectionHarness(
+        ProjectElementShadowConfig(
+          castsShadow: true,
+          shadowProfileId: 'tree_large',
+          footprint: StaticShadowFootprintConfig(
+            anchorXRatio: 0.25,
+            footprintWidthRatio: 0.5,
+          ),
+        ),
+      );
+      await _pumpSection(
+        tester,
+        harness: partialHarness,
+        manifest: _project(_catalog([_profile('tree_large')])),
+      );
+
+      expect(
+        _fieldText(tester, 'element-shadow-footprint-anchorX-field'),
+        '0.25',
+      );
+      expect(_fieldText(tester, 'element-shadow-footprint-anchorY-field'), '');
+      expect(
+        _fieldText(tester, 'element-shadow-footprint-width-field'),
+        '0.5',
+      );
+      expect(_fieldText(tester, 'element-shadow-footprint-height-field'), '');
+    });
+
+    testWidgets('footprint fields update ratios and preserve shadow fields',
+        (tester) async {
+      final harness = _ShadowSectionHarness(
+        ProjectElementShadowConfig(
+          castsShadow: true,
+          shadowProfileId: 'tree_large',
+          offsetX: 1,
+          offsetY: 2,
+          scaleX: 1.2,
+          scaleY: 0.8,
+          opacity: 0.4,
+        ),
+      );
+      await _pumpSection(
+        tester,
+        harness: harness,
+        manifest: _project(_catalog([_profile('tree_large')])),
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('element-shadow-footprint-anchorX-field')),
+        '0.25',
+      );
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey('element-shadow-footprint-anchorY-field')),
+        '0.75',
+      );
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey('element-shadow-footprint-width-field')),
+        '0.5',
+      );
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey('element-shadow-footprint-height-field')),
+        '0.125',
+      );
+      await tester.pump();
+
+      final shadow = harness.shadow!;
+      expect(shadow.castsShadow, isTrue);
+      expect(shadow.shadowProfileId, 'tree_large');
+      expect(shadow.offsetX, 1);
+      expect(shadow.offsetY, 2);
+      expect(shadow.scaleX, 1.2);
+      expect(shadow.scaleY, 0.8);
+      expect(shadow.opacity, 0.4);
+      expect(shadow.footprint!.anchorXRatio, 0.25);
+      expect(shadow.footprint!.anchorYRatio, 0.75);
+      expect(shadow.footprint!.footprintWidthRatio, 0.5);
+      expect(shadow.footprint!.footprintHeightRatio, 0.125);
+    });
+
+    testWidgets('invalid footprint values show errors and do not emit changes',
+        (tester) async {
+      final initial = ProjectElementShadowConfig(
+        castsShadow: true,
+        shadowProfileId: 'tree_large',
+        footprint: StaticShadowFootprintConfig(
+          anchorXRatio: 0.5,
+          footprintWidthRatio: 0.75,
+        ),
+      );
+      final harness = _ShadowSectionHarness(initial);
+      await _pumpSection(
+        tester,
+        harness: harness,
+        manifest: _project(_catalog([_profile('tree_large')])),
+      );
+      harness.changes.clear();
+
+      await tester.enterText(
+        find.byKey(const ValueKey('element-shadow-footprint-anchorX-field')),
+        '2',
+      );
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey('element-shadow-footprint-width-field')),
+        '0',
+      );
+      await tester.pump();
+
+      expect(find.text('Doit être entre 0 et 1'), findsOneWidget);
+      expect(find.text('Doit être > 0'), findsOneWidget);
+      expect(harness.shadow, initial);
+      expect(harness.changes, isEmpty);
+    });
+
+    testWidgets('reset and clearing the last footprint field write null',
+        (tester) async {
+      final harness = _ShadowSectionHarness(
+        ProjectElementShadowConfig(
+          castsShadow: true,
+          shadowProfileId: 'tree_large',
+          footprint: StaticShadowFootprintConfig(anchorXRatio: 0.25),
+        ),
+      );
+      await _pumpSection(
+        tester,
+        harness: harness,
+        manifest: _project(_catalog([_profile('tree_large')])),
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('element-shadow-footprint-anchorX-field')),
+        '',
+      );
+      await tester.pump();
+
+      expect(harness.shadow!.footprint, isNull);
+
+      harness.shadow = ProjectElementShadowConfig(
+        castsShadow: true,
+        shadowProfileId: 'tree_large',
+        footprint: StaticShadowFootprintConfig(anchorXRatio: 0.25),
+      );
+      await _pumpSection(
+        tester,
+        harness: harness,
+        manifest: _project(_catalog([_profile('tree_large')])),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('element-shadow-footprint-reset-button')),
+      );
+      await tester.pump();
+
+      expect(harness.shadow!.footprint, isNull);
+      expect(harness.changes.last!.footprint, isNull);
+    });
+
+    testWidgets('existing profile toggle and number changes preserve footprint',
+        (tester) async {
+      final footprint = StaticShadowFootprintConfig(
+        anchorXRatio: 0.25,
+        anchorYRatio: 0.75,
+        footprintWidthRatio: 0.5,
+        footprintHeightRatio: 0.125,
+      );
+      final harness = _ShadowSectionHarness(
+        ProjectElementShadowConfig(
+          castsShadow: true,
+          shadowProfileId: 'tree_large',
+          offsetX: 4,
+          footprint: footprint,
+        ),
+      );
+      await _pumpSection(
+        tester,
+        harness: harness,
+        manifest: _project(
+          _catalog([_profile('tree_large'), _profile('rock_small')]),
+        ),
+      );
+
+      final popup = tester.widget<MacosPopupButton<String>>(
+        find.byKey(const ValueKey('element-shadow-profile-popup')),
+      );
+      popup.onChanged!('rock_small');
+      await tester.pump();
+      expect(harness.shadow!.shadowProfileId, 'rock_small');
+      expect(harness.shadow!.footprint, footprint);
+
+      await tester.enterText(
+        find.byKey(const ValueKey('element-shadow-offsetX-field')),
+        '3.5',
+      );
+      await tester.pump();
+      expect(harness.shadow!.offsetX, 3.5);
+      expect(harness.shadow!.footprint, footprint);
+
+      final toggle = tester.widget<CupertinoSwitch>(
+        find.byKey(const ValueKey('element-shadow-casts-switch')),
+      );
+      toggle.onChanged!(false);
+      await tester.pump();
+      expect(harness.shadow!.castsShadow, isFalse);
+      expect(harness.shadow!.footprint, footprint);
+    });
+
     testWidgets('missing profile is shown as a diagnostic', (tester) async {
       final harness = _ShadowSectionHarness(
         ProjectElementShadowConfig(
@@ -420,6 +688,13 @@ void main() {
       expect(find.textContaining('color'), findsNothing);
     });
   });
+}
+
+String _fieldText(WidgetTester tester, String keyName) {
+  return tester
+      .widget<MacosTextField>(find.byKey(ValueKey(keyName)))
+      .controller!
+      .text;
 }
 
 Future<void> _pumpSection(
