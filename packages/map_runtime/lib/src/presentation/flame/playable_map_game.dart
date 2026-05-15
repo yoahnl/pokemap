@@ -59,7 +59,9 @@ import '../../application/story_flags_manager.dart';
 import '../../application/trainer_battle_request.dart';
 import '../../infrastructure/runtime_tileset_image.dart';
 import '../../infrastructure/tile_image_loader.dart';
+import '../../shadow/runtime_actor_contact_shadow_collection.dart';
 import '../../shadow/shadow_runtime_collection_provider.dart';
+import '../../shadow/shadow_runtime_instruction_collection.dart';
 import 'battle_bag_menu_model.dart';
 import 'battle_bag_item_icon_resolver.dart';
 import 'battle_overlay_component.dart';
@@ -122,6 +124,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     RuntimeMapBundleLoader? runtimeMapBundleLoader,
     RuntimeTilesetImageLoader? runtimeTilesetImageLoader,
     this.shadowCollectionProvider,
+    this.enableActorContactShadows = true,
   })  : _bundle = bundle,
         _gameState = normalizeLoadedGameState(
           saveData == null
@@ -154,10 +157,12 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   final RuntimeMapBundle Function(RuntimeMapBundle bundle)? bundleTransformer;
   final List<RuntimeCutsceneAsset> runtimeCutscenes;
   final ShadowRuntimeInstructionCollectionProvider? shadowCollectionProvider;
+  final bool enableActorContactShadows;
   RuntimeMapBundle _bundle;
   GameState _gameState;
   late GameplayWorldState _world;
   late PlayerComponent _player;
+  bool _actorContactShadowRuntimeReady = false;
   String _activeMapId = '';
   String? _previousMapId;
   _RuntimeFlowPhase _flowPhase = _RuntimeFlowPhase.overworld;
@@ -174,6 +179,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   WarpTransitionOverlayComponent? _warpTransitionOverlay;
   TextComponent? _notification;
   final List<OverworldActorComponent> _npcActors = [];
+  final ShadowRuntimeCollectionController _actorShadowCollectionController =
+      ShadowRuntimeCollectionController();
   final Map<String, _LoadedPlayableMap> _loadedMapsById = {};
   final Map<String, Future<_LoadedPlayableMap?>> _loadMapFutureById = {};
   final RuntimeDialogueSessionLoader _dialogueSessionLoader;
@@ -551,6 +558,13 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
   Vector2 get debugPlayerScreenFootPoint {
     return _player.footPoint - debugCameraWorldTopLeft;
   }
+
+  @visibleForTesting
+  ShadowRuntimeInstructionCollectionProvider?
+      debugShadowCollectionProviderForMap(
+    String mapId,
+  ) =>
+          _shadowCollectionProviderForMap(mapId);
 
   @visibleForTesting
   Vector2 get debugMapOriginWorldTopLeft => _player.mapOrigin;
@@ -1302,6 +1316,8 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       mapOrigin: _originPixelsOf(rootMap),
     );
     await world.add(_player);
+    _actorContactShadowRuntimeReady = true;
+    _refreshActorContactShadowCollection();
     _syncGameStateFromWorld();
     _configureCameraViewport();
     _syncCameraToPlayer();
@@ -1507,6 +1523,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     _runtimeClockMs += dt * 1000;
     _placedBehaviorCooldownGate.prune(nowMs: _runtimeClockMs);
     _updateActorDepthOrdering();
+    _refreshActorContactShadowCollection();
     final pendingConnectionEntryAnimation = _pendingConnectionEntryAnimation;
     if (pendingConnectionEntryAnimation != null &&
         pendingConnectionEntryAnimation.holdInitialCameraFrame) {
@@ -1607,6 +1624,72 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     for (final actor in _npcActors) {
       actor.priority = 1000 + actor.depthSortY.round();
     }
+  }
+
+  ShadowRuntimeInstructionCollectionProvider? _shadowCollectionProviderForMap(
+    String mapId,
+  ) {
+    final externalProvider = shadowCollectionProvider;
+    if (externalProvider != null) {
+      return externalProvider;
+    }
+    if (!enableActorContactShadows) {
+      return null;
+    }
+    return () => _provideActorContactShadowCollectionForMap(mapId);
+  }
+
+  ShadowRuntimeInstructionCollection?
+      _provideActorContactShadowCollectionForMap(
+    String mapId,
+  ) {
+    if (mapId != _activeMapId) {
+      return null;
+    }
+    return _actorShadowCollectionController.provide();
+  }
+
+  void _refreshActorContactShadowCollection() {
+    if (shadowCollectionProvider != null ||
+        !enableActorContactShadows ||
+        !_actorContactShadowRuntimeReady) {
+      _actorShadowCollectionController.clear();
+      return;
+    }
+    _actorShadowCollectionController.replace(
+      buildRuntimeActorContactShadowCollection(
+        sources: _actorContactShadowSources(),
+      ),
+    );
+  }
+
+  List<RuntimeActorContactShadowSource> _actorContactShadowSources() {
+    final sources = <RuntimeActorContactShadowSource>[
+      RuntimeActorContactShadowSource(
+        id: 'player',
+        footWorldX: _player.footPoint.x,
+        footWorldY: _player.footPoint.y,
+        visualWidth: _player.size.x,
+        visualHeight: _player.size.y,
+        isVisible: _player.parent != null,
+      ),
+    ];
+    final active = _loadedMapsById[_activeMapId];
+    if (active != null) {
+      for (final actor in active.npcActors) {
+        sources.add(
+          RuntimeActorContactShadowSource(
+            id: actor.character.id,
+            footWorldX: actor.position.x + actor.size.x / 2,
+            footWorldY: actor.depthSortY,
+            visualWidth: actor.size.x,
+            visualHeight: actor.size.y,
+            isVisible: actor.parent != null && actor.isGameplayPresent,
+          ),
+        );
+      }
+    }
+    return sources;
   }
 
   bool _isMovementControl(RuntimeInputControl control) {
@@ -6395,7 +6478,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       tileImagesByTilesetId: tileImagesById,
       showCollisionOverlay: _showCollisionOverlay,
       npcMapPresencePredicate: npcPred,
-      shadowCollectionProvider: shadowCollectionProvider,
+      shadowCollectionProvider: _shadowCollectionProviderForMap(bundle.map.id),
     );
     backgroundLayers.position = _originPixels(
       originCellX: originCellX,
