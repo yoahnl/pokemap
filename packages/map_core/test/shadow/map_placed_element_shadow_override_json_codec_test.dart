@@ -24,6 +24,12 @@ void main() {
           'scaleX': 0.8,
           'scaleY': 0.35,
           'opacity': 0.25,
+          'footprint': <String, Object?>{
+            'anchorXRatio': 0.5,
+            'anchorYRatio': 1.0,
+            'footprintWidthRatio': 0.75,
+            'footprintHeightRatio': 0.25,
+          },
         },
       );
     });
@@ -50,8 +56,76 @@ void main() {
           'scaleX': 0.8,
           'scaleY': 0.35,
           'opacity': 0.25,
+          'footprint': <String, Object?>{
+            'anchorXRatio': 0.5,
+            'anchorYRatio': 1,
+            'footprintWidthRatio': 0.75,
+            'footprintHeightRatio': 0.25,
+          },
         }),
         _customOverride(),
+      );
+    });
+
+    test('old JSON without footprint decodes footprint null', () {
+      final override = decodeMapPlacedElementShadowOverride(<String, Object?>{
+        'mode': 'custom',
+        'offsetX': 2,
+      });
+
+      expect(override!.footprint, isNull);
+    });
+
+    test('encodes null and empty footprint by omitting footprint key', () {
+      expect(
+        encodeMapPlacedElementShadowOverride(
+          MapPlacedElementShadowOverride(mode: ShadowOverrideMode.custom),
+        ),
+        <String, Object?>{'mode': 'custom'},
+      );
+      expect(
+        encodeMapPlacedElementShadowOverride(
+          MapPlacedElementShadowOverride(
+            mode: ShadowOverrideMode.custom,
+            footprint: StaticShadowFootprintConfig(),
+          ),
+        ),
+        <String, Object?>{'mode': 'custom'},
+      );
+    });
+
+    test('equality includes footprint', () {
+      final base = MapPlacedElementShadowOverride(
+        mode: ShadowOverrideMode.custom,
+        footprint: StaticShadowFootprintConfig(anchorXRatio: 0.5),
+      );
+      final same = MapPlacedElementShadowOverride(
+        mode: ShadowOverrideMode.custom,
+        footprint: StaticShadowFootprintConfig(anchorXRatio: 0.5),
+      );
+      final different = MapPlacedElementShadowOverride(
+        mode: ShadowOverrideMode.custom,
+        footprint: StaticShadowFootprintConfig(anchorXRatio: 0.4),
+      );
+
+      expect(base, same);
+      expect(base.hashCode, same.hashCode);
+      expect(base, isNot(different));
+    });
+
+    test('rejects inherit and disabled overrides with footprint', () {
+      expect(
+        () => MapPlacedElementShadowOverride(
+          footprint: StaticShadowFootprintConfig(anchorXRatio: 0.5),
+        ),
+        throwsA(isA<ValidationException>()),
+      );
+      expect(
+        () => MapPlacedElementShadowOverride(
+          mode: ShadowOverrideMode.disabled,
+          footprint: StaticShadowFootprintConfig(anchorXRatio: 0.5),
+        ),
+        throwsA(isA<ValidationException>()),
       );
     });
 
@@ -181,6 +255,33 @@ void main() {
         }),
         throwsA(isA<ValidationException>()),
       );
+      expect(
+        () => decodeMapPlacedElementShadowOverride(<String, Object?>{
+          'mode': 'inherit',
+          'footprint': <String, Object?>{
+            'anchorXRatio': 0.5,
+          },
+        }),
+        throwsA(isA<ValidationException>()),
+      );
+      expect(
+        () => decodeMapPlacedElementShadowOverride(<String, Object?>{
+          'mode': 'disabled',
+          'footprint': <String, Object?>{
+            'anchorXRatio': 0.5,
+          },
+        }),
+        throwsA(isA<ValidationException>()),
+      );
+      expect(
+        () => decodeMapPlacedElementShadowOverride(<String, Object?>{
+          'mode': 'custom',
+          'footprint': <String, Object?>{
+            'footprintHeightRatio': 0,
+          },
+        }),
+        throwsA(isA<ValidationException>()),
+      );
     });
   });
 }
@@ -194,5 +295,11 @@ MapPlacedElementShadowOverride _customOverride() {
     scaleX: 0.8,
     scaleY: 0.35,
     opacity: 0.25,
+    footprint: StaticShadowFootprintConfig(
+      anchorXRatio: 0.5,
+      anchorYRatio: 1,
+      footprintWidthRatio: 0.75,
+      footprintHeightRatio: 0.25,
+    ),
   );
 }

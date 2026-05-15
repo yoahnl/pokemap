@@ -46,6 +46,7 @@ export 'src/operations/project_manifest_shadow_catalog_operations.dart';
 export 'src/operations/project_path_pattern_preset_json_codec.dart';
 export 'src/operations/project_shadow_catalog_json_codec.dart';
 export 'src/operations/project_shadow_profile_json_codec.dart';
+export 'src/operations/static_shadow_footprint_config_json_codec.dart';
 export 'src/operations/project_json_migrations.dart';
 export 'src/operations/default_shadow_profiles.dart';
 export 'src/operations/tile_visual_frame_timeline.dart';

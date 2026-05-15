@@ -41,6 +41,57 @@ enum ShadowOverrideMode {
   custom,
 }
 
+@immutable
+final class StaticShadowFootprintConfig {
+  StaticShadowFootprintConfig({
+    this.anchorXRatio,
+    this.anchorYRatio,
+    this.footprintWidthRatio,
+    this.footprintHeightRatio,
+  }) {
+    _validateStaticShadowOptionalAnchorRatio(anchorXRatio, 'anchorXRatio');
+    _validateStaticShadowOptionalAnchorRatio(anchorYRatio, 'anchorYRatio');
+    _validateStaticShadowOptionalFootprintRatio(
+      footprintWidthRatio,
+      'footprintWidthRatio',
+    );
+    _validateStaticShadowOptionalFootprintRatio(
+      footprintHeightRatio,
+      'footprintHeightRatio',
+    );
+  }
+
+  final double? anchorXRatio;
+  final double? anchorYRatio;
+  final double? footprintWidthRatio;
+  final double? footprintHeightRatio;
+
+  bool get isEmpty =>
+      anchorXRatio == null &&
+      anchorYRatio == null &&
+      footprintWidthRatio == null &&
+      footprintHeightRatio == null;
+
+  bool get isNotEmpty => !isEmpty;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is StaticShadowFootprintConfig &&
+          other.anchorXRatio == anchorXRatio &&
+          other.anchorYRatio == anchorYRatio &&
+          other.footprintWidthRatio == footprintWidthRatio &&
+          other.footprintHeightRatio == footprintHeightRatio;
+
+  @override
+  int get hashCode => Object.hash(
+        anchorXRatio,
+        anchorYRatio,
+        footprintWidthRatio,
+        footprintHeightRatio,
+      );
+}
+
 /// Pure authoring profile for a simple V0 shadow.
 ///
 /// This model has no JSON API and no dependency on Flutter or Flame.
@@ -126,6 +177,7 @@ final class ProjectElementShadowConfig {
     this.scaleX,
     this.scaleY,
     this.opacity,
+    this.footprint,
   }) {
     final profileId = shadowProfileId;
     if (profileId != null) {
@@ -157,6 +209,7 @@ final class ProjectElementShadowConfig {
   final double? scaleX;
   final double? scaleY;
   final double? opacity;
+  final StaticShadowFootprintConfig? footprint;
 
   @override
   bool operator ==(Object other) =>
@@ -168,7 +221,8 @@ final class ProjectElementShadowConfig {
           other.offsetY == offsetY &&
           other.scaleX == scaleX &&
           other.scaleY == scaleY &&
-          other.opacity == opacity;
+          other.opacity == opacity &&
+          other.footprint == footprint;
 
   @override
   int get hashCode => Object.hash(
@@ -179,6 +233,7 @@ final class ProjectElementShadowConfig {
         scaleX,
         scaleY,
         opacity,
+        footprint,
       );
 }
 
@@ -196,6 +251,7 @@ final class MapPlacedElementShadowOverride {
     this.scaleX,
     this.scaleY,
     this.opacity,
+    this.footprint,
   }) {
     final profileId = shadowProfileId;
     if (profileId != null) {
@@ -229,6 +285,7 @@ final class MapPlacedElementShadowOverride {
   final double? scaleX;
   final double? scaleY;
   final double? opacity;
+  final StaticShadowFootprintConfig? footprint;
 
   bool get _hasMapPlacedElementShadowCustomFields =>
       shadowProfileId != null ||
@@ -236,7 +293,8 @@ final class MapPlacedElementShadowOverride {
       offsetY != null ||
       scaleX != null ||
       scaleY != null ||
-      opacity != null;
+      opacity != null ||
+      footprint != null;
 
   @override
   bool operator ==(Object other) =>
@@ -248,7 +306,8 @@ final class MapPlacedElementShadowOverride {
           other.offsetY == offsetY &&
           other.scaleX == scaleX &&
           other.scaleY == scaleY &&
-          other.opacity == opacity;
+          other.opacity == opacity &&
+          other.footprint == footprint;
 
   @override
   int get hashCode => Object.hash(
@@ -259,7 +318,33 @@ final class MapPlacedElementShadowOverride {
         scaleX,
         scaleY,
         opacity,
+        footprint,
       );
+}
+
+void _validateStaticShadowOptionalAnchorRatio(double? value, String name) {
+  if (value == null) {
+    return;
+  }
+  if (!value.isFinite || value < 0 || value > 1) {
+    throw ValidationException(
+      'StaticShadowFootprintConfig.$name must be between 0 and 1',
+    );
+  }
+}
+
+void _validateStaticShadowOptionalFootprintRatio(double? value, String name) {
+  if (value == null) {
+    return;
+  }
+  if (!value.isFinite) {
+    throw ValidationException(
+      'StaticShadowFootprintConfig.$name must be finite',
+    );
+  }
+  if (value <= 0) {
+    throw ValidationException('StaticShadowFootprintConfig.$name must be > 0');
+  }
 }
 
 void _validateMapPlacedElementShadowProfileId(String value) {
