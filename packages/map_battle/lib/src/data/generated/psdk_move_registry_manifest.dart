@@ -2335,7 +2335,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_sleep_talk',
     rubyClass: 'SleepTalk',
     rubyPath: '10 Move/2 Definitions/300 SleepTalk.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_sleep_talk)',
+    dartBehavior: 'CopyCallMoveBehavior.sleepTalk',
     status: PsdkPortStatus.partial,
     dependencies: const <PsdkMoveDependency>[],
   ),

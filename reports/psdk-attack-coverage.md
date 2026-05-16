@@ -606,7 +606,7 @@ Coverage semantics:
 | fait | slam | s_basic | ported | StaticBasicMoveRegistry.s_basic | normal | physical | 80 | 75 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/slam.json |
 | fait | slash | s_basic | ported | StaticBasicMoveRegistry.s_basic | normal | physical | 70 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/slash.json |
 | fait | sleep_powder | s_status | ported | StatusStatMoveBehavior.status | grass | status | 0 | 75 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/sleep_powder.json |
-| partiel | sleep_talk | s_sleep_talk | partial | StaticBasicMoveRegistry.partialTargetMarker(s_sleep_talk) | normal | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/sleep_talk.json |
+| partiel | sleep_talk | s_sleep_talk | partial | CopyCallMoveBehavior.sleepTalk | normal | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/sleep_talk.json |
 | partiel | sludge | s_basic | ported | StaticBasicMoveRegistry.s_basic | poison | special | 65 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/sludge.json |
 | partiel | sludge_bomb | s_basic | ported | StaticBasicMoveRegistry.s_basic | poison | special | 90 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/sludge_bomb.json |
 | partiel | sludge_wave | s_basic | ported | StaticBasicMoveRegistry.s_basic | poison | special | 95 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/sludge_wave.json |

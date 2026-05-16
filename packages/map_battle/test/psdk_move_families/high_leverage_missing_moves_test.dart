@@ -2329,12 +2329,6 @@ void main() {
           power: 40,
         ),
         (
-          method: 's_sleep_talk',
-          moveId: 'sleep_talk',
-          category: PsdkBattleMoveCategory.status,
-          power: 0,
-        ),
-        (
           method: 's_teleport',
           moveId: 'teleport',
           category: PsdkBattleMoveCategory.status,

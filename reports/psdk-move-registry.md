@@ -265,7 +265,7 @@ Total registered methods: 330
 | `s_sketch` | `Sketch` | `10 Move/2 Definitions/300 Sketch.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_sketch)` | `partial` | `-` |
 | `s_skill_swap` | `SkillSwap` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `StaticBasicMoveRegistry.partialAbilityChanging(s_skill_swap)` | `partial` | `ability`, `effects` |
 | `s_sky_drop` | `SkyDrop` | `10 Move/2 Definitions/300 SkyDrop.rb` | `StaticBasicMoveRegistry.s_sky_drop` | `partial` | `-` |
-| `s_sleep_talk` | `SleepTalk` | `10 Move/2 Definitions/300 SleepTalk.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_sleep_talk)` | `partial` | `-` |
+| `s_sleep_talk` | `SleepTalk` | `10 Move/2 Definitions/300 SleepTalk.rb` | `CopyCallMoveBehavior.sleepTalk` | `partial` | `-` |
 | `s_smack_down` | `SmackDown` | `10 Move/2 Definitions/300 SmackDown.rb` | `GroundingMoveBehavior.smackDown` | `partial` | `effects`, `grounded`, `targeting_multi` |
 | `s_smelling_salt` | `SmellingSalts` | `10 Move/2 Definitions/300 HitThenCureStatus.rb` | `HitThenCureStatusMoveBehavior.smellingSalt` | `partial` | `handler_damage`, `handler_status`, `effects` |
 | `s_snatch` | `Snatch` | `10 Move/2 Definitions/300 Snatch.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_snatch)` | `partial` | `-` |

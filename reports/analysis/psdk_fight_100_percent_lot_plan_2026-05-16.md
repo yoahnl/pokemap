@@ -839,6 +839,8 @@ legacy `BattleMoveData` session path untouched.
 
 ### Lot 30 - Copy, Call, and Random Move Selection
 
+**Status 2026-05-16:** in progress. `s_sleep_talk` now has a dedicated copy/call behavior for the local supported slice: it fails before PP while awake, allows Comatose, filters the PSDK excluded move list, consumes the generic RNG stream, and executes the selected user move without spending that selected move's PP. `Metronome`, `Assist`, `Mimic`, `Sketch`, `Mirror Move`/`Copycat`, `Me First`, and `Instruct` remain partial.
+
 **Goal:** port Metronome, Mimic, Sketch, Sleep Talk, Assist, Mirror Move, Copycat, Me First, Instruct.
 
 **Files:**

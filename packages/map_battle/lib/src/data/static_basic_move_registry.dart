@@ -4,6 +4,7 @@ import '../domain/move/behaviors/battle_move_behavior_support.dart';
 import '../domain/move/behaviors/basic_damage_specialization_move_behavior.dart';
 import '../domain/move/behaviors/consecutive_power_move_behavior.dart';
 import '../domain/move/behaviors/counter_damage_move_behavior.dart';
+import '../domain/move/behaviors/copy_call_move_behavior.dart';
 import '../domain/move/behaviors/custom_stat_source_move_behavior.dart';
 import '../domain/move/behaviors/direct_hp_move_behavior.dart';
 import '../domain/move/behaviors/drain_move_behavior.dart';
@@ -80,7 +81,27 @@ import '../psdk/domain/psdk_battle_state.dart';
 import '../psdk/domain/psdk_battle_timeline.dart';
 
 BattleMoveRegistry createStaticBasicMoveRegistry() {
-  return BattleMoveRegistry(<BattleMoveBehavior>[
+  late final BattleMoveRegistry registry;
+
+  BattleMoveBehaviorResolution callMove(
+    BattleMoveBehaviorContext context,
+    BattleMoveDefinition move,
+  ) {
+    return registry.resolve(move.battleEngineMethod).resolve(
+          BattleMoveBehaviorContext(
+            state: context.state,
+            rng: context.rng,
+            turn: context.turn,
+            user: context.user,
+            target: context.target,
+            move: move,
+            isLastActionOfTurn: context.isLastActionOfTurn,
+            moveProcedureHooks: context.moveProcedureHooks,
+          ),
+        );
+  }
+
+  registry = BattleMoveRegistry(<BattleMoveBehavior>[
     CallbackBattleMoveBehavior(
       battleEngineMethod: 's_basic',
       resolve: _resolveBasic,
@@ -161,6 +182,7 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       battleEngineMethod: 's_trick',
       resolve: _resolveTrick,
     ),
+    CopyCallMoveBehavior.sleepTalk(callMove: callMove),
     CallbackBattleMoveBehavior(
       battleEngineMethod: 's_plasma_fists',
       resolve: _resolvePlasmaFists,
@@ -579,6 +601,7 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     const TypeBasedMoveBehavior.multiAttack(),
     const TypeBasedMoveBehavior.revelationDance(),
   ]);
+  return registry;
 }
 
 const _partialBasicDescendantMethods = <String>[
@@ -643,7 +666,6 @@ const _partialTargetMarkerMethods = <String, String>{
   's_quash': 'quash',
   's_revival_blessing': 'revival_blessing',
   's_sketch': 'sketch',
-  's_sleep_talk': 'sleep_talk',
   's_snatch': 'snatch',
   's_spite': 'spite',
   's_swallow': 'swallow',

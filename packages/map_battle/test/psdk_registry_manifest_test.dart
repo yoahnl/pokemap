@@ -933,6 +933,10 @@ void main() {
               'StaticBasicMoveRegistry.partialAbilityChanging(s_simple_beam)',
         ),
         (
+          method: 's_sleep_talk',
+          behavior: 'CopyCallMoveBehavior.sleepTalk',
+        ),
+        (
           method: 's_snatch',
           behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_snatch)',
         ),
