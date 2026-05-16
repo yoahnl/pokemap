@@ -1218,7 +1218,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Thunder',
     rubyPath: '10 Move/2 Definitions/300 Thunder.rb',
     dartBehavior: 'WeatherPowerMoveBehavior.hurricane',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.weather,
       PsdkMoveDependency.accuracy,
@@ -2813,7 +2813,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Thunder',
     rubyPath: '10 Move/2 Definitions/300 Thunder.rb',
     dartBehavior: 'WeatherPowerMoveBehavior.thunder',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.weather,
       PsdkMoveDependency.accuracy
@@ -3024,7 +3024,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'WeatherMove',
     rubyPath: '10 Move/2 Definitions/300 WeatherMove.rb',
     dartBehavior: 'WeatherMoveBehavior',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerWeather,
       PsdkMoveDependency.weather,
@@ -3037,7 +3037,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'WeatherBall',
     rubyPath: '10 Move/2 Definitions/300 WeatherBall.rb',
     dartBehavior: 'WeatherPowerMoveBehavior.weatherBall',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.weather,
       PsdkMoveDependency.ability

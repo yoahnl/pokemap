@@ -101,7 +101,7 @@ void main() {
       );
     });
 
-    test('scopes ported s_basic coverage to plain damage metadata only', () {
+    test('scopes ported s_basic coverage to plain damage and Blizzard', () {
       final report = generatePsdkAttackCoverageReport(
         moves: const <PsdkStudioMoveCoverageEntry>[
           PsdkStudioMoveCoverageEntry(
@@ -131,6 +131,24 @@ void main() {
             sourceFile: 'liquidation.json',
           ),
           PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'blizzard',
+            battleEngineMethod: 's_basic',
+            type: 'ice',
+            category: 'special',
+            power: 110,
+            accuracy: '70',
+            pp: 5,
+            priority: 0,
+            criticalRate: 1,
+            effectChance: 10,
+            moveStatusCount: 1,
+            moveStatuses: <PsdkStudioStatusCoverageEntry>[
+              PsdkStudioStatusCoverageEntry(status: 'freeze'),
+            ],
+            target: 'adjacent_all_foe',
+            sourceFile: 'blizzard.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
             dbSymbol: 'growl_like_bad_data',
             battleEngineMethod: 's_basic',
             type: 'normal',
@@ -155,7 +173,7 @@ void main() {
         sourceDescription: 's_basic test moves',
       );
 
-      expect(report, contains('| fait | 1 |'));
+      expect(report, contains('| fait | 2 |'));
       expect(report, contains('| partiel | 2 |'));
       expect(
         report,
@@ -164,6 +182,10 @@ void main() {
       expect(
         report,
         contains('| partiel | liquidation | s_basic | ported |'),
+      );
+      expect(
+        report,
+        contains('| fait | blizzard | s_basic | ported |'),
       );
       expect(
         report,

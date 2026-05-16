@@ -691,7 +691,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_hurricane': _KnownDartBehavior(
     dartBehavior: 'WeatherPowerMoveBehavior.hurricane',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_ice_ball': _KnownDartBehavior(
     dartBehavior: 'ConsecutivePowerMoveBehavior.iceBall',
@@ -925,7 +925,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_thunder': _KnownDartBehavior(
     dartBehavior: 'WeatherPowerMoveBehavior.thunder',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_thing_sport': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_thing_sport',
@@ -1302,22 +1302,17 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'TerrainPowerMoveBehavior.terrainBoosting',
     status: _PsdkPortStatus.ported,
   ),
-  // Field setters now execute through PSDK-style handlers, including item
-  // duration extension and hard-weather blocking. They stay partial until the
-  // full field effect hook surface is ported.
   's_weather': _KnownDartBehavior(
     dartBehavior: 'WeatherMoveBehavior',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_terrain': _KnownDartBehavior(
     dartBehavior: 'TerrainMoveBehavior',
     status: _PsdkPortStatus.partial,
   ),
-  // Weather Ball has executable weather power/type behavior. Keep it partial
-  // until every weather effect and suppression hook has parity coverage.
   's_weather_ball': _KnownDartBehavior(
     dartBehavior: 'WeatherPowerMoveBehavior.weatherBall',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   // The base recoil damage is executable. Keep the status partial until Rock
   // Head, Parental Bond/Reckless style ability hooks, item callbacks and

@@ -6,8 +6,8 @@ Total registered methods: 330
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 55 |
-| `partial` | 275 |
+| `ported` | 59 |
+| `partial` | 271 |
 | `missing` | 0 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
@@ -144,7 +144,7 @@ Total registered methods: 330
 | `s_hex` | `Hex` | `10 Move/2 Definitions/300 Hex.rb` | `VariablePowerMoveBehavior.hex` | `partial` | `ability`, `handler_status` |
 | `s_hidden_power` | `HiddenPower` | `10 Move/2 Definitions/300 HiddenPower.rb` | `StaticBasicMoveRegistry.partialBasic(s_hidden_power)` | `partial` | `-` |
 | `s_hp_eq_level` | `HPEqLevel` | `10 Move/2 Definitions/300 HPEqLevel.rb` | `FixedDamageMoveBehavior.userLevel` | `ported` | `-` |
-| `s_hurricane` | `Thunder` | `10 Move/2 Definitions/300 Thunder.rb` | `WeatherPowerMoveBehavior.hurricane` | `partial` | `weather`, `accuracy`, `handler_status` |
+| `s_hurricane` | `Thunder` | `10 Move/2 Definitions/300 Thunder.rb` | `WeatherPowerMoveBehavior.hurricane` | `ported` | `weather`, `accuracy`, `handler_status` |
 | `s_ice_ball` | `Rollout` | `10 Move/2 Definitions/300 Rollout.rb` | `ConsecutivePowerMoveBehavior.iceBall` | `partial` | `effects`, `history`, `accuracy` |
 | `s_ice_spinner` | `IceSpinner` | `10 Move/2 Definitions/300 IceSpinner SteelRoller.rb` | `StaticBasicMoveRegistry.s_ice_spinner` | `partial` | `-` |
 | `s_imprison` | `Imprison` | `10 Move/2 Definitions/300 Imprison.rb` | `StaticBasicMoveRegistry.imprison` | `partial` | `-` |
@@ -315,7 +315,7 @@ Total registered methods: 330
 | `s_thing_sport` | `MudSport` | `10 Move/2 Definitions/300 MudSport.rb` | `StaticBasicMoveRegistry.s_thing_sport` | `partial` | `effects`, `field` |
 | `s_thrash` | `Thrash` | `10 Move/2 Definitions/300 Thrash.rb` | `ForcedActionMoveBehavior.thrash` | `partial` | `effects`, `handler_status`, `history` |
 | `s_throat_chop` | `ThroatChop` | `10 Move/2 Definitions/300 ThroatChop.rb` | `SpecialSecondaryMoveBehavior.throatChop` | `partial` | `effects` |
-| `s_thunder` | `Thunder` | `10 Move/2 Definitions/300 Thunder.rb` | `WeatherPowerMoveBehavior.thunder` | `partial` | `weather`, `accuracy` |
+| `s_thunder` | `Thunder` | `10 Move/2 Definitions/300 Thunder.rb` | `WeatherPowerMoveBehavior.thunder` | `ported` | `weather`, `accuracy` |
 | `s_tidy_up` | `TidyUp` | `10 Move/2 Definitions/300 TidyUp.rb` | `StaticBasicMoveRegistry.s_tidy_up` | `ported` | `-` |
 | `s_topsy_turvy` | `TopsyTurvy` | `10 Move/2 Definitions/300 TopsyTurvy.rb` | `AdvancedStatMoveBehavior.topsyTurvy` | `partial` | `handler_stat`, `effects`, `ability` |
 | `s_torment` | `Torment` | `10 Move/2 Definitions/300 Torment.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_torment)` | `partial` | `effects`, `history` |
@@ -335,8 +335,8 @@ Total registered methods: 330
 | `s_venoshock` | `Venoshock` | `10 Move/2 Definitions/300 Venoshock.rb` | `VariablePowerMoveBehavior.venoshock` | `ported` | `-` |
 | `s_wakeup_slap` | `WakeUpSlap` | `10 Move/2 Definitions/300 HitThenCureStatus.rb` | `HitThenCureStatusMoveBehavior.wakeUpSlap` | `partial` | `handler_damage`, `handler_status`, `effects`, `ability` |
 | `s_water_shuriken` | `WaterShuriken` | `10 Move/1 Mechanics/103 TwoHit MultiHit.rb` | `MultiHitMoveBehavior.waterShuriken` | `partial` | `ability`, `item` |
-| `s_weather` | `WeatherMove` | `10 Move/2 Definitions/300 WeatherMove.rb` | `WeatherMoveBehavior` | `partial` | `handler_weather`, `weather`, `effects`, `item` |
-| `s_weather_ball` | `WeatherBall` | `10 Move/2 Definitions/300 WeatherBall.rb` | `WeatherPowerMoveBehavior.weatherBall` | `partial` | `weather`, `ability` |
+| `s_weather` | `WeatherMove` | `10 Move/2 Definitions/300 WeatherMove.rb` | `WeatherMoveBehavior` | `ported` | `handler_weather`, `weather`, `effects`, `item` |
+| `s_weather_ball` | `WeatherBall` | `10 Move/2 Definitions/300 WeatherBall.rb` | `WeatherPowerMoveBehavior.weatherBall` | `ported` | `weather`, `ability` |
 | `s_wish` | `Wish` | `10 Move/2 Definitions/300 Wish.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_wish)` | `partial` | `effects`, `end_turn`, `handler_switch` |
 | `s_wonder_room` | `WonderRoom` | `10 Move/2 Definitions/300 WonderRoom.rb` | `StaticBasicMoveRegistry.partialFieldMarker(s_wonder_room)` | `partial` | `effects`, `handler_stat`, `field` |
 | `s_worry_seed` | `WorrySeed` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `StaticBasicMoveRegistry.partialAbilityChanging(s_worry_seed)` | `partial` | `ability`, `effects` |

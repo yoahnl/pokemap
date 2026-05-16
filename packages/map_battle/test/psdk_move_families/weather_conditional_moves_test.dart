@@ -3,6 +3,43 @@ import 'package:test/test.dart';
 
 void main() {
   group('PSDK weather-conditional move families', () {
+    for (final entry in <({
+      String moveId,
+      String type,
+      PsdkBattleWeatherId weather,
+    })>[
+      (moveId: 'rain_dance', type: 'water', weather: PsdkBattleWeatherId.rain),
+      (moveId: 'sunny_day', type: 'fire', weather: PsdkBattleWeatherId.sunny),
+      (
+        moveId: 'sandstorm',
+        type: 'rock',
+        weather: PsdkBattleWeatherId.sandstorm,
+      ),
+      (moveId: 'hail', type: 'ice', weather: PsdkBattleWeatherId.hail),
+    ]) {
+      test('s_weather applies ${entry.moveId} for five turns', () {
+        final result = _runMove(
+          field: const PsdkBattleFieldState(),
+          playerMove: _move(
+            id: entry.moveId,
+            type: entry.type,
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            accuracy: 0,
+            battleEngineMethod: 's_weather',
+            target: PsdkBattleMoveTarget.none,
+          ),
+        );
+
+        expect(result.state.field.weather?.id, entry.weather);
+        expect(result.state.field.weather?.remainingTurns, 4);
+        expect(
+          result.timeline.events.whereType<PsdkBattleWeatherChangedEvent>(),
+          hasLength(1),
+        );
+      });
+    }
+
     for (final entry in <({String method, String moveId, String type})>[
       (method: 's_thunder', moveId: 'thunder', type: 'electric'),
       (method: 's_hurricane', moveId: 'hurricane', type: 'flying'),
@@ -43,6 +80,70 @@ void main() {
         expect(_damageEvents(result, moveId: entry.moveId), isEmpty);
       });
     }
+
+    test('s_weather_ball doubles power and changes type under each weather',
+        () {
+      final noWeather = _weatherBallDamage(const PsdkBattleFieldState(),
+          opponentType: 'fire');
+      final rain = _weatherBallDamage(_weather(PsdkBattleWeatherId.rain),
+          opponentType: 'fire');
+      final sun = _weatherBallDamage(_weather(PsdkBattleWeatherId.sunny),
+          opponentType: 'grass');
+      final sand = _weatherBallDamage(
+        _weather(PsdkBattleWeatherId.sandstorm),
+        opponentType: 'ice',
+      );
+      final hail = _weatherBallDamage(
+        _weather(PsdkBattleWeatherId.hail),
+        opponentType: 'grass',
+      );
+
+      expect(rain, greaterThan(noWeather));
+      expect(sun, greaterThan(noWeather));
+      expect(sand, greaterThan(noWeather));
+      expect(hail, greaterThan(noWeather));
+    });
+
+    for (final weather in <PsdkBattleWeatherId>[
+      PsdkBattleWeatherId.hail,
+      PsdkBattleWeatherId.snow,
+    ]) {
+      test('s_basic Blizzard bypasses accuracy under ${weather.jsonName}', () {
+        final result = _runMove(
+          field: _weather(weather),
+          moveAccuracySeed: 99,
+          playerMove: _move(
+            id: 'blizzard',
+            type: 'ice',
+            category: PsdkBattleMoveCategory.special,
+            power: 110,
+            accuracy: 1,
+            battleEngineMethod: 's_basic',
+          ),
+        );
+
+        expect(_missEvents(result, moveId: 'blizzard'), isEmpty);
+        expect(_damageEvents(result, moveId: 'blizzard'), hasLength(1));
+      });
+    }
+
+    test('s_basic Blizzard keeps normal accuracy outside snowing weather', () {
+      final result = _runMove(
+        field: const PsdkBattleFieldState(),
+        moveAccuracySeed: 99,
+        playerMove: _move(
+          id: 'blizzard',
+          type: 'ice',
+          category: PsdkBattleMoveCategory.special,
+          power: 110,
+          accuracy: 1,
+          battleEngineMethod: 's_basic',
+        ),
+      );
+
+      expect(_missEvents(result, moveId: 'blizzard'), hasLength(1));
+      expect(_damageEvents(result, moveId: 'blizzard'), isEmpty);
+    });
 
     test('s_solar_beam charges first without sun then releases next turn', () {
       final engine = _engine(
@@ -88,7 +189,48 @@ void main() {
         lessThan(_damage(clear, moveId: 'solar_beam')),
       );
     });
+
+    test('s_solar_beam covers Solar Blade physical variants under weather', () {
+      final sun = _runMove(
+        field: _weather(PsdkBattleWeatherId.sunny),
+        playerMove: _move(
+          id: 'solar_blade',
+          type: 'grass',
+          category: PsdkBattleMoveCategory.physical,
+          power: 125,
+          battleEngineMethod: 's_solar_beam',
+        ),
+      );
+      final rain = _releaseSolarBlade(_weather(PsdkBattleWeatherId.rain));
+      final clear = _releaseSolarBlade(const PsdkBattleFieldState());
+
+      expect(_damageEvents(sun, moveId: 'solar_blade'), hasLength(1));
+      expect(
+        _damage(rain, moveId: 'solar_blade'),
+        lessThan(_damage(clear, moveId: 'solar_blade')),
+      );
+    });
   });
+}
+
+int _weatherBallDamage(
+  PsdkBattleFieldState field, {
+  required String opponentType,
+}) {
+  return _damage(
+    _runMove(
+      field: field,
+      playerMove: _move(
+        id: 'weather_ball',
+        type: 'normal',
+        category: PsdkBattleMoveCategory.special,
+        power: 50,
+        battleEngineMethod: 's_weather_ball',
+      ),
+      opponentTypes: PsdkBattleTypes(primary: opponentType),
+    ),
+    moveId: 'weather_ball',
+  );
 }
 
 PsdkBattleTurnResult _releaseSolarBeam(PsdkBattleFieldState field) {
@@ -106,15 +248,32 @@ PsdkBattleTurnResult _releaseSolarBeam(PsdkBattleFieldState field) {
   return engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
 }
 
+PsdkBattleTurnResult _releaseSolarBlade(PsdkBattleFieldState field) {
+  final engine = _engine(
+    field: field,
+    playerMove: _move(
+      id: 'solar_blade',
+      type: 'grass',
+      category: PsdkBattleMoveCategory.physical,
+      power: 125,
+      battleEngineMethod: 's_solar_beam',
+    ),
+  );
+  engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+  return engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+}
+
 PsdkBattleTurnResult _runMove({
   required PsdkBattleFieldState field,
   required PsdkBattleMoveData playerMove,
   int moveAccuracySeed = 3,
+  PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
 }) {
   return _engine(
     field: field,
     playerMove: playerMove,
     moveAccuracySeed: moveAccuracySeed,
+    opponentTypes: opponentTypes,
   ).submit(const PsdkBattleDecision.fight(moveSlot: 0));
 }
 
@@ -122,6 +281,7 @@ PsdkBattleEngine _engine({
   required PsdkBattleFieldState field,
   required PsdkBattleMoveData playerMove,
   int moveAccuracySeed = 3,
+  PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
 }) {
   return PsdkBattleEngine(
     setup: PsdkBattleSetup.singles(
@@ -133,6 +293,7 @@ PsdkBattleEngine _engine({
       opponent: _combatant(
         id: 'opponent',
         speed: 1,
+        types: opponentTypes,
         move: _move(
           id: 'opponent_wait',
           power: 0,
@@ -156,6 +317,7 @@ PsdkBattleCombatantSetup _combatant({
   required String id,
   required int speed,
   required PsdkBattleMoveData move,
+  PsdkBattleTypes types = const PsdkBattleTypes(primary: 'normal'),
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -164,7 +326,7 @@ PsdkBattleCombatantSetup _combatant({
     level: 20,
     maxHp: 100,
     currentHp: 100,
-    types: const PsdkBattleTypes(primary: 'normal'),
+    types: types,
     stats: PsdkBattleStats(
       attack: 50,
       defense: 50,
@@ -183,6 +345,7 @@ PsdkBattleMoveData _move({
   required int power,
   int accuracy = 100,
   String battleEngineMethod = 's_basic',
+  PsdkBattleMoveTarget target = PsdkBattleMoveTarget.adjacentFoe,
 }) {
   return PsdkBattleMoveData(
     id: id,
@@ -196,7 +359,7 @@ PsdkBattleMoveData _move({
     priority: 0,
     criticalRate: 1,
     battleEngineMethod: battleEngineMethod,
-    target: PsdkBattleMoveTarget.adjacentFoe,
+    target: target,
   );
 }
 

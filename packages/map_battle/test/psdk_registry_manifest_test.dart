@@ -563,7 +563,7 @@ void main() {
         byMethod['s_fake_out']!.dartBehavior,
         'ActionGatedMoveBehavior.fakeOut',
       );
-      expect(byMethod['s_hurricane']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_hurricane']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_hurricane']!.dartBehavior,
         'WeatherPowerMoveBehavior.hurricane',
@@ -578,7 +578,7 @@ void main() {
         byMethod['s_solar_beam']!.dartBehavior,
         'WeatherPowerMoveBehavior.solarBeam',
       );
-      expect(byMethod['s_thunder']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_thunder']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_thunder']!.dartBehavior,
         'WeatherPowerMoveBehavior.thunder',
@@ -1350,9 +1350,9 @@ void main() {
         byMethod['s_terrain_pulse']!.dartBehavior,
         'TerrainPowerMoveBehavior.terrainPulse',
       );
-      expect(byMethod['s_weather']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_weather']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_weather']!.dartBehavior, 'WeatherMoveBehavior');
-      expect(byMethod['s_weather_ball']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_weather_ball']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_weather_ball']!.dartBehavior,
         'WeatherPowerMoveBehavior.weatherBall',

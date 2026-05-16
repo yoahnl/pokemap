@@ -1,6 +1,7 @@
 import '../battle/battle_slot.dart';
 import '../effect/ability/ability_effect.dart';
 import '../rng/battle_rng_streams.dart';
+import '../../psdk/domain/psdk_battle_field.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 import 'battle_move_execution.dart';
 
@@ -48,6 +49,9 @@ final class BattleAccuracyResolver {
     if (execution.move.accuracy <= 0) {
       return true;
     }
+    if (_snowBypassesBlizzardAccuracy(execution)) {
+      return true;
+    }
     for (final target in targets) {
       final context = BattleAbilityMoveContext(
         state: execution.context.state,
@@ -62,6 +66,15 @@ final class BattleAccuracyResolver {
       }
     }
     return false;
+  }
+
+  bool _snowBypassesBlizzardAccuracy(BattleMoveProcedureExecution execution) {
+    if (execution.move.dbSymbol != 'blizzard') {
+      return false;
+    }
+    final state = execution.context.state;
+    return state.isWeatherEffectActive(PsdkBattleWeatherId.hail) ||
+        state.isWeatherEffectActive(PsdkBattleWeatherId.snow);
   }
 }
 

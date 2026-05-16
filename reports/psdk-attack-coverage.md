@@ -27,8 +27,8 @@ Coverage semantics:
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 250 |
-| partiel | 478 |
+| fait | 258 |
+| partiel | 470 |
 | pas_fait | 0 |
 | unknown_methods | 0 |
 
@@ -88,7 +88,7 @@ Coverage semantics:
 | partiel | black_hole_eclipse2 | s_basic | ported | StaticBasicMoveRegistry.s_basic | dark | special | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/black_hole_eclipse2.json |
 | fait | blast_burn | s_reload | ported | StaticBasicMoveRegistry.s_reload | fire | special | 150 | 90 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/blast_burn.json |
 | partiel | blaze_kick | s_basic | ported | StaticBasicMoveRegistry.s_basic | fire | physical | 85 | 90 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/blaze_kick.json |
-| partiel | blizzard | s_basic | ported | StaticBasicMoveRegistry.s_basic | ice | special | 110 | 70 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/blizzard.json |
+| fait | blizzard | s_basic | ported | StaticBasicMoveRegistry.s_basic | ice | special | 110 | 70 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/blizzard.json |
 | fait | block | s_cantflee | ported | StaticBasicMoveRegistry.s_cantflee | normal | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/block.json |
 | partiel | bloom_doom | s_basic | ported | StaticBasicMoveRegistry.s_basic | grass | physical | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/bloom_doom.json |
 | partiel | bloom_doom2 | s_basic | ported | StaticBasicMoveRegistry.s_basic | grass | special | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/bloom_doom2.json |
@@ -301,7 +301,7 @@ Coverage semantics:
 | partiel | gunk_shot | s_basic | ported | StaticBasicMoveRegistry.s_basic | poison | physical | 120 | 80 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/gunk_shot.json |
 | fait | gust | s_basic | ported | StaticBasicMoveRegistry.s_basic | flying | special | 40 | 100 | 35 | ../../pokémon_sdk_test_project/Data/Studio/moves/gust.json |
 | partiel | gyro_ball | s_gyro_ball | partial | VariablePowerMoveBehavior.gyroBall | steel | physical | 0 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/gyro_ball.json |
-| partiel | hail | s_weather | partial | WeatherMoveBehavior | ice | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/hail.json |
+| fait | hail | s_weather | ported | WeatherMoveBehavior | ice | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/hail.json |
 | partiel | hammer_arm | s_self_stat | ported | StatusStatMoveBehavior.selfStat | fighting | physical | 100 | 90 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/hammer_arm.json |
 | partiel | happy_hour | s_happy_hour | partial | StaticBasicMoveRegistry.partialFieldMarker(s_happy_hour) | normal | status | 0 | 0 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/happy_hour.json |
 | fait | harden | s_self_stat | ported | StatusStatMoveBehavior.selfStat | normal | status | 0 | 0 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/harden.json |
@@ -331,7 +331,7 @@ Coverage semantics:
 | partiel | horn_drill | s_ohko | partial | OhkoMoveBehavior | normal | physical | 0 | 30 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/horn_drill.json |
 | fait | horn_leech | s_absorb | ported | DrainMoveBehavior.absorb | grass | physical | 75 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/horn_leech.json |
 | fait | howl | s_self_stat | ported | StatusStatMoveBehavior.selfStat | normal | status | 0 | 0 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/howl.json |
-| partiel | hurricane | s_hurricane | partial | WeatherPowerMoveBehavior.hurricane | flying | special | 110 | 70 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/hurricane.json |
+| fait | hurricane | s_hurricane | ported | WeatherPowerMoveBehavior.hurricane | flying | special | 110 | 70 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/hurricane.json |
 | fait | hydro_cannon | s_reload | ported | StaticBasicMoveRegistry.s_reload | water | special | 150 | 90 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/hydro_cannon.json |
 | fait | hydro_pump | s_basic | ported | StaticBasicMoveRegistry.s_basic | water | special | 110 | 80 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/hydro_pump.json |
 | partiel | hydro_vortex | s_basic | ported | StaticBasicMoveRegistry.s_basic | water | physical | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/hydro_vortex.json |
@@ -522,7 +522,7 @@ Coverage semantics:
 | fait | quiver_dance | s_self_stat | ported | StatusStatMoveBehavior.selfStat | bug | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/quiver_dance.json |
 | partiel | rage | s_rage | partial | StaticBasicMoveRegistry.s_rage | normal | physical | 20 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/rage.json |
 | partiel | rage_powder | s_follow_me | partial | StaticBasicMoveRegistry.s_follow_me | bug | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/rage_powder.json |
-| partiel | rain_dance | s_weather | partial | WeatherMoveBehavior | water | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/rain_dance.json |
+| fait | rain_dance | s_weather | ported | WeatherMoveBehavior | water | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/rain_dance.json |
 | fait | rapid_spin | s_rapid_spin | ported | StaticBasicMoveRegistry.s_rapid_spin | normal | physical | 20 | 100 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/rapid_spin.json |
 | fait | razor_leaf | s_basic | ported | StaticBasicMoveRegistry.s_basic | grass | physical | 55 | 95 | 25 | ../../pokémon_sdk_test_project/Data/Studio/moves/razor_leaf.json |
 | partiel | razor_shell | s_basic | ported | StaticBasicMoveRegistry.s_basic | water | physical | 75 | 95 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/razor_shell.json |
@@ -561,7 +561,7 @@ Coverage semantics:
 | fait | safeguard | s_safe_guard | ported | StaticBasicMoveRegistry.s_safe_guard | normal | status | 0 | 0 | 25 | ../../pokémon_sdk_test_project/Data/Studio/moves/safeguard.json |
 | partiel | sand_attack | s_stat | ported | StatusStatMoveBehavior.stat | ground | status | 0 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/sand_attack.json |
 | fait | sand_tomb | s_bind | ported | StaticBasicMoveRegistry.s_bind | ground | physical | 35 | 85 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/sand_tomb.json |
-| partiel | sandstorm | s_weather | partial | WeatherMoveBehavior | rock | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/sandstorm.json |
+| fait | sandstorm | s_weather | ported | WeatherMoveBehavior | rock | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/sandstorm.json |
 | partiel | savage_spin_out | s_basic | ported | StaticBasicMoveRegistry.s_basic | bug | physical | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/savage_spin_out.json |
 | partiel | savage_spin_out2 | s_basic | ported | StaticBasicMoveRegistry.s_basic | bug | special | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/savage_spin_out2.json |
 | partiel | scald | s_basic | ported | StaticBasicMoveRegistry.s_basic | water | special | 80 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/scald.json |
@@ -663,7 +663,7 @@ Coverage semantics:
 | partiel | subzero_slammer | s_basic | ported | StaticBasicMoveRegistry.s_basic | ice | physical | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/subzero_slammer.json |
 | partiel | subzero_slammer2 | s_basic | ported | StaticBasicMoveRegistry.s_basic | ice | special | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/subzero_slammer2.json |
 | partiel | sucker_punch | s_sucker_punch | partial | ActionGatedMoveBehavior.suckerPunch | dark | physical | 70 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/sucker_punch.json |
-| partiel | sunny_day | s_weather | partial | WeatherMoveBehavior | fire | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/sunny_day.json |
+| fait | sunny_day | s_weather | ported | WeatherMoveBehavior | fire | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/sunny_day.json |
 | fait | sunsteel_strike | s_basic | ported | StaticBasicMoveRegistry.s_basic | steel | physical | 100 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/sunsteel_strike.json |
 | fait | super_fang | s_super_fang | ported | FixedDamageMoveBehavior.halfCurrentTargetHp | normal | physical | 0 | 90 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/super_fang.json |
 | partiel | superpower | s_self_stat | ported | StatusStatMoveBehavior.selfStat | fighting | physical | 120 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/superpower.json |
@@ -699,7 +699,7 @@ Coverage semantics:
 | fait | thousand_waves | s_cantflee | ported | StaticBasicMoveRegistry.s_cantflee | ground | physical | 90 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/thousand_waves.json |
 | partiel | thrash | s_thrash | partial | ForcedActionMoveBehavior.thrash | normal | physical | 120 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/thrash.json |
 | partiel | throat_chop | s_throat_chop | partial | SpecialSecondaryMoveBehavior.throatChop | dark | physical | 80 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/throat_chop.json |
-| partiel | thunder | s_thunder | partial | WeatherPowerMoveBehavior.thunder | electric | special | 110 | 70 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/thunder.json |
+| fait | thunder | s_thunder | ported | WeatherPowerMoveBehavior.thunder | electric | special | 110 | 70 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/thunder.json |
 | partiel | thunder_fang | s_a_fang | partial | BasicDamageSpecializationMoveBehavior.fangs | electric | physical | 65 | 95 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/thunder_fang.json |
 | partiel | thunder_punch | s_basic | ported | StaticBasicMoveRegistry.s_basic | electric | physical | 75 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/thunder_punch.json |
 | partiel | thunder_shock | s_basic | ported | StaticBasicMoveRegistry.s_basic | electric | special | 40 | 100 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/thunder_shock.json |
@@ -742,7 +742,7 @@ Coverage semantics:
 | partiel | water_sport | s_thing_sport | partial | StaticBasicMoveRegistry.s_thing_sport | water | status | 0 | 0 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/water_sport.json |
 | fait | water_spout | s_eruption | ported | VariablePowerMoveBehavior.eruption | water | special | 150 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/water_spout.json |
 | partiel | waterfall | s_basic | ported | StaticBasicMoveRegistry.s_basic | water | physical | 80 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/waterfall.json |
-| partiel | weather_ball | s_weather_ball | partial | WeatherPowerMoveBehavior.weatherBall | normal | special | 50 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/weather_ball.json |
+| fait | weather_ball | s_weather_ball | ported | WeatherPowerMoveBehavior.weatherBall | normal | special | 50 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/weather_ball.json |
 | fait | whirlpool | s_bind | ported | StaticBasicMoveRegistry.s_bind | water | special | 35 | 85 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/whirlpool.json |
 | partiel | whirlwind | s_roar | partial | StaticBasicMoveRegistry.forceSwitch(s_roar) | normal | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/whirlwind.json |
 | partiel | wide_guard | s_protect | ported | StaticBasicMoveRegistry.s_protect | rock | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/wide_guard.json |

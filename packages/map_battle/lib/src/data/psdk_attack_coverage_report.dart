@@ -60,6 +60,25 @@ final class PsdkStudioMoveCoverageEntry {
         effectChance == 0;
   }
 
+  bool get isStrictWeatherAccuracyBasic {
+    if (battleEngineMethod != 's_basic' || dbSymbol != 'blizzard') {
+      return false;
+    }
+    if (type.trim().toLowerCase() != 'ice' ||
+        category.trim().toLowerCase() != 'special' ||
+        power <= 0) {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    if (normalizedTarget.isNotEmpty && normalizedTarget != 'adjacent_all_foe') {
+      return false;
+    }
+    return battleStageModCount == 0 &&
+        moveStatusCount == 1 &&
+        moveStatuses.single.status == 'freeze' &&
+        effectChance == 10;
+  }
+
   bool get isStrictSelfStatBoost {
     if (battleEngineMethod != 's_self_stat') {
       return false;
@@ -597,7 +616,9 @@ String psdkAttackCoverageForMove(
 ) {
   return switch (manifestEntry?.status) {
     PsdkPortStatus.ported when move.battleEngineMethod == 's_basic' =>
-      move.isStrictPlainBasicDamage ? 'fait' : 'partiel',
+      move.isStrictPlainBasicDamage || move.isStrictWeatherAccuracyBasic
+          ? 'fait'
+          : 'partiel',
     PsdkPortStatus.ported when move.battleEngineMethod == 's_self_stat' =>
       move.isStrictSelfStatBoost ? 'fait' : 'partiel',
     PsdkPortStatus.ported when move.battleEngineMethod == 's_stat' =>
