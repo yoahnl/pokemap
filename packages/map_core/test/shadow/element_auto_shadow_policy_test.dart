@@ -52,6 +52,90 @@ void main() {
       expect(building!.kind, ElementAutoShadowSuggestionKind.buildingLarge);
       expect(building.config.family, StaticShadowFamily.building);
     });
+
+    test('Selbrume lamp proportions receive calibrated tall thin config', () {
+      final suggestion = buildElementAutoShadowSuggestion(
+        element: _element(id: 'lampadaire', width: 3, height: 5),
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      expect(suggestion!.kind, ElementAutoShadowSuggestionKind.tallThin);
+      _expectConfig(
+        suggestion.config,
+        profileId: 'default-ground-contact-blob',
+        scaleX: 0.80,
+        scaleY: 0.55,
+        opacity: 0.20,
+        family: StaticShadowFamily.tallProp,
+        anchorXRatio: 0.5,
+        anchorYRatio: 1.0,
+        footprintWidthRatio: 0.28,
+        footprintHeightRatio: 0.05,
+      );
+    });
+
+    test('Selbrume wide barriers stay wide low instead of building', () {
+      final suggestion = buildElementAutoShadowSuggestion(
+        element: _element(id: 'barriere_pierre', width: 13, height: 6),
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      expect(suggestion!.kind, ElementAutoShadowSuggestionKind.wideLow);
+      _expectConfig(
+        suggestion.config,
+        profileId: 'default-ground-wide-ellipse',
+        scaleX: 0.74,
+        scaleY: 0.50,
+        opacity: 0.20,
+        family: StaticShadowFamily.compactProp,
+        anchorXRatio: 0.5,
+        anchorYRatio: 0.98,
+        footprintWidthRatio: 0.58,
+        footprintHeightRatio: 0.06,
+      );
+    });
+
+    test('Selbrume houses receive calibrated building config', () {
+      final suggestion = buildElementAutoShadowSuggestion(
+        element: _element(id: 'maison', width: 6, height: 7),
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      expect(suggestion!.kind, ElementAutoShadowSuggestionKind.buildingLarge);
+      _expectConfig(
+        suggestion.config,
+        profileId: 'default-ground-wide-ellipse',
+        scaleX: 0.72,
+        scaleY: 0.48,
+        opacity: 0.20,
+        family: StaticShadowFamily.building,
+        anchorXRatio: 0.5,
+        anchorYRatio: 0.98,
+        footprintWidthRatio: 0.60,
+        footprintHeightRatio: 0.06,
+      );
+    });
+
+    test('V1 building auto config projects far less area than legacy broad',
+        () {
+      final legacy = _projectedAreaForShadow(
+        _legacyBroadSelbrumeShadow(family: StaticShadowFamily.building),
+        visualWidth: 192,
+        visualHeight: 224,
+        projectionSpec: _legacyBuildingProjectionSpec(),
+      );
+      final suggestion = buildElementAutoShadowSuggestion(
+        element: _element(id: 'maison', width: 6, height: 7),
+        shadowCatalog: _defaultCatalog(),
+      )!;
+      final v1 = _projectedAreaForShadow(
+        suggestion.config,
+        visualWidth: 192,
+        visualHeight: 224,
+      );
+
+      expect(v1, lessThan(legacy * 0.30));
+    });
   });
 
   group('applyElementAutoShadowPolicyToProject', () {
@@ -131,6 +215,78 @@ void main() {
       expect(result.project.elements[0].shadow, manual);
       expect(result.project.elements[1].shadow, disabled);
     });
+
+    test('backfill replaces broad legacy Selbrume shadow without family', () {
+      final result = applyElementAutoShadowPolicyToProject(
+        _project(
+          elements: [
+            _element(
+              id: 'lampadaire',
+              width: 3,
+              height: 5,
+              shadow: _legacyBroadSelbrumeShadow(),
+            ),
+          ],
+          shadowCatalog: _defaultCatalog(),
+        ),
+      );
+
+      expect(result.appliedCount, 1);
+      expect(result.changedCount, 1);
+      expect(
+        result.entries.single.status,
+        ElementAutoShadowBackfillStatus.appliedGeneric,
+      );
+      _expectConfig(
+        result.project.elements.single.shadow!,
+        profileId: 'default-ground-contact-blob',
+        scaleX: 0.80,
+        scaleY: 0.55,
+        opacity: 0.20,
+        family: StaticShadowFamily.tallProp,
+        anchorXRatio: 0.5,
+        anchorYRatio: 1.0,
+        footprintWidthRatio: 0.28,
+        footprintHeightRatio: 0.05,
+      );
+    });
+
+    test('backfill replaces broad legacy Selbrume building shadow', () {
+      final result = applyElementAutoShadowPolicyToProject(
+        _project(
+          elements: [
+            _element(
+              id: 'maison',
+              width: 6,
+              height: 7,
+              shadow: _legacyBroadSelbrumeShadow(
+                family: StaticShadowFamily.building,
+              ),
+            ),
+          ],
+          shadowCatalog: _defaultCatalog(),
+        ),
+      );
+
+      expect(result.appliedCount, 1);
+      expect(result.changedCount, 1);
+      expect(
+        result.entries.single.status,
+        ElementAutoShadowBackfillStatus.appliedGeneric,
+      );
+      _expectConfig(
+        result.project.elements.single.shadow!,
+        profileId: 'default-ground-wide-ellipse',
+        scaleX: 0.72,
+        scaleY: 0.48,
+        opacity: 0.20,
+        family: StaticShadowFamily.building,
+        anchorXRatio: 0.5,
+        anchorYRatio: 0.98,
+        footprintWidthRatio: 0.60,
+        footprintHeightRatio: 0.06,
+      );
+    });
   });
 }
 
@@ -200,4 +356,116 @@ ProjectElementShadowConfig _oldAutoSmallSquareShadow() {
       footprintHeightRatio: 0.10,
     ),
   );
+}
+
+ProjectElementShadowConfig _legacyBroadSelbrumeShadow({
+  StaticShadowFamily? family,
+}) {
+  return ProjectElementShadowConfig(
+    castsShadow: true,
+    shadowProfileId: 'default-ground-wide-ellipse',
+    offsetX: 0,
+    offsetY: 0,
+    scaleX: 1,
+    scaleY: 0.85,
+    opacity: 0.30,
+    family: family,
+    footprint: StaticShadowFootprintConfig(
+      anchorXRatio: 0.5,
+      anchorYRatio: 0.92,
+      footprintWidthRatio: 0.82,
+      footprintHeightRatio: 0.12,
+    ),
+  );
+}
+
+void _expectConfig(
+  ProjectElementShadowConfig config, {
+  required String profileId,
+  required double scaleX,
+  required double scaleY,
+  required double opacity,
+  required StaticShadowFamily family,
+  required double anchorXRatio,
+  required double anchorYRatio,
+  required double footprintWidthRatio,
+  required double footprintHeightRatio,
+}) {
+  expect(config.castsShadow, isTrue);
+  expect(config.shadowProfileId, profileId);
+  expect(config.offsetX, 0);
+  expect(config.offsetY, 0);
+  expect(config.scaleX, closeTo(scaleX, 0.0000001));
+  expect(config.scaleY, closeTo(scaleY, 0.0000001));
+  expect(config.opacity, closeTo(opacity, 0.0000001));
+  expect(config.family, family);
+  expect(config.footprint!.anchorXRatio, closeTo(anchorXRatio, 0.0000001));
+  expect(config.footprint!.anchorYRatio, closeTo(anchorYRatio, 0.0000001));
+  expect(
+    config.footprint!.footprintWidthRatio,
+    closeTo(footprintWidthRatio, 0.0000001),
+  );
+  expect(
+    config.footprint!.footprintHeightRatio,
+    closeTo(footprintHeightRatio, 0.0000001),
+  );
+}
+
+double _projectedAreaForShadow(
+  ProjectElementShadowConfig shadow, {
+  required double visualWidth,
+  required double visualHeight,
+  StaticShadowProjectionSpec? projectionSpec,
+}) {
+  final metrics = StaticShadowVisualMetrics(
+    left: 0,
+    top: 0,
+    visualWidth: visualWidth,
+    visualHeight: visualHeight,
+  );
+  final geometry = resolveStaticShadowGeometry(
+    metrics: metrics,
+    shadowConfig: ResolvedShadowConfig(
+      shadowProfileId: shadow.shadowProfileId!,
+      mode: ShadowCasterMode.ellipse,
+      renderPass: ShadowRenderPass.groundStatic,
+      offsetX: shadow.offsetX ?? 0,
+      offsetY: shadow.offsetY ?? 0,
+      scaleX: shadow.scaleX ?? 1,
+      scaleY: shadow.scaleY ?? 1,
+      opacity: shadow.opacity ?? 0.35,
+      colorHexRgb: '000000',
+      softnessMode: ShadowSoftnessMode.hardEdge,
+    ),
+    elementFootprint: shadow.footprint,
+  );
+  final projected = resolveProjectedStaticShadowGeometry(
+    baseGeometry: geometry,
+    metrics: metrics,
+    projectionSpec: projectionSpec ??
+        resolveStaticShadowFamilyProjectionSpec(
+          family: shadow.family ?? StaticShadowFamily.genericProjection,
+        ),
+  );
+  return _projectedPolygonArea(projected.points);
+}
+
+StaticShadowProjectionSpec _legacyBuildingProjectionSpec() {
+  return StaticShadowProjectionSpec(
+    directionX: defaultStaticShadowProjectionDirectionX,
+    directionY: defaultStaticShadowProjectionDirectionY,
+    lengthRatio: 0.1984,
+    nearWidthMultiplier: 0.7176,
+    farWidthMultiplier: 0.7316,
+  );
+}
+
+double _projectedPolygonArea(List<ProjectedStaticShadowPoint> points) {
+  var area = 0.0;
+  for (var index = 0; index < points.length; index += 1) {
+    final current = points[index];
+    final next = points[(index + 1) % points.length];
+    area += current.x * next.y - next.x * current.y;
+  }
+  return area.abs() / 2;
 }

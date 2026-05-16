@@ -1,6 +1,22 @@
 import '../models/shadow.dart';
 import 'static_shadow_projection_geometry.dart';
 
+const _compactPropLengthRatio = 0.0704;
+const _compactPropNearWidthMultiplier = 0.3312;
+const _compactPropFarWidthMultiplier = 0.2832;
+
+const _tallPropLengthRatio = 0.0704;
+const _tallPropNearWidthMultiplier = 0.2208;
+const _tallPropFarWidthMultiplier = 0.1770;
+
+const _buildingLengthRatio = 0.0832;
+const _buildingNearWidthMultiplier = 0.4416;
+const _buildingFarWidthMultiplier = 0.3422;
+
+const _foliageLengthRatio = 0.0960;
+const _foliageNearWidthMultiplier = 0.5060;
+const _foliageFarWidthMultiplier = 0.4720;
+
 StaticShadowFamily resolveStaticShadowFamily({
   StaticShadowFamily? elementFamily,
   StaticShadowFamily? overrideFamily,
@@ -19,49 +35,53 @@ StaticShadowProjectionSpec resolveStaticShadowFamilyProjectionSpec({
     case StaticShadowFamily.genericProjection:
       return baseProjectionSpec;
     case StaticShadowFamily.compactProp:
-      return _scaledProjectionSpec(
+      return _calibratedProjectionSpec(
         baseProjectionSpec,
-        lengthRatioScale: 0.38,
-        nearWidthMultiplierScale: 0.58,
-        farWidthMultiplierScale: 0.44,
+        defaultLengthRatio: _compactPropLengthRatio,
+        defaultNearWidthMultiplier: _compactPropNearWidthMultiplier,
+        defaultFarWidthMultiplier: _compactPropFarWidthMultiplier,
       );
     case StaticShadowFamily.tallProp:
-      return _scaledProjectionSpec(
+      return _calibratedProjectionSpec(
         baseProjectionSpec,
-        lengthRatioScale: 0.48,
-        nearWidthMultiplierScale: 0.32,
-        farWidthMultiplierScale: 0.28,
+        defaultLengthRatio: _tallPropLengthRatio,
+        defaultNearWidthMultiplier: _tallPropNearWidthMultiplier,
+        defaultFarWidthMultiplier: _tallPropFarWidthMultiplier,
       );
     case StaticShadowFamily.building:
-      return _scaledProjectionSpec(
+      return _calibratedProjectionSpec(
         baseProjectionSpec,
-        lengthRatioScale: 0.62,
-        nearWidthMultiplierScale: 0.78,
-        farWidthMultiplierScale: 0.62,
+        defaultLengthRatio: _buildingLengthRatio,
+        defaultNearWidthMultiplier: _buildingNearWidthMultiplier,
+        defaultFarWidthMultiplier: _buildingFarWidthMultiplier,
       );
     case StaticShadowFamily.foliage:
-      return _scaledProjectionSpec(
+      return _calibratedProjectionSpec(
         baseProjectionSpec,
-        lengthRatioScale: 0.45,
-        nearWidthMultiplierScale: 0.72,
-        farWidthMultiplierScale: 0.70,
+        defaultLengthRatio: _foliageLengthRatio,
+        defaultNearWidthMultiplier: _foliageNearWidthMultiplier,
+        defaultFarWidthMultiplier: _foliageFarWidthMultiplier,
       );
   }
 }
 
-StaticShadowProjectionSpec _scaledProjectionSpec(
+StaticShadowProjectionSpec _calibratedProjectionSpec(
   StaticShadowProjectionSpec baseProjectionSpec, {
-  required double lengthRatioScale,
-  required double nearWidthMultiplierScale,
-  required double farWidthMultiplierScale,
+  required double defaultLengthRatio,
+  required double defaultNearWidthMultiplier,
+  required double defaultFarWidthMultiplier,
 }) {
   return StaticShadowProjectionSpec(
     directionX: baseProjectionSpec.directionX,
     directionY: baseProjectionSpec.directionY,
-    lengthRatio: baseProjectionSpec.lengthRatio * lengthRatioScale,
-    nearWidthMultiplier:
-        baseProjectionSpec.nearWidthMultiplier * nearWidthMultiplierScale,
-    farWidthMultiplier:
-        baseProjectionSpec.farWidthMultiplier * farWidthMultiplierScale,
+    lengthRatio: baseProjectionSpec.lengthRatio *
+        defaultLengthRatio /
+        defaultStaticShadowProjectionLengthRatio,
+    nearWidthMultiplier: baseProjectionSpec.nearWidthMultiplier *
+        defaultNearWidthMultiplier /
+        defaultStaticShadowProjectionNearWidthMultiplier,
+    farWidthMultiplier: baseProjectionSpec.farWidthMultiplier *
+        defaultFarWidthMultiplier /
+        defaultStaticShadowProjectionFarWidthMultiplier,
   );
 }

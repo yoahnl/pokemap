@@ -158,44 +158,52 @@ void main() {
       );
     });
 
-    test('compactProp V0 constants are stable', () {
+    test('compactProp V1 calibration is short and tapered', () {
       final spec = resolveStaticShadowFamilyProjectionSpec(
         family: StaticShadowFamily.compactProp,
       );
 
-      expect(spec.lengthRatio, closeTo(0.1216, 0.0000001));
-      expect(spec.nearWidthMultiplier, closeTo(0.5336, 0.0000001));
-      expect(spec.farWidthMultiplier, closeTo(0.5192, 0.0000001));
+      expect(spec.lengthRatio, closeTo(0.0704, 0.0000001));
+      expect(spec.nearWidthMultiplier, closeTo(0.3312, 0.0000001));
+      expect(spec.farWidthMultiplier, closeTo(0.2832, 0.0000001));
+      expect(spec.farWidthMultiplier, lessThan(spec.nearWidthMultiplier));
     });
 
-    test('tallProp V0 constants are stable', () {
+    test('tallProp V1 calibration is very narrow and short', () {
       final spec = resolveStaticShadowFamilyProjectionSpec(
         family: StaticShadowFamily.tallProp,
       );
 
-      expect(spec.lengthRatio, closeTo(0.1536, 0.0000001));
-      expect(spec.nearWidthMultiplier, closeTo(0.2944, 0.0000001));
-      expect(spec.farWidthMultiplier, closeTo(0.3304, 0.0000001));
+      expect(spec.lengthRatio, closeTo(0.0704, 0.0000001));
+      expect(spec.nearWidthMultiplier, closeTo(0.2208, 0.0000001));
+      expect(spec.farWidthMultiplier, closeTo(0.1770, 0.0000001));
+      expect(spec.farWidthMultiplier, lessThan(spec.nearWidthMultiplier));
     });
 
-    test('building V0 constants are stable', () {
+    test('building V1 calibration avoids broad slabs', () {
       final spec = resolveStaticShadowFamilyProjectionSpec(
         family: StaticShadowFamily.building,
       );
 
-      expect(spec.lengthRatio, closeTo(0.1984, 0.0000001));
-      expect(spec.nearWidthMultiplier, closeTo(0.7176, 0.0000001));
-      expect(spec.farWidthMultiplier, closeTo(0.7316, 0.0000001));
+      expect(spec.lengthRatio, closeTo(0.0832, 0.0000001));
+      expect(spec.nearWidthMultiplier, closeTo(0.4416, 0.0000001));
+      expect(spec.farWidthMultiplier, closeTo(0.3422, 0.0000001));
+      expect(spec.farWidthMultiplier, lessThan(spec.nearWidthMultiplier));
     });
 
-    test('foliage V0 constants are stable', () {
+    test('foliage V1 calibration is restrained but broader than tall props',
+        () {
       final spec = resolveStaticShadowFamilyProjectionSpec(
         family: StaticShadowFamily.foliage,
       );
+      final tall = resolveStaticShadowFamilyProjectionSpec(
+        family: StaticShadowFamily.tallProp,
+      );
 
-      expect(spec.lengthRatio, closeTo(0.144, 0.0000001));
-      expect(spec.nearWidthMultiplier, closeTo(0.6624, 0.0000001));
-      expect(spec.farWidthMultiplier, closeTo(0.826, 0.0000001));
+      expect(spec.lengthRatio, closeTo(0.0960, 0.0000001));
+      expect(spec.nearWidthMultiplier, closeTo(0.5060, 0.0000001));
+      expect(spec.farWidthMultiplier, closeTo(0.4720, 0.0000001));
+      expect(spec.nearWidthMultiplier, greaterThan(tall.nearWidthMultiplier));
     });
 
     test('scaled family specs remain valid for a custom positive base', () {
@@ -261,6 +269,48 @@ void main() {
 
       expect(_polygonArea(compact), lessThan(_polygonArea(generic)));
     });
+
+    test('building V1 projected geometry stays compact for a Selbrume house',
+        () {
+      final geometry = _projectedCase(
+        family: StaticShadowFamily.building,
+        visualWidth: 192,
+        visualHeight: 224,
+        footprintWidthRatio: 0.60 * 0.72,
+        footprintHeightRatio: 0.06 * 0.48,
+      );
+
+      expect(_projectedLength(geometry), lessThan(20));
+      expect(_maxWidth(geometry), lessThan(40));
+      expect(_polygonArea(geometry), lessThan(700));
+    });
+
+    test('building V1 projected area is far smaller than legacy Selbrume slab',
+        () {
+      final v1 = _projectedCase(
+        family: StaticShadowFamily.building,
+        visualWidth: 192,
+        visualHeight: 224,
+        footprintWidthRatio: 0.60 * 0.72,
+        footprintHeightRatio: 0.06 * 0.48,
+      );
+      final legacy = _projectedCase(
+        family: StaticShadowFamily.building,
+        visualWidth: 192,
+        visualHeight: 224,
+        footprintWidthRatio: 0.82,
+        footprintHeightRatio: 0.12 * 0.85,
+        projectionSpec: StaticShadowProjectionSpec(
+          directionX: defaultStaticShadowProjectionDirectionX,
+          directionY: defaultStaticShadowProjectionDirectionY,
+          lengthRatio: 0.1984,
+          nearWidthMultiplier: 0.7176,
+          farWidthMultiplier: 0.7316,
+        ),
+      );
+
+      expect(_polygonArea(v1), lessThan(_polygonArea(legacy) * 0.30));
+    });
   });
 }
 
@@ -270,6 +320,7 @@ ProjectedStaticShadowGeometry _projectedCase({
   required double visualHeight,
   required double footprintWidthRatio,
   required double footprintHeightRatio,
+  StaticShadowProjectionSpec? projectionSpec,
 }) {
   final metrics = StaticShadowVisualMetrics(
     left: 0,
@@ -302,7 +353,8 @@ ProjectedStaticShadowGeometry _projectedCase({
   return resolveProjectedStaticShadowGeometry(
     baseGeometry: baseGeometry,
     metrics: metrics,
-    projectionSpec: resolveStaticShadowFamilyProjectionSpec(family: family),
+    projectionSpec: projectionSpec ??
+        resolveStaticShadowFamilyProjectionSpec(family: family),
   );
 }
 
@@ -311,6 +363,22 @@ double _maxWidth(ProjectedStaticShadowGeometry geometry) {
     _distance(geometry.nearLeft, geometry.nearRight),
     _distance(geometry.farLeft, geometry.farRight),
   ].reduce((first, second) => first > second ? first : second);
+}
+
+double _projectedLength(ProjectedStaticShadowGeometry geometry) {
+  final near = _midpoint(geometry.nearLeft, geometry.nearRight);
+  final far = _midpoint(geometry.farLeft, geometry.farRight);
+  return _distance(near, far);
+}
+
+ProjectedStaticShadowPoint _midpoint(
+  ProjectedStaticShadowPoint first,
+  ProjectedStaticShadowPoint second,
+) {
+  return ProjectedStaticShadowPoint(
+    x: (first.x + second.x) / 2,
+    y: (first.y + second.y) / 2,
+  );
 }
 
 double _distance(

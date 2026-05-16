@@ -235,10 +235,15 @@ ElementAutoShadowSuggestionKind _classifyElement({
 }) {
   final area = width * height;
   final aspect = height / width;
-  if (aspect >= 2.2 && width <= 2) {
+  final wideAspect = width / height;
+  if ((aspect >= 2.2 && width <= 2) ||
+      (width <= 3 && height >= 5 && aspect >= 1.4)) {
     return ElementAutoShadowSuggestionKind.tallThin;
   }
   if (width >= 3 && height <= 2) {
+    return ElementAutoShadowSuggestionKind.wideLow;
+  }
+  if (width >= 4 && height <= 6 && wideAspect >= 2.0) {
     return ElementAutoShadowSuggestionKind.wideLow;
   }
   if (width >= 4 || area >= 12) {
@@ -347,15 +352,15 @@ ProjectElementShadowConfig _configForKind(
         shadowProfileId: profileId,
         offsetX: 0,
         offsetY: 0,
-        scaleX: 1,
-        scaleY: 1,
-        opacity: 0.28,
+        scaleX: 0.80,
+        scaleY: 0.55,
+        opacity: 0.20,
         family: StaticShadowFamily.tallProp,
         footprint: StaticShadowFootprintConfig(
           anchorXRatio: 0.5,
           anchorYRatio: 1.0,
-          footprintWidthRatio: 0.18,
-          footprintHeightRatio: 0.07,
+          footprintWidthRatio: 0.28,
+          footprintHeightRatio: 0.05,
         ),
       );
     case ElementAutoShadowSuggestionKind.buildingLarge:
@@ -364,15 +369,15 @@ ProjectElementShadowConfig _configForKind(
         shadowProfileId: profileId,
         offsetX: 0,
         offsetY: 0,
-        scaleX: 1,
-        scaleY: 0.85,
-        opacity: 0.30,
+        scaleX: 0.72,
+        scaleY: 0.48,
+        opacity: 0.20,
         family: StaticShadowFamily.building,
         footprint: StaticShadowFootprintConfig(
           anchorXRatio: 0.5,
-          anchorYRatio: 0.92,
-          footprintWidthRatio: 0.82,
-          footprintHeightRatio: 0.12,
+          anchorYRatio: 0.98,
+          footprintWidthRatio: 0.60,
+          footprintHeightRatio: 0.06,
         ),
       );
     case ElementAutoShadowSuggestionKind.wideLow:
@@ -381,15 +386,15 @@ ProjectElementShadowConfig _configForKind(
         shadowProfileId: profileId,
         offsetX: 0,
         offsetY: 0,
-        scaleX: 0.92,
-        scaleY: 0.75,
-        opacity: 0.27,
+        scaleX: 0.74,
+        scaleY: 0.50,
+        opacity: 0.20,
         family: StaticShadowFamily.compactProp,
         footprint: StaticShadowFootprintConfig(
           anchorXRatio: 0.5,
-          anchorYRatio: 0.95,
-          footprintWidthRatio: 0.72,
-          footprintHeightRatio: 0.10,
+          anchorYRatio: 0.98,
+          footprintWidthRatio: 0.58,
+          footprintHeightRatio: 0.06,
         ),
       );
     case ElementAutoShadowSuggestionKind.smallSquare:
@@ -470,7 +475,8 @@ bool _isRecognizedAutoShadow(
   return _canReplaceExistingShadow(shadow, catalog) ||
       shadow == _oldAutoSmallSquareShadow() ||
       shadow == _oldAutoDefaultPropShadow() ||
-      shadow == _oldAutoWideLowShadow();
+      shadow == _oldAutoWideLowShadow() ||
+      _isLegacyBroadSelbrumeAutoShadow(shadow);
 }
 
 bool _canReplaceExistingShadow(
@@ -556,6 +562,31 @@ ProjectElementShadowConfig _oldAutoWideLowShadow() {
       footprintHeightRatio: 0.10,
     ),
   );
+}
+
+bool _isLegacyBroadSelbrumeAutoShadow(ProjectElementShadowConfig shadow) {
+  if (!shadow.castsShadow ||
+      shadow.shadowProfileId != 'default-ground-wide-ellipse' ||
+      shadow.offsetX != 0 ||
+      shadow.offsetY != 0 ||
+      shadow.scaleX != 1 ||
+      shadow.scaleY != 0.85 ||
+      shadow.opacity != 0.30) {
+    return false;
+  }
+  final family = shadow.family;
+  if (family != null &&
+      family != StaticShadowFamily.building &&
+      family != StaticShadowFamily.compactProp) {
+    return false;
+  }
+  return shadow.footprint ==
+      StaticShadowFootprintConfig(
+        anchorXRatio: 0.5,
+        anchorYRatio: 0.92,
+        footprintWidthRatio: 0.82,
+        footprintHeightRatio: 0.12,
+      );
 }
 
 const _defaultGroundStaticProfileIds = <String>{
