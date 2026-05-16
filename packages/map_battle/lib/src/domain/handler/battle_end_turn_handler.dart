@@ -2,6 +2,7 @@ import '../../psdk/domain/psdk_battle_field.dart';
 import '../battler/battle_grounding_resolver.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
 import '../effect/battle_effect_hooks.dart';
+import '../effect/status/status_effect_registry.dart';
 import 'battle_heal_handler.dart';
 import 'battle_handler_context.dart';
 import 'battle_handler_result.dart';
@@ -98,6 +99,7 @@ final class BattleEndTurnHandler {
               turn: context.turn,
               owner: slot,
             ),
+            where: (effect) => effect is! BattleMajorStatusEffect,
           );
       nextState = result.state;
       nextRng = result.rng;

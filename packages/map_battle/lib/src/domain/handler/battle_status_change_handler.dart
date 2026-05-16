@@ -188,6 +188,27 @@ final class BattleStatusChangeHandler {
     required BattleMoveDefinition move,
   }) {
     final battler = context.state.battlerAt(user);
+    final effectResult = battler.effects.userMovePrevention(
+      BattleEffectUserMovePreventionContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        user: user,
+        target: user,
+        move: move,
+      ),
+      where: (effect) => effect is BattleMajorStatusEffect,
+    );
+    if (effectResult != null) {
+      return BattleStatusUserPreventionResult(
+        state: effectResult.state,
+        rng: effectResult.rng,
+        prevented: effectResult.prevented,
+        reason: effectResult.reason,
+        events: effectResult.events,
+      );
+    }
+
     return switch (battler.majorStatus) {
       PsdkBattleMajorStatus.paralysis =>
         _resolveParalysisPrevention(context, user),
@@ -208,6 +229,23 @@ final class BattleStatusChangeHandler {
       final battler = nextState.battlerAt(slot);
       final status = battler.majorStatus;
       if (status == null) {
+        continue;
+      }
+
+      final effectResult = battler.effects.dispatchEndTurn(
+        BattleEffectEndTurnContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          owner: slot,
+        ),
+        where: (effect) => effect is BattleMajorStatusEffect,
+      );
+      if (effectResult.applied || effectResult.events.isNotEmpty) {
+        nextState = effectResult.state;
+        nextRng = effectResult.rng;
+        events.addAll(effectResult.events);
+        changed = true;
         continue;
       }
 

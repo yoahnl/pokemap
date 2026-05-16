@@ -7,6 +7,7 @@ import '../domain/action/battle_action_queue.dart';
 import '../domain/decision/battle_decision.dart';
 import '../domain/effect/ability/ability_effect.dart';
 import '../domain/effect/battle_effect_hooks.dart';
+import '../domain/effect/status/status_effect_registry.dart';
 import '../domain/handler/battle_end_turn_handler.dart';
 import '../domain/handler/battle_handler_context.dart';
 import '../domain/handler/battle_handler_result.dart';
@@ -444,6 +445,7 @@ final class BattleTurnRunner {
             target: action.target,
             move: move,
           ),
+          where: (effect) => effect is! BattleMajorStatusEffect,
         );
   }
 

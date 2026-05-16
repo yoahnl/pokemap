@@ -75,14 +75,18 @@ final class BattleEffectObjectStack {
   }
 
   BattleEffectEndTurnResult dispatchEndTurn(
-    BattleEffectEndTurnContext context,
-  ) {
+    BattleEffectEndTurnContext context, {
+    bool Function(BattleEffect effect)? where,
+  }) {
     var nextState = context.state;
     var nextRng = context.rng;
     final events = <PsdkBattleEvent>[];
     var changed = false;
 
     for (final effect in _effects) {
+      if (where != null && !where(effect)) {
+        continue;
+      }
       if (!_effectIsStillActive(
         effect: effect,
         state: nextState,
@@ -249,11 +253,15 @@ final class BattleEffectObjectStack {
   }
 
   BattleEffectUserMovePreventionResult? userMovePrevention(
-    BattleEffectUserMovePreventionContext context,
-  ) {
+    BattleEffectUserMovePreventionContext context, {
+    bool Function(BattleEffect effect)? where,
+  }) {
     var nextState = context.state;
     var nextRng = context.rng;
     for (final effect in _effects) {
+      if (where != null && !where(effect)) {
+        continue;
+      }
       if (!_effectIsStillActive(
         effect: effect,
         state: nextState,

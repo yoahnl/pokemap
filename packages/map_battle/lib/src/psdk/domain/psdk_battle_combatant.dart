@@ -394,9 +394,10 @@ class PsdkBattleEffectStack {
   }
 
   BattleEffectEndTurnResult dispatchEndTurn(
-    BattleEffectEndTurnContext context,
-  ) {
-    return _stack.dispatchEndTurn(context);
+    BattleEffectEndTurnContext context, {
+    bool Function(BattleEffect effect)? where,
+  }) {
+    return _stack.dispatchEndTurn(context, where: where);
   }
 
   BattleEffectDamagePreventionResult? dispatchDamagePrevention(
@@ -431,9 +432,10 @@ class PsdkBattleEffectStack {
   }
 
   BattleEffectUserMovePreventionResult? userMovePrevention(
-    BattleEffectUserMovePreventionContext context,
-  ) {
-    return _stack.userMovePrevention(context);
+    BattleEffectUserMovePreventionContext context, {
+    bool Function(BattleEffect effect)? where,
+  }) {
+    return _stack.userMovePrevention(context, where: where);
   }
 
   BattleMoveSelectionPreventionResult? moveSelectionPrevention({

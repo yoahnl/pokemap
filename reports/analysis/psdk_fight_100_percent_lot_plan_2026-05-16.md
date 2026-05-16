@@ -1378,6 +1378,20 @@ terrain, item-duration, Air Lock, and field-state tests remain green.
 **Definition of done:**
 - Status effects can be marked complete where Pokemon SDK branches are covered.
 
+**Status 2026-05-17:** done. Burn, Poison, Toxic, Paralysis, Sleep, and Freeze
+now expose object-backed PSDK hooks instead of relying only on the central
+status handler. Residual damage is handled through end-turn effect hooks,
+including Magic Guard / Heatproof compatibility and Toxic counter progression.
+Sleep, Freeze, and Paralysis action prevention now run through major-status
+effect hooks, with the status handler delegating to those hooks and keeping its
+legacy fallback for setup snapshots that still carry only `majorStatus`.
+Generic end-turn and user-prevention effect dispatch now supports predicates so
+major status hooks do not double-run beside non-status effects. Burn attack and
+paralysis speed modifiers remain wired through the existing damage calculator
+and action ordering paths. Regression coverage lives in
+`packages/map_battle/test/psdk_status_effects_test.dart` plus the existing
+status lifecycle tests.
+
 ### Lot 46 - Status Immunity and Cure Parity
 
 **Goal:** connect status effects to immunities, terrains, abilities, and cure moves.
