@@ -1,0 +1,500 @@
+import 'dart:convert';
+import 'dart:io';
+
+import '../psdk/psdk_battle.dart';
+
+enum PsdkGoldenActor {
+  player,
+  opponent,
+}
+
+enum PsdkGoldenActionKind {
+  fight,
+}
+
+class PsdkGoldenFixture {
+  PsdkGoldenFixture({
+    required this.scenarioId,
+    required this.sourcePsdkVersion,
+    required this.initialBattle,
+    required List<PsdkGoldenAction> actions,
+    required this.expectedFinalState,
+    required this.expectedTimeline,
+    required List<String> notes,
+  })  : actions = List<PsdkGoldenAction>.unmodifiable(actions),
+        notes = List<String>.unmodifiable(notes);
+
+  factory PsdkGoldenFixture.fromJson(Map<String, Object?> json) {
+    return PsdkGoldenFixture(
+      scenarioId: _requiredString(json, 'scenarioId'),
+      sourcePsdkVersion: _requiredString(json, 'sourcePsdkVersion'),
+      initialBattle: PsdkGoldenInitialBattle.fromJson(
+        _requiredMap(json, 'initialBattle'),
+      ),
+      actions: _requiredList(json, 'actions')
+          .map((value) => PsdkGoldenAction.fromJson(
+                _asMap(value, 'actions[]'),
+              ))
+          .toList(growable: false),
+      expectedFinalState: PsdkGoldenExpectedFinalState.fromJson(
+        _requiredMap(json, 'expectedFinalState'),
+      ),
+      expectedTimeline: PsdkGoldenExpectedTimeline.fromJson(
+        _requiredMap(json, 'expectedTimeline'),
+      ),
+      notes: _requiredList(json, 'notes')
+          .map((value) => _asString(value, 'notes[]'))
+          .toList(growable: false),
+    );
+  }
+
+  static Future<PsdkGoldenFixture> load(File file) async {
+    final decoded = jsonDecode(await file.readAsString());
+    return PsdkGoldenFixture.fromJson(_asMap(decoded, file.path));
+  }
+
+  final String scenarioId;
+  final String sourcePsdkVersion;
+  final PsdkGoldenInitialBattle initialBattle;
+  final List<PsdkGoldenAction> actions;
+  final PsdkGoldenExpectedFinalState expectedFinalState;
+  final PsdkGoldenExpectedTimeline expectedTimeline;
+  final List<String> notes;
+
+  PsdkBattleSetup toPsdkSetup() {
+    return PsdkBattleSetup.singles(
+      player: initialBattle.player.toSetup(),
+      opponent: initialBattle.opponent.toSetup(),
+      rngSeeds: initialBattle.rngSeeds,
+    );
+  }
+
+  List<String> compare(PsdkBattleTurnResult result) {
+    return <String>[
+      ...expectedFinalState.compare(result),
+      ...expectedTimeline.compare(result.timeline),
+    ];
+  }
+}
+
+class PsdkGoldenInitialBattle {
+  const PsdkGoldenInitialBattle({
+    required this.rngSeeds,
+    required this.player,
+    required this.opponent,
+  });
+
+  factory PsdkGoldenInitialBattle.fromJson(Map<String, Object?> json) {
+    final rngSeeds = _requiredMap(json, 'rngSeeds');
+    return PsdkGoldenInitialBattle(
+      rngSeeds: PsdkBattleRngSeeds(
+        moveDamage: _requiredInt(rngSeeds, 'moveDamage'),
+        moveCritical: _requiredInt(rngSeeds, 'moveCritical'),
+        moveAccuracy: _requiredInt(rngSeeds, 'moveAccuracy'),
+        generic: _requiredInt(rngSeeds, 'generic'),
+      ),
+      player: PsdkGoldenCombatant.fromJson(_requiredMap(json, 'player')),
+      opponent: PsdkGoldenCombatant.fromJson(_requiredMap(json, 'opponent')),
+    );
+  }
+
+  final PsdkBattleRngSeeds rngSeeds;
+  final PsdkGoldenCombatant player;
+  final PsdkGoldenCombatant opponent;
+}
+
+class PsdkGoldenCombatant {
+  PsdkGoldenCombatant({
+    required this.id,
+    required this.speciesId,
+    required this.displayName,
+    required this.level,
+    required this.maxHp,
+    required this.currentHp,
+    required this.types,
+    required this.stats,
+    required List<PsdkBattleMoveData> moves,
+  }) : moves = List<PsdkBattleMoveData>.unmodifiable(moves);
+
+  factory PsdkGoldenCombatant.fromJson(Map<String, Object?> json) {
+    return PsdkGoldenCombatant(
+      id: _requiredString(json, 'id'),
+      speciesId: _requiredString(json, 'speciesId'),
+      displayName: _requiredString(json, 'displayName'),
+      level: _requiredInt(json, 'level'),
+      maxHp: _requiredInt(json, 'maxHp'),
+      currentHp: _requiredInt(json, 'currentHp'),
+      types: _typesFromJson(_requiredMap(json, 'types')),
+      stats: _statsFromJson(_requiredMap(json, 'stats')),
+      moves: _requiredList(json, 'moves')
+          .map((value) => _moveFromJson(_asMap(value, 'moves[]')))
+          .toList(growable: false),
+    );
+  }
+
+  final String id;
+  final String speciesId;
+  final String displayName;
+  final int level;
+  final int maxHp;
+  final int currentHp;
+  final PsdkBattleTypes types;
+  final PsdkBattleStats stats;
+  final List<PsdkBattleMoveData> moves;
+
+  PsdkBattleCombatantSetup toSetup() {
+    return PsdkBattleCombatantSetup(
+      id: id,
+      speciesId: speciesId,
+      displayName: displayName,
+      level: level,
+      maxHp: maxHp,
+      currentHp: currentHp,
+      types: types,
+      stats: stats,
+      moves: moves,
+    );
+  }
+}
+
+class PsdkGoldenAction {
+  const PsdkGoldenAction({
+    required this.actor,
+    required this.kind,
+    required this.moveSlot,
+  });
+
+  factory PsdkGoldenAction.fromJson(Map<String, Object?> json) {
+    final kind = _requiredEnum(
+      PsdkGoldenActionKind.values,
+      _requiredString(json, 'kind'),
+      'kind',
+    );
+    if (kind != PsdkGoldenActionKind.fight) {
+      throw FormatException('Unsupported golden action kind "${kind.name}".');
+    }
+    return PsdkGoldenAction(
+      actor: _requiredEnum(
+        PsdkGoldenActor.values,
+        _requiredString(json, 'actor'),
+        'actor',
+      ),
+      kind: kind,
+      moveSlot: _requiredInt(json, 'moveSlot'),
+    );
+  }
+
+  final PsdkGoldenActor actor;
+  final PsdkGoldenActionKind kind;
+  final int moveSlot;
+}
+
+class PsdkGoldenExpectedFinalState {
+  const PsdkGoldenExpectedFinalState({
+    required this.playerCurrentHp,
+    required this.opponentCurrentHp,
+    this.outcomeKind,
+  });
+
+  factory PsdkGoldenExpectedFinalState.fromJson(Map<String, Object?> json) {
+    final outcomeName = json['outcomeKind'];
+    return PsdkGoldenExpectedFinalState(
+      playerCurrentHp: _requiredInt(_requiredMap(json, 'player'), 'currentHp'),
+      opponentCurrentHp: _requiredInt(
+        _requiredMap(json, 'opponent'),
+        'currentHp',
+      ),
+      outcomeKind: outcomeName == null
+          ? null
+          : _requiredEnum(
+              PsdkBattleOutcomeKind.values,
+              _asString(outcomeName, 'outcomeKind'),
+              'outcomeKind',
+            ),
+    );
+  }
+
+  final int playerCurrentHp;
+  final int opponentCurrentHp;
+  final PsdkBattleOutcomeKind? outcomeKind;
+
+  List<String> compare(PsdkBattleTurnResult result) {
+    final mismatches = <String>[];
+    final player = result.state.battlerAt(psdkPlayerSlot);
+    final opponent = result.state.battlerAt(psdkOpponentSlot);
+    if (player.currentHp != playerCurrentHp) {
+      mismatches.add(
+        'player.currentHp expected $playerCurrentHp, got ${player.currentHp}',
+      );
+    }
+    if (opponent.currentHp != opponentCurrentHp) {
+      mismatches.add(
+        'opponent.currentHp expected $opponentCurrentHp, '
+        'got ${opponent.currentHp}',
+      );
+    }
+    final expectedOutcomeKind = outcomeKind;
+    if (expectedOutcomeKind != null &&
+        result.outcome?.kind != expectedOutcomeKind) {
+      mismatches.add(
+        'outcomeKind expected ${expectedOutcomeKind.name}, '
+        'got ${result.outcome?.kind.name ?? 'none'}',
+      );
+    }
+    return mismatches;
+  }
+}
+
+class PsdkGoldenExpectedTimeline {
+  PsdkGoldenExpectedTimeline({
+    required List<String> eventKinds,
+    required List<PsdkGoldenExpectedDamageEvent> damageEvents,
+  })  : eventKinds = List<String>.unmodifiable(eventKinds),
+        damageEvents =
+            List<PsdkGoldenExpectedDamageEvent>.unmodifiable(damageEvents);
+
+  factory PsdkGoldenExpectedTimeline.fromJson(Map<String, Object?> json) {
+    final damageEvents = json['damageEvents'] == null
+        ? const <PsdkGoldenExpectedDamageEvent>[]
+        : _asList(json['damageEvents'], 'damageEvents')
+            .map((value) => PsdkGoldenExpectedDamageEvent.fromJson(
+                  _asMap(value, 'damageEvents[]'),
+                ))
+            .toList(growable: false);
+    return PsdkGoldenExpectedTimeline(
+      eventKinds: _requiredList(json, 'eventKinds')
+          .map((value) => _asString(value, 'eventKinds[]'))
+          .toList(growable: false),
+      damageEvents: damageEvents,
+    );
+  }
+
+  final List<String> eventKinds;
+  final List<PsdkGoldenExpectedDamageEvent> damageEvents;
+
+  List<String> compare(PsdkBattleTimeline timeline) {
+    final mismatches = <String>[];
+    final actualKinds =
+        timeline.events.map((event) => event.kind).toList(growable: false);
+    if (!_sameStrings(actualKinds, eventKinds)) {
+      mismatches.add(
+        'timeline.eventKinds expected $eventKinds, got $actualKinds',
+      );
+    }
+
+    final actualDamageEvents =
+        timeline.events.whereType<PsdkBattleDamageEvent>().toList();
+    if (actualDamageEvents.length != damageEvents.length) {
+      mismatches.add(
+        'timeline.damageEvents length expected ${damageEvents.length}, '
+        'got ${actualDamageEvents.length}',
+      );
+    }
+    final count = actualDamageEvents.length < damageEvents.length
+        ? actualDamageEvents.length
+        : damageEvents.length;
+    for (var index = 0; index < count; index += 1) {
+      mismatches.addAll(damageEvents[index].compare(
+        actualDamageEvents[index],
+        index,
+      ));
+    }
+    return mismatches;
+  }
+}
+
+class PsdkGoldenExpectedDamageEvent {
+  const PsdkGoldenExpectedDamageEvent({
+    required this.moveId,
+    required this.damage,
+    required this.remainingHp,
+  });
+
+  factory PsdkGoldenExpectedDamageEvent.fromJson(Map<String, Object?> json) {
+    return PsdkGoldenExpectedDamageEvent(
+      moveId: _requiredString(json, 'moveId'),
+      damage: _requiredInt(json, 'damage'),
+      remainingHp: _requiredInt(json, 'remainingHp'),
+    );
+  }
+
+  final String moveId;
+  final int damage;
+  final int remainingHp;
+
+  List<String> compare(PsdkBattleDamageEvent event, int index) {
+    final mismatches = <String>[];
+    if (event.moveId != moveId) {
+      mismatches.add(
+        'timeline.damageEvents[$index].moveId expected $moveId, '
+        'got ${event.moveId}',
+      );
+    }
+    if (event.damage != damage) {
+      mismatches.add(
+        'timeline.damageEvents[$index].damage expected $damage, '
+        'got ${event.damage}',
+      );
+    }
+    if (event.remainingHp != remainingHp) {
+      mismatches.add(
+        'timeline.damageEvents[$index].remainingHp expected $remainingHp, '
+        'got ${event.remainingHp}',
+      );
+    }
+    return mismatches;
+  }
+}
+
+PsdkBattleTypes _typesFromJson(Map<String, Object?> json) {
+  return PsdkBattleTypes(
+    primary: _requiredString(json, 'primary'),
+    secondary: _optionalString(json, 'secondary'),
+  );
+}
+
+PsdkBattleStats _statsFromJson(Map<String, Object?> json) {
+  return PsdkBattleStats(
+    attack: _requiredInt(json, 'attack'),
+    defense: _requiredInt(json, 'defense'),
+    specialAttack: _requiredInt(json, 'specialAttack'),
+    specialDefense: _requiredInt(json, 'specialDefense'),
+    speed: _requiredInt(json, 'speed'),
+  );
+}
+
+PsdkBattleMoveData _moveFromJson(Map<String, Object?> json) {
+  return PsdkBattleMoveData(
+    id: _requiredString(json, 'id'),
+    dbSymbol: _requiredString(json, 'dbSymbol'),
+    name: _requiredString(json, 'name'),
+    type: _requiredString(json, 'type'),
+    category: _requiredEnum(
+      PsdkBattleMoveCategory.values,
+      _requiredString(json, 'category'),
+      'category',
+    ),
+    power: _requiredInt(json, 'power'),
+    accuracy: _requiredInt(json, 'accuracy'),
+    pp: _requiredInt(json, 'pp'),
+    currentPp: _optionalInt(json, 'currentPp'),
+    priority: _requiredInt(json, 'priority'),
+    criticalRate: _optionalInt(json, 'criticalRate') ?? 1,
+    effectChance: _optionalInt(json, 'effectChance'),
+    battleEngineMethod: _requiredString(json, 'battleEngineMethod'),
+    target: _requiredEnum(
+      PsdkBattleMoveTarget.values,
+      _requiredString(json, 'target'),
+      'target',
+    ),
+    protectable: _optionalBool(json, 'protectable') ?? true,
+    sound: _optionalBool(json, 'sound') ?? false,
+  );
+}
+
+Map<String, Object?> _requiredMap(Map<String, Object?> json, String field) {
+  if (!json.containsKey(field)) {
+    throw FormatException('Missing required field "$field".');
+  }
+  return _asMap(json[field], field);
+}
+
+List<Object?> _requiredList(Map<String, Object?> json, String field) {
+  if (!json.containsKey(field)) {
+    throw FormatException('Missing required field "$field".');
+  }
+  return _asList(json[field], field);
+}
+
+String _requiredString(Map<String, Object?> json, String field) {
+  if (!json.containsKey(field)) {
+    throw FormatException('Missing required field "$field".');
+  }
+  return _asString(json[field], field);
+}
+
+String? _optionalString(Map<String, Object?> json, String field) {
+  final value = json[field];
+  return value == null ? null : _asString(value, field);
+}
+
+int _requiredInt(Map<String, Object?> json, String field) {
+  if (!json.containsKey(field)) {
+    throw FormatException('Missing required field "$field".');
+  }
+  return _asInt(json[field], field);
+}
+
+int? _optionalInt(Map<String, Object?> json, String field) {
+  final value = json[field];
+  return value == null ? null : _asInt(value, field);
+}
+
+bool? _optionalBool(Map<String, Object?> json, String field) {
+  final value = json[field];
+  if (value == null) {
+    return null;
+  }
+  if (value is bool) {
+    return value;
+  }
+  throw FormatException('Expected "$field" to be a bool.');
+}
+
+Map<String, Object?> _asMap(Object? value, String field) {
+  if (value is Map) {
+    return value.map((key, entryValue) {
+      if (key is! String) {
+        throw FormatException('Expected "$field" map keys to be strings.');
+      }
+      return MapEntry(key, entryValue);
+    });
+  }
+  throw FormatException('Expected "$field" to be an object.');
+}
+
+List<Object?> _asList(Object? value, String field) {
+  if (value is List) {
+    return value;
+  }
+  throw FormatException('Expected "$field" to be a list.');
+}
+
+String _asString(Object? value, String field) {
+  if (value is String && value.isNotEmpty) {
+    return value;
+  }
+  throw FormatException('Expected "$field" to be a non-empty string.');
+}
+
+int _asInt(Object? value, String field) {
+  if (value is int) {
+    return value;
+  }
+  throw FormatException('Expected "$field" to be an integer.');
+}
+
+T _requiredEnum<T extends Enum>(
+  Iterable<T> values,
+  String name,
+  String field,
+) {
+  for (final value in values) {
+    if (value.name == name) {
+      return value;
+    }
+  }
+  throw FormatException('Unsupported "$field" value "$name".');
+}
+
+bool _sameStrings(List<String> left, List<String> right) {
+  if (left.length != right.length) {
+    return false;
+  }
+  for (var index = 0; index < left.length; index += 1) {
+    if (left[index] != right[index]) {
+      return false;
+    }
+  }
+  return true;
+}

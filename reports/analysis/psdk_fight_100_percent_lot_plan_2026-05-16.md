@@ -142,6 +142,10 @@ cd packages/map_battle && dart run tool/extract_psdk_effect_matrix.dart ../../po
 
 ### Lot 03 - Golden Fixture Format Against Pokemon SDK
 
+**Status 2026-05-16:** done. Implemented the canonical fixture docs,
+`basic_damage_neutral.json`, strict parser validation, Dart replay helper, and
+golden comparison test.
+
 **Goal:** define the canonical format for PSDK-vs-Dart golden scenarios.
 
 **Files:**

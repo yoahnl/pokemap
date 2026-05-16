@@ -1,0 +1,117 @@
+{
+  "scenarioId": "basic_damage_neutral",
+  "sourcePsdkVersion": "pokemonsdk-development-local-2026-05-16",
+  "initialBattle": {
+    "rngSeeds": {
+      "moveDamage": 1,
+      "moveCritical": 2,
+      "moveAccuracy": 3,
+      "generic": 4
+    },
+    "player": {
+      "id": "player-bulbasaur",
+      "speciesId": "bulbasaur",
+      "displayName": "Bulbasaur",
+      "level": 10,
+      "maxHp": 40,
+      "currentHp": 40,
+      "types": {
+        "primary": "grass",
+        "secondary": "poison"
+      },
+      "stats": {
+        "attack": 49,
+        "defense": 49,
+        "specialAttack": 65,
+        "specialDefense": 65,
+        "speed": 45
+      },
+      "moves": [
+        {
+          "id": "tackle",
+          "dbSymbol": "tackle",
+          "name": "Tackle",
+          "type": "normal",
+          "category": "physical",
+          "power": 40,
+          "accuracy": 100,
+          "pp": 35,
+          "priority": 0,
+          "battleEngineMethod": "s_basic",
+          "target": "adjacentFoe"
+        }
+      ]
+    },
+    "opponent": {
+      "id": "opponent-eevee",
+      "speciesId": "eevee",
+      "displayName": "Eevee",
+      "level": 10,
+      "maxHp": 40,
+      "currentHp": 40,
+      "types": {
+        "primary": "normal"
+      },
+      "stats": {
+        "attack": 48,
+        "defense": 49,
+        "specialAttack": 45,
+        "specialDefense": 65,
+        "speed": 43
+      },
+      "moves": [
+        {
+          "id": "hold_hands",
+          "dbSymbol": "hold_hands",
+          "name": "Hold Hands",
+          "type": "normal",
+          "category": "status",
+          "power": 0,
+          "accuracy": 100,
+          "pp": 40,
+          "priority": 0,
+          "battleEngineMethod": "s_do_nothing",
+          "target": "self"
+        }
+      ]
+    }
+  },
+  "actions": [
+    {
+      "actor": "player",
+      "kind": "fight",
+      "moveSlot": 0
+    }
+  ],
+  "expectedFinalState": {
+    "player": {
+      "currentHp": 40
+    },
+    "opponent": {
+      "currentHp": 33
+    }
+  },
+  "expectedTimeline": {
+    "eventKinds": [
+      "turn_started",
+      "move_pp_spent",
+      "move_declared",
+      "animation_cue",
+      "damage",
+      "move_pp_spent",
+      "move_declared",
+      "animation_cue"
+    ],
+    "damageEvents": [
+      {
+        "moveId": "tackle",
+        "damage": 7,
+        "remainingHp": 33
+      }
+    ]
+  },
+  "notes": [
+    "Minimal deterministic fixture for the golden format.",
+    "Opponent uses s_do_nothing so the fixture isolates one neutral s_basic damage event."
+  ]
+}
