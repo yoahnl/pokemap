@@ -100,6 +100,34 @@ sealed class BattleTimelineEvent {
         currentStage: event.currentStage,
       );
     }
+    if (event is PsdkBattleEffectEvent) {
+      return switch (event.kind) {
+        'effect_added' => BattleEffectTimelineEvent.added(
+            turn: event.turn,
+            target: _fromPsdkSlot(event.target),
+            effectId: event.effectId,
+            remainingTurns: event.remainingTurns,
+            reason: event.reason,
+          ),
+        'effect_removed' => BattleEffectTimelineEvent.removed(
+            turn: event.turn,
+            target: _fromPsdkSlot(event.target),
+            effectId: event.effectId,
+            remainingTurns: event.remainingTurns,
+            reason: event.reason,
+          ),
+        'effect_ticked' => BattleEffectTimelineEvent.ticked(
+            turn: event.turn,
+            target: _fromPsdkSlot(event.target),
+            effectId: event.effectId,
+            remainingTurns: event.remainingTurns,
+            reason: event.reason,
+          ),
+        _ => throw UnsupportedError(
+            'Unsupported PSDK battle effect event ${event.kind}.',
+          ),
+      };
+    }
     if (event is PsdkBattleMissEvent) {
       return BattleMoveMissedTimelineEvent(
         user: _fromPsdkSlot(event.user),
@@ -729,22 +757,30 @@ final class BattleEffectTimelineEvent extends BattleTimelineEvent {
     int? turn,
     required this.target,
     required this.effectId,
+    this.remainingTurns,
+    this.reason = 'set',
   }) : super(kind: 'effect_added', turn: turn);
 
   const BattleEffectTimelineEvent.removed({
     int? turn,
     required this.target,
     required this.effectId,
+    this.remainingTurns,
+    this.reason = 'removed',
   }) : super(kind: 'effect_removed', turn: turn);
 
   const BattleEffectTimelineEvent.ticked({
     int? turn,
     required this.target,
     required this.effectId,
+    this.remainingTurns,
+    this.reason = 'duration_tick',
   }) : super(kind: 'effect_ticked', turn: turn);
 
   final BattlePositionRef target;
   final String effectId;
+  final int? remainingTurns;
+  final String reason;
 
   @override
   Map<String, Object?> toJson() {
@@ -752,11 +788,39 @@ final class BattleEffectTimelineEvent extends BattleTimelineEvent {
       ...baseJson(),
       'target': _slotJson(target),
       'effectId': effectId,
+      if (remainingTurns != null) 'remainingTurns': remainingTurns,
+      'reason': reason,
     };
   }
 
   @override
-  PsdkBattleEvent? toPsdkEvent() => null;
+  PsdkBattleEvent toPsdkEvent() {
+    final psdkTarget = _toPsdkSlot(target);
+    return switch (kind) {
+      'effect_added' => PsdkBattleEffectEvent.added(
+          turn: turn,
+          target: psdkTarget,
+          effectId: effectId,
+          remainingTurns: remainingTurns,
+          reason: reason,
+        ),
+      'effect_removed' => PsdkBattleEffectEvent.removed(
+          turn: turn,
+          target: psdkTarget,
+          effectId: effectId,
+          remainingTurns: remainingTurns,
+          reason: reason,
+        ),
+      'effect_ticked' => PsdkBattleEffectEvent.ticked(
+          turn: turn,
+          target: psdkTarget,
+          effectId: effectId,
+          remainingTurns: remainingTurns,
+          reason: reason,
+        ),
+      _ => throw UnsupportedError('Unsupported effect timeline event $kind.'),
+    };
+  }
 }
 
 final class BattleSwitchOutTimelineEvent extends BattleTimelineEvent {

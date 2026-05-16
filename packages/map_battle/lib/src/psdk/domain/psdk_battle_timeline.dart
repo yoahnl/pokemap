@@ -253,6 +253,53 @@ class PsdkBattleStatStageEvent extends PsdkBattleEvent {
       };
 }
 
+class PsdkBattleEffectEvent extends PsdkBattleEvent {
+  const PsdkBattleEffectEvent.added({
+    this.turn,
+    required this.target,
+    required this.effectId,
+    this.remainingTurns,
+    this.reason = 'set',
+  })  : action = 'added',
+        super(kind: 'effect_added');
+
+  const PsdkBattleEffectEvent.removed({
+    this.turn,
+    required this.target,
+    required this.effectId,
+    this.remainingTurns,
+    this.reason = 'removed',
+  })  : action = 'removed',
+        super(kind: 'effect_removed');
+
+  const PsdkBattleEffectEvent.ticked({
+    this.turn,
+    required this.target,
+    required this.effectId,
+    this.remainingTurns,
+    this.reason = 'duration_tick',
+  })  : action = 'ticked',
+        super(kind: 'effect_ticked');
+
+  final int? turn;
+  final PsdkBattleSlotRef target;
+  final String effectId;
+  final int? remainingTurns;
+  final String reason;
+  final String action;
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+        'kind': kind,
+        if (turn != null) 'turn': turn,
+        'target': target.toJson(),
+        'effectId': effectId,
+        if (remainingTurns != null) 'remainingTurns': remainingTurns,
+        'reason': reason,
+        'action': action,
+      };
+}
+
 class PsdkBattleMissEvent extends PsdkBattleEvent {
   const PsdkBattleMissEvent({
     required this.user,

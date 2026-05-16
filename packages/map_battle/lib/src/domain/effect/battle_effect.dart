@@ -1,4 +1,5 @@
 import '../move/battle_move_prevention.dart';
+import '../../psdk/domain/psdk_battle_timeline.dart';
 import 'battle_effect_hooks.dart';
 import 'battle_effect_scope.dart';
 
@@ -97,18 +98,37 @@ final class GenericBattleEffect extends BattleEffect {
       return null;
     }
 
-    final nextEffects = turns <= 1
+    final nextRemainingTurns = turns - 1;
+    final nextEffects = nextRemainingTurns <= 0
         ? context.state.battlerAt(context.owner).effects.remove(id)
         : context.state
             .battlerAt(context.owner)
             .effects
-            .addEffect(copyWithRemainingTurns(turns - 1));
+            .addEffect(copyWithRemainingTurns(nextRemainingTurns));
     return BattleEffectEndTurnResult(
       state: context.state.updateBattler(
         context.owner,
         (battler) => battler.copyWith(effects: nextEffects),
       ),
       rng: context.rng,
+      events: <PsdkBattleEvent>[
+        if (nextRemainingTurns <= 0)
+          PsdkBattleEffectEvent.removed(
+            turn: context.turn,
+            target: context.owner,
+            effectId: id,
+            remainingTurns: 0,
+            reason: 'expired',
+          )
+        else
+          PsdkBattleEffectEvent.ticked(
+            turn: context.turn,
+            target: context.owner,
+            effectId: id,
+            remainingTurns: nextRemainingTurns,
+            reason: 'duration_tick',
+          ),
+      ],
     );
   }
 }

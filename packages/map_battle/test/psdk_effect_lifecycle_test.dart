@@ -3,6 +3,121 @@ import 'package:test/test.dart';
 
 void main() {
   group('PSDK effect lifecycle and Baton Pass transfer', () {
+    test('timed generic effect ticks and emits a lifecycle event', () {
+      final state = PsdkBattleState(
+        combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+          psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'player',
+              effects: const PsdkBattleEffectStack.empty().addEffect(
+                GenericBattleEffect(
+                  id: 'gravity',
+                  scope: BattlerBattleEffectScope(psdkPlayerSlot),
+                  remainingTurns: 2,
+                ),
+              ),
+            ),
+          ),
+          psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(id: 'opponent'),
+          ),
+        },
+      );
+
+      final result = const BattleEndTurnHandler().tickEndTurnEffects(
+        BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 4,
+          user: psdkPlayerSlot,
+        ),
+      );
+      final effect = result.state
+          .battlerAt(psdkPlayerSlot)
+          .effects
+          .effects
+          .singleWhere((effect) => effect.id == 'gravity');
+      final event = result.events.whereType<PsdkBattleEffectEvent>().single;
+
+      expect(effect.remainingTurns, 1);
+      expect(event.kind, 'effect_ticked');
+      expect(event.target, psdkPlayerSlot);
+      expect(event.effectId, 'gravity');
+      expect(event.remainingTurns, 1);
+      expect(event.reason, 'duration_tick');
+    });
+
+    test('timed generic effect expires and emits a lifecycle event', () {
+      final state = PsdkBattleState(
+        combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+          psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'player',
+              effects: const PsdkBattleEffectStack.empty().addEffect(
+                GenericBattleEffect(
+                  id: 'gravity',
+                  scope: BattlerBattleEffectScope(psdkPlayerSlot),
+                  remainingTurns: 1,
+                ),
+              ),
+            ),
+          ),
+          psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(id: 'opponent'),
+          ),
+        },
+      );
+
+      final result = const BattleEndTurnHandler().tickEndTurnEffects(
+        BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 5,
+          user: psdkPlayerSlot,
+        ),
+      );
+      final event = result.events.whereType<PsdkBattleEffectEvent>().single;
+
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).effects.contains('gravity'),
+        isFalse,
+      );
+      expect(event.kind, 'effect_removed');
+      expect(event.target, psdkPlayerSlot);
+      expect(event.effectId, 'gravity');
+      expect(event.remainingTurns, 0);
+      expect(event.reason, 'expired');
+    });
+
+    test('effect lifecycle events map to clean timeline events', () {
+      const event = PsdkBattleEffectEvent.ticked(
+        turn: 6,
+        target: psdkPlayerSlot,
+        effectId: 'gravity',
+        remainingTurns: 1,
+        reason: 'duration_tick',
+      );
+
+      final timelineEvent =
+          BattleTimelineEvent.fromPsdk(event) as BattleEffectTimelineEvent;
+
+      expect(timelineEvent.kind, 'effect_ticked');
+      expect(timelineEvent.turn, 6);
+      expect(timelineEvent.target.bank, psdkPlayerSlot.bank);
+      expect(timelineEvent.target.position, psdkPlayerSlot.position);
+      expect(timelineEvent.effectId, 'gravity');
+      expect(timelineEvent.remainingTurns, 1);
+      expect(timelineEvent.reason, 'duration_tick');
+      expect(timelineEvent.toJson(), <String, Object?>{
+        'kind': 'effect_ticked',
+        'turn': 6,
+        'target': <String, int>{'bank': 0, 'position': 0},
+        'effectId': 'gravity',
+        'remainingTurns': 1,
+        'reason': 'duration_tick',
+      });
+    });
+
     test('effect stack transfers only Baton Pass compatible effects', () {
       final stack = const PsdkBattleEffectStack.empty()
           .addEffect(

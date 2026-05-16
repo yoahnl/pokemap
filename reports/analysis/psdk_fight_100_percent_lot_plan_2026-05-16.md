@@ -1098,6 +1098,16 @@ does not promote attack, method, or effect parity counts yet.
 **Definition of done:**
 - Effect partial notes about lifecycle can start being closed.
 
+**Status 2026-05-17:** done. Added first-class PSDK effect lifecycle events
+(`effect_added`, `effect_removed`, `effect_ticked`) and mapped them to the
+clean `BattleEffectTimelineEvent` contract with `remainingTurns` and `reason`
+metadata. Generic object-backed timed effects now emit a duration tick event
+when their counter decrements and a removal event when they expire at end turn.
+Regression coverage lives in `test/psdk_effect_lifecycle_test.dart`. This lot
+unblocks future ports from relying on observable lifecycle messages, but it does
+not promote attack, method, or effect parity counts yet because the remaining
+PSDK effect classes still need dedicated behavior mapping.
+
 ### Lot 38 - Move Prevention Hooks
 
 **Goal:** make PSDK `on_move_prevention_user`, `on_move_disabled_check`, and related hooks generic.
