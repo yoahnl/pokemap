@@ -24,9 +24,9 @@ enum _MultiHitKind {
 /// Ports the first deterministic slice of PSDK multi-hit moves.
 ///
 /// This covers the Ruby `TwoHit`, `ThreeHit`, base `MultiHit`, Triple Kick and
-/// Population Bomb classes. Ability/form-specific branches such as Skill Link,
-/// Population Bomb's `always_hit?` override and Ash-Greninja Water Shuriken stay
-/// partial until those combatant contracts exist in the PSDK lane.
+/// Population Bomb classes. The strict `s_multi_hit` slice includes PSDK's
+/// random 2-5 distribution plus local Skill Link and Loaded Dice hit-count
+/// hooks. Form-specific Water Shuriken remains outside that strict slice.
 final class MultiHitMoveBehavior implements BattleMoveBehavior {
   const MultiHitMoveBehavior.fixed({
     required this.battleEngineMethod,

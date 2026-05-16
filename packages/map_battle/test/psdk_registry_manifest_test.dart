@@ -75,7 +75,8 @@ void main() {
       expect(byMethod['s_super_fang']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_2hits']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_3hits']!.status, PsdkPortStatus.ported);
-      expect(byMethod['s_multi_hit']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_multi_hit']!.status, PsdkPortStatus.ported);
+      expect(byMethod['s_multi_hit']!.dependencies, isEmpty);
       expect(byMethod['s_double_iron_bash']!.status, PsdkPortStatus.partial);
       expect(
         byMethod['s_double_iron_bash']!.dartBehavior,

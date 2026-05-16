@@ -437,6 +437,8 @@ legacy `BattleMoveData` session path untouched.
 
 ### Lot 13 - Strict Random Multi-Hit
 
+**Status 2026-05-16:** done. `s_multi_hit` is now marked `ported` at method level for the strict random 2-5 hit slice. Coverage only counts plain random multi-hit moves as `fait`; `water_shuriken` and metadata riders stay `partiel`. The parity gate moved to 182 / 728 strict attacks and 31 / 330 ported battle methods.
+
 **Goal:** port `s_multi_hit` PSDK random 2-5 hit behavior.
 
 **Files:**

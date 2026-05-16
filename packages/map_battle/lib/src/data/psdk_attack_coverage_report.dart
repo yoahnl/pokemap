@@ -157,6 +157,25 @@ final class PsdkStudioMoveCoverageEntry {
     }
     return _strictSelfStatuses.contains(moveStatuses.single.status);
   }
+
+  bool get isStrictRandomMultiHit {
+    if (battleEngineMethod != 's_multi_hit') {
+      return false;
+    }
+    if (dbSymbol == 'water_shuriken') {
+      return false;
+    }
+    if (power <= 0) {
+      return false;
+    }
+    final normalizedCategory = category.trim().toLowerCase();
+    if (normalizedCategory != 'physical' && normalizedCategory != 'special') {
+      return false;
+    }
+    return battleStageModCount == 0 &&
+        moveStatusCount == 0 &&
+        effectChance == 0;
+  }
 }
 
 final class PsdkStudioStageModCoverageEntry {
@@ -266,6 +285,10 @@ String generatePsdkAttackCoverageReport({
     ..writeln(
       '- `s_self_status` is counted as `fait` only for single self-applied '
       'major-status or Confusion moves without damage/stat riders.',
+    )
+    ..writeln(
+      '- `s_multi_hit` is counted as `fait` only for plain random 2-5 hit '
+      'moves; Water Shuriken and metadata riders remain `partiel`.',
     )
     ..writeln()
     ..writeln('| Metric | Count |')
@@ -409,6 +432,8 @@ String psdkAttackCoverageForMove(
       move.isStrictMajorStatus ? 'fait' : 'partiel',
     PsdkPortStatus.ported when move.battleEngineMethod == 's_self_status' =>
       move.isStrictSelfStatus ? 'fait' : 'partiel',
+    PsdkPortStatus.ported when move.battleEngineMethod == 's_multi_hit' =>
+      move.isStrictRandomMultiHit ? 'fait' : 'partiel',
     PsdkPortStatus.ported => 'fait',
     PsdkPortStatus.partial => 'partiel',
     PsdkPortStatus.missing || null => 'pas_fait',

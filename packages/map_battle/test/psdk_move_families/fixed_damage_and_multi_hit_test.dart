@@ -268,24 +268,42 @@ void main() {
       );
     });
 
-    test('s_multi_hit uses the PSDK 2-5 hit distribution on generic RNG', () {
-      final result = _runPsdkMove(
-        playerMove: _move(
-          id: 'double_slap',
-          dbSymbol: 'double_slap',
-          battleEngineMethod: 's_multi_hit',
-          power: 25,
-        ),
-        opponentHp: 200,
-        rngSeeds: const BattleRngSeeds(
-          moveDamage: 1,
-          moveCritical: 99999,
-          moveAccuracy: 3,
-          generic: 5,
-        ),
-      );
+    test('s_multi_hit uses the full PSDK 2-5 hit distribution on generic RNG',
+        () {
+      const expectedBySeed = <int, int>{
+        0: 2,
+        1: 2,
+        2: 2,
+        3: 3,
+        4: 3,
+        5: 5,
+        6: 4,
+        7: 3,
+      };
 
-      expect(_psdkDamageEvents(result, moveId: 'double_slap'), hasLength(5));
+      for (final entry in expectedBySeed.entries) {
+        final result = _runPsdkMove(
+          playerMove: _move(
+            id: 'double_slap',
+            dbSymbol: 'double_slap',
+            battleEngineMethod: 's_multi_hit',
+            power: 25,
+          ),
+          opponentHp: 400,
+          rngSeeds: BattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: entry.key,
+          ),
+        );
+
+        expect(
+          _psdkDamageEvents(result, moveId: 'double_slap'),
+          hasLength(entry.value),
+          reason: 'generic seed ${entry.key}',
+        );
+      }
     });
 
     test('s_scale_shot multi-hits then applies stat changes to the user', () {

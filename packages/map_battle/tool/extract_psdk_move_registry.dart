@@ -1010,11 +1010,9 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'MultiHitMoveBehavior.fixed(3)',
     status: _PsdkPortStatus.ported,
   ),
-  // Base PSDK MultiHit is executable, including the 2-5 hit distribution, but
-  // remains partial until ability data can model Skill Link's forced five hits.
   's_multi_hit': _KnownDartBehavior(
     dartBehavior: 'MultiHitMoveBehavior.psdkRandom',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   // These descendants execute their local hit-count/power/accuracy rules, but
   // stay partial until Skill Link, Population Bomb's always-hit override and
@@ -1719,11 +1717,6 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
     _PsdkMoveDependency.weather,
     _PsdkMoveDependency.handlerDamage,
     _PsdkMoveDependency.effects,
-  },
-  // Multi-hit parity depends on ability/item hooks that can alter hit counts.
-  's_multi_hit': {
-    _PsdkMoveDependency.ability,
-    _PsdkMoveDependency.item,
   },
   's_triple_kick': {
     _PsdkMoveDependency.ability,

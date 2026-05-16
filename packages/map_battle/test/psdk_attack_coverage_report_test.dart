@@ -517,5 +517,71 @@ void main() {
         contains('| partiel | self_poison_hit | s_self_status | ported |'),
       );
     });
+
+    test('scopes ported s_multi_hit coverage to strict random multi-hits', () {
+      final report = generatePsdkAttackCoverageReport(
+        moves: const <PsdkStudioMoveCoverageEntry>[
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'double_slap',
+            battleEngineMethod: 's_multi_hit',
+            type: 'normal',
+            category: 'physical',
+            power: 15,
+            accuracy: '85',
+            pp: 10,
+            sourceFile: 'double_slap.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'water_shuriken',
+            battleEngineMethod: 's_multi_hit',
+            type: 'water',
+            category: 'special',
+            power: 15,
+            accuracy: '100',
+            pp: 20,
+            priority: 1,
+            sourceFile: 'water_shuriken.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'double_slap_with_status',
+            battleEngineMethod: 's_multi_hit',
+            type: 'normal',
+            category: 'physical',
+            power: 15,
+            accuracy: '85',
+            pp: 10,
+            moveStatusCount: 1,
+            moveStatuses: <PsdkStudioStatusCoverageEntry>[
+              PsdkStudioStatusCoverageEntry(status: 'paralysis'),
+            ],
+            sourceFile: 'double_slap_with_status.json',
+          ),
+        ],
+        manifest: const <PsdkMoveRegistryManifestEntry>[
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_multi_hit',
+            rubyClass: 'MultiHit',
+            rubyPath: 'multi_hit.rb',
+            dartBehavior: 'MultiHitMoveBehavior.psdkRandom',
+            status: PsdkPortStatus.ported,
+          ),
+        ],
+        sourceDescription: 's_multi_hit test moves',
+      );
+
+      expect(report, contains('| fait | 1 |'));
+      expect(report, contains('| partiel | 2 |'));
+      expect(report, contains('| fait | double_slap | s_multi_hit | ported |'));
+      expect(
+        report,
+        contains('| partiel | water_shuriken | s_multi_hit | ported |'),
+      );
+      expect(
+        report,
+        contains(
+          '| partiel | double_slap_with_status | s_multi_hit | ported |',
+        ),
+      );
+    });
   });
 }
