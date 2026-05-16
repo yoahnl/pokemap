@@ -25,6 +25,19 @@ final class BattleStatusChangeHandler {
     required PsdkBattleMajorStatus status,
   }) {
     final targetBattler = context.state.battlerAt(target);
+    if (_substitutePreventsStatus(
+      context: context,
+      target: target,
+      targetBattler: targetBattler,
+      moveId: moveId,
+    )) {
+      return BattleHandlerResult(
+        state: context.state,
+        rng: context.rng,
+        applied: false,
+        reason: 'substitute',
+      );
+    }
     if (targetBattler.majorStatus != null) {
       return BattleHandlerResult(
         state: context.state,
@@ -324,6 +337,18 @@ bool _isStatusImmune(
     PsdkBattleMajorStatus.freeze => battler.hasType('ice'),
     PsdkBattleMajorStatus.sleep => false,
   };
+}
+
+bool _substitutePreventsStatus({
+  required BattleHandlerContext context,
+  required PsdkBattleSlotRef target,
+  required PsdkBattleCombatant targetBattler,
+  required String moveId,
+}) {
+  if (context.user == target || !targetBattler.effects.contains('substitute')) {
+    return false;
+  }
+  return !moveId.startsWith('effect:') && !moveId.startsWith('status:');
 }
 
 bool _bankHasEffect(PsdkBattleState state, int bank, String effectId) {
