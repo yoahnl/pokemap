@@ -515,6 +515,134 @@ final class BattleEffectObjectStack {
     );
   }
 
+  String? weatherPreventionReason(
+    BattleEffectWeatherPreventionContext context,
+  ) {
+    for (final effect in _effects) {
+      if (!_effectIsStillActive(
+        effect: effect,
+        state: context.state,
+        owner: context.owner,
+      )) {
+        continue;
+      }
+      final reason = effect.onWeatherPrevention(context);
+      if (reason != null) {
+        return reason;
+      }
+    }
+    return null;
+  }
+
+  BattleEffectFieldChangeResult dispatchPostWeatherChange(
+    BattleEffectWeatherChangeContext context,
+  ) {
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+
+    for (final effect in _effects) {
+      if (!_effectIsStillActive(
+        effect: effect,
+        state: nextState,
+        owner: context.owner,
+      )) {
+        continue;
+      }
+      final result = effect.onPostWeatherChange(
+        BattleEffectWeatherChangeContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          owner: context.owner,
+          user: context.user,
+          weather: context.weather,
+          lastWeather: context.lastWeather,
+          remainingTurns: context.remainingTurns,
+        ),
+      );
+      if (result == null) {
+        continue;
+      }
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      changed = changed || result.applied || result.events.isNotEmpty;
+    }
+
+    return BattleEffectFieldChangeResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: changed,
+    );
+  }
+
+  String? terrainPreventionReason(
+    BattleEffectTerrainPreventionContext context,
+  ) {
+    for (final effect in _effects) {
+      if (!_effectIsStillActive(
+        effect: effect,
+        state: context.state,
+        owner: context.owner,
+      )) {
+        continue;
+      }
+      final reason = effect.onTerrainPrevention(context);
+      if (reason != null) {
+        return reason;
+      }
+    }
+    return null;
+  }
+
+  BattleEffectFieldChangeResult dispatchPostTerrainChange(
+    BattleEffectTerrainChangeContext context,
+  ) {
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+
+    for (final effect in _effects) {
+      if (!_effectIsStillActive(
+        effect: effect,
+        state: nextState,
+        owner: context.owner,
+      )) {
+        continue;
+      }
+      final result = effect.onPostTerrainChange(
+        BattleEffectTerrainChangeContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          owner: context.owner,
+          user: context.user,
+          terrain: context.terrain,
+          lastTerrain: context.lastTerrain,
+          remainingTurns: context.remainingTurns,
+        ),
+      );
+      if (result == null) {
+        continue;
+      }
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      changed = changed || result.applied || result.events.isNotEmpty;
+    }
+
+    return BattleEffectFieldChangeResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: changed,
+    );
+  }
+
   bool _effectIsStillActive({
     required BattleEffect effect,
     required PsdkBattleState state,

@@ -120,6 +120,30 @@ abstract class BattleEffect {
   ) {
     return null;
   }
+
+  String? onWeatherPrevention(
+    BattleEffectWeatherPreventionContext context,
+  ) {
+    return null;
+  }
+
+  BattleEffectFieldChangeResult? onPostWeatherChange(
+    BattleEffectWeatherChangeContext context,
+  ) {
+    return null;
+  }
+
+  String? onTerrainPrevention(
+    BattleEffectTerrainPreventionContext context,
+  ) {
+    return null;
+  }
+
+  BattleEffectFieldChangeResult? onPostTerrainChange(
+    BattleEffectTerrainChangeContext context,
+  ) {
+    return null;
+  }
 }
 
 /// Passive effect used when legacy/setup code only knows an effect id.

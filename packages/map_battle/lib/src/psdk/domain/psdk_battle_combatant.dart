@@ -369,6 +369,30 @@ class PsdkBattleEffectStack {
     return _stack.dispatchPostStatusChange(context);
   }
 
+  String? weatherPreventionReason(
+    BattleEffectWeatherPreventionContext context,
+  ) {
+    return _stack.weatherPreventionReason(context);
+  }
+
+  BattleEffectFieldChangeResult dispatchPostWeatherChange(
+    BattleEffectWeatherChangeContext context,
+  ) {
+    return _stack.dispatchPostWeatherChange(context);
+  }
+
+  String? terrainPreventionReason(
+    BattleEffectTerrainPreventionContext context,
+  ) {
+    return _stack.terrainPreventionReason(context);
+  }
+
+  BattleEffectFieldChangeResult dispatchPostTerrainChange(
+    BattleEffectTerrainChangeContext context,
+  ) {
+    return _stack.dispatchPostTerrainChange(context);
+  }
+
   BattleEffectEndTurnResult dispatchEndTurn(
     BattleEffectEndTurnContext context,
   ) {

@@ -1,5 +1,6 @@
 import '../../../psdk/domain/psdk_battle_field.dart';
 import '../battle_effect.dart';
+import '../battle_effect_hooks.dart';
 import '../battle_effect_scope.dart';
 
 final class WeatherEffect extends BattleEffect {
@@ -20,5 +21,16 @@ final class WeatherEffect extends BattleEffect {
       weather: weather,
       remainingTurns: remainingTurns,
     );
+  }
+
+  @override
+  String? onWeatherPrevention(BattleEffectWeatherPreventionContext context) {
+    final nextWeather = context.weather;
+    if (!weather.isHardWeather ||
+        nextWeather == null ||
+        nextWeather.isHardWeather) {
+      return null;
+    }
+    return 'hard_weather_active';
   }
 }

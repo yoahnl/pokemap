@@ -1,4 +1,5 @@
 import '../battle_effect.dart';
+import '../battle_effect_hooks.dart';
 import '../battle_effect_scope.dart';
 import 'ability_effect.dart';
 
@@ -14,4 +15,9 @@ final class CloudNineEffect extends BattleAbilityEffect {
 
   @override
   bool get suppressesWeatherEffects => true;
+
+  @override
+  String? onWeatherPrevention(BattleEffectWeatherPreventionContext context) {
+    return context.weather == null ? null : 'weather_suppressed';
+  }
 }

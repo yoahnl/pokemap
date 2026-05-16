@@ -1341,6 +1341,16 @@ move/ability/item effects migrate onto the object-backed hook path.
 **Definition of done:**
 - Field effect changes are hook-driven.
 
+**Status 2026-05-17:** done. Added generic PSDK field hook contexts,
+default effect methods, stack dispatchers, and weather/terrain handler
+integration for prevention and post-change events. `AirLockEffect` and
+`CloudNineEffect` now participate through `onWeatherPrevention`, while the
+legacy weather suppression check remains as a compatibility fallback. Field
+`WeatherEffect` / `TerrainEffect` also expose hook-based prevention for hard
+weather and duplicate terrain semantics. Regression coverage lives in
+`packages/map_battle/test/psdk_field_hook_test.dart`; existing weather,
+terrain, item-duration, Air Lock, and field-state tests remain green.
+
 ---
 
 ## Phase 4 - Status, Abilities, and Items

@@ -3,6 +3,7 @@ import '../move/battle_move_data.dart';
 import '../move/battle_move_prevention.dart';
 import '../rng/battle_rng_streams.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
+import '../../psdk/domain/psdk_battle_field.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
 import '../../psdk/domain/psdk_battle_state.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
@@ -383,6 +384,104 @@ final class BattleEffectStatusChangeContext {
 
 final class BattleEffectStatusChangeResult {
   const BattleEffectStatusChangeResult({
+    required this.state,
+    required this.rng,
+    this.events = const <PsdkBattleEvent>[],
+    this.applied = true,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
+  final bool applied;
+}
+
+final class BattleEffectWeatherPreventionContext {
+  const BattleEffectWeatherPreventionContext({
+    required this.state,
+    required this.rng,
+    required this.turn,
+    required this.owner,
+    required this.user,
+    required this.weather,
+    required this.lastWeather,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int turn;
+  final PsdkBattleSlotRef owner;
+  final PsdkBattleSlotRef user;
+  final PsdkBattleWeatherId? weather;
+  final PsdkBattleWeatherId? lastWeather;
+}
+
+final class BattleEffectWeatherChangeContext {
+  const BattleEffectWeatherChangeContext({
+    required this.state,
+    required this.rng,
+    required this.turn,
+    required this.owner,
+    required this.user,
+    required this.weather,
+    required this.lastWeather,
+    required this.remainingTurns,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int turn;
+  final PsdkBattleSlotRef owner;
+  final PsdkBattleSlotRef user;
+  final PsdkBattleWeatherId? weather;
+  final PsdkBattleWeatherId? lastWeather;
+  final int? remainingTurns;
+}
+
+final class BattleEffectTerrainPreventionContext {
+  const BattleEffectTerrainPreventionContext({
+    required this.state,
+    required this.rng,
+    required this.turn,
+    required this.owner,
+    required this.user,
+    required this.terrain,
+    required this.lastTerrain,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int turn;
+  final PsdkBattleSlotRef owner;
+  final PsdkBattleSlotRef user;
+  final PsdkBattleTerrainId? terrain;
+  final PsdkBattleTerrainId? lastTerrain;
+}
+
+final class BattleEffectTerrainChangeContext {
+  const BattleEffectTerrainChangeContext({
+    required this.state,
+    required this.rng,
+    required this.turn,
+    required this.owner,
+    required this.user,
+    required this.terrain,
+    required this.lastTerrain,
+    required this.remainingTurns,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int turn;
+  final PsdkBattleSlotRef owner;
+  final PsdkBattleSlotRef user;
+  final PsdkBattleTerrainId? terrain;
+  final PsdkBattleTerrainId? lastTerrain;
+  final int? remainingTurns;
+}
+
+final class BattleEffectFieldChangeResult {
+  const BattleEffectFieldChangeResult({
     required this.state,
     required this.rng,
     this.events = const <PsdkBattleEvent>[],

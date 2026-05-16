@@ -1,5 +1,6 @@
 import '../../../psdk/domain/psdk_battle_field.dart';
 import '../battle_effect.dart';
+import '../battle_effect_hooks.dart';
 import '../battle_effect_scope.dart';
 
 final class TerrainEffect extends BattleEffect {
@@ -20,5 +21,10 @@ final class TerrainEffect extends BattleEffect {
       terrain: terrain,
       remainingTurns: remainingTurns,
     );
+  }
+
+  @override
+  String? onTerrainPrevention(BattleEffectTerrainPreventionContext context) {
+    return context.terrain == terrain ? 'terrain_already_active' : null;
   }
 }
