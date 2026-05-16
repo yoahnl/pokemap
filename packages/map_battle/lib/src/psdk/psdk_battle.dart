@@ -64,6 +64,7 @@ export '../domain/effect/move/smack_down_effect.dart';
 export '../domain/effect/move/syrup_bomb_effect.dart';
 export '../domain/effect/move/tar_shot_effect.dart';
 export '../domain/effect/move/throat_chop_effect.dart';
+export '../domain/effect/move/two_turn_charge_effect.dart';
 export '../domain/effect/side/hazard_effects.dart';
 export '../domain/effect/status/burn_effect.dart';
 export '../domain/effect/status/freeze_effect.dart';

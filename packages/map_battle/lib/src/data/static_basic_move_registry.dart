@@ -69,6 +69,7 @@ import '../domain/effect/move/leech_seed_effect.dart';
 import '../domain/effect/move/protect_effect.dart';
 import '../domain/effect/move/taunt_effect.dart';
 import '../domain/effect/move/torment_effect.dart';
+import '../domain/effect/move/two_turn_charge_effect.dart';
 import '../domain/effect/side/hazard_effects.dart';
 import '../psdk/domain/psdk_battle_field.dart';
 import '../psdk/domain/psdk_battle_combatant.dart';
@@ -3719,9 +3720,10 @@ BattleMoveBehaviorResolution _resolveTwoTurns(
     state: prepared.state,
     rng: prepared.rng,
     events: prepared.events,
-    effect: GenericBattleEffect(
-      id: PsdkBattleEffectIds.twoTurnCharge,
+    effect: TwoTurnChargeEffect(
       scope: BattlerBattleEffectScope(context.user),
+      chargedMoveId: context.move.id,
+      chargedTarget: context.target,
     ),
   );
 }

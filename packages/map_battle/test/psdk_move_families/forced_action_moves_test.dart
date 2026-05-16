@@ -121,6 +121,77 @@ void main() {
       expect(_damage(result, moveId: 'uproar'), greaterThan(0));
       expect(player.effects.contains('uproar'), isTrue);
     });
+
+    test('s_2turns forces the charged move on the next action', () {
+      final engine = _engine(
+        playerMoves: <PsdkBattleMoveData>[
+          _move(
+            id: 'fly',
+            type: 'flying',
+            power: 90,
+            battleEngineMethod: 's_2turns',
+          ),
+          _move(id: 'tackle', power: 40),
+        ],
+      );
+
+      final charge = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final strike = engine.submit(const PsdkBattleDecision.fight(moveSlot: 1));
+
+      expect(_damageEvents(charge, moveId: 'fly'), isEmpty);
+      expect(
+        charge.state
+            .battlerAt(psdkPlayerSlot)
+            .effects
+            .contains(PsdkBattleEffectIds.twoTurnCharge),
+        isTrue,
+      );
+      expect(_damageEvents(strike, moveId: 'tackle'), isEmpty);
+      expect(_damage(strike, moveId: 'fly'), greaterThan(0));
+      expect(
+        strike.state
+            .battlerAt(psdkPlayerSlot)
+            .effects
+            .contains(PsdkBattleEffectIds.twoTurnCharge),
+        isFalse,
+      );
+    });
+
+    test('s_2turns preserves the charge when sleep stops release', () {
+      final engine = _engine(
+        playerMajorStatus: PsdkBattleMajorStatus.sleep,
+        playerSleepTurns: 0,
+        playerEffects: PsdkBattleEffectStack(
+          effects: const <BattleEffect>[
+            TwoTurnChargeEffect(
+              scope: BattlerBattleEffectScope(psdkPlayerSlot),
+              chargedMoveId: 'fly',
+              chargedTarget: psdkOpponentSlot,
+            ),
+          ],
+        ),
+        playerMoves: <PsdkBattleMoveData>[
+          _move(
+            id: 'fly',
+            type: 'flying',
+            power: 90,
+            battleEngineMethod: 's_2turns',
+          ),
+          _move(id: 'tackle', power: 40),
+        ],
+      );
+
+      final blocked =
+          engine.submit(const PsdkBattleDecision.fight(moveSlot: 1));
+      final player = blocked.state.battlerAt(psdkPlayerSlot);
+
+      expect(_failed(blocked, moveId: 'fly'), isTrue);
+      expect(_damageEvents(blocked, moveId: 'fly'), isEmpty);
+      expect(_damageEvents(blocked, moveId: 'tackle'), isEmpty);
+      expect(player.sleepTurns, 1);
+      expect(
+          player.effects.contains(PsdkBattleEffectIds.twoTurnCharge), isTrue);
+    });
   });
 }
 
@@ -137,6 +208,9 @@ PsdkBattleTurnResult _runMove({
 PsdkBattleEngine _engine({
   required List<PsdkBattleMoveData> playerMoves,
   PsdkBattleMoveHistory? playerMoveHistory,
+  PsdkBattleMajorStatus? playerMajorStatus,
+  int playerSleepTurns = 0,
+  PsdkBattleEffectStack? playerEffects,
   int genericSeed = 4,
 }) {
   return PsdkBattleEngine(
@@ -145,6 +219,9 @@ PsdkBattleEngine _engine({
         id: 'player',
         speed: 100,
         moveHistory: playerMoveHistory,
+        majorStatus: playerMajorStatus,
+        sleepTurns: playerSleepTurns,
+        effects: playerEffects,
         moves: playerMoves,
       ),
       opponent: _combatant(
@@ -175,6 +252,9 @@ PsdkBattleCombatantSetup _combatant({
   required int speed,
   required List<PsdkBattleMoveData> moves,
   PsdkBattleMoveHistory? moveHistory,
+  PsdkBattleMajorStatus? majorStatus,
+  int sleepTurns = 0,
+  PsdkBattleEffectStack? effects,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -193,6 +273,9 @@ PsdkBattleCombatantSetup _combatant({
     ),
     moves: moves,
     moveHistory: moveHistory,
+    majorStatus: majorStatus,
+    sleepTurns: sleepTurns,
+    effects: effects,
   );
 }
 

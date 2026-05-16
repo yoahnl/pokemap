@@ -5,6 +5,7 @@ import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_field.dart';
 import '../battler/battle_grounding_resolver.dart';
 import '../decision/battle_decision.dart';
+import '../effect/move/two_turn_charge_effect.dart';
 import 'battle_action.dart';
 
 final class PsdkBattleActionDecisionMapper {
@@ -36,9 +37,13 @@ final class PsdkBattleActionDecisionMapper {
     required PsdkBattleSlotRef? requestedTarget,
   }) {
     final battler = state.battlerAt(user);
-    if (moveSlot < 0 || moveSlot >= battler.moves.length) {
+    final twoTurnCharge = _twoTurnCharge(battler);
+    final chargedMoveSlot =
+        _chargedMoveSlot(battler: battler, charge: twoTurnCharge);
+    final effectiveMoveSlot = chargedMoveSlot ?? moveSlot;
+    if (effectiveMoveSlot < 0 || effectiveMoveSlot >= battler.moves.length) {
       throw RangeError.range(
-        moveSlot,
+        effectiveMoveSlot,
         0,
         battler.moves.length - 1,
         'moveSlot',
@@ -47,16 +52,43 @@ final class PsdkBattleActionDecisionMapper {
     final move = _effectiveActionMove(
       state: state,
       battler: battler,
-      move: battler.moves[moveSlot],
+      move: battler.moves[effectiveMoveSlot],
     );
     return PsdkBattleFightAction(
       user: user,
-      target: requestedTarget ?? _targetFor(user: user, move: move),
-      moveSlot: moveSlot,
+      target: chargedMoveSlot != null
+          ? twoTurnCharge!.chargedTarget
+          : requestedTarget ?? _targetFor(user: user, move: move),
+      moveSlot: effectiveMoveSlot,
       move: move,
       speed: _actionSpeed(battler),
     );
   }
+}
+
+TwoTurnChargeEffect? _twoTurnCharge(PsdkBattleCombatant battler) {
+  for (final effect in battler.effects.effects) {
+    if (effect is TwoTurnChargeEffect) {
+      return effect;
+    }
+  }
+  return null;
+}
+
+int? _chargedMoveSlot({
+  required PsdkBattleCombatant battler,
+  required TwoTurnChargeEffect? charge,
+}) {
+  final chargedMoveId = charge?.chargedMoveId;
+  if (chargedMoveId == null) {
+    return null;
+  }
+  for (var index = 0; index < battler.moves.length; index++) {
+    if (battler.moves[index].id == chargedMoveId) {
+      return index;
+    }
+  }
+  return null;
 }
 
 PsdkBattleMoveData _effectiveActionMove({

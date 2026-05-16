@@ -10,7 +10,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   // complete PSDK parity just because a method is wired.
   's_2turns': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_2turns',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_add_type': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_add_type',

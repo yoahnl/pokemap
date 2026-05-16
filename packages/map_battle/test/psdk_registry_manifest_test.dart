@@ -19,7 +19,7 @@ void main() {
             's_protect',
           ]));
       expect(byMethod['s_basic']!.status, PsdkPortStatus.ported);
-      expect(byMethod['s_2turns']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_2turns']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_2turns']!.dartBehavior,
         'StaticBasicMoveRegistry.s_2turns',

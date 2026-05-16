@@ -176,6 +176,30 @@ final class PsdkStudioMoveCoverageEntry {
         moveStatusCount == 0 &&
         effectChance == 0;
   }
+
+  bool get isStrictTwoTurnDamage {
+    if (battleEngineMethod != 's_2turns') {
+      return false;
+    }
+    if (!_strictTwoTurnDamageMoves.contains(dbSymbol)) {
+      return false;
+    }
+    if (power <= 0) {
+      return false;
+    }
+    final normalizedCategory = category.trim().toLowerCase();
+    if (normalizedCategory != 'physical' && normalizedCategory != 'special') {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    if (normalizedTarget.isNotEmpty &&
+        !_strictTwoTurnDamageTargets.contains(normalizedTarget)) {
+      return false;
+    }
+    return battleStageModCount == 0 &&
+        moveStatusCount == 0 &&
+        effectChance == 0;
+  }
 }
 
 final class PsdkStudioStageModCoverageEntry {
@@ -289,6 +313,11 @@ String generatePsdkAttackCoverageReport({
     ..writeln(
       '- `s_multi_hit` is counted as `fait` only for plain random 2-5 hit '
       'moves; Water Shuriken and metadata riders remain `partiel`.',
+    )
+    ..writeln(
+      '- `s_2turns` is counted as `fait` only for plain charged damage moves '
+      'with forced release; Power Herb, weather/stat/status and multi-target '
+      'variants remain `partiel`.',
     )
     ..writeln()
     ..writeln('| Metric | Count |')
@@ -434,6 +463,8 @@ String psdkAttackCoverageForMove(
       move.isStrictSelfStatus ? 'fait' : 'partiel',
     PsdkPortStatus.ported when move.battleEngineMethod == 's_multi_hit' =>
       move.isStrictRandomMultiHit ? 'fait' : 'partiel',
+    PsdkPortStatus.ported when move.battleEngineMethod == 's_2turns' =>
+      move.isStrictTwoTurnDamage ? 'fait' : 'partiel',
     PsdkPortStatus.ported => 'fait',
     PsdkPortStatus.partial => 'partiel',
     PsdkPortStatus.missing || null => 'pas_fait',
@@ -577,6 +608,20 @@ const _strictMajorStatuses = <String>{
 const _strictSelfStatuses = <String>{
   ..._strictMajorStatuses,
   'confusion',
+};
+
+const _strictTwoTurnDamageMoves = <String>{
+  'dig',
+  'dive',
+  'fly',
+  'phantom_force',
+  'shadow_force',
+};
+
+const _strictTwoTurnDamageTargets = <String>{
+  'adjacent_pokemon',
+  'adjacent_foe',
+  'any_other_pokemon',
 };
 
 const _strictMajorStatusTargets = <String>{

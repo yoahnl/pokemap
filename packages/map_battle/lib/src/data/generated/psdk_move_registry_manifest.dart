@@ -22,7 +22,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'TwoTurnBase',
     rubyPath: '10 Move/1 Mechanics/110 TwoTurnBase.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_2turns',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.actionOrder,

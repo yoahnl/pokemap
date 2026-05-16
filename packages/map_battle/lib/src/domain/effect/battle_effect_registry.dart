@@ -24,6 +24,7 @@ import 'move/taunt_effect.dart';
 import 'move/tar_shot_effect.dart';
 import 'move/throat_chop_effect.dart';
 import 'move/torment_effect.dart';
+import 'move/two_turn_charge_effect.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 
 /// Small id-to-effect factory used by compatibility constructors.
@@ -74,6 +75,11 @@ final class BattleEffectRegistry {
       'tar_shot' => const TarShotEffect(scope: LocalBattleEffectScope()),
       'throat_chop' => const ThroatChopEffect(scope: LocalBattleEffectScope()),
       'torment' => const TormentEffect(scope: LocalBattleEffectScope()),
+      'two_turn_charge' => const TwoTurnChargeEffect(
+          scope: LocalBattleEffectScope(),
+          chargedMoveId: '',
+          chargedTarget: psdkOpponentSlot,
+        ),
       final value => GenericBattleEffect(id: value),
     };
   }

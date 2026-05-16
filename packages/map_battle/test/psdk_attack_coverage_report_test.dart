@@ -583,5 +583,81 @@ void main() {
         ),
       );
     });
+
+    test('scopes ported s_2turns coverage to strict charged damage', () {
+      final report = generatePsdkAttackCoverageReport(
+        moves: const <PsdkStudioMoveCoverageEntry>[
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'fly',
+            battleEngineMethod: 's_2turns',
+            type: 'flying',
+            category: 'physical',
+            power: 90,
+            accuracy: '95',
+            pp: 15,
+            target: 'any_other_pokemon',
+            sourceFile: 'fly.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'skull_bash',
+            battleEngineMethod: 's_2turns',
+            type: 'normal',
+            category: 'physical',
+            power: 130,
+            accuracy: '100',
+            pp: 10,
+            target: 'adjacent_pokemon',
+            sourceFile: 'skull_bash.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'bounce',
+            battleEngineMethod: 's_2turns',
+            type: 'flying',
+            category: 'physical',
+            power: 85,
+            accuracy: '85',
+            pp: 5,
+            effectChance: 30,
+            moveStatusCount: 1,
+            moveStatuses: <PsdkStudioStatusCoverageEntry>[
+              PsdkStudioStatusCoverageEntry(status: 'paralysis'),
+            ],
+            target: 'any_other_pokemon',
+            sourceFile: 'bounce.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'razor_wind',
+            battleEngineMethod: 's_2turns',
+            type: 'normal',
+            category: 'special',
+            power: 80,
+            accuracy: '100',
+            pp: 10,
+            target: 'adjacent_all_foe',
+            sourceFile: 'razor_wind.json',
+          ),
+        ],
+        manifest: const <PsdkMoveRegistryManifestEntry>[
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_2turns',
+            rubyClass: 'TwoTurnBase',
+            rubyPath: 'two_turn.rb',
+            dartBehavior: 'StaticBasicMoveRegistry.s_2turns',
+            status: PsdkPortStatus.ported,
+          ),
+        ],
+        sourceDescription: 's_2turns test moves',
+      );
+
+      expect(report, contains('| fait | 1 |'));
+      expect(report, contains('| partiel | 3 |'));
+      expect(report, contains('| fait | fly | s_2turns | ported |'));
+      expect(report, contains('| partiel | skull_bash | s_2turns | ported |'));
+      expect(report, contains('| partiel | bounce | s_2turns | ported |'));
+      expect(
+        report,
+        contains('| partiel | razor_wind | s_2turns | ported |'),
+      );
+    });
   });
 }
