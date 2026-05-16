@@ -69,6 +69,7 @@ import '../domain/effect/move/heal_block_effect.dart';
 import '../domain/effect/move/imprison_effect.dart';
 import '../domain/effect/move/leech_seed_effect.dart';
 import '../domain/effect/move/protect_effect.dart';
+import '../domain/effect/move/substitute_effect.dart';
 import '../domain/effect/move/taunt_effect.dart';
 import '../domain/effect/move/torment_effect.dart';
 import '../domain/effect/move/two_turn_charge_effect.dart';
@@ -4075,7 +4076,9 @@ BattleMoveBehaviorResolution _resolveSubstitute(
 
   final user = prepared.state.battlerAt(context.user);
   final hpCost = (user.maxHp ~/ 4).clamp(1, user.currentHp).toInt();
-  if (user.currentHp <= hpCost || user.effects.contains('substitute')) {
+  if (user.maxHp < 4 ||
+      user.currentHp <= hpCost ||
+      user.effects.contains('substitute')) {
     return BattleMoveBehaviorResolution(
       state: prepared.state,
       rng: prepared.rng,
@@ -4109,9 +4112,9 @@ BattleMoveBehaviorResolution _resolveSubstitute(
       ...prepared.events,
       if (damage.event != null) damage.event!,
     ],
-    effect: GenericBattleEffect(
-      id: 'substitute',
+    effect: SubstituteEffect(
       scope: BattlerBattleEffectScope(context.user),
+      remainingHp: hpCost,
     ),
   );
 }

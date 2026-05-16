@@ -19,6 +19,7 @@ import 'move/powder_effect.dart';
 import 'move/protect_effect.dart';
 import 'move/salt_cure_effect.dart';
 import 'move/smack_down_effect.dart';
+import 'move/substitute_effect.dart';
 import 'move/syrup_bomb_effect.dart';
 import 'move/taunt_effect.dart';
 import 'move/tar_shot_effect.dart';
@@ -70,6 +71,10 @@ final class BattleEffectRegistry {
       'protect' => const ProtectEffect(scope: LocalBattleEffectScope()),
       'salt_cure' => const SaltCureEffect(scope: LocalBattleEffectScope()),
       'smack_down' => const SmackDownEffect(scope: LocalBattleEffectScope()),
+      'substitute' => const SubstituteEffect(
+          scope: LocalBattleEffectScope(),
+          remainingHp: 1,
+        ),
       'syrup_bomb' => const SyrupBombEffect(scope: LocalBattleEffectScope()),
       'taunt' => const TauntEffect(scope: LocalBattleEffectScope()),
       'tar_shot' => const TarShotEffect(scope: LocalBattleEffectScope()),
