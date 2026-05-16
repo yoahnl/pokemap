@@ -64,7 +64,7 @@ String generatePsdkAttackCoverageReport({
 }) {
   final manifestByMethod = <String, PsdkMoveRegistryManifestEntry>{
     for (final entry in manifest) entry.battleEngineMethod: entry,
-    for (final entry in _studioOnlyBattleMethods)
+    for (final entry in psdkStudioOnlyBattleMethods)
       entry.battleEngineMethod: entry,
   };
   final rows = <_AttackCoverageRow>[
@@ -122,7 +122,7 @@ String generatePsdkAttackCoverageReport({
   return buffer.toString();
 }
 
-const _studioOnlyBattleMethods = <PsdkMoveRegistryManifestEntry>[
+const psdkStudioOnlyBattleMethods = <PsdkMoveRegistryManifestEntry>[
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_genesis_supernova',
     rubyClass: 'StudioOnlyZMove',
