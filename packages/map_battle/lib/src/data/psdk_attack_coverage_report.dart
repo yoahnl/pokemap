@@ -301,6 +301,27 @@ final class PsdkStudioMoveCoverageEntry {
         moveStatusCount == 0 &&
         effectChance == 0;
   }
+
+  bool get isStrictProtectBaseVariant {
+    if (battleEngineMethod != 's_protect') {
+      return false;
+    }
+    if (!_strictProtectBaseMoves.contains(dbSymbol)) {
+      return false;
+    }
+    if (category.trim().toLowerCase() != 'status' || power != 0) {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    if (normalizedTarget.isNotEmpty &&
+        normalizedTarget != 'user' &&
+        normalizedTarget != 'self') {
+      return false;
+    }
+    return battleStageModCount == 0 &&
+        moveStatusCount == 0 &&
+        effectChance == 0;
+  }
 }
 
 final class PsdkStudioStageModCoverageEntry {
@@ -437,6 +458,11 @@ String generatePsdkAttackCoverageReport({
       '- Heal/recovery methods are counted as `fait` only for status-only '
       'self recovery moves; Heal Pulse, Substitute/Mega Launcher branches and '
       'mixed riders remain `partiel`.',
+    )
+    ..writeln(
+      '- `s_protect` is counted as `fait` only for Protect, Detect and '
+      'Endure; contact-punish, side-guard and Mat Block variants remain '
+      '`partiel`.',
     )
     ..writeln()
     ..writeln('| Metric | Count |')
@@ -595,6 +621,8 @@ String psdkAttackCoverageForMove(
       move.isStrictSelfRecovery ? 'fait' : 'partiel',
     PsdkPortStatus.ported when move.battleEngineMethod == 's_rest' =>
       move.isStrictRestRecovery ? 'fait' : 'partiel',
+    PsdkPortStatus.ported when move.battleEngineMethod == 's_protect' =>
+      move.isStrictProtectBaseVariant ? 'fait' : 'partiel',
     PsdkPortStatus.ported => 'fait',
     PsdkPortStatus.partial => 'partiel',
     PsdkPortStatus.missing || null => 'pas_fait',
@@ -792,6 +820,12 @@ const _strictSelfRecoveryTargets = <String>{
   'user',
   'self',
   'adjacent_pokemon',
+};
+
+const _strictProtectBaseMoves = <String>{
+  'detect',
+  'endure',
+  'protect',
 };
 
 const _strictMajorStatusTargets = <String>{

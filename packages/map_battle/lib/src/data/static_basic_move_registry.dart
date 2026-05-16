@@ -4406,6 +4406,10 @@ BattleMoveBehaviorResolution _resolveProtect(
       successful: false,
     );
   }
+  final failureCheck = _protectFailureCheck(context);
+  if (failureCheck != null) {
+    return failureCheck;
+  }
 
   final common = prepareBattleMove(context);
   if (!common.shouldExecuteBehavior) {
@@ -4445,3 +4449,91 @@ BattleMoveBehaviorResolution _resolveProtect(
     events: common.events,
   );
 }
+
+BattleMoveBehaviorResolution? _protectFailureCheck(
+  BattleMoveBehaviorContext context,
+) {
+  if (_protectSkipsFailureCheck(context.move.dbSymbol)) {
+    return null;
+  }
+
+  final priorSuccesses = _priorSuccessfulProtectChain(
+    context.state.battlerAt(context.user),
+  );
+  if (priorSuccesses <= 0) {
+    return null;
+  }
+
+  final denominator = _protectSuccessDenominator(priorSuccesses);
+  final roll = context.rng.generic.nextChance(
+    numerator: 1,
+    denominator: denominator,
+  );
+  if (roll.didOccur) {
+    return null;
+  }
+
+  return BattleMoveBehaviorResolution(
+    state: context.state,
+    rng: context.rng.copyWith(generic: roll.next),
+    events: <PsdkBattleEvent>[
+      PsdkBattleMoveFailedEvent(
+        user: context.user,
+        target: context.target,
+        moveId: context.move.id,
+        reason: BattleMoveFailureReason.unusableByUser.jsonName,
+      ),
+    ],
+    successful: false,
+  );
+}
+
+int _priorSuccessfulProtectChain(PsdkBattleCombatant user) {
+  final lastSentTurn = user.lastSentTurn ?? -1;
+  final successfulProtectTurns = <int>{
+    for (final entry in user.moveHistory.successes)
+      if (entry.turn > lastSentTurn && _isProtectFamilyMoveId(entry.moveId))
+        entry.turn,
+  };
+
+  var count = 0;
+  for (final attempt in user.moveHistory.attempts.reversed) {
+    if (attempt.turn <= lastSentTurn ||
+        !_isProtectFamilyMoveId(attempt.moveId)) {
+      break;
+    }
+    if (!successfulProtectTurns.contains(attempt.turn)) {
+      break;
+    }
+    count++;
+  }
+  return count.clamp(0, 6).toInt();
+}
+
+int _protectSuccessDenominator(int priorSuccesses) {
+  var denominator = 1;
+  for (var index = 0; index < priorSuccesses.clamp(0, 6); index++) {
+    denominator *= 3;
+  }
+  return denominator;
+}
+
+bool _protectSkipsFailureCheck(String dbSymbol) {
+  return dbSymbol == 'quick_guard' || dbSymbol == 'wide_guard';
+}
+
+bool _isProtectFamilyMoveId(String moveId) {
+  return _protectFamilyMoveIds.contains(_normalizedId(moveId));
+}
+
+const _protectFamilyMoveIds = <String>{
+  'baneful_bunker',
+  'detect',
+  'endure',
+  'king_s_shield',
+  'mat_block',
+  'protect',
+  'quick_guard',
+  'spiky_shield',
+  'wide_guard',
+};

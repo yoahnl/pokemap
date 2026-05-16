@@ -913,5 +913,96 @@ void main() {
       );
       expect(report, contains('| fait | rest | s_rest | ported |'));
     });
+
+    test('scopes ported s_protect coverage to strict base variants', () {
+      final report = generatePsdkAttackCoverageReport(
+        moves: const <PsdkStudioMoveCoverageEntry>[
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'protect',
+            battleEngineMethod: 's_protect',
+            type: 'normal',
+            category: 'status',
+            power: 0,
+            accuracy: '0',
+            pp: 10,
+            priority: 4,
+            target: 'user',
+            sourceFile: 'protect.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'detect',
+            battleEngineMethod: 's_protect',
+            type: 'fighting',
+            category: 'status',
+            power: 0,
+            accuracy: '0',
+            pp: 5,
+            priority: 4,
+            target: 'user',
+            sourceFile: 'detect.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'endure',
+            battleEngineMethod: 's_protect',
+            type: 'normal',
+            category: 'status',
+            power: 0,
+            accuracy: '0',
+            pp: 10,
+            priority: 4,
+            target: 'user',
+            sourceFile: 'endure.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'spiky_shield',
+            battleEngineMethod: 's_protect',
+            type: 'grass',
+            category: 'status',
+            power: 0,
+            accuracy: '0',
+            pp: 10,
+            priority: 4,
+            target: 'user',
+            sourceFile: 'spiky_shield.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'wide_guard',
+            battleEngineMethod: 's_protect',
+            type: 'rock',
+            category: 'status',
+            power: 0,
+            accuracy: '0',
+            pp: 10,
+            priority: 3,
+            target: 'all_ally',
+            sourceFile: 'wide_guard.json',
+          ),
+        ],
+        manifest: const <PsdkMoveRegistryManifestEntry>[
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_protect',
+            rubyClass: 'Protect',
+            rubyPath: 'protect.rb',
+            dartBehavior: 'StaticBasicMoveRegistry.s_protect',
+            status: PsdkPortStatus.ported,
+          ),
+        ],
+        sourceDescription: 's_protect test moves',
+      );
+
+      expect(report, contains('| fait | 3 |'));
+      expect(report, contains('| partiel | 2 |'));
+      expect(report, contains('| fait | protect | s_protect | ported |'));
+      expect(report, contains('| fait | detect | s_protect | ported |'));
+      expect(report, contains('| fait | endure | s_protect | ported |'));
+      expect(
+        report,
+        contains('| partiel | spiky_shield | s_protect | ported |'),
+      );
+      expect(
+        report,
+        contains('| partiel | wide_guard | s_protect | ported |'),
+      );
+    });
   });
 }

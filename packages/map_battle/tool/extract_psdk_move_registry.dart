@@ -434,7 +434,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_protect': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_protect',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   // These PSDK classes are Basic descendants whose regular hit/damage path is
   // executable locally. Their method-specific effects remain future work, so

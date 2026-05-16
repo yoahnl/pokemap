@@ -71,6 +71,64 @@ void main() {
       );
     });
 
+    test('consecutive Protect can fail from the PSDK success-rate decay', () {
+      final engine = BattleEngine(setup: _setup());
+
+      final first = engine.submit(const BattleDecision.fight(moveSlot: 0));
+      final second = engine.submit(const BattleDecision.fight(moveSlot: 0));
+
+      final protectEvents = second.timeline.events
+          .where((event) => event.toJson()['moveId'] == 'protect')
+          .toList(growable: false);
+      final opponentEvents = second.timeline.events
+          .where((event) => event.toJson()['moveId'] == 'opponent_tackle')
+          .toList(growable: false);
+
+      expect(first.state.battlerAt(psdkPlayerSlot).currentHp, 100);
+      expect(second.state.battlerAt(psdkPlayerSlot).currentHp, lessThan(100));
+      expect(second.state.battlerAt(psdkPlayerSlot).moves[0].currentPp, 8);
+      expect(protectEvents.map((event) => event.kind), <String>[
+        'move_pp_spent',
+        'move_failed',
+      ]);
+      expect(protectEvents.last.toJson()['reason'], 'unusable_by_user');
+      expect(opponentEvents.map((event) => event.kind), contains('damage'));
+    });
+
+    test('a non-Protect action resets the Protect success-rate decay', () {
+      final engine = BattleEngine(
+        setup: _setup(
+          opponentMove: _move(
+            id: 'opponent_tackle',
+            type: 'normal',
+            power: 10,
+          ),
+        ),
+      );
+
+      final first = engine.submit(const BattleDecision.fight(moveSlot: 0));
+      final second = engine.submit(const BattleDecision.fight(moveSlot: 1));
+      final third = engine.submit(const BattleDecision.fight(moveSlot: 0));
+
+      final thirdOpponentEvents = third.timeline.events
+          .where((event) => event.toJson()['moveId'] == 'opponent_tackle')
+          .toList(growable: false);
+
+      expect(first.state.battlerAt(psdkPlayerSlot).currentHp, 100);
+      expect(second.state.battlerAt(psdkPlayerSlot).currentHp, lessThan(100));
+      expect(third.state.battlerAt(psdkPlayerSlot).currentHp,
+          second.state.battlerAt(psdkPlayerSlot).currentHp);
+      expect(
+        thirdOpponentEvents.map((event) => event.kind),
+        containsAllInOrder(<String>[
+          'move_pp_spent',
+          'move_declared',
+          'move_failed',
+        ]),
+      );
+      expect(thirdOpponentEvents.last.toJson()['reason'], 'protected');
+    });
+
     test('a pre-seeded protect effect is immutable and cleared at turn end',
         () {
       final engine = BattleEngine(
