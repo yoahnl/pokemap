@@ -1450,6 +1450,15 @@ the protect, ability, and status lifecycle suites also cover the integration.
 **Definition of done:**
 - Ability parity becomes measurable.
 
+**Status 2026-05-17:** done. Added a generated Dart manifest covering
+276 PSDK ability ids: 271 registered ability-effect ids from PSDK plus five
+core ability checks already modeled outside `06 Effects/04 Ability Effects`
+(`damp`, `levitate`, `no_guard`, `rock_head`, `skill_link`). The registry now
+exposes the manifest ids and hydrates unknown non-empty ability ids as inert
+`GenericBattleEffect` markers instead of silently dropping them. Dedicated
+manifest tests cover duplicate protection, local ability hydration, and unknown
+ability fallback.
+
 ### Lot 48 - Ability Damage Modifiers
 
 **Goal:** port common ability hooks that modify damage.

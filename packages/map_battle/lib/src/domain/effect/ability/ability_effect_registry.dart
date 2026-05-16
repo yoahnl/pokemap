@@ -1,6 +1,7 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
+import '../../../data/generated/psdk_ability_effect_manifest.dart';
 import '../battle_effect.dart';
 import '../battle_effect_scope.dart';
 import 'air_lock_effect.dart';
@@ -89,6 +90,12 @@ final class AbilityEffectRegistry {
 
   final Map<String, AbilityEffectFactory> _factories;
 
+  Set<String> get registeredAbilityIds {
+    return <String>{
+      for (final entry in psdkAbilityEffectManifest) entry.abilityId,
+    };
+  }
+
   BattleEffect? create(String? abilityId, {PsdkBattleSlotRef? owner}) {
     final normalized = _normalizeAbilityId(abilityId);
     if (normalized == null) {
@@ -96,7 +103,12 @@ final class AbilityEffectRegistry {
     }
     final factory = _factories[normalized];
     if (factory == null) {
-      return null;
+      return GenericBattleEffect(
+        id: 'ability:$normalized',
+        scope: owner == null
+            ? const LocalBattleEffectScope()
+            : BattlerBattleEffectScope(owner),
+      );
     }
     return factory(
       scope: owner == null
