@@ -1004,5 +1004,90 @@ void main() {
         contains('| partiel | wide_guard | s_protect | ported |'),
       );
     });
+
+    test('classifies strict trapping families as fully covered', () {
+      final report = generatePsdkAttackCoverageReport(
+        moves: const <PsdkStudioMoveCoverageEntry>[
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'bind',
+            battleEngineMethod: 's_bind',
+            type: 'normal',
+            category: 'physical',
+            power: 15,
+            accuracy: '85',
+            pp: 20,
+            priority: 0,
+            criticalRate: 1,
+            target: 'adjacent_pokemon',
+            sourceFile: 'bind.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'magma_storm',
+            battleEngineMethod: 's_bind',
+            type: 'fire',
+            category: 'special',
+            power: 100,
+            accuracy: '75',
+            pp: 5,
+            priority: 0,
+            criticalRate: 1,
+            target: 'adjacent_pokemon',
+            sourceFile: 'magma_storm.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'mean_look',
+            battleEngineMethod: 's_cantflee',
+            type: 'normal',
+            category: 'status',
+            power: 0,
+            accuracy: '0',
+            pp: 5,
+            priority: 0,
+            target: 'adjacent_pokemon',
+            sourceFile: 'mean_look.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'thousand_waves',
+            battleEngineMethod: 's_cantflee',
+            type: 'ground',
+            category: 'physical',
+            power: 90,
+            accuracy: '100',
+            pp: 10,
+            priority: 0,
+            criticalRate: 1,
+            target: 'adjacent_all_foe',
+            sourceFile: 'thousand_waves.json',
+          ),
+        ],
+        manifest: const <PsdkMoveRegistryManifestEntry>[
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_bind',
+            rubyClass: 'Bind',
+            rubyPath: 'bind.rb',
+            dartBehavior: 'StaticBasicMoveRegistry.s_bind',
+            status: PsdkPortStatus.ported,
+          ),
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_cantflee',
+            rubyClass: 'CantSwitch',
+            rubyPath: 'cant_switch.rb',
+            dartBehavior: 'StaticBasicMoveRegistry.s_cantflee',
+            status: PsdkPortStatus.ported,
+          ),
+        ],
+        sourceDescription: 'trapping test moves',
+      );
+
+      expect(report, contains('| fait | 4 |'));
+      expect(report, contains('| partiel | 0 |'));
+      expect(report, contains('| fait | bind | s_bind | ported |'));
+      expect(report, contains('| fait | magma_storm | s_bind | ported |'));
+      expect(report, contains('| fait | mean_look | s_cantflee | ported |'));
+      expect(
+        report,
+        contains('| fait | thousand_waves | s_cantflee | ported |'),
+      );
+    });
   });
 }

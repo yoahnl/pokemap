@@ -286,9 +286,9 @@ String _notesFor(String effectName) {
     'BatonPass' =>
       'Object-backed BatonPassEffect marks switch transfer; the current handler transfers stat stages and transferable effects, while full party switch action remains future work.',
     'Bind' =>
-      'Object-backed BindEffect prevents regular switch attempts, applies residual end-turn damage, honors Magic Guard, Grip Claw and Binding Band, and stops when the origin fainted; Rapid Spin cleanup and delete messages remain future work.',
+      'Object-backed BindEffect prevents regular switch attempts, applies residual end-turn damage, honors Magic Guard, Grip Claw and Binding Band, stops when the origin fainted, and is Rapid Spin-cleanable; delete messages remain future work.',
     'CantSwitch' =>
-      'Object-backed CantSwitchEffect prevents regular switch attempts, transfers through Baton Pass and stops blocking when the origin fainted; full switch-event cleanup and message parity remain future work.',
+      'Object-backed CantSwitchEffect prevents regular switch attempts, transfers through Baton Pass and clears once the origin fainted; full switch-event cleanup and message parity remain future work.',
     'Confusion' =>
       'Object-backed ConfusionEffect runs the PSDK user-prevention lifecycle: countdown, last-turn cleanup, 50% self-hit roll and typeless 40-power self damage; PSDK move statuses can now apply CONFUSED as a volatile effect, while Own Tempo/Persim-style cures and battle messages remain future work.',
     'Curse' =>

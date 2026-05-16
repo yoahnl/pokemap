@@ -1,0 +1,63 @@
+{
+  "sourceDescription": "moves=../../pokémon_sdk_test_project/Data/Studio/moves; effects=../../pokemonsdk-development/scripts/5 Battle",
+  "attacks": {
+    "totalAttacks": 728,
+    "uniqueBattleEngineMethods": 258,
+    "fait": 238,
+    "partiel": 490,
+    "pasFait": 0,
+    "unknownMethods": 0
+  },
+  "methods": {
+    "totalMethods": 330,
+    "byStatus": {
+      "ported": 42,
+      "partial": 288,
+      "missing": 0
+    }
+  },
+  "effects": {
+    "totalEffects": 482,
+    "byStatus": {
+      "ported": 0,
+      "partial": 25,
+      "missing": 457
+    },
+    "byFamilyAndStatus": {
+      "ability": {
+        "ported": 0,
+        "partial": 3,
+        "missing": 251
+      },
+      "move": {
+        "ported": 0,
+        "partial": 22,
+        "missing": 93
+      },
+      "item": {
+        "ported": 0,
+        "partial": 0,
+        "missing": 87
+      },
+      "status": {
+        "ported": 0,
+        "partial": 0,
+        "missing": 7
+      },
+      "mechanics": {
+        "ported": 0,
+        "partial": 0,
+        "missing": 4
+      },
+      "field": {
+        "ported": 0,
+        "partial": 0,
+        "missing": 15
+      }
+    }
+  },
+  "runtimeBridge": {
+    "status": "not_measured",
+    "reason": "Runtime bridge diagnostics live in packages/map_runtime and are opened by Lot 04."
+  }
+}

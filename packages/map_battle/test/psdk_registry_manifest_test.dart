@@ -517,7 +517,7 @@ void main() {
         byMethod['s_stone_axe']!.dartBehavior,
         'StaticBasicMoveRegistry.s_stone_axe',
       );
-      expect(byMethod['s_cantflee']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_cantflee']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_cantflee']!.dartBehavior,
         'StaticBasicMoveRegistry.s_cantflee',
@@ -668,7 +668,7 @@ void main() {
         byMethod['s_revelation_dance']!.dartBehavior,
         'TypeBasedMoveBehavior.revelationDance',
       );
-      expect(byMethod['s_bind']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_bind']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_bind']!.dartBehavior,
         'StaticBasicMoveRegistry.s_bind',

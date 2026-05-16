@@ -461,7 +461,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_bind': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_bind',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_brick_break': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_brick_break',
@@ -473,7 +473,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_cantflee': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_cantflee',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_captivate': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.secondaryOnly(s_captivate)',
@@ -1470,18 +1470,11 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
     _PsdkMoveDependency.effects,
     _PsdkMoveDependency.ability,
   },
-  's_bind': {
-    _PsdkMoveDependency.effects,
-    _PsdkMoveDependency.item,
-    _PsdkMoveDependency.handlerSwitch,
-  },
+  's_bind': {},
   's_brick_break': {
     _PsdkMoveDependency.effects,
   },
-  's_cantflee': {
-    _PsdkMoveDependency.effects,
-    _PsdkMoveDependency.handlerSwitch,
-  },
+  's_cantflee': {},
   's_follow_me': {
     _PsdkMoveDependency.effects,
     _PsdkMoveDependency.actionOrder,

@@ -151,6 +151,64 @@ void main() {
       expect(prevention.reason, isNull);
     });
 
+    test('CantSwitch clears during end turn when its origin fainted', () {
+      final state = PsdkBattleState(
+        combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+          psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'origin',
+              speed: 100,
+              currentHp: 0,
+              moves: <PsdkBattleMoveData>[
+                _move(
+                  id: 'splash',
+                  battleEngineMethod: 's_splash',
+                  target: PsdkBattleMoveTarget.none,
+                ),
+              ],
+            ),
+          ),
+          psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'trapped',
+              speed: 1,
+              moves: <PsdkBattleMoveData>[
+                _move(
+                  id: 'splash',
+                  battleEngineMethod: 's_splash',
+                  target: PsdkBattleMoveTarget.none,
+                ),
+              ],
+            ),
+          ).copyWith(
+            effects: const PsdkBattleEffectStack.empty().addEffect(
+              const CantSwitchEffect(
+                scope: BattlerBattleEffectScope(psdkOpponentSlot),
+                origin: psdkPlayerSlot,
+              ),
+            ),
+          ),
+        },
+      );
+
+      final result = const BattleEndTurnHandler().tickEndTurnEffects(
+        BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+      );
+
+      expect(result.applied, isTrue);
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).effects.contains(
+              PsdkBattleEffectIds.cantSwitch,
+            ),
+        isFalse,
+      );
+    });
+
     test('s_bind installs a timed trapping effect with residual damage', () {
       final engine = PsdkBattleEngine(
         setup: _setup(

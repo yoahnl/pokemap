@@ -19,9 +19,9 @@ void main() {
       final result = psdkLot02ParityGate.evaluate(audit);
 
       expect(result.passed, isTrue, reason: result.message);
-      expect(audit.attackMetrics.fait, 223);
+      expect(audit.attackMetrics.fait, 238);
       expect(audit.attackMetrics.unknownMethods, 0);
-      expect(audit.methodMetrics.byStatus[PsdkPortStatus.ported], 40);
+      expect(audit.methodMetrics.byStatus[PsdkPortStatus.ported], 42);
       expect(audit.effectMetrics.byStatus[PsdkPortStatus.partial], 25);
     });
 

@@ -265,12 +265,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Bind',
     rubyPath: '10 Move/2 Definitions/300 Bind.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_bind',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.item,
-      PsdkMoveDependency.handlerSwitch
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_bitter_malice',
@@ -337,11 +333,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'CantSwitch',
     rubyPath: '10 Move/2 Definitions/300 CantSwitch.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_cantflee',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.handlerSwitch
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_captivate',

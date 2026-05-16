@@ -36,4 +36,19 @@ final class CantSwitchEffect extends BattleEffect {
     }
     return PsdkBattleEffectIds.cantSwitch;
   }
+
+  @override
+  BattleEffectEndTurnResult? onEndTurn(BattleEffectEndTurnContext context) {
+    final originBattler = context.state.combatants[origin];
+    if (originBattler != null && !originBattler.isFainted) {
+      return null;
+    }
+    return BattleEffectEndTurnResult(
+      state: context.state.updateBattler(
+        context.owner,
+        (battler) => battler.copyWith(effects: battler.effects.remove(id)),
+      ),
+      rng: context.rng,
+    );
+  }
 }
