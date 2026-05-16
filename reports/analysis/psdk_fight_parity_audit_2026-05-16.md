@@ -584,3 +584,30 @@ Fichiers ajoutes/modifies par ce lot :
 - `packages/map_battle/lib/src/data/psdk_attack_coverage_report.dart`
 - `reports/analysis/psdk_fight_100_percent_lot_plan_2026-05-16.md`
 - `reports/analysis/psdk_fight_parity_audit_2026-05-16.md`
+
+## Mise a jour Lot 02 - 2026-05-16
+
+Le Lot 02 a ajoute une gate de non-regression pour eviter que les prochains lots fassent baisser la parite mesuree.
+
+Commande :
+
+```bash
+cd packages/map_battle
+dart run tool/psdk_fight_parity_audit.dart --gate --json /tmp/psdk-fight-audit.json --markdown /tmp/psdk-fight-audit.md
+```
+
+Seuils initiaux :
+
+- `unknown_methods <= 0`
+- `strict_attacks >= 33`
+- `strict_methods >= 25`
+- `known_or_partial_effects >= 25`
+
+Fichiers ajoutes/modifies par ce lot :
+
+- `packages/map_battle/lib/src/data/psdk_parity_gate.dart`
+- `packages/map_battle/tool/psdk_fight_parity_audit.dart`
+- `packages/map_battle/test/psdk_parity_gate_test.dart`
+- `reports/analysis/psdk_fight_parity_gate_policy.md`
+- `reports/analysis/psdk_fight_100_percent_lot_plan_2026-05-16.md`
+- `reports/analysis/psdk_fight_parity_audit_2026-05-16.md`

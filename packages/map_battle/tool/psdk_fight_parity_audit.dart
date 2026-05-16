@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:map_battle/src/data/psdk_fight_parity_audit.dart';
+import 'package:map_battle/src/data/psdk_parity_gate.dart';
 
 Future<void> main(List<String> args) async {
   final options = _AuditCliOptions.parse(args);
@@ -19,6 +20,16 @@ Future<void> main(List<String> args) async {
   }
   if (options.markdownOutputPath case final markdownPath?) {
     await _writeTextFile(markdownPath, audit.toMarkdown());
+  }
+
+  if (options.runGate) {
+    final gateResult = psdkLot02ParityGate.evaluate(audit);
+    if (!gateResult.passed) {
+      stderr.writeln(gateResult.message);
+      exitCode = 1;
+      return;
+    }
+    stdout.writeln(gateResult.message);
   }
 
   if (options.jsonOutputPath == null && options.markdownOutputPath == null) {
@@ -43,6 +54,7 @@ Options:
   --effects <dir>    Pokemon SDK "5 Battle" directory.
   --json <file>      Write machine-readable JSON audit.
   --markdown <file>  Write human-readable Markdown audit.
+  --gate             Enforce Lot 02 non-regression thresholds.
   --help             Show this help.
 
 Defaults:
@@ -56,6 +68,7 @@ final class _AuditCliOptions {
     required this.psdkBattleDirectory,
     this.jsonOutputPath,
     this.markdownOutputPath,
+    this.runGate = false,
     this.showHelp = false,
   });
 
@@ -64,6 +77,7 @@ final class _AuditCliOptions {
     var psdkBattleDirectory = '../../pokemonsdk-development/scripts/5 Battle';
     String? jsonOutputPath;
     String? markdownOutputPath;
+    var runGate = false;
     var showHelp = false;
 
     for (var index = 0; index < args.length; index++) {
@@ -79,6 +93,8 @@ final class _AuditCliOptions {
           jsonOutputPath = _requiredValue(args, ++index, arg);
         case '--markdown':
           markdownOutputPath = _requiredValue(args, ++index, arg);
+        case '--gate':
+          runGate = true;
         default:
           throw FormatException('Unknown option: $arg\n\n$_usage');
       }
@@ -89,6 +105,7 @@ final class _AuditCliOptions {
       psdkBattleDirectory: psdkBattleDirectory,
       jsonOutputPath: jsonOutputPath,
       markdownOutputPath: markdownOutputPath,
+      runGate: runGate,
       showHelp: showHelp,
     );
   }
@@ -97,6 +114,7 @@ final class _AuditCliOptions {
   final String psdkBattleDirectory;
   final String? jsonOutputPath;
   final String? markdownOutputPath;
+  final bool runGate;
   final bool showHelp;
 }
 

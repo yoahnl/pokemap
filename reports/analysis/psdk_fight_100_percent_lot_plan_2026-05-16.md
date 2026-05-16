@@ -115,6 +115,8 @@ cd packages/map_battle && dart run tool/extract_psdk_effect_matrix.dart ../../po
 
 ### Lot 02 - Parity Gates and No-Regression Thresholds
 
+**Status 2026-05-16:** done. Implemented by `packages/map_battle/test/psdk_parity_gate_test.dart` and `--gate` on the unified audit CLI.
+
 **Goal:** prevent accidental regressions in PSDK parity.
 
 **Files:**
