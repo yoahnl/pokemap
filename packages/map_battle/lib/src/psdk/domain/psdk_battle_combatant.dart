@@ -11,6 +11,7 @@ import '../../domain/move/battle_move_data.dart';
 import '../../domain/move/battle_move_prevention.dart';
 import 'psdk_battle_move.dart';
 import 'psdk_battle_slots.dart';
+import 'psdk_battle_state.dart';
 
 /// Minimal type pair carried by the PSDK lane.
 ///
@@ -371,6 +372,22 @@ class PsdkBattleEffectStack {
     BattleEffectUserMovePreventionContext context,
   ) {
     return _stack.userMovePrevention(context);
+  }
+
+  BattleMoveSelectionPreventionResult? moveSelectionPrevention({
+    required PsdkBattleState state,
+    required PsdkBattleSlotRef user,
+    required PsdkBattleSlotRef target,
+    required BattleMoveDefinition move,
+  }) {
+    return _stack.moveSelectionPrevention(
+      BattleMoveSelectionPreventionContext(
+        state: state,
+        user: user,
+        target: target,
+        move: move,
+      ),
+    );
   }
 }
 

@@ -1,4 +1,5 @@
 import '../battle/battle_context.dart';
+import '../move/battle_move_data.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 
@@ -81,7 +82,12 @@ final class BattleEngineDecisionRequest {
     final battler = context.state.battlerAt(psdkPlayerSlot);
     final fightChoices = <BattleMoveDecisionOption>[
       for (var i = 0; i < battler.moves.length; i += 1)
-        if (battler.moves[i].hasUsablePp)
+        if (battler.moves[i].hasUsablePp &&
+            _isSelectableByMovePrevention(
+              context: context,
+              user: psdkPlayerSlot,
+              move: battler.moves[i],
+            ))
           BattleMoveDecisionOption(
             moveSlot: i,
             moveId: battler.moves[i].id,
@@ -120,4 +126,55 @@ final class BattleEngineDecisionRequest {
       BattleSwitchDecision() => false,
     };
   }
+}
+
+bool _isSelectableByMovePrevention({
+  required BattleContext context,
+  required PsdkBattleSlotRef user,
+  required PsdkBattleMoveData move,
+}) {
+  final target = _defaultSelectionTarget(
+    context: context,
+    user: user,
+    target: move.target,
+  );
+  return context.state.battlerAt(user).effects.moveSelectionPrevention(
+            state: context.state,
+            user: user,
+            target: target,
+            move: BattleMoveDefinition.fromPsdk(move),
+          ) ==
+      null;
+}
+
+PsdkBattleSlotRef _defaultSelectionTarget({
+  required BattleContext context,
+  required PsdkBattleSlotRef user,
+  required PsdkBattleMoveTarget target,
+}) {
+  return switch (target) {
+    PsdkBattleMoveTarget.self ||
+    PsdkBattleMoveTarget.user ||
+    PsdkBattleMoveTarget.userSide ||
+    PsdkBattleMoveTarget.allAllies ||
+    PsdkBattleMoveTarget.adjacentAllyOrSelf ||
+    PsdkBattleMoveTarget.none =>
+      user,
+    PsdkBattleMoveTarget.adjacentAlly =>
+      _firstOrNull(context.state.alliesOf(user)) ?? user,
+    PsdkBattleMoveTarget.adjacentFoe ||
+    PsdkBattleMoveTarget.allAdjacent ||
+    PsdkBattleMoveTarget.allAdjacentFoes ||
+    PsdkBattleMoveTarget.allBattlers ||
+    PsdkBattleMoveTarget.allFoes ||
+    PsdkBattleMoveTarget.anyFoe ||
+    PsdkBattleMoveTarget.bank ||
+    PsdkBattleMoveTarget.foeSide ||
+    PsdkBattleMoveTarget.randomFoe =>
+      _firstOrNull(context.state.foesOf(user)) ?? user,
+  };
+}
+
+PsdkBattleSlotRef? _firstOrNull(List<PsdkBattleSlotRef> slots) {
+  return slots.isEmpty ? null : slots.first;
 }

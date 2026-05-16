@@ -278,6 +278,18 @@ final class BattleEffectObjectStack {
     return null;
   }
 
+  BattleMoveSelectionPreventionResult? moveSelectionPrevention(
+    BattleMoveSelectionPreventionContext context,
+  ) {
+    for (final effect in _effects) {
+      final result = effect.onMoveSelectionPrevention(context);
+      if (result != null) {
+        return result;
+      }
+    }
+    return null;
+  }
+
   String? switchPreventionReason(BattleEffectSwitchPreventionContext context) {
     for (final effect in _effects) {
       final reason = effect.onSwitchPrevention(context);

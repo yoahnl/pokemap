@@ -1,4 +1,5 @@
 import '../../psdk/domain/psdk_battle_state.dart';
+import '../../psdk/domain/psdk_battle_slots.dart';
 import '../battle/battle_slot.dart';
 import '../rng/battle_rng_streams.dart';
 import 'battle_move_data.dart';
@@ -127,6 +128,30 @@ final class BattleMoveUserPreventionResult {
 
   final BattleMoveFailureReason reason;
   final String? message;
+}
+
+final class BattleMoveSelectionPreventionResult {
+  const BattleMoveSelectionPreventionResult({
+    required this.reason,
+    this.message,
+  });
+
+  final BattleMoveFailureReason reason;
+  final String? message;
+}
+
+final class BattleMoveSelectionPreventionContext {
+  const BattleMoveSelectionPreventionContext({
+    required this.state,
+    required this.user,
+    required this.target,
+    required this.move,
+  });
+
+  final PsdkBattleState state;
+  final PsdkBattleSlotRef user;
+  final PsdkBattleSlotRef target;
+  final BattleMoveDefinition move;
 }
 
 final class BattleMoveUserPreventionContext {

@@ -1,5 +1,6 @@
 import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
+import '../../move/battle_move_data.dart';
 import '../../move/battle_move_prevention.dart';
 import '../battle_effect.dart';
 import '../battle_effect_hooks.dart';
@@ -27,8 +28,7 @@ final class TauntEffect extends BattleEffect {
   BattleEffectUserMovePreventionResult? onUserMovePrevention(
     BattleEffectUserMovePreventionContext context,
   ) {
-    if (!_appliesTo(context.user) ||
-        context.move.category != PsdkBattleMoveCategory.status) {
+    if (!_prevents(user: context.user, move: context.move)) {
       return null;
     }
 
@@ -38,6 +38,26 @@ final class TauntEffect extends BattleEffect {
       prevented: true,
       reason: BattleMoveFailureReason.unusableByUser,
     );
+  }
+
+  @override
+  BattleMoveSelectionPreventionResult? onMoveSelectionPrevention(
+    BattleMoveSelectionPreventionContext context,
+  ) {
+    if (!_prevents(user: context.user, move: context.move)) {
+      return null;
+    }
+
+    return const BattleMoveSelectionPreventionResult(
+      reason: BattleMoveFailureReason.unusableByUser,
+    );
+  }
+
+  bool _prevents({
+    required PsdkBattleSlotRef user,
+    required BattleMoveDefinition move,
+  }) {
+    return _appliesTo(user) && move.category == PsdkBattleMoveCategory.status;
   }
 
   bool _appliesTo(PsdkBattleSlotRef user) {

@@ -1132,6 +1132,16 @@ PSDK effect classes still need dedicated behavior mapping.
 **Definition of done:**
 - Move prevention effects no longer need bespoke execution checks.
 
+**Status 2026-05-17:** done. Added a pure move-selection prevention hook so
+clean battle requests can hide effect-disabled choices without executing
+side-effectful prevention hooks. Taunt, Disable, Encore, and force-next-move now
+share their execution predicates with the clean request filter, covering status
+move lockout, disabled move ids, encored move forcing, and repeated-action locks.
+Regression coverage lives in
+`test/psdk_move_families/move_prevention_test.dart`. This lot improves UI /
+selection parity and generic hook plumbing, but it does not promote attack,
+method, or strict effect parity counts yet.
+
 ### Lot 39 - Damage Prevention Hooks
 
 **Goal:** port `on_damage_prevention` behavior.

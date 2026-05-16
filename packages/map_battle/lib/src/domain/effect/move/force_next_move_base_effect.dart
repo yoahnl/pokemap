@@ -1,4 +1,5 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
+import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../move/battle_move_prevention.dart';
 import '../battle_effect.dart';
 import '../battle_effect_hooks.dart';
@@ -70,5 +71,26 @@ final class ForceNextMoveBaseEffect extends BattleEffect {
       reason: BattleMoveFailureReason.unusableByUser,
       recordAttempt: false,
     );
+  }
+
+  @override
+  BattleMoveSelectionPreventionResult? onMoveSelectionPrevention(
+    BattleMoveSelectionPreventionContext context,
+  ) {
+    final forcedMove = forcedMoveId;
+    if (forcedMove == null ||
+        !_appliesTo(context.user) ||
+        context.move.id == forcedMove) {
+      return null;
+    }
+
+    return const BattleMoveSelectionPreventionResult(
+      reason: BattleMoveFailureReason.unusableByUser,
+    );
+  }
+
+  bool _appliesTo(PsdkBattleSlotRef user) {
+    final scope = this.scope;
+    return scope is! BattlerBattleEffectScope || scope.slot == user;
   }
 }

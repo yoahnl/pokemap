@@ -41,6 +41,12 @@ abstract class BattleEffect {
     return null;
   }
 
+  BattleMoveSelectionPreventionResult? onMoveSelectionPrevention(
+    BattleMoveSelectionPreventionContext context,
+  ) {
+    return null;
+  }
+
   BattleEffectEndTurnResult? onEndTurn(BattleEffectEndTurnContext context) {
     return null;
   }

@@ -1,8 +1,138 @@
 import 'package:map_battle/map_battle.dart';
+import 'package:map_battle/src/domain/effect/move/disable_effect.dart';
+import 'package:map_battle/src/domain/effect/move/encore_effect.dart';
+import 'package:map_battle/src/domain/effect/move/force_next_move_base_effect.dart';
+import 'package:map_battle/src/domain/effect/move/taunt_effect.dart';
 import 'package:test/test.dart';
 
 void main() {
   group('PSDK move prevention effects', () {
+    test('clean request excludes Taunt-blocked status moves', () {
+      final engine = BattleEngine(
+        setup: _requestSetup(
+          playerEffects: const PsdkBattleEffectStack.empty().addEffect(
+            TauntEffect(scope: BattlerBattleEffectScope(psdkPlayerSlot)),
+          ),
+          playerMoves: <PsdkBattleMoveData>[
+            _move(id: 'tackle', power: 40),
+            _move(
+              id: 'growl',
+              category: PsdkBattleMoveCategory.status,
+              power: 0,
+              battleEngineMethod: 's_stat',
+            ),
+          ],
+        ),
+      );
+
+      final request = engine.currentRequest;
+
+      expect(request.kind, BattleEngineDecisionRequestKind.turnChoice);
+      expect(
+        request.fightChoices.map((choice) => choice.moveId),
+        <String>['tackle'],
+      );
+      expect(request.allows(const BattleDecision.fight(moveSlot: 0)), isTrue);
+      expect(request.allows(const BattleDecision.fight(moveSlot: 1)), isFalse);
+    });
+
+    test('clean request excludes disabled moves', () {
+      final engine = BattleEngine(
+        setup: _requestSetup(
+          playerEffects: const PsdkBattleEffectStack.empty().addEffect(
+            DisableEffect(
+              scope: BattlerBattleEffectScope(psdkPlayerSlot),
+              disabledMoveId: 'tackle',
+            ),
+          ),
+          playerMoves: <PsdkBattleMoveData>[
+            _move(id: 'tackle', power: 40),
+            _move(
+              id: 'ember',
+              type: 'fire',
+              category: PsdkBattleMoveCategory.special,
+              power: 40,
+            ),
+          ],
+        ),
+      );
+
+      final request = engine.currentRequest;
+
+      expect(request.kind, BattleEngineDecisionRequestKind.turnChoice);
+      expect(
+        request.fightChoices.map((choice) => choice.moveId),
+        <String>['ember'],
+      );
+      expect(request.allows(const BattleDecision.fight(moveSlot: 0)), isFalse);
+      expect(request.allows(const BattleDecision.fight(moveSlot: 1)), isTrue);
+    });
+
+    test('clean request exposes only the encored move', () {
+      final engine = BattleEngine(
+        setup: _requestSetup(
+          playerEffects: const PsdkBattleEffectStack.empty().addEffect(
+            EncoreEffect(
+              scope: BattlerBattleEffectScope(psdkPlayerSlot),
+              encoredMoveId: 'tackle',
+            ),
+          ),
+          playerMoves: <PsdkBattleMoveData>[
+            _move(id: 'tackle', power: 40),
+            _move(
+              id: 'ember',
+              type: 'fire',
+              category: PsdkBattleMoveCategory.special,
+              power: 40,
+            ),
+          ],
+        ),
+      );
+
+      final request = engine.currentRequest;
+
+      expect(request.kind, BattleEngineDecisionRequestKind.turnChoice);
+      expect(
+        request.fightChoices.map((choice) => choice.moveId),
+        <String>['tackle'],
+      );
+      expect(request.allows(const BattleDecision.fight(moveSlot: 0)), isTrue);
+      expect(request.allows(const BattleDecision.fight(moveSlot: 1)), isFalse);
+    });
+
+    test('clean request exposes only the forced next move', () {
+      final engine = BattleEngine(
+        setup: _requestSetup(
+          playerEffects: const PsdkBattleEffectStack.empty().addEffect(
+            ForceNextMoveBaseEffect.locked(
+              scope: BattlerBattleEffectScope(psdkPlayerSlot),
+              forcedMoveId: 'tackle',
+              remainingTurns: 2,
+            ),
+          ),
+          playerMoves: <PsdkBattleMoveData>[
+            _move(id: 'tackle', power: 40),
+            _move(
+              id: 'ember',
+              type: 'fire',
+              category: PsdkBattleMoveCategory.special,
+              power: 40,
+            ),
+          ],
+        ),
+      );
+
+      final request = engine.currentRequest;
+
+      expect(request.kind, BattleEngineDecisionRequestKind.turnChoice);
+      expect(
+        request.fightChoices.map((choice) => choice.moveId),
+        <String>['tackle'],
+      );
+      expect(request.allows(const BattleDecision.fight(moveSlot: 0)), isTrue);
+      expect(request.allows(const BattleDecision.fight(moveSlot: 1)), isFalse);
+    });
+
     test('Taunt prevents the affected battler from using a status move', () {
       final result = _runMove(
         playerEffects: PsdkBattleEffectStack(values: const <String>['taunt']),
@@ -399,6 +529,36 @@ void main() {
       expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 100);
     });
   });
+}
+
+BattleEngineSetup _requestSetup({
+  required List<PsdkBattleMoveData> playerMoves,
+  PsdkBattleEffectStack? playerEffects,
+}) {
+  return BattleEngineSetup.singles(
+    player: _combatant(
+      id: 'player',
+      speed: 100,
+      move: playerMoves.first,
+      extraMoves: playerMoves.skip(1).toList(growable: false),
+      effects: playerEffects,
+    ),
+    opponent: _combatant(
+      id: 'opponent',
+      speed: 1,
+      move: _move(
+        id: 'opponent_wait',
+        power: 0,
+        accuracy: 1,
+      ),
+    ),
+    rngSeeds: const PsdkBattleRngSeeds(
+      moveDamage: 1,
+      moveCritical: 99999,
+      moveAccuracy: 3,
+      generic: 0,
+    ),
+  );
 }
 
 PsdkBattleTurnResult _runMove({
