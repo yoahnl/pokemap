@@ -15,6 +15,7 @@ typedef BattleCalledMoveResolver = BattleMoveBehaviorResolution Function(
 enum _CopyCallMoveKind {
   sleepTalk,
   mimic,
+  sketch,
 }
 
 final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
@@ -27,6 +28,11 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
   const CopyCallMoveBehavior.mimic()
       : battleEngineMethod = 's_mimic',
         _kind = _CopyCallMoveKind.mimic,
+        _callMove = null;
+
+  const CopyCallMoveBehavior.sketch()
+      : battleEngineMethod = 's_sketch',
+        _kind = _CopyCallMoveKind.sketch,
         _callMove = null;
 
   @override
@@ -50,6 +56,11 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
           : const BattleMoveUserPreventionResult(
               reason: BattleMoveFailureReason.unusableByUser,
             ),
+      _CopyCallMoveKind.sketch => _canUseSketch(context)
+          ? null
+          : const BattleMoveUserPreventionResult(
+              reason: BattleMoveFailureReason.unusableByUser,
+            ),
     };
   }
 
@@ -63,6 +74,7 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
     return switch (_kind) {
       _CopyCallMoveKind.sleepTalk => _resolveSleepTalk(context),
       _CopyCallMoveKind.mimic => _resolveMimic(context),
+      _CopyCallMoveKind.sketch => _resolveSketch(context),
     };
   }
 
@@ -109,6 +121,31 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
     }
 
     final copied = copiedMove.copyWith(pp: 5, currentPp: 5);
+    return BattleMoveBehaviorResolution(
+      state: prepared.state.updateBattler(
+        context.user,
+        (battler) => battler.replaceMoveAt(moveSlot, copied),
+      ),
+      rng: prepared.rng,
+      events: prepared.events,
+    );
+  }
+
+  BattleMoveBehaviorResolution _resolveSketch(
+    BattleMoveBehaviorContext context,
+  ) {
+    final moveSlot = context.moveSlot;
+    final copiedMove = _sketchTargetMove(context);
+    if (moveSlot == null || copiedMove == null) {
+      return _failure(context, BattleMoveFailureReason.unusableByUser);
+    }
+
+    final prepared = prepareBattleMove(context);
+    if (!prepared.shouldExecuteBehavior) {
+      return prepared.toResolution();
+    }
+
+    final copied = copiedMove.copyWith(currentPp: copiedMove.pp);
     return BattleMoveBehaviorResolution(
       state: prepared.state.updateBattler(
         context.user,
@@ -186,10 +223,43 @@ bool _canUseMimic(BattleMoveBehaviorContext context) {
   return context.moveSlot != null && _mimicTargetMove(context) != null;
 }
 
+bool _canUseSketch(BattleMoveBehaviorContext context) {
+  final moveSlot = context.moveSlot;
+  if (moveSlot == null) {
+    return false;
+  }
+  final user = context.state.battlerAt(context.user);
+  if (user.transformState.isTransformed ||
+      moveSlot < 0 ||
+      moveSlot >= user.moves.length) {
+    return false;
+  }
+  final selectedMove = user.moves[moveSlot];
+  if (_normalizedId(selectedMove.battleEngineMethod) != 's_sketch') {
+    return false;
+  }
+  return _sketchTargetMove(context) != null;
+}
+
 PsdkBattleMoveData? _mimicTargetMove(BattleMoveBehaviorContext context) {
   final target = context.state.battlerAt(context.target);
   final moveId = target.moveHistory.lastSuccessfulMoveId;
   if (moveId == null || _mimicExcludedMoveIds.contains(_normalizedId(moveId))) {
+    return null;
+  }
+  for (final move in target.moves) {
+    if (_normalizedId(move.id) == _normalizedId(moveId) ||
+        _normalizedId(move.dbSymbol) == _normalizedId(moveId)) {
+      return move;
+    }
+  }
+  return null;
+}
+
+PsdkBattleMoveData? _sketchTargetMove(BattleMoveBehaviorContext context) {
+  final target = context.state.battlerAt(context.target);
+  final moveId = target.moveHistory.lastMoveId;
+  if (moveId == null) {
     return null;
   }
   for (final move in target.moves) {

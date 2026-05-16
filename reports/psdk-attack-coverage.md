@@ -596,7 +596,7 @@ Coverage semantics:
 | partiel | simple_beam | s_simple_beam | partial | StaticBasicMoveRegistry.partialAbilityChanging(s_simple_beam) | normal | status | 0 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/simple_beam.json |
 | fait | sing | s_status | ported | StatusStatMoveBehavior.status | normal | status | 0 | 55 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/sing.json |
 | partiel | sinister_arrow_raid | s_z_move | partial | StaticBasicMoveRegistry.s_z_move | ghost | physical | 180 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/sinister_arrow_raid.json |
-| partiel | sketch | s_sketch | partial | StaticBasicMoveRegistry.partialTargetMarker(s_sketch) | normal | status | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/sketch.json |
+| partiel | sketch | s_sketch | partial | CopyCallMoveBehavior.sketch | normal | status | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/sketch.json |
 | partiel | skill_swap | s_skill_swap | partial | StaticBasicMoveRegistry.partialAbilityChanging(s_skill_swap) | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/skill_swap.json |
 | partiel | skull_bash | s_2turns | ported | StaticBasicMoveRegistry.s_2turns | normal | physical | 130 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/skull_bash.json |
 | partiel | sky_attack | s_2turns | ported | StaticBasicMoveRegistry.s_2turns | flying | physical | 140 | 90 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/sky_attack.json |

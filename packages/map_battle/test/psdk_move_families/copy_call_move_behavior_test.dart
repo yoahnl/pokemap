@@ -199,6 +199,85 @@ void main() {
       expect(copied.currentPp, 5);
       expect(result.state.battlerAt(psdkPlayerSlot).moves[0].id, 'tackle');
     });
+
+    test('s_sketch fails before PP when the target has no move history', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'sketch',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_sketch',
+        ),
+      );
+
+      expect(_failures(result), hasLength(1));
+      expect(_failures(result).single.moveId, 'sketch');
+      expect(
+        _failures(result).single.reason,
+        BattleMoveFailureReason.unusableByUser.jsonName,
+      );
+      expect(_ppSpent(result, moveId: 'sketch'), isEmpty);
+    });
+
+    test('s_sketch fails before PP when the user is transformed', () {
+      final result = _runMove(
+        playerTransformState: const PsdkBattleTransformState(
+          transformedFromSpeciesId: 'smeargle',
+        ),
+        opponentMove: _move(id: 'flamethrower', power: 90),
+        opponentMoveHistory: PsdkBattleMoveHistory.empty().recordAttempt(
+          moveId: 'flamethrower',
+          turn: 0,
+          targets: const <PsdkBattleSlotRef>[psdkPlayerSlot],
+        ),
+        playerMove: _move(
+          id: 'sketch',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_sketch',
+        ),
+      );
+
+      expect(_failures(result), hasLength(1));
+      expect(_failures(result).single.moveId, 'sketch');
+      expect(_ppSpent(result, moveId: 'sketch'), isEmpty);
+    });
+
+    test('s_sketch replaces the selected move slot with the target last move',
+        () {
+      final targetMove = _move(
+        id: 'flamethrower',
+        category: PsdkBattleMoveCategory.special,
+        power: 90,
+        battleEngineMethod: 's_basic',
+      ).copyWith(currentPp: 3);
+      final result = _runMove(
+        selectedMoveSlot: 1,
+        playerMove: _move(id: 'tackle', power: 40),
+        playerExtraMoves: <PsdkBattleMoveData>[
+          _move(
+            id: 'sketch',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            battleEngineMethod: 's_sketch',
+          ),
+        ],
+        opponentMove: targetMove,
+        opponentMoveHistory: PsdkBattleMoveHistory.empty().recordAttempt(
+          moveId: 'flamethrower',
+          turn: 0,
+          targets: const <PsdkBattleSlotRef>[psdkPlayerSlot],
+        ),
+      );
+
+      final copied = result.state.battlerAt(psdkPlayerSlot).moves[1];
+      expect(_failures(result), isEmpty);
+      expect(copied.id, 'flamethrower');
+      expect(copied.pp, targetMove.pp);
+      expect(copied.currentPp, targetMove.pp);
+      expect(result.state.battlerAt(psdkPlayerSlot).moves[0].id, 'tackle');
+      expect(_ppSpent(result, moveId: 'sketch'), hasLength(1));
+    });
   });
 }
 
@@ -209,6 +288,8 @@ PsdkBattleTurnResult _runMove({
   String? playerAbilityId,
   PsdkBattleMoveData? opponentMove,
   PsdkBattleMoveHistory? opponentMoveHistory,
+  PsdkBattleTransformState playerTransformState =
+      const PsdkBattleTransformState(),
   int genericSeed = 0,
   int selectedMoveSlot = 0,
 }) {
@@ -221,6 +302,7 @@ PsdkBattleTurnResult _runMove({
         extraMoves: playerExtraMoves,
         majorStatus: playerMajorStatus,
         abilityId: playerAbilityId,
+        transformState: playerTransformState,
       ),
       opponent: _combatant(
         id: 'opponent',
@@ -253,6 +335,7 @@ PsdkBattleCombatantSetup _combatant({
   List<PsdkBattleMoveData> extraMoves = const <PsdkBattleMoveData>[],
   PsdkBattleMajorStatus? majorStatus,
   String? abilityId,
+  PsdkBattleTransformState transformState = const PsdkBattleTransformState(),
   PsdkBattleMoveHistory? moveHistory,
 }) {
   return PsdkBattleCombatantSetup(
@@ -273,6 +356,7 @@ PsdkBattleCombatantSetup _combatant({
     moves: <PsdkBattleMoveData>[move, ...extraMoves],
     majorStatus: majorStatus,
     abilityId: abilityId,
+    transformState: transformState,
     moveHistory: moveHistory,
   );
 }

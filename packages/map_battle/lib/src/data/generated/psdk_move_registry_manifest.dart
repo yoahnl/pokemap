@@ -2307,7 +2307,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_sketch',
     rubyClass: 'Sketch',
     rubyPath: '10 Move/2 Definitions/300 Sketch.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_sketch)',
+    dartBehavior: 'CopyCallMoveBehavior.sketch',
     status: PsdkPortStatus.partial,
     dependencies: const <PsdkMoveDependency>[],
   ),

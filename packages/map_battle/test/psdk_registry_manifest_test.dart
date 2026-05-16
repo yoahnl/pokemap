@@ -937,6 +937,10 @@ void main() {
               'StaticBasicMoveRegistry.partialAbilityChanging(s_simple_beam)',
         ),
         (
+          method: 's_sketch',
+          behavior: 'CopyCallMoveBehavior.sketch',
+        ),
+        (
           method: 's_sleep_talk',
           behavior: 'CopyCallMoveBehavior.sleepTalk',
         ),

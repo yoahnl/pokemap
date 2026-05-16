@@ -185,6 +185,7 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     ),
     CopyCallMoveBehavior.sleepTalk(callMove: callMove),
     const CopyCallMoveBehavior.mimic(),
+    const CopyCallMoveBehavior.sketch(),
     CallbackBattleMoveBehavior(
       battleEngineMethod: 's_plasma_fists',
       resolve: _resolvePlasmaFists,
@@ -666,7 +667,6 @@ const _partialTargetMarkerMethods = <String, String>{
   's_powder': 'powder',
   's_quash': 'quash',
   's_revival_blessing': 'revival_blessing',
-  's_sketch': 'sketch',
   's_snatch': 'snatch',
   's_spite': 'spite',
   's_swallow': 'swallow',

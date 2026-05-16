@@ -120,7 +120,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_mimic': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_mimic)',
+    dartBehavior: 'CopyCallMoveBehavior.mimic',
     status: _PsdkPortStatus.partial,
   ),
   's_mirror_coat': _KnownDartBehavior(
@@ -156,11 +156,11 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_sketch': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_sketch)',
+    dartBehavior: 'CopyCallMoveBehavior.sketch',
     status: _PsdkPortStatus.partial,
   ),
   's_sleep_talk': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_sleep_talk)',
+    dartBehavior: 'CopyCallMoveBehavior.sleepTalk',
     status: _PsdkPortStatus.partial,
   ),
   's_spite': _KnownDartBehavior(
