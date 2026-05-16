@@ -1233,6 +1233,18 @@ ports, so strict attack, method and effect parity counts remain unchanged.
 **Definition of done:**
 - End-turn effects share a generic path.
 
+**Status 2026-05-17:** done. End-turn residual effects already shared the
+object-backed `dispatchEndTurn` path for Aqua Ring, Leech Seed, Salt Cure,
+item recovery/damage, timed generic effects and related lifecycle messages. The
+remaining generic hole was faint handling across owners in one end-turn pass:
+`BattleEndTurnHandler.tickEndTurnEffects` now skips any slot that was alive at
+the start of the pass but fainted before its own hook dispatch. Regression
+coverage lives in `test/psdk_end_turn_effect_test.dart` with a fixture that KOs
+the later owner and proves its own end-turn effect does not run. Existing Aqua
+Ring, Leech Seed, Salt Cure, item and lifecycle tests remain green. This is an
+end-turn dispatcher hardening lot, so strict attack, method and effect parity
+counts remain unchanged.
+
 ### Lot 42 - Switch Hooks
 
 **Goal:** port switch prevention, switch event, and transfer hooks.

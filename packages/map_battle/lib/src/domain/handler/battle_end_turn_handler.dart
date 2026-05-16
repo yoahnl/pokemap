@@ -88,6 +88,9 @@ final class BattleEndTurnHandler {
     var changed = false;
 
     for (final slot in context.state.aliveSlots()) {
+      if (nextState.battlerAt(slot).isFainted) {
+        continue;
+      }
       final result = nextState.battlerAt(slot).effects.dispatchEndTurn(
             BattleEffectEndTurnContext(
               state: nextState,
