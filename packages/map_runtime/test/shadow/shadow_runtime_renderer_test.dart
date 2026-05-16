@@ -101,6 +101,40 @@ void main() {
 
       expect(await _alphaAt(image, 10, 8), 0);
     });
+
+    test('draws projectedPolygon with visible interior and transparent outside',
+        () async {
+      final image = await _renderInstruction(
+        _instruction(
+          shape: ShadowRuntimeShapeKind.projectedPolygon,
+          worldLeft: 2,
+          worldTop: 4,
+          width: 18,
+          height: 8,
+          opacity: 1,
+          polygonPoints: _polygonPoints(),
+        ),
+      );
+
+      expect(await _alphaAt(image, 10, 8), greaterThan(0));
+      expect(await _alphaAt(image, 1, 1), 0);
+    });
+
+    test('keeps projectedPolygon opacity zero transparent inside', () async {
+      final image = await _renderInstruction(
+        _instruction(
+          shape: ShadowRuntimeShapeKind.projectedPolygon,
+          worldLeft: 2,
+          worldTop: 4,
+          width: 18,
+          height: 8,
+          opacity: 0,
+          polygonPoints: _polygonPoints(),
+        ),
+      );
+
+      expect(await _alphaAt(image, 10, 8), 0);
+    });
   });
 
   group('ShadowRuntimeRenderer.renderInstructions', () {
@@ -125,6 +159,31 @@ void main() {
       ]);
 
       expect(await _rgbaAt(image, 6, 6), _rgba(0, 0, 255, 255));
+    });
+
+    test('draws projectedPolygon and ellipse in input order', () async {
+      final image = await _renderInstructions([
+        _instruction(
+          shape: ShadowRuntimeShapeKind.projectedPolygon,
+          worldLeft: 2,
+          worldTop: 4,
+          width: 18,
+          height: 8,
+          opacity: 1,
+          colorHexRgb: 'FF0000',
+          polygonPoints: _polygonPoints(),
+        ),
+        _instruction(
+          worldLeft: 4,
+          worldTop: 4,
+          width: 12,
+          height: 8,
+          opacity: 1,
+          colorHexRgb: '0000FF',
+        ),
+      ]);
+
+      expect(await _rgbaAt(image, 10, 8), _rgba(0, 0, 255, 255));
     });
   });
 
@@ -188,6 +247,37 @@ void main() {
       expect(await _alphaAt(image, 6, 6), 0);
       expect(await _alphaAt(image, 18, 6), greaterThan(0));
     });
+
+    test('filters projectedPolygon instructions by render pass', () async {
+      final ground = _instruction(
+        shape: ShadowRuntimeShapeKind.projectedPolygon,
+        renderPass: ShadowRenderPass.groundStatic,
+        worldLeft: 2,
+        worldTop: 4,
+        width: 18,
+        height: 8,
+        opacity: 1,
+        colorHexRgb: '000000',
+        polygonPoints: _polygonPoints(),
+      );
+      final actor = _instruction(
+        renderPass: ShadowRenderPass.actorContact,
+        worldLeft: 14,
+        worldTop: 2,
+        width: 8,
+        height: 8,
+        opacity: 1,
+        colorHexRgb: '000000',
+      );
+
+      final image = await _renderCollectionPass(
+        ShadowRuntimeInstructionCollection(instructions: [ground, actor]),
+        ShadowRenderPass.actorContact,
+      );
+
+      expect(await _alphaAt(image, 10, 8), 0);
+      expect(await _alphaAt(image, 18, 6), greaterThan(0));
+    });
   });
 }
 
@@ -201,6 +291,7 @@ ShadowRuntimeRenderInstruction _instruction({
   double opacity = 0.35,
   String colorHexRgb = '000000',
   ShadowSoftnessMode softnessMode = ShadowSoftnessMode.hardEdge,
+  List<ShadowRuntimePoint> polygonPoints = const [],
 }) {
   return ShadowRuntimeRenderInstruction(
     shape: shape,
@@ -212,7 +303,17 @@ ShadowRuntimeRenderInstruction _instruction({
     opacity: opacity,
     colorHexRgb: colorHexRgb,
     softnessMode: softnessMode,
+    polygonPoints: polygonPoints,
   );
+}
+
+List<ShadowRuntimePoint> _polygonPoints() {
+  return [
+    ShadowRuntimePoint(worldX: 4, worldY: 4),
+    ShadowRuntimePoint(worldX: 16, worldY: 4),
+    ShadowRuntimePoint(worldX: 20, worldY: 12),
+    ShadowRuntimePoint(worldX: 2, worldY: 12),
+  ];
 }
 
 Future<ui.Image> _renderInstruction(

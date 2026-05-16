@@ -13,6 +13,19 @@ final class ShadowRuntimeRenderer {
     ShadowRuntimeRenderInstruction instruction,
   ) {
     _validateHardEdge(instruction);
+    switch (instruction.shape) {
+      case ShadowRuntimeShapeKind.contactBlob:
+      case ShadowRuntimeShapeKind.ellipse:
+        _renderOval(canvas, instruction);
+      case ShadowRuntimeShapeKind.projectedPolygon:
+        _renderProjectedPolygon(canvas, instruction);
+    }
+  }
+
+  void _renderOval(
+    ui.Canvas canvas,
+    ShadowRuntimeRenderInstruction instruction,
+  ) {
     final rect = ui.Rect.fromLTWH(
       instruction.worldLeft,
       instruction.worldTop,
@@ -20,6 +33,19 @@ final class ShadowRuntimeRenderer {
       instruction.height,
     );
     canvas.drawOval(rect, shadowRuntimePaintForInstruction(instruction));
+  }
+
+  void _renderProjectedPolygon(
+    ui.Canvas canvas,
+    ShadowRuntimeRenderInstruction instruction,
+  ) {
+    final points = instruction.polygonPoints;
+    final path = ui.Path()..moveTo(points.first.worldX, points.first.worldY);
+    for (final point in points.skip(1)) {
+      path.lineTo(point.worldX, point.worldY);
+    }
+    path.close();
+    canvas.drawPath(path, shadowRuntimePaintForInstruction(instruction));
   }
 
   void renderInstructions(

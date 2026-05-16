@@ -26,6 +26,16 @@ void main() {
       expect(instruction.shape, ShadowRuntimeShapeKind.ellipse);
     });
 
+    test('creates a valid projected polygon instruction', () {
+      final instruction = _instruction(
+        shape: ShadowRuntimeShapeKind.projectedPolygon,
+        polygonPoints: _polygonPoints(),
+      );
+
+      expect(instruction.shape, ShadowRuntimeShapeKind.projectedPolygon);
+      expect(instruction.polygonPoints, _polygonPoints());
+    });
+
     test('applies default color and softness', () {
       final instruction = _instruction();
 
@@ -138,10 +148,123 @@ void main() {
       }
     });
 
+    test('rejects projected polygons with fewer than three points', () {
+      expect(
+        () => _instruction(
+          shape: ShadowRuntimeShapeKind.projectedPolygon,
+          polygonPoints: _polygonPoints().take(2).toList(),
+        ),
+        throwsA(isA<ValidationException>()),
+      );
+    });
+
+    test('rejects degenerate projected polygons', () {
+      expect(
+        () => _instruction(
+          shape: ShadowRuntimeShapeKind.projectedPolygon,
+          polygonPoints: [
+            ShadowRuntimePoint(worldX: 0, worldY: 0),
+            ShadowRuntimePoint(worldX: 4, worldY: 4),
+            ShadowRuntimePoint(worldX: 8, worldY: 8),
+          ],
+        ),
+        throwsA(isA<ValidationException>()),
+      );
+    });
+
+    test('rejects polygon points on oval shapes', () {
+      for (final shape in <ShadowRuntimeShapeKind>[
+        ShadowRuntimeShapeKind.contactBlob,
+        ShadowRuntimeShapeKind.ellipse,
+      ]) {
+        expect(
+          () => _instruction(shape: shape, polygonPoints: _polygonPoints()),
+          throwsA(isA<ValidationException>()),
+          reason: '$shape should not accept polygon points',
+        );
+      }
+    });
+
+    test('keeps polygon points immutable after construction', () {
+      final points = _polygonPoints();
+      final instruction = _instruction(
+        shape: ShadowRuntimeShapeKind.projectedPolygon,
+        polygonPoints: points,
+      );
+
+      points.add(ShadowRuntimePoint(worldX: 24, worldY: 24));
+
+      expect(instruction.polygonPoints, _polygonPoints());
+      expect(
+        () => instruction.polygonPoints.add(
+          ShadowRuntimePoint(worldX: 32, worldY: 32),
+        ),
+        throwsUnsupportedError,
+      );
+    });
+
     test('has value equality and stable hashCode', () {
       final a = _instruction(colorHexRgb: '0a0b0c');
       final b = _instruction(colorHexRgb: '0A0B0C');
       final c = _instruction(opacity: 0.5);
+
+      expect(a, b);
+      expect(a.hashCode, b.hashCode);
+      expect(a, isNot(c));
+    });
+
+    test('has value equality and stable hashCode for polygon points', () {
+      final a = _instruction(
+        shape: ShadowRuntimeShapeKind.projectedPolygon,
+        polygonPoints: _polygonPoints(),
+      );
+      final b = _instruction(
+        shape: ShadowRuntimeShapeKind.projectedPolygon,
+        polygonPoints: _polygonPoints(),
+      );
+      final c = _instruction(
+        shape: ShadowRuntimeShapeKind.projectedPolygon,
+        polygonPoints: [
+          ShadowRuntimePoint(worldX: 0, worldY: 0),
+          ShadowRuntimePoint(worldX: 12, worldY: 0),
+          ShadowRuntimePoint(worldX: 16, worldY: 8),
+          ShadowRuntimePoint(worldX: 4, worldY: 8),
+        ],
+      );
+
+      expect(a, b);
+      expect(a.hashCode, b.hashCode);
+      expect(a, isNot(c));
+    });
+  });
+
+  group('ShadowRuntimePoint', () {
+    test('creates a valid point', () {
+      final point = ShadowRuntimePoint(worldX: 4, worldY: 8);
+
+      expect(point.worldX, 4);
+      expect(point.worldY, 8);
+    });
+
+    test('rejects non-finite coordinates', () {
+      for (final value in <double>[double.nan, double.infinity]) {
+        expect(
+          () => ShadowRuntimePoint(worldX: value, worldY: 0),
+          throwsA(isA<ValidationException>()),
+          reason: 'worldX $value should be rejected',
+        );
+        expect(
+          () => ShadowRuntimePoint(worldX: 0, worldY: value),
+          throwsA(isA<ValidationException>()),
+          reason: 'worldY $value should be rejected',
+        );
+      }
+    });
+
+    test('has value equality and stable hashCode', () {
+      final a = ShadowRuntimePoint(worldX: 4, worldY: 8);
+      final b = ShadowRuntimePoint(worldX: 4, worldY: 8);
+      final c = ShadowRuntimePoint(worldX: 8, worldY: 4);
 
       expect(a, b);
       expect(a.hashCode, b.hashCode);
@@ -180,6 +303,7 @@ ShadowRuntimeRenderInstruction _instruction({
   double opacity = 0.4,
   String colorHexRgb = '000000',
   ShadowSoftnessMode softnessMode = ShadowSoftnessMode.hardEdge,
+  List<ShadowRuntimePoint> polygonPoints = const [],
 }) {
   return ShadowRuntimeRenderInstruction(
     shape: shape,
@@ -191,5 +315,15 @@ ShadowRuntimeRenderInstruction _instruction({
     opacity: opacity,
     colorHexRgb: colorHexRgb,
     softnessMode: softnessMode,
+    polygonPoints: polygonPoints,
   );
+}
+
+List<ShadowRuntimePoint> _polygonPoints() {
+  return [
+    ShadowRuntimePoint(worldX: 0, worldY: 0),
+    ShadowRuntimePoint(worldX: 16, worldY: 0),
+    ShadowRuntimePoint(worldX: 20, worldY: 8),
+    ShadowRuntimePoint(worldX: 2, worldY: 8),
+  ];
 }

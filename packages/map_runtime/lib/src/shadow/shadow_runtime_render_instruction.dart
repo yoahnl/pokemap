@@ -5,9 +5,33 @@ import '../presentation/flame/shadow_runtime_render_order_contract.dart';
 enum ShadowRuntimeShapeKind {
   contactBlob,
   ellipse,
+  projectedPolygon,
 }
 
 final _colorHexRgbPattern = RegExp(r'^[0-9a-fA-F]{6}$');
+
+final class ShadowRuntimePoint {
+  ShadowRuntimePoint({
+    required this.worldX,
+    required this.worldY,
+  }) {
+    _validateFinite(worldX, 'ShadowRuntimePoint.worldX');
+    _validateFinite(worldY, 'ShadowRuntimePoint.worldY');
+  }
+
+  final double worldX;
+  final double worldY;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ShadowRuntimePoint &&
+          other.worldX == worldX &&
+          other.worldY == worldY;
+
+  @override
+  int get hashCode => Object.hash(worldX, worldY);
+}
 
 /// Pure runtime draw instruction for one resolved V0 shadow.
 ///
@@ -24,13 +48,16 @@ final class ShadowRuntimeRenderInstruction {
     required this.opacity,
     String colorHexRgb = '000000',
     this.softnessMode = ShadowSoftnessMode.hardEdge,
-  }) : colorHexRgb = _normalizeColorHexRgb(colorHexRgb) {
+    Iterable<ShadowRuntimePoint> polygonPoints = const [],
+  })  : colorHexRgb = _normalizeColorHexRgb(colorHexRgb),
+        polygonPoints = List<ShadowRuntimePoint>.unmodifiable(polygonPoints) {
     _validateFinite(worldLeft, 'worldLeft');
     _validateFinite(worldTop, 'worldTop');
     _validatePositiveFinite(width, 'width');
     _validatePositiveFinite(height, 'height');
     _validateOpacity(opacity);
     _validateSoftnessMode(softnessMode);
+    _validatePolygonPoints(shape, this.polygonPoints);
   }
 
   final ShadowRuntimeShapeKind shape;
@@ -42,6 +69,7 @@ final class ShadowRuntimeRenderInstruction {
   final double opacity;
   final String colorHexRgb;
   final ShadowSoftnessMode softnessMode;
+  final List<ShadowRuntimePoint> polygonPoints;
 
   @override
   bool operator ==(Object other) =>
@@ -55,7 +83,8 @@ final class ShadowRuntimeRenderInstruction {
           other.height == height &&
           other.opacity == opacity &&
           other.colorHexRgb == colorHexRgb &&
-          other.softnessMode == softnessMode;
+          other.softnessMode == softnessMode &&
+          _shadowRuntimePointsEqual(other.polygonPoints, polygonPoints);
 
   @override
   int get hashCode => Object.hash(
@@ -68,6 +97,7 @@ final class ShadowRuntimeRenderInstruction {
         opacity,
         colorHexRgb,
         softnessMode,
+        Object.hashAll(polygonPoints),
       );
 }
 
@@ -140,4 +170,55 @@ void _validateSoftnessMode(ShadowSoftnessMode value) {
       'ShadowRuntimeRenderInstruction.softnessMode only supports hardEdge in V0',
     );
   }
+}
+
+void _validatePolygonPoints(
+  ShadowRuntimeShapeKind shape,
+  List<ShadowRuntimePoint> points,
+) {
+  switch (shape) {
+    case ShadowRuntimeShapeKind.contactBlob:
+    case ShadowRuntimeShapeKind.ellipse:
+      if (points.isNotEmpty) {
+        throw const ValidationException(
+          'ShadowRuntimeRenderInstruction polygonPoints are only allowed for projectedPolygon',
+        );
+      }
+    case ShadowRuntimeShapeKind.projectedPolygon:
+      if (points.length < 3) {
+        throw const ValidationException(
+          'ShadowRuntimeRenderInstruction projectedPolygon requires at least 3 points',
+        );
+      }
+      if (_polygonArea(points) <= 0) {
+        throw const ValidationException(
+          'ShadowRuntimeRenderInstruction projectedPolygon must be non-degenerate',
+        );
+      }
+  }
+}
+
+double _polygonArea(List<ShadowRuntimePoint> points) {
+  var area = 0.0;
+  for (var i = 0; i < points.length; i += 1) {
+    final current = points[i];
+    final next = points[(i + 1) % points.length];
+    area += current.worldX * next.worldY - next.worldX * current.worldY;
+  }
+  return area.abs() / 2;
+}
+
+bool _shadowRuntimePointsEqual(
+  List<ShadowRuntimePoint> a,
+  List<ShadowRuntimePoint> b,
+) {
+  if (a.length != b.length) {
+    return false;
+  }
+  for (var i = 0; i < a.length; i += 1) {
+    if (a[i] != b[i]) {
+      return false;
+    }
+  }
+  return true;
 }
