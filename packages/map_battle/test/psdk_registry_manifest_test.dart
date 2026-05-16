@@ -1843,6 +1843,44 @@ void main() {
       expect(methods.toSet(), hasLength(methods.length));
       expect(methods, orderedEquals([...methods]..sort()));
     });
+
+    test('tracks Lot 35 special and gimmick scope decisions', () {
+      final decisions = {
+        for (final decision in psdkSpecialMoveScopeDecisions)
+          decision.battleEngineMethod: decision,
+      };
+      const expectedScopes = <String, PsdkSpecialMoveScope>{
+        's_genesis_supernova': PsdkSpecialMoveScope.combatScope,
+        's_guardian_of_alola': PsdkSpecialMoveScope.combatScope,
+        's_hyperspace_hole': PsdkSpecialMoveScope.combatScope,
+        's_light_that_burns_the_sky': PsdkSpecialMoveScope.combatScope,
+        's_malicious_moonsault': PsdkSpecialMoveScope.combatScope,
+        's_self_stat_z_move': PsdkSpecialMoveScope.combatScope,
+        's_splintered_stormshards': PsdkSpecialMoveScope.combatScope,
+        's_z_move': PsdkSpecialMoveScope.combatScope,
+      };
+
+      expect(decisions.keys, unorderedEquals(expectedScopes.keys));
+      for (final expected in expectedScopes.entries) {
+        expect(decisions[expected.key]!.scope, expected.value);
+      }
+      expect(decisions['s_z_move']!.family, PsdkSpecialMoveFamily.zMove);
+      expect(
+        decisions['s_hyperspace_hole']!.family,
+        PsdkSpecialMoveFamily.studioOnlySpecialCase,
+      );
+      expect(
+        psdkSpecialActionScopeDecisions
+            .map((decision) => decision.actionId)
+            .toSet(),
+        containsAll(<String>{
+          'mega_evolution',
+          'primal_reversion',
+          'tera_shift',
+          'max_move_family',
+        }),
+      );
+    });
   });
 
   group('PSDK extraction tools', () {

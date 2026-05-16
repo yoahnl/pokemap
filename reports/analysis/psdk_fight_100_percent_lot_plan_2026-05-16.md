@@ -1024,6 +1024,14 @@ effects, and doubles target ordering are still open.
 **Definition of done:**
 - No ambiguous special/gimmick methods remain in the manifest.
 
+**Status 2026-05-17:** done. Added
+`reports/analysis/psdk_fight_gimmick_scope.md`, plus manifest companion scope
+decisions for Z-Move, Studio-only special move, Mega, Primal, Tera, and
+Max/Dynamax families. `psdk_registry_manifest_test.dart` now asserts every
+known special/gimmick move method has an explicit scope decision. This lot is a
+guard-rail lot and intentionally does not promote strict attack or method
+counts.
+
 ---
 
 ## Phase 3 - Generic PSDK Effect System

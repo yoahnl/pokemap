@@ -3101,6 +3101,143 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
   ),
 ];
 
+const psdkSpecialMoveScopeDecisions = <PsdkSpecialMoveScopeDecision>[
+  PsdkSpecialMoveScopeDecision(
+    battleEngineMethod: 's_genesis_supernova',
+    family: PsdkSpecialMoveFamily.zMove,
+    scope: PsdkSpecialMoveScope.combatScope,
+    note:
+        'Studio-only Z-Move method. Keep partial until the move-specific terrain side effect and Z-Move eligibility gates exist.',
+  ),
+  PsdkSpecialMoveScopeDecision(
+    battleEngineMethod: 's_guardian_of_alola',
+    family: PsdkSpecialMoveFamily.zMove,
+    scope: PsdkSpecialMoveScope.combatScope,
+    note:
+        'Studio-only Z-Move method. Keep partial until fractional target-HP damage and Z-Move eligibility gates exist.',
+  ),
+  PsdkSpecialMoveScopeDecision(
+    battleEngineMethod: 's_hyperspace_hole',
+    family: PsdkSpecialMoveFamily.studioOnlySpecialCase,
+    scope: PsdkSpecialMoveScope.combatScope,
+    note:
+        'Studio-only special method. It remains in combat scope because Studio data can select it as a playable attack.',
+  ),
+  PsdkSpecialMoveScopeDecision(
+    battleEngineMethod: 's_light_that_burns_the_sky',
+    family: PsdkSpecialMoveFamily.zMove,
+    scope: PsdkSpecialMoveScope.combatScope,
+    note:
+        'Studio-only Z-Move method. Keep partial until Photon Geyser-like stat-source behavior and Z-Move eligibility gates exist.',
+  ),
+  PsdkSpecialMoveScopeDecision(
+    battleEngineMethod: 's_malicious_moonsault',
+    family: PsdkSpecialMoveFamily.zMove,
+    scope: PsdkSpecialMoveScope.combatScope,
+    note:
+        'Studio-only Z-Move method. Keep partial until target-specific damage behavior and Z-Move eligibility gates exist.',
+  ),
+  PsdkSpecialMoveScopeDecision(
+    battleEngineMethod: 's_self_stat_z_move',
+    family: PsdkSpecialMoveFamily.zMove,
+    scope: PsdkSpecialMoveScope.combatScope,
+    note:
+        'Studio-only Z-Move status family. Keep partial until full Z-status stat boosts and Z-Move eligibility gates exist.',
+  ),
+  PsdkSpecialMoveScopeDecision(
+    battleEngineMethod: 's_splintered_stormshards',
+    family: PsdkSpecialMoveFamily.zMove,
+    scope: PsdkSpecialMoveScope.combatScope,
+    note:
+        'Studio-only Z-Move method. Keep partial until terrain clearing and Z-Move eligibility gates exist.',
+  ),
+  PsdkSpecialMoveScopeDecision(
+    battleEngineMethod: 's_z_move',
+    family: PsdkSpecialMoveFamily.zMove,
+    scope: PsdkSpecialMoveScope.combatScope,
+    note:
+        'Generic offensive Studio Z-Move method. It executes as damage today but remains partial until item, once-per-battle, source move, and runtime bridge gates exist.',
+  ),
+];
+
+const psdkSpecialActionScopeDecisions = <PsdkSpecialActionScopeDecision>[
+  PsdkSpecialActionScopeDecision(
+    actionId: 'mega_evolution',
+    family: PsdkSpecialActionFamily.megaEvolution,
+    scope: PsdkSpecialMoveScope.actionSystemScope,
+    note:
+        'Pokemon SDK models Mega Evolution as Battle::Actions::Mega, not as a move registry method. Lot 62 owns action parity.',
+  ),
+  PsdkSpecialActionScopeDecision(
+    actionId: 'primal_reversion',
+    family: PsdkSpecialActionFamily.primalReversion,
+    scope: PsdkSpecialMoveScope.actionSystemScope,
+    note:
+        'Pokemon SDK models Primal Reversion through item/form effects and primal weather abilities. Ability/item lots own this path.',
+  ),
+  PsdkSpecialActionScopeDecision(
+    actionId: 'tera_shift',
+    family: PsdkSpecialActionFamily.tera,
+    scope: PsdkSpecialMoveScope.actionSystemScope,
+    note:
+        'Pokemon SDK exposes Tera Shift as an ability effect, not a move method. Ability/form lots own this path.',
+  ),
+  PsdkSpecialActionScopeDecision(
+    actionId: 'max_move_family',
+    family: PsdkSpecialActionFamily.maxMove,
+    scope: PsdkSpecialMoveScope.dataOnlyCatalog,
+    note:
+        'No Max/Dynamax move battleEngineMethod is present in the imported Pokemon SDK battle scripts or local Studio move dataset.',
+  ),
+];
+
+final class PsdkSpecialMoveScopeDecision {
+  const PsdkSpecialMoveScopeDecision({
+    required this.battleEngineMethod,
+    required this.family,
+    required this.scope,
+    required this.note,
+  });
+
+  final String battleEngineMethod;
+  final PsdkSpecialMoveFamily family;
+  final PsdkSpecialMoveScope scope;
+  final String note;
+}
+
+final class PsdkSpecialActionScopeDecision {
+  const PsdkSpecialActionScopeDecision({
+    required this.actionId,
+    required this.family,
+    required this.scope,
+    required this.note,
+  });
+
+  final String actionId;
+  final PsdkSpecialActionFamily family;
+  final PsdkSpecialMoveScope scope;
+  final String note;
+}
+
+enum PsdkSpecialMoveFamily {
+  zMove,
+  studioOnlySpecialCase,
+}
+
+enum PsdkSpecialActionFamily {
+  megaEvolution,
+  primalReversion,
+  tera,
+  maxMove,
+}
+
+enum PsdkSpecialMoveScope {
+  combatScope,
+  actionSystemScope,
+  dataOnlyCatalog,
+  intentionallyUnsupported,
+}
+
 final class PsdkMoveRegistryManifestEntry {
   const PsdkMoveRegistryManifestEntry({
     required this.battleEngineMethod,
