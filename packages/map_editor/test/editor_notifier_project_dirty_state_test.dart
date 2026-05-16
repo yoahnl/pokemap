@@ -170,6 +170,133 @@ void main() {
         ],
       );
     });
+
+    test('applyElementAutoShadowSuggestions applique et sauvegarde', () async {
+      final tempDir =
+          await Directory.systemTemp.createTemp('project_auto_shadow_apply_');
+      addTearDown(() async => tempDir.delete(recursive: true));
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = notifier.state.copyWith(
+        projectRootPath: tempDir.path,
+        project: _manifestWithElements(
+          elements: [
+            _element(id: 'lamp', name: 'Lamp', width: 1, height: 4),
+          ],
+          shadowCatalog: _defaultShadowCatalog(),
+        ),
+      );
+
+      await notifier.applyElementAutoShadowSuggestions();
+
+      final updated = notifier.state.project!;
+      expect(updated.elements.single.shadow, isNotNull);
+      expect(
+        updated.elements.single.shadow!.shadowProfileId,
+        'default-ground-contact-blob',
+      );
+      expect(
+        updated.elements.single.shadow!.footprint!.footprintWidthRatio,
+        0.18,
+      );
+      expect(
+        notifier.state.statusMessage,
+        'Ombres automatiques appliquées à 1 éléments.',
+      );
+      expect(notifier.state.errorMessage, isNull);
+      final saved = ProjectManifest.fromJson(
+        jsonDecode(
+          await File('${tempDir.path}/project.json').readAsString(),
+        ) as Map<String, dynamic>,
+      );
+      expect(saved.elements.single.shadow, updated.elements.single.shadow);
+    });
+
+    test('applyElementAutoShadowSuggestions annonce un no-op', () async {
+      final tempDir =
+          await Directory.systemTemp.createTemp('project_auto_shadow_noop_');
+      addTearDown(() async => tempDir.delete(recursive: true));
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final manualShadow = ProjectElementShadowConfig(
+        castsShadow: true,
+        shadowProfileId: 'custom-ground-shadow',
+      );
+      final project = _manifestWithElements(
+        elements: [
+          _element(
+            id: 'manual',
+            name: 'Manual',
+            width: 2,
+            height: 2,
+            shadow: manualShadow,
+          ),
+        ],
+        shadowCatalog: ProjectShadowCatalog(
+          profiles: [
+            ...createDefaultGroundStaticShadowProfiles(),
+            ProjectShadowProfile(
+              id: 'custom-ground-shadow',
+              name: 'Custom ground shadow',
+              mode: ShadowCasterMode.ellipse,
+              renderPass: ShadowRenderPass.groundStatic,
+            ),
+          ],
+        ),
+      );
+      notifier.state = notifier.state.copyWith(
+        projectRootPath: tempDir.path,
+        project: project,
+      );
+
+      await notifier.applyElementAutoShadowSuggestions();
+
+      expect(notifier.state.project, project);
+      expect(
+        notifier.state.statusMessage,
+        'Aucune ombre automatique à appliquer.',
+      );
+      expect(notifier.state.errorMessage, isNull);
+      expect(await File('${tempDir.path}/project.json').exists(), isFalse);
+    });
+
+    test('applyElementAutoShadowSuggestions ajoute les profils par défaut',
+        () async {
+      final tempDir = await Directory.systemTemp
+          .createTemp('project_auto_shadow_defaults_');
+      addTearDown(() async => tempDir.delete(recursive: true));
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = notifier.state.copyWith(
+        projectRootPath: tempDir.path,
+        project: _manifestWithElements(
+          elements: [
+            _element(id: 'prop', name: 'Prop', width: 2, height: 3),
+          ],
+          shadowCatalog: const ProjectShadowCatalog.empty(),
+        ),
+      );
+
+      await notifier.applyElementAutoShadowSuggestions();
+
+      expect(
+        notifier.state.project!.shadowCatalog.profiles.map(
+          (profile) => profile.id,
+        ),
+        [
+          'default-ground-soft-ellipse',
+          'default-ground-wide-ellipse',
+          'default-ground-contact-blob',
+        ],
+      );
+      expect(
+        notifier.state.project!.elements.single.shadow!.shadowProfileId,
+        'default-ground-soft-ellipse',
+      );
+    });
   });
 }
 
@@ -207,5 +334,52 @@ MapData _mapData({required String id}) {
     name: 'Town',
     size: const GridSize(width: 8, height: 8),
     layers: const [],
+  );
+}
+
+ProjectManifest _manifestWithElements({
+  required List<ProjectElementEntry> elements,
+  required ProjectShadowCatalog shadowCatalog,
+}) {
+  return _manifest().copyWith(
+    tilesets: const [
+      ProjectTilesetEntry(
+        id: 'tileset',
+        name: 'Tileset',
+        relativePath: 'tilesets/main.png',
+      ),
+    ],
+    elementCategories: const [
+      ProjectElementCategory(id: 'decor', name: 'Decor'),
+    ],
+    elements: elements,
+    shadowCatalog: shadowCatalog,
+  );
+}
+
+ProjectShadowCatalog _defaultShadowCatalog() {
+  return ProjectShadowCatalog(
+    profiles: createDefaultGroundStaticShadowProfiles(),
+  );
+}
+
+ProjectElementEntry _element({
+  required String id,
+  required String name,
+  required int width,
+  required int height,
+  ProjectElementShadowConfig? shadow,
+}) {
+  return ProjectElementEntry(
+    id: id,
+    name: name,
+    tilesetId: 'tileset',
+    categoryId: 'decor',
+    frames: [
+      TilesetVisualFrame(
+        source: TilesetSourceRect(x: 0, y: 0, width: width, height: height),
+      ),
+    ],
+    shadow: shadow,
   );
 }

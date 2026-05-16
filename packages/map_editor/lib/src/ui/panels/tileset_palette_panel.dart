@@ -382,6 +382,17 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                     color: CupertinoColors.secondaryLabel.resolveFrom(context),
                   ),
                 ),
+                const SizedBox(height: 12),
+                PushButton(
+                  key: const ValueKey('element-auto-shadow-backfill-button'),
+                  controlSize: ControlSize.small,
+                  secondary: true,
+                  onPressed: () => _showApplyElementAutoShadowsDialog(
+                    context,
+                    notifier: notifier,
+                  ),
+                  child: const Text('Ombres auto'),
+                ),
               ],
             ),
           );
@@ -1236,6 +1247,17 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
+                ),
+                const SizedBox(width: 8),
+                PushButton(
+                  key: const ValueKey('element-auto-shadow-backfill-button'),
+                  controlSize: ControlSize.small,
+                  secondary: true,
+                  onPressed: () => _showApplyElementAutoShadowsDialog(
+                    context,
+                    notifier: notifier,
+                  ),
+                  child: const Text('Ombres auto'),
                 ),
               ],
             ),
@@ -2901,6 +2923,21 @@ class _TilesetPalettePanelState extends ConsumerState<TilesetPalettePanel> {
     );
     if (!shouldDelete) return;
     await notifier.deleteProjectElement(element.id);
+  }
+
+  Future<void> _showApplyElementAutoShadowsDialog(
+    BuildContext context, {
+    required EditorNotifier notifier,
+  }) async {
+    final shouldApply = await showMacosEditorTwoChoiceAlert(
+      context,
+      title: 'Appliquer les ombres automatiques aux éléments ?',
+      message:
+          'Les éléments sans ombre ou avec une ancienne ombre générique recevront une empreinte automatique. Les ombres manuelles et désactivées seront conservées.',
+      primaryLabel: 'Appliquer',
+    );
+    if (!shouldApply) return;
+    await notifier.applyElementAutoShadowSuggestions();
   }
 
   Future<void> _showDeletePlacedInstanceDialog(

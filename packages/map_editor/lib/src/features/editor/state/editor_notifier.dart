@@ -13,6 +13,7 @@ import '../../../app/providers/core_providers.dart';
 import '../../../app/providers/editor_workspace_providers.dart';
 import '../../../app/providers/use_case_providers.dart';
 import '../../../application/errors/application_errors.dart';
+import '../../../application/use_cases/apply_element_auto_shadow_suggestions_use_case.dart';
 import '../../../application/use_cases/environment_generator_apply_use_cases.dart';
 import '../../../application/use_cases/environment_generator_clear_use_cases.dart';
 import '../../../application/use_cases/environment_generator_regenerate_use_cases.dart';
@@ -462,6 +463,41 @@ class EditorNotifier extends _$EditorNotifier {
       statusMessage: 'Profils Shadow par défaut ajoutés',
     );
     return updated;
+  }
+
+  Future<void> applyElementAutoShadowSuggestions() async {
+    final fs = _projectWorkspace;
+    final project = state.project;
+    if (fs == null || project == null) {
+      state = state.copyWith(
+        errorMessage: 'No project open to update element shadows.',
+      );
+      return;
+    }
+    try {
+      final useCase = ApplyElementAutoShadowSuggestionsUseCase(
+        ref.read(projectRepositoryProvider),
+      );
+      final result = await useCase.execute(fs, project);
+      if (!result.hasChanges) {
+        state = state.copyWith(
+          statusMessage: 'Aucune ombre automatique à appliquer.',
+          errorMessage: null,
+        );
+        return;
+      }
+      state = state.copyWith(
+        project: result.project,
+        statusMessage:
+            'Ombres automatiques appliquées à ${result.appliedCount} éléments.',
+        errorMessage: null,
+      );
+      _resyncPlacedElementsForActiveMapFromProject();
+    } catch (e) {
+      state = state.copyWith(
+        errorMessage: 'Failed to apply automatic element shadows: $e',
+      );
+    }
   }
 
   Future<bool> saveProjectManifest() async {
