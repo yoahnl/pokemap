@@ -88,24 +88,18 @@ final class BattleEndTurnHandler {
     var changed = false;
 
     for (final slot in context.state.aliveSlots()) {
-      final effects = nextState.battlerAt(slot).effects.effects;
-      for (final effect in effects) {
-        final result = effect.onEndTurn(
-          BattleEffectEndTurnContext(
-            state: nextState,
-            rng: nextRng,
-            turn: context.turn,
-            owner: slot,
-          ),
-        );
-        if (result == null) {
-          continue;
-        }
-        nextState = result.state;
-        nextRng = result.rng;
-        events.addAll(result.events);
-        changed = changed || result.applied || result.events.isNotEmpty;
-      }
+      final result = nextState.battlerAt(slot).effects.dispatchEndTurn(
+            BattleEffectEndTurnContext(
+              state: nextState,
+              rng: nextRng,
+              turn: context.turn,
+              owner: slot,
+            ),
+          );
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      changed = changed || result.applied || result.events.isNotEmpty;
     }
 
     return BattleHandlerResult(

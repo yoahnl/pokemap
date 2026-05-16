@@ -330,6 +330,30 @@ class PsdkBattleEffectStack {
     return _stack.switchPreventionReason(context);
   }
 
+  BattleEffectEndTurnResult dispatchEndTurn(
+    BattleEffectEndTurnContext context,
+  ) {
+    return _stack.dispatchEndTurn(context);
+  }
+
+  BattleEffectDamagePreventionResult? dispatchDamagePrevention(
+    BattleEffectDamagePreventionContext context,
+  ) {
+    return _stack.dispatchDamagePrevention(context);
+  }
+
+  BattleEffectPostDamageResult dispatchPostDamage(
+    BattleEffectPostDamageContext context,
+  ) {
+    return _stack.dispatchPostDamage(context);
+  }
+
+  BattleEffectLifecycleResult dispatchLifecycle(
+    BattleEffectLifecycleContext context,
+  ) {
+    return _stack.dispatchLifecycle(context);
+  }
+
   BattleMoveFailureReason? targetMovePreventionReason({
     required BattlePositionRef user,
     required BattlePositionRef target,
@@ -340,25 +364,13 @@ class PsdkBattleEffectStack {
       target: target,
       move: move,
     );
-    for (final effect in _stack.effects) {
-      final reason = effect.onMovePreventionTarget(context);
-      if (reason != null) {
-        return reason;
-      }
-    }
-    return null;
+    return _stack.targetMovePreventionReason(context);
   }
 
   BattleEffectUserMovePreventionResult? userMovePrevention(
     BattleEffectUserMovePreventionContext context,
   ) {
-    for (final effect in _stack.effects) {
-      final result = effect.onUserMovePrevention(context);
-      if (result != null) {
-        return result;
-      }
-    }
-    return null;
+    return _stack.userMovePrevention(context);
   }
 }
 

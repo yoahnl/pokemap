@@ -98,6 +98,118 @@ final class BattleEffectEndTurnResult {
   final bool applied;
 }
 
+final class BattleEffectDamagePreventionContext {
+  const BattleEffectDamagePreventionContext({
+    required this.state,
+    required this.rng,
+    required this.turn,
+    required this.owner,
+    required this.user,
+    required this.target,
+    required this.move,
+    required this.damage,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int turn;
+  final PsdkBattleSlotRef owner;
+  final PsdkBattleSlotRef user;
+  final PsdkBattleSlotRef target;
+  final BattleMoveDefinition move;
+  final int damage;
+}
+
+final class BattleEffectDamagePreventionResult {
+  const BattleEffectDamagePreventionResult({
+    required this.state,
+    required this.rng,
+    required this.prevented,
+    required this.reason,
+    this.events = const <PsdkBattleEvent>[],
+    this.applied = true,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final bool prevented;
+  final BattleMoveFailureReason reason;
+  final List<PsdkBattleEvent> events;
+  final bool applied;
+}
+
+final class BattleEffectPostDamageContext {
+  const BattleEffectPostDamageContext({
+    required this.state,
+    required this.rng,
+    required this.turn,
+    required this.owner,
+    required this.user,
+    required this.target,
+    required this.move,
+    required this.damage,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int turn;
+  final PsdkBattleSlotRef owner;
+  final PsdkBattleSlotRef user;
+  final PsdkBattleSlotRef target;
+  final BattleMoveDefinition move;
+  final int damage;
+}
+
+final class BattleEffectPostDamageResult {
+  const BattleEffectPostDamageResult({
+    required this.state,
+    required this.rng,
+    this.events = const <PsdkBattleEvent>[],
+    this.applied = true,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
+  final bool applied;
+}
+
+enum BattleEffectLifecyclePhase {
+  added,
+  removed,
+  refreshed,
+}
+
+final class BattleEffectLifecycleContext {
+  const BattleEffectLifecycleContext({
+    required this.state,
+    required this.rng,
+    required this.turn,
+    required this.owner,
+    required this.phase,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int turn;
+  final PsdkBattleSlotRef owner;
+  final BattleEffectLifecyclePhase phase;
+}
+
+final class BattleEffectLifecycleResult {
+  const BattleEffectLifecycleResult({
+    required this.state,
+    required this.rng,
+    this.events = const <PsdkBattleEvent>[],
+    this.applied = true,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
+  final bool applied;
+}
+
 final class BattleEffectBatonPassContext {
   const BattleEffectBatonPassContext({
     required this.source,

@@ -1065,6 +1065,15 @@ counts.
 **Definition of done:**
 - Future effect lots plug into the dispatcher instead of custom code paths.
 
+**Status 2026-05-17:** done. Added the generic object-stack dispatcher for
+end-turn, damage-prevention, post-damage, lifecycle, target-prevention, and
+user-prevention effect hooks. `BattleEndTurnHandler` now routes object-backed
+end-turn hooks through the dispatcher instead of a hand-rolled loop, preserving
+deterministic stack order, sequential state/RNG/event composition, and skipping
+effects removed earlier during the same dispatch. Regression coverage lives in
+`test/psdk_effect_dispatcher_test.dart`. This is an infrastructure lot, so it
+does not promote attack, method, or effect parity counts yet.
+
 ### Lot 37 - Effect Lifecycle and Messages
 
 **Goal:** port lifecycle semantics: add, delete, reset, duration, messages.

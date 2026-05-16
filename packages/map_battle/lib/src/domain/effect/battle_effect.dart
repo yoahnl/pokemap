@@ -44,6 +44,24 @@ abstract class BattleEffect {
     return null;
   }
 
+  BattleEffectDamagePreventionResult? onDamagePrevention(
+    BattleEffectDamagePreventionContext context,
+  ) {
+    return null;
+  }
+
+  BattleEffectPostDamageResult? onPostDamage(
+    BattleEffectPostDamageContext context,
+  ) {
+    return null;
+  }
+
+  BattleEffectLifecycleResult? onLifecycle(
+    BattleEffectLifecycleContext context,
+  ) {
+    return null;
+  }
+
   BattleEffect? onBatonPassTransfer(BattleEffectBatonPassContext context) {
     return null;
   }
