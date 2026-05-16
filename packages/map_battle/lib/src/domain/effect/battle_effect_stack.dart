@@ -174,6 +174,7 @@ final class BattleEffectObjectStack {
           target: context.target,
           move: context.move,
           damage: context.damage,
+          targetFainted: context.targetFainted,
         ),
       );
       if (result == null) {

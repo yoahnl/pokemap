@@ -5,6 +5,7 @@ import '../../psdk/domain/psdk_battle_move.dart';
 import '../effect/battle_effect_hooks.dart';
 import '../move/battle_move_data.dart';
 import '../move/battle_move_prevention.dart';
+import '../rng/battle_rng_streams.dart';
 import 'battle_handler_context.dart';
 import 'battle_handler_result.dart';
 import 'battle_stat_change_handler.dart';
@@ -90,15 +91,69 @@ final class BattleDamageHandler {
       state: damagedState,
       target: target,
     );
+    final postDamageResult = _dispatchPostDamageEffects(
+      context: context,
+      state: rageResult.state,
+      rng: rageResult.rng,
+      target: target,
+      move: moveDefinition,
+      damage: damage,
+    );
 
     return BattleHandlerResult(
-      state: rageResult.state,
-      rng: context.rng,
+      state: postDamageResult.state,
+      rng: postDamageResult.rng,
       amount: damage,
       events: <PsdkBattleEvent>[
         damageEvent,
         ...rageResult.events,
+        ...postDamageResult.events,
       ],
+    );
+  }
+
+  BattleEffectPostDamageResult _dispatchPostDamageEffects({
+    required BattleHandlerContext context,
+    required PsdkBattleState state,
+    required BattleRngStreams rng,
+    required PsdkBattleSlotRef target,
+    required BattleMoveDefinition move,
+    required int damage,
+  }) {
+    var nextState = state;
+    var nextRng = rng;
+    final events = <PsdkBattleEvent>[];
+    var applied = false;
+
+    final owners = <PsdkBattleSlotRef>[
+      target,
+      if (context.user != target) context.user,
+    ];
+    for (final owner in owners) {
+      final result = nextState.battlerAt(owner).effects.dispatchPostDamage(
+            BattleEffectPostDamageContext(
+              state: nextState,
+              rng: nextRng,
+              turn: context.turn,
+              owner: owner,
+              user: context.user,
+              target: target,
+              move: move,
+              damage: damage,
+              targetFainted: nextState.battlerAt(target).isFainted,
+            ),
+          );
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      applied = applied || result.applied || result.events.isNotEmpty;
+    }
+
+    return BattleEffectPostDamageResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: applied,
     );
   }
 

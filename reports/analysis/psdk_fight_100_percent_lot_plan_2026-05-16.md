@@ -1197,6 +1197,17 @@ method / effect parity counts remain unchanged.
 **Definition of done:**
 - Largest missing hook family has a real dispatcher seam.
 
+**Status 2026-05-17:** done. `BattleDamageHandler` now dispatches
+`onPostDamage` after HP mutation and after the existing Rage counter path. The
+dispatcher runs target-owned effects first, then user-owned effects, composing
+state/RNG/events through the object-backed effect stack. `BattleEffectPostDamageContext`
+now exposes `targetFainted` so death-only hooks can be separated from normal
+post-damage reactions while preserving contact, user, target, move and damage
+metadata. Regression coverage lives in `test/psdk_post_damage_effect_test.dart`
+for Rough Skin-like defender damage, Life Orb-like attacker recoil, and fatal
+target hook ordering. This is infrastructure for future concrete ability/item
+ports, so strict attack, method and effect parity counts remain unchanged.
+
 ### Lot 41 - End Turn Hooks
 
 **Goal:** port generic PSDK end-turn effect execution.

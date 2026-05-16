@@ -150,6 +150,7 @@ final class BattleEffectPostDamageContext {
     required this.target,
     required this.move,
     required this.damage,
+    this.targetFainted = false,
   });
 
   final PsdkBattleState state;
@@ -160,6 +161,7 @@ final class BattleEffectPostDamageContext {
   final PsdkBattleSlotRef target;
   final BattleMoveDefinition move;
   final int damage;
+  final bool targetFainted;
 }
 
 final class BattleEffectPostDamageResult {
