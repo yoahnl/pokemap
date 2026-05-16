@@ -164,6 +164,31 @@ void main() {
       );
     });
 
+    test('s_round doubles power when an ally used Round this turn', () {
+      final round = _move(
+        id: 'round',
+        category: PsdkBattleMoveCategory.special,
+        power: 60,
+        battleEngineMethod: 's_round',
+      );
+      final baseline = _resolveRound(
+        move: round,
+        allyMoveHistory: PsdkBattleMoveHistory.empty(),
+      );
+      final boosted = _resolveRound(
+        move: round,
+        allyMoveHistory: _historyAt(
+          successes: const <String>['round'],
+          turn: 7,
+        ),
+      );
+
+      expect(
+        _resolutionDamage(boosted, moveId: 'round'),
+        greaterThan(_resolutionDamage(baseline, moveId: 'round')),
+      );
+    });
+
     test('s_trump_card grows stronger as remaining PP gets lower', () {
       final highPp = _runMove(
         playerMove: _move(
@@ -239,6 +264,82 @@ PsdkBattleMoveHistory _history({required List<String> successes}) {
         ),
     ],
   );
+}
+
+PsdkBattleMoveHistory _historyAt({
+  required List<String> successes,
+  required int turn,
+}) {
+  return PsdkBattleMoveHistory(
+    attempts: <PsdkBattleMoveHistoryEntry>[
+      for (final moveId in successes)
+        PsdkBattleMoveHistoryEntry(
+          moveId: moveId,
+          turn: turn,
+          targets: const <PsdkBattleSlotRef>[psdkOpponentSlot],
+        ),
+    ],
+    successes: <PsdkBattleMoveHistoryEntry>[
+      for (final moveId in successes)
+        PsdkBattleMoveHistoryEntry(
+          moveId: moveId,
+          turn: turn,
+          targets: const <PsdkBattleSlotRef>[psdkOpponentSlot],
+        ),
+    ],
+  );
+}
+
+BattleMoveBehaviorResolution _resolveRound({
+  required PsdkBattleMoveData move,
+  required PsdkBattleMoveHistory allyMoveHistory,
+}) {
+  const userSlot = psdkPlayerSlot;
+  const allySlot = PsdkBattleSlotRef(bank: 0, position: 1);
+  const targetSlot = psdkOpponentSlot;
+  final state = PsdkBattleState(
+    combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+      userSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(id: 'player', speed: 100, move: move),
+      ),
+      allySlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'ally',
+          speed: 50,
+          move: move,
+          moveHistory: allyMoveHistory,
+        ),
+      ),
+      targetSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'opponent',
+          speed: 1,
+          move: _move(
+            id: 'opponent_wait',
+            power: 0,
+            category: PsdkBattleMoveCategory.status,
+            battleEngineMethod: 's_splash',
+          ),
+        ),
+      ),
+    },
+  );
+
+  return createStaticBasicMoveRegistry().resolve('s_round').resolve(
+        BattleMoveBehaviorContext(
+          state: state,
+          rng: BattleRngStreams.fromSeeds(
+            moveDamageSeed: 1,
+            moveCriticalSeed: 99999,
+            moveAccuracySeed: 3,
+            genericSeed: 4,
+          ),
+          turn: 7,
+          user: userSlot,
+          target: targetSlot,
+          move: BattleMoveDefinition.fromPsdk(move),
+        ),
+      );
 }
 
 PsdkBattleTurnResult _runMove({
@@ -340,4 +441,15 @@ List<PsdkBattleDamageEvent> _damageEvents(
       .whereType<PsdkBattleDamageEvent>()
       .where((event) => event.moveId == moveId)
       .toList();
+}
+
+int _resolutionDamage(
+  BattleMoveBehaviorResolution result, {
+  required String moveId,
+}) {
+  return result.events
+      .whereType<PsdkBattleDamageEvent>()
+      .where((event) => event.moveId == moveId)
+      .single
+      .damage;
 }

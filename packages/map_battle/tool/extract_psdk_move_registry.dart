@@ -802,7 +802,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_round': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_round)',
+    dartBehavior: 'ConsecutivePowerMoveBehavior.round',
     status: _PsdkPortStatus.partial,
   ),
   's_safe_guard': _KnownDartBehavior(

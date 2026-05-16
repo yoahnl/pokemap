@@ -2176,7 +2176,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_round',
     rubyClass: 'Round',
     rubyPath: '10 Move/2 Definitions/300 Round.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_round)',
+    dartBehavior: 'ConsecutivePowerMoveBehavior.round',
     status: PsdkPortStatus.partial,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.actionOrder,

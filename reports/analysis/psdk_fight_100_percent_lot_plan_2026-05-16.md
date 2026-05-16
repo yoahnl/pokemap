@@ -992,6 +992,16 @@ message/animation timing are still open.
 **Definition of done:**
 - Singles-safe combo branches strict; doubles branches cross-linked to targeting lots.
 
+**Status 2026-05-17:** in progress. `s_round` now has a dedicated
+`ConsecutivePowerMoveBehavior.round` local slice instead of the broad
+`partialBasic` fallback. The move doubles power when an alive same-bank ally
+has attempted Round in the current turn, matching the PSDK power branch for
+already-used ally Round. Regression coverage lives in
+`consecutive_power_moves_test.dart`. The parity gate remains at 262 / 728
+strict attacks and 63 / 330 ported battle methods because full action-order
+resorting, ally queued-action insertion, Pledge combinations, pledge field
+effects, and doubles target ordering are still open.
+
 ### Lot 35 - Gimmick and Special Case Method Audit
 
 **Goal:** decide exact scope for Z-Moves, Mega-related move behavior, Max-like moves, studio-only moves, and project-specific special methods.

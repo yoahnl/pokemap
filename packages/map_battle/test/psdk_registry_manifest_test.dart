@@ -307,7 +307,6 @@ void main() {
         's_flying_press',
         's_hidden_power',
         's_payday',
-        's_round',
         's_shell_trap',
       ]) {
         expect(byMethod[method]!.status, PsdkPortStatus.partial);
@@ -330,6 +329,11 @@ void main() {
       expect(
         byMethod['s_fusion_flare']!.dartBehavior,
         'StaticBasicMoveRegistry.s_fusion_flare',
+      );
+      expect(byMethod['s_round']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_round']!.dartBehavior,
+        'ConsecutivePowerMoveBehavior.round',
       );
       expect(byMethod['s_last_resort']!.status, PsdkPortStatus.partial);
       expect(

@@ -9,6 +9,7 @@ import 'battle_move_behavior_support.dart';
 enum _ConsecutivePowerKind {
   echoedVoice,
   furyCutter,
+  round,
   rollout,
   iceBall,
   trumpCard,
@@ -26,6 +27,10 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
   const ConsecutivePowerMoveBehavior.furyCutter()
       : battleEngineMethod = 's_fury_cutter',
         _kind = _ConsecutivePowerKind.furyCutter;
+
+  const ConsecutivePowerMoveBehavior.round()
+      : battleEngineMethod = 's_round',
+        _kind = _ConsecutivePowerKind.round;
 
   const ConsecutivePowerMoveBehavior.rollout()
       : battleEngineMethod = 's_rollout',
@@ -137,6 +142,9 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
         (context.move.power * (1 << _sameMoveStreak(user, context.move.id)))
             .clamp(0, 160)
             .toInt(),
+      _ConsecutivePowerKind.round => _allyUsedRoundThisTurn(context)
+          ? context.move.power * 2
+          : context.move.power,
       _ConsecutivePowerKind.rollout ||
       _ConsecutivePowerKind.iceBall =>
         context.move.power *
@@ -146,6 +154,19 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
       _ConsecutivePowerKind.trumpCard => _trumpCardPower(context.move),
     };
     return _copyMove(context.move, power: power);
+  }
+
+  bool _allyUsedRoundThisTurn(BattleMoveBehaviorContext context) {
+    for (final allySlot in context.state.alliesOf(context.user)) {
+      final ally = context.state.battlerAt(allySlot);
+      if (ally.moveHistory.attempts.any(
+        (entry) =>
+            entry.turn == context.turn && entry.moveId == context.move.id,
+      )) {
+        return true;
+      }
+    }
+    return false;
   }
 
   bool _trumpCardBypassesAccuracy(BattleMoveBehaviorContext context) {
