@@ -1,5 +1,6 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
+import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_data.dart';
@@ -16,6 +17,7 @@ enum _CopyCallMoveKind {
   sleepTalk,
   metronome,
   assist,
+  instruct,
   mirrorMove,
   mimic,
   sketch,
@@ -38,6 +40,12 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
     required BattleCalledMoveResolver callMove,
   })  : battleEngineMethod = 's_assist',
         _kind = _CopyCallMoveKind.assist,
+        _callMove = callMove;
+
+  const CopyCallMoveBehavior.instruct({
+    required BattleCalledMoveResolver callMove,
+  })  : battleEngineMethod = 's_instruct',
+        _kind = _CopyCallMoveKind.instruct,
         _callMove = callMove;
 
   const CopyCallMoveBehavior.mirrorMove({
@@ -78,6 +86,7 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
               reason: BattleMoveFailureReason.unusableByUser,
             ),
       _CopyCallMoveKind.assist => null,
+      _CopyCallMoveKind.instruct => null,
       _CopyCallMoveKind.mirrorMove => null,
       _CopyCallMoveKind.mimic => _canUseMimic(context)
           ? null
@@ -103,6 +112,7 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
       _CopyCallMoveKind.sleepTalk => _resolveSleepTalk(context),
       _CopyCallMoveKind.metronome => _resolveMetronome(context),
       _CopyCallMoveKind.assist => _resolveAssist(context),
+      _CopyCallMoveKind.instruct => _resolveInstruct(context),
       _CopyCallMoveKind.mirrorMove => _resolveMirrorMove(context),
       _CopyCallMoveKind.mimic => _resolveMimic(context),
       _CopyCallMoveKind.sketch => _resolveSketch(context),
@@ -203,6 +213,66 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
         moveProcedureHooks: context.moveProcedureHooks,
       ),
       BattleMoveDefinition.fromPsdk(selection.move),
+    );
+  }
+
+  BattleMoveBehaviorResolution _resolveInstruct(
+    BattleMoveBehaviorContext context,
+  ) {
+    final prepared = prepareBattleMove(context);
+    if (!prepared.shouldExecuteBehavior) {
+      return prepared.toResolution();
+    }
+
+    final instructed = _instructTargetMove(context);
+    final resolver = _callMove;
+    if (instructed == null || resolver == null) {
+      return _failureAfterPreparation(
+        context: context,
+        prepared: prepared,
+        reason: BattleMoveFailureReason.unusableByUser,
+      );
+    }
+
+    final moveAfterPp = instructed.move.spendPp();
+    final stateAfterPp = prepared.state.updateBattler(
+      context.target,
+      (battler) => battler.replaceMoveAt(instructed.moveSlot, moveAfterPp),
+    );
+    final called = resolver(
+      BattleMoveBehaviorContext(
+        state: stateAfterPp,
+        rng: prepared.rng,
+        turn: context.turn,
+        user: context.target,
+        target: instructed.target,
+        move: context.move,
+        moveSlot: instructed.moveSlot,
+        isLastActionOfTurn: context.isLastActionOfTurn,
+        moveProcedureHooks: context.moveProcedureHooks,
+      ),
+      BattleMoveDefinition.fromPsdk(moveAfterPp),
+    );
+
+    return BattleMoveBehaviorResolution(
+      state: called.state.updateBattler(
+        context.target,
+        (battler) => battler.copyWith(
+          effects: battler.effects.add('instruct'),
+        ),
+      ),
+      rng: called.rng,
+      successful: called.successful,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMovePpSpentEvent(
+          user: context.target,
+          moveId: moveAfterPp.id,
+          spent: instructed.move.currentPp - moveAfterPp.currentPp,
+          remainingPp: moveAfterPp.currentPp,
+        ),
+        ...called.events,
+      ],
     );
   }
 
@@ -308,6 +378,18 @@ final class _SelectedMove {
   final BattleRngStreams rng;
 }
 
+final class _InstructedMove {
+  const _InstructedMove({
+    required this.move,
+    required this.moveSlot,
+    required this.target,
+  });
+
+  final PsdkBattleMoveData move;
+  final int moveSlot;
+  final PsdkBattleSlotRef target;
+}
+
 BattleMoveBehaviorResolution _failure(
   BattleMoveBehaviorContext context,
   BattleMoveFailureReason reason,
@@ -346,6 +428,48 @@ BattleMoveBehaviorResolution _failureAfterPreparation({
       ),
     ],
   );
+}
+
+_InstructedMove? _instructTargetMove(BattleMoveBehaviorContext context) {
+  final target = context.state.battlerAt(context.target);
+  if (target.effects.contains(PsdkBattleEffectIds.forceNextMoveBase) ||
+      target.effects.contains(PsdkBattleEffectIds.twoTurnCharge) ||
+      target.effects.contains('out_of_reach') ||
+      target.effects.contains('out_of_reach_base')) {
+    return null;
+  }
+  if (target.moveHistory.attempts.isEmpty) {
+    return null;
+  }
+
+  final history = target.moveHistory.attempts.last;
+  for (var index = 0; index < target.moves.length; index++) {
+    final move = target.moves[index];
+    if (_normalizedId(move.id) != _normalizedId(history.moveId) &&
+        _normalizedId(move.dbSymbol) != _normalizedId(history.moveId)) {
+      continue;
+    }
+    if (!_canInstructMove(move)) {
+      return null;
+    }
+    return _InstructedMove(
+      move: move,
+      moveSlot: index,
+      target: history.targets.isEmpty ? context.user : history.targets.first,
+    );
+  }
+  return null;
+}
+
+bool _canInstructMove(PsdkBattleMoveData move) {
+  final moveId = _normalizedId(
+    move.dbSymbol.isEmpty ? move.id : move.dbSymbol,
+  );
+  return move.currentPp > 0 &&
+      !_instructExcludedMoveIds.contains(moveId) &&
+      !_instructExcludedMoveIds.contains(_normalizedId(move.id)) &&
+      !_instructExcludedMethods
+          .contains(_normalizedId(move.battleEngineMethod));
 }
 
 bool _canUseSleepTalk(PsdkBattleCombatant user) {
@@ -765,6 +889,27 @@ const _assistExcludedMoveIds = <String>{
   'transform',
   'trick',
   'whirlwind',
+};
+
+const _instructExcludedMoveIds = <String>{
+  'sketch',
+  'transform',
+  'mimic',
+  'king_s_shield',
+  'struggle',
+  'instruct',
+  'metronome',
+  'assist',
+  'me_first',
+  'mirror_move',
+  'nature_power',
+  'sleep_talk',
+};
+
+const _instructExcludedMethods = <String>{
+  's_2turns',
+  's_reload',
+  's_thrash',
 };
 
 const _copycatExcludedMoveIds = <String>{

@@ -151,7 +151,7 @@ Total registered methods: 330
 | `s_incinerate` | `Incinerate` | `10 Move/2 Definitions/300 Incinerate.rb` | `SpecialSecondaryMoveBehavior.incinerate` | `partial` | `-` |
 | `s_infernal_parade` | `InfernalParade` | `10 Move/2 Definitions/300 StatusBoostedMove.rb` | `VariablePowerMoveBehavior.infernalParade` | `ported` | `-` |
 | `s_ingrain` | `Ingrain` | `10 Move/2 Definitions/300 Ingrain.rb` | `PersistentEffectMoveBehavior.ingrain` | `partial` | `handler_damage`, `handler_switch`, `effects`, `end_turn`, `item` |
-| `s_instruct` | `Instruct` | `10 Move/2 Definitions/300 Instruct.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_instruct)` | `partial` | `-` |
+| `s_instruct` | `Instruct` | `10 Move/2 Definitions/300 Instruct.rb` | `CopyCallMoveBehavior.instruct` | `partial` | `-` |
 | `s_ion_deluge` | `IonDeluge` | `10 Move/2 Definitions/300 Ion Deluge.rb` | `StaticBasicMoveRegistry.partialFieldMarker(s_ion_deluge)` | `partial` | `-` |
 | `s_ivy_cudgel` | `IvyCudgel` | `10 Move/2 Definitions/300 IvyCudgel.rb` | `TypeBasedMoveBehavior.ivyCudgel` | `partial` | `-` |
 | `s_jaw_lock` | `JawLock` | `10 Move/2 Definitions/300 JawLock.rb` | `StaticBasicMoveRegistry.s_jaw_lock` | `partial` | `-` |

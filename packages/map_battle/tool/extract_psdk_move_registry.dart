@@ -91,7 +91,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_instruct': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_instruct)',
+    dartBehavior: 'CopyCallMoveBehavior.instruct',
     status: _PsdkPortStatus.partial,
   ),
   's_lunar_dance': _KnownDartBehavior(

@@ -778,6 +778,10 @@ void main() {
           behavior: 'CopyCallMoveBehavior.assist',
         ),
         (
+          method: 's_instruct',
+          behavior: 'CopyCallMoveBehavior.instruct',
+        ),
+        (
           method: 's_autotomize',
           behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_autotomize)',
         ),

@@ -279,6 +279,96 @@ void main() {
       expect(_ppSpent(result, moveId: 'flamethrower'), isEmpty);
     });
 
+    test('s_instruct fails after PP when target has no last move', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'instruct',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_instruct',
+        ),
+      );
+
+      expect(_failures(result), hasLength(1));
+      expect(_failures(result).single.moveId, 'instruct');
+      expect(
+        _failures(result).single.reason,
+        BattleMoveFailureReason.unusableByUser.jsonName,
+      );
+      expect(_ppSpent(result, moveId: 'instruct'), hasLength(1));
+    });
+
+    test('s_instruct makes the target repeat its last attempted move', () {
+      final targetMove = _move(
+        id: 'flamethrower',
+        category: PsdkBattleMoveCategory.special,
+        power: 90,
+        battleEngineMethod: 's_basic',
+      );
+      final result = _resolveMoveAgainstTarget(
+        playerMove: _move(
+          id: 'instruct',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_instruct',
+        ),
+        opponentMove: targetMove,
+        opponentMoveHistory: PsdkBattleMoveHistory.empty().recordAttempt(
+          moveId: 'flamethrower',
+          turn: 0,
+          targets: const <PsdkBattleSlotRef>[psdkPlayerSlot],
+        ),
+      );
+
+      expect(_failuresFromEvents(result.events), isEmpty);
+      expect(
+        _damageEventsFromEvents(result.events, moveId: 'flamethrower'),
+        hasLength(1),
+      );
+      expect(
+        _ppSpentFromEvents(
+          result.events,
+          moveId: 'flamethrower',
+          user: psdkOpponentSlot,
+        ),
+        hasLength(1),
+      );
+      expect(
+        _damageEventsFromEvents(result.events, moveId: 'instruct'),
+        isEmpty,
+      );
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).effects.contains('instruct'),
+        isTrue,
+      );
+    });
+
+    test('s_instruct fails after PP when target last move is excluded', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'instruct',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_instruct',
+        ),
+        opponentMove: _move(
+          id: 'metronome',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_basic',
+        ),
+        opponentMoveHistory: PsdkBattleMoveHistory.empty().recordAttempt(
+          moveId: 'metronome',
+          turn: 0,
+          targets: const <PsdkBattleSlotRef>[psdkPlayerSlot],
+        ),
+      );
+
+      expect(_failures(result), hasLength(1));
+      expect(_failures(result).single.moveId, 'instruct');
+      expect(_ppSpent(result, moveId: 'instruct'), hasLength(1));
+    });
+
     test('s_mimic fails before PP when the target has no successful move', () {
       final result = _runMove(
         playerMove: _move(
@@ -501,6 +591,45 @@ BattleMoveBehaviorResolution _resolveMoveWithTeammate({
       );
 }
 
+BattleMoveBehaviorResolution _resolveMoveAgainstTarget({
+  required PsdkBattleMoveData playerMove,
+  required PsdkBattleMoveData opponentMove,
+  required PsdkBattleMoveHistory opponentMoveHistory,
+}) {
+  final registry = createStaticBasicMoveRegistry();
+  final state = PsdkBattleState(
+    combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+      psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(id: 'player', speed: 100, move: playerMove),
+      ),
+      psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'opponent',
+          speed: 1,
+          move: opponentMove,
+          moveHistory: opponentMoveHistory,
+        ),
+      ),
+    },
+  );
+  return registry.resolve(playerMove.battleEngineMethod).resolve(
+        BattleMoveBehaviorContext(
+          state: state,
+          rng: BattleRngStreams.fromSeeds(
+            moveDamageSeed: 1,
+            moveCriticalSeed: 99999,
+            moveAccuracySeed: 3,
+            genericSeed: 0,
+          ),
+          turn: 1,
+          user: psdkPlayerSlot,
+          target: psdkOpponentSlot,
+          move: BattleMoveDefinition.fromPsdk(playerMove),
+          moveSlot: 0,
+        ),
+      );
+}
+
 PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
   List<PsdkBattleMoveData> playerExtraMoves = const <PsdkBattleMoveData>[],
@@ -625,6 +754,18 @@ List<PsdkBattleMovePpSpentEvent> _ppSpent(
   PsdkBattleSlotRef? user,
 }) {
   return result.timeline.events
+      .whereType<PsdkBattleMovePpSpentEvent>()
+      .where((event) => event.moveId == moveId)
+      .where((event) => user == null || event.user == user)
+      .toList(growable: false);
+}
+
+List<PsdkBattleMovePpSpentEvent> _ppSpentFromEvents(
+  List<PsdkBattleEvent> events, {
+  required String moveId,
+  PsdkBattleSlotRef? user,
+}) {
+  return events
       .whereType<PsdkBattleMovePpSpentEvent>()
       .where((event) => event.moveId == moveId)
       .where((event) => user == null || event.user == user)

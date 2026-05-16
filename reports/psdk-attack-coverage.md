@@ -359,7 +359,7 @@ Coverage semantics:
 | partiel | inferno_overdrive2 | s_basic | ported | StaticBasicMoveRegistry.s_basic | fire | special | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/inferno_overdrive2.json |
 | fait | infestation | s_bind | ported | StaticBasicMoveRegistry.s_bind | bug | special | 20 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/infestation.json |
 | partiel | ingrain | s_ingrain | partial | PersistentEffectMoveBehavior.ingrain | grass | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/ingrain.json |
-| partiel | instruct | s_instruct | partial | StaticBasicMoveRegistry.partialTargetMarker(s_instruct) | psychic | status | 0 | 0 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/instruct.json |
+| partiel | instruct | s_instruct | partial | CopyCallMoveBehavior.instruct | psychic | status | 0 | 0 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/instruct.json |
 | partiel | ion_deluge | s_ion_deluge | partial | StaticBasicMoveRegistry.partialFieldMarker(s_ion_deluge) | electric | status | 0 | 0 | 25 | ../../pokémon_sdk_test_project/Data/Studio/moves/ion_deluge.json |
 | fait | iron_defense | s_self_stat | ported | StatusStatMoveBehavior.selfStat | steel | status | 0 | 0 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/iron_defense.json |
 | partiel | iron_head | s_basic | ported | StaticBasicMoveRegistry.s_basic | steel | physical | 80 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/iron_head.json |
