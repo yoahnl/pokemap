@@ -114,6 +114,37 @@ void main() {
       expect(_damageEvents(result, moveId: 'tackle'), hasLength(1));
     });
 
+    test('s_metronome calls a seeded eligible catalog move', () {
+      final result = _runMove(
+        genericSeed: 1,
+        playerMove: _move(
+          id: 'metronome',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_metronome',
+        ),
+      );
+
+      expect(_failures(result), isEmpty);
+      expect(_damageEvents(result, moveId: 'scratch'), hasLength(1));
+      expect(_damageEvents(result, moveId: 'metronome'), isEmpty);
+    });
+
+    test('s_metronome spends only Metronome PP, not the called move PP', () {
+      final result = _runMove(
+        genericSeed: 1,
+        playerMove: _move(
+          id: 'metronome',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_metronome',
+        ),
+      );
+
+      expect(_ppSpent(result, moveId: 'metronome'), hasLength(1));
+      expect(_ppSpent(result, moveId: 'scratch'), isEmpty);
+    });
+
     test('s_mimic fails before PP when the target has no successful move', () {
       final result = _runMove(
         playerMove: _move(

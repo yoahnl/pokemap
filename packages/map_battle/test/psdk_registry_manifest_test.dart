@@ -890,6 +890,10 @@ void main() {
           behavior: 'StaticBasicMoveRegistry.s_memento',
         ),
         (
+          method: 's_metronome',
+          behavior: 'CopyCallMoveBehavior.metronome',
+        ),
+        (
           method: 's_mimic',
           behavior: 'CopyCallMoveBehavior.mimic',
         ),

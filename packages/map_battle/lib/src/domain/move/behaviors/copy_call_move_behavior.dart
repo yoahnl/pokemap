@@ -14,6 +14,7 @@ typedef BattleCalledMoveResolver = BattleMoveBehaviorResolution Function(
 
 enum _CopyCallMoveKind {
   sleepTalk,
+  metronome,
   mimic,
   sketch,
 }
@@ -23,6 +24,12 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
     required BattleCalledMoveResolver callMove,
   })  : battleEngineMethod = 's_sleep_talk',
         _kind = _CopyCallMoveKind.sleepTalk,
+        _callMove = callMove;
+
+  const CopyCallMoveBehavior.metronome({
+    required BattleCalledMoveResolver callMove,
+  })  : battleEngineMethod = 's_metronome',
+        _kind = _CopyCallMoveKind.metronome,
         _callMove = callMove;
 
   const CopyCallMoveBehavior.mimic()
@@ -51,6 +58,11 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
           : const BattleMoveUserPreventionResult(
               reason: BattleMoveFailureReason.unusableByUser,
             ),
+      _CopyCallMoveKind.metronome => _metronomeUsableMoves().isNotEmpty
+          ? null
+          : const BattleMoveUserPreventionResult(
+              reason: BattleMoveFailureReason.unusableByUser,
+            ),
       _CopyCallMoveKind.mimic => _canUseMimic(context)
           ? null
           : const BattleMoveUserPreventionResult(
@@ -73,6 +85,7 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
 
     return switch (_kind) {
       _CopyCallMoveKind.sleepTalk => _resolveSleepTalk(context),
+      _CopyCallMoveKind.metronome => _resolveMetronome(context),
       _CopyCallMoveKind.mimic => _resolveMimic(context),
       _CopyCallMoveKind.sketch => _resolveSketch(context),
     };
@@ -82,6 +95,34 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
     BattleMoveBehaviorContext context,
   ) {
     final selection = _selectSleepTalkMove(context);
+    if (selection == null) {
+      return _failure(context, BattleMoveFailureReason.unusableByUser);
+    }
+
+    final resolver = _callMove;
+    if (resolver == null) {
+      return _failure(context, BattleMoveFailureReason.unusableByUser);
+    }
+    return resolver(
+      BattleMoveBehaviorContext(
+        state: context.state,
+        rng: selection.rng,
+        turn: context.turn,
+        user: context.user,
+        target: context.target,
+        move: context.move,
+        moveSlot: context.moveSlot,
+        isLastActionOfTurn: context.isLastActionOfTurn,
+        moveProcedureHooks: context.moveProcedureHooks,
+      ),
+      BattleMoveDefinition.fromPsdk(selection.move),
+    );
+  }
+
+  BattleMoveBehaviorResolution _resolveMetronome(
+    BattleMoveBehaviorContext context,
+  ) {
+    final selection = _selectMetronomeMove(context);
     if (selection == null) {
       return _failure(context, BattleMoveFailureReason.unusableByUser);
     }
@@ -219,6 +260,32 @@ List<PsdkBattleMoveData> _sleepTalkUsableMoves(PsdkBattleCombatant user) {
       .toList(growable: false);
 }
 
+_SelectedMove? _selectMetronomeMove(BattleMoveBehaviorContext context) {
+  final moves = _metronomeUsableMoves();
+  if (moves.isEmpty) {
+    return null;
+  }
+  final roll = context.rng.generic.nextIntInclusive(
+    min: 0,
+    max: moves.length - 1,
+  );
+  return _SelectedMove(
+    move: moves[roll.value],
+    rng: context.rng.copyWith(generic: roll.next),
+  );
+}
+
+List<PsdkBattleMoveData> _metronomeUsableMoves() {
+  return _defaultMetronomeMovePool
+      .where((move) => !_metronomeExcludedMoveIds.contains(_normalizedId(
+            move.dbSymbol.isEmpty ? move.id : move.dbSymbol,
+          )))
+      .where((move) => !_metronomeExcludedMoveIds.contains(_normalizedId(
+            move.id,
+          )))
+      .toList(growable: false);
+}
+
 bool _canUseMimic(BattleMoveBehaviorContext context) {
   return context.moveSlot != null && _mimicTargetMove(context) != null;
 }
@@ -299,6 +366,106 @@ const _sleepTalkExcludedMoveIds = <String>{
   'solar_beam',
   'uproar',
   'electro_shot',
+};
+
+final List<PsdkBattleMoveData> _defaultMetronomeMovePool =
+    List<PsdkBattleMoveData>.unmodifiable(<PsdkBattleMoveData>[
+  PsdkBattleMoveData(
+    id: 'tackle',
+    dbSymbol: 'tackle',
+    name: 'Tackle',
+    type: 'normal',
+    category: PsdkBattleMoveCategory.physical,
+    power: 40,
+    accuracy: 100,
+    pp: 1,
+    priority: 0,
+    criticalRate: 1,
+    battleEngineMethod: 's_basic',
+    target: PsdkBattleMoveTarget.adjacentFoe,
+  ),
+  PsdkBattleMoveData(
+    id: 'scratch',
+    dbSymbol: 'scratch',
+    name: 'Scratch',
+    type: 'normal',
+    category: PsdkBattleMoveCategory.physical,
+    power: 40,
+    accuracy: 100,
+    pp: 1,
+    priority: 0,
+    criticalRate: 1,
+    battleEngineMethod: 's_basic',
+    target: PsdkBattleMoveTarget.adjacentFoe,
+  ),
+]);
+
+const _metronomeExcludedMoveIds = <String>{
+  'after_you',
+  'assist',
+  'baneful_bunker',
+  'beak_blast',
+  'belch',
+  'bestow',
+  'celebrate',
+  'chatter',
+  'copycat',
+  'counter',
+  'covet',
+  'crafty_shield',
+  'destiny_bound',
+  'detect',
+  'diamond_storm',
+  'endure',
+  'feint',
+  'fleur_cannon',
+  'focus_punch',
+  'follow_me',
+  'freeze_shock',
+  'helping_hand',
+  'hold_hands',
+  'hyperspace_fury',
+  'hyperspace_hole',
+  'ice_burn',
+  'instruct',
+  'king_s_shield',
+  'light_of_ruin',
+  'mat_block',
+  'me_first',
+  'metronome',
+  'mimic',
+  'mind_blown',
+  'mirror_coat',
+  'mirror_move',
+  'nature_power',
+  'photon_geyser',
+  'plasma_fists',
+  'protect',
+  'quash',
+  'quick_guard',
+  'rage_powder',
+  'relic_song',
+  'secret_sword',
+  'shell_trap',
+  'sketch',
+  'sleep_talk',
+  'snarl',
+  'snatch',
+  'snore',
+  'spectral_thief',
+  'spiky_shield',
+  'spotlight',
+  'steam_eruption',
+  'struggle',
+  'switcheroo',
+  'techno_blast',
+  'thousand_arrows',
+  'thousand_waves',
+  'thief',
+  'transform',
+  'trick',
+  'v_create',
+  'wide_guard',
 };
 
 const _mimicExcludedMoveIds = <String>{

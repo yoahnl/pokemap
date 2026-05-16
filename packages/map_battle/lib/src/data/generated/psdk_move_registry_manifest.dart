@@ -1529,7 +1529,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_metronome',
     rubyClass: 'Metronome',
     rubyPath: '10 Move/2 Definitions/300 Metronome.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_metronome)',
+    dartBehavior: 'CopyCallMoveBehavior.metronome',
     status: PsdkPortStatus.partial,
     dependencies: const <PsdkMoveDependency>[],
   ),

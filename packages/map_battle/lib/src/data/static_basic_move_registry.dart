@@ -184,6 +184,7 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       resolve: _resolveTrick,
     ),
     CopyCallMoveBehavior.sleepTalk(callMove: callMove),
+    CopyCallMoveBehavior.metronome(callMove: callMove),
     const CopyCallMoveBehavior.mimic(),
     const CopyCallMoveBehavior.sketch(),
     CallbackBattleMoveBehavior(
@@ -657,7 +658,6 @@ const _partialTargetMarkerMethods = <String, String>{
   's_magic_powder': 'magic_powder',
   's_magnet_rise': 'magnet_rise',
   's_me_first': 'me_first',
-  's_metronome': 'metronome',
   's_minimize': 'minimize',
   's_miracle_eye': 'miracle_eye',
   's_mirror_move': 'mirror_move',

@@ -116,7 +116,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_metronome': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_metronome)',
+    dartBehavior: 'CopyCallMoveBehavior.metronome',
     status: _PsdkPortStatus.partial,
   ),
   's_mimic': _KnownDartBehavior(

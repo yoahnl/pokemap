@@ -419,7 +419,7 @@ Coverage semantics:
 | partiel | metal_claw | s_self_stat | ported | StatusStatMoveBehavior.selfStat | steel | physical | 50 | 95 | 35 | ../../pokémon_sdk_test_project/Data/Studio/moves/metal_claw.json |
 | fait | metal_sound | s_stat | ported | StatusStatMoveBehavior.stat | steel | status | 0 | 85 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/metal_sound.json |
 | partiel | meteor_mash | s_self_stat | ported | StatusStatMoveBehavior.selfStat | steel | physical | 90 | 90 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/meteor_mash.json |
-| partiel | metronome | s_metronome | partial | StaticBasicMoveRegistry.partialTargetMarker(s_metronome) | normal | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/metronome.json |
+| partiel | metronome | s_metronome | partial | CopyCallMoveBehavior.metronome | normal | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/metronome.json |
 | fait | milk_drink | s_heal | ported | HealMoveBehavior | normal | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/milk_drink.json |
 | partiel | mimic | s_mimic | partial | CopyCallMoveBehavior.mimic | normal | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/mimic.json |
 | partiel | mind_blown | s_recoil | ported | RecoilMoveBehavior.psdkRecoil | fire | special | 150 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/mind_blown.json |
