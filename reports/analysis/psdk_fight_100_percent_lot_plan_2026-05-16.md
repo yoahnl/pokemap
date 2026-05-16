@@ -304,6 +304,8 @@ legacy `BattleMoveData` session path untouched.
 
 ### Lot 08 - Strict `s_basic` Damage Parity
 
+**Status 2026-05-16:** done. `s_basic` is now marked `ported` at method level, while attack coverage only counts plain damaging Studio `s_basic` moves as `fait`; `s_basic` moves with status, stat, or secondary-effect riders remain `partiel`. The parity gate moved to 113 / 728 strict attacks and 26 / 330 ported battle methods.
+
 **Goal:** promote `s_basic` from broad partial fallback to strict damage parity for plain damage moves only.
 
 **Files:**

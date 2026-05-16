@@ -414,7 +414,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_basic': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_basic',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_status': _KnownDartBehavior(
     dartBehavior: 'StatusStatMoveBehavior.status',

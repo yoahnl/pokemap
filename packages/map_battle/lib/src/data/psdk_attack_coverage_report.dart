@@ -13,6 +13,14 @@ final class PsdkStudioMoveCoverageEntry {
     required this.accuracy,
     required this.pp,
     required this.sourceFile,
+    this.priority = 0,
+    this.criticalRate = 1,
+    this.effectChance = 0,
+    this.battleStageModCount = 0,
+    this.moveStatusCount = 0,
+    this.target = '',
+    this.protectable = true,
+    this.sound = false,
   });
 
   final String dbSymbol;
@@ -23,6 +31,30 @@ final class PsdkStudioMoveCoverageEntry {
   final String accuracy;
   final int pp;
   final String sourceFile;
+  final int priority;
+  final int criticalRate;
+  final int effectChance;
+  final int battleStageModCount;
+  final int moveStatusCount;
+  final String target;
+  final bool protectable;
+  final bool sound;
+
+  bool get isStrictPlainBasicDamage {
+    if (battleEngineMethod != 's_basic') {
+      return false;
+    }
+    if (power <= 0) {
+      return false;
+    }
+    final normalizedCategory = category.trim().toLowerCase();
+    if (normalizedCategory != 'physical' && normalizedCategory != 'special') {
+      return false;
+    }
+    return battleStageModCount == 0 &&
+        moveStatusCount == 0 &&
+        effectChance == 0;
+  }
 }
 
 Future<List<PsdkStudioMoveCoverageEntry>> loadPsdkStudioMoveCoverageEntries(
@@ -95,6 +127,10 @@ String generatePsdkAttackCoverageReport({
     ..writeln('- `fait`: the move uses a `ported` battle engine method.')
     ..writeln('- `partiel`: the move executes through a partial method.')
     ..writeln('- `pas_fait`: the method is missing or unknown locally.')
+    ..writeln(
+      '- `s_basic` is counted as `fait` only for plain damaging Studio moves; '
+      'metadata riders remain `partiel`.',
+    )
     ..writeln()
     ..writeln('| Metric | Count |')
     ..writeln('| --- | ---: |')
@@ -206,8 +242,31 @@ PsdkStudioMoveCoverageEntry _entryFromPayload(
     power: _intValue(payload['power']),
     accuracy: _stringValue(payload['accuracy']),
     pp: _intValue(payload['pp']),
+    priority: _intValue(payload['priority']),
+    criticalRate: _intValue(
+      payload['movecriticalRate'] ?? payload['criticalRate'],
+    ),
+    effectChance: _intValue(payload['effectChance']),
+    battleStageModCount: _listLength(payload['battleStageMod']),
+    moveStatusCount: _listLength(payload['moveStatus']),
+    target: _stringValue(payload['battleEngineAimedTarget']),
+    protectable: _boolValue(payload['isBlocable'], fallback: true),
+    sound: _boolValue(payload['isSoundAttack'], fallback: false),
     sourceFile: sourceFile,
   );
+}
+
+String psdkAttackCoverageForMove(
+  PsdkStudioMoveCoverageEntry move,
+  PsdkMoveRegistryManifestEntry? manifestEntry,
+) {
+  return switch (manifestEntry?.status) {
+    PsdkPortStatus.ported when move.battleEngineMethod == 's_basic' =>
+      move.isStrictPlainBasicDamage ? 'fait' : 'partiel',
+    PsdkPortStatus.ported => 'fait',
+    PsdkPortStatus.partial => 'partiel',
+    PsdkPortStatus.missing || null => 'pas_fait',
+  };
 }
 
 String _requiredString(Map<String, dynamic> payload, String key) {
@@ -229,6 +288,27 @@ int _intValue(Object? value) {
   if (value is num) return value.toInt();
   if (value is String) return int.tryParse(value.trim()) ?? 0;
   return 0;
+}
+
+int _listLength(Object? value) {
+  if (value is List) {
+    return value.length;
+  }
+  return 0;
+}
+
+bool _boolValue(Object? value, {required bool fallback}) {
+  if (value is bool) {
+    return value;
+  }
+  if (value is String) {
+    return switch (value.trim().toLowerCase()) {
+      'true' || '1' || 'yes' => true,
+      'false' || '0' || 'no' => false,
+      _ => fallback,
+    };
+  }
+  return fallback;
 }
 
 String _md(String value) {
@@ -261,11 +341,7 @@ final class _AttackCoverageRow {
   ) {
     final methodStatus = manifestEntry?.status.name ?? 'unknown_method';
     return _AttackCoverageRow(
-      coverage: switch (manifestEntry?.status) {
-        PsdkPortStatus.ported => 'fait',
-        PsdkPortStatus.partial => 'partiel',
-        PsdkPortStatus.missing || null => 'pas_fait',
-      },
+      coverage: psdkAttackCoverageForMove(move, manifestEntry),
       dbSymbol: move.dbSymbol,
       battleEngineMethod: move.battleEngineMethod,
       methodStatus: methodStatus,

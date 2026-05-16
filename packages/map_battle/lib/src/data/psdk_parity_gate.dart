@@ -1,10 +1,10 @@
 import 'generated/psdk_move_registry_manifest.dart';
 import 'psdk_fight_parity_audit.dart';
 
-/// Lot 02 non-regression gate based on the 2026-05-16 parity audit.
+/// Non-regression gate based on the latest 2026-05-16 parity audit.
 const psdkLot02ParityGate = PsdkParityGatePolicy(
-  minimumStrictAttacks: 33,
-  minimumStrictMethods: 25,
+  minimumStrictAttacks: 113,
+  minimumStrictMethods: 26,
   minimumKnownOrPartialEffects: 25,
   maximumUnknownMethods: 0,
 );

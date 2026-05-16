@@ -18,7 +18,7 @@ void main() {
             's_status',
             's_protect',
           ]));
-      expect(byMethod['s_basic']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_basic']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_2turns']!.status, PsdkPortStatus.partial);
       expect(
         byMethod['s_2turns']!.dartBehavior,
@@ -1856,7 +1856,7 @@ end
       expect(
           markdown,
           contains(
-              '| `s_basic` | `Basic` | `10 Move/1 Mechanics/100 Basic.rb` | `StaticBasicMoveRegistry.s_basic` | `partial` | `-` |'));
+              '| `s_basic` | `Basic` | `10 Move/1 Mechanics/100 Basic.rb` | `StaticBasicMoveRegistry.s_basic` | `ported` | `-` |'));
       expect(
           markdown,
           contains(
@@ -1865,7 +1865,7 @@ end
       final dart = manifest.readAsStringSync();
       expect(dart, contains('const psdkMoveRegistryManifest'));
       expect(dart, contains("battleEngineMethod: 's_basic'"));
-      expect(dart, contains('PsdkPortStatus.partial'));
+      expect(dart, contains('PsdkPortStatus.ported'));
       expect(dart, contains('dependencies: const <PsdkMoveDependency>[]'));
       expect(dart, contains("battleEngineMethod: 's_custom_move'"));
       expect(dart, contains('PsdkPortStatus.missing'));

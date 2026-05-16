@@ -193,7 +193,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Basic',
     rubyPath: '10 Move/1 Mechanics/100 Basic.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_basic',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(

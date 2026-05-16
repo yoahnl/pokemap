@@ -100,5 +100,75 @@ void main() {
         ),
       );
     });
+
+    test('scopes ported s_basic coverage to plain damage metadata only', () {
+      final report = generatePsdkAttackCoverageReport(
+        moves: const <PsdkStudioMoveCoverageEntry>[
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'mega_punch',
+            battleEngineMethod: 's_basic',
+            type: 'normal',
+            category: 'physical',
+            power: 80,
+            accuracy: '85',
+            pp: 20,
+            priority: 0,
+            criticalRate: 1,
+            sourceFile: 'mega_punch.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'liquidation',
+            battleEngineMethod: 's_basic',
+            type: 'water',
+            category: 'physical',
+            power: 85,
+            accuracy: '100',
+            pp: 10,
+            priority: 0,
+            criticalRate: 1,
+            effectChance: 20,
+            battleStageModCount: 1,
+            sourceFile: 'liquidation.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'growl_like_bad_data',
+            battleEngineMethod: 's_basic',
+            type: 'normal',
+            category: 'status',
+            power: 0,
+            accuracy: '100',
+            pp: 40,
+            priority: 0,
+            criticalRate: 1,
+            sourceFile: 'growl_like_bad_data.json',
+          ),
+        ],
+        manifest: const <PsdkMoveRegistryManifestEntry>[
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_basic',
+            rubyClass: 'Basic',
+            rubyPath: 'basic.rb',
+            dartBehavior: 'StaticBasicMoveRegistry.s_basic',
+            status: PsdkPortStatus.ported,
+          ),
+        ],
+        sourceDescription: 's_basic test moves',
+      );
+
+      expect(report, contains('| fait | 1 |'));
+      expect(report, contains('| partiel | 2 |'));
+      expect(
+        report,
+        contains('| fait | mega_punch | s_basic | ported |'),
+      );
+      expect(
+        report,
+        contains('| partiel | liquidation | s_basic | ported |'),
+      );
+      expect(
+        report,
+        contains('| partiel | growl_like_bad_data | s_basic | ported |'),
+      );
+    });
   });
 }

@@ -150,17 +150,20 @@ final class PsdkAttackParityMetrics {
     var pasFait = 0;
     var unknownMethods = 0;
     for (final move in moves) {
-      final status = manifestByMethod[move.battleEngineMethod]?.status;
-      switch (status) {
-        case PsdkPortStatus.ported:
+      final manifestEntry = manifestByMethod[move.battleEngineMethod];
+      final coverage = psdkAttackCoverageForMove(move, manifestEntry);
+      switch (coverage) {
+        case 'fait':
           fait++;
-        case PsdkPortStatus.partial:
+        case 'partiel':
           partiel++;
-        case PsdkPortStatus.missing:
+        case 'pas_fait':
           pasFait++;
-        case null:
-          pasFait++;
-          unknownMethods++;
+          if (manifestEntry == null) {
+            unknownMethods++;
+          }
+        default:
+          throw StateError('Unknown PSDK attack coverage "$coverage".');
       }
     }
     return PsdkAttackParityMetrics(
