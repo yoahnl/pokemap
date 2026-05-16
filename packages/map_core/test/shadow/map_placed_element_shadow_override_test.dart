@@ -51,6 +51,15 @@ void main() {
       expect(override.opacity, 0.25);
     });
 
+    test('accepts custom override with family', () {
+      final override = MapPlacedElementShadowOverride(
+        mode: ShadowOverrideMode.custom,
+        family: StaticShadowFamily.tallProp,
+      );
+
+      expect(override.family, StaticShadowFamily.tallProp);
+    });
+
     test('accepts opacity bounds on custom override', () {
       expect(
         MapPlacedElementShadowOverride(
@@ -98,6 +107,12 @@ void main() {
         () => MapPlacedElementShadowOverride(opacity: 0.25),
         throwsA(isA<ValidationException>()),
       );
+      expect(
+        () => MapPlacedElementShadowOverride(
+          family: StaticShadowFamily.building,
+        ),
+        throwsA(isA<ValidationException>()),
+      );
     });
 
     test('rejects disabled with any override fields', () {
@@ -119,6 +134,13 @@ void main() {
         () => MapPlacedElementShadowOverride(
           mode: ShadowOverrideMode.disabled,
           opacity: 0.25,
+        ),
+        throwsA(isA<ValidationException>()),
+      );
+      expect(
+        () => MapPlacedElementShadowOverride(
+          mode: ShadowOverrideMode.disabled,
+          family: StaticShadowFamily.building,
         ),
         throwsA(isA<ValidationException>()),
       );
@@ -200,6 +222,25 @@ void main() {
       expect(a, b);
       expect(a.hashCode, b.hashCode);
       expect(a, isNot(c));
+    });
+
+    test('value equality includes family', () {
+      final base = MapPlacedElementShadowOverride(
+        mode: ShadowOverrideMode.custom,
+        family: StaticShadowFamily.building,
+      );
+      final same = MapPlacedElementShadowOverride(
+        mode: ShadowOverrideMode.custom,
+        family: StaticShadowFamily.building,
+      );
+      final different = MapPlacedElementShadowOverride(
+        mode: ShadowOverrideMode.custom,
+        family: StaticShadowFamily.compactProp,
+      );
+
+      expect(base, same);
+      expect(base.hashCode, same.hashCode);
+      expect(base, isNot(different));
     });
   });
 }

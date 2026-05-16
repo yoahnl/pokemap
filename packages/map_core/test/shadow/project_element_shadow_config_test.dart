@@ -52,6 +52,15 @@ void main() {
       expect(config.opacity, 0.35);
     });
 
+    test('castsShadow false can carry family', () {
+      final config = ProjectElementShadowConfig(
+        family: StaticShadowFamily.compactProp,
+      );
+
+      expect(config.castsShadow, isFalse);
+      expect(config.family, StaticShadowFamily.compactProp);
+    });
+
     test('accepts opacity bounds', () {
       expect(
         ProjectElementShadowConfig(
@@ -174,6 +183,28 @@ void main() {
       expect(a, b);
       expect(a.hashCode, b.hashCode);
       expect(a, isNot(c));
+    });
+
+    test('value equality includes family', () {
+      final base = ProjectElementShadowConfig(
+        castsShadow: true,
+        shadowProfileId: 'tree_large',
+        family: StaticShadowFamily.building,
+      );
+      final same = ProjectElementShadowConfig(
+        castsShadow: true,
+        shadowProfileId: 'tree_large',
+        family: StaticShadowFamily.building,
+      );
+      final different = ProjectElementShadowConfig(
+        castsShadow: true,
+        shadowProfileId: 'tree_large',
+        family: StaticShadowFamily.tallProp,
+      );
+
+      expect(base, same);
+      expect(base.hashCode, same.hashCode);
+      expect(base, isNot(different));
     });
   });
 }

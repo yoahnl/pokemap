@@ -53,6 +53,7 @@ void main() {
 
       expect(suggestion.kind, ElementAutoShadowSuggestionKind.tallThin);
       expect(suggestion.config.shadowProfileId, 'default-ground-contact-blob');
+      expect(suggestion.config.family, StaticShadowFamily.tallProp);
       expect(suggestion.config.footprint!.footprintWidthRatio, 0.18);
       expect(suggestion.config.footprint!.footprintHeightRatio, 0.07);
       expect(suggestion.config.opacity, 0.28);
@@ -66,6 +67,7 @@ void main() {
 
       expect(suggestion.kind, ElementAutoShadowSuggestionKind.buildingLarge);
       expect(suggestion.config.shadowProfileId, 'default-ground-wide-ellipse');
+      expect(suggestion.config.family, StaticShadowFamily.building);
       expect(suggestion.config.footprint!.anchorYRatio, 0.92);
       expect(suggestion.config.footprint!.footprintWidthRatio, 0.82);
       expect(suggestion.config.footprint!.footprintHeightRatio, 0.12);
@@ -81,6 +83,7 @@ void main() {
 
       expect(suggestion.kind, ElementAutoShadowSuggestionKind.wideLow);
       expect(suggestion.config.shadowProfileId, 'default-ground-wide-ellipse');
+      expect(suggestion.config.family, StaticShadowFamily.compactProp);
       expect(suggestion.config.footprint!.anchorYRatio, 0.95);
       expect(suggestion.config.footprint!.footprintWidthRatio, 0.72);
       expect(suggestion.config.footprint!.footprintHeightRatio, 0.10);
@@ -97,6 +100,7 @@ void main() {
 
       expect(suggestion.kind, ElementAutoShadowSuggestionKind.smallSquare);
       expect(suggestion.config.shadowProfileId, 'default-ground-contact-blob');
+      expect(suggestion.config.family, StaticShadowFamily.compactProp);
       expect(suggestion.config.footprint!.anchorYRatio, 0.96);
       expect(suggestion.config.footprint!.footprintWidthRatio, 0.46);
       expect(suggestion.config.footprint!.footprintHeightRatio, 0.10);
@@ -113,6 +117,7 @@ void main() {
 
       expect(suggestion.kind, ElementAutoShadowSuggestionKind.defaultProp);
       expect(suggestion.config.shadowProfileId, 'default-ground-soft-ellipse');
+      expect(suggestion.config.family, StaticShadowFamily.genericProjection);
       expect(suggestion.config.footprint!.anchorYRatio, 0.95);
       expect(suggestion.config.footprint!.footprintWidthRatio, 0.62);
       expect(suggestion.config.footprint!.footprintHeightRatio, 0.12);
@@ -177,6 +182,12 @@ void main() {
         expect(footprint.anchorYRatio, inInclusiveRange(0, 1));
         expect(footprint.footprintWidthRatio, greaterThan(0));
         expect(footprint.footprintHeightRatio, greaterThan(0));
+      }
+    });
+
+    test('all suggestions carry a static shadow family', () {
+      for (final suggestion in _allSuggestionKinds()) {
+        expect(suggestion.config.family, isNotNull);
       }
     });
 

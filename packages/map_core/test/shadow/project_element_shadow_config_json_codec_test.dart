@@ -12,6 +12,7 @@ void main() {
         scaleX: 1.2,
         scaleY: 0.45,
         opacity: 0.35,
+        family: StaticShadowFamily.building,
         footprint: StaticShadowFootprintConfig(
           anchorXRatio: 0.5,
           anchorYRatio: 1,
@@ -28,6 +29,7 @@ void main() {
         'scaleX': 1.2,
         'scaleY': 0.45,
         'opacity': 0.35,
+        'family': 'building',
         'footprint': <String, Object?>{
           'anchorXRatio': 0.5,
           'anchorYRatio': 1.0,
@@ -46,6 +48,7 @@ void main() {
         'scaleX': 1.2,
         'scaleY': 0.45,
         'opacity': 0.35,
+        'family': 'building',
         'footprint': <String, Object?>{
           'anchorXRatio': 0.5,
           'anchorYRatio': 1,
@@ -64,6 +67,7 @@ void main() {
           scaleX: 1.2,
           scaleY: 0.45,
           opacity: 0.35,
+          family: StaticShadowFamily.building,
           footprint: StaticShadowFootprintConfig(
             anchorXRatio: 0.5,
             anchorYRatio: 1,
@@ -81,6 +85,38 @@ void main() {
       });
 
       expect(config!.footprint, isNull);
+    });
+
+    test('old JSON without family decodes family null', () {
+      final config = decodeProjectElementShadowConfig(<String, Object?>{
+        'castsShadow': true,
+        'shadowProfileId': 'tree_large',
+      });
+
+      expect(config!.family, isNull);
+    });
+
+    test('encodes and decodes family when present', () {
+      final config = ProjectElementShadowConfig(
+        castsShadow: true,
+        shadowProfileId: 'tree_large',
+        family: StaticShadowFamily.tallProp,
+      );
+
+      expect(encodeProjectElementShadowConfig(config), <String, Object?>{
+        'castsShadow': true,
+        'shadowProfileId': 'tree_large',
+        'family': 'tallProp',
+      });
+      expect(
+        decodeProjectElementShadowConfig(<String, Object?>{
+          'castsShadow': true,
+          'shadowProfileId': 'tree_large',
+          'family': 'tallProp',
+        })!
+            .family,
+        StaticShadowFamily.tallProp,
+      );
     });
 
     test('encodes null and empty footprint by omitting footprint key', () {
@@ -280,6 +316,12 @@ void main() {
         }),
         throwsA(isA<ValidationException>()),
       );
+      expect(
+        () => decodeProjectElementShadowConfig(<String, Object?>{
+          'family': 42,
+        }),
+        throwsA(isA<ValidationException>()),
+      );
     });
 
     test('rejects invalid decoded values', () {
@@ -327,6 +369,14 @@ void main() {
           'footprint': <String, Object?>{
             'footprintWidthRatio': 0,
           },
+        }),
+        throwsA(isA<ValidationException>()),
+      );
+      expect(
+        () => decodeProjectElementShadowConfig(<String, Object?>{
+          'castsShadow': true,
+          'shadowProfileId': 'tree_large',
+          'family': 'zeppelin',
         }),
         throwsA(isA<ValidationException>()),
       );

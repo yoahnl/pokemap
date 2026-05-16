@@ -24,6 +24,7 @@ void main() {
           'scaleX': 0.8,
           'scaleY': 0.35,
           'opacity': 0.25,
+          'family': 'building',
           'footprint': <String, Object?>{
             'anchorXRatio': 0.5,
             'anchorYRatio': 1.0,
@@ -56,6 +57,7 @@ void main() {
           'scaleX': 0.8,
           'scaleY': 0.35,
           'opacity': 0.25,
+          'family': 'building',
           'footprint': <String, Object?>{
             'anchorXRatio': 0.5,
             'anchorYRatio': 1,
@@ -74,6 +76,35 @@ void main() {
       });
 
       expect(override!.footprint, isNull);
+    });
+
+    test('old JSON without family decodes family null', () {
+      final override = decodeMapPlacedElementShadowOverride(<String, Object?>{
+        'mode': 'custom',
+        'offsetX': 2,
+      });
+
+      expect(override!.family, isNull);
+    });
+
+    test('encodes and decodes custom family when present', () {
+      final override = MapPlacedElementShadowOverride(
+        mode: ShadowOverrideMode.custom,
+        family: StaticShadowFamily.compactProp,
+      );
+
+      expect(encodeMapPlacedElementShadowOverride(override), <String, Object?>{
+        'mode': 'custom',
+        'family': 'compactProp',
+      });
+      expect(
+        decodeMapPlacedElementShadowOverride(<String, Object?>{
+          'mode': 'custom',
+          'family': 'building',
+        })!
+            .family,
+        StaticShadowFamily.building,
+      );
     });
 
     test('encodes null and empty footprint by omitting footprint key', () {
@@ -124,6 +155,19 @@ void main() {
         () => MapPlacedElementShadowOverride(
           mode: ShadowOverrideMode.disabled,
           footprint: StaticShadowFootprintConfig(anchorXRatio: 0.5),
+        ),
+        throwsA(isA<ValidationException>()),
+      );
+      expect(
+        () => MapPlacedElementShadowOverride(
+          family: StaticShadowFamily.building,
+        ),
+        throwsA(isA<ValidationException>()),
+      );
+      expect(
+        () => MapPlacedElementShadowOverride(
+          mode: ShadowOverrideMode.disabled,
+          family: StaticShadowFamily.building,
         ),
         throwsA(isA<ValidationException>()),
       );
@@ -192,6 +236,13 @@ void main() {
         () => decodeMapPlacedElementShadowOverride(<String, Object?>{
           'mode': 'custom',
           'shadowProfileId': 123,
+        }),
+        throwsA(isA<ValidationException>()),
+      );
+      expect(
+        () => decodeMapPlacedElementShadowOverride(<String, Object?>{
+          'mode': 'custom',
+          'family': 42,
         }),
         throwsA(isA<ValidationException>()),
       );
@@ -275,6 +326,27 @@ void main() {
       );
       expect(
         () => decodeMapPlacedElementShadowOverride(<String, Object?>{
+          'mode': 'inherit',
+          'family': 'building',
+        }),
+        throwsA(isA<ValidationException>()),
+      );
+      expect(
+        () => decodeMapPlacedElementShadowOverride(<String, Object?>{
+          'mode': 'disabled',
+          'family': 'building',
+        }),
+        throwsA(isA<ValidationException>()),
+      );
+      expect(
+        () => decodeMapPlacedElementShadowOverride(<String, Object?>{
+          'mode': 'custom',
+          'family': 'zeppelin',
+        }),
+        throwsA(isA<ValidationException>()),
+      );
+      expect(
+        () => decodeMapPlacedElementShadowOverride(<String, Object?>{
           'mode': 'custom',
           'footprint': <String, Object?>{
             'footprintHeightRatio': 0,
@@ -295,6 +367,7 @@ MapPlacedElementShadowOverride _customOverride() {
     scaleX: 0.8,
     scaleY: 0.35,
     opacity: 0.25,
+    family: StaticShadowFamily.building,
     footprint: StaticShadowFootprintConfig(
       anchorXRatio: 0.5,
       anchorYRatio: 1,

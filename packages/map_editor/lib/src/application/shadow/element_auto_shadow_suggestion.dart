@@ -147,6 +147,7 @@ ProjectElementShadowConfig _configForKind(
         scaleX: 1,
         scaleY: 1,
         opacity: 0.28,
+        family: StaticShadowFamily.tallProp,
         footprint: StaticShadowFootprintConfig(
           anchorXRatio: 0.5,
           anchorYRatio: 1.0,
@@ -163,6 +164,7 @@ ProjectElementShadowConfig _configForKind(
         scaleX: 1,
         scaleY: 0.85,
         opacity: 0.30,
+        family: StaticShadowFamily.building,
         footprint: StaticShadowFootprintConfig(
           anchorXRatio: 0.5,
           anchorYRatio: 0.92,
@@ -179,6 +181,7 @@ ProjectElementShadowConfig _configForKind(
         scaleX: 0.92,
         scaleY: 0.75,
         opacity: 0.27,
+        family: StaticShadowFamily.compactProp,
         footprint: StaticShadowFootprintConfig(
           anchorXRatio: 0.5,
           anchorYRatio: 0.95,
@@ -195,6 +198,7 @@ ProjectElementShadowConfig _configForKind(
         scaleX: 0.78,
         scaleY: 0.70,
         opacity: 0.26,
+        family: StaticShadowFamily.compactProp,
         footprint: StaticShadowFootprintConfig(
           anchorXRatio: 0.5,
           anchorYRatio: 0.96,
@@ -211,6 +215,7 @@ ProjectElementShadowConfig _configForKind(
         scaleX: 0.90,
         scaleY: 0.80,
         opacity: 0.28,
+        family: StaticShadowFamily.genericProjection,
         footprint: StaticShadowFootprintConfig(
           anchorXRatio: 0.5,
           anchorYRatio: 0.95,

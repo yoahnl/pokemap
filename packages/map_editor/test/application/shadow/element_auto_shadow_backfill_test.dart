@@ -33,12 +33,20 @@ void main() {
         'default-ground-contact-blob',
       );
       expect(
+        result.project.elements[0].shadow!.family,
+        StaticShadowFamily.tallProp,
+      );
+      expect(
         result.project.elements[0].shadow!.footprint!.footprintWidthRatio,
         0.18,
       );
       expect(
         result.project.elements[1].shadow!.shadowProfileId,
         'default-ground-wide-ellipse',
+      );
+      expect(
+        result.project.elements[1].shadow!.family,
+        StaticShadowFamily.building,
       );
       expect(
         result.project.elements[1].shadow!.footprint!.footprintWidthRatio,

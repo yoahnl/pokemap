@@ -2,6 +2,7 @@ import 'package:json_annotation/json_annotation.dart';
 
 import '../exceptions/map_exceptions.dart';
 import '../models/shadow.dart';
+import 'static_shadow_family_json_codec.dart';
 import 'static_shadow_footprint_config_json_codec.dart';
 
 Map<String, Object?> _stringKeyMapFrom(Object mapLike) {
@@ -77,6 +78,8 @@ Map<String, Object?> encodeProjectElementShadowConfig(
     if (config.scaleX != null) 'scaleX': config.scaleX,
     if (config.scaleY != null) 'scaleY': config.scaleY,
     if (config.opacity != null) 'opacity': config.opacity,
+    if (config.family != null)
+      'family': encodeStaticShadowFamily(config.family),
     if (footprintJson != null) 'footprint': footprintJson,
   };
 }
@@ -133,6 +136,7 @@ ProjectElementShadowConfig? decodeProjectElementShadowConfig(Object? json) {
       'opacity',
       'ProjectElementShadowConfig.opacity',
     ),
+    family: decodeStaticShadowFamily(map['family']),
     footprint: decodeStaticShadowFootprintConfig(map['footprint']),
   );
 }

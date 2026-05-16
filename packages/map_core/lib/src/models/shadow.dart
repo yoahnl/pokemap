@@ -41,6 +41,14 @@ enum ShadowOverrideMode {
   custom,
 }
 
+enum StaticShadowFamily {
+  genericProjection,
+  compactProp,
+  tallProp,
+  building,
+  foliage,
+}
+
 @immutable
 final class StaticShadowFootprintConfig {
   StaticShadowFootprintConfig({
@@ -177,6 +185,7 @@ final class ProjectElementShadowConfig {
     this.scaleX,
     this.scaleY,
     this.opacity,
+    this.family,
     this.footprint,
   }) {
     final profileId = shadowProfileId;
@@ -209,6 +218,7 @@ final class ProjectElementShadowConfig {
   final double? scaleX;
   final double? scaleY;
   final double? opacity;
+  final StaticShadowFamily? family;
   final StaticShadowFootprintConfig? footprint;
 
   @override
@@ -222,6 +232,7 @@ final class ProjectElementShadowConfig {
           other.scaleX == scaleX &&
           other.scaleY == scaleY &&
           other.opacity == opacity &&
+          other.family == family &&
           other.footprint == footprint;
 
   @override
@@ -233,6 +244,7 @@ final class ProjectElementShadowConfig {
         scaleX,
         scaleY,
         opacity,
+        family,
         footprint,
       );
 }
@@ -251,6 +263,7 @@ final class MapPlacedElementShadowOverride {
     this.scaleX,
     this.scaleY,
     this.opacity,
+    this.family,
     this.footprint,
   }) {
     final profileId = shadowProfileId;
@@ -285,6 +298,7 @@ final class MapPlacedElementShadowOverride {
   final double? scaleX;
   final double? scaleY;
   final double? opacity;
+  final StaticShadowFamily? family;
   final StaticShadowFootprintConfig? footprint;
 
   bool get _hasMapPlacedElementShadowCustomFields =>
@@ -294,6 +308,7 @@ final class MapPlacedElementShadowOverride {
       scaleX != null ||
       scaleY != null ||
       opacity != null ||
+      family != null ||
       footprint != null;
 
   @override
@@ -307,6 +322,7 @@ final class MapPlacedElementShadowOverride {
           other.scaleX == scaleX &&
           other.scaleY == scaleY &&
           other.opacity == opacity &&
+          other.family == family &&
           other.footprint == footprint;
 
   @override
@@ -318,6 +334,7 @@ final class MapPlacedElementShadowOverride {
         scaleX,
         scaleY,
         opacity,
+        family,
         footprint,
       );
 }
