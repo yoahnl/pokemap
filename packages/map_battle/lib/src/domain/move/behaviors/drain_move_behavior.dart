@@ -19,9 +19,9 @@ enum _DrainMoveKind {
 /// Ports the PSDK drain family (`s_absorb` and `s_dream_eater`) for the common
 /// HP-transfer path.
 ///
-/// Full PSDK parity still depends on future drain-prevention hooks such as
-/// Heal Block and item/ability modifiers. This behavior deliberately keeps the
-/// local rule small: damage first, heal the user from the damage actually dealt.
+/// The local port mirrors PSDK's damage-first drain process for single targets:
+/// damage dealt drives the heal amount, Big Root boosts that amount, Heal Block
+/// prevents only the recovery, and Liquid Ooze turns the recovery into damage.
 final class DrainMoveBehavior implements BattleMoveBehavior {
   const DrainMoveBehavior.absorb()
       : battleEngineMethod = 's_absorb',
@@ -78,19 +78,41 @@ final class DrainMoveBehavior implements BattleMoveBehavior {
     final healAmount = _drainHealAmount(
       damage: damage.damage,
       dbSymbol: context.move.dbSymbol,
+      user: user,
     );
-    final heal = applyDirectHeal(
-      state: damage.state,
-      user: context.user,
-      target: context.user,
-      moveId: context.move.id,
-      rng: damage.rng,
-      turn: context.turn,
-      amount: healAmount,
-    );
+    var stateAfterDrain = damage.state;
+    var rngAfterDrain = damage.rng;
+    PsdkBattleEvent? drainEvent;
+    if (_hasLiquidOoze(target)) {
+      final liquidOozeDamage = applyDirectDamage(
+        state: damage.state,
+        user: context.user,
+        target: context.user,
+        moveId: context.move.id,
+        rng: damage.rng,
+        turn: context.turn,
+        amount: healAmount,
+      );
+      stateAfterDrain = liquidOozeDamage.state;
+      rngAfterDrain = liquidOozeDamage.rng;
+      drainEvent = liquidOozeDamage.event;
+    } else if (!_isHealBlocked(user)) {
+      final heal = applyDirectHeal(
+        state: damage.state,
+        user: context.user,
+        target: context.user,
+        moveId: context.move.id,
+        rng: damage.rng,
+        turn: context.turn,
+        amount: healAmount,
+      );
+      stateAfterDrain = heal.state;
+      rngAfterDrain = heal.rng;
+      drainEvent = heal.event;
+    }
     final secondary = const BattleMoveSecondaryEffectResolver().resolve(
-      state: heal.state,
-      rng: heal.rng,
+      state: stateAfterDrain,
+      rng: rngAfterDrain,
       user: context.user,
       target: targetSlot,
       move: context.move,
@@ -103,7 +125,7 @@ final class DrainMoveBehavior implements BattleMoveBehavior {
       events: <PsdkBattleEvent>[
         ...prepared.events,
         if (damage.event != null) damage.event!,
-        if (heal.event != null) heal.event!,
+        if (drainEvent != null) drainEvent,
         ...secondary.events,
       ],
     );
@@ -152,9 +174,23 @@ bool _canDreamEaterAffect(PsdkBattleCombatant target) {
 int _drainHealAmount({
   required int damage,
   required String dbSymbol,
+  required PsdkBattleCombatant user,
 }) {
   final drainFactor =
       dbSymbol == 'draining_kiss' || dbSymbol == 'oblivion_wing' ? 4 / 3 : 2;
-  final healed = (damage / drainFactor).floor();
+  final multiplier = _hasBigRoot(user) ? 1.3 : 1.0;
+  final healed = (damage * multiplier / drainFactor).floor();
   return healed < 1 ? 1 : healed;
+}
+
+bool _hasBigRoot(PsdkBattleCombatant user) {
+  return user.heldItemId == 'big_root' && !user.itemConsumed;
+}
+
+bool _hasLiquidOoze(PsdkBattleCombatant target) {
+  return target.abilityId == 'liquid_ooze';
+}
+
+bool _isHealBlocked(PsdkBattleCombatant user) {
+  return user.effects.contains('heal_block');
 }

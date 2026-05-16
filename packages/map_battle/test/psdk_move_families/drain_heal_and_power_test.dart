@@ -85,6 +85,74 @@ void main() {
       expect(heal['target'], psdkPlayerSlot.toJson());
     });
 
+    test('s_absorb applies Big Root to the drained heal amount', () {
+      final result = _runMove(
+        playerCurrentHp: 10,
+        playerHeldItemId: 'big_root',
+        playerMove: _move(
+          id: 'absorb',
+          battleEngineMethod: 's_absorb',
+          power: 80,
+          type: 'grass',
+          category: PsdkBattleMoveCategory.special,
+        ),
+      );
+      final damage = _damage(result, moveId: 'absorb');
+      final expectedHeal = (damage * 1.3 / 2).floor();
+
+      expect(
+          result.state.battlerAt(psdkPlayerSlot).currentHp, 10 + expectedHeal);
+      expect(_healJson(result, moveId: 'absorb')['amount'], expectedHeal);
+    });
+
+    test('s_absorb turns healing into user damage against Liquid Ooze', () {
+      final result = _runMove(
+        playerCurrentHp: 60,
+        opponentAbilityId: 'liquid_ooze',
+        playerMove: _move(
+          id: 'absorb',
+          battleEngineMethod: 's_absorb',
+          power: 80,
+          type: 'grass',
+          category: PsdkBattleMoveCategory.special,
+        ),
+      );
+      final damageEvents = _damageEvents(result, moveId: 'absorb');
+      expect(damageEvents, hasLength(2));
+
+      final targetDamage = damageEvents[0].damage;
+      final liquidOozeDamage = targetDamage ~/ 2;
+
+      expect(_healEvents(result, moveId: 'absorb'), isEmpty);
+      expect(damageEvents[0].target, psdkOpponentSlot);
+      expect(damageEvents[1].target, psdkPlayerSlot);
+      expect(damageEvents[1].damage, liquidOozeDamage);
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).currentHp,
+        60 - liquidOozeDamage,
+      );
+    });
+
+    test('s_absorb damages but does not heal a Heal Blocked user', () {
+      final result = _runMove(
+        playerCurrentHp: 60,
+        playerEffects: PsdkBattleEffectStack(
+          values: const <String>['heal_block'],
+        ),
+        playerMove: _move(
+          id: 'absorb',
+          battleEngineMethod: 's_absorb',
+          power: 80,
+          type: 'grass',
+          category: PsdkBattleMoveCategory.special,
+        ),
+      );
+
+      expect(_damageEvents(result, moveId: 'absorb'), hasLength(1));
+      expect(_healEvents(result, moveId: 'absorb'), isEmpty);
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 60);
+    });
+
     test('s_dream_eater only drains targets that are asleep', () {
       final awake = _runMove(
         playerCurrentHp: 60,
@@ -304,6 +372,7 @@ PsdkBattleTurnResult _runMove({
   String? playerHeldItemId,
   bool playerItemConsumed = false,
   PsdkBattleStatStages? playerStatStages,
+  PsdkBattleEffectStack? playerEffects,
   int opponentCurrentHp = 100,
   PsdkBattleMajorStatus? opponentMajorStatus,
   String? opponentAbilityId,
@@ -317,6 +386,7 @@ PsdkBattleTurnResult _runMove({
         heldItemId: playerHeldItemId,
         itemConsumed: playerItemConsumed,
         statStages: playerStatStages,
+        effects: playerEffects,
       ),
       opponent: _combatant(
         id: 'opponent',
@@ -348,6 +418,7 @@ PsdkBattleCombatantSetup _combatant({
   String? heldItemId,
   bool itemConsumed = false,
   PsdkBattleStatStages? statStages,
+  PsdkBattleEffectStack? effects,
   PsdkBattleMajorStatus? majorStatus,
   String? abilityId,
 }) {
@@ -370,6 +441,7 @@ PsdkBattleCombatantSetup _combatant({
     heldItemId: heldItemId,
     itemConsumed: itemConsumed,
     statStages: statStages,
+    effects: effects,
     majorStatus: majorStatus,
     abilityId: abilityId,
   );
@@ -422,8 +494,18 @@ Map<String, Object?> _healJson(
   PsdkBattleTurnResult result, {
   required String moveId,
 }) {
+  return _healEvents(result, moveId: moveId)
+      .map((event) => event.toJson())
+      .single;
+}
+
+List<PsdkBattleHealEvent> _healEvents(
+  PsdkBattleTurnResult result, {
+  required String moveId,
+}) {
   return result.timeline.events
       .where((event) => event.kind == 'heal')
-      .map((event) => event.toJson())
-      .singleWhere((json) => json['moveId'] == moveId);
+      .whereType<PsdkBattleHealEvent>()
+      .where((event) => event.moveId == moveId)
+      .toList(growable: false);
 }

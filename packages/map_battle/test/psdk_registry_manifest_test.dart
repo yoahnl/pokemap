@@ -1373,7 +1373,7 @@ void main() {
           entry.battleEngineMethod: entry,
       };
 
-      expect(byMethod['s_absorb']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_absorb']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_absorb']!.dartBehavior,
         'DrainMoveBehavior.absorb',

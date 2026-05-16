@@ -245,6 +245,27 @@ final class PsdkStudioMoveCoverageEntry {
         moveStatusCount == 0 &&
         effectChance == 0;
   }
+
+  bool get isStrictAbsorbDrain {
+    if (battleEngineMethod != 's_absorb') {
+      return false;
+    }
+    if (power <= 0) {
+      return false;
+    }
+    final normalizedCategory = category.trim().toLowerCase();
+    if (normalizedCategory != 'physical' && normalizedCategory != 'special') {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    if (normalizedTarget.isNotEmpty &&
+        !_strictAbsorbDrainTargets.contains(normalizedTarget)) {
+      return false;
+    }
+    return battleStageModCount == 0 &&
+        moveStatusCount == 0 &&
+        effectChance == 0;
+  }
 }
 
 final class PsdkStudioStageModCoverageEntry {
@@ -372,6 +393,10 @@ String generatePsdkAttackCoverageReport({
       '- `s_recoil` is counted as `fait` only for plain recoil damage moves; '
       'status riders, special self-crash, and multi-target variants remain '
       '`partiel`.',
+    )
+    ..writeln(
+      '- `s_absorb` is counted as `fait` only for plain single-target drain '
+      'moves; multi-target and unusual target variants remain `partiel`.',
     )
     ..writeln()
     ..writeln('| Metric | Count |')
@@ -523,6 +548,8 @@ String psdkAttackCoverageForMove(
       move.isStrictRechargeDamage ? 'fait' : 'partiel',
     PsdkPortStatus.ported when move.battleEngineMethod == 's_recoil' =>
       move.isStrictRecoilDamage ? 'fait' : 'partiel',
+    PsdkPortStatus.ported when move.battleEngineMethod == 's_absorb' =>
+      move.isStrictAbsorbDrain ? 'fait' : 'partiel',
     PsdkPortStatus.ported => 'fait',
     PsdkPortStatus.partial => 'partiel',
     PsdkPortStatus.missing || null => 'pas_fait',
@@ -699,6 +726,12 @@ const _strictRecoilDamageMoves = <String>{
 };
 
 const _strictRecoilDamageTargets = <String>{
+  'adjacent_pokemon',
+  'adjacent_foe',
+  'any_other_pokemon',
+};
+
+const _strictAbsorbDrainTargets = <String>{
   'adjacent_pokemon',
   'adjacent_foe',
   'any_other_pokemon',

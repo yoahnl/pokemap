@@ -56,7 +56,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Absorb',
     rubyPath: '10 Move/2 Definitions/300 Absorb.rb',
     dartBehavior: 'DrainMoveBehavior.absorb',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.effects,

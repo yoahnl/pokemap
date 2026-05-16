@@ -765,5 +765,67 @@ void main() {
       expect(report, contains('| partiel | flare_blitz | s_recoil | ported |'));
       expect(report, contains('| partiel | mind_blown | s_recoil | ported |'));
     });
+
+    test('scopes ported s_absorb coverage to strict single-target drains', () {
+      final report = generatePsdkAttackCoverageReport(
+        moves: const <PsdkStudioMoveCoverageEntry>[
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'giga_drain',
+            battleEngineMethod: 's_absorb',
+            type: 'grass',
+            category: 'special',
+            power: 75,
+            accuracy: '100',
+            pp: 10,
+            target: 'adjacent_pokemon',
+            sourceFile: 'giga_drain.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'parabolic_charge',
+            battleEngineMethod: 's_absorb',
+            type: 'electric',
+            category: 'special',
+            power: 65,
+            accuracy: '100',
+            pp: 20,
+            target: 'adjacent_all_pokemon',
+            sourceFile: 'parabolic_charge.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'absorb_status',
+            battleEngineMethod: 's_absorb',
+            type: 'grass',
+            category: 'status',
+            power: 0,
+            accuracy: '100',
+            pp: 20,
+            target: 'adjacent_pokemon',
+            sourceFile: 'absorb_status.json',
+          ),
+        ],
+        manifest: const <PsdkMoveRegistryManifestEntry>[
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_absorb',
+            rubyClass: 'Absorb',
+            rubyPath: 'absorb.rb',
+            dartBehavior: 'DrainMoveBehavior.absorb',
+            status: PsdkPortStatus.ported,
+          ),
+        ],
+        sourceDescription: 's_absorb test moves',
+      );
+
+      expect(report, contains('| fait | 1 |'));
+      expect(report, contains('| partiel | 2 |'));
+      expect(report, contains('| fait | giga_drain | s_absorb | ported |'));
+      expect(
+        report,
+        contains('| partiel | parabolic_charge | s_absorb | ported |'),
+      );
+      expect(
+        report,
+        contains('| partiel | absorb_status | s_absorb | ported |'),
+      );
+    });
   });
 }

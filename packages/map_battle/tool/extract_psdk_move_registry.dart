@@ -1077,13 +1077,14 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'DirectHpMoveBehavior.painSplit',
     status: _PsdkPortStatus.partial,
   ),
-  // Drain/heal families are executable for their local HP transfer rules, but
-  // stay partial until PSDK's Heal Block, drain-prevention and item/ability
-  // hooks are represented as full effects.
+  // Absorb-style drains are ported for the strict single-target PSDK path,
+  // including Big Root, Liquid Ooze and Heal Block drain prevention.
   's_absorb': _KnownDartBehavior(
     dartBehavior: 'DrainMoveBehavior.absorb',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
+  // Dream Eater shares the drain path but stays partial until sleep-like
+  // exceptions and wider drain prevention hooks are fully represented.
   's_dream_eater': _KnownDartBehavior(
     dartBehavior: 'DrainMoveBehavior.dreamEater',
     status: _PsdkPortStatus.partial,
