@@ -45,6 +45,7 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
 
   @override
   BattleMoveBehaviorResolution resolve(BattleMoveBehaviorContext context) {
+    final accuracyBypass = _trumpCardBypassesAccuracy(context);
     final prepared = prepareBattleMove(
       BattleMoveBehaviorContext(
         state: context.state,
@@ -56,6 +57,7 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
         isLastActionOfTurn: context.isLastActionOfTurn,
         moveProcedureHooks: context.moveProcedureHooks,
       ),
+      forceAccuracyBypass: accuracyBypass,
     );
     if (!prepared.shouldExecuteBehavior) {
       return prepared.toResolution();
@@ -82,6 +84,7 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
         target: target,
         move: move,
         rng: prepared.rng,
+        field: prepared.state.field,
       ),
     );
     if (damageResult.damage <= 0) {
@@ -134,10 +137,22 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
             .toInt(),
       _ConsecutivePowerKind.rollout ||
       _ConsecutivePowerKind.iceBall =>
-        context.move.power * (1 << _sameMoveStreak(user, context.move.id)),
+        context.move.power *
+            (1 <<
+                (_sameMoveStreak(user, context.move.id) +
+                    (_hasDefenseCurlSuccess(user) ? 1 : 0))),
       _ConsecutivePowerKind.trumpCard => _trumpCardPower(context.move),
     };
     return _copyMove(context.move, power: power);
+  }
+
+  bool _trumpCardBypassesAccuracy(BattleMoveBehaviorContext context) {
+    if (_kind != _ConsecutivePowerKind.trumpCard) {
+      return false;
+    }
+    final target = context.state.battlerAt(context.target);
+    return !target.effects.contains('out_of_reach') &&
+        !target.effects.contains('out_of_reach_base');
   }
 
   int _sameMoveStreak(PsdkBattleCombatant user, String moveId) {
@@ -150,6 +165,12 @@ final class ConsecutivePowerMoveBehavior implements BattleMoveBehavior {
       streak++;
     }
     return streak;
+  }
+
+  bool _hasDefenseCurlSuccess(PsdkBattleCombatant user) {
+    return user.moveHistory.successes.any(
+      (entry) => entry.moveId == 'defense_curl',
+    );
   }
 
   int _trumpCardPower(BattleMoveDefinition move) {

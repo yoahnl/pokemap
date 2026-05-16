@@ -1,3 +1,4 @@
+import '../../battler/battle_combatant_history.dart';
 import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
@@ -156,10 +157,10 @@ final class HistoryPowerMoveBehavior implements BattleMoveBehavior {
         _hadNegativeStatChangeThisTurn(user, turn) ? movePower * 2 : movePower,
       _HistoryPowerKind.payback =>
         _wasDamagedThisTurn(user, turn) ? movePower * 2 : movePower,
-      _HistoryPowerKind.rageFist =>
-        (movePower + user.damageHistory.entries.length * 50)
-            .clamp(1, 350)
-            .toInt(),
+      _HistoryPowerKind.rageFist => (movePower +
+              user.damageHistory.entries.where(_isMoveDamageEntry).length * 50)
+          .clamp(1, 350)
+          .toInt(),
       _HistoryPowerKind.retaliate => _sameBankBattlerFaintedLastTurn(
           state: state,
           userSlot: userSlot,
@@ -184,6 +185,12 @@ final class HistoryPowerMoveBehavior implements BattleMoveBehavior {
 
   bool _wasDamagedThisTurn(PsdkBattleCombatant user, int turn) {
     return user.damageHistory.entries.any((entry) => entry.turn == turn);
+  }
+
+  bool _isMoveDamageEntry(PsdkBattleDamageHistoryEntry entry) {
+    return !entry.moveId.startsWith('effect:') &&
+        !entry.moveId.startsWith('item:') &&
+        !entry.moveId.startsWith('status:');
   }
 
   bool _targetHasNotAttemptedThisTurn(PsdkBattleCombatant target, int turn) {

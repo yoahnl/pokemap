@@ -141,6 +141,43 @@ void main() {
       );
     });
 
+    test('s_rage_fist ignores non-move damage history entries', () {
+      final normal = _runMove(
+        opponentTypes: const PsdkBattleTypes(primary: 'psychic'),
+        playerMove: _move(
+          id: 'rage_fist',
+          type: 'ghost',
+          power: 50,
+          battleEngineMethod: 's_rage_fist',
+        ),
+      );
+      final effectDamageOnly = _runMove(
+        opponentTypes: const PsdkBattleTypes(primary: 'psychic'),
+        playerDamageHistory: PsdkBattleDamageHistory(
+          entries: const <PsdkBattleDamageHistoryEntry>[
+            PsdkBattleDamageHistoryEntry(
+              turn: 1,
+              source: psdkOpponentSlot,
+              moveId: 'effect:spikes',
+              damage: 10,
+              remainingHp: 90,
+            ),
+          ],
+        ),
+        playerMove: _move(
+          id: 'rage_fist',
+          type: 'ghost',
+          power: 50,
+          battleEngineMethod: 's_rage_fist',
+        ),
+      );
+
+      expect(
+        _damage(effectDamageOnly, moveId: 'rage_fist'),
+        _damage(normal, moveId: 'rage_fist'),
+      );
+    });
+
     test('s_assurance doubles power when the target took damage this turn', () {
       final normal = _runMove(
         playerMove: _move(

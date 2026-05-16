@@ -110,6 +110,33 @@ void main() {
           greaterThan(_damage(first, moveId: entry.moveId)),
         );
       });
+
+      test('${entry.method} doubles once after Defense Curl succeeded', () {
+        final first = _runMove(
+          playerMove: _move(
+            id: entry.moveId,
+            type: entry.method == 's_rollout' ? 'rock' : 'ice',
+            power: 30,
+            battleEngineMethod: entry.method,
+          ),
+        );
+        final curled = _runMove(
+          playerMoveHistory: _history(successes: const <String>[
+            'defense_curl',
+          ]),
+          playerMove: _move(
+            id: entry.moveId,
+            type: entry.method == 's_rollout' ? 'rock' : 'ice',
+            power: 30,
+            battleEngineMethod: entry.method,
+          ),
+        );
+
+        expect(
+          _damage(curled, moveId: entry.moveId),
+          greaterThan(_damage(first, moveId: entry.moveId)),
+        );
+      });
     }
 
     test('s_echo gains power after recent Echoed Voice success', () {
@@ -162,6 +189,26 @@ void main() {
       expect(
         _damage(lowPp, moveId: 'trump_card'),
         greaterThan(_damage(highPp, moveId: 'trump_card')),
+      );
+    });
+
+    test('s_trump_card bypasses accuracy against reachable targets', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'trump_card',
+          category: PsdkBattleMoveCategory.special,
+          power: 1,
+          accuracy: 1,
+          pp: 8,
+          currentPp: 2,
+          battleEngineMethod: 's_trump_card',
+        ),
+      );
+
+      expect(_damageEvents(result, moveId: 'trump_card'), hasLength(1));
+      expect(
+        result.timeline.events.map((event) => event.kind),
+        isNot(contains('move_missed')),
       );
     });
   });
@@ -282,8 +329,15 @@ PsdkBattleMoveData _move({
 }
 
 int _damage(PsdkBattleTurnResult result, {required String moveId}) {
+  return _damageEvents(result, moveId: moveId).single.damage;
+}
+
+List<PsdkBattleDamageEvent> _damageEvents(
+  PsdkBattleTurnResult result, {
+  required String moveId,
+}) {
   return result.timeline.events
       .whereType<PsdkBattleDamageEvent>()
-      .singleWhere((event) => event.moveId == moveId)
-      .damage;
+      .where((event) => event.moveId == moveId)
+      .toList();
 }
