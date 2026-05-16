@@ -35,6 +35,7 @@ export '../domain/effect/ability/reckless_effect.dart';
 export '../domain/effect/ability/rock_head_effect.dart';
 export '../domain/effect/ability/shadow_tag_effect.dart';
 export '../domain/effect/ability/skill_link_effect.dart';
+export '../domain/effect/ability/soundproof_effect.dart';
 export '../domain/effect/ability/status_immunity_effect.dart';
 export '../domain/effect/field/terrain_effect.dart';
 export '../domain/effect/field/weather_effect.dart';

@@ -63,15 +63,21 @@ final class BattleMoveImmunityResolver {
         continue;
       }
 
-      if (!ignoreProtect && _isBlockedByProtect(execution, targetRef)) {
-        failureReason = BattleMoveFailureReason.protected;
+      final effectPrevention = _targetEffectPreventionReason(
+        execution,
+        targetRef,
+      );
+      if (effectPrevention != null &&
+          !(ignoreProtect &&
+              effectPrevention == BattleMoveFailureReason.protected)) {
+        failureReason = effectPrevention;
         execution.timeline.add(
           BattleMoveFailedTimelineEvent(
             turn: execution.turn,
             user: execution.actualUser,
             target: targetRef,
             moveId: execution.move.id,
-            reason: BattleMoveFailureReason.protected.jsonName,
+            reason: effectPrevention.jsonName,
           ),
         );
         continue;
@@ -133,23 +139,18 @@ final class BattleMoveImmunityResolver {
     return moveType == 'ground' && !_groundingResolver.isGrounded(target);
   }
 
-  bool _isBlockedByProtect(
+  BattleMoveFailureReason? _targetEffectPreventionReason(
     BattleMoveProcedureExecution execution,
     BattlePositionRef targetRef,
   ) {
-    if (targetRef == execution.actualUser ||
-        !execution.move.flags.protectable) {
-      return false;
-    }
     final target = execution.context.state.battlerAt(
       _psdkSlotFromBattlePosition(targetRef),
     );
     return target.effects.targetMovePreventionReason(
-          user: execution.actualUser,
-          target: targetRef,
-          move: execution.move,
-        ) ==
-        BattleMoveFailureReason.protected;
+      user: execution.actualUser,
+      target: targetRef,
+      move: execution.move,
+    );
   }
 }
 

@@ -1415,6 +1415,19 @@ status lifecycle tests.
 **Definition of done:**
 - Status moves depending on cure/immunity can be promoted.
 
+**Status 2026-05-17:** done. The existing status handler already covered
+simple type immunities, Electric Terrain sleep blocking, Misty Terrain status
+blocking, Psycho Shift transfer, Purify, and active ally cures. This lot closes
+the missing ability/cure integration for PSDK sound-based cure moves:
+`soundproof` now hydrates as an ability effect and blocks sound moves through
+the generic target-prevention hook. `Heal Bell` therefore keeps a Soundproof
+user statused instead of curing through the immunity. The target precheck now
+accepts non-Protect target-effect prevention reasons while preserving the
+existing `ignoreProtect` behavior for Protect-only bypasses. Regression
+coverage lives in
+`packages/map_battle/test/psdk_move_families/status_cure_move_behavior_test.dart`;
+the protect, ability, and status lifecycle suites also cover the integration.
+
 ### Lot 47 - Ability Registry Completeness Foundation
 
 **Goal:** hydrate all known PSDK ability ids into a registry with explicit statuses.

@@ -12,6 +12,7 @@ import 'reckless_effect.dart';
 import 'rock_head_effect.dart';
 import 'shadow_tag_effect.dart';
 import 'skill_link_effect.dart';
+import 'soundproof_effect.dart';
 import 'status_immunity_effect.dart';
 
 typedef AbilityEffectFactory = BattleEffect Function({
@@ -40,6 +41,7 @@ final class AbilityEffectRegistry {
           scope: scope,
         ),
     'skill_link': ({required scope}) => SkillLinkEffect(scope: scope),
+    'soundproof': ({required scope}) => SoundproofEffect(scope: scope),
     'immunity': ({required scope}) => StatusImmunityEffect(
           abilityId: 'immunity',
           scope: scope,
