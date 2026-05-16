@@ -15,8 +15,8 @@ enum _WeightPowerKind {
 /// The formulas intentionally consume the combatant's battle snapshot rather
 /// than reaching into species data. That keeps the battle engine pure and lets
 /// runtime/editor import layers decide later how base/current weights are
-/// hydrated. PSDK's Minimize bonus/bypass and ability fallback around modified
-/// weights remain outside this slice, so these methods stay `partial`.
+/// hydrated. PSDK's ability fallback around modified weights remains outside
+/// this slice, so these methods stay `partial`.
 final class WeightPowerMoveBehavior implements BattleMoveBehavior {
   const WeightPowerMoveBehavior.lowKick()
       : battleEngineMethod = 's_low_kick',
@@ -32,7 +32,12 @@ final class WeightPowerMoveBehavior implements BattleMoveBehavior {
 
   @override
   BattleMoveBehaviorResolution resolve(BattleMoveBehaviorContext context) {
-    final prepared = prepareBattleMove(context);
+    final heavySlamMinimizeBonus = _kind == _WeightPowerKind.heavySlam &&
+        context.state.battlerAt(context.target).effects.contains('minimize');
+    final prepared = prepareBattleMove(
+      context,
+      forceAccuracyBypass: heavySlamMinimizeBonus,
+    );
     if (!prepared.shouldExecuteBehavior) {
       return prepared.toResolution();
     }
@@ -42,7 +47,11 @@ final class WeightPowerMoveBehavior implements BattleMoveBehavior {
     final target = prepared.state.battlerAt(targetSlot);
     final resolvedPower = switch (_kind) {
       _WeightPowerKind.lowKick => _lowKickPower(target),
-      _WeightPowerKind.heavySlam => _heavySlamPower(user, target),
+      _WeightPowerKind.heavySlam => _heavySlamPower(
+          user,
+          target,
+          heavySlamMinimizeBonus: heavySlamMinimizeBonus,
+        ),
     };
 
     final damageResult = const BattleMoveDamageCalculator().calculate(
@@ -51,6 +60,7 @@ final class WeightPowerMoveBehavior implements BattleMoveBehavior {
         target: target,
         move: context.move,
         rng: prepared.rng,
+        field: prepared.state.field,
         overrides: BattleMoveDamageOverrides(power: resolvedPower),
       ),
     );
@@ -100,12 +110,15 @@ final class WeightPowerMoveBehavior implements BattleMoveBehavior {
 
   int _heavySlamPower(
     PsdkBattleCombatant user,
-    PsdkBattleCombatant target,
-  ) {
+    PsdkBattleCombatant target, {
+    required bool heavySlamMinimizeBonus,
+  }) {
     final weightPercent = target.currentWeightKg / user.currentWeightKg;
     const minimumWeightPercent = <double>[0.5, 0.3334, 0.25, 0.20];
     final index =
         minimumWeightPercent.indexWhere((weight) => weightPercent > weight);
-    return 40 + 20 * (index == -1 ? minimumWeightPercent.length : index);
+    final basePower =
+        40 + 20 * (index == -1 ? minimumWeightPercent.length : index);
+    return heavySlamMinimizeBonus ? basePower * 2 : basePower;
   }
 }

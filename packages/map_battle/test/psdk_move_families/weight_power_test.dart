@@ -47,6 +47,74 @@ void main() {
       expect(_damage(runHeavySlamAtTargetWeight(20), moveId: 'heavy_slam'), 22);
     });
 
+    test('s_low_kick covers Grass Knot with the same weight formula', () {
+      PsdkBattleTurnResult runGrassKnotAtWeight(double targetWeight) {
+        return _runMove(
+          playerMove: _move(
+            id: 'grass_knot',
+            battleEngineMethod: 's_low_kick',
+            category: PsdkBattleMoveCategory.special,
+            power: 1,
+          ),
+          opponentWeight: targetWeight,
+        );
+      }
+
+      expect(_damage(runGrassKnotAtWeight(9), moveId: 'grass_knot'), 5);
+      expect(_damage(runGrassKnotAtWeight(200), moveId: 'grass_knot'), 22);
+    });
+
+    test('s_heavy_slam covers Heat Crash with the same weight formula', () {
+      PsdkBattleTurnResult runHeatCrashAtTargetWeight(double targetWeight) {
+        return _runMove(
+          playerMove: _move(
+            id: 'heat_crash',
+            battleEngineMethod: 's_heavy_slam',
+            power: 1,
+          ),
+          playerWeight: 100,
+          opponentWeight: targetWeight,
+        );
+      }
+
+      expect(_damage(runHeatCrashAtTargetWeight(51), moveId: 'heat_crash'), 8);
+      expect(_damage(runHeatCrashAtTargetWeight(20), moveId: 'heat_crash'), 22);
+    });
+
+    test('s_heavy_slam doubles power and bypasses accuracy on Minimize', () {
+      final minimized = _runMove(
+        playerMove: _move(
+          id: 'heavy_slam',
+          battleEngineMethod: 's_heavy_slam',
+          power: 1,
+          accuracy: 1,
+        ),
+        playerWeight: 100,
+        opponentWeight: 20,
+        opponentEffects: PsdkBattleEffectStack(
+          values: const <String>['minimize'],
+        ),
+      );
+      final regular = _runMove(
+        playerMove: _move(
+          id: 'heavy_slam',
+          battleEngineMethod: 's_heavy_slam',
+          power: 1,
+        ),
+        playerWeight: 100,
+        opponentWeight: 20,
+      );
+
+      final minimizedDamage = _damageEvents(minimized, moveId: 'heavy_slam');
+      expect(minimizedDamage, hasLength(1));
+      expect(minimizedDamage.single.damage,
+          greaterThan(_damage(regular, moveId: 'heavy_slam')));
+      expect(
+        minimized.timeline.events.map((event) => event.kind),
+        isNot(contains('move_missed')),
+      );
+    });
+
     test('weight-power moves keep the post-damage secondary chain', () {
       final result = _runMove(
         playerMove: _move(
@@ -95,6 +163,7 @@ PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
   double playerWeight = 100,
   double opponentWeight = 100,
+  PsdkBattleEffectStack opponentEffects = const PsdkBattleEffectStack.empty(),
 }) {
   final engine = PsdkBattleEngine(
     setup: PsdkBattleSetup.singles(
@@ -111,11 +180,12 @@ PsdkBattleTurnResult _runMove({
           power: 0,
           accuracy: 1,
         ),
+        effects: opponentEffects,
       ),
       rngSeeds: const PsdkBattleRngSeeds(
         moveDamage: 1,
         moveCritical: 99999,
-        moveAccuracy: 3,
+        moveAccuracy: 99,
         generic: 4,
       ),
     ),
@@ -127,6 +197,7 @@ PsdkBattleCombatantSetup _combatant({
   required String id,
   required double weight,
   required PsdkBattleMoveData move,
+  PsdkBattleEffectStack effects = const PsdkBattleEffectStack.empty(),
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -147,6 +218,7 @@ PsdkBattleCombatantSetup _combatant({
     ),
     baseWeightKg: weight,
     moves: <PsdkBattleMoveData>[move],
+    effects: effects,
   );
 }
 
@@ -181,8 +253,15 @@ int _damage(
   PsdkBattleTurnResult result, {
   required String moveId,
 }) {
+  return _damageEvents(result, moveId: moveId).single.damage;
+}
+
+List<PsdkBattleDamageEvent> _damageEvents(
+  PsdkBattleTurnResult result, {
+  required String moveId,
+}) {
   return result.timeline.events
       .whereType<PsdkBattleDamageEvent>()
-      .singleWhere((event) => event.moveId == moveId)
-      .damage;
+      .where((event) => event.moveId == moveId)
+      .toList();
 }
