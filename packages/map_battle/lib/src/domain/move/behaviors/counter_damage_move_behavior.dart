@@ -1,4 +1,6 @@
+import '../../battler/battle_combatant_history.dart';
 import '../../../psdk/domain/psdk_battle_combatant.dart';
+import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_prevention.dart';
@@ -72,6 +74,7 @@ final class CounterDamageMoveBehavior implements BattleMoveBehavior {
       rng: prepared.rng,
       turn: context.turn,
       amount: amount,
+      moveCategory: context.move.category,
     );
     return BattleMoveBehaviorResolution(
       state: applied.state,
@@ -86,7 +89,9 @@ final class CounterDamageMoveBehavior implements BattleMoveBehavior {
   int _damageAmount(PsdkBattleCombatant user, int turn) {
     final relevantEntries = switch (_kind) {
       _CounterDamageKind.bide => user.damageHistory.entries,
-      _ => user.damageHistory.entries.where((entry) => entry.turn == turn),
+      _ => user.damageHistory.entries.where(
+          (entry) => entry.turn == turn && _matchesCounterCategory(entry),
+        ),
     };
     final damage = relevantEntries.fold<int>(
       0,
@@ -98,6 +103,17 @@ final class CounterDamageMoveBehavior implements BattleMoveBehavior {
       _CounterDamageKind.bide =>
         damage * 2,
       _CounterDamageKind.metalBurst => (damage * 1.5).floor(),
+    };
+  }
+
+  bool _matchesCounterCategory(PsdkBattleDamageHistoryEntry entry) {
+    return switch (_kind) {
+      _CounterDamageKind.counter =>
+        entry.moveCategory == PsdkBattleMoveCategory.physical,
+      _CounterDamageKind.mirrorCoat =>
+        entry.moveCategory == PsdkBattleMoveCategory.special,
+      _CounterDamageKind.metalBurst => entry.moveCategory != null,
+      _CounterDamageKind.bide => true,
     };
   }
 }

@@ -793,6 +793,7 @@ class PsdkBattleCombatant {
     required String moveId,
     required int damage,
     required int remainingHp,
+    PsdkBattleMoveCategory? moveCategory,
   }) {
     return copyWith(
       lastHitByMoveId: moveId,
@@ -803,6 +804,7 @@ class PsdkBattleCombatant {
           moveId: moveId,
           damage: damage,
           remainingHp: remainingHp,
+          moveCategory: moveCategory,
         ),
       ),
     );

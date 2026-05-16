@@ -1,4 +1,5 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
+import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
@@ -61,6 +62,7 @@ BattleDirectDamageResult applyDirectDamage({
   required BattleRngStreams rng,
   required int turn,
   required int amount,
+  PsdkBattleMoveCategory? moveCategory,
 }) {
   final result = const BattleDamageHandler().applyDamage(
     context: BattleHandlerContext(
@@ -72,6 +74,7 @@ BattleDirectDamageResult applyDirectDamage({
     target: target,
     moveId: moveId,
     rawDamage: amount,
+    moveCategory: moveCategory,
   );
   final damageEvents = result.events.whereType<PsdkBattleDamageEvent>();
   return BattleDirectDamageResult(

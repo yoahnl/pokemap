@@ -21,6 +21,27 @@ void main() {
       expect(counter, incoming * 2);
     });
 
+    test('s_counter fails after special damage', () {
+      final result = _runMove(
+        playerSpeed: 1,
+        opponentSpeed: 100,
+        playerMove: _move(
+          id: 'counter',
+          type: 'fighting',
+          power: 0,
+          battleEngineMethod: 's_counter',
+        ),
+        opponentMove: _move(
+          id: 'opponent_water_gun',
+          category: PsdkBattleMoveCategory.special,
+          power: 40,
+        ),
+      );
+
+      expect(_damageEvents(result, moveId: 'counter'), isEmpty);
+      expect(_failed(result, moveId: 'counter'), isTrue);
+    });
+
     test('s_mirror_coat returns double current-turn damage to the attacker',
         () {
       final result = _runMove(
@@ -45,6 +66,24 @@ void main() {
       expect(reflected, incoming * 2);
     });
 
+    test('s_mirror_coat fails after physical damage', () {
+      final result = _runMove(
+        playerSpeed: 1,
+        opponentSpeed: 100,
+        playerMove: _move(
+          id: 'mirror_coat',
+          type: 'psychic',
+          category: PsdkBattleMoveCategory.special,
+          power: 0,
+          battleEngineMethod: 's_mirror_coat',
+        ),
+        opponentMove: _move(id: 'opponent_tackle', power: 40),
+      );
+
+      expect(_damageEvents(result, moveId: 'mirror_coat'), isEmpty);
+      expect(_failed(result, moveId: 'mirror_coat'), isTrue);
+    });
+
     test('s_metal_burst returns 1.5x current-turn damage to the attacker', () {
       final result = _runMove(
         playerSpeed: 1,
@@ -61,6 +100,42 @@ void main() {
       final incoming = _damage(result, moveId: 'opponent_tackle');
       final burst = _damage(result, moveId: 'metal_burst');
       expect(burst, (incoming * 1.5).floor());
+    });
+
+    test('s_metal_burst can return special damage too', () {
+      final result = _runMove(
+        playerSpeed: 1,
+        opponentSpeed: 100,
+        playerMove: _move(
+          id: 'metal_burst',
+          type: 'steel',
+          power: 0,
+          battleEngineMethod: 's_metal_burst',
+        ),
+        opponentMove: _move(
+          id: 'opponent_water_gun',
+          category: PsdkBattleMoveCategory.special,
+          power: 40,
+        ),
+      );
+
+      final incoming = _damage(result, moveId: 'opponent_water_gun');
+      final burst = _damage(result, moveId: 'metal_burst');
+      expect(burst, (incoming * 1.5).floor());
+    });
+
+    test('counter family fails when no valid damage exists', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'counter',
+          type: 'fighting',
+          power: 0,
+          battleEngineMethod: 's_counter',
+        ),
+      );
+
+      expect(_damageEvents(result, moveId: 'counter'), isEmpty);
+      expect(_failed(result, moveId: 'counter'), isTrue);
     });
 
     test('s_bide releases double stored damage from prior entries', () {
@@ -186,8 +261,21 @@ PsdkBattleMoveData _move({
 }
 
 int _damage(PsdkBattleTurnResult result, {required String moveId}) {
+  return _damageEvents(result, moveId: moveId).single.damage;
+}
+
+List<PsdkBattleDamageEvent> _damageEvents(
+  PsdkBattleTurnResult result, {
+  required String moveId,
+}) {
   return result.timeline.events
       .whereType<PsdkBattleDamageEvent>()
-      .singleWhere((event) => event.moveId == moveId)
-      .damage;
+      .where((event) => event.moveId == moveId)
+      .toList();
+}
+
+bool _failed(PsdkBattleTurnResult result, {required String moveId}) {
+  return result.timeline.events
+      .whereType<PsdkBattleMoveFailedEvent>()
+      .any((event) => event.moveId == moveId);
 }

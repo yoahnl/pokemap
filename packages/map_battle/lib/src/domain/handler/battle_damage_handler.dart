@@ -1,6 +1,7 @@
 import '../../psdk/domain/psdk_battle_state.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
+import '../../psdk/domain/psdk_battle_move.dart';
 import 'battle_handler_context.dart';
 import 'battle_handler_result.dart';
 import 'battle_stat_change_handler.dart';
@@ -13,6 +14,7 @@ final class BattleDamageHandler {
     required PsdkBattleSlotRef target,
     required String moveId,
     required int rawDamage,
+    PsdkBattleMoveCategory? moveCategory,
   }) {
     final targetBattler = context.state.battlerAt(target);
     final incomingDamage = rawDamage.clamp(0, targetBattler.currentHp).toInt();
@@ -39,6 +41,7 @@ final class BattleDamageHandler {
           moveId: moveId,
           damage: damage,
           remainingHp: remainingHp,
+          moveCategory: moveCategory,
         )
         .copyWith(currentHp: remainingHp);
 

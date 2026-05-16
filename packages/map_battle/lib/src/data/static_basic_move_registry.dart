@@ -786,6 +786,7 @@ BattleMoveBehaviorResolution _resolveBasic(BattleMoveBehaviorContext context) {
     rng: damageResult.rng,
     turn: context.turn,
     amount: damage,
+    moveCategory: context.move.category,
   );
   final secondary = const BattleMoveSecondaryEffectResolver().resolve(
     state: applied.state,

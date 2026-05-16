@@ -1,4 +1,5 @@
 import '../../psdk/domain/psdk_battle_slots.dart';
+import '../../psdk/domain/psdk_battle_move.dart';
 
 /// Damage history carried by the PSDK lane.
 ///
@@ -13,6 +14,7 @@ final class PsdkBattleDamageHistoryEntry {
     required this.moveId,
     required this.damage,
     required this.remainingHp,
+    this.moveCategory,
   });
 
   final int turn;
@@ -20,6 +22,7 @@ final class PsdkBattleDamageHistoryEntry {
   final String moveId;
   final int damage;
   final int remainingHp;
+  final PsdkBattleMoveCategory? moveCategory;
 }
 
 final class PsdkBattleDamageHistory {
