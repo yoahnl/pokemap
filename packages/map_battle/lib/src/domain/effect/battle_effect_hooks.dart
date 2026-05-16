@@ -128,6 +128,7 @@ final class BattleEffectDamagePreventionResult {
     required this.reason,
     this.events = const <PsdkBattleEvent>[],
     this.applied = true,
+    this.amount = 0,
   });
 
   final PsdkBattleState state;
@@ -136,6 +137,7 @@ final class BattleEffectDamagePreventionResult {
   final BattleMoveFailureReason reason;
   final List<PsdkBattleEvent> events;
   final bool applied;
+  final int amount;
 }
 
 final class BattleEffectPostDamageContext {

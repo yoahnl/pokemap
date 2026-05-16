@@ -1,4 +1,5 @@
 import '../../move/battle_move_prevention.dart';
+import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../battle_effect.dart';
 import '../battle_effect_hooks.dart';
 import '../battle_effect_scope.dart';
@@ -40,5 +41,35 @@ final class ProtectEffect extends BattleEffect {
     }
 
     return BattleMoveFailureReason.protected;
+  }
+
+  @override
+  BattleEffectDamagePreventionResult? onDamagePrevention(
+    BattleEffectDamagePreventionContext context,
+  ) {
+    if (context.user == context.target || !context.move.flags.protectable) {
+      return null;
+    }
+
+    final scope = this.scope;
+    if (scope is BattlerBattleEffectScope && scope.slot != context.target) {
+      return null;
+    }
+
+    return BattleEffectDamagePreventionResult(
+      state: context.state,
+      rng: context.rng,
+      prevented: true,
+      reason: BattleMoveFailureReason.protected,
+      applied: false,
+      events: <PsdkBattleEvent>[
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.target,
+          moveId: context.move.id,
+          reason: BattleMoveFailureReason.protected.jsonName,
+        ),
+      ],
+    );
   }
 }

@@ -1164,6 +1164,17 @@ method, or strict effect parity counts yet.
 **Definition of done:**
 - Damage prevention hook family starts moving out of missing status.
 
+**Status 2026-05-17:** done. `BattleDamageHandler` now dispatches the target
+effect stack through `onDamagePrevention` before mutating HP. Protect exposes
+the same protectable/self-target/scope checks through damage prevention and
+emits a protected `move_failed` event when the handler is called directly.
+Substitute moved its HP absorption out of the handler into
+`SubstituteEffect.onDamagePrevention`, preserving clone HP updates, clone
+breakage, real HP preservation, and the existing damage timeline event.
+Regression coverage lives in `test/psdk_damage_prevention_effect_test.dart`.
+This is hook infrastructure and behavior migration, so the strict attack /
+method / effect parity counts remain unchanged.
+
 ### Lot 40 - Post Damage Hooks
 
 **Goal:** port `on_post_damage` and `on_post_damage_death`.

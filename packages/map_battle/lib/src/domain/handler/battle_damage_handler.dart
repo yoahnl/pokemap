@@ -1,9 +1,10 @@
-import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_state.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
-import '../effect/move/substitute_effect.dart';
+import '../effect/battle_effect_hooks.dart';
+import '../move/battle_move_data.dart';
+import '../move/battle_move_prevention.dart';
 import 'battle_handler_context.dart';
 import 'battle_handler_result.dart';
 import 'battle_stat_change_handler.dart';
@@ -17,17 +18,34 @@ final class BattleDamageHandler {
     required String moveId,
     required int rawDamage,
     PsdkBattleMoveCategory? moveCategory,
+    BattleMoveDefinition? move,
   }) {
     final targetBattler = context.state.battlerAt(target);
-    final substitute = _activeSubstitute(targetBattler);
-    if (substitute != null && context.user.bank != target.bank) {
-      return _applySubstituteDamage(
-        context: context,
+    final moveDefinition = move ??
+        _damageMoveDefinition(
+          moveId: moveId,
+          category: moveCategory,
+        );
+    final prevention = targetBattler.effects.dispatchDamagePrevention(
+      BattleEffectDamagePreventionContext(
+        state: context.state,
+        rng: context.rng,
+        turn: context.turn,
+        owner: target,
+        user: context.user,
         target: target,
-        targetBattler: targetBattler,
-        moveId: moveId,
-        rawDamage: rawDamage,
-        substitute: substitute,
+        move: moveDefinition,
+        damage: rawDamage,
+      ),
+    );
+    if (prevention != null && prevention.prevented) {
+      return BattleHandlerResult(
+        state: prevention.state,
+        rng: prevention.rng,
+        events: prevention.events,
+        applied: prevention.applied,
+        reason: prevention.reason.jsonName,
+        amount: prevention.amount,
       );
     }
 
@@ -112,53 +130,22 @@ final class BattleDamageHandler {
   }
 }
 
-SubstituteEffect? _activeSubstitute(PsdkBattleCombatant battler) {
-  for (final effect in battler.effects.effects) {
-    if (effect is SubstituteEffect) {
-      return effect;
-    }
-  }
-  return null;
-}
-
-BattleHandlerResult _applySubstituteDamage({
-  required BattleHandlerContext context,
-  required PsdkBattleSlotRef target,
-  required PsdkBattleCombatant targetBattler,
+BattleMoveDefinition _damageMoveDefinition({
   required String moveId,
-  required int rawDamage,
-  required SubstituteEffect substitute,
+  PsdkBattleMoveCategory? category,
 }) {
-  final damage = rawDamage.clamp(0, substitute.remainingHp).toInt();
-  if (damage <= 0) {
-    return BattleHandlerResult(
-      state: context.state,
-      rng: context.rng,
-      applied: false,
-      reason: 'zero_damage',
-    );
-  }
-
-  final nextEffects = damage >= substitute.remainingHp
-      ? targetBattler.effects.remove('substitute')
-      : targetBattler.effects.addEffect(substitute.damage(damage));
-  final nextState = context.state.updateBattler(
-    target,
-    (battler) => battler.copyWith(effects: nextEffects),
-  );
-
-  return BattleHandlerResult(
-    state: nextState,
-    rng: context.rng,
-    amount: damage,
-    events: <PsdkBattleEvent>[
-      PsdkBattleDamageEvent(
-        user: context.user,
-        target: target,
-        moveId: moveId,
-        damage: damage,
-        remainingHp: targetBattler.currentHp,
-      ),
-    ],
+  return BattleMoveDefinition(
+    id: moveId,
+    dbSymbol: moveId,
+    name: moveId,
+    type: 'normal',
+    category: category ?? PsdkBattleMoveCategory.physical,
+    power: 0,
+    accuracy: 100,
+    pp: 1,
+    priority: 0,
+    battleEngineMethod: 's_direct_damage',
+    target: PsdkBattleMoveTarget.adjacentFoe,
+    flags: const BattleMoveFlags(protectable: false),
   );
 }
