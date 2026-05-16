@@ -843,8 +843,7 @@ void main() {
         ),
         (
           method: 's_future_sight',
-          behavior:
-              'StaticBasicMoveRegistry.partialTargetMarker(s_future_sight)',
+          behavior: 'StaticBasicMoveRegistry.delayedMove(s_future_sight)',
         ),
         (
           method: 's_gastro_acid',

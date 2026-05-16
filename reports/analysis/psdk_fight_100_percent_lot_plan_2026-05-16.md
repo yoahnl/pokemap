@@ -960,6 +960,17 @@ still open.
 **Definition of done:**
 - Delayed move families strict.
 
+**Status 2026-05-16:** in progress. `s_future_sight` now uses an
+object-backed delayed move effect for the local singles slice instead of the
+old passive target marker. Future Sight/Doom Desire-style moves store the
+origin, target slot and move data, tick through the PSDK end-turn effect phase,
+fail while the same target position already has a pending Future Sight, and
+deal real delayed damage when the countdown expires. Regression coverage lives
+in `delayed_attacks_test.dart`. The parity gate remains at 262 / 728 strict
+attacks and 63 / 330 ported battle methods because Wish, Healing Wish, Lunar
+Dance, full switch-in target replacement, multi-target behavior and exact PSDK
+message/animation timing are still open.
+
 ### Lot 34 - Combo and Pledge Families
 
 **Goal:** port Pledge, Round, Echoed Voice and combo move behavior.

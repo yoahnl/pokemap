@@ -525,7 +525,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_future_sight': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_future_sight)',
+    dartBehavior: 'StaticBasicMoveRegistry.delayedMove(s_future_sight)',
     status: _PsdkPortStatus.partial,
   ),
   's_gastro_acid': _KnownDartBehavior(

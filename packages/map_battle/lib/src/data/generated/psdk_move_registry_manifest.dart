@@ -928,7 +928,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_future_sight',
     rubyClass: 'FutureSight',
     rubyPath: '10 Move/2 Definitions/300 FutureSight.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_future_sight)',
+    dartBehavior: 'StaticBasicMoveRegistry.delayedMove(s_future_sight)',
     status: PsdkPortStatus.partial,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,

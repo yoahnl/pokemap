@@ -58,6 +58,7 @@ import '../domain/handler/battle_switch_handler.dart';
 import '../domain/handler/battle_terrain_change_handler.dart';
 import '../domain/effect/battle_effect.dart';
 import '../domain/effect/battle_effect_scope.dart';
+import '../domain/effect/field/delayed_move_effect.dart';
 import '../domain/effect/move/attract_effect.dart';
 import '../domain/effect/move/bind_effect.dart';
 import '../domain/effect/move/cant_switch_effect.dart';
@@ -180,6 +181,10 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     CallbackBattleMoveBehavior(
       battleEngineMethod: 's_thing_sport',
       resolve: _resolveThingSport,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_future_sight',
+      resolve: _resolveFutureSight,
     ),
     CallbackBattleMoveBehavior(
       battleEngineMethod: 's_trick',
@@ -653,7 +658,6 @@ const _partialTargetMarkerMethods = <String, String>{
   's_embargo': 'embargo',
   's_focus_energy': 'focus_energy',
   's_gastro_acid': 'ability_suppressed',
-  's_future_sight': 'future_sight',
   's_grudge': 'grudge',
   's_healing_wish': 'healing_wish',
   's_laser_focus': 'laser_focus',
@@ -3485,6 +3489,67 @@ BattleMoveBehaviorResolution _resolveTargetMarker(
     state: state,
     rng: rng,
     events: events,
+  );
+}
+
+BattleMoveBehaviorResolution _resolveFutureSight(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  if (prepared.psdkTargets.every(
+    (targetSlot) => prepared.state.battlerAt(targetSlot).effects.contains(
+          'future_sight',
+        ),
+  )) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: prepared.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.target,
+          moveId: context.move.id,
+          reason: 'future_sight_already_active',
+        ),
+      ],
+      successful: false,
+    );
+  }
+
+  var state = prepared.state;
+  for (final targetSlot in prepared.psdkTargets) {
+    final target = state.battlerAt(targetSlot);
+    if (target.effects.contains('future_sight')) {
+      continue;
+    }
+    state = state.updateBattler(
+      targetSlot,
+      (battler) => battler.copyWith(
+        effects: battler.effects.addEffect(
+          DelayedMoveEffect(
+            id: 'future_sight',
+            scope: BattlerBattleEffectScope(targetSlot),
+            origin: context.user,
+            move: context.move,
+            remainingTurns: _markerTurnCount(
+                  context.move.battleEngineMethod,
+                ) ??
+                3,
+          ),
+        ),
+      ),
+    );
+  }
+
+  return BattleMoveBehaviorResolution(
+    state: state,
+    rng: prepared.rng,
+    events: prepared.events,
   );
 }
 
