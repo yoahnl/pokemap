@@ -47,6 +47,7 @@ final class TypeBasedMoveBehavior implements BattleMoveBehavior {
         target: target,
         move: move,
         rng: prepared.rng,
+        field: prepared.state.field,
       ),
     );
     if (damageResult.damage <= 0) {
@@ -65,6 +66,7 @@ final class TypeBasedMoveBehavior implements BattleMoveBehavior {
       rng: damageResult.rng,
       turn: context.turn,
       amount: damageResult.damage,
+      moveCategory: move.category,
     );
     final secondary = const BattleMoveSecondaryEffectResolver().resolve(
       state: applied.state,

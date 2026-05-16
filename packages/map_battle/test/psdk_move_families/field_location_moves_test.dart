@@ -70,6 +70,55 @@ void main() {
       );
     });
 
+    test('s_nature_power records the converted special damage category', () {
+      final result = _runMove(
+        field: const PsdkBattleFieldState(
+          terrain: PsdkBattleTerrainState(
+            id: PsdkBattleTerrainId.electricTerrain,
+            remainingTurns: 5,
+          ),
+        ),
+        opponentTypes: const PsdkBattleTypes(primary: 'water'),
+        playerMove: _move(
+          id: 'nature_power',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_nature_power',
+        ),
+        opponentMove: _move(
+          id: 'mirror_coat',
+          type: 'psychic',
+          category: PsdkBattleMoveCategory.special,
+          power: 0,
+          battleEngineMethod: 's_mirror_coat',
+        ),
+      );
+
+      final incoming = _damage(result, moveId: 'nature_power');
+      final reflected = _damage(result, moveId: 'mirror_coat');
+      expect(reflected, incoming * 2);
+    });
+
+    test('s_secret_power records its physical damage category', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'secret_power',
+          power: 70,
+          battleEngineMethod: 's_secret_power',
+        ),
+        opponentMove: _move(
+          id: 'counter',
+          type: 'fighting',
+          power: 0,
+          battleEngineMethod: 's_counter',
+        ),
+      );
+
+      final incoming = _damage(result, moveId: 'secret_power');
+      final counter = _damage(result, moveId: 'counter');
+      expect(counter, incoming * 2);
+    });
+
     test('s_secret_power applies its terrain secondary effect on proc', () {
       final result = _runMove(
         field: const PsdkBattleFieldState(
@@ -142,6 +191,7 @@ PsdkBattleTurnResult _runMove({
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
   PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
+  PsdkBattleMoveData? opponentMove,
 }) {
   final engine = PsdkBattleEngine(
     setup: PsdkBattleSetup.singles(
@@ -156,13 +206,14 @@ PsdkBattleTurnResult _runMove({
         id: 'opponent',
         speed: 1,
         types: opponentTypes,
-        move: _move(
-          id: 'opponent_wait',
-          category: PsdkBattleMoveCategory.status,
-          power: 0,
-          accuracy: 0,
-          battleEngineMethod: 's_splash',
-        ),
+        move: opponentMove ??
+            _move(
+              id: 'opponent_wait',
+              category: PsdkBattleMoveCategory.status,
+              power: 0,
+              accuracy: 0,
+              battleEngineMethod: 's_splash',
+            ),
       ),
       rngSeeds: const PsdkBattleRngSeeds(
         moveDamage: 1,

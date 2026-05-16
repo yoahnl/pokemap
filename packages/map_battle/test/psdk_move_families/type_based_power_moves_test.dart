@@ -111,6 +111,29 @@ void main() {
         greaterThan(_damage(grass, moveId: 'ivy_cudgel')),
       );
     });
+
+    test('s_revelation_dance records its special damage category', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'revelation_dance',
+          type: 'normal',
+          category: PsdkBattleMoveCategory.special,
+          power: 90,
+          battleEngineMethod: 's_revelation_dance',
+        ),
+        opponentMove: _move(
+          id: 'mirror_coat',
+          type: 'psychic',
+          category: PsdkBattleMoveCategory.special,
+          power: 0,
+          battleEngineMethod: 's_mirror_coat',
+        ),
+      );
+
+      final incoming = _damage(result, moveId: 'revelation_dance');
+      final reflected = _damage(result, moveId: 'mirror_coat');
+      expect(reflected, incoming * 2);
+    });
   });
 }
 
@@ -119,6 +142,7 @@ PsdkBattleTurnResult _runMove({
   PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
   String? playerHeldItemId,
+  PsdkBattleMoveData? opponentMove,
 }) {
   final engine = PsdkBattleEngine(
     setup: PsdkBattleSetup.singles(
@@ -132,13 +156,14 @@ PsdkBattleTurnResult _runMove({
         id: 'opponent',
         speed: 1,
         types: opponentTypes,
-        move: _move(
-          id: 'opponent_wait',
-          power: 0,
-          accuracy: 0,
-          category: PsdkBattleMoveCategory.status,
-          battleEngineMethod: 's_splash',
-        ),
+        move: opponentMove ??
+            _move(
+              id: 'opponent_wait',
+              power: 0,
+              accuracy: 0,
+              category: PsdkBattleMoveCategory.status,
+              battleEngineMethod: 's_splash',
+            ),
       ),
       rngSeeds: const PsdkBattleRngSeeds(
         moveDamage: 1,
