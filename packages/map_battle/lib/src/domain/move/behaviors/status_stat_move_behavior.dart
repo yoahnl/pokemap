@@ -6,6 +6,7 @@ import '../../rng/battle_rng_streams.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_damage_calculator.dart';
 import '../battle_move_data.dart';
+import '../battle_move_prevention.dart';
 import '../battle_move_secondary_effect_resolver.dart';
 import 'battle_move_behavior_support.dart';
 
@@ -91,6 +92,28 @@ final class StatusStatMoveBehavior implements BattleMoveBehavior {
     required BattleMoveBehaviorContext context,
     required PreparedBattleMove prepared,
   }) {
+    if (_isPureStatusMove(context.move) &&
+        !_hasApplicableStageMod(
+          state: prepared.state,
+          target: context.user,
+          move: context.move,
+        )) {
+      return BattleMoveBehaviorResolution(
+        state: prepared.state,
+        rng: prepared.rng,
+        events: <PsdkBattleEvent>[
+          ...prepared.events,
+          PsdkBattleMoveFailedEvent(
+            user: context.user,
+            target: context.user,
+            moveId: context.move.id,
+            reason: BattleMoveFailureReason.unusableByUser.jsonName,
+          ),
+        ],
+        successful: false,
+      );
+    }
+
     final damaged = _applyBasicDamage(
       context: context,
       prepared: prepared,
@@ -238,6 +261,31 @@ final class StatusStatMoveBehavior implements BattleMoveBehavior {
       turn: turn,
     );
   }
+}
+
+bool _isPureStatusMove(BattleMoveDefinition move) {
+  return move.category == PsdkBattleMoveCategory.status && move.power <= 0;
+}
+
+bool _hasApplicableStageMod({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef target,
+  required BattleMoveDefinition move,
+}) {
+  if (move.stageMods.isEmpty) {
+    return false;
+  }
+  final stages = state.battlerAt(target).statStages;
+  return move.stageMods.any((mod) {
+    if (mod.stages == 0) {
+      return false;
+    }
+    final currentStage = stages.valueOf(mod.stat);
+    if (mod.stages > 0) {
+      return currentStage < 6;
+    }
+    return currentStage > -6;
+  });
 }
 
 BattleMoveDefinition _secondaryMove(

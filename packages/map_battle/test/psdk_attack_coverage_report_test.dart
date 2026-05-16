@@ -170,5 +170,90 @@ void main() {
         contains('| partiel | growl_like_bad_data | s_basic | ported |'),
       );
     });
+
+    test('scopes ported s_self_stat coverage to strict self boosts', () {
+      final report = generatePsdkAttackCoverageReport(
+        moves: const <PsdkStudioMoveCoverageEntry>[
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'calm_mind',
+            battleEngineMethod: 's_self_stat',
+            type: 'psychic',
+            category: 'status',
+            power: 0,
+            accuracy: '0',
+            pp: 20,
+            effectChance: 100,
+            battleStageModCount: 2,
+            battleStageMods: <PsdkStudioStageModCoverageEntry>[
+              PsdkStudioStageModCoverageEntry(
+                stat: 'specialAttack',
+                stages: 1,
+              ),
+              PsdkStudioStageModCoverageEntry(
+                stat: 'specialDefense',
+                stages: 1,
+              ),
+            ],
+            target: 'user',
+            sourceFile: 'calm_mind.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'hone_claws',
+            battleEngineMethod: 's_self_stat',
+            type: 'dark',
+            category: 'status',
+            power: 0,
+            accuracy: '0',
+            pp: 15,
+            effectChance: 100,
+            battleStageModCount: 2,
+            battleStageMods: <PsdkStudioStageModCoverageEntry>[
+              PsdkStudioStageModCoverageEntry(stat: 'attack', stages: 1),
+              PsdkStudioStageModCoverageEntry(stat: 'accuracy', stages: 1),
+            ],
+            target: 'user',
+            sourceFile: 'hone_claws.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'power_up_punch',
+            battleEngineMethod: 's_self_stat',
+            type: 'fighting',
+            category: 'physical',
+            power: 40,
+            accuracy: '100',
+            pp: 20,
+            effectChance: 100,
+            battleStageModCount: 1,
+            battleStageMods: <PsdkStudioStageModCoverageEntry>[
+              PsdkStudioStageModCoverageEntry(stat: 'attack', stages: 1),
+            ],
+            target: 'adjacent_foe',
+            sourceFile: 'power_up_punch.json',
+          ),
+        ],
+        manifest: const <PsdkMoveRegistryManifestEntry>[
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_self_stat',
+            rubyClass: 'SelfStat',
+            rubyPath: 'self.rb',
+            dartBehavior: 'StatusStatMoveBehavior.selfStat',
+            status: PsdkPortStatus.ported,
+          ),
+        ],
+        sourceDescription: 's_self_stat test moves',
+      );
+
+      expect(report, contains('| fait | 1 |'));
+      expect(report, contains('| partiel | 2 |'));
+      expect(report, contains('| fait | calm_mind | s_self_stat | ported |'));
+      expect(
+        report,
+        contains('| partiel | hone_claws | s_self_stat | ported |'),
+      );
+      expect(
+        report,
+        contains('| partiel | power_up_punch | s_self_stat | ported |'),
+      );
+    });
   });
 }

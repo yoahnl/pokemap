@@ -37,7 +37,7 @@ void main() {
       expect(byMethod['s_status']!.status, PsdkPortStatus.partial);
       expect(byMethod['s_protect']!.status, PsdkPortStatus.partial);
       expect(byMethod['s_stat']!.status, PsdkPortStatus.partial);
-      expect(byMethod['s_self_stat']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_self_stat']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_self_status']!.status, PsdkPortStatus.partial);
       expect(byMethod['s_protect']!.rubyClass, 'Protect');
       expect(byMethod['s_protect']!.dartBehavior, contains('s_protect'));
@@ -53,6 +53,7 @@ void main() {
         byMethod['s_self_stat']!.dartBehavior,
         'StatusStatMoveBehavior.selfStat',
       );
+      expect(byMethod['s_self_stat']!.dependencies, isEmpty);
       expect(
         byMethod['s_self_status']!.dartBehavior,
         'StatusStatMoveBehavior.selfStatus',

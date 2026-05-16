@@ -2263,13 +2263,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'SelfStat',
     rubyPath: '10 Move/1 Mechanics/101 Self.rb',
     dartBehavior: 'StatusStatMoveBehavior.selfStat',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.handlerStat,
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.ability
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_self_status',

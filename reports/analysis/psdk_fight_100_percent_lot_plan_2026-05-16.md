@@ -338,6 +338,8 @@ legacy `BattleMoveData` session path untouched.
 
 ### Lot 09 - Strict `s_self_stat`
 
+**Status 2026-05-16:** done. `s_self_stat` is now marked `ported` at method level, while attack coverage only counts strict status self-boosts on supported battle stats as `fait`; accuracy/evasion, self-drops, damage riders, and chance riders remain `partiel`. The parity gate moved to 136 / 728 strict attacks and 27 / 330 ported battle methods.
+
 **Goal:** port self-target stat stage moves exactly for supported stats and failure conditions.
 
 **Files:**

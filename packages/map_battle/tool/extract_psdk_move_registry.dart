@@ -426,7 +426,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_self_stat': _KnownDartBehavior(
     dartBehavior: 'StatusStatMoveBehavior.selfStat',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_self_status': _KnownDartBehavior(
     dartBehavior: 'StatusStatMoveBehavior.selfStatus',
@@ -1422,12 +1422,6 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
   },
   's_stat': {
     _PsdkMoveDependency.handlerStatus,
-    _PsdkMoveDependency.handlerStat,
-    _PsdkMoveDependency.effects,
-    _PsdkMoveDependency.ability,
-  },
-  's_self_stat': {
-    _PsdkMoveDependency.handlerDamage,
     _PsdkMoveDependency.handlerStat,
     _PsdkMoveDependency.effects,
     _PsdkMoveDependency.ability,

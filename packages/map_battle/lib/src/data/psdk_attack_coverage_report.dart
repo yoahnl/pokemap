@@ -17,6 +17,7 @@ final class PsdkStudioMoveCoverageEntry {
     this.criticalRate = 1,
     this.effectChance = 0,
     this.battleStageModCount = 0,
+    this.battleStageMods = const <PsdkStudioStageModCoverageEntry>[],
     this.moveStatusCount = 0,
     this.target = '',
     this.protectable = true,
@@ -35,6 +36,7 @@ final class PsdkStudioMoveCoverageEntry {
   final int criticalRate;
   final int effectChance;
   final int battleStageModCount;
+  final List<PsdkStudioStageModCoverageEntry> battleStageMods;
   final int moveStatusCount;
   final String target;
   final bool protectable;
@@ -55,6 +57,44 @@ final class PsdkStudioMoveCoverageEntry {
         moveStatusCount == 0 &&
         effectChance == 0;
   }
+
+  bool get isStrictSelfStatBoost {
+    if (battleEngineMethod != 's_self_stat') {
+      return false;
+    }
+    if (category.trim().toLowerCase() != 'status' || power != 0) {
+      return false;
+    }
+    if (moveStatusCount != 0) {
+      return false;
+    }
+    if (effectChance != 0 && effectChance != 100) {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    if (normalizedTarget.isNotEmpty &&
+        normalizedTarget != 'user' &&
+        normalizedTarget != 'self') {
+      return false;
+    }
+    if (battleStageMods.isEmpty ||
+        battleStageMods.length != battleStageModCount) {
+      return false;
+    }
+    return battleStageMods.every((mod) {
+      return mod.stages > 0 && _strictSelfStatBoostStats.contains(mod.stat);
+    });
+  }
+}
+
+final class PsdkStudioStageModCoverageEntry {
+  const PsdkStudioStageModCoverageEntry({
+    required this.stat,
+    required this.stages,
+  });
+
+  final String stat;
+  final int stages;
 }
 
 Future<List<PsdkStudioMoveCoverageEntry>> loadPsdkStudioMoveCoverageEntries(
@@ -130,6 +170,11 @@ String generatePsdkAttackCoverageReport({
     ..writeln(
       '- `s_basic` is counted as `fait` only for plain damaging Studio moves; '
       'metadata riders remain `partiel`.',
+    )
+    ..writeln(
+      '- `s_self_stat` is counted as `fait` only for status self-boosts '
+      'on supported stats; accuracy/evasion, drops, damage riders and '
+      'chance riders remain `partiel`.',
     )
     ..writeln()
     ..writeln('| Metric | Count |')
@@ -248,6 +293,7 @@ PsdkStudioMoveCoverageEntry _entryFromPayload(
     ),
     effectChance: _intValue(payload['effectChance']),
     battleStageModCount: _listLength(payload['battleStageMod']),
+    battleStageMods: _stageModCoverageEntries(payload['battleStageMod']),
     moveStatusCount: _listLength(payload['moveStatus']),
     target: _stringValue(payload['battleEngineAimedTarget']),
     protectable: _boolValue(payload['isBlocable'], fallback: true),
@@ -263,6 +309,8 @@ String psdkAttackCoverageForMove(
   return switch (manifestEntry?.status) {
     PsdkPortStatus.ported when move.battleEngineMethod == 's_basic' =>
       move.isStrictPlainBasicDamage ? 'fait' : 'partiel',
+    PsdkPortStatus.ported when move.battleEngineMethod == 's_self_stat' =>
+      move.isStrictSelfStatBoost ? 'fait' : 'partiel',
     PsdkPortStatus.ported => 'fait',
     PsdkPortStatus.partial => 'partiel',
     PsdkPortStatus.missing || null => 'pas_fait',
@@ -310,6 +358,44 @@ bool _boolValue(Object? value, {required bool fallback}) {
   }
   return fallback;
 }
+
+List<PsdkStudioStageModCoverageEntry> _stageModCoverageEntries(Object? value) {
+  if (value is! List) {
+    return const <PsdkStudioStageModCoverageEntry>[];
+  }
+  return value
+      .whereType<Map<String, dynamic>>()
+      .map((entry) {
+        return PsdkStudioStageModCoverageEntry(
+          stat: _normalizeBattleStage(_stringValue(entry['battleStage'])),
+          stages: _intValue(entry['modificator']),
+        );
+      })
+      .where((entry) => entry.stat.isNotEmpty)
+      .toList(growable: false);
+}
+
+String _normalizeBattleStage(String value) {
+  final normalized = value.trim().toUpperCase();
+  return switch (normalized) {
+    'ATK_STAGE' => 'attack',
+    'DFE_STAGE' => 'defense',
+    'ATS_STAGE' => 'specialAttack',
+    'DFS_STAGE' => 'specialDefense',
+    'SPD_STAGE' => 'speed',
+    'ACC_STAGE' => 'accuracy',
+    'EVA_STAGE' => 'evasion',
+    _ => value.trim(),
+  };
+}
+
+const _strictSelfStatBoostStats = <String>{
+  'attack',
+  'defense',
+  'specialAttack',
+  'specialDefense',
+  'speed',
+};
 
 String _md(String value) {
   return value

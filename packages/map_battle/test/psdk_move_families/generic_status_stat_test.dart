@@ -290,6 +290,45 @@ void main() {
       );
     });
 
+    test('s_self_stat status moves fail when every self boost is maxed', () {
+      final result = _runMove(
+        playerStatStages: PsdkBattleStatStages(
+          values: const <String, int>{
+            'specialAttack': 6,
+            'specialDefense': 6,
+          },
+        ),
+        playerMove: _move(
+          id: 'calm_mind',
+          battleEngineMethod: 's_self_stat',
+          power: 0,
+          accuracy: 0,
+          category: PsdkBattleMoveCategory.status,
+          target: PsdkBattleMoveTarget.user,
+          stageMods: const <PsdkBattleMoveStageMod>[
+            PsdkBattleMoveStageMod(
+              stat: 'specialAttack',
+              stages: 1,
+              chance: 100,
+            ),
+            PsdkBattleMoveStageMod(
+              stat: 'specialDefense',
+              stages: 1,
+              chance: 100,
+            ),
+          ],
+        ),
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.statStages.valueOf('specialAttack'), 6);
+      expect(player.statStages.valueOf('specialDefense'), 6);
+      expect(_eventKinds(result), contains('move_failed'));
+      expect(_eventKinds(result), isNot(contains('stat_stage_change')));
+      expect(
+          player.moveHistory.successfulMoveIds, isNot(contains('calm_mind')));
+    });
+
     test('s_self_status damages the target and applies status to the user', () {
       final result = _runMove(
         playerMove: _move(
@@ -326,6 +365,7 @@ PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
   PsdkBattleMoveData? opponentMove,
   PsdkBattleEffectStack opponentEffects = const PsdkBattleEffectStack.empty(),
+  PsdkBattleStatStages? playerStatStages,
   PsdkBattleMajorStatus? opponentMajorStatus,
   PsdkBattleStatStages? opponentStatStages,
   int genericSeed = 4,
@@ -336,6 +376,7 @@ PsdkBattleTurnResult _runMove({
         id: 'player',
         speed: 100,
         move: playerMove,
+        statStages: playerStatStages,
       ),
       opponent: _combatant(
         id: 'opponent',
