@@ -429,8 +429,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_corrosive_gas',
     rubyClass: 'CorrosiveGas',
     rubyPath: '10 Move/2 Definitions/300 CorrosiveGas.rb',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialTargetMarker(s_corrosive_gas)',
+    dartBehavior: 'StaticBasicMoveRegistry.s_corrosive_gas',
     status: PsdkPortStatus.partial,
     dependencies: const <PsdkMoveDependency>[],
   ),

@@ -58,7 +58,7 @@ Total registered methods: 330
 | `s_conversion` | `Conversion` | `10 Move/2 Definitions/300 Conversion.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_conversion)` | `partial` | `-` |
 | `s_conversion2` | `Conversion2` | `10 Move/2 Definitions/300 Conversion.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_conversion2)` | `partial` | `-` |
 | `s_core_enforcer` | `CoreEnforcer` | `10 Move/2 Definitions/300 CoreEnforcer.rb` | `StaticBasicMoveRegistry.partialBasic(s_core_enforcer)` | `partial` | `-` |
-| `s_corrosive_gas` | `CorrosiveGas` | `10 Move/2 Definitions/300 CorrosiveGas.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_corrosive_gas)` | `partial` | `-` |
+| `s_corrosive_gas` | `CorrosiveGas` | `10 Move/2 Definitions/300 CorrosiveGas.rb` | `StaticBasicMoveRegistry.s_corrosive_gas` | `partial` | `-` |
 | `s_counter` | `Counter` | `10 Move/2 Definitions/300 Counter moves.rb` | `CounterDamageMoveBehavior.counter` | `partial` | `-` |
 | `s_court_change` | `CourtChange` | `10 Move/2 Definitions/300 CourtChange.rb` | `StaticBasicMoveRegistry.partialFieldMarker(s_court_change)` | `partial` | `-` |
 | `s_crafty_shield` | `CraftyShield` | `10 Move/2 Definitions/300 CraftyShield.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_crafty_shield)` | `partial` | `-` |

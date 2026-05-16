@@ -104,6 +104,41 @@ void main() {
       expect(boosted.state.battlerAt(psdkOpponentSlot).heldItemId, isNull);
     });
 
+    test('s_corrosive_gas removes a target held item without damage', () {
+      final result = _runMove(
+        opponentHeldItemId: 'leftovers',
+        playerMove: _move(
+          id: 'corrosive_gas',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_corrosive_gas',
+        ),
+      );
+
+      expect(_failed(result, moveId: 'corrosive_gas'), isFalse);
+      expect(_damageEvents(result, moveId: 'corrosive_gas'), isEmpty);
+      expect(result.state.battlerAt(psdkOpponentSlot).heldItemId, isNull);
+    });
+
+    test('s_corrosive_gas fails when no target can lose an item', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'corrosive_gas',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_corrosive_gas',
+        ),
+      );
+
+      expect(_failed(result, moveId: 'corrosive_gas'), isTrue);
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).effects.contains(
+              'corrosive_gas',
+            ),
+        isFalse,
+      );
+    });
+
     test('s_pluck removes a target berry after a successful hit', () {
       final result = _runMove(
         opponentHeldItemId: 'oran_berry',
@@ -420,10 +455,17 @@ PsdkBattleMoveData _move({
 }
 
 int _damage(PsdkBattleTurnResult result, {required String moveId}) {
+  return _damageEvents(result, moveId: moveId).single.damage;
+}
+
+List<PsdkBattleDamageEvent> _damageEvents(
+  PsdkBattleTurnResult result, {
+  required String moveId,
+}) {
   return result.timeline.events
       .whereType<PsdkBattleDamageEvent>()
-      .singleWhere((event) => event.moveId == moveId)
-      .damage;
+      .where((event) => event.moveId == moveId)
+      .toList(growable: false);
 }
 
 bool _failed(PsdkBattleTurnResult result, {required String moveId}) {

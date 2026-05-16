@@ -2386,12 +2386,6 @@ void main() {
           power: 0,
         ),
         (
-          method: 's_corrosive_gas',
-          moveId: 'corrosive_gas',
-          category: PsdkBattleMoveCategory.status,
-          power: 0,
-        ),
-        (
           method: 's_court_change',
           moveId: 'court_change',
           category: PsdkBattleMoveCategory.status,

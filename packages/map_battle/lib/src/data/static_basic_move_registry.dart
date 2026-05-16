@@ -51,6 +51,7 @@ import '../domain/move/battle_move_secondary_effect_resolver.dart';
 import '../domain/move/battle_move_type_processor.dart';
 import '../domain/rng/battle_rng_streams.dart';
 import '../domain/handler/battle_handler_context.dart';
+import '../domain/handler/battle_item_change_handler.dart';
 import '../domain/handler/battle_stat_change_handler.dart';
 import '../domain/handler/battle_switch_handler.dart';
 import '../domain/handler/battle_terrain_change_handler.dart';
@@ -147,6 +148,10 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     CallbackBattleMoveBehavior(
       battleEngineMethod: 's_pursuit',
       resolve: _resolvePursuit,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_corrosive_gas',
+      resolve: _resolveCorrosiveGas,
     ),
     CallbackBattleMoveBehavior(
       battleEngineMethod: 's_thing_sport',
@@ -610,7 +615,6 @@ const _partialTargetMarkerMethods = <String, String>{
   's_charge': 'charge',
   's_conversion': 'conversion',
   's_conversion2': 'conversion2',
-  's_corrosive_gas': 'corrosive_gas',
   's_doodle': 'doodle',
   's_destiny_bond': 'destiny_bond',
   's_electrify': 'electrify',
@@ -886,6 +890,58 @@ BattleMoveBehaviorResolution _resolveAbilityChanging(
   return BattleMoveBehaviorResolution(
     state: nextState,
     rng: prepared.rng,
+    events: prepared.events,
+  );
+}
+
+BattleMoveBehaviorResolution _resolveCorrosiveGas(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final targets = prepared.psdkTargets
+      .where((target) => prepared.state.battlerAt(target).heldItemId != null)
+      .toList(growable: false);
+  if (targets.isEmpty) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: prepared.rng,
+      successful: false,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.target,
+          moveId: context.move.id,
+          reason: BattleMoveFailureReason.unusableByUser.jsonName,
+        ),
+      ],
+    );
+  }
+
+  var state = prepared.state;
+  var rng = prepared.rng;
+  for (final target in targets) {
+    final changed = const BattleItemChangeHandler().changeHeldItem(
+      context: BattleHandlerContext(
+        state: state,
+        rng: rng,
+        turn: context.turn,
+        user: context.user,
+      ),
+      target: target,
+      heldItemId: null,
+    );
+    state = changed.state;
+    rng = changed.rng;
+  }
+
+  return BattleMoveBehaviorResolution(
+    state: state,
+    rng: rng,
     events: prepared.events,
   );
 }

@@ -790,6 +790,10 @@ void main() {
           behavior: 'StaticBasicMoveRegistry.s_change_type',
         ),
         (
+          method: 's_corrosive_gas',
+          behavior: 'StaticBasicMoveRegistry.s_corrosive_gas',
+        ),
+        (
           method: 's_crafty_shield',
           behavior:
               'StaticBasicMoveRegistry.partialUserBankMarker(s_crafty_shield)',
