@@ -21,30 +21,30 @@ StaticShadowProjectionSpec resolveStaticShadowFamilyProjectionSpec({
     case StaticShadowFamily.compactProp:
       return _scaledProjectionSpec(
         baseProjectionSpec,
-        lengthRatioScale: 0.72,
-        nearWidthMultiplierScale: 0.82,
-        farWidthMultiplierScale: 0.78,
+        lengthRatioScale: 0.38,
+        nearWidthMultiplierScale: 0.58,
+        farWidthMultiplierScale: 0.44,
       );
     case StaticShadowFamily.tallProp:
       return _scaledProjectionSpec(
         baseProjectionSpec,
-        lengthRatioScale: 1.18,
-        nearWidthMultiplierScale: 0.52,
-        farWidthMultiplierScale: 0.58,
+        lengthRatioScale: 0.48,
+        nearWidthMultiplierScale: 0.32,
+        farWidthMultiplierScale: 0.28,
       );
     case StaticShadowFamily.building:
       return _scaledProjectionSpec(
         baseProjectionSpec,
-        lengthRatioScale: 1.25,
-        nearWidthMultiplierScale: 1.05,
-        farWidthMultiplierScale: 0.98,
+        lengthRatioScale: 0.62,
+        nearWidthMultiplierScale: 0.78,
+        farWidthMultiplierScale: 0.62,
       );
     case StaticShadowFamily.foliage:
       return _scaledProjectionSpec(
         baseProjectionSpec,
-        lengthRatioScale: 1.05,
-        nearWidthMultiplierScale: 1.15,
-        farWidthMultiplierScale: 1.28,
+        lengthRatioScale: 0.45,
+        nearWidthMultiplierScale: 0.72,
+        farWidthMultiplierScale: 0.70,
       );
   }
 }

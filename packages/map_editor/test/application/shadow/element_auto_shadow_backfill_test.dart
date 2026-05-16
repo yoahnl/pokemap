@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_core/map_core.dart';
+import 'package:map_core/map_core.dart' hide ElementAutoShadowSuggestionKind;
 import 'package:map_editor/src/application/shadow/element_auto_shadow_backfill.dart';
 import 'package:map_editor/src/application/shadow/element_auto_shadow_suggestion.dart';
 
@@ -60,7 +60,7 @@ void main() {
           _element(
             id: 'stand',
             name: 'Stand',
-            width: 3,
+            width: 4,
             height: 2,
             shadow: ProjectElementShadowConfig(
               castsShadow: true,
@@ -160,6 +160,116 @@ void main() {
       expect(result.project.elements[1].shadow, manualNumbers);
     });
 
+    test(
+        'clears recognized auto small square shadow when policy has no suggestion',
+        () {
+      final project = _project(
+        elements: [
+          _element(
+            id: 'small-square',
+            name: 'Small square',
+            width: 2,
+            height: 2,
+            shadow: _oldAutoSmallSquareShadow(),
+          ),
+        ],
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      final result = applyElementAutoShadowSuggestionsToProject(project);
+
+      expect(result.appliedCount, 0);
+      expect(result.changedCount, 1);
+      expect(result.hasChanges, isTrue);
+      expect(
+        result.entries.single.status,
+        ElementAutoShadowBackfillStatus.clearedAutoNoSuggestion,
+      );
+      expect(result.project.elements.single.shadow, isNull);
+    });
+
+    test('clears genericProjection auto shadow when policy has no suggestion',
+        () {
+      final project = _project(
+        elements: [
+          _element(
+            id: 'default-prop',
+            name: 'Default prop',
+            width: 2,
+            height: 3,
+            shadow: _oldAutoDefaultPropShadow(),
+          ),
+        ],
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      final result = applyElementAutoShadowSuggestionsToProject(project);
+
+      expect(result.appliedCount, 0);
+      expect(result.changedCount, 1);
+      expect(
+        result.entries.single.status,
+        ElementAutoShadowBackfillStatus.clearedAutoNoSuggestion,
+      );
+      expect(result.project.elements.single.shadow, isNull);
+    });
+
+    test('clears recognized auto wide low shadow below safe threshold', () {
+      final project = _project(
+        elements: [
+          _element(
+            id: 'small-stand',
+            name: 'Small stand',
+            width: 3,
+            height: 2,
+            shadow: _oldAutoWideLowShadow(),
+          ),
+        ],
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      final result = applyElementAutoShadowSuggestionsToProject(project);
+
+      expect(result.appliedCount, 0);
+      expect(result.changedCount, 1);
+      expect(
+        result.entries.single.status,
+        ElementAutoShadowBackfillStatus.clearedAutoNoSuggestion,
+      );
+      expect(result.project.elements.single.shadow, isNull);
+    });
+
+    test('preserves manual footprint even if no suggestion exists', () {
+      final manual = ProjectElementShadowConfig(
+        castsShadow: true,
+        shadowProfileId: 'default-ground-soft-ellipse',
+        footprint: StaticShadowFootprintConfig(footprintWidthRatio: 0.33),
+      );
+      final project = _project(
+        elements: [
+          _element(
+            id: 'manual-small',
+            name: 'Manual small',
+            width: 2,
+            height: 2,
+            shadow: manual,
+          ),
+        ],
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      final result = applyElementAutoShadowSuggestionsToProject(project);
+
+      expect(result.appliedCount, 0);
+      expect(result.changedCount, 0);
+      expect(result.hasChanges, isFalse);
+      expect(
+        result.entries.single.status,
+        ElementAutoShadowBackfillStatus.skippedManual,
+      );
+      expect(result.project.elements.single.shadow, manual);
+    });
+
     test('preserves non-default existing profile ids present in catalog', () {
       final customShadow = ProjectElementShadowConfig(
         castsShadow: true,
@@ -204,8 +314,8 @@ void main() {
           _element(
             id: 'missing-profile',
             name: 'Missing profile',
-            width: 2,
-            height: 2,
+            width: 1,
+            height: 4,
             shadow: ProjectElementShadowConfig(
               castsShadow: true,
               shadowProfileId: 'missing-profile-id',
@@ -232,7 +342,7 @@ void main() {
         () {
       final project = _project(
         elements: [
-          _element(id: 'prop', name: 'Prop', width: 2, height: 3),
+          _element(id: 'lamp', name: 'Lamp', width: 1, height: 4),
         ],
         shadowCatalog: const ProjectShadowCatalog.empty(),
       );
@@ -250,7 +360,7 @@ void main() {
       ]);
       expect(
         result.project.elements.single.shadow!.shadowProfileId,
-        'default-ground-soft-ellipse',
+        'default-ground-contact-blob',
       );
     });
 
@@ -346,6 +456,63 @@ ProjectManifest _project({
 ProjectShadowCatalog _defaultCatalog() {
   return ProjectShadowCatalog(
     profiles: createDefaultGroundStaticShadowProfiles(),
+  );
+}
+
+ProjectElementShadowConfig _oldAutoSmallSquareShadow() {
+  return ProjectElementShadowConfig(
+    castsShadow: true,
+    shadowProfileId: 'default-ground-contact-blob',
+    offsetX: 0,
+    offsetY: 0,
+    scaleX: 0.78,
+    scaleY: 0.70,
+    opacity: 0.26,
+    family: StaticShadowFamily.compactProp,
+    footprint: StaticShadowFootprintConfig(
+      anchorXRatio: 0.5,
+      anchorYRatio: 0.96,
+      footprintWidthRatio: 0.46,
+      footprintHeightRatio: 0.10,
+    ),
+  );
+}
+
+ProjectElementShadowConfig _oldAutoDefaultPropShadow() {
+  return ProjectElementShadowConfig(
+    castsShadow: true,
+    shadowProfileId: 'default-ground-soft-ellipse',
+    offsetX: 0,
+    offsetY: 0,
+    scaleX: 0.90,
+    scaleY: 0.80,
+    opacity: 0.28,
+    family: StaticShadowFamily.genericProjection,
+    footprint: StaticShadowFootprintConfig(
+      anchorXRatio: 0.5,
+      anchorYRatio: 0.95,
+      footprintWidthRatio: 0.62,
+      footprintHeightRatio: 0.12,
+    ),
+  );
+}
+
+ProjectElementShadowConfig _oldAutoWideLowShadow() {
+  return ProjectElementShadowConfig(
+    castsShadow: true,
+    shadowProfileId: 'default-ground-wide-ellipse',
+    offsetX: 0,
+    offsetY: 0,
+    scaleX: 0.92,
+    scaleY: 0.75,
+    opacity: 0.27,
+    family: StaticShadowFamily.compactProp,
+    footprint: StaticShadowFootprintConfig(
+      anchorXRatio: 0.5,
+      anchorYRatio: 0.95,
+      footprintWidthRatio: 0.72,
+      footprintHeightRatio: 0.10,
+    ),
   );
 }
 

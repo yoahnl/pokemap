@@ -1,6 +1,5 @@
 import 'dart:ui' as ui;
 
-import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/shadow/editor_static_shadow_preview.dart';
 
 void paintEditorStaticShadowPreviewInstructions(
@@ -8,8 +7,7 @@ void paintEditorStaticShadowPreviewInstructions(
   Iterable<EditorStaticShadowPreviewInstruction> instructions,
 ) {
   for (final instruction in instructions) {
-    if (instruction.shape == ShadowCasterMode.none ||
-        instruction.opacity <= 0 ||
+    if (instruction.opacity <= 0 ||
         instruction.width <= 0 ||
         instruction.height <= 0) {
       continue;
@@ -21,19 +19,45 @@ void paintEditorStaticShadowPreviewInstructions(
     if (color == null) {
       continue;
     }
-    canvas.drawOval(
-      ui.Rect.fromLTWH(
-        instruction.left,
-        instruction.top,
-        instruction.width,
-        instruction.height,
-      ),
-      ui.Paint()
-        ..color = color
-        ..style = ui.PaintingStyle.fill
-        ..isAntiAlias = false,
-    );
+    final paint = ui.Paint()
+      ..color = color
+      ..style = ui.PaintingStyle.fill
+      ..isAntiAlias = false;
+    switch (instruction.shape) {
+      case EditorStaticShadowPreviewShapeKind.oval:
+        canvas.drawOval(
+          ui.Rect.fromLTWH(
+            instruction.left,
+            instruction.top,
+            instruction.width,
+            instruction.height,
+          ),
+          paint,
+        );
+      case EditorStaticShadowPreviewShapeKind.projectedPolygon:
+        final path = _pathFromEditorStaticShadowPreviewPoints(
+          instruction.polygonPoints,
+        );
+        if (path != null) {
+          canvas.drawPath(path, paint);
+        }
+    }
   }
+}
+
+ui.Path? _pathFromEditorStaticShadowPreviewPoints(
+  List<EditorStaticShadowPreviewPoint> points,
+) {
+  if (points.length < 3) {
+    return null;
+  }
+  final first = points.first;
+  final path = ui.Path()..moveTo(first.x, first.y);
+  for (final point in points.skip(1)) {
+    path.lineTo(point.x, point.y);
+  }
+  path.close();
+  return path;
 }
 
 ui.Color? _editorShadowPreviewColor(String colorHexRgb, double opacity) {

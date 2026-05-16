@@ -176,6 +176,25 @@ void main() {
       expect(a.hashCode, b.hashCode);
       expect(a, isNot(c));
     });
+
+    test('equality includes element and override families', () {
+      final a = _input(
+        elementFamily: StaticShadowFamily.tallProp,
+        overrideFamily: StaticShadowFamily.building,
+      );
+      final b = _input(
+        elementFamily: StaticShadowFamily.tallProp,
+        overrideFamily: StaticShadowFamily.building,
+      );
+      final c = _input(
+        elementFamily: StaticShadowFamily.compactProp,
+        overrideFamily: StaticShadowFamily.building,
+      );
+
+      expect(a, b);
+      expect(a.hashCode, b.hashCode);
+      expect(a, isNot(c));
+    });
   });
 
   group('staticPlacedElementShadowAnchorFromMetrics', () {
@@ -318,6 +337,56 @@ void main() {
 
       expect(instruction, isNotNull);
       _expectInstructionMatchesProjectedGeometry(instruction!, input);
+    });
+
+    test('element family changes the projected shadow silhouette', () {
+      final tallProp = resolveStaticPlacedElementShadowRuntimeInstruction(
+        _input(
+          elementFamily: StaticShadowFamily.tallProp,
+          elementFootprint: StaticShadowFootprintConfig(
+            footprintWidthRatio: 0.25,
+            footprintHeightRatio: 0.08,
+          ),
+        ),
+      )!;
+      final building = resolveStaticPlacedElementShadowRuntimeInstruction(
+        _input(
+          elementFamily: StaticShadowFamily.building,
+          elementFootprint: StaticShadowFootprintConfig(
+            footprintWidthRatio: 0.25,
+            footprintHeightRatio: 0.08,
+          ),
+        ),
+      )!;
+
+      expect(tallProp.width, lessThan(building.width));
+      expect(tallProp.polygonPoints, isNot(building.polygonPoints));
+    });
+
+    test('override family wins over element family', () {
+      final overrideBuilding =
+          resolveStaticPlacedElementShadowRuntimeInstruction(
+        _input(
+          elementFamily: StaticShadowFamily.tallProp,
+          overrideFamily: StaticShadowFamily.building,
+          elementFootprint: StaticShadowFootprintConfig(
+            footprintWidthRatio: 0.25,
+            footprintHeightRatio: 0.08,
+          ),
+        ),
+      )!;
+      final building = resolveStaticPlacedElementShadowRuntimeInstruction(
+        _input(
+          elementFamily: StaticShadowFamily.building,
+          elementFootprint: StaticShadowFootprintConfig(
+            footprintWidthRatio: 0.25,
+            footprintHeightRatio: 0.08,
+          ),
+        ),
+      )!;
+
+      expect(overrideBuilding.width, closeTo(building.width, 0.000001));
+      expect(overrideBuilding.height, closeTo(building.height, 0.000001));
     });
 
     test('passes opacity color softness and renderPass through', () {
@@ -502,12 +571,16 @@ StaticPlacedElementShadowRuntimeInput _input({
   StaticPlacedElementShadowRuntimeMetrics? metrics,
   StaticShadowFootprintConfig? elementFootprint,
   StaticShadowFootprintConfig? overrideFootprint,
+  StaticShadowFamily? elementFamily,
+  StaticShadowFamily? overrideFamily,
 }) {
   return StaticPlacedElementShadowRuntimeInput(
     resolvedConfig: resolvedConfig ?? _resolvedConfig(),
     metrics: metrics ?? _metrics(),
     elementFootprint: elementFootprint,
     overrideFootprint: overrideFootprint,
+    elementFamily: elementFamily,
+    overrideFamily: overrideFamily,
   );
 }
 
@@ -621,6 +694,12 @@ ProjectedStaticShadowGeometry _expectedProjectedGeometry(
       top: metrics.worldTop,
       visualWidth: metrics.visualWidth,
       visualHeight: metrics.visualHeight,
+    ),
+    projectionSpec: resolveStaticShadowFamilyProjectionSpec(
+      family: resolveStaticShadowFamily(
+        elementFamily: input.elementFamily,
+        overrideFamily: input.overrideFamily,
+      ),
     ),
   );
 }

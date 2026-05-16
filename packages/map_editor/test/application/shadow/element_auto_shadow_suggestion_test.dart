@@ -1,5 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_core/map_core.dart';
+import 'package:map_core/map_core.dart'
+    hide
+        ElementAutoShadowSuggestion,
+        ElementAutoShadowSuggestionKind,
+        buildElementAutoShadowSuggestion;
 import 'package:map_editor/src/application/shadow/element_auto_shadow_suggestion.dart';
 
 void main() {
@@ -45,6 +49,21 @@ void main() {
       expect(invalidHeight, isNull);
     });
 
+    test('returns null for micro decor that should not cast projected shadows',
+        () {
+      final oneByOne = buildElementAutoShadowSuggestion(
+        element: _element(width: 1, height: 1),
+        shadowCatalog: _defaultCatalog(),
+      );
+      final oneByTwo = buildElementAutoShadowSuggestion(
+        element: _element(width: 1, height: 2),
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      expect(oneByOne, isNull);
+      expect(oneByTwo, isNull);
+    });
+
     test('classifies tall thin elements as tallThin', () {
       final suggestion = buildElementAutoShadowSuggestion(
         element: _element(width: 1, height: 4),
@@ -75,12 +94,17 @@ void main() {
       expect(suggestion.config.opacity, 0.30);
     });
 
-    test('classifies wide low elements as wideLow', () {
-      final suggestion = buildElementAutoShadowSuggestion(
+    test('wide low needs enough surface to receive an automatic shadow', () {
+      final smallWide = buildElementAutoShadowSuggestion(
         element: _element(width: 3, height: 2),
+        shadowCatalog: _defaultCatalog(),
+      );
+      final suggestion = buildElementAutoShadowSuggestion(
+        element: _element(width: 4, height: 2),
         shadowCatalog: _defaultCatalog(),
       )!;
 
+      expect(smallWide, isNull);
       expect(suggestion.kind, ElementAutoShadowSuggestionKind.wideLow);
       expect(suggestion.config.shadowProfileId, 'default-ground-wide-ellipse');
       expect(suggestion.config.family, StaticShadowFamily.compactProp);
@@ -92,38 +116,22 @@ void main() {
       expect(suggestion.config.opacity, 0.27);
     });
 
-    test('classifies small square elements as smallSquare', () {
+    test('small square returns null under artistic V0 policy', () {
       final suggestion = buildElementAutoShadowSuggestion(
         element: _element(width: 2, height: 2),
         shadowCatalog: _defaultCatalog(),
-      )!;
+      );
 
-      expect(suggestion.kind, ElementAutoShadowSuggestionKind.smallSquare);
-      expect(suggestion.config.shadowProfileId, 'default-ground-contact-blob');
-      expect(suggestion.config.family, StaticShadowFamily.compactProp);
-      expect(suggestion.config.footprint!.anchorYRatio, 0.96);
-      expect(suggestion.config.footprint!.footprintWidthRatio, 0.46);
-      expect(suggestion.config.footprint!.footprintHeightRatio, 0.10);
-      expect(suggestion.config.scaleX, 0.78);
-      expect(suggestion.config.scaleY, 0.70);
-      expect(suggestion.config.opacity, 0.26);
+      expect(suggestion, isNull);
     });
 
-    test('classifies remaining valid elements as defaultProp', () {
+    test('default prop returns null under artistic V0 policy', () {
       final suggestion = buildElementAutoShadowSuggestion(
         element: _element(width: 2, height: 3),
         shadowCatalog: _defaultCatalog(),
-      )!;
+      );
 
-      expect(suggestion.kind, ElementAutoShadowSuggestionKind.defaultProp);
-      expect(suggestion.config.shadowProfileId, 'default-ground-soft-ellipse');
-      expect(suggestion.config.family, StaticShadowFamily.genericProjection);
-      expect(suggestion.config.footprint!.anchorYRatio, 0.95);
-      expect(suggestion.config.footprint!.footprintWidthRatio, 0.62);
-      expect(suggestion.config.footprint!.footprintHeightRatio, 0.12);
-      expect(suggestion.config.scaleX, 0.90);
-      expect(suggestion.config.scaleY, 0.80);
-      expect(suggestion.config.opacity, 0.28);
+      expect(suggestion, isNull);
     });
 
     test('prefers default compact profile for tallThin', () {
@@ -156,16 +164,16 @@ void main() {
           profiles: [_profile('custom-ellipse')],
         ),
       )!;
-      final defaultProp = buildElementAutoShadowSuggestion(
-        element: _element(width: 2, height: 3),
+      final wideLow = buildElementAutoShadowSuggestion(
+        element: _element(width: 4, height: 2),
         shadowCatalog: ProjectShadowCatalog(
-          profiles: [_profile('custom-soft')],
+          profiles: [_profile('custom-wide')],
         ),
       )!;
 
       expect(tallThin.config.shadowProfileId, 'custom-contact');
       expect(building.config.shadowProfileId, 'custom-ellipse');
-      expect(defaultProp.config.shadowProfileId, 'custom-soft');
+      expect(wideLow.config.shadowProfileId, 'custom-wide');
     });
 
     test('all suggestions have castsShadow true', () {
@@ -210,9 +218,7 @@ Iterable<ElementAutoShadowSuggestion> _allSuggestionKinds() sync* {
   for (final dimensions in const [
     (width: 1, height: 4),
     (width: 4, height: 3),
-    (width: 3, height: 2),
-    (width: 2, height: 2),
-    (width: 2, height: 3),
+    (width: 4, height: 2),
   ]) {
     yield buildElementAutoShadowSuggestion(
       element: _element(width: dimensions.width, height: dimensions.height),

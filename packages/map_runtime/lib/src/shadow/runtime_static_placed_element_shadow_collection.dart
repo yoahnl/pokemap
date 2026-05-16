@@ -70,6 +70,8 @@ ShadowRuntimeInstructionCollection
         metrics: source.metrics,
         elementFootprint: source.elementShadow?.footprint,
         overrideFootprint: source.placedOverride?.footprint,
+        elementFamily: source.elementShadow?.family,
+        overrideFamily: source.placedOverride?.family,
       ),
     );
   }

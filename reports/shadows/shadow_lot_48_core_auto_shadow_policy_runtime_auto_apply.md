@@ -1,3 +1,1404 @@
+# Shadow-48 — Core Auto Shadow Policy / Runtime Auto Apply V0
+
+## 1. Résumé du lot
+Shadow-48 extrait la politique automatique d’ombres d’éléments dans `map_core`, conserve les anciens points d’entrée editor via wrappers, puis applique cette politique en mémoire au chargement runtime du `ProjectManifest`. Le runtime ne sauvegarde rien et ne touche pas aux données de carte.
+
+## 2. Pourquoi Shadow-47 ne suffisait pas
+Shadow-47 rendait la politique plus prudente, mais elle restait principalement activée par l’éditeur. Un projet chargé directement par le runtime pouvait conserver des petites ombres automatiques anciennes ou ne jamais recevoir les suggestions auto admissibles. Ce lot place la décision pure dans `map_core` et la consomme au chargement runtime.
+
+## 3. Design retenu
+- `map_core` possède `buildElementAutoShadowSuggestion(...)` et `applyElementAutoShadowPolicyToProject(...)`.
+- `map_editor` garde `applyElementAutoShadowSuggestionsToProject(...)` comme wrapper de compatibilité.
+- `map_runtime` appelle `applyElementAutoShadowPolicyToProject(manifest).project` après migration JSON et avant validation.
+- Le runtime applique uniquement en mémoire : aucun write disque, aucune mutation de `MapData`, aucun import `map_editor`.
+- Le message éditeur distingue maintenant les ombres appliquées et retirées.
+
+## 4. Fichiers créés par Shadow-48
+- `packages/map_core/lib/src/operations/element_auto_shadow_policy.dart`
+- `packages/map_core/test/shadow/element_auto_shadow_policy_test.dart`
+- `packages/map_runtime/test/application/load_runtime_map_bundle_shadow_policy_test.dart`
+- `reports/shadows/shadow_lot_48_core_auto_shadow_policy_runtime_auto_apply.md`
+
+## 5. Fichiers modifiés par Shadow-48
+- `packages/map_core/lib/map_core.dart`
+- `packages/map_editor/lib/src/application/shadow/element_auto_shadow_suggestion.dart`
+- `packages/map_editor/lib/src/application/shadow/element_auto_shadow_backfill.dart`
+- `packages/map_editor/lib/src/features/editor/state/editor_notifier.dart`
+- `packages/map_editor/test/application/shadow/element_auto_shadow_backfill_test.dart`
+- `packages/map_editor/test/application/shadow/element_auto_shadow_suggestion_test.dart`
+- `packages/map_editor/test/features/tileset_library/apply_element_auto_shadow_suggestions_use_case_test.dart`
+- `packages/map_editor/test/editor_notifier_project_dirty_state_test.dart`
+- `packages/map_runtime/lib/src/application/load_runtime_map_bundle.dart`
+
+## 6. Fichiers hors lot préexistants
+Ces fichiers sont dans le statut final mais ne font pas partie de Shadow-48. Ils étaient déjà présents dans le worktree ou sont apparus comme activité hors lot pendant la session. Shadow-48 ne les a pas édités directement.
+- `packages/map_core/lib/src/operations/static_shadow_family_projection.dart`
+- `packages/map_core/test/shadow/static_shadow_family_projection_test.dart`
+- `packages/map_editor/lib/src/application/shadow/editor_static_shadow_preview.dart`
+- `packages/map_editor/lib/src/ui/canvas/shadow/editor_static_shadow_preview_painter.dart`
+- `packages/map_editor/test/application/shadow/editor_static_shadow_preview_test.dart`
+- `packages/map_editor/test/ui/canvas/editor_static_shadow_preview_painter_test.dart`
+- `packages/map_runtime/lib/src/shadow/runtime_static_placed_element_shadow_collection.dart`
+- `packages/map_runtime/lib/src/shadow/static_placed_element_shadow_runtime_resolver.dart`
+- `packages/map_runtime/test/shadow/runtime_static_placed_element_shadow_collection_test.dart`
+- `packages/map_runtime/test/shadow/static_placed_element_shadow_runtime_resolver_test.dart`
+- `reports/shadows/shadow_lot_46_static_shadow_visual_sanity_recovery.md`
+- `reports/shadows/shadow_lot_46_static_shadow_visual_sanity_recovery_plan.md`
+- `reports/shadows/shadow_lot_47_static_shadow_artistic_defaults_cleanup.md`
+- `reports/shadows/shadow_lot_47_static_shadow_artistic_defaults_cleanup_plan.md`
+- `reports/shadows/shadow_lot_48_core_auto_shadow_policy_runtime_auto_apply_plan.md`
+
+## 7. API core extraite
+- `ElementAutoShadowSuggestionKind`
+- `ElementAutoShadowSuggestion`
+- `ElementAutoShadowBackfillStatus`
+- `ElementAutoShadowBackfillEntry`
+- `ElementAutoShadowBackfillResult` avec `appliedCount`, `clearedCount`, `changedCount`, `skippedCount`, `hasChanges`
+- `buildElementAutoShadowSuggestion(...)`
+- `applyElementAutoShadowPolicyToProject(...)`
+
+## 8. Runtime in-memory auto apply
+`loadProjectManifestFromFile` charge et migre le JSON, construit le manifeste, applique la politique auto-shadow core en mémoire, valide le résultat normalisé, puis retourne ce manifeste. Le fichier `project.json` source n’est pas réécrit par le runtime.
+
+## 9. Editor compatibility wrappers
+Les anciens fichiers editor `element_auto_shadow_suggestion.dart` et `element_auto_shadow_backfill.dart` restent importables. Ils réexportent les symboles core et conservent la fonction editor historique `applyElementAutoShadowSuggestionsToProject(...)`.
+
+## 10. Status message cleanup
+Le message éditeur après application indique désormais : `Ombres automatiques mises à jour : X appliquée(s), Y retirée(s).` Le no-op conserve `Aucune ombre automatique à appliquer.`
+
+## 11. Flame docs consultées
+Le plan Shadow-48 indique que `flame_docs` a été interrogé sur le rendu, les priorités et les composants Flame. Aucun résultat exploitable n’a été retourné. L’implémentation évite donc toute API Flame : aucun composant, aucun renderer, aucun ordre de rendu modifié.
+
+## 12. Tests ajoutés/modifiés
+- Ajout de tests core pour la politique auto-shadow et les nettoyages.
+- Ajout de tests runtime pour vérifier le nettoyage et l’application en mémoire à `loadProjectManifestFromFile`.
+- Extension des tests éditeur pour le message de nettoyage.
+- Ajustement des imports de tests editor afin de continuer à exercer les wrappers sans warnings analyzer.
+
+## 13. Commandes lancées
+- `cd packages/map_core && dart test test/shadow/element_auto_shadow_policy_test.dart`
+  - Résultat: +6: All tests passed!
+- `cd packages/map_runtime && flutter test test/application/load_runtime_map_bundle_shadow_policy_test.dart`
+  - Résultat: +3: All tests passed!
+- `cd packages/map_editor && flutter test test/editor_notifier_project_dirty_state_test.dart`
+  - Résultat: +12: All tests passed!
+- `cd packages/map_core && dart test test/shadow`
+  - Résultat: +261: All tests passed!
+- `cd packages/map_editor && flutter test test/application/shadow`
+  - Résultat: +94: All tests passed!
+- `cd packages/map_editor && flutter test test/features/tileset_library`
+  - Résultat: +49: All tests passed!
+- `cd packages/map_runtime && flutter test test/application/load_runtime_map_bundle_shadow_policy_test.dart test/shadow`
+  - Résultat: +228: All tests passed!
+- `cd packages/map_core && dart analyze lib test/shadow`
+  - Résultat: No issues found!
+- `cd packages/map_editor && flutter analyze lib/src/application/shadow lib/src/features/editor/state test/application/shadow test/features/tileset_library test/editor_notifier_project_dirty_state_test.dart`
+  - Résultat: No issues found! (ran in 1.8s)
+- `cd packages/map_runtime && flutter analyze lib/src/application/load_runtime_map_bundle.dart test/application/load_runtime_map_bundle_shadow_policy_test.dart test/shadow`
+  - Résultat: No issues found! (ran in 1.6s)
+- `cd packages/map_runtime && flutter analyze lib/src/application test/application test/shadow`
+  - Résultat: 21 issues found in pre-existing packages/map_runtime/lib/src/application/script_command_executor.dart prefer_const_constructors; Shadow-48 did not modify this file.
+- `cd packages/map_runtime && flutter test test/phase_a_golden_battle_slice_smoke_test.dart`
+  - Résultat: +3: All tests passed!
+- `cd examples/playable_runtime_host && flutter test test/phase_a_golden_slice_launch_test.dart`
+  - Résultat: +1: All tests passed!
+- `git diff --name-only | rg -n "packages/map_gameplay|packages/map_battle"`
+  - Résultat: Final status shows map_battle files as out-of-scope changes; Shadow-48 did not edit them.
+- `git diff --name-only | rg -n "packages/map_core/lib/src/models|project_element_shadow_config_json_codec|map_placed_element_shadow_override_json_codec|static_shadow_footprint_config_json_codec|\.g\.dart|\.freezed\.dart"`
+  - Résultat: Aucune sortie; exit code 1 because rg found no matches.
+- `git diff -U0 -- packages/map_runtime | rg -n "package:map_editor|map_editor/src"`
+  - Résultat: Aucune sortie; exit code 1 because rg found no matches.
+- `git diff -U0 -- packages/map_runtime packages/map_editor packages/map_core | rg -n "saveLayer|ImageFilter|runtimeBlur|WorldLightState|ShadowLightProfile|LightDirection|timeOfDay|zOrder|zIndex|drawAtlas"`
+  - Résultat: Aucune sortie; exit code 1 because rg found no matches.
+- `git diff -U0 -- packages/map_runtime packages/map_editor packages/map_core | rg -n "saveLayer|ImageFilter|runtimeBlur|WorldLightState|ShadowLightProfile|LightDirection|timeOfDay|zOrder|zIndex|drawAtlas|package:map_editor"`
+  - Résultat: Sortie seulement liée à une suppression d’import map_editor dans un test editor, pas à un import runtime vers editor.
+- `git diff --check`
+  - Résultat: Aucune sortie; exit code 0.
+- `find .. -name AGENTS.md -print`
+  - Résultat: ../pokemonProject/AGENTS.md
+../free-claude-code/AGENTS.md
+
+## 14. Résultats complets utiles des tests ciblés
+```text
+cd packages/map_core && dart test test/shadow/element_auto_shadow_policy_test.dart
++6: All tests passed!
+
+cd packages/map_runtime && flutter test test/application/load_runtime_map_bundle_shadow_policy_test.dart
++3: All tests passed!
+
+cd packages/map_editor && flutter test test/editor_notifier_project_dirty_state_test.dart
++12: All tests passed!
+```
+
+## 15. Résultats des tests globaux ciblés
+```text
+cd packages/map_core && dart test test/shadow
++261: All tests passed!
+
+cd packages/map_editor && flutter test test/application/shadow
++94: All tests passed!
+
+cd packages/map_editor && flutter test test/features/tileset_library
++49: All tests passed!
+
+cd packages/map_runtime && flutter test test/application/load_runtime_map_bundle_shadow_policy_test.dart test/shadow
++228: All tests passed!
+
+cd packages/map_runtime && flutter test test/phase_a_golden_battle_slice_smoke_test.dart
++3: All tests passed!
+
+cd examples/playable_runtime_host && flutter test test/phase_a_golden_slice_launch_test.dart
++1: All tests passed!
+```
+
+## 16. Analyse
+```text
+cd packages/map_core && dart analyze lib test/shadow
+No issues found!
+
+cd packages/map_editor && flutter analyze lib/src/application/shadow lib/src/features/editor/state test/application/shadow test/features/tileset_library test/editor_notifier_project_dirty_state_test.dart
+No issues found! (ran in 1.8s)
+
+cd packages/map_runtime && flutter analyze lib/src/application/load_runtime_map_bundle.dart test/application/load_runtime_map_bundle_shadow_policy_test.dart test/shadow
+No issues found! (ran in 1.6s)
+
+cd packages/map_runtime && flutter analyze lib/src/application test/application test/shadow
+21 issues found in packages/map_runtime/lib/src/application/script_command_executor.dart: prefer_const_constructors. This file was not modified by Shadow-48, so this is recorded as pre-existing targeted-analysis debt.
+```
+
+## 17. Scans anti-dérive
+```text
+git diff --name-only | rg -n "packages/map_gameplay|packages/map_battle"
+Le statut final affiche des fichiers map_battle hors lot; ils sont listés comme changements préexistants/non Shadow-48.
+
+git diff --name-only | rg -n "packages/map_core/lib/src/models|project_element_shadow_config_json_codec|map_placed_element_shadow_override_json_codec|static_shadow_footprint_config_json_codec|\.g\.dart|\.freezed\.dart"
+Aucune sortie.
+
+git diff -U0 -- packages/map_runtime | rg -n "package:map_editor|map_editor/src"
+Aucune sortie.
+
+git diff -U0 -- packages/map_runtime packages/map_editor packages/map_core | rg -n "saveLayer|ImageFilter|runtimeBlur|WorldLightState|ShadowLightProfile|LightDirection|timeOfDay|zOrder|zIndex|drawAtlas"
+Aucune sortie.
+
+git diff --check
+Aucune sortie.
+```
+
+## 18. git status initial/final
+Initialement, le worktree contenait déjà des modifications Shadow-46/47 et des rapports non suivis. Le statut final exact capturé pour ce rapport est :
+```text
+ M packages/map_core/lib/map_core.dart
+ M packages/map_core/lib/src/operations/static_shadow_family_projection.dart
+ M packages/map_core/test/shadow/static_shadow_family_projection_test.dart
+ M packages/map_editor/lib/src/application/shadow/editor_static_shadow_preview.dart
+ M packages/map_editor/lib/src/application/shadow/element_auto_shadow_backfill.dart
+ M packages/map_editor/lib/src/application/shadow/element_auto_shadow_suggestion.dart
+ M packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
+ M packages/map_editor/lib/src/ui/canvas/shadow/editor_static_shadow_preview_painter.dart
+ M packages/map_editor/test/application/shadow/editor_static_shadow_preview_test.dart
+ M packages/map_editor/test/application/shadow/element_auto_shadow_backfill_test.dart
+ M packages/map_editor/test/application/shadow/element_auto_shadow_suggestion_test.dart
+ M packages/map_editor/test/editor_notifier_project_dirty_state_test.dart
+ M packages/map_editor/test/features/tileset_library/apply_element_auto_shadow_suggestions_use_case_test.dart
+ M packages/map_editor/test/ui/canvas/editor_static_shadow_preview_painter_test.dart
+ M packages/map_runtime/lib/src/application/load_runtime_map_bundle.dart
+ M packages/map_runtime/lib/src/shadow/runtime_static_placed_element_shadow_collection.dart
+ M packages/map_runtime/lib/src/shadow/static_placed_element_shadow_runtime_resolver.dart
+ M packages/map_runtime/test/shadow/runtime_static_placed_element_shadow_collection_test.dart
+ M packages/map_runtime/test/shadow/static_placed_element_shadow_runtime_resolver_test.dart
+?? packages/map_core/lib/src/operations/element_auto_shadow_policy.dart
+?? packages/map_core/test/shadow/element_auto_shadow_policy_test.dart
+?? packages/map_runtime/test/application/load_runtime_map_bundle_shadow_policy_test.dart
+?? reports/shadows/shadow_lot_46_static_shadow_visual_sanity_recovery.md
+?? reports/shadows/shadow_lot_46_static_shadow_visual_sanity_recovery_plan.md
+?? reports/shadows/shadow_lot_47_static_shadow_artistic_defaults_cleanup.md
+?? reports/shadows/shadow_lot_47_static_shadow_artistic_defaults_cleanup_plan.md
+?? reports/shadows/shadow_lot_48_core_auto_shadow_policy_runtime_auto_apply.md
+?? reports/shadows/shadow_lot_48_core_auto_shadow_policy_runtime_auto_apply_plan.md
+```
+
+## 19. git diff --stat
+```text
+ packages/map_core/lib/map_core.dart                |   1 +
+ .../static_shadow_family_projection.dart           |  24 +-
+ .../static_shadow_family_projection_test.dart      |  41 +-
+ .../shadow/editor_static_shadow_preview.dart       | 291 +++++++++++--
+ .../shadow/element_auto_shadow_backfill.dart       | 184 +-------
+ .../shadow/element_auto_shadow_suggestion.dart     | 247 +----------
+ .../src/features/editor/state/editor_notifier.dart |   4 +-
+ .../editor_static_shadow_preview_painter.dart      |  54 ++-
+ .../shadow/editor_static_shadow_preview_test.dart  | 467 ++++++++++++++++++---
+ .../shadow/element_auto_shadow_backfill_test.dart  | 179 +++++++-
+ .../element_auto_shadow_suggestion_test.dart       |  70 +--
+ .../editor_notifier_project_dirty_state_test.dart  |  64 ++-
+ ...ment_auto_shadow_suggestions_use_case_test.dart |  52 ++-
+ .../editor_static_shadow_preview_painter_test.dart |  69 ++-
+ .../src/application/load_runtime_map_bundle.dart   |   5 +-
+ ...me_static_placed_element_shadow_collection.dart |   2 +
+ ...tic_placed_element_shadow_runtime_resolver.dart |  16 +-
+ ...atic_placed_element_shadow_collection_test.dart |  70 +++
+ ...laced_element_shadow_runtime_resolver_test.dart |  79 ++++
+ 19 files changed, 1307 insertions(+), 612 deletions(-)
+```
+
+## 20. git diff --name-status
+```text
+M	packages/map_core/lib/map_core.dart
+M	packages/map_core/lib/src/operations/static_shadow_family_projection.dart
+M	packages/map_core/test/shadow/static_shadow_family_projection_test.dart
+M	packages/map_editor/lib/src/application/shadow/editor_static_shadow_preview.dart
+M	packages/map_editor/lib/src/application/shadow/element_auto_shadow_backfill.dart
+M	packages/map_editor/lib/src/application/shadow/element_auto_shadow_suggestion.dart
+M	packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
+M	packages/map_editor/lib/src/ui/canvas/shadow/editor_static_shadow_preview_painter.dart
+M	packages/map_editor/test/application/shadow/editor_static_shadow_preview_test.dart
+M	packages/map_editor/test/application/shadow/element_auto_shadow_backfill_test.dart
+M	packages/map_editor/test/application/shadow/element_auto_shadow_suggestion_test.dart
+M	packages/map_editor/test/editor_notifier_project_dirty_state_test.dart
+M	packages/map_editor/test/features/tileset_library/apply_element_auto_shadow_suggestions_use_case_test.dart
+M	packages/map_editor/test/ui/canvas/editor_static_shadow_preview_painter_test.dart
+M	packages/map_runtime/lib/src/application/load_runtime_map_bundle.dart
+M	packages/map_runtime/lib/src/shadow/runtime_static_placed_element_shadow_collection.dart
+M	packages/map_runtime/lib/src/shadow/static_placed_element_shadow_runtime_resolver.dart
+M	packages/map_runtime/test/shadow/runtime_static_placed_element_shadow_collection_test.dart
+M	packages/map_runtime/test/shadow/static_placed_element_shadow_runtime_resolver_test.dart
+```
+
+## 21. Non-objectifs respectés
+- Aucun modèle persistant modifié.
+- Aucun codec JSON shadow modifié.
+- Aucun fichier generated modifié.
+- Aucun `build_runner`.
+- Aucun renderer, painter, Flame component ou render order touché par Shadow-48.
+- Aucun import `map_editor` depuis `map_runtime`.
+- Aucun write disque côté runtime.
+- Aucun commit effectué.
+
+## 22. Risques / réserves
+- La politique automatique reste heuristique. Elle retire les anciennes petites ombres reconnues et applique les cas sûrs, mais ne remplace pas une vraie calibration artistique asset par asset.
+- Les fichiers Shadow-46/47 encore modifiés dans le worktree peuvent influencer l’apparence visuelle globale ; Shadow-48 se limite à rendre la politique active au chargement runtime.
+- L’analyse runtime large révèle une dette préexistante `prefer_const_constructors` dans `script_command_executor.dart`, hors lot.
+- Des fichiers `map_battle` et rapports PSDK sont présents comme modifications hors lot dans le statut final ; ils ne viennent pas de Shadow-48.
+
+## 23. Auto-review finale
+- Ai-je extrait la politique auto-shadow dans `map_core` ? oui.
+- Ai-je gardé les anciens imports editor compatibles ? oui.
+- Ai-je appliqué la politique en mémoire au chargement runtime ? oui.
+- Ai-je évité toute sauvegarde runtime ? oui.
+- Ai-je préservé les ombres manuelles et disabled ? oui.
+- Ai-je retiré les anciennes ombres auto reconnues sans suggestion ? oui.
+- Ai-je évité les modèles/codecs/generated ? oui.
+- Ai-je évité Flame/render order/renderer ? oui.
+- Ai-je documenté la dette préexistante ? oui.
+- Ai-je évité tout commit ? oui.
+
+## 24. Contenu complet des fichiers créés/modifiés par Shadow-48
+### packages/map_core/lib/src/operations/element_auto_shadow_policy.dart
+```dart
+import '../models/project_manifest.dart';
+import '../models/shadow.dart';
+import '../models/shadow_catalog.dart';
+import 'default_shadow_profiles.dart';
+
+enum ElementAutoShadowSuggestionKind {
+  tallThin,
+  buildingLarge,
+  wideLow,
+  smallSquare,
+  defaultProp,
+}
+
+final class ElementAutoShadowSuggestion {
+  const ElementAutoShadowSuggestion({
+    required this.kind,
+    required this.config,
+    required this.summary,
+  });
+
+  final ElementAutoShadowSuggestionKind kind;
+  final ProjectElementShadowConfig config;
+  final String summary;
+}
+
+enum ElementAutoShadowBackfillStatus {
+  appliedMissing,
+  appliedGeneric,
+  skippedDisabled,
+  skippedManual,
+  skippedNoSuggestion,
+  clearedAutoNoSuggestion,
+}
+
+final class ElementAutoShadowBackfillEntry {
+  const ElementAutoShadowBackfillEntry({
+    required this.elementId,
+    required this.elementName,
+    required this.status,
+    this.suggestionKind,
+  });
+
+  final String elementId;
+  final String elementName;
+  final ElementAutoShadowBackfillStatus status;
+  final ElementAutoShadowSuggestionKind? suggestionKind;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is ElementAutoShadowBackfillEntry &&
+            elementId == other.elementId &&
+            elementName == other.elementName &&
+            status == other.status &&
+            suggestionKind == other.suggestionKind;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        elementId,
+        elementName,
+        status,
+        suggestionKind,
+      );
+}
+
+final class ElementAutoShadowBackfillResult {
+  const ElementAutoShadowBackfillResult({
+    required this.project,
+    required this.entries,
+    required this.addedDefaultProfiles,
+  });
+
+  final ProjectManifest project;
+  final List<ElementAutoShadowBackfillEntry> entries;
+  final bool addedDefaultProfiles;
+
+  int get appliedCount => entries
+      .where(
+        (entry) =>
+            entry.status == ElementAutoShadowBackfillStatus.appliedMissing ||
+            entry.status == ElementAutoShadowBackfillStatus.appliedGeneric,
+      )
+      .length;
+
+  int get clearedCount => entries
+      .where(
+        (entry) =>
+            entry.status ==
+            ElementAutoShadowBackfillStatus.clearedAutoNoSuggestion,
+      )
+      .length;
+
+  int get changedCount => entries.where(_entryChangesProject).length;
+
+  int get skippedCount => entries.length - changedCount;
+
+  bool get hasChanges => addedDefaultProfiles || changedCount > 0;
+}
+
+ElementAutoShadowSuggestion? buildElementAutoShadowSuggestion({
+  required ProjectElementEntry element,
+  required ProjectShadowCatalog shadowCatalog,
+}) {
+  if (element.frames.isEmpty) {
+    return null;
+  }
+  final source = element.frames.first.source;
+  if (source.width <= 0 || source.height <= 0) {
+    return null;
+  }
+  final width = source.width.toDouble();
+  final height = source.height.toDouble();
+  if (_isMicroDecor(
+    width: width,
+    height: height,
+  )) {
+    return null;
+  }
+  final kind = _classifyElement(
+    width: width,
+    height: height,
+  );
+  if (!_autoShadowKindIsArtisticallySafe(
+    kind,
+    width: width,
+    height: height,
+  )) {
+    return null;
+  }
+  final profile = _profileForKind(shadowCatalog, kind);
+  if (profile == null) {
+    return null;
+  }
+  return ElementAutoShadowSuggestion(
+    kind: kind,
+    config: _configForKind(kind, profile.id),
+    summary: _summaryForKind(kind),
+  );
+}
+
+ElementAutoShadowBackfillResult applyElementAutoShadowPolicyToProject(
+  ProjectManifest project,
+) {
+  final projectWithDefaults =
+      ensureDefaultGroundStaticShadowProfilesForProject(project);
+  final addedDefaultProfiles = projectWithDefaults != project;
+  final entries = <ElementAutoShadowBackfillEntry>[];
+  final elements = <ProjectElementEntry>[];
+
+  for (final element in projectWithDefaults.elements) {
+    final currentShadow = element.shadow;
+    if (currentShadow != null && !currentShadow.castsShadow) {
+      entries.add(
+        _entry(element, ElementAutoShadowBackfillStatus.skippedDisabled),
+      );
+      elements.add(element);
+      continue;
+    }
+
+    final suggestion = buildElementAutoShadowSuggestion(
+      element: element,
+      shadowCatalog: projectWithDefaults.shadowCatalog,
+    );
+    if (suggestion == null) {
+      if (currentShadow != null &&
+          _isRecognizedAutoShadow(
+            currentShadow,
+            projectWithDefaults.shadowCatalog,
+          )) {
+        entries.add(
+          _entry(
+            element,
+            ElementAutoShadowBackfillStatus.clearedAutoNoSuggestion,
+          ),
+        );
+        elements.add(element.copyWith(shadow: null));
+        continue;
+      }
+      entries.add(
+        _entry(
+          element,
+          currentShadow == null
+              ? ElementAutoShadowBackfillStatus.skippedNoSuggestion
+              : ElementAutoShadowBackfillStatus.skippedManual,
+        ),
+      );
+      elements.add(element);
+      continue;
+    }
+    if (currentShadow != null &&
+        !_isRecognizedAutoShadow(
+          currentShadow,
+          projectWithDefaults.shadowCatalog,
+        )) {
+      entries.add(
+        _entry(element, ElementAutoShadowBackfillStatus.skippedManual),
+      );
+      elements.add(element);
+      continue;
+    }
+
+    final status = currentShadow == null
+        ? ElementAutoShadowBackfillStatus.appliedMissing
+        : ElementAutoShadowBackfillStatus.appliedGeneric;
+    entries.add(
+      _entry(
+        element,
+        status,
+        suggestionKind: suggestion.kind,
+      ),
+    );
+    elements.add(element.copyWith(shadow: suggestion.config));
+  }
+
+  return ElementAutoShadowBackfillResult(
+    project: addedDefaultProfiles || entries.any(_entryChangesProject)
+        ? projectWithDefaults.copyWith(elements: elements)
+        : project,
+    entries: entries,
+    addedDefaultProfiles: addedDefaultProfiles,
+  );
+}
+
+bool _isMicroDecor({
+  required double width,
+  required double height,
+}) {
+  return width <= 1 && height <= 2;
+}
+
+ElementAutoShadowSuggestionKind _classifyElement({
+  required double width,
+  required double height,
+}) {
+  final area = width * height;
+  final aspect = height / width;
+  if (aspect >= 2.2 && width <= 2) {
+    return ElementAutoShadowSuggestionKind.tallThin;
+  }
+  if (width >= 3 && height <= 2) {
+    return ElementAutoShadowSuggestionKind.wideLow;
+  }
+  if (width >= 4 || area >= 12) {
+    return ElementAutoShadowSuggestionKind.buildingLarge;
+  }
+  if (width >= 3 && height <= 3) {
+    return ElementAutoShadowSuggestionKind.wideLow;
+  }
+  if (area <= 4) {
+    return ElementAutoShadowSuggestionKind.smallSquare;
+  }
+  return ElementAutoShadowSuggestionKind.defaultProp;
+}
+
+bool _autoShadowKindIsArtisticallySafe(
+  ElementAutoShadowSuggestionKind kind, {
+  required double width,
+  required double height,
+}) {
+  switch (kind) {
+    case ElementAutoShadowSuggestionKind.tallThin:
+    case ElementAutoShadowSuggestionKind.buildingLarge:
+      return true;
+    case ElementAutoShadowSuggestionKind.wideLow:
+      return width >= 4 || width * height >= 10;
+    case ElementAutoShadowSuggestionKind.smallSquare:
+    case ElementAutoShadowSuggestionKind.defaultProp:
+      return false;
+  }
+}
+
+ProjectShadowProfile? _profileForKind(
+  ProjectShadowCatalog catalog,
+  ElementAutoShadowSuggestionKind kind,
+) {
+  switch (kind) {
+    case ElementAutoShadowSuggestionKind.tallThin:
+    case ElementAutoShadowSuggestionKind.smallSquare:
+      return _preferredCompactProfile(catalog);
+    case ElementAutoShadowSuggestionKind.buildingLarge:
+    case ElementAutoShadowSuggestionKind.wideLow:
+      return _preferredWideProfile(catalog);
+    case ElementAutoShadowSuggestionKind.defaultProp:
+      return _preferredSoftProfile(catalog);
+  }
+}
+
+ProjectShadowProfile? _preferredCompactProfile(ProjectShadowCatalog catalog) {
+  return _compatibleProfileById(catalog, 'default-ground-contact-blob') ??
+      _firstCompatibleProfileWithMode(catalog, ShadowCasterMode.contactBlob) ??
+      _firstCompatibleProfile(catalog);
+}
+
+ProjectShadowProfile? _preferredWideProfile(ProjectShadowCatalog catalog) {
+  return _compatibleProfileById(catalog, 'default-ground-wide-ellipse') ??
+      _firstCompatibleProfileWithMode(catalog, ShadowCasterMode.ellipse) ??
+      _firstCompatibleProfile(catalog);
+}
+
+ProjectShadowProfile? _preferredSoftProfile(ProjectShadowCatalog catalog) {
+  return _compatibleProfileById(catalog, 'default-ground-soft-ellipse') ??
+      _firstCompatibleProfileWithMode(catalog, ShadowCasterMode.ellipse) ??
+      _firstCompatibleProfile(catalog);
+}
+
+ProjectShadowProfile? _compatibleProfileById(
+  ProjectShadowCatalog catalog,
+  String id,
+) {
+  final profile = catalog.profileById(id);
+  if (profile == null || !isGroundStaticElementShadowProfile(profile)) {
+    return null;
+  }
+  return profile;
+}
+
+ProjectShadowProfile? _firstCompatibleProfileWithMode(
+  ProjectShadowCatalog catalog,
+  ShadowCasterMode mode,
+) {
+  for (final profile in catalog.profiles) {
+    if (profile.mode == mode && isGroundStaticElementShadowProfile(profile)) {
+      return profile;
+    }
+  }
+  return null;
+}
+
+ProjectShadowProfile? _firstCompatibleProfile(ProjectShadowCatalog catalog) {
+  for (final profile in catalog.profiles) {
+    if (isGroundStaticElementShadowProfile(profile)) {
+      return profile;
+    }
+  }
+  return null;
+}
+
+ProjectElementShadowConfig _configForKind(
+  ElementAutoShadowSuggestionKind kind,
+  String profileId,
+) {
+  switch (kind) {
+    case ElementAutoShadowSuggestionKind.tallThin:
+      return ProjectElementShadowConfig(
+        castsShadow: true,
+        shadowProfileId: profileId,
+        offsetX: 0,
+        offsetY: 0,
+        scaleX: 1,
+        scaleY: 1,
+        opacity: 0.28,
+        family: StaticShadowFamily.tallProp,
+        footprint: StaticShadowFootprintConfig(
+          anchorXRatio: 0.5,
+          anchorYRatio: 1.0,
+          footprintWidthRatio: 0.18,
+          footprintHeightRatio: 0.07,
+        ),
+      );
+    case ElementAutoShadowSuggestionKind.buildingLarge:
+      return ProjectElementShadowConfig(
+        castsShadow: true,
+        shadowProfileId: profileId,
+        offsetX: 0,
+        offsetY: 0,
+        scaleX: 1,
+        scaleY: 0.85,
+        opacity: 0.30,
+        family: StaticShadowFamily.building,
+        footprint: StaticShadowFootprintConfig(
+          anchorXRatio: 0.5,
+          anchorYRatio: 0.92,
+          footprintWidthRatio: 0.82,
+          footprintHeightRatio: 0.12,
+        ),
+      );
+    case ElementAutoShadowSuggestionKind.wideLow:
+      return ProjectElementShadowConfig(
+        castsShadow: true,
+        shadowProfileId: profileId,
+        offsetX: 0,
+        offsetY: 0,
+        scaleX: 0.92,
+        scaleY: 0.75,
+        opacity: 0.27,
+        family: StaticShadowFamily.compactProp,
+        footprint: StaticShadowFootprintConfig(
+          anchorXRatio: 0.5,
+          anchorYRatio: 0.95,
+          footprintWidthRatio: 0.72,
+          footprintHeightRatio: 0.10,
+        ),
+      );
+    case ElementAutoShadowSuggestionKind.smallSquare:
+      return ProjectElementShadowConfig(
+        castsShadow: true,
+        shadowProfileId: profileId,
+        offsetX: 0,
+        offsetY: 0,
+        scaleX: 0.78,
+        scaleY: 0.70,
+        opacity: 0.26,
+        family: StaticShadowFamily.compactProp,
+        footprint: StaticShadowFootprintConfig(
+          anchorXRatio: 0.5,
+          anchorYRatio: 0.96,
+          footprintWidthRatio: 0.46,
+          footprintHeightRatio: 0.10,
+        ),
+      );
+    case ElementAutoShadowSuggestionKind.defaultProp:
+      return ProjectElementShadowConfig(
+        castsShadow: true,
+        shadowProfileId: profileId,
+        offsetX: 0,
+        offsetY: 0,
+        scaleX: 0.90,
+        scaleY: 0.80,
+        opacity: 0.28,
+        family: StaticShadowFamily.genericProjection,
+        footprint: StaticShadowFootprintConfig(
+          anchorXRatio: 0.5,
+          anchorYRatio: 0.95,
+          footprintWidthRatio: 0.62,
+          footprintHeightRatio: 0.12,
+        ),
+      );
+  }
+}
+
+String _summaryForKind(ElementAutoShadowSuggestionKind kind) {
+  switch (kind) {
+    case ElementAutoShadowSuggestionKind.tallThin:
+      return 'lampadaire fin';
+    case ElementAutoShadowSuggestionKind.buildingLarge:
+      return 'grand bâtiment';
+    case ElementAutoShadowSuggestionKind.wideLow:
+      return 'élément large et bas';
+    case ElementAutoShadowSuggestionKind.smallSquare:
+      return 'petit élément compact';
+    case ElementAutoShadowSuggestionKind.defaultProp:
+      return 'élément standard';
+  }
+}
+
+bool _entryChangesProject(ElementAutoShadowBackfillEntry entry) {
+  return entry.status == ElementAutoShadowBackfillStatus.appliedMissing ||
+      entry.status == ElementAutoShadowBackfillStatus.appliedGeneric ||
+      entry.status == ElementAutoShadowBackfillStatus.clearedAutoNoSuggestion;
+}
+
+ElementAutoShadowBackfillEntry _entry(
+  ProjectElementEntry element,
+  ElementAutoShadowBackfillStatus status, {
+  ElementAutoShadowSuggestionKind? suggestionKind,
+}) {
+  return ElementAutoShadowBackfillEntry(
+    elementId: element.id,
+    elementName: element.name,
+    status: status,
+    suggestionKind: suggestionKind,
+  );
+}
+
+bool _isRecognizedAutoShadow(
+  ProjectElementShadowConfig shadow,
+  ProjectShadowCatalog catalog,
+) {
+  return _canReplaceExistingShadow(shadow, catalog) ||
+      shadow == _oldAutoSmallSquareShadow() ||
+      shadow == _oldAutoDefaultPropShadow() ||
+      shadow == _oldAutoWideLowShadow();
+}
+
+bool _canReplaceExistingShadow(
+  ProjectElementShadowConfig shadow,
+  ProjectShadowCatalog catalog,
+) {
+  if (!shadow.castsShadow) {
+    return false;
+  }
+  if (shadow.footprint != null) {
+    return false;
+  }
+  if (shadow.offsetX != null ||
+      shadow.offsetY != null ||
+      shadow.scaleX != null ||
+      shadow.scaleY != null ||
+      shadow.opacity != null) {
+    return false;
+  }
+
+  final profileId = shadow.shadowProfileId;
+  if (profileId == null) {
+    return true;
+  }
+  if (_defaultGroundStaticProfileIds.contains(profileId)) {
+    return true;
+  }
+  return catalog.profileById(profileId) == null;
+}
+
+ProjectElementShadowConfig _oldAutoSmallSquareShadow() {
+  return ProjectElementShadowConfig(
+    castsShadow: true,
+    shadowProfileId: 'default-ground-contact-blob',
+    offsetX: 0,
+    offsetY: 0,
+    scaleX: 0.78,
+    scaleY: 0.70,
+    opacity: 0.26,
+    family: StaticShadowFamily.compactProp,
+    footprint: StaticShadowFootprintConfig(
+      anchorXRatio: 0.5,
+      anchorYRatio: 0.96,
+      footprintWidthRatio: 0.46,
+      footprintHeightRatio: 0.10,
+    ),
+  );
+}
+
+ProjectElementShadowConfig _oldAutoDefaultPropShadow() {
+  return ProjectElementShadowConfig(
+    castsShadow: true,
+    shadowProfileId: 'default-ground-soft-ellipse',
+    offsetX: 0,
+    offsetY: 0,
+    scaleX: 0.90,
+    scaleY: 0.80,
+    opacity: 0.28,
+    family: StaticShadowFamily.genericProjection,
+    footprint: StaticShadowFootprintConfig(
+      anchorXRatio: 0.5,
+      anchorYRatio: 0.95,
+      footprintWidthRatio: 0.62,
+      footprintHeightRatio: 0.12,
+    ),
+  );
+}
+
+ProjectElementShadowConfig _oldAutoWideLowShadow() {
+  return ProjectElementShadowConfig(
+    castsShadow: true,
+    shadowProfileId: 'default-ground-wide-ellipse',
+    offsetX: 0,
+    offsetY: 0,
+    scaleX: 0.92,
+    scaleY: 0.75,
+    opacity: 0.27,
+    family: StaticShadowFamily.compactProp,
+    footprint: StaticShadowFootprintConfig(
+      anchorXRatio: 0.5,
+      anchorYRatio: 0.95,
+      footprintWidthRatio: 0.72,
+      footprintHeightRatio: 0.10,
+    ),
+  );
+}
+
+const _defaultGroundStaticProfileIds = <String>{
+  'default-ground-soft-ellipse',
+  'default-ground-wide-ellipse',
+  'default-ground-contact-blob',
+};
+
+```
+
+### packages/map_core/test/shadow/element_auto_shadow_policy_test.dart
+```dart
+import 'package:map_core/map_core.dart';
+import 'package:test/test.dart';
+
+void main() {
+  group('buildElementAutoShadowSuggestion', () {
+    test('small square and default prop return null', () {
+      expect(
+        buildElementAutoShadowSuggestion(
+          element: _element(id: 'small', width: 2, height: 2),
+          shadowCatalog: _defaultCatalog(),
+        ),
+        isNull,
+      );
+      expect(
+        buildElementAutoShadowSuggestion(
+          element: _element(id: 'prop', width: 2, height: 3),
+          shadowCatalog: _defaultCatalog(),
+        ),
+        isNull,
+      );
+    });
+
+    test('wide low needs enough surface', () {
+      expect(
+        buildElementAutoShadowSuggestion(
+          element: _element(id: 'small-wide', width: 3, height: 2),
+          shadowCatalog: _defaultCatalog(),
+        ),
+        isNull,
+      );
+      final suggestion = buildElementAutoShadowSuggestion(
+        element: _element(id: 'wide', width: 4, height: 2),
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      expect(suggestion!.kind, ElementAutoShadowSuggestionKind.wideLow);
+      expect(suggestion.config.shadowProfileId, 'default-ground-wide-ellipse');
+    });
+
+    test('tall thin and building elements receive suggestions', () {
+      final tall = buildElementAutoShadowSuggestion(
+        element: _element(id: 'lamp', width: 1, height: 4),
+        shadowCatalog: _defaultCatalog(),
+      );
+      final building = buildElementAutoShadowSuggestion(
+        element: _element(id: 'house', width: 4, height: 3),
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      expect(tall!.kind, ElementAutoShadowSuggestionKind.tallThin);
+      expect(tall.config.family, StaticShadowFamily.tallProp);
+      expect(building!.kind, ElementAutoShadowSuggestionKind.buildingLarge);
+      expect(building.config.family, StaticShadowFamily.building);
+    });
+  });
+
+  group('applyElementAutoShadowPolicyToProject', () {
+    test('backfill clears recognized old auto shadows without suggestion', () {
+      final result = applyElementAutoShadowPolicyToProject(
+        _project(
+          elements: [
+            _element(
+              id: 'small',
+              width: 2,
+              height: 2,
+              shadow: _oldAutoSmallSquareShadow(),
+            ),
+          ],
+          shadowCatalog: _defaultCatalog(),
+        ),
+      );
+
+      expect(result.appliedCount, 0);
+      expect(result.clearedCount, 1);
+      expect(result.changedCount, 1);
+      expect(
+        result.entries.single.status,
+        ElementAutoShadowBackfillStatus.clearedAutoNoSuggestion,
+      );
+      expect(result.project.elements.single.shadow, isNull);
+    });
+
+    test('backfill applies eligible missing shadows', () {
+      final result = applyElementAutoShadowPolicyToProject(
+        _project(
+          elements: [
+            _element(id: 'lamp', width: 1, height: 4),
+          ],
+          shadowCatalog: const ProjectShadowCatalog.empty(),
+        ),
+      );
+
+      expect(result.addedDefaultProfiles, isTrue);
+      expect(result.appliedCount, 1);
+      expect(result.clearedCount, 0);
+      expect(result.changedCount, 1);
+      expect(
+        result.project.elements.single.shadow!.shadowProfileId,
+        'default-ground-contact-blob',
+      );
+    });
+
+    test('manual and disabled shadows are preserved', () {
+      final manual = ProjectElementShadowConfig(
+        castsShadow: true,
+        shadowProfileId: 'custom-ground-shadow',
+      );
+      final disabled = ProjectElementShadowConfig(castsShadow: false);
+      final result = applyElementAutoShadowPolicyToProject(
+        _project(
+          elements: [
+            _element(id: 'manual', width: 2, height: 2, shadow: manual),
+            _element(id: 'disabled', width: 4, height: 3, shadow: disabled),
+          ],
+          shadowCatalog: ProjectShadowCatalog(
+            profiles: [
+              ...createDefaultGroundStaticShadowProfiles(),
+              ProjectShadowProfile(
+                id: 'custom-ground-shadow',
+                name: 'Custom ground shadow',
+                mode: ShadowCasterMode.ellipse,
+                renderPass: ShadowRenderPass.groundStatic,
+              ),
+            ],
+          ),
+        ),
+      );
+
+      expect(result.changedCount, 0);
+      expect(result.hasChanges, isFalse);
+      expect(result.project.elements[0].shadow, manual);
+      expect(result.project.elements[1].shadow, disabled);
+    });
+  });
+}
+
+ProjectManifest _project({
+  required List<ProjectElementEntry> elements,
+  required ProjectShadowCatalog shadowCatalog,
+}) {
+  return ProjectManifest(
+    name: 'Auto shadow policy test',
+    maps: const <ProjectMapEntry>[],
+    tilesets: const <ProjectTilesetEntry>[
+      ProjectTilesetEntry(
+        id: 'tileset_main',
+        name: 'Main tileset',
+        relativePath: 'tilesets/main.png',
+      ),
+    ],
+    elementCategories: const <ProjectElementCategory>[
+      ProjectElementCategory(id: 'decor', name: 'Decor'),
+    ],
+    elements: elements,
+    shadowCatalog: shadowCatalog,
+    surfaceCatalog: ProjectSurfaceCatalog(),
+  );
+}
+
+ProjectShadowCatalog _defaultCatalog() {
+  return ProjectShadowCatalog(
+    profiles: createDefaultGroundStaticShadowProfiles(),
+  );
+}
+
+ProjectElementEntry _element({
+  required String id,
+  required int width,
+  required int height,
+  ProjectElementShadowConfig? shadow,
+}) {
+  return ProjectElementEntry(
+    id: id,
+    name: id,
+    tilesetId: 'tileset_main',
+    categoryId: 'decor',
+    frames: [
+      TilesetVisualFrame(
+        source: TilesetSourceRect(x: 0, y: 0, width: width, height: height),
+      ),
+    ],
+    shadow: shadow,
+  );
+}
+
+ProjectElementShadowConfig _oldAutoSmallSquareShadow() {
+  return ProjectElementShadowConfig(
+    castsShadow: true,
+    shadowProfileId: 'default-ground-contact-blob',
+    offsetX: 0,
+    offsetY: 0,
+    scaleX: 0.78,
+    scaleY: 0.70,
+    opacity: 0.26,
+    family: StaticShadowFamily.compactProp,
+    footprint: StaticShadowFootprintConfig(
+      anchorXRatio: 0.5,
+      anchorYRatio: 0.96,
+      footprintWidthRatio: 0.46,
+      footprintHeightRatio: 0.10,
+    ),
+  );
+}
+
+```
+
+### packages/map_runtime/test/application/load_runtime_map_bundle_shadow_policy_test.dart
+```dart
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
+import 'package:path/path.dart' as p;
+
+void main() {
+  group('loadProjectManifestFromFile shadow policy', () {
+    test('clears recognized obsolete auto shadows in memory', () async {
+      final root =
+          await Directory.systemTemp.createTemp('runtime_shadow_policy_');
+      addTearDown(() => root.delete(recursive: true));
+      final manifestPath = p.join(root.path, 'project.json');
+      await File(manifestPath).writeAsString(
+        jsonEncode(
+          _project(
+            elements: [
+              _element(
+                id: 'small',
+                width: 2,
+                height: 2,
+                shadow: _oldAutoSmallSquareShadow(),
+              ),
+            ],
+            shadowCatalog: _defaultCatalog(),
+          ).toJson(),
+        ),
+      );
+
+      final manifest = await loadProjectManifestFromFile(manifestPath);
+
+      expect(manifest.elements.single.shadow, isNull);
+    });
+
+    test('applies eligible missing auto shadows in memory', () async {
+      final root =
+          await Directory.systemTemp.createTemp('runtime_shadow_policy_');
+      addTearDown(() => root.delete(recursive: true));
+      final manifestPath = p.join(root.path, 'project.json');
+      await File(manifestPath).writeAsString(
+        jsonEncode(
+          _project(
+            elements: [
+              _element(id: 'lamp', width: 1, height: 4),
+            ],
+            shadowCatalog: const ProjectShadowCatalog.empty(),
+          ).toJson(),
+        ),
+      );
+
+      final manifest = await loadProjectManifestFromFile(manifestPath);
+
+      expect(manifest.elements.single.shadow, isNotNull);
+      expect(
+        manifest.elements.single.shadow!.shadowProfileId,
+        'default-ground-contact-blob',
+      );
+    });
+
+    test('preserves manual and disabled shadows', () async {
+      final manual = ProjectElementShadowConfig(
+        castsShadow: true,
+        shadowProfileId: 'custom-ground-shadow',
+      );
+      final disabled = ProjectElementShadowConfig(castsShadow: false);
+      final root =
+          await Directory.systemTemp.createTemp('runtime_shadow_policy_');
+      addTearDown(() => root.delete(recursive: true));
+      final manifestPath = p.join(root.path, 'project.json');
+      await File(manifestPath).writeAsString(
+        jsonEncode(
+          _project(
+            elements: [
+              _element(id: 'manual', width: 2, height: 2, shadow: manual),
+              _element(id: 'disabled', width: 4, height: 3, shadow: disabled),
+            ],
+            shadowCatalog: ProjectShadowCatalog(
+              profiles: [
+                ...createDefaultGroundStaticShadowProfiles(),
+                ProjectShadowProfile(
+                  id: 'custom-ground-shadow',
+                  name: 'Custom ground shadow',
+                  mode: ShadowCasterMode.ellipse,
+                  renderPass: ShadowRenderPass.groundStatic,
+                ),
+              ],
+            ),
+          ).toJson(),
+        ),
+      );
+
+      final manifest = await loadProjectManifestFromFile(manifestPath);
+
+      expect(manifest.elements[0].shadow, manual);
+      expect(manifest.elements[1].shadow, disabled);
+    });
+  });
+}
+
+ProjectManifest _project({
+  required List<ProjectElementEntry> elements,
+  required ProjectShadowCatalog shadowCatalog,
+}) {
+  return ProjectManifest(
+    name: 'Runtime shadow policy test',
+    maps: const <ProjectMapEntry>[],
+    tilesets: const <ProjectTilesetEntry>[
+      ProjectTilesetEntry(
+        id: 'tileset_main',
+        name: 'Main tileset',
+        relativePath: 'tilesets/main.png',
+      ),
+    ],
+    elementCategories: const <ProjectElementCategory>[
+      ProjectElementCategory(id: 'decor', name: 'Decor'),
+    ],
+    elements: elements,
+    shadowCatalog: shadowCatalog,
+    surfaceCatalog: ProjectSurfaceCatalog(),
+  );
+}
+
+ProjectShadowCatalog _defaultCatalog() {
+  return ProjectShadowCatalog(
+    profiles: createDefaultGroundStaticShadowProfiles(),
+  );
+}
+
+ProjectElementEntry _element({
+  required String id,
+  required int width,
+  required int height,
+  ProjectElementShadowConfig? shadow,
+}) {
+  return ProjectElementEntry(
+    id: id,
+    name: id,
+    tilesetId: 'tileset_main',
+    categoryId: 'decor',
+    frames: [
+      TilesetVisualFrame(
+        source: TilesetSourceRect(x: 0, y: 0, width: width, height: height),
+      ),
+    ],
+    shadow: shadow,
+  );
+}
+
+ProjectElementShadowConfig _oldAutoSmallSquareShadow() {
+  return ProjectElementShadowConfig(
+    castsShadow: true,
+    shadowProfileId: 'default-ground-contact-blob',
+    offsetX: 0,
+    offsetY: 0,
+    scaleX: 0.78,
+    scaleY: 0.70,
+    opacity: 0.26,
+    family: StaticShadowFamily.compactProp,
+    footprint: StaticShadowFootprintConfig(
+      anchorXRatio: 0.5,
+      anchorYRatio: 0.96,
+      footprintWidthRatio: 0.46,
+      footprintHeightRatio: 0.10,
+    ),
+  );
+}
+
+```
+
+### packages/map_core/lib/map_core.dart
+```dart
+library map_core;
+
+export 'src/models/enums.dart';
+export 'src/models/geometry.dart';
+export 'src/models/tileset.dart';
+export 'src/models/tileset_transparent_color.dart';
+export 'src/models/map_data.dart';
+export 'src/models/element_collision_profile.dart';
+export 'src/models/environment.dart';
+export 'src/models/map_entity_payloads.dart';
+export 'src/models/map_entity_editor_visual.dart';
+export 'src/models/map_gameplay_zone_payloads.dart';
+export 'src/models/map_layer.dart';
+export 'src/models/map_metadata.dart';
+export 'src/models/path_center_pattern.dart';
+export 'src/models/project_path_pattern_preset.dart';
+export 'src/models/project_manifest.dart';
+export 'src/models/save_data.dart';
+export 'src/models/game_state.dart';
+export 'src/models/pokemon_move.dart';
+export 'src/models/pokemon_move_accuracy.dart';
+export 'src/models/pokemon_move_effect.dart';
+export 'src/models/script_asset.dart';
+export 'src/models/script_conditions.dart';
+export 'src/models/map_event_definition.dart';
+export 'src/models/project_trainer.dart';
+export 'src/models/scenario_asset.dart';
+export 'src/models/visual_frame_json.dart';
+export 'src/models/shadow.dart';
+export 'src/models/shadow_catalog.dart';
+export 'src/models/surface.dart';
+export 'src/models/surface_catalog.dart';
+export 'src/operations/map_resize.dart';
+export 'src/operations/map_paint.dart';
+export 'src/operations/map_collision.dart';
+export 'src/operations/map_path.dart';
+export 'src/operations/map_terrain.dart';
+export 'src/operations/map_terrain_autotile.dart';
+export 'src/operations/terrain_preset_subtile_for_map_cell.dart';
+export 'src/operations/terrain_preset_variant_pick.dart';
+export 'src/operations/path_center_pattern_resolver.dart';
+export 'src/operations/path_pattern_visual_resolution.dart';
+export 'src/operations/project_path_preset_center_pattern_adapter.dart';
+export 'src/operations/project_element_shadow_config_json_codec.dart';
+export 'src/operations/project_manifest_shadow_catalog_operations.dart';
+export 'src/operations/project_path_pattern_preset_json_codec.dart';
+export 'src/operations/project_shadow_catalog_json_codec.dart';
+export 'src/operations/project_shadow_profile_json_codec.dart';
+export 'src/operations/static_shadow_family_json_codec.dart';
+export 'src/operations/static_shadow_footprint_config_json_codec.dart';
+export 'src/operations/project_json_migrations.dart';
+export 'src/operations/default_shadow_profiles.dart';
+export 'src/operations/tile_visual_frame_timeline.dart';
+export 'src/operations/tile_visual_frame_vertical_atlas.dart';
+export 'src/operations/path_variant_vertical_atlas_mapping.dart';
+export 'src/operations/path_preset_vertical_atlas_builder.dart';
+export 'src/operations/terrain_path_variant_vertical_atlas_layout.dart';
+export 'src/operations/standard_path_preset_vertical_atlas_builder.dart';
+export 'src/operations/standard_water_path_preset_vertical_atlas_builder.dart';
+export 'src/operations/standard_lava_path_preset_vertical_atlas_builder.dart';
+export 'src/operations/standard_ice_path_preset_vertical_atlas_builder.dart';
+export 'src/operations/standard_tall_grass_path_preset_vertical_atlas_builder.dart';
+export 'src/operations/standard_surface_preset_builder.dart';
+export 'src/operations/surface_catalog_diagnostics.dart';
+export 'src/operations/surface_catalog_authoring_diagnostics.dart';
+export 'src/operations/surface_catalog_diagnostics_summary.dart';
+export 'src/operations/surface_catalog_diagnostics_presentation.dart';
+export 'src/operations/static_shadow_geometry.dart';
+export 'src/operations/static_shadow_family_projection.dart';
+export 'src/operations/static_shadow_projection_geometry.dart';
+export 'src/operations/element_auto_shadow_policy.dart';
+export 'src/operations/surface_atlas_json_codec.dart';
+export 'src/operations/surface_animation_frame_json_codec.dart';
+export 'src/operations/surface_animation_timeline_json_codec.dart';
+export 'src/operations/project_surface_animation_json_codec.dart';
+export 'src/operations/surface_variant_animation_ref_json_codec.dart';
+export 'src/operations/surface_variant_animation_ref_set_json_codec.dart';
+export 'src/operations/project_surface_preset_json_codec.dart';
+export 'src/operations/project_surface_catalog_json_codec.dart';
+export 'src/operations/project_manifest_surface_catalog_operations.dart';
+export 'src/operations/project_manifest_path_pattern_preset_operations.dart';
+export 'src/operations/surface_studio_read_model.dart';
+export 'src/operations/tall_grass_authoring_view.dart';
+export 'src/operations/path_animation_rules.dart';
+export 'src/operations/element_collision_mask_codec.dart';
+export 'src/collision/pixel_rect.dart';
+export 'src/collision/player_collision_conventions_v1.dart';
+export 'src/operations/map_layers.dart';
+export 'src/operations/environment_layer_content_json_codec.dart';
+export 'src/operations/environment_preset_json_codec.dart';
+export 'src/operations/project_manifest_environment_preset_operations.dart';
+export 'src/operations/environment_preset_diagnostics.dart';
+export 'src/operations/environment_layer_usage_diagnostics.dart';
+export 'src/operations/environment_authoring_diagnostics.dart';
+export 'src/operations/shadow_authoring_diagnostics.dart';
+export 'src/operations/shadow_config_resolver.dart';
+export 'src/operations/surface_layer_placements.dart';
+export 'src/operations/surface_to_gameplay_zone_generation_assessment.dart';
+export 'src/operations/surface_to_gameplay_zone_generation_plan.dart';
+export 'src/operations/surface_variant_role_resolver.dart';
+export 'src/operations/map_connections.dart';
+export 'src/operations/map_entities.dart';
+export 'src/operations/map_events.dart';
+export 'src/operations/map_placed_elements.dart';
+export 'src/operations/map_placed_element_animation.dart';
+export 'src/operations/map_placed_element_shadow_override_json_codec.dart';
+export 'src/operations/map_entity_collision_footprint.dart';
+export 'src/operations/map_triggers.dart';
+export 'src/operations/map_warps.dart';
+export 'src/operations/map_gameplay_zones.dart';
+export 'src/operations/map_map_metadata.dart';
+export 'src/operations/game_state_persistence.dart';
+export 'src/operations/tileset_library_tree.dart';
+export 'src/operations/dialogue_library_tree.dart';
+export 'src/operations/project_dialogue_refs.dart';
+export 'src/validation/validators.dart';
+export 'src/validation/dialogue_validation.dart';
+export 'src/validation/entity_editor_visual_validation.dart';
+export 'src/exceptions/map_exceptions.dart';
+
+```
+
+### packages/map_editor/lib/src/application/shadow/element_auto_shadow_suggestion.dart
+```dart
+export 'package:map_core/map_core.dart'
+    show
+        ElementAutoShadowSuggestion,
+        ElementAutoShadowSuggestionKind,
+        buildElementAutoShadowSuggestion;
+
+```
+
+### packages/map_editor/lib/src/application/shadow/element_auto_shadow_backfill.dart
+```dart
+import 'package:map_core/map_core.dart';
+
+export 'package:map_core/map_core.dart'
+    show
+        ElementAutoShadowBackfillEntry,
+        ElementAutoShadowBackfillResult,
+        ElementAutoShadowBackfillStatus,
+        applyElementAutoShadowPolicyToProject;
+
+ElementAutoShadowBackfillResult applyElementAutoShadowSuggestionsToProject(
+  ProjectManifest project,
+) {
+  return applyElementAutoShadowPolicyToProject(project);
+}
+
+```
+
+### packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
+```dart
 import 'dart:convert';
 import 'dart:io';
 
@@ -9097,3 +10498,2741 @@ class _TileLayerGeneratedPlacementAddSelection {
   final EnvironmentPaletteItem item;
   final ProjectElementEntry element;
 }
+
+```
+
+### packages/map_editor/test/application/shadow/element_auto_shadow_backfill_test.dart
+```dart
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart' hide ElementAutoShadowSuggestionKind;
+import 'package:map_editor/src/application/shadow/element_auto_shadow_backfill.dart';
+import 'package:map_editor/src/application/shadow/element_auto_shadow_suggestion.dart';
+
+void main() {
+  group('applyElementAutoShadowSuggestionsToProject', () {
+    test('applies suggestions to elements without shadow configs', () {
+      final project = _project(
+        elements: [
+          _element(id: 'lamp', name: 'Lamp', width: 1, height: 4),
+          _element(id: 'house', name: 'House', width: 4, height: 3),
+        ],
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      final result = applyElementAutoShadowSuggestionsToProject(project);
+
+      expect(result.appliedCount, 2);
+      expect(result.skippedCount, 0);
+      expect(result.hasChanges, isTrue);
+      expect(result.addedDefaultProfiles, isFalse);
+      expect(result.entries.map((entry) => entry.status), [
+        ElementAutoShadowBackfillStatus.appliedMissing,
+        ElementAutoShadowBackfillStatus.appliedMissing,
+      ]);
+      expect(result.entries.map((entry) => entry.suggestionKind), [
+        ElementAutoShadowSuggestionKind.tallThin,
+        ElementAutoShadowSuggestionKind.buildingLarge,
+      ]);
+      expect(
+        result.project.elements[0].shadow!.shadowProfileId,
+        'default-ground-contact-blob',
+      );
+      expect(
+        result.project.elements[0].shadow!.family,
+        StaticShadowFamily.tallProp,
+      );
+      expect(
+        result.project.elements[0].shadow!.footprint!.footprintWidthRatio,
+        0.18,
+      );
+      expect(
+        result.project.elements[1].shadow!.shadowProfileId,
+        'default-ground-wide-ellipse',
+      );
+      expect(
+        result.project.elements[1].shadow!.family,
+        StaticShadowFamily.building,
+      );
+      expect(
+        result.project.elements[1].shadow!.footprint!.footprintWidthRatio,
+        0.82,
+      );
+    });
+
+    test('replaces generic pre-footprint active shadows', () {
+      final project = _project(
+        elements: [
+          _element(
+            id: 'stand',
+            name: 'Stand',
+            width: 4,
+            height: 2,
+            shadow: ProjectElementShadowConfig(
+              castsShadow: true,
+              shadowProfileId: 'default-ground-soft-ellipse',
+            ),
+          ),
+        ],
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      final result = applyElementAutoShadowSuggestionsToProject(project);
+
+      expect(result.appliedCount, 1);
+      expect(
+        result.entries.single.status,
+        ElementAutoShadowBackfillStatus.appliedGeneric,
+      );
+      expect(result.project.elements.single.shadow!.footprint, isNotNull);
+      expect(
+        result.project.elements.single.shadow!.footprint!.footprintWidthRatio,
+        0.72,
+      );
+      expect(
+        result.project.elements.single.shadow!.shadowProfileId,
+        'default-ground-wide-ellipse',
+      );
+    });
+
+    test('preserves disabled shadows', () {
+      final disabled = ProjectElementShadowConfig(castsShadow: false);
+      final project = _project(
+        elements: [
+          _element(
+            id: 'disabled',
+            name: 'Disabled',
+            width: 1,
+            height: 4,
+            shadow: disabled,
+          ),
+        ],
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      final result = applyElementAutoShadowSuggestionsToProject(project);
+
+      expect(result.appliedCount, 0);
+      expect(result.hasChanges, isFalse);
+      expect(
+        result.entries.single.status,
+        ElementAutoShadowBackfillStatus.skippedDisabled,
+      );
+      expect(result.project.elements.single.shadow, disabled);
+    });
+
+    test('preserves manual footprints and numeric overrides', () {
+      final manualFootprint = ProjectElementShadowConfig(
+        castsShadow: true,
+        shadowProfileId: 'default-ground-contact-blob',
+        footprint: StaticShadowFootprintConfig(footprintWidthRatio: 0.31),
+      );
+      final manualNumbers = ProjectElementShadowConfig(
+        castsShadow: true,
+        shadowProfileId: 'default-ground-wide-ellipse',
+        offsetX: 4,
+        scaleY: 0.6,
+        opacity: 0.18,
+      );
+      final project = _project(
+        elements: [
+          _element(
+            id: 'manual-footprint',
+            name: 'Manual footprint',
+            width: 1,
+            height: 4,
+            shadow: manualFootprint,
+          ),
+          _element(
+            id: 'manual-numbers',
+            name: 'Manual numbers',
+            width: 4,
+            height: 3,
+            shadow: manualNumbers,
+          ),
+        ],
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      final result = applyElementAutoShadowSuggestionsToProject(project);
+
+      expect(result.appliedCount, 0);
+      expect(result.skippedCount, 2);
+      expect(
+        result.entries.map((entry) => entry.status),
+        everyElement(ElementAutoShadowBackfillStatus.skippedManual),
+      );
+      expect(result.project.elements[0].shadow, manualFootprint);
+      expect(result.project.elements[1].shadow, manualNumbers);
+    });
+
+    test(
+        'clears recognized auto small square shadow when policy has no suggestion',
+        () {
+      final project = _project(
+        elements: [
+          _element(
+            id: 'small-square',
+            name: 'Small square',
+            width: 2,
+            height: 2,
+            shadow: _oldAutoSmallSquareShadow(),
+          ),
+        ],
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      final result = applyElementAutoShadowSuggestionsToProject(project);
+
+      expect(result.appliedCount, 0);
+      expect(result.changedCount, 1);
+      expect(result.hasChanges, isTrue);
+      expect(
+        result.entries.single.status,
+        ElementAutoShadowBackfillStatus.clearedAutoNoSuggestion,
+      );
+      expect(result.project.elements.single.shadow, isNull);
+    });
+
+    test('clears genericProjection auto shadow when policy has no suggestion',
+        () {
+      final project = _project(
+        elements: [
+          _element(
+            id: 'default-prop',
+            name: 'Default prop',
+            width: 2,
+            height: 3,
+            shadow: _oldAutoDefaultPropShadow(),
+          ),
+        ],
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      final result = applyElementAutoShadowSuggestionsToProject(project);
+
+      expect(result.appliedCount, 0);
+      expect(result.changedCount, 1);
+      expect(
+        result.entries.single.status,
+        ElementAutoShadowBackfillStatus.clearedAutoNoSuggestion,
+      );
+      expect(result.project.elements.single.shadow, isNull);
+    });
+
+    test('clears recognized auto wide low shadow below safe threshold', () {
+      final project = _project(
+        elements: [
+          _element(
+            id: 'small-stand',
+            name: 'Small stand',
+            width: 3,
+            height: 2,
+            shadow: _oldAutoWideLowShadow(),
+          ),
+        ],
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      final result = applyElementAutoShadowSuggestionsToProject(project);
+
+      expect(result.appliedCount, 0);
+      expect(result.changedCount, 1);
+      expect(
+        result.entries.single.status,
+        ElementAutoShadowBackfillStatus.clearedAutoNoSuggestion,
+      );
+      expect(result.project.elements.single.shadow, isNull);
+    });
+
+    test('preserves manual footprint even if no suggestion exists', () {
+      final manual = ProjectElementShadowConfig(
+        castsShadow: true,
+        shadowProfileId: 'default-ground-soft-ellipse',
+        footprint: StaticShadowFootprintConfig(footprintWidthRatio: 0.33),
+      );
+      final project = _project(
+        elements: [
+          _element(
+            id: 'manual-small',
+            name: 'Manual small',
+            width: 2,
+            height: 2,
+            shadow: manual,
+          ),
+        ],
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      final result = applyElementAutoShadowSuggestionsToProject(project);
+
+      expect(result.appliedCount, 0);
+      expect(result.changedCount, 0);
+      expect(result.hasChanges, isFalse);
+      expect(
+        result.entries.single.status,
+        ElementAutoShadowBackfillStatus.skippedManual,
+      );
+      expect(result.project.elements.single.shadow, manual);
+    });
+
+    test('preserves non-default existing profile ids present in catalog', () {
+      final customShadow = ProjectElementShadowConfig(
+        castsShadow: true,
+        shadowProfileId: 'custom-ground-shadow',
+      );
+      final project = _project(
+        elements: [
+          _element(
+            id: 'custom-profile',
+            name: 'Custom profile',
+            width: 4,
+            height: 3,
+            shadow: customShadow,
+          ),
+        ],
+        shadowCatalog: ProjectShadowCatalog(
+          profiles: [
+            ...createDefaultGroundStaticShadowProfiles(),
+            ProjectShadowProfile(
+              id: 'custom-ground-shadow',
+              name: 'Custom ground shadow',
+              mode: ShadowCasterMode.ellipse,
+              renderPass: ShadowRenderPass.groundStatic,
+            ),
+          ],
+        ),
+      );
+
+      final result = applyElementAutoShadowSuggestionsToProject(project);
+
+      expect(result.appliedCount, 0);
+      expect(
+        result.entries.single.status,
+        ElementAutoShadowBackfillStatus.skippedManual,
+      );
+      expect(result.project.elements.single.shadow, customShadow);
+    });
+
+    test('replaces generic shadows with missing profile ids', () {
+      final project = _project(
+        elements: [
+          _element(
+            id: 'missing-profile',
+            name: 'Missing profile',
+            width: 1,
+            height: 4,
+            shadow: ProjectElementShadowConfig(
+              castsShadow: true,
+              shadowProfileId: 'missing-profile-id',
+            ),
+          ),
+        ],
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      final result = applyElementAutoShadowSuggestionsToProject(project);
+
+      expect(result.appliedCount, 1);
+      expect(
+        result.entries.single.status,
+        ElementAutoShadowBackfillStatus.appliedGeneric,
+      );
+      expect(
+        result.project.elements.single.shadow!.shadowProfileId,
+        'default-ground-contact-blob',
+      );
+    });
+
+    test('adds default profiles when the catalog has no compatible profile',
+        () {
+      final project = _project(
+        elements: [
+          _element(id: 'lamp', name: 'Lamp', width: 1, height: 4),
+        ],
+        shadowCatalog: const ProjectShadowCatalog.empty(),
+      );
+
+      final result = applyElementAutoShadowSuggestionsToProject(project);
+
+      expect(result.addedDefaultProfiles, isTrue);
+      expect(result.appliedCount, 1);
+      expect(result.hasChanges, isTrue);
+      expect(
+          result.project.shadowCatalog.profiles.map((profile) => profile.id), [
+        'default-ground-soft-ellipse',
+        'default-ground-wide-ellipse',
+        'default-ground-contact-blob',
+      ]);
+      expect(
+        result.project.elements.single.shadow!.shadowProfileId,
+        'default-ground-contact-blob',
+      );
+    });
+
+    test('records skippedNoSuggestion for invalid element frames', () {
+      final project = _project(
+        elements: [
+          _elementWithFrames(
+            id: 'invalid',
+            name: 'Invalid',
+            frames: const [
+              TilesetVisualFrame(
+                source: TilesetSourceRect(x: 0, y: 0, width: 0, height: 2),
+              ),
+            ],
+          ),
+        ],
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      final result = applyElementAutoShadowSuggestionsToProject(project);
+
+      expect(result.appliedCount, 0);
+      expect(result.skippedCount, 1);
+      expect(
+        result.entries.single.status,
+        ElementAutoShadowBackfillStatus.skippedNoSuggestion,
+      );
+      expect(result.project.elements.single.shadow, isNull);
+    });
+
+    test('preserves element order and non-shadow fields', () {
+      final project = _project(
+        elements: [
+          _element(
+            id: 'first',
+            name: 'First',
+            width: 1,
+            height: 4,
+            presetKind: ElementPresetKind.tree,
+            tags: const ['nature', 'tall'],
+            sortOrder: 7,
+          ),
+          _element(
+            id: 'second',
+            name: 'Second',
+            width: 4,
+            height: 3,
+            recommendedLayerId: 'decor_layer',
+          ),
+        ],
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      final result = applyElementAutoShadowSuggestionsToProject(project);
+
+      expect(result.project.elements.map((element) => element.id), [
+        'first',
+        'second',
+      ]);
+      expect(result.project.elements[0].presetKind, ElementPresetKind.tree);
+      expect(result.project.elements[0].tags, ['nature', 'tall']);
+      expect(result.project.elements[0].sortOrder, 7);
+      expect(result.project.elements[1].recommendedLayerId, 'decor_layer');
+      expect(result.project.elements[0].shadow, isNotNull);
+      expect(result.project.elements[1].shadow, isNotNull);
+    });
+  });
+}
+
+ProjectManifest _project({
+  required List<ProjectElementEntry> elements,
+  required ProjectShadowCatalog shadowCatalog,
+}) {
+  return ProjectManifest(
+    name: 'Backfill test',
+    maps: const <ProjectMapEntry>[],
+    tilesets: const <ProjectTilesetEntry>[
+      ProjectTilesetEntry(
+        id: 'tileset_main',
+        name: 'Main tileset',
+        relativePath: 'tilesets/main.png',
+      ),
+    ],
+    elementCategories: const <ProjectElementCategory>[
+      ProjectElementCategory(id: 'decor', name: 'Decor'),
+    ],
+    elements: elements,
+    shadowCatalog: shadowCatalog,
+    surfaceCatalog: ProjectSurfaceCatalog(),
+  );
+}
+
+ProjectShadowCatalog _defaultCatalog() {
+  return ProjectShadowCatalog(
+    profiles: createDefaultGroundStaticShadowProfiles(),
+  );
+}
+
+ProjectElementShadowConfig _oldAutoSmallSquareShadow() {
+  return ProjectElementShadowConfig(
+    castsShadow: true,
+    shadowProfileId: 'default-ground-contact-blob',
+    offsetX: 0,
+    offsetY: 0,
+    scaleX: 0.78,
+    scaleY: 0.70,
+    opacity: 0.26,
+    family: StaticShadowFamily.compactProp,
+    footprint: StaticShadowFootprintConfig(
+      anchorXRatio: 0.5,
+      anchorYRatio: 0.96,
+      footprintWidthRatio: 0.46,
+      footprintHeightRatio: 0.10,
+    ),
+  );
+}
+
+ProjectElementShadowConfig _oldAutoDefaultPropShadow() {
+  return ProjectElementShadowConfig(
+    castsShadow: true,
+    shadowProfileId: 'default-ground-soft-ellipse',
+    offsetX: 0,
+    offsetY: 0,
+    scaleX: 0.90,
+    scaleY: 0.80,
+    opacity: 0.28,
+    family: StaticShadowFamily.genericProjection,
+    footprint: StaticShadowFootprintConfig(
+      anchorXRatio: 0.5,
+      anchorYRatio: 0.95,
+      footprintWidthRatio: 0.62,
+      footprintHeightRatio: 0.12,
+    ),
+  );
+}
+
+ProjectElementShadowConfig _oldAutoWideLowShadow() {
+  return ProjectElementShadowConfig(
+    castsShadow: true,
+    shadowProfileId: 'default-ground-wide-ellipse',
+    offsetX: 0,
+    offsetY: 0,
+    scaleX: 0.92,
+    scaleY: 0.75,
+    opacity: 0.27,
+    family: StaticShadowFamily.compactProp,
+    footprint: StaticShadowFootprintConfig(
+      anchorXRatio: 0.5,
+      anchorYRatio: 0.95,
+      footprintWidthRatio: 0.72,
+      footprintHeightRatio: 0.10,
+    ),
+  );
+}
+
+ProjectElementEntry _element({
+  required String id,
+  required String name,
+  required int width,
+  required int height,
+  ProjectElementShadowConfig? shadow,
+  ElementPresetKind presetKind = ElementPresetKind.generic,
+  List<String> tags = const [],
+  int sortOrder = 0,
+  String? recommendedLayerId,
+}) {
+  return _elementWithFrames(
+    id: id,
+    name: name,
+    frames: [
+      TilesetVisualFrame(
+        source: TilesetSourceRect(x: 0, y: 0, width: width, height: height),
+      ),
+    ],
+    shadow: shadow,
+    presetKind: presetKind,
+    tags: tags,
+    sortOrder: sortOrder,
+    recommendedLayerId: recommendedLayerId,
+  );
+}
+
+ProjectElementEntry _elementWithFrames({
+  required String id,
+  required String name,
+  required List<TilesetVisualFrame> frames,
+  ProjectElementShadowConfig? shadow,
+  ElementPresetKind presetKind = ElementPresetKind.generic,
+  List<String> tags = const [],
+  int sortOrder = 0,
+  String? recommendedLayerId,
+}) {
+  return ProjectElementEntry(
+    id: id,
+    name: name,
+    tilesetId: 'tileset_main',
+    categoryId: 'decor',
+    frames: frames,
+    presetKind: presetKind,
+    shadow: shadow,
+    tags: tags,
+    sortOrder: sortOrder,
+    recommendedLayerId: recommendedLayerId,
+  );
+}
+
+```
+
+### packages/map_editor/test/application/shadow/element_auto_shadow_suggestion_test.dart
+```dart
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart'
+    hide
+        ElementAutoShadowSuggestion,
+        ElementAutoShadowSuggestionKind,
+        buildElementAutoShadowSuggestion;
+import 'package:map_editor/src/application/shadow/element_auto_shadow_suggestion.dart';
+
+void main() {
+  group('buildElementAutoShadowSuggestion', () {
+    test('returns null without compatible ground static profile', () {
+      final suggestion = buildElementAutoShadowSuggestion(
+        element: _element(width: 1, height: 4),
+        shadowCatalog: ProjectShadowCatalog(
+          profiles: [
+            _profile(
+              'actor_contact',
+              mode: ShadowCasterMode.contactBlob,
+              renderPass: ShadowRenderPass.actorContact,
+            ),
+            _profile('none', mode: ShadowCasterMode.none),
+          ],
+        ),
+      );
+
+      expect(suggestion, isNull);
+    });
+
+    test('returns null for missing frames', () {
+      final suggestion = buildElementAutoShadowSuggestion(
+        element: _elementWithFrames(const []),
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      expect(suggestion, isNull);
+    });
+
+    test('returns null for invalid first frame source', () {
+      final invalidWidth = buildElementAutoShadowSuggestion(
+        element: _element(width: 0, height: 4),
+        shadowCatalog: _defaultCatalog(),
+      );
+      final invalidHeight = buildElementAutoShadowSuggestion(
+        element: _element(width: 1, height: 0),
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      expect(invalidWidth, isNull);
+      expect(invalidHeight, isNull);
+    });
+
+    test('returns null for micro decor that should not cast projected shadows',
+        () {
+      final oneByOne = buildElementAutoShadowSuggestion(
+        element: _element(width: 1, height: 1),
+        shadowCatalog: _defaultCatalog(),
+      );
+      final oneByTwo = buildElementAutoShadowSuggestion(
+        element: _element(width: 1, height: 2),
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      expect(oneByOne, isNull);
+      expect(oneByTwo, isNull);
+    });
+
+    test('classifies tall thin elements as tallThin', () {
+      final suggestion = buildElementAutoShadowSuggestion(
+        element: _element(width: 1, height: 4),
+        shadowCatalog: _defaultCatalog(),
+      )!;
+
+      expect(suggestion.kind, ElementAutoShadowSuggestionKind.tallThin);
+      expect(suggestion.config.shadowProfileId, 'default-ground-contact-blob');
+      expect(suggestion.config.family, StaticShadowFamily.tallProp);
+      expect(suggestion.config.footprint!.footprintWidthRatio, 0.18);
+      expect(suggestion.config.footprint!.footprintHeightRatio, 0.07);
+      expect(suggestion.config.opacity, 0.28);
+    });
+
+    test('classifies large buildings as buildingLarge', () {
+      final suggestion = buildElementAutoShadowSuggestion(
+        element: _element(width: 4, height: 3),
+        shadowCatalog: _defaultCatalog(),
+      )!;
+
+      expect(suggestion.kind, ElementAutoShadowSuggestionKind.buildingLarge);
+      expect(suggestion.config.shadowProfileId, 'default-ground-wide-ellipse');
+      expect(suggestion.config.family, StaticShadowFamily.building);
+      expect(suggestion.config.footprint!.anchorYRatio, 0.92);
+      expect(suggestion.config.footprint!.footprintWidthRatio, 0.82);
+      expect(suggestion.config.footprint!.footprintHeightRatio, 0.12);
+      expect(suggestion.config.scaleY, 0.85);
+      expect(suggestion.config.opacity, 0.30);
+    });
+
+    test('wide low needs enough surface to receive an automatic shadow', () {
+      final smallWide = buildElementAutoShadowSuggestion(
+        element: _element(width: 3, height: 2),
+        shadowCatalog: _defaultCatalog(),
+      );
+      final suggestion = buildElementAutoShadowSuggestion(
+        element: _element(width: 4, height: 2),
+        shadowCatalog: _defaultCatalog(),
+      )!;
+
+      expect(smallWide, isNull);
+      expect(suggestion.kind, ElementAutoShadowSuggestionKind.wideLow);
+      expect(suggestion.config.shadowProfileId, 'default-ground-wide-ellipse');
+      expect(suggestion.config.family, StaticShadowFamily.compactProp);
+      expect(suggestion.config.footprint!.anchorYRatio, 0.95);
+      expect(suggestion.config.footprint!.footprintWidthRatio, 0.72);
+      expect(suggestion.config.footprint!.footprintHeightRatio, 0.10);
+      expect(suggestion.config.scaleX, 0.92);
+      expect(suggestion.config.scaleY, 0.75);
+      expect(suggestion.config.opacity, 0.27);
+    });
+
+    test('small square returns null under artistic V0 policy', () {
+      final suggestion = buildElementAutoShadowSuggestion(
+        element: _element(width: 2, height: 2),
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      expect(suggestion, isNull);
+    });
+
+    test('default prop returns null under artistic V0 policy', () {
+      final suggestion = buildElementAutoShadowSuggestion(
+        element: _element(width: 2, height: 3),
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      expect(suggestion, isNull);
+    });
+
+    test('prefers default compact profile for tallThin', () {
+      final suggestion = buildElementAutoShadowSuggestion(
+        element: _element(width: 1, height: 4),
+        shadowCatalog: ProjectShadowCatalog(
+          profiles: [
+            _profile('custom-soft'),
+            _profile('default-ground-contact-blob',
+                mode: ShadowCasterMode.contactBlob),
+          ],
+        ),
+      )!;
+
+      expect(suggestion.config.shadowProfileId, 'default-ground-contact-blob');
+    });
+
+    test('falls back to custom compatible profile ids', () {
+      final tallThin = buildElementAutoShadowSuggestion(
+        element: _element(width: 1, height: 4),
+        shadowCatalog: ProjectShadowCatalog(
+          profiles: [
+            _profile('custom-contact', mode: ShadowCasterMode.contactBlob)
+          ],
+        ),
+      )!;
+      final building = buildElementAutoShadowSuggestion(
+        element: _element(width: 4, height: 3),
+        shadowCatalog: ProjectShadowCatalog(
+          profiles: [_profile('custom-ellipse')],
+        ),
+      )!;
+      final wideLow = buildElementAutoShadowSuggestion(
+        element: _element(width: 4, height: 2),
+        shadowCatalog: ProjectShadowCatalog(
+          profiles: [_profile('custom-wide')],
+        ),
+      )!;
+
+      expect(tallThin.config.shadowProfileId, 'custom-contact');
+      expect(building.config.shadowProfileId, 'custom-ellipse');
+      expect(wideLow.config.shadowProfileId, 'custom-wide');
+    });
+
+    test('all suggestions have castsShadow true', () {
+      for (final suggestion in _allSuggestionKinds()) {
+        expect(suggestion.config.castsShadow, isTrue);
+      }
+    });
+
+    test('all suggestion footprints are non-null and valid', () {
+      for (final suggestion in _allSuggestionKinds()) {
+        final footprint = suggestion.config.footprint;
+        expect(footprint, isNotNull);
+        expect(footprint!.anchorXRatio, inInclusiveRange(0, 1));
+        expect(footprint.anchorYRatio, inInclusiveRange(0, 1));
+        expect(footprint.footprintWidthRatio, greaterThan(0));
+        expect(footprint.footprintHeightRatio, greaterThan(0));
+      }
+    });
+
+    test('all suggestions carry a static shadow family', () {
+      for (final suggestion in _allSuggestionKinds()) {
+        expect(suggestion.config.family, isNotNull);
+      }
+    });
+
+    test('all suggestion opacities are within 0..1', () {
+      for (final suggestion in _allSuggestionKinds()) {
+        expect(suggestion.config.opacity, inInclusiveRange(0, 1));
+      }
+    });
+
+    test('all suggestion scaleX and scaleY are greater than zero', () {
+      for (final suggestion in _allSuggestionKinds()) {
+        expect(suggestion.config.scaleX, greaterThan(0));
+        expect(suggestion.config.scaleY, greaterThan(0));
+      }
+    });
+  });
+}
+
+Iterable<ElementAutoShadowSuggestion> _allSuggestionKinds() sync* {
+  for (final dimensions in const [
+    (width: 1, height: 4),
+    (width: 4, height: 3),
+    (width: 4, height: 2),
+  ]) {
+    yield buildElementAutoShadowSuggestion(
+      element: _element(width: dimensions.width, height: dimensions.height),
+      shadowCatalog: _defaultCatalog(),
+    )!;
+  }
+}
+
+ProjectShadowCatalog _defaultCatalog() {
+  return ProjectShadowCatalog(
+    profiles: createDefaultGroundStaticShadowProfiles(),
+  );
+}
+
+ProjectElementEntry _element({
+  required int width,
+  required int height,
+}) {
+  return _elementWithFrames([
+    TilesetVisualFrame(
+      source: TilesetSourceRect(x: 0, y: 0, width: width, height: height),
+    ),
+  ]);
+}
+
+ProjectElementEntry _elementWithFrames(List<TilesetVisualFrame> frames) {
+  return ProjectElementEntry(
+    id: 'element',
+    name: 'Element',
+    tilesetId: 'tileset',
+    categoryId: 'decor',
+    frames: frames,
+  );
+}
+
+ProjectShadowProfile _profile(
+  String id, {
+  ShadowCasterMode mode = ShadowCasterMode.ellipse,
+  ShadowRenderPass renderPass = ShadowRenderPass.groundStatic,
+}) {
+  return ProjectShadowProfile(
+    id: id,
+    name: '$id shadow',
+    mode: mode,
+    renderPass: renderPass,
+  );
+}
+
+```
+
+### packages/map_editor/test/features/tileset_library/apply_element_auto_shadow_suggestions_use_case_test.dart
+```dart
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart' hide ElementAutoShadowBackfillStatus;
+import 'package:map_editor/src/application/ports/project_workspace.dart';
+import 'package:map_editor/src/application/shadow/element_auto_shadow_backfill.dart';
+import 'package:map_editor/src/application/use_cases/apply_element_auto_shadow_suggestions_use_case.dart';
+import 'package:map_editor/src/domain/repositories/repositories.dart';
+
+void main() {
+  group('ApplyElementAutoShadowSuggestionsUseCase', () {
+    test('saves when at least one element changes', () async {
+      final repo = _FakeProjectRepository();
+      final workspace = _FakeWorkspace();
+      final useCase = ApplyElementAutoShadowSuggestionsUseCase(repo);
+      final project = _project(
+        elements: [
+          _element(id: 'lamp', name: 'Lamp', width: 1, height: 4),
+        ],
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      final result = await useCase.execute(workspace, project);
+
+      expect(result.hasChanges, isTrue);
+      expect(result.appliedCount, 1);
+      expect(repo.savedPath, '/tmp/project.json');
+      expect(repo.lastSavedProject, result.project);
+      expect(repo.lastSavedProject!.elements.single.shadow, isNotNull);
+    });
+
+    test('does not save when no element is eligible', () async {
+      final repo = _FakeProjectRepository();
+      final workspace = _FakeWorkspace();
+      final useCase = ApplyElementAutoShadowSuggestionsUseCase(repo);
+      final project = _project(
+        elements: [
+          _element(
+            id: 'manual',
+            name: 'Manual',
+            width: 2,
+            height: 2,
+            shadow: ProjectElementShadowConfig(
+              castsShadow: true,
+              shadowProfileId: 'custom-ground-shadow',
+            ),
+          ),
+        ],
+        shadowCatalog: ProjectShadowCatalog(
+          profiles: [
+            ...createDefaultGroundStaticShadowProfiles(),
+            ProjectShadowProfile(
+              id: 'custom-ground-shadow',
+              name: 'Custom ground shadow',
+              mode: ShadowCasterMode.ellipse,
+              renderPass: ShadowRenderPass.groundStatic,
+            ),
+          ],
+        ),
+      );
+
+      final result = await useCase.execute(workspace, project);
+
+      expect(result.hasChanges, isFalse);
+      expect(result.appliedCount, 0);
+      expect(
+        result.entries.single.status,
+        ElementAutoShadowBackfillStatus.skippedManual,
+      );
+      expect(repo.lastSavedProject, isNull);
+      expect(repo.savedPath, isNull);
+    });
+
+    test('saves when cleanup removes recognized auto shadow', () async {
+      final repo = _FakeProjectRepository();
+      final workspace = _FakeWorkspace();
+      final useCase = ApplyElementAutoShadowSuggestionsUseCase(repo);
+      final project = _project(
+        elements: [
+          _element(
+            id: 'small-square',
+            name: 'Small square',
+            width: 2,
+            height: 2,
+            shadow: _oldAutoSmallSquareShadow(),
+          ),
+        ],
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      final result = await useCase.execute(workspace, project);
+
+      expect(result.hasChanges, isTrue);
+      expect(result.appliedCount, 0);
+      expect(result.changedCount, 1);
+      expect(repo.savedPath, '/tmp/project.json');
+      expect(repo.lastSavedProject, result.project);
+      expect(repo.lastSavedProject!.elements.single.shadow, isNull);
+      expect(
+        result.entries.single.status,
+        ElementAutoShadowBackfillStatus.clearedAutoNoSuggestion,
+      );
+    });
+
+    test('returns counts and saves projects that round trip through JSON',
+        () async {
+      final repo = _FakeProjectRepository();
+      final workspace = _FakeWorkspace();
+      final useCase = ApplyElementAutoShadowSuggestionsUseCase(repo);
+      final project = _project(
+        elements: [
+          _element(id: 'lamp', name: 'Lamp', width: 1, height: 4),
+          _element(
+            id: 'disabled',
+            name: 'Disabled',
+            width: 4,
+            height: 3,
+            shadow: ProjectElementShadowConfig(castsShadow: false),
+          ),
+        ],
+        shadowCatalog: const ProjectShadowCatalog.empty(),
+      );
+
+      final result = await useCase.execute(workspace, project);
+
+      expect(result.addedDefaultProfiles, isTrue);
+      expect(result.appliedCount, 1);
+      expect(result.skippedCount, 1);
+      expect(result.entries.map((entry) => entry.status), [
+        ElementAutoShadowBackfillStatus.appliedMissing,
+        ElementAutoShadowBackfillStatus.skippedDisabled,
+      ]);
+      expect(
+        ProjectManifest.fromJson(repo.lastSavedProject!.toJson()),
+        repo.lastSavedProject,
+      );
+    });
+  });
+}
+
+ProjectManifest _project({
+  required List<ProjectElementEntry> elements,
+  required ProjectShadowCatalog shadowCatalog,
+}) {
+  return ProjectManifest(
+    name: 'Apply auto shadows test',
+    maps: const <ProjectMapEntry>[],
+    tilesets: const <ProjectTilesetEntry>[
+      ProjectTilesetEntry(
+        id: 'tileset_main',
+        name: 'Main tileset',
+        relativePath: 'tilesets/main.png',
+      ),
+    ],
+    elementCategories: const <ProjectElementCategory>[
+      ProjectElementCategory(id: 'decor', name: 'Decor'),
+    ],
+    elements: elements,
+    shadowCatalog: shadowCatalog,
+    surfaceCatalog: ProjectSurfaceCatalog(),
+  );
+}
+
+ProjectShadowCatalog _defaultCatalog() {
+  return ProjectShadowCatalog(
+    profiles: createDefaultGroundStaticShadowProfiles(),
+  );
+}
+
+ProjectElementShadowConfig _oldAutoSmallSquareShadow() {
+  return ProjectElementShadowConfig(
+    castsShadow: true,
+    shadowProfileId: 'default-ground-contact-blob',
+    offsetX: 0,
+    offsetY: 0,
+    scaleX: 0.78,
+    scaleY: 0.70,
+    opacity: 0.26,
+    family: StaticShadowFamily.compactProp,
+    footprint: StaticShadowFootprintConfig(
+      anchorXRatio: 0.5,
+      anchorYRatio: 0.96,
+      footprintWidthRatio: 0.46,
+      footprintHeightRatio: 0.10,
+    ),
+  );
+}
+
+ProjectElementEntry _element({
+  required String id,
+  required String name,
+  required int width,
+  required int height,
+  ProjectElementShadowConfig? shadow,
+}) {
+  return ProjectElementEntry(
+    id: id,
+    name: name,
+    tilesetId: 'tileset_main',
+    categoryId: 'decor',
+    frames: [
+      TilesetVisualFrame(
+        source: TilesetSourceRect(x: 0, y: 0, width: width, height: height),
+      ),
+    ],
+    shadow: shadow,
+  );
+}
+
+final class _FakeProjectRepository implements ProjectRepository {
+  ProjectManifest? lastSavedProject;
+  String? savedPath;
+
+  @override
+  Future<ProjectManifest> loadProject(String path) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> saveProject(ProjectManifest project, String path) async {
+    savedPath = path;
+    lastSavedProject = ProjectManifest.fromJson(project.toJson());
+  }
+}
+
+final class _FakeWorkspace implements ProjectWorkspace {
+  @override
+  String get projectManifestPath => '/tmp/project.json';
+
+  @override
+  String get projectRoot => '/tmp';
+
+  @override
+  Future<void> deleteRelativeFile(String relativePath) async {}
+
+  @override
+  Future<void> deleteDirectoryIfEmpty(String path) async {}
+
+  @override
+  Future<bool> directoryExists(String path) async => false;
+
+  @override
+  Future<void> ensureDirectoryExists(String path) async {}
+
+  @override
+  Future<bool> fileExists(String path) async => false;
+
+  @override
+  Future<String> importTilesetImage(
+    String sourcePath, {
+    String? preferredName,
+  }) async {
+    return '/tmp/tilesets/image.png';
+  }
+
+  @override
+  Future<void> copyFile(String sourcePath, String destinationPath) async {}
+
+  @override
+  Future<void> moveDirectory(String sourcePath, String destinationPath) async {}
+
+  @override
+  Future<void> moveFile(String sourcePath, String destinationPath) async {}
+
+  @override
+  Future<String> readTextFile(String path) async => '';
+
+  @override
+  String resolveMapPath(String relativePath) => '/tmp/$relativePath';
+
+  @override
+  String getMapPath(String mapId) => '/tmp/maps/$mapId.json';
+
+  @override
+  String getMapRelativePath(String mapId) => 'maps/$mapId.json';
+
+  @override
+  String resolveProjectRelativePath(String relativePath) =>
+      '/tmp/$relativePath';
+
+  @override
+  String resolveTilesetPath(String relativePath) => '/tmp/$relativePath';
+
+  @override
+  Future<void> writeTextFile(String path, String contents) async {}
+}
+
+```
+
+### packages/map_editor/test/editor_notifier_project_dirty_state_test.dart
+```dart
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/features/editor/state/editor_notifier.dart';
+
+void main() {
+  group('EditorNotifier project dirty state', () {
+    test('isProjectDirty vaut false par défaut', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      expect(container.read(editorNotifierProvider).isProjectDirty, isFalse);
+    });
+
+    test('applyInMemoryProjectManifest passe isProjectDirty à true', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state =
+          notifier.state.copyWith(project: _manifest(name: 'Demo'));
+
+      notifier.applyInMemoryProjectManifest(_manifest(name: 'Demo updated'));
+
+      expect(notifier.state.isProjectDirty, isTrue);
+    });
+
+    test('saveProjectManifest réussi repasse isProjectDirty à false', () async {
+      final tempDir =
+          await Directory.systemTemp.createTemp('project_dirty_ok_');
+      addTearDown(() async => tempDir.delete(recursive: true));
+      final manifestPath = '${tempDir.path}/project.json';
+      await File(manifestPath).writeAsString(jsonEncode(_manifest().toJson()));
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      await notifier.loadProject(manifestPath);
+
+      notifier.applyInMemoryProjectManifest(_manifest(name: 'Dirty'));
+      expect(notifier.state.isProjectDirty, isTrue);
+
+      final saved = await notifier.saveProjectManifest();
+
+      expect(saved, isTrue);
+      expect(notifier.state.isProjectDirty, isFalse);
+    });
+
+    test('saveProjectManifest échoué conserve isProjectDirty à true', () async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state =
+          notifier.state.copyWith(project: _manifest(name: 'Demo'));
+      notifier.applyInMemoryProjectManifest(_manifest(name: 'Dirty'));
+
+      final saved = await notifier.saveProjectManifest();
+
+      expect(saved, isFalse);
+      expect(notifier.state.isProjectDirty, isTrue);
+    });
+
+    test('chargement projet initialise isProjectDirty à false', () async {
+      final tempDir =
+          await Directory.systemTemp.createTemp('project_dirty_load_');
+      addTearDown(() async => tempDir.delete(recursive: true));
+      final manifestPath = '${tempDir.path}/project.json';
+      await File(manifestPath).writeAsString(jsonEncode(_manifest().toJson()));
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = notifier.state.copyWith(isProjectDirty: true);
+
+      await notifier.loadProject(manifestPath);
+
+      expect(notifier.state.isProjectDirty, isFalse);
+    });
+
+    test(
+        'apply -> project dirty -> open map -> still dirty -> save project -> clean',
+        () async {
+      final tempDir =
+          await Directory.systemTemp.createTemp('project_dirty_open_map_');
+      addTearDown(() async => tempDir.delete(recursive: true));
+      final manifestPath = '${tempDir.path}/project.json';
+      final mapsDir = Directory('${tempDir.path}/maps');
+      await mapsDir.create(recursive: true);
+      await File('${mapsDir.path}/town.json')
+          .writeAsString(jsonEncode(_mapData(id: 'town').toJson()));
+      await File(manifestPath)
+          .writeAsString(jsonEncode(_manifestWithMap().toJson()));
+
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+
+      await notifier.loadProject(manifestPath);
+      notifier.applyInMemoryProjectManifest(_manifestWithMap(name: 'Dirty'));
+      expect(notifier.state.isProjectDirty, isTrue);
+
+      await notifier.loadMap('maps/town.json');
+      expect(notifier.state.isProjectDirty, isTrue);
+
+      final saved = await notifier.saveProjectManifest();
+      expect(saved, isTrue);
+      expect(notifier.state.isProjectDirty, isFalse);
+    });
+
+    test('ensureDefaultShadowProfiles ajoute les defaults et marque dirty', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final element = ProjectElementEntry(
+        id: 'tree',
+        name: 'Tree',
+        tilesetId: 'tileset',
+        categoryId: 'decor',
+        frames: const [
+          TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
+        ],
+        shadow: ProjectElementShadowConfig(
+          castsShadow: true,
+          shadowProfileId: 'missing',
+        ),
+      );
+      notifier.state = notifier.state.copyWith(
+        project: _manifest(name: 'Demo').copyWith(elements: [element]),
+      );
+
+      notifier.ensureDefaultShadowProfiles();
+
+      expect(notifier.state.isProjectDirty, isTrue);
+      expect(
+        notifier.state.project!.shadowCatalog.profiles.map(
+          (profile) => profile.id,
+        ),
+        [
+          'default-ground-soft-ellipse',
+          'default-ground-wide-ellipse',
+          'default-ground-contact-blob',
+        ],
+      );
+      expect(notifier.state.project!.elements, [element]);
+      expect(
+          notifier.state.project!.elements.single.shadow, same(element.shadow));
+    });
+
+    test('ensureDefaultShadowProfiles ne duplique pas à plusieurs appels', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state =
+          notifier.state.copyWith(project: _manifest(name: 'Demo'));
+
+      notifier.ensureDefaultShadowProfiles();
+      notifier.ensureDefaultShadowProfiles();
+
+      expect(notifier.state.project!.shadowCatalog.profileCount, 3);
+      expect(
+        notifier.state.project!.shadowCatalog.profiles.map(
+          (profile) => profile.id,
+        ),
+        [
+          'default-ground-soft-ellipse',
+          'default-ground-wide-ellipse',
+          'default-ground-contact-blob',
+        ],
+      );
+    });
+
+    test('applyElementAutoShadowSuggestions applique et sauvegarde', () async {
+      final tempDir =
+          await Directory.systemTemp.createTemp('project_auto_shadow_apply_');
+      addTearDown(() async => tempDir.delete(recursive: true));
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = notifier.state.copyWith(
+        projectRootPath: tempDir.path,
+        project: _manifestWithElements(
+          elements: [
+            _element(id: 'lamp', name: 'Lamp', width: 1, height: 4),
+          ],
+          shadowCatalog: _defaultShadowCatalog(),
+        ),
+      );
+
+      await notifier.applyElementAutoShadowSuggestions();
+
+      final updated = notifier.state.project!;
+      expect(updated.elements.single.shadow, isNotNull);
+      expect(
+        updated.elements.single.shadow!.shadowProfileId,
+        'default-ground-contact-blob',
+      );
+      expect(
+        updated.elements.single.shadow!.footprint!.footprintWidthRatio,
+        0.18,
+      );
+      expect(
+        notifier.state.statusMessage,
+        'Ombres automatiques mises à jour : 1 appliquée(s), 0 retirée(s).',
+      );
+      expect(notifier.state.errorMessage, isNull);
+      final saved = ProjectManifest.fromJson(
+        jsonDecode(
+          await File('${tempDir.path}/project.json').readAsString(),
+        ) as Map<String, dynamic>,
+      );
+      expect(saved.elements.single.shadow, updated.elements.single.shadow);
+    });
+
+    test('applyElementAutoShadowSuggestions annonce un no-op', () async {
+      final tempDir =
+          await Directory.systemTemp.createTemp('project_auto_shadow_noop_');
+      addTearDown(() async => tempDir.delete(recursive: true));
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      final manualShadow = ProjectElementShadowConfig(
+        castsShadow: true,
+        shadowProfileId: 'custom-ground-shadow',
+      );
+      final project = _manifestWithElements(
+        elements: [
+          _element(
+            id: 'manual',
+            name: 'Manual',
+            width: 2,
+            height: 2,
+            shadow: manualShadow,
+          ),
+        ],
+        shadowCatalog: ProjectShadowCatalog(
+          profiles: [
+            ...createDefaultGroundStaticShadowProfiles(),
+            ProjectShadowProfile(
+              id: 'custom-ground-shadow',
+              name: 'Custom ground shadow',
+              mode: ShadowCasterMode.ellipse,
+              renderPass: ShadowRenderPass.groundStatic,
+            ),
+          ],
+        ),
+      );
+      notifier.state = notifier.state.copyWith(
+        projectRootPath: tempDir.path,
+        project: project,
+      );
+
+      await notifier.applyElementAutoShadowSuggestions();
+
+      expect(notifier.state.project, project);
+      expect(
+        notifier.state.statusMessage,
+        'Aucune ombre automatique à appliquer.',
+      );
+      expect(notifier.state.errorMessage, isNull);
+      expect(await File('${tempDir.path}/project.json').exists(), isFalse);
+    });
+
+    test('applyElementAutoShadowSuggestions annonce les nettoyages', () async {
+      final tempDir =
+          await Directory.systemTemp.createTemp('project_auto_shadow_clear_');
+      addTearDown(() async => tempDir.delete(recursive: true));
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = notifier.state.copyWith(
+        projectRootPath: tempDir.path,
+        project: _manifestWithElements(
+          elements: [
+            _element(
+              id: 'small',
+              name: 'Small',
+              width: 2,
+              height: 2,
+              shadow: _oldAutoSmallSquareShadow(),
+            ),
+          ],
+          shadowCatalog: _defaultShadowCatalog(),
+        ),
+      );
+
+      await notifier.applyElementAutoShadowSuggestions();
+
+      expect(notifier.state.project!.elements.single.shadow, isNull);
+      expect(
+        notifier.state.statusMessage,
+        'Ombres automatiques mises à jour : 0 appliquée(s), 1 retirée(s).',
+      );
+      expect(notifier.state.errorMessage, isNull);
+      final saved = ProjectManifest.fromJson(
+        jsonDecode(
+          await File('${tempDir.path}/project.json').readAsString(),
+        ) as Map<String, dynamic>,
+      );
+      expect(saved.elements.single.shadow, isNull);
+    });
+
+    test('applyElementAutoShadowSuggestions ajoute les profils par défaut',
+        () async {
+      final tempDir = await Directory.systemTemp
+          .createTemp('project_auto_shadow_defaults_');
+      addTearDown(() async => tempDir.delete(recursive: true));
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = notifier.state.copyWith(
+        projectRootPath: tempDir.path,
+        project: _manifestWithElements(
+          elements: [
+            _element(id: 'lamp', name: 'Lamp', width: 1, height: 4),
+          ],
+          shadowCatalog: const ProjectShadowCatalog.empty(),
+        ),
+      );
+
+      await notifier.applyElementAutoShadowSuggestions();
+
+      expect(
+        notifier.state.project!.shadowCatalog.profiles.map(
+          (profile) => profile.id,
+        ),
+        [
+          'default-ground-soft-ellipse',
+          'default-ground-wide-ellipse',
+          'default-ground-contact-blob',
+        ],
+      );
+      expect(
+        notifier.state.project!.elements.single.shadow!.shadowProfileId,
+        'default-ground-contact-blob',
+      );
+    });
+  });
+}
+
+ProjectManifest _manifest({String name = 'Demo'}) {
+  return ProjectManifest(
+    name: name,
+    maps: const [],
+    tilesets: const [],
+    pathPresets: const [],
+    pathPatternPresets: const [],
+    surfaceCatalog: ProjectSurfaceCatalog(),
+  );
+}
+
+ProjectManifest _manifestWithMap({String name = 'Demo'}) {
+  return ProjectManifest(
+    name: name,
+    maps: const [
+      ProjectMapEntry(
+        id: 'town',
+        name: 'Town',
+        relativePath: 'maps/town.json',
+      ),
+    ],
+    tilesets: const [],
+    pathPresets: const [],
+    pathPatternPresets: const [],
+    surfaceCatalog: ProjectSurfaceCatalog(),
+  );
+}
+
+MapData _mapData({required String id}) {
+  return MapData(
+    id: id,
+    name: 'Town',
+    size: const GridSize(width: 8, height: 8),
+    layers: const [],
+  );
+}
+
+ProjectManifest _manifestWithElements({
+  required List<ProjectElementEntry> elements,
+  required ProjectShadowCatalog shadowCatalog,
+}) {
+  return _manifest().copyWith(
+    tilesets: const [
+      ProjectTilesetEntry(
+        id: 'tileset',
+        name: 'Tileset',
+        relativePath: 'tilesets/main.png',
+      ),
+    ],
+    elementCategories: const [
+      ProjectElementCategory(id: 'decor', name: 'Decor'),
+    ],
+    elements: elements,
+    shadowCatalog: shadowCatalog,
+  );
+}
+
+ProjectShadowCatalog _defaultShadowCatalog() {
+  return ProjectShadowCatalog(
+    profiles: createDefaultGroundStaticShadowProfiles(),
+  );
+}
+
+ProjectElementEntry _element({
+  required String id,
+  required String name,
+  required int width,
+  required int height,
+  ProjectElementShadowConfig? shadow,
+}) {
+  return ProjectElementEntry(
+    id: id,
+    name: name,
+    tilesetId: 'tileset',
+    categoryId: 'decor',
+    frames: [
+      TilesetVisualFrame(
+        source: TilesetSourceRect(x: 0, y: 0, width: width, height: height),
+      ),
+    ],
+    shadow: shadow,
+  );
+}
+
+ProjectElementShadowConfig _oldAutoSmallSquareShadow() {
+  return ProjectElementShadowConfig(
+    castsShadow: true,
+    shadowProfileId: 'default-ground-contact-blob',
+    offsetX: 0,
+    offsetY: 0,
+    scaleX: 0.78,
+    scaleY: 0.70,
+    opacity: 0.26,
+    family: StaticShadowFamily.compactProp,
+    footprint: StaticShadowFootprintConfig(
+      anchorXRatio: 0.5,
+      anchorYRatio: 0.96,
+      footprintWidthRatio: 0.46,
+      footprintHeightRatio: 0.10,
+    ),
+  );
+}
+
+```
+
+### packages/map_runtime/lib/src/application/load_runtime_map_bundle.dart
+```dart
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:map_core/map_core.dart';
+import 'package:path/path.dart' as p;
+
+import 'runtime_manifest_tilesets.dart';
+import 'runtime_map_bundle.dart';
+
+Map<String, String> resolveTilesetAbsolutePaths({
+  required ProjectManifest manifest,
+  required String projectRoot,
+  required Set<String> tilesetIds,
+}) {
+  final byId = {for (final t in manifest.tilesets) t.id: t};
+  final out = <String, String>{};
+  for (final id in tilesetIds) {
+    final entry = byId[id];
+    if (entry == null) {
+      throw AssetNotFoundException('Tileset not in manifest: $id');
+    }
+    final rel = entry.relativePath.trim();
+    if (rel.isEmpty) {
+      throw AssetNotFoundException('Tileset $id has empty relativePath');
+    }
+    out[id] = p.normalize(p.join(projectRoot, rel));
+  }
+  return out;
+}
+
+Future<ProjectManifest> loadProjectManifestFromFile(String manifestPath) async {
+  final file = File(manifestPath);
+  if (!await file.exists()) {
+    throw const ProjectLoadException('Project file not found');
+  }
+  try {
+    final raw = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+    final migrated = migrateProjectManifestJson(raw);
+    final manifest = ProjectManifest.fromJson(migrated);
+    final normalized = applyElementAutoShadowPolicyToProject(manifest).project;
+    ProjectValidator.validate(normalized);
+    return normalized;
+  } catch (e) {
+    throw ProjectLoadException('Failed to load project: $e');
+  }
+}
+
+Future<MapData> loadMapDataFromFile(
+  String absoluteMapPath, {
+  required ProjectManifest projectDialogueContext,
+}) async {
+  final file = File(absoluteMapPath);
+  if (!await file.exists()) {
+    throw MapLoadException('Map file not found: $absoluteMapPath');
+  }
+  try {
+    final raw = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+    final migrated = migrateMapDataJson(raw);
+    final map = MapData.fromJson(migrated);
+    MapValidator.validate(
+      map,
+      projectDialogueContext: projectDialogueContext,
+    );
+    return map;
+  } catch (e) {
+    throw MapLoadException('Failed to load map: $e');
+  }
+}
+
+ProjectMapEntry? projectMapEntryForId(ProjectManifest manifest, String mapId) {
+  for (final entry in manifest.maps) {
+    if (entry.id == mapId) {
+      return entry;
+    }
+  }
+  return null;
+}
+
+Future<RuntimeMapBundle> loadRuntimeMapBundle({
+  required String projectFilePath,
+  required String mapId,
+}) async {
+  final manifest = await loadProjectManifestFromFile(projectFilePath);
+  final entry = projectMapEntryForId(manifest, mapId);
+  if (entry == null) {
+    throw MapLoadException('Map id not in project manifest: $mapId');
+  }
+  final projectRoot = p.normalize(p.dirname(projectFilePath));
+  final rel = entry.relativePath.trim();
+  if (rel.isEmpty) {
+    throw const MapLoadException('Map entry has empty relativePath');
+  }
+  final mapPath = p.normalize(p.join(projectRoot, rel));
+  final map = await loadMapDataFromFile(
+    mapPath,
+    projectDialogueContext: manifest,
+  );
+  final tilesetIds = collectAllRuntimeTilesetIds(map, manifest);
+  final paths = resolveTilesetAbsolutePaths(
+    manifest: manifest,
+    projectRoot: projectRoot,
+    tilesetIds: tilesetIds,
+  );
+  return RuntimeMapBundle(
+    manifest: manifest,
+    map: map,
+    projectRootDirectory: projectRoot,
+    tilesetAbsolutePathsById: paths,
+  );
+}
+
+```
+
+## 25. Diff complet ciblé Shadow-48
+Le diff ci-dessous est limité aux fichiers créés/modifiés par Shadow-48. Pour les fichiers déjà dirty avant ce lot, il peut inclure le contexte git global de ces fichiers depuis HEAD ; les sections d’inventaire ci-dessus distinguent les fichiers hors lot préexistants.
+```diff
+diff --git a/packages/map_core/lib/map_core.dart b/packages/map_core/lib/map_core.dart
+index a3d2c92d..3ca34f62 100644
+--- a/packages/map_core/lib/map_core.dart
++++ b/packages/map_core/lib/map_core.dart
+@@ -68,6 +68,7 @@ export 'src/operations/surface_catalog_diagnostics_presentation.dart';
+ export 'src/operations/static_shadow_geometry.dart';
+ export 'src/operations/static_shadow_family_projection.dart';
+ export 'src/operations/static_shadow_projection_geometry.dart';
++export 'src/operations/element_auto_shadow_policy.dart';
+ export 'src/operations/surface_atlas_json_codec.dart';
+ export 'src/operations/surface_animation_frame_json_codec.dart';
+ export 'src/operations/surface_animation_timeline_json_codec.dart';
+diff --git a/packages/map_editor/lib/src/application/shadow/element_auto_shadow_backfill.dart b/packages/map_editor/lib/src/application/shadow/element_auto_shadow_backfill.dart
+index e4095be9..39b4275c 100644
+--- a/packages/map_editor/lib/src/application/shadow/element_auto_shadow_backfill.dart
++++ b/packages/map_editor/lib/src/application/shadow/element_auto_shadow_backfill.dart
+@@ -1,184 +1,14 @@
+ import 'package:map_core/map_core.dart';
+-import 'package:map_editor/src/application/shadow/element_auto_shadow_suggestion.dart';
+
+-enum ElementAutoShadowBackfillStatus {
+-  appliedMissing,
+-  appliedGeneric,
+-  skippedDisabled,
+-  skippedManual,
+-  skippedNoSuggestion,
+-}
+-
+-final class ElementAutoShadowBackfillEntry {
+-  const ElementAutoShadowBackfillEntry({
+-    required this.elementId,
+-    required this.elementName,
+-    required this.status,
+-    this.suggestionKind,
+-  });
+-
+-  final String elementId;
+-  final String elementName;
+-  final ElementAutoShadowBackfillStatus status;
+-  final ElementAutoShadowSuggestionKind? suggestionKind;
+-
+-  @override
+-  bool operator ==(Object other) {
+-    return identical(this, other) ||
+-        other is ElementAutoShadowBackfillEntry &&
+-            elementId == other.elementId &&
+-            elementName == other.elementName &&
+-            status == other.status &&
+-            suggestionKind == other.suggestionKind;
+-  }
+-
+-  @override
+-  int get hashCode => Object.hash(
+-        elementId,
+-        elementName,
+-        status,
+-        suggestionKind,
+-      );
+-}
+-
+-final class ElementAutoShadowBackfillResult {
+-  const ElementAutoShadowBackfillResult({
+-    required this.project,
+-    required this.entries,
+-    required this.addedDefaultProfiles,
+-  });
+-
+-  final ProjectManifest project;
+-  final List<ElementAutoShadowBackfillEntry> entries;
+-  final bool addedDefaultProfiles;
+-
+-  int get appliedCount => entries
+-      .where(
+-        (entry) =>
+-            entry.status == ElementAutoShadowBackfillStatus.appliedMissing ||
+-            entry.status == ElementAutoShadowBackfillStatus.appliedGeneric,
+-      )
+-      .length;
+-
+-  int get skippedCount => entries.length - appliedCount;
+-
+-  bool get hasChanges => addedDefaultProfiles || appliedCount > 0;
+-}
++export 'package:map_core/map_core.dart'
++    show
++        ElementAutoShadowBackfillEntry,
++        ElementAutoShadowBackfillResult,
++        ElementAutoShadowBackfillStatus,
++        applyElementAutoShadowPolicyToProject;
+
+ ElementAutoShadowBackfillResult applyElementAutoShadowSuggestionsToProject(
+   ProjectManifest project,
+ ) {
+-  final projectWithDefaults =
+-      ensureDefaultGroundStaticShadowProfilesForProject(project);
+-  final addedDefaultProfiles = projectWithDefaults != project;
+-  final entries = <ElementAutoShadowBackfillEntry>[];
+-  final elements = <ProjectElementEntry>[];
+-
+-  for (final element in projectWithDefaults.elements) {
+-    final currentShadow = element.shadow;
+-    if (currentShadow != null && !currentShadow.castsShadow) {
+-      entries.add(
+-        _entry(element, ElementAutoShadowBackfillStatus.skippedDisabled),
+-      );
+-      elements.add(element);
+-      continue;
+-    }
+-    if (currentShadow != null &&
+-        !_canReplaceExistingShadow(
+-          currentShadow,
+-          projectWithDefaults.shadowCatalog,
+-        )) {
+-      entries.add(
+-        _entry(element, ElementAutoShadowBackfillStatus.skippedManual),
+-      );
+-      elements.add(element);
+-      continue;
+-    }
+-
+-    final suggestion = buildElementAutoShadowSuggestion(
+-      element: element,
+-      shadowCatalog: projectWithDefaults.shadowCatalog,
+-    );
+-    if (suggestion == null) {
+-      entries.add(
+-        _entry(element, ElementAutoShadowBackfillStatus.skippedNoSuggestion),
+-      );
+-      elements.add(element);
+-      continue;
+-    }
+-
+-    final status = currentShadow == null
+-        ? ElementAutoShadowBackfillStatus.appliedMissing
+-        : ElementAutoShadowBackfillStatus.appliedGeneric;
+-    entries.add(
+-      _entry(
+-        element,
+-        status,
+-        suggestionKind: suggestion.kind,
+-      ),
+-    );
+-    elements.add(element.copyWith(shadow: suggestion.config));
+-  }
+-
+-  return ElementAutoShadowBackfillResult(
+-    project: addedDefaultProfiles ||
+-            entries.any(
+-              (entry) =>
+-                  entry.status ==
+-                      ElementAutoShadowBackfillStatus.appliedMissing ||
+-                  entry.status ==
+-                      ElementAutoShadowBackfillStatus.appliedGeneric,
+-            )
+-        ? projectWithDefaults.copyWith(elements: elements)
+-        : project,
+-    entries: entries,
+-    addedDefaultProfiles: addedDefaultProfiles,
+-  );
+-}
+-
+-ElementAutoShadowBackfillEntry _entry(
+-  ProjectElementEntry element,
+-  ElementAutoShadowBackfillStatus status, {
+-  ElementAutoShadowSuggestionKind? suggestionKind,
+-}) {
+-  return ElementAutoShadowBackfillEntry(
+-    elementId: element.id,
+-    elementName: element.name,
+-    status: status,
+-    suggestionKind: suggestionKind,
+-  );
++  return applyElementAutoShadowPolicyToProject(project);
+ }
+-
+-bool _canReplaceExistingShadow(
+-  ProjectElementShadowConfig shadow,
+-  ProjectShadowCatalog catalog,
+-) {
+-  if (!shadow.castsShadow) {
+-    return false;
+-  }
+-  if (shadow.footprint != null) {
+-    return false;
+-  }
+-  if (shadow.offsetX != null ||
+-      shadow.offsetY != null ||
+-      shadow.scaleX != null ||
+-      shadow.scaleY != null ||
+-      shadow.opacity != null) {
+-    return false;
+-  }
+-
+-  final profileId = shadow.shadowProfileId;
+-  if (profileId == null) {
+-    return true;
+-  }
+-  if (_defaultGroundStaticProfileIds.contains(profileId)) {
+-    return true;
+-  }
+-  return catalog.profileById(profileId) == null;
+-}
+-
+-const _defaultGroundStaticProfileIds = <String>{
+-  'default-ground-soft-ellipse',
+-  'default-ground-wide-ellipse',
+-  'default-ground-contact-blob',
+-};
+diff --git a/packages/map_editor/lib/src/application/shadow/element_auto_shadow_suggestion.dart b/packages/map_editor/lib/src/application/shadow/element_auto_shadow_suggestion.dart
+index 8b2978ff..345d3a5a 100644
+--- a/packages/map_editor/lib/src/application/shadow/element_auto_shadow_suggestion.dart
++++ b/packages/map_editor/lib/src/application/shadow/element_auto_shadow_suggestion.dart
+@@ -1,242 +1,5 @@
+-import 'package:map_core/map_core.dart';
+-
+-enum ElementAutoShadowSuggestionKind {
+-  tallThin,
+-  buildingLarge,
+-  wideLow,
+-  smallSquare,
+-  defaultProp,
+-}
+-
+-final class ElementAutoShadowSuggestion {
+-  const ElementAutoShadowSuggestion({
+-    required this.kind,
+-    required this.config,
+-    required this.summary,
+-  });
+-
+-  final ElementAutoShadowSuggestionKind kind;
+-  final ProjectElementShadowConfig config;
+-  final String summary;
+-}
+-
+-ElementAutoShadowSuggestion? buildElementAutoShadowSuggestion({
+-  required ProjectElementEntry element,
+-  required ProjectShadowCatalog shadowCatalog,
+-}) {
+-  if (element.frames.isEmpty) {
+-    return null;
+-  }
+-  final source = element.frames.first.source;
+-  if (source.width <= 0 || source.height <= 0) {
+-    return null;
+-  }
+-  final kind = _classifyElement(
+-    width: source.width.toDouble(),
+-    height: source.height.toDouble(),
+-  );
+-  final profile = _profileForKind(shadowCatalog, kind);
+-  if (profile == null) {
+-    return null;
+-  }
+-  return ElementAutoShadowSuggestion(
+-    kind: kind,
+-    config: _configForKind(kind, profile.id),
+-    summary: _summaryForKind(kind),
+-  );
+-}
+-
+-ElementAutoShadowSuggestionKind _classifyElement({
+-  required double width,
+-  required double height,
+-}) {
+-  final area = width * height;
+-  final aspect = height / width;
+-  if (aspect >= 2.2 && width <= 2) {
+-    return ElementAutoShadowSuggestionKind.tallThin;
+-  }
+-  if (width >= 4 || area >= 12) {
+-    return ElementAutoShadowSuggestionKind.buildingLarge;
+-  }
+-  if (width >= 3 && height <= 3) {
+-    return ElementAutoShadowSuggestionKind.wideLow;
+-  }
+-  if (area <= 4) {
+-    return ElementAutoShadowSuggestionKind.smallSquare;
+-  }
+-  return ElementAutoShadowSuggestionKind.defaultProp;
+-}
+-
+-ProjectShadowProfile? _profileForKind(
+-  ProjectShadowCatalog catalog,
+-  ElementAutoShadowSuggestionKind kind,
+-) {
+-  switch (kind) {
+-    case ElementAutoShadowSuggestionKind.tallThin:
+-    case ElementAutoShadowSuggestionKind.smallSquare:
+-      return _preferredCompactProfile(catalog);
+-    case ElementAutoShadowSuggestionKind.buildingLarge:
+-    case ElementAutoShadowSuggestionKind.wideLow:
+-      return _preferredWideProfile(catalog);
+-    case ElementAutoShadowSuggestionKind.defaultProp:
+-      return _preferredSoftProfile(catalog);
+-  }
+-}
+-
+-ProjectShadowProfile? _preferredCompactProfile(ProjectShadowCatalog catalog) {
+-  return _compatibleProfileById(catalog, 'default-ground-contact-blob') ??
+-      _firstCompatibleProfileWithMode(catalog, ShadowCasterMode.contactBlob) ??
+-      _firstCompatibleProfile(catalog);
+-}
+-
+-ProjectShadowProfile? _preferredWideProfile(ProjectShadowCatalog catalog) {
+-  return _compatibleProfileById(catalog, 'default-ground-wide-ellipse') ??
+-      _firstCompatibleProfileWithMode(catalog, ShadowCasterMode.ellipse) ??
+-      _firstCompatibleProfile(catalog);
+-}
+-
+-ProjectShadowProfile? _preferredSoftProfile(ProjectShadowCatalog catalog) {
+-  return _compatibleProfileById(catalog, 'default-ground-soft-ellipse') ??
+-      _firstCompatibleProfileWithMode(catalog, ShadowCasterMode.ellipse) ??
+-      _firstCompatibleProfile(catalog);
+-}
+-
+-ProjectShadowProfile? _compatibleProfileById(
+-  ProjectShadowCatalog catalog,
+-  String id,
+-) {
+-  final profile = catalog.profileById(id);
+-  if (profile == null || !isGroundStaticElementShadowProfile(profile)) {
+-    return null;
+-  }
+-  return profile;
+-}
+-
+-ProjectShadowProfile? _firstCompatibleProfileWithMode(
+-  ProjectShadowCatalog catalog,
+-  ShadowCasterMode mode,
+-) {
+-  for (final profile in catalog.profiles) {
+-    if (profile.mode == mode && isGroundStaticElementShadowProfile(profile)) {
+-      return profile;
+-    }
+-  }
+-  return null;
+-}
+-
+-ProjectShadowProfile? _firstCompatibleProfile(ProjectShadowCatalog catalog) {
+-  for (final profile in catalog.profiles) {
+-    if (isGroundStaticElementShadowProfile(profile)) {
+-      return profile;
+-    }
+-  }
+-  return null;
+-}
+-
+-ProjectElementShadowConfig _configForKind(
+-  ElementAutoShadowSuggestionKind kind,
+-  String profileId,
+-) {
+-  switch (kind) {
+-    case ElementAutoShadowSuggestionKind.tallThin:
+-      return ProjectElementShadowConfig(
+-        castsShadow: true,
+-        shadowProfileId: profileId,
+-        offsetX: 0,
+-        offsetY: 0,
+-        scaleX: 1,
+-        scaleY: 1,
+-        opacity: 0.28,
+-        family: StaticShadowFamily.tallProp,
+-        footprint: StaticShadowFootprintConfig(
+-          anchorXRatio: 0.5,
+-          anchorYRatio: 1.0,
+-          footprintWidthRatio: 0.18,
+-          footprintHeightRatio: 0.07,
+-        ),
+-      );
+-    case ElementAutoShadowSuggestionKind.buildingLarge:
+-      return ProjectElementShadowConfig(
+-        castsShadow: true,
+-        shadowProfileId: profileId,
+-        offsetX: 0,
+-        offsetY: 0,
+-        scaleX: 1,
+-        scaleY: 0.85,
+-        opacity: 0.30,
+-        family: StaticShadowFamily.building,
+-        footprint: StaticShadowFootprintConfig(
+-          anchorXRatio: 0.5,
+-          anchorYRatio: 0.92,
+-          footprintWidthRatio: 0.82,
+-          footprintHeightRatio: 0.12,
+-        ),
+-      );
+-    case ElementAutoShadowSuggestionKind.wideLow:
+-      return ProjectElementShadowConfig(
+-        castsShadow: true,
+-        shadowProfileId: profileId,
+-        offsetX: 0,
+-        offsetY: 0,
+-        scaleX: 0.92,
+-        scaleY: 0.75,
+-        opacity: 0.27,
+-        family: StaticShadowFamily.compactProp,
+-        footprint: StaticShadowFootprintConfig(
+-          anchorXRatio: 0.5,
+-          anchorYRatio: 0.95,
+-          footprintWidthRatio: 0.72,
+-          footprintHeightRatio: 0.10,
+-        ),
+-      );
+-    case ElementAutoShadowSuggestionKind.smallSquare:
+-      return ProjectElementShadowConfig(
+-        castsShadow: true,
+-        shadowProfileId: profileId,
+-        offsetX: 0,
+-        offsetY: 0,
+-        scaleX: 0.78,
+-        scaleY: 0.70,
+-        opacity: 0.26,
+-        family: StaticShadowFamily.compactProp,
+-        footprint: StaticShadowFootprintConfig(
+-          anchorXRatio: 0.5,
+-          anchorYRatio: 0.96,
+-          footprintWidthRatio: 0.46,
+-          footprintHeightRatio: 0.10,
+-        ),
+-      );
+-    case ElementAutoShadowSuggestionKind.defaultProp:
+-      return ProjectElementShadowConfig(
+-        castsShadow: true,
+-        shadowProfileId: profileId,
+-        offsetX: 0,
+-        offsetY: 0,
+-        scaleX: 0.90,
+-        scaleY: 0.80,
+-        opacity: 0.28,
+-        family: StaticShadowFamily.genericProjection,
+-        footprint: StaticShadowFootprintConfig(
+-          anchorXRatio: 0.5,
+-          anchorYRatio: 0.95,
+-          footprintWidthRatio: 0.62,
+-          footprintHeightRatio: 0.12,
+-        ),
+-      );
+-  }
+-}
+-
+-String _summaryForKind(ElementAutoShadowSuggestionKind kind) {
+-  switch (kind) {
+-    case ElementAutoShadowSuggestionKind.tallThin:
+-      return 'lampadaire fin';
+-    case ElementAutoShadowSuggestionKind.buildingLarge:
+-      return 'grand bâtiment';
+-    case ElementAutoShadowSuggestionKind.wideLow:
+-      return 'élément large et bas';
+-    case ElementAutoShadowSuggestionKind.smallSquare:
+-      return 'petit élément compact';
+-    case ElementAutoShadowSuggestionKind.defaultProp:
+-      return 'élément standard';
+-  }
+-}
++export 'package:map_core/map_core.dart'
++    show
++        ElementAutoShadowSuggestion,
++        ElementAutoShadowSuggestionKind,
++        buildElementAutoShadowSuggestion;
+diff --git a/packages/map_editor/lib/src/features/editor/state/editor_notifier.dart b/packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
+index 20b102b9..fbd74cf7 100644
+--- a/packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
++++ b/packages/map_editor/lib/src/features/editor/state/editor_notifier.dart
+@@ -486,10 +486,12 @@ class EditorNotifier extends _$EditorNotifier {
+         );
+         return;
+       }
++      final appliedCount = result.appliedCount;
++      final clearedCount = result.clearedCount;
+       state = state.copyWith(
+         project: result.project,
+         statusMessage:
+-            'Ombres automatiques appliquées à ${result.appliedCount} éléments.',
++            'Ombres automatiques mises à jour : $appliedCount appliquée(s), $clearedCount retirée(s).',
+         errorMessage: null,
+       );
+       _resyncPlacedElementsForActiveMapFromProject();
+diff --git a/packages/map_editor/test/application/shadow/element_auto_shadow_backfill_test.dart b/packages/map_editor/test/application/shadow/element_auto_shadow_backfill_test.dart
+index 06982b7f..5f666715 100644
+--- a/packages/map_editor/test/application/shadow/element_auto_shadow_backfill_test.dart
++++ b/packages/map_editor/test/application/shadow/element_auto_shadow_backfill_test.dart
+@@ -1,5 +1,5 @@
+ import 'package:flutter_test/flutter_test.dart';
+-import 'package:map_core/map_core.dart';
++import 'package:map_core/map_core.dart' hide ElementAutoShadowSuggestionKind;
+ import 'package:map_editor/src/application/shadow/element_auto_shadow_backfill.dart';
+ import 'package:map_editor/src/application/shadow/element_auto_shadow_suggestion.dart';
+
+@@ -60,7 +60,7 @@ void main() {
+           _element(
+             id: 'stand',
+             name: 'Stand',
+-            width: 3,
++            width: 4,
+             height: 2,
+             shadow: ProjectElementShadowConfig(
+               castsShadow: true,
+@@ -160,6 +160,116 @@ void main() {
+       expect(result.project.elements[1].shadow, manualNumbers);
+     });
+
++    test(
++        'clears recognized auto small square shadow when policy has no suggestion',
++        () {
++      final project = _project(
++        elements: [
++          _element(
++            id: 'small-square',
++            name: 'Small square',
++            width: 2,
++            height: 2,
++            shadow: _oldAutoSmallSquareShadow(),
++          ),
++        ],
++        shadowCatalog: _defaultCatalog(),
++      );
++
++      final result = applyElementAutoShadowSuggestionsToProject(project);
++
++      expect(result.appliedCount, 0);
++      expect(result.changedCount, 1);
++      expect(result.hasChanges, isTrue);
++      expect(
++        result.entries.single.status,
++        ElementAutoShadowBackfillStatus.clearedAutoNoSuggestion,
++      );
++      expect(result.project.elements.single.shadow, isNull);
++    });
++
++    test('clears genericProjection auto shadow when policy has no suggestion',
++        () {
++      final project = _project(
++        elements: [
++          _element(
++            id: 'default-prop',
++            name: 'Default prop',
++            width: 2,
++            height: 3,
++            shadow: _oldAutoDefaultPropShadow(),
++          ),
++        ],
++        shadowCatalog: _defaultCatalog(),
++      );
++
++      final result = applyElementAutoShadowSuggestionsToProject(project);
++
++      expect(result.appliedCount, 0);
++      expect(result.changedCount, 1);
++      expect(
++        result.entries.single.status,
++        ElementAutoShadowBackfillStatus.clearedAutoNoSuggestion,
++      );
++      expect(result.project.elements.single.shadow, isNull);
++    });
++
++    test('clears recognized auto wide low shadow below safe threshold', () {
++      final project = _project(
++        elements: [
++          _element(
++            id: 'small-stand',
++            name: 'Small stand',
++            width: 3,
++            height: 2,
++            shadow: _oldAutoWideLowShadow(),
++          ),
++        ],
++        shadowCatalog: _defaultCatalog(),
++      );
++
++      final result = applyElementAutoShadowSuggestionsToProject(project);
++
++      expect(result.appliedCount, 0);
++      expect(result.changedCount, 1);
++      expect(
++        result.entries.single.status,
++        ElementAutoShadowBackfillStatus.clearedAutoNoSuggestion,
++      );
++      expect(result.project.elements.single.shadow, isNull);
++    });
++
++    test('preserves manual footprint even if no suggestion exists', () {
++      final manual = ProjectElementShadowConfig(
++        castsShadow: true,
++        shadowProfileId: 'default-ground-soft-ellipse',
++        footprint: StaticShadowFootprintConfig(footprintWidthRatio: 0.33),
++      );
++      final project = _project(
++        elements: [
++          _element(
++            id: 'manual-small',
++            name: 'Manual small',
++            width: 2,
++            height: 2,
++            shadow: manual,
++          ),
++        ],
++        shadowCatalog: _defaultCatalog(),
++      );
++
++      final result = applyElementAutoShadowSuggestionsToProject(project);
++
++      expect(result.appliedCount, 0);
++      expect(result.changedCount, 0);
++      expect(result.hasChanges, isFalse);
++      expect(
++        result.entries.single.status,
++        ElementAutoShadowBackfillStatus.skippedManual,
++      );
++      expect(result.project.elements.single.shadow, manual);
++    });
++
+     test('preserves non-default existing profile ids present in catalog', () {
+       final customShadow = ProjectElementShadowConfig(
+         castsShadow: true,
+@@ -204,8 +314,8 @@ void main() {
+           _element(
+             id: 'missing-profile',
+             name: 'Missing profile',
+-            width: 2,
+-            height: 2,
++            width: 1,
++            height: 4,
+             shadow: ProjectElementShadowConfig(
+               castsShadow: true,
+               shadowProfileId: 'missing-profile-id',
+@@ -232,7 +342,7 @@ void main() {
+         () {
+       final project = _project(
+         elements: [
+-          _element(id: 'prop', name: 'Prop', width: 2, height: 3),
++          _element(id: 'lamp', name: 'Lamp', width: 1, height: 4),
+         ],
+         shadowCatalog: const ProjectShadowCatalog.empty(),
+       );
+@@ -250,7 +360,7 @@ void main() {
+       ]);
+       expect(
+         result.project.elements.single.shadow!.shadowProfileId,
+-        'default-ground-soft-ellipse',
++        'default-ground-contact-blob',
+       );
+     });
+
+@@ -349,6 +459,63 @@ ProjectShadowCatalog _defaultCatalog() {
+   );
+ }
+
++ProjectElementShadowConfig _oldAutoSmallSquareShadow() {
++  return ProjectElementShadowConfig(
++    castsShadow: true,
++    shadowProfileId: 'default-ground-contact-blob',
++    offsetX: 0,
++    offsetY: 0,
++    scaleX: 0.78,
++    scaleY: 0.70,
++    opacity: 0.26,
++    family: StaticShadowFamily.compactProp,
++    footprint: StaticShadowFootprintConfig(
++      anchorXRatio: 0.5,
++      anchorYRatio: 0.96,
++      footprintWidthRatio: 0.46,
++      footprintHeightRatio: 0.10,
++    ),
++  );
++}
++
++ProjectElementShadowConfig _oldAutoDefaultPropShadow() {
++  return ProjectElementShadowConfig(
++    castsShadow: true,
++    shadowProfileId: 'default-ground-soft-ellipse',
++    offsetX: 0,
++    offsetY: 0,
++    scaleX: 0.90,
++    scaleY: 0.80,
++    opacity: 0.28,
++    family: StaticShadowFamily.genericProjection,
++    footprint: StaticShadowFootprintConfig(
++      anchorXRatio: 0.5,
++      anchorYRatio: 0.95,
++      footprintWidthRatio: 0.62,
++      footprintHeightRatio: 0.12,
++    ),
++  );
++}
++
++ProjectElementShadowConfig _oldAutoWideLowShadow() {
++  return ProjectElementShadowConfig(
++    castsShadow: true,
++    shadowProfileId: 'default-ground-wide-ellipse',
++    offsetX: 0,
++    offsetY: 0,
++    scaleX: 0.92,
++    scaleY: 0.75,
++    opacity: 0.27,
++    family: StaticShadowFamily.compactProp,
++    footprint: StaticShadowFootprintConfig(
++      anchorXRatio: 0.5,
++      anchorYRatio: 0.95,
++      footprintWidthRatio: 0.72,
++      footprintHeightRatio: 0.10,
++    ),
++  );
++}
++
+ ProjectElementEntry _element({
+   required String id,
+   required String name,
+diff --git a/packages/map_editor/test/application/shadow/element_auto_shadow_suggestion_test.dart b/packages/map_editor/test/application/shadow/element_auto_shadow_suggestion_test.dart
+index ac5468ac..9b25f0a4 100644
+--- a/packages/map_editor/test/application/shadow/element_auto_shadow_suggestion_test.dart
++++ b/packages/map_editor/test/application/shadow/element_auto_shadow_suggestion_test.dart
+@@ -1,5 +1,9 @@
+ import 'package:flutter_test/flutter_test.dart';
+-import 'package:map_core/map_core.dart';
++import 'package:map_core/map_core.dart'
++    hide
++        ElementAutoShadowSuggestion,
++        ElementAutoShadowSuggestionKind,
++        buildElementAutoShadowSuggestion;
+ import 'package:map_editor/src/application/shadow/element_auto_shadow_suggestion.dart';
+
+ void main() {
+@@ -45,6 +49,21 @@ void main() {
+       expect(invalidHeight, isNull);
+     });
+
++    test('returns null for micro decor that should not cast projected shadows',
++        () {
++      final oneByOne = buildElementAutoShadowSuggestion(
++        element: _element(width: 1, height: 1),
++        shadowCatalog: _defaultCatalog(),
++      );
++      final oneByTwo = buildElementAutoShadowSuggestion(
++        element: _element(width: 1, height: 2),
++        shadowCatalog: _defaultCatalog(),
++      );
++
++      expect(oneByOne, isNull);
++      expect(oneByTwo, isNull);
++    });
++
+     test('classifies tall thin elements as tallThin', () {
+       final suggestion = buildElementAutoShadowSuggestion(
+         element: _element(width: 1, height: 4),
+@@ -75,12 +94,17 @@ void main() {
+       expect(suggestion.config.opacity, 0.30);
+     });
+
+-    test('classifies wide low elements as wideLow', () {
+-      final suggestion = buildElementAutoShadowSuggestion(
++    test('wide low needs enough surface to receive an automatic shadow', () {
++      final smallWide = buildElementAutoShadowSuggestion(
+         element: _element(width: 3, height: 2),
+         shadowCatalog: _defaultCatalog(),
++      );
++      final suggestion = buildElementAutoShadowSuggestion(
++        element: _element(width: 4, height: 2),
++        shadowCatalog: _defaultCatalog(),
+       )!;
+
++      expect(smallWide, isNull);
+       expect(suggestion.kind, ElementAutoShadowSuggestionKind.wideLow);
+       expect(suggestion.config.shadowProfileId, 'default-ground-wide-ellipse');
+       expect(suggestion.config.family, StaticShadowFamily.compactProp);
+@@ -92,38 +116,22 @@ void main() {
+       expect(suggestion.config.opacity, 0.27);
+     });
+
+-    test('classifies small square elements as smallSquare', () {
++    test('small square returns null under artistic V0 policy', () {
+       final suggestion = buildElementAutoShadowSuggestion(
+         element: _element(width: 2, height: 2),
+         shadowCatalog: _defaultCatalog(),
+-      )!;
++      );
+
+-      expect(suggestion.kind, ElementAutoShadowSuggestionKind.smallSquare);
+-      expect(suggestion.config.shadowProfileId, 'default-ground-contact-blob');
+-      expect(suggestion.config.family, StaticShadowFamily.compactProp);
+-      expect(suggestion.config.footprint!.anchorYRatio, 0.96);
+-      expect(suggestion.config.footprint!.footprintWidthRatio, 0.46);
+-      expect(suggestion.config.footprint!.footprintHeightRatio, 0.10);
+-      expect(suggestion.config.scaleX, 0.78);
+-      expect(suggestion.config.scaleY, 0.70);
+-      expect(suggestion.config.opacity, 0.26);
++      expect(suggestion, isNull);
+     });
+
+-    test('classifies remaining valid elements as defaultProp', () {
++    test('default prop returns null under artistic V0 policy', () {
+       final suggestion = buildElementAutoShadowSuggestion(
+         element: _element(width: 2, height: 3),
+         shadowCatalog: _defaultCatalog(),
+-      )!;
++      );
+
+-      expect(suggestion.kind, ElementAutoShadowSuggestionKind.defaultProp);
+-      expect(suggestion.config.shadowProfileId, 'default-ground-soft-ellipse');
+-      expect(suggestion.config.family, StaticShadowFamily.genericProjection);
+-      expect(suggestion.config.footprint!.anchorYRatio, 0.95);
+-      expect(suggestion.config.footprint!.footprintWidthRatio, 0.62);
+-      expect(suggestion.config.footprint!.footprintHeightRatio, 0.12);
+-      expect(suggestion.config.scaleX, 0.90);
+-      expect(suggestion.config.scaleY, 0.80);
+-      expect(suggestion.config.opacity, 0.28);
++      expect(suggestion, isNull);
+     });
+
+     test('prefers default compact profile for tallThin', () {
+@@ -156,16 +164,16 @@ void main() {
+           profiles: [_profile('custom-ellipse')],
+         ),
+       )!;
+-      final defaultProp = buildElementAutoShadowSuggestion(
+-        element: _element(width: 2, height: 3),
++      final wideLow = buildElementAutoShadowSuggestion(
++        element: _element(width: 4, height: 2),
+         shadowCatalog: ProjectShadowCatalog(
+-          profiles: [_profile('custom-soft')],
++          profiles: [_profile('custom-wide')],
+         ),
+       )!;
+
+       expect(tallThin.config.shadowProfileId, 'custom-contact');
+       expect(building.config.shadowProfileId, 'custom-ellipse');
+-      expect(defaultProp.config.shadowProfileId, 'custom-soft');
++      expect(wideLow.config.shadowProfileId, 'custom-wide');
+     });
+
+     test('all suggestions have castsShadow true', () {
+@@ -210,9 +218,7 @@ Iterable<ElementAutoShadowSuggestion> _allSuggestionKinds() sync* {
+   for (final dimensions in const [
+     (width: 1, height: 4),
+     (width: 4, height: 3),
+-    (width: 3, height: 2),
+-    (width: 2, height: 2),
+-    (width: 2, height: 3),
++    (width: 4, height: 2),
+   ]) {
+     yield buildElementAutoShadowSuggestion(
+       element: _element(width: dimensions.width, height: dimensions.height),
+diff --git a/packages/map_editor/test/editor_notifier_project_dirty_state_test.dart b/packages/map_editor/test/editor_notifier_project_dirty_state_test.dart
+index 9cbbc5d6..4aa0c00c 100644
+--- a/packages/map_editor/test/editor_notifier_project_dirty_state_test.dart
++++ b/packages/map_editor/test/editor_notifier_project_dirty_state_test.dart
+@@ -202,7 +202,7 @@ void main() {
+       );
+       expect(
+         notifier.state.statusMessage,
+-        'Ombres automatiques appliquées à 1 éléments.',
++        'Ombres automatiques mises à jour : 1 appliquée(s), 0 retirée(s).',
+       );
+       expect(notifier.state.errorMessage, isNull);
+       final saved = ProjectManifest.fromJson(
+@@ -262,6 +262,45 @@ void main() {
+       expect(await File('${tempDir.path}/project.json').exists(), isFalse);
+     });
+
++    test('applyElementAutoShadowSuggestions annonce les nettoyages', () async {
++      final tempDir =
++          await Directory.systemTemp.createTemp('project_auto_shadow_clear_');
++      addTearDown(() async => tempDir.delete(recursive: true));
++      final container = ProviderContainer();
++      addTearDown(container.dispose);
++      final notifier = container.read(editorNotifierProvider.notifier);
++      notifier.state = notifier.state.copyWith(
++        projectRootPath: tempDir.path,
++        project: _manifestWithElements(
++          elements: [
++            _element(
++              id: 'small',
++              name: 'Small',
++              width: 2,
++              height: 2,
++              shadow: _oldAutoSmallSquareShadow(),
++            ),
++          ],
++          shadowCatalog: _defaultShadowCatalog(),
++        ),
++      );
++
++      await notifier.applyElementAutoShadowSuggestions();
++
++      expect(notifier.state.project!.elements.single.shadow, isNull);
++      expect(
++        notifier.state.statusMessage,
++        'Ombres automatiques mises à jour : 0 appliquée(s), 1 retirée(s).',
++      );
++      expect(notifier.state.errorMessage, isNull);
++      final saved = ProjectManifest.fromJson(
++        jsonDecode(
++          await File('${tempDir.path}/project.json').readAsString(),
++        ) as Map<String, dynamic>,
++      );
++      expect(saved.elements.single.shadow, isNull);
++    });
++
+     test('applyElementAutoShadowSuggestions ajoute les profils par défaut',
+         () async {
+       final tempDir = await Directory.systemTemp
+@@ -274,7 +313,7 @@ void main() {
+         projectRootPath: tempDir.path,
+         project: _manifestWithElements(
+           elements: [
+-            _element(id: 'prop', name: 'Prop', width: 2, height: 3),
++            _element(id: 'lamp', name: 'Lamp', width: 1, height: 4),
+           ],
+           shadowCatalog: const ProjectShadowCatalog.empty(),
+         ),
+@@ -294,7 +333,7 @@ void main() {
+       );
+       expect(
+         notifier.state.project!.elements.single.shadow!.shadowProfileId,
+-        'default-ground-soft-ellipse',
++        'default-ground-contact-blob',
+       );
+     });
+   });
+@@ -383,3 +422,22 @@ ProjectElementEntry _element({
+     shadow: shadow,
+   );
+ }
++
++ProjectElementShadowConfig _oldAutoSmallSquareShadow() {
++  return ProjectElementShadowConfig(
++    castsShadow: true,
++    shadowProfileId: 'default-ground-contact-blob',
++    offsetX: 0,
++    offsetY: 0,
++    scaleX: 0.78,
++    scaleY: 0.70,
++    opacity: 0.26,
++    family: StaticShadowFamily.compactProp,
++    footprint: StaticShadowFootprintConfig(
++      anchorXRatio: 0.5,
++      anchorYRatio: 0.96,
++      footprintWidthRatio: 0.46,
++      footprintHeightRatio: 0.10,
++    ),
++  );
++}
+diff --git a/packages/map_editor/test/features/tileset_library/apply_element_auto_shadow_suggestions_use_case_test.dart b/packages/map_editor/test/features/tileset_library/apply_element_auto_shadow_suggestions_use_case_test.dart
+index 8fe2276c..f692363f 100644
+--- a/packages/map_editor/test/features/tileset_library/apply_element_auto_shadow_suggestions_use_case_test.dart
++++ b/packages/map_editor/test/features/tileset_library/apply_element_auto_shadow_suggestions_use_case_test.dart
+@@ -1,5 +1,5 @@
+ import 'package:flutter_test/flutter_test.dart';
+-import 'package:map_core/map_core.dart';
++import 'package:map_core/map_core.dart' hide ElementAutoShadowBackfillStatus;
+ import 'package:map_editor/src/application/ports/project_workspace.dart';
+ import 'package:map_editor/src/application/shadow/element_auto_shadow_backfill.dart';
+ import 'package:map_editor/src/application/use_cases/apply_element_auto_shadow_suggestions_use_case.dart';
+@@ -69,6 +69,37 @@ void main() {
+       expect(repo.savedPath, isNull);
+     });
+
++    test('saves when cleanup removes recognized auto shadow', () async {
++      final repo = _FakeProjectRepository();
++      final workspace = _FakeWorkspace();
++      final useCase = ApplyElementAutoShadowSuggestionsUseCase(repo);
++      final project = _project(
++        elements: [
++          _element(
++            id: 'small-square',
++            name: 'Small square',
++            width: 2,
++            height: 2,
++            shadow: _oldAutoSmallSquareShadow(),
++          ),
++        ],
++        shadowCatalog: _defaultCatalog(),
++      );
++
++      final result = await useCase.execute(workspace, project);
++
++      expect(result.hasChanges, isTrue);
++      expect(result.appliedCount, 0);
++      expect(result.changedCount, 1);
++      expect(repo.savedPath, '/tmp/project.json');
++      expect(repo.lastSavedProject, result.project);
++      expect(repo.lastSavedProject!.elements.single.shadow, isNull);
++      expect(
++        result.entries.single.status,
++        ElementAutoShadowBackfillStatus.clearedAutoNoSuggestion,
++      );
++    });
++
+     test('returns counts and saves projects that round trip through JSON',
+         () async {
+       final repo = _FakeProjectRepository();
+@@ -134,6 +165,25 @@ ProjectShadowCatalog _defaultCatalog() {
+   );
+ }
+
++ProjectElementShadowConfig _oldAutoSmallSquareShadow() {
++  return ProjectElementShadowConfig(
++    castsShadow: true,
++    shadowProfileId: 'default-ground-contact-blob',
++    offsetX: 0,
++    offsetY: 0,
++    scaleX: 0.78,
++    scaleY: 0.70,
++    opacity: 0.26,
++    family: StaticShadowFamily.compactProp,
++    footprint: StaticShadowFootprintConfig(
++      anchorXRatio: 0.5,
++      anchorYRatio: 0.96,
++      footprintWidthRatio: 0.46,
++      footprintHeightRatio: 0.10,
++    ),
++  );
++}
++
+ ProjectElementEntry _element({
+   required String id,
+   required String name,
+diff --git a/packages/map_runtime/lib/src/application/load_runtime_map_bundle.dart b/packages/map_runtime/lib/src/application/load_runtime_map_bundle.dart
+index 7e7a6c5b..ecb663b9 100644
+--- a/packages/map_runtime/lib/src/application/load_runtime_map_bundle.dart
++++ b/packages/map_runtime/lib/src/application/load_runtime_map_bundle.dart
+@@ -37,8 +37,9 @@ Future<ProjectManifest> loadProjectManifestFromFile(String manifestPath) async {
+     final raw = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+     final migrated = migrateProjectManifestJson(raw);
+     final manifest = ProjectManifest.fromJson(migrated);
+-    ProjectValidator.validate(manifest);
+-    return manifest;
++    final normalized = applyElementAutoShadowPolicyToProject(manifest).project;
++    ProjectValidator.validate(normalized);
++    return normalized;
+   } catch (e) {
+     throw ProjectLoadException('Failed to load project: $e');
+   }
+```

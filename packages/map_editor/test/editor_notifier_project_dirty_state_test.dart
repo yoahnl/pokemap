@@ -202,7 +202,7 @@ void main() {
       );
       expect(
         notifier.state.statusMessage,
-        'Ombres automatiques appliquées à 1 éléments.',
+        'Ombres automatiques mises à jour : 1 appliquée(s), 0 retirée(s).',
       );
       expect(notifier.state.errorMessage, isNull);
       final saved = ProjectManifest.fromJson(
@@ -262,6 +262,45 @@ void main() {
       expect(await File('${tempDir.path}/project.json').exists(), isFalse);
     });
 
+    test('applyElementAutoShadowSuggestions annonce les nettoyages', () async {
+      final tempDir =
+          await Directory.systemTemp.createTemp('project_auto_shadow_clear_');
+      addTearDown(() async => tempDir.delete(recursive: true));
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final notifier = container.read(editorNotifierProvider.notifier);
+      notifier.state = notifier.state.copyWith(
+        projectRootPath: tempDir.path,
+        project: _manifestWithElements(
+          elements: [
+            _element(
+              id: 'small',
+              name: 'Small',
+              width: 2,
+              height: 2,
+              shadow: _oldAutoSmallSquareShadow(),
+            ),
+          ],
+          shadowCatalog: _defaultShadowCatalog(),
+        ),
+      );
+
+      await notifier.applyElementAutoShadowSuggestions();
+
+      expect(notifier.state.project!.elements.single.shadow, isNull);
+      expect(
+        notifier.state.statusMessage,
+        'Ombres automatiques mises à jour : 0 appliquée(s), 1 retirée(s).',
+      );
+      expect(notifier.state.errorMessage, isNull);
+      final saved = ProjectManifest.fromJson(
+        jsonDecode(
+          await File('${tempDir.path}/project.json').readAsString(),
+        ) as Map<String, dynamic>,
+      );
+      expect(saved.elements.single.shadow, isNull);
+    });
+
     test('applyElementAutoShadowSuggestions ajoute les profils par défaut',
         () async {
       final tempDir = await Directory.systemTemp
@@ -274,7 +313,7 @@ void main() {
         projectRootPath: tempDir.path,
         project: _manifestWithElements(
           elements: [
-            _element(id: 'prop', name: 'Prop', width: 2, height: 3),
+            _element(id: 'lamp', name: 'Lamp', width: 1, height: 4),
           ],
           shadowCatalog: const ProjectShadowCatalog.empty(),
         ),
@@ -294,7 +333,7 @@ void main() {
       );
       expect(
         notifier.state.project!.elements.single.shadow!.shadowProfileId,
-        'default-ground-soft-ellipse',
+        'default-ground-contact-blob',
       );
     });
   });
@@ -381,5 +420,24 @@ ProjectElementEntry _element({
       ),
     ],
     shadow: shadow,
+  );
+}
+
+ProjectElementShadowConfig _oldAutoSmallSquareShadow() {
+  return ProjectElementShadowConfig(
+    castsShadow: true,
+    shadowProfileId: 'default-ground-contact-blob',
+    offsetX: 0,
+    offsetY: 0,
+    scaleX: 0.78,
+    scaleY: 0.70,
+    opacity: 0.26,
+    family: StaticShadowFamily.compactProp,
+    footprint: StaticShadowFootprintConfig(
+      anchorXRatio: 0.5,
+      anchorYRatio: 0.96,
+      footprintWidthRatio: 0.46,
+      footprintHeightRatio: 0.10,
+    ),
   );
 }

@@ -37,8 +37,9 @@ Future<ProjectManifest> loadProjectManifestFromFile(String manifestPath) async {
     final raw = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
     final migrated = migrateProjectManifestJson(raw);
     final manifest = ProjectManifest.fromJson(migrated);
-    ProjectValidator.validate(manifest);
-    return manifest;
+    final normalized = applyElementAutoShadowPolicyToProject(manifest).project;
+    ProjectValidator.validate(normalized);
+    return normalized;
   } catch (e) {
     throw ProjectLoadException('Failed to load project: $e');
   }

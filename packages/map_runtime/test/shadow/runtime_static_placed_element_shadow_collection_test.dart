@@ -301,6 +301,74 @@ void main() {
       _expectDifferentPolygon(instruction, elementOnly);
     });
 
+    test('element shadow family is transmitted to runtime projection', () {
+      final footprint = StaticShadowFootprintConfig(
+        footprintWidthRatio: 0.25,
+        footprintHeightRatio: 0.08,
+      );
+      final tallProp = buildRuntimeStaticPlacedElementShadowCollection(
+        catalog: _catalog(),
+        sources: [
+          _source(
+            elementShadow: _elementShadow(
+              family: StaticShadowFamily.tallProp,
+              footprint: footprint,
+            ),
+          ),
+        ],
+      ).groundStatic.single;
+      final building = buildRuntimeStaticPlacedElementShadowCollection(
+        catalog: _catalog(),
+        sources: [
+          _source(
+            elementShadow: _elementShadow(
+              family: StaticShadowFamily.building,
+              footprint: footprint,
+            ),
+          ),
+        ],
+      ).groundStatic.single;
+
+      expect(tallProp.width, lessThan(building.width));
+      _expectDifferentPolygon(tallProp, building);
+    });
+
+    test('placed override family wins over element shadow family', () {
+      final footprint = StaticShadowFootprintConfig(
+        footprintWidthRatio: 0.25,
+        footprintHeightRatio: 0.08,
+      );
+      final overrideBuilding = buildRuntimeStaticPlacedElementShadowCollection(
+        catalog: _catalog(),
+        sources: [
+          _source(
+            elementShadow: _elementShadow(
+              family: StaticShadowFamily.tallProp,
+              footprint: footprint,
+            ),
+            placedOverride: MapPlacedElementShadowOverride(
+              mode: ShadowOverrideMode.custom,
+              family: StaticShadowFamily.building,
+            ),
+          ),
+        ],
+      ).groundStatic.single;
+      final building = buildRuntimeStaticPlacedElementShadowCollection(
+        catalog: _catalog(),
+        sources: [
+          _source(
+            elementShadow: _elementShadow(
+              family: StaticShadowFamily.building,
+              footprint: footprint,
+            ),
+          ),
+        ],
+      ).groundStatic.single;
+
+      expect(overrideBuilding.width, closeTo(building.width, 0.000001));
+      expect(overrideBuilding.height, closeTo(building.height, 0.000001));
+    });
+
     test('none profile creates no instruction', () {
       final collection = buildRuntimeStaticPlacedElementShadowCollection(
         catalog: _catalog(),
@@ -423,11 +491,13 @@ const Object _defaultElementShadow = Object();
 ProjectElementShadowConfig _elementShadow({
   String profileId = 'ellipse_ground',
   StaticShadowFootprintConfig? footprint,
+  StaticShadowFamily? family,
 }) {
   return ProjectElementShadowConfig(
     castsShadow: true,
     shadowProfileId: profileId,
     footprint: footprint,
+    family: family,
   );
 }
 

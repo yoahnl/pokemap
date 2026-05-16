@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_core/map_core.dart';
+import 'package:map_core/map_core.dart' hide ElementAutoShadowBackfillStatus;
 import 'package:map_editor/src/application/ports/project_workspace.dart';
 import 'package:map_editor/src/application/shadow/element_auto_shadow_backfill.dart';
 import 'package:map_editor/src/application/use_cases/apply_element_auto_shadow_suggestions_use_case.dart';
@@ -69,6 +69,37 @@ void main() {
       expect(repo.savedPath, isNull);
     });
 
+    test('saves when cleanup removes recognized auto shadow', () async {
+      final repo = _FakeProjectRepository();
+      final workspace = _FakeWorkspace();
+      final useCase = ApplyElementAutoShadowSuggestionsUseCase(repo);
+      final project = _project(
+        elements: [
+          _element(
+            id: 'small-square',
+            name: 'Small square',
+            width: 2,
+            height: 2,
+            shadow: _oldAutoSmallSquareShadow(),
+          ),
+        ],
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      final result = await useCase.execute(workspace, project);
+
+      expect(result.hasChanges, isTrue);
+      expect(result.appliedCount, 0);
+      expect(result.changedCount, 1);
+      expect(repo.savedPath, '/tmp/project.json');
+      expect(repo.lastSavedProject, result.project);
+      expect(repo.lastSavedProject!.elements.single.shadow, isNull);
+      expect(
+        result.entries.single.status,
+        ElementAutoShadowBackfillStatus.clearedAutoNoSuggestion,
+      );
+    });
+
     test('returns counts and saves projects that round trip through JSON',
         () async {
       final repo = _FakeProjectRepository();
@@ -131,6 +162,25 @@ ProjectManifest _project({
 ProjectShadowCatalog _defaultCatalog() {
   return ProjectShadowCatalog(
     profiles: createDefaultGroundStaticShadowProfiles(),
+  );
+}
+
+ProjectElementShadowConfig _oldAutoSmallSquareShadow() {
+  return ProjectElementShadowConfig(
+    castsShadow: true,
+    shadowProfileId: 'default-ground-contact-blob',
+    offsetX: 0,
+    offsetY: 0,
+    scaleX: 0.78,
+    scaleY: 0.70,
+    opacity: 0.26,
+    family: StaticShadowFamily.compactProp,
+    footprint: StaticShadowFootprintConfig(
+      anchorXRatio: 0.5,
+      anchorYRatio: 0.96,
+      footprintWidthRatio: 0.46,
+      footprintHeightRatio: 0.10,
+    ),
   );
 }
 

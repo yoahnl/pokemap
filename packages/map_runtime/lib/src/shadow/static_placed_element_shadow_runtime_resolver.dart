@@ -71,12 +71,16 @@ final class StaticPlacedElementShadowRuntimeInput {
     required this.metrics,
     this.elementFootprint,
     this.overrideFootprint,
+    this.elementFamily,
+    this.overrideFamily,
   });
 
   final ResolvedShadowConfig resolvedConfig;
   final StaticPlacedElementShadowRuntimeMetrics metrics;
   final StaticShadowFootprintConfig? elementFootprint;
   final StaticShadowFootprintConfig? overrideFootprint;
+  final StaticShadowFamily? elementFamily;
+  final StaticShadowFamily? overrideFamily;
 
   @override
   bool operator ==(Object other) =>
@@ -85,7 +89,9 @@ final class StaticPlacedElementShadowRuntimeInput {
           other.resolvedConfig == resolvedConfig &&
           other.metrics == metrics &&
           other.elementFootprint == elementFootprint &&
-          other.overrideFootprint == overrideFootprint;
+          other.overrideFootprint == overrideFootprint &&
+          other.elementFamily == elementFamily &&
+          other.overrideFamily == overrideFamily;
 
   @override
   int get hashCode => Object.hash(
@@ -93,6 +99,8 @@ final class StaticPlacedElementShadowRuntimeInput {
         metrics,
         elementFootprint,
         overrideFootprint,
+        elementFamily,
+        overrideFamily,
       );
 }
 
@@ -145,6 +153,12 @@ ShadowRuntimeRenderInstruction?
   final projectedGeometry = resolveProjectedStaticShadowGeometry(
     baseGeometry: baseGeometry,
     metrics: _visualMetricsFromRuntimeMetrics(input.metrics),
+    projectionSpec: resolveStaticShadowFamilyProjectionSpec(
+      family: resolveStaticShadowFamily(
+        elementFamily: input.elementFamily,
+        overrideFamily: input.overrideFamily,
+      ),
+    ),
   );
   final points = _runtimePointsFromProjection(projectedGeometry);
   final bounds = _boundsFromRuntimePoints(points);

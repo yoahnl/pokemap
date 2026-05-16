@@ -95,14 +95,14 @@ void main() {
       );
     });
 
-    test('tall props are narrow and still project farther than generic', () {
+    test('tall props are narrow and shorter than generic', () {
       final spec = resolveStaticShadowFamilyProjectionSpec(
         family: StaticShadowFamily.tallProp,
       );
 
       expect(
         spec.lengthRatio,
-        greaterThan(defaultStaticShadowProjectionSpec.lengthRatio),
+        lessThan(defaultStaticShadowProjectionSpec.lengthRatio),
       );
       expect(
         spec.nearWidthMultiplier,
@@ -114,18 +114,25 @@ void main() {
       );
     });
 
-    test('buildings keep a broad block-like projection', () {
+    test('buildings keep a broad but shorter block-like projection', () {
       final spec = resolveStaticShadowFamilyProjectionSpec(
         family: StaticShadowFamily.building,
+      );
+      final tall = resolveStaticShadowFamilyProjectionSpec(
+        family: StaticShadowFamily.tallProp,
       );
 
       expect(
         spec.lengthRatio,
-        greaterThan(defaultStaticShadowProjectionSpec.lengthRatio),
+        lessThan(defaultStaticShadowProjectionSpec.lengthRatio),
       );
       expect(
         spec.nearWidthMultiplier,
-        greaterThan(defaultStaticShadowProjectionSpec.nearWidthMultiplier),
+        lessThan(defaultStaticShadowProjectionSpec.nearWidthMultiplier),
+      );
+      expect(
+        spec.nearWidthMultiplier,
+        greaterThan(tall.nearWidthMultiplier),
       );
       expect(
         spec.farWidthMultiplier,
@@ -156,9 +163,9 @@ void main() {
         family: StaticShadowFamily.compactProp,
       );
 
-      expect(spec.lengthRatio, closeTo(0.2304, 0.0000001));
-      expect(spec.nearWidthMultiplier, closeTo(0.7544, 0.0000001));
-      expect(spec.farWidthMultiplier, closeTo(0.9204, 0.0000001));
+      expect(spec.lengthRatio, closeTo(0.1216, 0.0000001));
+      expect(spec.nearWidthMultiplier, closeTo(0.5336, 0.0000001));
+      expect(spec.farWidthMultiplier, closeTo(0.5192, 0.0000001));
     });
 
     test('tallProp V0 constants are stable', () {
@@ -166,9 +173,9 @@ void main() {
         family: StaticShadowFamily.tallProp,
       );
 
-      expect(spec.lengthRatio, closeTo(0.3776, 0.0000001));
-      expect(spec.nearWidthMultiplier, closeTo(0.4784, 0.0000001));
-      expect(spec.farWidthMultiplier, closeTo(0.6844, 0.0000001));
+      expect(spec.lengthRatio, closeTo(0.1536, 0.0000001));
+      expect(spec.nearWidthMultiplier, closeTo(0.2944, 0.0000001));
+      expect(spec.farWidthMultiplier, closeTo(0.3304, 0.0000001));
     });
 
     test('building V0 constants are stable', () {
@@ -176,9 +183,9 @@ void main() {
         family: StaticShadowFamily.building,
       );
 
-      expect(spec.lengthRatio, closeTo(0.4, 0.0000001));
-      expect(spec.nearWidthMultiplier, closeTo(0.966, 0.0000001));
-      expect(spec.farWidthMultiplier, closeTo(1.1564, 0.0000001));
+      expect(spec.lengthRatio, closeTo(0.1984, 0.0000001));
+      expect(spec.nearWidthMultiplier, closeTo(0.7176, 0.0000001));
+      expect(spec.farWidthMultiplier, closeTo(0.7316, 0.0000001));
     });
 
     test('foliage V0 constants are stable', () {
@@ -186,9 +193,9 @@ void main() {
         family: StaticShadowFamily.foliage,
       );
 
-      expect(spec.lengthRatio, closeTo(0.336, 0.0000001));
-      expect(spec.nearWidthMultiplier, closeTo(1.058, 0.0000001));
-      expect(spec.farWidthMultiplier, closeTo(1.5104, 0.0000001));
+      expect(spec.lengthRatio, closeTo(0.144, 0.0000001));
+      expect(spec.nearWidthMultiplier, closeTo(0.6624, 0.0000001));
+      expect(spec.farWidthMultiplier, closeTo(0.826, 0.0000001));
     });
 
     test('scaled family specs remain valid for a custom positive base', () {

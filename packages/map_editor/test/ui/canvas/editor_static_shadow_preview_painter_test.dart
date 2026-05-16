@@ -1,18 +1,47 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:map_core/map_core.dart';
 import 'package:map_editor/src/application/shadow/editor_static_shadow_preview.dart';
 import 'package:map_editor/src/ui/canvas/shadow/editor_static_shadow_preview_painter.dart';
 
 void main() {
   group('paintEditorStaticShadowPreviewInstructions', () {
-    test('draws a non-transparent center pixel', () async {
+    test('draws a projected polygon interior pixel', () async {
       final pixel = await _paintAndReadPixel(
-        const EditorStaticShadowPreviewInstruction(
+        _projectedInstruction(),
+        x: 20,
+        y: 18,
+      );
+
+      expect(pixel.alpha, greaterThan(0));
+    });
+
+    test('projected polygon leaves outside pixel transparent', () async {
+      final pixel = await _paintAndReadPixel(
+        _projectedInstruction(),
+        x: 4,
+        y: 4,
+      );
+
+      expect(pixel.alpha, 0);
+    });
+
+    test('opacity zero does not color projected polygon pixel', () async {
+      final pixel = await _paintAndReadPixel(
+        _projectedInstruction(opacity: 0),
+        x: 20,
+        y: 18,
+      );
+
+      expect(pixel.alpha, 0);
+    });
+
+    test('draws an oval fallback instruction', () async {
+      final pixel = await _paintAndReadPixel(
+        EditorStaticShadowPreviewInstruction(
           instanceId: 'stand_1',
           elementId: 'stand',
-          shape: ShadowCasterMode.ellipse,
+          shape: EditorStaticShadowPreviewShapeKind.oval,
           left: 8,
           top: 8,
           width: 24,
@@ -27,26 +56,6 @@ void main() {
       expect(pixel.alpha, greaterThan(0));
     });
 
-    test('opacity zero does not color the pixel', () async {
-      final pixel = await _paintAndReadPixel(
-        const EditorStaticShadowPreviewInstruction(
-          instanceId: 'stand_1',
-          elementId: 'stand',
-          shape: ShadowCasterMode.ellipse,
-          left: 8,
-          top: 8,
-          width: 24,
-          height: 16,
-          opacity: 0,
-          colorHexRgb: '000000',
-        ),
-        x: 20,
-        y: 16,
-      );
-
-      expect(pixel.alpha, 0);
-    });
-
     test('empty instructions do not throw', () {
       final recorder = ui.PictureRecorder();
       final canvas = ui.Canvas(recorder);
@@ -57,6 +66,28 @@ void main() {
       picture.dispose();
     });
   });
+}
+
+EditorStaticShadowPreviewInstruction _projectedInstruction({
+  double opacity = 0.5,
+}) {
+  return EditorStaticShadowPreviewInstruction(
+    instanceId: 'stand_1',
+    elementId: 'stand',
+    shape: EditorStaticShadowPreviewShapeKind.projectedPolygon,
+    left: 8,
+    top: 8,
+    width: 28,
+    height: 20,
+    opacity: opacity,
+    colorHexRgb: '000000',
+    polygonPoints: [
+      EditorStaticShadowPreviewPoint(x: 10, y: 12),
+      EditorStaticShadowPreviewPoint(x: 24, y: 10),
+      EditorStaticShadowPreviewPoint(x: 34, y: 28),
+      EditorStaticShadowPreviewPoint(x: 12, y: 26),
+    ],
+  );
 }
 
 Future<_Pixel> _paintAndReadPixel(
