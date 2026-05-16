@@ -181,6 +181,10 @@ export 'src/domain/move/battle_move_procedure.dart'
         BattleMoveTargetPrecheckResult;
 export 'src/domain/move/battle_move_registry.dart'
     show BattleMoveRegistry, UnsupportedBattleMoveBehavior;
+export 'src/domain/move/psdk_battle_move_request.dart'
+    show PsdkBattleMoveRequest;
+export 'src/domain/move/psdk_battle_move_executor.dart'
+    show PsdkBattleMoveExecutor;
 export 'src/domain/move/battle_move_secondary_effect_resolver.dart'
     show BattleMoveSecondaryEffectResolver, BattleMoveSecondaryEffectResult;
 export 'src/domain/move/battle_move_type_processor.dart'

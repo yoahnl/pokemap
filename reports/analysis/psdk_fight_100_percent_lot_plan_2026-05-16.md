@@ -267,6 +267,11 @@ without adding them back to command selection.
 
 ### Lot 07 - Direct PSDK Move Execution Contract
 
+**Status 2026-05-16:** done. `map_battle` now exposes a direct
+`PsdkBattleMoveRequest`/`PsdkBattleMoveExecutor` path that executes Studio move
+metadata by `battleEngineMethod` through `BattleMoveRegistry`, while leaving the
+legacy `BattleMoveData` session path untouched.
+
 **Goal:** let runtime eventually execute by `battleEngineMethod`, not only by legacy `BattleMoveData`.
 
 **Files:**
