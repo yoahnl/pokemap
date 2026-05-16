@@ -186,7 +186,7 @@ Total registered methods: 330
 | `s_minimize` | `Minimize` | `10 Move/2 Definitions/300 Minimize.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_minimize)` | `partial` | `-` |
 | `s_miracle_eye` | `MiracleEye` | `10 Move/2 Definitions/300 MiracleEye.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_miracle_eye)` | `partial` | `-` |
 | `s_mirror_coat` | `MirrorCoat` | `10 Move/2 Definitions/300 Counter moves.rb` | `CounterDamageMoveBehavior.mirrorCoat` | `partial` | `-` |
-| `s_mirror_move` | `MirrorMove` | `10 Move/2 Definitions/300 MirrorMove.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_mirror_move)` | `partial` | `-` |
+| `s_mirror_move` | `MirrorMove` | `10 Move/2 Definitions/300 MirrorMove.rb` | `CopyCallMoveBehavior.mirrorMove` | `partial` | `-` |
 | `s_mist` | `Mist` | `10 Move/2 Definitions/300 Mist.rb` | `StaticBasicMoveRegistry.s_mist` | `ported` | `-` |
 | `s_misty_explosion` | `MistyExplosion` | `10 Move/2 Definitions/300 TerrainDamageMoves.rb` | `SelfDestructMoveBehavior.mistyExplosion` | `partial` | `ability`, `faint_process`, `terrain`, `grounded` |
 | `s_multi_attack` | `MultiAttack` | `10 Move/2 Definitions/300 MultiAttack.rb` | `TypeBasedMoveBehavior.multiAttack` | `partial` | `-` |

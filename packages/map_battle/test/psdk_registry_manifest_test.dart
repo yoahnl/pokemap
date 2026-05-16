@@ -898,6 +898,10 @@ void main() {
           behavior: 'CopyCallMoveBehavior.mimic',
         ),
         (
+          method: 's_mirror_move',
+          behavior: 'CopyCallMoveBehavior.mirrorMove',
+        ),
+        (
           method: 's_minimize',
           behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_minimize)',
         ),

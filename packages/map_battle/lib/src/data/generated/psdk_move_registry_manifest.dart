@@ -1588,7 +1588,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_mirror_move',
     rubyClass: 'MirrorMove',
     rubyPath: '10 Move/2 Definitions/300 MirrorMove.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_mirror_move)',
+    dartBehavior: 'CopyCallMoveBehavior.mirrorMove',
     status: PsdkPortStatus.partial,
     dependencies: const <PsdkMoveDependency>[],
   ),

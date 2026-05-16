@@ -185,6 +185,7 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     ),
     CopyCallMoveBehavior.sleepTalk(callMove: callMove),
     CopyCallMoveBehavior.metronome(callMove: callMove),
+    CopyCallMoveBehavior.mirrorMove(callMove: callMove),
     const CopyCallMoveBehavior.mimic(),
     const CopyCallMoveBehavior.sketch(),
     CallbackBattleMoveBehavior(
@@ -660,7 +661,6 @@ const _partialTargetMarkerMethods = <String, String>{
   's_me_first': 'me_first',
   's_minimize': 'minimize',
   's_miracle_eye': 'miracle_eye',
-  's_mirror_move': 'mirror_move',
   's_nightmare': 'nightmare',
   's_octolock': 'octolock',
   's_perish_song': 'perish_song',

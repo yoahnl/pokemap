@@ -145,6 +145,99 @@ void main() {
       expect(_ppSpent(result, moveId: 'scratch'), isEmpty);
     });
 
+    test('s_mirror_move fails after PP when target has no last move', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'mirror_move',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_mirror_move',
+        ),
+      );
+
+      expect(_failures(result), hasLength(1));
+      expect(_failures(result).single.moveId, 'mirror_move');
+      expect(
+        _failures(result).single.reason,
+        BattleMoveFailureReason.unusableByUser.jsonName,
+      );
+      expect(_ppSpent(result, moveId: 'mirror_move'), hasLength(1));
+    });
+
+    test('s_mirror_move calls the target last attempted move', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'mirror_move',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_mirror_move',
+        ),
+        opponentMove: _move(id: 'flamethrower', power: 90),
+        opponentCurrentHp: 1,
+        opponentMoveHistory: PsdkBattleMoveHistory.empty().recordAttempt(
+          moveId: 'flamethrower',
+          turn: 0,
+          targets: const <PsdkBattleSlotRef>[psdkPlayerSlot],
+        ),
+      );
+
+      expect(_failures(result), isEmpty);
+      expect(_damageEvents(result, moveId: 'flamethrower'), hasLength(1));
+      expect(_damageEvents(result, moveId: 'mirror_move'), isEmpty);
+      expect(_ppSpent(result, moveId: 'mirror_move'), hasLength(1));
+      expect(_ppSpent(result, moveId: 'flamethrower'), isEmpty);
+    });
+
+    test('s_mirror_move fails after PP when the target move is excluded', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'mirror_move',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_mirror_move',
+        ),
+        opponentMove: _move(
+          id: 'protect',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_basic',
+        ),
+        opponentMoveHistory: PsdkBattleMoveHistory.empty().recordAttempt(
+          moveId: 'protect',
+          turn: 0,
+          targets: const <PsdkBattleSlotRef>[psdkOpponentSlot],
+        ),
+      );
+
+      expect(_failures(result), hasLength(1));
+      expect(_failures(result).single.moveId, 'mirror_move');
+      expect(_ppSpent(result, moveId: 'mirror_move'), hasLength(1));
+    });
+
+    test('s_mirror_move copycat calls another battler last attempted move', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'copycat',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_mirror_move',
+        ),
+        opponentMove: _move(id: 'flamethrower', power: 90),
+        opponentCurrentHp: 1,
+        opponentMoveHistory: PsdkBattleMoveHistory.empty().recordAttempt(
+          moveId: 'flamethrower',
+          turn: 0,
+          targets: const <PsdkBattleSlotRef>[psdkPlayerSlot],
+        ),
+      );
+
+      expect(_failures(result), isEmpty);
+      expect(_damageEvents(result, moveId: 'flamethrower'), hasLength(1));
+      expect(_damageEvents(result, moveId: 'copycat'), isEmpty);
+      expect(_ppSpent(result, moveId: 'copycat'), hasLength(1));
+      expect(_ppSpent(result, moveId: 'flamethrower'), isEmpty);
+    });
+
     test('s_mimic fails before PP when the target has no successful move', () {
       final result = _runMove(
         playerMove: _move(
@@ -319,6 +412,7 @@ PsdkBattleTurnResult _runMove({
   String? playerAbilityId,
   PsdkBattleMoveData? opponentMove,
   PsdkBattleMoveHistory? opponentMoveHistory,
+  int opponentCurrentHp = 100,
   PsdkBattleTransformState playerTransformState =
       const PsdkBattleTransformState(),
   int genericSeed = 0,
@@ -338,6 +432,7 @@ PsdkBattleTurnResult _runMove({
       opponent: _combatant(
         id: 'opponent',
         speed: 1,
+        currentHp: opponentCurrentHp,
         move: opponentMove ??
             _move(
               id: 'opponent_wait',
@@ -365,6 +460,7 @@ PsdkBattleCombatantSetup _combatant({
   required PsdkBattleMoveData move,
   List<PsdkBattleMoveData> extraMoves = const <PsdkBattleMoveData>[],
   PsdkBattleMajorStatus? majorStatus,
+  int currentHp = 100,
   String? abilityId,
   PsdkBattleTransformState transformState = const PsdkBattleTransformState(),
   PsdkBattleMoveHistory? moveHistory,
@@ -375,7 +471,7 @@ PsdkBattleCombatantSetup _combatant({
     displayName: id,
     level: 20,
     maxHp: 100,
-    currentHp: 100,
+    currentHp: currentHp,
     types: const PsdkBattleTypes(primary: 'normal'),
     stats: PsdkBattleStats(
       attack: 50,

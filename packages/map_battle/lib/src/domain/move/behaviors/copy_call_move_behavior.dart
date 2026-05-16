@@ -15,6 +15,7 @@ typedef BattleCalledMoveResolver = BattleMoveBehaviorResolution Function(
 enum _CopyCallMoveKind {
   sleepTalk,
   metronome,
+  mirrorMove,
   mimic,
   sketch,
 }
@@ -30,6 +31,12 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
     required BattleCalledMoveResolver callMove,
   })  : battleEngineMethod = 's_metronome',
         _kind = _CopyCallMoveKind.metronome,
+        _callMove = callMove;
+
+  const CopyCallMoveBehavior.mirrorMove({
+    required BattleCalledMoveResolver callMove,
+  })  : battleEngineMethod = 's_mirror_move',
+        _kind = _CopyCallMoveKind.mirrorMove,
         _callMove = callMove;
 
   const CopyCallMoveBehavior.mimic()
@@ -63,6 +70,7 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
           : const BattleMoveUserPreventionResult(
               reason: BattleMoveFailureReason.unusableByUser,
             ),
+      _CopyCallMoveKind.mirrorMove => null,
       _CopyCallMoveKind.mimic => _canUseMimic(context)
           ? null
           : const BattleMoveUserPreventionResult(
@@ -86,6 +94,7 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
     return switch (_kind) {
       _CopyCallMoveKind.sleepTalk => _resolveSleepTalk(context),
       _CopyCallMoveKind.metronome => _resolveMetronome(context),
+      _CopyCallMoveKind.mirrorMove => _resolveMirrorMove(context),
       _CopyCallMoveKind.mimic => _resolveMimic(context),
       _CopyCallMoveKind.sketch => _resolveSketch(context),
     };
@@ -144,6 +153,65 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
         moveProcedureHooks: context.moveProcedureHooks,
       ),
       BattleMoveDefinition.fromPsdk(selection.move),
+    );
+  }
+
+  BattleMoveBehaviorResolution _resolveMirrorMove(
+    BattleMoveBehaviorContext context,
+  ) {
+    final prepared = prepareBattleMove(context);
+    if (!prepared.shouldExecuteBehavior) {
+      return prepared.toResolution();
+    }
+
+    final copiedMove = _mirrorMoveTargetMove(context);
+    if (copiedMove == null) {
+      return BattleMoveBehaviorResolution(
+        state: prepared.state,
+        rng: prepared.rng,
+        successful: false,
+        events: <PsdkBattleEvent>[
+          ...prepared.events,
+          PsdkBattleMoveFailedEvent(
+            user: context.user,
+            target: context.target,
+            moveId: context.move.id,
+            reason: BattleMoveFailureReason.unusableByUser.jsonName,
+          ),
+        ],
+      );
+    }
+
+    final resolver = _callMove;
+    if (resolver == null) {
+      return BattleMoveBehaviorResolution(
+        state: prepared.state,
+        rng: prepared.rng,
+        successful: false,
+        events: <PsdkBattleEvent>[
+          ...prepared.events,
+          PsdkBattleMoveFailedEvent(
+            user: context.user,
+            target: context.target,
+            moveId: context.move.id,
+            reason: BattleMoveFailureReason.unusableByUser.jsonName,
+          ),
+        ],
+      );
+    }
+    return resolver(
+      BattleMoveBehaviorContext(
+        state: prepared.state,
+        rng: prepared.rng,
+        turn: context.turn,
+        user: context.user,
+        target: context.target,
+        move: context.move,
+        moveSlot: context.moveSlot,
+        isLastActionOfTurn: context.isLastActionOfTurn,
+        moveProcedureHooks: context.moveProcedureHooks,
+      ),
+      BattleMoveDefinition.fromPsdk(copiedMove),
     );
   }
 
@@ -323,6 +391,82 @@ PsdkBattleMoveData? _mimicTargetMove(BattleMoveBehaviorContext context) {
   return null;
 }
 
+PsdkBattleMoveData? _mirrorMoveTargetMove(BattleMoveBehaviorContext context) {
+  final lastMove = _isMirrorMove(context.move)
+      ? _mirrorMoveLastTargetMove(context)
+      : _copycatLastMove(context);
+  if (lastMove == null || _mirrorMoveExcluded(context.move, lastMove)) {
+    return null;
+  }
+  return lastMove;
+}
+
+PsdkBattleMoveData? _mirrorMoveLastTargetMove(
+  BattleMoveBehaviorContext context,
+) {
+  final target = context.state.battlerAt(context.target);
+  final history = target.moveHistory.attempts.isEmpty
+      ? null
+      : target.moveHistory.attempts.last;
+  if (history == null || history.turn < context.turn - 1) {
+    return null;
+  }
+  return _moveFromCombatant(target, history.moveId);
+}
+
+PsdkBattleMoveData? _copycatLastMove(BattleMoveBehaviorContext context) {
+  final candidates = <({PsdkBattleCombatant battler, int turn, String moveId})>[
+    for (final entry in context.state.combatants.entries)
+      if (entry.key != context.user &&
+          !entry.value.isFainted &&
+          entry.value.moveHistory.attempts.isNotEmpty)
+        (
+          battler: entry.value,
+          turn: entry.value.moveHistory.attempts.last.turn,
+          moveId: entry.value.moveHistory.attempts.last.moveId,
+        ),
+  ];
+  if (candidates.isEmpty) {
+    return null;
+  }
+  candidates.sort((left, right) => left.turn.compareTo(right.turn));
+  final candidate = candidates.last;
+  return _moveFromCombatant(candidate.battler, candidate.moveId);
+}
+
+bool _mirrorMoveExcluded(
+  BattleMoveDefinition callingMove,
+  PsdkBattleMoveData calledMove,
+) {
+  final moveId = _normalizedId(
+    calledMove.dbSymbol.isEmpty ? calledMove.id : calledMove.dbSymbol,
+  );
+  if (!_isMirrorMove(callingMove)) {
+    return _copycatExcludedMoveIds.contains(moveId) ||
+        _copycatExcludedMoveIds.contains(_normalizedId(calledMove.id));
+  }
+  return _mirrorMoveExcludedMoveIds.contains(moveId) ||
+      _mirrorMoveExcludedMoveIds.contains(_normalizedId(calledMove.id));
+}
+
+bool _isMirrorMove(BattleMoveDefinition move) {
+  return _normalizedId(move.id) == 'mirror_move' ||
+      _normalizedId(move.dbSymbol) == 'mirror_move';
+}
+
+PsdkBattleMoveData? _moveFromCombatant(
+  PsdkBattleCombatant battler,
+  String moveId,
+) {
+  for (final move in battler.moves) {
+    if (_normalizedId(move.id) == _normalizedId(moveId) ||
+        _normalizedId(move.dbSymbol) == _normalizedId(moveId)) {
+      return move;
+    }
+  }
+  return null;
+}
+
 PsdkBattleMoveData? _sketchTargetMove(BattleMoveBehaviorContext context) {
   final target = context.state.battlerAt(context.target);
   final moveId = target.moveHistory.lastMoveId;
@@ -475,6 +619,56 @@ const _mimicExcludedMoveIds = <String>{
   'struggle',
   'mimic',
 };
+
+const _copycatExcludedMoveIds = <String>{
+  'baneful_bunker',
+  'beak_blast',
+  'behemoth_blade',
+  'bestow',
+  'celebrate',
+  'chatter',
+  'circle_throw',
+  'copycat',
+  'counter',
+  'covet',
+  'destiny_bond',
+  'detect',
+  'dragon_tail',
+  'endure',
+  'feint',
+  'focus_punch',
+  'follow_me',
+  'helping_hand',
+  'hold_hands',
+  'king_s_shield',
+  'mat_block',
+  'assist',
+  'me_first',
+  'metronome',
+  'mimic',
+  'mirror_coat',
+  'mirror_move',
+  'protect',
+  'rage_powder',
+  'roar',
+  'shell_trap',
+  'sketch',
+  'sleep_talk',
+  'snatch',
+  'struggle',
+  'spiky_shield',
+  'spotlight',
+  'switcheroo',
+  'thief',
+  'transform',
+  'trick',
+  'whirlwind',
+};
+
+// PSDK's Mirror Move reads Studio's is_mirror_move flag. The local move DTO
+// does not import that flag yet, so this mirrors the non-copyable move family
+// conservatively until the Studio import carries the explicit boolean.
+const _mirrorMoveExcludedMoveIds = _copycatExcludedMoveIds;
 
 String _normalizedId(String? value) {
   return (value ?? '').trim().toLowerCase();

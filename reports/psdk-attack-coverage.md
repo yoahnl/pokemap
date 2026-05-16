@@ -141,7 +141,7 @@ Coverage semantics:
 | partiel | continental_crush2 | s_basic | ported | StaticBasicMoveRegistry.s_basic | rock | special | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/continental_crush2.json |
 | partiel | conversion | s_conversion | partial | StaticBasicMoveRegistry.partialTargetMarker(s_conversion) | normal | status | 0 | 0 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/conversion.json |
 | partiel | conversion_2 | s_conversion2 | partial | StaticBasicMoveRegistry.partialTargetMarker(s_conversion2) | normal | status | 0 | 0 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/conversion_2.json |
-| partiel | copycat | s_mirror_move | partial | StaticBasicMoveRegistry.partialTargetMarker(s_mirror_move) | normal | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/copycat.json |
+| partiel | copycat | s_mirror_move | partial | CopyCallMoveBehavior.mirrorMove | normal | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/copycat.json |
 | partiel | core_enforcer | s_core_enforcer | partial | StaticBasicMoveRegistry.partialBasic(s_core_enforcer) | dragon | special | 100 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/core_enforcer.json |
 | partiel | corkscrew_crash | s_basic | ported | StaticBasicMoveRegistry.s_basic | steel | physical | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/corkscrew_crash.json |
 | partiel | corkscrew_crash2 | s_basic | ported | StaticBasicMoveRegistry.s_basic | steel | special | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/corkscrew_crash2.json |
@@ -427,7 +427,7 @@ Coverage semantics:
 | partiel | minimize | s_minimize | partial | StaticBasicMoveRegistry.partialTargetMarker(s_minimize) | normal | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/minimize.json |
 | partiel | miracle_eye | s_miracle_eye | partial | StaticBasicMoveRegistry.partialTargetMarker(s_miracle_eye) | psychic | status | 0 | 0 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/miracle_eye.json |
 | partiel | mirror_coat | s_mirror_coat | partial | CounterDamageMoveBehavior.mirrorCoat | psychic | special | 0 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/mirror_coat.json |
-| partiel | mirror_move | s_mirror_move | partial | StaticBasicMoveRegistry.partialTargetMarker(s_mirror_move) | flying | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/mirror_move.json |
+| partiel | mirror_move | s_mirror_move | partial | CopyCallMoveBehavior.mirrorMove | flying | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/mirror_move.json |
 | partiel | mirror_shot | s_basic | ported | StaticBasicMoveRegistry.s_basic | steel | special | 65 | 85 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/mirror_shot.json |
 | fait | mist | s_mist | ported | StaticBasicMoveRegistry.s_mist | ice | status | 0 | 0 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/mist.json |
 | partiel | mist_ball | s_basic | ported | StaticBasicMoveRegistry.s_basic | psychic | special | 70 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/mist_ball.json |

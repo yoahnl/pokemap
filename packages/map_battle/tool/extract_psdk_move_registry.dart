@@ -128,7 +128,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_mirror_move': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_mirror_move)',
+    dartBehavior: 'CopyCallMoveBehavior.mirrorMove',
     status: _PsdkPortStatus.partial,
   ),
   's_natural_gift': _KnownDartBehavior(

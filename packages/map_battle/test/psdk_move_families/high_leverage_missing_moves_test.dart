@@ -2317,12 +2317,6 @@ void main() {
           power: 0,
         ),
         (
-          method: 's_mirror_move',
-          moveId: 'mirror_move',
-          category: PsdkBattleMoveCategory.status,
-          power: 0,
-        ),
-        (
           method: 's_return',
           moveId: 'return',
           category: PsdkBattleMoveCategory.physical,
