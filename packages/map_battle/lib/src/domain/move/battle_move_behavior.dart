@@ -13,6 +13,7 @@ final class BattleMoveBehaviorContext {
     required this.user,
     required this.target,
     required this.move,
+    this.moveSlot,
     this.isLastActionOfTurn = false,
     this.moveProcedureHooks = BattleMoveProcedureHooks.none,
   });
@@ -23,6 +24,7 @@ final class BattleMoveBehaviorContext {
   final PsdkBattleSlotRef user;
   final PsdkBattleSlotRef target;
   final BattleMoveDefinition move;
+  final int? moveSlot;
   final bool isLastActionOfTurn;
   final BattleMoveProcedureHooks moveProcedureHooks;
 }

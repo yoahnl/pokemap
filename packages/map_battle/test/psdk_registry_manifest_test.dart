@@ -890,6 +890,10 @@ void main() {
           behavior: 'StaticBasicMoveRegistry.s_memento',
         ),
         (
+          method: 's_mimic',
+          behavior: 'CopyCallMoveBehavior.mimic',
+        ),
+        (
           method: 's_minimize',
           behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_minimize)',
         ),

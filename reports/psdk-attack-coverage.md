@@ -421,7 +421,7 @@ Coverage semantics:
 | partiel | meteor_mash | s_self_stat | ported | StatusStatMoveBehavior.selfStat | steel | physical | 90 | 90 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/meteor_mash.json |
 | partiel | metronome | s_metronome | partial | StaticBasicMoveRegistry.partialTargetMarker(s_metronome) | normal | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/metronome.json |
 | fait | milk_drink | s_heal | ported | HealMoveBehavior | normal | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/milk_drink.json |
-| partiel | mimic | s_mimic | partial | StaticBasicMoveRegistry.partialTargetMarker(s_mimic) | normal | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/mimic.json |
+| partiel | mimic | s_mimic | partial | CopyCallMoveBehavior.mimic | normal | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/mimic.json |
 | partiel | mind_blown | s_recoil | ported | RecoilMoveBehavior.psdkRecoil | fire | special | 150 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/mind_blown.json |
 | partiel | mind_reader | s_mind_reader | partial | StaticBasicMoveRegistry.s_mind_reader | normal | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/mind_reader.json |
 | partiel | minimize | s_minimize | partial | StaticBasicMoveRegistry.partialTargetMarker(s_minimize) | normal | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/minimize.json |

@@ -180,6 +180,7 @@ final class ItemDependentMoveBehavior implements BattleMoveBehavior {
         user: context.user,
         target: context.target,
         move: move,
+        moveSlot: context.moveSlot,
         isLastActionOfTurn: context.isLastActionOfTurn,
         moveProcedureHooks: context.moveProcedureHooks,
       ),

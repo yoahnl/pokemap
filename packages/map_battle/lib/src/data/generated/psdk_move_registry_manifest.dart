@@ -1537,7 +1537,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_mimic',
     rubyClass: 'Mimic',
     rubyPath: '10 Move/2 Definitions/300 Mimic.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_mimic)',
+    dartBehavior: 'CopyCallMoveBehavior.mimic',
     status: PsdkPortStatus.partial,
     dependencies: const <PsdkMoveDependency>[],
   ),

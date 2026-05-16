@@ -5,6 +5,7 @@ import '../battle_move_behavior.dart';
 import '../battle_move_data.dart';
 import '../battle_move_prevention.dart';
 import '../../rng/battle_rng_streams.dart';
+import 'battle_move_behavior_support.dart';
 
 typedef BattleCalledMoveResolver = BattleMoveBehaviorResolution Function(
   BattleMoveBehaviorContext context,
@@ -13,6 +14,7 @@ typedef BattleCalledMoveResolver = BattleMoveBehaviorResolution Function(
 
 enum _CopyCallMoveKind {
   sleepTalk,
+  mimic,
 }
 
 final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
@@ -22,10 +24,15 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
         _kind = _CopyCallMoveKind.sleepTalk,
         _callMove = callMove;
 
+  const CopyCallMoveBehavior.mimic()
+      : battleEngineMethod = 's_mimic',
+        _kind = _CopyCallMoveKind.mimic,
+        _callMove = null;
+
   @override
   final String battleEngineMethod;
   final _CopyCallMoveKind _kind;
-  final BattleCalledMoveResolver _callMove;
+  final BattleCalledMoveResolver? _callMove;
 
   @override
   BattleMoveUserPreventionResult? preventUser(
@@ -34,6 +41,11 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
     final user = context.state.battlerAt(context.user);
     return switch (_kind) {
       _CopyCallMoveKind.sleepTalk => _canUseSleepTalk(user)
+          ? null
+          : const BattleMoveUserPreventionResult(
+              reason: BattleMoveFailureReason.unusableByUser,
+            ),
+      _CopyCallMoveKind.mimic => _canUseMimic(context)
           ? null
           : const BattleMoveUserPreventionResult(
               reason: BattleMoveFailureReason.unusableByUser,
@@ -48,14 +60,25 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
       return _failure(context, prevention.reason);
     }
 
-    final selection = switch (_kind) {
-      _CopyCallMoveKind.sleepTalk => _selectSleepTalkMove(context),
+    return switch (_kind) {
+      _CopyCallMoveKind.sleepTalk => _resolveSleepTalk(context),
+      _CopyCallMoveKind.mimic => _resolveMimic(context),
     };
+  }
+
+  BattleMoveBehaviorResolution _resolveSleepTalk(
+    BattleMoveBehaviorContext context,
+  ) {
+    final selection = _selectSleepTalkMove(context);
     if (selection == null) {
       return _failure(context, BattleMoveFailureReason.unusableByUser);
     }
 
-    return _callMove(
+    final resolver = _callMove;
+    if (resolver == null) {
+      return _failure(context, BattleMoveFailureReason.unusableByUser);
+    }
+    return resolver(
       BattleMoveBehaviorContext(
         state: context.state,
         rng: selection.rng,
@@ -63,10 +86,36 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
         user: context.user,
         target: context.target,
         move: context.move,
+        moveSlot: context.moveSlot,
         isLastActionOfTurn: context.isLastActionOfTurn,
         moveProcedureHooks: context.moveProcedureHooks,
       ),
       BattleMoveDefinition.fromPsdk(selection.move),
+    );
+  }
+
+  BattleMoveBehaviorResolution _resolveMimic(
+    BattleMoveBehaviorContext context,
+  ) {
+    final moveSlot = context.moveSlot;
+    final copiedMove = _mimicTargetMove(context);
+    if (moveSlot == null || copiedMove == null) {
+      return _failure(context, BattleMoveFailureReason.unusableByUser);
+    }
+
+    final prepared = prepareBattleMove(context);
+    if (!prepared.shouldExecuteBehavior) {
+      return prepared.toResolution();
+    }
+
+    final copied = copiedMove.copyWith(pp: 5, currentPp: 5);
+    return BattleMoveBehaviorResolution(
+      state: prepared.state.updateBattler(
+        context.user,
+        (battler) => battler.replaceMoveAt(moveSlot, copied),
+      ),
+      rng: prepared.rng,
+      events: prepared.events,
     );
   }
 }
@@ -133,6 +182,25 @@ List<PsdkBattleMoveData> _sleepTalkUsableMoves(PsdkBattleCombatant user) {
       .toList(growable: false);
 }
 
+bool _canUseMimic(BattleMoveBehaviorContext context) {
+  return context.moveSlot != null && _mimicTargetMove(context) != null;
+}
+
+PsdkBattleMoveData? _mimicTargetMove(BattleMoveBehaviorContext context) {
+  final target = context.state.battlerAt(context.target);
+  final moveId = target.moveHistory.lastSuccessfulMoveId;
+  if (moveId == null || _mimicExcludedMoveIds.contains(_normalizedId(moveId))) {
+    return null;
+  }
+  for (final move in target.moves) {
+    if (_normalizedId(move.id) == _normalizedId(moveId) ||
+        _normalizedId(move.dbSymbol) == _normalizedId(moveId)) {
+      return move;
+    }
+  }
+  return null;
+}
+
 const _sleepTalkExcludedMoveIds = <String>{
   'assist',
   'belch',
@@ -161,6 +229,14 @@ const _sleepTalkExcludedMoveIds = <String>{
   'solar_beam',
   'uproar',
   'electro_shot',
+};
+
+const _mimicExcludedMoveIds = <String>{
+  'chatter',
+  'metronome',
+  'sketch',
+  'struggle',
+  'mimic',
 };
 
 String _normalizedId(String? value) {

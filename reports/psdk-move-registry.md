@@ -180,7 +180,7 @@ Total registered methods: 330
 | `s_memento` | `Memento` | `10 Move/2 Definitions/300 Memento.rb` | `StaticBasicMoveRegistry.s_memento` | `partial` | `-` |
 | `s_metal_burst` | `MetalBurst` | `10 Move/2 Definitions/300 Counter moves.rb` | `CounterDamageMoveBehavior.metalBurst` | `partial` | `-` |
 | `s_metronome` | `Metronome` | `10 Move/2 Definitions/300 Metronome.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_metronome)` | `partial` | `-` |
-| `s_mimic` | `Mimic` | `10 Move/2 Definitions/300 Mimic.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_mimic)` | `partial` | `-` |
+| `s_mimic` | `Mimic` | `10 Move/2 Definitions/300 Mimic.rb` | `CopyCallMoveBehavior.mimic` | `partial` | `-` |
 | `s_mind_blown` | `MindBlown` | `10 Move/2 Definitions/300 MindBlown.rb` | `MindBlownMoveBehavior.mindBlown` | `partial` | `ability`, `faint_process` |
 | `s_mind_reader` | `LockOn` | `10 Move/2 Definitions/300 LockOn.rb` | `StaticBasicMoveRegistry.s_mind_reader` | `partial` | `-` |
 | `s_minimize` | `Minimize` | `10 Move/2 Definitions/300 Minimize.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_minimize)` | `partial` | `-` |

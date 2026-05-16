@@ -19,6 +19,7 @@ final class PsdkBattleMoveRequest {
     required this.moveId,
     required this.battleEngineMethod,
     required this.studioMove,
+    this.moveSlot,
     this.isLastActionOfTurn = false,
     this.moveProcedureHooks = BattleMoveProcedureHooks.none,
   });
@@ -31,6 +32,7 @@ final class PsdkBattleMoveRequest {
   final String moveId;
   final String battleEngineMethod;
   final PsdkBattleMoveData studioMove;
+  final int? moveSlot;
   final bool isLastActionOfTurn;
   final BattleMoveProcedureHooks moveProcedureHooks;
 

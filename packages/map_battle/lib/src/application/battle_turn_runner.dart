@@ -226,6 +226,7 @@ final class BattleTurnRunner {
                 user: action.user,
                 target: action.target,
                 move: moveBeforePp,
+                moveSlot: action.moveSlot,
                 isLastActionOfTurn: !_hasRunnableActionAfter(
                   actions,
                   actionIndex,
@@ -308,6 +309,7 @@ final class BattleTurnRunner {
             user: action.user,
             target: action.target,
             move: moveAfterPp,
+            moveSlot: action.moveSlot,
             isLastActionOfTurn: !_hasRunnableActionAfter(
               actions,
               actionIndex,
