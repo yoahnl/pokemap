@@ -266,6 +266,41 @@ final class PsdkStudioMoveCoverageEntry {
         moveStatusCount == 0 &&
         effectChance == 0;
   }
+
+  bool get isStrictSelfRecovery {
+    if (!_strictSelfRecoveryMethods.contains(battleEngineMethod)) {
+      return false;
+    }
+    if (category.trim().toLowerCase() != 'status' || power != 0) {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    if (normalizedTarget.isNotEmpty &&
+        !_strictSelfRecoveryTargets.contains(normalizedTarget)) {
+      return false;
+    }
+    return battleStageModCount == 0 &&
+        moveStatusCount == 0 &&
+        effectChance == 0;
+  }
+
+  bool get isStrictRestRecovery {
+    if (battleEngineMethod != 's_rest') {
+      return false;
+    }
+    if (category.trim().toLowerCase() != 'status' || power != 0) {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    if (normalizedTarget.isNotEmpty &&
+        normalizedTarget != 'user' &&
+        normalizedTarget != 'self') {
+      return false;
+    }
+    return battleStageModCount == 0 &&
+        moveStatusCount == 0 &&
+        effectChance == 0;
+  }
 }
 
 final class PsdkStudioStageModCoverageEntry {
@@ -397,6 +432,11 @@ String generatePsdkAttackCoverageReport({
     ..writeln(
       '- `s_absorb` is counted as `fait` only for plain single-target drain '
       'moves; multi-target and unusual target variants remain `partiel`.',
+    )
+    ..writeln(
+      '- Heal/recovery methods are counted as `fait` only for status-only '
+      'self recovery moves; Heal Pulse, Substitute/Mega Launcher branches and '
+      'mixed riders remain `partiel`.',
     )
     ..writeln()
     ..writeln('| Metric | Count |')
@@ -550,6 +590,11 @@ String psdkAttackCoverageForMove(
       move.isStrictRecoilDamage ? 'fait' : 'partiel',
     PsdkPortStatus.ported when move.battleEngineMethod == 's_absorb' =>
       move.isStrictAbsorbDrain ? 'fait' : 'partiel',
+    PsdkPortStatus.ported
+        when _strictSelfRecoveryMethods.contains(move.battleEngineMethod) =>
+      move.isStrictSelfRecovery ? 'fait' : 'partiel',
+    PsdkPortStatus.ported when move.battleEngineMethod == 's_rest' =>
+      move.isStrictRestRecovery ? 'fait' : 'partiel',
     PsdkPortStatus.ported => 'fait',
     PsdkPortStatus.partial => 'partiel',
     PsdkPortStatus.missing || null => 'pas_fait',
@@ -735,6 +780,18 @@ const _strictAbsorbDrainTargets = <String>{
   'adjacent_pokemon',
   'adjacent_foe',
   'any_other_pokemon',
+};
+
+const _strictSelfRecoveryMethods = <String>{
+  's_heal',
+  's_heal_weather',
+  's_shore_up',
+};
+
+const _strictSelfRecoveryTargets = <String>{
+  'user',
+  'self',
+  'adjacent_pokemon',
 };
 
 const _strictMajorStatusTargets = <String>{

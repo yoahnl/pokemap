@@ -827,5 +827,91 @@ void main() {
         contains('| partiel | absorb_status | s_absorb | ported |'),
       );
     });
+
+    test('scopes ported heal coverage to strict self recovery moves', () {
+      final report = generatePsdkAttackCoverageReport(
+        moves: const <PsdkStudioMoveCoverageEntry>[
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'recover',
+            battleEngineMethod: 's_heal',
+            type: 'normal',
+            category: 'status',
+            power: 0,
+            accuracy: '0',
+            pp: 5,
+            target: 'user',
+            sourceFile: 'recover.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'heal_pulse',
+            battleEngineMethod: 's_heal',
+            type: 'psychic',
+            category: 'status',
+            power: 0,
+            accuracy: '0',
+            pp: 10,
+            effectChance: 100,
+            target: 'any_other_pokemon',
+            sourceFile: 'heal_pulse.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'synthesis',
+            battleEngineMethod: 's_heal_weather',
+            type: 'grass',
+            category: 'status',
+            power: 0,
+            accuracy: '0',
+            pp: 5,
+            target: 'user',
+            sourceFile: 'synthesis.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'rest',
+            battleEngineMethod: 's_rest',
+            type: 'psychic',
+            category: 'status',
+            power: 0,
+            accuracy: '0',
+            pp: 5,
+            target: 'user',
+            sourceFile: 'rest.json',
+          ),
+        ],
+        manifest: const <PsdkMoveRegistryManifestEntry>[
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_heal',
+            rubyClass: 'HealMove',
+            rubyPath: 'heal.rb',
+            dartBehavior: 'HealMoveBehavior',
+            status: PsdkPortStatus.ported,
+          ),
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_heal_weather',
+            rubyClass: 'HealWeather',
+            rubyPath: 'heal_weather.rb',
+            dartBehavior: 'HealMoveBehavior.weather',
+            status: PsdkPortStatus.ported,
+          ),
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_rest',
+            rubyClass: 'Rest',
+            rubyPath: 'rest.rb',
+            dartBehavior: 'RecoveryStatMoveBehavior.rest',
+            status: PsdkPortStatus.ported,
+          ),
+        ],
+        sourceDescription: 'heal test moves',
+      );
+
+      expect(report, contains('| fait | 3 |'));
+      expect(report, contains('| partiel | 1 |'));
+      expect(report, contains('| fait | recover | s_heal | ported |'));
+      expect(report, contains('| partiel | heal_pulse | s_heal | ported |'));
+      expect(
+        report,
+        contains('| fait | synthesis | s_heal_weather | ported |'),
+      );
+      expect(report, contains('| fait | rest | s_rest | ported |'));
+    });
   });
 }

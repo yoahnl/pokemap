@@ -207,6 +207,29 @@ void main() {
       expect(heal['remainingHp'], 85);
     });
 
+    test('s_heal fails before PP spending when the target is already full HP',
+        () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'recover',
+          battleEngineMethod: 's_heal',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          target: PsdkBattleMoveTarget.user,
+        ),
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      final recoverEvents = _moveJsonEvents(result, moveId: 'recover');
+
+      expect(player.currentHp, 100);
+      expect(player.moves.single.currentPp, 35);
+      expect(_healEvents(result, moveId: 'recover'), isEmpty);
+      expect(recoverEvents.map((event) => event['kind']), <String>[
+        'move_failed',
+      ]);
+      expect(recoverEvents.single['reason'], 'unusable_by_user');
+    });
+
     test('s_heal_weather changes the heal ratio from active weather', () {
       PsdkBattleTurnResult run(PsdkBattleFieldState field) {
         return _runMove(
@@ -507,5 +530,15 @@ List<PsdkBattleHealEvent> _healEvents(
       .where((event) => event.kind == 'heal')
       .whereType<PsdkBattleHealEvent>()
       .where((event) => event.moveId == moveId)
+      .toList(growable: false);
+}
+
+List<Map<String, Object?>> _moveJsonEvents(
+  PsdkBattleTurnResult result, {
+  required String moveId,
+}) {
+  return result.timeline.events
+      .map((event) => event.toJson())
+      .where((event) => event['moveId'] == moveId)
       .toList(growable: false);
 }

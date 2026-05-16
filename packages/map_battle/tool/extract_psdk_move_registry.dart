@@ -1089,13 +1089,16 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'DrainMoveBehavior.dreamEater',
     status: _PsdkPortStatus.partial,
   ),
+  // Strict self-recovery paths are ported, including full-HP and Heal Block
+  // prevention. Targeted Pulse/Substitute/Mega Launcher branches stay partial
+  // at attack-coverage level instead of widening the method claim.
   's_heal': _KnownDartBehavior(
     dartBehavior: 'HealMoveBehavior',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_heal_weather': _KnownDartBehavior(
     dartBehavior: 'HealMoveBehavior.weather',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_floral_healing': _KnownDartBehavior(
     dartBehavior: 'HealMoveBehavior.floralHealing',
@@ -1107,7 +1110,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_shore_up': _KnownDartBehavior(
     dartBehavior: 'HealMoveBehavior.shoreUp',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_life_dew': _KnownDartBehavior(
     dartBehavior: 'HealMoveBehavior.lifeDew',
@@ -1181,12 +1184,12 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'StatusCureMoveBehavior.sparklySwirl',
     status: _PsdkPortStatus.partial,
   ),
-  // Recovery/stat moves execute their local HP/status/stat formulas. They stay
-  // partial until terrain grounding, full berry/drain-family item coverage,
-  // Contrary and Heal Block style hooks are represented in the battle lane.
+  // Rest is ported for its local HP/status/terrain/berry path. Other
+  // recovery/stat moves stay partial until drain-family item/ability coverage
+  // and Contrary hooks are represented in the battle lane.
   's_rest': _KnownDartBehavior(
     dartBehavior: 'RecoveryStatMoveBehavior.rest',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_bellydrum': _KnownDartBehavior(
     dartBehavior: 'RecoveryStatMoveBehavior.bellyDrum',

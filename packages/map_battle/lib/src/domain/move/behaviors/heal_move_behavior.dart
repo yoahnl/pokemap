@@ -2,6 +2,7 @@ import '../../../psdk/domain/psdk_battle_field.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../battle_move_behavior.dart';
+import '../battle_move_prevention.dart';
 import 'battle_move_behavior_support.dart';
 
 enum _HealMoveKind {
@@ -18,10 +19,9 @@ enum _HealMoveKind {
 /// its max HP after the shared move procedure succeeds.
 ///
 /// Local ratio variants are kept here because their PSDK Ruby classes only
-/// change the heal fraction. They still remain partial in the registry until
-/// Heal Block, Substitute, Mega Launcher and persistent move effects exist as
-/// first-class hooks.
-final class HealMoveBehavior implements BattleMoveBehavior {
+/// change the heal fraction. Attack coverage still narrows strict parity to
+/// simple recovery moves when a method has wider variants such as Heal Pulse.
+final class HealMoveBehavior implements BattleMoveUserPreventionBehavior {
   const HealMoveBehavior()
       : battleEngineMethod = 's_heal',
         _kind = _HealMoveKind.half;
@@ -55,7 +55,26 @@ final class HealMoveBehavior implements BattleMoveBehavior {
   final _HealMoveKind _kind;
 
   @override
+  BattleMoveUserPreventionResult? preventUser(
+    BattleMoveBehaviorContext context,
+  ) {
+    final target = context.state.battlerAt(context.target);
+    if (target.currentHp >= target.maxHp ||
+        target.effects.contains('heal_block')) {
+      return const BattleMoveUserPreventionResult(
+        reason: BattleMoveFailureReason.unusableByUser,
+      );
+    }
+    return null;
+  }
+
+  @override
   BattleMoveBehaviorResolution resolve(BattleMoveBehaviorContext context) {
+    final prevention = preventUser(context);
+    if (prevention != null) {
+      return _failedBeforeProcedure(context, prevention);
+    }
+
     final prepared = prepareBattleMove(context);
     if (!prepared.shouldExecuteBehavior) {
       return prepared.toResolution();
@@ -88,6 +107,25 @@ final class HealMoveBehavior implements BattleMoveBehavior {
       state: state,
       rng: rng,
       events: events,
+    );
+  }
+
+  BattleMoveBehaviorResolution _failedBeforeProcedure(
+    BattleMoveBehaviorContext context,
+    BattleMoveUserPreventionResult prevention,
+  ) {
+    return BattleMoveBehaviorResolution(
+      state: context.state,
+      rng: context.rng,
+      events: <PsdkBattleEvent>[
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.target,
+          moveId: context.move.id,
+          reason: prevention.reason.jsonName,
+        ),
+      ],
+      successful: false,
     );
   }
 

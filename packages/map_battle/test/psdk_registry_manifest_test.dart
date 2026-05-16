@@ -1404,13 +1404,13 @@ void main() {
         ]),
       );
 
-      expect(byMethod['s_heal']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_heal']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_heal']!.dartBehavior, 'HealMoveBehavior');
       expect(
         byMethod['s_heal_weather']!.dartBehavior,
         'HealMoveBehavior.weather',
       );
-      expect(byMethod['s_heal_weather']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_heal_weather']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_heal_weather']!.dependencies,
         containsAll(<PsdkMoveDependency>[
@@ -1433,6 +1433,7 @@ void main() {
         byMethod['s_shore_up']!.dartBehavior,
         'HealMoveBehavior.shoreUp',
       );
+      expect(byMethod['s_shore_up']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_life_dew']!.dartBehavior,
         'HealMoveBehavior.lifeDew',
@@ -1464,7 +1465,7 @@ void main() {
           PsdkMoveDependency.item,
         ]),
       );
-      expect(byMethod['s_rest']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_rest']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_rest']!.dartBehavior,
         'RecoveryStatMoveBehavior.rest',

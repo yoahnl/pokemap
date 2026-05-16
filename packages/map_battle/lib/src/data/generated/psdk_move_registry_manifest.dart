@@ -1112,7 +1112,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'HealMove',
     rubyPath: '10 Move/1 Mechanics/105 Heal.rb',
     dartBehavior: 'HealMoveBehavior',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.effects,
@@ -1145,7 +1145,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'HealWeather',
     rubyPath: '10 Move/2 Definitions/300 HealWeather.rb',
     dartBehavior: 'HealMoveBehavior.weather',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.weather,
@@ -2066,7 +2066,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Rest',
     rubyPath: '10 Move/2 Definitions/300 Rest.rb',
     dartBehavior: 'RecoveryStatMoveBehavior.rest',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerStatus,
       PsdkMoveDependency.handlerDamage,
@@ -2300,7 +2300,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'ShoreUp',
     rubyPath: '10 Move/2 Definitions/300 Shore Up.rb',
     dartBehavior: 'HealMoveBehavior.shoreUp',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.weather,
       PsdkMoveDependency.handlerDamage,
