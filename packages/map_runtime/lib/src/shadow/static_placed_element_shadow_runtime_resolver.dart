@@ -3,6 +3,16 @@ import 'package:map_core/map_core.dart';
 import 'shadow_runtime_render_instruction.dart';
 import 'shadow_runtime_resolver.dart';
 
+const _buildingContactLedgeNearHalfWidthMultiplier = 0.55;
+const _buildingContactLedgeFarHalfWidthMultiplier = 0.48;
+const _buildingContactLedgeNearHeightOffsetMultiplier = 0.30;
+const _buildingContactLedgeDepthRatio = 0.035;
+const _buildingContactLedgeMinDepth = 4.0;
+const _buildingContactLedgeMaxDepth = 14.0;
+const _buildingContactLedgeSkewRatio = 0.025;
+const _buildingContactLedgeMinSkew = 0.0;
+const _buildingContactLedgeMaxSkew = 8.0;
+
 /// Runtime static element metrics used to derive a ground shadow anchor.
 ///
 /// The default ratios and multipliers are V0 heuristics for common static
@@ -150,14 +160,22 @@ ShadowRuntimeRenderInstruction?
   }
 
   final baseGeometry = _resolveStaticPlacedElementBaseGeometry(input);
+  final family = resolveStaticShadowFamily(
+    elementFamily: input.elementFamily,
+    overrideFamily: input.overrideFamily,
+  );
+  if (family == StaticShadowFamily.building) {
+    return _resolveBuildingContactLedgeRuntimeInstruction(
+      input,
+      baseGeometry,
+    );
+  }
+
   final projectedGeometry = resolveProjectedStaticShadowGeometry(
     baseGeometry: baseGeometry,
     metrics: _visualMetricsFromRuntimeMetrics(input.metrics),
     projectionSpec: resolveStaticShadowFamilyProjectionSpec(
-      family: resolveStaticShadowFamily(
-        elementFamily: input.elementFamily,
-        overrideFamily: input.overrideFamily,
-      ),
+      family: family,
     ),
   );
   final points = _runtimePointsFromProjection(projectedGeometry);
@@ -190,6 +208,93 @@ List<ShadowRuntimeRenderInstruction>
     }
   }
   return List<ShadowRuntimeRenderInstruction>.unmodifiable(instructions);
+}
+
+ShadowRuntimeRenderInstruction _resolveBuildingContactLedgeRuntimeInstruction(
+  StaticPlacedElementShadowRuntimeInput input,
+  ResolvedStaticShadowGeometry baseGeometry,
+) {
+  final points = _buildingContactLedgePoints(
+    geometry: baseGeometry,
+    metrics: input.metrics,
+  );
+  final bounds = _boundsFromRuntimePoints(points);
+  return ShadowRuntimeRenderInstruction(
+    shape: ShadowRuntimeShapeKind.projectedPolygon,
+    renderPass: input.resolvedConfig.renderPass,
+    worldLeft: bounds.left,
+    worldTop: bounds.top,
+    width: bounds.width,
+    height: bounds.height,
+    opacity: input.resolvedConfig.opacity,
+    colorHexRgb: input.resolvedConfig.colorHexRgb,
+    softnessMode: input.resolvedConfig.softnessMode,
+    polygonPoints: points,
+  );
+}
+
+List<ShadowRuntimePoint> _buildingContactLedgePoints({
+  required ResolvedStaticShadowGeometry geometry,
+  required StaticPlacedElementShadowRuntimeMetrics metrics,
+}) {
+  final centerX = geometry.centerX;
+  final nearY = geometry.centerY -
+      geometry.height * _buildingContactLedgeNearHeightOffsetMultiplier;
+  final farY = geometry.centerY + _buildingContactLedgeDepth(metrics);
+  final nearHalfWidth =
+      geometry.width * _buildingContactLedgeNearHalfWidthMultiplier;
+  final farHalfWidth =
+      geometry.width * _buildingContactLedgeFarHalfWidthMultiplier;
+  final skewX = _buildingContactLedgeSkew(metrics);
+
+  return List<ShadowRuntimePoint>.unmodifiable([
+    ShadowRuntimePoint(
+      worldX: centerX - nearHalfWidth,
+      worldY: nearY,
+    ),
+    ShadowRuntimePoint(
+      worldX: centerX + nearHalfWidth,
+      worldY: nearY,
+    ),
+    ShadowRuntimePoint(
+      worldX: centerX + skewX + farHalfWidth,
+      worldY: farY,
+    ),
+    ShadowRuntimePoint(
+      worldX: centerX + skewX - farHalfWidth,
+      worldY: farY,
+    ),
+  ]);
+}
+
+double _buildingContactLedgeDepth(
+  StaticPlacedElementShadowRuntimeMetrics metrics,
+) {
+  return _clampDouble(
+    metrics.visualHeight * _buildingContactLedgeDepthRatio,
+    _buildingContactLedgeMinDepth,
+    _buildingContactLedgeMaxDepth,
+  );
+}
+
+double _buildingContactLedgeSkew(
+  StaticPlacedElementShadowRuntimeMetrics metrics,
+) {
+  return _clampDouble(
+    metrics.visualWidth * _buildingContactLedgeSkewRatio,
+    _buildingContactLedgeMinSkew,
+    _buildingContactLedgeMaxSkew,
+  );
+}
+
+double _clampDouble(double value, double min, double max) {
+  if (value < min) {
+    return min;
+  }
+  if (value > max) {
+    return max;
+  }
+  return value;
 }
 
 void _validateFinite(double value, String name) {

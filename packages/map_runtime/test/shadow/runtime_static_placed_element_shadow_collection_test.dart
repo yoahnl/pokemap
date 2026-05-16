@@ -333,6 +333,35 @@ void main() {
       _expectDifferentPolygon(tallProp, building);
     });
 
+    test('element shadow building family emits a short contact ledge', () {
+      final collection = buildRuntimeStaticPlacedElementShadowCollection(
+        catalog: _catalog(),
+        sources: [
+          _source(
+            metrics: _metrics(
+              worldLeft: 160,
+              worldTop: 96,
+              visualWidth: 192,
+              visualHeight: 224,
+            ),
+            elementShadow: _elementShadow(
+              family: StaticShadowFamily.building,
+              footprint: StaticShadowFootprintConfig(
+                anchorXRatio: 0.5,
+                anchorYRatio: 0.92,
+                footprintWidthRatio: 0.6,
+                footprintHeightRatio: 0.08,
+              ),
+            ),
+          ),
+        ],
+      );
+
+      final instruction = collection.groundStatic.single;
+      _expectBuildingContactLedge(instruction);
+      expect(instruction.height, lessThan(18));
+    });
+
     test('placed override family wins over element shadow family', () {
       final footprint = StaticShadowFootprintConfig(
         footprintWidthRatio: 0.25,
@@ -367,6 +396,29 @@ void main() {
 
       expect(overrideBuilding.width, closeTo(building.width, 0.000001));
       expect(overrideBuilding.height, closeTo(building.height, 0.000001));
+    });
+
+    test('placed override building family emits a short contact ledge', () {
+      final collection = buildRuntimeStaticPlacedElementShadowCollection(
+        catalog: _catalog(),
+        sources: [
+          _source(
+            elementShadow: _elementShadow(
+              family: StaticShadowFamily.tallProp,
+              footprint: StaticShadowFootprintConfig(
+                footprintWidthRatio: 0.25,
+                footprintHeightRatio: 0.08,
+              ),
+            ),
+            placedOverride: MapPlacedElementShadowOverride(
+              mode: ShadowOverrideMode.custom,
+              family: StaticShadowFamily.building,
+            ),
+          ),
+        ],
+      );
+
+      _expectBuildingContactLedge(collection.groundStatic.single);
     });
 
     test('none profile creates no instruction', () {
@@ -575,6 +627,15 @@ void _expectProjectedPolygon(ShadowRuntimeRenderInstruction instruction) {
       lessThanOrEqualTo(instruction.worldTop + instruction.height),
     );
   }
+}
+
+void _expectBuildingContactLedge(ShadowRuntimeRenderInstruction instruction) {
+  _expectProjectedPolygon(instruction);
+  final points = instruction.polygonPoints;
+  expect(points[0].worldY, closeTo(points[1].worldY, 0.000001));
+  expect(points[2].worldY, closeTo(points[3].worldY, 0.000001));
+  expect(points[2].worldY, greaterThan(points[0].worldY));
+  expect(points[3].worldY, greaterThan(points[1].worldY));
 }
 
 void _expectDifferentPolygon(

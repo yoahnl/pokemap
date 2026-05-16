@@ -339,6 +339,104 @@ void main() {
       _expectInstructionMatchesProjectedGeometry(instruction!, input);
     });
 
+    test('building family emits a short contact ledge polygon', () {
+      final input = _input(
+        resolvedConfig: _resolvedConfig(
+          offsetX: 0,
+          offsetY: 0,
+          scaleX: 0.72,
+          scaleY: 0.44,
+        ),
+        metrics: _metrics(
+          worldLeft: 160,
+          worldTop: 96,
+          visualWidth: 192,
+          visualHeight: 224,
+        ),
+        elementFootprint: StaticShadowFootprintConfig(
+          anchorXRatio: 0.5,
+          anchorYRatio: 0.92,
+          footprintWidthRatio: 0.6,
+          footprintHeightRatio: 0.08,
+        ),
+        elementFamily: StaticShadowFamily.building,
+      );
+
+      final instruction = resolveStaticPlacedElementShadowRuntimeInstruction(
+        input,
+      );
+
+      expect(instruction, isNotNull);
+      _expectInstructionMatchesBuildingContactLedge(instruction!, input);
+      expect(instruction.height, lessThan(18));
+      expect(instruction.width, lessThan(100));
+    });
+
+    test('building contact ledge uses resolved footprint width', () {
+      final narrow = resolveStaticPlacedElementShadowRuntimeInstruction(
+        _input(
+          elementFamily: StaticShadowFamily.building,
+          elementFootprint: StaticShadowFootprintConfig(
+            footprintWidthRatio: 0.25,
+            footprintHeightRatio: 0.08,
+          ),
+        ),
+      )!;
+      final wide = resolveStaticPlacedElementShadowRuntimeInstruction(
+        _input(
+          elementFamily: StaticShadowFamily.building,
+          elementFootprint: StaticShadowFootprintConfig(
+            footprintWidthRatio: 0.75,
+            footprintHeightRatio: 0.08,
+          ),
+        ),
+      )!;
+
+      _expectBuildingContactLedgeShape(narrow);
+      _expectBuildingContactLedgeShape(wide);
+      expect(narrow.width, lessThan(wide.width));
+    });
+
+    test('building contact ledge applies offset and scale once', () {
+      final input = _input(
+        resolvedConfig: _resolvedConfig(
+          offsetX: 5,
+          offsetY: 7,
+          scaleX: 2,
+          scaleY: 0.5,
+        ),
+        elementFamily: StaticShadowFamily.building,
+        elementFootprint: StaticShadowFootprintConfig(
+          footprintWidthRatio: 0.5,
+          footprintHeightRatio: 0.2,
+        ),
+      );
+
+      final instruction = resolveStaticPlacedElementShadowRuntimeInstruction(
+        input,
+      );
+
+      expect(instruction, isNotNull);
+      _expectInstructionMatchesBuildingContactLedge(instruction!, input);
+    });
+
+    test('non-building family keeps projected shadow geometry', () {
+      final input = _input(
+        elementFamily: StaticShadowFamily.tallProp,
+        elementFootprint: StaticShadowFootprintConfig(
+          footprintWidthRatio: 0.25,
+          footprintHeightRatio: 0.08,
+        ),
+      );
+
+      final instruction = resolveStaticPlacedElementShadowRuntimeInstruction(
+        input,
+      );
+
+      expect(instruction, isNotNull);
+      _expectInstructionMatchesProjectedGeometry(instruction!, input);
+    });
+
     test('element family changes the projected shadow silhouette', () {
       final tallProp = resolveStaticPlacedElementShadowRuntimeInstruction(
         _input(
@@ -702,6 +800,131 @@ ProjectedStaticShadowGeometry _expectedProjectedGeometry(
       ),
     ),
   );
+}
+
+void _expectInstructionMatchesBuildingContactLedge(
+  ShadowRuntimeRenderInstruction instruction,
+  StaticPlacedElementShadowRuntimeInput input,
+) {
+  _expectBuildingContactLedgeShape(instruction);
+  final expectedPoints = _expectedBuildingContactLedgePoints(input);
+
+  expect(instruction.polygonPoints, hasLength(expectedPoints.length));
+  for (var i = 0; i < expectedPoints.length; i += 1) {
+    expect(
+      instruction.polygonPoints[i].worldX,
+      closeTo(expectedPoints[i].worldX, 0.000001),
+    );
+    expect(
+      instruction.polygonPoints[i].worldY,
+      closeTo(expectedPoints[i].worldY, 0.000001),
+    );
+  }
+
+  final expectedBounds = _boundsFromPoints(expectedPoints);
+  expect(instruction.worldLeft, closeTo(expectedBounds.left, 0.000001));
+  expect(instruction.worldTop, closeTo(expectedBounds.top, 0.000001));
+  expect(instruction.width, closeTo(expectedBounds.width, 0.000001));
+  expect(instruction.height, closeTo(expectedBounds.height, 0.000001));
+}
+
+void _expectBuildingContactLedgeShape(
+  ShadowRuntimeRenderInstruction instruction,
+) {
+  expect(instruction.shape, ShadowRuntimeShapeKind.projectedPolygon);
+  expect(instruction.polygonPoints, hasLength(4));
+  final points = instruction.polygonPoints;
+  expect(points[0].worldY, closeTo(points[1].worldY, 0.000001));
+  expect(points[2].worldY, closeTo(points[3].worldY, 0.000001));
+  expect(points[2].worldY, greaterThan(points[0].worldY));
+  expect(points[3].worldY, greaterThan(points[1].worldY));
+  _expectAllPointsInsideBounds(instruction);
+}
+
+List<ShadowRuntimePoint> _expectedBuildingContactLedgePoints(
+  StaticPlacedElementShadowRuntimeInput input,
+) {
+  final baseGeometry = _expectedBaseGeometry(input);
+  final centerX = baseGeometry.centerX;
+  final nearY = baseGeometry.centerY - baseGeometry.height * 0.30;
+  final farY = baseGeometry.centerY +
+      _expectedBuildingContactLedgeDepth(
+        input.metrics,
+      );
+  final nearHalfWidth = baseGeometry.width * 0.55;
+  final farHalfWidth = baseGeometry.width * 0.48;
+  final skewX = _expectedBuildingContactLedgeSkew(input.metrics);
+  return [
+    ShadowRuntimePoint(
+      worldX: centerX - nearHalfWidth,
+      worldY: nearY,
+    ),
+    ShadowRuntimePoint(
+      worldX: centerX + nearHalfWidth,
+      worldY: nearY,
+    ),
+    ShadowRuntimePoint(
+      worldX: centerX + skewX + farHalfWidth,
+      worldY: farY,
+    ),
+    ShadowRuntimePoint(
+      worldX: centerX + skewX - farHalfWidth,
+      worldY: farY,
+    ),
+  ];
+}
+
+ResolvedStaticShadowGeometry _expectedBaseGeometry(
+  StaticPlacedElementShadowRuntimeInput input,
+) {
+  final metrics = input.metrics;
+  final legacyAndElementFootprint = resolveStaticShadowFootprint(
+    elementFootprint: StaticShadowFootprintConfig(
+      anchorXRatio: metrics.anchorXRatio,
+      anchorYRatio: metrics.anchorYRatio,
+      footprintWidthRatio: metrics.baseWidthMultiplier,
+      footprintHeightRatio: metrics.baseHeightMultiplier,
+    ),
+    overrideFootprint: input.elementFootprint,
+  );
+  return resolveStaticShadowGeometry(
+    metrics: StaticShadowVisualMetrics(
+      left: metrics.worldLeft,
+      top: metrics.worldTop,
+      visualWidth: metrics.visualWidth,
+      visualHeight: metrics.visualHeight,
+    ),
+    shadowConfig: input.resolvedConfig,
+    elementFootprint: StaticShadowFootprintConfig(
+      anchorXRatio: legacyAndElementFootprint.anchorXRatio,
+      anchorYRatio: legacyAndElementFootprint.anchorYRatio,
+      footprintWidthRatio: legacyAndElementFootprint.footprintWidthRatio,
+      footprintHeightRatio: legacyAndElementFootprint.footprintHeightRatio,
+    ),
+    overrideFootprint: input.overrideFootprint,
+  );
+}
+
+double _expectedBuildingContactLedgeDepth(
+  StaticPlacedElementShadowRuntimeMetrics metrics,
+) {
+  return _clampDouble(metrics.visualHeight * 0.035, 4, 14);
+}
+
+double _expectedBuildingContactLedgeSkew(
+  StaticPlacedElementShadowRuntimeMetrics metrics,
+) {
+  return _clampDouble(metrics.visualWidth * 0.025, 0, 8);
+}
+
+double _clampDouble(double value, double min, double max) {
+  if (value < min) {
+    return min;
+  }
+  if (value > max) {
+    return max;
+  }
+  return value;
 }
 
 _RuntimeTestBounds _boundsFromPoints(List<ShadowRuntimePoint> points) {
