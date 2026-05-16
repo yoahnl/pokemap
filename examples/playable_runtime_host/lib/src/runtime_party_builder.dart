@@ -134,6 +134,11 @@ class _RuntimePartyBuilderPanelState extends State<RuntimePartyBuilderPanel> {
                 );
               },
             ),
+            if (_selectedOption?.filteredMoveDiagnostics.isNotEmpty ??
+                false) ...[
+              const SizedBox(height: 12),
+              _buildFilteredMoveDiagnostics(_selectedOption!),
+            ],
             const SizedBox(height: 12),
             FilledButton.icon(
               key: const Key('runtime-party-builder-add-button'),
@@ -152,6 +157,73 @@ class _RuntimePartyBuilderPanelState extends State<RuntimePartyBuilderPanel> {
             ],
             const SizedBox(height: 16),
             _buildCurrentPartyList(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFilteredMoveDiagnostics(
+    RuntimePartyBuilderPokemonOption option,
+  ) {
+    final theme = Theme.of(context);
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: theme.colorScheme.errorContainer.withValues(alpha: 0.24),
+        border: Border.all(
+          color: theme.colorScheme.error.withValues(alpha: 0.35),
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.visibility_off_outlined,
+                  size: 18,
+                  color: theme.colorScheme.error,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Moves filtres',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: theme.colorScheme.error,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: option.filteredMoveDiagnostics.map((diagnostic) {
+                final registry = diagnostic.psdkRegistryStatus == null
+                    ? ''
+                    : ' / PSDK ${diagnostic.psdkRegistryStatus}';
+                return Tooltip(
+                  message: '${diagnostic.moveId}: ${diagnostic.reason}'
+                      '$registry',
+                  child: Chip(
+                    visualDensity: VisualDensity.compact,
+                    avatar: Icon(
+                      Icons.block,
+                      size: 16,
+                      color: theme.colorScheme.error,
+                    ),
+                    label: Text(
+                      '${diagnostic.moveId} - ${diagnostic.reason}',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                );
+              }).toList(growable: false),
+            ),
           ],
         ),
       ),

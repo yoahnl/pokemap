@@ -240,6 +240,11 @@ from PSDK partial registration.
 
 ### Lot 06 - Runtime Move Menu Shows Filtered/Partial State
 
+**Status 2026-05-16:** done. Party builder options and battle combatant seeds
+now expose filtered move diagnostics, runtime seeds keep bridge diagnostics for
+test/debug surfaces, and the playable party builder shows filtered/partial moves
+without adding them back to command selection.
+
 **Goal:** make playable testing clearer without pretending partial moves are complete.
 
 **Files:**

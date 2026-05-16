@@ -3,6 +3,7 @@ import 'package:map_core/map_core.dart';
 
 import 'battle_start_request.dart';
 import 'runtime_battle_move_bridge.dart';
+import 'runtime_battle_move_bridge_diagnostics.dart';
 import 'runtime_battle_setup_exception.dart';
 import 'runtime_move_catalog_loader.dart';
 import 'runtime_pokemon_learnset_loader.dart';
@@ -66,6 +67,20 @@ List<BattleMoveData> resolveBattleMovesForSeed({
   required PokemonMove? Function(String moveId) lookupMove,
   RuntimeBattleMoveBridge battleMoveBridge = const RuntimeBattleMoveBridge(),
 }) {
+  return resolveBattleMovesForSeedWithDiagnostics(
+    moveIds: moveIds,
+    combatantLabel: combatantLabel,
+    lookupMove: lookupMove,
+    battleMoveBridge: battleMoveBridge,
+  ).moves;
+}
+
+RuntimeBattleMoveProjection resolveBattleMovesForSeedWithDiagnostics({
+  required List<String> moveIds,
+  required String combatantLabel,
+  required PokemonMove? Function(String moveId) lookupMove,
+  RuntimeBattleMoveBridge battleMoveBridge = const RuntimeBattleMoveBridge(),
+}) {
   final candidateMoveIds = List<String>.unmodifiable(
     _normalizeUniqueMoveIdsPreserveOrder(moveIds)
         .take(4)
@@ -79,6 +94,7 @@ List<BattleMoveData> resolveBattleMovesForSeed({
   }
 
   final moves = <BattleMoveData>[];
+  final diagnostics = <RuntimeBattleMoveBridgeDiagnostics>[];
   final rejectedMoves = <_RejectedBridgeMove>[];
 
   for (final moveId in candidateMoveIds) {
@@ -88,6 +104,29 @@ List<BattleMoveData> resolveBattleMovesForSeed({
         'Le catalogue local des attaques ne contient pas "$moveId".',
         debugDetails: 'combatant=$combatantLabel',
       );
+    }
+
+    final diagnostic = battleMoveBridge.inspectMove(
+      move: move,
+      combatantLabel: combatantLabel,
+    );
+    diagnostics.add(diagnostic);
+
+    if (!diagnostic.runtimeBridgeable) {
+      final rejectedMove = _RejectedBridgeMove.fromDiagnostic(
+        move: move,
+        diagnostic: diagnostic,
+      );
+
+      if (!rejectedMove.isFilterableDuringSeedAssembly) {
+        battleMoveBridge.toBattleMoveData(
+          move: move,
+          combatantLabel: combatantLabel,
+        );
+      }
+
+      rejectedMoves.add(rejectedMove);
+      continue;
     }
 
     try {
@@ -112,7 +151,10 @@ List<BattleMoveData> resolveBattleMovesForSeed({
   }
 
   if (moves.isNotEmpty) {
-    return List<BattleMoveData>.unmodifiable(moves);
+    return RuntimeBattleMoveProjection(
+      moves: moves,
+      diagnostics: diagnostics,
+    );
   }
 
   // R1 garde ici un hard-fail volontaire :
@@ -131,6 +173,24 @@ List<BattleMoveData> resolveBattleMovesForSeed({
         'filterResult=no_bridgeable_moves_remaining_after_filtering, '
         'resolutionHint=assign_at_least_one_bridgeable_move',
   );
+}
+
+class RuntimeBattleMoveProjection {
+  RuntimeBattleMoveProjection({
+    required List<BattleMoveData> moves,
+    required List<RuntimeBattleMoveBridgeDiagnostics> diagnostics,
+  })  : moves = List<BattleMoveData>.unmodifiable(moves),
+        diagnostics =
+            List<RuntimeBattleMoveBridgeDiagnostics>.unmodifiable(diagnostics);
+
+  final List<BattleMoveData> moves;
+  final List<RuntimeBattleMoveBridgeDiagnostics> diagnostics;
+
+  List<RuntimeBattleMoveBridgeDiagnostics> get filteredDiagnostics {
+    return List<RuntimeBattleMoveBridgeDiagnostics>.unmodifiable(
+      diagnostics.where((diagnostic) => !diagnostic.runtimeBridgeable),
+    );
+  }
 }
 
 List<String> _normalizeUniqueMoveIdsPreserveOrder(List<String> rawIds) {
@@ -203,7 +263,7 @@ class RuntimeBattleCombatantSeedBuilder {
             level: playerPokemon.level,
           );
 
-    final moves = _resolveBattleMoves(
+    final moveProjection = _resolveBattleMoves(
       movesCatalog: movesCatalog,
       moveIds: moveIds,
       combatantLabel: combatantLabel,
@@ -232,7 +292,8 @@ class RuntimeBattleCombatantSeedBuilder {
       abilityId: playerPokemon.abilityId.trim().isEmpty
           ? 'unknown'
           : playerPokemon.abilityId.trim(),
-      moves: moves,
+      moves: moveProjection.moves,
+      moveDiagnostics: moveProjection.diagnostics,
     );
   }
 
@@ -253,7 +314,7 @@ class RuntimeBattleCombatantSeedBuilder {
       species: species,
       level: request.level,
     );
-    final moves = _resolveBattleMoves(
+    final moveProjection = _resolveBattleMoves(
       movesCatalog: movesCatalog,
       moveIds: moveIds,
       combatantLabel: 'Le Pokémon sauvage "${request.speciesId}"',
@@ -274,7 +335,8 @@ class RuntimeBattleCombatantSeedBuilder {
       abilityId: species.primaryAbilityId.isEmpty
           ? 'unknown'
           : species.primaryAbilityId,
-      moves: moves,
+      moves: moveProjection.moves,
+      moveDiagnostics: moveProjection.diagnostics,
     );
   }
 
@@ -299,7 +361,7 @@ class RuntimeBattleCombatantSeedBuilder {
             level: teamMember.level,
           );
 
-    final moves = _resolveBattleMoves(
+    final moveProjection = _resolveBattleMoves(
       movesCatalog: movesCatalog,
       moveIds: moveIds,
       combatantLabel:
@@ -321,7 +383,8 @@ class RuntimeBattleCombatantSeedBuilder {
       abilityId: species.primaryAbilityId.isEmpty
           ? 'unknown'
           : species.primaryAbilityId,
-      moves: moves,
+      moves: moveProjection.moves,
+      moveDiagnostics: moveProjection.diagnostics,
     );
   }
 
@@ -344,7 +407,7 @@ class RuntimeBattleCombatantSeedBuilder {
     );
   }
 
-  List<BattleMoveData> _resolveBattleMoves({
+  RuntimeBattleMoveProjection _resolveBattleMoves({
     required RuntimeMoveCatalog movesCatalog,
     required List<String> moveIds,
     required String combatantLabel,
@@ -352,7 +415,7 @@ class RuntimeBattleCombatantSeedBuilder {
     // Le builder garde désormais sa vraie policy de résolution dans une helper
     // partagée, afin que l'outillage Phase B puisse mesurer le même seam sans
     // reconstruire une variante plus permissive.
-    return resolveBattleMovesForSeed(
+    return resolveBattleMovesForSeedWithDiagnostics(
       moveIds: moveIds,
       combatantLabel: combatantLabel,
       lookupMove: movesCatalog.lookup,
@@ -494,8 +557,27 @@ final class _RejectedBridgeMove {
     required this.moveName,
     required this.engineSupportLevel,
     required this.unsupportedReasons,
+    this.battleEngineMethod,
+    this.psdkRegistryStatus,
     this.bridgeLimit,
   });
+
+  factory _RejectedBridgeMove.fromDiagnostic({
+    required PokemonMove move,
+    required RuntimeBattleMoveBridgeDiagnostics diagnostic,
+  }) {
+    return _RejectedBridgeMove(
+      moveId: move.id,
+      moveName: move.name,
+      engineSupportLevel: move.engineSupportLevel.name,
+      unsupportedReasons: List<String>.unmodifiable(move.unsupportedReasons),
+      battleEngineMethod: diagnostic.battleEngineMethod,
+      psdkRegistryStatus: diagnostic.psdkRegistryStatus,
+      bridgeLimit: diagnostic.reason == 'runtime_bridge_rejected'
+          ? null
+          : diagnostic.reason,
+    );
+  }
 
   factory _RejectedBridgeMove.fromBridgeRejection({
     required PokemonMove move,
@@ -514,6 +596,8 @@ final class _RejectedBridgeMove {
   final String moveName;
   final String engineSupportLevel;
   final List<String> unsupportedReasons;
+  final String? battleEngineMethod;
+  final String? psdkRegistryStatus;
   final String? bridgeLimit;
 
   bool get isFilterableDuringSeedAssembly {
@@ -534,11 +618,17 @@ final class _RejectedBridgeMove {
     final reasons = unsupportedReasons.isEmpty
         ? '[]'
         : '[${unsupportedReasons.join(', ')}]';
+    final method = battleEngineMethod == null
+        ? ''
+        : ', battleEngineMethod=$battleEngineMethod';
+    final registry = psdkRegistryStatus == null
+        ? ''
+        : ', psdkRegistryStatus=$psdkRegistryStatus';
     final limit = bridgeLimit == null ? '' : ', bridgeLimit=$bridgeLimit';
     return 'moveId=$moveId, '
         'moveName=$moveName, '
         'engineSupportLevel=$engineSupportLevel, '
-        'unsupportedReasons=$reasons$limit';
+        'unsupportedReasons=$reasons$method$registry$limit';
   }
 
   static String? _extractBridgeLimit(String? debugDetails) {
@@ -567,6 +657,7 @@ class RuntimeBattleCombatantSeed {
     required this.typing,
     required this.abilityId,
     required this.moves,
+    this.moveDiagnostics = const <RuntimeBattleMoveBridgeDiagnostics>[],
     this.currentHp,
   });
 
@@ -578,6 +669,13 @@ class RuntimeBattleCombatantSeed {
   final int? currentHp;
   final String abilityId;
   final List<BattleMoveData> moves;
+  final List<RuntimeBattleMoveBridgeDiagnostics> moveDiagnostics;
+
+  List<RuntimeBattleMoveBridgeDiagnostics> get filteredMoveDiagnostics {
+    return List<RuntimeBattleMoveBridgeDiagnostics>.unmodifiable(
+      moveDiagnostics.where((diagnostic) => !diagnostic.runtimeBridgeable),
+    );
+  }
 
   BattleCombatantData toBattleCombatantData({
     int lineupIndex = 0,

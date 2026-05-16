@@ -233,6 +233,11 @@ void main() {
       );
       expect(mew.availableMoveIds, isNot(contains('baton_pass')));
       expect(mew.availableMoveIds, isNot(contains('metronome')));
+      expect(
+        mew.filteredMoveIds,
+        equals(<String>['baton_pass', 'metronome']),
+      );
+      expect(mew.filteredMoveDiagnostics, hasLength(2));
       expect(mew.moveDiagnostics['transform']?.bridgeable, isTrue);
       expect(mew.moveDiagnostics['transform']?.battleEngineMethod,
           equals('s_transform'));

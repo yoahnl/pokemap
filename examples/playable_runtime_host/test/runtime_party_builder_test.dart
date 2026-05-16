@@ -2,6 +2,8 @@ import 'package:PokeMap_Loader/src/runtime_demo_party_seed.dart';
 import 'package:PokeMap_Loader/src/runtime_party_builder.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_runtime/map_runtime.dart';
 
 void main() {
   testWidgets('adds a selected pokemon with level and suggested moves',
@@ -10,6 +12,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        theme: ThemeData(splashFactory: NoSplash.splashFactory),
         home: Scaffold(
           body: SingleChildScrollView(
             child: StatefulBuilder(
@@ -123,6 +126,7 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        theme: ThemeData(splashFactory: NoSplash.splashFactory),
         home: Scaffold(
           body: SingleChildScrollView(
             child: RuntimePartyBuilderPanel(
@@ -152,5 +156,71 @@ void main() {
       find.byKey(const Key('runtime-party-builder-add-button')),
     );
     expect(addButton.onPressed, isNull);
+  });
+
+  testWidgets('shows filtered move diagnostics for the selected pokemon',
+      (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(splashFactory: NoSplash.splashFactory),
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: RuntimePartyBuilderPanel(
+              options: const <RuntimePartyBuilderPokemonOption>[
+                RuntimePartyBuilderPokemonOption(
+                  speciesId: 'mew',
+                  displayName: 'Mew',
+                  abilityId: 'synchronize',
+                  gender: null,
+                  availableMoveIds: <String>['mega_punch', 'swift'],
+                  suggestedMoveIds: <String>['mega_punch', 'swift'],
+                  moveDiagnostics: <String, RuntimeBattleMoveBridgeDiagnostics>{
+                    'mega_punch': RuntimeBattleMoveBridgeDiagnostics(
+                      moveId: 'mega_punch',
+                      bridgeable: true,
+                      reason: 'bridgeable',
+                      engineSupportLevel:
+                          PokemonMoveEngineSupportLevel.structuredSupported,
+                      unsupportedReasons: <String>[],
+                    ),
+                    'baton_pass': RuntimeBattleMoveBridgeDiagnostics(
+                      moveId: 'baton_pass',
+                      bridgeable: false,
+                      reason: 'unsupported_effect_kind:self_switch',
+                      engineSupportLevel:
+                          PokemonMoveEngineSupportLevel.structuredPartial,
+                      unsupportedReasons: <String>[
+                        'unsupported_effect_kind:self_switch',
+                      ],
+                      battleEngineMethod: 's_baton_pass',
+                      psdkRegistryStatus: 'partial',
+                    ),
+                  },
+                ),
+              ],
+              members: const <RuntimeDemoPartyPokemonSeed>[],
+              enabled: true,
+              onAdd: (_) {},
+              onRemove: (_) {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('runtime-party-builder-species-field')),
+      'Mew',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Mew (mew)').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Moves filtres'), findsOneWidget);
+    expect(
+      find.text('baton_pass - unsupported_effect_kind:self_switch'),
+      findsOneWidget,
+    );
+    expect(find.text('mega_punch - bridgeable'), findsNothing);
   });
 }

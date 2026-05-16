@@ -341,6 +341,12 @@ void main() {
         seed.moves.map((move) => move.id).toList(growable: false),
         equals(<String>['vine_whip']),
       );
+      expect(seed.filteredMoveDiagnostics, hasLength(1));
+      expect(seed.filteredMoveDiagnostics.single.moveId, equals('teleport'));
+      expect(
+        seed.filteredMoveDiagnostics.single.reason,
+        equals('engine_support_level_not_bridgeable'),
+      );
     });
 
     test('keeps Transform when it is the only explicit known move', () async {

@@ -69,6 +69,19 @@ class RuntimePartyBuilderPokemonOption {
   final List<String> suggestedMoveIds;
   final Map<String, RuntimeBattleMoveBridgeDiagnostics> moveDiagnostics;
 
+  List<RuntimeBattleMoveBridgeDiagnostics> get filteredMoveDiagnostics {
+    final diagnostics = moveDiagnostics.values
+        .where((diagnostic) => !diagnostic.runtimeBridgeable)
+        .toList(growable: false);
+    return List<RuntimeBattleMoveBridgeDiagnostics>.unmodifiable(diagnostics);
+  }
+
+  List<String> get filteredMoveIds {
+    return List<String>.unmodifiable(
+      filteredMoveDiagnostics.map((diagnostic) => diagnostic.moveId),
+    );
+  }
+
   String get label {
     if (displayName.trim().isEmpty || displayName == speciesId) {
       return speciesId;
