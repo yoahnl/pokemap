@@ -187,6 +187,83 @@ void main() {
     });
   });
 
+  group('ProjectedStaticShadowOpacityBand', () {
+    test('default opacity bands are stable and fade toward the far edge', () {
+      final bands = createProjectedStaticShadowOpacityBands();
+
+      expect(bands, hasLength(7));
+      expect(bands.first.startT, 0);
+      expect(bands.last.endT, 1);
+      expect(bands.first.opacityScale, greaterThan(bands.last.opacityScale));
+      expect(bands.last.opacityScale, closeTo(0.3871428571, 0.000001));
+      expect(() => bands.add(bands.first), throwsUnsupportedError);
+    });
+
+    test('custom opacity bands cover 0..1 without overlap', () {
+      final bands = createProjectedStaticShadowOpacityBands(
+        bandCount: 4,
+        nearOpacityScale: 0.8,
+        farOpacityScale: 0.2,
+      );
+
+      expect(
+        bands.map((band) => [band.startT, band.endT]),
+        [
+          [0.0, 0.25],
+          [0.25, 0.5],
+          [0.5, 0.75],
+          [0.75, 1.0],
+        ],
+      );
+      expect(bands.first.opacityScale, closeTo(0.725, 0.000001));
+      expect(bands.last.opacityScale, closeTo(0.275, 0.000001));
+    });
+
+    test('rejects invalid opacity band inputs', () {
+      expect(
+        () => createProjectedStaticShadowOpacityBands(bandCount: 0),
+        throwsA(isA<ValidationException>()),
+      );
+      expect(
+        () => createProjectedStaticShadowOpacityBands(nearOpacityScale: 1.2),
+        throwsA(isA<ValidationException>()),
+      );
+      expect(
+        () => createProjectedStaticShadowOpacityBands(farOpacityScale: 1.2),
+        throwsA(isA<ValidationException>()),
+      );
+      expect(
+        () => createProjectedStaticShadowOpacityBands(
+          nearOpacityScale: 0.2,
+          farOpacityScale: 0.8,
+        ),
+        throwsA(isA<ValidationException>()),
+      );
+    });
+
+    test('opacity band equality includes all fields', () {
+      final first = ProjectedStaticShadowOpacityBand(
+        startT: 0,
+        endT: 0.5,
+        opacityScale: 0.8,
+      );
+      final same = ProjectedStaticShadowOpacityBand(
+        startT: 0,
+        endT: 0.5,
+        opacityScale: 0.8,
+      );
+      final different = ProjectedStaticShadowOpacityBand(
+        startT: 0.5,
+        endT: 1,
+        opacityScale: 0.4,
+      );
+
+      expect(first, same);
+      expect(first.hashCode, same.hashCode);
+      expect(first, isNot(different));
+    });
+  });
+
   group('ProjectedStaticShadowGeometry', () {
     test('valid four-point polygon accepted', () {
       final geometry = _projectedGeometry();

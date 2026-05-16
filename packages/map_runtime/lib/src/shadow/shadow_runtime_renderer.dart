@@ -40,12 +40,21 @@ final class ShadowRuntimeRenderer {
     ShadowRuntimeRenderInstruction instruction,
   ) {
     final points = instruction.polygonPoints;
-    final path = ui.Path()..moveTo(points.first.worldX, points.first.worldY);
-    for (final point in points.skip(1)) {
-      path.lineTo(point.worldX, point.worldY);
+    if (points.length != 4) {
+      canvas.drawPath(
+        _pathFromRuntimePoints(points),
+        shadowRuntimePaintForInstruction(instruction),
+      );
+      return;
     }
-    path.close();
-    canvas.drawPath(path, shadowRuntimePaintForInstruction(instruction));
+    for (final band in createProjectedStaticShadowOpacityBands()) {
+      canvas.drawPath(
+        _projectedRuntimeBandPath(points, band),
+        shadowRuntimePaintForInstruction(
+          _instructionWithOpacityScale(instruction, band.opacityScale),
+        ),
+      );
+    }
   }
 
   void renderInstructions(
@@ -94,4 +103,61 @@ void _validateHardEdge(ShadowRuntimeRenderInstruction instruction) {
       'ShadowRuntimeRenderer only supports hardEdge shadows in V0',
     );
   }
+}
+
+ui.Path _pathFromRuntimePoints(List<ShadowRuntimePoint> points) {
+  final path = ui.Path()..moveTo(points.first.worldX, points.first.worldY);
+  for (final point in points.skip(1)) {
+    path.lineTo(point.worldX, point.worldY);
+  }
+  return path..close();
+}
+
+ui.Path _projectedRuntimeBandPath(
+  List<ShadowRuntimePoint> points,
+  ProjectedStaticShadowOpacityBand band,
+) {
+  final nearLeft = points[0];
+  final nearRight = points[1];
+  final farRight = points[2];
+  final farLeft = points[3];
+  final leftStart = _lerpRuntimePoint(nearLeft, farLeft, band.startT);
+  final rightStart = _lerpRuntimePoint(nearRight, farRight, band.startT);
+  final rightEnd = _lerpRuntimePoint(nearRight, farRight, band.endT);
+  final leftEnd = _lerpRuntimePoint(nearLeft, farLeft, band.endT);
+  return ui.Path()
+    ..moveTo(leftStart.worldX, leftStart.worldY)
+    ..lineTo(rightStart.worldX, rightStart.worldY)
+    ..lineTo(rightEnd.worldX, rightEnd.worldY)
+    ..lineTo(leftEnd.worldX, leftEnd.worldY)
+    ..close();
+}
+
+ShadowRuntimePoint _lerpRuntimePoint(
+  ShadowRuntimePoint first,
+  ShadowRuntimePoint second,
+  double t,
+) {
+  return ShadowRuntimePoint(
+    worldX: first.worldX + (second.worldX - first.worldX) * t,
+    worldY: first.worldY + (second.worldY - first.worldY) * t,
+  );
+}
+
+ShadowRuntimeRenderInstruction _instructionWithOpacityScale(
+  ShadowRuntimeRenderInstruction instruction,
+  double opacityScale,
+) {
+  return ShadowRuntimeRenderInstruction(
+    shape: instruction.shape,
+    renderPass: instruction.renderPass,
+    worldLeft: instruction.worldLeft,
+    worldTop: instruction.worldTop,
+    width: instruction.width,
+    height: instruction.height,
+    opacity: instruction.opacity * opacityScale,
+    colorHexRgb: instruction.colorHexRgb,
+    softnessMode: instruction.softnessMode,
+    polygonPoints: instruction.polygonPoints,
+  );
 }

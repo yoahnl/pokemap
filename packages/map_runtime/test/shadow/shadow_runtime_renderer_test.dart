@@ -135,6 +135,59 @@ void main() {
 
       expect(await _alphaAt(image, 10, 8), 0);
     });
+
+    test('draws projectedPolygon with stronger near alpha than far alpha',
+        () async {
+      final image = await _renderInstruction(
+        _instruction(
+          shape: ShadowRuntimeShapeKind.projectedPolygon,
+          worldLeft: 6,
+          worldTop: 6,
+          width: 28,
+          height: 30,
+          opacity: 1,
+          polygonPoints: [
+            ShadowRuntimePoint(worldX: 10, worldY: 10),
+            ShadowRuntimePoint(worldX: 26, worldY: 10),
+            ShadowRuntimePoint(worldX: 34, worldY: 34),
+            ShadowRuntimePoint(worldX: 6, worldY: 34),
+          ],
+        ),
+        width: 48,
+        height: 48,
+      );
+
+      final nearAlpha = await _alphaAt(image, 18, 12);
+      final farAlpha = await _alphaAt(image, 20, 32);
+
+      expect(nearAlpha, greaterThan(farAlpha));
+      expect(farAlpha, greaterThan(0));
+    });
+
+    test('projectedPolygon fallback still draws non four point polygons',
+        () async {
+      final image = await _renderInstruction(
+        _instruction(
+          shape: ShadowRuntimeShapeKind.projectedPolygon,
+          worldLeft: 6,
+          worldTop: 6,
+          width: 28,
+          height: 30,
+          opacity: 1,
+          polygonPoints: [
+            ShadowRuntimePoint(worldX: 10, worldY: 10),
+            ShadowRuntimePoint(worldX: 26, worldY: 10),
+            ShadowRuntimePoint(worldX: 34, worldY: 22),
+            ShadowRuntimePoint(worldX: 26, worldY: 34),
+            ShadowRuntimePoint(worldX: 6, worldY: 34),
+          ],
+        ),
+        width: 48,
+        height: 48,
+      );
+
+      expect(await _alphaAt(image, 20, 20), greaterThan(0));
+    });
   });
 
   group('ShadowRuntimeRenderer.renderInstructions', () {
@@ -317,18 +370,22 @@ List<ShadowRuntimePoint> _polygonPoints() {
 }
 
 Future<ui.Image> _renderInstruction(
-  ShadowRuntimeRenderInstruction instruction,
-) {
-  return _renderInstructions([instruction]);
+  ShadowRuntimeRenderInstruction instruction, {
+  int width = 24,
+  int height = 16,
+}) {
+  return _renderInstructions([instruction], width: width, height: height);
 }
 
 Future<ui.Image> _renderInstructions(
-  Iterable<ShadowRuntimeRenderInstruction> instructions,
-) {
+  Iterable<ShadowRuntimeRenderInstruction> instructions, {
+  int width = 24,
+  int height = 16,
+}) {
   final recorder = ui.PictureRecorder();
   final canvas = ui.Canvas(recorder);
   const ShadowRuntimeRenderer().renderInstructions(canvas, instructions);
-  return recorder.endRecording().toImage(24, 16);
+  return recorder.endRecording().toImage(width, height);
 }
 
 Future<ui.Image> _renderCollectionPass(

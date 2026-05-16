@@ -36,6 +36,44 @@ void main() {
       expect(pixel.alpha, 0);
     });
 
+    test('projected polygon preview has stronger near alpha than far alpha',
+        () async {
+      final instruction = _projectedInstruction(
+        polygonPoints: [
+          EditorStaticShadowPreviewPoint(x: 10, y: 10),
+          EditorStaticShadowPreviewPoint(x: 26, y: 10),
+          EditorStaticShadowPreviewPoint(x: 34, y: 34),
+          EditorStaticShadowPreviewPoint(x: 6, y: 34),
+        ],
+        opacity: 1,
+      );
+      final near = await _paintAndReadPixel(instruction, x: 18, y: 12);
+      final far = await _paintAndReadPixel(instruction, x: 20, y: 32);
+
+      expect(near.alpha, greaterThan(far.alpha));
+      expect(far.alpha, greaterThan(0));
+    });
+
+    test('projected polygon preview fallback draws non four point polygons',
+        () async {
+      final pixel = await _paintAndReadPixel(
+        _projectedInstruction(
+          polygonPoints: [
+            EditorStaticShadowPreviewPoint(x: 10, y: 10),
+            EditorStaticShadowPreviewPoint(x: 26, y: 10),
+            EditorStaticShadowPreviewPoint(x: 34, y: 22),
+            EditorStaticShadowPreviewPoint(x: 26, y: 34),
+            EditorStaticShadowPreviewPoint(x: 6, y: 34),
+          ],
+          opacity: 1,
+        ),
+        x: 20,
+        y: 20,
+      );
+
+      expect(pixel.alpha, greaterThan(0));
+    });
+
     test('draws an oval fallback instruction', () async {
       final pixel = await _paintAndReadPixel(
         EditorStaticShadowPreviewInstruction(
@@ -70,6 +108,7 @@ void main() {
 
 EditorStaticShadowPreviewInstruction _projectedInstruction({
   double opacity = 0.5,
+  List<EditorStaticShadowPreviewPoint>? polygonPoints,
 }) {
   return EditorStaticShadowPreviewInstruction(
     instanceId: 'stand_1',
@@ -81,12 +120,13 @@ EditorStaticShadowPreviewInstruction _projectedInstruction({
     height: 20,
     opacity: opacity,
     colorHexRgb: '000000',
-    polygonPoints: [
-      EditorStaticShadowPreviewPoint(x: 10, y: 12),
-      EditorStaticShadowPreviewPoint(x: 24, y: 10),
-      EditorStaticShadowPreviewPoint(x: 34, y: 28),
-      EditorStaticShadowPreviewPoint(x: 12, y: 26),
-    ],
+    polygonPoints: polygonPoints ??
+        [
+          EditorStaticShadowPreviewPoint(x: 10, y: 12),
+          EditorStaticShadowPreviewPoint(x: 24, y: 10),
+          EditorStaticShadowPreviewPoint(x: 34, y: 28),
+          EditorStaticShadowPreviewPoint(x: 12, y: 26),
+        ],
   );
 }
 

@@ -8,6 +8,9 @@ const defaultStaticShadowProjectionDirectionY = 0.45;
 const defaultStaticShadowProjectionLengthRatio = 0.32;
 const defaultStaticShadowProjectionNearWidthMultiplier = 0.92;
 const defaultStaticShadowProjectionFarWidthMultiplier = 1.18;
+const defaultProjectedStaticShadowFillBandCount = 7;
+const defaultProjectedStaticShadowNearOpacityScale = 1.0;
+const defaultProjectedStaticShadowFarOpacityScale = 0.34;
 
 const defaultStaticShadowProjectionSpec = StaticShadowProjectionSpec._(
   directionX: defaultStaticShadowProjectionDirectionX,
@@ -36,6 +39,46 @@ final class ProjectedStaticShadowPoint {
 
   @override
   int get hashCode => Object.hash(x, y);
+}
+
+final class ProjectedStaticShadowOpacityBand {
+  ProjectedStaticShadowOpacityBand({
+    required this.startT,
+    required this.endT,
+    required this.opacityScale,
+  }) {
+    _validateBandT(startT, 'ProjectedStaticShadowOpacityBand.startT');
+    _validateBandT(endT, 'ProjectedStaticShadowOpacityBand.endT');
+    if (endT <= startT) {
+      throw const ValidationException(
+        'ProjectedStaticShadowOpacityBand.endT must be greater than startT',
+      );
+    }
+    _validatePositiveFinite(
+      opacityScale,
+      'ProjectedStaticShadowOpacityBand.opacityScale',
+    );
+    if (opacityScale > 1) {
+      throw const ValidationException(
+        'ProjectedStaticShadowOpacityBand.opacityScale must be <= 1',
+      );
+    }
+  }
+
+  final double startT;
+  final double endT;
+  final double opacityScale;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ProjectedStaticShadowOpacityBand &&
+          other.startT == startT &&
+          other.endT == endT &&
+          other.opacityScale == opacityScale;
+
+  @override
+  int get hashCode => Object.hash(startT, endT, opacityScale);
 }
 
 final class StaticShadowProjectionSpec {
@@ -191,6 +234,53 @@ ProjectedStaticShadowGeometry resolveProjectedStaticShadowGeometry({
   );
 }
 
+List<ProjectedStaticShadowOpacityBand> createProjectedStaticShadowOpacityBands({
+  int bandCount = defaultProjectedStaticShadowFillBandCount,
+  double nearOpacityScale = defaultProjectedStaticShadowNearOpacityScale,
+  double farOpacityScale = defaultProjectedStaticShadowFarOpacityScale,
+}) {
+  if (bandCount <= 0) {
+    throw const ValidationException(
+      'Projected static shadow bandCount must be greater than 0',
+    );
+  }
+  _validatePositiveFinite(
+    nearOpacityScale,
+    'Projected static shadow nearOpacityScale',
+  );
+  _validatePositiveFinite(
+    farOpacityScale,
+    'Projected static shadow farOpacityScale',
+  );
+  if (nearOpacityScale > 1 || farOpacityScale > 1) {
+    throw const ValidationException(
+      'Projected static shadow opacity scales must be <= 1',
+    );
+  }
+  if (farOpacityScale > nearOpacityScale) {
+    throw const ValidationException(
+      'Projected static shadow farOpacityScale must be <= nearOpacityScale',
+    );
+  }
+
+  final bands = <ProjectedStaticShadowOpacityBand>[];
+  for (var index = 0; index < bandCount; index += 1) {
+    final startT = index / bandCount;
+    final endT = (index + 1) / bandCount;
+    final midT = (startT + endT) / 2;
+    final opacityScale =
+        nearOpacityScale + (farOpacityScale - nearOpacityScale) * midT;
+    bands.add(
+      ProjectedStaticShadowOpacityBand(
+        startT: startT,
+        endT: endT,
+        opacityScale: opacityScale,
+      ),
+    );
+  }
+  return List<ProjectedStaticShadowOpacityBand>.unmodifiable(bands);
+}
+
 double _polygonArea(List<ProjectedStaticShadowPoint> points) {
   var area = 0.0;
   for (var i = 0; i < points.length; i += 1) {
@@ -199,6 +289,13 @@ double _polygonArea(List<ProjectedStaticShadowPoint> points) {
     area += current.x * next.y - next.x * current.y;
   }
   return area.abs() / 2;
+}
+
+void _validateBandT(double value, String name) {
+  _validateFinite(value, name);
+  if (value < 0 || value > 1) {
+    throw ValidationException('$name must be between 0 and 1');
+  }
 }
 
 void _validateFinite(double value, String name) {

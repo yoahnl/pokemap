@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:map_editor/src/application/shadow/editor_static_shadow_preview.dart';
+import 'package:map_core/map_core.dart';
 
 void paintEditorStaticShadowPreviewInstructions(
   ui.Canvas canvas,
@@ -35,11 +36,31 @@ void paintEditorStaticShadowPreviewInstructions(
           paint,
         );
       case EditorStaticShadowPreviewShapeKind.projectedPolygon:
-        final path = _pathFromEditorStaticShadowPreviewPoints(
-          instruction.polygonPoints,
-        );
-        if (path != null) {
-          canvas.drawPath(path, paint);
+        if (instruction.polygonPoints.length != 4) {
+          final path = _pathFromEditorStaticShadowPreviewPoints(
+            instruction.polygonPoints,
+          );
+          if (path != null) {
+            canvas.drawPath(path, paint);
+          }
+          continue;
+        }
+        for (final band in createProjectedStaticShadowOpacityBands()) {
+          final bandColor = _editorShadowPreviewColor(
+            instruction.colorHexRgb,
+            instruction.opacity * band.opacityScale,
+          );
+          if (bandColor == null) {
+            continue;
+          }
+          final bandPaint = ui.Paint()
+            ..color = bandColor
+            ..style = ui.PaintingStyle.fill
+            ..isAntiAlias = false;
+          canvas.drawPath(
+            _projectedEditorBandPath(instruction.polygonPoints, band),
+            bandPaint,
+          );
         }
     }
   }
@@ -58,6 +79,37 @@ ui.Path? _pathFromEditorStaticShadowPreviewPoints(
   }
   path.close();
   return path;
+}
+
+ui.Path _projectedEditorBandPath(
+  List<EditorStaticShadowPreviewPoint> points,
+  ProjectedStaticShadowOpacityBand band,
+) {
+  final nearLeft = points[0];
+  final nearRight = points[1];
+  final farRight = points[2];
+  final farLeft = points[3];
+  final leftStart = _lerpEditorPoint(nearLeft, farLeft, band.startT);
+  final rightStart = _lerpEditorPoint(nearRight, farRight, band.startT);
+  final rightEnd = _lerpEditorPoint(nearRight, farRight, band.endT);
+  final leftEnd = _lerpEditorPoint(nearLeft, farLeft, band.endT);
+  return ui.Path()
+    ..moveTo(leftStart.x, leftStart.y)
+    ..lineTo(rightStart.x, rightStart.y)
+    ..lineTo(rightEnd.x, rightEnd.y)
+    ..lineTo(leftEnd.x, leftEnd.y)
+    ..close();
+}
+
+EditorStaticShadowPreviewPoint _lerpEditorPoint(
+  EditorStaticShadowPreviewPoint first,
+  EditorStaticShadowPreviewPoint second,
+  double t,
+) {
+  return EditorStaticShadowPreviewPoint(
+    x: first.x + (second.x - first.x) * t,
+    y: first.y + (second.y - first.y) * t,
+  );
 }
 
 ui.Color? _editorShadowPreviewColor(String colorHexRgb, double opacity) {
