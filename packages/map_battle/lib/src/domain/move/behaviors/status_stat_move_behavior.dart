@@ -1,7 +1,10 @@
 import '../../../psdk/domain/psdk_battle_move.dart';
+import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../handler/battle_handler_context.dart';
+import '../../handler/battle_status_change_handler.dart';
 import '../../rng/battle_rng_streams.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_damage_calculator.dart';
@@ -70,6 +73,38 @@ final class StatusStatMoveBehavior implements BattleMoveBehavior {
     required BattleMoveBehaviorContext context,
     required PreparedBattleMove prepared,
   }) {
+    if (context.move.battleEngineMethod == 's_status' &&
+        _isPureStatusMove(context.move) &&
+        context.move.stageMods.isEmpty &&
+        _majorStatuses(context.move).isNotEmpty &&
+        !prepared.psdkTargets.any((target) {
+          return _hasApplicableMajorStatus(
+            state: prepared.state,
+            rng: prepared.rng,
+            turn: context.turn,
+            user: context.user,
+            target: target,
+            move: context.move,
+          );
+        })) {
+      return BattleMoveBehaviorResolution(
+        state: prepared.state,
+        rng: prepared.rng,
+        events: <PsdkBattleEvent>[
+          ...prepared.events,
+          PsdkBattleMoveFailedEvent(
+            user: context.user,
+            target: prepared.psdkTargets.isEmpty
+                ? context.target
+                : prepared.psdkTargets.first,
+            moveId: context.move.id,
+            reason: BattleMoveFailureReason.unusableByUser.jsonName,
+          ),
+        ],
+        successful: false,
+      );
+    }
+
     if (context.move.battleEngineMethod == 's_stat' &&
         _isPureStatusMove(context.move) &&
         context.move.statuses.isEmpty &&
@@ -186,6 +221,33 @@ final class StatusStatMoveBehavior implements BattleMoveBehavior {
     required BattleMoveBehaviorContext context,
     required PreparedBattleMove prepared,
   }) {
+    if (_isPureStatusMove(context.move) &&
+        context.move.stageMods.isEmpty &&
+        context.move.statuses.isNotEmpty &&
+        !_hasApplicableMoveStatus(
+          state: prepared.state,
+          rng: prepared.rng,
+          turn: context.turn,
+          user: context.user,
+          target: context.user,
+          move: context.move,
+        )) {
+      return BattleMoveBehaviorResolution(
+        state: prepared.state,
+        rng: prepared.rng,
+        events: <PsdkBattleEvent>[
+          ...prepared.events,
+          PsdkBattleMoveFailedEvent(
+            user: context.user,
+            target: context.user,
+            moveId: context.move.id,
+            reason: BattleMoveFailureReason.unusableByUser.jsonName,
+          ),
+        ],
+        successful: false,
+      );
+    }
+
     final damaged = _applyBasicDamage(
       context: context,
       prepared: prepared,
@@ -322,6 +384,65 @@ bool _hasApplicableStageMod({
     }
     return currentStage > -6;
   });
+}
+
+bool _hasApplicableMajorStatus({
+  required PsdkBattleState state,
+  required BattleRngStreams rng,
+  required int turn,
+  required PsdkBattleSlotRef user,
+  required PsdkBattleSlotRef target,
+  required BattleMoveDefinition move,
+}) {
+  final context = BattleHandlerContext(
+    state: state,
+    rng: rng,
+    turn: turn,
+    user: user,
+  );
+  return _majorStatuses(move).any(
+    (status) => const BattleStatusChangeHandler().canApplyMajorStatus(
+      context: context,
+      target: target,
+      status: status,
+    ),
+  );
+}
+
+bool _hasApplicableMoveStatus({
+  required PsdkBattleState state,
+  required BattleRngStreams rng,
+  required int turn,
+  required PsdkBattleSlotRef user,
+  required PsdkBattleSlotRef target,
+  required BattleMoveDefinition move,
+}) {
+  final context = BattleHandlerContext(
+    state: state,
+    rng: rng,
+    turn: turn,
+    user: user,
+  );
+  final targetBattler = state.battlerAt(target);
+  return move.statuses.any((status) {
+    final majorStatus = status.majorStatus;
+    if (majorStatus != null) {
+      return const BattleStatusChangeHandler().canApplyMajorStatus(
+        context: context,
+        target: target,
+        status: majorStatus,
+      );
+    }
+    return status.volatileStatus == PsdkBattleVolatileStatus.confusion &&
+        !targetBattler.effects.contains(PsdkBattleEffectIds.confusion);
+  });
+}
+
+List<PsdkBattleMajorStatus> _majorStatuses(BattleMoveDefinition move) {
+  return move.statuses
+      .map((status) => status.majorStatus)
+      .whereType<PsdkBattleMajorStatus>()
+      .toList(growable: false);
 }
 
 BattleMoveDefinition _secondaryMove(

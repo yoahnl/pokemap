@@ -388,6 +388,8 @@ legacy `BattleMoveData` session path untouched.
 
 ### Lot 11 - Strict `s_status`
 
+**Status 2026-05-16:** done. `s_status` is now marked `ported` at method level, while attack coverage only counts single major-status moves as `fait`; volatile statuses and mixed payloads remain `partiel`. The parity gate moved to 169 / 728 strict attacks and 29 / 330 ported battle methods.
+
 **Goal:** port major status application moves.
 
 **Files:**
@@ -411,6 +413,8 @@ legacy `BattleMoveData` session path untouched.
 - Strict status moves that do not require missing ability/item hooks become `ported`.
 
 ### Lot 12 - Strict `s_self_status` and Local Volatiles
+
+**Status 2026-05-16:** done. `s_self_status` is now marked `ported` at method level for the strict local slice: pure self-applied major statuses and Confusion volatiles fail when not applicable and keep non-strict damage/stat rider coverage as `partiel`. The parity gate moved to 169 / 728 strict attacks and 30 / 330 ported battle methods.
 
 **Goal:** port self-applied status/volatile methods that have local engine support.
 

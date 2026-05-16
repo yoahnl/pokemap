@@ -344,5 +344,178 @@ void main() {
       expect(report, contains('| partiel | sand_attack | s_stat | ported |'));
       expect(report, contains('| partiel | swagger | s_stat | ported |'));
     });
+
+    test('scopes ported s_status coverage to strict major statuses', () {
+      final report = generatePsdkAttackCoverageReport(
+        moves: const <PsdkStudioMoveCoverageEntry>[
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'thunder_wave',
+            battleEngineMethod: 's_status',
+            type: 'electric',
+            category: 'status',
+            power: 0,
+            accuracy: '90',
+            pp: 20,
+            effectChance: 100,
+            moveStatusCount: 1,
+            moveStatuses: <PsdkStudioStatusCoverageEntry>[
+              PsdkStudioStatusCoverageEntry(status: 'paralysis'),
+            ],
+            target: 'adjacent_pokemon',
+            sourceFile: 'thunder_wave.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'toxic',
+            battleEngineMethod: 's_status',
+            type: 'poison',
+            category: 'status',
+            power: 0,
+            accuracy: '90',
+            pp: 10,
+            effectChance: 100,
+            moveStatusCount: 1,
+            moveStatuses: <PsdkStudioStatusCoverageEntry>[
+              PsdkStudioStatusCoverageEntry(status: 'toxic'),
+            ],
+            target: 'adjacent_pokemon',
+            sourceFile: 'toxic.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'confuse_ray',
+            battleEngineMethod: 's_status',
+            type: 'ghost',
+            category: 'status',
+            power: 0,
+            accuracy: '100',
+            pp: 10,
+            effectChance: 100,
+            moveStatusCount: 1,
+            moveStatuses: <PsdkStudioStatusCoverageEntry>[
+              PsdkStudioStatusCoverageEntry(status: 'confusion'),
+            ],
+            target: 'adjacent_pokemon',
+            sourceFile: 'confuse_ray.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'poison_sting_like_bad_data',
+            battleEngineMethod: 's_status',
+            type: 'poison',
+            category: 'physical',
+            power: 15,
+            accuracy: '100',
+            pp: 35,
+            effectChance: 100,
+            moveStatusCount: 1,
+            moveStatuses: <PsdkStudioStatusCoverageEntry>[
+              PsdkStudioStatusCoverageEntry(status: 'poison'),
+            ],
+            target: 'adjacent_pokemon',
+            sourceFile: 'poison_sting_like_bad_data.json',
+          ),
+        ],
+        manifest: const <PsdkMoveRegistryManifestEntry>[
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_status',
+            rubyClass: 'StatusStat',
+            rubyPath: 'status_stat.rb',
+            dartBehavior: 'StatusStatMoveBehavior.status',
+            status: PsdkPortStatus.ported,
+          ),
+        ],
+        sourceDescription: 's_status test moves',
+      );
+
+      expect(report, contains('| fait | 2 |'));
+      expect(report, contains('| partiel | 2 |'));
+      expect(report, contains('| fait | thunder_wave | s_status | ported |'));
+      expect(report, contains('| fait | toxic | s_status | ported |'));
+      expect(report, contains('| partiel | confuse_ray | s_status | ported |'));
+      expect(
+        report,
+        contains(
+          '| partiel | poison_sting_like_bad_data | s_status | ported |',
+        ),
+      );
+    });
+
+    test('scopes ported s_self_status coverage to local self statuses', () {
+      final report = generatePsdkAttackCoverageReport(
+        moves: const <PsdkStudioMoveCoverageEntry>[
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'self_poison',
+            battleEngineMethod: 's_self_status',
+            type: 'poison',
+            category: 'status',
+            power: 0,
+            accuracy: '0',
+            pp: 20,
+            effectChance: 100,
+            moveStatusCount: 1,
+            moveStatuses: <PsdkStudioStatusCoverageEntry>[
+              PsdkStudioStatusCoverageEntry(status: 'poison'),
+            ],
+            target: 'adjacent_pokemon',
+            sourceFile: 'self_poison.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'self_confuse',
+            battleEngineMethod: 's_self_status',
+            type: 'ghost',
+            category: 'status',
+            power: 0,
+            accuracy: '0',
+            pp: 20,
+            effectChance: 100,
+            moveStatusCount: 1,
+            moveStatuses: <PsdkStudioStatusCoverageEntry>[
+              PsdkStudioStatusCoverageEntry(status: 'confusion'),
+            ],
+            target: 'adjacent_pokemon',
+            sourceFile: 'self_confuse.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'self_poison_hit',
+            battleEngineMethod: 's_self_status',
+            type: 'poison',
+            category: 'physical',
+            power: 40,
+            accuracy: '100',
+            pp: 20,
+            effectChance: 100,
+            moveStatusCount: 1,
+            moveStatuses: <PsdkStudioStatusCoverageEntry>[
+              PsdkStudioStatusCoverageEntry(status: 'poison'),
+            ],
+            target: 'adjacent_pokemon',
+            sourceFile: 'self_poison_hit.json',
+          ),
+        ],
+        manifest: const <PsdkMoveRegistryManifestEntry>[
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_self_status',
+            rubyClass: 'SelfStatus',
+            rubyPath: 'self.rb',
+            dartBehavior: 'StatusStatMoveBehavior.selfStatus',
+            status: PsdkPortStatus.ported,
+          ),
+        ],
+        sourceDescription: 's_self_status test moves',
+      );
+
+      expect(report, contains('| fait | 2 |'));
+      expect(report, contains('| partiel | 1 |'));
+      expect(
+        report,
+        contains('| fait | self_poison | s_self_status | ported |'),
+      );
+      expect(
+        report,
+        contains('| fait | self_confuse | s_self_status | ported |'),
+      );
+      expect(
+        report,
+        contains('| partiel | self_poison_hit | s_self_status | ported |'),
+      );
+    });
   });
 }

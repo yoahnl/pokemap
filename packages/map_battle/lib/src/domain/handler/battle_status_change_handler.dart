@@ -70,6 +70,16 @@ final class BattleStatusChangeHandler {
     );
   }
 
+  bool canApplyMajorStatus({
+    required BattleHandlerContext context,
+    required PsdkBattleSlotRef target,
+    required PsdkBattleMajorStatus status,
+  }) {
+    final targetBattler = context.state.battlerAt(target);
+    return targetBattler.majorStatus == null &&
+        !_isStatusImmune(context, target, targetBattler, status);
+  }
+
   BattleHandlerResult cureMajorStatus({
     required BattleHandlerContext context,
     required PsdkBattleSlotRef target,

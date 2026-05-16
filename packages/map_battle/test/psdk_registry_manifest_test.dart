@@ -34,17 +34,18 @@ void main() {
           PsdkMoveDependency.targetingMulti,
         ]),
       );
-      expect(byMethod['s_status']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_status']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_protect']!.status, PsdkPortStatus.partial);
       expect(byMethod['s_stat']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_self_stat']!.status, PsdkPortStatus.ported);
-      expect(byMethod['s_self_status']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_self_status']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_protect']!.rubyClass, 'Protect');
       expect(byMethod['s_protect']!.dartBehavior, contains('s_protect'));
       expect(
         byMethod['s_status']!.dartBehavior,
         'StatusStatMoveBehavior.status',
       );
+      expect(byMethod['s_status']!.dependencies, isEmpty);
       expect(
         byMethod['s_stat']!.dartBehavior,
         'StatusStatMoveBehavior.stat',
@@ -59,6 +60,7 @@ void main() {
         byMethod['s_self_status']!.dartBehavior,
         'StatusStatMoveBehavior.selfStatus',
       );
+      expect(byMethod['s_self_status']!.dependencies, isEmpty);
     });
 
     test('tracks the fixed-damage and multi-hit slices', () {

@@ -295,6 +295,58 @@ void main() {
       );
     });
 
+    test('s_status fails when the target already has a major status', () {
+      final result = _runMove(
+        opponentMajorStatus: PsdkBattleMajorStatus.burn,
+        playerMove: _move(
+          id: 'thunder_wave',
+          battleEngineMethod: 's_status',
+          power: 0,
+          accuracy: 90,
+          category: PsdkBattleMoveCategory.status,
+          statuses: <PsdkBattleMoveStatus>[
+            PsdkBattleMoveStatus(
+              status: PsdkBattleMajorStatus.paralysis,
+              chance: 100,
+            ),
+          ],
+        ),
+      );
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+
+      expect(opponent.majorStatus, PsdkBattleMajorStatus.burn);
+      expect(_eventKinds(result), contains('move_failed'));
+      expect(_eventKinds(result), isNot(contains('status')));
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).moveHistory.successfulMoveIds,
+        isNot(contains('thunder_wave')),
+      );
+    });
+
+    test('s_status fails when type immunity blocks the major status', () {
+      final result = _runMove(
+        opponentTypes: const PsdkBattleTypes(primary: 'electric'),
+        playerMove: _move(
+          id: 'thunder_wave',
+          battleEngineMethod: 's_status',
+          power: 0,
+          accuracy: 90,
+          category: PsdkBattleMoveCategory.status,
+          statuses: <PsdkBattleMoveStatus>[
+            PsdkBattleMoveStatus(
+              status: PsdkBattleMajorStatus.paralysis,
+              chance: 100,
+            ),
+          ],
+        ),
+      );
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+
+      expect(opponent.majorStatus, isNull);
+      expect(_eventKinds(result), contains('move_failed'));
+      expect(_eventKinds(result), isNot(contains('status')));
+    });
+
     test('s_self_stat damages the target and applies stages to the user', () {
       final result = _runMove(
         playerMove: _move(
@@ -397,6 +449,57 @@ void main() {
         psdkPlayerSlot,
       );
     });
+
+    test('s_self_status fails when the user already has a major status', () {
+      final result = _runMove(
+        playerMajorStatus: PsdkBattleMajorStatus.burn,
+        playerMove: _move(
+          id: 'self_poison',
+          battleEngineMethod: 's_self_status',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          statuses: <PsdkBattleMoveStatus>[
+            PsdkBattleMoveStatus(
+              status: PsdkBattleMajorStatus.poison,
+              chance: 100,
+            ),
+          ],
+        ),
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.majorStatus, PsdkBattleMajorStatus.burn);
+      expect(_eventKinds(result), contains('move_failed'));
+      expect(_eventKinds(result), isNot(contains('status')));
+      expect(
+        player.moveHistory.successfulMoveIds,
+        isNot(contains('self_poison')),
+      );
+    });
+
+    test('s_self_status applies self Confusion as a volatile effect', () {
+      final result = _runMove(
+        genericSeed: 1,
+        playerMove: _move(
+          id: 'self_confuse',
+          battleEngineMethod: 's_self_status',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          statuses: <PsdkBattleMoveStatus>[
+            PsdkBattleMoveStatus.volatile(
+              status: PsdkBattleVolatileStatus.confusion,
+              chance: 100,
+            ),
+          ],
+        ),
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      final confusion = player.effects.effects.whereType<ConfusionEffect>();
+
+      expect(player.effects.contains(PsdkBattleEffectIds.confusion), isTrue);
+      expect(confusion.single.remainingConfusionTurns, 3);
+      expect(_eventKinds(result), isNot(contains('move_failed')));
+    });
   });
 }
 
@@ -404,9 +507,11 @@ PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
   PsdkBattleMoveData? opponentMove,
   PsdkBattleEffectStack opponentEffects = const PsdkBattleEffectStack.empty(),
+  PsdkBattleMajorStatus? playerMajorStatus,
   PsdkBattleStatStages? playerStatStages,
   PsdkBattleMajorStatus? opponentMajorStatus,
   PsdkBattleStatStages? opponentStatStages,
+  PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
   int genericSeed = 4,
 }) {
   final engine = PsdkBattleEngine(
@@ -415,6 +520,7 @@ PsdkBattleTurnResult _runMove({
         id: 'player',
         speed: 100,
         move: playerMove,
+        majorStatus: playerMajorStatus,
         statStages: playerStatStages,
       ),
       opponent: _combatant(
@@ -429,6 +535,7 @@ PsdkBattleTurnResult _runMove({
         majorStatus: opponentMajorStatus,
         statStages: opponentStatStages,
         effects: opponentEffects,
+        types: opponentTypes,
       ),
       rngSeeds: PsdkBattleRngSeeds(
         moveDamage: 1,
@@ -448,6 +555,7 @@ PsdkBattleCombatantSetup _combatant({
   PsdkBattleMajorStatus? majorStatus,
   PsdkBattleStatStages? statStages,
   PsdkBattleEffectStack effects = const PsdkBattleEffectStack.empty(),
+  PsdkBattleTypes types = const PsdkBattleTypes(primary: 'normal'),
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -456,7 +564,7 @@ PsdkBattleCombatantSetup _combatant({
     level: 20,
     maxHp: 100,
     currentHp: 100,
-    types: const PsdkBattleTypes(primary: 'normal'),
+    types: types,
     stats: PsdkBattleStats(
       attack: 50,
       defense: 50,

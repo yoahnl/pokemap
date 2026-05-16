@@ -2271,13 +2271,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'SelfStatus',
     rubyPath: '10 Move/1 Mechanics/101 Self.rb',
     dartBehavior: 'StatusStatMoveBehavior.selfStatus',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerDamage,
-      PsdkMoveDependency.handlerStatus,
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.ability
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_shed_tail',
@@ -2507,13 +2502,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'StatusStat',
     rubyPath: '10 Move/1 Mechanics/102 Status Stat.rb',
     dartBehavior: 'StatusStatMoveBehavior.status',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerStatus,
-      PsdkMoveDependency.handlerStat,
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.ability
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_stealth_rock',

@@ -19,6 +19,7 @@ final class PsdkStudioMoveCoverageEntry {
     this.battleStageModCount = 0,
     this.battleStageMods = const <PsdkStudioStageModCoverageEntry>[],
     this.moveStatusCount = 0,
+    this.moveStatuses = const <PsdkStudioStatusCoverageEntry>[],
     this.target = '',
     this.protectable = true,
     this.sound = false,
@@ -38,6 +39,7 @@ final class PsdkStudioMoveCoverageEntry {
   final int battleStageModCount;
   final List<PsdkStudioStageModCoverageEntry> battleStageMods;
   final int moveStatusCount;
+  final List<PsdkStudioStatusCoverageEntry> moveStatuses;
   final String target;
   final bool protectable;
   final bool sound;
@@ -112,6 +114,49 @@ final class PsdkStudioMoveCoverageEntry {
       return mod.stages != 0 && _strictStatChangeStats.contains(mod.stat);
     });
   }
+
+  bool get isStrictMajorStatus {
+    if (battleEngineMethod != 's_status') {
+      return false;
+    }
+    if (category.trim().toLowerCase() != 'status' || power != 0) {
+      return false;
+    }
+    if (battleStageModCount != 0) {
+      return false;
+    }
+    if (effectChance != 0 && effectChance != 100) {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    if (normalizedTarget.isNotEmpty &&
+        !_strictMajorStatusTargets.contains(normalizedTarget)) {
+      return false;
+    }
+    if (moveStatuses.length != 1 || moveStatusCount != 1) {
+      return false;
+    }
+    return _strictMajorStatuses.contains(moveStatuses.single.status);
+  }
+
+  bool get isStrictSelfStatus {
+    if (battleEngineMethod != 's_self_status') {
+      return false;
+    }
+    if (category.trim().toLowerCase() != 'status' || power != 0) {
+      return false;
+    }
+    if (battleStageModCount != 0) {
+      return false;
+    }
+    if (effectChance != 0 && effectChance != 100) {
+      return false;
+    }
+    if (moveStatuses.length != 1 || moveStatusCount != 1) {
+      return false;
+    }
+    return _strictSelfStatuses.contains(moveStatuses.single.status);
+  }
 }
 
 final class PsdkStudioStageModCoverageEntry {
@@ -122,6 +167,12 @@ final class PsdkStudioStageModCoverageEntry {
 
   final String stat;
   final int stages;
+}
+
+final class PsdkStudioStatusCoverageEntry {
+  const PsdkStudioStatusCoverageEntry({required this.status});
+
+  final String status;
 }
 
 Future<List<PsdkStudioMoveCoverageEntry>> loadPsdkStudioMoveCoverageEntries(
@@ -207,6 +258,14 @@ String generatePsdkAttackCoverageReport({
       '- `s_stat` is counted as `fait` only for status stage-only moves '
       'on supported stats and targets; accuracy/evasion and status riders '
       'remain `partiel`.',
+    )
+    ..writeln(
+      '- `s_status` is counted as `fait` only for single major-status moves; '
+      'volatile statuses and mixed payloads remain `partiel`.',
+    )
+    ..writeln(
+      '- `s_self_status` is counted as `fait` only for single self-applied '
+      'major-status or Confusion moves without damage/stat riders.',
     )
     ..writeln()
     ..writeln('| Metric | Count |')
@@ -327,6 +386,7 @@ PsdkStudioMoveCoverageEntry _entryFromPayload(
     battleStageModCount: _listLength(payload['battleStageMod']),
     battleStageMods: _stageModCoverageEntries(payload['battleStageMod']),
     moveStatusCount: _listLength(payload['moveStatus']),
+    moveStatuses: _statusCoverageEntries(payload['moveStatus']),
     target: _stringValue(payload['battleEngineAimedTarget']),
     protectable: _boolValue(payload['isBlocable'], fallback: true),
     sound: _boolValue(payload['isSoundAttack'], fallback: false),
@@ -345,6 +405,10 @@ String psdkAttackCoverageForMove(
       move.isStrictSelfStatBoost ? 'fait' : 'partiel',
     PsdkPortStatus.ported when move.battleEngineMethod == 's_stat' =>
       move.isStrictTargetStatChange ? 'fait' : 'partiel',
+    PsdkPortStatus.ported when move.battleEngineMethod == 's_status' =>
+      move.isStrictMajorStatus ? 'fait' : 'partiel',
+    PsdkPortStatus.ported when move.battleEngineMethod == 's_self_status' =>
+      move.isStrictSelfStatus ? 'fait' : 'partiel',
     PsdkPortStatus.ported => 'fait',
     PsdkPortStatus.partial => 'partiel',
     PsdkPortStatus.missing || null => 'pas_fait',
@@ -409,6 +473,21 @@ List<PsdkStudioStageModCoverageEntry> _stageModCoverageEntries(Object? value) {
       .toList(growable: false);
 }
 
+List<PsdkStudioStatusCoverageEntry> _statusCoverageEntries(Object? value) {
+  if (value is! List) {
+    return const <PsdkStudioStatusCoverageEntry>[];
+  }
+  return value
+      .whereType<Map<String, dynamic>>()
+      .map((entry) {
+        return PsdkStudioStatusCoverageEntry(
+          status: _normalizeMoveStatus(_stringValue(entry['status'])),
+        );
+      })
+      .where((entry) => entry.status.isNotEmpty)
+      .toList(growable: false);
+}
+
 String _normalizeBattleStage(String value) {
   final normalized = value.trim().toUpperCase();
   return switch (normalized) {
@@ -419,6 +498,20 @@ String _normalizeBattleStage(String value) {
     'SPD_STAGE' => 'speed',
     'ACC_STAGE' => 'accuracy',
     'EVA_STAGE' => 'evasion',
+    _ => value.trim(),
+  };
+}
+
+String _normalizeMoveStatus(String value) {
+  final normalized = value.trim().toUpperCase();
+  return switch (normalized) {
+    'BURN' || 'BURNED' => 'burn',
+    'PARALYZED' || 'PARALYSIS' => 'paralysis',
+    'POISONED' || 'POISON' => 'poison',
+    'TOXIC' => 'toxic',
+    'ASLEEP' || 'SLEEP' => 'sleep',
+    'FROZEN' || 'FREEZE' => 'freeze',
+    'CONFUSED' || 'CONFUSION' => 'confusion',
     _ => value.trim(),
   };
 }
@@ -445,6 +538,26 @@ const _strictTargetStatChangeTargets = <String>{
   'adjacent_all_foe',
   'user',
   'self',
+};
+
+const _strictMajorStatuses = <String>{
+  'burn',
+  'paralysis',
+  'poison',
+  'toxic',
+  'sleep',
+  'freeze',
+};
+
+const _strictSelfStatuses = <String>{
+  ..._strictMajorStatuses,
+  'confusion',
+};
+
+const _strictMajorStatusTargets = <String>{
+  'adjacent_pokemon',
+  'adjacent_foe',
+  'adjacent_all_foe',
 };
 
 String _md(String value) {
