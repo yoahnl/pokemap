@@ -1,6 +1,7 @@
 import 'package:map_battle/map_battle.dart';
 import 'package:map_core/map_core.dart';
 
+import 'runtime_battle_move_bridge_diagnostics.dart';
 import 'runtime_battle_setup_exception.dart';
 
 /// Bridge runtime -> battle pour un sous-ensemble honnête de `PokemonMove`.
@@ -682,6 +683,51 @@ class RuntimeBattleMoveBridge {
     );
   }
 
+  RuntimeBattleMoveBridgeDiagnostics inspectMove({
+    required PokemonMove move,
+    required String combatantLabel,
+  }) {
+    try {
+      toBattleMoveData(move: move, combatantLabel: combatantLabel);
+      return RuntimeBattleMoveBridgeDiagnostics(
+        moveId: move.id,
+        bridgeable: true,
+        reason: 'bridgeable',
+        engineSupportLevel: move.engineSupportLevel,
+        unsupportedReasons: List<String>.unmodifiable(move.unsupportedReasons),
+        battleEngineMethod: _extractUnsupportedReasonValue(
+          move.unsupportedReasons,
+          'psdk_method:',
+        ),
+        psdkRegistryStatus: _extractUnsupportedReasonValue(
+          move.unsupportedReasons,
+          'psdk_registry_status:',
+        ),
+      );
+    } on RuntimeBattleSetupException catch (error) {
+      final bridgeLimit = _extractDebugDetailValue(
+        error.debugDetails,
+        'bridgeLimit=',
+      );
+      return RuntimeBattleMoveBridgeDiagnostics(
+        moveId: move.id,
+        bridgeable: false,
+        reason: bridgeLimit ?? 'runtime_bridge_rejected',
+        engineSupportLevel: move.engineSupportLevel,
+        unsupportedReasons: List<String>.unmodifiable(move.unsupportedReasons),
+        battleEngineMethod: _extractUnsupportedReasonValue(
+          move.unsupportedReasons,
+          'psdk_method:',
+        ),
+        psdkRegistryStatus: _extractUnsupportedReasonValue(
+          move.unsupportedReasons,
+          'psdk_registry_status:',
+        ),
+        debugDetails: error.debugDetails,
+      );
+    }
+  }
+
   void _ensureEngineSupportLevelAllowsBridge({
     required PokemonMove move,
     required String combatantLabel,
@@ -1238,4 +1284,34 @@ class RuntimeBattleMoveBridge {
           'combatant=$combatantLabel, moveId=${move.id}, moveName=${move.name}, engineSupportLevel=${move.engineSupportLevel.name}, unsupportedReasons=$unsupportedReasons, bridgeLimit=$bridgeLimit',
     );
   }
+}
+
+String? _extractUnsupportedReasonValue(List<String> reasons, String prefix) {
+  for (final reason in reasons) {
+    if (reason.startsWith(prefix)) {
+      final value = reason.substring(prefix.length).trim();
+      if (value.isNotEmpty) {
+        return value;
+      }
+    }
+  }
+  return null;
+}
+
+String? _extractDebugDetailValue(String? debugDetails, String prefix) {
+  final details = debugDetails;
+  if (details == null || details.isEmpty) {
+    return null;
+  }
+  final start = details.indexOf(prefix);
+  if (start < 0) {
+    return null;
+  }
+  final valueStart = start + prefix.length;
+  final comma = details.indexOf(',', valueStart);
+  final value = (comma < 0
+          ? details.substring(valueStart)
+          : details.substring(valueStart, comma))
+      .trim();
+  return value.isEmpty ? null : value;
 }

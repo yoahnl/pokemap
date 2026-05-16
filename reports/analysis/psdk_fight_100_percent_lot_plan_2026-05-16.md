@@ -177,6 +177,10 @@ golden comparison test.
 
 ### Lot 04 - Runtime Bridge Parity Diagnostics
 
+**Status 2026-05-16:** done. Added non-throwing runtime move
+diagnostics, exposed them from `map_runtime`, and surfaced per-move picker
+diagnostics for filtered runtime-host moves.
+
 **Goal:** make runtime bridge limitations measurable instead of hidden in thrown exceptions.
 
 **Files:**

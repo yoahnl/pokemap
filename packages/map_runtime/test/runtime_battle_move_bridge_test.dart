@@ -45,6 +45,107 @@ void main() {
       expect(battleMove.targetStatStageChanges, isEmpty);
     });
 
+    test('inspectMove reports a standard damage move as bridgeable', () {
+      const move = PokemonMove(
+        id: 'vine_whip',
+        name: 'Vine Whip',
+        names: <String, String>{'en': 'Vine Whip'},
+        generation: 1,
+        source: 'test',
+        type: 'grass',
+        category: PokemonMoveCategory.physical,
+        target: PokemonMoveTarget.normal,
+        basePower: 45,
+        accuracy: PokemonMoveAccuracy.percent(value: 100),
+        pp: 25,
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      final diagnostic = bridge.inspectMove(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(diagnostic.bridgeable, isTrue);
+      expect(diagnostic.reason, equals('bridgeable'));
+      expect(
+        diagnostic.engineSupportLevel,
+        equals(PokemonMoveEngineSupportLevel.structuredSupported),
+      );
+      expect(diagnostic.battleEngineMethod, isNull);
+      expect(diagnostic.psdkRegistryStatus, isNull);
+    });
+
+    test('inspectMove reports Transform as bridgeable with PSDK metadata', () {
+      const move = PokemonMove(
+        id: 'transform',
+        name: 'Transform',
+        names: <String, String>{'en': 'Transform'},
+        generation: 1,
+        source: 'test',
+        type: 'normal',
+        category: PokemonMoveCategory.status,
+        target: PokemonMoveTarget.normal,
+        basePower: 0,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+        pp: 10,
+        engineSupportLevel: PokemonMoveEngineSupportLevel.catalogOnly,
+        unsupportedReasons: <String>['psdk_method:s_transform'],
+      );
+
+      final diagnostic = bridge.inspectMove(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(diagnostic.bridgeable, isTrue);
+      expect(diagnostic.reason, equals('bridgeable'));
+      expect(
+        diagnostic.engineSupportLevel,
+        equals(PokemonMoveEngineSupportLevel.catalogOnly),
+      );
+      expect(diagnostic.battleEngineMethod, equals('s_transform'));
+      expect(diagnostic.psdkRegistryStatus, isNull);
+    });
+
+    test('inspectMove reports Baton Pass as not bridgeable without throwing',
+        () {
+      const move = PokemonMove(
+        id: 'baton_pass',
+        name: 'Baton Pass',
+        names: <String, String>{'en': 'Baton Pass'},
+        generation: 2,
+        source: 'test',
+        type: 'normal',
+        category: PokemonMoveCategory.status,
+        target: PokemonMoveTarget.self,
+        basePower: 0,
+        accuracy: PokemonMoveAccuracy.alwaysHits(),
+        pp: 40,
+        effects: <PokemonMoveEffect>[
+          PokemonMoveEffect.selfSwitch(),
+        ],
+        engineSupportLevel: PokemonMoveEngineSupportLevel.structuredSupported,
+      );
+
+      final diagnostic = bridge.inspectMove(
+        move: move,
+        combatantLabel: 'Le Pokémon actif du joueur',
+      );
+
+      expect(diagnostic.bridgeable, isFalse);
+      expect(diagnostic.reason, equals('unsupported_effect_kind:self_switch'));
+      expect(
+        diagnostic.engineSupportLevel,
+        equals(PokemonMoveEngineSupportLevel.structuredSupported),
+      );
+      expect(diagnostic.battleEngineMethod, isNull);
+      expect(
+        diagnostic.debugDetails,
+        contains('bridgeLimit=unsupported_effect_kind:self_switch'),
+      );
+    });
+
     test('projects target any as the active foe in the local singles slice',
         () {
       const move = PokemonMove(

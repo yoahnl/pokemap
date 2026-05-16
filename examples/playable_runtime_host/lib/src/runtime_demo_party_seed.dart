@@ -58,6 +58,7 @@ class RuntimePartyBuilderPokemonOption {
     required this.gender,
     required this.availableMoveIds,
     required this.suggestedMoveIds,
+    required this.moveDiagnostics,
   });
 
   final String speciesId;
@@ -66,6 +67,7 @@ class RuntimePartyBuilderPokemonOption {
   final String? gender;
   final List<String> availableMoveIds;
   final List<String> suggestedMoveIds;
+  final Map<String, RuntimeBattleMoveBridgeDiagnostics> moveDiagnostics;
 
   String get label {
     if (displayName.trim().isEmpty || displayName == speciesId) {
@@ -402,12 +404,18 @@ Future<RuntimePartyBuilderPokemonOption?> _tryBuildPartyBuilderOption({
     return null;
   }
 
-  final availableMoveIds = _filterBattleBridgeableMoveIds(
-    _deriveAvailableMoveIds(
-      learnsetJson,
-      maxLevel: 100,
-    ),
+  final allMoveIds = _deriveAvailableMoveIds(
+    learnsetJson,
+    maxLevel: 100,
+  );
+  final moveDiagnostics = _inspectBattleBridgeMoves(
+    allMoveIds,
     moveCatalog: moveCatalog,
+  );
+  final availableMoveIds = List<String>.unmodifiable(
+    allMoveIds.where(
+      (moveId) => moveDiagnostics[moveId]?.bridgeable ?? moveCatalog == null,
+    ),
   );
   if (availableMoveIds.isEmpty) {
     return null;
@@ -428,6 +436,7 @@ Future<RuntimePartyBuilderPokemonOption?> _tryBuildPartyBuilderOption({
     suggestedMoveIds: suggestedMoveIds.isEmpty
         ? List<String>.unmodifiable(availableMoveIds.take(4))
         : suggestedMoveIds,
+    moveDiagnostics: moveDiagnostics,
   );
 }
 
@@ -596,25 +605,39 @@ List<String> _filterBattleBridgeableMoveIds(
     return List<String>.unmodifiable(moveIds);
   }
 
+  final diagnostics = _inspectBattleBridgeMoves(
+    moveIds,
+    moveCatalog: moveCatalog,
+  );
+  final bridgeableMoveIds = moveIds
+      .where((moveId) => diagnostics[moveId]?.bridgeable ?? false)
+      .toList(growable: false);
+  return List<String>.unmodifiable(bridgeableMoveIds);
+}
+
+Map<String, RuntimeBattleMoveBridgeDiagnostics> _inspectBattleBridgeMoves(
+  List<String> moveIds, {
+  required Map<String, PokemonMove>? moveCatalog,
+}) {
+  if (moveCatalog == null) {
+    return const <String, RuntimeBattleMoveBridgeDiagnostics>{};
+  }
+
   const bridge = RuntimeBattleMoveBridge();
-  final bridgeableMoveIds = <String>[];
+  final diagnostics = <String, RuntimeBattleMoveBridgeDiagnostics>{};
   for (final moveId in moveIds) {
     final move = moveCatalog[moveId];
     if (move == null) {
       continue;
     }
-
-    try {
-      bridge.toBattleMoveData(
-        move: move,
-        combatantLabel: 'Le Pokémon de test',
-      );
-      bridgeableMoveIds.add(moveId);
-    } on RuntimeBattleSetupException {
-      continue;
-    }
+    diagnostics[moveId] = bridge.inspectMove(
+      move: move,
+      combatantLabel: 'Le Pokémon de test',
+    );
   }
-  return List<String>.unmodifiable(bridgeableMoveIds);
+  return Map<String, RuntimeBattleMoveBridgeDiagnostics>.unmodifiable(
+    diagnostics,
+  );
 }
 
 List<String> _deriveAvailableMoveIds(

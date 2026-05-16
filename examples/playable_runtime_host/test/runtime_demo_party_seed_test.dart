@@ -233,6 +233,12 @@ void main() {
       );
       expect(mew.availableMoveIds, isNot(contains('baton_pass')));
       expect(mew.availableMoveIds, isNot(contains('metronome')));
+      expect(mew.moveDiagnostics['transform']?.bridgeable, isTrue);
+      expect(mew.moveDiagnostics['baton_pass']?.bridgeable, isFalse);
+      expect(
+        mew.moveDiagnostics['baton_pass']?.reason,
+        equals('unsupported_effect_kind:self_switch'),
+      );
     });
   });
 }
