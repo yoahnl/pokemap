@@ -38,6 +38,7 @@ final class BattleEffectUserMovePreventionResult {
     required this.rng,
     required this.prevented,
     required this.reason,
+    this.recordAttempt = true,
     this.events = const <PsdkBattleEvent>[],
   });
 
@@ -45,6 +46,7 @@ final class BattleEffectUserMovePreventionResult {
   final BattleRngStreams rng;
   final bool prevented;
   final BattleMoveFailureReason reason;
+  final bool recordAttempt;
   final List<PsdkBattleEvent> events;
 }
 

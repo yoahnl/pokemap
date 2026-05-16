@@ -200,6 +200,27 @@ final class PsdkStudioMoveCoverageEntry {
         moveStatusCount == 0 &&
         effectChance == 0;
   }
+
+  bool get isStrictRechargeDamage {
+    if (battleEngineMethod != 's_reload') {
+      return false;
+    }
+    if (power <= 0) {
+      return false;
+    }
+    final normalizedCategory = category.trim().toLowerCase();
+    if (normalizedCategory != 'physical' && normalizedCategory != 'special') {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    if (normalizedTarget.isNotEmpty &&
+        !_strictRechargeDamageTargets.contains(normalizedTarget)) {
+      return false;
+    }
+    return battleStageModCount == 0 &&
+        moveStatusCount == 0 &&
+        effectChance == 0;
+  }
 }
 
 final class PsdkStudioStageModCoverageEntry {
@@ -318,6 +339,10 @@ String generatePsdkAttackCoverageReport({
       '- `s_2turns` is counted as `fait` only for plain charged damage moves '
       'with forced release; Power Herb, weather/stat/status and multi-target '
       'variants remain `partiel`.',
+    )
+    ..writeln(
+      '- `s_reload` is counted as `fait` only for plain damage moves that '
+      'require a recharge turn after a successful hit.',
     )
     ..writeln()
     ..writeln('| Metric | Count |')
@@ -465,6 +490,8 @@ String psdkAttackCoverageForMove(
       move.isStrictRandomMultiHit ? 'fait' : 'partiel',
     PsdkPortStatus.ported when move.battleEngineMethod == 's_2turns' =>
       move.isStrictTwoTurnDamage ? 'fait' : 'partiel',
+    PsdkPortStatus.ported when move.battleEngineMethod == 's_reload' =>
+      move.isStrictRechargeDamage ? 'fait' : 'partiel',
     PsdkPortStatus.ported => 'fait',
     PsdkPortStatus.partial => 'partiel',
     PsdkPortStatus.missing || null => 'pas_fait',
@@ -622,6 +649,11 @@ const _strictTwoTurnDamageTargets = <String>{
   'adjacent_pokemon',
   'adjacent_foe',
   'any_other_pokemon',
+};
+
+const _strictRechargeDamageTargets = <String>{
+  'adjacent_pokemon',
+  'adjacent_foe',
 };
 
 const _strictMajorStatusTargets = <String>{

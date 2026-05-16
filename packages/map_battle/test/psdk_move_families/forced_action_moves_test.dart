@@ -122,6 +122,53 @@ void main() {
       expect(player.effects.contains('uproar'), isTrue);
     });
 
+    test('s_reload spends the recharge turn without duplicating history', () {
+      final engine = _engine(
+        playerMoves: <PsdkBattleMoveData>[
+          _move(
+            id: 'hyper_beam',
+            category: PsdkBattleMoveCategory.special,
+            power: 150,
+            battleEngineMethod: 's_reload',
+          ),
+        ],
+      );
+
+      final first = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final second = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final player = second.state.battlerAt(psdkPlayerSlot);
+
+      expect(_damage(first, moveId: 'hyper_beam'), greaterThan(0));
+      expect(_failed(second, moveId: 'hyper_beam'), isTrue);
+      expect(player.effects.contains(PsdkBattleEffectIds.forceNextMoveBase),
+          isFalse);
+      expect(player.moveHistory.usedMoveIds, <String>['hyper_beam']);
+      expect(player.moveHistory.successfulMoveIds, <String>['hyper_beam']);
+    });
+
+    test('s_reload does not require recharge when the attack misses', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'hyper_beam',
+          category: PsdkBattleMoveCategory.special,
+          power: 150,
+          accuracy: 1,
+          battleEngineMethod: 's_reload',
+        ),
+      );
+
+      expect(_damageEvents(result, moveId: 'hyper_beam'), isEmpty);
+      expect(
+        result.state
+            .battlerAt(psdkPlayerSlot)
+            .effects
+            .contains(PsdkBattleEffectIds.forceNextMoveBase),
+        isFalse,
+      );
+      expect(result.state.battlerAt(psdkPlayerSlot).moveHistory.successes,
+          isEmpty);
+    });
+
     test('s_2turns forces the charged move on the next action', () {
       final engine = _engine(
         playerMoves: <PsdkBattleMoveData>[

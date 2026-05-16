@@ -1020,7 +1020,7 @@ void main() {
         byMethod['s_reflect']!.dartBehavior,
         'StaticBasicMoveRegistry.s_reflect',
       );
-      expect(byMethod['s_reload']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_reload']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_reload']!.dartBehavior,
         'StaticBasicMoveRegistry.s_reload',

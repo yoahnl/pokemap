@@ -68,6 +68,7 @@ final class ForceNextMoveBaseEffect extends BattleEffect {
       rng: context.rng,
       prevented: true,
       reason: BattleMoveFailureReason.unusableByUser,
+      recordAttempt: false,
     );
   }
 }

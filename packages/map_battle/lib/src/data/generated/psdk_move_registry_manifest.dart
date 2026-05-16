@@ -2054,7 +2054,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Reload',
     rubyPath: '10 Move/2 Definitions/300 Reload.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_reload',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.history,

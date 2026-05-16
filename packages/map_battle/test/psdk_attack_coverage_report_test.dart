@@ -659,5 +659,50 @@ void main() {
         contains('| partiel | razor_wind | s_2turns | ported |'),
       );
     });
+
+    test('scopes ported s_reload coverage to strict recharge damage', () {
+      final report = generatePsdkAttackCoverageReport(
+        moves: const <PsdkStudioMoveCoverageEntry>[
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'hyper_beam',
+            battleEngineMethod: 's_reload',
+            type: 'normal',
+            category: 'special',
+            power: 150,
+            accuracy: '90',
+            pp: 5,
+            target: 'adjacent_pokemon',
+            sourceFile: 'hyper_beam.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'reload_status',
+            battleEngineMethod: 's_reload',
+            type: 'normal',
+            category: 'status',
+            power: 0,
+            accuracy: '100',
+            pp: 5,
+            target: 'adjacent_pokemon',
+            sourceFile: 'reload_status.json',
+          ),
+        ],
+        manifest: const <PsdkMoveRegistryManifestEntry>[
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_reload',
+            rubyClass: 'Reload',
+            rubyPath: 'reload.rb',
+            dartBehavior: 'StaticBasicMoveRegistry.s_reload',
+            status: PsdkPortStatus.ported,
+          ),
+        ],
+        sourceDescription: 's_reload test moves',
+      );
+
+      expect(report, contains('| fait | 1 |'));
+      expect(report, contains('| partiel | 1 |'));
+      expect(report, contains('| fait | hyper_beam | s_reload | ported |'));
+      expect(
+          report, contains('| partiel | reload_status | s_reload | ported |'));
+    });
   });
 }

@@ -182,11 +182,13 @@ final class BattleTurnRunner {
           );
           timeline.addPsdkAll(effectPrevention.events);
           if (effectPrevention.prevented) {
-            _recordMoveAttempt(
-              user: action.user,
-              moveId: moveBeforePp.id,
-              targets: historyTargets,
-            );
+            if (effectPrevention.recordAttempt) {
+              _recordMoveAttempt(
+                user: action.user,
+                moveId: moveBeforePp.id,
+                targets: historyTargets,
+              );
+            }
             timeline.add(
               BattleMoveFailedTimelineEvent(
                 turn: _context.turnNumber,

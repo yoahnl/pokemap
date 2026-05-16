@@ -788,7 +788,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_reload': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_reload',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_roar': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.forceSwitch(s_roar)',
