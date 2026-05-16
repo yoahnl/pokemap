@@ -117,6 +117,20 @@ void main() {
 
     test('custom placed override modifies the static shadow instruction',
         () async {
+      final baselineGame = PlayableMapGame(
+        bundle: _bundle(),
+        projectFilePath: '/tmp/project.json',
+        runtimeTilesetImageLoader: _emptyImageLoader,
+        enableActorContactShadows: false,
+      );
+      baselineGame.onGameResize(Vector2(160, 160));
+      await baselineGame.onLoad();
+      baselineGame.update(0);
+      final baselineInstruction = _backgroundLayer(baselineGame)
+          .shadowCollectionProvider!()!
+          .groundStatic
+          .single;
+
       final game = PlayableMapGame(
         bundle: _bundle(
           placedOverride: MapPlacedElementShadowOverride(
@@ -139,8 +153,12 @@ void main() {
           .groundStatic
           .single;
 
-      expect(instruction.width, closeTo(96, 0.0001));
-      expect(instruction.worldLeft, closeTo(24, 0.0001));
+      expect(instruction.shape, ShadowRuntimeShapeKind.projectedPolygon);
+      expect(instruction.polygonPoints, hasLength(4));
+      expect(
+        _hasDifferentPolygonPoints(instruction, baselineInstruction),
+        isTrue,
+      );
       expect(instruction.opacity, 0.2);
     });
 
@@ -468,4 +486,22 @@ ShadowRuntimeRenderInstruction _shadow({
     opacity: 1,
     colorHexRgb: colorHexRgb,
   );
+}
+
+bool _hasDifferentPolygonPoints(
+  ShadowRuntimeRenderInstruction actual,
+  ShadowRuntimeRenderInstruction baseline,
+) {
+  if (actual.polygonPoints.length != baseline.polygonPoints.length) {
+    return true;
+  }
+  for (var i = 0; i < actual.polygonPoints.length; i += 1) {
+    final actualPoint = actual.polygonPoints[i];
+    final baselinePoint = baseline.polygonPoints[i];
+    if (actualPoint.worldX != baselinePoint.worldX ||
+        actualPoint.worldY != baselinePoint.worldY) {
+      return true;
+    }
+  }
+  return false;
 }

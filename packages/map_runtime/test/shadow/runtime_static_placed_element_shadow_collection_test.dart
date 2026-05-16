@@ -42,7 +42,7 @@ void main() {
 
   group('buildRuntimeStaticPlacedElementShadowCollection', () {
     test(
-        'visible active element shadow with ellipse groundStatic creates one instruction',
+        'visible active element shadow with ellipse groundStatic creates one projected instruction',
         () {
       final collection = buildRuntimeStaticPlacedElementShadowCollection(
         catalog: _catalog(),
@@ -56,11 +56,7 @@ void main() {
       expect(collection.groundStatic, hasLength(1));
       final instruction = collection.groundStatic.single;
       expect(instruction.renderPass, ShadowRenderPass.groundStatic);
-      expect(instruction.shape, ShadowRuntimeShapeKind.ellipse);
-      expect(instruction.width, closeTo(36, 0.0001));
-      expect(instruction.height, closeTo(7.5, 0.0001));
-      expect(instruction.worldLeft, closeTo(88, 0.0001));
-      expect(instruction.worldTop, closeTo(186.25, 0.0001));
+      _expectProjectedPolygon(instruction);
     });
 
     test('contactBlob groundStatic profile creates a groundStatic instruction',
@@ -76,7 +72,8 @@ void main() {
       expect(collection.groundStatic.single.renderPass,
           ShadowRenderPass.groundStatic);
       expect(collection.groundStatic.single.shape,
-          ShadowRuntimeShapeKind.contactBlob);
+          ShadowRuntimeShapeKind.projectedPolygon);
+      expect(collection.groundStatic.single.polygonPoints, hasLength(4));
     });
 
     test('invisible source creates no instruction', () {
@@ -141,11 +138,19 @@ void main() {
 
       expect(collection.groundStatic, hasLength(1));
       expect(
-          collection.groundStatic.single.shape, ShadowRuntimeShapeKind.ellipse);
-      expect(collection.groundStatic.single.width, closeTo(36, 0.0001));
+        collection.groundStatic.single.shape,
+        ShadowRuntimeShapeKind.projectedPolygon,
+      );
+      expect(collection.groundStatic.single.polygonPoints, hasLength(4));
     });
 
     test('custom placed override applies offset scale and opacity', () {
+      final baseline = buildRuntimeStaticPlacedElementShadowCollection(
+        catalog: _catalog(),
+        sources: [
+          _source(elementShadow: _elementShadow(profileId: 'plain_ellipse')),
+        ],
+      ).groundStatic.single;
       final collection = buildRuntimeStaticPlacedElementShadowCollection(
         catalog: _catalog(),
         sources: [
@@ -164,16 +169,20 @@ void main() {
       );
 
       final instruction = collection.groundStatic.single;
-      expect(instruction.width, closeTo(60, 0.0001));
-      expect(instruction.height, closeTo(45, 0.0001));
-      expect(instruction.worldLeft, closeTo(75, 0.0001));
-      expect(instruction.worldTop, closeTo(164.5, 0.0001));
+      _expectProjectedPolygon(instruction);
+      _expectDifferentPolygon(instruction, baseline);
       expect(instruction.opacity, 0.2);
     });
 
     test(
         'custom placed override with shadowProfileId uses the override profile',
         () {
+      final elementProfile = buildRuntimeStaticPlacedElementShadowCollection(
+        catalog: _catalog(),
+        sources: [
+          _source(elementShadow: _elementShadow(profileId: 'plain_ellipse')),
+        ],
+      ).groundStatic.single;
       final collection = buildRuntimeStaticPlacedElementShadowCollection(
         catalog: _catalog(),
         sources: [
@@ -188,13 +197,24 @@ void main() {
       );
 
       expect(collection.groundStatic.single.shape,
-          ShadowRuntimeShapeKind.contactBlob);
-      expect(collection.groundStatic.single.width, closeTo(30, 0.0001));
+          ShadowRuntimeShapeKind.projectedPolygon);
+      _expectDifferentPolygon(collection.groundStatic.single, elementProfile);
     });
 
     test(
         'custom placed override without shadowProfileId keeps the element profile',
         () {
+      final inheritedProfile = buildRuntimeStaticPlacedElementShadowCollection(
+        catalog: _catalog(),
+        sources: [
+          _source(
+            elementShadow: _elementShadow(profileId: 'plain_ellipse'),
+            placedOverride: MapPlacedElementShadowOverride(
+              mode: ShadowOverrideMode.custom,
+            ),
+          ),
+        ],
+      ).groundStatic.single;
       final collection = buildRuntimeStaticPlacedElementShadowCollection(
         catalog: _catalog(),
         sources: [
@@ -209,11 +229,19 @@ void main() {
       );
 
       expect(
-          collection.groundStatic.single.shape, ShadowRuntimeShapeKind.ellipse);
-      expect(collection.groundStatic.single.worldLeft, closeTo(89, 0.0001));
+        collection.groundStatic.single.shape,
+        ShadowRuntimeShapeKind.projectedPolygon,
+      );
+      _expectDifferentPolygon(collection.groundStatic.single, inheritedProfile);
     });
 
     test('element shadow footprint is transmitted to runtime geometry', () {
+      final baseline = buildRuntimeStaticPlacedElementShadowCollection(
+        catalog: _catalog(),
+        sources: [
+          _source(),
+        ],
+      ).groundStatic.single;
       final collection = buildRuntimeStaticPlacedElementShadowCollection(
         catalog: _catalog(),
         sources: [
@@ -229,13 +257,24 @@ void main() {
       );
 
       final instruction = collection.groundStatic.single;
-      expect(instruction.width, closeTo(24, 0.0001));
-      expect(instruction.height, closeTo(7.5, 0.0001));
-      expect(instruction.worldLeft, closeTo(84, 0.0001));
-      expect(instruction.worldTop, closeTo(186.25, 0.0001));
+      _expectProjectedPolygon(instruction);
+      _expectDifferentPolygon(instruction, baseline);
     });
 
     test('placed override footprint is transmitted to runtime geometry', () {
+      final elementOnly = buildRuntimeStaticPlacedElementShadowCollection(
+        catalog: _catalog(),
+        sources: [
+          _source(
+            elementShadow: _elementShadow(
+              footprint: StaticShadowFootprintConfig(
+                anchorXRatio: 0.25,
+                footprintWidthRatio: 0.5,
+              ),
+            ),
+          ),
+        ],
+      ).groundStatic.single;
       final collection = buildRuntimeStaticPlacedElementShadowCollection(
         catalog: _catalog(),
         sources: [
@@ -258,10 +297,8 @@ void main() {
       );
 
       final instruction = collection.groundStatic.single;
-      expect(instruction.width, closeTo(24, 0.0001));
-      expect(instruction.height, closeTo(3.75, 0.0001));
-      expect(instruction.worldLeft, closeTo(84, 0.0001));
-      expect(instruction.worldTop, closeTo(158.125, 0.0001));
+      _expectProjectedPolygon(instruction);
+      _expectDifferentPolygon(instruction, elementOnly);
     });
 
     test('none profile creates no instruction', () {
@@ -429,6 +466,7 @@ ProjectShadowCatalog _catalog() {
         id: 'blob_ground',
         mode: ShadowCasterMode.contactBlob,
         renderPass: ShadowRenderPass.groundStatic,
+        scaleX: 0.5,
       ),
       _profile(
         id: 'none_profile',
@@ -448,6 +486,42 @@ ProjectShadowCatalog _catalog() {
       ),
     ],
   );
+}
+
+void _expectProjectedPolygon(ShadowRuntimeRenderInstruction instruction) {
+  expect(instruction.shape, ShadowRuntimeShapeKind.projectedPolygon);
+  expect(instruction.polygonPoints, hasLength(4));
+  expect(instruction.width, greaterThan(0));
+  expect(instruction.height, greaterThan(0));
+  for (final point in instruction.polygonPoints) {
+    expect(point.worldX, greaterThanOrEqualTo(instruction.worldLeft));
+    expect(
+      point.worldX,
+      lessThanOrEqualTo(instruction.worldLeft + instruction.width),
+    );
+    expect(point.worldY, greaterThanOrEqualTo(instruction.worldTop));
+    expect(
+      point.worldY,
+      lessThanOrEqualTo(instruction.worldTop + instruction.height),
+    );
+  }
+}
+
+void _expectDifferentPolygon(
+  ShadowRuntimeRenderInstruction actual,
+  ShadowRuntimeRenderInstruction baseline,
+) {
+  expect(actual.polygonPoints, hasLength(baseline.polygonPoints.length));
+  var hasDifferentPoint = false;
+  for (var i = 0; i < actual.polygonPoints.length; i += 1) {
+    final actualPoint = actual.polygonPoints[i];
+    final baselinePoint = baseline.polygonPoints[i];
+    if (actualPoint.worldX != baselinePoint.worldX ||
+        actualPoint.worldY != baselinePoint.worldY) {
+      hasDifferentPoint = true;
+    }
+  }
+  expect(hasDifferentPoint, isTrue);
 }
 
 ProjectShadowProfile _profile({

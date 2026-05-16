@@ -107,12 +107,7 @@ ShadowRuntimeAnchor staticPlacedElementShadowAnchorFromMetrics(
     elementFootprint: elementFootprint,
   );
   final geometry = resolveStaticShadowGeometry(
-    metrics: StaticShadowVisualMetrics(
-      left: metrics.worldLeft,
-      top: metrics.worldTop,
-      visualWidth: metrics.visualWidth,
-      visualHeight: metrics.visualHeight,
-    ),
+    metrics: _visualMetricsFromRuntimeMetrics(metrics),
     shadowConfig: shadowConfig ?? _identityShadowConfig,
     elementFootprint: legacyAndElementFootprint,
     overrideFootprint: overrideFootprint,
@@ -146,16 +141,25 @@ ShadowRuntimeRenderInstruction?
     );
   }
 
-  return resolveShadowRuntimeInstruction(
-    ShadowRuntimeResolutionInput(
-      resolvedConfig: resolved,
-      anchor: staticPlacedElementShadowAnchorFromMetrics(
-        input.metrics,
-        shadowConfig: resolved,
-        elementFootprint: input.elementFootprint,
-        overrideFootprint: input.overrideFootprint,
-      ),
-    ),
+  final baseGeometry = _resolveStaticPlacedElementBaseGeometry(input);
+  final projectedGeometry = resolveProjectedStaticShadowGeometry(
+    baseGeometry: baseGeometry,
+    metrics: _visualMetricsFromRuntimeMetrics(input.metrics),
+  );
+  final points = _runtimePointsFromProjection(projectedGeometry);
+  final bounds = _boundsFromRuntimePoints(points);
+
+  return ShadowRuntimeRenderInstruction(
+    shape: ShadowRuntimeShapeKind.projectedPolygon,
+    renderPass: resolved.renderPass,
+    worldLeft: bounds.left,
+    worldTop: bounds.top,
+    width: bounds.width,
+    height: bounds.height,
+    opacity: resolved.opacity,
+    colorHexRgb: resolved.colorHexRgb,
+    softnessMode: resolved.softnessMode,
+    polygonPoints: points,
   );
 }
 
@@ -225,6 +229,88 @@ StaticShadowFootprintConfig _mergeLegacyAndElementFootprint({
     footprintWidthRatio: resolved.footprintWidthRatio,
     footprintHeightRatio: resolved.footprintHeightRatio,
   );
+}
+
+ResolvedStaticShadowGeometry _resolveStaticPlacedElementBaseGeometry(
+  StaticPlacedElementShadowRuntimeInput input,
+) {
+  final legacyAndElementFootprint = _mergeLegacyAndElementFootprint(
+    metrics: input.metrics,
+    elementFootprint: input.elementFootprint,
+  );
+  return resolveStaticShadowGeometry(
+    metrics: _visualMetricsFromRuntimeMetrics(input.metrics),
+    shadowConfig: input.resolvedConfig,
+    elementFootprint: legacyAndElementFootprint,
+    overrideFootprint: input.overrideFootprint,
+  );
+}
+
+StaticShadowVisualMetrics _visualMetricsFromRuntimeMetrics(
+  StaticPlacedElementShadowRuntimeMetrics metrics,
+) {
+  return StaticShadowVisualMetrics(
+    left: metrics.worldLeft,
+    top: metrics.worldTop,
+    visualWidth: metrics.visualWidth,
+    visualHeight: metrics.visualHeight,
+  );
+}
+
+List<ShadowRuntimePoint> _runtimePointsFromProjection(
+  ProjectedStaticShadowGeometry geometry,
+) {
+  return List<ShadowRuntimePoint>.unmodifiable(
+    geometry.points.map(
+      (point) => ShadowRuntimePoint(
+        worldX: point.x,
+        worldY: point.y,
+      ),
+    ),
+  );
+}
+
+_ProjectedRuntimeShadowBounds _boundsFromRuntimePoints(
+  List<ShadowRuntimePoint> points,
+) {
+  var minX = points.first.worldX;
+  var maxX = points.first.worldX;
+  var minY = points.first.worldY;
+  var maxY = points.first.worldY;
+  for (final point in points.skip(1)) {
+    if (point.worldX < minX) {
+      minX = point.worldX;
+    }
+    if (point.worldX > maxX) {
+      maxX = point.worldX;
+    }
+    if (point.worldY < minY) {
+      minY = point.worldY;
+    }
+    if (point.worldY > maxY) {
+      maxY = point.worldY;
+    }
+  }
+  return _ProjectedRuntimeShadowBounds(
+    left: minX,
+    top: minY,
+    width: maxX - minX,
+    height: maxY - minY,
+  );
+}
+
+final class _ProjectedRuntimeShadowBounds {
+  const _ProjectedRuntimeShadowBounds({
+    required this.left,
+    required this.top,
+    required this.width,
+    required this.height,
+  });
+
+  final double left;
+  final double top;
+  final double width;
+  final double height;
 }
 
 const _identityShadowConfig = ResolvedShadowConfig(

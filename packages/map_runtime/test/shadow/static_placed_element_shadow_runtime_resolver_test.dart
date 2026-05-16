@@ -248,68 +248,76 @@ void main() {
   });
 
   group('resolveStaticPlacedElementShadowRuntimeInstruction', () {
-    test('resolves ellipse groundStatic into an instruction', () {
-      final instruction =
-          resolveStaticPlacedElementShadowRuntimeInstruction(_input());
-
-      expect(instruction, isNotNull);
-      expect(instruction!.shape, ShadowRuntimeShapeKind.ellipse);
-      expect(instruction.renderPass, ShadowRenderPass.groundStatic);
-    });
-
-    test('resolves contactBlob groundStatic into an instruction', () {
+    test('resolves ellipse groundStatic into a projected polygon instruction',
+        () {
+      final input = _input();
       final instruction = resolveStaticPlacedElementShadowRuntimeInstruction(
-        _input(
-          resolvedConfig: _resolvedConfig(mode: ShadowCasterMode.contactBlob),
-        ),
+        input,
       );
 
       expect(instruction, isNotNull);
-      expect(instruction!.shape, ShadowRuntimeShapeKind.contactBlob);
+      expect(instruction!.shape, ShadowRuntimeShapeKind.projectedPolygon);
+      expect(instruction.polygonPoints, hasLength(4));
       expect(instruction.renderPass, ShadowRenderPass.groundStatic);
+      _expectInstructionMatchesProjectedGeometry(instruction, input);
+    });
+
+    test(
+        'resolves contactBlob groundStatic into a projected polygon instruction',
+        () {
+      final input = _input(
+        resolvedConfig: _resolvedConfig(mode: ShadowCasterMode.contactBlob),
+      );
+      final instruction = resolveStaticPlacedElementShadowRuntimeInstruction(
+        input,
+      );
+
+      expect(instruction, isNotNull);
+      expect(instruction!.shape, ShadowRuntimeShapeKind.projectedPolygon);
+      expect(instruction.polygonPoints, hasLength(4));
+      expect(instruction.renderPass, ShadowRenderPass.groundStatic);
+      _expectInstructionMatchesProjectedGeometry(instruction, input);
     });
 
     test('applies static metrics and Shadow-12 offset/scale geometry', () {
-      final instruction =
-          resolveStaticPlacedElementShadowRuntimeInstruction(_input());
+      final input = _input();
+      final instruction = resolveStaticPlacedElementShadowRuntimeInstruction(
+        input,
+      );
 
       expect(instruction, isNotNull);
-      expect(instruction!.width, closeTo(36, 0.000001));
-      expect(instruction.height, closeTo(7.5, 0.000001));
-      expect(instruction.worldLeft, closeTo(88, 0.000001));
-      expect(instruction.worldTop, closeTo(186.25, 0.000001));
+      _expectInstructionMatchesProjectedGeometry(instruction!, input);
+      _expectAllPointsInsideBounds(instruction);
     });
 
     test('applies offset and scale once after core footprint geometry', () {
-      final instruction = resolveStaticPlacedElementShadowRuntimeInstruction(
-        _input(
-          elementFootprint: StaticShadowFootprintConfig(
-            anchorXRatio: 0.25,
-            anchorYRatio: 0.5,
-            footprintWidthRatio: 0.5,
-            footprintHeightRatio: 0.25,
-          ),
+      final input = _input(
+        elementFootprint: StaticShadowFootprintConfig(
+          anchorXRatio: 0.25,
+          anchorYRatio: 0.5,
+          footprintWidthRatio: 0.5,
+          footprintHeightRatio: 0.25,
         ),
+      );
+      final instruction = resolveStaticPlacedElementShadowRuntimeInstruction(
+        input,
       );
 
       expect(instruction, isNotNull);
-      expect(instruction!.width, closeTo(24, 0.000001));
-      expect(instruction.height, closeTo(7.5, 0.000001));
-      expect(instruction.worldLeft, closeTo(84, 0.000001));
-      expect(instruction.worldTop, closeTo(156.25, 0.000001));
+      _expectInstructionMatchesProjectedGeometry(instruction!, input);
     });
 
     test('custom override without footprint keeps element footprint', () {
+      final input = _input(
+        resolvedConfig: _resolvedConfig(offsetX: 4),
+        elementFootprint: StaticShadowFootprintConfig(anchorXRatio: 0.25),
+      );
       final instruction = resolveStaticPlacedElementShadowRuntimeInstruction(
-        _input(
-          resolvedConfig: _resolvedConfig(offsetX: 4),
-          elementFootprint: StaticShadowFootprintConfig(anchorXRatio: 0.25),
-        ),
+        input,
       );
 
       expect(instruction, isNotNull);
-      expect(instruction!.worldLeft, closeTo(76, 0.000001));
-      expect(instruction.worldTop, closeTo(186.25, 0.000001));
+      _expectInstructionMatchesProjectedGeometry(instruction!, input);
     });
 
     test('passes opacity color softness and renderPass through', () {
@@ -328,6 +336,7 @@ void main() {
       expect(instruction.colorHexRgb, '0A0B0C');
       expect(instruction.softnessMode, ShadowSoftnessMode.hardEdge);
       expect(instruction.renderPass, ShadowRenderPass.groundStatic);
+      expect(instruction.shape, ShadowRuntimeShapeKind.projectedPolygon);
     });
 
     test('keeps opacity zero as a valid instruction', () {
@@ -388,7 +397,10 @@ void main() {
       ]);
 
       expect(instructions, hasLength(1));
-      expect(instructions.single.shape, ShadowRuntimeShapeKind.ellipse);
+      expect(
+        instructions.single.shape,
+        ShadowRuntimeShapeKind.projectedPolygon,
+      );
     });
 
     test('preserves input order without sorting', () {
@@ -417,7 +429,10 @@ void main() {
       ]);
 
       expect(instructions, hasLength(1));
-      expect(instructions.single.shape, ShadowRuntimeShapeKind.ellipse);
+      expect(
+        instructions.single.shape,
+        ShadowRuntimeShapeKind.projectedPolygon,
+      );
     });
 
     test('does not cull opacity zero instructions', () {
@@ -520,4 +535,133 @@ ResolvedShadowConfig _resolvedConfig({
     colorHexRgb: colorHexRgb,
     softnessMode: softnessMode,
   );
+}
+
+void _expectInstructionMatchesProjectedGeometry(
+  ShadowRuntimeRenderInstruction instruction,
+  StaticPlacedElementShadowRuntimeInput input,
+) {
+  final expected = _expectedProjectedGeometry(input);
+  final expectedPoints = expected.points
+      .map(
+        (point) => ShadowRuntimePoint(
+          worldX: point.x,
+          worldY: point.y,
+        ),
+      )
+      .toList();
+
+  expect(instruction.polygonPoints, hasLength(expectedPoints.length));
+  for (var i = 0; i < expectedPoints.length; i += 1) {
+    expect(
+      instruction.polygonPoints[i].worldX,
+      closeTo(expectedPoints[i].worldX, 0.000001),
+    );
+    expect(
+      instruction.polygonPoints[i].worldY,
+      closeTo(expectedPoints[i].worldY, 0.000001),
+    );
+  }
+
+  final expectedBounds = _boundsFromPoints(expectedPoints);
+  expect(instruction.worldLeft, closeTo(expectedBounds.left, 0.000001));
+  expect(instruction.worldTop, closeTo(expectedBounds.top, 0.000001));
+  expect(instruction.width, closeTo(expectedBounds.width, 0.000001));
+  expect(instruction.height, closeTo(expectedBounds.height, 0.000001));
+}
+
+void _expectAllPointsInsideBounds(ShadowRuntimeRenderInstruction instruction) {
+  for (final point in instruction.polygonPoints) {
+    expect(point.worldX, greaterThanOrEqualTo(instruction.worldLeft));
+    expect(
+      point.worldX,
+      lessThanOrEqualTo(instruction.worldLeft + instruction.width),
+    );
+    expect(point.worldY, greaterThanOrEqualTo(instruction.worldTop));
+    expect(
+      point.worldY,
+      lessThanOrEqualTo(instruction.worldTop + instruction.height),
+    );
+  }
+}
+
+ProjectedStaticShadowGeometry _expectedProjectedGeometry(
+  StaticPlacedElementShadowRuntimeInput input,
+) {
+  final metrics = input.metrics;
+  final legacyAndElementFootprint = resolveStaticShadowFootprint(
+    elementFootprint: StaticShadowFootprintConfig(
+      anchorXRatio: metrics.anchorXRatio,
+      anchorYRatio: metrics.anchorYRatio,
+      footprintWidthRatio: metrics.baseWidthMultiplier,
+      footprintHeightRatio: metrics.baseHeightMultiplier,
+    ),
+    overrideFootprint: input.elementFootprint,
+  );
+  final baseGeometry = resolveStaticShadowGeometry(
+    metrics: StaticShadowVisualMetrics(
+      left: metrics.worldLeft,
+      top: metrics.worldTop,
+      visualWidth: metrics.visualWidth,
+      visualHeight: metrics.visualHeight,
+    ),
+    shadowConfig: input.resolvedConfig,
+    elementFootprint: StaticShadowFootprintConfig(
+      anchorXRatio: legacyAndElementFootprint.anchorXRatio,
+      anchorYRatio: legacyAndElementFootprint.anchorYRatio,
+      footprintWidthRatio: legacyAndElementFootprint.footprintWidthRatio,
+      footprintHeightRatio: legacyAndElementFootprint.footprintHeightRatio,
+    ),
+    overrideFootprint: input.overrideFootprint,
+  );
+  return resolveProjectedStaticShadowGeometry(
+    baseGeometry: baseGeometry,
+    metrics: StaticShadowVisualMetrics(
+      left: metrics.worldLeft,
+      top: metrics.worldTop,
+      visualWidth: metrics.visualWidth,
+      visualHeight: metrics.visualHeight,
+    ),
+  );
+}
+
+_RuntimeTestBounds _boundsFromPoints(List<ShadowRuntimePoint> points) {
+  var minX = points.first.worldX;
+  var maxX = points.first.worldX;
+  var minY = points.first.worldY;
+  var maxY = points.first.worldY;
+  for (final point in points.skip(1)) {
+    if (point.worldX < minX) {
+      minX = point.worldX;
+    }
+    if (point.worldX > maxX) {
+      maxX = point.worldX;
+    }
+    if (point.worldY < minY) {
+      minY = point.worldY;
+    }
+    if (point.worldY > maxY) {
+      maxY = point.worldY;
+    }
+  }
+  return _RuntimeTestBounds(
+    left: minX,
+    top: minY,
+    width: maxX - minX,
+    height: maxY - minY,
+  );
+}
+
+final class _RuntimeTestBounds {
+  const _RuntimeTestBounds({
+    required this.left,
+    required this.top,
+    required this.width,
+    required this.height,
+  });
+
+  final double left;
+  final double top;
+  final double width;
+  final double height;
 }
