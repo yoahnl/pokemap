@@ -1268,7 +1268,7 @@ void main() {
           entry.battleEngineMethod: entry,
       };
 
-      expect(byMethod['s_recoil']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_recoil']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_recoil']!.dartBehavior,
         'RecoilMoveBehavior.psdkRecoil',

@@ -221,6 +221,30 @@ final class PsdkStudioMoveCoverageEntry {
         moveStatusCount == 0 &&
         effectChance == 0;
   }
+
+  bool get isStrictRecoilDamage {
+    if (battleEngineMethod != 's_recoil') {
+      return false;
+    }
+    if (!_strictRecoilDamageMoves.contains(dbSymbol)) {
+      return false;
+    }
+    if (power <= 0) {
+      return false;
+    }
+    final normalizedCategory = category.trim().toLowerCase();
+    if (normalizedCategory != 'physical' && normalizedCategory != 'special') {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    if (normalizedTarget.isNotEmpty &&
+        !_strictRecoilDamageTargets.contains(normalizedTarget)) {
+      return false;
+    }
+    return battleStageModCount == 0 &&
+        moveStatusCount == 0 &&
+        effectChance == 0;
+  }
 }
 
 final class PsdkStudioStageModCoverageEntry {
@@ -343,6 +367,11 @@ String generatePsdkAttackCoverageReport({
     ..writeln(
       '- `s_reload` is counted as `fait` only for plain damage moves that '
       'require a recharge turn after a successful hit.',
+    )
+    ..writeln(
+      '- `s_recoil` is counted as `fait` only for plain recoil damage moves; '
+      'status riders, special self-crash, and multi-target variants remain '
+      '`partiel`.',
     )
     ..writeln()
     ..writeln('| Metric | Count |')
@@ -492,6 +521,8 @@ String psdkAttackCoverageForMove(
       move.isStrictTwoTurnDamage ? 'fait' : 'partiel',
     PsdkPortStatus.ported when move.battleEngineMethod == 's_reload' =>
       move.isStrictRechargeDamage ? 'fait' : 'partiel',
+    PsdkPortStatus.ported when move.battleEngineMethod == 's_recoil' =>
+      move.isStrictRecoilDamage ? 'fait' : 'partiel',
     PsdkPortStatus.ported => 'fait',
     PsdkPortStatus.partial => 'partiel',
     PsdkPortStatus.missing || null => 'pas_fait',
@@ -654,6 +685,23 @@ const _strictTwoTurnDamageTargets = <String>{
 const _strictRechargeDamageTargets = <String>{
   'adjacent_pokemon',
   'adjacent_foe',
+};
+
+const _strictRecoilDamageMoves = <String>{
+  'brave_bird',
+  'double_edge',
+  'head_charge',
+  'head_smash',
+  'submission',
+  'take_down',
+  'wild_charge',
+  'wood_hammer',
+};
+
+const _strictRecoilDamageTargets = <String>{
+  'adjacent_pokemon',
+  'adjacent_foe',
+  'any_other_pokemon',
 };
 
 const _strictMajorStatusTargets = <String>{

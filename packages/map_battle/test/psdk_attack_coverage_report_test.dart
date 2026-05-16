@@ -704,5 +704,66 @@ void main() {
       expect(
           report, contains('| partiel | reload_status | s_reload | ported |'));
     });
+
+    test('scopes ported s_recoil coverage to strict recoil damage', () {
+      final report = generatePsdkAttackCoverageReport(
+        moves: const <PsdkStudioMoveCoverageEntry>[
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'take_down',
+            battleEngineMethod: 's_recoil',
+            type: 'normal',
+            category: 'physical',
+            power: 90,
+            accuracy: '85',
+            pp: 20,
+            target: 'adjacent_pokemon',
+            sourceFile: 'take_down.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'flare_blitz',
+            battleEngineMethod: 's_recoil',
+            type: 'fire',
+            category: 'physical',
+            power: 120,
+            accuracy: '100',
+            pp: 15,
+            effectChance: 10,
+            moveStatusCount: 1,
+            moveStatuses: <PsdkStudioStatusCoverageEntry>[
+              PsdkStudioStatusCoverageEntry(status: 'burn'),
+            ],
+            target: 'adjacent_pokemon',
+            sourceFile: 'flare_blitz.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'mind_blown',
+            battleEngineMethod: 's_recoil',
+            type: 'fire',
+            category: 'special',
+            power: 150,
+            accuracy: '100',
+            pp: 5,
+            target: 'adjacent_all_pokemon',
+            sourceFile: 'mind_blown.json',
+          ),
+        ],
+        manifest: const <PsdkMoveRegistryManifestEntry>[
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_recoil',
+            rubyClass: 'RecoilMove',
+            rubyPath: 'recoil.rb',
+            dartBehavior: 'RecoilMoveBehavior.psdkRecoil',
+            status: PsdkPortStatus.ported,
+          ),
+        ],
+        sourceDescription: 's_recoil test moves',
+      );
+
+      expect(report, contains('| fait | 1 |'));
+      expect(report, contains('| partiel | 2 |'));
+      expect(report, contains('| fait | take_down | s_recoil | ported |'));
+      expect(report, contains('| partiel | flare_blitz | s_recoil | ported |'));
+      expect(report, contains('| partiel | mind_blown | s_recoil | ported |'));
+    });
   });
 }

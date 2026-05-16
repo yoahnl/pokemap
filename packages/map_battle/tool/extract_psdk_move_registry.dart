@@ -1322,7 +1322,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   // Basculin evolution bookkeeping exist in the PSDK lane.
   's_recoil': _KnownDartBehavior(
     dartBehavior: 'RecoilMoveBehavior.psdkRecoil',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_brine': _KnownDartBehavior(
     dartBehavior: 'VariablePowerMoveBehavior.brine',

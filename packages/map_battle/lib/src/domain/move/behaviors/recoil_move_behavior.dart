@@ -38,9 +38,9 @@ const Set<String> _recoilFromUserCurrentHp = <String>{
 ///
 /// The target hit still uses the normal damage formula and shared move
 /// procedure. Recoil is represented as a second damage event targeting the
-/// user. This is intentionally partial: abilities such as Rock Head and
-/// Parental Bond, item callbacks, dedicated recoil messages and Basculin
-/// evolution bookkeeping are not available in the current PSDK lane.
+/// user. The strict subset includes regular recoil, Rock Head prevention and
+/// Reckless power; Parental Bond, dedicated messages and Basculin evolution
+/// bookkeeping remain outside this lot.
 final class RecoilMoveBehavior implements BattleMoveBehavior {
   const RecoilMoveBehavior.psdkRecoil() : battleEngineMethod = 's_recoil';
 

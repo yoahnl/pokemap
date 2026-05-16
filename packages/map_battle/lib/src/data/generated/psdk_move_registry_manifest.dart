@@ -2002,7 +2002,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'RecoilMove',
     rubyPath: '10 Move/2 Definitions/300 RecoilMove.rb',
     dartBehavior: 'RecoilMoveBehavior.psdkRecoil',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerDamage,
       PsdkMoveDependency.ability,
