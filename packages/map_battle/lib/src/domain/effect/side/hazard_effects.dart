@@ -1,5 +1,6 @@
 import '../battle_effect.dart';
 import '../battle_effect_scope.dart';
+import '../../../psdk/domain/psdk_battle_slots.dart';
 
 final class SpikesEffect extends BattleEffect {
   SpikesEffect({
@@ -63,9 +64,11 @@ final class StealthRockEffect extends BattleEffect {
 final class StickyWebEffect extends BattleEffect {
   StickyWebEffect({
     required this.bank,
+    this.origin,
   }) : super(id: 'sticky_web', scope: BankBattleEffectScope(bank));
 
   final int bank;
+  final PsdkBattleSlotRef? origin;
 
   @override
   BattleEffect copyWithRemainingTurns(int remainingTurns) {

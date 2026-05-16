@@ -379,7 +379,7 @@ void main() {
         byMethod['s_sky_drop']!.dartBehavior,
         'StaticBasicMoveRegistry.s_sky_drop',
       );
-      expect(byMethod['s_rapid_spin']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_rapid_spin']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_rapid_spin']!.dartBehavior,
         'StaticBasicMoveRegistry.s_rapid_spin',
@@ -507,12 +507,12 @@ void main() {
         byMethod['s_freezy_frost']!.dartBehavior,
         'StaticBasicMoveRegistry.s_freezy_frost',
       );
-      expect(byMethod['s_ceaseless_edge']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_ceaseless_edge']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_ceaseless_edge']!.dartBehavior,
         'StaticBasicMoveRegistry.s_ceaseless_edge',
       );
-      expect(byMethod['s_stone_axe']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_stone_axe']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_stone_axe']!.dartBehavior,
         'StaticBasicMoveRegistry.s_stone_axe',
@@ -521,6 +521,32 @@ void main() {
       expect(
         byMethod['s_cantflee']!.dartBehavior,
         'StaticBasicMoveRegistry.s_cantflee',
+      );
+      expect(byMethod['s_defog']!.status, PsdkPortStatus.ported);
+      expect(byMethod['s_spike']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_spike']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_spike',
+      );
+      expect(byMethod['s_stealth_rock']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_stealth_rock']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_stealth_rock',
+      );
+      expect(byMethod['s_sticky_web']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_sticky_web']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_sticky_web',
+      );
+      expect(byMethod['s_tidy_up']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_tidy_up']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_tidy_up',
+      );
+      expect(byMethod['s_toxic_spike']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_toxic_spike']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_toxic_spike',
       );
       expect(byMethod['s_snore']!.status, PsdkPortStatus.partial);
       expect(
@@ -756,10 +782,6 @@ void main() {
           behavior: 'StaticBasicMoveRegistry.secondaryOnly(s_captivate)',
         ),
         (
-          method: 's_ceaseless_edge',
-          behavior: 'StaticBasicMoveRegistry.s_ceaseless_edge',
-        ),
-        (
           method: 's_charge',
           behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_charge)',
         ),
@@ -771,10 +793,6 @@ void main() {
           method: 's_crafty_shield',
           behavior:
               'StaticBasicMoveRegistry.partialUserBankMarker(s_crafty_shield)',
-        ),
-        (
-          method: 's_defog',
-          behavior: 'StaticBasicMoveRegistry.s_defog',
         ),
         (
           method: 's_destiny_bond',
@@ -915,26 +933,8 @@ void main() {
           behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_snatch)',
         ),
         (
-          method: 's_spike',
-          behavior: 'StaticBasicMoveRegistry.partialFoeBankMarker(s_spike)',
-        ),
-        (
-          method: 's_stealth_rock',
-          behavior:
-              'StaticBasicMoveRegistry.partialFoeBankMarker(s_stealth_rock)',
-        ),
-        (
-          method: 's_sticky_web',
-          behavior:
-              'StaticBasicMoveRegistry.partialFoeBankMarker(s_sticky_web)',
-        ),
-        (
           method: 's_stockpile',
           behavior: 'StaticBasicMoveRegistry.s_stockpile',
-        ),
-        (
-          method: 's_stone_axe',
-          behavior: 'StaticBasicMoveRegistry.s_stone_axe',
         ),
         (
           method: 's_tailwind',
@@ -970,11 +970,6 @@ void main() {
         (
           method: 's_toxic_thread',
           behavior: 'StaticBasicMoveRegistry.secondaryOnly(s_toxic_thread)',
-        ),
-        (
-          method: 's_toxic_spike',
-          behavior:
-              'StaticBasicMoveRegistry.partialFoeBankMarker(s_toxic_spike)',
         ),
         (
           method: 's_trick_room',

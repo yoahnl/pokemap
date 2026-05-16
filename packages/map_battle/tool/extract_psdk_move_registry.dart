@@ -401,8 +401,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_tidy_up': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_tidy_up)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_tidy_up',
+    status: _PsdkPortStatus.ported,
   ),
   's_triple_arrows': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_triple_arrows',
@@ -481,7 +481,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_ceaseless_edge': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_ceaseless_edge',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_charge': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_charge)',
@@ -498,7 +498,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_defog': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_defog',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_core_enforcer': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_core_enforcer)',
@@ -759,7 +759,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_rapid_spin': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_rapid_spin',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_retaliate': _KnownDartBehavior(
     dartBehavior: 'HistoryPowerMoveBehavior.retaliate',
@@ -848,21 +848,20 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_spike': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialFoeBankMarker(s_spike)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_spike',
+    status: _PsdkPortStatus.ported,
   ),
   's_stealth_rock': _KnownDartBehavior(
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialFoeBankMarker(s_stealth_rock)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_stealth_rock',
+    status: _PsdkPortStatus.ported,
   ),
   's_stone_axe': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_stone_axe',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_sticky_web': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialFoeBankMarker(s_sticky_web)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_sticky_web',
+    status: _PsdkPortStatus.ported,
   ),
   's_struggle': _KnownDartBehavior(
     dartBehavior: 'RecoilMoveBehavior.struggle',
@@ -937,8 +936,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_toxic_spike': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialFoeBankMarker(s_toxic_spike)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_toxic_spike',
+    status: _PsdkPortStatus.ported,
   ),
   's_toxic_thread': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.secondaryOnly(s_toxic_thread)',

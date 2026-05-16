@@ -27,8 +27,8 @@ Coverage semantics:
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 244 |
-| partiel | 484 |
+| fait | 250 |
+| partiel | 478 |
 | pas_fait | 0 |
 | unknown_methods | 0 |
 
@@ -165,7 +165,7 @@ Coverage semantics:
 | fait | dazzling_gleam | s_basic | ported | StaticBasicMoveRegistry.s_basic | fairy | special | 80 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/dazzling_gleam.json |
 | fait | defend_order | s_self_stat | ported | StatusStatMoveBehavior.selfStat | bug | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/defend_order.json |
 | fait | defense_curl | s_self_stat | ported | StatusStatMoveBehavior.selfStat | normal | status | 0 | 0 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/defense_curl.json |
-| partiel | defog | s_defog | partial | StaticBasicMoveRegistry.s_defog | flying | status | 0 | 0 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/defog.json |
+| fait | defog | s_defog | ported | StaticBasicMoveRegistry.s_defog | flying | status | 0 | 0 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/defog.json |
 | partiel | destiny_bond | s_destiny_bond | partial | StaticBasicMoveRegistry.partialTargetMarker(s_destiny_bond) | ghost | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/destiny_bond.json |
 | fait | detect | s_protect | ported | StaticBasicMoveRegistry.s_protect | fighting | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/detect.json |
 | partiel | devastating_drake | s_basic | ported | StaticBasicMoveRegistry.s_basic | dragon | physical | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/devastating_drake.json |
@@ -523,7 +523,7 @@ Coverage semantics:
 | partiel | rage | s_rage | partial | StaticBasicMoveRegistry.s_rage | normal | physical | 20 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/rage.json |
 | partiel | rage_powder | s_follow_me | partial | StaticBasicMoveRegistry.s_follow_me | bug | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/rage_powder.json |
 | partiel | rain_dance | s_weather | partial | WeatherMoveBehavior | water | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/rain_dance.json |
-| partiel | rapid_spin | s_rapid_spin | partial | StaticBasicMoveRegistry.s_rapid_spin | normal | physical | 20 | 100 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/rapid_spin.json |
+| fait | rapid_spin | s_rapid_spin | ported | StaticBasicMoveRegistry.s_rapid_spin | normal | physical | 20 | 100 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/rapid_spin.json |
 | fait | razor_leaf | s_basic | ported | StaticBasicMoveRegistry.s_basic | grass | physical | 55 | 95 | 25 | ../../pokémon_sdk_test_project/Data/Studio/moves/razor_leaf.json |
 | partiel | razor_shell | s_basic | ported | StaticBasicMoveRegistry.s_basic | water | physical | 75 | 95 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/razor_shell.json |
 | partiel | razor_wind | s_2turns | ported | StaticBasicMoveRegistry.s_2turns | normal | special | 80 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/razor_wind.json |
@@ -631,7 +631,7 @@ Coverage semantics:
 | fait | speed_swap | s_speed_swap | ported | SpeedSwapMoveBehavior | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/speed_swap.json |
 | fait | spider_web | s_cantflee | ported | StaticBasicMoveRegistry.s_cantflee | bug | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/spider_web.json |
 | fait | spike_cannon | s_multi_hit | ported | MultiHitMoveBehavior.psdkRandom | normal | physical | 20 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/spike_cannon.json |
-| partiel | spikes | s_spike | partial | StaticBasicMoveRegistry.partialFoeBankMarker(s_spike) | ground | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/spikes.json |
+| fait | spikes | s_spike | ported | StaticBasicMoveRegistry.s_spike | ground | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/spikes.json |
 | partiel | spiky_shield | s_protect | ported | StaticBasicMoveRegistry.s_protect | grass | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/spiky_shield.json |
 | fait | spirit_shackle | s_cantflee | ported | StaticBasicMoveRegistry.s_cantflee | ghost | physical | 80 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/spirit_shackle.json |
 | partiel | spit_up | s_split_up | partial | StaticBasicMoveRegistry.partialBasic(s_split_up) | normal | special | 0 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/spit_up.json |
@@ -640,11 +640,11 @@ Coverage semantics:
 | partiel | splintered_stormshards | s_splintered_stormshards | partial | StaticBasicMoveRegistry.partialBasic(s_splintered_stormshards) | rock | physical | 190 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/splintered_stormshards.json |
 | fait | spore | s_status | ported | StatusStatMoveBehavior.status | grass | status | 0 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/spore.json |
 | partiel | spotlight | s_follow_me | partial | StaticBasicMoveRegistry.s_follow_me | normal | status | 0 | 0 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/spotlight.json |
-| partiel | stealth_rock | s_stealth_rock | partial | StaticBasicMoveRegistry.partialFoeBankMarker(s_stealth_rock) | rock | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/stealth_rock.json |
+| fait | stealth_rock | s_stealth_rock | ported | StaticBasicMoveRegistry.s_stealth_rock | rock | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/stealth_rock.json |
 | partiel | steam_eruption | s_basic | ported | StaticBasicMoveRegistry.s_basic | water | special | 110 | 95 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/steam_eruption.json |
 | partiel | steamroller | s_stomp | partial | StaticBasicMoveRegistry.s_stomp | bug | physical | 65 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/steamroller.json |
 | partiel | steel_wing | s_self_stat | ported | StatusStatMoveBehavior.selfStat | steel | physical | 70 | 90 | 25 | ../../pokémon_sdk_test_project/Data/Studio/moves/steel_wing.json |
-| partiel | sticky_web | s_sticky_web | partial | StaticBasicMoveRegistry.partialFoeBankMarker(s_sticky_web) | bug | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/sticky_web.json |
+| fait | sticky_web | s_sticky_web | ported | StaticBasicMoveRegistry.s_sticky_web | bug | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/sticky_web.json |
 | partiel | stockpile | s_stockpile | partial | StaticBasicMoveRegistry.s_stockpile | normal | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/stockpile.json |
 | partiel | stoked_sparksurfer | s_z_move | partial | StaticBasicMoveRegistry.s_z_move | electric | special | 175 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/stoked_sparksurfer.json |
 | partiel | stomp | s_stomp | partial | StaticBasicMoveRegistry.s_stomp | normal | physical | 65 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/stomp.json |
@@ -709,7 +709,7 @@ Coverage semantics:
 | partiel | topsy_turvy | s_topsy_turvy | partial | AdvancedStatMoveBehavior.topsyTurvy | dark | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/topsy_turvy.json |
 | partiel | torment | s_torment | partial | StaticBasicMoveRegistry.partialTargetMarker(s_torment) | dark | status | 0 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/torment.json |
 | fait | toxic | s_status | ported | StatusStatMoveBehavior.status | poison | status | 0 | 90 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/toxic.json |
-| partiel | toxic_spikes | s_toxic_spike | partial | StaticBasicMoveRegistry.partialFoeBankMarker(s_toxic_spike) | poison | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/toxic_spikes.json |
+| fait | toxic_spikes | s_toxic_spike | ported | StaticBasicMoveRegistry.s_toxic_spike | poison | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/toxic_spikes.json |
 | partiel | toxic_thread | s_toxic_thread | partial | StaticBasicMoveRegistry.secondaryOnly(s_toxic_thread) | poison | status | 0 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/toxic_thread.json |
 | partiel | transform | s_transform | partial | TransformMoveBehavior | normal | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/transform.json |
 | partiel | tri_attack | s_tri_attack | partial | SpecialSecondaryMoveBehavior.triAttack | normal | special | 80 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/tri_attack.json |

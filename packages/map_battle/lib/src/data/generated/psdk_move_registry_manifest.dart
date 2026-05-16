@@ -349,7 +349,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'CeaselessEdge',
     rubyPath: '10 Move/2 Definitions/300 HazardsSetting.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_ceaseless_edge',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -489,7 +489,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Defog',
     rubyPath: '10 Move/2 Definitions/300 Defog.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_defog',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1986,7 +1986,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'RapidSpin',
     rubyPath: '10 Move/2 Definitions/300 RapidSpin.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_rapid_spin',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2439,8 +2439,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_spike',
     rubyClass: 'Spikes',
     rubyPath: '10 Move/2 Definitions/300 Spikes.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialFoeBankMarker(s_spike)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_spike',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.handlerSwitch,
@@ -2491,9 +2491,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_stealth_rock',
     rubyClass: 'StealthRock',
     rubyPath: '10 Move/2 Definitions/300 StealthRock.rb',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialFoeBankMarker(s_stealth_rock)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_stealth_rock',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.handlerSwitch
@@ -2522,8 +2521,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_sticky_web',
     rubyClass: 'StickyWeb',
     rubyPath: '10 Move/2 Definitions/300 StickyWeb.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialFoeBankMarker(s_sticky_web)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_sticky_web',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.handlerSwitch,
@@ -2559,7 +2558,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'StoneAxe',
     rubyPath: '10 Move/2 Definitions/300 HazardsSetting.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_stone_axe',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2824,8 +2823,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_tidy_up',
     rubyClass: 'TidyUp',
     rubyPath: '10 Move/2 Definitions/300 TidyUp.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_tidy_up)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_tidy_up',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2855,8 +2854,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_toxic_spike',
     rubyClass: 'ToxicSpikes',
     rubyPath: '10 Move/2 Definitions/300 Toxic_Spikes.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialFoeBankMarker(s_toxic_spike)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_toxic_spike',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.handlerSwitch,

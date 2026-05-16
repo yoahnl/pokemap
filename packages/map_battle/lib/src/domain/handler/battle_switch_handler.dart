@@ -159,6 +159,13 @@ final class BattleSwitchHandler {
     }
 
     if (grounded && _hazardWithId(hazards, 'sticky_web') != null) {
+      final stickyWeb = _hazardWithId(hazards, 'sticky_web');
+      final statTarget =
+          _normalizedId(targetBattler.abilityId) == 'mirror_armor' &&
+                  stickyWeb is StickyWebEffect &&
+                  stickyWeb.origin != null
+              ? stickyWeb.origin!
+              : target;
       final result = const BattleStatChangeHandler().applyStatChange(
         context: BattleHandlerContext(
           state: state,
@@ -166,7 +173,7 @@ final class BattleSwitchHandler {
           turn: context.turn,
           user: context.user,
         ),
-        target: target,
+        target: statTarget,
         stat: 'speed',
         stages: -1,
       );

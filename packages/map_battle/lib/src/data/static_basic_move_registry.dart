@@ -338,6 +338,10 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       resolve: _resolveDefog,
     ),
     CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_tidy_up',
+      resolve: _resolveTidyUp,
+    ),
+    CallbackBattleMoveBehavior(
       battleEngineMethod: 's_dragon_tail',
       resolve: _resolveForceSwitch,
     ),
@@ -695,7 +699,6 @@ const _partialUserBankMarkerMethods = <String, String>{
   's_shed_tail': 'shed_tail',
   's_stuff_cheeks': 'stuff_cheeks',
   's_tailwind': 'tailwind',
-  's_tidy_up': 'tidy_up',
   's_wish': 'wish',
 };
 
@@ -2788,6 +2791,18 @@ BattleMoveBehaviorResolution _resolveDefog(
   );
 }
 
+BattleMoveBehaviorResolution _resolveTidyUp(
+  BattleMoveBehaviorContext context,
+) {
+  final secondary = _resolveSecondaryOnly(context);
+  final cleaned = _clearTidyUpAffectedEffects(secondary.state);
+  return BattleMoveBehaviorResolution(
+    state: cleaned,
+    rng: secondary.rng,
+    events: secondary.events,
+  );
+}
+
 BattleMoveBehaviorResolution _resolveLockOn(
   BattleMoveBehaviorContext context,
 ) {
@@ -3467,7 +3482,8 @@ BattleMoveBehaviorResolution _resolveFoeBankMarker(
       : prepared.psdkTargets.first.bank;
   final effectId =
       _partialFoeBankMarkerMethods[context.move.battleEngineMethod]!;
-  if (_hazardEffectFor(effectId, targetBank) case final hazard?) {
+  if (_hazardEffectFor(effectId, targetBank, origin: context.user)
+      case final hazard?) {
     if (_isHazardAtMax(
       state: prepared.state,
       owner: context.user,
@@ -3511,11 +3527,15 @@ BattleMoveBehaviorResolution _resolveFoeBankMarker(
   );
 }
 
-BattleEffect? _hazardEffectFor(String effectId, int bank) {
+BattleEffect? _hazardEffectFor(
+  String effectId,
+  int bank, {
+  PsdkBattleSlotRef? origin,
+}) {
   return switch (effectId) {
     'spikes' => SpikesEffect(bank: bank),
     'stealth_rock' => StealthRockEffect(bank: bank),
-    'sticky_web' => StickyWebEffect(bank: bank),
+    'sticky_web' => StickyWebEffect(bank: bank, origin: origin),
     'toxic_spikes' => ToxicSpikesEffect(bank: bank),
     _ => null,
   };
@@ -3526,10 +3546,7 @@ bool _isHazardAtMax({
   required PsdkBattleSlotRef owner,
   required BattleEffect hazard,
 }) {
-  final current = _firstEffectWithId(
-    state.battlerAt(owner).effects.effects,
-    hazard.id,
-  );
+  final current = _firstBankEffectWithId(state, hazard)?.effect;
   return switch (current) {
     SpikesEffect(:final layers) => layers >= 3,
     ToxicSpikesEffect(:final layers) => layers >= 2,
@@ -3543,26 +3560,44 @@ PsdkBattleState _addOrEmpowerHazard({
   required PsdkBattleSlotRef owner,
   required BattleEffect hazard,
 }) {
-  final battler = state.battlerAt(owner);
-  final current = _firstEffectWithId(battler.effects.effects, hazard.id);
-  final nextHazard = switch ((current, hazard)) {
-    (SpikesEffect current, SpikesEffect _) => current.empower(),
-    (ToxicSpikesEffect current, ToxicSpikesEffect _) => current.empower(),
-    (BattleEffect current, _) => current,
-    _ => hazard,
-  };
+  final location = _firstBankEffectWithId(state, hazard);
+  if (location != null) {
+    final nextHazard = switch ((location.effect, hazard)) {
+      (SpikesEffect current, SpikesEffect _) => current.empower(),
+      (ToxicSpikesEffect current, ToxicSpikesEffect _) => current.empower(),
+      (BattleEffect current, _) => current,
+    };
+    return state.updateBattler(
+      location.owner,
+      (currentBattler) => currentBattler.copyWith(
+        effects: currentBattler.effects.addEffect(nextHazard),
+      ),
+    );
+  }
   return state.updateBattler(
     owner,
     (currentBattler) => currentBattler.copyWith(
-      effects: currentBattler.effects.addEffect(nextHazard),
+      effects: currentBattler.effects.addEffect(hazard),
     ),
   );
 }
 
-BattleEffect? _firstEffectWithId(Iterable<BattleEffect> effects, String id) {
-  for (final effect in effects) {
-    if (effect.id == id) {
-      return effect;
+({PsdkBattleSlotRef owner, BattleEffect effect})? _firstBankEffectWithId(
+  PsdkBattleState state,
+  BattleEffect hazard,
+) {
+  final scope = hazard.scope;
+  if (scope is! BankBattleEffectScope) {
+    return null;
+  }
+  for (final entry in state.combatants.entries) {
+    for (final effect in entry.value.effects.effects) {
+      final effectScope = effect.scope;
+      if (effect.id == hazard.id &&
+          effectScope is BankBattleEffectScope &&
+          effectScope.bank == scope.bank) {
+        return (owner: entry.key, effect: effect);
+      }
     }
   }
   return null;
@@ -4320,6 +4355,30 @@ PsdkBattleState _clearRapidSpinAffectedEffects({
         clearOpposingScreens: clearOpposingScreens,
       ),
     );
+    next = next.updateBattler(
+      entry.key,
+      (battler) => battler.copyWith(
+        effects: PsdkBattleEffectStack(effects: filtered),
+      ),
+    );
+  }
+  return next;
+}
+
+PsdkBattleState _clearTidyUpAffectedEffects(PsdkBattleState state) {
+  var next = state;
+  for (final entry in state.combatants.entries) {
+    final filtered = entry.value.effects.effects.where((effect) {
+      if (effect.id == 'substitute') {
+        return false;
+      }
+      if (!_rapidSpinAffectedEffectIds.contains(effect.id)) {
+        return true;
+      }
+      final scope = effect.scope;
+      return scope is! BankBattleEffectScope &&
+          scope is! BattlerBattleEffectScope;
+    });
     next = next.updateBattler(
       entry.key,
       (battler) => battler.copyWith(

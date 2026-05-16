@@ -182,6 +182,76 @@ void main() {
       expect(rainResult.state.field.weather?.id, PsdkBattleWeatherId.rain);
     });
 
+    test('s_tidy_up clears all hazards, rapid-spin effects, and substitutes',
+        () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          playerMove: _move(
+            id: 'tidy_up',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            battleEngineMethod: 's_tidy_up',
+            target: PsdkBattleMoveTarget.user,
+            stageMods: const <PsdkBattleMoveStageMod>[
+              PsdkBattleMoveStageMod(stat: 'attack', stages: 1),
+              PsdkBattleMoveStageMod(stat: 'speed', stages: 1),
+            ],
+          ),
+          playerEffects: const PsdkBattleEffectStack.empty()
+              .addEffect(
+                const BindEffect(
+                  scope: BattlerBattleEffectScope(psdkPlayerSlot),
+                  origin: psdkOpponentSlot,
+                ),
+              )
+              .addEffect(
+                const GenericBattleEffect(
+                  id: 'substitute',
+                  scope: BattlerBattleEffectScope(psdkPlayerSlot),
+                ),
+              )
+              .addEffect(
+                const GenericBattleEffect(
+                  id: 'spikes',
+                  scope: BankBattleEffectScope(0),
+                ),
+              ),
+          opponentEffects: const PsdkBattleEffectStack.empty()
+              .addEffect(
+                const LeechSeedEffect(
+                  scope: BattlerBattleEffectScope(psdkOpponentSlot),
+                  source: psdkPlayerSlot,
+                ),
+              )
+              .addEffect(
+                const GenericBattleEffect(
+                  id: 'substitute',
+                  scope: BattlerBattleEffectScope(psdkOpponentSlot),
+                ),
+              )
+              .addEffect(
+                const GenericBattleEffect(
+                  id: 'stealth_rock',
+                  scope: BankBattleEffectScope(1),
+                ),
+              ),
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+
+      expect(player.statStages.valueOf('attack'), 1);
+      expect(player.statStages.valueOf('speed'), 1);
+      expect(player.effects.contains('bind'), isFalse);
+      expect(player.effects.contains('substitute'), isFalse);
+      expect(opponent.effects.contains('leech_seed'), isFalse);
+      expect(opponent.effects.contains('substitute'), isFalse);
+      expect(_hasBankEffect(result.state, 'spikes', bank: 0), isFalse);
+      expect(_hasBankEffect(result.state, 'stealth_rock', bank: 1), isFalse);
+    });
+
     test('s_brick_break damages then clears opposing screen markers', () {
       final engine = PsdkBattleEngine(
         setup: _setup(
@@ -319,6 +389,31 @@ void main() {
 
       expect(effect, isA<SpikesEffect>());
       expect((effect as SpikesEffect).layers, 3);
+    });
+
+    test('hazard setup sees existing bank effects outside the user stack', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          playerMove: _move(
+            id: 'spikes',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            battleEngineMethod: 's_spike',
+            target: PsdkBattleMoveTarget.foeSide,
+          ),
+          opponentEffects: PsdkBattleEffectStack().addEffect(
+            SpikesEffect(bank: 1, layers: 2),
+          ),
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final effects = _bankEffects(result.state, 'spikes', bank: 1)
+          .whereType<SpikesEffect>()
+          .toList(growable: false);
+
+      expect(effects, hasLength(1));
+      expect(effects.single.layers, 3);
     });
 
     test('maxed hazards fail instead of replacing existing bank effects', () {
@@ -568,6 +663,41 @@ void main() {
       expect(result.events.whereType<PsdkBattleStatStageEvent>(), hasLength(1));
     });
 
+    test('Sticky Web redirects Mirror Armor speed drops to its origin', () {
+      final state = PsdkBattleState.fromSetup(
+        _setup(
+          playerMove: _move(id: 'tackle', power: 40),
+          playerAbilityId: 'mirror_armor',
+          playerEffects: PsdkBattleEffectStack().addEffect(
+            StickyWebEffect(bank: 0, origin: psdkOpponentSlot),
+          ),
+        ),
+      );
+
+      final result = const BattleSwitchHandler().applyEntryHazards(
+        context: BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkOpponentSlot,
+        ),
+        target: psdkPlayerSlot,
+      );
+
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).statStages.valueOf('speed'),
+        0,
+      );
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).statStages.valueOf('speed'),
+        -1,
+      );
+      expect(
+        result.events.whereType<PsdkBattleStatStageEvent>().single.target,
+        psdkOpponentSlot,
+      );
+    });
+
     test('grounded Poison switch-ins absorb Toxic Spikes on their bank', () {
       final state = PsdkBattleState.fromSetup(
         _setup(
@@ -604,6 +734,7 @@ PsdkBattleSetup _setup({
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
   String? playerAbilityId,
+  String? opponentAbilityId,
   String? playerHeldItemId,
   PsdkBattleEffectStack playerEffects = const PsdkBattleEffectStack.empty(),
   PsdkBattleEffectStack opponentEffects = const PsdkBattleEffectStack.empty(),
@@ -629,6 +760,7 @@ PsdkBattleSetup _setup({
         battleEngineMethod: 's_basic',
       ),
       effects: opponentEffects,
+      abilityId: opponentAbilityId,
     ),
     rngSeeds: const PsdkBattleRngSeeds(
       moveDamage: 1,
@@ -729,14 +861,23 @@ BattleEffect _bankEffect(
   String effectId, {
   required int bank,
 }) {
+  return _bankEffects(state, effectId, bank: bank).single;
+}
+
+List<BattleEffect> _bankEffects(
+  PsdkBattleState state,
+  String effectId, {
+  required int bank,
+}) {
   return state.combatants.values
       .expand((combatant) => combatant.effects.effects)
-      .singleWhere(
+      .where(
         (effect) =>
             effect.id == effectId &&
             effect.scope is BankBattleEffectScope &&
             (effect.scope as BankBattleEffectScope).bank == bank,
-      );
+      )
+      .toList(growable: false);
 }
 
 List<PsdkBattleDamageEvent> _damageEvents(
