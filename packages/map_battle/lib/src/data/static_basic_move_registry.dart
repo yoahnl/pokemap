@@ -699,6 +699,12 @@ const _partialUserBankMarkerMethods = <String, String>{
   's_wish': 'wish',
 };
 
+const _singleActiveUserBankMarkerEffectIds = <String>{
+  'lucky_chant',
+  'mist',
+  'safeguard',
+};
+
 const _partialFoeBankMarkerMethods = <String, String>{
   's_spike': 'spikes',
   's_stealth_rock': 'stealth_rock',
@@ -3418,6 +3424,23 @@ BattleMoveBehaviorResolution _resolveUserBankMarker(
 
   final effectId =
       _partialUserBankMarkerMethods[context.move.battleEngineMethod]!;
+  if (_singleActiveUserBankMarkerEffectIds.contains(effectId) &&
+      _bankHasEffect(prepared.state, context.user.bank, effectId)) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: prepared.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.user,
+          moveId: context.move.id,
+          reason: '${effectId}_already_active',
+        ),
+      ],
+      successful: false,
+    );
+  }
   return _addEffectToUser(
     context: context,
     state: prepared.state,

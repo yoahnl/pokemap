@@ -1089,5 +1089,119 @@ void main() {
         contains('| fait | thousand_waves | s_cantflee | ported |'),
       );
     });
+
+    test('classifies strict side protection families as fully covered', () {
+      final report = generatePsdkAttackCoverageReport(
+        moves: const <PsdkStudioMoveCoverageEntry>[
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'reflect',
+            battleEngineMethod: 's_reflect',
+            type: 'psychic',
+            category: 'status',
+            power: 0,
+            accuracy: '0',
+            pp: 20,
+            target: 'all_ally',
+            sourceFile: 'reflect.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'light_screen',
+            battleEngineMethod: 's_reflect',
+            type: 'psychic',
+            category: 'status',
+            power: 0,
+            accuracy: '0',
+            pp: 30,
+            target: 'all_ally',
+            sourceFile: 'light_screen.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'aurora_veil',
+            battleEngineMethod: 's_reflect',
+            type: 'ice',
+            category: 'status',
+            power: 0,
+            accuracy: '0',
+            pp: 20,
+            target: 'all_ally',
+            sourceFile: 'aurora_veil.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'safeguard',
+            battleEngineMethod: 's_safe_guard',
+            type: 'normal',
+            category: 'status',
+            power: 0,
+            accuracy: '0',
+            pp: 25,
+            target: 'all_ally',
+            sourceFile: 'safeguard.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'mist',
+            battleEngineMethod: 's_mist',
+            type: 'ice',
+            category: 'status',
+            power: 0,
+            accuracy: '0',
+            pp: 30,
+            target: 'all_ally',
+            sourceFile: 'mist.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'lucky_chant',
+            battleEngineMethod: 's_lucky_chant',
+            type: 'normal',
+            category: 'status',
+            power: 0,
+            accuracy: '0',
+            pp: 30,
+            target: 'all_ally',
+            sourceFile: 'lucky_chant.json',
+          ),
+        ],
+        manifest: const <PsdkMoveRegistryManifestEntry>[
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_reflect',
+            rubyClass: 'Reflect',
+            rubyPath: 'reflect.rb',
+            dartBehavior: 'StaticBasicMoveRegistry.s_reflect',
+            status: PsdkPortStatus.ported,
+          ),
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_safe_guard',
+            rubyClass: 'Safeguard',
+            rubyPath: 'safeguard.rb',
+            dartBehavior: 'StaticBasicMoveRegistry.s_safe_guard',
+            status: PsdkPortStatus.ported,
+          ),
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_mist',
+            rubyClass: 'Mist',
+            rubyPath: 'mist.rb',
+            dartBehavior: 'StaticBasicMoveRegistry.s_mist',
+            status: PsdkPortStatus.ported,
+          ),
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_lucky_chant',
+            rubyClass: 'LuckyChant',
+            rubyPath: 'lucky_chant.rb',
+            dartBehavior: 'StaticBasicMoveRegistry.s_lucky_chant',
+            status: PsdkPortStatus.ported,
+          ),
+        ],
+        sourceDescription: 'side protection test moves',
+      );
+
+      expect(report, contains('| fait | 6 |'));
+      expect(report, contains('| partiel | 0 |'));
+      expect(report, contains('| fait | reflect | s_reflect | ported |'));
+      expect(report, contains('| fait | safeguard | s_safe_guard | ported |'));
+      expect(report, contains('| fait | mist | s_mist | ported |'));
+      expect(
+        report,
+        contains('| fait | lucky_chant | s_lucky_chant | ported |'),
+      );
+    });
   });
 }

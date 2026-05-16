@@ -78,6 +78,11 @@ final class BattleMoveSecondaryEffectResolver {
       }
 
       if (status.volatileStatus == PsdkBattleVolatileStatus.confusion &&
+          !_safeguardPreventsVolatileStatus(
+            state: nextState,
+            user: user,
+            target: target,
+          ) &&
           !nextState
               .battlerAt(target)
               .effects
@@ -134,6 +139,35 @@ final class BattleMoveSecondaryEffectResolver {
       events: events,
     );
   }
+}
+
+bool _safeguardPreventsVolatileStatus({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef user,
+  required PsdkBattleSlotRef target,
+}) {
+  if (user == target || state.battlerAt(user).abilityId == 'infiltrator') {
+    return false;
+  }
+  return _bankHasEffect(state, target.bank, 'safeguard');
+}
+
+bool _bankHasEffect(PsdkBattleState state, int bank, String effectId) {
+  return state.combatants.values.any(
+    (combatant) => combatant.effects.effects.any((effect) {
+      if (effect.id != effectId) {
+        return false;
+      }
+      final scope = effect.scope;
+      if (scope is BankBattleEffectScope) {
+        return scope.bank == bank;
+      }
+      if (scope is BattlerBattleEffectScope) {
+        return scope.slot.bank == bank;
+      }
+      return false;
+    }),
+  );
 }
 
 final class BattleMoveSecondaryEffectResult {

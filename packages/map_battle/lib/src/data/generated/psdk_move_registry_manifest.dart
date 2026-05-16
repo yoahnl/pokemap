@@ -1433,9 +1433,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_lucky_chant',
     rubyClass: 'LuckyChant',
     rubyPath: '10 Move/2 Definitions/300 LuckyChant.rb',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialUserBankMarker(s_lucky_chant)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_lucky_chant',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1598,8 +1597,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_mist',
     rubyClass: 'Mist',
     rubyPath: '10 Move/2 Definitions/300 Mist.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_mist)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_mist',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2016,12 +2015,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Reflect',
     rubyPath: '10 Move/2 Definitions/300 LightScreen Reflect.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_reflect',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.item,
-      PsdkMoveDependency.weather
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_reflect_type',
@@ -2205,12 +2200,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_safe_guard',
     rubyClass: 'Safeguard',
     rubyPath: '10 Move/2 Definitions/300 Safeguard.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_safe_guard)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.handlerStatus
-    ],
+    dartBehavior: 'StaticBasicMoveRegistry.s_safe_guard',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_salt_cure',

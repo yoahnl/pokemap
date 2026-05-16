@@ -6,6 +6,7 @@ import '../../psdk/domain/psdk_battle_state.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
 import '../battler/battle_grounding_resolver.dart';
 import '../effect/ability/ability_effect.dart';
+import '../effect/battle_effect_scope.dart';
 import '../effect/status/status_effect_registry.dart';
 import '../move/battle_move_data.dart';
 import '../move/battle_move_prevention.dart';
@@ -302,6 +303,11 @@ bool _isStatusImmune(
   )) {
     return true;
   }
+  if (target != context.user &&
+      _bankHasEffect(context.state, target.bank, 'safeguard') &&
+      context.state.battlerAt(context.user).abilityId != 'infiltrator') {
+    return true;
+  }
   return switch (status) {
     PsdkBattleMajorStatus.burn => battler.hasType('fire'),
     PsdkBattleMajorStatus.poison ||
@@ -314,6 +320,24 @@ bool _isStatusImmune(
         target: target,
       ),
   };
+}
+
+bool _bankHasEffect(PsdkBattleState state, int bank, String effectId) {
+  return state.combatants.values.any(
+    (combatant) => combatant.effects.effects.any((effect) {
+      if (effect.id != effectId) {
+        return false;
+      }
+      final scope = effect.scope;
+      if (scope is BankBattleEffectScope) {
+        return scope.bank == bank;
+      }
+      if (scope is BattlerBattleEffectScope) {
+        return scope.slot.bank == bank;
+      }
+      return false;
+    }),
+  );
 }
 
 bool _isSleepPreventedByTerrain({

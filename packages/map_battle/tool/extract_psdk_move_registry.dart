@@ -582,9 +582,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_lucky_chant': _KnownDartBehavior(
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialUserBankMarker(s_lucky_chant)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_lucky_chant',
+    status: _PsdkPortStatus.ported,
   ),
   's_laser_focus': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_laser_focus)',
@@ -623,8 +622,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_mist': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_mist)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_mist',
+    status: _PsdkPortStatus.ported,
   ),
   's_multi_attack': _KnownDartBehavior(
     dartBehavior: 'TypeBasedMoveBehavior.multiAttack',
@@ -780,7 +779,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_reflect': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_reflect',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_reflect_type': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_reflect_type',
@@ -807,8 +806,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_safe_guard': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_safe_guard)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_safe_guard',
+    status: _PsdkPortStatus.ported,
   ),
   's_secret_power': _KnownDartBehavior(
     dartBehavior: 'FieldLocationMoveBehavior.secretPower',
@@ -1533,11 +1532,9 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
   's_revelation_dance': {
     _PsdkMoveDependency.effects,
   },
-  's_reflect': {
-    _PsdkMoveDependency.effects,
-    _PsdkMoveDependency.item,
-    _PsdkMoveDependency.weather,
-  },
+  's_lucky_chant': {},
+  's_mist': {},
+  's_reflect': {},
   's_reflect_type': {
     _PsdkMoveDependency.effects,
     _PsdkMoveDependency.ability,
@@ -1566,10 +1563,7 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
     _PsdkMoveDependency.history,
     _PsdkMoveDependency.targetingMulti,
   },
-  's_safe_guard': {
-    _PsdkMoveDependency.effects,
-    _PsdkMoveDependency.handlerStatus,
-  },
+  's_safe_guard': {},
   's_secret_power': {
     _PsdkMoveDependency.field,
     _PsdkMoveDependency.handlerStatus,

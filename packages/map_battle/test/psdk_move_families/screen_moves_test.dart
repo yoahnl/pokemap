@@ -105,6 +105,252 @@ void main() {
       );
     });
 
+    test('Light Screen reduces incoming special damage on the protected bank',
+        () {
+      final baseline = _runTurn(
+        playerMove: _move(
+          id: 'player_wait',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          battleEngineMethod: 's_splash',
+          target: PsdkBattleMoveTarget.self,
+        ),
+        opponentMove: _move(
+          id: 'opponent_swift',
+          category: PsdkBattleMoveCategory.special,
+          power: 80,
+        ),
+      );
+      final screened = _runTurn(
+        playerMove: _move(
+          id: 'light_screen',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          battleEngineMethod: 's_reflect',
+          target: PsdkBattleMoveTarget.allAllies,
+        ),
+        opponentMove: _move(
+          id: 'opponent_swift',
+          category: PsdkBattleMoveCategory.special,
+          power: 80,
+        ),
+      );
+
+      expect(
+        _damage(screened, moveId: 'opponent_swift'),
+        _damage(baseline, moveId: 'opponent_swift') ~/ 2,
+      );
+    });
+
+    test('Safeguard blocks slower opposing major status', () {
+      final result = _runTurn(
+        playerMove: _move(
+          id: 'safeguard',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          battleEngineMethod: 's_safe_guard',
+          target: PsdkBattleMoveTarget.allAllies,
+        ),
+        opponentMove: _move(
+          id: 'thunder_wave',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_status',
+          statuses: <PsdkBattleMoveStatus>[
+            PsdkBattleMoveStatus(
+              status: PsdkBattleMajorStatus.paralysis,
+              chance: 100,
+            ),
+          ],
+        ),
+      );
+
+      expect(result.state.battlerAt(psdkPlayerSlot).majorStatus, isNull);
+      expect(
+        result.timeline.events.whereType<PsdkBattleStatusEvent>(),
+        isEmpty,
+      );
+    });
+
+    test('Infiltrator bypasses Safeguard status prevention', () {
+      final result = _runTurn(
+        playerMove: _move(
+          id: 'safeguard',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          battleEngineMethod: 's_safe_guard',
+          target: PsdkBattleMoveTarget.allAllies,
+        ),
+        opponentAbilityId: 'infiltrator',
+        opponentMove: _move(
+          id: 'thunder_wave',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_status',
+          statuses: <PsdkBattleMoveStatus>[
+            PsdkBattleMoveStatus(
+              status: PsdkBattleMajorStatus.paralysis,
+              chance: 100,
+            ),
+          ],
+        ),
+      );
+
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).majorStatus,
+        PsdkBattleMajorStatus.paralysis,
+      );
+      expect(
+        result.timeline.events.whereType<PsdkBattleStatusEvent>(),
+        hasLength(1),
+      );
+    });
+
+    test('Safeguard blocks slower opposing Confusion', () {
+      final result = _runTurn(
+        playerMove: _move(
+          id: 'safeguard',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          battleEngineMethod: 's_safe_guard',
+          target: PsdkBattleMoveTarget.allAllies,
+        ),
+        opponentMove: _move(
+          id: 'confuse_ray',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_status',
+          statuses: <PsdkBattleMoveStatus>[
+            PsdkBattleMoveStatus.volatile(
+              status: PsdkBattleVolatileStatus.confusion,
+              chance: 100,
+            ),
+          ],
+        ),
+      );
+
+      expect(
+        result.state
+            .battlerAt(psdkPlayerSlot)
+            .effects
+            .contains(PsdkBattleEffectIds.confusion),
+        isFalse,
+      );
+    });
+
+    test('side protection moves fail when already active', () {
+      for (final entry in <({String method, String moveId, String effectId})>[
+        (method: 's_safe_guard', moveId: 'safeguard', effectId: 'safeguard'),
+        (method: 's_mist', moveId: 'mist', effectId: 'mist'),
+        (
+          method: 's_lucky_chant',
+          moveId: 'lucky_chant',
+          effectId: 'lucky_chant',
+        ),
+      ]) {
+        final result = _runTurn(
+          playerEffects: PsdkBattleEffectStack(
+            effects: <BattleEffect>[
+              GenericBattleEffect(
+                id: entry.effectId,
+                scope: const BankBattleEffectScope(0),
+                remainingTurns: 3,
+              ),
+            ],
+          ),
+          playerMove: _move(
+            id: entry.moveId,
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            accuracy: 0,
+            battleEngineMethod: entry.method,
+            target: PsdkBattleMoveTarget.allAllies,
+          ),
+          opponentMove: _move(
+            id: 'opponent_wait',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            accuracy: 0,
+          ),
+        );
+
+        expect(
+          result.timeline.events
+              .whereType<PsdkBattleMoveFailedEvent>()
+              .where((event) => event.moveId == entry.moveId),
+          hasLength(1),
+        );
+        expect(
+          result.state
+              .battlerAt(psdkPlayerSlot)
+              .effects
+              .effects
+              .singleWhere((effect) => effect.id == entry.effectId)
+              .remainingTurns,
+          2,
+        );
+      }
+    });
+
+    test('Mist protects its whole bank from opposing stat drops', () {
+      const allySlot = PsdkBattleSlotRef(bank: 0, position: 1);
+      final state = PsdkBattleState(
+        combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+          psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'player',
+              speed: 100,
+              move: _move(id: 'splash', power: 0),
+            ),
+          ),
+          allySlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'ally',
+              speed: 90,
+              move: _move(id: 'splash', power: 0),
+              effects: const PsdkBattleEffectStack.empty().addEffect(
+                const GenericBattleEffect(
+                  id: 'mist',
+                  scope: BankBattleEffectScope(0),
+                ),
+              ),
+            ),
+          ),
+          psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'opponent',
+              speed: 1,
+              move: _move(id: 'tail_whip', power: 0),
+            ),
+          ),
+        },
+      );
+
+      final result = const BattleStatChangeHandler().applyStatChange(
+        context: BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkOpponentSlot,
+        ),
+        target: psdkPlayerSlot,
+        stat: 'defense',
+        stages: -1,
+      );
+
+      expect(result.applied, isFalse);
+      expect(result.reason, 'mist');
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).statStages.valueOf('defense'),
+        0,
+      );
+    });
+
     test('s_baddy_bad damages then installs Reflect on the user bank', () {
       final result = _runTurn(
         playerMove: _move(
@@ -295,6 +541,7 @@ PsdkBattleMoveData _move({
   int accuracy = 100,
   String battleEngineMethod = 's_basic',
   PsdkBattleMoveTarget target = PsdkBattleMoveTarget.adjacentFoe,
+  List<PsdkBattleMoveStatus> statuses = const <PsdkBattleMoveStatus>[],
 }) {
   return PsdkBattleMoveData(
     id: id,
@@ -309,6 +556,7 @@ PsdkBattleMoveData _move({
     criticalRate: 1,
     battleEngineMethod: battleEngineMethod,
     target: target,
+    statuses: statuses,
   );
 }
 
@@ -321,4 +569,13 @@ int _damage(
       .where((event) => event.moveId == moveId)
       .single
       .damage;
+}
+
+BattleRngStreams _rng() {
+  return BattleRngStreams.fromSeeds(
+    moveDamageSeed: 1,
+    moveCriticalSeed: 2,
+    moveAccuracySeed: 3,
+    genericSeed: 4,
+  );
 }

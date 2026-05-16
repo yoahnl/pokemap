@@ -6,8 +6,8 @@ Total registered methods: 330
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 42 |
-| `partial` | 288 |
+| `ported` | 46 |
+| `partial` | 284 |
 | `missing` | 0 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
@@ -167,7 +167,7 @@ Total registered methods: 330
 | `s_life_dew` | `LifeDew` | `10 Move/2 Definitions/300 LifeDew.rb` | `HealMoveBehavior.lifeDew` | `partial` | `handler_damage`, `effects`, `targeting_multi` |
 | `s_lock_on` | `LockOn` | `10 Move/2 Definitions/300 LockOn.rb` | `StaticBasicMoveRegistry.s_lock_on` | `partial` | `-` |
 | `s_low_kick` | `LowKick` | `10 Move/2 Definitions/300 LowKick.rb` | `WeightPowerMoveBehavior.lowKick` | `partial` | `effects`, `ability`, `grounded` |
-| `s_lucky_chant` | `LuckyChant` | `10 Move/2 Definitions/300 LuckyChant.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_lucky_chant)` | `partial` | `-` |
+| `s_lucky_chant` | `LuckyChant` | `10 Move/2 Definitions/300 LuckyChant.rb` | `StaticBasicMoveRegistry.s_lucky_chant` | `ported` | `-` |
 | `s_lunar_dance` | `LunarDance` | `10 Move/2 Definitions/300 HealingSacrifice.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_lunar_dance)` | `partial` | `-` |
 | `s_magic_coat` | `MagicCoat` | `10 Move/2 Definitions/300 MagicCoat.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_magic_coat)` | `partial` | `-` |
 | `s_magic_powder` | `MagicPowder` | `10 Move/2 Definitions/300 MagicPowder.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_magic_powder)` | `partial` | `-` |
@@ -187,7 +187,7 @@ Total registered methods: 330
 | `s_miracle_eye` | `MiracleEye` | `10 Move/2 Definitions/300 MiracleEye.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_miracle_eye)` | `partial` | `-` |
 | `s_mirror_coat` | `MirrorCoat` | `10 Move/2 Definitions/300 Counter moves.rb` | `CounterDamageMoveBehavior.mirrorCoat` | `partial` | `-` |
 | `s_mirror_move` | `MirrorMove` | `10 Move/2 Definitions/300 MirrorMove.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_mirror_move)` | `partial` | `-` |
-| `s_mist` | `Mist` | `10 Move/2 Definitions/300 Mist.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_mist)` | `partial` | `-` |
+| `s_mist` | `Mist` | `10 Move/2 Definitions/300 Mist.rb` | `StaticBasicMoveRegistry.s_mist` | `ported` | `-` |
 | `s_misty_explosion` | `MistyExplosion` | `10 Move/2 Definitions/300 TerrainDamageMoves.rb` | `SelfDestructMoveBehavior.mistyExplosion` | `partial` | `ability`, `faint_process`, `terrain`, `grounded` |
 | `s_multi_attack` | `MultiAttack` | `10 Move/2 Definitions/300 MultiAttack.rb` | `TypeBasedMoveBehavior.multiAttack` | `partial` | `-` |
 | `s_multi_hit` | `MultiHit` | `10 Move/1 Mechanics/103 TwoHit MultiHit.rb` | `MultiHitMoveBehavior.psdkRandom` | `ported` | `-` |
@@ -232,7 +232,7 @@ Total registered methods: 330
 | `s_rapid_spin` | `RapidSpin` | `10 Move/2 Definitions/300 RapidSpin.rb` | `StaticBasicMoveRegistry.s_rapid_spin` | `partial` | `-` |
 | `s_recoil` | `RecoilMove` | `10 Move/2 Definitions/300 RecoilMove.rb` | `RecoilMoveBehavior.psdkRecoil` | `ported` | `handler_damage`, `ability`, `item`, `history` |
 | `s_recycle` | `Recycle` | `10 Move/2 Definitions/300 Recycle.rb` | `ItemDependentMoveBehavior.recycle` | `partial` | `-` |
-| `s_reflect` | `Reflect` | `10 Move/2 Definitions/300 LightScreen Reflect.rb` | `StaticBasicMoveRegistry.s_reflect` | `partial` | `effects`, `item`, `weather` |
+| `s_reflect` | `Reflect` | `10 Move/2 Definitions/300 LightScreen Reflect.rb` | `StaticBasicMoveRegistry.s_reflect` | `ported` | `-` |
 | `s_reflect_type` | `ReflectType` | `10 Move/2 Definitions/300 ReflectType.rb` | `StaticBasicMoveRegistry.s_reflect_type` | `partial` | `effects`, `ability` |
 | `s_relic_song` | `RelicSong` | `10 Move/2 Definitions/300 RelicSong.rb` | `SpecialSecondaryMoveBehavior.relicSong` | `partial` | `-` |
 | `s_reload` | `Reload` | `10 Move/2 Definitions/300 Reload.rb` | `StaticBasicMoveRegistry.s_reload` | `ported` | `effects`, `history`, `action_order` |
@@ -250,7 +250,7 @@ Total registered methods: 330
 | `s_rototiller` | `Rototiller` | `10 Move/2 Definitions/300 Rototiller.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_rototiller)` | `partial` | `-` |
 | `s_round` | `Round` | `10 Move/2 Definitions/300 Round.rb` | `StaticBasicMoveRegistry.partialBasic(s_round)` | `partial` | `action_order`, `history`, `targeting_multi` |
 | `s_sacred_sword` | `SacredSword` | `10 Move/2 Definitions/300 SacredSword.rb` | `CustomStatSourceMoveBehavior.sacredSword` | `partial` | `handler_damage`, `effects` |
-| `s_safe_guard` | `Safeguard` | `10 Move/2 Definitions/300 Safeguard.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_safe_guard)` | `partial` | `effects`, `handler_status` |
+| `s_safe_guard` | `Safeguard` | `10 Move/2 Definitions/300 Safeguard.rb` | `StaticBasicMoveRegistry.s_safe_guard` | `ported` | `-` |
 | `s_salt_cure` | `SaltCure` | `10 Move/2 Definitions/300 SaltCure.rb` | `SpecialSecondaryMoveBehavior.saltCure` | `partial` | `-` |
 | `s_sappy_seed` | `SappySeed` | `10 Move/2 Definitions/300 SappySeed.rb` | `StaticBasicMoveRegistry.s_sappy_seed` | `partial` | `-` |
 | `s_scale_shot` | `ScaleShot` | `10 Move/2 Definitions/300 ScaleShot.rb` | `MultiHitMoveBehavior.scaleShot` | `partial` | `-` |

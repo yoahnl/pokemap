@@ -1,5 +1,7 @@
 import '../../psdk/domain/psdk_battle_slots.dart';
+import '../../psdk/domain/psdk_battle_state.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
+import '../effect/battle_effect_scope.dart';
 import 'battle_handler_context.dart';
 import 'battle_handler_result.dart';
 
@@ -24,7 +26,7 @@ final class BattleStatChangeHandler {
     final battler = context.state.battlerAt(target);
     if (stages < 0 &&
         context.user.bank != target.bank &&
-        battler.effects.contains('mist')) {
+        _bankHasEffect(context.state, target.bank, 'mist')) {
       return BattleHandlerResult(
         state: context.state,
         rng: context.rng,
@@ -67,4 +69,22 @@ final class BattleStatChangeHandler {
       ],
     );
   }
+}
+
+bool _bankHasEffect(PsdkBattleState state, int bank, String effectId) {
+  return state.combatants.values.any(
+    (combatant) => combatant.effects.effects.any((effect) {
+      if (effect.id != effectId) {
+        return false;
+      }
+      final scope = effect.scope;
+      if (scope is BankBattleEffectScope) {
+        return scope.bank == bank;
+      }
+      if (scope is BattlerBattleEffectScope) {
+        return scope.slot.bank == bank;
+      }
+      return false;
+    }),
+  );
 }

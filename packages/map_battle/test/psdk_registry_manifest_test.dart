@@ -842,11 +842,6 @@ void main() {
           behavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_ion_deluge)',
         ),
         (
-          method: 's_lucky_chant',
-          behavior:
-              'StaticBasicMoveRegistry.partialUserBankMarker(s_lucky_chant)',
-        ),
-        (
           method: 's_laser_focus',
           behavior:
               'StaticBasicMoveRegistry.partialTargetMarker(s_laser_focus)',
@@ -886,10 +881,6 @@ void main() {
               'StaticBasicMoveRegistry.partialTargetMarker(s_miracle_eye)',
         ),
         (
-          method: 's_mist',
-          behavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_mist)',
-        ),
-        (
           method: 's_nightmare',
           behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_nightmare)',
         ),
@@ -913,11 +904,6 @@ void main() {
         (
           method: 's_quash',
           behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_quash)',
-        ),
-        (
-          method: 's_safe_guard',
-          behavior:
-              'StaticBasicMoveRegistry.partialUserBankMarker(s_safe_guard)',
         ),
         (
           method: 's_simple_beam',
@@ -1015,10 +1001,25 @@ void main() {
         expect(byMethod[entry.method]!.status, PsdkPortStatus.partial);
         expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
       }
-      expect(byMethod['s_reflect']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_lucky_chant']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_lucky_chant']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_lucky_chant',
+      );
+      expect(byMethod['s_mist']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_mist']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_mist',
+      );
+      expect(byMethod['s_reflect']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_reflect']!.dartBehavior,
         'StaticBasicMoveRegistry.s_reflect',
+      );
+      expect(byMethod['s_safe_guard']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_safe_guard']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_safe_guard',
       );
       expect(byMethod['s_reload']!.status, PsdkPortStatus.ported);
       expect(
@@ -1131,14 +1132,10 @@ void main() {
           PsdkMoveDependency.ability,
         ]),
       );
-      expect(
-        byMethod['s_reflect']!.dependencies,
-        containsAll(<PsdkMoveDependency>[
-          PsdkMoveDependency.effects,
-          PsdkMoveDependency.item,
-          PsdkMoveDependency.weather,
-        ]),
-      );
+      expect(byMethod['s_lucky_chant']!.dependencies, isEmpty);
+      expect(byMethod['s_mist']!.dependencies, isEmpty);
+      expect(byMethod['s_reflect']!.dependencies, isEmpty);
+      expect(byMethod['s_safe_guard']!.dependencies, isEmpty);
       expect(
         byMethod['s_reload']!.dependencies,
         containsAll(<PsdkMoveDependency>[
