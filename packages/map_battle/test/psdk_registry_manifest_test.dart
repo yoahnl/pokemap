@@ -774,6 +774,10 @@ void main() {
               'StaticBasicMoveRegistry.partialTargetMarker(s_ally_switch)',
         ),
         (
+          method: 's_assist',
+          behavior: 'CopyCallMoveBehavior.assist',
+        ),
+        (
           method: 's_autotomize',
           behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_autotomize)',
         ),

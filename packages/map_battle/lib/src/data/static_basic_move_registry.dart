@@ -185,6 +185,7 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     ),
     CopyCallMoveBehavior.sleepTalk(callMove: callMove),
     CopyCallMoveBehavior.metronome(callMove: callMove),
+    CopyCallMoveBehavior.assist(callMove: callMove),
     CopyCallMoveBehavior.mirrorMove(callMove: callMove),
     const CopyCallMoveBehavior.mimic(),
     const CopyCallMoveBehavior.sketch(),
@@ -638,7 +639,6 @@ const _partialBasicDescendantMethods = <String>[
 const _partialTargetMarkerMethods = <String, String>{
   's_after_you': 'after_you',
   's_ally_switch': 'ally_switch',
-  's_assist': 'assist',
   's_autotomize': 'autotomize',
   's_charge': 'charge',
   's_conversion': 'conversion',

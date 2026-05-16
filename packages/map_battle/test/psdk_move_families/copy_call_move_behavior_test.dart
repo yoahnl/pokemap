@@ -145,6 +145,47 @@ void main() {
       expect(_ppSpent(result, moveId: 'scratch'), isEmpty);
     });
 
+    test('s_assist fails after PP when no teammate move can be selected', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'assist',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_assist',
+        ),
+      );
+
+      expect(_failures(result), hasLength(1));
+      expect(_failures(result).single.moveId, 'assist');
+      expect(
+        _failures(result).single.reason,
+        BattleMoveFailureReason.unusableByUser.jsonName,
+      );
+      expect(_ppSpent(result, moveId: 'assist'), hasLength(1));
+    });
+
+    test('s_assist calls a seeded eligible teammate move', () {
+      final result = _resolveMoveWithTeammate(
+        genericSeed: 1,
+        playerMove: _move(
+          id: 'assist',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_assist',
+        ),
+        teammateMoves: <PsdkBattleMoveData>[
+          _move(id: 'tackle', power: 40),
+          _move(id: 'scratch', power: 40),
+        ],
+        opponentCurrentHp: 1,
+      );
+
+      expect(_failuresFromEvents(result.events), isEmpty);
+      expect(_damageEventsFromEvents(result.events, moveId: 'scratch'),
+          hasLength(1));
+      expect(_damageEventsFromEvents(result.events, moveId: 'assist'), isEmpty);
+    });
+
     test('s_mirror_move fails after PP when target has no last move', () {
       final result = _runMove(
         playerMove: _move(
@@ -405,6 +446,61 @@ void main() {
   });
 }
 
+BattleMoveBehaviorResolution _resolveMoveWithTeammate({
+  required PsdkBattleMoveData playerMove,
+  required List<PsdkBattleMoveData> teammateMoves,
+  int genericSeed = 0,
+  int opponentCurrentHp = 100,
+}) {
+  const teammateSlot = PsdkBattleSlotRef(bank: 0, position: 1);
+  final registry = createStaticBasicMoveRegistry();
+  final state = PsdkBattleState(
+    combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+      psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(id: 'player', speed: 100, move: playerMove),
+      ),
+      teammateSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'teammate',
+          speed: 50,
+          move: teammateMoves.first,
+          extraMoves: teammateMoves.skip(1).toList(growable: false),
+        ),
+      ),
+      psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'opponent',
+          speed: 1,
+          currentHp: opponentCurrentHp,
+          move: _move(
+            id: 'opponent_wait',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            accuracy: 1,
+            battleEngineMethod: 's_splash',
+          ),
+        ),
+      ),
+    },
+  );
+  return registry.resolve(playerMove.battleEngineMethod).resolve(
+        BattleMoveBehaviorContext(
+          state: state,
+          rng: BattleRngStreams.fromSeeds(
+            moveDamageSeed: 1,
+            moveCriticalSeed: 99999,
+            moveAccuracySeed: 3,
+            genericSeed: genericSeed,
+          ),
+          turn: 1,
+          user: psdkPlayerSlot,
+          target: psdkOpponentSlot,
+          move: BattleMoveDefinition.fromPsdk(playerMove),
+          moveSlot: 0,
+        ),
+      );
+}
+
 PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
   List<PsdkBattleMoveData> playerExtraMoves = const <PsdkBattleMoveData>[],
@@ -517,6 +613,12 @@ List<PsdkBattleMoveFailedEvent> _failures(PsdkBattleTurnResult result) {
       .toList(growable: false);
 }
 
+List<PsdkBattleMoveFailedEvent> _failuresFromEvents(
+  List<PsdkBattleEvent> events,
+) {
+  return events.whereType<PsdkBattleMoveFailedEvent>().toList(growable: false);
+}
+
 List<PsdkBattleMovePpSpentEvent> _ppSpent(
   PsdkBattleTurnResult result, {
   required String moveId,
@@ -534,6 +636,16 @@ List<PsdkBattleDamageEvent> _damageEvents(
   required String moveId,
 }) {
   return result.timeline.events
+      .whereType<PsdkBattleDamageEvent>()
+      .where((event) => event.moveId == moveId)
+      .toList(growable: false);
+}
+
+List<PsdkBattleDamageEvent> _damageEventsFromEvents(
+  List<PsdkBattleEvent> events, {
+  required String moveId,
+}) {
+  return events
       .whereType<PsdkBattleDamageEvent>()
       .where((event) => event.moveId == moveId)
       .toList(growable: false);

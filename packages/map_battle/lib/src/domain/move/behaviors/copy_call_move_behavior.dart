@@ -15,6 +15,7 @@ typedef BattleCalledMoveResolver = BattleMoveBehaviorResolution Function(
 enum _CopyCallMoveKind {
   sleepTalk,
   metronome,
+  assist,
   mirrorMove,
   mimic,
   sketch,
@@ -31,6 +32,12 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
     required BattleCalledMoveResolver callMove,
   })  : battleEngineMethod = 's_metronome',
         _kind = _CopyCallMoveKind.metronome,
+        _callMove = callMove;
+
+  const CopyCallMoveBehavior.assist({
+    required BattleCalledMoveResolver callMove,
+  })  : battleEngineMethod = 's_assist',
+        _kind = _CopyCallMoveKind.assist,
         _callMove = callMove;
 
   const CopyCallMoveBehavior.mirrorMove({
@@ -70,6 +77,7 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
           : const BattleMoveUserPreventionResult(
               reason: BattleMoveFailureReason.unusableByUser,
             ),
+      _CopyCallMoveKind.assist => null,
       _CopyCallMoveKind.mirrorMove => null,
       _CopyCallMoveKind.mimic => _canUseMimic(context)
           ? null
@@ -94,6 +102,7 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
     return switch (_kind) {
       _CopyCallMoveKind.sleepTalk => _resolveSleepTalk(context),
       _CopyCallMoveKind.metronome => _resolveMetronome(context),
+      _CopyCallMoveKind.assist => _resolveAssist(context),
       _CopyCallMoveKind.mirrorMove => _resolveMirrorMove(context),
       _CopyCallMoveKind.mimic => _resolveMimic(context),
       _CopyCallMoveKind.sketch => _resolveSketch(context),
@@ -156,6 +165,47 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
     );
   }
 
+  BattleMoveBehaviorResolution _resolveAssist(
+    BattleMoveBehaviorContext context,
+  ) {
+    final prepared = prepareBattleMove(context);
+    if (!prepared.shouldExecuteBehavior) {
+      return prepared.toResolution();
+    }
+
+    final selection = _selectAssistMove(context, prepared.rng);
+    if (selection == null) {
+      return _failureAfterPreparation(
+        context: context,
+        prepared: prepared,
+        reason: BattleMoveFailureReason.unusableByUser,
+      );
+    }
+
+    final resolver = _callMove;
+    if (resolver == null) {
+      return _failureAfterPreparation(
+        context: context,
+        prepared: prepared,
+        reason: BattleMoveFailureReason.unusableByUser,
+      );
+    }
+    return resolver(
+      BattleMoveBehaviorContext(
+        state: prepared.state,
+        rng: selection.rng,
+        turn: context.turn,
+        user: context.user,
+        target: context.target,
+        move: context.move,
+        moveSlot: context.moveSlot,
+        isLastActionOfTurn: context.isLastActionOfTurn,
+        moveProcedureHooks: context.moveProcedureHooks,
+      ),
+      BattleMoveDefinition.fromPsdk(selection.move),
+    );
+  }
+
   BattleMoveBehaviorResolution _resolveMirrorMove(
     BattleMoveBehaviorContext context,
   ) {
@@ -166,37 +216,19 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
 
     final copiedMove = _mirrorMoveTargetMove(context);
     if (copiedMove == null) {
-      return BattleMoveBehaviorResolution(
-        state: prepared.state,
-        rng: prepared.rng,
-        successful: false,
-        events: <PsdkBattleEvent>[
-          ...prepared.events,
-          PsdkBattleMoveFailedEvent(
-            user: context.user,
-            target: context.target,
-            moveId: context.move.id,
-            reason: BattleMoveFailureReason.unusableByUser.jsonName,
-          ),
-        ],
+      return _failureAfterPreparation(
+        context: context,
+        prepared: prepared,
+        reason: BattleMoveFailureReason.unusableByUser,
       );
     }
 
     final resolver = _callMove;
     if (resolver == null) {
-      return BattleMoveBehaviorResolution(
-        state: prepared.state,
-        rng: prepared.rng,
-        successful: false,
-        events: <PsdkBattleEvent>[
-          ...prepared.events,
-          PsdkBattleMoveFailedEvent(
-            user: context.user,
-            target: context.target,
-            moveId: context.move.id,
-            reason: BattleMoveFailureReason.unusableByUser.jsonName,
-          ),
-        ],
+      return _failureAfterPreparation(
+        context: context,
+        prepared: prepared,
+        reason: BattleMoveFailureReason.unusableByUser,
       );
     }
     return resolver(
@@ -295,6 +327,27 @@ BattleMoveBehaviorResolution _failure(
   );
 }
 
+BattleMoveBehaviorResolution _failureAfterPreparation({
+  required BattleMoveBehaviorContext context,
+  required PreparedBattleMove prepared,
+  required BattleMoveFailureReason reason,
+}) {
+  return BattleMoveBehaviorResolution(
+    state: prepared.state,
+    rng: prepared.rng,
+    successful: false,
+    events: <PsdkBattleEvent>[
+      ...prepared.events,
+      PsdkBattleMoveFailedEvent(
+        user: context.user,
+        target: context.target,
+        moveId: context.move.id,
+        reason: reason.jsonName,
+      ),
+    ],
+  );
+}
+
 bool _canUseSleepTalk(PsdkBattleCombatant user) {
   final canActWhileAwake = _normalizedId(user.abilityId) == 'comatose';
   return (user.majorStatus == PsdkBattleMajorStatus.sleep ||
@@ -352,6 +405,47 @@ List<PsdkBattleMoveData> _metronomeUsableMoves() {
             move.id,
           )))
       .toList(growable: false);
+}
+
+_SelectedMove? _selectAssistMove(
+  BattleMoveBehaviorContext context,
+  BattleRngStreams rng,
+) {
+  final moves = _assistUsableMoves(context);
+  if (moves.isEmpty) {
+    return null;
+  }
+  final roll = rng.generic.nextIntInclusive(
+    min: 0,
+    max: moves.length - 1,
+  );
+  return _SelectedMove(
+    move: moves[roll.value],
+    rng: rng.copyWith(generic: roll.next),
+  );
+}
+
+List<PsdkBattleMoveData> _assistUsableMoves(BattleMoveBehaviorContext context) {
+  final uniqueMoves = <String, PsdkBattleMoveData>{};
+  for (final entry in context.state.combatants.entries) {
+    if (entry.key == context.user ||
+        entry.key.bank != context.user.bank ||
+        entry.value.isFainted) {
+      continue;
+    }
+    for (final move in entry.value.moves) {
+      final moveId = _normalizedId(
+        move.dbSymbol.isEmpty ? move.id : move.dbSymbol,
+      );
+      if (_assistExcludedMoveIds.contains(moveId) ||
+          _assistExcludedMoveIds.contains(_normalizedId(move.id)) ||
+          uniqueMoves.containsKey(moveId)) {
+        continue;
+      }
+      uniqueMoves[moveId] = move;
+    }
+  }
+  return uniqueMoves.values.toList(growable: false);
 }
 
 bool _canUseMimic(BattleMoveBehaviorContext context) {
@@ -618,6 +712,59 @@ const _mimicExcludedMoveIds = <String>{
   'sketch',
   'struggle',
   'mimic',
+};
+
+const _assistExcludedMoveIds = <String>{
+  'assist',
+  'baneful_bunker',
+  'beak_blast',
+  'belch',
+  'bestow',
+  'bounce',
+  'celebrate',
+  'chatter',
+  'circle_throw',
+  'copycat',
+  'counter',
+  'covet',
+  'destiny_bound',
+  'detect',
+  'dig',
+  'dive',
+  'dragon_tail',
+  'endure',
+  'feint',
+  'fly',
+  'focus_punch',
+  'follow_me',
+  'helping_hand',
+  'hold_hands',
+  'king_s_shield',
+  'mat_block',
+  'me_first',
+  'metronome',
+  'mimic',
+  'mirror_coat',
+  'mirror_move',
+  'nature_power',
+  'phantom_force',
+  'protect',
+  'rage_powder',
+  'roar',
+  'shadow_force',
+  'shell_trap',
+  'sketch',
+  'sky_drop',
+  'sleep_talk',
+  'snatch',
+  'spiky_shield',
+  'spotlight',
+  'struggle',
+  'switcheroo',
+  'thief',
+  'transform',
+  'trick',
+  'whirlwind',
 };
 
 const _copycatExcludedMoveIds = <String>{

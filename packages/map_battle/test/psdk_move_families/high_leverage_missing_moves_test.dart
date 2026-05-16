@@ -2281,12 +2281,6 @@ void main() {
         int power,
       })>[
         (
-          method: 's_assist',
-          moveId: 'assist',
-          category: PsdkBattleMoveCategory.status,
-          power: 0,
-        ),
-        (
           method: 's_beat_up',
           moveId: 'beat_up',
           category: PsdkBattleMoveCategory.physical,

@@ -24,7 +24,7 @@ Total registered methods: 330
 | `s_alluring_voice` | `AlluringVoice` | `10 Move/2 Definitions/300 AlluringVoice.rb` | `SpecialSecondaryMoveBehavior.alluringVoice` | `partial` | `-` |
 | `s_ally_switch` | `AllySwitch` | `10 Move/2 Definitions/300 AllySwitch.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_ally_switch)` | `partial` | `-` |
 | `s_aqua_ring` | `AquaRing` | `10 Move/2 Definitions/300 AquaRing.rb` | `PersistentEffectMoveBehavior.aquaRing` | `partial` | `handler_damage`, `effects`, `end_turn`, `item` |
-| `s_assist` | `Assist` | `10 Move/2 Definitions/300 Assist.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_assist)` | `partial` | `-` |
+| `s_assist` | `Assist` | `10 Move/2 Definitions/300 Assist.rb` | `CopyCallMoveBehavior.assist` | `partial` | `-` |
 | `s_assurance` | `Assurance` | `10 Move/2 Definitions/300 Assurance.rb` | `HistoryPowerMoveBehavior.assurance` | `partial` | `-` |
 | `s_attract` | `Attract` | `10 Move/2 Definitions/300 Attract.rb` | `StaticBasicMoveRegistry.attract` | `partial` | `-` |
 | `s_aura_wheel` | `AuraWheel` | `10 Move/2 Definitions/300 AuraWheel.rb` | `StaticBasicMoveRegistry.partialBasic(s_aura_wheel)` | `partial` | `-` |

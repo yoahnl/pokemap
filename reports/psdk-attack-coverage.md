@@ -61,7 +61,7 @@ Coverage semantics:
 | fait | arm_thrust | s_multi_hit | ported | MultiHitMoveBehavior.psdkRandom | fighting | physical | 15 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/arm_thrust.json |
 | partiel | aromatherapy | s_heal_bell | partial | StatusCureMoveBehavior.healBell | grass | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/aromatherapy.json |
 | partiel | aromatic_mist | s_stat | ported | StatusStatMoveBehavior.stat | fairy | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/aromatic_mist.json |
-| partiel | assist | s_assist | partial | StaticBasicMoveRegistry.partialTargetMarker(s_assist) | normal | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/assist.json |
+| partiel | assist | s_assist | partial | CopyCallMoveBehavior.assist | normal | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/assist.json |
 | partiel | assurance | s_assurance | partial | HistoryPowerMoveBehavior.assurance | dark | physical | 60 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/assurance.json |
 | partiel | astonish | s_basic | ported | StaticBasicMoveRegistry.s_basic | ghost | physical | 30 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/astonish.json |
 | fait | attack_order | s_basic | ported | StaticBasicMoveRegistry.s_basic | bug | physical | 90 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/attack_order.json |
