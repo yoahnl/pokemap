@@ -1310,6 +1310,14 @@ unchanged until more concrete switch-event effects are promoted.
 **Definition of done:**
 - Status/stat prevention can be shared by move, ability, and item effects.
 
+**Status 2026-05-17:** done. Added generic PSDK stat/status hook contexts,
+default effect methods, stack dispatchers, and handler integration for stat
+increase/decrease prevention, stat change rewriting, stat post-change events,
+major-status prevention, and post-status-change/cure events. Regression coverage
+lives in `packages/map_battle/test/psdk_stat_status_hook_test.dart`; legacy
+Mist/Safeguard direct checks remain as compatibility fallbacks while future
+move/ability/item effects migrate onto the object-backed hook path.
+
 ### Lot 44 - Field, Weather, and Terrain Hooks
 
 **Goal:** port weather/terrain change hooks.

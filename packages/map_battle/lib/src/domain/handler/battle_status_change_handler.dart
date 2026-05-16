@@ -6,6 +6,7 @@ import '../../psdk/domain/psdk_battle_state.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
 import '../battler/battle_grounding_resolver.dart';
 import '../effect/ability/ability_effect.dart';
+import '../effect/battle_effect_hooks.dart';
 import '../effect/battle_effect_scope.dart';
 import '../effect/status/status_effect_registry.dart';
 import '../move/battle_move_data.dart';
@@ -46,6 +47,19 @@ final class BattleStatusChangeHandler {
         reason: 'already_statused',
       );
     }
+    final hookPrevention = _statusPreventionReason(
+      context: context,
+      target: target,
+      status: status,
+    );
+    if (hookPrevention != null) {
+      return BattleHandlerResult(
+        state: context.state,
+        rng: context.rng,
+        applied: false,
+        reason: hookPrevention,
+      );
+    }
     if (_isStatusImmune(context, target, targetBattler, status)) {
       return BattleHandlerResult(
         state: context.state,
@@ -55,24 +69,37 @@ final class BattleStatusChangeHandler {
       );
     }
 
-    return BattleHandlerResult(
-      state: context.state.updateBattler(
-        target,
-        (battler) => battler.copyWith(
-          majorStatus: status,
-          sleepTurns:
-              status == PsdkBattleMajorStatus.sleep ? 0 : battler.sleepTurns,
-          toxicCounter:
-              status == PsdkBattleMajorStatus.toxic ? 0 : battler.toxicCounter,
-          effects: battler.effects.addEffect(
-            const StatusEffectRegistry().create(
-              status: status,
-              target: target,
-            ),
+    final baseState = context.state.updateBattler(
+      target,
+      (battler) => battler.copyWith(
+        majorStatus: status,
+        sleepTurns:
+            status == PsdkBattleMajorStatus.sleep ? 0 : battler.sleepTurns,
+        toxicCounter:
+            status == PsdkBattleMajorStatus.toxic ? 0 : battler.toxicCounter,
+        effects: battler.effects.addEffect(
+          const StatusEffectRegistry().create(
+            status: status,
+            target: target,
           ),
         ),
       ),
-      rng: context.rng,
+    );
+    final post = _dispatchPostStatusChange(
+      context: BattleHandlerContext(
+        state: baseState,
+        rng: context.rng,
+        turn: context.turn,
+        user: context.user,
+      ),
+      target: target,
+      status: status,
+      cured: false,
+    );
+
+    return BattleHandlerResult(
+      state: post.state,
+      rng: post.rng,
       events: <PsdkBattleEvent>[
         PsdkBattleStatusEvent(
           user: context.user,
@@ -80,6 +107,7 @@ final class BattleStatusChangeHandler {
           moveId: moveId,
           status: status,
         ),
+        ...post.events,
       ],
     );
   }
@@ -91,6 +119,12 @@ final class BattleStatusChangeHandler {
   }) {
     final targetBattler = context.state.battlerAt(target);
     return targetBattler.majorStatus == null &&
+        _statusPreventionReason(
+              context: context,
+              target: target,
+              status: status,
+            ) ==
+            null &&
         !_isStatusImmune(context, target, targetBattler, status);
   }
 
@@ -110,19 +144,32 @@ final class BattleStatusChangeHandler {
       );
     }
 
-    return BattleHandlerResult(
-      state: context.state.updateBattler(
-        target,
-        (battler) => battler.copyWith(
-          clearMajorStatus: true,
-          sleepTurns:
-              status == PsdkBattleMajorStatus.sleep ? 0 : battler.sleepTurns,
-          toxicCounter:
-              status == PsdkBattleMajorStatus.toxic ? 0 : battler.toxicCounter,
-          effects: battler.effects.remove(status.name),
-        ),
+    final baseState = context.state.updateBattler(
+      target,
+      (battler) => battler.copyWith(
+        clearMajorStatus: true,
+        sleepTurns:
+            status == PsdkBattleMajorStatus.sleep ? 0 : battler.sleepTurns,
+        toxicCounter:
+            status == PsdkBattleMajorStatus.toxic ? 0 : battler.toxicCounter,
+        effects: battler.effects.remove(status.name),
       ),
-      rng: context.rng,
+    );
+    final post = _dispatchPostStatusChange(
+      context: BattleHandlerContext(
+        state: baseState,
+        rng: context.rng,
+        turn: context.turn,
+        user: context.user,
+      ),
+      target: target,
+      status: status,
+      cured: true,
+    );
+
+    return BattleHandlerResult(
+      state: post.state,
+      rng: post.rng,
       events: <PsdkBattleEvent>[
         PsdkBattleStatusCureEvent(
           user: context.user,
@@ -130,6 +177,7 @@ final class BattleStatusChangeHandler {
           moveId: moveId,
           status: status,
         ),
+        ...post.events,
       ],
     );
   }
@@ -207,6 +255,78 @@ final class BattleStatusChangeHandler {
       reason: changed ? null : 'no_status_progression',
     );
   }
+}
+
+String? _statusPreventionReason({
+  required BattleHandlerContext context,
+  required PsdkBattleSlotRef target,
+  required PsdkBattleMajorStatus status,
+}) {
+  for (final owner in _orderedSlots(context.state)) {
+    final reason =
+        context.state.battlerAt(owner).effects.statusPreventionReason(
+              BattleEffectStatusPreventionContext(
+                state: context.state,
+                rng: context.rng,
+                turn: context.turn,
+                owner: owner,
+                user: context.user,
+                target: target,
+                status: status,
+              ),
+            );
+    if (reason != null) {
+      return reason;
+    }
+  }
+  return null;
+}
+
+BattleEffectStatusChangeResult _dispatchPostStatusChange({
+  required BattleHandlerContext context,
+  required PsdkBattleSlotRef target,
+  required PsdkBattleMajorStatus status,
+  required bool cured,
+}) {
+  var nextState = context.state;
+  var nextRng = context.rng;
+  final events = <PsdkBattleEvent>[];
+  var changed = false;
+  for (final owner in _orderedSlots(nextState)) {
+    final result = nextState.battlerAt(owner).effects.dispatchPostStatusChange(
+          BattleEffectStatusChangeContext(
+            state: nextState,
+            rng: nextRng,
+            turn: context.turn,
+            owner: owner,
+            user: context.user,
+            target: target,
+            status: status,
+            cured: cured,
+          ),
+        );
+    nextState = result.state;
+    nextRng = result.rng;
+    events.addAll(result.events);
+    changed = changed || result.applied || result.events.isNotEmpty;
+  }
+  return BattleEffectStatusChangeResult(
+    state: nextState,
+    rng: nextRng,
+    events: events,
+    applied: changed,
+  );
+}
+
+List<PsdkBattleSlotRef> _orderedSlots(PsdkBattleState state) {
+  final slots = state.combatants.keys.toList();
+  slots.sort(_compareSlots);
+  return slots;
+}
+
+int _compareSlots(PsdkBattleSlotRef a, PsdkBattleSlotRef b) {
+  final bank = a.bank.compareTo(b.bank);
+  return bank != 0 ? bank : a.position.compareTo(b.position);
 }
 
 final class BattleStatusUserPreventionResult {

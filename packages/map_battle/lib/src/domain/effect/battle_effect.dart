@@ -86,6 +86,40 @@ abstract class BattleEffect {
   ) {
     return null;
   }
+
+  String? onStatIncreasePrevention(
+    BattleEffectStatChangePreventionContext context,
+  ) {
+    return null;
+  }
+
+  String? onStatDecreasePrevention(
+    BattleEffectStatChangePreventionContext context,
+  ) {
+    return null;
+  }
+
+  int? onStatChange(BattleEffectStatChangeContext context) {
+    return null;
+  }
+
+  BattleEffectStatChangePostResult? onStatChangePost(
+    BattleEffectStatChangeContext context,
+  ) {
+    return null;
+  }
+
+  String? onStatusPrevention(
+    BattleEffectStatusPreventionContext context,
+  ) {
+    return null;
+  }
+
+  BattleEffectStatusChangeResult? onPostStatusChange(
+    BattleEffectStatusChangeContext context,
+  ) {
+    return null;
+  }
 }
 
 /// Passive effect used when legacy/setup code only knows an effect id.

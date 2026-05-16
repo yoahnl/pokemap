@@ -353,6 +353,168 @@ final class BattleEffectObjectStack {
     );
   }
 
+  String? statChangePreventionReason(
+    BattleEffectStatChangePreventionContext context,
+  ) {
+    for (final effect in _effects) {
+      if (!_effectIsStillActive(
+        effect: effect,
+        state: context.state,
+        owner: context.owner,
+      )) {
+        continue;
+      }
+      final reason = context.stages > 0
+          ? effect.onStatIncreasePrevention(context)
+          : effect.onStatDecreasePrevention(context);
+      if (reason != null) {
+        return reason;
+      }
+    }
+    return null;
+  }
+
+  int resolveStatChange(BattleEffectStatChangeContext context) {
+    var stages = context.stages;
+    for (final effect in _effects) {
+      if (!_effectIsStillActive(
+        effect: effect,
+        state: context.state,
+        owner: context.owner,
+      )) {
+        continue;
+      }
+      final changed = effect.onStatChange(
+        BattleEffectStatChangeContext(
+          state: context.state,
+          rng: context.rng,
+          turn: context.turn,
+          owner: context.owner,
+          user: context.user,
+          target: context.target,
+          stat: context.stat,
+          stages: stages,
+          move: context.move,
+        ),
+      );
+      if (changed != null) {
+        stages = changed;
+      }
+    }
+    return stages;
+  }
+
+  BattleEffectStatChangePostResult dispatchStatChangePost(
+    BattleEffectStatChangeContext context,
+  ) {
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+
+    for (final effect in _effects) {
+      if (!_effectIsStillActive(
+        effect: effect,
+        state: nextState,
+        owner: context.owner,
+      )) {
+        continue;
+      }
+      final result = effect.onStatChangePost(
+        BattleEffectStatChangeContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          owner: context.owner,
+          user: context.user,
+          target: context.target,
+          stat: context.stat,
+          stages: context.stages,
+          move: context.move,
+        ),
+      );
+      if (result == null) {
+        continue;
+      }
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      changed = changed || result.applied || result.events.isNotEmpty;
+    }
+
+    return BattleEffectStatChangePostResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: changed,
+    );
+  }
+
+  String? statusPreventionReason(
+    BattleEffectStatusPreventionContext context,
+  ) {
+    for (final effect in _effects) {
+      if (!_effectIsStillActive(
+        effect: effect,
+        state: context.state,
+        owner: context.owner,
+      )) {
+        continue;
+      }
+      final reason = effect.onStatusPrevention(context);
+      if (reason != null) {
+        return reason;
+      }
+    }
+    return null;
+  }
+
+  BattleEffectStatusChangeResult dispatchPostStatusChange(
+    BattleEffectStatusChangeContext context,
+  ) {
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+
+    for (final effect in _effects) {
+      if (!_effectIsStillActive(
+        effect: effect,
+        state: nextState,
+        owner: context.owner,
+      )) {
+        continue;
+      }
+      final result = effect.onPostStatusChange(
+        BattleEffectStatusChangeContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          owner: context.owner,
+          user: context.user,
+          target: context.target,
+          status: context.status,
+          cured: context.cured,
+          move: context.move,
+        ),
+      );
+      if (result == null) {
+        continue;
+      }
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      changed = changed || result.applied || result.events.isNotEmpty;
+    }
+
+    return BattleEffectStatusChangeResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: changed,
+    );
+  }
+
   bool _effectIsStillActive({
     required BattleEffect effect,
     required PsdkBattleState state,

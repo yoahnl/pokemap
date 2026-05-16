@@ -341,6 +341,34 @@ class PsdkBattleEffectStack {
     return _stack.dispatchSwitchEvent(context);
   }
 
+  String? statChangePreventionReason(
+    BattleEffectStatChangePreventionContext context,
+  ) {
+    return _stack.statChangePreventionReason(context);
+  }
+
+  int resolveStatChange(BattleEffectStatChangeContext context) {
+    return _stack.resolveStatChange(context);
+  }
+
+  BattleEffectStatChangePostResult dispatchStatChangePost(
+    BattleEffectStatChangeContext context,
+  ) {
+    return _stack.dispatchStatChangePost(context);
+  }
+
+  String? statusPreventionReason(
+    BattleEffectStatusPreventionContext context,
+  ) {
+    return _stack.statusPreventionReason(context);
+  }
+
+  BattleEffectStatusChangeResult dispatchPostStatusChange(
+    BattleEffectStatusChangeContext context,
+  ) {
+    return _stack.dispatchPostStatusChange(context);
+  }
+
   BattleEffectEndTurnResult dispatchEndTurn(
     BattleEffectEndTurnContext context,
   ) {
