@@ -369,6 +369,90 @@ void main() {
       expect(_ppSpent(result, moveId: 'instruct'), hasLength(1));
     });
 
+    test('s_me_first calls the target announced move before it acts', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'me_first',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_me_first',
+        ),
+        opponentMove: _move(id: 'flamethrower', power: 90),
+        opponentCurrentHp: 1,
+      );
+
+      expect(_failures(result), isEmpty);
+      expect(_damageEvents(result, moveId: 'flamethrower'), hasLength(1));
+      expect(_damageEvents(result, moveId: 'me_first'), isEmpty);
+      expect(
+        _damageEvents(result, moveId: 'flamethrower').single.user.toJson(),
+        psdkPlayerSlot.toJson(),
+      );
+      expect(_ppSpent(result, moveId: 'me_first'), hasLength(1));
+      expect(_ppSpent(result, moveId: 'flamethrower'), isEmpty);
+    });
+
+    test('s_me_first boosts the called move damage', () {
+      final normal = _runMove(
+        playerMove: _move(id: 'tackle', power: 40),
+        opponentCurrentHp: 100,
+      );
+      final boosted = _runMove(
+        playerMove: _move(
+          id: 'me_first',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_me_first',
+        ),
+        opponentMove: _move(id: 'tackle', power: 40),
+        opponentCurrentHp: 100,
+      );
+
+      expect(
+        _damageEvents(boosted, moveId: 'tackle').first.damage,
+        greaterThan(_damageEvents(normal, moveId: 'tackle').first.damage),
+      );
+    });
+
+    test('s_me_first fails after PP when the target already acted', () {
+      final result = _runMove(
+        playerSpeed: 1,
+        opponentSpeed: 100,
+        playerMove: _move(
+          id: 'me_first',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_me_first',
+        ),
+        opponentMove: _move(id: 'tackle', power: 40),
+      );
+
+      expect(_failures(result), hasLength(1));
+      expect(_failures(result).single.moveId, 'me_first');
+      expect(_ppSpent(result, moveId: 'me_first'), hasLength(1));
+    });
+
+    test('s_me_first fails after PP when the target move is excluded', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'me_first',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_me_first',
+        ),
+        opponentMove: _move(
+          id: 'fake_out',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          battleEngineMethod: 's_basic',
+        ),
+      );
+
+      expect(_failures(result), hasLength(1));
+      expect(_failures(result).single.moveId, 'me_first');
+      expect(_ppSpent(result, moveId: 'me_first'), hasLength(1));
+    });
+
     test('s_mimic fails before PP when the target has no successful move', () {
       final result = _runMove(
         playerMove: _move(
@@ -637,6 +721,8 @@ PsdkBattleTurnResult _runMove({
   String? playerAbilityId,
   PsdkBattleMoveData? opponentMove,
   PsdkBattleMoveHistory? opponentMoveHistory,
+  int playerSpeed = 100,
+  int opponentSpeed = 1,
   int opponentCurrentHp = 100,
   PsdkBattleTransformState playerTransformState =
       const PsdkBattleTransformState(),
@@ -647,7 +733,7 @@ PsdkBattleTurnResult _runMove({
     setup: PsdkBattleSetup.singles(
       player: _combatant(
         id: 'player',
-        speed: 100,
+        speed: playerSpeed,
         move: playerMove,
         extraMoves: playerExtraMoves,
         majorStatus: playerMajorStatus,
@@ -656,7 +742,7 @@ PsdkBattleTurnResult _runMove({
       ),
       opponent: _combatant(
         id: 'opponent',
-        speed: 1,
+        speed: opponentSpeed,
         currentHp: opponentCurrentHp,
         move: opponentMove ??
             _move(

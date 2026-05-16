@@ -98,6 +98,7 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
             moveSlot: context.moveSlot,
             isLastActionOfTurn: context.isLastActionOfTurn,
             moveProcedureHooks: context.moveProcedureHooks,
+            announcedMoveFor: context.announcedMoveFor,
           ),
         );
   }
@@ -188,6 +189,7 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     CopyCallMoveBehavior.assist(callMove: callMove),
     CopyCallMoveBehavior.instruct(callMove: callMove),
     CopyCallMoveBehavior.mirrorMove(callMove: callMove),
+    CopyCallMoveBehavior.meFirst(callMove: callMove),
     const CopyCallMoveBehavior.mimic(),
     const CopyCallMoveBehavior.sketch(),
     CallbackBattleMoveBehavior(
@@ -658,7 +660,6 @@ const _partialTargetMarkerMethods = <String, String>{
   's_magic_coat': 'magic_coat',
   's_magic_powder': 'magic_powder',
   's_magnet_rise': 'magnet_rise',
-  's_me_first': 'me_first',
   's_minimize': 'minimize',
   's_miracle_eye': 'miracle_eye',
   's_nightmare': 'nightmare',

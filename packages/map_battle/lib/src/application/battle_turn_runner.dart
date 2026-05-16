@@ -11,6 +11,7 @@ import '../domain/handler/battle_end_turn_handler.dart';
 import '../domain/handler/battle_handler_context.dart';
 import '../domain/handler/battle_handler_result.dart';
 import '../domain/handler/battle_status_change_handler.dart';
+import '../domain/move/battle_move_behavior.dart';
 import '../domain/move/battle_move_data.dart';
 import '../domain/move/battle_move_history_recorder.dart';
 import '../domain/move/battle_move_prevention.dart';
@@ -232,6 +233,11 @@ final class BattleTurnRunner {
                   actionIndex,
                 ),
                 moveProcedureHooks: _moveProcedureHooks,
+                announcedMoveFor: (battler) => _announcedFightActionAfter(
+                  actions,
+                  actionIndex,
+                  battler,
+                ),
               ),
             );
         if (userPrevention != null) {
@@ -315,6 +321,11 @@ final class BattleTurnRunner {
               actionIndex,
             ),
             moveProcedureHooks: _moveProcedureHooks,
+            announcedMoveFor: (battler) => _announcedFightActionAfter(
+              actions,
+              actionIndex,
+              battler,
+            ),
           ),
         );
         _context.applyStateAndRng(
@@ -452,6 +463,31 @@ final class BattleTurnRunner {
       }
     }
     return false;
+  }
+
+  BattleAnnouncedMove? _announcedFightActionAfter(
+    List<PsdkBattleAction> actions,
+    int actionIndex,
+    PsdkBattleSlotRef battler,
+  ) {
+    for (var index = actionIndex + 1; index < actions.length; index++) {
+      final action = actions[index];
+      if (action is! PsdkBattleFightAction || action.user != battler) {
+        continue;
+      }
+      final user = _context.state.battlerAt(action.user);
+      final target = _context.state.battlerAt(action.target);
+      if (user.isFainted || target.isFainted) {
+        return null;
+      }
+      return BattleAnnouncedMove(
+        user: action.user,
+        target: action.target,
+        moveSlot: action.moveSlot,
+        move: action.move,
+      );
+    }
+    return null;
   }
 
   void _recordMoveAttempt({

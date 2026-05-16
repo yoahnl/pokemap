@@ -1,4 +1,5 @@
 import '../../psdk/domain/psdk_battle_slots.dart';
+import '../../psdk/domain/psdk_battle_move.dart';
 import '../../psdk/domain/psdk_battle_state.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
 import '../rng/battle_rng_streams.dart';
@@ -16,6 +17,7 @@ final class BattleMoveBehaviorContext {
     this.moveSlot,
     this.isLastActionOfTurn = false,
     this.moveProcedureHooks = BattleMoveProcedureHooks.none,
+    this.announcedMoveFor,
   });
 
   final PsdkBattleState state;
@@ -27,6 +29,22 @@ final class BattleMoveBehaviorContext {
   final int? moveSlot;
   final bool isLastActionOfTurn;
   final BattleMoveProcedureHooks moveProcedureHooks;
+  final BattleAnnouncedMove? Function(PsdkBattleSlotRef battler)?
+      announcedMoveFor;
+}
+
+final class BattleAnnouncedMove {
+  const BattleAnnouncedMove({
+    required this.user,
+    required this.target,
+    required this.moveSlot,
+    required this.move,
+  });
+
+  final PsdkBattleSlotRef user;
+  final PsdkBattleSlotRef target;
+  final int moveSlot;
+  final PsdkBattleMoveData move;
 }
 
 final class BattleMoveBehaviorResolution {

@@ -1505,7 +1505,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_me_first',
     rubyClass: 'MeFirst',
     rubyPath: '10 Move/2 Definitions/300 Me First.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_me_first)',
+    dartBehavior: 'CopyCallMoveBehavior.meFirst',
     status: PsdkPortStatus.partial,
     dependencies: const <PsdkMoveDependency>[],
   ),

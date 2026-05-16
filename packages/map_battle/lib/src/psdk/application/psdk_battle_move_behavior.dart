@@ -20,6 +20,7 @@ class PsdkBattleMoveContext {
     this.moveSlot,
     this.isLastActionOfTurn = false,
     this.moveProcedureHooks = BattleMoveProcedureHooks.none,
+    this.announcedMoveFor,
   });
 
   final PsdkBattleState state;
@@ -31,6 +32,8 @@ class PsdkBattleMoveContext {
   final int? moveSlot;
   final bool isLastActionOfTurn;
   final BattleMoveProcedureHooks moveProcedureHooks;
+  final BattleAnnouncedMove? Function(PsdkBattleSlotRef battler)?
+      announcedMoveFor;
 }
 
 class PsdkBattleMoveResolution {
@@ -89,6 +92,7 @@ class PsdkBattleMoveBehaviorRegistry {
         moveSlot: context.moveSlot,
         isLastActionOfTurn: context.isLastActionOfTurn,
         moveProcedureHooks: context.moveProcedureHooks,
+        announcedMoveFor: context.announcedMoveFor,
       ),
     );
     return PsdkBattleMoveResolution(
@@ -118,6 +122,7 @@ class PsdkBattleMoveBehaviorRegistry {
         moveSlot: context.moveSlot,
         isLastActionOfTurn: context.isLastActionOfTurn,
         moveProcedureHooks: context.moveProcedureHooks,
+        announcedMoveFor: context.announcedMoveFor,
       ),
     );
   }
@@ -165,6 +170,7 @@ final class _PsdkCallbackMoveBehavior implements BattleMoveBehavior {
         moveSlot: context.moveSlot,
         isLastActionOfTurn: context.isLastActionOfTurn,
         moveProcedureHooks: context.moveProcedureHooks,
+        announcedMoveFor: context.announcedMoveFor,
       ),
     );
     return BattleMoveBehaviorResolution(

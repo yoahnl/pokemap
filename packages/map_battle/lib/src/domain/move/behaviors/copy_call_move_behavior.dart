@@ -19,6 +19,7 @@ enum _CopyCallMoveKind {
   assist,
   instruct,
   mirrorMove,
+  meFirst,
   mimic,
   sketch,
 }
@@ -52,6 +53,12 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
     required BattleCalledMoveResolver callMove,
   })  : battleEngineMethod = 's_mirror_move',
         _kind = _CopyCallMoveKind.mirrorMove,
+        _callMove = callMove;
+
+  const CopyCallMoveBehavior.meFirst({
+    required BattleCalledMoveResolver callMove,
+  })  : battleEngineMethod = 's_me_first',
+        _kind = _CopyCallMoveKind.meFirst,
         _callMove = callMove;
 
   const CopyCallMoveBehavior.mimic()
@@ -88,6 +95,7 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
       _CopyCallMoveKind.assist => null,
       _CopyCallMoveKind.instruct => null,
       _CopyCallMoveKind.mirrorMove => null,
+      _CopyCallMoveKind.meFirst => null,
       _CopyCallMoveKind.mimic => _canUseMimic(context)
           ? null
           : const BattleMoveUserPreventionResult(
@@ -114,6 +122,7 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
       _CopyCallMoveKind.assist => _resolveAssist(context),
       _CopyCallMoveKind.instruct => _resolveInstruct(context),
       _CopyCallMoveKind.mirrorMove => _resolveMirrorMove(context),
+      _CopyCallMoveKind.meFirst => _resolveMeFirst(context),
       _CopyCallMoveKind.mimic => _resolveMimic(context),
       _CopyCallMoveKind.sketch => _resolveSketch(context),
     };
@@ -317,6 +326,53 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
     );
   }
 
+  BattleMoveBehaviorResolution _resolveMeFirst(
+    BattleMoveBehaviorContext context,
+  ) {
+    final prepared = prepareBattleMove(context);
+    if (!prepared.shouldExecuteBehavior) {
+      return prepared.toResolution();
+    }
+
+    final announced = context.announcedMoveFor?.call(context.target);
+    final resolver = _callMove;
+    if (announced == null ||
+        _meFirstExcluded(announced.move) ||
+        resolver == null) {
+      return _failureAfterPreparation(
+        context: context,
+        prepared: prepared,
+        reason: BattleMoveFailureReason.unusableByUser,
+      );
+    }
+
+    final calledMove = _meFirstBoostedMove(announced.move);
+    final called = resolver(
+      BattleMoveBehaviorContext(
+        state: prepared.state,
+        rng: prepared.rng,
+        turn: context.turn,
+        user: context.user,
+        target: context.target,
+        move: context.move,
+        isLastActionOfTurn: context.isLastActionOfTurn,
+        moveProcedureHooks: context.moveProcedureHooks,
+        announcedMoveFor: context.announcedMoveFor,
+      ),
+      calledMove,
+    );
+
+    return BattleMoveBehaviorResolution(
+      state: called.state,
+      rng: called.rng,
+      successful: called.successful,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        ...called.events,
+      ],
+    );
+  }
+
   BattleMoveBehaviorResolution _resolveMimic(
     BattleMoveBehaviorContext context,
   ) {
@@ -470,6 +526,47 @@ bool _canInstructMove(PsdkBattleMoveData move) {
       !_instructExcludedMoveIds.contains(_normalizedId(move.id)) &&
       !_instructExcludedMethods
           .contains(_normalizedId(move.battleEngineMethod));
+}
+
+bool _meFirstExcluded(PsdkBattleMoveData move) {
+  final moveId = _normalizedId(
+    move.dbSymbol.isEmpty ? move.id : move.dbSymbol,
+  );
+  return _meFirstExcludedMoveIds.contains(moveId) ||
+      _meFirstExcludedMoveIds.contains(_normalizedId(move.id));
+}
+
+BattleMoveDefinition _meFirstBoostedMove(PsdkBattleMoveData move) {
+  return BattleMoveDefinition(
+    id: move.id,
+    dbSymbol: move.dbSymbol,
+    name: move.name,
+    type: move.type,
+    category: move.category,
+    power: (move.power * 1.5).floor(),
+    accuracy: 100,
+    pp: 1,
+    currentPp: 1,
+    priority: move.priority,
+    criticalRate: move.criticalRate,
+    effectChance: move.effectChance,
+    battleEngineMethod: move.battleEngineMethod,
+    target: move.target,
+    flags: BattleMoveFlags(
+      protectable: move.protectable,
+      sound: move.sound,
+    ),
+    stageMods: move.stageMods
+        .map(
+          (mod) => BattleStageMod(
+            stat: mod.stat,
+            stages: mod.stages,
+            chance: mod.chance,
+          ),
+        )
+        .toList(growable: false),
+    statuses: move.statuses,
+  );
 }
 
 bool _canUseSleepTalk(PsdkBattleCombatant user) {
@@ -910,6 +1007,12 @@ const _instructExcludedMethods = <String>{
   's_2turns',
   's_reload',
   's_thrash',
+};
+
+const _meFirstExcludedMoveIds = <String>{
+  'me_first',
+  'sucker_punch',
+  'fake_out',
 };
 
 const _copycatExcludedMoveIds = <String>{

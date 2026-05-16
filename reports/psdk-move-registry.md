@@ -176,7 +176,7 @@ Total registered methods: 330
 | `s_magnetic_flux` | `MagneticFlux` | `10 Move/2 Definitions/300 MagneticFlux.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_magnetic_flux)` | `partial` | `-` |
 | `s_magnitude` | `Magnitude` | `10 Move/2 Definitions/300 Magnitude.rb` | `StaticBasicMoveRegistry.s_magnitude` | `partial` | `-` |
 | `s_make_it_rain` | `MakeItRain` | `10 Move/2 Definitions/300 MakeItRain.rb` | `StaticBasicMoveRegistry.s_make_it_rain` | `partial` | `-` |
-| `s_me_first` | `MeFirst` | `10 Move/2 Definitions/300 Me First.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_me_first)` | `partial` | `-` |
+| `s_me_first` | `MeFirst` | `10 Move/2 Definitions/300 Me First.rb` | `CopyCallMoveBehavior.meFirst` | `partial` | `-` |
 | `s_memento` | `Memento` | `10 Move/2 Definitions/300 Memento.rb` | `StaticBasicMoveRegistry.s_memento` | `partial` | `-` |
 | `s_metal_burst` | `MetalBurst` | `10 Move/2 Definitions/300 Counter moves.rb` | `CounterDamageMoveBehavior.metalBurst` | `partial` | `-` |
 | `s_metronome` | `Metronome` | `10 Move/2 Definitions/300 Metronome.rb` | `CopyCallMoveBehavior.metronome` | `partial` | `-` |

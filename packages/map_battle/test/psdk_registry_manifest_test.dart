@@ -910,6 +910,10 @@ void main() {
           behavior: 'CopyCallMoveBehavior.mirrorMove',
         ),
         (
+          method: 's_me_first',
+          behavior: 'CopyCallMoveBehavior.meFirst',
+        ),
+        (
           method: 's_minimize',
           behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_minimize)',
         ),

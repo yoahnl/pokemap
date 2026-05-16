@@ -406,7 +406,7 @@ Coverage semantics:
 | partiel | magnitude | s_magnitude | partial | StaticBasicMoveRegistry.s_magnitude | ground | physical | 0 | 100 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/magnitude.json |
 | partiel | malicious_moonsault | s_malicious_moonsault | partial | StaticBasicMoveRegistry.partialBasic(s_malicious_moonsault) | dark | physical | 180 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/malicious_moonsault.json |
 | partiel | mat_block | s_protect | ported | StaticBasicMoveRegistry.s_protect | fighting | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/mat_block.json |
-| partiel | me_first | s_me_first | partial | StaticBasicMoveRegistry.partialTargetMarker(s_me_first) | normal | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/me_first.json |
+| partiel | me_first | s_me_first | partial | CopyCallMoveBehavior.meFirst | normal | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/me_first.json |
 | fait | mean_look | s_cantflee | ported | StaticBasicMoveRegistry.s_cantflee | normal | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/mean_look.json |
 | fait | meditate | s_self_stat | ported | StatusStatMoveBehavior.selfStat | psychic | status | 0 | 0 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/meditate.json |
 | fait | mega_drain | s_absorb | ported | DrainMoveBehavior.absorb | grass | special | 40 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/mega_drain.json |
