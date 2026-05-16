@@ -61,6 +61,45 @@ void main() {
       expect(_eventKinds(result), isNot(contains('damage')));
     });
 
+    test('s_stat fails when every target stat change is already capped', () {
+      final result = _runMove(
+        opponentStatStages: PsdkBattleStatStages(
+          values: const <String, int>{
+            'attack': -6,
+            'specialAttack': -6,
+          },
+        ),
+        playerMove: _move(
+          id: 'noble_roar',
+          battleEngineMethod: 's_stat',
+          power: 0,
+          category: PsdkBattleMoveCategory.status,
+          stageMods: const <PsdkBattleMoveStageMod>[
+            PsdkBattleMoveStageMod(
+              stat: 'attack',
+              stages: -1,
+              chance: 100,
+            ),
+            PsdkBattleMoveStageMod(
+              stat: 'specialAttack',
+              stages: -1,
+              chance: 100,
+            ),
+          ],
+        ),
+      );
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+
+      expect(opponent.statStages.valueOf('attack'), -6);
+      expect(opponent.statStages.valueOf('specialAttack'), -6);
+      expect(_eventKinds(result), contains('move_failed'));
+      expect(_eventKinds(result), isNot(contains('stat_stage_change')));
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).moveHistory.successfulMoveIds,
+        isNot(contains('noble_roar')),
+      );
+    });
+
     test('s_toxic_thread fails only when poison and Speed drop both fail', () {
       final result = _runMove(
         opponentMajorStatus: PsdkBattleMajorStatus.poison,

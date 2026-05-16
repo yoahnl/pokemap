@@ -255,5 +255,94 @@ void main() {
         contains('| partiel | power_up_punch | s_self_stat | ported |'),
       );
     });
+
+    test('scopes ported s_stat coverage to strict target stat changes', () {
+      final report = generatePsdkAttackCoverageReport(
+        moves: const <PsdkStudioMoveCoverageEntry>[
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'tail_whip',
+            battleEngineMethod: 's_stat',
+            type: 'normal',
+            category: 'status',
+            power: 0,
+            accuracy: '100',
+            pp: 30,
+            effectChance: 100,
+            battleStageModCount: 1,
+            battleStageMods: <PsdkStudioStageModCoverageEntry>[
+              PsdkStudioStageModCoverageEntry(stat: 'defense', stages: -1),
+            ],
+            target: 'adjacent_all_foe',
+            sourceFile: 'tail_whip.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'swords_dance',
+            battleEngineMethod: 's_stat',
+            type: 'normal',
+            category: 'status',
+            power: 0,
+            accuracy: '0',
+            pp: 20,
+            effectChance: 100,
+            battleStageModCount: 1,
+            battleStageMods: <PsdkStudioStageModCoverageEntry>[
+              PsdkStudioStageModCoverageEntry(stat: 'attack', stages: 2),
+            ],
+            target: 'user',
+            sourceFile: 'swords_dance.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'sand_attack',
+            battleEngineMethod: 's_stat',
+            type: 'ground',
+            category: 'status',
+            power: 0,
+            accuracy: '100',
+            pp: 15,
+            effectChance: 100,
+            battleStageModCount: 1,
+            battleStageMods: <PsdkStudioStageModCoverageEntry>[
+              PsdkStudioStageModCoverageEntry(stat: 'accuracy', stages: -1),
+            ],
+            target: 'adjacent_pokemon',
+            sourceFile: 'sand_attack.json',
+          ),
+          PsdkStudioMoveCoverageEntry(
+            dbSymbol: 'swagger',
+            battleEngineMethod: 's_stat',
+            type: 'normal',
+            category: 'status',
+            power: 0,
+            accuracy: '85',
+            pp: 15,
+            effectChance: 100,
+            battleStageModCount: 1,
+            battleStageMods: <PsdkStudioStageModCoverageEntry>[
+              PsdkStudioStageModCoverageEntry(stat: 'attack', stages: 2),
+            ],
+            moveStatusCount: 1,
+            target: 'adjacent_pokemon',
+            sourceFile: 'swagger.json',
+          ),
+        ],
+        manifest: const <PsdkMoveRegistryManifestEntry>[
+          PsdkMoveRegistryManifestEntry(
+            battleEngineMethod: 's_stat',
+            rubyClass: 'StatusStat',
+            rubyPath: 'status_stat.rb',
+            dartBehavior: 'StatusStatMoveBehavior.stat',
+            status: PsdkPortStatus.ported,
+          ),
+        ],
+        sourceDescription: 's_stat test moves',
+      );
+
+      expect(report, contains('| fait | 2 |'));
+      expect(report, contains('| partiel | 2 |'));
+      expect(report, contains('| fait | tail_whip | s_stat | ported |'));
+      expect(report, contains('| fait | swords_dance | s_stat | ported |'));
+      expect(report, contains('| partiel | sand_attack | s_stat | ported |'));
+      expect(report, contains('| partiel | swagger | s_stat | ported |'));
+    });
   });
 }

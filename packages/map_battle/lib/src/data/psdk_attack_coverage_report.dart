@@ -85,6 +85,33 @@ final class PsdkStudioMoveCoverageEntry {
       return mod.stages > 0 && _strictSelfStatBoostStats.contains(mod.stat);
     });
   }
+
+  bool get isStrictTargetStatChange {
+    if (battleEngineMethod != 's_stat') {
+      return false;
+    }
+    if (category.trim().toLowerCase() != 'status' || power != 0) {
+      return false;
+    }
+    if (moveStatusCount != 0) {
+      return false;
+    }
+    if (effectChance != 0 && effectChance != 100) {
+      return false;
+    }
+    final normalizedTarget = target.trim().toLowerCase();
+    if (normalizedTarget.isNotEmpty &&
+        !_strictTargetStatChangeTargets.contains(normalizedTarget)) {
+      return false;
+    }
+    if (battleStageMods.isEmpty ||
+        battleStageMods.length != battleStageModCount) {
+      return false;
+    }
+    return battleStageMods.every((mod) {
+      return mod.stages != 0 && _strictStatChangeStats.contains(mod.stat);
+    });
+  }
 }
 
 final class PsdkStudioStageModCoverageEntry {
@@ -175,6 +202,11 @@ String generatePsdkAttackCoverageReport({
       '- `s_self_stat` is counted as `fait` only for status self-boosts '
       'on supported stats; accuracy/evasion, drops, damage riders and '
       'chance riders remain `partiel`.',
+    )
+    ..writeln(
+      '- `s_stat` is counted as `fait` only for status stage-only moves '
+      'on supported stats and targets; accuracy/evasion and status riders '
+      'remain `partiel`.',
     )
     ..writeln()
     ..writeln('| Metric | Count |')
@@ -311,6 +343,8 @@ String psdkAttackCoverageForMove(
       move.isStrictPlainBasicDamage ? 'fait' : 'partiel',
     PsdkPortStatus.ported when move.battleEngineMethod == 's_self_stat' =>
       move.isStrictSelfStatBoost ? 'fait' : 'partiel',
+    PsdkPortStatus.ported when move.battleEngineMethod == 's_stat' =>
+      move.isStrictTargetStatChange ? 'fait' : 'partiel',
     PsdkPortStatus.ported => 'fait',
     PsdkPortStatus.partial => 'partiel',
     PsdkPortStatus.missing || null => 'pas_fait',
@@ -395,6 +429,22 @@ const _strictSelfStatBoostStats = <String>{
   'specialAttack',
   'specialDefense',
   'speed',
+};
+
+const _strictStatChangeStats = <String>{
+  'attack',
+  'defense',
+  'specialAttack',
+  'specialDefense',
+  'speed',
+};
+
+const _strictTargetStatChangeTargets = <String>{
+  'adjacent_foe',
+  'adjacent_pokemon',
+  'adjacent_all_foe',
+  'user',
+  'self',
 };
 
 String _md(String value) {

@@ -363,6 +363,8 @@ legacy `BattleMoveData` session path untouched.
 
 ### Lot 10 - Strict `s_stat`
 
+**Status 2026-05-16:** done. `s_stat` is now marked `ported` at method level, while attack coverage only counts strict status stage-only moves on supported battle stats and supported targets as `fait`; accuracy/evasion and status riders remain `partiel`. The parity gate moved to 155 / 728 strict attacks and 28 / 330 ported battle methods.
+
 **Goal:** port target stat lowering/raising moves with PSDK accuracy and immunity behavior.
 
 **Files:**

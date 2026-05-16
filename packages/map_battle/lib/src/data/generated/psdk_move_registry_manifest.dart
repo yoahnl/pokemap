@@ -2499,13 +2499,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'StatusStat',
     rubyPath: '10 Move/1 Mechanics/102 Status Stat.rb',
     dartBehavior: 'StatusStatMoveBehavior.stat',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.handlerStatus,
-      PsdkMoveDependency.handlerStat,
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.ability
-    ],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_status',

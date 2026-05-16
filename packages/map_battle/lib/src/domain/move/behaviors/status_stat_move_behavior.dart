@@ -70,6 +70,35 @@ final class StatusStatMoveBehavior implements BattleMoveBehavior {
     required BattleMoveBehaviorContext context,
     required PreparedBattleMove prepared,
   }) {
+    if (context.move.battleEngineMethod == 's_stat' &&
+        _isPureStatusMove(context.move) &&
+        context.move.statuses.isEmpty &&
+        !prepared.psdkTargets.any((target) {
+          return _hasApplicableStageMod(
+            state: prepared.state,
+            user: context.user,
+            target: target,
+            move: context.move,
+          );
+        })) {
+      return BattleMoveBehaviorResolution(
+        state: prepared.state,
+        rng: prepared.rng,
+        events: <PsdkBattleEvent>[
+          ...prepared.events,
+          PsdkBattleMoveFailedEvent(
+            user: context.user,
+            target: prepared.psdkTargets.isEmpty
+                ? context.target
+                : prepared.psdkTargets.first,
+            moveId: context.move.id,
+            reason: BattleMoveFailureReason.unusableByUser.jsonName,
+          ),
+        ],
+        successful: false,
+      );
+    }
+
     final secondary = const BattleMoveSecondaryEffectResolver().resolve(
       state: prepared.state,
       rng: prepared.rng,
@@ -95,6 +124,7 @@ final class StatusStatMoveBehavior implements BattleMoveBehavior {
     if (_isPureStatusMove(context.move) &&
         !_hasApplicableStageMod(
           state: prepared.state,
+          user: context.user,
           target: context.user,
           move: context.move,
         )) {
@@ -269,6 +299,7 @@ bool _isPureStatusMove(BattleMoveDefinition move) {
 
 bool _hasApplicableStageMod({
   required PsdkBattleState state,
+  required PsdkBattleSlotRef user,
   required PsdkBattleSlotRef target,
   required BattleMoveDefinition move,
 }) {
@@ -278,6 +309,11 @@ bool _hasApplicableStageMod({
   final stages = state.battlerAt(target).statStages;
   return move.stageMods.any((mod) {
     if (mod.stages == 0) {
+      return false;
+    }
+    if (mod.stages < 0 &&
+        user.bank != target.bank &&
+        state.battlerAt(target).effects.contains('mist')) {
       return false;
     }
     final currentStage = stages.valueOf(mod.stat);
