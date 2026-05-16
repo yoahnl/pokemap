@@ -1,4 +1,5 @@
 import '../../psdk/domain/psdk_battle_combatant.dart';
+import '../../psdk/domain/psdk_battle_field.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
 import '../battler/battle_grounding_resolver.dart';
 import '../rng/battle_rng_streams.dart';
@@ -104,6 +105,7 @@ final class BattleMoveDamageCalculator {
 int _effectivePower(BattleMoveDamageContext context) {
   var power = context.overrides?.power ?? context.move.power;
   final moveType = _effectiveMoveType(context);
+  power = _terrainAdjustedPower(power, context, moveType);
   if (context.user.effects.contains('charge') && moveType == 'electric') {
     power *= 2;
   }
@@ -114,6 +116,45 @@ int _effectivePower(BattleMoveDamageContext context) {
     power ~/= 2;
   }
   return power;
+}
+
+int _terrainAdjustedPower(
+  int power,
+  BattleMoveDamageContext context,
+  String moveType,
+) {
+  final terrain = context.field.terrain?.id;
+  if (terrain == null || power <= 0) {
+    return power;
+  }
+  final grounding = const BattleGroundingResolver();
+  final userGrounded = grounding.isGrounded(context.user);
+  final targetGrounded = grounding.isGrounded(context.target);
+  final multiplier = switch (terrain) {
+    PsdkBattleTerrainId.electricTerrain when moveType == 'electric' =>
+      userGrounded ? 1.5 : 1.0,
+    PsdkBattleTerrainId.grassyTerrain when moveType == 'grass' =>
+      userGrounded ? 1.5 : 1.0,
+    PsdkBattleTerrainId.grassyTerrain
+        when userGrounded && _isGrassyReducedMove(context.move.dbSymbol) =>
+      0.5,
+    PsdkBattleTerrainId.mistyTerrain when moveType == 'dragon' =>
+      targetGrounded ? 0.5 : 1.0,
+    PsdkBattleTerrainId.psychicTerrain when moveType == 'psychic' =>
+      userGrounded ? 1.5 : 1.0,
+    _ => 1.0,
+  };
+  if (multiplier == 1.0) {
+    return power;
+  }
+  final adjusted = (power * multiplier).floor();
+  return adjusted < 1 ? 1 : adjusted;
+}
+
+bool _isGrassyReducedMove(String dbSymbol) {
+  return dbSymbol == 'earthquake' ||
+      dbSymbol == 'magnitude' ||
+      dbSymbol == 'bulldoze';
 }
 
 String _effectiveMoveType(BattleMoveDamageContext context) {
@@ -209,6 +250,7 @@ final class BattleMoveDamageContext {
     required this.target,
     required this.move,
     required this.rng,
+    this.field = const PsdkBattleFieldState(),
     this.overrides,
   });
 
@@ -216,6 +258,7 @@ final class BattleMoveDamageContext {
   final PsdkBattleCombatant target;
   final BattleMoveDefinition move;
   final BattleRngStreams rng;
+  final PsdkBattleFieldState field;
   final BattleMoveDamageOverrides? overrides;
 }
 

@@ -3,16 +3,16 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 258,
-    "partiel": 470,
+    "fait": 262,
+    "partiel": 466,
     "pasFait": 0,
     "unknownMethods": 0
   },
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 59,
-      "partial": 271,
+      "ported": 63,
+      "partial": 267,
       "missing": 0
     }
   },

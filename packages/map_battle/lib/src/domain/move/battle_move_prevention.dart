@@ -11,6 +11,7 @@ enum BattleMoveFailureReason {
   immunity,
   pp,
   protected,
+  terrain,
 }
 
 extension BattleMoveFailureReasonJson on BattleMoveFailureReason {
@@ -23,6 +24,7 @@ extension BattleMoveFailureReasonJson on BattleMoveFailureReason {
       BattleMoveFailureReason.immunity => 'immunity',
       BattleMoveFailureReason.pp => 'pp',
       BattleMoveFailureReason.protected => 'protected',
+      BattleMoveFailureReason.terrain => 'terrain',
     };
   }
 }

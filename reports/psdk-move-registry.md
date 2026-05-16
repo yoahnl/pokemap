@@ -6,8 +6,8 @@ Total registered methods: 330
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 59 |
-| `partial` | 271 |
+| `ported` | 63 |
+| `partial` | 267 |
 | `missing` | 0 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
@@ -122,7 +122,7 @@ Total registered methods: 330
 | `s_gigaton_hammer` | `GigatonHammer` | `10 Move/2 Definitions/300 GigatonHammer.rb` | `ForcedActionMoveBehavior.gigatonHammer` | `partial` | `-` |
 | `s_glaive_rush` | `GlaiveRush` | `10 Move/2 Definitions/300 GlaiveRush.rb` | `StaticBasicMoveRegistry.s_glaive_rush` | `partial` | `-` |
 | `s_glitzy_glow` | `GlitzyGlow` | `10 Move/2 Definitions/300 GlitzyGlow.rb` | `StaticBasicMoveRegistry.s_glitzy_glow` | `partial` | `-` |
-| `s_grassy_glide` | `GrassyGlide` | `10 Move/2 Definitions/300 TerrainDamageMoves.rb` | `TerrainPowerMoveBehavior.grassyGlide` | `partial` | `terrain`, `grounded`, `action_order` |
+| `s_grassy_glide` | `GrassyGlide` | `10 Move/2 Definitions/300 TerrainDamageMoves.rb` | `TerrainPowerMoveBehavior.grassyGlide` | `ported` | `terrain`, `grounded`, `action_order` |
 | `s_grav_apple` | `GravApple` | `10 Move/2 Definitions/300 GravApple.rb` | `StaticBasicMoveRegistry.s_grav_apple` | `partial` | `-` |
 | `s_gravity` | `Gravity` | `10 Move/2 Definitions/300 Gravity.rb` | `StaticBasicMoveRegistry.partialFieldMarker(s_gravity)` | `partial` | `-` |
 | `s_growth` | `Growth` | `10 Move/2 Definitions/300 Growth.rb` | `AdvancedStatMoveBehavior.growth` | `partial` | `handler_stat`, `weather`, `effects`, `ability` |
@@ -242,7 +242,7 @@ Total registered methods: 330
 | `s_revelation_dance` | `RevelationDance` | `10 Move/2 Definitions/300 RevelationDance.rb` | `TypeBasedMoveBehavior.revelationDance` | `partial` | `effects` |
 | `s_revenge` | `Revenge` | `10 Move/2 Definitions/300 Revenge.rb` | `HistoryPowerMoveBehavior.revenge` | `partial` | `history` |
 | `s_revival_blessing` | `RevivalBlessing` | `10 Move/2 Definitions/300 RevivalBlessing.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_revival_blessing)` | `partial` | `-` |
-| `s_rising_voltage` | `RisingVoltage` | `10 Move/2 Definitions/300 TerrainDamageMoves.rb` | `TerrainPowerMoveBehavior.risingVoltage` | `partial` | `terrain`, `grounded` |
+| `s_rising_voltage` | `RisingVoltage` | `10 Move/2 Definitions/300 TerrainDamageMoves.rb` | `TerrainPowerMoveBehavior.risingVoltage` | `ported` | `terrain`, `grounded` |
 | `s_roar` | `ForceSwitch` | `10 Move/2 Definitions/300 ForceSwitch.rb` | `StaticBasicMoveRegistry.forceSwitch(s_roar)` | `partial` | `handler_switch`, `effects`, `ability` |
 | `s_role_play` | `RolePlay` | `10 Move/2 Definitions/300 AbilityChanging.rb` | `StaticBasicMoveRegistry.partialAbilityChanging(s_role_play)` | `partial` | `ability`, `effects` |
 | `s_rollout` | `Rollout` | `10 Move/2 Definitions/300 Rollout.rb` | `ConsecutivePowerMoveBehavior.rollout` | `partial` | `effects`, `history`, `accuracy` |
@@ -308,9 +308,9 @@ Total registered methods: 330
 | `s_techno_blast` | `TechnoBlast` | `10 Move/2 Definitions/300 TechnoBlast.rb` | `ItemDependentMoveBehavior.technoBlast` | `partial` | `item`, `ability` |
 | `s_telekinesis` | `Telekinesis` | `10 Move/2 Definitions/300 Telekinesis.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_telekinesis)` | `partial` | `-` |
 | `s_teleport` | `Teleport` | `10 Move/2 Definitions/300 Teleport.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_teleport)` | `partial` | `-` |
-| `s_terrain` | `TerrainMove` | `10 Move/2 Definitions/300 TerrainMove.rb` | `TerrainMoveBehavior` | `partial` | `handler_terrain`, `terrain`, `effects`, `item` |
+| `s_terrain` | `TerrainMove` | `10 Move/2 Definitions/300 TerrainMove.rb` | `TerrainMoveBehavior` | `ported` | `handler_terrain`, `terrain`, `effects`, `item` |
 | `s_terrain_boosting` | `TerrainBoosting` | `10 Move/2 Definitions/300 TerrainBoosting.rb` | `TerrainPowerMoveBehavior.terrainBoosting` | `ported` | `-` |
-| `s_terrain_pulse` | `TerrainPulse` | `10 Move/2 Definitions/300 TerrainPulse.rb` | `TerrainPowerMoveBehavior.terrainPulse` | `partial` | `terrain`, `grounded` |
+| `s_terrain_pulse` | `TerrainPulse` | `10 Move/2 Definitions/300 TerrainPulse.rb` | `TerrainPowerMoveBehavior.terrainPulse` | `ported` | `terrain`, `grounded` |
 | `s_thief` | `Thief` | `10 Move/2 Definitions/300 Thief.rb` | `ItemDependentMoveBehavior.thief` | `partial` | `item`, `ability`, `effects` |
 | `s_thing_sport` | `MudSport` | `10 Move/2 Definitions/300 MudSport.rb` | `StaticBasicMoveRegistry.s_thing_sport` | `partial` | `effects`, `field` |
 | `s_thrash` | `Thrash` | `10 Move/2 Definitions/300 Thrash.rb` | `ForcedActionMoveBehavior.thrash` | `partial` | `effects`, `handler_status`, `history` |

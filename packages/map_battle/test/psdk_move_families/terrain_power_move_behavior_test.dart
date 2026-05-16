@@ -122,7 +122,7 @@ void main() {
       );
       final airborneNoTerrain = _runMove(
         field: const PsdkBattleFieldState(),
-        opponentTypes: const PsdkBattleTypes(primary: 'flying'),
+        opponentHeldItemId: 'air_balloon',
         playerMove: _move(
           id: 'rising_voltage',
           type: 'electric',
@@ -153,7 +153,7 @@ void main() {
             remainingTurns: 5,
           ),
         ),
-        opponentTypes: const PsdkBattleTypes(primary: 'flying'),
+        opponentHeldItemId: 'air_balloon',
         playerMove: _move(
           id: 'rising_voltage',
           type: 'electric',
@@ -169,7 +169,11 @@ void main() {
       );
       expect(
         _damage(airborneTarget, moveId: 'rising_voltage'),
-        _damage(airborneNoTerrain, moveId: 'rising_voltage'),
+        greaterThan(_damage(airborneNoTerrain, moveId: 'rising_voltage')),
+      );
+      expect(
+        _damage(groundedTarget, moveId: 'rising_voltage'),
+        greaterThan(_damage(airborneTarget, moveId: 'rising_voltage')),
       );
     });
 
@@ -226,7 +230,149 @@ void main() {
       );
       expect(
         _damage(airborneUser, moveId: 'terrain_pulse'),
-        _damage(noTerrain, moveId: 'terrain_pulse'),
+        greaterThan(_damage(noTerrain, moveId: 'terrain_pulse')),
+      );
+      expect(
+        _damage(electricTerrain, moveId: 'terrain_pulse'),
+        greaterThan(_damage(airborneUser, moveId: 'terrain_pulse')),
+      );
+    });
+
+    test('s_terrain_pulse keeps terrain type changes for airborne users', () {
+      final noTerrain = _runMove(
+        field: const PsdkBattleFieldState(),
+        playerTypes: const PsdkBattleTypes(primary: 'flying'),
+        opponentTypes: const PsdkBattleTypes(primary: 'water'),
+        playerMove: _move(
+          id: 'terrain_pulse',
+          type: 'normal',
+          category: PsdkBattleMoveCategory.special,
+          power: 50,
+          battleEngineMethod: 's_terrain_pulse',
+        ),
+      );
+      final airborneElectricTerrain = _runMove(
+        field: const PsdkBattleFieldState(
+          terrain: PsdkBattleTerrainState(
+            id: PsdkBattleTerrainId.electricTerrain,
+            remainingTurns: 5,
+          ),
+        ),
+        playerTypes: const PsdkBattleTypes(primary: 'flying'),
+        opponentTypes: const PsdkBattleTypes(primary: 'water'),
+        playerMove: _move(
+          id: 'terrain_pulse',
+          type: 'normal',
+          category: PsdkBattleMoveCategory.special,
+          power: 50,
+          battleEngineMethod: 's_terrain_pulse',
+        ),
+      );
+
+      expect(
+        _damage(airborneElectricTerrain, moveId: 'terrain_pulse'),
+        greaterThan(_damage(noTerrain, moveId: 'terrain_pulse')),
+      );
+    });
+
+    test('Electric Terrain boosts grounded Electric moves only', () {
+      final noTerrain = _runMove(
+        field: const PsdkBattleFieldState(),
+        playerMove: _move(
+          id: 'thunderbolt',
+          type: 'electric',
+          category: PsdkBattleMoveCategory.special,
+          power: 90,
+        ),
+      );
+      final grounded = _runMove(
+        field: const PsdkBattleFieldState(
+          terrain: PsdkBattleTerrainState(
+            id: PsdkBattleTerrainId.electricTerrain,
+            remainingTurns: 5,
+          ),
+        ),
+        playerMove: _move(
+          id: 'thunderbolt',
+          type: 'electric',
+          category: PsdkBattleMoveCategory.special,
+          power: 90,
+        ),
+      );
+      final airborne = _runMove(
+        field: const PsdkBattleFieldState(
+          terrain: PsdkBattleTerrainState(
+            id: PsdkBattleTerrainId.electricTerrain,
+            remainingTurns: 5,
+          ),
+        ),
+        playerTypes: const PsdkBattleTypes(primary: 'flying'),
+        playerMove: _move(
+          id: 'thunderbolt',
+          type: 'electric',
+          category: PsdkBattleMoveCategory.special,
+          power: 90,
+        ),
+      );
+
+      expect(
+        _damage(grounded, moveId: 'thunderbolt'),
+        greaterThan(_damage(noTerrain, moveId: 'thunderbolt')),
+      );
+      expect(
+        _damage(airborne, moveId: 'thunderbolt'),
+        _damage(noTerrain, moveId: 'thunderbolt'),
+      );
+    });
+
+    test('Misty Terrain halves Dragon damage against grounded targets only',
+        () {
+      final noTerrain = _runMove(
+        field: const PsdkBattleFieldState(),
+        playerMove: _move(
+          id: 'dragon_pulse',
+          type: 'dragon',
+          category: PsdkBattleMoveCategory.special,
+          power: 85,
+        ),
+      );
+      final groundedTarget = _runMove(
+        field: const PsdkBattleFieldState(
+          terrain: PsdkBattleTerrainState(
+            id: PsdkBattleTerrainId.mistyTerrain,
+            remainingTurns: 5,
+          ),
+        ),
+        playerMove: _move(
+          id: 'dragon_pulse',
+          type: 'dragon',
+          category: PsdkBattleMoveCategory.special,
+          power: 85,
+        ),
+      );
+      final airborneTarget = _runMove(
+        field: const PsdkBattleFieldState(
+          terrain: PsdkBattleTerrainState(
+            id: PsdkBattleTerrainId.mistyTerrain,
+            remainingTurns: 5,
+          ),
+        ),
+        opponentTypes: const PsdkBattleTypes(primary: 'flying'),
+        playerMove: _move(
+          id: 'dragon_pulse',
+          type: 'dragon',
+          category: PsdkBattleMoveCategory.special,
+          power: 85,
+        ),
+      );
+
+      expect(
+        _damage(groundedTarget, moveId: 'dragon_pulse'),
+        lessThan(_damage(noTerrain, moveId: 'dragon_pulse')),
+      );
+      expect(
+        _damage(airborneTarget, moveId: 'dragon_pulse'),
+        _damage(noTerrain, moveId: 'dragon_pulse'),
       );
     });
 
@@ -256,6 +402,105 @@ void main() {
       expect(
         _declaredMoveIds(result).take(2).toList(growable: false),
         <String>['grassy_glide', 'opponent_tackle'],
+      );
+    });
+
+    test('Psychic Terrain blocks priority moves against grounded targets', () {
+      final groundedTarget = _runMove(
+        field: const PsdkBattleFieldState(
+          terrain: PsdkBattleTerrainState(
+            id: PsdkBattleTerrainId.psychicTerrain,
+            remainingTurns: 5,
+          ),
+        ),
+        playerMove: _move(
+          id: 'quick_attack',
+          power: 40,
+          priority: 1,
+        ),
+      );
+      final airborneTarget = _runMove(
+        field: const PsdkBattleFieldState(
+          terrain: PsdkBattleTerrainState(
+            id: PsdkBattleTerrainId.psychicTerrain,
+            remainingTurns: 5,
+          ),
+        ),
+        opponentTypes: const PsdkBattleTypes(primary: 'flying'),
+        playerMove: _move(
+          id: 'quick_attack',
+          power: 40,
+          priority: 1,
+        ),
+      );
+
+      expect(_damageEvents(groundedTarget, moveId: 'quick_attack'), isEmpty);
+      expect(
+        groundedTarget.timeline.events.whereType<PsdkBattleMoveFailedEvent>(),
+        isNotEmpty,
+      );
+      expect(
+        _damage(airborneTarget, moveId: 'quick_attack'),
+        greaterThan(0),
+      );
+    });
+
+    test('Grassy Terrain heals grounded battlers at end turn before expiring',
+        () {
+      final result = _runMove(
+        field: const PsdkBattleFieldState(
+          terrain: PsdkBattleTerrainState(
+            id: PsdkBattleTerrainId.grassyTerrain,
+            remainingTurns: 2,
+          ),
+        ),
+        playerCurrentHp: 50,
+        opponentCurrentHp: 50,
+        opponentTypes: const PsdkBattleTypes(primary: 'flying'),
+        playerMove: _move(
+          id: 'splash',
+          power: 0,
+          accuracy: 0,
+          category: PsdkBattleMoveCategory.status,
+          battleEngineMethod: 's_splash',
+        ),
+      );
+
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 56);
+      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 50);
+      expect(
+        result.timeline.events
+            .whereType<PsdkBattleHealEvent>()
+            .map((event) => event.moveId),
+        contains('terrain:grassy_terrain'),
+      );
+      expect(result.state.field.terrain?.remainingTurns, 1);
+    });
+
+    test('s_terrain applies Terrain Extender duration', () {
+      final result = _runMove(
+        field: const PsdkBattleFieldState(),
+        playerHeldItemId: 'terrain_extender',
+        playerMove: _move(
+          id: 'electric_terrain',
+          type: 'electric',
+          power: 0,
+          accuracy: 0,
+          category: PsdkBattleMoveCategory.status,
+          battleEngineMethod: 's_terrain',
+          target: PsdkBattleMoveTarget.user,
+        ),
+      );
+
+      expect(
+          result.state.field.terrain?.id, PsdkBattleTerrainId.electricTerrain);
+      expect(result.state.field.terrain?.remainingTurns, 7);
+      expect(
+        result.timeline.events
+            .whereType<PsdkBattleTerrainChangedEvent>()
+            .single
+            .remainingTurns,
+        8,
       );
     });
 
@@ -340,8 +585,12 @@ PsdkBattleTurnResult _runMove({
   PsdkBattleMoveData? opponentMove,
   PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'fire'),
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
+  int playerCurrentHp = 100,
+  int opponentCurrentHp = 100,
   int playerSpeed = 100,
   int opponentSpeed = 1,
+  String? playerHeldItemId,
+  String? opponentHeldItemId,
 }) {
   final engine = PsdkBattleEngine(
     setup: PsdkBattleSetup.singles(
@@ -350,11 +599,15 @@ PsdkBattleTurnResult _runMove({
         types: playerTypes,
         speed: playerSpeed,
         move: playerMove,
+        currentHp: playerCurrentHp,
+        heldItemId: playerHeldItemId,
       ),
       opponent: _combatant(
         id: 'opponent',
         types: opponentTypes,
         speed: opponentSpeed,
+        currentHp: opponentCurrentHp,
+        heldItemId: opponentHeldItemId,
         move: opponentMove ??
             _move(
               id: 'opponent_wait',
@@ -381,6 +634,8 @@ PsdkBattleCombatantSetup _combatant({
   required PsdkBattleTypes types,
   required int speed,
   required PsdkBattleMoveData move,
+  int currentHp = 100,
+  String? heldItemId,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -388,7 +643,7 @@ PsdkBattleCombatantSetup _combatant({
     displayName: id,
     level: 20,
     maxHp: 100,
-    currentHp: 100,
+    currentHp: currentHp,
     types: types,
     stats: PsdkBattleStats(
       attack: 50,
@@ -397,6 +652,7 @@ PsdkBattleCombatantSetup _combatant({
       specialDefense: 50,
       speed: speed,
     ),
+    heldItemId: heldItemId,
     moves: <PsdkBattleMoveData>[move],
   );
 }
@@ -415,6 +671,8 @@ PsdkBattleMoveData _move({
   required int power,
   int accuracy = 100,
   String battleEngineMethod = 's_basic',
+  int priority = 0,
+  PsdkBattleMoveTarget target = PsdkBattleMoveTarget.adjacentFoe,
 }) {
   return PsdkBattleMoveData(
     id: id,
@@ -425,11 +683,21 @@ PsdkBattleMoveData _move({
     power: power,
     accuracy: accuracy,
     pp: 35,
-    priority: 0,
+    priority: priority,
     criticalRate: 1,
     battleEngineMethod: battleEngineMethod,
-    target: PsdkBattleMoveTarget.adjacentFoe,
+    target: target,
   );
+}
+
+List<PsdkBattleDamageEvent> _damageEvents(
+  PsdkBattleTurnResult result, {
+  required String moveId,
+}) {
+  return result.timeline.events
+      .whereType<PsdkBattleDamageEvent>()
+      .where((event) => event.moveId == moveId)
+      .toList(growable: false);
 }
 
 int _damage(

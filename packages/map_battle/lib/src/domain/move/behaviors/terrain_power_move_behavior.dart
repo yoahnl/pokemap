@@ -58,7 +58,6 @@ final class TerrainPowerMoveBehavior implements BattleMoveBehavior {
     final effectiveMove = _effectiveMove(
       context.move,
       prepared.state.field,
-      userGrounded: const BattleGroundingResolver().isGrounded(user),
     );
     final resolvedPower = _resolvePower(
       movePower: context.move.power,
@@ -73,6 +72,7 @@ final class TerrainPowerMoveBehavior implements BattleMoveBehavior {
         target: target,
         move: effectiveMove,
         rng: prepared.rng,
+        field: prepared.state.field,
         overrides: BattleMoveDamageOverrides(power: resolvedPower),
       ),
     );
@@ -141,12 +141,9 @@ final class TerrainPowerMoveBehavior implements BattleMoveBehavior {
 
   BattleMoveDefinition _effectiveMove(
     BattleMoveDefinition move,
-    PsdkBattleFieldState field, {
-    required bool userGrounded,
-  }) {
-    if (_kind != _TerrainPowerKind.terrainPulse ||
-        !field.hasTerrain ||
-        !userGrounded) {
+    PsdkBattleFieldState field,
+  ) {
+    if (_kind != _TerrainPowerKind.terrainPulse || !field.hasTerrain) {
       return move;
     }
     return _copyMove(

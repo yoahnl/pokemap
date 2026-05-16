@@ -308,6 +308,13 @@ bool _isStatusImmune(
       context.state.battlerAt(context.user).abilityId != 'infiltrator') {
     return true;
   }
+  if (_isStatusPreventedByTerrain(
+    context: context,
+    target: target,
+    status: status,
+  )) {
+    return true;
+  }
   return switch (status) {
     PsdkBattleMajorStatus.burn => battler.hasType('fire'),
     PsdkBattleMajorStatus.poison ||
@@ -315,10 +322,7 @@ bool _isStatusImmune(
       battler.hasType('poison') || battler.hasType('steel'),
     PsdkBattleMajorStatus.paralysis => battler.hasType('electric'),
     PsdkBattleMajorStatus.freeze => battler.hasType('ice'),
-    PsdkBattleMajorStatus.sleep => _isSleepPreventedByTerrain(
-        context: context,
-        target: target,
-      ),
+    PsdkBattleMajorStatus.sleep => false,
   };
 }
 
@@ -340,18 +344,24 @@ bool _bankHasEffect(PsdkBattleState state, int bank, String effectId) {
   );
 }
 
-bool _isSleepPreventedByTerrain({
+bool _isStatusPreventedByTerrain({
   required BattleHandlerContext context,
   required PsdkBattleSlotRef target,
+  required PsdkBattleMajorStatus status,
 }) {
   final terrainId = context.state.field.terrain?.id;
-  if (terrainId != PsdkBattleTerrainId.electricTerrain &&
-      terrainId != PsdkBattleTerrainId.mistyTerrain) {
-    return false;
-  }
-  return const BattleGroundingResolver().isGrounded(
+  final grounded = const BattleGroundingResolver().isGrounded(
     context.state.battlerAt(target),
   );
+  if (!grounded) {
+    return false;
+  }
+  return switch (terrainId) {
+    PsdkBattleTerrainId.electricTerrain =>
+      status == PsdkBattleMajorStatus.sleep,
+    PsdkBattleTerrainId.mistyTerrain => true,
+    _ => false,
+  };
 }
 
 int _endTurnDamage(

@@ -71,6 +71,67 @@ void main() {
       });
     }
 
+    test('Misty Terrain blocks major statuses on grounded targets', () {
+      final context = BattleHandlerContext(
+        state: PsdkBattleState.fromSetup(
+          _setup(
+            field: const PsdkBattleFieldState(
+              terrain: PsdkBattleTerrainState(
+                id: PsdkBattleTerrainId.mistyTerrain,
+                remainingTurns: 5,
+              ),
+            ),
+          ),
+        ),
+        rng: _rng(),
+        turn: 1,
+        user: psdkPlayerSlot,
+      );
+
+      final burn = const BattleStatusChangeHandler().applyMajorStatus(
+        context: context,
+        target: psdkOpponentSlot,
+        moveId: 'will_o_wisp',
+        status: PsdkBattleMajorStatus.burn,
+      );
+
+      expect(burn.applied, isFalse);
+      expect(burn.reason, 'status_immune');
+      expect(burn.state.battlerAt(psdkOpponentSlot).majorStatus, isNull);
+    });
+
+    test('Misty Terrain does not block airborne target statuses', () {
+      final context = BattleHandlerContext(
+        state: PsdkBattleState.fromSetup(
+          _setup(
+            opponentTypes: const PsdkBattleTypes(primary: 'flying'),
+            field: const PsdkBattleFieldState(
+              terrain: PsdkBattleTerrainState(
+                id: PsdkBattleTerrainId.mistyTerrain,
+                remainingTurns: 5,
+              ),
+            ),
+          ),
+        ),
+        rng: _rng(),
+        turn: 1,
+        user: psdkPlayerSlot,
+      );
+
+      final burn = const BattleStatusChangeHandler().applyMajorStatus(
+        context: context,
+        target: psdkOpponentSlot,
+        moveId: 'will_o_wisp',
+        status: PsdkBattleMajorStatus.burn,
+      );
+
+      expect(burn.applied, isTrue);
+      expect(
+        burn.state.battlerAt(psdkOpponentSlot).majorStatus,
+        PsdkBattleMajorStatus.burn,
+      );
+    });
+
     test('end turn applies burn poison and toxic residual damage', () {
       final state = PsdkBattleState(
         combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{

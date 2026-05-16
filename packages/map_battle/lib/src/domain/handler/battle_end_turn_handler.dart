@@ -1,5 +1,8 @@
+import '../../psdk/domain/psdk_battle_field.dart';
+import '../battler/battle_grounding_resolver.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
 import '../effect/battle_effect_hooks.dart';
+import 'battle_heal_handler.dart';
 import 'battle_handler_context.dart';
 import 'battle_handler_result.dart';
 import 'battle_status_change_handler.dart';
@@ -116,13 +119,16 @@ final class BattleEndTurnHandler {
 
   BattleHandlerResult tickField(BattleHandlerContext context) {
     final field = context.state.field;
+    var nextState = context.state;
     var nextField = field;
     final events = <PsdkBattleEvent>[];
+    var changed = false;
 
     final weather = field.weather;
     if (weather != null) {
       final nextWeather = weather.tickEndTurn();
       nextField = nextField.copyWith(weather: nextWeather);
+      changed = changed || weather != nextWeather;
       if (nextWeather == null) {
         events.add(
           PsdkBattleWeatherChangedEvent(
@@ -137,7 +143,22 @@ final class BattleEndTurnHandler {
     final terrain = field.terrain;
     if (terrain != null) {
       final nextTerrain = terrain.tickEndTurn();
+      if (terrain.id == PsdkBattleTerrainId.grassyTerrain &&
+          nextTerrain != null) {
+        final grassy = _healGrassyTerrain(
+          context: BattleHandlerContext(
+            state: nextState,
+            rng: context.rng,
+            turn: context.turn,
+            user: context.user,
+          ),
+        );
+        nextState = grassy.state;
+        events.addAll(grassy.events);
+        changed = changed || grassy.applied;
+      }
       nextField = nextField.copyWith(terrain: nextTerrain);
+      changed = changed || terrain != nextTerrain;
       if (nextTerrain == null) {
         events.add(
           PsdkBattleTerrainChangedEvent(
@@ -149,14 +170,64 @@ final class BattleEndTurnHandler {
       }
     }
 
-    final changed =
-        weather != nextField.weather || terrain != nextField.terrain;
     return BattleHandlerResult(
-      state: changed ? context.state.copyWith(field: nextField) : context.state,
+      state: changed ? nextState.copyWith(field: nextField) : context.state,
       rng: context.rng,
       events: events,
       applied: changed,
       reason: changed ? null : 'no_field_progression',
+    );
+  }
+
+  BattleHandlerResult _healGrassyTerrain({
+    required BattleHandlerContext context,
+  }) {
+    var nextState = context.state;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+
+    for (final slot in context.state.aliveSlots()) {
+      final battler = nextState.battlerAt(slot);
+      if (battler.isFainted ||
+          !const BattleGroundingResolver().isGrounded(battler)) {
+        continue;
+      }
+      final amount = battler.maxHp ~/ 16;
+      if (amount <= 0 || battler.currentHp >= battler.maxHp) {
+        continue;
+      }
+      final result = const BattleHealHandler().heal(
+        context: BattleHandlerContext(
+          state: nextState,
+          rng: context.rng,
+          turn: context.turn,
+          user: context.user,
+        ),
+        target: slot,
+        amount: amount,
+      );
+      if (!result.applied) {
+        continue;
+      }
+      nextState = result.state;
+      changed = true;
+      events.add(
+        PsdkBattleHealEvent(
+          user: context.user,
+          target: slot,
+          moveId: 'terrain:grassy_terrain',
+          amount: result.amount,
+          remainingHp: nextState.battlerAt(slot).currentHp,
+        ),
+      );
+    }
+
+    return BattleHandlerResult(
+      state: nextState,
+      rng: context.rng,
+      events: events,
+      applied: changed,
+      reason: changed ? null : 'no_grassy_terrain_heal',
     );
   }
 }

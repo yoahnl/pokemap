@@ -999,7 +999,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'GrassyGlide',
     rubyPath: '10 Move/2 Definitions/300 TerrainDamageMoves.rb',
     dartBehavior: 'TerrainPowerMoveBehavior.grassyGlide',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.terrain,
       PsdkMoveDependency.grounded,
@@ -2113,7 +2113,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'RisingVoltage',
     rubyPath: '10 Move/2 Definitions/300 TerrainDamageMoves.rb',
     dartBehavior: 'TerrainPowerMoveBehavior.risingVoltage',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.terrain,
       PsdkMoveDependency.grounded
@@ -2738,7 +2738,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'TerrainMove',
     rubyPath: '10 Move/2 Definitions/300 TerrainMove.rb',
     dartBehavior: 'TerrainMoveBehavior',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.handlerTerrain,
       PsdkMoveDependency.terrain,
@@ -2759,7 +2759,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'TerrainPulse',
     rubyPath: '10 Move/2 Definitions/300 TerrainPulse.rb',
     dartBehavior: 'TerrainPowerMoveBehavior.terrainPulse',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.terrain,
       PsdkMoveDependency.grounded

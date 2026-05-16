@@ -1333,19 +1333,19 @@ void main() {
         byMethod['s_expanding_force']!.dartBehavior,
         'TerrainPowerMoveBehavior.expandingForce',
       );
-      expect(byMethod['s_grassy_glide']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_grassy_glide']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_grassy_glide']!.dartBehavior,
         'TerrainPowerMoveBehavior.grassyGlide',
       );
-      expect(byMethod['s_rising_voltage']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_rising_voltage']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_rising_voltage']!.dartBehavior,
         'TerrainPowerMoveBehavior.risingVoltage',
       );
-      expect(byMethod['s_terrain']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_terrain']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_terrain']!.dartBehavior, 'TerrainMoveBehavior');
-      expect(byMethod['s_terrain_pulse']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_terrain_pulse']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_terrain_pulse']!.dartBehavior,
         'TerrainPowerMoveBehavior.terrainPulse',

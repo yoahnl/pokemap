@@ -27,8 +27,8 @@ Coverage semantics:
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 258 |
-| partiel | 470 |
+| fait | 262 |
+| partiel | 466 |
 | pas_fait | 0 |
 | unknown_methods | 0 |
 
@@ -205,7 +205,7 @@ Coverage semantics:
 | partiel | echoed_voice | s_echo | partial | ConsecutivePowerMoveBehavior.echoedVoice | normal | special | 40 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/echoed_voice.json |
 | fait | eerie_impulse | s_stat | ported | StatusStatMoveBehavior.stat | electric | status | 0 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/eerie_impulse.json |
 | fait | egg_bomb | s_basic | ported | StaticBasicMoveRegistry.s_basic | normal | physical | 100 | 75 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/egg_bomb.json |
-| partiel | electric_terrain | s_terrain | partial | TerrainMoveBehavior | electric | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/electric_terrain.json |
+| fait | electric_terrain | s_terrain | ported | TerrainMoveBehavior | electric | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/electric_terrain.json |
 | partiel | electrify | s_electrify | partial | StaticBasicMoveRegistry.partialTargetMarker(s_electrify) | electric | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/electrify.json |
 | fait | electro_ball | s_electro_ball | ported | VariablePowerMoveBehavior.electroBall | electric | special | 0 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/electro_ball.json |
 | partiel | electroweb | s_basic | ported | StaticBasicMoveRegistry.s_basic | electric | special | 55 | 95 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/electroweb.json |
@@ -289,7 +289,7 @@ Coverage semantics:
 | partiel | grass_knot | s_low_kick | partial | WeightPowerMoveBehavior.lowKick | grass | special | 0 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/grass_knot.json |
 | partiel | grass_pledge | s_pledge | partial | FieldLocationMoveBehavior.pledge | grass | special | 80 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/grass_pledge.json |
 | fait | grass_whistle | s_status | ported | StatusStatMoveBehavior.status | grass | status | 0 | 55 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/grass_whistle.json |
-| partiel | grassy_terrain | s_terrain | partial | TerrainMoveBehavior | grass | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/grassy_terrain.json |
+| fait | grassy_terrain | s_terrain | ported | TerrainMoveBehavior | grass | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/grassy_terrain.json |
 | partiel | gravity | s_gravity | partial | StaticBasicMoveRegistry.partialFieldMarker(s_gravity) | psychic | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/gravity.json |
 | fait | growl | s_stat | ported | StatusStatMoveBehavior.stat | normal | status | 0 | 100 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/growl.json |
 | partiel | growth | s_growth | partial | AdvancedStatMoveBehavior.growth | normal | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/growth.json |
@@ -431,7 +431,7 @@ Coverage semantics:
 | partiel | mirror_shot | s_basic | ported | StaticBasicMoveRegistry.s_basic | steel | special | 65 | 85 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/mirror_shot.json |
 | fait | mist | s_mist | ported | StaticBasicMoveRegistry.s_mist | ice | status | 0 | 0 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/mist.json |
 | partiel | mist_ball | s_basic | ported | StaticBasicMoveRegistry.s_basic | psychic | special | 70 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/mist_ball.json |
-| partiel | misty_terrain | s_terrain | partial | TerrainMoveBehavior | fairy | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/misty_terrain.json |
+| fait | misty_terrain | s_terrain | ported | TerrainMoveBehavior | fairy | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/misty_terrain.json |
 | partiel | moonblast | s_basic | ported | StaticBasicMoveRegistry.s_basic | fairy | special | 95 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/moonblast.json |
 | fait | moongeist_beam | s_basic | ported | StaticBasicMoveRegistry.s_basic | ghost | special | 100 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/moongeist_beam.json |
 | fait | moonlight | s_heal_weather | ported | HealMoveBehavior.weather | fairy | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/moonlight.json |
@@ -505,7 +505,7 @@ Coverage semantics:
 | partiel | psych_up | s_psych_up | partial | AdvancedStatMoveBehavior.psychUp | normal | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/psych_up.json |
 | partiel | psychic | s_basic | ported | StaticBasicMoveRegistry.s_basic | psychic | special | 90 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/psychic.json |
 | partiel | psychic_fangs | s_brick_break | partial | StaticBasicMoveRegistry.s_brick_break | psychic | physical | 85 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/psychic_fangs.json |
-| partiel | psychic_terrain | s_terrain | partial | TerrainMoveBehavior | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/psychic_terrain.json |
+| fait | psychic_terrain | s_terrain | ported | TerrainMoveBehavior | psychic | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/psychic_terrain.json |
 | partiel | psycho_boost | s_self_stat | ported | StatusStatMoveBehavior.selfStat | psychic | special | 140 | 90 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/psycho_boost.json |
 | fait | psycho_cut | s_basic | ported | StaticBasicMoveRegistry.s_basic | psychic | physical | 70 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/psycho_cut.json |
 | partiel | psycho_shift | s_psycho_shift | partial | PsychoShiftMoveBehavior | psychic | status | 0 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/psycho_shift.json |

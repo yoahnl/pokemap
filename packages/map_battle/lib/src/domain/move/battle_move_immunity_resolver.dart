@@ -1,4 +1,5 @@
 import '../../psdk/domain/psdk_battle_combatant.dart';
+import '../../psdk/domain/psdk_battle_field.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 import '../battle/battle_slot.dart';
@@ -43,6 +44,20 @@ final class BattleMoveImmunityResolver {
             user: execution.actualUser,
             target: targetRef,
             moveId: execution.move.id,
+          ),
+        );
+        continue;
+      }
+
+      if (_isBlockedByPsychicTerrain(execution, targetRef)) {
+        failureReason = BattleMoveFailureReason.terrain;
+        execution.timeline.add(
+          BattleMoveFailedTimelineEvent(
+            turn: execution.turn,
+            user: execution.actualUser,
+            target: targetRef,
+            moveId: execution.move.id,
+            reason: BattleMoveFailureReason.terrain.jsonName,
           ),
         );
         continue;
@@ -93,6 +108,22 @@ final class BattleMoveImmunityResolver {
       miracleEye: target.effects.contains('miracle_eye'),
     );
     return effectiveness.isImmune;
+  }
+
+  bool _isBlockedByPsychicTerrain(
+    BattleMoveProcedureExecution execution,
+    BattlePositionRef targetRef,
+  ) {
+    if (!execution.context.state.field
+            .isTerrainActive(PsdkBattleTerrainId.psychicTerrain) ||
+        execution.move.priority < 1 ||
+        !execution.move.flags.protectable) {
+      return false;
+    }
+    final target = execution.context.state.battlerAt(
+      _psdkSlotFromBattlePosition(targetRef),
+    );
+    return _groundingResolver.isGrounded(target);
   }
 
   bool _isGroundMoveBlockedByGrounding(

@@ -280,7 +280,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_grassy_glide': _KnownDartBehavior(
     dartBehavior: 'TerrainPowerMoveBehavior.grassyGlide',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_grav_apple': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_grav_apple',
@@ -349,7 +349,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_rising_voltage': _KnownDartBehavior(
     dartBehavior: 'TerrainPowerMoveBehavior.risingVoltage',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_salt_cure': _KnownDartBehavior(
     dartBehavior: 'SpecialSecondaryMoveBehavior.saltCure',
@@ -398,7 +398,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_terrain_pulse': _KnownDartBehavior(
     dartBehavior: 'TerrainPowerMoveBehavior.terrainPulse',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_tidy_up': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_tidy_up',
@@ -1308,7 +1308,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_terrain': _KnownDartBehavior(
     dartBehavior: 'TerrainMoveBehavior',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_weather_ball': _KnownDartBehavior(
     dartBehavior: 'WeatherPowerMoveBehavior.weatherBall',

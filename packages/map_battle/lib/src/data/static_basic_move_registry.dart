@@ -759,6 +759,7 @@ BattleMoveBehaviorResolution _resolveBasic(BattleMoveBehaviorContext context) {
       target: target,
       move: context.move,
       rng: common.rng,
+      field: common.state.field,
     ),
   );
   if (damageResult.damage <= 0) {
