@@ -840,7 +840,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_focus_punch',
     rubyClass: 'FocusPunch',
     rubyPath: '10 Move/2 Definitions/300 PreAttackMoves.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_focus_punch)',
+    dartBehavior: 'ActionGatedMoveBehavior.focusPunch',
     status: PsdkPortStatus.partial,
     dependencies: const <PsdkMoveDependency>[],
   ),

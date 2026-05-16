@@ -305,7 +305,6 @@ void main() {
         's_beak_blast',
         's_core_enforcer',
         's_flying_press',
-        's_focus_punch',
         's_hidden_power',
         's_payday',
         's_round',
@@ -562,6 +561,11 @@ void main() {
       expect(
         byMethod['s_fake_out']!.dartBehavior,
         'ActionGatedMoveBehavior.fakeOut',
+      );
+      expect(byMethod['s_focus_punch']!.status, PsdkPortStatus.partial);
+      expect(
+        byMethod['s_focus_punch']!.dartBehavior,
+        'ActionGatedMoveBehavior.focusPunch',
       );
       expect(byMethod['s_hurricane']!.status, PsdkPortStatus.ported);
       expect(

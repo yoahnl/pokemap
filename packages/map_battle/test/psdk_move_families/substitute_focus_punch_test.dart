@@ -115,14 +115,69 @@ void main() {
       expect(player.effects.contains('substitute'), isFalse);
       expect(_failed(result, moveId: 'substitute'), isTrue);
     });
+
+    test('Focus Punch fails when the user was damaged earlier this turn', () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            speed: 1,
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'focus_punch',
+                battleEngineMethod: 's_focus_punch',
+                target: PsdkBattleMoveTarget.adjacentFoe,
+                category: PsdkBattleMoveCategory.physical,
+                power: 150,
+                accuracy: 100,
+                priority: -3,
+              ),
+            ],
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            speed: 100,
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'opponent_tackle',
+                battleEngineMethod: 's_basic',
+                target: PsdkBattleMoveTarget.adjacentFoe,
+                category: PsdkBattleMoveCategory.physical,
+                power: 40,
+                accuracy: 100,
+              ),
+            ],
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 1,
+            generic: 1,
+          ),
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(_damageEvents(result, moveId: 'opponent_tackle'), hasLength(1));
+      expect(_damageEvents(result, moveId: 'focus_punch'), isEmpty);
+      expect(_failed(result, moveId: 'focus_punch'), isTrue);
+    });
   });
 }
 
 int _damage(PsdkBattleTurnResult result, {required String moveId}) {
+  return _damageEvents(result, moveId: moveId).single.damage;
+}
+
+List<PsdkBattleDamageEvent> _damageEvents(
+  PsdkBattleTurnResult result, {
+  required String moveId,
+}) {
   return result.timeline.events
       .whereType<PsdkBattleDamageEvent>()
-      .singleWhere((event) => event.moveId == moveId)
-      .damage;
+      .where((event) => event.moveId == moveId)
+      .toList();
 }
 
 PsdkBattleCombatantSetup _combatant({
@@ -164,6 +219,7 @@ PsdkBattleMoveData _move({
   required PsdkBattleMoveCategory category,
   required int power,
   required int accuracy,
+  int priority = 0,
 }) {
   return PsdkBattleMoveData(
     id: id,
@@ -174,7 +230,7 @@ PsdkBattleMoveData _move({
     power: power,
     accuracy: accuracy,
     pp: 35,
-    priority: 0,
+    priority: priority,
     criticalRate: 1,
     battleEngineMethod: battleEngineMethod,
     target: target,

@@ -401,6 +401,7 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     const ActionGatedMoveBehavior.snore(),
     const ActionGatedMoveBehavior.suckerPunch(),
     const ActionGatedMoveBehavior.fakeOut(),
+    const ActionGatedMoveBehavior.focusPunch(),
     const FieldLocationMoveBehavior.camouflage(),
     const FieldLocationMoveBehavior.naturePower(),
     for (final method in _partialTargetMarkerMethods.keys)
@@ -619,7 +620,6 @@ const _partialBasicDescendantMethods = <String>[
   's_beat_up',
   's_core_enforcer',
   's_flying_press',
-  's_focus_punch',
   's_frustration',
   's_genesis_supernova',
   's_guardian_of_alola',

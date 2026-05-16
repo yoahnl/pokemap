@@ -11,6 +11,7 @@ import 'battle_move_behavior_support.dart';
 
 enum _ActionGatedKind {
   fakeOut,
+  focusPunch,
   snore,
   suckerPunch,
 }
@@ -24,6 +25,10 @@ final class ActionGatedMoveBehavior
   const ActionGatedMoveBehavior.fakeOut()
       : battleEngineMethod = 's_fake_out',
         _kind = _ActionGatedKind.fakeOut;
+
+  const ActionGatedMoveBehavior.focusPunch()
+      : battleEngineMethod = 's_focus_punch',
+        _kind = _ActionGatedKind.focusPunch;
 
   const ActionGatedMoveBehavior.snore()
       : battleEngineMethod = 's_snore',
@@ -49,6 +54,14 @@ final class ActionGatedMoveBehavior
           : const BattleMoveUserPreventionResult(
               reason: BattleMoveFailureReason.unusableByUser,
             ),
+      _ActionGatedKind.focusPunch => _canUseFocusPunch(
+          user: user,
+          turn: context.turn,
+        )
+            ? null
+            : const BattleMoveUserPreventionResult(
+                reason: BattleMoveFailureReason.unusableByUser,
+              ),
       _ActionGatedKind.snore => _canUseSnore(user)
           ? null
           : const BattleMoveUserPreventionResult(
@@ -154,6 +167,13 @@ final class ActionGatedMoveBehavior
   bool _canUseSnore(PsdkBattleCombatant user) {
     return user.majorStatus == PsdkBattleMajorStatus.sleep ||
         user.abilityId == 'comatose';
+  }
+
+  bool _canUseFocusPunch({
+    required PsdkBattleCombatant user,
+    required int turn,
+  }) {
+    return !user.damageHistory.entries.any((entry) => entry.turn == turn);
   }
 
   bool _canUseSuckerPunch({

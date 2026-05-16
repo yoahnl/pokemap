@@ -926,11 +926,13 @@ party switch integration before promotion from `partial`.
 **Status 2026-05-16:** in progress. `s_substitute` now installs an object-backed
 `SubstituteEffect` with internal HP instead of a passive marker, enforces the
 Pokemon SDK `max_hp < 4` failure rule, and opposing damage is absorbed by the
-substitute before the battler HP is touched. Regression coverage lives in
+substitute before the battler HP is touched. `s_focus_punch` now uses an
+action-gated behavior and fails before dealing damage when the user has taken
+damage earlier in the current turn. Regression coverage lives in
 `substitute_focus_punch_test.dart`. The parity gate remains at 262 / 728 strict
 attacks and 63 / 330 ported battle methods because status/stat blocking,
-sound/Infiltrator/authentic exceptions, Focus Punch pre-attack disturbance, and
-full Substitute move-interaction parity are still open.
+sound/Infiltrator/authentic exceptions, Focus Punch pre-attack preparation
+effect, and full Substitute move-interaction parity are still open.
 
 ### Lot 33 - Delayed Attacks
 
