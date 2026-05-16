@@ -888,6 +888,17 @@ legacy `BattleMoveData` session path untouched.
 **Definition of done:**
 - Switch move families strict in singles.
 
+**Status 2026-05-16:** in progress. Switch-induced trapping prevention now
+runs through `BattleSwitchHandler.resolveSwitchPrevention` for U-turn / Volt
+Switch / Flip Turn, Parting Shot, Roar and Dragon Tail. The slice matches the
+PSDK `switch_handler.can_switch?(..., skill)` gate for currently modeled
+trapping abilities/effects, with regression tests for Shadow Tag blocking
+U-turn, Parting Shot and Roar switch requests. The parity gate remains at
+262 / 728 strict attacks and 63 / 330 ported battle methods because these
+families still need reserve-aware replacement flow, Red Card / Eject Button /
+Emergency Exit branches, Whirlwind/Circle Throw aliases, and full Baton Pass
+party switch integration before promotion from `partial`.
+
 ### Lot 32 - Substitute and Focus Punch
 
 **Goal:** port Substitute and move interactions that depend on it.

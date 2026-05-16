@@ -2620,13 +2620,23 @@ BattleMoveBehaviorResolution _resolveUTurn(BattleMoveBehaviorContext context) {
     return basic;
   }
 
+  final handlerContext = BattleHandlerContext(
+    state: basic.state,
+    rng: basic.rng,
+    turn: context.turn,
+    user: context.user,
+  );
+  final prevention = const BattleSwitchHandler().resolveSwitchPrevention(
+    context: handlerContext,
+    target: context.user,
+    move: context.move,
+  );
+  if (!prevention.applied) {
+    return basic;
+  }
+
   final switching = const BattleSwitchHandler().markSwitching(
-    context: BattleHandlerContext(
-      state: basic.state,
-      rng: basic.rng,
-      turn: context.turn,
-      user: context.user,
-    ),
+    context: handlerContext,
     target: context.user,
     switching: true,
   );
@@ -3157,6 +3167,21 @@ BattleMoveBehaviorResolution _resolveForceSwitch(
   }
   if (context.move.battleEngineMethod == 's_dragon_tail' &&
       target.effects.contains('substitute')) {
+    return basic;
+  }
+
+  final handlerContext = BattleHandlerContext(
+    state: basic.state,
+    rng: basic.rng,
+    turn: context.turn,
+    user: context.user,
+  );
+  final prevention = const BattleSwitchHandler().resolveSwitchPrevention(
+    context: handlerContext,
+    target: targetSlot,
+    move: context.move,
+  );
+  if (!prevention.applied) {
     return basic;
   }
 
@@ -3970,13 +3995,23 @@ BattleMoveBehaviorResolution _resolvePartingShot(
     return secondary;
   }
 
+  final handlerContext = BattleHandlerContext(
+    state: secondary.state,
+    rng: secondary.rng,
+    turn: context.turn,
+    user: context.user,
+  );
+  final prevention = const BattleSwitchHandler().resolveSwitchPrevention(
+    context: handlerContext,
+    target: context.user,
+    move: context.move,
+  );
+  if (!prevention.applied) {
+    return secondary;
+  }
+
   final switching = const BattleSwitchHandler().markSwitching(
-    context: BattleHandlerContext(
-      state: secondary.state,
-      rng: secondary.rng,
-      turn: context.turn,
-      user: context.user,
-    ),
+    context: handlerContext,
     target: context.user,
     switching: true,
   );

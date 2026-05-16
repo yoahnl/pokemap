@@ -114,10 +114,12 @@ final class BattleEffectSwitchPreventionContext {
     required this.rng,
     required this.turn,
     required this.target,
+    this.move,
   });
 
   final PsdkBattleState state;
   final BattleRngStreams rng;
   final int turn;
   final PsdkBattleSlotRef target;
+  final BattleMoveDefinition? move;
 }

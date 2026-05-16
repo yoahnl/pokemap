@@ -9,6 +9,7 @@ import '../effect/battle_effect_hooks.dart';
 import '../effect/battle_effect.dart';
 import '../effect/battle_effect_scope.dart';
 import '../effect/side/hazard_effects.dart';
+import '../move/battle_move_data.dart';
 import '../move/battle_move_type_processor.dart';
 import 'battle_damage_handler.dart';
 import 'battle_handler_context.dart';
@@ -36,12 +37,14 @@ final class BattleSwitchHandler {
   BattleHandlerResult resolveSwitchPrevention({
     required BattleHandlerContext context,
     required PsdkBattleSlotRef target,
+    BattleMoveDefinition? move,
   }) {
     final switchContext = BattleEffectSwitchPreventionContext(
       state: context.state,
       rng: context.rng,
       turn: context.turn,
       target: target,
+      move: move,
     );
     final reason =
         context.state.battlerAt(target).effects.switchPreventionReason(

@@ -80,6 +80,32 @@ void main() {
       expect(result.state.battlerAt(psdkPlayerSlot).switching, isFalse);
     });
 
+    test('s_u_turn damages but does not switch when the user is trapped', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          opponentAbilityId: 'shadow_tag',
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'u_turn',
+              battleEngineMethod: 's_u_turn',
+              target: PsdkBattleMoveTarget.adjacentFoe,
+              category: PsdkBattleMoveCategory.physical,
+              power: 70,
+              accuracy: 100,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final damage =
+          result.timeline.events.whereType<PsdkBattleDamageEvent>().toList();
+
+      expect(damage, hasLength(1));
+      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, lessThan(100));
+      expect(result.state.battlerAt(psdkPlayerSlot).switching, isFalse);
+    });
+
     test('s_volt_switch and s_flip_turn damage then mark the user for switch',
         () {
       for (final entry in const <({String method, String moveId})>[
@@ -215,22 +241,80 @@ void main() {
       expect(opponent.statStages.valueOf('specialAttack'), -6);
       expect(result.state.battlerAt(psdkPlayerSlot).switching, isFalse);
     });
+
+    test('s_parting_shot drops stats but does not switch when user is trapped',
+        () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          opponentAbilityId: 'shadow_tag',
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'parting_shot',
+              battleEngineMethod: 's_parting_shot',
+              target: PsdkBattleMoveTarget.adjacentFoe,
+              stageMods: const <PsdkBattleMoveStageMod>[
+                PsdkBattleMoveStageMod(
+                  stat: 'attack',
+                  stages: -1,
+                  chance: 100,
+                ),
+                PsdkBattleMoveStageMod(
+                  stat: 'specialAttack',
+                  stages: -1,
+                  chance: 100,
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+
+      expect(opponent.statStages.valueOf('attack'), -1);
+      expect(opponent.statStages.valueOf('specialAttack'), -1);
+      expect(result.state.battlerAt(psdkPlayerSlot).switching, isFalse);
+    });
+
+    test('s_roar does not force switch when the target is trapped', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          playerAbilityId: 'shadow_tag',
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'roar',
+              battleEngineMethod: 's_roar',
+              target: PsdkBattleMoveTarget.adjacentFoe,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(result.state.battlerAt(psdkOpponentSlot).switching, isFalse);
+    });
   });
 }
 
 PsdkBattleSetup _setup({
   required List<PsdkBattleMoveData> playerMoves,
   PsdkBattleStatStages? opponentStatStages,
+  String? playerAbilityId,
+  String? opponentAbilityId,
 }) {
   return PsdkBattleSetup.singles(
     player: _combatant(
       id: 'player',
       speed: 100,
       moves: playerMoves,
+      abilityId: playerAbilityId,
     ),
     opponent: _combatant(
       id: 'opponent',
       speed: 1,
+      abilityId: opponentAbilityId,
       statStages: opponentStatStages,
       moves: <PsdkBattleMoveData>[
         _move(
@@ -254,6 +338,7 @@ PsdkBattleCombatantSetup _combatant({
   required int speed,
   required List<PsdkBattleMoveData> moves,
   PsdkBattleStatStages? statStages,
+  String? abilityId,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -271,6 +356,7 @@ PsdkBattleCombatantSetup _combatant({
       speed: speed,
     ),
     statStages: statStages ?? PsdkBattleStatStages.neutral(),
+    abilityId: abilityId,
     moves: moves,
   );
 }
