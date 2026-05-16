@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart' show Colors;
 import 'package:macos_ui/macos_ui.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/shadow/element_auto_shadow_suggestion.dart';
 import 'package:map_editor/src/application/shadow/element_shadow_read_model.dart';
 import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';
 
@@ -89,6 +90,7 @@ class _ElementShadowSectionState extends State<ElementShadowSection> {
     final profiles = readModel.profileOptions;
     final selectedProfileId =
         readModel.profileExists ? readModel.shadowProfileId : null;
+    final autoSuggestion = _buildAutoSuggestion();
     final label = EditorChrome.primaryLabel(context);
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     final shadow = widget.shadow;
@@ -203,6 +205,19 @@ class _ElementShadowSectionState extends State<ElementShadowSection> {
             selectedProfileId: selectedProfileId,
             enabled: profiles.isNotEmpty && shadow != null,
           ),
+          if (autoSuggestion != null) ...[
+            const SizedBox(height: 8),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: PushButton(
+                key: const ValueKey('element-shadow-auto-suggestion-button'),
+                controlSize: ControlSize.regular,
+                secondary: true,
+                onPressed: () => _applyAutoSuggestion(autoSuggestion),
+                child: const Text('Calculer automatiquement'),
+              ),
+            ),
+          ],
           if (shadow != null) ...[
             const SizedBox(height: 10),
             if (shadow.castsShadow) ...[
@@ -482,6 +497,14 @@ class _ElementShadowSectionState extends State<ElementShadowSection> {
       return;
     }
 
+    if (current == null) {
+      final suggestion = _buildAutoSuggestion();
+      if (suggestion != null) {
+        _applyAutoSuggestion(suggestion);
+        return;
+      }
+    }
+
     final profiles = buildShadowProfileOptionsForManifest(widget.manifest);
     if (profiles.isEmpty) {
       setState(() {
@@ -510,6 +533,22 @@ class _ElementShadowSectionState extends State<ElementShadowSection> {
         footprint: current?.footprint,
       ),
     );
+  }
+
+  ElementAutoShadowSuggestion? _buildAutoSuggestion() {
+    return buildElementAutoShadowSuggestion(
+      element: widget.element,
+      shadowCatalog: widget.manifest.shadowCatalog,
+    );
+  }
+
+  void _applyAutoSuggestion(ElementAutoShadowSuggestion suggestion) {
+    setState(() {
+      _errors.clear();
+      _footprintErrors.clear();
+      _activationMessage = 'Ombre automatique : ${suggestion.summary}.';
+    });
+    widget.onChanged(suggestion.config);
   }
 
   void _setProfile(String profileId) {

@@ -187,8 +187,33 @@ void main() {
       );
     });
 
+    testWidgets('activating from null applies an auto suggestion',
+        (tester) async {
+      final harness = _ShadowSectionHarness();
+
+      await _pumpSection(
+        tester,
+        harness: harness,
+        manifest: _project(_defaultCatalog()),
+        element: _element(width: 1, height: 4),
+      );
+
+      final toggle = tester.widget<CupertinoSwitch>(
+        find.byKey(const ValueKey('element-shadow-casts-switch')),
+      );
+      toggle.onChanged!(true);
+      await tester.pump();
+
+      expect(harness.shadow, isNotNull);
+      expect(harness.shadow!.castsShadow, isTrue);
+      expect(harness.shadow!.shadowProfileId, 'default-ground-contact-blob');
+      expect(harness.shadow!.footprint!.footprintWidthRatio, 0.18);
+      expect(harness.shadow!.footprint!.footprintHeightRatio, 0.07);
+      expect(harness.shadow!.opacity, 0.28);
+    });
+
     testWidgets(
-        'activating from null creates an active config with first profile',
+        'activating from null falls back to first profile when suggestion is unavailable',
         (tester) async {
       final harness = _ShadowSectionHarness();
 
@@ -198,6 +223,7 @@ void main() {
         manifest: _project(
           _catalog([_profile('tree_large'), _profile('rock_small')]),
         ),
+        element: _element(frames: const <TilesetVisualFrame>[]),
       );
 
       final toggle = tester.widget<CupertinoSwitch>(
@@ -209,6 +235,113 @@ void main() {
       expect(harness.shadow, isNotNull);
       expect(harness.shadow!.castsShadow, isTrue);
       expect(harness.shadow!.shadowProfileId, 'tree_large');
+      expect(harness.shadow!.footprint, isNull);
+    });
+
+    testWidgets('auto calculate button is visible with a compatible profile',
+        (tester) async {
+      final harness = _ShadowSectionHarness();
+
+      await _pumpSection(
+        tester,
+        harness: harness,
+        manifest: _project(_defaultCatalog()),
+        element: _element(width: 1, height: 4),
+      );
+
+      expect(find.text('Calculer automatiquement'), findsOneWidget);
+    });
+
+    testWidgets('auto calculate button applies suggestion to active config',
+        (tester) async {
+      final harness = _ShadowSectionHarness(
+        ProjectElementShadowConfig(
+          castsShadow: true,
+          shadowProfileId: 'manual-profile',
+          offsetX: 8,
+          offsetY: 4,
+          scaleX: 2,
+          scaleY: 2,
+          opacity: 0.9,
+          footprint: StaticShadowFootprintConfig(
+            anchorXRatio: 0.1,
+            footprintWidthRatio: 0.2,
+          ),
+        ),
+      );
+
+      await _pumpSection(
+        tester,
+        harness: harness,
+        manifest: _project(_defaultCatalog()),
+        element: _element(width: 4, height: 3),
+      );
+
+      await tester.tap(
+        find.byKey(const ValueKey('element-shadow-auto-suggestion-button')),
+      );
+      await tester.pump();
+
+      expect(harness.shadow!.castsShadow, isTrue);
+      expect(harness.shadow!.shadowProfileId, 'default-ground-wide-ellipse');
+      expect(harness.shadow!.offsetX, 0);
+      expect(harness.shadow!.offsetY, 0);
+      expect(harness.shadow!.scaleX, 1);
+      expect(harness.shadow!.scaleY, 0.85);
+      expect(harness.shadow!.opacity, 0.30);
+      expect(harness.shadow!.footprint!.anchorYRatio, 0.92);
+      expect(harness.shadow!.footprint!.footprintWidthRatio, 0.82);
+      expect(find.text('Ombre automatique : grand bâtiment.'), findsOneWidget);
+    });
+
+    testWidgets('auto calculate button is absent without compatible profile',
+        (tester) async {
+      final harness = _ShadowSectionHarness();
+
+      await _pumpSection(
+        tester,
+        harness: harness,
+        manifest: _project(
+          _catalog([
+            _profile(
+              'actor_contact',
+              mode: ShadowCasterMode.contactBlob,
+              renderPass: ShadowRenderPass.actorContact,
+            ),
+          ]),
+        ),
+        element: _element(width: 1, height: 4),
+      );
+
+      expect(find.text('Calculer automatiquement'), findsNothing);
+    });
+
+    testWidgets('changing profile after auto suggestion preserves footprint',
+        (tester) async {
+      final harness = _ShadowSectionHarness();
+
+      await _pumpSection(
+        tester,
+        harness: harness,
+        manifest: _project(_defaultCatalog()),
+        element: _element(width: 1, height: 4),
+      );
+
+      final toggle = tester.widget<CupertinoSwitch>(
+        find.byKey(const ValueKey('element-shadow-casts-switch')),
+      );
+      toggle.onChanged!(true);
+      await tester.pump();
+      final footprint = harness.shadow!.footprint;
+
+      final popup = tester.widget<MacosPopupButton<String>>(
+        find.byKey(const ValueKey('element-shadow-profile-popup')),
+      );
+      popup.onChanged!('default-ground-soft-ellipse');
+      await tester.pump();
+
+      expect(harness.shadow!.shadowProfileId, 'default-ground-soft-ellipse');
+      expect(harness.shadow!.footprint, footprint);
     });
 
     testWidgets('disabling preserves the selected profile and overrides',
@@ -701,11 +834,12 @@ Future<void> _pumpSection(
   WidgetTester tester, {
   required _ShadowSectionHarness harness,
   required ProjectManifest manifest,
+  ProjectElementEntry? element,
   VoidCallback? onEnsureDefaultShadowProfiles,
 }) async {
   await tester.binding.setSurfaceSize(const Size(520, 900));
   addTearDown(() => tester.binding.setSurfaceSize(null));
-  final element = _element();
+  final sectionElement = element ?? _element();
 
   await tester.pumpWidget(
     MacosTheme(
@@ -719,7 +853,7 @@ Future<void> _pumpSection(
                   width: 460,
                   child: ElementShadowSection(
                     manifest: manifest,
-                    element: element.copyWith(shadow: harness.shadow),
+                    element: sectionElement.copyWith(shadow: harness.shadow),
                     shadow: harness.shadow,
                     onChanged: (next) {
                       harness.changes.add(next);
@@ -760,6 +894,9 @@ ProjectManifest _project(ProjectShadowCatalog catalog) {
 }
 
 ProjectElementEntry _element({
+  int width = 1,
+  int height = 1,
+  List<TilesetVisualFrame>? frames,
   ElementCollisionProfile? collisionProfile,
 }) {
   return ProjectElementEntry(
@@ -767,10 +904,24 @@ ProjectElementEntry _element({
     name: 'Tree element',
     tilesetId: 'tileset_main',
     categoryId: 'decor',
-    frames: const <TilesetVisualFrame>[
-      TilesetVisualFrame(source: TilesetSourceRect(x: 0, y: 0)),
-    ],
+    frames: frames ??
+        [
+          TilesetVisualFrame(
+            source: TilesetSourceRect(
+              x: 0,
+              y: 0,
+              width: width,
+              height: height,
+            ),
+          ),
+        ],
     collisionProfile: collisionProfile,
+  );
+}
+
+ProjectShadowCatalog _defaultCatalog() {
+  return ProjectShadowCatalog(
+    profiles: createDefaultGroundStaticShadowProfiles(),
   );
 }
 
