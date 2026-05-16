@@ -239,3 +239,35 @@ final class BattleEffectSwitchPreventionContext {
   final PsdkBattleSlotRef target;
   final BattleMoveDefinition? move;
 }
+
+final class BattleEffectSwitchEventContext {
+  const BattleEffectSwitchEventContext({
+    required this.state,
+    required this.rng,
+    required this.turn,
+    required this.owner,
+    required this.who,
+    required this.replacement,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final int turn;
+  final PsdkBattleSlotRef owner;
+  final PsdkBattleSlotRef who;
+  final PsdkBattleSlotRef replacement;
+}
+
+final class BattleEffectSwitchEventResult {
+  const BattleEffectSwitchEventResult({
+    required this.state,
+    required this.rng,
+    this.events = const <PsdkBattleEvent>[],
+    this.applied = true,
+  });
+
+  final PsdkBattleState state;
+  final BattleRngStreams rng;
+  final List<PsdkBattleEvent> events;
+  final bool applied;
+}

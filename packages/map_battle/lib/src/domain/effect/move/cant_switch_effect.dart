@@ -1,5 +1,6 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
+import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../effect/battle_effect.dart';
 import '../../effect/battle_effect_hooks.dart';
 import '../../effect/battle_effect_scope.dart';
@@ -49,6 +50,31 @@ final class CantSwitchEffect extends BattleEffect {
         (battler) => battler.copyWith(effects: battler.effects.remove(id)),
       ),
       rng: context.rng,
+    );
+  }
+
+  @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (context.who != origin ||
+        context.state.battlerAt(origin).effects.contains('baton_pass')) {
+      return null;
+    }
+    return BattleEffectSwitchEventResult(
+      state: context.state.updateBattler(
+        context.owner,
+        (battler) => battler.copyWith(effects: battler.effects.remove(id)),
+      ),
+      rng: context.rng,
+      events: <PsdkBattleEvent>[
+        PsdkBattleEffectEvent.removed(
+          turn: context.turn,
+          target: context.owner,
+          effectId: id,
+          reason: 'switch_origin_left',
+        ),
+      ],
     );
   }
 }

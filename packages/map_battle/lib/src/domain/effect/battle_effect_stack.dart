@@ -301,6 +301,58 @@ final class BattleEffectObjectStack {
     return null;
   }
 
+  bool switchPassthrough(BattleEffectSwitchPreventionContext context) {
+    for (final effect in _effects) {
+      if (effect.onSwitchPassthrough(context)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  BattleEffectSwitchEventResult dispatchSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+
+    for (final effect in _effects) {
+      if (!_effectIsStillActive(
+        effect: effect,
+        state: nextState,
+        owner: context.owner,
+      )) {
+        continue;
+      }
+      final result = effect.onSwitchEvent(
+        BattleEffectSwitchEventContext(
+          state: nextState,
+          rng: nextRng,
+          turn: context.turn,
+          owner: context.owner,
+          who: context.who,
+          replacement: context.replacement,
+        ),
+      );
+      if (result == null) {
+        continue;
+      }
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      changed = changed || result.applied || result.events.isNotEmpty;
+    }
+
+    return BattleEffectSwitchEventResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: changed,
+    );
+  }
+
   bool _effectIsStillActive({
     required BattleEffect effect,
     required PsdkBattleState state,

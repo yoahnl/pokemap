@@ -1270,6 +1270,22 @@ counts remain unchanged.
 **Definition of done:**
 - Switch hook family is generic.
 
+**Status 2026-05-17:** done. Added the PSDK switch passthrough hook family
+before switch prevention, matching Ruby's `on_switch_passthrough` /
+`on_switch_prevention` order. `BattleEffect` and object-backed effect stacks
+now expose switch passthrough, `BattleSwitchHandler.resolveSwitchPrevention`
+checks passthrough before target/ability trapping reasons, and `ShedShellEffect`
+is hydrated from held items to bypass opposing switch-prevention abilities while
+respecting consumed/suppressed item state and the PSDK Teleport exception. The
+same lot adds generic `onSwitchEvent` dispatch through `BattleSwitchHandler` so
+effects can react to an actual switch; `CantSwitchEffect` now clears when its
+origin switches out without Baton Pass and survives the Baton Pass case,
+matching the Ruby effect. Regression coverage lives in
+`test/psdk_switch_effect_test.dart`; existing trapping, Baton Pass/switch move,
+effect lifecycle, ability and item tests remain green. This lot hardens generic
+switch hook parity, but strict attack, method and effect counts remain
+unchanged until more concrete switch-event effects are promoted.
+
 ### Lot 43 - Stat and Status Change Hooks
 
 **Goal:** port hooks around stat/status modification.

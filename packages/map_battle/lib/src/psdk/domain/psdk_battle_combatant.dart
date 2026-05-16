@@ -331,6 +331,16 @@ class PsdkBattleEffectStack {
     return _stack.switchPreventionReason(context);
   }
 
+  bool switchPassthrough(BattleEffectSwitchPreventionContext context) {
+    return _stack.switchPassthrough(context);
+  }
+
+  BattleEffectSwitchEventResult dispatchSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    return _stack.dispatchSwitchEvent(context);
+  }
+
   BattleEffectEndTurnResult dispatchEndTurn(
     BattleEffectEndTurnContext context,
   ) {

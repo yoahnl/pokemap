@@ -73,7 +73,17 @@ abstract class BattleEffect {
     return null;
   }
 
+  bool onSwitchPassthrough(BattleEffectSwitchPreventionContext context) {
+    return false;
+  }
+
   String? onSwitchPrevention(BattleEffectSwitchPreventionContext context) {
+    return null;
+  }
+
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
     return null;
   }
 }

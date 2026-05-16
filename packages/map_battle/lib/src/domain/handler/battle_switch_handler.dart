@@ -46,6 +46,18 @@ final class BattleSwitchHandler {
       target: target,
       move: move,
     );
+    if (context.state.battlerAt(target).effects.switchPassthrough(
+              switchContext,
+            ) ||
+        _hasSwitchPassthrough(
+          effects: context.state.activeAbilityEffects(),
+          context: switchContext,
+        )) {
+      return BattleHandlerResult(
+        state: context.state,
+        rng: context.rng,
+      );
+    }
     final reason =
         context.state.battlerAt(target).effects.switchPreventionReason(
                   switchContext,
@@ -238,6 +250,63 @@ final class BattleSwitchHandler {
       rng: context.rng,
     );
   }
+
+  BattleHandlerResult dispatchSwitchEvents({
+    required BattleHandlerContext context,
+    required PsdkBattleSlotRef who,
+    required PsdkBattleSlotRef replacement,
+  }) {
+    var nextState = context.state;
+    var nextRng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var changed = false;
+    final owners = context.state.combatants.keys.toList()..sort(_compareSlots);
+
+    for (final owner in owners) {
+      final result = nextState.battlerAt(owner).effects.dispatchSwitchEvent(
+            BattleEffectSwitchEventContext(
+              state: nextState,
+              rng: nextRng,
+              turn: context.turn,
+              owner: owner,
+              who: who,
+              replacement: replacement,
+            ),
+          );
+      nextState = result.state;
+      nextRng = result.rng;
+      events.addAll(result.events);
+      changed = changed || result.applied || result.events.isNotEmpty;
+    }
+
+    return BattleHandlerResult(
+      state: nextState,
+      rng: nextRng,
+      events: events,
+      applied: changed,
+      reason: changed ? null : 'no_switch_events',
+    );
+  }
+}
+
+int _compareSlots(PsdkBattleSlotRef left, PsdkBattleSlotRef right) {
+  final bank = left.bank.compareTo(right.bank);
+  if (bank != 0) {
+    return bank;
+  }
+  return left.position.compareTo(right.position);
+}
+
+bool _hasSwitchPassthrough({
+  required Iterable<BattleEffect> effects,
+  required BattleEffectSwitchPreventionContext context,
+}) {
+  for (final effect in effects) {
+    if (effect.onSwitchPassthrough(context)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 List<BattleEffect> _bankHazards(PsdkBattleState state, int bank) {

@@ -7,6 +7,7 @@ import 'black_sludge_effect.dart';
 import 'iron_ball_effect.dart';
 import 'leftovers_effect.dart';
 import 'loaded_dice_effect.dart';
+import 'shed_shell_effect.dart';
 import 'terrain_extender_effect.dart';
 import 'weather_rock_effect.dart';
 
@@ -26,6 +27,7 @@ final class ItemEffectRegistry {
     'iron_ball': ({required scope}) => IronBallEffect(scope: scope),
     'leftovers': ({required scope}) => LeftoversEffect(scope: scope),
     'loaded_dice': ({required scope}) => LoadedDiceEffect(scope: scope),
+    'shed_shell': ({required scope}) => ShedShellEffect(scope: scope),
     'terrain_extender': ({required scope}) => TerrainExtenderEffect(
           scope: scope,
         ),
