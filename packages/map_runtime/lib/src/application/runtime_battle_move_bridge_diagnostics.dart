@@ -20,4 +20,8 @@ class RuntimeBattleMoveBridgeDiagnostics {
   final String? battleEngineMethod;
   final String? psdkRegistryStatus;
   final String? debugDetails;
+
+  bool get runtimeBridgeable => bridgeable;
+  bool get psdkRegistered => psdkRegistryStatus != null;
+  bool get psdkPartial => psdkRegistryStatus == 'partial';
 }

@@ -187,6 +187,12 @@ export 'src/domain/move/battle_move_type_processor.dart'
     show BattleMoveTypeProcessor, BattleTypeEffectivenessResult;
 export 'src/data/static_basic_move_registry.dart'
     show createStaticBasicMoveRegistry;
+export 'src/data/generated/psdk_move_registry_manifest.dart'
+    show
+        psdkMoveRegistryManifest,
+        PsdkMoveRegistryManifestEntry,
+        PsdkPortStatus,
+        PsdkMoveDependency;
 export 'src/domain/decision/battle_decision.dart'
     show
         BattleDecision,

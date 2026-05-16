@@ -687,6 +687,8 @@ class RuntimeBattleMoveBridge {
     required PokemonMove move,
     required String combatantLabel,
   }) {
+    final battleEngineMethod = _resolveBattleEngineMethod(move);
+    final psdkRegistryStatus = _psdkRegistryStatusFor(battleEngineMethod);
     try {
       toBattleMoveData(move: move, combatantLabel: combatantLabel);
       return RuntimeBattleMoveBridgeDiagnostics(
@@ -695,14 +697,8 @@ class RuntimeBattleMoveBridge {
         reason: 'bridgeable',
         engineSupportLevel: move.engineSupportLevel,
         unsupportedReasons: List<String>.unmodifiable(move.unsupportedReasons),
-        battleEngineMethod: _extractUnsupportedReasonValue(
-          move.unsupportedReasons,
-          'psdk_method:',
-        ),
-        psdkRegistryStatus: _extractUnsupportedReasonValue(
-          move.unsupportedReasons,
-          'psdk_registry_status:',
-        ),
+        battleEngineMethod: battleEngineMethod,
+        psdkRegistryStatus: psdkRegistryStatus,
       );
     } on RuntimeBattleSetupException catch (error) {
       final bridgeLimit = _extractDebugDetailValue(
@@ -715,14 +711,8 @@ class RuntimeBattleMoveBridge {
         reason: bridgeLimit ?? 'runtime_bridge_rejected',
         engineSupportLevel: move.engineSupportLevel,
         unsupportedReasons: List<String>.unmodifiable(move.unsupportedReasons),
-        battleEngineMethod: _extractUnsupportedReasonValue(
-          move.unsupportedReasons,
-          'psdk_method:',
-        ),
-        psdkRegistryStatus: _extractUnsupportedReasonValue(
-          move.unsupportedReasons,
-          'psdk_registry_status:',
-        ),
+        battleEngineMethod: battleEngineMethod,
+        psdkRegistryStatus: psdkRegistryStatus,
         debugDetails: error.debugDetails,
       );
     }
@@ -1297,6 +1287,56 @@ String? _extractUnsupportedReasonValue(List<String> reasons, String prefix) {
   }
   return null;
 }
+
+String? _resolveBattleEngineMethod(PokemonMove move) {
+  final explicitMethod = _extractUnsupportedReasonValue(
+    move.unsupportedReasons,
+    'psdk_method:',
+  );
+  if (explicitMethod != null) {
+    return explicitMethod;
+  }
+
+  final normalizedMoveId = move.id.trim().toLowerCase();
+  final normalizedShowdownMoveId =
+      move.sourceRefs.showdownMoveId?.trim().toLowerCase();
+  final sourceIds = <String>{
+    normalizedMoveId,
+    if (normalizedShowdownMoveId != null && normalizedShowdownMoveId.isNotEmpty)
+      normalizedShowdownMoveId,
+  };
+
+  for (final sourceId in sourceIds) {
+    final method = _knownPsdkMethodByMoveId[sourceId];
+    if (method != null) {
+      return method;
+    }
+  }
+
+  if (move.usesStandardDamageFlow) {
+    return 's_basic';
+  }
+
+  return null;
+}
+
+String? _psdkRegistryStatusFor(String? battleEngineMethod) {
+  if (battleEngineMethod == null) {
+    return null;
+  }
+  for (final entry in psdkMoveRegistryManifest) {
+    if (entry.battleEngineMethod == battleEngineMethod) {
+      return entry.status.name;
+    }
+  }
+  return null;
+}
+
+const _knownPsdkMethodByMoveId = <String, String>{
+  'baton_pass': 's_baton_pass',
+  'protect': 's_protect',
+  'transform': 's_transform',
+};
 
 String? _extractDebugDetailValue(String? debugDetails, String prefix) {
   final details = debugDetails;

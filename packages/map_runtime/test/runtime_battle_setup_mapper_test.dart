@@ -554,7 +554,7 @@ void main() {
               ProjectTrainerPokemonEntry(
                 speciesId: 'aquafi',
                 level: 18,
-                moves: <String>['teleport', 'water_gun'],
+                moves: <String>['baton_pass', 'water_gun'],
               ),
             ],
           ),
@@ -1791,6 +1791,13 @@ Future<void> _writePokemonFixtures(Directory projectRoot) async {
         _moveEntry('flame_wheel', 'Flame Wheel', 60, type: 'fire'),
         _moveEntry('water_gun', 'Water Gun', 40, type: 'water'),
         _moveEntry(
+          'baton_pass',
+          'Baton Pass',
+          0,
+          target: PokemonMoveTarget.self,
+          pp: 40,
+        ),
+        _moveEntry(
           'water_pulse',
           'Water Pulse',
           60,
@@ -1962,6 +1969,9 @@ List<PokemonMoveEffect> _defaultEffectsForMove(String moveId) {
           targetScope: PokemonMoveEffectTargetScope.self,
           volatileStatusId: 'protect',
         ),
+      ],
+    'baton_pass' => const <PokemonMoveEffect>[
+        PokemonMoveEffect.selfSwitch(),
       ],
     'feint' => const <PokemonMoveEffect>[
         PokemonMoveEffect.breakProtect(),

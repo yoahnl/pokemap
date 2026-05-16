@@ -68,12 +68,15 @@ void main() {
 
       expect(diagnostic.bridgeable, isTrue);
       expect(diagnostic.reason, equals('bridgeable'));
+      expect(diagnostic.runtimeBridgeable, isTrue);
+      expect(diagnostic.psdkRegistered, isTrue);
+      expect(diagnostic.psdkPartial, isTrue);
       expect(
         diagnostic.engineSupportLevel,
         equals(PokemonMoveEngineSupportLevel.structuredSupported),
       );
-      expect(diagnostic.battleEngineMethod, isNull);
-      expect(diagnostic.psdkRegistryStatus, isNull);
+      expect(diagnostic.battleEngineMethod, equals('s_basic'));
+      expect(diagnostic.psdkRegistryStatus, equals('partial'));
     });
 
     test('inspectMove reports Transform as bridgeable with PSDK metadata', () {
@@ -100,12 +103,14 @@ void main() {
 
       expect(diagnostic.bridgeable, isTrue);
       expect(diagnostic.reason, equals('bridgeable'));
+      expect(diagnostic.psdkRegistered, isTrue);
+      expect(diagnostic.psdkPartial, isTrue);
       expect(
         diagnostic.engineSupportLevel,
         equals(PokemonMoveEngineSupportLevel.catalogOnly),
       );
       expect(diagnostic.battleEngineMethod, equals('s_transform'));
-      expect(diagnostic.psdkRegistryStatus, isNull);
+      expect(diagnostic.psdkRegistryStatus, equals('partial'));
     });
 
     test('inspectMove reports Baton Pass as not bridgeable without throwing',
@@ -134,12 +139,16 @@ void main() {
       );
 
       expect(diagnostic.bridgeable, isFalse);
+      expect(diagnostic.runtimeBridgeable, isFalse);
+      expect(diagnostic.psdkRegistered, isTrue);
+      expect(diagnostic.psdkPartial, isTrue);
       expect(diagnostic.reason, equals('unsupported_effect_kind:self_switch'));
       expect(
         diagnostic.engineSupportLevel,
         equals(PokemonMoveEngineSupportLevel.structuredSupported),
       );
-      expect(diagnostic.battleEngineMethod, isNull);
+      expect(diagnostic.battleEngineMethod, equals('s_baton_pass'));
+      expect(diagnostic.psdkRegistryStatus, equals('partial'));
       expect(
         diagnostic.debugDetails,
         contains('bridgeLimit=unsupported_effect_kind:self_switch'),

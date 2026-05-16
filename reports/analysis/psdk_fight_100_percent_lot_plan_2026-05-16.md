@@ -208,6 +208,11 @@ diagnostics for filtered runtime-host moves.
 
 ### Lot 05 - Runtime Bridge Uses PSDK Registry Status
 
+**Status 2026-05-16:** done. Runtime diagnostics now resolve known PSDK
+methods to `psdkMoveRegistryManifest`, expose `psdkRegistered`,
+`psdkPartial`, and `runtimeBridgeable`, and keep runtime bridgeability separate
+from PSDK partial registration.
+
 **Goal:** align runtime bridge decisions with `psdkMoveRegistryManifest`.
 
 **Files:**
