@@ -210,6 +210,7 @@ class MapGridPainter extends CustomPainter {
   final Map<String, PathAutotileSet> pathAutotileSetsByPresetId;
   final Map<TerrainType, ProjectTerrainPreset> terrainPresetsByType;
   final ProjectManifest? project;
+  final EditorShadowLightPreviewPreset? shadowLightPreviewPreset;
   final int editorEntityAnimationMs;
 
   /// Lot Environment-22 : surcouche semi-transparente des cellules masque actives.
@@ -245,6 +246,7 @@ class MapGridPainter extends CustomPainter {
     required this.pathAutotileSetsByPresetId,
     required this.terrainPresetsByType,
     this.project,
+    this.shadowLightPreviewPreset,
     this.editorEntityAnimationMs = 0,
     this.environmentMaskOverlay,
     this.environmentBrushCursorOverlay,
@@ -275,6 +277,7 @@ class MapGridPainter extends CustomPainter {
             map: map,
             tileWidth: tileWidth,
             tileHeight: tileHeight,
+            lightPreviewPreset: shadowLightPreviewPreset,
           );
 
     for (var index = visibleLayers.length - 1; index >= 0; index--) {
@@ -2547,6 +2550,7 @@ class MapGridPainter extends CustomPainter {
         ) ||
         !mapEquals(oldDelegate.terrainPresetsByType, terrainPresetsByType) ||
         oldDelegate.project != project ||
+        oldDelegate.shadowLightPreviewPreset != shadowLightPreviewPreset ||
         !mapEquals(oldDelegate.tilesetImagesById, tilesetImagesById) ||
         oldDelegate.sourceTileWidth != sourceTileWidth ||
         oldDelegate.sourceTileHeight != sourceTileHeight ||

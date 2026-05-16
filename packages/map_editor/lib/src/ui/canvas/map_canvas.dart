@@ -12,6 +12,7 @@ import 'package:map_core/map_core.dart';
 
 import '../../application/models/map_tool_preview.dart';
 import '../../application/models/path_autotile_set.dart';
+import '../../application/shadow/editor_shadow_light_preview.dart';
 import '../../application/shadow/editor_static_shadow_preview.dart';
 import '../../application/services/environment_generated_placement_hover_resolver.dart';
 import '../../application/services/environment_mask_brush_footprint_resolver.dart';
@@ -75,6 +76,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
   Timer? _entityEditorAnimTimer;
   bool _entityEditorAnimTimerRunning = false;
   int _editorEntityAnimationMs = 0;
+  String _shadowLightPreviewPresetId = 'neutral';
 
   void _syncEditorEntityAnimationTimer(bool needsAnimation) {
     if (needsAnimation == _entityEditorAnimTimerRunning) {
@@ -210,6 +212,9 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           hoveredTile: _hoveredTile,
           tilesetColumnsById: tilesPerRowById,
         );
+        final shadowLightPreviewPreset =
+            editorShadowLightPreviewPresetById(_shadowLightPreviewPresetId) ??
+                neutralEditorShadowLightPreviewPreset;
         final hoveredTile = _hoveredTile;
         final environmentGeneratedAddPreview =
             hoveredTile != null && state.project != null
@@ -529,6 +534,7 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                               pathAutotileSetsByPresetId,
                           terrainPresetsByType: terrainPresetsByType,
                           project: state.project,
+                          shadowLightPreviewPreset: shadowLightPreviewPreset,
                           editorEntityAnimationMs: _editorEntityAnimationMs,
                           environmentMaskOverlay: environmentMaskOverlay,
                           environmentBrushCursorOverlay:
@@ -569,6 +575,14 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
                           ),
                         ),
                       ),
+                    if (state.project != null)
+                      Positioned(
+                        right: 12,
+                        top: 12,
+                        child: _shadowLightPreviewSelector(
+                          shadowLightPreviewPreset,
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -576,6 +590,89 @@ class _MapCanvasState extends ConsumerState<MapCanvas> {
           ),
         );
       },
+    );
+  }
+
+  Widget _shadowLightPreviewSelector(
+    EditorShadowLightPreviewPreset selectedPreset,
+  ) {
+    final presets = createEditorShadowLightPreviewPresets();
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: const Color(0xDD1F2434),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: const Color(0x665F6C83),
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 6),
+              child: Text(
+                'Preview lumiere',
+                style: TextStyle(
+                  color: Color(0xFFEAF5F2),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            for (final preset in presets) ...[
+              _shadowLightPreviewPresetButton(
+                preset: preset,
+                selected: preset.id == selectedPreset.id,
+              ),
+              if (preset.id != presets.last.id) const SizedBox(width: 4),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _shadowLightPreviewPresetButton({
+    required EditorShadowLightPreviewPreset preset,
+    required bool selected,
+  }) {
+    return GestureDetector(
+      key: ValueKey('shadow-light-preview-${preset.id}-button'),
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        if (_shadowLightPreviewPresetId == preset.id) {
+          return;
+        }
+        setState(() {
+          _shadowLightPreviewPresetId = preset.id;
+        });
+      },
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFF6ED6B5) : const Color(0x332C3344),
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(
+            color: selected ? const Color(0xFFB9F4E5) : const Color(0x555F6C83),
+            width: 1,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+          child: Text(
+            preset.label,
+            style: TextStyle(
+              color:
+                  selected ? const Color(0xFF12211D) : const Color(0xFFEAF5F2),
+              fontSize: 10,
+              fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
+        ),
+      ),
     );
   }
 

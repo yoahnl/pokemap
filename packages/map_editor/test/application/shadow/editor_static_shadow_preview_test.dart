@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/shadow/editor_shadow_light_preview.dart';
 import 'package:map_editor/src/application/shadow/editor_static_shadow_preview.dart';
 
 void main() {
@@ -23,6 +24,59 @@ void main() {
       expect(instruction.height, closeTo(16, 0.001));
       expect(instruction.opacity, 0.35);
       expect(instruction.colorHexRgb, '000000');
+    });
+
+    test('neutral light preview keeps Shadow-24 geometry', () {
+      final instructions = buildEditorStaticShadowPreviewInstructions(
+        manifest: _manifest(),
+        map: _map(),
+        tileWidth: 16,
+        tileHeight: 16,
+        lightPreviewPreset: editorShadowLightPreviewPresetById('neutral'),
+      );
+
+      final instruction = instructions.single;
+      expect(instruction.left, closeTo(20, 0.001));
+      expect(instruction.top, closeTo(88, 0.001));
+      expect(instruction.width, closeTo(24, 0.001));
+      expect(instruction.height, closeTo(16, 0.001));
+      expect(instruction.opacity, 0.35);
+    });
+
+    test('noon light preview shortens the final preview shadow once', () {
+      final instruction = buildEditorStaticShadowPreviewInstructions(
+        manifest: _manifest(),
+        map: _map(),
+        tileWidth: 16,
+        tileHeight: 16,
+        lightPreviewPreset: editorShadowLightPreviewPresetById('noon'),
+      ).single;
+
+      expect(instruction.width, lessThan(24));
+      expect(instruction.height, lessThan(16));
+      expect(instruction.opacity, lessThan(0.35));
+    });
+
+    test('morning and evening light previews shift in opposite directions', () {
+      final morning = buildEditorStaticShadowPreviewInstructions(
+        manifest: _manifest(),
+        map: _map(),
+        tileWidth: 16,
+        tileHeight: 16,
+        lightPreviewPreset: editorShadowLightPreviewPresetById('morning'),
+      ).single;
+      final evening = buildEditorStaticShadowPreviewInstructions(
+        manifest: _manifest(),
+        map: _map(),
+        tileWidth: 16,
+        tileHeight: 16,
+        lightPreviewPreset: editorShadowLightPreviewPresetById('evening'),
+      ).single;
+
+      expect(morning.left, greaterThan(20));
+      expect(evening.left, lessThan(20));
+      expect(morning.top, greaterThan(88));
+      expect(evening.top, greaterThan(88));
     });
 
     test('builds a contactBlob groundStatic instruction', () {

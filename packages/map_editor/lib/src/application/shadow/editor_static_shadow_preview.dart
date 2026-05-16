@@ -1,5 +1,7 @@
 import 'package:map_core/map_core.dart';
 
+import 'editor_shadow_light_preview.dart';
+
 final class EditorStaticShadowPreviewInstruction {
   const EditorStaticShadowPreviewInstruction({
     required this.instanceId,
@@ -57,6 +59,7 @@ List<EditorStaticShadowPreviewInstruction>
   required MapData map,
   required double tileWidth,
   required double tileHeight,
+  EditorShadowLightPreviewPreset? lightPreviewPreset,
 }) {
   if (!tileWidth.isFinite ||
       !tileHeight.isFinite ||
@@ -78,6 +81,8 @@ List<EditorStaticShadowPreviewInstruction>
   }
 
   final instructions = <EditorStaticShadowPreviewInstruction>[];
+  final resolvedLightPreviewPreset =
+      lightPreviewPreset ?? neutralEditorShadowLightPreviewPreset;
   for (final placed in map.placedElements) {
     if (!visibleTileLayerById.containsKey(placed.layerId.trim())) {
       continue;
@@ -119,16 +124,26 @@ List<EditorStaticShadowPreviewInstruction>
       overrideFootprint: placed.shadowOverride?.footprint,
     );
 
+    final lightPreview = applyEditorShadowLightPreviewPreset(
+      left: geometry.left,
+      top: geometry.top,
+      width: geometry.width,
+      height: geometry.height,
+      opacity: resolved.opacity,
+      visualHeight: visualHeight,
+      preset: resolvedLightPreviewPreset,
+    );
+
     instructions.add(
       EditorStaticShadowPreviewInstruction(
         instanceId: placed.id,
         elementId: placed.elementId,
         shape: resolved.mode,
-        left: geometry.left,
-        top: geometry.top,
-        width: geometry.width,
-        height: geometry.height,
-        opacity: resolved.opacity,
+        left: lightPreview.left,
+        top: lightPreview.top,
+        width: lightPreview.width,
+        height: lightPreview.height,
+        opacity: lightPreview.opacity,
         colorHexRgb: resolved.colorHexRgb,
       ),
     );
