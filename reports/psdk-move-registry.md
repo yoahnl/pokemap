@@ -6,8 +6,8 @@ Total registered methods: 330
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 65 |
-| `partial` | 265 |
+| `ported` | 75 |
+| `partial` | 255 |
 | `missing` | 0 |
 
 | Method | Ruby class | Ruby path | Dart behavior | Status | Dependencies |
@@ -51,7 +51,7 @@ Total registered methods: 330
 | `s_captivate` | `Captivate` | `10 Move/2 Definitions/300 Captivate.rb` | `StaticBasicMoveRegistry.secondaryOnly(s_captivate)` | `partial` | `-` |
 | `s_ceaseless_edge` | `CeaselessEdge` | `10 Move/2 Definitions/300 HazardsSetting.rb` | `StaticBasicMoveRegistry.s_ceaseless_edge` | `ported` | `-` |
 | `s_change_type` | `ChangeType` | `10 Move/2 Definitions/300 ChangeType.rb` | `StaticBasicMoveRegistry.s_change_type` | `partial` | `-` |
-| `s_charge` | `Charge` | `10 Move/2 Definitions/300 Charge.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_charge)` | `partial` | `-` |
+| `s_charge` | `Charge` | `10 Move/2 Definitions/300 Charge.rb` | `StaticBasicMoveRegistry.s_charge` | `ported` | `effects`, `handler_stat` |
 | `s_chilly_reception` | `ChillyReception` | `10 Move/2 Definitions/300 ChillyReception.rb` | `StaticBasicMoveRegistry.partialFieldMarker(s_chilly_reception)` | `partial` | `-` |
 | `s_chloroblast` | `MindBlown` | `10 Move/2 Definitions/300 MindBlown.rb` | `MindBlownMoveBehavior.chloroblast` | `partial` | `ability`, `faint_process` |
 | `s_clangorous_soul` | `ClangorousSoul` | `10 Move/2 Definitions/300 ClangorousSoul.rb` | `AdvancedStatMoveBehavior.clangorousSoul` | `partial` | `handler_damage`, `handler_stat`, `effects`, `ability` |
@@ -103,10 +103,10 @@ Total registered methods: 330
 | `s_floral_healing` | `FloralHealing` | `10 Move/2 Definitions/300 FloralHealing.rb` | `HealMoveBehavior.floralHealing` | `partial` | `handler_damage`, `terrain`, `effects`, `ability` |
 | `s_flower_shield` | `FlowerShield` | `10 Move/2 Definitions/300 FlowerShield.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_flower_shield)` | `partial` | `-` |
 | `s_flying_press` | `FlyingPress` | `10 Move/2 Definitions/300 FlyingPress.rb` | `StaticBasicMoveRegistry.partialBasic(s_flying_press)` | `partial` | `-` |
-| `s_focus_energy` | `FocusEnergy` | `10 Move/2 Definitions/300 FocusEnergy.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_focus_energy)` | `partial` | `-` |
+| `s_focus_energy` | `FocusEnergy` | `10 Move/2 Definitions/300 FocusEnergy.rb` | `StaticBasicMoveRegistry.s_focus_energy` | `ported` | `effects` |
 | `s_focus_punch` | `FocusPunch` | `10 Move/2 Definitions/300 PreAttackMoves.rb` | `StaticBasicMoveRegistry.partialBasic(s_focus_punch)` | `partial` | `-` |
 | `s_follow_me` | `FollowMe` | `10 Move/2 Definitions/300 FollowMe.rb` | `StaticBasicMoveRegistry.s_follow_me` | `partial` | `effects`, `action_order`, `targeting_multi` |
-| `s_foresight` | `Foresight` | `10 Move/2 Definitions/300 Foresight.rb` | `StaticBasicMoveRegistry.s_foresight` | `partial` | `effects` |
+| `s_foresight` | `Foresight` | `10 Move/2 Definitions/300 Foresight.rb` | `StaticBasicMoveRegistry.s_foresight` | `ported` | `effects` |
 | `s_foul_play` | `FoulPlay` | `10 Move/2 Definitions/300 FoulPlay.rb` | `CustomStatSourceMoveBehavior.foulPlay` | `partial` | `handler_damage`, `ability`, `item` |
 | `s_freezy_frost` | `FreezyFrost` | `10 Move/2 Definitions/300 FreezyFrost.rb` | `StaticBasicMoveRegistry.s_freezy_frost` | `partial` | `-` |
 | `s_frustration` | `Frustration` | `10 Move/2 Definitions/300 Frustration.rb` | `StaticBasicMoveRegistry.partialBasic(s_frustration)` | `partial` | `-` |
@@ -115,7 +115,7 @@ Total registered methods: 330
 | `s_fusion_bolt` | `FusionBolt` | `10 Move/2 Definitions/300 FusionFlareBolt.rb` | `StaticBasicMoveRegistry.s_fusion_bolt` | `partial` | `-` |
 | `s_fusion_flare` | `FusionFlare` | `10 Move/2 Definitions/300 FusionFlareBolt.rb` | `StaticBasicMoveRegistry.s_fusion_flare` | `partial` | `-` |
 | `s_future_sight` | `FutureSight` | `10 Move/2 Definitions/300 FutureSight.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_future_sight)` | `partial` | `effects`, `end_turn`, `handler_damage`, `handler_switch` |
-| `s_gastro_acid` | `GastroAcid` | `10 Move/2 Definitions/300 GastroAcid.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_gastro_acid)` | `partial` | `-` |
+| `s_gastro_acid` | `GastroAcid` | `10 Move/2 Definitions/300 GastroAcid.rb` | `StaticBasicMoveRegistry.s_gastro_acid` | `ported` | `effects`, `ability` |
 | `s_gear_up` | `GearUp` | `10 Move/2 Definitions/300 GearUp.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_gear_up)` | `partial` | `-` |
 | `s_genies_storm` | `GeniesStorm` | `10 Move/2 Definitions/300 GeniesStorm.rb` | `WeatherPowerMoveBehavior.geniesStorm` | `partial` | `-` |
 | `s_geomancy` | `Geomancy` | `10 Move/2 Definitions/300 Geomancy.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_geomancy)` | `partial` | `-` |
@@ -159,7 +159,7 @@ Total registered methods: 330
 | `s_jump_kick` | `HighJumpKick` | `10 Move/2 Definitions/300 HighJumpKick.rb` | `StaticBasicMoveRegistry.s_jump_kick` | `partial` | `-` |
 | `s_jungle_healing` | `JungleHealing` | `10 Move/2 Definitions/300 LifeDew.rb` | `HealMoveBehavior.jungleHealing` | `partial` | `handler_damage`, `handler_status`, `effects`, `targeting_multi` |
 | `s_knock_off` | `KnockOff` | `10 Move/2 Definitions/300 KnockOff.rb` | `ItemDependentMoveBehavior.knockOff` | `partial` | `-` |
-| `s_laser_focus` | `LaserFocus` | `10 Move/2 Definitions/300 LaserFocus.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_laser_focus)` | `partial` | `-` |
+| `s_laser_focus` | `LaserFocus` | `10 Move/2 Definitions/300 LaserFocus.rb` | `StaticBasicMoveRegistry.s_laser_focus` | `ported` | `effects` |
 | `s_lash_out` | `LashOut` | `10 Move/2 Definitions/300 LashOut.rb` | `HistoryPowerMoveBehavior.lashOut` | `partial` | `-` |
 | `s_last_resort` | `LastResort` | `10 Move/2 Definitions/300 LastResort.rb` | `StaticBasicMoveRegistry.s_last_resort` | `partial` | `-` |
 | `s_last_respects` | `LastRespects` | `10 Move/2 Definitions/300 LastRespects.rb` | `StaticBasicMoveRegistry.s_last_respects` | `partial` | `-` |
@@ -172,7 +172,7 @@ Total registered methods: 330
 | `s_magic_coat` | `MagicCoat` | `10 Move/2 Definitions/300 MagicCoat.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_magic_coat)` | `partial` | `-` |
 | `s_magic_powder` | `MagicPowder` | `10 Move/2 Definitions/300 MagicPowder.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_magic_powder)` | `partial` | `-` |
 | `s_magic_room` | `MagicRoom` | `10 Move/2 Definitions/300 MagicRoom.rb` | `StaticBasicMoveRegistry.partialFieldMarker(s_magic_room)` | `partial` | `-` |
-| `s_magnet_rise` | `MagnetRise` | `10 Move/2 Definitions/300 MagnetRise.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_magnet_rise)` | `partial` | `-` |
+| `s_magnet_rise` | `MagnetRise` | `10 Move/2 Definitions/300 MagnetRise.rb` | `StaticBasicMoveRegistry.s_magnet_rise` | `ported` | `effects`, `grounded` |
 | `s_magnetic_flux` | `MagneticFlux` | `10 Move/2 Definitions/300 MagneticFlux.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_magnetic_flux)` | `partial` | `-` |
 | `s_magnitude` | `Magnitude` | `10 Move/2 Definitions/300 Magnitude.rb` | `StaticBasicMoveRegistry.s_magnitude` | `partial` | `-` |
 | `s_make_it_rain` | `MakeItRain` | `10 Move/2 Definitions/300 MakeItRain.rb` | `StaticBasicMoveRegistry.s_make_it_rain` | `partial` | `-` |
@@ -183,8 +183,8 @@ Total registered methods: 330
 | `s_mimic` | `Mimic` | `10 Move/2 Definitions/300 Mimic.rb` | `CopyCallMoveBehavior.mimic` | `partial` | `-` |
 | `s_mind_blown` | `MindBlown` | `10 Move/2 Definitions/300 MindBlown.rb` | `MindBlownMoveBehavior.mindBlown` | `partial` | `ability`, `faint_process` |
 | `s_mind_reader` | `LockOn` | `10 Move/2 Definitions/300 LockOn.rb` | `StaticBasicMoveRegistry.s_mind_reader` | `partial` | `-` |
-| `s_minimize` | `Minimize` | `10 Move/2 Definitions/300 Minimize.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_minimize)` | `partial` | `-` |
-| `s_miracle_eye` | `MiracleEye` | `10 Move/2 Definitions/300 MiracleEye.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_miracle_eye)` | `partial` | `-` |
+| `s_minimize` | `Minimize` | `10 Move/2 Definitions/300 Minimize.rb` | `StaticBasicMoveRegistry.s_minimize` | `ported` | `effects`, `handler_stat` |
+| `s_miracle_eye` | `MiracleEye` | `10 Move/2 Definitions/300 MiracleEye.rb` | `StaticBasicMoveRegistry.s_miracle_eye` | `ported` | `effects` |
 | `s_mirror_coat` | `MirrorCoat` | `10 Move/2 Definitions/300 Counter moves.rb` | `CounterDamageMoveBehavior.mirrorCoat` | `partial` | `-` |
 | `s_mirror_move` | `MirrorMove` | `10 Move/2 Definitions/300 MirrorMove.rb` | `CopyCallMoveBehavior.mirrorMove` | `partial` | `-` |
 | `s_mist` | `Mist` | `10 Move/2 Definitions/300 Mist.rb` | `StaticBasicMoveRegistry.s_mist` | `ported` | `-` |
@@ -302,11 +302,11 @@ Total registered methods: 330
 | `s_syrup_bomb` | `SyrupBomb` | `10 Move/2 Definitions/300 SyrupBomb.rb` | `SpecialSecondaryMoveBehavior.syrupBomb` | `partial` | `-` |
 | `s_tailwind` | `Tailwind` | `10 Move/2 Definitions/300 Tailwind.rb` | `StaticBasicMoveRegistry.partialUserBankMarker(s_tailwind)` | `partial` | `effects`, `action_order` |
 | `s_take_heart` | `TakeHeart` | `10 Move/2 Definitions/300 TakeHeart.rb` | `StatusCureMoveBehavior.takeHeart` | `partial` | `handler_status`, `effects`, `targeting_multi` |
-| `s_tar_shot` | `TarShot` | `10 Move/2 Definitions/300 TarShot.rb` | `SpecialSecondaryMoveBehavior.tarShot` | `partial` | `-` |
+| `s_tar_shot` | `TarShot` | `10 Move/2 Definitions/300 TarShot.rb` | `SpecialSecondaryMoveBehavior.tarShot` | `ported` | `effects`, `handler_stat` |
 | `s_taunt` | `Taunt` | `10 Move/2 Definitions/300 Taunt.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_taunt)` | `partial` | `effects`, `action_order` |
 | `s_teatime` | `Teatime` | `10 Move/2 Definitions/300 TeaTime.rb` | `StaticBasicMoveRegistry.partialFieldMarker(s_teatime)` | `partial` | `-` |
 | `s_techno_blast` | `TechnoBlast` | `10 Move/2 Definitions/300 TechnoBlast.rb` | `ItemDependentMoveBehavior.technoBlast` | `partial` | `item`, `ability` |
-| `s_telekinesis` | `Telekinesis` | `10 Move/2 Definitions/300 Telekinesis.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_telekinesis)` | `partial` | `-` |
+| `s_telekinesis` | `Telekinesis` | `10 Move/2 Definitions/300 Telekinesis.rb` | `StaticBasicMoveRegistry.s_telekinesis` | `ported` | `effects`, `grounded` |
 | `s_teleport` | `Teleport` | `10 Move/2 Definitions/300 Teleport.rb` | `StaticBasicMoveRegistry.partialTargetMarker(s_teleport)` | `partial` | `-` |
 | `s_terrain` | `TerrainMove` | `10 Move/2 Definitions/300 TerrainMove.rb` | `TerrainMoveBehavior` | `ported` | `handler_terrain`, `terrain`, `effects`, `item` |
 | `s_terrain_boosting` | `TerrainBoosting` | `10 Move/2 Definitions/300 TerrainBoosting.rb` | `TerrainPowerMoveBehavior.terrainBoosting` | `ported` | `-` |

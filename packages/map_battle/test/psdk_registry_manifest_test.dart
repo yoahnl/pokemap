@@ -372,7 +372,7 @@ void main() {
         byMethod['s_syrup_bomb']!.dartBehavior,
         'SpecialSecondaryMoveBehavior.syrupBomb',
       );
-      expect(byMethod['s_tar_shot']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_tar_shot']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_tar_shot']!.dartBehavior,
         'SpecialSecondaryMoveBehavior.tarShot',
@@ -824,7 +824,7 @@ void main() {
         byMethod['s_add_type']!.dartBehavior,
         'StaticBasicMoveRegistry.s_add_type',
       );
-      expect(byMethod['s_foresight']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_foresight']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_foresight']!.dartBehavior,
         'StaticBasicMoveRegistry.s_foresight',
@@ -891,10 +891,6 @@ void main() {
           behavior: 'StaticBasicMoveRegistry.secondaryOnly(s_captivate)',
         ),
         (
-          method: 's_charge',
-          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_charge)',
-        ),
-        (
           method: 's_change_type',
           behavior: 'StaticBasicMoveRegistry.s_change_type',
         ),
@@ -929,18 +925,8 @@ void main() {
               'StaticBasicMoveRegistry.partialAbilityChanging(s_entrainment)',
         ),
         (
-          method: 's_focus_energy',
-          behavior:
-              'StaticBasicMoveRegistry.partialTargetMarker(s_focus_energy)',
-        ),
-        (
           method: 's_future_sight',
           behavior: 'StaticBasicMoveRegistry.delayedMove(s_future_sight)',
-        ),
-        (
-          method: 's_gastro_acid',
-          behavior:
-              'StaticBasicMoveRegistry.partialTargetMarker(s_gastro_acid)',
         ),
         (
           method: 's_gravity',
@@ -967,11 +953,6 @@ void main() {
           behavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_ion_deluge)',
         ),
         (
-          method: 's_laser_focus',
-          behavior:
-              'StaticBasicMoveRegistry.partialTargetMarker(s_laser_focus)',
-        ),
-        (
           method: 's_lock_on',
           behavior: 'StaticBasicMoveRegistry.s_lock_on',
         ),
@@ -982,11 +963,6 @@ void main() {
         (
           method: 's_magic_room',
           behavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_magic_room)',
-        ),
-        (
-          method: 's_magnet_rise',
-          behavior:
-              'StaticBasicMoveRegistry.partialTargetMarker(s_magnet_rise)',
         ),
         (
           method: 's_metronome',
@@ -1005,17 +981,8 @@ void main() {
           behavior: 'CopyCallMoveBehavior.meFirst',
         ),
         (
-          method: 's_minimize',
-          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_minimize)',
-        ),
-        (
           method: 's_mind_reader',
           behavior: 'StaticBasicMoveRegistry.s_mind_reader',
-        ),
-        (
-          method: 's_miracle_eye',
-          behavior:
-              'StaticBasicMoveRegistry.partialTargetMarker(s_miracle_eye)',
         ),
         (
           method: 's_nightmare',
@@ -1062,11 +1029,6 @@ void main() {
         (
           method: 's_stockpile',
           behavior: 'StaticBasicMoveRegistry.s_stockpile',
-        ),
-        (
-          method: 's_telekinesis',
-          behavior:
-              'StaticBasicMoveRegistry.partialTargetMarker(s_telekinesis)',
         ),
         (
           method: 's_reflect_type',
@@ -1121,6 +1083,43 @@ void main() {
         byMethod['s_crafty_shield']!.dartBehavior,
         'StaticBasicMoveRegistry.s_crafty_shield',
       );
+      for (final entry in <({String method, String behavior})>[
+        (
+          method: 's_charge',
+          behavior: 'StaticBasicMoveRegistry.s_charge',
+        ),
+        (
+          method: 's_focus_energy',
+          behavior: 'StaticBasicMoveRegistry.s_focus_energy',
+        ),
+        (
+          method: 's_gastro_acid',
+          behavior: 'StaticBasicMoveRegistry.s_gastro_acid',
+        ),
+        (
+          method: 's_laser_focus',
+          behavior: 'StaticBasicMoveRegistry.s_laser_focus',
+        ),
+        (
+          method: 's_magnet_rise',
+          behavior: 'StaticBasicMoveRegistry.s_magnet_rise',
+        ),
+        (
+          method: 's_minimize',
+          behavior: 'StaticBasicMoveRegistry.s_minimize',
+        ),
+        (
+          method: 's_miracle_eye',
+          behavior: 'StaticBasicMoveRegistry.s_miracle_eye',
+        ),
+        (
+          method: 's_telekinesis',
+          behavior: 'StaticBasicMoveRegistry.s_telekinesis',
+        ),
+      ]) {
+        expect(byMethod[entry.method]!.status, PsdkPortStatus.ported);
+        expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
+      }
       expect(byMethod['s_lucky_chant']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_lucky_chant']!.dartBehavior,

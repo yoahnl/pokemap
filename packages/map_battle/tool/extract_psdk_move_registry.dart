@@ -390,7 +390,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_tar_shot': _KnownDartBehavior(
     dartBehavior: 'SpecialSecondaryMoveBehavior.tarShot',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_teatime': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_teatime)',
@@ -484,8 +484,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_charge': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_charge)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_charge',
+    status: _PsdkPortStatus.ported,
   ),
   's_change_type': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_change_type',
@@ -508,8 +508,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_focus_energy': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_focus_energy)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_focus_energy',
+    status: _PsdkPortStatus.ported,
   ),
   's_focus_punch': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_focus_punch)',
@@ -517,7 +517,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_foresight': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_foresight',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_flying_press': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialBasic(s_flying_press)',
@@ -528,8 +528,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_gastro_acid': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_gastro_acid)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_gastro_acid',
+    status: _PsdkPortStatus.ported,
   ),
   's_gravity': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_gravity)',
@@ -585,8 +585,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_laser_focus': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_laser_focus)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_laser_focus',
+    status: _PsdkPortStatus.ported,
   ),
   's_lock_on': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_lock_on',
@@ -601,24 +601,24 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_magnet_rise': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_magnet_rise)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_magnet_rise',
+    status: _PsdkPortStatus.ported,
   ),
   's_memento': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_memento',
     status: _PsdkPortStatus.ported,
   ),
   's_minimize': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_minimize)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_minimize',
+    status: _PsdkPortStatus.ported,
   ),
   's_mind_reader': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_mind_reader',
     status: _PsdkPortStatus.partial,
   ),
   's_miracle_eye': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_miracle_eye)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_miracle_eye',
+    status: _PsdkPortStatus.ported,
   ),
   's_mist': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_mist',
@@ -903,8 +903,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.ported,
   ),
   's_telekinesis': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_telekinesis)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_telekinesis',
+    status: _PsdkPortStatus.ported,
   ),
   's_thief': _KnownDartBehavior(
     dartBehavior: 'ItemDependentMoveBehavior.thief',
@@ -1460,11 +1460,18 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
   's_brick_break': {
     _PsdkMoveDependency.effects,
   },
+  's_charge': {
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.handlerStat,
+  },
   's_cantflee': {},
   's_follow_me': {
     _PsdkMoveDependency.effects,
     _PsdkMoveDependency.actionOrder,
     _PsdkMoveDependency.targetingMulti,
+  },
+  's_focus_energy': {
+    _PsdkMoveDependency.effects,
   },
   's_foresight': {
     _PsdkMoveDependency.effects,
@@ -1474,6 +1481,10 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
     _PsdkMoveDependency.endTurn,
     _PsdkMoveDependency.handlerDamage,
     _PsdkMoveDependency.handlerSwitch,
+  },
+  's_gastro_acid': {
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.ability,
   },
   's_dragon_tail': {
     _PsdkMoveDependency.handlerSwitch,
@@ -1501,6 +1512,9 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
   's_ion_deluge': {
     _PsdkMoveDependency.effects,
     _PsdkMoveDependency.field,
+  },
+  's_laser_focus': {
+    _PsdkMoveDependency.effects,
   },
   's_outrage': {
     _PsdkMoveDependency.effects,
@@ -1533,7 +1547,18 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
   },
   's_revelation_dance': {},
   's_lucky_chant': {},
+  's_magnet_rise': {
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.grounded,
+  },
   's_mist': {},
+  's_minimize': {
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.handlerStat,
+  },
+  's_miracle_eye': {
+    _PsdkMoveDependency.effects,
+  },
   's_reflect': {},
   's_reflect_type': {
     _PsdkMoveDependency.effects,
@@ -1609,9 +1634,17 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
   's_synchronoise': {
     _PsdkMoveDependency.targetingMulti,
   },
+  's_tar_shot': {
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.handlerStat,
+  },
   's_tailwind': {
     _PsdkMoveDependency.effects,
     _PsdkMoveDependency.actionOrder,
+  },
+  's_telekinesis': {
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.grounded,
   },
   's_taunt': {},
   's_thief': {

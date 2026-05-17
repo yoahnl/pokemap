@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 307,
-    "partiel": 421,
+    "fait": 317,
+    "partiel": 411,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -699,9 +699,9 @@
       {
         "moveId": "charge",
         "battleEngineMethod": "s_charge",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/charge.json"
       },
       {
@@ -1795,9 +1795,9 @@
       {
         "moveId": "focus_energy",
         "battleEngineMethod": "s_focus_energy",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/focus_energy.json"
       },
       {
@@ -1827,9 +1827,9 @@
       {
         "moveId": "foresight",
         "battleEngineMethod": "s_foresight",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/foresight.json"
       },
       {
@@ -1939,9 +1939,9 @@
       {
         "moveId": "gastro_acid",
         "battleEngineMethod": "s_gastro_acid",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/gastro_acid.json"
       },
       {
@@ -2707,9 +2707,9 @@
       {
         "moveId": "laser_focus",
         "battleEngineMethod": "s_laser_focus",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/laser_focus.json"
       },
       {
@@ -2947,9 +2947,9 @@
       {
         "moveId": "magnet_rise",
         "battleEngineMethod": "s_magnet_rise",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/magnet_rise.json"
       },
       {
@@ -3131,17 +3131,17 @@
       {
         "moveId": "minimize",
         "battleEngineMethod": "s_minimize",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/minimize.json"
       },
       {
         "moveId": "miracle_eye",
         "battleEngineMethod": "s_miracle_eye",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/miracle_eye.json"
       },
       {
@@ -3411,9 +3411,9 @@
       {
         "moveId": "odor_sleuth",
         "battleEngineMethod": "s_foresight",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/odor_sleuth.json"
       },
       {
@@ -5275,9 +5275,9 @@
       {
         "moveId": "telekinesis",
         "battleEngineMethod": "s_telekinesis",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/telekinesis.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 107,
-      "partial": 223,
+      "ported": 117,
+      "partial": 213,
       "missing": 0
     },
     "entries": [
@@ -6203,9 +6203,12 @@
         "battleEngineMethod": "s_charge",
         "rubyClass": "Charge",
         "rubyPath": "10 Move/2 Definitions/300 Charge.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_charge)",
-        "status": "partial",
-        "dependencies": []
+        "dartBehavior": "StaticBasicMoveRegistry.s_charge",
+        "status": "ported",
+        "dependencies": [
+          "effects",
+          "handlerStat"
+        ]
       },
       {
         "battleEngineMethod": "s_chilly_reception",
@@ -6671,9 +6674,11 @@
         "battleEngineMethod": "s_focus_energy",
         "rubyClass": "FocusEnergy",
         "rubyPath": "10 Move/2 Definitions/300 FocusEnergy.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_focus_energy)",
-        "status": "partial",
-        "dependencies": []
+        "dartBehavior": "StaticBasicMoveRegistry.s_focus_energy",
+        "status": "ported",
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_focus_punch",
@@ -6700,7 +6705,7 @@
         "rubyClass": "Foresight",
         "rubyPath": "10 Move/2 Definitions/300 Foresight.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_foresight",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "effects"
         ]
@@ -6782,9 +6787,12 @@
         "battleEngineMethod": "s_gastro_acid",
         "rubyClass": "GastroAcid",
         "rubyPath": "10 Move/2 Definitions/300 GastroAcid.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_gastro_acid)",
-        "status": "partial",
-        "dependencies": []
+        "dartBehavior": "StaticBasicMoveRegistry.s_gastro_acid",
+        "status": "ported",
+        "dependencies": [
+          "effects",
+          "ability"
+        ]
       },
       {
         "battleEngineMethod": "s_gear_up",
@@ -7201,9 +7209,11 @@
         "battleEngineMethod": "s_laser_focus",
         "rubyClass": "LaserFocus",
         "rubyPath": "10 Move/2 Definitions/300 LaserFocus.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_laser_focus)",
-        "status": "partial",
-        "dependencies": []
+        "dartBehavior": "StaticBasicMoveRegistry.s_laser_focus",
+        "status": "ported",
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_lash_out",
@@ -7318,9 +7328,12 @@
         "battleEngineMethod": "s_magnet_rise",
         "rubyClass": "MagnetRise",
         "rubyPath": "10 Move/2 Definitions/300 MagnetRise.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_magnet_rise)",
-        "status": "partial",
-        "dependencies": []
+        "dartBehavior": "StaticBasicMoveRegistry.s_magnet_rise",
+        "status": "ported",
+        "dependencies": [
+          "effects",
+          "grounded"
+        ]
       },
       {
         "battleEngineMethod": "s_magnetic_flux",
@@ -7409,17 +7422,22 @@
         "battleEngineMethod": "s_minimize",
         "rubyClass": "Minimize",
         "rubyPath": "10 Move/2 Definitions/300 Minimize.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_minimize)",
-        "status": "partial",
-        "dependencies": []
+        "dartBehavior": "StaticBasicMoveRegistry.s_minimize",
+        "status": "ported",
+        "dependencies": [
+          "effects",
+          "handlerStat"
+        ]
       },
       {
         "battleEngineMethod": "s_miracle_eye",
         "rubyClass": "MiracleEye",
         "rubyPath": "10 Move/2 Definitions/300 MiracleEye.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_miracle_eye)",
-        "status": "partial",
-        "dependencies": []
+        "dartBehavior": "StaticBasicMoveRegistry.s_miracle_eye",
+        "status": "ported",
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_mirror_coat",
@@ -8534,8 +8552,11 @@
         "rubyClass": "TarShot",
         "rubyPath": "10 Move/2 Definitions/300 TarShot.rb",
         "dartBehavior": "SpecialSecondaryMoveBehavior.tarShot",
-        "status": "partial",
-        "dependencies": []
+        "status": "ported",
+        "dependencies": [
+          "effects",
+          "handlerStat"
+        ]
       },
       {
         "battleEngineMethod": "s_taunt",
@@ -8565,9 +8586,12 @@
         "battleEngineMethod": "s_telekinesis",
         "rubyClass": "Telekinesis",
         "rubyPath": "10 Move/2 Definitions/300 Telekinesis.rb",
-        "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_telekinesis)",
-        "status": "partial",
-        "dependencies": []
+        "dartBehavior": "StaticBasicMoveRegistry.s_telekinesis",
+        "status": "ported",
+        "dependencies": [
+          "effects",
+          "grounded"
+        ]
       },
       {
         "battleEngineMethod": "s_teleport",

@@ -364,9 +364,12 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_charge',
     rubyClass: 'Charge',
     rubyPath: '10 Move/2 Definitions/300 Charge.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_charge)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_charge',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.handlerStat
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_chilly_reception',
@@ -834,9 +837,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_focus_energy',
     rubyClass: 'FocusEnergy',
     rubyPath: '10 Move/2 Definitions/300 FocusEnergy.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_focus_energy)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_focus_energy',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_focus_punch',
@@ -863,7 +866,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Foresight',
     rubyPath: '10 Move/2 Definitions/300 Foresight.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_foresight',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -943,9 +946,12 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_gastro_acid',
     rubyClass: 'GastroAcid',
     rubyPath: '10 Move/2 Definitions/300 GastroAcid.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_gastro_acid)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_gastro_acid',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.ability
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_gear_up',
@@ -1363,9 +1369,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_laser_focus',
     rubyClass: 'LaserFocus',
     rubyPath: '10 Move/2 Definitions/300 LaserFocus.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_laser_focus)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_laser_focus',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_lash_out',
@@ -1480,9 +1486,12 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_magnet_rise',
     rubyClass: 'MagnetRise',
     rubyPath: '10 Move/2 Definitions/300 MagnetRise.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_magnet_rise)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_magnet_rise',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.grounded
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_magnetic_flux',
@@ -1572,17 +1581,20 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_minimize',
     rubyClass: 'Minimize',
     rubyPath: '10 Move/2 Definitions/300 Minimize.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_minimize)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_minimize',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.handlerStat
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_miracle_eye',
     rubyClass: 'MiracleEye',
     rubyPath: '10 Move/2 Definitions/300 MiracleEye.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_miracle_eye)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_miracle_eye',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_mirror_coat',
@@ -2691,8 +2703,11 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'TarShot',
     rubyPath: '10 Move/2 Definitions/300 TarShot.rb',
     dartBehavior: 'SpecialSecondaryMoveBehavior.tarShot',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.handlerStat
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_taunt',
@@ -2722,9 +2737,12 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_telekinesis',
     rubyClass: 'Telekinesis',
     rubyPath: '10 Move/2 Definitions/300 Telekinesis.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_telekinesis)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[],
+    dartBehavior: 'StaticBasicMoveRegistry.s_telekinesis',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[
+      PsdkMoveDependency.effects,
+      PsdkMoveDependency.grounded
+    ],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_teleport',
