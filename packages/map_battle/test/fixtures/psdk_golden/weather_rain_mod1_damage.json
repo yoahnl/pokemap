@@ -1,0 +1,138 @@
+{
+  "scenarioId": "weather_rain_mod1_damage",
+  "tags": [
+    "field",
+    "move_method",
+    "damage"
+  ],
+  "psdkSourcePaths": [
+    "06 Effects/06 Weather Effects/100 Rain.rb",
+    "10 Move/101 Damage_Calc.rb"
+  ],
+  "sourcePsdkVersion": "pokemonsdk-development-local-2026-05-17",
+  "initialBattle": {
+    "rngSeeds": {
+      "moveDamage": 14,
+      "moveCritical": 99999,
+      "moveAccuracy": 1,
+      "generic": 1
+    },
+    "field": {
+      "weather": {
+        "id": "rain",
+        "remainingTurns": 5
+      }
+    },
+    "player": {
+      "id": "player-mod1-attacker",
+      "speciesId": "fixture_attacker",
+      "displayName": "Fixture Attacker",
+      "level": 50,
+      "maxHp": 100,
+      "currentHp": 100,
+      "types": {
+        "primary": "normal"
+      },
+      "stats": {
+        "attack": 10,
+        "defense": 10,
+        "specialAttack": 10,
+        "specialDefense": 10,
+        "speed": 50
+      },
+      "moves": [
+        {
+          "id": "water_gun",
+          "dbSymbol": "water_gun",
+          "name": "Water Gun",
+          "type": "water",
+          "category": "special",
+          "power": 10,
+          "accuracy": 100,
+          "pp": 25,
+          "priority": 0,
+          "criticalRate": 0,
+          "battleEngineMethod": "s_basic",
+          "target": "adjacentFoe"
+        }
+      ]
+    },
+    "opponent": {
+      "id": "opponent-mod1-defender",
+      "speciesId": "fixture_defender",
+      "displayName": "Fixture Defender",
+      "level": 50,
+      "maxHp": 100,
+      "currentHp": 100,
+      "types": {
+        "primary": "normal"
+      },
+      "stats": {
+        "attack": 10,
+        "defense": 10,
+        "specialAttack": 10,
+        "specialDefense": 12,
+        "speed": 1
+      },
+      "moves": [
+        {
+          "id": "hold_hands",
+          "dbSymbol": "hold_hands",
+          "name": "Hold Hands",
+          "type": "normal",
+          "category": "status",
+          "power": 0,
+          "accuracy": 100,
+          "pp": 40,
+          "priority": 0,
+          "criticalRate": 0,
+          "battleEngineMethod": "s_do_nothing",
+          "target": "self"
+        }
+      ]
+    }
+  },
+  "actions": [
+    {
+      "actor": "player",
+      "kind": "fight",
+      "moveSlot": 0
+    }
+  ],
+  "expectedFinalState": {
+    "player": {
+      "currentHp": 100
+    },
+    "opponent": {
+      "currentHp": 94
+    }
+  },
+  "expectedTimeline": {
+    "eventKinds": [
+      "turn_started",
+      "move_pp_spent",
+      "move_declared",
+      "animation_cue",
+      "damage",
+      "move_pp_spent",
+      "move_declared",
+      "animation_cue"
+    ],
+    "damageEvents": [
+      {
+        "moveId": "water_gun",
+        "damage": 6,
+        "remainingHp": 94
+      }
+    ]
+  },
+  "expectedAuditDeltas": {
+    "strictAttacks": 0,
+    "portedMethods": 0,
+    "portedEffects": 1
+  },
+  "notes": [
+    "Golden fixture for PSDK Rain#mod1_multiplier being applied before the +2 damage floor.",
+    "The numbers are intentionally tiny so applying rain as power/stat adjustment would produce a different result."
+  ]
+}

@@ -104,13 +104,13 @@ void main() {
       expect(diagnostic.bridgeable, isTrue);
       expect(diagnostic.reason, equals('bridgeable'));
       expect(diagnostic.psdkRegistered, isTrue);
-      expect(diagnostic.psdkPartial, isTrue);
+      expect(diagnostic.psdkPartial, isFalse);
       expect(
         diagnostic.engineSupportLevel,
         equals(PokemonMoveEngineSupportLevel.catalogOnly),
       );
       expect(diagnostic.battleEngineMethod, equals('s_transform'));
-      expect(diagnostic.psdkRegistryStatus, equals('partial'));
+      expect(diagnostic.psdkRegistryStatus, equals('ported'));
     });
 
     test('inspectMove reports Baton Pass as not bridgeable without throwing',

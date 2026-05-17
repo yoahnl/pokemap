@@ -78,11 +78,13 @@ final class BattleMoveDamageCalculator {
           _defensiveStat(context),
     );
     final levelFactor = ((2 * context.user.level) ~/ 5) + 2;
-    final baseDamage =
-        (((levelFactor * resolvedPower * offensiveStat) ~/ defensiveStat) ~/
-                50) +
-            2;
-    final criticalDamage = (baseDamage * critical.multiplier).floor();
+    var formulaDamage = levelFactor;
+    formulaDamage = (formulaDamage * resolvedPower).floor();
+    formulaDamage = (formulaDamage * offensiveStat).floor() ~/ 50;
+    formulaDamage = (formulaDamage ~/ defensiveStat).floor();
+    formulaDamage =
+        (formulaDamage * _mod1Multiplier(context, moveType)).floor() + 2;
+    final criticalDamage = (formulaDamage * critical.multiplier).floor();
     final randomDamage = ((criticalDamage * damageRoll.value) / 100).floor();
     final stabDamage = (randomDamage * stabMultiplier).floor();
     final typeEffectivenessMultiplier = _applyLocalEffectivenessModifiers(
@@ -113,7 +115,6 @@ final class BattleMoveDamageCalculator {
 int _effectivePower(BattleMoveDamageContext context) {
   var power = context.overrides?.power ?? context.move.power;
   final moveType = _effectiveMoveType(context);
-  power = _terrainAdjustedPower(power, context, moveType);
   power = _abilityAdjustedPower(power, context, moveType);
   power = _itemAdjustedPower(power, context, moveType);
   if (context.user.effects.contains('charge') && moveType == 'electric') {
@@ -126,6 +127,54 @@ int _effectivePower(BattleMoveDamageContext context) {
     power ~/= 2;
   }
   return power;
+}
+
+double _mod1Multiplier(BattleMoveDamageContext context, String moveType) {
+  var multiplier = 1.0;
+  multiplier *= _burnMod1Multiplier(context);
+  multiplier *= _weatherMod1Multiplier(context, moveType);
+  multiplier *= _terrainMod1Multiplier(context, moveType);
+  return multiplier;
+}
+
+double _burnMod1Multiplier(BattleMoveDamageContext context) {
+  if (context.user.majorStatus != PsdkBattleMajorStatus.burn ||
+      context.user.abilityId == 'guts' ||
+      context.move.category != PsdkBattleMoveCategory.physical ||
+      context.move.battleEngineMethod == 's_facade') {
+    return 1.0;
+  }
+  return 0.5;
+}
+
+double _weatherMod1Multiplier(
+  BattleMoveDamageContext context,
+  String moveType,
+) {
+  if (_weatherEffectsSuppressed(context)) {
+    return 1.0;
+  }
+  final weather = context.field.weather?.id;
+  return switch (weather) {
+    PsdkBattleWeatherId.rain when moveType == 'water' => 1.5,
+    PsdkBattleWeatherId.rain when moveType == 'fire' => 0.5,
+    PsdkBattleWeatherId.sunny
+        when moveType == 'fire' || context.move.dbSymbol == 'hydro_steam' =>
+      1.5,
+    PsdkBattleWeatherId.sunny when moveType == 'water' => 0.5,
+    PsdkBattleWeatherId.hardrain when moveType == 'water' => 1.5,
+    PsdkBattleWeatherId.hardsun when moveType == 'fire' => 1.5,
+    _ => 1.0,
+  };
+}
+
+bool _weatherEffectsSuppressed(BattleMoveDamageContext context) {
+  return context.user.abilityEffects.any(
+        (effect) => effect.suppressesWeatherEffects,
+      ) ||
+      context.target.abilityEffects.any(
+        (effect) => effect.suppressesWeatherEffects,
+      );
 }
 
 int _abilityAdjustedPower(
@@ -182,19 +231,18 @@ int _itemAdjustedPower(
   return adjusted < 1 ? 1 : adjusted;
 }
 
-int _terrainAdjustedPower(
-  int power,
+double _terrainMod1Multiplier(
   BattleMoveDamageContext context,
   String moveType,
 ) {
   final terrain = context.field.terrain?.id;
-  if (terrain == null || power <= 0) {
-    return power;
+  if (terrain == null) {
+    return 1.0;
   }
   final grounding = const BattleGroundingResolver();
   final userGrounded = grounding.isGrounded(context.user);
   final targetGrounded = grounding.isGrounded(context.target);
-  final multiplier = switch (terrain) {
+  return switch (terrain) {
     PsdkBattleTerrainId.electricTerrain when moveType == 'electric' =>
       userGrounded ? 1.5 : 1.0,
     PsdkBattleTerrainId.grassyTerrain when moveType == 'grass' =>
@@ -208,11 +256,6 @@ int _terrainAdjustedPower(
       userGrounded ? 1.5 : 1.0,
     _ => 1.0,
   };
-  if (multiplier == 1.0) {
-    return power;
-  }
-  final adjusted = (power * multiplier).floor();
-  return adjusted < 1 ? 1 : adjusted;
 }
 
 bool _isGrassyReducedMove(String dbSymbol) {
@@ -436,18 +479,11 @@ int _offensiveStat(BattleMoveDamageContext context) {
 }
 
 int _physicalAttack(BattleMoveDamageContext context) {
-  final attack = _itemAdjustedStat(
+  return _itemAdjustedStat(
     context.user.stats.attack,
     context.user,
     'attack',
   );
-  if (context.user.majorStatus != PsdkBattleMajorStatus.burn ||
-      context.user.abilityId == 'guts' ||
-      context.move.battleEngineMethod == 's_facade') {
-    return attack;
-  }
-  final burnedAttack = (attack * 0.5).floor();
-  return burnedAttack < 1 ? 1 : burnedAttack;
 }
 
 int _defensiveStat(BattleMoveDamageContext context) {

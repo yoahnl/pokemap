@@ -5,6 +5,10 @@ import 'package:test/test.dart';
 
 void main() {
   group('PSDK final parity gate', () {
+    test('requires the phase E golden fixture floor', () {
+      expect(psdkFinalParityGate.minimumGoldenFixtures, 2);
+    });
+
     test('fails if any required axis lacks ported or approved status', () {
       final audit = PsdkFightParityAudit(
         sourceDescription: 'incomplete fixture',
@@ -33,7 +37,7 @@ void main() {
         requiredTotalAttacks: 3,
         requiredTotalMethods: 2,
         requiredTotalEffects: 2,
-        minimumGoldenFixtures: 1,
+        minimumGoldenFixtures: 2,
       );
 
       final result = gate.evaluate(audit, goldenFixtureCount: 0);
@@ -53,7 +57,7 @@ void main() {
         contains('effects_complete=1/2, approved_out_of_scope=0'),
       );
       expect(result.message, contains('runtime_bridge status is not measured'));
-      expect(result.message, contains('golden_fixtures=0 is below minimum 1'));
+      expect(result.message, contains('golden_fixtures=0 is below minimum 2'));
     });
 
     test('passes with complete coverage or explicit approved out-of-scope gaps',
@@ -92,10 +96,10 @@ void main() {
         approvedOutOfScopeAttacks: 1,
         approvedOutOfScopeMethods: 1,
         approvedOutOfScopeEffects: 1,
-        minimumGoldenFixtures: 1,
+        minimumGoldenFixtures: 2,
       );
 
-      final result = gate.evaluate(audit, goldenFixtureCount: 1);
+      final result = gate.evaluate(audit, goldenFixtureCount: 2);
 
       expect(result.passed, isTrue, reason: result.message);
     });

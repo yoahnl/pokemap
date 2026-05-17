@@ -22,6 +22,9 @@ Required top-level fields:
 `initialBattle` contains:
 
 - `rngSeeds`: `moveDamage`, `moveCritical`, `moveAccuracy`, and `generic`.
+- optional `field`: active `weather` and/or `terrain`, each with `id` and
+  `remainingTurns`.
+  `id` values use Dart enum names such as `rain` or `electricTerrain`.
 - `player`: a combatant object.
 - `opponent`: a combatant object.
 
