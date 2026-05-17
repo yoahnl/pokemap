@@ -20,11 +20,10 @@ enum _HistoryPowerKind {
   stompingTantrum,
 }
 
-/// Ports local PSDK damage-history base-power rules.
+/// Ports PSDK damage-history base-power rules.
 ///
-/// This is intentionally scoped to power calculation. Richer PSDK history
-/// semantics such as move categories on damage entries and faint-process party
-/// state belong to later parity lots.
+/// The registry keeps methods with broader party/faint/action-history
+/// dependencies partial until those surrounding semantics are covered too.
 final class HistoryPowerMoveBehavior implements BattleMoveBehavior {
   const HistoryPowerMoveBehavior.assurance()
       : battleEngineMethod = 's_assurance',

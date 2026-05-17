@@ -81,6 +81,38 @@ void main() {
       });
     }
 
+    test('s_genies_storm bypasses accuracy under rain only', () {
+      final rain = _runMove(
+        field: _weather(PsdkBattleWeatherId.rain),
+        moveAccuracySeed: 99,
+        playerMove: _move(
+          id: 'bleakwind_storm',
+          type: 'flying',
+          category: PsdkBattleMoveCategory.special,
+          power: 100,
+          accuracy: 1,
+          battleEngineMethod: 's_genies_storm',
+        ),
+      );
+      final clear = _runMove(
+        field: const PsdkBattleFieldState(),
+        moveAccuracySeed: 99,
+        playerMove: _move(
+          id: 'bleakwind_storm',
+          type: 'flying',
+          category: PsdkBattleMoveCategory.special,
+          power: 100,
+          accuracy: 1,
+          battleEngineMethod: 's_genies_storm',
+        ),
+      );
+
+      expect(_missEvents(rain, moveId: 'bleakwind_storm'), isEmpty);
+      expect(_damageEvents(rain, moveId: 'bleakwind_storm'), hasLength(1));
+      expect(_missEvents(clear, moveId: 'bleakwind_storm'), hasLength(1));
+      expect(_damageEvents(clear, moveId: 'bleakwind_storm'), isEmpty);
+    });
+
     test('s_weather_ball doubles power and changes type under each weather',
         () {
       final noWeather = _weatherBallDamage(const PsdkBattleFieldState(),

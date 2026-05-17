@@ -252,7 +252,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_fishious_rend': _KnownDartBehavior(
     dartBehavior: 'HistoryPowerMoveBehavior.fishiousRend',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_freezy_frost': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_freezy_frost',
@@ -762,11 +762,11 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_retaliate': _KnownDartBehavior(
     dartBehavior: 'HistoryPowerMoveBehavior.retaliate',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_revenge': _KnownDartBehavior(
     dartBehavior: 'HistoryPowerMoveBehavior.revenge',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_revelation_dance': _KnownDartBehavior(
     dartBehavior: 'TypeBasedMoveBehavior.revelationDance',
@@ -836,7 +836,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_solar_beam': _KnownDartBehavior(
     dartBehavior: 'WeatherPowerMoveBehavior.solarBeam',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_spectral_thief': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_spectral_thief',
@@ -1256,11 +1256,9 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'SpeedSwapMoveBehavior',
     status: _PsdkPortStatus.ported,
   ),
-  // Acrobatics' no-item branch is executable. Keep it partial until consumed
-  // item and Gem item-effect parity is covered in the item hook matrix.
   's_acrobatics': _KnownDartBehavior(
     dartBehavior: 'SpecialPowerMoveBehavior.acrobatics',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_stored_power': _KnownDartBehavior(
     dartBehavior: 'SpecialPowerMoveBehavior.storedPower',
@@ -1344,12 +1342,9 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'VariablePowerMoveBehavior.electroBall',
     status: _PsdkPortStatus.ported,
   ),
-  // The Dart behavior applies the clamp that the PSDK Ruby class computes but
-  // does not return explicitly. Keep the matrix partial until exact parity vs.
-  // intentional adaptation is documented at the canonical combat level.
   's_gyro_ball': _KnownDartBehavior(
     dartBehavior: 'VariablePowerMoveBehavior.gyroBall',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_facade': _KnownDartBehavior(
     dartBehavior: 'VariablePowerMoveBehavior.facade',
@@ -1367,21 +1362,17 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'VariablePowerMoveBehavior.venoshock',
     status: _PsdkPortStatus.ported,
   ),
-  // PSDK Hex also doubles damage for Comatose, which belongs to the future
-  // ability/effect stack rather than this status-only Lot 16 slice.
   's_hex': _KnownDartBehavior(
     dartBehavior: 'VariablePowerMoveBehavior.hex',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
-  // Weight formulas are executable, but PSDK's Minimize bonus/bypass and
-  // modified-weight ability fallback are still future effect/ability work.
   's_low_kick': _KnownDartBehavior(
     dartBehavior: 'WeightPowerMoveBehavior.lowKick',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_heavy_slam': _KnownDartBehavior(
     dartBehavior: 'WeightPowerMoveBehavior.heavySlam',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   // These moves reuse the PSDK stat-source formulas but still rely on future
   // ability/item/effect hooks for complete damage parity.

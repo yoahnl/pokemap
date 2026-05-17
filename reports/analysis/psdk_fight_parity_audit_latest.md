@@ -9,8 +9,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Metric | Count |
 | --- | ---: |
 | Studio attacks total | 728 |
-| Studio attacks `fait` | 269 |
-| Studio attacks `partiel` | 459 |
+| Studio attacks `fait` | 288 |
+| Studio attacks `partiel` | 440 |
 | Studio attacks `pas_fait` | 0 |
 | Unknown methods | 0 |
 | Unique battle engine methods | 258 |
@@ -22,16 +22,13 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_2turns | 7 |
 | s_a_fang | 3 |
 | s_absorb | 2 |
-| s_acrobatics | 1 |
 | s_acupressure | 1 |
 | s_add_type | 2 |
 | s_after_you | 1 |
 | s_aqua_ring | 1 |
 | s_assist | 1 |
-| s_assurance | 1 |
 | s_attract | 1 |
 | s_autotomize | 1 |
-| s_avalanche | 1 |
 | s_basic | 148 |
 | s_baton_pass | 1 |
 | s_beak_blast | 1 |
@@ -49,7 +46,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_conversion | 1 |
 | s_conversion2 | 1 |
 | s_core_enforcer | 1 |
-| s_counter | 1 |
 | s_curse | 1 |
 | s_destiny_bond | 1 |
 | s_disable | 1 |
@@ -77,7 +73,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_foresight | 2 |
 | s_foul_play | 1 |
 | s_frustration | 1 |
-| s_fury_cutter | 1 |
 | s_fusion_bolt | 1 |
 | s_fusion_flare | 1 |
 | s_future_sight | 2 |
@@ -89,7 +84,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_grudge | 1 |
 | s_guard_swap | 1 |
 | s_guardian_of_alola | 1 |
-| s_gyro_ball | 1 |
 | s_happy_hour | 1 |
 | s_haze | 2 |
 | s_heal | 1 |
@@ -97,9 +91,7 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_heal_block | 1 |
 | s_healing_wish | 1 |
 | s_heart_swap | 1 |
-| s_heavy_slam | 2 |
 | s_helping_hand | 1 |
-| s_hex | 1 |
 | s_hidden_power | 1 |
 | s_hyperspace_hole | 1 |
 | s_ice_ball | 1 |
@@ -116,7 +108,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_leech_seed | 1 |
 | s_light_that_burns_the_sky | 1 |
 | s_lock_on | 1 |
-| s_low_kick | 2 |
 | s_lunar_dance | 1 |
 | s_magic_coat | 1 |
 | s_magic_room | 1 |
@@ -126,13 +117,11 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_malicious_moonsault | 1 |
 | s_me_first | 1 |
 | s_memento | 1 |
-| s_metal_burst | 1 |
 | s_metronome | 1 |
 | s_mimic | 1 |
 | s_mind_reader | 1 |
 | s_minimize | 1 |
 | s_miracle_eye | 1 |
-| s_mirror_coat | 1 |
 | s_mirror_move | 2 |
 | s_multi_attack | 1 |
 | s_multi_hit | 1 |
@@ -143,7 +132,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_outrage | 2 |
 | s_pain_split | 1 |
 | s_parting_shot | 1 |
-| s_payback | 1 |
 | s_payday | 1 |
 | s_perish_song | 1 |
 | s_photon_geyser | 1 |
@@ -166,10 +154,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_recycle | 1 |
 | s_reflect_type | 1 |
 | s_relic_song | 1 |
-| s_retaliate | 1 |
 | s_return | 1 |
 | s_revelation_dance | 1 |
-| s_revenge | 1 |
 | s_roar | 2 |
 | s_role_play | 1 |
 | s_rollout | 1 |
@@ -190,7 +176,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_smelling_salt | 1 |
 | s_snatch | 1 |
 | s_snore | 1 |
-| s_solar_beam | 2 |
 | s_sparkling_aria | 1 |
 | s_spectral_thief | 1 |
 | s_spite | 1 |
@@ -201,7 +186,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_status | 4 |
 | s_stockpile | 1 |
 | s_stomp | 4 |
-| s_stomping_tantrum | 1 |
 | s_strength_sap | 1 |
 | s_struggle | 1 |
 | s_substitute | 1 |
@@ -238,8 +222,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 67 |
-| `partial` | 263 |
+| `ported` | 87 |
+| `partial` | 243 |
 | `missing` | 0 |
 | Total manifest methods | 330 |
 
@@ -247,25 +231,25 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Dependency | Partial methods |
 | --- | ---: |
-| no_dependency_declared | 165 |
-| effects | 69 |
-| ability | 52 |
+| no_dependency_declared | 153 |
+| effects | 66 |
+| ability | 49 |
 | handlerDamage | 26 |
-| handlerStatus | 19 |
-| item | 17 |
+| handlerStatus | 18 |
+| item | 16 |
 | handlerStat | 15 |
 | targetingMulti | 15 |
-| history | 13 |
+| history | 10 |
 | handlerSwitch | 8 |
-| faintProcess | 7 |
 | endTurn | 6 |
+| faintProcess | 6 |
 | actionOrder | 5 |
 | field | 4 |
-| grounded | 4 |
 | terrain | 4 |
 | accuracy | 3 |
-| weather | 2 |
+| grounded | 3 |
 | handlerItem | 1 |
+| weather | 1 |
 
 ## Effect Coverage
 
@@ -302,10 +286,5 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Metric | Value |
 | --- | --- |
-| Status | `explained` |
-| Reason | Imported from reports/previous/phase-a-battle-coverage.md. Covers authored bootstrap, golden-slice, player, trainer, and wild runtime move rows; every rejected row has a bridge diagnostic reason. |
-| Total moves | 28 |
-| Bridgeable moves | 20 |
-| Rejected moves | 8 |
-| Explained rejected moves | 8 |
-| Unexplained rejected moves | 0 |
+| Status | `not_measured` |
+| Reason | Runtime bridge diagnostics live in packages/map_runtime and are opened by Lot 04. |

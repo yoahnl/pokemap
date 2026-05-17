@@ -13,11 +13,10 @@ enum _CounterDamageKind {
   bide,
 }
 
-/// Ports local direct-damage retaliation formulas.
+/// Ports direct-damage retaliation formulas backed by clean damage history.
 ///
-/// This remains partial because the clean damage history does not yet record
-/// incoming move category, so Counter/Mirror Coat cannot filter physical vs
-/// special damage as strictly as PSDK.
+/// Bide still stays partial in the manifest because its full PSDK charge/release
+/// lifecycle is broader than the local stored-damage release formula.
 final class CounterDamageMoveBehavior implements BattleMoveBehavior {
   const CounterDamageMoveBehavior.counter()
       : battleEngineMethod = 's_counter',

@@ -69,7 +69,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Acrobatics',
     rubyPath: '10 Move/2 Definitions/300 Acrobatics.rb',
     dartBehavior: 'SpecialPowerMoveBehavior.acrobatics',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.item],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -145,7 +145,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Assurance',
     rubyPath: '10 Move/2 Definitions/300 Assurance.rb',
     dartBehavior: 'HistoryPowerMoveBehavior.assurance',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -177,7 +177,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Avalanche',
     rubyPath: '10 Move/2 Definitions/300 Avalanche.rb',
     dartBehavior: 'HistoryPowerMoveBehavior.avalanche',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -438,7 +438,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Counter',
     rubyPath: '10 Move/2 Definitions/300 Counter moves.rb',
     dartBehavior: 'CounterDamageMoveBehavior.counter',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -762,7 +762,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'FishiousRend',
     rubyPath: '10 Move/2 Definitions/300 FishiousRend.rb',
     dartBehavior: 'HistoryPowerMoveBehavior.fishiousRend',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -904,7 +904,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'FuryCutter',
     rubyPath: '10 Move/2 Definitions/300 FuryCutter.rb',
     dartBehavior: 'ConsecutivePowerMoveBehavior.furyCutter',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -957,7 +957,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'GeniesStorm',
     rubyPath: '10 Move/2 Definitions/300 GeniesStorm.rb',
     dartBehavior: 'WeatherPowerMoveBehavior.geniesStorm',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1066,7 +1066,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'GyroBall',
     rubyPath: '10 Move/2 Definitions/300 GyroBall.rb',
     dartBehavior: 'VariablePowerMoveBehavior.gyroBall',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1169,7 +1169,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'HeavySlam',
     rubyPath: '10 Move/2 Definitions/300 HeavySlam.rb',
     dartBehavior: 'WeightPowerMoveBehavior.heavySlam',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.ability
@@ -1189,7 +1189,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Hex',
     rubyPath: '10 Move/2 Definitions/300 Hex.rb',
     dartBehavior: 'VariablePowerMoveBehavior.hex',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.ability,
       PsdkMoveDependency.handlerStatus
@@ -1363,7 +1363,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'LashOut',
     rubyPath: '10 Move/2 Definitions/300 LashOut.rb',
     dartBehavior: 'HistoryPowerMoveBehavior.lashOut',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1420,7 +1420,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'LowKick',
     rubyPath: '10 Move/2 Definitions/300 LowKick.rb',
     dartBehavior: 'WeightPowerMoveBehavior.lowKick',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.ability,
@@ -1521,7 +1521,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'MetalBurst',
     rubyPath: '10 Move/2 Definitions/300 Counter moves.rb',
     dartBehavior: 'CounterDamageMoveBehavior.metalBurst',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1580,7 +1580,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'MirrorCoat',
     rubyPath: '10 Move/2 Definitions/300 Counter moves.rb',
     dartBehavior: 'CounterDamageMoveBehavior.mirrorCoat',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1724,7 +1724,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'PayBack',
     rubyPath: '10 Move/2 Definitions/300 PayBack.rb',
     dartBehavior: 'HistoryPowerMoveBehavior.payback',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1968,7 +1968,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'RageFist',
     rubyPath: '10 Move/2 Definitions/300 RageFist.rb',
     dartBehavior: 'HistoryPowerMoveBehavior.rageFist',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2067,7 +2067,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Retaliate',
     rubyPath: '10 Move/2 Definitions/300 Retaliate.rb',
     dartBehavior: 'HistoryPowerMoveBehavior.retaliate',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.history,
       PsdkMoveDependency.faintProcess
@@ -2094,7 +2094,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Revenge',
     rubyPath: '10 Move/2 Definitions/300 Revenge.rb',
     dartBehavior: 'HistoryPowerMoveBehavior.revenge',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.history],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2386,7 +2386,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'SolarBeam',
     rubyPath: '10 Move/2 Definitions/300 SolarBeam.rb',
     dartBehavior: 'WeatherPowerMoveBehavior.solarBeam',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.weather,
       PsdkMoveDependency.effects
@@ -2548,7 +2548,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'StompingTantrum',
     rubyPath: '10 Move/2 Definitions/300 StompingTantrum.rb',
     dartBehavior: 'HistoryPowerMoveBehavior.stompingTantrum',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.history],
   ),
   PsdkMoveRegistryManifestEntry(

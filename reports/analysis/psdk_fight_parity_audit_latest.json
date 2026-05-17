@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 269,
-    "partiel": 459,
+    "fait": 288,
+    "partiel": 440,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -67,9 +67,9 @@
       {
         "moveId": "acrobatics",
         "battleEngineMethod": "s_acrobatics",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/acrobatics.json"
       },
       {
@@ -235,9 +235,9 @@
       {
         "moveId": "assurance",
         "battleEngineMethod": "s_assurance",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/assurance.json"
       },
       {
@@ -299,9 +299,9 @@
       {
         "moveId": "avalanche",
         "battleEngineMethod": "s_avalanche",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/avalanche.json"
       },
       {
@@ -923,9 +923,9 @@
       {
         "moveId": "counter",
         "battleEngineMethod": "s_counter",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/counter.json"
       },
       {
@@ -1899,9 +1899,9 @@
       {
         "moveId": "fury_cutter",
         "battleEngineMethod": "s_fury_cutter",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/fury_cutter.json"
       },
       {
@@ -2027,9 +2027,9 @@
       {
         "moveId": "grass_knot",
         "battleEngineMethod": "s_low_kick",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/grass_knot.json"
       },
       {
@@ -2139,9 +2139,9 @@
       {
         "moveId": "gyro_ball",
         "battleEngineMethod": "s_gyro_ball",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/gyro_ball.json"
       },
       {
@@ -2267,9 +2267,9 @@
       {
         "moveId": "heat_crash",
         "battleEngineMethod": "s_heavy_slam",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/heat_crash.json"
       },
       {
@@ -2283,9 +2283,9 @@
       {
         "moveId": "heavy_slam",
         "battleEngineMethod": "s_heavy_slam",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/heavy_slam.json"
       },
       {
@@ -2299,9 +2299,9 @@
       {
         "moveId": "hex",
         "battleEngineMethod": "s_hex",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/hex.json"
       },
       {
@@ -2851,9 +2851,9 @@
       {
         "moveId": "low_kick",
         "battleEngineMethod": "s_low_kick",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/low_kick.json"
       },
       {
@@ -3059,9 +3059,9 @@
       {
         "moveId": "metal_burst",
         "battleEngineMethod": "s_metal_burst",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/metal_burst.json"
       },
       {
@@ -3147,9 +3147,9 @@
       {
         "moveId": "mirror_coat",
         "battleEngineMethod": "s_mirror_coat",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/mirror_coat.json"
       },
       {
@@ -3483,9 +3483,9 @@
       {
         "moveId": "payback",
         "battleEngineMethod": "s_payback",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/payback.json"
       },
       {
@@ -4011,9 +4011,9 @@
       {
         "moveId": "retaliate",
         "battleEngineMethod": "s_retaliate",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/retaliate.json"
       },
       {
@@ -4035,9 +4035,9 @@
       {
         "moveId": "revenge",
         "battleEngineMethod": "s_revenge",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/revenge.json"
       },
       {
@@ -4699,17 +4699,17 @@
       {
         "moveId": "solar_beam",
         "battleEngineMethod": "s_solar_beam",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/solar_beam.json"
       },
       {
         "moveId": "solar_blade",
         "battleEngineMethod": "s_solar_beam",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/solar_blade.json"
       },
       {
@@ -4923,9 +4923,9 @@
       {
         "moveId": "stomping_tantrum",
         "battleEngineMethod": "s_stomping_tantrum",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/stomping_tantrum.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 67,
-      "partial": 263,
+      "ported": 87,
+      "partial": 243,
       "missing": 0
     },
     "entries": [
@@ -5902,7 +5902,7 @@
         "rubyClass": "Acrobatics",
         "rubyPath": "10 Move/2 Definitions/300 Acrobatics.rb",
         "dartBehavior": "SpecialPowerMoveBehavior.acrobatics",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "item"
         ]
@@ -5980,7 +5980,7 @@
         "rubyClass": "Assurance",
         "rubyPath": "10 Move/2 Definitions/300 Assurance.rb",
         "dartBehavior": "HistoryPowerMoveBehavior.assurance",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -6012,7 +6012,7 @@
         "rubyClass": "Avalanche",
         "rubyPath": "10 Move/2 Definitions/300 Avalanche.rb",
         "dartBehavior": "HistoryPowerMoveBehavior.avalanche",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -6274,7 +6274,7 @@
         "rubyClass": "Counter",
         "rubyPath": "10 Move/2 Definitions/300 Counter moves.rb",
         "dartBehavior": "CounterDamageMoveBehavior.counter",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -6598,7 +6598,7 @@
         "rubyClass": "FishiousRend",
         "rubyPath": "10 Move/2 Definitions/300 FishiousRend.rb",
         "dartBehavior": "HistoryPowerMoveBehavior.fishiousRend",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -6741,7 +6741,7 @@
         "rubyClass": "FuryCutter",
         "rubyPath": "10 Move/2 Definitions/300 FuryCutter.rb",
         "dartBehavior": "ConsecutivePowerMoveBehavior.furyCutter",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -6794,7 +6794,7 @@
         "rubyClass": "GeniesStorm",
         "rubyPath": "10 Move/2 Definitions/300 GeniesStorm.rb",
         "dartBehavior": "WeatherPowerMoveBehavior.geniesStorm",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -6903,7 +6903,7 @@
         "rubyClass": "GyroBall",
         "rubyPath": "10 Move/2 Definitions/300 GyroBall.rb",
         "dartBehavior": "VariablePowerMoveBehavior.gyroBall",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -7006,7 +7006,7 @@
         "rubyClass": "HeavySlam",
         "rubyPath": "10 Move/2 Definitions/300 HeavySlam.rb",
         "dartBehavior": "WeightPowerMoveBehavior.heavySlam",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "effects",
           "ability"
@@ -7025,7 +7025,7 @@
         "rubyClass": "Hex",
         "rubyPath": "10 Move/2 Definitions/300 Hex.rb",
         "dartBehavior": "VariablePowerMoveBehavior.hex",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "ability",
           "handlerStatus"
@@ -7199,7 +7199,7 @@
         "rubyClass": "LashOut",
         "rubyPath": "10 Move/2 Definitions/300 LashOut.rb",
         "dartBehavior": "HistoryPowerMoveBehavior.lashOut",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -7256,7 +7256,7 @@
         "rubyClass": "LowKick",
         "rubyPath": "10 Move/2 Definitions/300 LowKick.rb",
         "dartBehavior": "WeightPowerMoveBehavior.lowKick",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "effects",
           "ability",
@@ -7356,7 +7356,7 @@
         "rubyClass": "MetalBurst",
         "rubyPath": "10 Move/2 Definitions/300 Counter moves.rb",
         "dartBehavior": "CounterDamageMoveBehavior.metalBurst",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -7415,7 +7415,7 @@
         "rubyClass": "MirrorCoat",
         "rubyPath": "10 Move/2 Definitions/300 Counter moves.rb",
         "dartBehavior": "CounterDamageMoveBehavior.mirrorCoat",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -7559,7 +7559,7 @@
         "rubyClass": "PayBack",
         "rubyPath": "10 Move/2 Definitions/300 PayBack.rb",
         "dartBehavior": "HistoryPowerMoveBehavior.payback",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -7803,7 +7803,7 @@
         "rubyClass": "RageFist",
         "rubyPath": "10 Move/2 Definitions/300 RageFist.rb",
         "dartBehavior": "HistoryPowerMoveBehavior.rageFist",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -7902,7 +7902,7 @@
         "rubyClass": "Retaliate",
         "rubyPath": "10 Move/2 Definitions/300 Retaliate.rb",
         "dartBehavior": "HistoryPowerMoveBehavior.retaliate",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "history",
           "faintProcess"
@@ -7931,7 +7931,7 @@
         "rubyClass": "Revenge",
         "rubyPath": "10 Move/2 Definitions/300 Revenge.rb",
         "dartBehavior": "HistoryPowerMoveBehavior.revenge",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "history"
         ]
@@ -8222,7 +8222,7 @@
         "rubyClass": "SolarBeam",
         "rubyPath": "10 Move/2 Definitions/300 SolarBeam.rb",
         "dartBehavior": "WeatherPowerMoveBehavior.solarBeam",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "weather",
           "effects"
@@ -8384,7 +8384,7 @@
         "rubyClass": "StompingTantrum",
         "rubyPath": "10 Move/2 Definitions/300 StompingTantrum.rb",
         "dartBehavior": "HistoryPowerMoveBehavior.stompingTantrum",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "history"
         ]
@@ -11879,12 +11879,12 @@
     ]
   },
   "runtimeBridge": {
-    "status": "explained",
-    "reason": "Imported from reports/previous/phase-a-battle-coverage.md. Covers authored bootstrap, golden-slice, player, trainer, and wild runtime move rows; every rejected row has a bridge diagnostic reason.",
-    "totalMoves": 28,
-    "bridgeableMoves": 20,
-    "rejectedMoves": 8,
-    "explainedRejectedMoves": 8,
+    "status": "not_measured",
+    "reason": "Runtime bridge diagnostics live in packages/map_runtime and are opened by Lot 04.",
+    "totalMoves": 0,
+    "bridgeableMoves": 0,
+    "rejectedMoves": 0,
+    "explainedRejectedMoves": 0,
     "unexplainedRejectedMoves": 0,
     "moves": []
   }

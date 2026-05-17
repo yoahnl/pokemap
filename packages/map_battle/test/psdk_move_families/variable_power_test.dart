@@ -346,6 +346,16 @@ void main() {
         ),
         opponentMajorStatus: PsdkBattleMajorStatus.burn,
       );
+      final comatoseHex = _runMove(
+        playerMove: _move(
+          id: 'hex',
+          type: 'ghost',
+          battleEngineMethod: 's_hex',
+          power: 65,
+          category: PsdkBattleMoveCategory.special,
+        ),
+        opponentAbilityId: 'comatose',
+      );
       final burnedVenoshock = _runMove(
         playerMove: _move(
           id: 'venoshock',
@@ -369,6 +379,8 @@ void main() {
 
       expect(_damage(burnedHex, moveId: 'hex'),
           _damage(normalHex, moveId: 'hex') * 2);
+      expect(_damage(comatoseHex, moveId: 'hex'),
+          _damage(normalHex, moveId: 'hex') * 2);
       expect(
         _damage(poisonedVenoshock, moveId: 'venoshock'),
         _damage(burnedVenoshock, moveId: 'venoshock') * 2,
@@ -385,6 +397,7 @@ PsdkBattleTurnResult _runMove({
   int opponentSpeed = 50,
   PsdkBattleMajorStatus? playerMajorStatus,
   PsdkBattleMajorStatus? opponentMajorStatus,
+  String? opponentAbilityId,
 }) {
   final engine = PsdkBattleEngine(
     setup: PsdkBattleSetup.singles(
@@ -405,6 +418,7 @@ PsdkBattleTurnResult _runMove({
           accuracy: 1,
         ),
         majorStatus: opponentMajorStatus,
+        abilityId: opponentAbilityId,
       ),
       rngSeeds: const PsdkBattleRngSeeds(
         moveDamage: 1,
@@ -423,6 +437,7 @@ PsdkBattleCombatantSetup _combatant({
   required int speed,
   required PsdkBattleMoveData move,
   PsdkBattleMajorStatus? majorStatus,
+  String? abilityId,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -443,6 +458,7 @@ PsdkBattleCombatantSetup _combatant({
     ),
     moves: <PsdkBattleMoveData>[move],
     majorStatus: majorStatus,
+    abilityId: abilityId,
   );
 }
 

@@ -168,18 +168,18 @@ void main() {
       expect(byMethod['s_wring_out']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_hard_press']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_electro_ball']!.status, PsdkPortStatus.ported);
-      expect(byMethod['s_gyro_ball']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_gyro_ball']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_facade']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_infernal_parade']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_bitter_malice']!.status, PsdkPortStatus.ported);
       expect(byMethod['s_venoshock']!.status, PsdkPortStatus.ported);
-      expect(byMethod['s_hex']!.status, PsdkPortStatus.partial);
-      expect(byMethod['s_low_kick']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_hex']!.status, PsdkPortStatus.ported);
+      expect(byMethod['s_low_kick']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_low_kick']!.dartBehavior,
         'WeightPowerMoveBehavior.lowKick',
       );
-      expect(byMethod['s_heavy_slam']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_heavy_slam']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_heavy_slam']!.dartBehavior,
         'WeightPowerMoveBehavior.heavySlam',
@@ -628,12 +628,7 @@ void main() {
         byMethod['s_hurricane']!.dartBehavior,
         'WeatherPowerMoveBehavior.hurricane',
       );
-      expect(byMethod['s_genies_storm']!.status, PsdkPortStatus.partial);
-      expect(
-        byMethod['s_genies_storm']!.dartBehavior,
-        'WeatherPowerMoveBehavior.geniesStorm',
-      );
-      expect(byMethod['s_solar_beam']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_solar_beam']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_solar_beam']!.dartBehavior,
         'WeatherPowerMoveBehavior.solarBeam',
@@ -647,11 +642,6 @@ void main() {
       expect(
         byMethod['s_echo']!.dartBehavior,
         'ConsecutivePowerMoveBehavior.echoedVoice',
-      );
-      expect(byMethod['s_fury_cutter']!.status, PsdkPortStatus.partial);
-      expect(
-        byMethod['s_fury_cutter']!.dartBehavior,
-        'ConsecutivePowerMoveBehavior.furyCutter',
       );
       expect(byMethod['s_ice_ball']!.status, PsdkPortStatus.partial);
       expect(
@@ -673,67 +663,70 @@ void main() {
         byMethod['s_bide']!.dartBehavior,
         'CounterDamageMoveBehavior.bide',
       );
-      expect(byMethod['s_counter']!.status, PsdkPortStatus.partial);
-      expect(
-        byMethod['s_counter']!.dartBehavior,
-        'CounterDamageMoveBehavior.counter',
-      );
-      expect(byMethod['s_metal_burst']!.status, PsdkPortStatus.partial);
-      expect(
-        byMethod['s_metal_burst']!.dartBehavior,
-        'CounterDamageMoveBehavior.metalBurst',
-      );
-      expect(byMethod['s_mirror_coat']!.status, PsdkPortStatus.partial);
-      expect(
-        byMethod['s_mirror_coat']!.dartBehavior,
-        'CounterDamageMoveBehavior.mirrorCoat',
-      );
-
-      expect(byMethod['s_avalanche']!.status, PsdkPortStatus.partial);
-      expect(
-        byMethod['s_avalanche']!.dartBehavior,
-        'HistoryPowerMoveBehavior.avalanche',
-      );
-      expect(byMethod['s_assurance']!.status, PsdkPortStatus.partial);
-      expect(
-        byMethod['s_assurance']!.dartBehavior,
-        'HistoryPowerMoveBehavior.assurance',
-      );
-      expect(byMethod['s_fishious_rend']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_fishious_rend']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_fishious_rend']!.dartBehavior,
         'HistoryPowerMoveBehavior.fishiousRend',
       );
-      expect(byMethod['s_lash_out']!.status, PsdkPortStatus.partial);
-      expect(
-        byMethod['s_lash_out']!.dartBehavior,
-        'HistoryPowerMoveBehavior.lashOut',
-      );
-      expect(byMethod['s_payback']!.status, PsdkPortStatus.partial);
-      expect(
-        byMethod['s_payback']!.dartBehavior,
-        'HistoryPowerMoveBehavior.payback',
-      );
-      expect(byMethod['s_rage_fist']!.status, PsdkPortStatus.partial);
-      expect(
-        byMethod['s_rage_fist']!.dartBehavior,
-        'HistoryPowerMoveBehavior.rageFist',
-      );
-      expect(byMethod['s_retaliate']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_retaliate']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_retaliate']!.dartBehavior,
         'HistoryPowerMoveBehavior.retaliate',
       );
-      expect(byMethod['s_revenge']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_revenge']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_revenge']!.dartBehavior,
         'HistoryPowerMoveBehavior.revenge',
       );
-      expect(byMethod['s_stomping_tantrum']!.status, PsdkPortStatus.partial);
-      expect(
-        byMethod['s_stomping_tantrum']!.dartBehavior,
-        'HistoryPowerMoveBehavior.stompingTantrum',
-      );
+      for (final entry in <({String method, String behavior})>[
+        (
+          method: 's_genies_storm',
+          behavior: 'WeatherPowerMoveBehavior.geniesStorm',
+        ),
+        (
+          method: 's_fury_cutter',
+          behavior: 'ConsecutivePowerMoveBehavior.furyCutter',
+        ),
+        (
+          method: 's_counter',
+          behavior: 'CounterDamageMoveBehavior.counter',
+        ),
+        (
+          method: 's_metal_burst',
+          behavior: 'CounterDamageMoveBehavior.metalBurst',
+        ),
+        (
+          method: 's_mirror_coat',
+          behavior: 'CounterDamageMoveBehavior.mirrorCoat',
+        ),
+        (
+          method: 's_avalanche',
+          behavior: 'HistoryPowerMoveBehavior.avalanche',
+        ),
+        (
+          method: 's_assurance',
+          behavior: 'HistoryPowerMoveBehavior.assurance',
+        ),
+        (
+          method: 's_lash_out',
+          behavior: 'HistoryPowerMoveBehavior.lashOut',
+        ),
+        (
+          method: 's_payback',
+          behavior: 'HistoryPowerMoveBehavior.payback',
+        ),
+        (
+          method: 's_rage_fist',
+          behavior: 'HistoryPowerMoveBehavior.rageFist',
+        ),
+        (
+          method: 's_stomping_tantrum',
+          behavior: 'HistoryPowerMoveBehavior.stompingTantrum',
+        ),
+      ]) {
+        expect(byMethod[entry.method]!.status, PsdkPortStatus.ported);
+        expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
+      }
       expect(byMethod['s_ivy_cudgel']!.status, PsdkPortStatus.partial);
       expect(
         byMethod['s_ivy_cudgel']!.dartBehavior,
@@ -1680,7 +1673,7 @@ void main() {
         byMethod['s_sparkly_swirl']!.dartBehavior,
         'StatusCureMoveBehavior.sparklySwirl',
       );
-      expect(byMethod['s_acrobatics']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_acrobatics']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_acrobatics']!.dartBehavior,
         'SpecialPowerMoveBehavior.acrobatics',

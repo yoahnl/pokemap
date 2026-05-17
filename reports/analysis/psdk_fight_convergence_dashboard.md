@@ -1,13 +1,13 @@
 # PSDK Fight Convergence Dashboard
 
-Generated: 2026-05-17T12:31:01.649273Z
+Generated: 2026-05-17T14:37:51.487738Z
 
 ## Final Gate Axes
 
 | Axis | Complete | Percent | Remaining |
 | --- | ---: | ---: | ---: |
-| Attacks | 269 / 728 | 37.0% | 459 |
-| Methods | 67 / 330 | 20.3% | 263 |
+| Attacks | 288 / 728 | 39.6% | 440 |
+| Methods | 87 / 330 | 26.4% | 243 |
 | Effects | 0 / 482 | 0.0% | 482 |
 
 ## Effects By Family
@@ -25,9 +25,9 @@ Generated: 2026-05-17T12:31:01.649273Z
 
 | Metric | Value |
 | --- | --- |
-| Status | `explained` |
-| Reason | Imported from reports/previous/phase-a-battle-coverage.md. Covers authored bootstrap, golden-slice, player, trainer, and wild runtime move rows; every rejected row has a bridge diagnostic reason. |
+| Status | `not_measured` |
+| Reason | Runtime bridge diagnostics live in packages/map_runtime and are opened by Lot 04. |
 
 ## Next Recommendation
 
-Next recommended lot: close effect family `ability` (254 remaining effects).
+Next recommended lot: measure runtime bridge diagnostics.

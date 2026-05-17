@@ -172,7 +172,9 @@ final class VariablePowerMoveBehavior implements BattleMoveBehavior {
   }) {
     return switch (_kind) {
       _VariablePowerKind.hex =>
-        target.majorStatus == null ? damage : damage * 2,
+        target.majorStatus == null && target.abilityId != 'comatose'
+            ? damage
+            : damage * 2,
       _VariablePowerKind.venoshock =>
         _isPoisonStatus(target.majorStatus) ? damage * 2 : damage,
       _ => damage,
