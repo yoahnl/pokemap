@@ -1,6 +1,7 @@
 import 'battle_battler.dart';
 import 'battle_party.dart';
 import 'battle_slot.dart';
+import '../effect/side/side_condition_stack.dart';
 
 /// PSDK bank containing active positions and one or more parties.
 final class BattleBank {
@@ -8,10 +9,19 @@ final class BattleBank {
     required this.index,
     required List<BattleSlot> slots,
     required List<BattleParty> parties,
+    SideConditionStack? sideConditions,
   })  : _slots = List<BattleSlot>.unmodifiable(slots),
-        _parties = List<BattleParty>.unmodifiable(parties) {
+        _parties = List<BattleParty>.unmodifiable(parties),
+        _sideConditions =
+            sideConditions ?? SideConditionStack.empty(bank: index) {
     if (index < 0) {
       throw RangeError.range(index, 0, null, 'index');
+    }
+    if (_sideConditions.bank != index) {
+      throw ArgumentError(
+        'BattleBank $index cannot own side conditions for bank '
+        '${_sideConditions.bank}.',
+      );
     }
     final positions = <int>{};
     final partyIds = <int>{};
@@ -59,9 +69,11 @@ final class BattleBank {
   final int index;
   final List<BattleSlot> _slots;
   final List<BattleParty> _parties;
+  SideConditionStack _sideConditions;
 
   List<BattleSlot> get slots => List<BattleSlot>.unmodifiable(_slots);
   List<BattleParty> get parties => List<BattleParty>.unmodifiable(_parties);
+  SideConditionStack get sideConditions => _sideConditions;
 
   Iterable<BattleBattler> get activeBattlers sync* {
     for (final slot in _slots) {
@@ -70,6 +82,16 @@ final class BattleBank {
         yield battler;
       }
     }
+  }
+
+  void replaceSideConditions(SideConditionStack conditions) {
+    if (conditions.bank != index) {
+      throw ArgumentError(
+        'BattleBank $index cannot own side conditions for bank '
+        '${conditions.bank}.',
+      );
+    }
+    _sideConditions = conditions;
   }
 
   BattleSlot? slotAt(int position) {

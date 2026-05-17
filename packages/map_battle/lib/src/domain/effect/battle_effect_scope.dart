@@ -26,6 +26,12 @@ final class BankBattleEffectScope extends BattleEffectScope {
   final int bank;
 }
 
+final class SlotBattleEffectScope extends BattleEffectScope {
+  const SlotBattleEffectScope(this.slot);
+
+  final PsdkBattleSlotRef slot;
+}
+
 final class FieldBattleEffectScope extends BattleEffectScope {
   const FieldBattleEffectScope();
 }

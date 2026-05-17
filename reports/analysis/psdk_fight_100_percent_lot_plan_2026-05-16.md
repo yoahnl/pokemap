@@ -1836,6 +1836,18 @@ doubles-wide protection effects.
 **Definition of done:**
 - Side/slot marker methods can become real behavior.
 
+**Status 2026-05-17:** done for the first side/slot condition storage slice.
+`SideConditionStack` now owns bank-scoped effects, validates
+`BankBattleEffectScope`, replaces by id, and ticks/removes finite durations.
+`SlotConditionStack` mirrors that behavior for position-scoped effects through
+the new `SlotBattleEffectScope`. `BattleBank` carries side conditions so they
+survive active battler changes, while `BattleSlot` carries slot conditions so
+future position-tied effects remain attached to the slot across switch-in/out.
+The new regression test covers owner validation, side persistence across active
+replacement, slot persistence across active replacement, and duration cleanup.
+Remaining parity work is dispatch integration for concrete PSDK side/slot
+effects, starting with redirection/guard behavior in Lot 59.
+
 ### Lot 59 - Redirection and Doubles Protection
 
 **Goal:** port Follow Me, Rage Powder, Ally Switch, Wide Guard, Quick Guard, Crafty Shield, Mat Block.

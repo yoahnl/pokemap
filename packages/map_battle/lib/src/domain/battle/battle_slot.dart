@@ -1,4 +1,6 @@
 import 'battle_battler.dart';
+import '../effect/slot/slot_condition_stack.dart';
+import '../../psdk/domain/psdk_battle_slots.dart';
 
 /// Bank/position coordinate used by the clean PSDK topology.
 ///
@@ -44,6 +46,7 @@ final class BattleSlot {
   final int position;
   BattleBattler? activeBattler;
   int? _bank;
+  SlotConditionStack? _slotConditions;
 
   bool get isEmpty => activeBattler == null;
 
@@ -59,6 +62,20 @@ final class BattleSlot {
 
   BattlePositionRef refForBank(int bank) {
     return BattlePositionRef(bank: bank, position: position);
+  }
+
+  SlotConditionStack get slotConditions {
+    return _slotConditions ??= SlotConditionStack.empty(slot: _psdkRef);
+  }
+
+  void replaceSlotConditions(SlotConditionStack conditions) {
+    if (conditions.slot != _psdkRef) {
+      throw ArgumentError(
+        'Slot condition stack must belong to bank ${_psdkRef.bank} '
+        'position ${_psdkRef.position}.',
+      );
+    }
+    _slotConditions = conditions;
   }
 
   void attachToBank(int bank) {
@@ -88,5 +105,15 @@ final class BattleSlot {
     final previous = activeBattler;
     activeBattler = null;
     return previous;
+  }
+
+  PsdkBattleSlotRef get _psdkRef {
+    final bank = _bank;
+    if (bank == null) {
+      throw StateError(
+        'BattleSlot.position $position is not attached to a bank yet.',
+      );
+    }
+    return PsdkBattleSlotRef(bank: bank, position: position);
   }
 }
