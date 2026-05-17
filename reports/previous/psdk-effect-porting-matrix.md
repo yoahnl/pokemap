@@ -6,8 +6,8 @@ Total effect classes: 482
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 115 |
-| `partial` | 34 |
+| `ported` | 128 |
+| `partial` | 21 |
 | `missing` | 333 |
 
 | Effect | Ruby base | Family | Hooks | Hook families | Ruby path | Dart target | Status | Notes |
@@ -16,13 +16,13 @@ Total effect classes: 482
 | `AbilitySuppressed` | `PokemonTiedEffectBase` | `move` | `-` | `-` | `06 Effects/02 Move Effects/001 AbilitySuppressed.rb` | `lib/src/domain/effect/move/ability_suppressed_effect.dart` | `missing` | `-` |
 | `AbsorbBulb` | `LuminousMoss` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Luminous Moss - Snowball.rb` | `lib/src/domain/effect/item/absorb_bulb_effect.dart` | `missing` | `-` |
 | `Aftermath` | `Ability` | `ability` | `on_post_damage_death` | `post_damage` | `06 Effects/04 Ability Effects/100 Aftermath.rb` | `lib/src/domain/effect/ability/aftermath_effect.dart` | `missing` | `-` |
-| `AirBalloon` | `Item` | `item` | `on_post_damage`, `on_switch_event` | `post_damage`, `switch` | `06 Effects/05 Item Effects/100 Air Balloon.rb` | `lib/src/domain/effect/item/air_balloon_effect.dart` | `partial` | `-` |
+| `AirBalloon` | `Item` | `item` | `on_post_damage`, `on_switch_event` | `post_damage`, `switch` | `06 Effects/05 Item Effects/100 Air Balloon.rb` | `lib/src/domain/effect/item/air_balloon_effect.dart` | `ported` | `-` |
 | `AirLock` | `Ability` | `ability` | `on_switch_event`, `on_weather_prevention` | `switch`, `weather_change` | `06 Effects/04 Ability Effects/100 Air Lock - Cloud Nine.rb` | `lib/src/domain/effect/ability/air_lock_effect.dart` | `partial` | `-` |
 | `Analytic` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Analytic.rb` | `lib/src/domain/effect/ability/analytic_effect.dart` | `missing` | `-` |
 | `AngerPoint` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 Anger Point.rb` | `lib/src/domain/effect/ability/anger_point_effect.dart` | `missing` | `-` |
 | `AngerShell` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 Anger Shell.rb` | `lib/src/domain/effect/ability/anger_shell_effect.dart` | `missing` | `-` |
 | `Anticipation` | `Ability` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/100 Anticipation.rb` | `lib/src/domain/effect/ability/anticipation_effect.dart` | `missing` | `-` |
-| `Apicot` | `HpTriggeredStatBerries` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb` | `lib/src/domain/effect/item/apicot_effect.dart` | `partial` | `-` |
+| `Apicot` | `HpTriggeredStatBerries` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb` | `lib/src/domain/effect/item/apicot_effect.dart` | `ported` | `-` |
 | `ApplyStatusToMoveTarget` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 ApplyStatusToMoveTarget.rb` | `lib/src/domain/effect/ability/apply_status_to_move_target_effect.dart` | `missing` | `-` |
 | `AquaRing` | `PokemonTiedEffectBase` | `move` | `on_end_turn_event` | `end_turn` | `06 Effects/02 Move Effects/001 AquaRing.rb` | `lib/src/domain/effect/move/aqua_ring_effect.dart` | `ported` | Object-backed AquaRingEffect heals at end turn, honors Big Root through item hooks and transfers through Baton Pass. |
 | `ArenaTrap` | `ShadowTag` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb` | `lib/src/domain/effect/ability/arena_trap_effect.dart` | `ported` | Object-backed ShadowTagEffect.arenaTrap prevents opposing grounded non-Ghost switch attempts through the switch-prevention hook; force-switch move exceptions and messaging remain future work. |
@@ -48,7 +48,7 @@ Total effect classes: 482
 | `BeakBlast` | `PokemonTiedEffectBase` | `move` | `on_post_damage` | `post_damage` | `06 Effects/02 Move Effects/001 BeakBlast.rb` | `lib/src/domain/effect/move/beak_blast_effect.dart` | `missing` | `-` |
 | `BeastBoost` | `Ability` | `ability` | `on_post_damage_death` | `post_damage` | `06 Effects/04 Ability Effects/100 Beast Boost.rb` | `lib/src/domain/effect/ability/beast_boost_effect.dart` | `missing` | `-` |
 | `Berry` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/002 Berry.rb` | `lib/src/domain/effect/item/berry_effect.dart` | `missing` | `-` |
-| `BerryJuice` | `OranBerry` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 HpTriggered Healing Berries.rb` | `lib/src/domain/effect/item/berry_juice_effect.dart` | `partial` | `-` |
+| `BerryJuice` | `OranBerry` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 HpTriggered Healing Berries.rb` | `lib/src/domain/effect/item/berry_juice_effect.dart` | `ported` | `-` |
 | `Berserk` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 Berserk.rb` | `lib/src/domain/effect/ability/berserk_effect.dart` | `missing` | `-` |
 | `BerserkGene` | `Item` | `item` | `on_switch_event` | `switch` | `06 Effects/05 Item Effects/100 Berserk Gene.rb` | `lib/src/domain/effect/item/berserk_gene_effect.dart` | `missing` | `-` |
 | `Bestow` | `EffectBase` | `move` | `-` | `-` | `06 Effects/02 Move Effects/001 Bestow.rb` | `lib/src/domain/effect/move/bestow_effect.dart` | `missing` | `-` |
@@ -70,8 +70,8 @@ Total effect classes: 482
 | `ChangeType` | `PokemonTiedEffectBase` | `move` | `on_transform_event` | `transform` | `06 Effects/02 Move Effects/001 ChangeType.rb` | `lib/src/domain/effect/move/change_type_effect.dart` | `missing` | `-` |
 | `ChangingMoveType` | `BoostingMoveType` | `ability` | `on_move_type_change` | `move_type_change` | `06 Effects/04 Ability Effects/051 ChangingMoveType.rb` | `lib/src/domain/effect/ability/changing_move_type_effect.dart` | `missing` | `-` |
 | `Charge` | `PokemonTiedEffectBase` | `move` | `-` | `-` | `06 Effects/02 Move Effects/001 Charge.rb` | `lib/src/domain/effect/move/charge_effect.dart` | `ported` | StaticBasicMoveRegistry.s_charge installs a timed marker, applies the Special Defense raise and BattleMoveDamageCalculator doubles the next Electric move power. |
-| `Cheri` | `StatusBerry` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 StatusBerry.rb` | `lib/src/domain/effect/item/cheri_effect.dart` | `partial` | `-` |
-| `Chesto` | `StatusBerry` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 StatusBerry.rb` | `lib/src/domain/effect/item/chesto_effect.dart` | `partial` | `-` |
+| `Cheri` | `StatusBerry` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 StatusBerry.rb` | `lib/src/domain/effect/item/cheri_effect.dart` | `ported` | `-` |
+| `Chesto` | `StatusBerry` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 StatusBerry.rb` | `lib/src/domain/effect/item/chesto_effect.dart` | `ported` | `-` |
 | `ChillDrive` | `Drives` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 Drives.rb` | `lib/src/domain/effect/item/chill_drive_effect.dart` | `missing` | `-` |
 | `Chlorophyll` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Chlorophyll.rb` | `lib/src/domain/effect/ability/chlorophyll_effect.dart` | `missing` | `-` |
 | `ChoiceBand` | `ChoiceItemMultiplier` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb` | `lib/src/domain/effect/item/choice_band_effect.dart` | `ported` | `-` |
@@ -162,7 +162,7 @@ Total effect classes: 482
 | `FuryCutter` | `PokemonTiedEffectBase` | `move` | `-` | `-` | `06 Effects/02 Move Effects/001 FuryCutter.rb` | `lib/src/domain/effect/move/fury_cutter_effect.dart` | `missing` | `-` |
 | `FutureSight` | `PositionTiedEffectBase` | `move` | `on_delete` | `lifecycle` | `06 Effects/02 Move Effects/001 FutureSight.rb` | `lib/src/domain/effect/move/future_sight_effect.dart` | `missing` | `-` |
 | `GaleWings` | `Ability` | `ability` | `on_move_priority_change` | `action_order` | `06 Effects/04 Ability Effects/100 Gale Wings.rb` | `lib/src/domain/effect/ability/gale_wings_effect.dart` | `missing` | `-` |
-| `Ganlon` | `HpTriggeredStatBerries` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb` | `lib/src/domain/effect/item/ganlon_effect.dart` | `partial` | `-` |
+| `Ganlon` | `HpTriggeredStatBerries` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb` | `lib/src/domain/effect/item/ganlon_effect.dart` | `ported` | `-` |
 | `Gems` | `Item` | `item` | `on_pre_accuracy_check` | `accuracy` | `06 Effects/05 Item Effects/050 Gems.rb` | `lib/src/domain/effect/item/gems_effect.dart` | `partial` | `-` |
 | `GlaiveRush` | `PokemonTiedEffectBase` | `move` | `on_post_action_event` | `action_order` | `06 Effects/02 Move Effects/001 GlaiveRush.rb` | `lib/src/domain/effect/move/glaive_rush_effect.dart` | `ported` | StaticBasicMoveRegistry.s_glaive_rush installs the timed marker after damage and damage calculation applies the doubled incoming damage branch. |
 | `GoodAsGold` | `Ability` | `ability` | `on_move_prevention_target`, `on_move_prevention_user` | `move_prevention` | `06 Effects/04 Ability Effects/100 GoodAsGold.rb` | `lib/src/domain/effect/ability/good_as_gold_effect.dart` | `missing` | `-` |
@@ -190,7 +190,7 @@ Total effect classes: 482
 | `Heatproof` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Heatproof.rb` | `lib/src/domain/effect/ability/heatproof_effect.dart` | `missing` | `-` |
 | `HelpingHand` | `PokemonTiedEffectBase` | `move` | `-` | `-` | `06 Effects/02 Move Effects/001 HelpingHand.rb` | `lib/src/domain/effect/move/helping_hand_effect.dart` | `missing` | `-` |
 | `Hospitality` | `Ability` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/100 Hospitality.rb` | `lib/src/domain/effect/ability/hospitality_effect.dart` | `missing` | `-` |
-| `HpTriggeredStatBerries` | `Berry` | `item` | `on_end_turn_event`, `on_post_damage` | `end_turn`, `post_damage` | `06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb` | `lib/src/domain/effect/item/hp_triggered_stat_berries_effect.dart` | `partial` | `-` |
+| `HpTriggeredStatBerries` | `Berry` | `item` | `on_end_turn_event`, `on_post_damage` | `end_turn`, `post_damage` | `06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb` | `lib/src/domain/effect/item/hp_triggered_stat_berries_effect.dart` | `ported` | `-` |
 | `HungerSwitch` | `Ability` | `ability` | `on_end_turn_event`, `on_post_damage_death`, `on_switch_event` | `end_turn`, `post_damage`, `switch` | `06 Effects/04 Ability Effects/100 Hunger Switch.rb` | `lib/src/domain/effect/ability/hunger_switch_effect.dart` | `missing` | `-` |
 | `Hustle` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Hustle.rb` | `lib/src/domain/effect/ability/hustle_effect.dart` | `missing` | `-` |
 | `Hydration` | `Ability` | `ability` | `on_end_turn_event` | `end_turn` | `06 Effects/04 Ability Effects/100 Hydration.rb` | `lib/src/domain/effect/ability/hydration_effect.dart` | `missing` | `-` |
@@ -291,11 +291,11 @@ Total effect classes: 482
 | `Paralysis` | `Status` | `status` | `on_move_prevention_user`, `on_status_prevention` | `move_prevention`, `status_prevention` | `06 Effects/03 Status Effects/102 Paralysis.rb` | `lib/src/domain/effect/status/paralysis_effect.dart` | `ported` | `-` |
 | `ParentalBond` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Parental Bond.rb` | `lib/src/domain/effect/ability/parental_bond_effect.dart` | `missing` | `-` |
 | `PastelVeil` | `Ability` | `ability` | `on_status_prevention`, `on_switch_event` | `status_prevention`, `switch` | `06 Effects/04 Ability Effects/100 Pastel Veil.rb` | `lib/src/domain/effect/ability/pastel_veil_effect.dart` | `missing` | `-` |
-| `Pecha` | `StatusBerry` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 StatusBerry.rb` | `lib/src/domain/effect/item/pecha_effect.dart` | `partial` | `-` |
+| `Pecha` | `StatusBerry` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 StatusBerry.rb` | `lib/src/domain/effect/item/pecha_effect.dart` | `ported` | `-` |
 | `PerishBody` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 Perish Body.rb` | `lib/src/domain/effect/ability/perish_body_effect.dart` | `missing` | `-` |
 | `PerishSong` | `EffectBase` | `move` | `on_end_turn_event` | `end_turn` | `06 Effects/02 Move Effects/001 PerishSong.rb` | `lib/src/domain/effect/move/perish_song_effect.dart` | `ported` | Object-backed PerishSongEffect counts down at end turn, transfers through Baton Pass and faints the holder when the counter resolves. |
 | `PersimBerry` | `Berry` | `item` | `on_post_status_change` | `status_prevention` | `06 Effects/05 Item Effects/100 Persim Berry.rb` | `lib/src/domain/effect/item/persim_berry_effect.dart` | `missing` | `-` |
-| `Petaya` | `HpTriggeredStatBerries` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb` | `lib/src/domain/effect/item/petaya_effect.dart` | `partial` | `-` |
+| `Petaya` | `HpTriggeredStatBerries` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb` | `lib/src/domain/effect/item/petaya_effect.dart` | `ported` | `-` |
 | `Pickpocket` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 Pickpocket - Magician.rb` | `lib/src/domain/effect/ability/pickpocket_effect.dart` | `missing` | `-` |
 | `Plus` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Plus - Minus.rb` | `lib/src/domain/effect/ability/plus_effect.dart` | `missing` | `-` |
 | `Poison` | `Status` | `status` | `on_end_turn_event`, `on_status_prevention` | `end_turn`, `status_prevention` | `06 Effects/03 Status Effects/101 Poison.rb` | `lib/src/domain/effect/status/poison_effect.dart` | `ported` | `-` |
@@ -331,7 +331,7 @@ Total effect classes: 482
 | `RainDish` | `Ability` | `ability` | `on_end_turn_event` | `end_turn` | `06 Effects/04 Ability Effects/100 Rain Dish.rb` | `lib/src/domain/effect/ability/rain_dish_effect.dart` | `ported` | `-` |
 | `Rainbow` | `PositionTiedEffectBase` | `move` | `on_delete` | `lifecycle` | `06 Effects/02 Move Effects/001 Pledge Effects/001 Rainbow.rb` | `lib/src/domain/effect/move/rainbow_effect.dart` | `missing` | `-` |
 | `Rattled` | `Ability` | `ability` | `on_post_damage`, `on_stat_change_post` | `post_damage`, `stat_change` | `06 Effects/04 Ability Effects/100 Rattled.rb` | `lib/src/domain/effect/ability/rattled_effect.dart` | `missing` | `-` |
-| `Rawst` | `StatusBerry` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 StatusBerry.rb` | `lib/src/domain/effect/item/rawst_effect.dart` | `partial` | `-` |
+| `Rawst` | `StatusBerry` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 StatusBerry.rb` | `lib/src/domain/effect/item/rawst_effect.dart` | `ported` | `-` |
 | `Reckless` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Reckless.rb` | `lib/src/domain/effect/ability/reckless_effect.dart` | `ported` | `-` |
 | `RedCard` | `Item` | `item` | `on_post_damage` | `post_damage` | `06 Effects/05 Item Effects/100 Red Card.rb` | `lib/src/domain/effect/item/red_card_effect.dart` | `missing` | `-` |
 | `RedOrb` | `Item` | `item` | `on_switch_event` | `switch` | `06 Effects/05 Item Effects/100 PrimalOrbs.rb` | `lib/src/domain/effect/item/red_orb_effect.dart` | `missing` | `-` |
@@ -347,7 +347,7 @@ Total effect classes: 482
 | `RunAway` | `Ability` | `ability` | `on_flee_passthrough` | `switch` | `06 Effects/04 Ability Effects/100 RunAway.rb` | `lib/src/domain/effect/ability/run_away_effect.dart` | `missing` | `-` |
 | `Safeguard` | `PositionTiedEffectBase` | `move` | `on_delete`, `on_status_prevention` | `lifecycle`, `status_prevention` | `06 Effects/02 Move Effects/001 Safeguard.rb` | `lib/src/domain/effect/move/safeguard_effect.dart` | `ported` | StaticBasicMoveRegistry.s_safe_guard installs the bank-scoped marker; major and volatile status application honor it with Infiltrator bypass. |
 | `SafetyGoggles` | `Item` | `item` | `on_move_prevention_target` | `move_prevention` | `06 Effects/05 Item Effects/100 SafetyGoggles.rb` | `lib/src/domain/effect/item/safety_goggles_effect.dart` | `missing` | `-` |
-| `Salac` | `HpTriggeredStatBerries` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb` | `lib/src/domain/effect/item/salac_effect.dart` | `partial` | `-` |
+| `Salac` | `HpTriggeredStatBerries` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb` | `lib/src/domain/effect/item/salac_effect.dart` | `ported` | `-` |
 | `SaltCure` | `PokemonTiedEffectBase` | `move` | `on_end_turn_event` | `end_turn` | `06 Effects/02 Move Effects/001 SaltCure.rb` | `lib/src/domain/effect/move/salt_cure_effect.dart` | `ported` | Object-backed SaltCureEffect applies end-turn residual damage with the Water/Steel divisor branch and honors Magic Guard. |
 | `SandForce` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Sand Force.rb` | `lib/src/domain/effect/ability/sand_force_effect.dart` | `missing` | `-` |
 | `SandRush` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Sand Rush.rb` | `lib/src/domain/effect/ability/sand_rush_effect.dart` | `missing` | `-` |
@@ -396,10 +396,10 @@ Total effect classes: 482
 | `Stalwart` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Stalwart.rb` | `lib/src/domain/effect/ability/stalwart_effect.dart` | `missing` | `-` |
 | `Stamina` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 Stamina.rb` | `lib/src/domain/effect/ability/stamina_effect.dart` | `missing` | `-` |
 | `StanceChange` | `Ability` | `ability` | `on_move_prevention_user` | `move_prevention` | `06 Effects/04 Ability Effects/100 Stance Change.rb` | `lib/src/domain/effect/ability/stance_change_effect.dart` | `missing` | `-` |
-| `Starf` | `HpTriggeredStatBerries` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb` | `lib/src/domain/effect/item/starf_effect.dart` | `partial` | `-` |
+| `Starf` | `HpTriggeredStatBerries` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb` | `lib/src/domain/effect/item/starf_effect.dart` | `ported` | `-` |
 | `Static` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 Static.rb` | `lib/src/domain/effect/ability/static_effect.dart` | `missing` | `-` |
 | `Status` | `EffectBase` | `status` | `-` | `-` | `06 Effects/03 Status Effects/001 StatusBase.rb` | `lib/src/domain/effect/status/status_effect.dart` | `missing` | `-` |
-| `StatusBerry` | `Berry` | `item` | `on_post_status_change` | `status_prevention` | `06 Effects/05 Item Effects/050 StatusBerry.rb` | `lib/src/domain/effect/item/status_berry_effect.dart` | `partial` | `-` |
+| `StatusBerry` | `Berry` | `item` | `on_post_status_change` | `status_prevention` | `06 Effects/05 Item Effects/050 StatusBerry.rb` | `lib/src/domain/effect/item/status_berry_effect.dart` | `ported` | `-` |
 | `Steadfast` | `Ability` | `ability` | `on_post_status_change` | `status_prevention` | `06 Effects/04 Ability Effects/100 Steadfast.rb` | `lib/src/domain/effect/ability/steadfast_effect.dart` | `missing` | `-` |
 | `StealthRock` | `PositionTiedEffectBase` | `move` | `on_delete`, `on_switch_event` | `lifecycle`, `switch` | `06 Effects/02 Move Effects/001 StealthRock.rb` | `lib/src/domain/effect/move/stealth_rock_effect.dart` | `ported` | StaticBasicMoveRegistry.s_stealth_rock installs Stealth Rock once; BattleSwitchHandler applies type-aware entry damage. |
 | `SteamEngine` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 Steam Engine.rb` | `lib/src/domain/effect/ability/steam_engine_effect.dart` | `missing` | `-` |

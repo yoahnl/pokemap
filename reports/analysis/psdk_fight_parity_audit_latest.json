@@ -9295,8 +9295,8 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 115,
-      "partial": 34,
+      "ported": 128,
+      "partial": 21,
       "missing": 333
     },
     "byFamilyAndStatus": {
@@ -9311,8 +9311,8 @@
         "missing": 49
       },
       "item": {
-        "ported": 14,
-        "partial": 23,
+        "ported": 27,
+        "partial": 10,
         "missing": 50
       },
       "status": {
@@ -9359,7 +9359,7 @@
       {
         "effectName": "AirBalloon",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Air Balloon.rb"
       },
       {
@@ -9395,7 +9395,7 @@
       {
         "effectName": "Apicot",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb"
       },
       {
@@ -9551,7 +9551,7 @@
       {
         "effectName": "BerryJuice",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Healing Berries.rb"
       },
       {
@@ -9683,13 +9683,13 @@
       {
         "effectName": "Cheri",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 StatusBerry.rb"
       },
       {
         "effectName": "Chesto",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 StatusBerry.rb"
       },
       {
@@ -10235,7 +10235,7 @@
       {
         "effectName": "Ganlon",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb"
       },
       {
@@ -10403,7 +10403,7 @@
       {
         "effectName": "HpTriggeredStatBerries",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb"
       },
       {
@@ -11009,7 +11009,7 @@
       {
         "effectName": "Pecha",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 StatusBerry.rb"
       },
       {
@@ -11033,7 +11033,7 @@
       {
         "effectName": "Petaya",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb"
       },
       {
@@ -11249,7 +11249,7 @@
       {
         "effectName": "Rawst",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 StatusBerry.rb"
       },
       {
@@ -11345,7 +11345,7 @@
       {
         "effectName": "Salac",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb"
       },
       {
@@ -11639,7 +11639,7 @@
       {
         "effectName": "Starf",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb"
       },
       {
@@ -11657,7 +11657,7 @@
       {
         "effectName": "StatusBerry",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 StatusBerry.rb"
       },
       {

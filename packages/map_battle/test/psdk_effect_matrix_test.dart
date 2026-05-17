@@ -37,11 +37,13 @@ void main() {
     expect(content, matches(RegExp(r'\| `Imposter` \|.*\| `ported` \|')));
     expect(content, matches(RegExp(r'\| `Leftovers` \|.*\| `ported` \|')));
     expect(content, matches(RegExp(r'\| `BlackSludge` \|.*\| `ported` \|')));
+    expect(content, matches(RegExp(r'\| `AirBalloon` \|.*\| `ported` \|')));
     expect(
       content,
       matches(RegExp(r'\| `ChoiceItemMultiplier` \|.*\| `ported` \|')),
     );
     expect(content, matches(RegExp(r'\| `ExpertBelt` \|.*\| `ported` \|')));
+    expect(content, matches(RegExp(r'\| `StatusBerry` \|.*\| `ported` \|')));
     expect(content, matches(RegExp(r'\| `Burn` \|.*\| `ported` \|')));
     expect(content, matches(RegExp(r'\| `Disable` \|.*\| `ported` \|')));
     expect(content, matches(RegExp(r'\| `Embargo` \|.*\| `ported` \|')));

@@ -73,6 +73,37 @@ void main() {
           pecha.state.battlerAt(psdkPlayerSlot).consumedItemId, 'pecha_berry');
     });
 
+    test('PSDK status berries cure their exact major status', () {
+      final cases = <(String, PsdkBattleMajorStatus)>[
+        ('aspear_berry', PsdkBattleMajorStatus.freeze),
+        ('cheri_berry', PsdkBattleMajorStatus.paralysis),
+        ('chesto_berry', PsdkBattleMajorStatus.sleep),
+        ('pecha_berry', PsdkBattleMajorStatus.poison),
+        ('rawst_berry', PsdkBattleMajorStatus.burn),
+      ];
+
+      for (final (itemId, status) in cases) {
+        final result = _applyStatus(playerHeldItemId: itemId, status: status);
+        final player = result.state.battlerAt(psdkPlayerSlot);
+
+        expect(player.majorStatus, isNull, reason: itemId);
+        expect(player.consumedItemId, itemId, reason: itemId);
+        expect(_itemEvents(result).single.itemId, itemId, reason: itemId);
+      }
+    });
+
+    test('Berry Juice heals a fixed amount at the half HP threshold', () {
+      final result = _damagePlayer(
+        playerHeldItemId: 'berry_juice',
+        rawDamage: 60,
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.currentHp, 60);
+      expect(player.consumedItemId, 'berry_juice');
+      expect(_healEvents(result, moveId: 'item:berry_juice').single.amount, 20);
+    });
+
     test('Liechi Berry raises attack at pinch threshold', () {
       final result = _tickEndTurn(
         playerHeldItemId: 'liechi_berry',
@@ -85,6 +116,44 @@ void main() {
       expect(player.statStages.valueOf('attack'), 1);
       expect(_statEvents(result).single.stat, 'attack');
       expect(_itemEvents(result).single.itemId, 'liechi_berry');
+    });
+
+    test('PSDK pinch stat berries raise their mapped stat', () {
+      final cases = <(String, String)>[
+        ('liechi_berry', 'attack'),
+        ('ganlon_berry', 'defense'),
+        ('salac_berry', 'speed'),
+        ('petaya_berry', 'specialAttack'),
+        ('apicot_berry', 'specialDefense'),
+      ];
+
+      for (final (itemId, stat) in cases) {
+        final result = _tickEndTurn(
+          playerHeldItemId: itemId,
+          playerCurrentHp: 25,
+        );
+        final player = result.state.battlerAt(psdkPlayerSlot);
+
+        expect(player.heldItemId, isNull, reason: itemId);
+        expect(player.consumedItemId, itemId, reason: itemId);
+        expect(player.statStages.valueOf(stat), 1, reason: itemId);
+      }
+    });
+
+    test('Starf Berry consumes and raises one random stat', () {
+      final result = _tickEndTurn(
+        playerHeldItemId: 'starf_berry',
+        playerCurrentHp: 25,
+      );
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.heldItemId, isNull);
+      expect(player.consumedItemId, 'starf_berry');
+      expect(_statEvents(result), hasLength(1));
+      expect(
+        player.statStages.values.values.where((stage) => stage == 1),
+        hasLength(1),
+      );
     });
   });
 }

@@ -188,7 +188,7 @@ void main() {
       );
       expect(
         byFamilyAndName['item:AirBalloon']?.status,
-        PsdkPortStatus.partial,
+        PsdkPortStatus.ported,
       );
     });
 
@@ -316,6 +316,46 @@ void main() {
           reason: effectName,
         );
       }
+    });
+
+    test('effect parity promotes Lot 103 active item trigger batch', () async {
+      final effectEntries = await loadPsdkEffectParityEntries(
+        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+      );
+      final byFamilyAndName = {
+        for (final entry in effectEntries)
+          '${entry.family}:${entry.effectName}': entry,
+      };
+
+      for (final effectName in <String>[
+        'AirBalloon',
+        'Apicot',
+        'BerryJuice',
+        'Cheri',
+        'Chesto',
+        'Ganlon',
+        'HpTriggeredStatBerries',
+        'Pecha',
+        'Petaya',
+        'Rawst',
+        'Salac',
+        'Starf',
+        'StatusBerry',
+      ]) {
+        expect(
+          byFamilyAndName['item:$effectName']?.status,
+          PsdkPortStatus.ported,
+          reason: effectName,
+        );
+      }
+      expect(
+        byFamilyAndName['item:LumBerry']?.status,
+        PsdkPortStatus.partial,
+      );
+      expect(
+        byFamilyAndName['item:ConfusingBerries']?.status,
+        PsdkPortStatus.partial,
+      );
     });
 
     test('effect parity promotes exact major status lifecycle effects',

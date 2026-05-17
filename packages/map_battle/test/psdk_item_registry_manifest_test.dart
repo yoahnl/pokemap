@@ -30,18 +30,38 @@ void main() {
       };
       final registry = ItemEffectRegistry();
       final expectedPorted = <String>{
+        'air_balloon',
+        'apicot_berry',
+        'aspear_berry',
         'assault_vest',
+        'berry_juice',
         'black_sludge',
+        'cheri_berry',
+        'chesto_berry',
         'choice_band',
         'choice_scarf',
         'choice_specs',
+        'damp_rock',
         'deep_sea_scale',
         'deep_sea_tooth',
         'expert_belt',
+        'ganlon_berry',
+        'heat_rock',
+        'icy_rock',
         'leftovers',
         'light_ball',
+        'liechi_berry',
         'metal_powder',
+        'oran_berry',
+        'pecha_berry',
+        'petaya_berry',
         'quick_powder',
+        'rawst_berry',
+        'salac_berry',
+        'sitrus_berry',
+        'smooth_rock',
+        'starf_berry',
+        'terrain_extender',
         'thick_club',
       };
 
@@ -100,7 +120,7 @@ void main() {
 
       expect(byId['leftovers']!.status, PsdkItemPortStatus.ported);
       expect(byId['black_sludge']!.status, PsdkItemPortStatus.ported);
-      expect(byId['air_balloon']!.status, PsdkItemPortStatus.partial);
+      expect(byId['air_balloon']!.status, PsdkItemPortStatus.ported);
       expect(registry.statusOf('LEFTOVERS'), PsdkItemPortStatus.ported);
       expect(
           registry.portedItemIds,
@@ -108,8 +128,7 @@ void main() {
             'leftovers',
             'black_sludge',
           ]));
-      expect(registry.partialItemIds, contains('air_balloon'));
-      expect(registry.portedItemIds, isNot(contains('air_balloon')));
+      expect(registry.portedItemIds, contains('air_balloon'));
     });
 
     test('Lot 102 passive item modifiers are promoted item-by-item', () {
@@ -129,6 +148,42 @@ void main() {
         'metal_powder',
         'quick_powder',
         'thick_club',
+      ]) {
+        expect(byId[itemId]!.status, PsdkItemPortStatus.ported, reason: itemId);
+        expect(registry.statusOf(itemId), PsdkItemPortStatus.ported,
+            reason: itemId);
+        expect(registry.create(itemId, owner: psdkPlayerSlot), isNotNull,
+            reason: itemId);
+      }
+    });
+
+    test('Lot 103 active item triggers are promoted item-by-item', () {
+      final byId = {
+        for (final entry in psdkItemEffectManifest) entry.itemId: entry,
+      };
+      final registry = ItemEffectRegistry();
+
+      for (final itemId in <String>[
+        'air_balloon',
+        'apicot_berry',
+        'aspear_berry',
+        'berry_juice',
+        'cheri_berry',
+        'chesto_berry',
+        'damp_rock',
+        'ganlon_berry',
+        'heat_rock',
+        'icy_rock',
+        'liechi_berry',
+        'oran_berry',
+        'pecha_berry',
+        'petaya_berry',
+        'rawst_berry',
+        'salac_berry',
+        'sitrus_berry',
+        'smooth_rock',
+        'starf_berry',
+        'terrain_extender',
       ]) {
         expect(byId[itemId]!.status, PsdkItemPortStatus.ported, reason: itemId);
         expect(registry.statusOf(itemId), PsdkItemPortStatus.ported,
