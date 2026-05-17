@@ -1114,6 +1114,58 @@ void main() {
       expect(damaged.state.battlerAt(psdkOpponentSlot).currentHp, 0);
     });
 
+    test('stat drop prevention abilities block matching opposing drops', () {
+      const cases = <({String abilityId, String blockedStat})>[
+        (abilityId: 'big_pecks', blockedStat: 'defense'),
+        (abilityId: 'hyper_cutter', blockedStat: 'attack'),
+        (abilityId: 'keen_eye', blockedStat: 'accuracy'),
+        (abilityId: 'mind_s_eye', blockedStat: 'accuracy'),
+        (abilityId: 'clear_body', blockedStat: 'defense'),
+        (abilityId: 'full_metal_body', blockedStat: 'specialDefense'),
+        (abilityId: 'white_smoke', blockedStat: 'speed'),
+      ];
+
+      for (final entry in cases) {
+        final result = _applyPlayerStatDrop(
+          playerAbilityId: entry.abilityId,
+          stat: entry.blockedStat,
+        );
+
+        expect(result.applied, isFalse, reason: entry.abilityId);
+        expect(result.reason, 'ability:${entry.abilityId}');
+        expect(
+          result.state.battlerAt(psdkPlayerSlot).statStages.valueOf(
+                entry.blockedStat,
+              ),
+          0,
+          reason: entry.abilityId,
+        );
+      }
+    });
+
+    test('stat drop prevention abilities allow unmatched and self drops', () {
+      final unmatched = _applyPlayerStatDrop(
+        playerAbilityId: 'big_pecks',
+        stat: 'attack',
+      );
+      final selfDrop = _applyPlayerStatDrop(
+        playerAbilityId: 'clear_body',
+        stat: 'defense',
+        user: psdkPlayerSlot,
+      );
+
+      expect(unmatched.applied, isTrue);
+      expect(
+        unmatched.state.battlerAt(psdkPlayerSlot).statStages.valueOf('attack'),
+        -1,
+      );
+      expect(selfDrop.applied, isTrue);
+      expect(
+        selfDrop.state.battlerAt(psdkPlayerSlot).statStages.valueOf('defense'),
+        -1,
+      );
+    });
+
     test('Air Lock prevents new weather from being applied', () {
       final result = _runMove(
         opponentAbilityId: 'air_lock',
@@ -1679,6 +1731,44 @@ BattleEffect _abilityEffectForOpponent(String abilityId) {
   final effects = state.battlerAt(psdkOpponentSlot).abilityEffects.toList();
   expect(effects, isNotEmpty, reason: abilityId);
   return effects.single;
+}
+
+BattleHandlerResult _applyPlayerStatDrop({
+  required String playerAbilityId,
+  required String stat,
+  PsdkBattleSlotRef user = psdkOpponentSlot,
+}) {
+  final state = PsdkBattleState.fromSetup(
+    BattleEngineSetup.singles(
+      player: _combatant(
+        id: 'player',
+        abilityId: playerAbilityId,
+        move: _move(id: 'tackle', power: 40),
+      ),
+      opponent: _combatant(
+        id: 'opponent',
+        move: _move(id: 'opponent_wait', power: 0),
+      ),
+      rngSeeds: const BattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 4,
+      ).psdkSeeds,
+    ).psdkSetup,
+  );
+
+  return const BattleStatChangeHandler().applyStatChange(
+    context: BattleHandlerContext(
+      state: state,
+      rng: _rng(),
+      turn: 1,
+      user: user,
+    ),
+    target: psdkPlayerSlot,
+    stat: stat,
+    stages: -1,
+  );
 }
 
 BattleMoveDefinition _definition({

@@ -122,11 +122,11 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     status: PsdkAbilityPortStatus.missing,
   ),
   PsdkAbilityEffectManifestEntry(
-    abilityId: 'big_pecks',
-    rubyPath:
-        'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Big Pecks.rb',
-    status: PsdkAbilityPortStatus.missing,
-  ),
+      abilityId: 'big_pecks',
+      rubyPath:
+          'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Big Pecks.rb',
+      status: PsdkAbilityPortStatus.ported,
+      dartEffect: 'StatDropPreventionAbilityEffect.defense'),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'blaze',
     rubyPath:
@@ -153,11 +153,11 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     status: PsdkAbilityPortStatus.missing,
   ),
   PsdkAbilityEffectManifestEntry(
-    abilityId: 'clear_body',
-    rubyPath:
-        'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Clear Body.rb',
-    status: PsdkAbilityPortStatus.missing,
-  ),
+      abilityId: 'clear_body',
+      rubyPath:
+          'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Clear Body.rb',
+      status: PsdkAbilityPortStatus.ported,
+      dartEffect: 'StatDropPreventionAbilityEffect.all'),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'cloud_nine',
     rubyPath:
@@ -445,11 +445,11 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     status: PsdkAbilityPortStatus.missing,
   ),
   PsdkAbilityEffectManifestEntry(
-    abilityId: 'full_metal_body',
-    rubyPath:
-        'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Full Metal Body.rb',
-    status: PsdkAbilityPortStatus.missing,
-  ),
+      abilityId: 'full_metal_body',
+      rubyPath:
+          'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Full Metal Body.rb',
+      status: PsdkAbilityPortStatus.ported,
+      dartEffect: 'StatDropPreventionAbilityEffect.all'),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'fur_coat',
     rubyPath:
@@ -578,11 +578,11 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     status: PsdkAbilityPortStatus.missing,
   ),
   PsdkAbilityEffectManifestEntry(
-    abilityId: 'hyper_cutter',
-    rubyPath:
-        'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Hyper Cutter.rb',
-    status: PsdkAbilityPortStatus.missing,
-  ),
+      abilityId: 'hyper_cutter',
+      rubyPath:
+          'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Hyper Cutter.rb',
+      status: PsdkAbilityPortStatus.ported,
+      dartEffect: 'StatDropPreventionAbilityEffect.attack'),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'ice_body',
     rubyPath:
@@ -668,11 +668,11 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     status: PsdkAbilityPortStatus.missing,
   ),
   PsdkAbilityEffectManifestEntry(
-    abilityId: 'keen_eye',
-    rubyPath:
-        'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Keen Eye.rb',
-    status: PsdkAbilityPortStatus.missing,
-  ),
+      abilityId: 'keen_eye',
+      rubyPath:
+          'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Keen Eye.rb',
+      status: PsdkAbilityPortStatus.ported,
+      dartEffect: 'StatDropPreventionAbilityEffect.accuracy'),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'leaf_guard',
     rubyPath:
@@ -763,11 +763,11 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     status: PsdkAbilityPortStatus.missing,
   ),
   PsdkAbilityEffectManifestEntry(
-    abilityId: 'mind_s_eye',
-    rubyPath:
-        'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Keen Eye.rb',
-    status: PsdkAbilityPortStatus.missing,
-  ),
+      abilityId: 'mind_s_eye',
+      rubyPath:
+          'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Keen Eye.rb',
+      status: PsdkAbilityPortStatus.ported,
+      dartEffect: 'StatDropPreventionAbilityEffect.accuracy'),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'minus',
     rubyPath:
@@ -1676,11 +1676,11 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     status: PsdkAbilityPortStatus.missing,
   ),
   PsdkAbilityEffectManifestEntry(
-    abilityId: 'white_smoke',
-    rubyPath:
-        'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 White Smoke.rb',
-    status: PsdkAbilityPortStatus.missing,
-  ),
+      abilityId: 'white_smoke',
+      rubyPath:
+          'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 White Smoke.rb',
+      status: PsdkAbilityPortStatus.ported,
+      dartEffect: 'StatDropPreventionAbilityEffect.all'),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'wimp_out',
     rubyPath:

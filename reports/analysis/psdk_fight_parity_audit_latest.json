@@ -9295,15 +9295,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 165,
+      "ported": 171,
       "partial": 19,
-      "missing": 298
+      "missing": 292
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 44,
+        "ported": 50,
         "partial": 2,
-        "missing": 208
+        "missing": 202
       },
       "move": {
         "ported": 69,
@@ -9672,7 +9672,7 @@
       {
         "effectName": "BigPecks",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Big Pecks.rb",
         "hookFamilies": [
           "stat_change"
@@ -9870,7 +9870,7 @@
       {
         "effectName": "ClearBody",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Clear Body.rb",
         "hookFamilies": [
           "stat_change"
@@ -10579,7 +10579,7 @@
       {
         "effectName": "FullMetalBody",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Full Metal Body.rb",
         "hookFamilies": [
           "stat_change"
@@ -10898,7 +10898,7 @@
       {
         "effectName": "HyperCutter",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Hyper Cutter.rb",
         "hookFamilies": [
           "stat_change"
@@ -11088,7 +11088,7 @@
       {
         "effectName": "KeenEye",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Keen Eye.rb",
         "hookFamilies": [
           "stat_change"
@@ -13340,7 +13340,7 @@
       {
         "effectName": "WhiteSmoke",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 White Smoke.rb",
         "hookFamilies": [
           "stat_change"
