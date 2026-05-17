@@ -9295,14 +9295,14 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 67,
-      "partial": 82,
+      "ported": 83,
+      "partial": 66,
       "missing": 333
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 4,
-        "partial": 36,
+        "ported": 20,
+        "partial": 20,
         "missing": 214
       },
       "move": {
@@ -9611,7 +9611,7 @@
       {
         "effectName": "BoostingMoveType",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/050 BoostingMoveType.rb"
       },
       {
@@ -9965,7 +9965,7 @@
       {
         "effectName": "EarthEater",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 TypeAbsorb.rb"
       },
       {
@@ -10103,7 +10103,7 @@
       {
         "effectName": "FlashFire",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Flash Fire.rb"
       },
       {
@@ -10517,7 +10517,7 @@
       {
         "effectName": "IronFist",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Iron Fist.rb"
       },
       {
@@ -10643,7 +10643,7 @@
       {
         "effectName": "LightningRod",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Lightning Rod - Storm Drain.rb"
       },
       {
@@ -10865,7 +10865,7 @@
       {
         "effectName": "MotorDrive",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Motor Drive.rb"
       },
       {
@@ -11171,7 +11171,7 @@
       {
         "effectName": "PunkRock",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Punk Rock.rb"
       },
       {
@@ -11255,7 +11255,7 @@
       {
         "effectName": "Reckless",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Reckless.rb"
       },
       {
@@ -11315,7 +11315,7 @@
       {
         "effectName": "RoughSkin",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Rough Skin - Iron Barbs.rb"
       },
       {
@@ -11393,7 +11393,7 @@
       {
         "effectName": "SapSipper",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Sap Sipper.rb"
       },
       {
@@ -11435,7 +11435,7 @@
       {
         "effectName": "Sharpness",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Sharpness.rb"
       },
       {
@@ -11711,7 +11711,7 @@
       {
         "effectName": "StormDrain",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Lightning Rod - Storm Drain.rb"
       },
       {
@@ -11861,7 +11861,7 @@
       {
         "effectName": "Technician",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Technician.rb"
       },
       {
@@ -11951,7 +11951,7 @@
       {
         "effectName": "ToughClaws",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Tough Claws.rb"
       },
       {
@@ -12083,7 +12083,7 @@
       {
         "effectName": "VoltAbsorb",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 TypeAbsorb.rb"
       },
       {
@@ -12095,7 +12095,7 @@
       {
         "effectName": "WaterAbsorb",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 TypeAbsorb.rb"
       },
       {

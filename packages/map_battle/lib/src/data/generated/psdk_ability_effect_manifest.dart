@@ -131,7 +131,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'blaze',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 BoostingMoveType.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'TypeBoostingAbilityEffect',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -308,7 +308,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'dragon_s_maw',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 BoostingMoveType.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'TypeBoostingAbilityEffect',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -336,7 +336,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'earth_eater',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 TypeAbsorb.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'TypeImmunityAbilityEffect.earthEater',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -398,7 +398,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'flash_fire',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Flash Fire.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'TypeImmunityAbilityEffect.flashFire',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -650,14 +650,14 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'iron_barbs',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Rough Skin - Iron Barbs.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'ContactPunishAbilityEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'iron_fist',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Iron Fist.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'MoveShapePowerAbilityEffect.ironFist',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -682,7 +682,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'levitate',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/03 PokemonBattler/004 Grounded.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'LevitateEffect',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -695,7 +695,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'lightning_rod',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Lightning Rod - Storm Drain.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'TypeImmunityAbilityEffect.lightningRod',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -802,7 +802,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'motor_drive',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Motor Drive.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'TypeImmunityAbilityEffect.motorDrive',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -845,7 +845,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'no_guard',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/10 Move/120 Procedure.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'NoGuardEffect',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -882,7 +882,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'overgrow',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 BoostingMoveType.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'TypeBoostingAbilityEffect',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -1016,7 +1016,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'punk_rock',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Punk Rock.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'MoveShapePowerAbilityEffect.punkRock',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -1072,7 +1072,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'reckless',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Reckless.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'RecklessEffect',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -1103,21 +1103,21 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'rock_head',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/10 Move/120 Procedure.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'RockHeadEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'rocky_payload',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 BoostingMoveType.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'TypeBoostingAbilityEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'rough_skin',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Rough Skin - Iron Barbs.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'ContactPunishAbilityEffect',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -1161,7 +1161,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'sap_sipper',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Sap Sipper.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'TypeImmunityAbilityEffect.sapSipper',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -1205,7 +1205,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'sharpness',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Sharpness.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'MoveShapePowerAbilityEffect.sharpness',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -1230,7 +1230,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'skill_link',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/10 Move/1 Mechanics/103 TwoHit MultiHit.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'SkillLinkEffect',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -1348,7 +1348,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'steelworker',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 BoostingMoveType.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'TypeBoostingAbilityEffect',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -1367,7 +1367,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'storm_drain',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Lightning Rod - Storm Drain.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'TypeImmunityAbilityEffect.stormDrain',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -1410,7 +1410,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'swarm',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 BoostingMoveType.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'TypeBoostingAbilityEffect',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -1465,7 +1465,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'technician',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Technician.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'MoveShapePowerAbilityEffect.technician',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -1520,14 +1520,14 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'torrent',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 BoostingMoveType.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'TypeBoostingAbilityEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'tough_claws',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Tough Claws.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'MoveShapePowerAbilityEffect.toughClaws',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -1558,7 +1558,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'transistor',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 BoostingMoveType.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'TypeBoostingAbilityEffect',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -1620,7 +1620,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'volt_absorb',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 TypeAbsorb.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'TypeImmunityAbilityEffect.voltAbsorb',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -1633,7 +1633,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'water_absorb',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 TypeAbsorb.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'TypeImmunityAbilityEffect.waterAbsorb',
   ),
   PsdkAbilityEffectManifestEntry(

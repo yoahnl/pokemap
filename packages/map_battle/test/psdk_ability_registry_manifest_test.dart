@@ -30,9 +30,37 @@ void main() {
       final registry = AbilityEffectRegistry();
 
       for (final abilityId in <String>[
+        'blaze',
+        'dragon_s_maw',
+        'earth_eater',
+        'flash_fire',
+        'iron_barbs',
+        'iron_fist',
+        'levitate',
+        'lightning_rod',
+        'motor_drive',
+        'no_guard',
+        'overgrow',
+        'punk_rock',
+        'reckless',
+        'rock_head',
+        'rocky_payload',
+        'rough_skin',
+        'sap_sipper',
+        'sharpness',
         'shadow_tag',
         'arena_trap',
+        'skill_link',
         'magnet_pull',
+        'steelworker',
+        'storm_drain',
+        'swarm',
+        'technician',
+        'torrent',
+        'tough_claws',
+        'transistor',
+        'volt_absorb',
+        'water_absorb',
       ]) {
         final entry = byId[abilityId];
 
@@ -44,49 +72,21 @@ void main() {
 
       for (final abilityId in <String>[
         'air_lock',
-        'blaze',
         'cloud_nine',
         'damp',
-        'dragon_s_maw',
         'drizzle',
         'drought',
         'dry_skin',
-        'earth_eater',
         'electric_surge',
-        'flash_fire',
         'grassy_surge',
         'intimidate',
-        'iron_barbs',
-        'iron_fist',
-        'levitate',
-        'lightning_rod',
-        'motor_drive',
         'misty_surge',
-        'no_guard',
-        'overgrow',
-        'punk_rock',
         'psychic_surge',
         'rain_dish',
-        'reckless',
-        'rock_head',
-        'rocky_payload',
-        'rough_skin',
-        'sap_sipper',
         'sand_stream',
-        'sharpness',
-        'skill_link',
         'snow_warning',
         'soundproof',
         'speed_boost',
-        'steelworker',
-        'storm_drain',
-        'swarm',
-        'technician',
-        'torrent',
-        'tough_claws',
-        'transistor',
-        'volt_absorb',
-        'water_absorb',
         'immunity',
         'insomnia',
         'vital_spirit',
@@ -121,6 +121,49 @@ void main() {
       expect(coverage.concreteFactoryAbilityIds, contains('shadow_tag'));
       expect(coverage.manifestAbilityIds, contains('zero_to_hero'));
       expect(coverage.missingAbilityIds, contains('zero_to_hero'));
+    });
+
+    test('Lot 98 damage type and accuracy abilities are strict', () {
+      final byId = {
+        for (final entry in psdkAbilityEffectManifest) entry.abilityId: entry,
+      };
+
+      for (final abilityId in <String>[
+        'blaze',
+        'overgrow',
+        'torrent',
+        'swarm',
+        'dragon_s_maw',
+        'steelworker',
+        'transistor',
+        'rocky_payload',
+        'technician',
+        'iron_fist',
+        'tough_claws',
+        'sharpness',
+        'punk_rock',
+        'water_absorb',
+        'volt_absorb',
+        'earth_eater',
+        'flash_fire',
+        'motor_drive',
+        'lightning_rod',
+        'storm_drain',
+        'sap_sipper',
+        'levitate',
+        'no_guard',
+        'reckless',
+        'rock_head',
+        'skill_link',
+        'rough_skin',
+        'iron_barbs',
+      ]) {
+        expect(
+          byId[abilityId]?.status,
+          PsdkAbilityPortStatus.ported,
+          reason: abilityId,
+        );
+      }
     });
   });
 }
