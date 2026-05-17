@@ -292,7 +292,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_ivy_cudgel': _KnownDartBehavior(
     dartBehavior: 'TypeBasedMoveBehavior.ivyCudgel',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_jaw_lock': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_jaw_lock',
@@ -469,7 +469,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_burn_up': _KnownDartBehavior(
     dartBehavior: 'SpecialSecondaryMoveBehavior.burnUp',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_cantflee': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_cantflee',
@@ -626,7 +626,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_multi_attack': _KnownDartBehavior(
     dartBehavior: 'TypeBasedMoveBehavior.multiAttack',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_nightmare': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_nightmare)',
@@ -702,7 +702,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_judgment': _KnownDartBehavior(
     dartBehavior: 'TypeBasedMoveBehavior.judgment',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_jump_kick': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_jump_kick',
@@ -770,7 +770,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_revelation_dance': _KnownDartBehavior(
     dartBehavior: 'TypeBasedMoveBehavior.revelationDance',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_relic_song': _KnownDartBehavior(
     dartBehavior: 'SpecialSecondaryMoveBehavior.relicSong',
@@ -1513,9 +1513,7 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
   's_revenge': {
     _PsdkMoveDependency.history,
   },
-  's_revelation_dance': {
-    _PsdkMoveDependency.effects,
-  },
+  's_revelation_dance': {},
   's_lucky_chant': {},
   's_mist': {},
   's_reflect': {},

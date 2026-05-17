@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 294,
-    "partiel": 434,
+    "fait": 298,
+    "partiel": 430,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -651,9 +651,9 @@
       {
         "moveId": "burn_up",
         "battleEngineMethod": "s_burn_up",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/burn_up.json"
       },
       {
@@ -2651,9 +2651,9 @@
       {
         "moveId": "judgment",
         "battleEngineMethod": "s_judgment",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/judgment.json"
       },
       {
@@ -3267,9 +3267,9 @@
       {
         "moveId": "multi_attack",
         "battleEngineMethod": "s_multi_attack",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/multi_attack.json"
       },
       {
@@ -4027,9 +4027,9 @@
       {
         "moveId": "revelation_dance",
         "battleEngineMethod": "s_revelation_dance",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/revelation_dance.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 94,
-      "partial": 236,
+      "ported": 99,
+      "partial": 231,
       "missing": 0
     },
     "entries": [
@@ -6146,7 +6146,7 @@
         "rubyClass": "BurnUp",
         "rubyPath": "10 Move/2 Definitions/300 BurnUp.rb",
         "dartBehavior": "SpecialSecondaryMoveBehavior.burnUp",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -7138,7 +7138,7 @@
         "rubyClass": "IvyCudgel",
         "rubyPath": "10 Move/2 Definitions/300 IvyCudgel.rb",
         "dartBehavior": "TypeBasedMoveBehavior.ivyCudgel",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -7154,7 +7154,7 @@
         "rubyClass": "Judgment",
         "rubyPath": "10 Move/2 Definitions/300 Judgment.rb",
         "dartBehavior": "TypeBasedMoveBehavior.judgment",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -7452,7 +7452,7 @@
         "rubyClass": "MultiAttack",
         "rubyPath": "10 Move/2 Definitions/300 MultiAttack.rb",
         "dartBehavior": "TypeBasedMoveBehavior.multiAttack",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -7921,10 +7921,8 @@
         "rubyClass": "RevelationDance",
         "rubyPath": "10 Move/2 Definitions/300 RevelationDance.rb",
         "dartBehavior": "TypeBasedMoveBehavior.revelationDance",
-        "status": "partial",
-        "dependencies": [
-          "effects"
-        ]
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_revenge",

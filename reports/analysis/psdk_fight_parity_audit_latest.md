@@ -9,8 +9,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Metric | Count |
 | --- | ---: |
 | Studio attacks total | 728 |
-| Studio attacks `fait` | 294 |
-| Studio attacks `partiel` | 434 |
+| Studio attacks `fait` | 298 |
+| Studio attacks `partiel` | 430 |
 | Studio attacks `pas_fait` | 0 |
 | Unknown methods | 0 |
 | Unique battle engine methods | 258 |
@@ -37,7 +37,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_bestow | 1 |
 | s_bide | 1 |
 | s_brick_break | 2 |
-| s_burn_up | 1 |
 | s_camouflage | 1 |
 | s_captivate | 1 |
 | s_change_type | 1 |
@@ -99,7 +98,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_ingrain | 1 |
 | s_instruct | 1 |
 | s_ion_deluge | 1 |
-| s_judgment | 1 |
 | s_jump_kick | 2 |
 | s_knock_off | 1 |
 | s_laser_focus | 1 |
@@ -121,7 +119,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_minimize | 1 |
 | s_miracle_eye | 1 |
 | s_mirror_move | 2 |
-| s_multi_attack | 1 |
 | s_multi_hit | 1 |
 | s_nature_power | 1 |
 | s_nightmare | 1 |
@@ -150,7 +147,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_reflect_type | 1 |
 | s_relic_song | 1 |
 | s_return | 1 |
-| s_revelation_dance | 1 |
 | s_roar | 2 |
 | s_role_play | 1 |
 | s_rollout | 1 |
@@ -216,8 +212,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 94 |
-| `partial` | 236 |
+| `ported` | 99 |
+| `partial` | 231 |
 | `missing` | 0 |
 | Total manifest methods | 330 |
 
@@ -225,8 +221,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Dependency | Partial methods |
 | --- | ---: |
-| no_dependency_declared | 147 |
-| effects | 66 |
+| no_dependency_declared | 143 |
+| effects | 65 |
 | ability | 48 |
 | handlerDamage | 26 |
 | handlerStatus | 18 |

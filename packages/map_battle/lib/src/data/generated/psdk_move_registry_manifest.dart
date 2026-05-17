@@ -309,7 +309,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'BurnUp',
     rubyPath: '10 Move/2 Definitions/300 BurnUp.rb',
     dartBehavior: 'SpecialSecondaryMoveBehavior.burnUp',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1302,7 +1302,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'IvyCudgel',
     rubyPath: '10 Move/2 Definitions/300 IvyCudgel.rb',
     dartBehavior: 'TypeBasedMoveBehavior.ivyCudgel',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1318,7 +1318,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Judgment',
     rubyPath: '10 Move/2 Definitions/300 Judgment.rb',
     dartBehavior: 'TypeBasedMoveBehavior.judgment',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1617,7 +1617,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'MultiAttack',
     rubyPath: '10 Move/2 Definitions/300 MultiAttack.rb',
     dartBehavior: 'TypeBasedMoveBehavior.multiAttack',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -2086,8 +2086,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'RevelationDance',
     rubyPath: '10 Move/2 Definitions/300 RevelationDance.rb',
     dartBehavior: 'TypeBasedMoveBehavior.revelationDance',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[PsdkMoveDependency.effects],
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_revenge',

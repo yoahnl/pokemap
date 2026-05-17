@@ -155,6 +155,40 @@ void main() {
       expect(user.effects.contains('burn_up'), isTrue);
     });
 
+    test('s_burn_up can remove secondary and added user types', () {
+      final secondary = _runMove(
+        playerTypes: const PsdkBattleTypes(primary: 'water', secondary: 'fire'),
+        playerMove: _move(
+          id: 'burn_up',
+          type: 'fire',
+          category: PsdkBattleMoveCategory.special,
+          power: 130,
+          battleEngineMethod: 's_burn_up',
+        ),
+      );
+      final added = _runMove(
+        playerTypes: const PsdkBattleTypes(primary: 'water'),
+        playerType3: 'fire',
+        playerMove: _move(
+          id: 'burn_up',
+          type: 'fire',
+          category: PsdkBattleMoveCategory.special,
+          power: 130,
+          battleEngineMethod: 's_burn_up',
+        ),
+      );
+
+      final secondaryUser = secondary.state.battlerAt(psdkPlayerSlot);
+      final addedUser = added.state.battlerAt(psdkPlayerSlot);
+      expect(_damage(secondary, moveId: 'burn_up'), greaterThan(0));
+      expect(secondaryUser.types.primary, 'water');
+      expect(secondaryUser.types.secondary, isNull);
+      expect(secondaryUser.effects.contains('burn_up'), isTrue);
+      expect(_damage(added, moveId: 'burn_up'), greaterThan(0));
+      expect(addedUser.type3, isNull);
+      expect(addedUser.effects.contains('burn_up'), isTrue);
+    });
+
     test('s_incinerate removes a target berry after a successful hit', () {
       final result = _runMove(
         opponentHeldItemId: 'oran_berry',
@@ -282,6 +316,7 @@ void main() {
 PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
   PsdkBattleTypes playerTypes = const PsdkBattleTypes(primary: 'normal'),
+  String? playerType3,
   PsdkBattleEffectStack playerEffects = const PsdkBattleEffectStack.empty(),
   PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
   String? opponentAbilityId,
@@ -295,6 +330,7 @@ PsdkBattleTurnResult _runMove({
         id: 'player',
         speed: 100,
         types: playerTypes,
+        type3: playerType3,
         effects: playerEffects,
         move: playerMove,
       ),
@@ -328,6 +364,7 @@ PsdkBattleCombatantSetup _combatant({
   required String id,
   required int speed,
   required PsdkBattleTypes types,
+  String? type3,
   required PsdkBattleMoveData move,
   String? abilityId,
   String? heldItemId,
@@ -342,6 +379,7 @@ PsdkBattleCombatantSetup _combatant({
     maxHp: 100,
     currentHp: 100,
     types: types,
+    type3: type3,
     abilityId: abilityId,
     heldItemId: heldItemId,
     statHistory: statHistory,

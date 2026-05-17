@@ -290,7 +290,7 @@ void main() {
         byMethod['s_smack_down']!.dartBehavior,
         'GroundingMoveBehavior.smackDown',
       );
-      expect(byMethod['s_burn_up']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_burn_up']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_burn_up']!.dartBehavior,
         'SpecialSecondaryMoveBehavior.burnUp',
@@ -732,22 +732,22 @@ void main() {
         expect(byMethod[entry.method]!.status, PsdkPortStatus.ported);
         expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
       }
-      expect(byMethod['s_ivy_cudgel']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_ivy_cudgel']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_ivy_cudgel']!.dartBehavior,
         'TypeBasedMoveBehavior.ivyCudgel',
       );
-      expect(byMethod['s_judgment']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_judgment']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_judgment']!.dartBehavior,
         'TypeBasedMoveBehavior.judgment',
       );
-      expect(byMethod['s_multi_attack']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_multi_attack']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_multi_attack']!.dartBehavior,
         'TypeBasedMoveBehavior.multiAttack',
       );
-      expect(byMethod['s_revelation_dance']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_revelation_dance']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_revelation_dance']!.dartBehavior,
         'TypeBasedMoveBehavior.revelationDance',
