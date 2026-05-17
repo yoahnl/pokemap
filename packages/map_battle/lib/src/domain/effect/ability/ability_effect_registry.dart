@@ -287,6 +287,25 @@ final class AbilityEffectRegistry {
     };
   }
 
+  AbilityEffectRegistryCoverage manifestCoverage() {
+    final manifestIds = registeredAbilityIds;
+    final factoryIds = _factories.keys.toSet();
+    return AbilityEffectRegistryCoverage(
+      manifestAbilityIds: manifestIds,
+      concreteFactoryAbilityIds: factoryIds,
+      factoryIdsOutsideManifest: factoryIds.difference(manifestIds),
+      declaredEffectsWithoutFactory: <String>{
+        for (final entry in psdkAbilityEffectManifest)
+          if (entry.dartEffect != null && !factoryIds.contains(entry.abilityId))
+            entry.abilityId,
+      },
+      missingAbilityIds: <String>{
+        for (final entry in psdkAbilityEffectManifest)
+          if (entry.status == PsdkAbilityPortStatus.missing) entry.abilityId,
+      },
+    );
+  }
+
   BattleEffect? create(String? abilityId, {PsdkBattleSlotRef? owner}) {
     final normalized = _normalizeAbilityId(abilityId);
     if (normalized == null) {
@@ -317,6 +336,31 @@ final class AbilityEffectRegistry {
     final effect = create(abilityId, owner: owner);
     return effect == null ? base : base.addEffect(effect);
   }
+}
+
+final class AbilityEffectRegistryCoverage {
+  AbilityEffectRegistryCoverage({
+    required Set<String> manifestAbilityIds,
+    required Set<String> concreteFactoryAbilityIds,
+    required Set<String> factoryIdsOutsideManifest,
+    required Set<String> declaredEffectsWithoutFactory,
+    required Set<String> missingAbilityIds,
+  })  : manifestAbilityIds = Set<String>.unmodifiable(manifestAbilityIds),
+        concreteFactoryAbilityIds =
+            Set<String>.unmodifiable(concreteFactoryAbilityIds),
+        factoryIdsOutsideManifest =
+            Set<String>.unmodifiable(factoryIdsOutsideManifest),
+        declaredEffectsWithoutFactory =
+            Set<String>.unmodifiable(declaredEffectsWithoutFactory),
+        missingAbilityIds = Set<String>.unmodifiable(missingAbilityIds);
+
+  final Set<String> manifestAbilityIds;
+  final Set<String> concreteFactoryAbilityIds;
+  final Set<String> factoryIdsOutsideManifest;
+  final Set<String> declaredEffectsWithoutFactory;
+  final Set<String> missingAbilityIds;
+
+  int get totalManifestAbilities => manifestAbilityIds.length;
 }
 
 String? _normalizeAbilityId(String? abilityId) {
