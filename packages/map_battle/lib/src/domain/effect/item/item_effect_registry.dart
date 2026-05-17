@@ -7,12 +7,14 @@ import '../battle_effect_scope.dart';
 import 'air_balloon_effect.dart';
 import 'berry_item_effect.dart';
 import 'black_sludge_effect.dart';
+import 'focus_item_effect.dart';
 import 'held_item_modifier_effect.dart';
 import 'iron_ball_effect.dart';
 import 'leftovers_effect.dart';
 import 'loaded_dice_effect.dart';
 import 'move_modifier_item_effect.dart';
 import 'shed_shell_effect.dart';
+import 'status_orb_item_effect.dart';
 import 'terrain_extender_effect.dart';
 import 'weather_rock_effect.dart';
 
@@ -312,6 +314,18 @@ final Map<String, ItemEffectFactory> _heldItemModifierFactories =
         damageCondition: (context) => context.typeEffectivenessMultiplier > 1,
       ),
   'life_orb': ({required scope}) => LifeOrbEffect(scope: scope),
+  'focus_sash': ({required scope}) => FocusSashEffect(scope: scope),
+  'focus_band': ({required scope}) => FocusBandEffect(scope: scope),
+  'flame_orb': ({required scope}) => StatusOrbItemEffect(
+        itemId: 'flame_orb',
+        scope: scope,
+        status: PsdkBattleMajorStatus.burn,
+      ),
+  'toxic_orb': ({required scope}) => StatusOrbItemEffect(
+        itemId: 'toxic_orb',
+        scope: scope,
+        status: PsdkBattleMajorStatus.toxic,
+      ),
   for (final entry in _gemTypes.entries)
     entry.key: ({required scope}) => GemItemEffect(
           itemId: entry.key,

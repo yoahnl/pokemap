@@ -9295,9 +9295,9 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 189,
+      "ported": 193,
       "partial": 19,
-      "missing": 274
+      "missing": 270
     },
     "byFamilyAndStatus": {
       "ability": {
@@ -9311,9 +9311,9 @@
         "missing": 39
       },
       "item": {
-        "ported": 40,
+        "ported": 44,
         "partial": 10,
-        "missing": 37
+        "missing": 33
       },
       "status": {
         "ported": 6,
@@ -10410,7 +10410,7 @@
       {
         "effectName": "FlameOrb",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Flame Orb.rb",
         "hookFamilies": [
           "end_turn"
@@ -10475,7 +10475,7 @@
       {
         "effectName": "FocusBand",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Focus Band.rb",
         "hookFamilies": [
           "damage_prevention"
@@ -10498,7 +10498,7 @@
       {
         "effectName": "FocusSash",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Focus Sash.rb",
         "hookFamilies": [
           "damage_prevention",
@@ -13096,7 +13096,7 @@
       {
         "effectName": "ToxicOrb",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Toxic Orb.rb",
         "hookFamilies": [
           "end_turn"

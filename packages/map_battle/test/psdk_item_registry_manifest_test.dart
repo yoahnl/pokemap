@@ -302,6 +302,26 @@ void main() {
       }
     });
 
+    test('Lot 121 focus survival items are promoted item-by-item', () {
+      final byId = {
+        for (final entry in psdkItemEffectManifest) entry.itemId: entry,
+      };
+      final registry = ItemEffectRegistry();
+
+      for (final itemId in <String>[
+        'flame_orb',
+        'focus_band',
+        'focus_sash',
+        'toxic_orb',
+      ]) {
+        expect(byId[itemId]!.status, PsdkItemPortStatus.ported, reason: itemId);
+        expect(registry.statusOf(itemId), PsdkItemPortStatus.ported,
+            reason: itemId);
+        expect(registry.create(itemId, owner: psdkPlayerSlot), isNotNull,
+            reason: itemId);
+      }
+    });
+
     test('item lifecycle snapshots distinguish held, consumed, and removed',
         () {
       final held = BattleItemLifecycleSnapshot.fromBattler(
