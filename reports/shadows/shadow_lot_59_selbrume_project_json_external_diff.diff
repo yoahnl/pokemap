@@ -1,0 +1,109 @@
+--- /Users/karim/Desktop/selbrume/project.shadow59.before.json	2026-05-17 21:55:20
++++ /Users/karim/Desktop/selbrume/project.json	2026-05-17 21:56:53
+@@ -2816,18 +2816,7 @@
+         "manualAddedCells": [],
+         "manualRemovedCells": []
+       },
+-      "shadow": {
+-        "castsShadow": true,
+-        "shadowProfileId": "default-ground-soft-ellipse",
+-        "offsetY": -6.0,
+-        "opacity": 0.22,
+-        "footprint": {
+-          "anchorXRatio": 0.5,
+-          "anchorYRatio": 0.96,
+-          "footprintWidthRatio": 0.68,
+-          "footprintHeightRatio": 0.08
+-        }
+-      },
++      "shadow": null,
+       "groupId": "group_1777757343053",
+       "recommendedLayerId": null,
+       "tags": [],
+@@ -6188,22 +6177,7 @@
+         "manualAddedCells": [],
+         "manualRemovedCells": []
+       },
+-      "shadow": {
+-        "castsShadow": true,
+-        "shadowProfileId": "default-ground-contact-blob",
+-        "offsetX": 0.0,
+-        "offsetY": 0.0,
+-        "scaleX": 0.8,
+-        "scaleY": 0.55,
+-        "opacity": 0.2,
+-        "family": "tallProp",
+-        "footprint": {
+-          "anchorXRatio": 0.5,
+-          "anchorYRatio": 1.0,
+-          "footprintWidthRatio": 0.28,
+-          "footprintHeightRatio": 0.05
+-        }
+-      },
++      "shadow": null,
+       "groupId": null,
+       "recommendedLayerId": null,
+       "tags": [],
+@@ -6815,18 +6789,7 @@
+         "manualAddedCells": [],
+         "manualRemovedCells": []
+       },
+-      "shadow": {
+-        "castsShadow": true,
+-        "shadowProfileId": "default-ground-soft-ellipse",
+-        "offsetY": -10.0,
+-        "opacity": 0.25,
+-        "footprint": {
+-          "anchorXRatio": 0.5,
+-          "anchorYRatio": 0.92,
+-          "footprintWidthRatio": 0.58,
+-          "footprintHeightRatio": 0.1
+-        }
+-      },
++      "shadow": null,
+       "groupId": null,
+       "recommendedLayerId": null,
+       "tags": [],
+@@ -7004,18 +6967,7 @@
+         "manualAddedCells": [],
+         "manualRemovedCells": []
+       },
+-      "shadow": {
+-        "castsShadow": true,
+-        "shadowProfileId": "default-ground-soft-ellipse",
+-        "offsetY": -10.0,
+-        "opacity": 0.25,
+-        "footprint": {
+-          "anchorXRatio": 0.5,
+-          "anchorYRatio": 0.92,
+-          "footprintWidthRatio": 0.5,
+-          "footprintHeightRatio": 0.1
+-        }
+-      },
++      "shadow": null,
+       "groupId": null,
+       "recommendedLayerId": null,
+       "tags": [],
+@@ -8069,21 +8021,7 @@
+         "manualAddedCells": [],
+         "manualRemovedCells": []
+       },
+-      "shadow": {
+-        "castsShadow": true,
+-        "shadowProfileId": "default-ground-wide-ellipse",
+-        "offsetX": 0.0,
+-        "offsetY": 0.0,
+-        "scaleX": 0.92,
+-        "scaleY": 0.75,
+-        "opacity": 0.27,
+-        "footprint": {
+-          "anchorXRatio": 0.5,
+-          "anchorYRatio": 0.95,
+-          "footprintWidthRatio": 0.72,
+-          "footprintHeightRatio": 0.1
+-        }
+-      },
++      "shadow": null,
+       "groupId": null,
+       "recommendedLayerId": null,
+       "tags": [],
