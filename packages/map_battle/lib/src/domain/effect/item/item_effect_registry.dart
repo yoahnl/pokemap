@@ -304,11 +304,7 @@ final Map<String, ItemEffectFactory> _heldItemModifierFactories =
         scope: scope,
         statMultipliers: <String, double>{'speed': 1.5},
       ),
-  'assault_vest': ({required scope}) => HeldItemModifierEffect(
-        itemId: 'assault_vest',
-        scope: scope,
-        statMultipliers: <String, double>{'specialDefense': 1.5},
-      ),
+  'assault_vest': ({required scope}) => AssaultVestEffect(scope: scope),
   'deep_sea_tooth': ({required scope}) => HeldItemModifierEffect(
         itemId: 'deep_sea_tooth',
         scope: scope,

@@ -30,8 +30,19 @@ void main() {
       };
       final registry = ItemEffectRegistry();
       final expectedPorted = <String>{
+        'assault_vest',
         'black_sludge',
+        'choice_band',
+        'choice_scarf',
+        'choice_specs',
+        'deep_sea_scale',
+        'deep_sea_tooth',
+        'expert_belt',
         'leftovers',
+        'light_ball',
+        'metal_powder',
+        'quick_powder',
+        'thick_club',
       };
 
       for (final itemId in <String>[
@@ -99,6 +110,32 @@ void main() {
           ]));
       expect(registry.partialItemIds, contains('air_balloon'));
       expect(registry.portedItemIds, isNot(contains('air_balloon')));
+    });
+
+    test('Lot 102 passive item modifiers are promoted item-by-item', () {
+      final byId = {
+        for (final entry in psdkItemEffectManifest) entry.itemId: entry,
+      };
+      final registry = ItemEffectRegistry();
+
+      for (final itemId in <String>[
+        'choice_band',
+        'choice_scarf',
+        'choice_specs',
+        'deep_sea_scale',
+        'deep_sea_tooth',
+        'expert_belt',
+        'light_ball',
+        'metal_powder',
+        'quick_powder',
+        'thick_club',
+      ]) {
+        expect(byId[itemId]!.status, PsdkItemPortStatus.ported, reason: itemId);
+        expect(registry.statusOf(itemId), PsdkItemPortStatus.ported,
+            reason: itemId);
+        expect(registry.create(itemId, owner: psdkPlayerSlot), isNotNull,
+            reason: itemId);
+      }
     });
 
     test('item lifecycle snapshots distinguish held, consumed, and removed',

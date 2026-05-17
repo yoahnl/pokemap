@@ -1,4 +1,5 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
+import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../handler/battle_damage_handler.dart';
 import '../../handler/battle_handler_context.dart';
@@ -140,6 +141,71 @@ final class ChoiceItemEffect extends BattleItemEffect {
       return true;
     }
     return _sameMove(lastMove.moveId, move);
+  }
+
+  bool _canApplyTo(PsdkBattleCombatant battler) {
+    return battler.heldItemId == itemId &&
+        !battler.itemConsumed &&
+        !battler.itemEffectsSuppressed;
+  }
+}
+
+final class AssaultVestEffect extends BattleItemEffect {
+  const AssaultVestEffect({
+    required BattleEffectScope scope,
+  }) : super(itemId: 'assault_vest', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return this;
+  }
+
+  @override
+  BattleEffectUserMovePreventionResult? onUserMovePrevention(
+    BattleEffectUserMovePreventionContext context,
+  ) {
+    final user = context.state.battlerAt(context.user);
+    if (_canUseMove(user, context.move)) {
+      return null;
+    }
+    return BattleEffectUserMovePreventionResult(
+      state: context.state,
+      rng: context.rng,
+      prevented: true,
+      reason: BattleMoveFailureReason.unusableByUser,
+    );
+  }
+
+  @override
+  BattleMoveSelectionPreventionResult? onMoveSelectionPrevention(
+    BattleMoveSelectionPreventionContext context,
+  ) {
+    final user = context.state.battlerAt(context.user);
+    if (_canUseMove(user, context.move)) {
+      return null;
+    }
+    return const BattleMoveSelectionPreventionResult(
+      reason: BattleMoveFailureReason.unusableByUser,
+    );
+  }
+
+  @override
+  double statMultiplier(PsdkBattleCombatant battler, String stat) {
+    if (!_canApplyTo(battler) || stat != 'specialDefense') {
+      return 1;
+    }
+    return 1.5;
+  }
+
+  bool _canUseMove(PsdkBattleCombatant user, BattleMoveDefinition move) {
+    if (!_canApplyTo(user) || move.category != PsdkBattleMoveCategory.status) {
+      return true;
+    }
+    if (_normalizedMoveId(move.id) == 'me_first' ||
+        _normalizedMoveId(move.dbSymbol) == 'me_first') {
+      return true;
+    }
+    return user.effects.contains('instruct');
   }
 
   bool _canApplyTo(PsdkBattleCombatant battler) {

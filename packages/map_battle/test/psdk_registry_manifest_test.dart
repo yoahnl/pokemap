@@ -286,6 +286,38 @@ void main() {
       }
     });
 
+    test('effect parity promotes Lot 102 passive item modifier batch',
+        () async {
+      final effectEntries = await loadPsdkEffectParityEntries(
+        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+      );
+      final byFamilyAndName = {
+        for (final entry in effectEntries)
+          '${entry.family}:${entry.effectName}': entry,
+      };
+
+      for (final effectName in <String>[
+        'AssaultVest',
+        'ChoiceBand',
+        'ChoiceItemMultiplier',
+        'ChoiceScarf',
+        'ChoiceSpecs',
+        'DeepSeaScale',
+        'DeepSeaTooth',
+        'ExpertBelt',
+        'LightBall',
+        'MetalPowder',
+        'QuickPowder',
+        'ThickClub',
+      ]) {
+        expect(
+          byFamilyAndName['item:$effectName']?.status,
+          PsdkPortStatus.ported,
+          reason: effectName,
+        );
+      }
+    });
+
     test('effect parity promotes exact major status lifecycle effects',
         () async {
       final effectEntries = await loadPsdkEffectParityEntries(
