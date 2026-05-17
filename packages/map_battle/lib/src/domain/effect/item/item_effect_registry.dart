@@ -71,6 +71,23 @@ final class ItemEffectRegistry {
     };
   }
 
+  Set<String> get portedItemIds =>
+      _itemIdsWithStatus(PsdkItemPortStatus.ported);
+
+  Set<String> get partialItemIds =>
+      _itemIdsWithStatus(PsdkItemPortStatus.partial);
+
+  Set<String> get missingItemIds =>
+      _itemIdsWithStatus(PsdkItemPortStatus.missing);
+
+  PsdkItemPortStatus statusOf(String? itemId) {
+    final normalized = _normalizeItemId(itemId);
+    if (normalized == null) {
+      return PsdkItemPortStatus.missing;
+    }
+    return _manifestByItemId[normalized]?.status ?? PsdkItemPortStatus.missing;
+  }
+
   BattleEffect? create(String? itemId, {required PsdkBattleSlotRef owner}) {
     final normalized = _normalizeItemId(itemId);
     if (normalized == null) {
@@ -96,7 +113,19 @@ final class ItemEffectRegistry {
     final effect = create(itemId, owner: owner);
     return effect == null ? base : base.addEffect(effect);
   }
+
+  Set<String> _itemIdsWithStatus(PsdkItemPortStatus status) {
+    return <String>{
+      for (final entry in psdkItemEffectManifest)
+        if (entry.status == status) entry.itemId,
+    };
+  }
 }
+
+final Map<String, PsdkItemEffectManifestEntry> _manifestByItemId =
+    <String, PsdkItemEffectManifestEntry>{
+  for (final entry in psdkItemEffectManifest) entry.itemId: entry,
+};
 
 String? _normalizeItemId(String? itemId) {
   if (itemId == null) {

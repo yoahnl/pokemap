@@ -35,7 +35,8 @@ void main() {
     expect(content, contains('Object-backed NightmareEffect'));
     expect(content, contains('Object-backed PerishSongEffect'));
     expect(content, matches(RegExp(r'\| `Imposter` \|.*\| `ported` \|')));
-    expect(content, matches(RegExp(r'\| `Leftovers` \|.*\| `partial` \|')));
+    expect(content, matches(RegExp(r'\| `Leftovers` \|.*\| `ported` \|')));
+    expect(content, matches(RegExp(r'\| `BlackSludge` \|.*\| `ported` \|')));
     expect(content, matches(RegExp(r'\| `Burn` \|.*\| `ported` \|')));
     expect(content, matches(RegExp(r'\| `Disable` \|.*\| `ported` \|')));
     expect(content, matches(RegExp(r'\| `Embargo` \|.*\| `ported` \|')));
