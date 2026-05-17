@@ -256,7 +256,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_freezy_frost': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_freezy_frost',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_genies_storm': _KnownDartBehavior(
     dartBehavior: 'WeatherPowerMoveBehavior.geniesStorm',

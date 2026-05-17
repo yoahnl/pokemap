@@ -880,7 +880,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'FreezyFrost',
     rubyPath: '10 Move/2 Definitions/300 FreezyFrost.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_freezy_frost',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(

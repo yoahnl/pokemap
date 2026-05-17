@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 100,
-      "partial": 230,
+      "ported": 101,
+      "partial": 229,
       "missing": 0
     },
     "entries": [
@@ -6717,7 +6717,7 @@
         "rubyClass": "FreezyFrost",
         "rubyPath": "10 Move/2 Definitions/300 FreezyFrost.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_freezy_frost",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {

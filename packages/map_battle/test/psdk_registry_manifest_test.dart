@@ -562,7 +562,7 @@ void main() {
         byMethod['s_grav_apple']!.dartBehavior,
         'StaticBasicMoveRegistry.s_grav_apple',
       );
-      expect(byMethod['s_freezy_frost']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_freezy_frost']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_freezy_frost']!.dartBehavior,
         'StaticBasicMoveRegistry.s_freezy_frost',

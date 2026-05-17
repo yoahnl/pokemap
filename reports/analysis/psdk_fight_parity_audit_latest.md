@@ -211,8 +211,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 100 |
-| `partial` | 230 |
+| `ported` | 101 |
+| `partial` | 229 |
 | `missing` | 0 |
 | Total manifest methods | 330 |
 
@@ -220,7 +220,7 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Dependency | Partial methods |
 | --- | ---: |
-| no_dependency_declared | 143 |
+| no_dependency_declared | 142 |
 | effects | 64 |
 | ability | 48 |
 | handlerDamage | 26 |

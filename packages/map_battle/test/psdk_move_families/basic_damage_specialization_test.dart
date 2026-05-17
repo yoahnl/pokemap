@@ -328,6 +328,31 @@ void main() {
       expect(player.statStages.values, isEmpty);
       expect(opponent.statStages.values, isEmpty);
     });
+
+    test('s_freezy_frost does not reset stat stages when it misses', () {
+      final result = _runMove(
+        playerStatStages: PsdkBattleStatStages(
+          values: const <String, int>{'attack': 2},
+        ),
+        opponentStatStages: PsdkBattleStatStages(
+          values: const <String, int>{'defense': -2},
+        ),
+        playerMove: _move(
+          id: 'freezy_frost',
+          type: 'ice',
+          battleEngineMethod: 's_freezy_frost',
+          power: 100,
+          accuracy: 1,
+        ),
+      );
+
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+
+      expect(_damageEvents(result, moveId: 'freezy_frost'), isEmpty);
+      expect(player.statStages.valueOf('attack'), 2);
+      expect(opponent.statStages.valueOf('defense'), -2);
+    });
   });
 }
 
