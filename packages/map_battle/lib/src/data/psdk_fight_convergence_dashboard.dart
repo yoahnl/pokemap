@@ -1,3 +1,5 @@
+import 'generated/psdk_item_effect_manifest.dart';
+
 String renderPsdkFightConvergenceDashboard(
   Map<String, Object?> auditJson, {
   DateTime? generatedAt,
@@ -69,6 +71,7 @@ String renderPsdkFightConvergenceDashboard(
     );
   }
   _writeAbilityEffectBacklog(buffer, effects);
+  _writeItemEffectBacklog(buffer, effects);
 
   buffer
     ..writeln()
@@ -98,6 +101,53 @@ String renderPsdkFightConvergenceDashboard(
   }
 
   return buffer.toString();
+}
+
+void _writeItemEffectBacklog(
+  StringBuffer buffer,
+  Map<String, Object?> effects,
+) {
+  final entries = _list(effects['entries']);
+  final counts = <PsdkItemEffectBatch, _BacklogCounts>{
+    for (final batch in PsdkItemEffectBatch.values) batch: _BacklogCounts(),
+  };
+  for (final rawEntry in entries) {
+    final entry = _map(rawEntry);
+    if (_string(entry['family']) != 'item') {
+      continue;
+    }
+    final status = _string(entry['status']);
+    if (status == 'ported') {
+      continue;
+    }
+    final batch = psdkItemEffectBatchForPath(_string(entry['rubyPath']));
+    final countsForBatch = counts[batch]!;
+    if (status == 'partial') {
+      countsForBatch.partial += 1;
+    } else {
+      countsForBatch.missing += 1;
+    }
+  }
+  if (counts.values.every((count) => count.remaining == 0)) {
+    return;
+  }
+
+  buffer
+    ..writeln()
+    ..writeln('## Item Effect Backlog')
+    ..writeln()
+    ..writeln('| Batch | Partial | Missing | Remaining |')
+    ..writeln('| --- | ---: | ---: | ---: |');
+  for (final batch in PsdkItemEffectBatch.values) {
+    final count = counts[batch]!;
+    if (count.remaining == 0) {
+      continue;
+    }
+    buffer.writeln(
+      '| ${batch.label} | ${count.partial} | ${count.missing} | '
+      '${count.remaining} |',
+    );
+  }
 }
 
 void _writeAbilityEffectBacklog(

@@ -1,6 +1,6 @@
 # PSDK Fight Convergence Dashboard
 
-Generated: 2026-05-17T23:02:24.507163Z
+Generated: 2026-05-17T23:11:40.660363Z
 
 ## Final Gate Axes
 
@@ -44,6 +44,16 @@ Effects with multiple PSDK hooks can appear in multiple hook families.
 | accuracy | 0 | 1 | 1 |
 | damage_change | 0 | 1 | 1 |
 | drain | 0 | 1 | 1 |
+
+## Item Effect Backlog
+
+| Batch | Partial | Missing | Remaining |
+| --- | ---: | ---: | ---: |
+| damage/type/stat modifiers | 3 | 9 | 12 |
+| berries | 1 | 11 | 12 |
+| focus/eject/choice/orb | 1 | 8 | 9 |
+| weather/terrain/field | 0 | 2 | 2 |
+| held-item lifecycle and consumption | 5 | 20 | 25 |
 
 ## Runtime Bridge
 
