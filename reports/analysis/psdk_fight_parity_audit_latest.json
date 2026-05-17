@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 317,
-    "partiel": 411,
+    "fait": 342,
+    "partiel": 386,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -75,9 +75,9 @@
       {
         "moveId": "acupressure",
         "battleEngineMethod": "s_acupressure",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/acupressure.json"
       },
       {
@@ -371,9 +371,9 @@
       {
         "moveId": "belly_drum",
         "battleEngineMethod": "s_bellydrum",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/belly_drum.json"
       },
       {
@@ -691,9 +691,9 @@
       {
         "moveId": "celebrate",
         "battleEngineMethod": "s_splash",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/celebrate.json"
       },
       {
@@ -771,9 +771,9 @@
       {
         "moveId": "clear_smog",
         "battleEngineMethod": "s_haze",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/clear_smog.json"
       },
       {
@@ -995,9 +995,9 @@
       {
         "moveId": "curse",
         "battleEngineMethod": "s_curse",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/curse.json"
       },
       {
@@ -1299,9 +1299,9 @@
       {
         "moveId": "dream_eater",
         "battleEngineMethod": "s_dream_eater",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/dream_eater.json"
       },
       {
@@ -1803,9 +1803,9 @@
       {
         "moveId": "focus_punch",
         "battleEngineMethod": "s_focus_punch",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/focus_punch.json"
       },
       {
@@ -2075,9 +2075,9 @@
       {
         "moveId": "growth",
         "battleEngineMethod": "s_growth",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/growth.json"
       },
       {
@@ -2099,9 +2099,9 @@
       {
         "moveId": "guard_swap",
         "battleEngineMethod": "s_guard_swap",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/guard_swap.json"
       },
       {
@@ -2179,9 +2179,9 @@
       {
         "moveId": "haze",
         "battleEngineMethod": "s_haze",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/haze.json"
       },
       {
@@ -2259,9 +2259,9 @@
       {
         "moveId": "heart_swap",
         "battleEngineMethod": "s_heart_swap",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/heart_swap.json"
       },
       {
@@ -2339,9 +2339,9 @@
       {
         "moveId": "hold_hands",
         "battleEngineMethod": "s_splash",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/hold_hands.json"
       },
       {
@@ -2563,9 +2563,9 @@
       {
         "moveId": "incinerate",
         "battleEngineMethod": "s_incinerate",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/incinerate.json"
       },
       {
@@ -2715,9 +2715,9 @@
       {
         "moveId": "last_resort",
         "battleEngineMethod": "s_last_resort",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/last_resort.json"
       },
       {
@@ -3675,9 +3675,9 @@
       {
         "moveId": "power_swap",
         "battleEngineMethod": "s_power_swap",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/power_swap.json"
       },
       {
@@ -3755,9 +3755,9 @@
       {
         "moveId": "psych_up",
         "battleEngineMethod": "s_psych_up",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/psych_up.json"
       },
       {
@@ -3995,9 +3995,9 @@
       {
         "moveId": "relic_song",
         "battleEngineMethod": "s_relic_song",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/relic_song.json"
       },
       {
@@ -4539,9 +4539,9 @@
       {
         "moveId": "sky_drop",
         "battleEngineMethod": "s_sky_drop",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/sky_drop.json"
       },
       {
@@ -4675,9 +4675,9 @@
       {
         "moveId": "snore",
         "battleEngineMethod": "s_snore",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/snore.json"
       },
       {
@@ -4827,9 +4827,9 @@
       {
         "moveId": "splash",
         "battleEngineMethod": "s_splash",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/splash.json"
       },
       {
@@ -4963,9 +4963,9 @@
       {
         "moveId": "strength_sap",
         "battleEngineMethod": "s_strength_sap",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/strength_sap.json"
       },
       {
@@ -5035,9 +5035,9 @@
       {
         "moveId": "sucker_punch",
         "battleEngineMethod": "s_sucker_punch",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/sucker_punch.json"
       },
       {
@@ -5323,9 +5323,9 @@
       {
         "moveId": "throat_chop",
         "battleEngineMethod": "s_throat_chop",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/throat_chop.json"
       },
       {
@@ -5387,9 +5387,9 @@
       {
         "moveId": "topsy_turvy",
         "battleEngineMethod": "s_topsy_turvy",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/topsy_turvy.json"
       },
       {
@@ -5435,9 +5435,9 @@
       {
         "moveId": "tri_attack",
         "battleEngineMethod": "s_tri_attack",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/tri_attack.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 117,
-      "partial": 213,
+      "ported": 148,
+      "partial": 182,
       "missing": 0
     },
     "entries": [
@@ -5912,7 +5912,7 @@
         "rubyClass": "Acupressure",
         "rubyPath": "10 Move/2 Definitions/300 Acupressure.rb",
         "dartBehavior": "AdvancedStatMoveBehavior.acupressure",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerStat",
           "effects",
@@ -5945,7 +5945,7 @@
         "rubyClass": "AlluringVoice",
         "rubyPath": "10 Move/2 Definitions/300 AlluringVoice.rb",
         "dartBehavior": "SpecialSecondaryMoveBehavior.alluringVoice",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -6073,7 +6073,7 @@
         "rubyClass": "BellyDrum",
         "rubyPath": "10 Move/2 Definitions/300 BellyDrum.rb",
         "dartBehavior": "RecoveryStatMoveBehavior.bellyDrum",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerDamage",
           "handlerStat",
@@ -6156,7 +6156,7 @@
         "rubyClass": "BurningJealousy",
         "rubyPath": "10 Move/2 Definitions/300 AlluringVoice.rb",
         "dartBehavior": "SpecialSecondaryMoveBehavior.burningJealousy",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -6234,7 +6234,7 @@
         "rubyClass": "ClangorousSoul",
         "rubyPath": "10 Move/2 Definitions/300 ClangorousSoul.rb",
         "dartBehavior": "AdvancedStatMoveBehavior.clangorousSoul",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerDamage",
           "handlerStat",
@@ -6303,7 +6303,7 @@
         "rubyClass": "Curse",
         "rubyPath": "10 Move/2 Definitions/300 Curse.rb",
         "dartBehavior": "AdvancedStatMoveBehavior.curse",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerDamage",
           "handlerStat",
@@ -6404,7 +6404,7 @@
         "rubyClass": "Absorb",
         "rubyPath": "10 Move/2 Definitions/300 Absorb.rb",
         "dartBehavior": "DrainMoveBehavior.dreamEater",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerDamage",
           "handlerStatus",
@@ -6453,7 +6453,7 @@
         "rubyClass": "ElectroShot",
         "rubyPath": "10 Move/2 Definitions/300 ElectroShot.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_electro_shot",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -6582,7 +6582,7 @@
         "rubyClass": "FilletAway",
         "rubyPath": "10 Move/2 Definitions/300 BellyDrum.rb",
         "dartBehavior": "RecoveryStatMoveBehavior.filletAway",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerDamage",
           "handlerStat",
@@ -6685,7 +6685,7 @@
         "rubyClass": "FocusPunch",
         "rubyPath": "10 Move/2 Definitions/300 PreAttackMoves.rb",
         "dartBehavior": "ActionGatedMoveBehavior.focusPunch",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -6823,7 +6823,7 @@
         "rubyClass": "GigatonHammer",
         "rubyPath": "10 Move/2 Definitions/300 GigatonHammer.rb",
         "dartBehavior": "ForcedActionMoveBehavior.gigatonHammer",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -6875,7 +6875,7 @@
         "rubyClass": "Growth",
         "rubyPath": "10 Move/2 Definitions/300 Growth.rb",
         "dartBehavior": "AdvancedStatMoveBehavior.growth",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerStat",
           "weather",
@@ -6904,7 +6904,7 @@
         "rubyClass": "GuardSwap",
         "rubyPath": "10 Move/2 Definitions/300 Stages swap moves.rb",
         "dartBehavior": "AdvancedStatMoveBehavior.guardSwap",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerStat",
           "effects",
@@ -6940,7 +6940,7 @@
         "rubyClass": "Haze",
         "rubyPath": "10 Move/2 Definitions/300 Haze.rb",
         "dartBehavior": "AdvancedStatMoveBehavior.haze",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerStat",
           "effects",
@@ -7007,7 +7007,7 @@
         "rubyClass": "HeartSwap",
         "rubyPath": "10 Move/2 Definitions/300 Stages swap moves.rb",
         "dartBehavior": "AdvancedStatMoveBehavior.heartSwap",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerStat",
           "effects",
@@ -7108,7 +7108,7 @@
         "rubyClass": "Incinerate",
         "rubyPath": "10 Move/2 Definitions/300 Incinerate.rb",
         "dartBehavior": "SpecialSecondaryMoveBehavior.incinerate",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -7228,7 +7228,7 @@
         "rubyClass": "LastResort",
         "rubyPath": "10 Move/2 Definitions/300 LastResort.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_last_resort",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -7695,7 +7695,7 @@
         "rubyClass": "PowerSwap",
         "rubyPath": "10 Move/2 Definitions/300 Stages swap moves.rb",
         "dartBehavior": "AdvancedStatMoveBehavior.powerSwap",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerStat",
           "effects",
@@ -7739,7 +7739,7 @@
         "rubyClass": "PsychUp",
         "rubyPath": "10 Move/2 Definitions/300 PsychUp.rb",
         "dartBehavior": "AdvancedStatMoveBehavior.psychUp",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerStat",
           "effects",
@@ -7751,7 +7751,7 @@
         "rubyClass": "PsychicNoise",
         "rubyPath": "10 Move/2 Definitions/300 PsychicNoise.rb",
         "dartBehavior": "SpecialSecondaryMoveBehavior.psychicNoise",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "effects",
           "ability"
@@ -7898,7 +7898,7 @@
         "rubyClass": "RelicSong",
         "rubyPath": "10 Move/2 Definitions/300 RelicSong.rb",
         "dartBehavior": "SpecialSecondaryMoveBehavior.relicSong",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -8074,7 +8074,7 @@
         "rubyClass": "SaltCure",
         "rubyPath": "10 Move/2 Definitions/300 SaltCure.rb",
         "dartBehavior": "SpecialSecondaryMoveBehavior.saltCure",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -8192,7 +8192,7 @@
         "rubyClass": "SkyDrop",
         "rubyPath": "10 Move/2 Definitions/300 SkyDrop.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_sky_drop",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -8240,7 +8240,7 @@
         "rubyClass": "Snore",
         "rubyPath": "10 Move/2 Definitions/300 Snore.rb",
         "dartBehavior": "ActionGatedMoveBehavior.snore",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerStatus",
           "ability"
@@ -8323,7 +8323,7 @@
         "rubyClass": "Splash",
         "rubyPath": "10 Move/2 Definitions/300 Splash.rb",
         "dartBehavior": "NoEffectMoveBehavior.splash",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -8439,7 +8439,7 @@
         "rubyClass": "StrengthSap",
         "rubyPath": "10 Move/2 Definitions/300 StrengthSap.rb",
         "dartBehavior": "RecoveryStatMoveBehavior.strengthSap",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerDamage",
           "handlerStat",
@@ -8477,7 +8477,7 @@
         "rubyClass": "SuckerPunch",
         "rubyPath": "10 Move/2 Definitions/300 SuckerPunch.rb",
         "dartBehavior": "ActionGatedMoveBehavior.suckerPunch",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "actionOrder"
         ]
@@ -8521,7 +8521,7 @@
         "rubyClass": "SyrupBomb",
         "rubyPath": "10 Move/2 Definitions/300 SyrupBomb.rb",
         "dartBehavior": "SpecialSecondaryMoveBehavior.syrupBomb",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -8673,7 +8673,7 @@
         "rubyClass": "ThroatChop",
         "rubyPath": "10 Move/2 Definitions/300 ThroatChop.rb",
         "dartBehavior": "SpecialSecondaryMoveBehavior.throatChop",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "effects"
         ]
@@ -8702,7 +8702,7 @@
         "rubyClass": "TopsyTurvy",
         "rubyPath": "10 Move/2 Definitions/300 TopsyTurvy.rb",
         "dartBehavior": "AdvancedStatMoveBehavior.topsyTurvy",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerStat",
           "effects",
@@ -8757,7 +8757,7 @@
         "rubyClass": "TriAttack",
         "rubyPath": "10 Move/2 Definitions/300 TriAttack.rb",
         "dartBehavior": "SpecialSecondaryMoveBehavior.triAttack",
-        "status": "partial",
+        "status": "ported",
         "dependencies": [
           "handlerStatus"
         ]

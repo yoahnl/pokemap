@@ -9,8 +9,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Metric | Count |
 | --- | ---: |
 | Studio attacks total | 728 |
-| Studio attacks `fait` | 317 |
-| Studio attacks `partiel` | 411 |
+| Studio attacks `fait` | 342 |
+| Studio attacks `partiel` | 386 |
 | Studio attacks `pas_fait` | 0 |
 | Unknown methods | 0 |
 | Unique battle engine methods | 258 |
@@ -22,7 +22,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_2turns | 7 |
 | s_a_fang | 3 |
 | s_absorb | 2 |
-| s_acupressure | 1 |
 | s_add_type | 2 |
 | s_after_you | 1 |
 | s_aqua_ring | 1 |
@@ -33,7 +32,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_baton_pass | 1 |
 | s_beak_blast | 1 |
 | s_beat_up | 1 |
-| s_bellydrum | 1 |
 | s_bestow | 1 |
 | s_bide | 1 |
 | s_brick_break | 2 |
@@ -43,11 +41,9 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_conversion | 1 |
 | s_conversion2 | 1 |
 | s_core_enforcer | 1 |
-| s_curse | 1 |
 | s_destiny_bond | 1 |
 | s_disable | 1 |
 | s_dragon_tail | 2 |
-| s_dream_eater | 1 |
 | s_electrify | 1 |
 | s_embargo | 1 |
 | s_encore | 1 |
@@ -61,7 +57,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_floral_healing | 1 |
 | s_flower_shield | 1 |
 | s_flying_press | 1 |
-| s_focus_punch | 1 |
 | s_follow_me | 3 |
 | s_foul_play | 1 |
 | s_frustration | 1 |
@@ -71,29 +66,23 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_gear_up | 1 |
 | s_genesis_supernova | 1 |
 | s_gravity | 1 |
-| s_growth | 1 |
 | s_grudge | 1 |
-| s_guard_swap | 1 |
 | s_guardian_of_alola | 1 |
 | s_happy_hour | 1 |
-| s_haze | 2 |
 | s_heal | 1 |
 | s_heal_bell | 3 |
 | s_heal_block | 1 |
 | s_healing_wish | 1 |
-| s_heart_swap | 1 |
 | s_helping_hand | 1 |
 | s_hidden_power | 1 |
 | s_hyperspace_hole | 1 |
 | s_ice_ball | 1 |
 | s_imprison | 1 |
-| s_incinerate | 1 |
 | s_ingrain | 1 |
 | s_instruct | 1 |
 | s_ion_deluge | 1 |
 | s_jump_kick | 2 |
 | s_knock_off | 1 |
-| s_last_resort | 1 |
 | s_leech_seed | 1 |
 | s_light_that_burns_the_sky | 1 |
 | s_lock_on | 1 |
@@ -121,9 +110,7 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_plasma_fists | 1 |
 | s_pluck | 2 |
 | s_powder | 1 |
-| s_power_swap | 1 |
 | s_protect | 3 |
-| s_psych_up | 1 |
 | s_psycho_shift | 1 |
 | s_psyshock | 2 |
 | s_purify | 1 |
@@ -132,7 +119,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_rage | 1 |
 | s_recoil | 4 |
 | s_reflect_type | 1 |
-| s_relic_song | 1 |
 | s_return | 1 |
 | s_roar | 2 |
 | s_role_play | 1 |
@@ -147,38 +133,30 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_simple_beam | 1 |
 | s_sketch | 1 |
 | s_skill_swap | 1 |
-| s_sky_drop | 1 |
 | s_sleep_talk | 1 |
 | s_smack_down | 2 |
 | s_smelling_salt | 1 |
 | s_snatch | 1 |
-| s_snore | 1 |
 | s_sparkling_aria | 1 |
 | s_spectral_thief | 1 |
 | s_spite | 1 |
-| s_splash | 3 |
 | s_splintered_stormshards | 1 |
 | s_split_up | 1 |
 | s_stat | 8 |
 | s_status | 4 |
 | s_stockpile | 1 |
 | s_stomp | 4 |
-| s_strength_sap | 1 |
 | s_struggle | 1 |
 | s_substitute | 1 |
-| s_sucker_punch | 1 |
 | s_swallow | 1 |
 | s_synchronoise | 1 |
 | s_teleport | 1 |
 | s_thief | 2 |
 | s_thing_sport | 2 |
 | s_thrash | 1 |
-| s_throat_chop | 1 |
-| s_topsy_turvy | 1 |
 | s_torment | 1 |
 | s_toxic_thread | 1 |
 | s_transform | 1 |
-| s_tri_attack | 1 |
 | s_trick | 2 |
 | s_triple_kick | 1 |
 | s_trump_card | 1 |
@@ -196,8 +174,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 117 |
-| `partial` | 213 |
+| `ported` | 148 |
+| `partial` | 182 |
 | `missing` | 0 |
 | Total manifest methods | 330 |
 
@@ -205,25 +183,24 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Dependency | Partial methods |
 | --- | ---: |
-| no_dependency_declared | 124 |
-| effects | 65 |
-| ability | 48 |
-| handlerDamage | 26 |
-| handlerStatus | 18 |
-| handlerStat | 15 |
-| item | 15 |
-| targetingMulti | 14 |
+| no_dependency_declared | 112 |
+| effects | 49 |
+| ability | 33 |
+| handlerDamage | 20 |
+| handlerStatus | 15 |
+| item | 13 |
+| targetingMulti | 13 |
 | history | 9 |
 | handlerSwitch | 8 |
-| endTurn | 6 |
 | faintProcess | 6 |
-| actionOrder | 5 |
+| endTurn | 5 |
+| actionOrder | 4 |
 | field | 4 |
 | terrain | 4 |
 | accuracy | 3 |
 | grounded | 3 |
+| handlerStat | 2 |
 | handlerItem | 1 |
-| weather | 1 |
 
 ## Effect Coverage
 
