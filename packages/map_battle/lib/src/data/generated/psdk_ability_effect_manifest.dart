@@ -83,7 +83,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'bad_dreams',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Bad Dreams.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'BadDreamsEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'ball_fetch',
@@ -1217,7 +1218,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'shed_skin',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Shed Skin.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'ShedSkinEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'sheer_force',

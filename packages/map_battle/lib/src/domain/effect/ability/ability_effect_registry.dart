@@ -302,6 +302,8 @@ final class AbilityEffectRegistry {
     'speed_boost': ({required scope}) => SpeedBoostEffect(scope: scope),
     'rain_dish': ({required scope}) => RainDishEffect(scope: scope),
     'dry_skin': ({required scope}) => DrySkinEffect(scope: scope),
+    'shed_skin': ({required scope}) => ShedSkinEffect(scope: scope),
+    'bad_dreams': ({required scope}) => BadDreamsEffect(scope: scope),
     'drizzle': ({required scope}) => SwitchWeatherAbilityEffect(
           abilityId: 'drizzle',
           scope: scope,

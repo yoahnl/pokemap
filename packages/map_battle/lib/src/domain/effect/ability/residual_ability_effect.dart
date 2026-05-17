@@ -1,4 +1,5 @@
 import '../../../psdk/domain/psdk_battle_field.dart';
+import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
@@ -6,6 +7,7 @@ import '../../handler/battle_damage_handler.dart';
 import '../../handler/battle_handler_context.dart';
 import '../../handler/battle_heal_handler.dart';
 import '../../handler/battle_stat_change_handler.dart';
+import '../../handler/battle_status_change_handler.dart';
 import '../../move/battle_move_prevention.dart';
 import '../../rng/battle_rng_streams.dart';
 import '../battle_effect.dart';
@@ -143,6 +145,115 @@ final class DrySkinEffect extends BattleAbilityEffect {
       );
     }
     return null;
+  }
+}
+
+final class ShedSkinEffect extends BattleAbilityEffect {
+  const ShedSkinEffect({required BattleEffectScope scope})
+      : super(abilityId: 'shed_skin', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return ShedSkinEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectEndTurnResult? onEndTurn(BattleEffectEndTurnContext context) {
+    if (!isOwnedBy(context.owner)) {
+      return null;
+    }
+    final battler = context.state.battlerAt(context.owner);
+    if (battler.isFainted || battler.majorStatus == null) {
+      return null;
+    }
+
+    final roll = context.rng.generic.nextChance(numerator: 1, denominator: 3);
+    final rng = context.rng.copyWith(generic: roll.next);
+    if (!roll.didOccur) {
+      return BattleEffectEndTurnResult(
+        state: context.state,
+        rng: rng,
+        applied: false,
+      );
+    }
+
+    final result = const BattleStatusChangeHandler().cureMajorStatus(
+      context: BattleHandlerContext(
+        state: context.state,
+        rng: rng,
+        turn: context.turn,
+        user: context.owner,
+      ),
+      target: context.owner,
+      moveId: 'ability:shed_skin',
+    );
+    if (!result.applied) {
+      return null;
+    }
+    return BattleEffectEndTurnResult(
+      state: result.state,
+      rng: result.rng,
+      events: result.events,
+    );
+  }
+}
+
+final class BadDreamsEffect extends BattleAbilityEffect {
+  const BadDreamsEffect({required BattleEffectScope scope})
+      : super(abilityId: 'bad_dreams', scope: scope);
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return BadDreamsEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectEndTurnResult? onEndTurn(BattleEffectEndTurnContext context) {
+    if (!isOwnedBy(context.owner)) {
+      return null;
+    }
+    final owner = context.state.battlerAt(context.owner);
+    if (owner.isFainted) {
+      return null;
+    }
+
+    var state = context.state;
+    var rng = context.rng;
+    final events = <PsdkBattleEvent>[];
+    var applied = false;
+    for (final target in context.state.aliveSlots()) {
+      if (target.bank == context.owner.bank) {
+        continue;
+      }
+      final battler = state.battlerAt(target);
+      if (battler.majorStatus != PsdkBattleMajorStatus.sleep &&
+          battler.abilityId != 'comatose') {
+        continue;
+      }
+      final result = const BattleDamageHandler().applyDamage(
+        context: BattleHandlerContext(
+          state: state,
+          rng: rng,
+          turn: context.turn,
+          user: context.owner,
+        ),
+        target: target,
+        moveId: 'ability:bad_dreams',
+        rawDamage: _fraction(battler.maxHp, 8),
+      );
+      state = result.state;
+      rng = result.rng;
+      events.addAll(result.events);
+      applied = applied || result.applied;
+    }
+    if (!applied) {
+      return null;
+    }
+    return BattleEffectEndTurnResult(
+      state: state,
+      rng: rng,
+      events: events,
+    );
   }
 }
 
