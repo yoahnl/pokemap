@@ -9295,15 +9295,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 159,
+      "ported": 162,
       "partial": 19,
-      "missing": 304
+      "missing": 301
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 38,
+        "ported": 41,
         "partial": 2,
-        "missing": 214
+        "missing": 211
       },
       "move": {
         "ported": 69,
@@ -11542,7 +11542,7 @@
       {
         "effectName": "Multiscale",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Multiscale - Shadow Shield.rb",
         "hookFamilies": []
       },
@@ -12776,7 +12776,7 @@
       {
         "effectName": "SuperEffectivePowerReduction",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/050 SuperEffectivePowerReduction.rb",
         "hookFamilies": []
       },
@@ -13039,7 +13039,7 @@
       {
         "effectName": "TintedLens",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Tinted Lens.rb",
         "hookFamilies": []
       },

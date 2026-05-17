@@ -99,7 +99,13 @@ final class BattleMoveDamageCalculator {
       moveType,
       typeEffectivenessMultiplier,
     );
-    final damage = heldItemDamage < 1 ? 1 : heldItemDamage;
+    final abilityDamage = _applyAbilityFinalDamageModifiers(
+      heldItemDamage,
+      context,
+      moveType,
+      typeEffectivenessMultiplier,
+    );
+    final damage = abilityDamage < 1 ? 1 : abilityDamage;
 
     return BattleMoveDamageResult(
       rng: rng,
@@ -190,6 +196,7 @@ int _abilityAdjustedPower(
     target: context.target,
     move: context.move,
     moveType: moveType,
+    typeEffectivenessMultiplier: 1,
   );
   var multiplier = 1.0;
   for (final effect in context.user.abilityEffects) {
@@ -370,6 +377,36 @@ int _applyHeldItemFinalDamageModifiers(
   var multiplier = 1.0;
   for (final effect in context.user.activeItemEffects) {
     multiplier *= effect.damageFinalMultiplier(itemContext);
+  }
+  if (multiplier == 1.0) {
+    return damage;
+  }
+  final adjusted = (damage * multiplier).floor();
+  return adjusted < 1 ? 1 : adjusted;
+}
+
+int _applyAbilityFinalDamageModifiers(
+  int damage,
+  BattleMoveDamageContext context,
+  String moveType,
+  double typeEffectivenessMultiplier,
+) {
+  if (damage <= 0) {
+    return damage;
+  }
+  final abilityContext = BattleAbilityDamageContext(
+    user: context.user,
+    target: context.target,
+    move: context.move,
+    moveType: moveType,
+    typeEffectivenessMultiplier: typeEffectivenessMultiplier,
+  );
+  var multiplier = 1.0;
+  for (final effect in context.user.abilityEffects) {
+    multiplier *= effect.finalDamageMultiplier(abilityContext);
+  }
+  for (final effect in context.target.abilityEffects) {
+    multiplier *= effect.finalDamageMultiplier(abilityContext);
   }
   if (multiplier == 1.0) {
     return damage;
