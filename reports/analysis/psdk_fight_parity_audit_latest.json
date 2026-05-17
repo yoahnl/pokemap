@@ -9295,9 +9295,9 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 49,
-      "partial": 83,
-      "missing": 350
+      "ported": 67,
+      "partial": 82,
+      "missing": 333
     },
     "byFamilyAndStatus": {
       "ability": {
@@ -9306,9 +9306,9 @@
         "missing": 214
       },
       "move": {
-        "ported": 39,
-        "partial": 10,
-        "missing": 66
+        "ported": 57,
+        "partial": 9,
+        "missing": 49
       },
       "item": {
         "ported": 0,
@@ -9473,7 +9473,7 @@
       {
         "effectName": "Autotomize",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Autotomize.rb"
       },
       {
@@ -9635,7 +9635,7 @@
       {
         "effectName": "BurnUp",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 BurnUp.rb"
       },
       {
@@ -9677,7 +9677,7 @@
       {
         "effectName": "Charge",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Charge.rb"
       },
       {
@@ -9929,7 +9929,7 @@
       {
         "effectName": "DragonCheer",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 DragonCheer.rb"
       },
       {
@@ -10013,7 +10013,7 @@
       {
         "effectName": "Electrify",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Electrify.rb"
       },
       {
@@ -10139,7 +10139,7 @@
       {
         "effectName": "FocusEnergy",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 FocusEnergy.rb"
       },
       {
@@ -10175,7 +10175,7 @@
       {
         "effectName": "Foresight",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Foresight.rb"
       },
       {
@@ -10247,7 +10247,7 @@
       {
         "effectName": "GlaiveRush",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 GlaiveRush.rb"
       },
       {
@@ -10583,7 +10583,7 @@
       {
         "effectName": "LaserFocus",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 LaserFocus.rb"
       },
       {
@@ -10733,7 +10733,7 @@
       {
         "effectName": "MagnetRise",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 MagnetRise.rb"
       },
       {
@@ -10811,13 +10811,13 @@
       {
         "effectName": "Minimize",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Minimize.rb"
       },
       {
         "effectName": "MiracleEye",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 MiracleEye.rb"
       },
       {
@@ -11219,7 +11219,7 @@
       {
         "effectName": "Rage",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Rage.rb"
       },
       {
@@ -11705,7 +11705,7 @@
       {
         "effectName": "Stockpile",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Stockpile.rb"
       },
       {
@@ -11849,7 +11849,7 @@
       {
         "effectName": "TarShot",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 TarShot.rb"
       },
       {
@@ -11867,7 +11867,7 @@
       {
         "effectName": "Telekinesis",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Telekinesis.rb"
       },
       {
@@ -11999,7 +11999,7 @@
       {
         "effectName": "Transform",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Transform.rb"
       },
       {
@@ -12059,7 +12059,7 @@
       {
         "effectName": "UpRoar",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 UpRoar.rb"
       },
       {
