@@ -9,8 +9,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Metric | Count |
 | --- | ---: |
 | Studio attacks total | 728 |
-| Studio attacks `fait` | 298 |
-| Studio attacks `partiel` | 430 |
+| Studio attacks `fait` | 299 |
+| Studio attacks `partiel` | 429 |
 | Studio attacks `pas_fait` | 0 |
 | Unknown methods | 0 |
 | Unique battle engine methods | 258 |
@@ -183,7 +183,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_sucker_punch | 1 |
 | s_swallow | 1 |
 | s_synchronoise | 1 |
-| s_taunt | 1 |
 | s_telekinesis | 1 |
 | s_teleport | 1 |
 | s_thief | 2 |
@@ -212,8 +211,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 99 |
-| `partial` | 231 |
+| `ported` | 100 |
+| `partial` | 230 |
 | `missing` | 0 |
 | Total manifest methods | 330 |
 
@@ -222,7 +221,7 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Dependency | Partial methods |
 | --- | ---: |
 | no_dependency_declared | 143 |
-| effects | 65 |
+| effects | 64 |
 | ability | 48 |
 | handlerDamage | 26 |
 | handlerStatus | 18 |
@@ -233,7 +232,7 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | handlerSwitch | 8 |
 | endTurn | 6 |
 | faintProcess | 6 |
-| actionOrder | 5 |
+| actionOrder | 4 |
 | field | 4 |
 | terrain | 4 |
 | accuracy | 3 |

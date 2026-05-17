@@ -804,6 +804,7 @@ void main() {
           behavior: 'ItemDependentMoveBehavior.naturalGift',
         ),
         (method: 's_recycle', behavior: 'ItemDependentMoveBehavior.recycle'),
+        (method: 's_taunt', behavior: 'StaticBasicMoveRegistry.s_taunt'),
         (
           method: 's_techno_blast',
           behavior: 'ItemDependentMoveBehavior.technoBlast',
@@ -1019,10 +1020,6 @@ void main() {
         (
           method: 's_stockpile',
           behavior: 'StaticBasicMoveRegistry.s_stockpile',
-        ),
-        (
-          method: 's_taunt',
-          behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_taunt)',
         ),
         (
           method: 's_telekinesis',

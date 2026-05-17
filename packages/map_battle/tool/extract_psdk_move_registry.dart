@@ -899,8 +899,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_taunt': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_taunt)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_taunt',
+    status: _PsdkPortStatus.ported,
   ),
   's_telekinesis': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_telekinesis)',
@@ -1595,10 +1595,7 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
     _PsdkMoveDependency.effects,
     _PsdkMoveDependency.actionOrder,
   },
-  's_taunt': {
-    _PsdkMoveDependency.effects,
-    _PsdkMoveDependency.actionOrder,
-  },
+  's_taunt': {},
   's_thief': {
     _PsdkMoveDependency.item,
     _PsdkMoveDependency.ability,

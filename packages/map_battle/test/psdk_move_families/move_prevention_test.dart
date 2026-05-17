@@ -182,6 +182,87 @@ void main() {
       expect(_damageEvents(result, moveId: 'tackle'), hasLength(1));
     });
 
+    test('Taunt expires through the end-turn effect lifecycle', () {
+      final state = PsdkBattleState(
+        combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+          psdkPlayerSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'player',
+              speed: 100,
+              move: _move(id: 'growl', power: 0),
+              effects: const PsdkBattleEffectStack.empty().addEffect(
+                TauntEffect(
+                  scope: BattlerBattleEffectScope(psdkPlayerSlot),
+                  remainingTurns: 2,
+                ),
+              ),
+            ),
+          ),
+          psdkOpponentSlot: PsdkBattleCombatant.fromSetup(
+            _combatant(
+              id: 'opponent',
+              speed: 1,
+              move: _move(id: 'opponent_wait', power: 0),
+            ),
+          ),
+        },
+      );
+
+      final ticked = const BattleEndTurnHandler().tickEndTurnEffects(
+        BattleHandlerContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+      );
+      final expired = const BattleEndTurnHandler().tickEndTurnEffects(
+        BattleHandlerContext(
+          state: ticked.state,
+          rng: ticked.rng,
+          turn: 2,
+          user: psdkPlayerSlot,
+        ),
+      );
+
+      expect(
+        ticked.state
+            .battlerAt(psdkPlayerSlot)
+            .effects
+            .effects
+            .singleWhere((effect) => effect.id == 'taunt')
+            .remainingTurns,
+        1,
+      );
+      expect(
+        expired.state.battlerAt(psdkPlayerSlot).effects.contains('taunt'),
+        isFalse,
+      );
+    });
+
+    test('s_taunt fails when the target is already taunted', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'taunt',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 100,
+          battleEngineMethod: 's_taunt',
+        ),
+        opponentEffects: const PsdkBattleEffectStack.empty().addEffect(
+          TauntEffect(scope: BattlerBattleEffectScope(psdkOpponentSlot)),
+        ),
+      );
+
+      final failures = result.timeline.events
+          .whereType<PsdkBattleMoveFailedEvent>()
+          .toList(growable: false);
+      expect(failures, hasLength(1));
+      expect(failures.single.user, psdkPlayerSlot);
+      expect(failures.single.moveId, 'taunt');
+      expect(failures.single.reason, BattleMoveFailureReason.immunity.jsonName);
+    });
+
     test('Torment prevents repeating the last successful non-Struggle move',
         () {
       final result = _runMove(
@@ -686,4 +767,13 @@ List<PsdkBattleHealEvent> _healEvents(
       .whereType<PsdkBattleHealEvent>()
       .where((event) => event.moveId == moveId)
       .toList(growable: false);
+}
+
+BattleRngStreams _rng() {
+  return BattleRngStreams.fromSeeds(
+    moveDamageSeed: 1,
+    moveCriticalSeed: 2,
+    moveAccuracySeed: 3,
+    genericSeed: 4,
+  );
 }

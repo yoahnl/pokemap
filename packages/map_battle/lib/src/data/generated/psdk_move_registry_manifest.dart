@@ -2689,12 +2689,9 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_taunt',
     rubyClass: 'Taunt',
     rubyPath: '10 Move/2 Definitions/300 Taunt.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_taunt)',
-    status: PsdkPortStatus.partial,
-    dependencies: const <PsdkMoveDependency>[
-      PsdkMoveDependency.effects,
-      PsdkMoveDependency.actionOrder
-    ],
+    dartBehavior: 'StaticBasicMoveRegistry.s_taunt',
+    status: PsdkPortStatus.ported,
+    dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
     battleEngineMethod: 's_teatime',

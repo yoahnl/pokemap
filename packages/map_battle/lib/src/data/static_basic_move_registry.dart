@@ -3519,6 +3519,21 @@ BattleMoveBehaviorResolution _resolveTargetMarker(
       continue;
     }
 
+    if (_targetMarkerAlreadyActive(
+      method: context.move.battleEngineMethod,
+      target: targetBefore,
+      effectId: effectId,
+    )) {
+      events.add(
+        _targetMarkerImmunityEvent(
+          user: context.user,
+          target: targetSlot,
+          moveId: context.move.id,
+        ),
+      );
+      continue;
+    }
+
     state = state.updateBattler(
       targetSlot,
       (battler) => battler.copyWith(
@@ -4132,6 +4147,14 @@ bool _gastroAcidBlockedTarget({
   return target.effects.contains('ability_suppressed') ||
       abilityId == 'good_as_gold' ||
       _gastroAcidProtectedAbilityIds.contains(abilityId);
+}
+
+bool _targetMarkerAlreadyActive({
+  required String method,
+  required PsdkBattleCombatant target,
+  required String effectId,
+}) {
+  return method == 's_taunt' && target.effects.contains(effectId);
 }
 
 PsdkBattleMoveFailedEvent _targetMarkerImmunityEvent({
