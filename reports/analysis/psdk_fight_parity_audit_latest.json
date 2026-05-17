@@ -9336,2893 +9336,4112 @@
         "effectName": "Ability",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/001 AbilityBase.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/001 AbilityBase.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "AbilitySuppressed",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 AbilitySuppressed.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 AbilitySuppressed.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "AbsorbBulb",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Luminous Moss - Snowball.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Luminous Moss - Snowball.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Aftermath",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Aftermath.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Aftermath.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "AirBalloon",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/100 Air Balloon.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Air Balloon.rb",
+        "hookFamilies": [
+          "post_damage",
+          "switch"
+        ]
       },
       {
         "effectName": "AirLock",
         "family": "ability",
         "status": "partial",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Air Lock - Cloud Nine.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Air Lock - Cloud Nine.rb",
+        "hookFamilies": [
+          "switch",
+          "weather_change"
+        ]
       },
       {
         "effectName": "Analytic",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Analytic.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Analytic.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "AngerPoint",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Anger Point.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Anger Point.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "AngerShell",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Anger Shell.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Anger Shell.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "Anticipation",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Anticipation.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Anticipation.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "Apicot",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "ApplyStatusToMoveTarget",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 ApplyStatusToMoveTarget.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 ApplyStatusToMoveTarget.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "AquaRing",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 AquaRing.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 AquaRing.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "ArenaTrap",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "ArmorTail",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Armor Tail.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Armor Tail.rb",
+        "hookFamilies": [
+          "move_prevention"
+        ]
       },
       {
         "effectName": "AromaVeil",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Mental Immunity.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Mental Immunity.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "AsOne",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/101 AsOne.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/101 AsOne.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "Asleep",
         "family": "status",
         "status": "ported",
-        "rubyPath": "06 Effects/03 Status Effects/104 Asleep.rb"
+        "rubyPath": "06 Effects/03 Status Effects/104 Asleep.rb",
+        "hookFamilies": [
+          "move_prevention",
+          "status_prevention"
+        ]
       },
       {
         "effectName": "AssaultVest",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "AttackMultiplier",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/050 ItemAttackMultiplier.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 ItemAttackMultiplier.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Attract",
         "family": "move",
         "status": "partial",
-        "rubyPath": "06 Effects/02 Move Effects/001 Attract.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Attract.rb",
+        "hookFamilies": [
+          "lifecycle",
+          "move_prevention"
+        ]
       },
       {
         "effectName": "Auras",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Auras.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Auras.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "AuroraVeil",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 LightScreen Reflect.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 LightScreen Reflect.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Autotomize",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Autotomize.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Autotomize.rb",
+        "hookFamilies": [
+          "lifecycle"
+        ]
       },
       {
         "effectName": "BadDreams",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Bad Dreams.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Bad Dreams.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "BallFetch",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 BallFetch.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 BallFetch.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "BanefulBunker",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "BasePowerMultiplier",
         "family": "item",
         "status": "partial",
-        "rubyPath": "06 Effects/05 Item Effects/050 ItemBasePowerMultiplier.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 ItemBasePowerMultiplier.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "BatonPass",
         "family": "move",
         "status": "partial",
-        "rubyPath": "06 Effects/02 Move Effects/001 BatonPass.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 BatonPass.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "Battery",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Battery.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Battery.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "BattleBond",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Battle Bond.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Battle Bond.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "BeadsOfRuin",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/101 TabletsOfRuin.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/101 TabletsOfRuin.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "BeadsOfRuin",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 TabletsOfRuin.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 TabletsOfRuin.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "BeakBlast",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 BeakBlast.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 BeakBlast.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "BeastBoost",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Beast Boost.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Beast Boost.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "Berry",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/002 Berry.rb"
+        "rubyPath": "06 Effects/05 Item Effects/002 Berry.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "BerryJuice",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Healing Berries.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Healing Berries.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Berserk",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Berserk.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Berserk.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "BerserkGene",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Berserk Gene.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Berserk Gene.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "Bestow",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 Bestow.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Bestow.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Bide",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 ForceNextMove effects.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 ForceNextMove effects.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "BigPecks",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Big Pecks.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Big Pecks.rb",
+        "hookFamilies": [
+          "stat_change"
+        ]
       },
       {
         "effectName": "BigRoot",
         "family": "item",
         "status": "partial",
-        "rubyPath": "06 Effects/05 Item Effects/100 Big Root.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Big Root.rb",
+        "hookFamilies": [
+          "drain"
+        ]
       },
       {
         "effectName": "Bind",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Bind.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Bind.rb",
+        "hookFamilies": [
+          "end_turn",
+          "lifecycle",
+          "switch"
+        ]
       },
       {
         "effectName": "BlackSludge",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/100 Black Sludge.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Black Sludge.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "BlueOrb",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 PrimalOrbs.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 PrimalOrbs.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "BoostingMoveType",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/050 BoostingMoveType.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/050 BoostingMoveType.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Bulletproof",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Bulletproof.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Bulletproof.rb",
+        "hookFamilies": [
+          "ability_immunity"
+        ]
       },
       {
         "effectName": "Burn",
         "family": "status",
         "status": "ported",
-        "rubyPath": "06 Effects/03 Status Effects/103 Burn.rb"
+        "rubyPath": "06 Effects/03 Status Effects/103 Burn.rb",
+        "hookFamilies": [
+          "end_turn",
+          "status_prevention"
+        ]
       },
       {
         "effectName": "BurnDrive",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/050 Drives.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 Drives.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "BurnUp",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 BurnUp.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 BurnUp.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "BurningBulwark",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "CantSwitch",
         "family": "move",
         "status": "partial",
-        "rubyPath": "06 Effects/02 Move Effects/001 CantSwitch.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 CantSwitch.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "CellBattery",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Luminous Moss - Snowball.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Luminous Moss - Snowball.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "CenterOfAttention",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 CenterOfAttention.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 CenterOfAttention.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "ChangeType",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 ChangeType.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 ChangeType.rb",
+        "hookFamilies": [
+          "transform"
+        ]
       },
       {
         "effectName": "ChangingMoveType",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/051 ChangingMoveType.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/051 ChangingMoveType.rb",
+        "hookFamilies": [
+          "move_type_change"
+        ]
       },
       {
         "effectName": "Charge",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Charge.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Charge.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Cheri",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/050 StatusBerry.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 StatusBerry.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Chesto",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/050 StatusBerry.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 StatusBerry.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "ChillDrive",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/050 Drives.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 Drives.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Chlorophyll",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Chlorophyll.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Chlorophyll.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "ChoiceBand",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "ChoiceItemMultiplier",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb",
+        "hookFamilies": [
+          "move_prevention"
+        ]
       },
       {
         "effectName": "ChoiceScarf",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "ChoiceSpecs",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "ClearBody",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Clear Body.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Clear Body.rb",
+        "hookFamilies": [
+          "stat_change"
+        ]
       },
       {
         "effectName": "ColorChange",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Color Change.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Color Change.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "Comatose",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Comatose.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Comatose.rb",
+        "hookFamilies": [
+          "status_prevention"
+        ]
       },
       {
         "effectName": "Commanded",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/101 Commander Effects.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/101 Commander Effects.rb",
+        "hookFamilies": [
+          "post_damage",
+          "switch"
+        ]
       },
       {
         "effectName": "Commander",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Commander.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Commander.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "Commanding",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/101 Commander Effects.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/101 Commander Effects.rb",
+        "hookFamilies": [
+          "move_prevention",
+          "switch"
+        ]
       },
       {
         "effectName": "Competitive",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Defiant.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Defiant.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "CompoundEyes",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Compound Eyes.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Compound Eyes.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "ConfusingBerries",
         "family": "item",
         "status": "partial",
-        "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Healing Berries.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Healing Berries.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Confusion",
         "family": "move",
         "status": "partial",
-        "rubyPath": "06 Effects/02 Move Effects/001 Confusion.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Confusion.rb",
+        "hookFamilies": [
+          "move_prevention"
+        ]
       },
       {
         "effectName": "Contrary",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Contrary.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Contrary.rb",
+        "hookFamilies": [
+          "stat_change"
+        ]
       },
       {
         "effectName": "Costar",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Costar.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Costar.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "CottonDown",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Cotton Down.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Cotton Down.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "CraftyShield",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 CraftyShield.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 CraftyShield.rb",
+        "hookFamilies": [
+          "move_prevention"
+        ]
       },
       {
         "effectName": "CudChew",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Cud Chew.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Cud Chew.rb",
+        "hookFamilies": [
+          "item_change"
+        ]
       },
       {
         "effectName": "CudChewEffect",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/101 Cud Chew Effect.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/101 Cud Chew Effect.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "CuriousMedicine",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Curious Medicine.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Curious Medicine.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "Curse",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Curse.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Curse.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "CursedBody",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Cursed Body.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Cursed Body.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "CuteCharm",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Cute Charm.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Cute Charm.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "Dancer",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Dancer.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Dancer.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "DauntlessShield",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Dauntless Shield.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Dauntless Shield.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "DeepSeaScale",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/100 Deep Sea Scale.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Deep Sea Scale.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "DeepSeaTooth",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/100 Deep Sea Tooth.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Deep Sea Tooth.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Defeatist",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Defeatist.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Defeatist.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "DefenseMultiplier",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/050 ItemDefenseMultiplier.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 ItemDefenseMultiplier.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Defiant",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Defiant.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Defiant.rb",
+        "hookFamilies": [
+          "stat_change"
+        ]
       },
       {
         "effectName": "DeltaStream",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Primal Weathers.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Primal Weathers.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "DesolateLand",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Primal Weathers.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Primal Weathers.rb",
+        "hookFamilies": [
+          "ability_change",
+          "post_damage",
+          "switch",
+          "weather_change"
+        ]
       },
       {
         "effectName": "DestinyBond",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 DestinyBond.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 DestinyBond.rb",
+        "hookFamilies": [
+          "move_prevention",
+          "post_damage"
+        ]
       },
       {
         "effectName": "Disable",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Disable.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Disable.rb",
+        "hookFamilies": [
+          "lifecycle",
+          "move_prevention"
+        ]
       },
       {
         "effectName": "Disguise",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Disguise.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Disguise.rb",
+        "hookFamilies": [
+          "damage_prevention",
+          "post_damage"
+        ]
       },
       {
         "effectName": "Download",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Download.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Download.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "DragonCheer",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 DragonCheer.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 DragonCheer.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Drives",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/050 Drives.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 Drives.rb",
+        "hookFamilies": [
+          "move_type_change"
+        ]
       },
       {
         "effectName": "Drizzle",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "Drought",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Drowsiness",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 Drowsiness.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Drowsiness.rb",
+        "hookFamilies": [
+          "end_turn",
+          "switch"
+        ]
       },
       {
         "effectName": "DrySkin",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Dry Skin.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Dry Skin.rb",
+        "hookFamilies": [
+          "damage_prevention",
+          "end_turn"
+        ]
       },
       {
         "effectName": "EarthEater",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/100 TypeAbsorb.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 TypeAbsorb.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "EchoedVoice",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 EchoedVoice.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 EchoedVoice.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "EffectBase",
         "family": "mechanics",
         "status": "ported",
-        "rubyPath": "06 Effects/100 EffectBase.rb"
+        "rubyPath": "06 Effects/100 EffectBase.rb",
+        "hookFamilies": [
+          "ability_change",
+          "ability_immunity",
+          "accuracy",
+          "action_order",
+          "damage_change",
+          "damage_prevention",
+          "drain",
+          "end_turn",
+          "item_change",
+          "lifecycle",
+          "move_prevention",
+          "move_type_change",
+          "post_damage",
+          "stat_change",
+          "status_prevention",
+          "switch",
+          "terrain_change",
+          "transform",
+          "two_turn_shortcut",
+          "weather_change"
+        ]
       },
       {
         "effectName": "EffectSpore",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Effect Spore.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Effect Spore.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "EffectsHandler",
         "family": "mechanics",
         "status": "ported",
-        "rubyPath": "06 Effects/001 EffectsHandler.rb"
+        "rubyPath": "06 Effects/001 EffectsHandler.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "EjectButton",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Eject Button.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Eject Button.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "Electric",
         "family": "field",
         "status": "ported",
-        "rubyPath": "06 Effects/07 Field Terrain Effects/100 Electric.rb"
+        "rubyPath": "06 Effects/07 Field Terrain Effects/100 Electric.rb",
+        "hookFamilies": [
+          "end_turn",
+          "move_prevention",
+          "status_prevention"
+        ]
       },
       {
         "effectName": "ElectricSurge",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "Electrify",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Electrify.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Electrify.rb",
+        "hookFamilies": [
+          "move_type_change"
+        ]
       },
       {
         "effectName": "Electromorphosis",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Electromorphosis.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Electromorphosis.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "Embargo",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Embargo.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Embargo.rb",
+        "hookFamilies": [
+          "lifecycle"
+        ]
       },
       {
         "effectName": "EmbodyAspect",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Embody Aspect.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Embody Aspect.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "EmergencyExit",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Emergency Exit - Wimp Out.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Emergency Exit - Wimp Out.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "Encore",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 ForceNextMove effects.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 ForceNextMove effects.rb",
+        "hookFamilies": [
+          "lifecycle"
+        ]
       },
       {
         "effectName": "Endure",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb",
+        "hookFamilies": [
+          "damage_prevention",
+          "post_damage"
+        ]
       },
       {
         "effectName": "EnigmaBerry",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Enigma Berry.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Enigma Berry.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "Eviolite",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Eviolite.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Eviolite.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "ExpertBelt",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/100 Expert Belt.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Expert Belt.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "FairyLock",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 FairyLock.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 FairyLock.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "FieldTerrain",
         "family": "field",
         "status": "ported",
-        "rubyPath": "06 Effects/07 Field Terrain Effects/001 FieldTerrainBase.rb"
+        "rubyPath": "06 Effects/07 Field Terrain Effects/001 FieldTerrainBase.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "FlameBody",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Flame Body.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Flame Body.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "FlameOrb",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Flame Orb.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Flame Orb.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "FlareBoost",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Flare Boost.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Flare Boost.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "FlashFire",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Flash Fire.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Flash Fire.rb",
+        "hookFamilies": [
+          "damage_prevention",
+          "stat_change",
+          "status_prevention"
+        ]
       },
       {
         "effectName": "Flinch",
         "family": "move",
         "status": "partial",
-        "rubyPath": "06 Effects/02 Move Effects/001 Flinch.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Flinch.rb",
+        "hookFamilies": [
+          "move_prevention",
+          "status_prevention"
+        ]
       },
       {
         "effectName": "FlowerGift",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Flower Gift.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Flower Gift.rb",
+        "hookFamilies": [
+          "ability_change",
+          "switch",
+          "weather_change"
+        ]
       },
       {
         "effectName": "FlowerVeil",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Flower Veil.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Flower Veil.rb",
+        "hookFamilies": [
+          "stat_change",
+          "status_prevention"
+        ]
       },
       {
         "effectName": "Fluffy",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Fluffy.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Fluffy.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "FocusBand",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Focus Band.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Focus Band.rb",
+        "hookFamilies": [
+          "damage_prevention"
+        ]
       },
       {
         "effectName": "FocusEnergy",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 FocusEnergy.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 FocusEnergy.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "FocusPunch",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 FocusPunch.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 FocusPunch.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "FocusSash",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Focus Sash.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Focus Sash.rb",
+        "hookFamilies": [
+          "damage_prevention",
+          "post_damage"
+        ]
       },
       {
         "effectName": "Fog",
         "family": "field",
         "status": "ported",
-        "rubyPath": "06 Effects/06 Weather Effects/100 Fog.rb"
+        "rubyPath": "06 Effects/06 Weather Effects/100 Fog.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "ForceNextMoveBase",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 ForceNextMove effects.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 ForceNextMove effects.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Forecast",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Forecast.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Forecast.rb",
+        "hookFamilies": [
+          "ability_change",
+          "switch",
+          "weather_change"
+        ]
       },
       {
         "effectName": "Foresight",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Foresight.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Foresight.rb",
+        "hookFamilies": [
+          "damage_change"
+        ]
       },
       {
         "effectName": "Forewarn",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Forewarn.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Forewarn.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "FriendGuard",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Friend Guard.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Friend Guard.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Frisk",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Frisk.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Frisk.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "Frozen",
         "family": "status",
         "status": "ported",
-        "rubyPath": "06 Effects/03 Status Effects/105 Frozen.rb"
+        "rubyPath": "06 Effects/03 Status Effects/105 Frozen.rb",
+        "hookFamilies": [
+          "move_prevention",
+          "status_prevention"
+        ]
       },
       {
         "effectName": "FullMetalBody",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Full Metal Body.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Full Metal Body.rb",
+        "hookFamilies": [
+          "stat_change"
+        ]
       },
       {
         "effectName": "FurCoat",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Fur Coat.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Fur Coat.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "FuryCutter",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 FuryCutter.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 FuryCutter.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "FutureSight",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 FutureSight.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 FutureSight.rb",
+        "hookFamilies": [
+          "lifecycle"
+        ]
       },
       {
         "effectName": "GaleWings",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Gale Wings.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Gale Wings.rb",
+        "hookFamilies": [
+          "action_order"
+        ]
       },
       {
         "effectName": "Ganlon",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Gems",
         "family": "item",
         "status": "partial",
-        "rubyPath": "06 Effects/05 Item Effects/050 Gems.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 Gems.rb",
+        "hookFamilies": [
+          "accuracy"
+        ]
       },
       {
         "effectName": "GlaiveRush",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 GlaiveRush.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 GlaiveRush.rb",
+        "hookFamilies": [
+          "action_order"
+        ]
       },
       {
         "effectName": "GoodAsGold",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 GoodAsGold.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 GoodAsGold.rb",
+        "hookFamilies": [
+          "move_prevention"
+        ]
       },
       {
         "effectName": "Gooey",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Gooey.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Gooey.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "GorillaTactics",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Gorilla Tactics.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Gorilla Tactics.rb",
+        "hookFamilies": [
+          "move_prevention"
+        ]
       },
       {
         "effectName": "GrassPelt",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Grass Pelt.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Grass Pelt.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Grassy",
         "family": "field",
         "status": "ported",
-        "rubyPath": "06 Effects/07 Field Terrain Effects/100 Grassy.rb"
+        "rubyPath": "06 Effects/07 Field Terrain Effects/100 Grassy.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "GrassySurge",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Gravity",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Gravity.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Gravity.rb",
+        "hookFamilies": [
+          "lifecycle",
+          "move_prevention"
+        ]
       },
       {
         "effectName": "GrimNeigh",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Moxie.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Moxie.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Grudge",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 Grudge.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Grudge.rb",
+        "hookFamilies": [
+          "end_turn",
+          "post_damage",
+          "switch"
+        ]
       },
       {
         "effectName": "GuardDog",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 GuardDog.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 GuardDog.rb",
+        "hookFamilies": [
+          "stat_change"
+        ]
       },
       {
         "effectName": "GulpMissile",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 GulpMissile.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 GulpMissile.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "Guts",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Guts.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Guts.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "HadronEngine",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 HadronEngine.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 HadronEngine.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "Hail",
         "family": "field",
         "status": "ported",
-        "rubyPath": "06 Effects/06 Weather Effects/100 Hail.rb"
+        "rubyPath": "06 Effects/06 Weather Effects/100 Hail.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "HalfSpeed",
         "family": "item",
         "status": "partial",
-        "rubyPath": "06 Effects/05 Item Effects/050 HalfSpeedItems.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 HalfSpeedItems.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "HappyHour",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 HappyHour.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 HappyHour.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Hardrain",
         "family": "field",
         "status": "ported",
-        "rubyPath": "06 Effects/06 Weather Effects/100 Hardrain.rb"
+        "rubyPath": "06 Effects/06 Weather Effects/100 Hardrain.rb",
+        "hookFamilies": [
+          "end_turn",
+          "move_prevention",
+          "weather_change"
+        ]
       },
       {
         "effectName": "Hardsun",
         "family": "field",
         "status": "ported",
-        "rubyPath": "06 Effects/06 Weather Effects/100 Hardsun.rb"
+        "rubyPath": "06 Effects/06 Weather Effects/100 Hardsun.rb",
+        "hookFamilies": [
+          "end_turn",
+          "move_prevention",
+          "weather_change"
+        ]
       },
       {
         "effectName": "Harvest",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Harvest.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Harvest.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "HealBlock",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 HealBlock.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 HealBlock.rb",
+        "hookFamilies": [
+          "move_prevention"
+        ]
       },
       {
         "effectName": "Healer",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Healer.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Healer.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "HealingWish",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 HealingWish.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 HealingWish.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "Heatproof",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Heatproof.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Heatproof.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "HelpingHand",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 HelpingHand.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 HelpingHand.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Hospitality",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Hospitality.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Hospitality.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "HpTriggeredStatBerries",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb",
+        "hookFamilies": [
+          "end_turn",
+          "post_damage"
+        ]
       },
       {
         "effectName": "HungerSwitch",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Hunger Switch.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Hunger Switch.rb",
+        "hookFamilies": [
+          "end_turn",
+          "post_damage",
+          "switch"
+        ]
       },
       {
         "effectName": "Hustle",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Hustle.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Hustle.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Hydration",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Hydration.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Hydration.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "HyperCutter",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Hyper Cutter.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Hyper Cutter.rb",
+        "hookFamilies": [
+          "stat_change"
+        ]
       },
       {
         "effectName": "IceBody",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Ice Body.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Ice Body.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "IceFace",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Ice Face.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Ice Face.rb",
+        "hookFamilies": [
+          "damage_prevention",
+          "post_damage",
+          "switch",
+          "weather_change"
+        ]
       },
       {
         "effectName": "IceScales",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Ice Scales.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Ice Scales.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Immunity",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Imposter",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Imposter.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Imposter.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "Imprison",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Imprison.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Imprison.rb",
+        "hookFamilies": [
+          "move_prevention"
+        ]
       },
       {
         "effectName": "Ingrain",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Ingrain.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Ingrain.rb",
+        "hookFamilies": [
+          "end_turn",
+          "switch"
+        ]
       },
       {
         "effectName": "InnardsOut",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Innards Out.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Innards Out.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "InnerFocus",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Inner Focus.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Inner Focus.rb",
+        "hookFamilies": [
+          "status_prevention"
+        ]
       },
       {
         "effectName": "Insomnia",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Instruct",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 Instruct.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Instruct.rb",
+        "hookFamilies": [
+          "action_order"
+        ]
       },
       {
         "effectName": "Intimidate",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Intimidate.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Intimidate.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "IntrepidSword",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Intrepid Sword.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Intrepid Sword.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "IonDeluge",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 Ion Deluge.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Ion Deluge.rb",
+        "hookFamilies": [
+          "move_type_change"
+        ]
       },
       {
         "effectName": "IronFist",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Iron Fist.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Iron Fist.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Item",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/001 ItemBase.rb"
+        "rubyPath": "06 Effects/05 Item Effects/001 ItemBase.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "ItemBurnt",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 ItemBurnt.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 ItemBurnt.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "ItemStolen",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 ItemStolen.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 ItemStolen.rb",
+        "hookFamilies": [
+          "item_change"
+        ]
       },
       {
         "effectName": "JabocaBerry",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Jaboca Berry.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Jaboca Berry.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "Justified",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Justified.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Justified.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "KeeBerry",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Kee Berry - Maranga Berry.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Kee Berry - Maranga Berry.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "KeenEye",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Keen Eye.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Keen Eye.rb",
+        "hookFamilies": [
+          "stat_change"
+        ]
       },
       {
         "effectName": "KingsRock",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Kings Rock - Razor Fang.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Kings Rock - Razor Fang.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "KingsShield",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "LansatBerry",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Lansat Berry.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Lansat Berry.rb",
+        "hookFamilies": [
+          "end_turn",
+          "post_damage"
+        ]
       },
       {
         "effectName": "LaserFocus",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 LaserFocus.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 LaserFocus.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "LaxIncense",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Lax Incense.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Lax Incense.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "LeafGuard",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Leaf Guard.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Leaf Guard.rb",
+        "hookFamilies": [
+          "status_prevention"
+        ]
       },
       {
         "effectName": "LeechSeed",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 LeechSeed.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 LeechSeed.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Leftovers",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/100 Leftovers.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Leftovers.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "LeppaBerry",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Leppa Berry.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Leppa Berry.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "Libero",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Libero - Protean.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Libero - Protean.rb",
+        "hookFamilies": [
+          "accuracy"
+        ]
       },
       {
         "effectName": "LifeOrb",
         "family": "item",
         "status": "partial",
-        "rubyPath": "06 Effects/05 Item Effects/100 Life Orb.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Life Orb.rb",
+        "hookFamilies": [
+          "action_order",
+          "end_turn",
+          "post_damage"
+        ]
       },
       {
         "effectName": "LightBall",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/100 LightBall.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 LightBall.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "LightScreen",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 LightScreen Reflect.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 LightScreen Reflect.rb",
+        "hookFamilies": [
+          "lifecycle"
+        ]
       },
       {
         "effectName": "LightningRod",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Lightning Rod - Storm Drain.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Lightning Rod - Storm Drain.rb",
+        "hookFamilies": [
+          "damage_prevention"
+        ]
       },
       {
         "effectName": "Limber",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "LingeringAroma",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Mummy.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Mummy.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "LiquidOoze",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Liquid Ooze.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Liquid Ooze.rb",
+        "hookFamilies": [
+          "drain"
+        ]
       },
       {
         "effectName": "LiquidVoice",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Liquid Voice.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Liquid Voice.rb",
+        "hookFamilies": [
+          "move_type_change"
+        ]
       },
       {
         "effectName": "LockOn",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 LockOn.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 LockOn.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "LuckyChant",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 LuckyChant.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 LuckyChant.rb",
+        "hookFamilies": [
+          "lifecycle"
+        ]
       },
       {
         "effectName": "LumBerry",
         "family": "item",
         "status": "partial",
-        "rubyPath": "06 Effects/05 Item Effects/100 Lum Berry.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Lum Berry.rb",
+        "hookFamilies": [
+          "status_prevention"
+        ]
       },
       {
         "effectName": "LuminousMoss",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Luminous Moss - Snowball.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Luminous Moss - Snowball.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "LunarDance",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 LunarDance.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 LunarDance.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "MagicCoat",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 MagicCoat.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 MagicCoat.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "MagicRoom",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 MagicRoom.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 MagicRoom.rb",
+        "hookFamilies": [
+          "item_change",
+          "lifecycle"
+        ]
       },
       {
         "effectName": "Magician",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Pickpocket - Magician.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Pickpocket - Magician.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "MagmaArmor",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "MagnetPull",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "MagnetRise",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 MagnetRise.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 MagnetRise.rb",
+        "hookFamilies": [
+          "lifecycle"
+        ]
       },
       {
         "effectName": "MarangaBerry",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Kee Berry - Maranga Berry.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Kee Berry - Maranga Berry.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Mark",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 HelpingHand.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 HelpingHand.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Mark",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 LeechSeed.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 LeechSeed.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "MarvelScale",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Marvel Scale.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Marvel Scale.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "MatBlock",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "MegaLauncher",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Mega Launcher.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Mega Launcher.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "MentalHerb",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 MentalHerb.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 MentalHerb.rb",
+        "hookFamilies": [
+          "action_order"
+        ]
       },
       {
         "effectName": "MentalImmunityBase",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Mental Immunity.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Mental Immunity.rb",
+        "hookFamilies": [
+          "ability_immunity"
+        ]
       },
       {
         "effectName": "MetalPowder",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/100 Metal Powder.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Metal Powder.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Metronome",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Metronome.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Metronome.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "MicleBerry",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Micle Berry.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Micle Berry.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Mimicry",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Mimicry.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Mimicry.rb",
+        "hookFamilies": [
+          "switch",
+          "terrain_change"
+        ]
       },
       {
         "effectName": "Minimize",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Minimize.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Minimize.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "MiracleEye",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 MiracleEye.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 MiracleEye.rb",
+        "hookFamilies": [
+          "damage_change"
+        ]
       },
       {
         "effectName": "MirrorArmor",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Mirror Armor.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Mirror Armor.rb",
+        "hookFamilies": [
+          "stat_change"
+        ]
       },
       {
         "effectName": "MirrorHerb",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 MirrorHerb.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 MirrorHerb.rb",
+        "hookFamilies": [
+          "action_order",
+          "stat_change"
+        ]
       },
       {
         "effectName": "Mist",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Mist.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Mist.rb",
+        "hookFamilies": [
+          "lifecycle",
+          "stat_change"
+        ]
       },
       {
         "effectName": "Misty",
         "family": "field",
         "status": "ported",
-        "rubyPath": "06 Effects/07 Field Terrain Effects/100 Misty.rb"
+        "rubyPath": "06 Effects/07 Field Terrain Effects/100 Misty.rb",
+        "hookFamilies": [
+          "end_turn",
+          "move_prevention",
+          "status_prevention"
+        ]
       },
       {
         "effectName": "MistySurge",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "MoldBreaker",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Mold Breaker.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Mold Breaker.rb",
+        "hookFamilies": [
+          "move_prevention",
+          "switch"
+        ]
       },
       {
         "effectName": "Moody",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Moody.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Moody.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "MotorDrive",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Motor Drive.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Motor Drive.rb",
+        "hookFamilies": [
+          "damage_prevention"
+        ]
       },
       {
         "effectName": "Moxie",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Moxie.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Moxie.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "MudSport",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 MudSport.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 MudSport.rb",
+        "hookFamilies": [
+          "lifecycle"
+        ]
       },
       {
         "effectName": "Multiscale",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Multiscale - Shadow Shield.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Multiscale - Shadow Shield.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Mummy",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Mummy.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Mummy.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "NaturalCure",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Natural Cure.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Natural Cure.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "Neuroforce",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Neuroforce.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Neuroforce.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "NeutralizingGas",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 NeutralizingGas.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 NeutralizingGas.rb",
+        "hookFamilies": [
+          "ability_change",
+          "post_damage",
+          "switch"
+        ]
       },
       {
         "effectName": "Nightmare",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Nightmare.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Nightmare.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "NoRetreat",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 NoRetreat.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 NoRetreat.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "NonVolatileStatusImmunityBase",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb",
+        "hookFamilies": [
+          "action_order",
+          "status_prevention",
+          "switch"
+        ]
       },
       {
         "effectName": "Normalize",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Normalize.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Normalize.rb",
+        "hookFamilies": [
+          "move_type_change"
+        ]
       },
       {
         "effectName": "Oblivious",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Mental Immunity.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Mental Immunity.rb",
+        "hookFamilies": [
+          "action_order"
+        ]
       },
       {
         "effectName": "Obstruct",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Octolock",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 Octolock.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Octolock.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "Opportunist",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Opportunist.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Opportunist.rb",
+        "hookFamilies": [
+          "action_order",
+          "stat_change"
+        ]
       },
       {
         "effectName": "OranBerry",
         "family": "item",
         "status": "partial",
-        "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Healing Berries.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Healing Berries.rb",
+        "hookFamilies": [
+          "end_turn",
+          "post_damage"
+        ]
       },
       {
         "effectName": "OrichalcumPulse",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 OrichalcumPulse.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 OrichalcumPulse.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "OutOfReachBase",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 OutOfReachBase.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 OutOfReachBase.rb",
+        "hookFamilies": [
+          "lifecycle"
+        ]
       },
       {
         "effectName": "Overcoat",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Overcoat.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Overcoat.rb",
+        "hookFamilies": [
+          "ability_immunity"
+        ]
       },
       {
         "effectName": "OwnTempo",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Own Tempo.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Own Tempo.rb",
+        "hookFamilies": [
+          "status_prevention"
+        ]
       },
       {
         "effectName": "Paralysis",
         "family": "status",
         "status": "ported",
-        "rubyPath": "06 Effects/03 Status Effects/102 Paralysis.rb"
+        "rubyPath": "06 Effects/03 Status Effects/102 Paralysis.rb",
+        "hookFamilies": [
+          "move_prevention",
+          "status_prevention"
+        ]
       },
       {
         "effectName": "ParentalBond",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Parental Bond.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Parental Bond.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "PastelVeil",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Pastel Veil.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Pastel Veil.rb",
+        "hookFamilies": [
+          "status_prevention",
+          "switch"
+        ]
       },
       {
         "effectName": "Pecha",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/050 StatusBerry.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 StatusBerry.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "PerishBody",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Perish Body.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Perish Body.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "PerishSong",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 PerishSong.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 PerishSong.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "PersimBerry",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Persim Berry.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Persim Berry.rb",
+        "hookFamilies": [
+          "status_prevention"
+        ]
       },
       {
         "effectName": "Petaya",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Pickpocket",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Pickpocket - Magician.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Pickpocket - Magician.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "Plus",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Plus - Minus.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Plus - Minus.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Poison",
         "family": "status",
         "status": "ported",
-        "rubyPath": "06 Effects/03 Status Effects/101 Poison.rb"
+        "rubyPath": "06 Effects/03 Status Effects/101 Poison.rb",
+        "hookFamilies": [
+          "end_turn",
+          "status_prevention"
+        ]
       },
       {
         "effectName": "PoisonBarb",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 PoisonBarb.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 PoisonBarb.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "PoisonPoint",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Poison Point.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Poison Point.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "PoisonPuppeteer",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Poison Puppeteer.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Poison Puppeteer.rb",
+        "hookFamilies": [
+          "status_prevention"
+        ]
       },
       {
         "effectName": "PoisonTouch",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 ApplyStatusToMoveTarget.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 ApplyStatusToMoveTarget.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "PokemonTiedEffectBase",
         "family": "mechanics",
         "status": "ported",
-        "rubyPath": "06 Effects/200 PokemonTiedEffectBase.rb"
+        "rubyPath": "06 Effects/200 PokemonTiedEffectBase.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "PositionTiedEffectBase",
         "family": "mechanics",
         "status": "ported",
-        "rubyPath": "06 Effects/200 PositionTiedEffectBase.rb"
+        "rubyPath": "06 Effects/200 PositionTiedEffectBase.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Powder",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Powder.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Powder.rb",
+        "hookFamilies": [
+          "move_prevention"
+        ]
       },
       {
         "effectName": "PowerConstruct",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Power Construct.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Power Construct.rb",
+        "hookFamilies": [
+          "end_turn",
+          "post_damage"
+        ]
       },
       {
         "effectName": "PowerHerb",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 PowerHerb.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 PowerHerb.rb",
+        "hookFamilies": [
+          "two_turn_shortcut"
+        ]
       },
       {
         "effectName": "PowerOfAlchemy",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Power of Alchemy - Receiver.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Power of Alchemy - Receiver.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "PowerSpot",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 PowerSpot.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 PowerSpot.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Prankster",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Prankster.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Prankster.rb",
+        "hookFamilies": [
+          "action_order"
+        ]
       },
       {
         "effectName": "Pressure",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Pressure.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Pressure.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "PreventTargetsMove",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 PreventTargetsMove.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 PreventTargetsMove.rb",
+        "hookFamilies": [
+          "move_prevention"
+        ]
       },
       {
         "effectName": "PrimordialSea",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Primal Weathers.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Primal Weathers.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Protect",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb",
+        "hookFamilies": [
+          "ability_immunity",
+          "move_prevention"
+        ]
       },
       {
         "effectName": "Protosynthesis",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Protosynthesis.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Protosynthesis.rb",
+        "hookFamilies": [
+          "switch",
+          "weather_change"
+        ]
       },
       {
         "effectName": "Psychic",
         "family": "field",
         "status": "ported",
-        "rubyPath": "06 Effects/07 Field Terrain Effects/100 Psychic.rb"
+        "rubyPath": "06 Effects/07 Field Terrain Effects/100 Psychic.rb",
+        "hookFamilies": [
+          "end_turn",
+          "move_prevention"
+        ]
       },
       {
         "effectName": "PsychicSurge",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "PunkRock",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Punk Rock.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Punk Rock.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "PurePower",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Pure Power - Huge Power.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Pure Power - Huge Power.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "PurifyingSalt",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 PurifyingSalt.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 PurifyingSalt.rb",
+        "hookFamilies": [
+          "ability_immunity",
+          "status_prevention"
+        ]
       },
       {
         "effectName": "QuarkDrive",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 QuarkDrive.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 QuarkDrive.rb",
+        "hookFamilies": [
+          "switch",
+          "terrain_change"
+        ]
       },
       {
         "effectName": "QueenlyMajesty",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Queenly Majesty - Dazzling.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Queenly Majesty - Dazzling.rb",
+        "hookFamilies": [
+          "move_prevention"
+        ]
       },
       {
         "effectName": "QuickFeet",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Quick Feet.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Quick Feet.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "QuickGuard",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb",
+        "hookFamilies": [
+          "move_prevention"
+        ]
       },
       {
         "effectName": "QuickPowder",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/100 Quick Powder.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Quick Powder.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Rage",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Rage.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Rage.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "Rain",
         "family": "field",
         "status": "ported",
-        "rubyPath": "06 Effects/06 Weather Effects/100 Rain.rb"
+        "rubyPath": "06 Effects/06 Weather Effects/100 Rain.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "RainDish",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Rain Dish.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Rain Dish.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "Rainbow",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 Pledge Effects/001 Rainbow.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Pledge Effects/001 Rainbow.rb",
+        "hookFamilies": [
+          "lifecycle"
+        ]
       },
       {
         "effectName": "Rattled",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Rattled.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Rattled.rb",
+        "hookFamilies": [
+          "post_damage",
+          "stat_change"
+        ]
       },
       {
         "effectName": "Rawst",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/050 StatusBerry.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 StatusBerry.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Reckless",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Reckless.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Reckless.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "RedCard",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Red Card.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Red Card.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "RedOrb",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 PrimalOrbs.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 PrimalOrbs.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "Reflect",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 LightScreen Reflect.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 LightScreen Reflect.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Regenerator",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Regenerator.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Regenerator.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "Ripen",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Ripen.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Ripen.rb",
+        "hookFamilies": [
+          "item_change"
+        ]
       },
       {
         "effectName": "Rivalry",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Rivalry.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Rivalry.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "RockyHelmet",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Rocky Helmet.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Rocky Helmet.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "Rollout",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 ForceNextMove effects.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 ForceNextMove effects.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Roost",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 Roost.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Roost.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "RoughSkin",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Rough Skin - Iron Barbs.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Rough Skin - Iron Barbs.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "RowapBerry",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Jaboca Berry.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Jaboca Berry.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "RunAway",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 RunAway.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 RunAway.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "Safeguard",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Safeguard.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Safeguard.rb",
+        "hookFamilies": [
+          "lifecycle",
+          "status_prevention"
+        ]
       },
       {
         "effectName": "SafetyGoggles",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 SafetyGoggles.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 SafetyGoggles.rb",
+        "hookFamilies": [
+          "move_prevention"
+        ]
       },
       {
         "effectName": "Salac",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "SaltCure",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 SaltCure.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 SaltCure.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "SandForce",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Sand Force.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Sand Force.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "SandRush",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Sand Rush.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Sand Rush.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "SandSpit",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Sand Spit.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Sand Spit.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "SandStream",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "SandVeil",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 SandVeil.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 SandVeil.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Sandstorm",
         "family": "field",
         "status": "ported",
-        "rubyPath": "06 Effects/06 Weather Effects/100 Sandstorm.rb"
+        "rubyPath": "06 Effects/06 Weather Effects/100 Sandstorm.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "SapSipper",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Sap Sipper.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Sap Sipper.rb",
+        "hookFamilies": [
+          "move_prevention"
+        ]
       },
       {
         "effectName": "Schooling",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Zen Mode.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Zen Mode.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "ScreenCleaner",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 ScreenCleaner.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 ScreenCleaner.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "SeaOfFire",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 Pledge Effects/001 SeaOfFire.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Pledge Effects/001 SeaOfFire.rb",
+        "hookFamilies": [
+          "end_turn",
+          "lifecycle"
+        ]
       },
       {
         "effectName": "SeedSower",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 SeedSower.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 SeedSower.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "SereneGrace",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 SereneGrace.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 SereneGrace.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "ShadowTag",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "Sharpness",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Sharpness.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Sharpness.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "ShedShell",
         "family": "item",
         "status": "partial",
-        "rubyPath": "06 Effects/05 Item Effects/100 Shed Shell.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Shed Shell.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "ShedSkin",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Shed Skin.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Shed Skin.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "ShedTail",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 ShedTail.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 ShedTail.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "SheerForce",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 SheerForce.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 SheerForce.rb",
+        "hookFamilies": [
+          "stat_change",
+          "status_prevention"
+        ]
       },
       {
         "effectName": "ShellBell",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Shell Bell.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Shell Bell.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "ShellTrap",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 ShellTrap.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 ShellTrap.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "ShieldDust",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 ShieldDust.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 ShieldDust.rb",
+        "hookFamilies": [
+          "stat_change",
+          "status_prevention"
+        ]
       },
       {
         "effectName": "ShieldsDown",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Zen Mode.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Zen Mode.rb",
+        "hookFamilies": [
+          "status_prevention"
+        ]
       },
       {
         "effectName": "ShockDrive",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/050 Drives.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 Drives.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "SilkTrap",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Simple",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Simple.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Simple.rb",
+        "hookFamilies": [
+          "stat_change"
+        ]
       },
       {
         "effectName": "SitrusBerry",
         "family": "item",
         "status": "partial",
-        "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Healing Berries.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Healing Berries.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "SleepPrevention",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 UpRoar.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 UpRoar.rb",
+        "hookFamilies": [
+          "status_prevention"
+        ]
       },
       {
         "effectName": "SlowStart",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Slow Start.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Slow Start.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "SlushRush",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Slush Rush.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Slush Rush.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "SmackDown",
         "family": "move",
         "status": "partial",
-        "rubyPath": "06 Effects/02 Move Effects/001 SmackDown.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 SmackDown.rb",
+        "hookFamilies": [
+          "damage_change"
+        ]
       },
       {
         "effectName": "SmokeBall",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 SmokeBall.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 SmokeBall.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "Snatch",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Snatch.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Snatch.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Snatched",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Snatch.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Snatch.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Snow",
         "family": "field",
         "status": "ported",
-        "rubyPath": "06 Effects/06 Weather Effects/100 Snow.rb"
+        "rubyPath": "06 Effects/06 Weather Effects/100 Snow.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "SnowCloak",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Snow Cloak.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Snow Cloak.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "SnowWarning",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Snowball",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Luminous Moss - Snowball.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Luminous Moss - Snowball.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "SolarPower",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Solar Power.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Solar Power.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "SoulHeart",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Soul-Heart.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Soul-Heart.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "Soundproof",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Soundproof.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Soundproof.rb",
+        "hookFamilies": [
+          "ability_immunity"
+        ]
       },
       {
         "effectName": "SpeedBoost",
         "family": "ability",
         "status": "partial",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Speed Boost.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Speed Boost.rb",
+        "hookFamilies": [
+          "end_turn",
+          "switch"
+        ]
       },
       {
         "effectName": "Spikes",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Spikes.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Spikes.rb",
+        "hookFamilies": [
+          "lifecycle",
+          "switch"
+        ]
       },
       {
         "effectName": "SpikyShield",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Stakeout",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Stakeout.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Stakeout.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Stalwart",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Stalwart.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Stalwart.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Stamina",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Stamina.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Stamina.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "StanceChange",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Stance Change.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Stance Change.rb",
+        "hookFamilies": [
+          "move_prevention"
+        ]
       },
       {
         "effectName": "Starf",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Static",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Static.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Static.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "Status",
         "family": "status",
         "status": "missing",
-        "rubyPath": "06 Effects/03 Status Effects/001 StatusBase.rb"
+        "rubyPath": "06 Effects/03 Status Effects/001 StatusBase.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "StatusBerry",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/050 StatusBerry.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 StatusBerry.rb",
+        "hookFamilies": [
+          "status_prevention"
+        ]
       },
       {
         "effectName": "Steadfast",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Steadfast.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Steadfast.rb",
+        "hookFamilies": [
+          "status_prevention"
+        ]
       },
       {
         "effectName": "StealthRock",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 StealthRock.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 StealthRock.rb",
+        "hookFamilies": [
+          "lifecycle",
+          "switch"
+        ]
       },
       {
         "effectName": "SteamEngine",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Steam Engine.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Steam Engine.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "SteelySpirit",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Steely Spirit.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Steely Spirit.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Stench",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Stench.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Stench.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "StickyBarb",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Sticky Barb.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Sticky Barb.rb",
+        "hookFamilies": [
+          "end_turn",
+          "post_damage"
+        ]
       },
       {
         "effectName": "StickyWeb",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 StickyWeb.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 StickyWeb.rb",
+        "hookFamilies": [
+          "lifecycle",
+          "switch"
+        ]
       },
       {
         "effectName": "Stockpile",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Stockpile.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Stockpile.rb",
+        "hookFamilies": [
+          "lifecycle"
+        ]
       },
       {
         "effectName": "StormDrain",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Lightning Rod - Storm Drain.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Lightning Rod - Storm Drain.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "StrongJaw",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Strong Jaw.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Strong Jaw.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "StrongWinds",
         "family": "field",
         "status": "ported",
-        "rubyPath": "06 Effects/06 Weather Effects/100 StrongWinds.rb"
+        "rubyPath": "06 Effects/06 Weather Effects/100 StrongWinds.rb",
+        "hookFamilies": [
+          "accuracy",
+          "damage_change",
+          "end_turn",
+          "weather_change"
+        ]
       },
       {
         "effectName": "Sturdy",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Sturdy.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Sturdy.rb",
+        "hookFamilies": [
+          "ability_immunity",
+          "damage_prevention",
+          "post_damage"
+        ]
       },
       {
         "effectName": "Substitute",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 Substitute.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Substitute.rb",
+        "hookFamilies": [
+          "action_order",
+          "damage_prevention",
+          "lifecycle",
+          "stat_change",
+          "status_prevention",
+          "switch"
+        ]
       },
       {
         "effectName": "SuctionCups",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Sunny",
         "family": "field",
         "status": "ported",
-        "rubyPath": "06 Effects/06 Weather Effects/100 Sunny.rb"
+        "rubyPath": "06 Effects/06 Weather Effects/100 Sunny.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "SuperEffectivePowerReduction",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/050 SuperEffectivePowerReduction.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/050 SuperEffectivePowerReduction.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "SupersweetSyrup",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Supersweet Syrup.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Supersweet Syrup.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "SupremeOverlord",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 SupremeOverlord.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 SupremeOverlord.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "SurgeSurfer",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Surge Surfer.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Surge Surfer.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Swamp",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 Pledge Effects/001 Swamp.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Pledge Effects/001 Swamp.rb",
+        "hookFamilies": [
+          "lifecycle"
+        ]
       },
       {
         "effectName": "SweetVeil",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Sweet Veil.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Sweet Veil.rb",
+        "hookFamilies": [
+          "status_prevention"
+        ]
       },
       {
         "effectName": "SwiftSwim",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Swift Swim.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Swift Swim.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "SwordOfRuin",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/101 TabletsOfRuin.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/101 TabletsOfRuin.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "SwordOfRuin",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 TabletsOfRuin.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 TabletsOfRuin.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Symbiosis",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Symbiosis.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Symbiosis.rb",
+        "hookFamilies": [
+          "item_change",
+          "post_damage"
+        ]
       },
       {
         "effectName": "Synchronize",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Synchronize.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Synchronize.rb",
+        "hookFamilies": [
+          "status_prevention"
+        ]
       },
       {
         "effectName": "SyrupBomb",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 SyrupBomb.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 SyrupBomb.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "TabletsOfRuin",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/101 TabletsOfRuin.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/101 TabletsOfRuin.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "TabletsOfRuin",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 TabletsOfRuin.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 TabletsOfRuin.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "Tailwind",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Tailwind.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Tailwind.rb",
+        "hookFamilies": [
+          "lifecycle"
+        ]
       },
       {
         "effectName": "TangledFeet",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Tangled Feet.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Tangled Feet.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "TarShot",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 TarShot.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 TarShot.rb",
+        "hookFamilies": [
+          "damage_change"
+        ]
       },
       {
         "effectName": "Taunt",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Taunt.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Taunt.rb",
+        "hookFamilies": [
+          "lifecycle",
+          "move_prevention"
+        ]
       },
       {
         "effectName": "Technician",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Technician.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Technician.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Telekinesis",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Telekinesis.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Telekinesis.rb",
+        "hookFamilies": [
+          "action_order",
+          "lifecycle"
+        ]
       },
       {
         "effectName": "Telepathy",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Telepathy.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Telepathy.rb",
+        "hookFamilies": [
+          "damage_prevention"
+        ]
       },
       {
         "effectName": "TeraShell",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 TeraShell.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 TeraShell.rb",
+        "hookFamilies": [
+          "damage_change"
+        ]
       },
       {
         "effectName": "TeraShift",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Tera Shift.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Tera Shift.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "TeraformZero",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Teraform Zero.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Teraform Zero.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "Teravolt",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Mold Breaker.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Mold Breaker.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "TerrainSeeds",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/050 TerrainSeeds.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 TerrainSeeds.rb",
+        "hookFamilies": [
+          "switch",
+          "terrain_change"
+        ]
       },
       {
         "effectName": "ThermalExchange",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 ThermalExchange.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 ThermalExchange.rb",
+        "hookFamilies": [
+          "action_order",
+          "post_damage",
+          "status_prevention"
+        ]
       },
       {
         "effectName": "ThickClub",
         "family": "item",
         "status": "ported",
-        "rubyPath": "06 Effects/05 Item Effects/100 Thick Club.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Thick Club.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "ThickFat",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Thick Fat.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Thick Fat.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "ThroatChop",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 ThroatChop.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 ThroatChop.rb",
+        "hookFamilies": [
+          "move_prevention"
+        ]
       },
       {
         "effectName": "ThroatSpray",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Throat Spray.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Throat Spray.rb",
+        "hookFamilies": [
+          "action_order"
+        ]
       },
       {
         "effectName": "TintedLens",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Tinted Lens.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Tinted Lens.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Torment",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Torment.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Torment.rb",
+        "hookFamilies": [
+          "move_prevention"
+        ]
       },
       {
         "effectName": "ToughClaws",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Tough Claws.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Tough Claws.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Toxic",
         "family": "status",
         "status": "ported",
-        "rubyPath": "06 Effects/03 Status Effects/108 Toxic.rb"
+        "rubyPath": "06 Effects/03 Status Effects/108 Toxic.rb",
+        "hookFamilies": [
+          "end_turn",
+          "stat_change",
+          "status_prevention"
+        ]
       },
       {
         "effectName": "ToxicBoost",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Toxic Boost.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Toxic Boost.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "ToxicChain",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 ApplyStatusToMoveTarget.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 ApplyStatusToMoveTarget.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "ToxicDebris",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 ToxicDebris.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 ToxicDebris.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "ToxicOrb",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Toxic Orb.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Toxic Orb.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "ToxicSpikes",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 ToxicSpikes.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 ToxicSpikes.rb",
+        "hookFamilies": [
+          "lifecycle",
+          "switch"
+        ]
       },
       {
         "effectName": "Trace",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Trace.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Trace.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "Transform",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Transform.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Transform.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "Triage",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Triage.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Triage.rb",
+        "hookFamilies": [
+          "action_order"
+        ]
       },
       {
         "effectName": "TrickRoom",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 TrickRoom.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 TrickRoom.rb",
+        "hookFamilies": [
+          "lifecycle"
+        ]
       },
       {
         "effectName": "TripleArrows",
         "family": "move",
         "status": "missing",
-        "rubyPath": "06 Effects/02 Move Effects/001 Triple Arrows.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Triple Arrows.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Truant",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Truant.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Truant.rb",
+        "hookFamilies": [
+          "move_prevention",
+          "switch"
+        ]
       },
       {
         "effectName": "Turboblaze",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Mold Breaker.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Mold Breaker.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "TypeResistingBerry",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/050 TypeResistingBerry.rb"
+        "rubyPath": "06 Effects/05 Item Effects/050 TypeResistingBerry.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Unaware",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Unaware.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Unaware.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "Unburden",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Unburden.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Unburden.rb",
+        "hookFamilies": [
+          "item_change",
+          "stat_change"
+        ]
       },
       {
         "effectName": "Unnerve",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Unnerve.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Unnerve.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "UpRoar",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 UpRoar.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 UpRoar.rb",
+        "hookFamilies": [
+          "end_turn"
+        ]
       },
       {
         "effectName": "VesselOfRuin",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 TabletsOfRuin.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 TabletsOfRuin.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "VesselOfRuin",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/101 TabletsOfRuin.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/101 TabletsOfRuin.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "VictoryStar",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Victory Star.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Victory Star.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "VoltAbsorb",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/100 TypeAbsorb.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 TypeAbsorb.rb",
+        "hookFamilies": [
+          "move_prevention"
+        ]
       },
       {
         "effectName": "WanderingSpirit",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Wandering Spirit.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Wandering Spirit.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "WaterAbsorb",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/100 TypeAbsorb.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 TypeAbsorb.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "WaterBubble",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Water Bubble.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Water Bubble.rb",
+        "hookFamilies": [
+          "status_prevention"
+        ]
       },
       {
         "effectName": "WaterCompaction",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Water Compaction.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Water Compaction.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "WaterSport",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 MudSport.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 MudSport.rb",
+        "hookFamilies": [
+          "lifecycle"
+        ]
       },
       {
         "effectName": "WaterVeil",
         "family": "ability",
         "status": "ported",
-        "rubyPath": "06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "WeakArmor",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Weak Armor.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Weak Armor.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "WeaknessPolicy",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Weakness Policy.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Weakness Policy.rb",
+        "hookFamilies": [
+          "post_damage"
+        ]
       },
       {
         "effectName": "Weather",
         "family": "field",
         "status": "ported",
-        "rubyPath": "06 Effects/06 Weather Effects/001 WeatherBase.rb"
+        "rubyPath": "06 Effects/06 Weather Effects/001 WeatherBase.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "WellBakedBody",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 WellBaked Body.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 WellBaked Body.rb",
+        "hookFamilies": [
+          "damage_prevention"
+        ]
       },
       {
         "effectName": "WhiteHerb",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 White Herb.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 White Herb.rb",
+        "hookFamilies": [
+          "action_order"
+        ]
       },
       {
         "effectName": "WhiteSmoke",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 White Smoke.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 White Smoke.rb",
+        "hookFamilies": [
+          "stat_change"
+        ]
       },
       {
         "effectName": "WideGuard",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb",
+        "hookFamilies": [
+          "move_prevention"
+        ]
       },
       {
         "effectName": "WideLens",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Wide Lens.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Wide Lens.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "WindPower",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 WindPower.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 WindPower.rb",
+        "hookFamilies": [
+          "action_order",
+          "post_damage"
+        ]
       },
       {
         "effectName": "WindRider",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 WindRider.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 WindRider.rb",
+        "hookFamilies": [
+          "action_order",
+          "move_prevention",
+          "switch"
+        ]
       },
       {
         "effectName": "Wish",
         "family": "move",
         "status": "ported",
-        "rubyPath": "06 Effects/02 Move Effects/001 Wish.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 Wish.rb",
+        "hookFamilies": [
+          "lifecycle"
+        ]
       },
       {
         "effectName": "WonderGuard",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Wonder Guard.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Wonder Guard.rb",
+        "hookFamilies": [
+          "ability_immunity"
+        ]
       },
       {
         "effectName": "WonderRoom",
         "family": "move",
         "status": "partial",
-        "rubyPath": "06 Effects/02 Move Effects/001 WonderRoom.rb"
+        "rubyPath": "06 Effects/02 Move Effects/001 WonderRoom.rb",
+        "hookFamilies": [
+          "lifecycle"
+        ]
       },
       {
         "effectName": "WonderSkin",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Wonder Skin.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Wonder Skin.rb",
+        "hookFamilies": []
       },
       {
         "effectName": "ZenMode",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 Zen Mode.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 Zen Mode.rb",
+        "hookFamilies": [
+          "end_turn",
+          "switch"
+        ]
       },
       {
         "effectName": "ZeroToHero",
         "family": "ability",
         "status": "missing",
-        "rubyPath": "06 Effects/04 Ability Effects/100 ZeroToHero.rb"
+        "rubyPath": "06 Effects/04 Ability Effects/100 ZeroToHero.rb",
+        "hookFamilies": [
+          "switch"
+        ]
       },
       {
         "effectName": "ZoomLens",
         "family": "item",
         "status": "missing",
-        "rubyPath": "06 Effects/05 Item Effects/100 Zoom Lens.rb"
+        "rubyPath": "06 Effects/05 Item Effects/100 Zoom Lens.rb",
+        "hookFamilies": []
       }
     ]
   },
