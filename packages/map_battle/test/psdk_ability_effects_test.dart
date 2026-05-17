@@ -716,6 +716,114 @@ void main() {
       );
     });
 
+    test('changing move type abilities convert Normal moves and boost them',
+        () {
+      const cases = <({
+        String abilityId,
+        String convertedType,
+        PsdkBattleTypes targetTypes,
+      })>[
+        (
+          abilityId: 'aerilate',
+          convertedType: 'flying',
+          targetTypes: PsdkBattleTypes(primary: 'grass'),
+        ),
+        (
+          abilityId: 'galvanize',
+          convertedType: 'electric',
+          targetTypes: PsdkBattleTypes(primary: 'water'),
+        ),
+        (
+          abilityId: 'pixilate',
+          convertedType: 'fairy',
+          targetTypes: PsdkBattleTypes(primary: 'dragon'),
+        ),
+        (
+          abilityId: 'refrigerate',
+          convertedType: 'ice',
+          targetTypes: PsdkBattleTypes(primary: 'dragon'),
+        ),
+      ];
+
+      for (final entry in cases) {
+        final converted = _calculatedDamage(
+          abilityId: entry.abilityId,
+          moveType: 'normal',
+          opponentTypes: entry.targetTypes,
+        );
+        final alreadyTyped = _calculatedDamage(
+          abilityId: entry.abilityId,
+          moveType: entry.convertedType,
+          opponentTypes: entry.targetTypes,
+        );
+        final baseline = _calculatedDamage(
+          moveType: 'normal',
+          opponentTypes: entry.targetTypes,
+        );
+
+        expect(converted, greaterThan(baseline), reason: entry.abilityId);
+        expect(alreadyTyped, lessThan(converted), reason: entry.abilityId);
+      }
+    });
+
+    test('changing move type abilities preserve Weather Ball type', () {
+      final weatherBall = _calculatedDamage(
+        abilityId: 'pixilate',
+        moveType: 'normal',
+        opponentTypes: const PsdkBattleTypes(primary: 'ghost'),
+        battleEngineMethod: 's_weather_ball',
+      );
+
+      expect(weatherBall, 0);
+    });
+
+    test('Normalize turns all non-Weather Ball attacks into Normal type', () {
+      final normalized = _calculatedDamage(
+        abilityId: 'normalize',
+        moveType: 'fire',
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+      );
+      final baseline = _calculatedDamage(
+        moveType: 'fire',
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+      );
+      final weatherBall = _calculatedDamage(
+        abilityId: 'normalize',
+        moveType: 'fire',
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+        battleEngineMethod: 's_weather_ball',
+      );
+
+      expect(normalized, lessThan(baseline));
+      expect(weatherBall, baseline);
+    });
+
+    test('Liquid Voice turns sound attacks into Water type only', () {
+      final sound = _calculatedDamage(
+        abilityId: 'liquid_voice',
+        flags: const BattleMoveFlags(sound: true),
+        category: PsdkBattleMoveCategory.special,
+        opponentTypes: const PsdkBattleTypes(primary: 'fire'),
+      );
+      final baselineSound = _calculatedDamage(
+        flags: const BattleMoveFlags(sound: true),
+        category: PsdkBattleMoveCategory.special,
+        opponentTypes: const PsdkBattleTypes(primary: 'fire'),
+      );
+      final nonSound = _calculatedDamage(
+        abilityId: 'liquid_voice',
+        category: PsdkBattleMoveCategory.special,
+        opponentTypes: const PsdkBattleTypes(primary: 'fire'),
+      );
+      final baselineNonSound = _calculatedDamage(
+        category: PsdkBattleMoveCategory.special,
+        opponentTypes: const PsdkBattleTypes(primary: 'fire'),
+      );
+
+      expect(sound, greaterThan(baselineSound));
+      expect(nonSound, baselineNonSound);
+    });
+
     test('Technician boosts only moves with base power at most sixty', () {
       final boosted = _runMove(
         playerAbilityId: 'technician',
@@ -1656,6 +1764,7 @@ int _calculatedDamage({
   int opponentCurrentHp = 100,
   BattleMoveFlags flags = const BattleMoveFlags(),
   PsdkBattleMoveCategory category = PsdkBattleMoveCategory.physical,
+  String battleEngineMethod = 's_basic',
 }) {
   final state = PsdkBattleState.fromSetup(
     BattleEngineSetup.singles(
@@ -1696,7 +1805,7 @@ int _calculatedDamage({
             pp: 35,
             priority: 0,
             criticalRate: 1,
-            battleEngineMethod: 's_basic',
+            battleEngineMethod: battleEngineMethod,
             target: PsdkBattleMoveTarget.adjacentFoe,
             flags: flags,
           ),

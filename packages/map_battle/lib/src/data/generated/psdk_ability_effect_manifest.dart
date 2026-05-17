@@ -9,7 +9,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'aerilate',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/051 ChangingMoveType.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'MoveTypeChangeAbilityEffect.aerilate',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'aftermath',
@@ -467,7 +468,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'galvanize',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/051 ChangingMoveType.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'MoveTypeChangeAbilityEffect.galvanize',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'good_as_gold',
@@ -723,7 +725,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'liquid_voice',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Liquid Voice.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'MoveTypeChangeAbilityEffect.liquidVoice',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'magician',
@@ -855,7 +858,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'normalize',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Normalize.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'MoveTypeChangeAbilityEffect.normalize',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'oblivious',
@@ -923,7 +927,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'pixilate',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/051 ChangingMoveType.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'MoveTypeChangeAbilityEffect.pixilate',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'plus',
@@ -1084,7 +1089,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'refrigerate',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/051 ChangingMoveType.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'MoveTypeChangeAbilityEffect.refrigerate',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'regenerator',

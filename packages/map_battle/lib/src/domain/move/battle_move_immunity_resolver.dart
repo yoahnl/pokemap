@@ -4,6 +4,7 @@ import '../../psdk/domain/psdk_battle_move.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 import '../battle/battle_slot.dart';
 import '../battler/battle_grounding_resolver.dart';
+import '../effect/ability/ability_effect.dart';
 import '../effect/battle_effect_hooks.dart';
 import '../effect/battle_effect_scope.dart';
 import '../timeline/battle_timeline_event.dart';
@@ -101,7 +102,7 @@ final class BattleMoveImmunityResolver {
     final target = execution.context.state.battlerAt(
       _psdkSlotFromBattlePosition(targetRef),
     );
-    final moveType = _effectiveMoveType(execution);
+    final moveType = _effectiveMoveType(execution, targetRef);
     if (_isGroundMoveBlockedByGrounding(moveType, target)) {
       return true;
     }
@@ -178,14 +179,32 @@ final class BattleMoveImmunityResolver {
   }
 }
 
-String _effectiveMoveType(BattleMoveProcedureExecution execution) {
+String _effectiveMoveType(
+  BattleMoveProcedureExecution execution,
+  BattlePositionRef targetRef,
+) {
   final user = execution.context.state.battlerAt(execution.psdkActualUser);
-  final moveType = execution.move.type.toLowerCase();
+  var moveType = execution.move.type.toLowerCase();
   if (user.effects.contains('electrify')) {
-    return 'electric';
+    moveType = 'electric';
+  } else if (user.effects.contains('ion_deluge') && moveType == 'normal') {
+    moveType = 'electric';
   }
-  if (user.effects.contains('ion_deluge') && moveType == 'normal') {
-    return 'electric';
+  final target = execution.context.state.battlerAt(
+    _psdkSlotFromBattlePosition(targetRef),
+  );
+  for (final effect in user.abilityEffects) {
+    final overridden = effect.moveTypeOverride(
+      BattleAbilityMoveTypeContext(
+        user: user,
+        target: target,
+        move: execution.move,
+        currentType: moveType,
+      ),
+    );
+    if (overridden != null) {
+      moveType = overridden;
+    }
   }
   return moveType;
 }
