@@ -26,7 +26,7 @@ final class ThroatChopEffect extends BattleEffect {
   BattleEffectUserMovePreventionResult? onUserMovePrevention(
     BattleEffectUserMovePreventionContext context,
   ) {
-    if (!_appliesTo(context.user) || !context.move.flags.sound) {
+    if (!_prevents(user: context.user, sound: context.move.flags.sound)) {
       return null;
     }
 
@@ -34,6 +34,19 @@ final class ThroatChopEffect extends BattleEffect {
       state: context.state,
       rng: context.rng,
       prevented: true,
+      reason: BattleMoveFailureReason.unusableByUser,
+    );
+  }
+
+  @override
+  BattleMoveSelectionPreventionResult? onMoveSelectionPrevention(
+    BattleMoveSelectionPreventionContext context,
+  ) {
+    if (!_prevents(user: context.user, sound: context.move.flags.sound)) {
+      return null;
+    }
+
+    return const BattleMoveSelectionPreventionResult(
       reason: BattleMoveFailureReason.unusableByUser,
     );
   }
@@ -62,5 +75,12 @@ final class ThroatChopEffect extends BattleEffect {
   bool _appliesTo(PsdkBattleSlotRef user) {
     final scope = this.scope;
     return scope is! BattlerBattleEffectScope || scope.slot == user;
+  }
+
+  bool _prevents({
+    required PsdkBattleSlotRef user,
+    required bool sound,
+  }) {
+    return _appliesTo(user) && sound;
   }
 }

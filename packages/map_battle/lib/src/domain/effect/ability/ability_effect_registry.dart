@@ -276,6 +276,7 @@ final class AbilityEffectRegistry {
           terrainMoveDbSymbol: 'psychic_terrain',
         ),
     'intimidate': ({required scope}) => IntimidateEffect(scope: scope),
+    'imposter': ({required scope}) => ImposterEffect(scope: scope),
   };
 
   final Map<String, AbilityEffectFactory> _factories;

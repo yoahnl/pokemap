@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'generated/psdk_ability_effect_manifest.dart';
+import 'generated/psdk_item_effect_manifest.dart';
 import 'generated/psdk_move_registry_manifest.dart';
 import 'psdk_attack_coverage_report.dart';
 
@@ -559,11 +561,16 @@ Future<List<PsdkEffectParityEntry>> loadPsdkEffectParityEntries(
       if (_isGenericContainerClass(parsedClass.name, classes)) {
         continue;
       }
+      final family = _effectFamily(relativePath);
       rows.add(
         PsdkEffectParityEntry(
           effectName: parsedClass.name,
-          family: _effectFamily(relativePath),
-          status: _statusForEffect(parsedClass.name),
+          family: family,
+          status: psdkEffectPortStatusFor(
+            effectName: parsedClass.name,
+            family: family,
+            rubyPath: relativePath,
+          ),
           rubyPath: relativePath,
         ),
       );
@@ -653,35 +660,102 @@ String _effectFamily(String rubyPath) {
   return 'mechanics';
 }
 
-PsdkPortStatus _statusForEffect(String effectName) {
+PsdkPortStatus psdkEffectPortStatusFor({
+  required String effectName,
+  required String family,
+  required String rubyPath,
+}) {
+  final manifestStatus = _manifestStatusForEffect(
+    effectName: effectName,
+    family: family,
+    rubyPath: rubyPath,
+  );
+  if (manifestStatus != null && manifestStatus != PsdkPortStatus.missing) {
+    return manifestStatus;
+  }
+  return _explicitEffectStatusFor(effectName);
+}
+
+PsdkPortStatus? _manifestStatusForEffect({
+  required String effectName,
+  required String family,
+  required String rubyPath,
+}) {
+  final normalizedPath = _normalizeEffectManifestPath(rubyPath);
+  if (family == 'ability') {
+    return _abilityEffectStatusByName[effectName] ??
+        _abilityEffectStatusByPath[normalizedPath];
+  }
+  if (family == 'item') {
+    return _itemEffectStatusByName[effectName] ??
+        _itemEffectStatusByPath[normalizedPath];
+  }
+  return null;
+}
+
+PsdkPortStatus _explicitEffectStatusFor(String effectName) {
   const portedEffects = <String>{
-    'ArenaTrap',
-    'MagnetPull',
-    'ShadowTag',
-  };
-  const partialEffects = <String>{
+    'Asleep',
     'AquaRing',
-    'Attract',
-    'BatonPass',
+    'ArenaTrap',
+    'AuroraVeil',
     'Bind',
-    'CantSwitch',
-    'Confusion',
+    'Burn',
+    'CraftyShield',
     'Curse',
     'Disable',
+    'Embargo',
     'Encore',
-    'Flinch',
+    'Frozen',
+    'Gravity',
     'HealBlock',
+    'Imposter',
     'Imprison',
     'Ingrain',
     'LeechSeed',
-    'Protect',
+    'LightScreen',
+    'LuckyChant',
+    'MagnetPull',
+    'MagicRoom',
+    'Nightmare',
+    'PerishSong',
+    'Paralysis',
+    'Poison',
+    'Powder',
+    'MatBlock',
+    'Mist',
+    'MudSport',
+    'QuickGuard',
+    'Reflect',
+    'Safeguard',
     'SaltCure',
-    'SmackDown',
+    'ShadowTag',
+    'Spikes',
+    'StealthRock',
+    'StickyWeb',
     'SyrupBomb',
+    'Tailwind',
     'Taunt',
-    'TarShot',
     'ThroatChop',
     'Torment',
+    'Toxic',
+    'ToxicSpikes',
+    'TrickRoom',
+    'WaterSport',
+    'WideGuard',
+    'Wish',
+  };
+  const partialEffects = <String>{
+    'Attract',
+    'BatonPass',
+    'CantSwitch',
+    'CenterOfAttention',
+    'Confusion',
+    'Flinch',
+    'Protect',
+    'SmackDown',
+    'TarShot',
+    'WonderRoom',
   };
   if (portedEffects.contains(effectName)) {
     return PsdkPortStatus.ported;
@@ -690,6 +764,122 @@ PsdkPortStatus _statusForEffect(String effectName) {
     return PsdkPortStatus.partial;
   }
   return PsdkPortStatus.missing;
+}
+
+final Map<String, PsdkPortStatus> _abilityEffectStatusByName =
+    _buildAbilityEffectStatusByName();
+final Map<String, PsdkPortStatus> _abilityEffectStatusByPath =
+    _buildAbilityEffectStatusByPath();
+final Map<String, PsdkPortStatus> _itemEffectStatusByName =
+    _buildItemEffectStatusByName();
+final Map<String, PsdkPortStatus> _itemEffectStatusByPath =
+    _buildItemEffectStatusByPath();
+
+Map<String, PsdkPortStatus> _buildAbilityEffectStatusByName() {
+  final grouped = <String, List<PsdkPortStatus>>{};
+  for (final entry in psdkAbilityEffectManifest) {
+    grouped
+        .putIfAbsent(_pascalCaseManifestId(entry.abilityId), () => [])
+        .add(_abilityPortStatus(entry.status));
+  }
+  return _combineGroupedStatuses(grouped);
+}
+
+Map<String, PsdkPortStatus> _buildAbilityEffectStatusByPath() {
+  final grouped = <String, List<PsdkPortStatus>>{};
+  for (final entry in psdkAbilityEffectManifest) {
+    grouped
+        .putIfAbsent(_normalizeEffectManifestPath(entry.rubyPath), () => [])
+        .add(_abilityPortStatus(entry.status));
+  }
+  return _combineGroupedStatuses(grouped);
+}
+
+Map<String, PsdkPortStatus> _buildItemEffectStatusByName() {
+  final grouped = <String, List<PsdkPortStatus>>{};
+  for (final entry in psdkItemEffectManifest) {
+    grouped
+        .putIfAbsent(_itemEffectNameFromId(entry.itemId), () => [])
+        .add(_itemPortStatus(entry.status));
+  }
+  return _combineGroupedStatuses(grouped);
+}
+
+Map<String, PsdkPortStatus> _buildItemEffectStatusByPath() {
+  final grouped = <String, List<PsdkPortStatus>>{};
+  for (final entry in psdkItemEffectManifest) {
+    grouped
+        .putIfAbsent(_normalizeEffectManifestPath(entry.rubyPath), () => [])
+        .add(_itemPortStatus(entry.status));
+  }
+  return _combineGroupedStatuses(grouped);
+}
+
+Map<String, PsdkPortStatus> _combineGroupedStatuses(
+  Map<String, List<PsdkPortStatus>> grouped,
+) {
+  return Map.unmodifiable(<String, PsdkPortStatus>{
+    for (final entry in grouped.entries)
+      entry.key: _combineStatuses(entry.value),
+  });
+}
+
+PsdkPortStatus _combineStatuses(List<PsdkPortStatus> statuses) {
+  if (statuses.isEmpty ||
+      statuses.every((status) => status == PsdkPortStatus.missing)) {
+    return PsdkPortStatus.missing;
+  }
+  if (statuses.every((status) => status == PsdkPortStatus.ported)) {
+    return PsdkPortStatus.ported;
+  }
+  return PsdkPortStatus.partial;
+}
+
+PsdkPortStatus _abilityPortStatus(PsdkAbilityPortStatus status) {
+  return switch (status) {
+    PsdkAbilityPortStatus.ported => PsdkPortStatus.ported,
+    PsdkAbilityPortStatus.partial => PsdkPortStatus.partial,
+    PsdkAbilityPortStatus.missing ||
+    PsdkAbilityPortStatus.outOfScope =>
+      PsdkPortStatus.missing,
+  };
+}
+
+PsdkPortStatus _itemPortStatus(PsdkItemPortStatus status) {
+  return switch (status) {
+    PsdkItemPortStatus.ported => PsdkPortStatus.ported,
+    PsdkItemPortStatus.partial => PsdkPortStatus.partial,
+    PsdkItemPortStatus.missing ||
+    PsdkItemPortStatus.outOfScope =>
+      PsdkPortStatus.missing,
+  };
+}
+
+String _itemEffectNameFromId(String itemId) {
+  if (itemId.endsWith('_berry')) {
+    return _pascalCaseManifestId(
+      itemId.substring(0, itemId.length - '_berry'.length),
+    );
+  }
+  return _pascalCaseManifestId(itemId);
+}
+
+String _pascalCaseManifestId(String id) {
+  return id
+      .split('_')
+      .where((part) => part.isNotEmpty)
+      .map((part) => part[0].toUpperCase() + part.substring(1))
+      .join();
+}
+
+String _normalizeEffectManifestPath(String rubyPath) {
+  final normalizedSeparators = rubyPath.replaceAll('\\', '/');
+  const marker = '5 Battle/';
+  final markerIndex = normalizedSeparators.indexOf(marker);
+  if (markerIndex == -1) {
+    return normalizedSeparators;
+  }
+  return normalizedSeparators.substring(markerIndex + marker.length);
 }
 
 Directory? _childDir(Directory root, String childName) {

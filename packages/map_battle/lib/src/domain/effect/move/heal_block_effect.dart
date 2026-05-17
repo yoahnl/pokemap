@@ -1,4 +1,5 @@
 import '../../../psdk/domain/psdk_battle_slots.dart';
+import '../../move/battle_move_data.dart';
 import '../../move/battle_move_prevention.dart';
 import '../battle_effect.dart';
 import '../battle_effect_hooks.dart';
@@ -26,8 +27,7 @@ final class HealBlockEffect extends BattleEffect {
   BattleEffectUserMovePreventionResult? onUserMovePrevention(
     BattleEffectUserMovePreventionContext context,
   ) {
-    if (!_appliesTo(context.user) ||
-        !_healBlockedMethods.contains(context.move.battleEngineMethod)) {
+    if (!_prevents(user: context.user, move: context.move)) {
       return null;
     }
 
@@ -35,6 +35,19 @@ final class HealBlockEffect extends BattleEffect {
       state: context.state,
       rng: context.rng,
       prevented: true,
+      reason: BattleMoveFailureReason.unusableByUser,
+    );
+  }
+
+  @override
+  BattleMoveSelectionPreventionResult? onMoveSelectionPrevention(
+    BattleMoveSelectionPreventionContext context,
+  ) {
+    if (!_prevents(user: context.user, move: context.move)) {
+      return null;
+    }
+
+    return const BattleMoveSelectionPreventionResult(
       reason: BattleMoveFailureReason.unusableByUser,
     );
   }
@@ -63,6 +76,14 @@ final class HealBlockEffect extends BattleEffect {
   bool _appliesTo(PsdkBattleSlotRef user) {
     final scope = this.scope;
     return scope is! BattlerBattleEffectScope || scope.slot == user;
+  }
+
+  bool _prevents({
+    required PsdkBattleSlotRef user,
+    required BattleMoveDefinition move,
+  }) {
+    return _appliesTo(user) &&
+        _healBlockedMethods.contains(move.battleEngineMethod);
   }
 }
 

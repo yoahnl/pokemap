@@ -99,6 +99,76 @@ void main() {
       expect(player.moves.every((move) => move.pp == 5), isTrue);
       expect(player.moves.every((move) => move.currentPp == 5), isTrue);
     });
+
+    test('s_transform fails against a target that is already transformed', () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            speciesId: 'ditto',
+            displayName: 'Ditto',
+            abilityId: 'limber',
+            speed: 100,
+            types: const PsdkBattleTypes(primary: 'normal'),
+            stats: const PsdkBattleStats(
+              attack: 10,
+              defense: 12,
+              specialAttack: 14,
+              specialDefense: 16,
+              speed: 100,
+            ),
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'transform',
+                battleEngineMethod: 's_transform',
+                target: PsdkBattleMoveTarget.adjacentFoe,
+              ),
+            ],
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            speciesId: 'vaporeon',
+            displayName: 'Vaporeon',
+            abilityId: 'water_absorb',
+            speed: 1,
+            types: const PsdkBattleTypes(primary: 'water'),
+            stats: const PsdkBattleStats(
+              attack: 65,
+              defense: 60,
+              specialAttack: 110,
+              specialDefense: 95,
+              speed: 65,
+            ),
+            transformState: const PsdkBattleTransformState(
+              transformedFromSpeciesId: 'eevee',
+            ),
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'splash',
+                battleEngineMethod: 's_splash',
+                target: PsdkBattleMoveTarget.none,
+              ),
+            ],
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ),
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.speciesId, 'ditto');
+      expect(player.transformState.isTransformed, isFalse);
+      expect(
+        result.timeline.events.whereType<PsdkBattleMoveFailedEvent>(),
+        hasLength(1),
+      );
+    });
   });
 }
 
@@ -113,6 +183,7 @@ PsdkBattleCombatantSetup _combatant({
   required List<PsdkBattleMoveData> moves,
   int currentHp = 80,
   PsdkBattleStatStages? statStages,
+  PsdkBattleTransformState transformState = const PsdkBattleTransformState(),
   double currentWeightKg = 1,
 }) {
   return PsdkBattleCombatantSetup(
@@ -126,6 +197,7 @@ PsdkBattleCombatantSetup _combatant({
     stats: stats,
     abilityId: abilityId,
     statStages: statStages,
+    transformState: transformState,
     baseWeightKg: currentWeightKg,
     currentWeightKg: currentWeightKg,
     moves: moves,

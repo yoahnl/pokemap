@@ -1,25 +1,25 @@
 # PSDK Fight Convergence Dashboard
 
-Generated: 2026-05-17T17:33:18.992107Z
+Generated: 2026-05-17T19:12:59.761178Z
 
 ## Final Gate Axes
 
 | Axis | Complete | Percent | Remaining |
 | --- | ---: | ---: | ---: |
-| Attacks | 342 / 728 | 47.0% | 386 |
-| Methods | 148 / 330 | 44.8% | 182 |
-| Effects | 3 / 482 | 0.6% | 479 |
+| Attacks | 343 / 728 | 47.1% | 385 |
+| Methods | 149 / 330 | 45.2% | 181 |
+| Effects | 49 / 482 | 10.2% | 433 |
 
 ## Effects By Family
 
 | Family | Ported | Partial | Missing | Remaining |
 | --- | ---: | ---: | ---: | ---: |
-| ability | 3 | 0 | 251 | 251 |
+| ability | 4 | 36 | 214 | 250 |
 | field | 0 | 0 | 15 | 15 |
-| item | 0 | 0 | 87 | 87 |
+| item | 0 | 37 | 50 | 87 |
 | mechanics | 0 | 0 | 4 | 4 |
-| move | 0 | 22 | 93 | 115 |
-| status | 0 | 0 | 7 | 7 |
+| move | 39 | 10 | 66 | 76 |
+| status | 6 | 0 | 1 | 1 |
 
 ## Runtime Bridge
 
@@ -30,4 +30,4 @@ Generated: 2026-05-17T17:33:18.992107Z
 
 ## Next Recommendation
 
-Next recommended lot: close effect family `ability` (251 remaining effects).
+Next recommended lot: close effect family `ability` (250 remaining effects).

@@ -239,6 +239,82 @@ void main() {
       expect(result.events.whereType<PsdkBattleStatStageEvent>(), isEmpty);
     });
 
+    test('Imposter copies opposing active battler on switch-in', () {
+      final result = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'imposter',
+        opponentAbilityId: 'water_absorb',
+        opponentSpeciesId: 'vaporeon',
+        opponentDisplayName: 'Vaporeon',
+        opponentTypes: const PsdkBattleTypes(primary: 'water'),
+        opponentStats: const PsdkBattleStats(
+          attack: 65,
+          defense: 60,
+          specialAttack: 110,
+          specialDefense: 95,
+          speed: 65,
+        ),
+        opponentStatStages: PsdkBattleStatStages(
+          values: const <String, int>{'attack': 2, 'speed': -1},
+        ),
+        opponentCurrentWeightKg: 29,
+        opponentMoves: <PsdkBattleMoveData>[
+          _move(
+            id: 'splash',
+            power: 0,
+            category: PsdkBattleMoveCategory.status,
+            battleEngineMethod: 's_splash',
+            target: PsdkBattleMoveTarget.none,
+          ),
+          _move(
+            id: 'water_gun',
+            type: 'water',
+            category: PsdkBattleMoveCategory.special,
+            power: 40,
+          ),
+        ],
+      );
+
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      expect(result.applied, isTrue);
+      expect(player.speciesId, 'vaporeon');
+      expect(player.displayName, 'Vaporeon');
+      expect(player.abilityId, 'water_absorb');
+      expect(player.types.primary, 'water');
+      expect(player.stats.specialAttack, 110);
+      expect(player.statStages.valueOf('attack'), 2);
+      expect(player.statStages.valueOf('speed'), -1);
+      expect(player.currentHp, 100);
+      expect(player.currentWeightKg, 29);
+      expect(player.transformState.isTransformed, isTrue);
+      expect(player.transformState.transformedFromSpeciesId, 'player');
+      expect(player.effects.contains('transform'), isTrue);
+      expect(player.moves.map((move) => move.id), <String>[
+        'splash',
+        'water_gun',
+      ]);
+      expect(player.moves.every((move) => move.pp == 5), isTrue);
+      expect(player.moves.every((move) => move.currentPp == 5), isTrue);
+    });
+
+    test('Imposter does not copy a target that is already transformed', () {
+      final result = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'imposter',
+        opponentAbilityId: 'water_absorb',
+        opponentSpeciesId: 'vaporeon',
+        opponentDisplayName: 'Vaporeon',
+        opponentTransformState: const PsdkBattleTransformState(
+          transformedFromSpeciesId: 'eevee',
+        ),
+      );
+
+      final player = result.state.battlerAt(psdkPlayerSlot);
+      expect(result.applied, isFalse);
+      expect(result.reason, 'no_switch_events');
+      expect(player.speciesId, 'player');
+      expect(player.transformState.isTransformed, isFalse);
+      expect(player.effects.contains('transform'), isFalse);
+    });
+
     test('Speed Boost raises Speed at end turn', () {
       final result = _resolveAbilityEndTurn(playerAbilityId: 'speed_boost');
 
@@ -1030,6 +1106,15 @@ BattleHandlerResult _dispatchAbilitySwitchIn({
   required String playerAbilityId,
   String? playerHeldItemId,
   String? opponentAbilityId,
+  String opponentSpeciesId = 'opponent',
+  String opponentDisplayName = 'opponent',
+  PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
+  PsdkBattleStats? opponentStats,
+  PsdkBattleStatStages? opponentStatStages,
+  PsdkBattleTransformState opponentTransformState =
+      const PsdkBattleTransformState(),
+  double opponentCurrentWeightKg = 1,
+  List<PsdkBattleMoveData>? opponentMoves,
 }) {
   const benchSlot = PsdkBattleSlotRef(bank: 0, position: -1);
   final state = PsdkBattleState.fromSetup(
@@ -1042,7 +1127,15 @@ BattleHandlerResult _dispatchAbilitySwitchIn({
       ),
       opponent: _combatant(
         id: 'opponent',
+        speciesId: opponentSpeciesId,
+        displayName: opponentDisplayName,
         abilityId: opponentAbilityId,
+        types: opponentTypes,
+        stats: opponentStats,
+        statStages: opponentStatStages,
+        transformState: opponentTransformState,
+        currentWeightKg: opponentCurrentWeightKg,
+        moves: opponentMoves,
         move: _move(id: 'opponent_wait', power: 0),
       ),
       rngSeeds: const BattleRngSeeds(
@@ -1105,31 +1198,43 @@ BattleHandlerResult _resolveAbilityEndTurn({
 
 PsdkBattleCombatantSetup _combatant({
   required String id,
+  String? speciesId,
+  String? displayName,
   String? abilityId,
   String? heldItemId,
   int currentHp = 100,
   int speed = 50,
   PsdkBattleTypes types = const PsdkBattleTypes(primary: 'normal'),
+  PsdkBattleStats? stats,
+  PsdkBattleStatStages? statStages,
+  PsdkBattleTransformState transformState = const PsdkBattleTransformState(),
+  double currentWeightKg = 1,
+  List<PsdkBattleMoveData>? moves,
   required PsdkBattleMoveData move,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
-    speciesId: id,
-    displayName: id,
+    speciesId: speciesId ?? id,
+    displayName: displayName ?? id,
     level: 20,
     maxHp: 100,
     currentHp: currentHp,
     types: types,
-    stats: PsdkBattleStats(
-      attack: 50,
-      defense: 50,
-      specialAttack: 50,
-      specialDefense: 50,
-      speed: speed,
-    ),
+    stats: stats ??
+        PsdkBattleStats(
+          attack: 50,
+          defense: 50,
+          specialAttack: 50,
+          specialDefense: 50,
+          speed: speed,
+        ),
     abilityId: abilityId,
     heldItemId: heldItemId,
-    moves: <PsdkBattleMoveData>[move],
+    statStages: statStages,
+    transformState: transformState,
+    baseWeightKg: currentWeightKg,
+    currentWeightKg: currentWeightKg,
+    moves: moves ?? <PsdkBattleMoveData>[move],
   );
 }
 

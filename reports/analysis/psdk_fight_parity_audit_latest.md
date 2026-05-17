@@ -9,8 +9,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Metric | Count |
 | --- | ---: |
 | Studio attacks total | 728 |
-| Studio attacks `fait` | 342 |
-| Studio attacks `partiel` | 386 |
+| Studio attacks `fait` | 343 |
+| Studio attacks `partiel` | 385 |
 | Studio attacks `pas_fait` | 0 |
 | Unknown methods | 0 |
 | Unique battle engine methods | 258 |
@@ -156,7 +156,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_thrash | 1 |
 | s_torment | 1 |
 | s_toxic_thread | 1 |
-| s_transform | 1 |
 | s_trick | 2 |
 | s_triple_kick | 1 |
 | s_trump_card | 1 |
@@ -174,8 +173,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 148 |
-| `partial` | 182 |
+| `ported` | 149 |
+| `partial` | 181 |
 | `missing` | 0 |
 | Total manifest methods | 330 |
 
@@ -183,55 +182,54 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Dependency | Partial methods |
 | --- | ---: |
-| no_dependency_declared | 112 |
-| effects | 49 |
-| ability | 33 |
-| handlerDamage | 20 |
-| handlerStatus | 15 |
-| item | 13 |
-| targetingMulti | 13 |
-| history | 9 |
-| handlerSwitch | 8 |
+| effects | 158 |
+| ability | 57 |
+| handlerDamage | 36 |
+| item | 33 |
+| history | 20 |
+| handlerStatus | 19 |
+| targetingMulti | 15 |
+| field | 13 |
+| actionOrder | 12 |
+| handlerSwitch | 7 |
 | faintProcess | 6 |
+| handlerStat | 6 |
+| accuracy | 5 |
 | endTurn | 5 |
-| actionOrder | 4 |
-| field | 4 |
 | terrain | 4 |
-| accuracy | 3 |
 | grounded | 3 |
-| handlerStat | 2 |
 | handlerItem | 1 |
 
 ## Effect Coverage
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 3 |
-| `partial` | 22 |
-| `missing` | 457 |
+| `ported` | 49 |
+| `partial` | 83 |
+| `missing` | 350 |
 | Total effect classes | 482 |
 
 ### Effects by Family
 
 | Family | Ported | Partial | Missing |
 | --- | ---: | ---: | ---: |
-| ability | 3 | 0 | 251 |
+| ability | 4 | 36 | 214 |
 | field | 0 | 0 | 15 |
-| item | 0 | 0 | 87 |
+| item | 0 | 37 | 50 |
 | mechanics | 0 | 0 | 4 |
-| move | 0 | 22 | 93 |
-| status | 0 | 0 | 7 |
+| move | 39 | 10 | 66 |
+| status | 6 | 0 | 1 |
 
 ### Missing Effects by Family
 
 | Family | Missing effects |
 | --- | ---: |
-| ability | 251 |
+| ability | 214 |
 | field | 15 |
-| item | 87 |
+| item | 50 |
 | mechanics | 4 |
-| move | 93 |
-| status | 7 |
+| move | 66 |
+| status | 1 |
 
 ## Runtime Bridge
 

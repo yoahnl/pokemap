@@ -2,6 +2,7 @@ import '../../../psdk/domain/psdk_battle_field.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../battler/battle_transform_service.dart';
 import '../../handler/battle_handler_context.dart';
 import '../../handler/battle_stat_change_handler.dart';
 import '../../handler/battle_terrain_change_handler.dart';
@@ -193,6 +194,54 @@ final class IntimidateEffect extends BattleAbilityEffect {
       rng: nextRng,
       events: events,
     );
+  }
+}
+
+final class ImposterEffect extends BattleAbilityEffect {
+  const ImposterEffect({
+    required BattleEffectScope scope,
+  }) : super(abilityId: 'imposter', scope: scope);
+
+  static const PsdkBattleTransformService _transformService =
+      PsdkBattleTransformService();
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return ImposterEffect(scope: scope);
+  }
+
+  @override
+  BattleEffectSwitchEventResult? onSwitchEvent(
+    BattleEffectSwitchEventContext context,
+  ) {
+    if (!_isEnteringOwner(context)) {
+      return null;
+    }
+
+    final user = context.state.battlerAt(context.replacement);
+    if (!_transformService.canTransform(user)) {
+      return null;
+    }
+
+    for (final targetSlot in context.state.foesOf(context.replacement)) {
+      final target = context.state.battlerAt(targetSlot);
+      if (!_transformService.canCopy(target)) {
+        continue;
+      }
+      return BattleEffectSwitchEventResult(
+        state: context.state.replaceBattler(
+          context.replacement,
+          _transformService.transform(
+            user: user,
+            target: target,
+            userSlot: context.replacement,
+          ),
+        ),
+        rng: context.rng,
+      );
+    }
+
+    return null;
   }
 }
 

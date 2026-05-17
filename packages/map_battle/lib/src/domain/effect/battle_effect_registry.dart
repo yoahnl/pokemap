@@ -1,5 +1,6 @@
 import 'battle_effect.dart';
 import 'battle_effect_scope.dart';
+import 'field/wish_effect.dart';
 import 'move/aqua_ring_effect.dart';
 import 'move/attract_effect.dart';
 import 'move/baton_pass_effect.dart';
@@ -8,6 +9,7 @@ import 'move/cant_switch_effect.dart';
 import 'move/confusion_effect.dart';
 import 'move/curse_effect.dart';
 import 'move/disable_effect.dart';
+import 'move/embargo_effect.dart';
 import 'move/encore_effect.dart';
 import 'move/endure_effect.dart';
 import 'move/flinch_effect.dart';
@@ -15,6 +17,9 @@ import 'move/force_next_move_base_effect.dart';
 import 'move/heal_block_effect.dart';
 import 'move/imprison_effect.dart';
 import 'move/ingrain_effect.dart';
+import 'move/leech_seed_effect.dart';
+import 'move/nightmare_effect.dart';
+import 'move/perish_song_effect.dart';
 import 'move/powder_effect.dart';
 import 'move/protect_effect.dart';
 import 'move/salt_cure_effect.dart';
@@ -56,6 +61,7 @@ final class BattleEffectRegistry {
           scope: LocalBattleEffectScope(),
           disabledMoveId: '',
         ),
+      'embargo' => const EmbargoEffect(scope: LocalBattleEffectScope()),
       'endure' => const EndureEffect(scope: LocalBattleEffectScope()),
       'encore' => const EncoreEffect(
           scope: LocalBattleEffectScope(),
@@ -67,6 +73,12 @@ final class BattleEffectRegistry {
       'heal_block' => const HealBlockEffect(scope: LocalBattleEffectScope()),
       'imprison' => ImprisonEffect(scope: const LocalBattleEffectScope()),
       'ingrain' => const IngrainEffect(scope: LocalBattleEffectScope()),
+      'leech_seed' => const LeechSeedEffect(
+          scope: LocalBattleEffectScope(),
+          source: psdkOpponentSlot,
+        ),
+      'nightmare' => const NightmareEffect(scope: LocalBattleEffectScope()),
+      'perish_song' => const PerishSongEffect(scope: LocalBattleEffectScope()),
       'powder' => const PowderEffect(scope: LocalBattleEffectScope()),
       'protect' => const ProtectEffect(scope: LocalBattleEffectScope()),
       'salt_cure' => const SaltCureEffect(scope: LocalBattleEffectScope()),
@@ -84,6 +96,11 @@ final class BattleEffectRegistry {
           scope: LocalBattleEffectScope(),
           chargedMoveId: '',
           chargedTarget: psdkOpponentSlot,
+        ),
+      'wish' => const WishEffect(
+          scope: LocalBattleEffectScope(),
+          healAmount: 1,
+          remainingTurns: 2,
         ),
       final value => GenericBattleEffect(id: value),
     };

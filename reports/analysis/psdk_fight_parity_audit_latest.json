@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 342,
-    "partiel": 386,
+    "fait": 343,
+    "partiel": 385,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -5427,9 +5427,9 @@
       {
         "moveId": "transform",
         "battleEngineMethod": "s_transform",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/transform.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 148,
-      "partial": 182,
+      "ported": 149,
+      "partial": 181,
       "missing": 0
     },
     "entries": [
@@ -5975,7 +5975,11 @@
         "rubyPath": "10 Move/2 Definitions/300 Assist.rb",
         "dartBehavior": "CopyCallMoveBehavior.assist",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "history",
+          "actionOrder",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_assurance",
@@ -5991,7 +5995,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Attract.rb",
         "dartBehavior": "StaticBasicMoveRegistry.attract",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_aura_wheel",
@@ -5999,7 +6005,12 @@
         "rubyPath": "10 Move/2 Definitions/300 AuraWheel.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_aura_wheel)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "handlerDamage",
+          "effects",
+          "ability",
+          "item"
+        ]
       },
       {
         "battleEngineMethod": "s_autotomize",
@@ -6007,7 +6018,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Autotomize.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_autotomize)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_avalanche",
@@ -6023,7 +6036,9 @@
         "rubyPath": "10 Move/2 Definitions/300 GlitzyGlow.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_baddy_bad",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_basic",
@@ -6050,7 +6065,12 @@
         "rubyPath": "10 Move/2 Definitions/300 PreAttackMoves.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_beak_blast)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "handlerDamage",
+          "effects",
+          "ability",
+          "item"
+        ]
       },
       {
         "battleEngineMethod": "s_beat_up",
@@ -6058,7 +6078,12 @@
         "rubyPath": "10 Move/2 Definitions/300 BeatUp.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_beat_up)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "handlerDamage",
+          "effects",
+          "ability",
+          "item"
+        ]
       },
       {
         "battleEngineMethod": "s_belch",
@@ -6087,7 +6112,11 @@
         "rubyPath": "10 Move/2 Definitions/300 Bestow.rb",
         "dartBehavior": "ItemDependentMoveBehavior.bestow",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "item",
+          "ability",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_bide",
@@ -6095,7 +6124,11 @@
         "rubyPath": "10 Move/2 Definitions/300 Bide.rb",
         "dartBehavior": "CounterDamageMoveBehavior.bide",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "handlerDamage",
+          "history",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_bind",
@@ -6165,7 +6198,10 @@
         "rubyPath": "10 Move/2 Definitions/300 Camouflage.rb",
         "dartBehavior": "FieldLocationMoveBehavior.camouflage",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "field",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_cantflee",
@@ -6181,7 +6217,12 @@
         "rubyPath": "10 Move/2 Definitions/300 Captivate.rb",
         "dartBehavior": "StaticBasicMoveRegistry.secondaryOnly(s_captivate)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects",
+          "handlerStatus",
+          "handlerStat",
+          "ability"
+        ]
       },
       {
         "battleEngineMethod": "s_ceaseless_edge",
@@ -6197,7 +6238,9 @@
         "rubyPath": "10 Move/2 Definitions/300 ChangeType.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_change_type",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_charge",
@@ -6216,7 +6259,10 @@
         "rubyPath": "10 Move/2 Definitions/300 ChillyReception.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialFieldMarker(s_chilly_reception)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "field",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_chloroblast",
@@ -6248,7 +6294,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Conversion.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_conversion)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_conversion2",
@@ -6256,7 +6304,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Conversion.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_conversion2)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_core_enforcer",
@@ -6264,7 +6314,12 @@
         "rubyPath": "10 Move/2 Definitions/300 CoreEnforcer.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_core_enforcer)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "handlerDamage",
+          "effects",
+          "ability",
+          "item"
+        ]
       },
       {
         "battleEngineMethod": "s_corrosive_gas",
@@ -6272,7 +6327,9 @@
         "rubyPath": "10 Move/2 Definitions/300 CorrosiveGas.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_corrosive_gas",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_counter",
@@ -6288,7 +6345,10 @@
         "rubyPath": "10 Move/2 Definitions/300 CourtChange.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialFieldMarker(s_court_change)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "field",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_crafty_shield",
@@ -6337,7 +6397,9 @@
         "rubyPath": "10 Move/2 Definitions/300 DestinyBond.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_destiny_bond)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_disable",
@@ -6345,7 +6407,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Disable.rb",
         "dartBehavior": "StaticBasicMoveRegistry.disable",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_do_nothing",
@@ -6361,7 +6425,9 @@
         "rubyPath": "10 Move/2 Definitions/300 AbilityChanging.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_doodle)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_double_iron_bash",
@@ -6369,7 +6435,13 @@
         "rubyPath": "10 Move/2 Definitions/300 DoubleIronBash.rb",
         "dartBehavior": "MultiHitMoveBehavior.doubleIronBash",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "targetingMulti",
+          "history",
+          "accuracy",
+          "ability",
+          "item"
+        ]
       },
       {
         "battleEngineMethod": "s_dragon_cheer",
@@ -6377,7 +6449,9 @@
         "rubyPath": "10 Move/2 Definitions/300 DragonCheer.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_dragon_cheer)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_dragon_darts",
@@ -6385,7 +6459,12 @@
         "rubyPath": "10 Move/2 Definitions/300 DragonDarts.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_dragon_darts)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "handlerDamage",
+          "effects",
+          "ability",
+          "item"
+        ]
       },
       {
         "battleEngineMethod": "s_dragon_tail",
@@ -6427,7 +6506,9 @@
         "rubyPath": "10 Move/2 Definitions/300 EerieSpell.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_eerie_spell",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_electrify",
@@ -6462,7 +6543,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Embargo.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_embargo)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_encore",
@@ -6470,7 +6553,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Encore.rb",
         "dartBehavior": "StaticBasicMoveRegistry.encore",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_endeavor",
@@ -6486,7 +6571,10 @@
         "rubyPath": "10 Move/2 Definitions/300 AbilityChanging.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialAbilityChanging(s_entrainment)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "ability",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_eruption",
@@ -6533,7 +6621,10 @@
         "rubyPath": "10 Move/2 Definitions/300 FairyLock.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialFieldMarker(s_fairy_lock)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "field",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_fake_out",
@@ -6567,7 +6658,9 @@
         "rubyPath": "10 Move/2 Definitions/300 FellStinger.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_fell_stinger",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_fickle_beam",
@@ -6575,7 +6668,9 @@
         "rubyPath": "10 Move/2 Definitions/300 FickleBeam.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_fickle_beam",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_fillet_away",
@@ -6631,7 +6726,9 @@
         "rubyPath": "10 Move/2 Definitions/300 FlameBurst.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_flame_burst",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_fling",
@@ -6639,7 +6736,11 @@
         "rubyPath": "10 Move/2 Definitions/300 Fling.rb",
         "dartBehavior": "ItemDependentMoveBehavior.fling",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "item",
+          "ability",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_floral_healing",
@@ -6660,7 +6761,9 @@
         "rubyPath": "10 Move/2 Definitions/300 FlowerShield.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_flower_shield)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_flying_press",
@@ -6668,7 +6771,12 @@
         "rubyPath": "10 Move/2 Definitions/300 FlyingPress.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_flying_press)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "handlerDamage",
+          "effects",
+          "ability",
+          "item"
+        ]
       },
       {
         "battleEngineMethod": "s_focus_energy",
@@ -6736,7 +6844,12 @@
         "rubyPath": "10 Move/2 Definitions/300 Frustration.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_frustration)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "handlerDamage",
+          "effects",
+          "ability",
+          "item"
+        ]
       },
       {
         "battleEngineMethod": "s_full_crit",
@@ -6760,7 +6873,9 @@
         "rubyPath": "10 Move/2 Definitions/300 FusionFlareBolt.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_fusion_bolt",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_fusion_flare",
@@ -6768,7 +6883,9 @@
         "rubyPath": "10 Move/2 Definitions/300 FusionFlareBolt.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_fusion_flare",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_future_sight",
@@ -6800,7 +6917,9 @@
         "rubyPath": "10 Move/2 Definitions/300 GearUp.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_gear_up)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_genies_storm",
@@ -6816,7 +6935,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Geomancy.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_geomancy)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_gigaton_hammer",
@@ -6832,7 +6953,9 @@
         "rubyPath": "10 Move/2 Definitions/300 GlaiveRush.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_glaive_rush",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_glitzy_glow",
@@ -6840,7 +6963,9 @@
         "rubyPath": "10 Move/2 Definitions/300 GlitzyGlow.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_glitzy_glow",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_grassy_glide",
@@ -6860,7 +6985,9 @@
         "rubyPath": "10 Move/2 Definitions/300 GravApple.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_grav_apple",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_gravity",
@@ -6868,7 +6995,10 @@
         "rubyPath": "10 Move/2 Definitions/300 Gravity.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialFieldMarker(s_gravity)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "field",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_growth",
@@ -6889,7 +7019,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Grudge.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_grudge)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_guard_split",
@@ -6925,7 +7057,10 @@
         "rubyPath": "10 Move/2 Definitions/300 HappyHour.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialFieldMarker(s_happy_hour)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "field",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_hard_press",
@@ -6979,7 +7114,9 @@
         "rubyPath": "10 Move/2 Definitions/300 HealBlock.rb",
         "dartBehavior": "StaticBasicMoveRegistry.healBlock",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_heal_weather",
@@ -7000,7 +7137,9 @@
         "rubyPath": "10 Move/2 Definitions/300 HealingSacrifice.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_healing_wish)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_heart_swap",
@@ -7053,7 +7192,12 @@
         "rubyPath": "10 Move/2 Definitions/300 HiddenPower.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_hidden_power)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "handlerDamage",
+          "effects",
+          "ability",
+          "item"
+        ]
       },
       {
         "battleEngineMethod": "s_hp_eq_level",
@@ -7093,7 +7237,9 @@
         "rubyPath": "10 Move/2 Definitions/300 IceSpinner SteelRoller.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_ice_spinner",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_imprison",
@@ -7101,7 +7247,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Imprison.rb",
         "dartBehavior": "StaticBasicMoveRegistry.imprison",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_incinerate",
@@ -7139,7 +7287,11 @@
         "rubyPath": "10 Move/2 Definitions/300 Instruct.rb",
         "dartBehavior": "CopyCallMoveBehavior.instruct",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "history",
+          "actionOrder",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_ion_deluge",
@@ -7166,7 +7318,9 @@
         "rubyPath": "10 Move/2 Definitions/300 JawLock.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_jaw_lock",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_judgment",
@@ -7182,7 +7336,9 @@
         "rubyPath": "10 Move/2 Definitions/300 HighJumpKick.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_jump_kick",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_jungle_healing",
@@ -7203,7 +7359,11 @@
         "rubyPath": "10 Move/2 Definitions/300 KnockOff.rb",
         "dartBehavior": "ItemDependentMoveBehavior.knockOff",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "item",
+          "ability",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_laser_focus",
@@ -7237,7 +7397,9 @@
         "rubyPath": "10 Move/2 Definitions/300 LastRespects.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_last_respects",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_leech_seed",
@@ -7270,7 +7432,9 @@
         "rubyPath": "10 Move/2 Definitions/300 LockOn.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_lock_on",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_low_kick",
@@ -7298,7 +7462,9 @@
         "rubyPath": "10 Move/2 Definitions/300 HealingSacrifice.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_lunar_dance)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_magic_coat",
@@ -7306,7 +7472,9 @@
         "rubyPath": "10 Move/2 Definitions/300 MagicCoat.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_magic_coat)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_magic_powder",
@@ -7314,7 +7482,9 @@
         "rubyPath": "10 Move/2 Definitions/300 MagicPowder.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_magic_powder)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_magic_room",
@@ -7322,7 +7492,10 @@
         "rubyPath": "10 Move/2 Definitions/300 MagicRoom.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialFieldMarker(s_magic_room)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "field",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_magnet_rise",
@@ -7341,7 +7514,9 @@
         "rubyPath": "10 Move/2 Definitions/300 MagneticFlux.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_magnetic_flux)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_magnitude",
@@ -7349,7 +7524,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Magnitude.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_magnitude",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_make_it_rain",
@@ -7357,7 +7534,9 @@
         "rubyPath": "10 Move/2 Definitions/300 MakeItRain.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_make_it_rain",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_me_first",
@@ -7365,7 +7544,11 @@
         "rubyPath": "10 Move/2 Definitions/300 Me First.rb",
         "dartBehavior": "CopyCallMoveBehavior.meFirst",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "history",
+          "actionOrder",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_memento",
@@ -7389,7 +7572,11 @@
         "rubyPath": "10 Move/2 Definitions/300 Metronome.rb",
         "dartBehavior": "CopyCallMoveBehavior.metronome",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "history",
+          "actionOrder",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_mimic",
@@ -7397,7 +7584,11 @@
         "rubyPath": "10 Move/2 Definitions/300 Mimic.rb",
         "dartBehavior": "CopyCallMoveBehavior.mimic",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "history",
+          "actionOrder",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_mind_blown",
@@ -7416,7 +7607,9 @@
         "rubyPath": "10 Move/2 Definitions/300 LockOn.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_mind_reader",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_minimize",
@@ -7453,7 +7646,11 @@
         "rubyPath": "10 Move/2 Definitions/300 MirrorMove.rb",
         "dartBehavior": "CopyCallMoveBehavior.mirrorMove",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "history",
+          "actionOrder",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_mist",
@@ -7506,7 +7703,10 @@
         "rubyPath": "10 Move/2 Definitions/300 NaturePower.rb",
         "dartBehavior": "FieldLocationMoveBehavior.naturePower",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "field",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_nightmare",
@@ -7514,7 +7714,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Nightmare.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_nightmare)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_no_retreat",
@@ -7522,7 +7724,9 @@
         "rubyPath": "10 Move/2 Definitions/300 NoRetreat.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_no_retreat)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_octolock",
@@ -7530,7 +7734,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Octolock.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_octolock)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_ohko",
@@ -7550,7 +7756,12 @@
         "rubyPath": "10 Move/2 Definitions/300 OrderUp.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_order_up)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "handlerDamage",
+          "effects",
+          "ability",
+          "item"
+        ]
       },
       {
         "battleEngineMethod": "s_outrage",
@@ -7581,7 +7792,12 @@
         "rubyPath": "10 Move/2 Definitions/300 PartingShot.rb",
         "dartBehavior": "StaticBasicMoveRegistry.secondaryOnly(s_parting_shot)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects",
+          "handlerStatus",
+          "handlerStat",
+          "ability"
+        ]
       },
       {
         "battleEngineMethod": "s_payback",
@@ -7597,7 +7813,12 @@
         "rubyPath": "10 Move/2 Definitions/300 Payday.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_payday)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "handlerDamage",
+          "effects",
+          "ability",
+          "item"
+        ]
       },
       {
         "battleEngineMethod": "s_perish_song",
@@ -7605,7 +7826,9 @@
         "rubyPath": "10 Move/2 Definitions/300 PerishSong.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_perish_song)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_photon_geyser",
@@ -7613,7 +7836,9 @@
         "rubyPath": "10 Move/2 Definitions/300 PhotonGeyser.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_photon_geyser",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_plasma_fists",
@@ -7621,7 +7846,9 @@
         "rubyPath": "10 Move/2 Definitions/300 PlasmaFists.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_plasma_fists",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_pledge",
@@ -7680,7 +7907,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Powder.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_powder)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_power_split",
@@ -7716,7 +7945,12 @@
         "rubyPath": "10 Move/2 Definitions/300 PreAttackMoves.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_pre_attack_base)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "handlerDamage",
+          "effects",
+          "ability",
+          "item"
+        ]
       },
       {
         "battleEngineMethod": "s_present",
@@ -7809,7 +8043,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Pursuit.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_pursuit",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_quash",
@@ -7827,7 +8063,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Rage.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_rage",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_rage_fist",
@@ -7843,7 +8081,9 @@
         "rubyPath": "10 Move/2 Definitions/300 BrickBreak.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_raging_bull",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_rapid_spin",
@@ -7945,7 +8185,12 @@
         "rubyPath": "10 Move/2 Definitions/300 Return.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_return)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "handlerDamage",
+          "effects",
+          "ability",
+          "item"
+        ]
       },
       {
         "battleEngineMethod": "s_revelation_dance",
@@ -7971,7 +8216,9 @@
         "rubyPath": "10 Move/2 Definitions/300 RevivalBlessing.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_revival_blessing)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_rising_voltage",
@@ -8036,7 +8283,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Rototiller.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_rototiller)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_round",
@@ -8083,7 +8332,9 @@
         "rubyPath": "10 Move/2 Definitions/300 SappySeed.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_sappy_seed",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_scale_shot",
@@ -8091,7 +8342,13 @@
         "rubyPath": "10 Move/2 Definitions/300 ScaleShot.rb",
         "dartBehavior": "MultiHitMoveBehavior.scaleShot",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "targetingMulti",
+          "history",
+          "accuracy",
+          "ability",
+          "item"
+        ]
       },
       {
         "battleEngineMethod": "s_secret_power",
@@ -8127,7 +8384,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Substitute.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_shed_tail)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_shell_side_arm",
@@ -8135,7 +8394,9 @@
         "rubyPath": "10 Move/2 Definitions/300 ShellSideArm.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_shell_side_arm",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_shell_trap",
@@ -8143,7 +8404,12 @@
         "rubyPath": "10 Move/2 Definitions/300 PreAttackMoves.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_shell_trap)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "handlerDamage",
+          "effects",
+          "ability",
+          "item"
+        ]
       },
       {
         "battleEngineMethod": "s_shore_up",
@@ -8174,7 +8440,11 @@
         "rubyPath": "10 Move/2 Definitions/300 Sketch.rb",
         "dartBehavior": "CopyCallMoveBehavior.sketch",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "history",
+          "actionOrder",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_skill_swap",
@@ -8201,7 +8471,11 @@
         "rubyPath": "10 Move/2 Definitions/300 SleepTalk.rb",
         "dartBehavior": "CopyCallMoveBehavior.sleepTalk",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "history",
+          "actionOrder",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_smack_down",
@@ -8233,7 +8507,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Snatch.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_snatch)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_snore",
@@ -8288,7 +8564,9 @@
         "rubyPath": "10 Move/2 Definitions/300 SpectralThief.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_spectral_thief",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_speed_swap",
@@ -8316,7 +8594,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Spite.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_spite)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_splash",
@@ -8332,7 +8612,12 @@
         "rubyPath": "10 Move/2 Definitions/300 SpitUp.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_split_up)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "handlerDamage",
+          "effects",
+          "ability",
+          "item"
+        ]
       },
       {
         "battleEngineMethod": "s_stat",
@@ -8378,7 +8663,9 @@
         "rubyPath": "10 Move/2 Definitions/300 IceSpinner SteelRoller.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_steel_roller",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_sticky_web",
@@ -8398,7 +8685,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Stockpile.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_stockpile",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_stomp",
@@ -8406,7 +8695,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Stomp.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_stomp",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_stomping_tantrum",
@@ -8454,7 +8745,9 @@
         "rubyPath": "10 Move/2 Definitions/300 RecoilMove.rb",
         "dartBehavior": "RecoilMoveBehavior.struggle",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_stuff_cheeks",
@@ -8462,7 +8755,9 @@
         "rubyPath": "10 Move/2 Definitions/300 StuffCheeks.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_stuff_cheeks)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_substitute",
@@ -8470,7 +8765,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Substitute.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_substitute",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_sucker_punch",
@@ -8488,7 +8785,9 @@
         "rubyPath": "10 Move/2 Definitions/300 SuperDuperEffective.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_super_duper_effective",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_super_fang",
@@ -8504,7 +8803,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Swallow.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_swallow)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_synchronoise",
@@ -8572,7 +8873,10 @@
         "rubyPath": "10 Move/2 Definitions/300 TeaTime.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialFieldMarker(s_teatime)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "field",
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_techno_blast",
@@ -8599,7 +8903,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Teleport.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_teleport)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_terrain",
@@ -8738,19 +9044,20 @@
         "rubyPath": "10 Move/2 Definitions/300 ToxicThread.rb",
         "dartBehavior": "StaticBasicMoveRegistry.secondaryOnly(s_toxic_thread)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects",
+          "handlerStatus",
+          "handlerStat",
+          "ability"
+        ]
       },
       {
         "battleEngineMethod": "s_transform",
         "rubyClass": "Transform",
         "rubyPath": "10 Move/2 Definitions/300 Transform.rb",
         "dartBehavior": "TransformMoveBehavior",
-        "status": "partial",
-        "dependencies": [
-          "handlerSwitch",
-          "effects",
-          "ability"
-        ]
+        "status": "ported",
+        "dependencies": []
       },
       {
         "battleEngineMethod": "s_tri_attack",
@@ -8792,7 +9099,9 @@
         "rubyPath": "10 Move/2 Definitions/300 TripleArrows.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_triple_arrows",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects"
+        ]
       },
       {
         "battleEngineMethod": "s_triple_kick",
@@ -8836,7 +9145,12 @@
         "rubyPath": "10 Move/2 Definitions/300 UpperHand.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialBasic(s_upper_hand)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "handlerDamage",
+          "effects",
+          "ability",
+          "item"
+        ]
       },
       {
         "battleEngineMethod": "s_uproar",
@@ -8857,7 +9171,12 @@
         "rubyPath": "10 Move/2 Definitions/300 VenomDrench.rb",
         "dartBehavior": "StaticBasicMoveRegistry.secondaryOnly(s_venom_drench)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects",
+          "handlerStatus",
+          "handlerStat",
+          "ability"
+        ]
       },
       {
         "battleEngineMethod": "s_venoshock",
@@ -8976,30 +9295,30 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 3,
-      "partial": 22,
-      "missing": 457
+      "ported": 49,
+      "partial": 83,
+      "missing": 350
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 3,
-        "partial": 0,
-        "missing": 251
+        "ported": 4,
+        "partial": 36,
+        "missing": 214
       },
       "move": {
-        "ported": 0,
-        "partial": 22,
-        "missing": 93
+        "ported": 39,
+        "partial": 10,
+        "missing": 66
       },
       "item": {
         "ported": 0,
-        "partial": 0,
-        "missing": 87
+        "partial": 37,
+        "missing": 50
       },
       "status": {
-        "ported": 0,
+        "ported": 6,
         "partial": 0,
-        "missing": 7
+        "missing": 1
       },
       "mechanics": {
         "ported": 0,
@@ -9040,13 +9359,13 @@
       {
         "effectName": "AirBalloon",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/100 Air Balloon.rb"
       },
       {
         "effectName": "AirLock",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Air Lock - Cloud Nine.rb"
       },
       {
@@ -9076,7 +9395,7 @@
       {
         "effectName": "Apicot",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb"
       },
       {
@@ -9088,7 +9407,7 @@
       {
         "effectName": "AquaRing",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 AquaRing.rb"
       },
       {
@@ -9118,13 +9437,13 @@
       {
         "effectName": "Asleep",
         "family": "status",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/03 Status Effects/104 Asleep.rb"
       },
       {
         "effectName": "AssaultVest",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb"
       },
       {
@@ -9148,7 +9467,7 @@
       {
         "effectName": "AuroraVeil",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 LightScreen Reflect.rb"
       },
       {
@@ -9178,7 +9497,7 @@
       {
         "effectName": "BasePowerMultiplier",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/050 ItemBasePowerMultiplier.rb"
       },
       {
@@ -9232,7 +9551,7 @@
       {
         "effectName": "BerryJuice",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Healing Berries.rb"
       },
       {
@@ -9268,19 +9587,19 @@
       {
         "effectName": "BigRoot",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/100 Big Root.rb"
       },
       {
         "effectName": "Bind",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Bind.rb"
       },
       {
         "effectName": "BlackSludge",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/100 Black Sludge.rb"
       },
       {
@@ -9292,7 +9611,7 @@
       {
         "effectName": "BoostingMoveType",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/050 BoostingMoveType.rb"
       },
       {
@@ -9304,7 +9623,7 @@
       {
         "effectName": "Burn",
         "family": "status",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/03 Status Effects/103 Burn.rb"
       },
       {
@@ -9340,7 +9659,7 @@
       {
         "effectName": "CenterOfAttention",
         "family": "move",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/02 Move Effects/001 CenterOfAttention.rb"
       },
       {
@@ -9364,13 +9683,13 @@
       {
         "effectName": "Cheri",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/050 StatusBerry.rb"
       },
       {
         "effectName": "Chesto",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/050 StatusBerry.rb"
       },
       {
@@ -9388,25 +9707,25 @@
       {
         "effectName": "ChoiceBand",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb"
       },
       {
         "effectName": "ChoiceItemMultiplier",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb"
       },
       {
         "effectName": "ChoiceScarf",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb"
       },
       {
         "effectName": "ChoiceSpecs",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb"
       },
       {
@@ -9460,7 +9779,7 @@
       {
         "effectName": "ConfusingBerries",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Healing Berries.rb"
       },
       {
@@ -9490,7 +9809,7 @@
       {
         "effectName": "CraftyShield",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 CraftyShield.rb"
       },
       {
@@ -9514,7 +9833,7 @@
       {
         "effectName": "Curse",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Curse.rb"
       },
       {
@@ -9544,13 +9863,13 @@
       {
         "effectName": "DeepSeaScale",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/100 Deep Sea Scale.rb"
       },
       {
         "effectName": "DeepSeaTooth",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/100 Deep Sea Tooth.rb"
       },
       {
@@ -9592,7 +9911,7 @@
       {
         "effectName": "Disable",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Disable.rb"
       },
       {
@@ -9622,13 +9941,13 @@
       {
         "effectName": "Drizzle",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb"
       },
       {
         "effectName": "Drought",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb"
       },
       {
@@ -9640,13 +9959,13 @@
       {
         "effectName": "DrySkin",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Dry Skin.rb"
       },
       {
         "effectName": "EarthEater",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 TypeAbsorb.rb"
       },
       {
@@ -9688,7 +10007,7 @@
       {
         "effectName": "ElectricSurge",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb"
       },
       {
@@ -9706,7 +10025,7 @@
       {
         "effectName": "Embargo",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Embargo.rb"
       },
       {
@@ -9724,7 +10043,7 @@
       {
         "effectName": "Encore",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 ForceNextMove effects.rb"
       },
       {
@@ -9748,7 +10067,7 @@
       {
         "effectName": "ExpertBelt",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/100 Expert Belt.rb"
       },
       {
@@ -9784,7 +10103,7 @@
       {
         "effectName": "FlashFire",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Flash Fire.rb"
       },
       {
@@ -9880,7 +10199,7 @@
       {
         "effectName": "Frozen",
         "family": "status",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/03 Status Effects/105 Frozen.rb"
       },
       {
@@ -9916,13 +10235,13 @@
       {
         "effectName": "Ganlon",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb"
       },
       {
         "effectName": "Gems",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/050 Gems.rb"
       },
       {
@@ -9964,13 +10283,13 @@
       {
         "effectName": "GrassySurge",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb"
       },
       {
         "effectName": "Gravity",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Gravity.rb"
       },
       {
@@ -10018,7 +10337,7 @@
       {
         "effectName": "HalfSpeed",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/050 HalfSpeedItems.rb"
       },
       {
@@ -10048,7 +10367,7 @@
       {
         "effectName": "HealBlock",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 HealBlock.rb"
       },
       {
@@ -10084,7 +10403,7 @@
       {
         "effectName": "HpTriggeredStatBerries",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb"
       },
       {
@@ -10132,25 +10451,25 @@
       {
         "effectName": "Immunity",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb"
       },
       {
         "effectName": "Imposter",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Imposter.rb"
       },
       {
         "effectName": "Imprison",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Imprison.rb"
       },
       {
         "effectName": "Ingrain",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Ingrain.rb"
       },
       {
@@ -10168,7 +10487,7 @@
       {
         "effectName": "Insomnia",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb"
       },
       {
@@ -10180,7 +10499,7 @@
       {
         "effectName": "Intimidate",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Intimidate.rb"
       },
       {
@@ -10198,7 +10517,7 @@
       {
         "effectName": "IronFist",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Iron Fist.rb"
       },
       {
@@ -10282,13 +10601,13 @@
       {
         "effectName": "LeechSeed",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 LeechSeed.rb"
       },
       {
         "effectName": "Leftovers",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/100 Leftovers.rb"
       },
       {
@@ -10306,31 +10625,31 @@
       {
         "effectName": "LifeOrb",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/100 Life Orb.rb"
       },
       {
         "effectName": "LightBall",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/100 LightBall.rb"
       },
       {
         "effectName": "LightScreen",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 LightScreen Reflect.rb"
       },
       {
         "effectName": "LightningRod",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Lightning Rod - Storm Drain.rb"
       },
       {
         "effectName": "Limber",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb"
       },
       {
@@ -10360,13 +10679,13 @@
       {
         "effectName": "LuckyChant",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 LuckyChant.rb"
       },
       {
         "effectName": "LumBerry",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/100 Lum Berry.rb"
       },
       {
@@ -10390,7 +10709,7 @@
       {
         "effectName": "MagicRoom",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 MagicRoom.rb"
       },
       {
@@ -10402,7 +10721,7 @@
       {
         "effectName": "MagmaArmor",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb"
       },
       {
@@ -10444,7 +10763,7 @@
       {
         "effectName": "MatBlock",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb"
       },
       {
@@ -10468,7 +10787,7 @@
       {
         "effectName": "MetalPowder",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/100 Metal Powder.rb"
       },
       {
@@ -10516,7 +10835,7 @@
       {
         "effectName": "Mist",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Mist.rb"
       },
       {
@@ -10528,7 +10847,7 @@
       {
         "effectName": "MistySurge",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb"
       },
       {
@@ -10546,7 +10865,7 @@
       {
         "effectName": "MotorDrive",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Motor Drive.rb"
       },
       {
@@ -10558,7 +10877,7 @@
       {
         "effectName": "MudSport",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 MudSport.rb"
       },
       {
@@ -10594,7 +10913,7 @@
       {
         "effectName": "Nightmare",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Nightmare.rb"
       },
       {
@@ -10606,7 +10925,7 @@
       {
         "effectName": "NonVolatileStatusImmunityBase",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb"
       },
       {
@@ -10642,7 +10961,7 @@
       {
         "effectName": "OranBerry",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Healing Berries.rb"
       },
       {
@@ -10672,7 +10991,7 @@
       {
         "effectName": "Paralysis",
         "family": "status",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/03 Status Effects/102 Paralysis.rb"
       },
       {
@@ -10690,7 +11009,7 @@
       {
         "effectName": "Pecha",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/050 StatusBerry.rb"
       },
       {
@@ -10702,7 +11021,7 @@
       {
         "effectName": "PerishSong",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 PerishSong.rb"
       },
       {
@@ -10714,7 +11033,7 @@
       {
         "effectName": "Petaya",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb"
       },
       {
@@ -10732,7 +11051,7 @@
       {
         "effectName": "Poison",
         "family": "status",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/03 Status Effects/101 Poison.rb"
       },
       {
@@ -10774,7 +11093,7 @@
       {
         "effectName": "Powder",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Powder.rb"
       },
       {
@@ -10846,13 +11165,13 @@
       {
         "effectName": "PsychicSurge",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb"
       },
       {
         "effectName": "PunkRock",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Punk Rock.rb"
       },
       {
@@ -10888,13 +11207,13 @@
       {
         "effectName": "QuickGuard",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb"
       },
       {
         "effectName": "QuickPowder",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/100 Quick Powder.rb"
       },
       {
@@ -10912,7 +11231,7 @@
       {
         "effectName": "RainDish",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Rain Dish.rb"
       },
       {
@@ -10930,13 +11249,13 @@
       {
         "effectName": "Rawst",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/050 StatusBerry.rb"
       },
       {
         "effectName": "Reckless",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Reckless.rb"
       },
       {
@@ -10954,7 +11273,7 @@
       {
         "effectName": "Reflect",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 LightScreen Reflect.rb"
       },
       {
@@ -10996,7 +11315,7 @@
       {
         "effectName": "RoughSkin",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Rough Skin - Iron Barbs.rb"
       },
       {
@@ -11014,7 +11333,7 @@
       {
         "effectName": "Safeguard",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Safeguard.rb"
       },
       {
@@ -11026,13 +11345,13 @@
       {
         "effectName": "Salac",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb"
       },
       {
         "effectName": "SaltCure",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 SaltCure.rb"
       },
       {
@@ -11056,7 +11375,7 @@
       {
         "effectName": "SandStream",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb"
       },
       {
@@ -11074,7 +11393,7 @@
       {
         "effectName": "SapSipper",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Sap Sipper.rb"
       },
       {
@@ -11116,13 +11435,13 @@
       {
         "effectName": "Sharpness",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Sharpness.rb"
       },
       {
         "effectName": "ShedShell",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/100 Shed Shell.rb"
       },
       {
@@ -11188,7 +11507,7 @@
       {
         "effectName": "SitrusBerry",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Healing Berries.rb"
       },
       {
@@ -11248,7 +11567,7 @@
       {
         "effectName": "SnowWarning",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb"
       },
       {
@@ -11272,19 +11591,19 @@
       {
         "effectName": "Soundproof",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Soundproof.rb"
       },
       {
         "effectName": "SpeedBoost",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Speed Boost.rb"
       },
       {
         "effectName": "Spikes",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Spikes.rb"
       },
       {
@@ -11320,7 +11639,7 @@
       {
         "effectName": "Starf",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb"
       },
       {
@@ -11338,7 +11657,7 @@
       {
         "effectName": "StatusBerry",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/050 StatusBerry.rb"
       },
       {
@@ -11350,7 +11669,7 @@
       {
         "effectName": "StealthRock",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 StealthRock.rb"
       },
       {
@@ -11380,7 +11699,7 @@
       {
         "effectName": "StickyWeb",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 StickyWeb.rb"
       },
       {
@@ -11392,7 +11711,7 @@
       {
         "effectName": "StormDrain",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Lightning Rod - Storm Drain.rb"
       },
       {
@@ -11500,7 +11819,7 @@
       {
         "effectName": "SyrupBomb",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 SyrupBomb.rb"
       },
       {
@@ -11518,7 +11837,7 @@
       {
         "effectName": "Tailwind",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Tailwind.rb"
       },
       {
@@ -11536,13 +11855,13 @@
       {
         "effectName": "Taunt",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Taunt.rb"
       },
       {
         "effectName": "Technician",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Technician.rb"
       },
       {
@@ -11596,7 +11915,7 @@
       {
         "effectName": "ThickClub",
         "family": "item",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/05 Item Effects/100 Thick Club.rb"
       },
       {
@@ -11608,7 +11927,7 @@
       {
         "effectName": "ThroatChop",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 ThroatChop.rb"
       },
       {
@@ -11626,19 +11945,19 @@
       {
         "effectName": "Torment",
         "family": "move",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Torment.rb"
       },
       {
         "effectName": "ToughClaws",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 Tough Claws.rb"
       },
       {
         "effectName": "Toxic",
         "family": "status",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/03 Status Effects/108 Toxic.rb"
       },
       {
@@ -11668,7 +11987,7 @@
       {
         "effectName": "ToxicSpikes",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 ToxicSpikes.rb"
       },
       {
@@ -11692,7 +12011,7 @@
       {
         "effectName": "TrickRoom",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 TrickRoom.rb"
       },
       {
@@ -11764,7 +12083,7 @@
       {
         "effectName": "VoltAbsorb",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 TypeAbsorb.rb"
       },
       {
@@ -11776,7 +12095,7 @@
       {
         "effectName": "WaterAbsorb",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/100 TypeAbsorb.rb"
       },
       {
@@ -11794,13 +12113,13 @@
       {
         "effectName": "WaterSport",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 MudSport.rb"
       },
       {
         "effectName": "WaterVeil",
         "family": "ability",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb"
       },
       {
@@ -11842,7 +12161,7 @@
       {
         "effectName": "WideGuard",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Protect.rb"
       },
       {
@@ -11866,7 +12185,7 @@
       {
         "effectName": "Wish",
         "family": "move",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/02 Move Effects/001 Wish.rb"
       },
       {
@@ -11878,7 +12197,7 @@
       {
         "effectName": "WonderRoom",
         "family": "move",
-        "status": "missing",
+        "status": "partial",
         "rubyPath": "06 Effects/02 Move Effects/001 WonderRoom.rb"
       },
       {
