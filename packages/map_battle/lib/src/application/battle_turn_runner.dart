@@ -4,6 +4,7 @@ import '../domain/battle/battle_slot.dart';
 import '../domain/action/battle_action.dart';
 import '../domain/action/battle_action_decision_mapper.dart';
 import '../domain/action/battle_item_action_handler.dart';
+import '../domain/action/battle_mega_action_handler.dart';
 import '../domain/action/battle_action_queue.dart';
 import '../domain/decision/battle_decision.dart';
 import '../domain/effect/ability/ability_effect.dart';
@@ -102,6 +103,15 @@ final class BattleTurnRunner {
             nextRng: item.rng,
           );
           timeline.addPsdkAll(item.events);
+          continue;
+        }
+        if (action is PsdkBattleMegaAction) {
+          final mega = _resolveMegaAction(action);
+          _context.applyStateAndRng(
+            nextState: mega.state,
+            nextRng: mega.rng,
+          );
+          timeline.addPsdkAll(mega.events);
           continue;
         }
         if (action is PsdkBattleSwitchAction) {
@@ -438,6 +448,18 @@ final class BattleTurnRunner {
 
   BattleHandlerResult _resolveItemAction(PsdkBattleItemAction action) {
     return const BattleItemActionHandler().useItem(
+      context: BattleHandlerContext(
+        state: _context.state,
+        rng: _context.rng,
+        turn: _context.turnNumber,
+        user: action.user,
+      ),
+      action: action,
+    );
+  }
+
+  BattleHandlerResult _resolveMegaAction(PsdkBattleMegaAction action) {
+    return const BattleMegaActionHandler().megaEvolve(
       context: BattleHandlerContext(
         state: _context.state,
         rng: _context.rng,

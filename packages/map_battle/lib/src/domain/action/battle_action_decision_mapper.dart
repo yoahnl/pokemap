@@ -41,6 +41,10 @@ final class PsdkBattleActionDecisionMapper {
           effect: effect,
           highPriority: highPriority,
         ),
+      BattleMegaDecision(:final form) => PsdkBattleMegaAction(
+          user: user,
+          form: form,
+        ),
     };
   }
 

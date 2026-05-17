@@ -10,6 +10,7 @@ class PsdkBattleState {
   PsdkBattleState({
     required Map<PsdkBattleSlotRef, PsdkBattleCombatant> combatants,
     Map<int, List<PsdkBattleCombatant>>? parties,
+    Set<int> megaEvolvedBanks = const <int>{},
     this.field = const PsdkBattleFieldState(),
     this.outcome,
   })  : _combatants = Map<PsdkBattleSlotRef, PsdkBattleCombatant>.unmodifiable(
@@ -18,7 +19,8 @@ class PsdkBattleState {
         _parties = _hydrateParties(
           combatants: combatants,
           parties: parties,
-        );
+        ),
+        _megaEvolvedBanks = Set<int>.unmodifiable(megaEvolvedBanks);
 
   factory PsdkBattleState.fromSetup(PsdkBattleSetup setup) {
     final combatants = <PsdkBattleSlotRef, PsdkBattleCombatant>{
@@ -43,6 +45,7 @@ class PsdkBattleState {
 
   final Map<PsdkBattleSlotRef, PsdkBattleCombatant> _combatants;
   final Map<int, List<PsdkBattleCombatant>> _parties;
+  final Set<int> _megaEvolvedBanks;
   final PsdkBattleFieldState field;
   final PsdkBattleOutcome? outcome;
 
@@ -68,6 +71,10 @@ class PsdkBattleState {
       _parties[bank] ?? const <PsdkBattleCombatant>[],
     );
   }
+
+  Set<int> get megaEvolvedBanks => Set<int>.unmodifiable(_megaEvolvedBanks);
+
+  bool hasMegaEvolvedBank(int bank) => _megaEvolvedBanks.contains(bank);
 
   PsdkBattleCombatant battlerAt(PsdkBattleSlotRef slot) {
     final combatant = _combatants[slot];
@@ -101,12 +108,14 @@ class PsdkBattleState {
   PsdkBattleState copyWith({
     Map<PsdkBattleSlotRef, PsdkBattleCombatant>? combatants,
     Map<int, List<PsdkBattleCombatant>>? parties,
+    Set<int>? megaEvolvedBanks,
     PsdkBattleFieldState? field,
     PsdkBattleOutcome? outcome,
   }) {
     return PsdkBattleState(
       combatants: combatants ?? this.combatants,
       parties: parties ?? this.parties,
+      megaEvolvedBanks: megaEvolvedBanks ?? this.megaEvolvedBanks,
       field: field ?? this.field,
       outcome: outcome ?? this.outcome,
     );

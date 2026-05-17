@@ -27,6 +27,10 @@ sealed class BattleDecision {
     required PsdkBattleItemActionEffect effect,
     bool highPriority,
   }) = BattleItemDecision;
+
+  const factory BattleDecision.mega({
+    required PsdkBattleMegaEvolution form,
+  }) = BattleMegaDecision;
 }
 
 final class BattleFightDecision extends BattleDecision {
@@ -59,6 +63,14 @@ final class BattleItemDecision extends BattleDecision {
   final PsdkBattleSlotRef target;
   final PsdkBattleItemActionEffect effect;
   final bool highPriority;
+}
+
+final class BattleMegaDecision extends BattleDecision {
+  const BattleMegaDecision({
+    required this.form,
+  });
+
+  final PsdkBattleMegaEvolution form;
 }
 
 enum BattleEngineDecisionRequestKind {
@@ -175,6 +187,7 @@ final class BattleEngineDecisionRequest {
       BattleSwitchDecision(:final partyIndex) =>
         switchChoices.any((choice) => choice.partyIndex == partyIndex),
       BattleItemDecision() => false,
+      BattleMegaDecision() => false,
     };
   }
 }

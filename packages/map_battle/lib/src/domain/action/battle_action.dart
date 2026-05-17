@@ -1,3 +1,4 @@
+import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 
@@ -45,6 +46,33 @@ final class PsdkBattleSwitchAction extends PsdkBattleAction {
   }) : super(kind: PsdkBattleActionKind.switchPokemon, user: user);
 
   final int partyIndex;
+}
+
+final class PsdkBattleMegaEvolution {
+  const PsdkBattleMegaEvolution({
+    required this.requiredSpeciesId,
+    required this.speciesId,
+    required this.displayName,
+    required this.types,
+    required this.stats,
+    required this.abilityId,
+  });
+
+  final String requiredSpeciesId;
+  final String speciesId;
+  final String displayName;
+  final PsdkBattleTypes types;
+  final PsdkBattleStats stats;
+  final String abilityId;
+}
+
+final class PsdkBattleMegaAction extends PsdkBattleAction {
+  const PsdkBattleMegaAction({
+    required PsdkBattleSlotRef user,
+    required this.form,
+  }) : super(kind: PsdkBattleActionKind.mega, user: user);
+
+  final PsdkBattleMegaEvolution form;
 }
 
 sealed class PsdkBattleItemActionEffect {

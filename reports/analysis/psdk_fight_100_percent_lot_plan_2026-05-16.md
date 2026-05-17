@@ -1977,6 +1977,19 @@ coverage, which remains 267 / 728 attacks with 65 / 330 methods ported.
 **Definition of done:**
 - Scope is explicit and no silent gap remains.
 
+**Status 2026-05-17:** done for the narrow Mega Evolution action scope. Added
+the scope document at `reports/analysis/psdk_fight_form_gimmick_scope.md`,
+introduced a data-driven `PsdkBattleMegaEvolution` payload, mapped
+`BattleDecision.mega` to `PsdkBattleMegaAction`, and wired a focused Mega
+handler into the existing PSDK action ordering bucket. The handler validates the
+base species, rejects fainted/transformed/ineligible battlers, enforces
+once-per-bank Mega use, refreshes ability effects after the form update, and
+updates the active party entry as well as the active slot. Broader form catalogs,
+Z-Moves, Dynamax/Max, Terastal, Primal Reversion, Ultra Burst, and runtime item
+ownership validation remain explicitly out of scope. This action/form topology
+lot does not change strict move-method coverage, which remains 267 / 728 attacks
+with 65 / 330 methods ported.
+
 ### Lot 63 - Flee, Safari, Shift, and NoAction
 
 **Goal:** port non-attack action families.

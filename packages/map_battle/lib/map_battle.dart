@@ -100,6 +100,8 @@ export 'src/domain/action/battle_action.dart'
         PsdkBattleHpHealItemEffect,
         PsdkBattleItemAction,
         PsdkBattleItemActionEffect,
+        PsdkBattleMegaAction,
+        PsdkBattleMegaEvolution,
         PsdkBattleNoAction,
         PsdkBattleStatusCureItemEffect,
         PsdkBattleSwitchAction;
@@ -208,6 +210,7 @@ export 'src/domain/decision/battle_decision.dart'
         BattleEngineDecisionRequestKind,
         BattleFightDecision,
         BattleItemDecision,
+        BattleMegaDecision,
         BattleMoveDecisionOption,
         BattleSwitchDecisionOption,
         BattleSwitchDecision;
