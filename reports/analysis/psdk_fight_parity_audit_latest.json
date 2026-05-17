@@ -9295,9 +9295,9 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 183,
+      "ported": 189,
       "partial": 19,
-      "missing": 280
+      "missing": 274
     },
     "byFamilyAndStatus": {
       "ability": {
@@ -9311,9 +9311,9 @@
         "missing": 39
       },
       "item": {
-        "ported": 34,
+        "ported": 40,
         "partial": 10,
-        "missing": 43
+        "missing": 37
       },
       "status": {
         "ported": 6,
@@ -10362,7 +10362,7 @@
       {
         "effectName": "EnigmaBerry",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Enigma Berry.rb",
         "hookFamilies": [
           "post_damage"
@@ -11061,7 +11061,7 @@
       {
         "effectName": "JabocaBerry",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Jaboca Berry.rb",
         "hookFamilies": [
           "post_damage"
@@ -11079,7 +11079,7 @@
       {
         "effectName": "KeeBerry",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Kee Berry - Maranga Berry.rb",
         "hookFamilies": [
           "post_damage"
@@ -11340,7 +11340,7 @@
       {
         "effectName": "MarangaBerry",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Kee Berry - Maranga Berry.rb",
         "hookFamilies": []
       },
@@ -12165,7 +12165,7 @@
       {
         "effectName": "RowapBerry",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Jaboca Berry.rb",
         "hookFamilies": []
       },
@@ -13175,7 +13175,7 @@
       {
         "effectName": "TypeResistingBerry",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 TypeResistingBerry.rb",
         "hookFamilies": []
       },
