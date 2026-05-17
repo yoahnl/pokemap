@@ -32,21 +32,30 @@ void main() {
       for (final abilityId in <String>[
         'blaze',
         'damp',
+        'drizzle',
         'dragon_s_maw',
+        'drought',
+        'dry_skin',
         'earth_eater',
+        'electric_surge',
         'flash_fire',
+        'grassy_surge',
         'immunity',
         'iron_barbs',
         'iron_fist',
         'insomnia',
+        'intimidate',
         'levitate',
         'lightning_rod',
         'limber',
         'magma_armor',
+        'misty_surge',
         'motor_drive',
         'no_guard',
         'overgrow',
+        'psychic_surge',
         'punk_rock',
+        'rain_dish',
         'reckless',
         'rock_head',
         'rocky_payload',
@@ -57,6 +66,8 @@ void main() {
         'arena_trap',
         'skill_link',
         'magnet_pull',
+        'sand_stream',
+        'snow_warning',
         'soundproof',
         'steelworker',
         'storm_drain',
@@ -81,17 +92,6 @@ void main() {
       for (final abilityId in <String>[
         'air_lock',
         'cloud_nine',
-        'drizzle',
-        'drought',
-        'dry_skin',
-        'electric_surge',
-        'grassy_surge',
-        'intimidate',
-        'misty_surge',
-        'psychic_surge',
-        'rain_dish',
-        'sand_stream',
-        'snow_warning',
         'speed_boost',
       ]) {
         final entry = byId[abilityId];
@@ -180,6 +180,32 @@ void main() {
         'limber',
         'magma_armor',
         'water_veil',
+      ]) {
+        expect(
+          byId[abilityId]?.status,
+          PsdkAbilityPortStatus.ported,
+          reason: abilityId,
+        );
+      }
+    });
+
+    test('Lot 100 switch residual and form abilities are strict', () {
+      final byId = {
+        for (final entry in psdkAbilityEffectManifest) entry.abilityId: entry,
+      };
+
+      for (final abilityId in <String>[
+        'drizzle',
+        'drought',
+        'sand_stream',
+        'snow_warning',
+        'electric_surge',
+        'grassy_surge',
+        'misty_surge',
+        'psychic_surge',
+        'intimidate',
+        'rain_dish',
+        'dry_skin',
       ]) {
         expect(
           byId[abilityId]?.status,

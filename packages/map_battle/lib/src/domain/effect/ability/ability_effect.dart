@@ -43,6 +43,12 @@ abstract class BattleAbilityEffect extends BattleEffect {
 
   double damageBasePowerMultiplier(BattleAbilityDamageContext context) => 1;
 
+  double incomingDamageBasePowerMultiplier(
+    BattleAbilityDamageContext context,
+  ) {
+    return 1;
+  }
+
   bool preventsRecoil(BattleAbilityMoveContext context) => false;
 
   bool? groundedOverride(PsdkBattleCombatant battler) => null;

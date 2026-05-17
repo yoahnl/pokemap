@@ -252,6 +252,37 @@ void main() {
       }
     });
 
+    test('effect parity promotes Lot 100 ability switch residual batch',
+        () async {
+      final effectEntries = await loadPsdkEffectParityEntries(
+        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+      );
+      final byFamilyAndName = {
+        for (final entry in effectEntries)
+          '${entry.family}:${entry.effectName}': entry,
+      };
+
+      for (final effectName in <String>[
+        'Drizzle',
+        'Drought',
+        'DrySkin',
+        'ElectricSurge',
+        'GrassySurge',
+        'Intimidate',
+        'MistySurge',
+        'PsychicSurge',
+        'RainDish',
+        'SandStream',
+        'SnowWarning',
+      ]) {
+        expect(
+          byFamilyAndName['ability:$effectName']?.status,
+          PsdkPortStatus.ported,
+          reason: effectName,
+        );
+      }
+    });
+
     test('effect parity promotes exact major status lifecycle effects',
         () async {
       final effectEntries = await loadPsdkEffectParityEntries(

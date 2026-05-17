@@ -315,21 +315,21 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'drizzle',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'SwitchWeatherAbilityEffect.drizzle',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'drought',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'SwitchWeatherAbilityEffect.drought',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'dry_skin',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Dry Skin.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'DrySkinEffect',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -349,7 +349,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'electric_surge',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'SwitchTerrainAbilityEffect.electricSurge',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -495,7 +495,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'grassy_surge',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'SwitchTerrainAbilityEffect.grassySurge',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -637,7 +637,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'intimidate',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Intimidate.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'IntimidateEffect',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -783,7 +783,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'misty_surge',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'SwitchTerrainAbilityEffect.mistySurge',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -1009,7 +1009,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'psychic_surge',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'SwitchTerrainAbilityEffect.psychicSurge',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -1053,7 +1053,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'rain_dish',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Rain Dish.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'RainDishEffect',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -1148,7 +1148,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'sand_stream',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'SwitchWeatherAbilityEffect.sandStream',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -1267,7 +1267,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'snow_warning',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'SwitchWeatherAbilityEffect.snowWarning',
   ),
   PsdkAbilityEffectManifestEntry(

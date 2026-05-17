@@ -90,6 +90,13 @@ final class DrySkinEffect extends BattleAbilityEffect {
   }
 
   @override
+  double incomingDamageBasePowerMultiplier(
+    BattleAbilityDamageContext context,
+  ) {
+    return context.moveType == 'fire' ? 1.25 : 1;
+  }
+
+  @override
   BattleEffectDamagePreventionResult? onDamagePrevention(
     BattleEffectDamagePreventionContext context,
   ) {

@@ -387,6 +387,19 @@ void main() {
       expect(result.events.whereType<PsdkBattleHealEvent>().single.amount, 20);
     });
 
+    test('Dry Skin increases incoming Fire base power', () {
+      final normal = _calculatedDamage(
+        moveType: 'fire',
+        opponentAbilityId: null,
+      );
+      final drySkin = _calculatedDamage(
+        moveType: 'fire',
+        opponentAbilityId: 'dry_skin',
+      );
+
+      expect(drySkin, greaterThan(normal));
+    });
+
     test('No Guard on either battler bypasses the accuracy roll', () {
       final result = _runMove(
         playerAbilityId: 'no_guard',
@@ -1385,6 +1398,8 @@ BattleRngStreams _rng() {
 
 int _calculatedDamage({
   String? abilityId,
+  String? opponentAbilityId,
+  String moveType = 'normal',
   BattleMoveFlags flags = const BattleMoveFlags(),
   PsdkBattleMoveCategory category = PsdkBattleMoveCategory.physical,
 }) {
@@ -1397,6 +1412,7 @@ int _calculatedDamage({
       ),
       opponent: _combatant(
         id: 'opponent',
+        abilityId: opponentAbilityId,
         move: _move(id: 'opponent_wait', power: 0),
       ),
       rngSeeds: const BattleRngSeeds(
@@ -1417,7 +1433,7 @@ int _calculatedDamage({
             id: 'shape_test',
             dbSymbol: 'shape_test',
             name: 'shape_test',
-            type: 'normal',
+            type: moveType,
             category: category,
             power: 60,
             accuracy: 100,

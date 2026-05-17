@@ -6,8 +6,8 @@ Total effect classes: 482
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 90 |
-| `partial` | 59 |
+| `ported` | 101 |
+| `partial` | 48 |
 | `missing` | 333 |
 
 | Effect | Ruby base | Family | Hooks | Hook families | Ruby path | Dart target | Status | Notes |
@@ -113,10 +113,10 @@ Total effect classes: 482
 | `Download` | `Ability` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/100 Download.rb` | `lib/src/domain/effect/ability/download_effect.dart` | `missing` | `-` |
 | `DragonCheer` | `PokemonTiedEffectBase` | `move` | `-` | `-` | `06 Effects/02 Move Effects/001 DragonCheer.rb` | `lib/src/domain/effect/move/dragon_cheer_effect.dart` | `ported` | StaticBasicMoveRegistry.s_dragon_cheer installs a bank marker and the critical resolver applies the Dragon/non-Dragon critical-rate branches. |
 | `Drives` | `Item` | `item` | `on_move_type_change` | `move_type_change` | `06 Effects/05 Item Effects/050 Drives.rb` | `lib/src/domain/effect/item/drives_effect.dart` | `missing` | `-` |
-| `Drizzle` | `Ability` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb` | `lib/src/domain/effect/ability/drizzle_effect.dart` | `partial` | `-` |
-| `Drought` | `Drizzle` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb` | `lib/src/domain/effect/ability/drought_effect.dart` | `partial` | `-` |
+| `Drizzle` | `Ability` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb` | `lib/src/domain/effect/ability/drizzle_effect.dart` | `ported` | `-` |
+| `Drought` | `Drizzle` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb` | `lib/src/domain/effect/ability/drought_effect.dart` | `ported` | `-` |
 | `Drowsiness` | `PokemonTiedEffectBase` | `move` | `on_end_turn_event`, `on_switch_event` | `end_turn`, `switch` | `06 Effects/02 Move Effects/001 Drowsiness.rb` | `lib/src/domain/effect/move/drowsiness_effect.dart` | `missing` | `-` |
-| `DrySkin` | `Ability` | `ability` | `on_damage_prevention`, `on_end_turn_event` | `damage_prevention`, `end_turn` | `06 Effects/04 Ability Effects/100 Dry Skin.rb` | `lib/src/domain/effect/ability/dry_skin_effect.dart` | `partial` | `-` |
+| `DrySkin` | `Ability` | `ability` | `on_damage_prevention`, `on_end_turn_event` | `damage_prevention`, `end_turn` | `06 Effects/04 Ability Effects/100 Dry Skin.rb` | `lib/src/domain/effect/ability/dry_skin_effect.dart` | `ported` | `-` |
 | `EarthEater` | `VoltAbsorb` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 TypeAbsorb.rb` | `lib/src/domain/effect/ability/earth_eater_effect.dart` | `ported` | `-` |
 | `EchoedVoice` | `EffectBase` | `move` | `on_end_turn_event` | `end_turn` | `06 Effects/02 Move Effects/001 EchoedVoice.rb` | `lib/src/domain/effect/move/echoed_voice_effect.dart` | `missing` | `-` |
 | `EffectBase` | `` | `mechanics` | `on_ability_change_prevention`, `on_damage_prevention`, `on_delete`, `on_drain_prevention`, `on_end_turn_event`, `on_flee_passthrough`, `on_flee_prevention`, `on_fterrain_prevention`, `on_held_item_use_prevention`, `on_move_ability_immunity`, `on_move_disabled_check`, `on_move_failure`, `on_move_prevention_target`, `on_move_prevention_user`, `on_move_priority_change`, `on_move_type_change`, `on_post_ability_change`, `on_post_accuracy_check`, `on_post_action_event`, `on_post_damage`, `on_post_damage_death`, `on_post_fterrain_change`, `on_post_item_change`, `on_post_status_change`, `on_post_weather_change`, `on_pre_ability_change`, `on_pre_accuracy_check`, `on_pre_drain`, `on_pre_item_change`, `on_single_type_multiplier_overwrite`, `on_stat_change`, `on_stat_change_post`, `on_stat_decrease_prevention`, `on_stat_increase_prevention`, `on_status_prevention`, `on_switch_event`, `on_switch_passthrough`, `on_switch_prevention`, `on_transform_event`, `on_two_turn_shortcut`, `on_weather_prevention` | `ability_change`, `ability_immunity`, `accuracy`, `action_order`, `damage_change`, `damage_prevention`, `drain`, `end_turn`, `item_change`, `lifecycle`, `move_prevention`, `move_type_change`, `post_damage`, `stat_change`, `status_prevention`, `switch`, `terrain_change`, `transform`, `two_turn_shortcut`, `weather_change` | `06 Effects/100 EffectBase.rb` | `lib/src/domain/effect/mechanics/effect_base_effect.dart` | `missing` | `-` |
@@ -124,7 +124,7 @@ Total effect classes: 482
 | `EffectsHandler` | `` | `mechanics` | `-` | `-` | `06 Effects/001 EffectsHandler.rb` | `lib/src/domain/effect/mechanics/effects_handler_effect.dart` | `missing` | `-` |
 | `EjectButton` | `Item` | `item` | `on_post_damage` | `post_damage` | `06 Effects/05 Item Effects/100 Eject Button.rb` | `lib/src/domain/effect/item/eject_button_effect.dart` | `missing` | `-` |
 | `Electric` | `FieldTerrain` | `field` | `on_end_turn_event`, `on_move_prevention_target`, `on_status_prevention` | `end_turn`, `move_prevention`, `status_prevention` | `06 Effects/07 Field Terrain Effects/100 Electric.rb` | `lib/src/domain/effect/field/electric_effect.dart` | `missing` | `-` |
-| `ElectricSurge` | `Ability` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb` | `lib/src/domain/effect/ability/electric_surge_effect.dart` | `partial` | `-` |
+| `ElectricSurge` | `Ability` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb` | `lib/src/domain/effect/ability/electric_surge_effect.dart` | `ported` | `-` |
 | `Electrify` | `PokemonTiedEffectBase` | `move` | `on_move_type_change` | `move_type_change` | `06 Effects/02 Move Effects/001 Electrify.rb` | `lib/src/domain/effect/move/electrify_effect.dart` | `ported` | StaticBasicMoveRegistry.s_electrify installs the turn marker and move type resolution rewrites the holder move to Electric. |
 | `Electromorphosis` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 Electromorphosis.rb` | `lib/src/domain/effect/ability/electromorphosis_effect.dart` | `missing` | `-` |
 | `Embargo` | `PokemonTiedEffectBase` | `move` | `on_delete` | `lifecycle` | `06 Effects/02 Move Effects/001 Embargo.rb` | `lib/src/domain/effect/move/embargo_effect.dart` | `ported` | Object-backed EmbargoEffect suppresses held-item effects, keeps the PSDK five-turn lifecycle and transfers through Baton Pass. |
@@ -170,7 +170,7 @@ Total effect classes: 482
 | `GorillaTactics` | `Ability` | `ability` | `on_move_disabled_check`, `on_move_prevention_user` | `move_prevention` | `06 Effects/04 Ability Effects/100 Gorilla Tactics.rb` | `lib/src/domain/effect/ability/gorilla_tactics_effect.dart` | `missing` | `-` |
 | `GrassPelt` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Grass Pelt.rb` | `lib/src/domain/effect/ability/grass_pelt_effect.dart` | `missing` | `-` |
 | `Grassy` | `FieldTerrain` | `field` | `on_end_turn_event` | `end_turn` | `06 Effects/07 Field Terrain Effects/100 Grassy.rb` | `lib/src/domain/effect/field/grassy_effect.dart` | `missing` | `-` |
-| `GrassySurge` | `ElectricSurge` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb` | `lib/src/domain/effect/ability/grassy_surge_effect.dart` | `partial` | `-` |
+| `GrassySurge` | `ElectricSurge` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb` | `lib/src/domain/effect/ability/grassy_surge_effect.dart` | `ported` | `-` |
 | `Gravity` | `EffectBase` | `move` | `on_delete`, `on_move_disabled_check`, `on_move_prevention_user` | `lifecycle`, `move_prevention` | `06 Effects/02 Move Effects/001 Gravity.rb` | `lib/src/domain/effect/move/gravity_effect.dart` | `ported` | StaticBasicMoveRegistry field marker installs gravity with duration; grounding resolver and Gravity-sensitive move formulas observe the effect. |
 | `GrimNeigh` | `Moxie` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Moxie.rb` | `lib/src/domain/effect/ability/grim_neigh_effect.dart` | `missing` | `-` |
 | `Grudge` | `PokemonTiedEffectBase` | `move` | `on_end_turn_event`, `on_post_damage_death`, `on_switch_event` | `end_turn`, `post_damage`, `switch` | `06 Effects/02 Move Effects/001 Grudge.rb` | `lib/src/domain/effect/move/grudge_effect.dart` | `missing` | `-` |
@@ -206,7 +206,7 @@ Total effect classes: 482
 | `InnerFocus` | `Ability` | `ability` | `on_status_prevention` | `status_prevention` | `06 Effects/04 Ability Effects/100 Inner Focus.rb` | `lib/src/domain/effect/ability/inner_focus_effect.dart` | `missing` | `-` |
 | `Insomnia` | `NonVolatileStatusImmunityBase` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb` | `lib/src/domain/effect/ability/insomnia_effect.dart` | `ported` | `-` |
 | `Instruct` | `PokemonTiedEffectBase` | `move` | `on_post_action_event` | `action_order` | `06 Effects/02 Move Effects/001 Instruct.rb` | `lib/src/domain/effect/move/instruct_effect.dart` | `missing` | `-` |
-| `Intimidate` | `Ability` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/100 Intimidate.rb` | `lib/src/domain/effect/ability/intimidate_effect.dart` | `partial` | `-` |
+| `Intimidate` | `Ability` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/100 Intimidate.rb` | `lib/src/domain/effect/ability/intimidate_effect.dart` | `ported` | `-` |
 | `IntrepidSword` | `Ability` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/100 Intrepid Sword.rb` | `lib/src/domain/effect/ability/intrepid_sword_effect.dart` | `missing` | `-` |
 | `IonDeluge` | `EffectBase` | `move` | `on_move_type_change` | `move_type_change` | `06 Effects/02 Move Effects/001 Ion Deluge.rb` | `lib/src/domain/effect/move/ion_deluge_effect.dart` | `missing` | `-` |
 | `IronFist` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Iron Fist.rb` | `lib/src/domain/effect/ability/iron_fist_effect.dart` | `ported` | `-` |
@@ -264,7 +264,7 @@ Total effect classes: 482
 | `MirrorHerb` | `Item` | `item` | `on_post_action_event`, `on_stat_change_post` | `action_order`, `stat_change` | `06 Effects/05 Item Effects/100 MirrorHerb.rb` | `lib/src/domain/effect/item/mirror_herb_effect.dart` | `missing` | `-` |
 | `Mist` | `PositionTiedEffectBase` | `move` | `on_delete`, `on_stat_decrease_prevention` | `lifecycle`, `stat_change` | `06 Effects/02 Move Effects/001 Mist.rb` | `lib/src/domain/effect/move/mist_effect.dart` | `ported` | StaticBasicMoveRegistry.s_mist installs the bank-scoped marker and stat-change prevention blocks opposing stat drops for the whole bank. |
 | `Misty` | `FieldTerrain` | `field` | `on_end_turn_event`, `on_move_prevention_target`, `on_status_prevention` | `end_turn`, `move_prevention`, `status_prevention` | `06 Effects/07 Field Terrain Effects/100 Misty.rb` | `lib/src/domain/effect/field/misty_effect.dart` | `missing` | `-` |
-| `MistySurge` | `ElectricSurge` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb` | `lib/src/domain/effect/ability/misty_surge_effect.dart` | `partial` | `-` |
+| `MistySurge` | `ElectricSurge` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb` | `lib/src/domain/effect/ability/misty_surge_effect.dart` | `ported` | `-` |
 | `MoldBreaker` | `Ability` | `ability` | `on_move_prevention_user`, `on_switch_event` | `move_prevention`, `switch` | `06 Effects/04 Ability Effects/100 Mold Breaker.rb` | `lib/src/domain/effect/ability/mold_breaker_effect.dart` | `missing` | `-` |
 | `Moody` | `Ability` | `ability` | `on_end_turn_event` | `end_turn` | `06 Effects/04 Ability Effects/100 Moody.rb` | `lib/src/domain/effect/ability/moody_effect.dart` | `missing` | `-` |
 | `MotorDrive` | `Ability` | `ability` | `on_damage_prevention` | `damage_prevention` | `06 Effects/04 Ability Effects/100 Motor Drive.rb` | `lib/src/domain/effect/ability/motor_drive_effect.dart` | `ported` | `-` |
@@ -317,7 +317,7 @@ Total effect classes: 482
 | `Protect` | `PokemonTiedEffectBase` | `move` | `on_move_ability_immunity`, `on_move_prevention_target` | `ability_immunity`, `move_prevention` | `06 Effects/02 Move Effects/001 Protect.rb` | `lib/src/domain/effect/move/protect_effect.dart` | `partial` | Object-backed ProtectEffect ported for common target prevention; variants, success-rate decay and Unseen Fist bypass remain future work. |
 | `Protosynthesis` | `Ability` | `ability` | `on_post_weather_change`, `on_switch_event` | `switch`, `weather_change` | `06 Effects/04 Ability Effects/100 Protosynthesis.rb` | `lib/src/domain/effect/ability/protosynthesis_effect.dart` | `missing` | `-` |
 | `Psychic` | `FieldTerrain` | `field` | `on_end_turn_event`, `on_move_prevention_target` | `end_turn`, `move_prevention` | `06 Effects/07 Field Terrain Effects/100 Psychic.rb` | `lib/src/domain/effect/field/psychic_effect.dart` | `missing` | `-` |
-| `PsychicSurge` | `ElectricSurge` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb` | `lib/src/domain/effect/ability/psychic_surge_effect.dart` | `partial` | `-` |
+| `PsychicSurge` | `ElectricSurge` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb` | `lib/src/domain/effect/ability/psychic_surge_effect.dart` | `ported` | `-` |
 | `PunkRock` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Punk Rock.rb` | `lib/src/domain/effect/ability/punk_rock_effect.dart` | `ported` | `-` |
 | `PurePower` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Pure Power - Huge Power.rb` | `lib/src/domain/effect/ability/pure_power_effect.dart` | `missing` | `-` |
 | `PurifyingSalt` | `Ability` | `ability` | `on_move_ability_immunity`, `on_status_prevention` | `ability_immunity`, `status_prevention` | `06 Effects/04 Ability Effects/100 PurifyingSalt.rb` | `lib/src/domain/effect/ability/purifying_salt_effect.dart` | `missing` | `-` |
@@ -328,7 +328,7 @@ Total effect classes: 482
 | `QuickPowder` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Quick Powder.rb` | `lib/src/domain/effect/item/quick_powder_effect.dart` | `partial` | `-` |
 | `Rage` | `PokemonTiedEffectBase` | `move` | `on_post_damage` | `post_damage` | `06 Effects/02 Move Effects/001 Rage.rb` | `lib/src/domain/effect/move/rage_effect.dart` | `ported` | StaticBasicMoveRegistry.s_rage installs the marker after a hit and BattleDamageHandler raises Attack when the marked battler takes opposing damage. |
 | `Rain` | `Weather` | `field` | `on_end_turn_event` | `end_turn` | `06 Effects/06 Weather Effects/100 Rain.rb` | `lib/src/domain/effect/field/rain_effect.dart` | `missing` | `-` |
-| `RainDish` | `Ability` | `ability` | `on_end_turn_event` | `end_turn` | `06 Effects/04 Ability Effects/100 Rain Dish.rb` | `lib/src/domain/effect/ability/rain_dish_effect.dart` | `partial` | `-` |
+| `RainDish` | `Ability` | `ability` | `on_end_turn_event` | `end_turn` | `06 Effects/04 Ability Effects/100 Rain Dish.rb` | `lib/src/domain/effect/ability/rain_dish_effect.dart` | `ported` | `-` |
 | `Rainbow` | `PositionTiedEffectBase` | `move` | `on_delete` | `lifecycle` | `06 Effects/02 Move Effects/001 Pledge Effects/001 Rainbow.rb` | `lib/src/domain/effect/move/rainbow_effect.dart` | `missing` | `-` |
 | `Rattled` | `Ability` | `ability` | `on_post_damage`, `on_stat_change_post` | `post_damage`, `stat_change` | `06 Effects/04 Ability Effects/100 Rattled.rb` | `lib/src/domain/effect/ability/rattled_effect.dart` | `missing` | `-` |
 | `Rawst` | `StatusBerry` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 StatusBerry.rb` | `lib/src/domain/effect/item/rawst_effect.dart` | `partial` | `-` |
@@ -352,7 +352,7 @@ Total effect classes: 482
 | `SandForce` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Sand Force.rb` | `lib/src/domain/effect/ability/sand_force_effect.dart` | `missing` | `-` |
 | `SandRush` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Sand Rush.rb` | `lib/src/domain/effect/ability/sand_rush_effect.dart` | `missing` | `-` |
 | `SandSpit` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 Sand Spit.rb` | `lib/src/domain/effect/ability/sand_spit_effect.dart` | `missing` | `-` |
-| `SandStream` | `Drizzle` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb` | `lib/src/domain/effect/ability/sand_stream_effect.dart` | `partial` | `-` |
+| `SandStream` | `Drizzle` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb` | `lib/src/domain/effect/ability/sand_stream_effect.dart` | `ported` | `-` |
 | `SandVeil` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 SandVeil.rb` | `lib/src/domain/effect/ability/sand_veil_effect.dart` | `missing` | `-` |
 | `Sandstorm` | `Weather` | `field` | `on_end_turn_event` | `end_turn` | `06 Effects/06 Weather Effects/100 Sandstorm.rb` | `lib/src/domain/effect/field/sandstorm_effect.dart` | `missing` | `-` |
 | `SapSipper` | `Ability` | `ability` | `on_move_prevention_target` | `move_prevention` | `06 Effects/04 Ability Effects/100 Sap Sipper.rb` | `lib/src/domain/effect/ability/sap_sipper_effect.dart` | `ported` | `-` |
@@ -384,7 +384,7 @@ Total effect classes: 482
 | `Snatched` | `Snatch` | `move` | `-` | `-` | `06 Effects/02 Move Effects/001 Snatch.rb` | `lib/src/domain/effect/move/snatched_effect.dart` | `missing` | `-` |
 | `Snow` | `Weather` | `field` | `on_end_turn_event` | `end_turn` | `06 Effects/06 Weather Effects/100 Snow.rb` | `lib/src/domain/effect/field/snow_effect.dart` | `missing` | `-` |
 | `SnowCloak` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Snow Cloak.rb` | `lib/src/domain/effect/ability/snow_cloak_effect.dart` | `missing` | `-` |
-| `SnowWarning` | `Drizzle` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb` | `lib/src/domain/effect/ability/snow_warning_effect.dart` | `partial` | `-` |
+| `SnowWarning` | `Drizzle` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb` | `lib/src/domain/effect/ability/snow_warning_effect.dart` | `ported` | `-` |
 | `Snowball` | `LuminousMoss` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Luminous Moss - Snowball.rb` | `lib/src/domain/effect/item/snowball_effect.dart` | `missing` | `-` |
 | `SolarPower` | `Ability` | `ability` | `on_end_turn_event` | `end_turn` | `06 Effects/04 Ability Effects/100 Solar Power.rb` | `lib/src/domain/effect/ability/solar_power_effect.dart` | `missing` | `-` |
 | `SoulHeart` | `Ability` | `ability` | `on_post_damage_death` | `post_damage` | `06 Effects/04 Ability Effects/100 Soul-Heart.rb` | `lib/src/domain/effect/ability/soul_heart_effect.dart` | `missing` | `-` |

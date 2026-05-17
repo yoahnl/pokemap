@@ -9295,14 +9295,14 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 90,
-      "partial": 59,
+      "ported": 101,
+      "partial": 48,
       "missing": 333
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 27,
-        "partial": 13,
+        "ported": 38,
+        "partial": 2,
         "missing": 214
       },
       "move": {
@@ -9941,13 +9941,13 @@
       {
         "effectName": "Drizzle",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb"
       },
       {
         "effectName": "Drought",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb"
       },
       {
@@ -9959,7 +9959,7 @@
       {
         "effectName": "DrySkin",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Dry Skin.rb"
       },
       {
@@ -10007,7 +10007,7 @@
       {
         "effectName": "ElectricSurge",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb"
       },
       {
@@ -10283,7 +10283,7 @@
       {
         "effectName": "GrassySurge",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb"
       },
       {
@@ -10499,7 +10499,7 @@
       {
         "effectName": "Intimidate",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Intimidate.rb"
       },
       {
@@ -10847,7 +10847,7 @@
       {
         "effectName": "MistySurge",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb"
       },
       {
@@ -11165,7 +11165,7 @@
       {
         "effectName": "PsychicSurge",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/050 FieldTerrain Setting Abilities.rb"
       },
       {
@@ -11231,7 +11231,7 @@
       {
         "effectName": "RainDish",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Rain Dish.rb"
       },
       {
@@ -11375,7 +11375,7 @@
       {
         "effectName": "SandStream",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb"
       },
       {
@@ -11567,7 +11567,7 @@
       {
         "effectName": "SnowWarning",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/050 Weather Setting Abilitites.rb"
       },
       {
