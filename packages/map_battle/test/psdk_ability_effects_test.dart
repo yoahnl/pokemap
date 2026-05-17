@@ -139,6 +139,106 @@ void main() {
       expect(levitate.reason, isNull);
     });
 
+    test('Drizzle sets rain on switch-in and respects Damp Rock duration', () {
+      final result = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'drizzle',
+        playerHeldItemId: 'damp_rock',
+      );
+
+      expect(result.applied, isTrue);
+      expect(result.state.field.weather?.id, PsdkBattleWeatherId.rain);
+      expect(result.state.field.weather?.remainingTurns, 8);
+      expect(
+        result.events.whereType<PsdkBattleWeatherChangedEvent>().single.weather,
+        PsdkBattleWeatherId.rain,
+      );
+    });
+
+    test('weather switch-in abilities map to their PSDK weather ids', () {
+      for (final entry in <String, PsdkBattleWeatherId>{
+        'drizzle': PsdkBattleWeatherId.rain,
+        'drought': PsdkBattleWeatherId.sunny,
+        'sand_stream': PsdkBattleWeatherId.sandstorm,
+        'snow_warning': PsdkBattleWeatherId.hail,
+      }.entries) {
+        final result = _dispatchAbilitySwitchIn(playerAbilityId: entry.key);
+
+        expect(result.applied, isTrue, reason: entry.key);
+        expect(result.state.field.weather?.id, entry.value, reason: entry.key);
+        expect(
+          result.state.field.weather?.remainingTurns,
+          5,
+          reason: entry.key,
+        );
+      }
+    });
+
+    test('Psychic Surge sets terrain on switch-in with Terrain Extender', () {
+      final result = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'psychic_surge',
+        playerHeldItemId: 'terrain_extender',
+      );
+
+      expect(result.applied, isTrue);
+      expect(
+        result.state.field.terrain?.id,
+        PsdkBattleTerrainId.psychicTerrain,
+      );
+      expect(result.state.field.terrain?.remainingTurns, 8);
+      expect(
+        result.events.whereType<PsdkBattleTerrainChangedEvent>().single.terrain,
+        PsdkBattleTerrainId.psychicTerrain,
+      );
+    });
+
+    test('terrain switch-in abilities map to their PSDK terrain ids', () {
+      for (final entry in <String, PsdkBattleTerrainId>{
+        'electric_surge': PsdkBattleTerrainId.electricTerrain,
+        'grassy_surge': PsdkBattleTerrainId.grassyTerrain,
+        'misty_surge': PsdkBattleTerrainId.mistyTerrain,
+        'psychic_surge': PsdkBattleTerrainId.psychicTerrain,
+      }.entries) {
+        final result = _dispatchAbilitySwitchIn(playerAbilityId: entry.key);
+
+        expect(result.applied, isTrue, reason: entry.key);
+        expect(result.state.field.terrain?.id, entry.value, reason: entry.key);
+        expect(
+          result.state.field.terrain?.remainingTurns,
+          5,
+          reason: entry.key,
+        );
+      }
+    });
+
+    test('Intimidate lowers opposing active attack on switch-in', () {
+      final result = _dispatchAbilitySwitchIn(playerAbilityId: 'intimidate');
+
+      expect(result.applied, isTrue);
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).statStages.valueOf('attack'),
+        -1,
+      );
+      expect(
+        result.events.whereType<PsdkBattleStatStageEvent>().single.amount,
+        -1,
+      );
+    });
+
+    test('Intimidate does not lower Gen 8 immune abilities', () {
+      final result = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'intimidate',
+        opponentAbilityId: 'inner_focus',
+      );
+
+      expect(result.applied, isFalse);
+      expect(result.reason, 'no_switch_events');
+      expect(
+        result.state.battlerAt(psdkOpponentSlot).statStages.valueOf('attack'),
+        0,
+      );
+      expect(result.events.whereType<PsdkBattleStatStageEvent>(), isEmpty);
+    });
+
     test('No Guard on either battler bypasses the accuracy roll', () {
       final result = _runMove(
         playerAbilityId: 'no_guard',
@@ -854,9 +954,50 @@ BattleHandlerResult _switchPreventionFor({
   );
 }
 
+BattleHandlerResult _dispatchAbilitySwitchIn({
+  required String playerAbilityId,
+  String? playerHeldItemId,
+  String? opponentAbilityId,
+}) {
+  const benchSlot = PsdkBattleSlotRef(bank: 0, position: -1);
+  final state = PsdkBattleState.fromSetup(
+    BattleEngineSetup.singles(
+      player: _combatant(
+        id: 'player',
+        abilityId: playerAbilityId,
+        heldItemId: playerHeldItemId,
+        move: _move(id: 'tackle', power: 40),
+      ),
+      opponent: _combatant(
+        id: 'opponent',
+        abilityId: opponentAbilityId,
+        move: _move(id: 'opponent_wait', power: 0),
+      ),
+      rngSeeds: const BattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 4,
+      ).psdkSeeds,
+    ).psdkSetup,
+  );
+
+  return const BattleSwitchHandler().dispatchSwitchEvents(
+    context: BattleHandlerContext(
+      state: state,
+      rng: _rng(),
+      turn: 1,
+      user: psdkPlayerSlot,
+    ),
+    who: benchSlot,
+    replacement: psdkPlayerSlot,
+  );
+}
+
 PsdkBattleCombatantSetup _combatant({
   required String id,
   String? abilityId,
+  String? heldItemId,
   int currentHp = 100,
   int speed = 50,
   PsdkBattleTypes types = const PsdkBattleTypes(primary: 'normal'),
@@ -878,6 +1019,7 @@ PsdkBattleCombatantSetup _combatant({
       speed: speed,
     ),
     abilityId: abilityId,
+    heldItemId: heldItemId,
     moves: <PsdkBattleMoveData>[move],
   );
 }

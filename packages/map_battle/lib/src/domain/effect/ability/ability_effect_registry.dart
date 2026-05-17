@@ -1,4 +1,5 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
+import '../../../psdk/domain/psdk_battle_field.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../data/generated/psdk_ability_effect_manifest.dart';
@@ -17,6 +18,7 @@ import 'shadow_tag_effect.dart';
 import 'skill_link_effect.dart';
 import 'soundproof_effect.dart';
 import 'status_immunity_effect.dart';
+import 'switch_trigger_ability_effect.dart';
 import 'type_boosting_ability_effect.dart';
 import 'type_immunity_ability_effect.dart';
 
@@ -221,6 +223,55 @@ final class AbilityEffectRegistry {
             PsdkBattleMajorStatus.burn,
           },
         ),
+    'drizzle': ({required scope}) => SwitchWeatherAbilityEffect(
+          abilityId: 'drizzle',
+          scope: scope,
+          weather: PsdkBattleWeatherId.rain,
+          weatherMoveDbSymbol: 'rain_dance',
+        ),
+    'drought': ({required scope}) => SwitchWeatherAbilityEffect(
+          abilityId: 'drought',
+          scope: scope,
+          weather: PsdkBattleWeatherId.sunny,
+          weatherMoveDbSymbol: 'sunny_day',
+        ),
+    'sand_stream': ({required scope}) => SwitchWeatherAbilityEffect(
+          abilityId: 'sand_stream',
+          scope: scope,
+          weather: PsdkBattleWeatherId.sandstorm,
+          weatherMoveDbSymbol: 'sandstorm',
+        ),
+    'snow_warning': ({required scope}) => SwitchWeatherAbilityEffect(
+          abilityId: 'snow_warning',
+          scope: scope,
+          weather: PsdkBattleWeatherId.hail,
+          weatherMoveDbSymbol: 'hail',
+        ),
+    'electric_surge': ({required scope}) => SwitchTerrainAbilityEffect(
+          abilityId: 'electric_surge',
+          scope: scope,
+          terrain: PsdkBattleTerrainId.electricTerrain,
+          terrainMoveDbSymbol: 'electric_terrain',
+        ),
+    'grassy_surge': ({required scope}) => SwitchTerrainAbilityEffect(
+          abilityId: 'grassy_surge',
+          scope: scope,
+          terrain: PsdkBattleTerrainId.grassyTerrain,
+          terrainMoveDbSymbol: 'grassy_terrain',
+        ),
+    'misty_surge': ({required scope}) => SwitchTerrainAbilityEffect(
+          abilityId: 'misty_surge',
+          scope: scope,
+          terrain: PsdkBattleTerrainId.mistyTerrain,
+          terrainMoveDbSymbol: 'misty_terrain',
+        ),
+    'psychic_surge': ({required scope}) => SwitchTerrainAbilityEffect(
+          abilityId: 'psychic_surge',
+          scope: scope,
+          terrain: PsdkBattleTerrainId.psychicTerrain,
+          terrainMoveDbSymbol: 'psychic_terrain',
+        ),
+    'intimidate': ({required scope}) => IntimidateEffect(scope: scope),
   };
 
   final Map<String, AbilityEffectFactory> _factories;

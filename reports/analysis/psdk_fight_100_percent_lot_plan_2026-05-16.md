@@ -1551,6 +1551,18 @@ stat rewards, and burn prevention.
 **Definition of done:**
 - Switch-trigger abilities are hook-driven.
 
+**Status 2026-05-17:** done for the first switch-trigger ability wave.
+Added hook-driven switch-in effects for `drizzle`, `drought`, `sand_stream`,
+`snow_warning`, `electric_surge`, `grassy_surge`, `misty_surge`,
+`psychic_surge`, and `intimidate`. Weather abilities now delegate to the PSDK
+weather handler and respect the existing weather-rock item duration effects.
+Terrain abilities delegate to the terrain handler and respect
+`terrain_extender`. `Intimidate` lowers opposing active Attack through the
+shared stat-change handler and skips the PSDK Gen 8 immune abilities
+`own_tempo`, `oblivious`, `inner_focus`, and `scrappy`. Manifest/registry
+coverage and focused switch-event tests were added for all weather/terrain
+variants plus Intimidate.
+
 ### Lot 51 - Ability Post-Damage and End-Turn Effects
 
 **Goal:** port ability effects that trigger after damage or at end turn.
