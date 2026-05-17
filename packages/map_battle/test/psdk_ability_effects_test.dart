@@ -746,6 +746,66 @@ void main() {
       }
     });
 
+    test('super-effective reduction abilities reduce only strong hits', () {
+      for (final abilityId in <String>[
+        'solid_rock',
+        'filter',
+        'prism_armor',
+      ]) {
+        final reduced = _calculatedDamage(
+          opponentAbilityId: abilityId,
+          moveType: 'fire',
+          opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+        );
+        final baseline = _calculatedDamage(
+          moveType: 'fire',
+          opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+        );
+        final neutral = _calculatedDamage(
+          opponentAbilityId: abilityId,
+          moveType: 'normal',
+        );
+        final neutralBaseline = _calculatedDamage(moveType: 'normal');
+
+        expect(reduced, lessThan(baseline), reason: abilityId);
+        expect(neutral, neutralBaseline, reason: abilityId);
+      }
+    });
+
+    test('Tinted Lens boosts only not very effective hits', () {
+      final resisted = _calculatedDamage(
+        abilityId: 'tinted_lens',
+        moveType: 'fire',
+        opponentTypes: const PsdkBattleTypes(primary: 'water'),
+      );
+      final resistedBaseline = _calculatedDamage(
+        moveType: 'fire',
+        opponentTypes: const PsdkBattleTypes(primary: 'water'),
+      );
+      final neutral = _calculatedDamage(
+        abilityId: 'tinted_lens',
+        moveType: 'normal',
+      );
+      final neutralBaseline = _calculatedDamage(moveType: 'normal');
+
+      expect(resisted, greaterThan(resistedBaseline));
+      expect(neutral, neutralBaseline);
+    });
+
+    test('Multiscale and Shadow Shield reduce full HP incoming damage', () {
+      for (final abilityId in <String>['multiscale', 'shadow_shield']) {
+        final fullHp = _calculatedDamage(opponentAbilityId: abilityId);
+        final baseline = _calculatedDamage();
+        final damaged = _calculatedDamage(
+          opponentAbilityId: abilityId,
+          opponentCurrentHp: 99,
+        );
+
+        expect(fullHp, lessThan(baseline), reason: abilityId);
+        expect(damaged, baseline, reason: abilityId);
+      }
+    });
+
     test('Rough Skin and Iron Barbs punish opposing contact damage', () {
       for (final abilityId in <String>['rough_skin', 'iron_barbs']) {
         final state = PsdkBattleState.fromSetup(
@@ -1400,6 +1460,8 @@ int _calculatedDamage({
   String? abilityId,
   String? opponentAbilityId,
   String moveType = 'normal',
+  PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
+  int opponentCurrentHp = 100,
   BattleMoveFlags flags = const BattleMoveFlags(),
   PsdkBattleMoveCategory category = PsdkBattleMoveCategory.physical,
 }) {
@@ -1413,6 +1475,8 @@ int _calculatedDamage({
       opponent: _combatant(
         id: 'opponent',
         abilityId: opponentAbilityId,
+        currentHp: opponentCurrentHp,
+        types: opponentTypes,
         move: _move(id: 'opponent_wait', power: 0),
       ),
       rngSeeds: const BattleRngSeeds(

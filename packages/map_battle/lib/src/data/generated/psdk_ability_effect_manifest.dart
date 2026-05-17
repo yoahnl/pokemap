@@ -380,7 +380,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'filter',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 SuperEffectivePowerReduction.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AbilityFinalDamageModifierEffect.superEffectiveIncoming',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'flame_body',
@@ -815,7 +816,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'multiscale',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Multiscale - Shadow Shield.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'FullHpIncomingPowerReductionEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'mummy',
@@ -985,7 +987,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'prism_armor',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 SuperEffectivePowerReduction.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AbilityFinalDamageModifierEffect.superEffectiveIncoming',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'propeller_tail',
@@ -1192,7 +1195,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'shadow_shield',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Multiscale - Shadow Shield.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'FullHpIncomingPowerReductionEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'shadow_tag',
@@ -1280,7 +1284,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'solid_rock',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 SuperEffectivePowerReduction.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AbilityFinalDamageModifierEffect.superEffectiveIncoming',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'soul_heart',
@@ -1514,7 +1519,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'tinted_lens',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Tinted Lens.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'AbilityFinalDamageModifierEffect.notVeryEffectiveOutgoing',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'torrent',

@@ -8,6 +8,7 @@ import '../battle_effect_scope.dart';
 import 'air_lock_effect.dart';
 import 'cloud_nine_effect.dart';
 import 'contact_punish_ability_effect.dart';
+import 'damage_modifier_ability_effect.dart';
 import 'damp_effect.dart';
 import 'levitate_effect.dart';
 import 'move_shape_power_ability_effect.dart';
@@ -167,6 +168,40 @@ final class AbilityEffectRegistry {
           scope: scope,
           shape: AbilityMovePowerShape.sound,
           multiplier: 1.3,
+        ),
+    'solid_rock': ({required scope}) => AbilityFinalDamageModifierEffect(
+          abilityId: 'solid_rock',
+          scope: scope,
+          condition: AbilityFinalDamageCondition.superEffectiveIncoming,
+          multiplier: 0.75,
+        ),
+    'filter': ({required scope}) => AbilityFinalDamageModifierEffect(
+          abilityId: 'filter',
+          scope: scope,
+          condition: AbilityFinalDamageCondition.superEffectiveIncoming,
+          multiplier: 0.75,
+        ),
+    'prism_armor': ({required scope}) => AbilityFinalDamageModifierEffect(
+          abilityId: 'prism_armor',
+          scope: scope,
+          condition: AbilityFinalDamageCondition.superEffectiveIncoming,
+          multiplier: 0.75,
+        ),
+    'tinted_lens': ({required scope}) => AbilityFinalDamageModifierEffect(
+          abilityId: 'tinted_lens',
+          scope: scope,
+          condition: AbilityFinalDamageCondition.notVeryEffectiveOutgoing,
+          multiplier: 2,
+        ),
+    'multiscale': ({required scope}) => FullHpIncomingPowerReductionEffect(
+          abilityId: 'multiscale',
+          scope: scope,
+          multiplier: 0.5,
+        ),
+    'shadow_shield': ({required scope}) => FullHpIncomingPowerReductionEffect(
+          abilityId: 'shadow_shield',
+          scope: scope,
+          multiplier: 0.5,
         ),
     'levitate': ({required scope}) => LevitateEffect(scope: scope),
     'no_guard': ({required scope}) => NoGuardEffect(scope: scope),
