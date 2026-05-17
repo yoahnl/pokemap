@@ -1,6 +1,7 @@
 import '../domain/battle/battle_context.dart';
 import '../domain/battle/battle_outcome.dart';
 import '../domain/battle/battle_slot.dart';
+import '../domain/ai/psdk_battle_ai.dart';
 import '../domain/action/battle_action.dart';
 import '../domain/action/battle_action_decision_mapper.dart';
 import '../domain/action/battle_item_action_handler.dart';
@@ -52,12 +53,15 @@ final class BattleTurnRunner {
     this._context, {
     required PsdkBattleMoveBehaviorRegistry moveBehaviorRegistry,
     BattleMoveProcedureHooks moveProcedureHooks = BattleMoveProcedureHooks.none,
+    PsdkBattleAi? opponentAi,
   })  : _moveBehaviorRegistry = moveBehaviorRegistry,
-        _moveProcedureHooks = moveProcedureHooks;
+        _moveProcedureHooks = moveProcedureHooks,
+        _opponentAi = opponentAi;
 
   final BattleContext _context;
   final PsdkBattleMoveBehaviorRegistry _moveBehaviorRegistry;
   final BattleMoveProcedureHooks _moveProcedureHooks;
+  final PsdkBattleAi? _opponentAi;
   static const BattleMoveHistoryRecorder _moveHistoryRecorder =
       BattleMoveHistoryRecorder();
 
@@ -86,7 +90,7 @@ final class BattleTurnRunner {
         actionMapper.map(
           state: _context.state,
           user: psdkOpponentSlot,
-          decision: const BattleDecision.fight(moveSlot: 0),
+          decision: _opponentDecision(),
         ),
       ],
     ).ordered(rng: _context.rng);
@@ -433,6 +437,18 @@ final class BattleTurnRunner {
       nextRequest: publicState.isFinished
           ? null
           : BattleEngineDecisionRequest.fromContext(_context),
+    );
+  }
+
+  BattleDecision _opponentDecision() {
+    final ai = _opponentAi;
+    if (ai == null) {
+      return const BattleDecision.fight(moveSlot: 0);
+    }
+    return ai.chooseDecision(
+      state: _context.state,
+      user: psdkOpponentSlot,
+      target: psdkPlayerSlot,
     );
   }
 

@@ -2050,6 +2050,16 @@ action-topology lot does not change strict move-method coverage, which remains
 **Definition of done:**
 - Opponent policy can use PSDK-like move scoring.
 
+**Status 2026-05-17:** done for the clean PSDK move-scoring slice. Added
+`PsdkBattleAi` and `PsdkMoveScore` with PP filtering, move-selection effect
+filtering, type-effectiveness visibility, estimated typed damage, KO preference,
+status/stat utility scoring, and stable first-in-list tie-breaks. `BattleEngine`
+now accepts an optional `opponentAi`; when omitted, it preserves the historical
+opponent `moveSlot: 0` behavior. Tests cover KO preference, immune-target
+avoidance, utility over poor damage, PP/Disable filtering, and clean-engine
+opponent move selection. This AI/topology lot does not promote strict attack
+coverage, which remains 267 / 728 attacks with 65 / 330 methods ported.
+
 ### Lot 65 - Pokemon SDK AI: Switch, Item, Flee, and Final Acceptance Gate
 
 **Goal:** finish AI parity and define the final 100% acceptance gate.
