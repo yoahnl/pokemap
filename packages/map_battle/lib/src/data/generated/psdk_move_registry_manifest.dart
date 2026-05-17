@@ -2658,8 +2658,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_tailwind',
     rubyClass: 'Tailwind',
     rubyPath: '10 Move/2 Definitions/300 Tailwind.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_tailwind)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_tailwind',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.actionOrder
@@ -2904,8 +2904,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_trick_room',
     rubyClass: 'TrickRoom',
     rubyPath: '10 Move/2 Definitions/300 TrickRoom.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_trick_room)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_trick_room',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[
       PsdkMoveDependency.effects,
       PsdkMoveDependency.actionOrder,

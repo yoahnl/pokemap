@@ -359,7 +359,10 @@ void main() {
 
       final instruction = collection.groundStatic.single;
       _expectBuildingContactLedge(instruction);
-      expect(instruction.height, lessThan(18));
+      expect(instruction.height, greaterThan(13));
+      expect(instruction.height, lessThan(15));
+      expect(instruction.width, greaterThan(198));
+      expect(instruction.width, lessThan(200));
     });
 
     test('placed override family wins over element shadow family', () {

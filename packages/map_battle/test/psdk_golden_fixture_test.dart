@@ -12,6 +12,12 @@ void main() {
       );
 
       expect(fixture.scenarioId, 'basic_damage_neutral');
+      expect(fixture.tags, containsAll(<String>['move_method', 'damage']));
+      expect(
+        fixture.psdkSourcePaths,
+        contains('10 Move/1 Mechanics/100 Basic.rb'),
+      );
+      expect(fixture.expectedAuditDeltas.strictAttacks, 1);
 
       final engine = PsdkBattleEngine(setup: fixture.toPsdkSetup());
       PsdkBattleTurnResult? result;
@@ -39,7 +45,7 @@ void main() {
           isA<FormatException>().having(
             (error) => error.message,
             'message',
-            contains('sourcePsdkVersion'),
+            contains('tags'),
           ),
         ),
       );

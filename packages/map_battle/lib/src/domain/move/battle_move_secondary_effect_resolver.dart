@@ -68,6 +68,7 @@ final class BattleMoveSecondaryEffectResolver {
           target: target,
           moveId: move.id,
           status: majorStatus,
+          move: move,
         );
         nextState = result.state;
         nextRng = result.rng;
@@ -125,6 +126,7 @@ final class BattleMoveSecondaryEffectResolver {
         target: target,
         stat: mod.stat,
         stages: mod.stages,
+        move: move,
       );
       nextState = result.state;
       nextRng = result.rng;

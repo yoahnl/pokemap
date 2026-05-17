@@ -161,6 +161,13 @@ final class PsdkFinalParityGatePolicy {
     if (requireRuntimeBridge && audit.runtimeBridge.status == 'not_measured') {
       failures.add('runtime_bridge status is not measured');
     }
+    if (requireRuntimeBridge &&
+        audit.runtimeBridge.unexplainedRejectedMoves > 0) {
+      failures.add(
+        'runtime_bridge unexplained_rejected_moves='
+        '${audit.runtimeBridge.unexplainedRejectedMoves} must be 0',
+      );
+    }
     if (goldenFixtureCount < minimumGoldenFixtures) {
       failures.add(
         'golden_fixtures=$goldenFixtureCount is below minimum '

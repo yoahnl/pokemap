@@ -195,7 +195,7 @@ void main() {
       expect(bands.first.startT, 0);
       expect(bands.last.endT, 1);
       expect(bands.first.opacityScale, greaterThan(bands.last.opacityScale));
-      expect(bands.last.opacityScale, closeTo(0.3871428571, 0.000001));
+      expect(bands.last.opacityScale, closeTo(0.5542857143, 0.000001));
       expect(() => bands.add(bands.first), throwsUnsupportedError);
     });
 

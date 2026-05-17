@@ -104,6 +104,66 @@ void main() {
         contains('attack'),
       );
     });
+
+    test('Baton Pass transfers PSDK-transferable stages and effects', () {
+      final engine = BattleEngine(
+        setup: _setup(
+          player: _combatant(
+            id: 'player-bulbasaur',
+            speciesId: 'bulbasaur',
+            hp: 80,
+            statStages: PsdkBattleStatStages(
+              values: <String, int>{'attack': 2},
+            ),
+            effects: const PsdkBattleEffectStack.empty()
+                .addEffect(
+                  const BatonPassEffect(
+                    scope: BattlerBattleEffectScope(psdkPlayerSlot),
+                  ),
+                )
+                .addEffect(
+                  const SubstituteEffect(
+                    scope: BattlerBattleEffectScope(psdkPlayerSlot),
+                    remainingHp: 20,
+                  ),
+                ),
+          ),
+          playerReserve: _combatant(
+            id: 'player-ivysaur',
+            speciesId: 'ivysaur',
+            hp: 80,
+          ),
+          opponentMoves: <PsdkBattleMoveData>[
+            _move(id: 'wait', power: 0),
+          ],
+        ),
+      );
+
+      final result = const BattleSwitchHandler().switchCombatant(
+        context: BattleHandlerContext(
+          state: engine.snapshot().psdkState,
+          rng: BattleRngStreams.fromSeeds(
+            moveDamageSeed: 1,
+            moveCriticalSeed: 99999,
+            moveAccuracySeed: 3,
+            genericSeed: 4,
+          ),
+          turn: 1,
+          user: psdkPlayerSlot,
+        ),
+        target: psdkPlayerSlot,
+        partyIndex: 1,
+      );
+      final incoming = result.state.battlerAt(psdkPlayerSlot);
+      final outgoing = result.state.partyForBank(0).first;
+
+      expect(incoming.speciesId, 'ivysaur');
+      expect(incoming.statStages.valueOf('attack'), 2);
+      expect(incoming.effects.contains('substitute'), isTrue);
+      expect(incoming.effects.contains('baton_pass'), isFalse);
+      expect(outgoing.statStages.valueOf('attack'), 0);
+      expect(outgoing.effects.contains('substitute'), isFalse);
+    });
   });
 }
 
@@ -152,6 +212,7 @@ PsdkBattleCombatantSetup _combatant({
   String? abilityId,
   List<PsdkBattleMoveData>? moves,
   PsdkBattleEffectStack? effects,
+  PsdkBattleStatStages? statStages,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -168,6 +229,7 @@ PsdkBattleCombatantSetup _combatant({
       specialDefense: 50,
       speed: 50,
     ),
+    statStages: statStages,
     abilityId: abilityId,
     moves: moves ?? <PsdkBattleMoveData>[_move(id: 'tackle', power: 40)],
     effects: effects,

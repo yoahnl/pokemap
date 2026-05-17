@@ -1,5 +1,13 @@
 {
   "scenarioId": "basic_damage_neutral",
+  "tags": [
+    "move_method",
+    "damage"
+  ],
+  "psdkSourcePaths": [
+    "10 Move/1 Mechanics/100 Basic.rb",
+    "10 Move/101 Damage_Calc.rb"
+  ],
   "sourcePsdkVersion": "pokemonsdk-development-local-2026-05-16",
   "initialBattle": {
     "rngSeeds": {
@@ -109,6 +117,11 @@
         "remainingHp": 33
       }
     ]
+  },
+  "expectedAuditDeltas": {
+    "strictAttacks": 1,
+    "portedMethods": 1,
+    "portedEffects": 0
   },
   "notes": [
     "Minimal deterministic fixture for the golden format.",

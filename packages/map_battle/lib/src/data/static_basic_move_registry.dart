@@ -59,6 +59,9 @@ import '../domain/handler/battle_terrain_change_handler.dart';
 import '../domain/effect/battle_effect.dart';
 import '../domain/effect/battle_effect_scope.dart';
 import '../domain/effect/field/delayed_move_effect.dart';
+import '../domain/effect/field/healing_wish_effect.dart';
+import '../domain/effect/field/trick_room_effect.dart';
+import '../domain/effect/field/wish_effect.dart';
 import '../domain/effect/item/item_effect.dart';
 import '../domain/effect/move/attract_effect.dart';
 import '../domain/effect/move/bind_effect.dart';
@@ -191,6 +194,10 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     CallbackBattleMoveBehavior(
       battleEngineMethod: 's_trick',
       resolve: _resolveTrick,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_trick_room',
+      resolve: _resolveTrickRoom,
     ),
     CopyCallMoveBehavior.sleepTalk(callMove: callMove),
     CopyCallMoveBehavior.metronome(callMove: callMove),
@@ -411,6 +418,18 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
     const ActionGatedMoveBehavior.focusPunch(),
     const FieldLocationMoveBehavior.camouflage(),
     const FieldLocationMoveBehavior.naturePower(),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_wish',
+      resolve: _resolveWish,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_healing_wish',
+      resolve: _resolveHealingSacrifice,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_lunar_dance',
+      resolve: _resolveHealingSacrifice,
+    ),
     for (final method in _partialTargetMarkerMethods.keys)
       CallbackBattleMoveBehavior(
         battleEngineMethod: method,
@@ -668,9 +687,7 @@ const _partialTargetMarkerMethods = <String, String>{
   's_focus_energy': 'focus_energy',
   's_gastro_acid': 'ability_suppressed',
   's_grudge': 'grudge',
-  's_healing_wish': 'healing_wish',
   's_laser_focus': 'laser_focus',
-  's_lunar_dance': 'lunar_dance',
   's_magic_coat': 'magic_coat',
   's_magic_powder': 'magic_powder',
   's_magnet_rise': 'magnet_rise',
@@ -740,13 +757,13 @@ const _partialUserBankMarkerMethods = <String, String>{
   's_shed_tail': 'shed_tail',
   's_stuff_cheeks': 'stuff_cheeks',
   's_tailwind': 'tailwind',
-  's_wish': 'wish',
 };
 
 const _singleActiveUserBankMarkerEffectIds = <String>{
   'lucky_chant',
   'mist',
   'safeguard',
+  'tailwind',
 };
 
 const _partialFoeBankMarkerMethods = <String, String>{
@@ -765,7 +782,6 @@ const _partialFieldMarkerMethods = <String, String>{
   's_ion_deluge': 'ion_deluge',
   's_magic_room': 'magic_room',
   's_teatime': 'teatime',
-  's_trick_room': 'trick_room',
   's_wonder_room': 'wonder_room',
 };
 
@@ -2640,7 +2656,14 @@ BattleMoveBehaviorResolution _resolveUTurn(BattleMoveBehaviorContext context) {
     turn: context.turn,
     user: context.user,
   );
-  final prevention = const BattleSwitchHandler().resolveSwitchPrevention(
+  final switchHandler = const BattleSwitchHandler();
+  if (!switchHandler.hasAvailableReplacement(
+    state: basic.state,
+    target: context.user,
+  )) {
+    return basic;
+  }
+  final prevention = switchHandler.resolveSwitchPrevention(
     context: handlerContext,
     target: context.user,
     move: context.move,
@@ -2649,7 +2672,7 @@ BattleMoveBehaviorResolution _resolveUTurn(BattleMoveBehaviorContext context) {
     return basic;
   }
 
-  final switching = const BattleSwitchHandler().markSwitching(
+  final switching = switchHandler.markSwitching(
     context: handlerContext,
     target: context.user,
     switching: true,
@@ -3214,7 +3237,14 @@ BattleMoveBehaviorResolution _resolveForceSwitch(
     turn: context.turn,
     user: context.user,
   );
-  final prevention = const BattleSwitchHandler().resolveSwitchPrevention(
+  final switchHandler = const BattleSwitchHandler();
+  if (!switchHandler.hasAvailableReplacement(
+    state: basic.state,
+    target: targetSlot,
+  )) {
+    return basic;
+  }
+  final prevention = switchHandler.resolveSwitchPrevention(
     context: handlerContext,
     target: targetSlot,
     move: context.move,
@@ -3224,10 +3254,13 @@ BattleMoveBehaviorResolution _resolveForceSwitch(
   }
 
   return BattleMoveBehaviorResolution(
-    state: basic.state.updateBattler(
-      targetSlot,
-      (battler) => battler.copyWith(switching: true),
-    ),
+    state: switchHandler
+        .markSwitching(
+          context: handlerContext,
+          target: targetSlot,
+          switching: true,
+        )
+        .state,
     rng: basic.rng,
     events: basic.events,
   );
@@ -3586,6 +3619,126 @@ BattleMoveBehaviorResolution _resolveFutureSight(
   );
 }
 
+BattleMoveBehaviorResolution _resolveWish(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(
+    BattleMoveBehaviorContext(
+      state: context.state,
+      rng: context.rng,
+      turn: context.turn,
+      user: context.user,
+      target: context.user,
+      move: context.move.copyWith(target: PsdkBattleMoveTarget.user),
+      moveSlot: context.moveSlot,
+      isLastActionOfTurn: context.isLastActionOfTurn,
+      moveProcedureHooks: context.moveProcedureHooks,
+    ),
+  );
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final user = prepared.state.battlerAt(context.user);
+  if (user.effects.contains('wish')) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: prepared.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.user,
+          moveId: context.move.id,
+          reason: 'wish_already_active',
+        ),
+      ],
+      successful: false,
+    );
+  }
+
+  return _addEffectToUser(
+    context: context,
+    state: prepared.state,
+    rng: prepared.rng,
+    events: prepared.events,
+    effect: WishEffect(
+      scope: BattlerBattleEffectScope(context.user),
+      healAmount: (user.maxHp / 2).floor().clamp(1, user.maxHp).toInt(),
+      remainingTurns: _markerTurnCount(context.move.battleEngineMethod) ?? 2,
+    ),
+  );
+}
+
+BattleMoveBehaviorResolution _resolveHealingSacrifice(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(
+    BattleMoveBehaviorContext(
+      state: context.state,
+      rng: context.rng,
+      turn: context.turn,
+      user: context.user,
+      target: context.user,
+      move: context.move.copyWith(target: PsdkBattleMoveTarget.user),
+      moveSlot: context.moveSlot,
+      isLastActionOfTurn: context.isLastActionOfTurn,
+      moveProcedureHooks: context.moveProcedureHooks,
+    ),
+  );
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  if (!const BattleSwitchHandler().hasAvailableReplacement(
+    state: prepared.state,
+    target: context.user,
+  )) {
+    return BattleMoveBehaviorResolution(
+      state: prepared.state,
+      rng: prepared.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.user,
+          moveId: context.move.id,
+          reason: 'no_replacement',
+        ),
+      ],
+      successful: false,
+    );
+  }
+
+  final user = prepared.state.battlerAt(context.user);
+  final effect = HealingWishEffect(
+    scope: BattlerBattleEffectScope(context.user),
+    restorePp: context.move.battleEngineMethod == 's_lunar_dance',
+  );
+  final nextState = prepared.state.updateBattler(
+    context.user,
+    (battler) => battler.copyWith(
+      currentHp: 0,
+      effects: battler.effects.addEffect(effect),
+    ),
+  );
+
+  return BattleMoveBehaviorResolution(
+    state: nextState,
+    rng: prepared.rng,
+    events: <PsdkBattleEvent>[
+      ...prepared.events,
+      PsdkBattleDamageEvent(
+        user: context.user,
+        target: context.user,
+        moveId: context.move.id,
+        damage: user.currentHp,
+        remainingHp: 0,
+      ),
+    ],
+  );
+}
+
 PsdkBattleState _applyAutotomizeWeightLoss({
   required PsdkBattleState state,
   required PsdkBattleSlotRef target,
@@ -3805,6 +3958,61 @@ PsdkBattleState _addOrEmpowerHazard({
       if (effect.id == hazard.id &&
           effectScope is BankBattleEffectScope &&
           effectScope.bank == scope.bank) {
+        return (owner: entry.key, effect: effect);
+      }
+    }
+  }
+  return null;
+}
+
+BattleMoveBehaviorResolution _resolveTrickRoom(
+  BattleMoveBehaviorContext context,
+) {
+  final prepared = prepareBattleMove(context);
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final existing = _firstFieldEffectWithId(prepared.state, 'trick_room');
+  if (existing != null) {
+    final state = prepared.state.updateBattler(
+      existing.owner,
+      (battler) => battler.copyWith(
+        effects: battler.effects.remove('trick_room'),
+      ),
+    );
+    return BattleMoveBehaviorResolution(
+      state: state,
+      rng: prepared.rng,
+      events: <PsdkBattleEvent>[
+        ...prepared.events,
+        PsdkBattleEffectEvent.removed(
+          turn: context.turn,
+          target: existing.owner,
+          effectId: 'trick_room',
+          remainingTurns: 0,
+          reason: 'trick_room_toggle',
+        ),
+      ],
+    );
+  }
+
+  return _addEffectToUser(
+    context: context,
+    state: prepared.state,
+    rng: prepared.rng,
+    events: prepared.events,
+    effect: const TrickRoomEffect(),
+  );
+}
+
+({PsdkBattleSlotRef owner, BattleEffect effect})? _firstFieldEffectWithId(
+  PsdkBattleState state,
+  String effectId,
+) {
+  for (final entry in state.combatants.entries) {
+    for (final effect in entry.value.effects.effects) {
+      if (effect.id == effectId && effect.scope is FieldBattleEffectScope) {
         return (owner: entry.key, effect: effect);
       }
     }
@@ -4100,7 +4308,14 @@ BattleMoveBehaviorResolution _resolvePartingShot(
     turn: context.turn,
     user: context.user,
   );
-  final prevention = const BattleSwitchHandler().resolveSwitchPrevention(
+  final switchHandler = const BattleSwitchHandler();
+  if (!switchHandler.hasAvailableReplacement(
+    state: secondary.state,
+    target: context.user,
+  )) {
+    return secondary;
+  }
+  final prevention = switchHandler.resolveSwitchPrevention(
     context: handlerContext,
     target: context.user,
     move: context.move,
@@ -4109,7 +4324,7 @@ BattleMoveBehaviorResolution _resolvePartingShot(
     return secondary;
   }
 
-  final switching = const BattleSwitchHandler().markSwitching(
+  final switching = switchHandler.markSwitching(
     context: handlerContext,
     target: context.user,
     switching: true,

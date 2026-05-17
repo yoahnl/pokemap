@@ -4,9 +4,10 @@ This directory stores canonical battle scenarios used to compare the Dart PSDK
 battle lane with Pokemon SDK behavior.
 
 Each fixture is intentionally small and deterministic. A fixture should describe
-one behavior, one setup, one ordered action list, and the observable final state
-and timeline expected from that scenario. The goal is to grow parity without
-mixing many move families inside the same golden file.
+one behavior, one setup, one ordered action list, the Pokemon SDK source paths
+that justify the expected behavior, and the observable final state and timeline
+expected from that scenario. The goal is to grow parity without mixing many move
+families inside the same golden file.
 
 Run the focused golden suite from `packages/map_battle`:
 

@@ -41,7 +41,8 @@ final class SubstituteEffect extends BattleEffect {
     BattleEffectDamagePreventionContext context,
   ) {
     if (context.user.bank == context.target.bank ||
-        !_appliesTo(context.target)) {
+        !_appliesTo(context.target) ||
+        _bypassesSubstitute(context)) {
       return null;
     }
 
@@ -86,5 +87,10 @@ final class SubstituteEffect extends BattleEffect {
   bool _appliesTo(PsdkBattleSlotRef target) {
     final scope = this.scope;
     return scope is! BattlerBattleEffectScope || scope.slot == target;
+  }
+
+  bool _bypassesSubstitute(BattleEffectDamagePreventionContext context) {
+    final user = context.state.battlerAt(context.user);
+    return context.move.flags.sound || user.abilityId == 'infiltrator';
   }
 }

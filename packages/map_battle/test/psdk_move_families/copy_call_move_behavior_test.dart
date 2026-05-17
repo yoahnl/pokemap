@@ -20,6 +20,11 @@ void main() {
       expect(_failures(result), isEmpty);
       expect(_damageEvents(result, moveId: 'tackle'), hasLength(1));
       expect(_damageEvents(result, moveId: 'sleep_talk'), isEmpty);
+      expect(_calledEvents(result, callerMoveId: 'sleep_talk'), hasLength(1));
+      expect(
+        _calledEvents(result, callerMoveId: 'sleep_talk').single.calledMoveId,
+        'tackle',
+      );
       expect(_ppSpent(result, moveId: 'sleep_talk'), hasLength(1));
       expect(_ppSpent(result, moveId: 'tackle'), isEmpty);
       expect(
@@ -128,6 +133,11 @@ void main() {
       expect(_failures(result), isEmpty);
       expect(_damageEvents(result, moveId: 'scratch'), hasLength(1));
       expect(_damageEvents(result, moveId: 'metronome'), isEmpty);
+      expect(_calledEvents(result, callerMoveId: 'metronome'), hasLength(1));
+      expect(
+        _calledEvents(result, callerMoveId: 'metronome').single.calledMoveId,
+        'scratch',
+      );
     });
 
     test('s_metronome spends only Metronome PP, not the called move PP', () {
@@ -184,6 +194,10 @@ void main() {
       expect(_damageEventsFromEvents(result.events, moveId: 'scratch'),
           hasLength(1));
       expect(_damageEventsFromEvents(result.events, moveId: 'assist'), isEmpty);
+      expect(
+        _calledEventsFromEvents(result.events, callerMoveId: 'assist'),
+        hasLength(1),
+      );
     });
 
     test('s_mirror_move fails after PP when target has no last move', () {
@@ -338,6 +352,12 @@ void main() {
         isEmpty,
       );
       expect(
+        _calledEventsFromEvents(result.events, callerMoveId: 'instruct')
+            .single
+            .calledMoveId,
+        'flamethrower',
+      );
+      expect(
         result.state.battlerAt(psdkOpponentSlot).effects.contains('instruct'),
         isTrue,
       );
@@ -388,6 +408,7 @@ void main() {
         _damageEvents(result, moveId: 'flamethrower').single.user.toJson(),
         psdkPlayerSlot.toJson(),
       );
+      expect(_calledEvents(result, callerMoveId: 'me_first'), hasLength(1));
       expect(_ppSpent(result, moveId: 'me_first'), hasLength(1));
       expect(_ppSpent(result, moveId: 'flamethrower'), isEmpty);
     });
@@ -855,6 +876,26 @@ List<PsdkBattleMovePpSpentEvent> _ppSpentFromEvents(
       .whereType<PsdkBattleMovePpSpentEvent>()
       .where((event) => event.moveId == moveId)
       .where((event) => user == null || event.user == user)
+      .toList(growable: false);
+}
+
+List<PsdkBattleMoveCalledEvent> _calledEvents(
+  PsdkBattleTurnResult result, {
+  required String callerMoveId,
+}) {
+  return _calledEventsFromEvents(
+    result.timeline.events,
+    callerMoveId: callerMoveId,
+  );
+}
+
+List<PsdkBattleMoveCalledEvent> _calledEventsFromEvents(
+  List<PsdkBattleEvent> events, {
+  required String callerMoveId,
+}) {
+  return events
+      .whereType<PsdkBattleMoveCalledEvent>()
+      .where((event) => event.callerMoveId == callerMoveId)
       .toList(growable: false);
 }
 

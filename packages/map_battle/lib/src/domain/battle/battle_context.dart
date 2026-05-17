@@ -121,13 +121,27 @@ final class BattlePublicState {
 }
 
 PsdkBattleOutcome? _outcomeFor(PsdkBattleState state) {
-  if (state.battlerAt(psdkOpponentSlot).isFainted) {
+  if (_bankDefeated(state, psdkOpponentSlot.bank)) {
     return const PsdkBattleOutcome(kind: PsdkBattleOutcomeKind.victory);
   }
-  if (state.battlerAt(psdkPlayerSlot).isFainted) {
+  if (_bankDefeated(state, psdkPlayerSlot.bank)) {
     return const PsdkBattleOutcome(kind: PsdkBattleOutcomeKind.defeat);
   }
   return null;
+}
+
+bool _bankDefeated(PsdkBattleState state, int bank) {
+  final activeById = <String, PsdkBattleCombatant>{
+    for (final entry in state.combatants.entries)
+      if (entry.key.bank == bank) entry.value.id: entry.value,
+  };
+  final party = state.partyForBank(bank);
+  if (party.isEmpty) {
+    return activeById.values.every((combatant) => combatant.isFainted);
+  }
+  return party.every(
+    (combatant) => (activeById[combatant.id] ?? combatant).isFainted,
+  );
 }
 
 PsdkBattleState _stateWithInitialOutcome(PsdkBattleState state) {

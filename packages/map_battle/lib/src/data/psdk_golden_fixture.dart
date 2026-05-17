@@ -15,18 +15,29 @@ enum PsdkGoldenActionKind {
 class PsdkGoldenFixture {
   PsdkGoldenFixture({
     required this.scenarioId,
+    required List<String> tags,
+    required List<String> psdkSourcePaths,
     required this.sourcePsdkVersion,
     required this.initialBattle,
     required List<PsdkGoldenAction> actions,
     required this.expectedFinalState,
     required this.expectedTimeline,
+    required this.expectedAuditDeltas,
     required List<String> notes,
-  })  : actions = List<PsdkGoldenAction>.unmodifiable(actions),
+  })  : tags = List<String>.unmodifiable(tags),
+        psdkSourcePaths = List<String>.unmodifiable(psdkSourcePaths),
+        actions = List<PsdkGoldenAction>.unmodifiable(actions),
         notes = List<String>.unmodifiable(notes);
 
   factory PsdkGoldenFixture.fromJson(Map<String, Object?> json) {
     return PsdkGoldenFixture(
       scenarioId: _requiredString(json, 'scenarioId'),
+      tags: _requiredList(json, 'tags')
+          .map((value) => _asString(value, 'tags[]'))
+          .toList(growable: false),
+      psdkSourcePaths: _requiredList(json, 'psdkSourcePaths')
+          .map((value) => _asString(value, 'psdkSourcePaths[]'))
+          .toList(growable: false),
       sourcePsdkVersion: _requiredString(json, 'sourcePsdkVersion'),
       initialBattle: PsdkGoldenInitialBattle.fromJson(
         _requiredMap(json, 'initialBattle'),
@@ -42,6 +53,9 @@ class PsdkGoldenFixture {
       expectedTimeline: PsdkGoldenExpectedTimeline.fromJson(
         _requiredMap(json, 'expectedTimeline'),
       ),
+      expectedAuditDeltas: PsdkGoldenExpectedAuditDeltas.fromJson(
+        _requiredMap(json, 'expectedAuditDeltas'),
+      ),
       notes: _requiredList(json, 'notes')
           .map((value) => _asString(value, 'notes[]'))
           .toList(growable: false),
@@ -54,11 +68,14 @@ class PsdkGoldenFixture {
   }
 
   final String scenarioId;
+  final List<String> tags;
+  final List<String> psdkSourcePaths;
   final String sourcePsdkVersion;
   final PsdkGoldenInitialBattle initialBattle;
   final List<PsdkGoldenAction> actions;
   final PsdkGoldenExpectedFinalState expectedFinalState;
   final PsdkGoldenExpectedTimeline expectedTimeline;
+  final PsdkGoldenExpectedAuditDeltas expectedAuditDeltas;
   final List<String> notes;
 
   PsdkBattleSetup toPsdkSetup() {
@@ -75,6 +92,26 @@ class PsdkGoldenFixture {
       ...expectedTimeline.compare(result.timeline),
     ];
   }
+}
+
+class PsdkGoldenExpectedAuditDeltas {
+  const PsdkGoldenExpectedAuditDeltas({
+    required this.strictAttacks,
+    required this.portedMethods,
+    required this.portedEffects,
+  });
+
+  factory PsdkGoldenExpectedAuditDeltas.fromJson(Map<String, Object?> json) {
+    return PsdkGoldenExpectedAuditDeltas(
+      strictAttacks: _requiredInt(json, 'strictAttacks'),
+      portedMethods: _requiredInt(json, 'portedMethods'),
+      portedEffects: _requiredInt(json, 'portedEffects'),
+    );
+  }
+
+  final int strictAttacks;
+  final int portedMethods;
+  final int portedEffects;
 }
 
 class PsdkGoldenInitialBattle {

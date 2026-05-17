@@ -24,6 +24,7 @@ final class BattleStatusChangeHandler {
     required PsdkBattleSlotRef target,
     required String moveId,
     required PsdkBattleMajorStatus status,
+    BattleMoveDefinition? move,
   }) {
     final targetBattler = context.state.battlerAt(target);
     if (_substitutePreventsStatus(
@@ -31,6 +32,7 @@ final class BattleStatusChangeHandler {
       target: target,
       targetBattler: targetBattler,
       moveId: moveId,
+      move: move,
     )) {
       return BattleHandlerResult(
         state: context.state,
@@ -506,9 +508,15 @@ bool _substitutePreventsStatus({
   required PsdkBattleSlotRef target,
   required PsdkBattleCombatant targetBattler,
   required String moveId,
+  BattleMoveDefinition? move,
 }) {
   if (context.user == target || !targetBattler.effects.contains('substitute')) {
     return false;
+  }
+  final moveDefinition = move;
+  if (moveDefinition != null) {
+    final user = context.state.battlerAt(context.user);
+    return !moveDefinition.flags.sound && user.abilityId != 'infiltrator';
   }
   return !moveId.startsWith('effect:') && !moveId.startsWith('status:');
 }

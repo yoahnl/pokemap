@@ -354,7 +354,7 @@ ProjectElementShadowConfig _configForKind(
         offsetY: 0,
         scaleX: 0.80,
         scaleY: 0.55,
-        opacity: 0.20,
+        opacity: 0.30,
         family: StaticShadowFamily.tallProp,
         footprint: StaticShadowFootprintConfig(
           anchorXRatio: 0.5,
@@ -371,7 +371,7 @@ ProjectElementShadowConfig _configForKind(
         offsetY: 0,
         scaleX: 0.72,
         scaleY: 0.48,
-        opacity: 0.20,
+        opacity: 0.32,
         family: StaticShadowFamily.building,
         footprint: StaticShadowFootprintConfig(
           anchorXRatio: 0.5,
@@ -388,7 +388,7 @@ ProjectElementShadowConfig _configForKind(
         offsetY: 0,
         scaleX: 0.74,
         scaleY: 0.50,
-        opacity: 0.20,
+        opacity: 0.28,
         family: StaticShadowFamily.compactProp,
         footprint: StaticShadowFootprintConfig(
           anchorXRatio: 0.5,
@@ -476,6 +476,9 @@ bool _isRecognizedAutoShadow(
       shadow == _oldAutoSmallSquareShadow() ||
       shadow == _oldAutoDefaultPropShadow() ||
       shadow == _oldAutoWideLowShadow() ||
+      shadow == _shadow53TallThinShadow() ||
+      shadow == _shadow53BuildingLargeShadow() ||
+      shadow == _shadow53WideLowShadow() ||
       _isLegacyBroadSelbrumeAutoShadow(shadow);
 }
 
@@ -560,6 +563,63 @@ ProjectElementShadowConfig _oldAutoWideLowShadow() {
       anchorYRatio: 0.95,
       footprintWidthRatio: 0.72,
       footprintHeightRatio: 0.10,
+    ),
+  );
+}
+
+ProjectElementShadowConfig _shadow53TallThinShadow() {
+  return ProjectElementShadowConfig(
+    castsShadow: true,
+    shadowProfileId: 'default-ground-contact-blob',
+    offsetX: 0,
+    offsetY: 0,
+    scaleX: 0.80,
+    scaleY: 0.55,
+    opacity: 0.20,
+    family: StaticShadowFamily.tallProp,
+    footprint: StaticShadowFootprintConfig(
+      anchorXRatio: 0.5,
+      anchorYRatio: 1.0,
+      footprintWidthRatio: 0.28,
+      footprintHeightRatio: 0.05,
+    ),
+  );
+}
+
+ProjectElementShadowConfig _shadow53BuildingLargeShadow() {
+  return ProjectElementShadowConfig(
+    castsShadow: true,
+    shadowProfileId: 'default-ground-wide-ellipse',
+    offsetX: 0,
+    offsetY: 0,
+    scaleX: 0.72,
+    scaleY: 0.48,
+    opacity: 0.20,
+    family: StaticShadowFamily.building,
+    footprint: StaticShadowFootprintConfig(
+      anchorXRatio: 0.5,
+      anchorYRatio: 0.98,
+      footprintWidthRatio: 0.60,
+      footprintHeightRatio: 0.06,
+    ),
+  );
+}
+
+ProjectElementShadowConfig _shadow53WideLowShadow() {
+  return ProjectElementShadowConfig(
+    castsShadow: true,
+    shadowProfileId: 'default-ground-wide-ellipse',
+    offsetX: 0,
+    offsetY: 0,
+    scaleX: 0.74,
+    scaleY: 0.50,
+    opacity: 0.20,
+    family: StaticShadowFamily.compactProp,
+    footprint: StaticShadowFootprintConfig(
+      anchorXRatio: 0.5,
+      anchorYRatio: 0.98,
+      footprintWidthRatio: 0.58,
+      footprintHeightRatio: 0.06,
     ),
   );
 }

@@ -189,6 +189,48 @@ void main() {
       );
     });
 
+    test('s_pledge combines with an ally pledge and installs field effect', () {
+      final firePledge = _move(
+        id: 'fire_pledge',
+        type: 'fire',
+        category: PsdkBattleMoveCategory.special,
+        power: 80,
+        battleEngineMethod: 's_pledge',
+      );
+      final waterPledge = _move(
+        id: 'water_pledge',
+        type: 'water',
+        category: PsdkBattleMoveCategory.special,
+        power: 80,
+        battleEngineMethod: 's_pledge',
+      );
+      final baseline = _resolvePledge(
+        playerMove: firePledge,
+        allyMove: waterPledge,
+        allyMoveHistory: PsdkBattleMoveHistory.empty(),
+      );
+      final combined = _resolvePledge(
+        playerMove: firePledge,
+        allyMove: waterPledge,
+        allyMoveHistory: _historyAt(
+          successes: const <String>['water_pledge'],
+          turn: 7,
+        ),
+      );
+
+      expect(
+        _resolutionDamage(combined, moveId: 'fire_pledge'),
+        greaterThan(_resolutionDamage(baseline, moveId: 'fire_pledge')),
+      );
+      expect(
+        combined.state
+            .battlerAt(psdkPlayerSlot)
+            .effects
+            .contains('pledge_rainbow'),
+        isTrue,
+      );
+    });
+
     test('s_trump_card grows stronger as remaining PP gets lower', () {
       final highPp = _runMove(
         playerMove: _move(
@@ -338,6 +380,59 @@ BattleMoveBehaviorResolution _resolveRound({
           user: userSlot,
           target: targetSlot,
           move: BattleMoveDefinition.fromPsdk(move),
+        ),
+      );
+}
+
+BattleMoveBehaviorResolution _resolvePledge({
+  required PsdkBattleMoveData playerMove,
+  required PsdkBattleMoveData allyMove,
+  required PsdkBattleMoveHistory allyMoveHistory,
+}) {
+  const userSlot = psdkPlayerSlot;
+  const allySlot = PsdkBattleSlotRef(bank: 0, position: 1);
+  const targetSlot = psdkOpponentSlot;
+  final state = PsdkBattleState(
+    combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+      userSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(id: 'player', speed: 100, move: playerMove),
+      ),
+      allySlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'ally',
+          speed: 50,
+          move: allyMove,
+          moveHistory: allyMoveHistory,
+        ),
+      ),
+      targetSlot: PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'opponent',
+          speed: 1,
+          move: _move(
+            id: 'opponent_wait',
+            power: 0,
+            category: PsdkBattleMoveCategory.status,
+            battleEngineMethod: 's_splash',
+          ),
+        ),
+      ),
+    },
+  );
+
+  return createStaticBasicMoveRegistry().resolve('s_pledge').resolve(
+        BattleMoveBehaviorContext(
+          state: state,
+          rng: BattleRngStreams.fromSeeds(
+            moveDamageSeed: 1,
+            moveCriticalSeed: 99999,
+            moveAccuracySeed: 3,
+            genericSeed: 4,
+          ),
+          turn: 7,
+          user: userSlot,
+          target: targetSlot,
+          move: BattleMoveDefinition.fromPsdk(playerMove),
         ),
       );
 }

@@ -5,6 +5,7 @@ import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_field.dart';
 import '../battler/battle_grounding_resolver.dart';
 import '../decision/battle_decision.dart';
+import '../effect/battle_effect_scope.dart';
 import '../effect/item/item_effect.dart';
 import '../effect/move/two_turn_charge_effect.dart';
 import 'battle_action.dart';
@@ -85,7 +86,7 @@ final class PsdkBattleActionDecisionMapper {
           : requestedTarget ?? _targetFor(user: user, move: move),
       moveSlot: effectiveMoveSlot,
       move: move,
-      speed: _actionSpeed(battler),
+      speed: _actionSpeed(state: state, user: user, battler: battler),
     );
   }
 }
@@ -154,8 +155,15 @@ PsdkBattleMoveData _copyMoveWithPriority(
   );
 }
 
-int _actionSpeed(PsdkBattleCombatant battler) {
-  final speed = _itemAdjustedSpeed(battler);
+int _actionSpeed({
+  required PsdkBattleState state,
+  required PsdkBattleSlotRef user,
+  required PsdkBattleCombatant battler,
+}) {
+  var speed = _itemAdjustedSpeed(battler);
+  if (_bankHasEffect(state, user.bank, 'tailwind')) {
+    speed *= 2;
+  }
   if (battler.majorStatus != PsdkBattleMajorStatus.paralysis ||
       battler.abilityId == 'quick_feet') {
     return speed;
@@ -171,6 +179,24 @@ int _itemAdjustedSpeed(PsdkBattleCombatant battler) {
   }
   final adjusted = (battler.stats.speed * multiplier).floor();
   return adjusted < 1 ? 1 : adjusted;
+}
+
+bool _bankHasEffect(PsdkBattleState state, int bank, String effectId) {
+  return state.combatants.values.any(
+    (combatant) => combatant.effects.effects.any((effect) {
+      if (effect.id != effectId) {
+        return false;
+      }
+      final scope = effect.scope;
+      if (scope is BankBattleEffectScope) {
+        return scope.bank == bank;
+      }
+      if (scope is BattlerBattleEffectScope) {
+        return scope.slot.bank == bank;
+      }
+      return false;
+    }),
+  );
 }
 
 PsdkBattleSlotRef _targetFor({

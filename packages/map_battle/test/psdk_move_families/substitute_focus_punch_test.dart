@@ -171,6 +171,165 @@ void main() {
       expect(_statusEvents(result, moveId: 'toxic'), isEmpty);
     });
 
+    test('Substitute blocks regular opposing stat drops', () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            speed: 100,
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'substitute',
+                battleEngineMethod: 's_substitute',
+                target: PsdkBattleMoveTarget.user,
+                category: PsdkBattleMoveCategory.status,
+                power: 0,
+                accuracy: 0,
+              ),
+            ],
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            speed: 1,
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'tail_whip',
+                battleEngineMethod: 's_stat',
+                target: PsdkBattleMoveTarget.adjacentFoe,
+                category: PsdkBattleMoveCategory.status,
+                power: 0,
+                accuracy: 100,
+                stageMods: const <PsdkBattleMoveStageMod>[
+                  PsdkBattleMoveStageMod(
+                    stat: 'defense',
+                    stages: -1,
+                    chance: 100,
+                  ),
+                ],
+              ),
+            ],
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 1,
+            generic: 1,
+          ),
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.statStages.valueOf('defense'), 0);
+      expect(_statEvents(result, stat: 'defense'), isEmpty);
+    });
+
+    test('Sound stat moves bypass Substitute', () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            speed: 100,
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'substitute',
+                battleEngineMethod: 's_substitute',
+                target: PsdkBattleMoveTarget.user,
+                category: PsdkBattleMoveCategory.status,
+                power: 0,
+                accuracy: 0,
+              ),
+            ],
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            speed: 1,
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'growl',
+                battleEngineMethod: 's_stat',
+                target: PsdkBattleMoveTarget.adjacentFoe,
+                category: PsdkBattleMoveCategory.status,
+                power: 0,
+                accuracy: 100,
+                sound: true,
+                stageMods: const <PsdkBattleMoveStageMod>[
+                  PsdkBattleMoveStageMod(
+                    stat: 'attack',
+                    stages: -1,
+                    chance: 100,
+                  ),
+                ],
+              ),
+            ],
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 1,
+            generic: 1,
+          ),
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.statStages.valueOf('attack'), -1);
+      expect(_statEvents(result, stat: 'attack'), hasLength(1));
+      expect(player.effects.contains('substitute'), isTrue);
+    });
+
+    test('Infiltrator damage bypasses Substitute without breaking it', () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            speed: 100,
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'substitute',
+                battleEngineMethod: 's_substitute',
+                target: PsdkBattleMoveTarget.user,
+                category: PsdkBattleMoveCategory.status,
+                power: 0,
+                accuracy: 0,
+              ),
+            ],
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            speed: 1,
+            abilityId: 'infiltrator',
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'shadow_sneak',
+                battleEngineMethod: 's_basic',
+                target: PsdkBattleMoveTarget.adjacentFoe,
+                category: PsdkBattleMoveCategory.physical,
+                power: 40,
+                accuracy: 100,
+              ),
+            ],
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 1,
+            generic: 1,
+          ),
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.currentHp, lessThan(75));
+      expect(player.effects.contains('substitute'), isTrue);
+      expect(_damageEvents(result, moveId: 'shadow_sneak'), hasLength(1));
+    });
+
     test('Focus Punch fails when the user was damaged earlier this turn', () {
       final engine = PsdkBattleEngine(
         setup: PsdkBattleSetup.singles(
@@ -241,6 +400,7 @@ PsdkBattleCombatantSetup _combatant({
   required List<PsdkBattleMoveData> moves,
   int maxHp = 100,
   int currentHp = 100,
+  String? abilityId,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -257,6 +417,7 @@ PsdkBattleCombatantSetup _combatant({
       specialDefense: 50,
       speed: speed,
     ),
+    abilityId: abilityId,
     moves: moves,
   );
 }
@@ -275,7 +436,9 @@ PsdkBattleMoveData _move({
   required int power,
   required int accuracy,
   List<PsdkBattleMoveStatus> statuses = const <PsdkBattleMoveStatus>[],
+  List<PsdkBattleMoveStageMod> stageMods = const <PsdkBattleMoveStageMod>[],
   int priority = 0,
+  bool sound = false,
 }) {
   return PsdkBattleMoveData(
     id: id,
@@ -289,6 +452,8 @@ PsdkBattleMoveData _move({
     priority: priority,
     criticalRate: 1,
     statuses: statuses,
+    stageMods: stageMods,
+    sound: sound,
     battleEngineMethod: battleEngineMethod,
     target: target,
   );
@@ -301,5 +466,15 @@ List<PsdkBattleStatusEvent> _statusEvents(
   return result.timeline.events
       .whereType<PsdkBattleStatusEvent>()
       .where((event) => event.moveId == moveId)
+      .toList();
+}
+
+List<PsdkBattleStatStageEvent> _statEvents(
+  PsdkBattleTurnResult result, {
+  required String stat,
+}) {
+  return result.timeline.events
+      .whereType<PsdkBattleStatStageEvent>()
+      .where((event) => event.stat == stat)
       .toList();
 }

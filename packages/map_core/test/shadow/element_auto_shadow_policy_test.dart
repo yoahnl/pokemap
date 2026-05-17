@@ -65,7 +65,7 @@ void main() {
         profileId: 'default-ground-contact-blob',
         scaleX: 0.80,
         scaleY: 0.55,
-        opacity: 0.20,
+        opacity: 0.30,
         family: StaticShadowFamily.tallProp,
         anchorXRatio: 0.5,
         anchorYRatio: 1.0,
@@ -86,7 +86,7 @@ void main() {
         profileId: 'default-ground-wide-ellipse',
         scaleX: 0.74,
         scaleY: 0.50,
-        opacity: 0.20,
+        opacity: 0.28,
         family: StaticShadowFamily.compactProp,
         anchorXRatio: 0.5,
         anchorYRatio: 0.98,
@@ -107,7 +107,7 @@ void main() {
         profileId: 'default-ground-wide-ellipse',
         scaleX: 0.72,
         scaleY: 0.48,
-        opacity: 0.20,
+        opacity: 0.32,
         family: StaticShadowFamily.building,
         anchorXRatio: 0.5,
         anchorYRatio: 0.98,
@@ -116,7 +116,8 @@ void main() {
       );
     });
 
-    test('V1 building auto config projects far less area than legacy broad',
+    test(
+        'Shadow-54 building auto config projects far less area than legacy broad',
         () {
       final legacy = _projectedAreaForShadow(
         _legacyBroadSelbrumeShadow(family: StaticShadowFamily.building),
@@ -242,7 +243,7 @@ void main() {
         profileId: 'default-ground-contact-blob',
         scaleX: 0.80,
         scaleY: 0.55,
-        opacity: 0.20,
+        opacity: 0.30,
         family: StaticShadowFamily.tallProp,
         anchorXRatio: 0.5,
         anchorYRatio: 1.0,
@@ -279,13 +280,51 @@ void main() {
         profileId: 'default-ground-wide-ellipse',
         scaleX: 0.72,
         scaleY: 0.48,
-        opacity: 0.20,
+        opacity: 0.32,
         family: StaticShadowFamily.building,
         anchorXRatio: 0.5,
         anchorYRatio: 0.98,
         footprintWidthRatio: 0.60,
         footprintHeightRatio: 0.06,
       );
+    });
+
+    test('backfill upgrades Shadow-53 auto shadows to Shadow-54 tuning', () {
+      final result = applyElementAutoShadowPolicyToProject(
+        _project(
+          elements: [
+            _element(
+              id: 'lampadaire',
+              width: 3,
+              height: 5,
+              shadow: _shadow53TallThinShadow(),
+            ),
+            _element(
+              id: 'maison',
+              width: 6,
+              height: 7,
+              shadow: _shadow53BuildingLargeShadow(),
+            ),
+            _element(
+              id: 'barriere_pierre',
+              width: 13,
+              height: 6,
+              shadow: _shadow53WideLowShadow(),
+            ),
+          ],
+          shadowCatalog: _defaultCatalog(),
+        ),
+      );
+
+      expect(result.appliedCount, 3);
+      expect(result.changedCount, 3);
+      expect(
+        result.entries.map((entry) => entry.status),
+        everyElement(ElementAutoShadowBackfillStatus.appliedGeneric),
+      );
+      expect(result.project.elements[0].shadow!.opacity, 0.30);
+      expect(result.project.elements[1].shadow!.opacity, 0.32);
+      expect(result.project.elements[2].shadow!.opacity, 0.28);
     });
   });
 }
@@ -375,6 +414,63 @@ ProjectElementShadowConfig _legacyBroadSelbrumeShadow({
       anchorYRatio: 0.92,
       footprintWidthRatio: 0.82,
       footprintHeightRatio: 0.12,
+    ),
+  );
+}
+
+ProjectElementShadowConfig _shadow53TallThinShadow() {
+  return ProjectElementShadowConfig(
+    castsShadow: true,
+    shadowProfileId: 'default-ground-contact-blob',
+    offsetX: 0,
+    offsetY: 0,
+    scaleX: 0.80,
+    scaleY: 0.55,
+    opacity: 0.20,
+    family: StaticShadowFamily.tallProp,
+    footprint: StaticShadowFootprintConfig(
+      anchorXRatio: 0.5,
+      anchorYRatio: 1.0,
+      footprintWidthRatio: 0.28,
+      footprintHeightRatio: 0.05,
+    ),
+  );
+}
+
+ProjectElementShadowConfig _shadow53BuildingLargeShadow() {
+  return ProjectElementShadowConfig(
+    castsShadow: true,
+    shadowProfileId: 'default-ground-wide-ellipse',
+    offsetX: 0,
+    offsetY: 0,
+    scaleX: 0.72,
+    scaleY: 0.48,
+    opacity: 0.20,
+    family: StaticShadowFamily.building,
+    footprint: StaticShadowFootprintConfig(
+      anchorXRatio: 0.5,
+      anchorYRatio: 0.98,
+      footprintWidthRatio: 0.60,
+      footprintHeightRatio: 0.06,
+    ),
+  );
+}
+
+ProjectElementShadowConfig _shadow53WideLowShadow() {
+  return ProjectElementShadowConfig(
+    castsShadow: true,
+    shadowProfileId: 'default-ground-wide-ellipse',
+    offsetX: 0,
+    offsetY: 0,
+    scaleX: 0.74,
+    scaleY: 0.50,
+    opacity: 0.20,
+    family: StaticShadowFamily.compactProp,
+    footprint: StaticShadowFootprintConfig(
+      anchorXRatio: 0.5,
+      anchorYRatio: 0.98,
+      footprintWidthRatio: 0.58,
+      footprintHeightRatio: 0.06,
     ),
   );
 }

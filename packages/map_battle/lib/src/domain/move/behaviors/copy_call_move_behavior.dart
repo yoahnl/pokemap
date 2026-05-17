@@ -140,7 +140,8 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
     if (resolver == null) {
       return _failure(context, BattleMoveFailureReason.unusableByUser);
     }
-    return resolver(
+    final calledMove = BattleMoveDefinition.fromPsdk(selection.move);
+    final called = resolver(
       BattleMoveBehaviorContext(
         state: context.state,
         rng: selection.rng,
@@ -152,7 +153,12 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
         isLastActionOfTurn: context.isLastActionOfTurn,
         moveProcedureHooks: context.moveProcedureHooks,
       ),
-      BattleMoveDefinition.fromPsdk(selection.move),
+      calledMove,
+    );
+    return _withCalledMoveEvent(
+      context: context,
+      called: called,
+      calledMove: calledMove,
     );
   }
 
@@ -168,7 +174,8 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
     if (resolver == null) {
       return _failure(context, BattleMoveFailureReason.unusableByUser);
     }
-    return resolver(
+    final calledMove = BattleMoveDefinition.fromPsdk(selection.move);
+    final called = resolver(
       BattleMoveBehaviorContext(
         state: context.state,
         rng: selection.rng,
@@ -180,7 +187,12 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
         isLastActionOfTurn: context.isLastActionOfTurn,
         moveProcedureHooks: context.moveProcedureHooks,
       ),
-      BattleMoveDefinition.fromPsdk(selection.move),
+      calledMove,
+    );
+    return _withCalledMoveEvent(
+      context: context,
+      called: called,
+      calledMove: calledMove,
     );
   }
 
@@ -209,7 +221,8 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
         reason: BattleMoveFailureReason.unusableByUser,
       );
     }
-    return resolver(
+    final calledMove = BattleMoveDefinition.fromPsdk(selection.move);
+    final called = resolver(
       BattleMoveBehaviorContext(
         state: prepared.state,
         rng: selection.rng,
@@ -221,7 +234,13 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
         isLastActionOfTurn: context.isLastActionOfTurn,
         moveProcedureHooks: context.moveProcedureHooks,
       ),
-      BattleMoveDefinition.fromPsdk(selection.move),
+      calledMove,
+    );
+    return _withCalledMoveEvent(
+      context: context,
+      called: called,
+      calledMove: calledMove,
+      prefixEvents: prepared.events,
     );
   }
 
@@ -248,6 +267,7 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
       context.target,
       (battler) => battler.replaceMoveAt(instructed.moveSlot, moveAfterPp),
     );
+    final calledMove = BattleMoveDefinition.fromPsdk(moveAfterPp);
     final called = resolver(
       BattleMoveBehaviorContext(
         state: stateAfterPp,
@@ -260,7 +280,7 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
         isLastActionOfTurn: context.isLastActionOfTurn,
         moveProcedureHooks: context.moveProcedureHooks,
       ),
-      BattleMoveDefinition.fromPsdk(moveAfterPp),
+      calledMove,
     );
 
     return BattleMoveBehaviorResolution(
@@ -279,6 +299,12 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
           moveId: moveAfterPp.id,
           spent: instructed.move.currentPp - moveAfterPp.currentPp,
           remainingPp: moveAfterPp.currentPp,
+        ),
+        _calledMoveEvent(
+          context: context,
+          user: context.target,
+          target: instructed.target,
+          calledMove: calledMove,
         ),
         ...called.events,
       ],
@@ -310,7 +336,8 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
         reason: BattleMoveFailureReason.unusableByUser,
       );
     }
-    return resolver(
+    final calledMove = BattleMoveDefinition.fromPsdk(copiedMove);
+    final called = resolver(
       BattleMoveBehaviorContext(
         state: prepared.state,
         rng: prepared.rng,
@@ -322,7 +349,13 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
         isLastActionOfTurn: context.isLastActionOfTurn,
         moveProcedureHooks: context.moveProcedureHooks,
       ),
-      BattleMoveDefinition.fromPsdk(copiedMove),
+      calledMove,
+    );
+    return _withCalledMoveEvent(
+      context: context,
+      called: called,
+      calledMove: calledMove,
+      prefixEvents: prepared.events,
     );
   }
 
@@ -368,6 +401,10 @@ final class CopyCallMoveBehavior implements BattleMoveUserPreventionBehavior {
       successful: called.successful,
       events: <PsdkBattleEvent>[
         ...prepared.events,
+        _calledMoveEvent(
+          context: context,
+          calledMove: calledMove,
+        ),
         ...called.events,
       ],
     );
@@ -544,7 +581,7 @@ BattleMoveDefinition _meFirstBoostedMove(PsdkBattleMoveData move) {
     type: move.type,
     category: move.category,
     power: (move.power * 1.5).floor(),
-    accuracy: 100,
+    accuracy: move.accuracy,
     pp: 1,
     currentPp: 1,
     priority: move.priority,
@@ -566,6 +603,38 @@ BattleMoveDefinition _meFirstBoostedMove(PsdkBattleMoveData move) {
         )
         .toList(growable: false),
     statuses: move.statuses,
+  );
+}
+
+BattleMoveBehaviorResolution _withCalledMoveEvent({
+  required BattleMoveBehaviorContext context,
+  required BattleMoveBehaviorResolution called,
+  required BattleMoveDefinition calledMove,
+  List<PsdkBattleEvent> prefixEvents = const <PsdkBattleEvent>[],
+}) {
+  return BattleMoveBehaviorResolution(
+    state: called.state,
+    rng: called.rng,
+    successful: called.successful,
+    events: <PsdkBattleEvent>[
+      ...prefixEvents,
+      _calledMoveEvent(context: context, calledMove: calledMove),
+      ...called.events,
+    ],
+  );
+}
+
+PsdkBattleMoveCalledEvent _calledMoveEvent({
+  required BattleMoveBehaviorContext context,
+  required BattleMoveDefinition calledMove,
+  PsdkBattleSlotRef? user,
+  PsdkBattleSlotRef? target,
+}) {
+  return PsdkBattleMoveCalledEvent(
+    user: user ?? context.user,
+    target: target ?? context.target,
+    callerMoveId: context.move.id,
+    calledMoveId: calledMove.id,
   );
 }
 

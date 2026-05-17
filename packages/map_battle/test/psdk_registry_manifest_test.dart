@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:map_battle/src/data/generated/psdk_ability_effect_manifest.dart';
+import 'package:map_battle/src/data/generated/psdk_item_effect_manifest.dart';
 import 'package:map_battle/src/data/generated/psdk_move_registry_manifest.dart';
 import 'package:test/test.dart';
 
@@ -61,6 +63,56 @@ void main() {
         'StatusStatMoveBehavior.selfStatus',
       );
       expect(byMethod['s_self_status']!.dependencies, isEmpty);
+    });
+
+    test('ported methods require source, behavior, and test evidence', () {
+      final psdkBattleRoot =
+          Directory('../../pokemonsdk-development/scripts/5 Battle');
+      final testCorpus = _readTestCorpus(Directory('test'));
+
+      for (final entry in psdkMoveRegistryManifest
+          .where((entry) => entry.status == PsdkPortStatus.ported)) {
+        expect(entry.rubyPath, isNotEmpty, reason: entry.battleEngineMethod);
+        expect(entry.dartBehavior, isNotEmpty,
+            reason: entry.battleEngineMethod);
+        expect(
+          entry.dartBehavior,
+          isNot(contains('partial')),
+          reason: entry.battleEngineMethod,
+        );
+        expect(
+          File('${psdkBattleRoot.path}/${entry.rubyPath}').existsSync(),
+          isTrue,
+          reason: '${entry.battleEngineMethod} -> ${entry.rubyPath}',
+        );
+        expect(
+          _hasMoveEvidence(entry, testCorpus),
+          isTrue,
+          reason: entry.battleEngineMethod,
+        );
+      }
+    });
+
+    test('effect manifests can distinguish ported from partial entries', () {
+      expect(
+        PsdkAbilityPortStatus.values.map((status) => status.name),
+        contains('ported'),
+      );
+      expect(
+        PsdkItemPortStatus.values.map((status) => status.name),
+        contains('ported'),
+      );
+
+      for (final entry in psdkAbilityEffectManifest.where(
+        (entry) => entry.status == PsdkAbilityPortStatus.ported,
+      )) {
+        expect(entry.dartEffect, isNotNull, reason: entry.abilityId);
+      }
+      for (final entry in psdkItemEffectManifest.where(
+        (entry) => entry.status == PsdkItemPortStatus.ported,
+      )) {
+        expect(entry.dartEffect, isNotNull, reason: entry.itemId);
+      }
     });
 
     test('tracks the fixed-damage and multi-hit slices', () {
@@ -970,10 +1022,6 @@ void main() {
           behavior: 'StaticBasicMoveRegistry.s_stockpile',
         ),
         (
-          method: 's_tailwind',
-          behavior: 'StaticBasicMoveRegistry.partialUserBankMarker(s_tailwind)',
-        ),
-        (
           method: 's_taunt',
           behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_taunt)',
         ),
@@ -1003,10 +1051,6 @@ void main() {
         (
           method: 's_toxic_thread',
           behavior: 'StaticBasicMoveRegistry.secondaryOnly(s_toxic_thread)',
-        ),
-        (
-          method: 's_trick_room',
-          behavior: 'StaticBasicMoveRegistry.partialFieldMarker(s_trick_room)',
         ),
         (
           method: 's_wish',
@@ -1058,6 +1102,16 @@ void main() {
       expect(
         byMethod['s_safe_guard']!.dartBehavior,
         'StaticBasicMoveRegistry.s_safe_guard',
+      );
+      expect(byMethod['s_tailwind']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_tailwind']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_tailwind',
+      );
+      expect(byMethod['s_trick_room']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_trick_room']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_trick_room',
       );
       expect(byMethod['s_reload']!.status, PsdkPortStatus.ported);
       expect(
@@ -2276,4 +2330,28 @@ end
       expect(spikyShieldRow, isNot(contains('`on_move_prevention_target`')));
     });
   });
+}
+
+String _readTestCorpus(Directory directory) {
+  final buffer = StringBuffer();
+  for (final entity in directory.listSync(recursive: true)) {
+    if (entity is File && entity.path.endsWith('.dart')) {
+      buffer.writeln(entity.readAsStringSync());
+    }
+  }
+  return buffer.toString();
+}
+
+bool _hasMoveEvidence(
+  PsdkMoveRegistryManifestEntry entry,
+  String testCorpus,
+) {
+  if (testCorpus.contains(entry.battleEngineMethod)) {
+    return true;
+  }
+  final behaviorOwner = entry.dartBehavior.split('.').first;
+  if (behaviorOwner.isNotEmpty && testCorpus.contains(behaviorOwner)) {
+    return true;
+  }
+  return testCorpus.contains(entry.rubyClass);
 }

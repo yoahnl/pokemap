@@ -10,6 +10,7 @@ import '../domain/action/battle_shift_action_handler.dart';
 import '../domain/action/battle_action_queue.dart';
 import '../domain/decision/battle_decision.dart';
 import '../domain/effect/ability/ability_effect.dart';
+import '../domain/effect/battle_effect_scope.dart';
 import '../domain/effect/battle_effect_hooks.dart';
 import '../domain/effect/status/status_effect_registry.dart';
 import '../domain/handler/battle_end_turn_handler.dart';
@@ -27,6 +28,7 @@ import '../domain/timeline/battle_timeline_event.dart';
 import '../psdk/application/psdk_battle_move_behavior.dart';
 import '../psdk/domain/psdk_battle_outcome.dart';
 import '../psdk/domain/psdk_battle_slots.dart';
+import '../psdk/domain/psdk_battle_state.dart';
 
 /// Result of submitting one decision to [BattleTurnRunner].
 final class BattleEngineTurnResult {
@@ -93,7 +95,10 @@ final class BattleTurnRunner {
           decision: _opponentDecision(),
         ),
       ],
-    ).ordered(rng: _context.rng);
+    ).ordered(
+      rng: _context.rng,
+      trickRoom: _hasActiveFieldEffect(_context.state, 'trick_room'),
+    );
 
     _context.beginTurn();
     final timeline = BattleTimelineBuilder()
@@ -689,6 +694,14 @@ final class BattleTurnRunner {
       ),
     );
   }
+}
+
+bool _hasActiveFieldEffect(PsdkBattleState state, String effectId) {
+  return state.combatants.values.any(
+    (combatant) => combatant.effects.effects.any((effect) {
+      return effect.id == effectId && effect.scope is FieldBattleEffectScope;
+    }),
+  );
 }
 
 BattlePositionRef _fromPsdkSlot(PsdkBattleSlotRef slot) {

@@ -2,7 +2,9 @@ import '../../effect/battle_effect_scope.dart';
 import '../../effect/move/baton_pass_effect.dart';
 import '../../handler/battle_handler_context.dart';
 import '../../handler/battle_switch_handler.dart';
+import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../battle_move_behavior.dart';
+import '../battle_move_prevention.dart';
 import 'battle_move_behavior_support.dart';
 
 enum _SwitchEffectKind {
@@ -34,6 +36,27 @@ final class SwitchEffectMoveBehavior implements BattleMoveBehavior {
     BattleMoveBehaviorContext context,
     PreparedBattleMove prepared,
   ) {
+    const switchHandler = BattleSwitchHandler();
+    if (!switchHandler.hasAvailableReplacement(
+      state: prepared.state,
+      target: context.user,
+    )) {
+      return BattleMoveBehaviorResolution(
+        state: prepared.state,
+        rng: prepared.rng,
+        successful: false,
+        events: <PsdkBattleEvent>[
+          ...prepared.events,
+          PsdkBattleMoveFailedEvent(
+            user: context.user,
+            target: context.user,
+            moveId: context.move.id,
+            reason: BattleMoveFailureReason.unusableByUser.jsonName,
+          ),
+        ],
+      );
+    }
+
     var state = prepared.state.updateBattler(
       context.user,
       (battler) => battler.copyWith(
@@ -42,7 +65,7 @@ final class SwitchEffectMoveBehavior implements BattleMoveBehavior {
         ),
       ),
     );
-    final switching = const BattleSwitchHandler().markSwitching(
+    final switching = switchHandler.markSwitching(
       context: BattleHandlerContext(
         state: state,
         rng: prepared.rng,

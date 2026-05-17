@@ -43,6 +43,14 @@ sealed class BattleTimelineEvent {
         remainingPp: event.remainingPp,
       );
     }
+    if (event is PsdkBattleMoveCalledEvent) {
+      return BattleMoveCalledTimelineEvent(
+        user: _fromPsdkSlot(event.user),
+        callerMoveId: event.callerMoveId,
+        calledMoveId: event.calledMoveId,
+        target: event.target == null ? null : _fromPsdkSlot(event.target!),
+      );
+    }
     if (event is PsdkBattleMoveFailedEvent) {
       return BattleMoveFailedTimelineEvent(
         user: _fromPsdkSlot(event.user),
@@ -401,6 +409,42 @@ final class BattleMovePpSpentTimelineEvent extends BattleTimelineEvent {
       moveId: moveId,
       spent: spent,
       remainingPp: remainingPp,
+    );
+  }
+}
+
+final class BattleMoveCalledTimelineEvent extends BattleTimelineEvent {
+  const BattleMoveCalledTimelineEvent({
+    int? turn,
+    required this.user,
+    required this.callerMoveId,
+    required this.calledMoveId,
+    this.target,
+  }) : super(kind: 'move_called', turn: turn);
+
+  final BattlePositionRef user;
+  final String callerMoveId;
+  final String calledMoveId;
+  final BattlePositionRef? target;
+
+  @override
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      ...baseJson(),
+      'user': _slotJson(user),
+      'callerMoveId': callerMoveId,
+      'calledMoveId': calledMoveId,
+      if (target != null) 'target': _slotJson(target!),
+    };
+  }
+
+  @override
+  PsdkBattleEvent toPsdkEvent() {
+    return PsdkBattleMoveCalledEvent(
+      user: _toPsdkSlot(user),
+      callerMoveId: callerMoveId,
+      calledMoveId: calledMoveId,
+      target: target == null ? null : _toPsdkSlot(target!),
     );
   }
 }

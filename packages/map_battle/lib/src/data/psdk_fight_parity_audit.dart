@@ -18,6 +18,9 @@ final class PsdkFightParityAudit {
     required this.attackMetrics,
     required this.methodMetrics,
     required this.effectMetrics,
+    this.attackEntries = const <PsdkAttackParityEntry>[],
+    this.methodEntries = const <PsdkMoveRegistryManifestEntry>[],
+    this.effectEntries = const <PsdkEffectParityEntry>[],
     this.runtimeBridge = const PsdkRuntimeBridgeParity.notMeasured(),
   });
 
@@ -27,6 +30,7 @@ final class PsdkFightParityAudit {
     required List<PsdkMoveRegistryManifestEntry> manifest,
     required List<PsdkEffectParityEntry> effects,
   }) {
+    final manifestByMethod = _manifestByMethod(manifest);
     return PsdkFightParityAudit(
       sourceDescription: sourceDescription,
       attackMetrics: PsdkAttackParityMetrics.fromEntries(
@@ -35,6 +39,17 @@ final class PsdkFightParityAudit {
       ),
       methodMetrics: PsdkMethodParityMetrics.fromManifest(manifest),
       effectMetrics: PsdkEffectParityMetrics.fromEntries(effects),
+      attackEntries: <PsdkAttackParityEntry>[
+        for (final move in moves)
+          PsdkAttackParityEntry.fromMove(
+            move,
+            manifestByMethod[move.battleEngineMethod],
+          ),
+      ],
+      methodEntries: List<PsdkMoveRegistryManifestEntry>.unmodifiable(
+        manifest,
+      ),
+      effectEntries: List<PsdkEffectParityEntry>.unmodifiable(effects),
     );
   }
 
@@ -42,14 +57,26 @@ final class PsdkFightParityAudit {
   final PsdkAttackParityMetrics attackMetrics;
   final PsdkMethodParityMetrics methodMetrics;
   final PsdkEffectParityMetrics effectMetrics;
+  final List<PsdkAttackParityEntry> attackEntries;
+  final List<PsdkMoveRegistryManifestEntry> methodEntries;
+  final List<PsdkEffectParityEntry> effectEntries;
   final PsdkRuntimeBridgeParity runtimeBridge;
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
       'sourceDescription': sourceDescription,
-      'attacks': attackMetrics.toJson(),
-      'methods': methodMetrics.toJson(),
-      'effects': effectMetrics.toJson(),
+      'attacks': <String, Object?>{
+        ...attackMetrics.toJson(),
+        'entries': attackEntries.map((entry) => entry.toJson()).toList(),
+      },
+      'methods': <String, Object?>{
+        ...methodMetrics.toJson(),
+        'entries': methodEntries.map(_methodEntryJson).toList(),
+      },
+      'effects': <String, Object?>{
+        ...effectMetrics.toJson(),
+        'entries': effectEntries.map((entry) => entry.toJson()).toList(),
+      },
       'runtimeBridge': runtimeBridge.toJson(),
     };
   }
@@ -77,7 +104,9 @@ final class PsdkFightParityAudit {
       ..writeln('| Unknown methods | ${attackMetrics.unknownMethods} |')
       ..writeln(
         '| Unique battle engine methods | ${attackMetrics.uniqueBattleEngineMethods} |',
-      )
+      );
+    _writePartialAttacksByMethod(buffer, attackEntries);
+    buffer
       ..writeln()
       ..writeln('## Method Coverage')
       ..writeln()
@@ -88,7 +117,9 @@ final class PsdkFightParityAudit {
           '| `${status.name}` | ${methodMetrics.byStatus[status] ?? 0} |');
     }
     buffer
-      ..writeln('| Total manifest methods | ${methodMetrics.totalMethods} |')
+      ..writeln('| Total manifest methods | ${methodMetrics.totalMethods} |');
+    _writePartialMethodsByDependency(buffer, methodEntries);
+    buffer
       ..writeln()
       ..writeln('## Effect Coverage')
       ..writeln()
@@ -114,6 +145,7 @@ final class PsdkFightParityAudit {
         '| ${counts[PsdkPortStatus.missing] ?? 0} |',
       );
     }
+    _writeMissingEffectsByFamily(buffer, effectEntries);
     buffer
       ..writeln()
       ..writeln('## Runtime Bridge')
@@ -122,7 +154,67 @@ final class PsdkFightParityAudit {
       ..writeln('| --- | --- |')
       ..writeln('| Status | `${runtimeBridge.status}` |')
       ..writeln('| Reason | ${_md(runtimeBridge.reason)} |');
+    if (runtimeBridge.status != 'not_measured') {
+      buffer
+        ..writeln('| Total moves | ${runtimeBridge.totalMoves} |')
+        ..writeln('| Bridgeable moves | ${runtimeBridge.bridgeableMoves} |')
+        ..writeln('| Rejected moves | ${runtimeBridge.rejectedMoves} |')
+        ..writeln(
+          '| Explained rejected moves | ${runtimeBridge.explainedRejectedMoves} |',
+        )
+        ..writeln(
+          '| Unexplained rejected moves | ${runtimeBridge.unexplainedRejectedMoves} |',
+        );
+    }
     return buffer.toString();
+  }
+}
+
+final class PsdkAttackParityEntry {
+  const PsdkAttackParityEntry({
+    required this.moveId,
+    required this.battleEngineMethod,
+    required this.coverage,
+    required this.psdkStatus,
+    required this.reason,
+    required this.sourceFile,
+  });
+
+  factory PsdkAttackParityEntry.fromMove(
+    PsdkStudioMoveCoverageEntry move,
+    PsdkMoveRegistryManifestEntry? manifestEntry,
+  ) {
+    final coverage = psdkAttackCoverageForMove(move, manifestEntry);
+    return PsdkAttackParityEntry(
+      moveId: move.dbSymbol,
+      battleEngineMethod: move.battleEngineMethod,
+      coverage: coverage,
+      psdkStatus: manifestEntry?.status.name ?? 'unknown_method',
+      reason: _coverageReasonForMove(
+        move: move,
+        manifestEntry: manifestEntry,
+        coverage: coverage,
+      ),
+      sourceFile: move.sourceFile,
+    );
+  }
+
+  final String moveId;
+  final String battleEngineMethod;
+  final String coverage;
+  final String psdkStatus;
+  final String reason;
+  final String sourceFile;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'moveId': moveId,
+      'battleEngineMethod': battleEngineMethod,
+      'coverage': coverage,
+      'psdkStatus': psdkStatus,
+      'reason': reason,
+      'sourceFile': sourceFile,
+    };
   }
 }
 
@@ -271,31 +363,102 @@ final class PsdkEffectParityEntry {
     required this.effectName,
     required this.family,
     required this.status,
+    this.rubyPath = '',
   });
 
   final String effectName;
   final String family;
   final PsdkPortStatus status;
+  final String rubyPath;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'effectName': effectName,
+      'family': family,
+      'status': status.name,
+      'rubyPath': rubyPath,
+    };
+  }
 }
 
 final class PsdkRuntimeBridgeParity {
   const PsdkRuntimeBridgeParity({
     required this.status,
     required this.reason,
+    this.totalMoves = 0,
+    this.bridgeableMoves = 0,
+    this.rejectedMoves = 0,
+    this.explainedRejectedMoves = 0,
+    this.unexplainedRejectedMoves = 0,
+    this.moves = const <PsdkRuntimeBridgeMoveEntry>[],
   });
 
   const PsdkRuntimeBridgeParity.notMeasured()
       : status = 'not_measured',
         reason =
-            'Runtime bridge diagnostics live in packages/map_runtime and are opened by Lot 04.';
+            'Runtime bridge diagnostics live in packages/map_runtime and are opened by Lot 04.',
+        totalMoves = 0,
+        bridgeableMoves = 0,
+        rejectedMoves = 0,
+        explainedRejectedMoves = 0,
+        unexplainedRejectedMoves = 0,
+        moves = const <PsdkRuntimeBridgeMoveEntry>[];
+
+  factory PsdkRuntimeBridgeParity.fromJson(Map<String, Object?> json) {
+    final moves =
+        (json['moves'] as List<Object?>? ?? const <Object?>[]).map((value) {
+      if (value is! Map) {
+        throw FormatException('Runtime bridge move entry must be an object.');
+      }
+      return PsdkRuntimeBridgeMoveEntry.fromJson(
+        value.cast<String, Object?>(),
+      );
+    }).toList(growable: false);
+    final bridgeableMoves = _optionalIntValue(json['bridgeableMoves']) ??
+        moves.where((move) => move.bridgeable).length;
+    final rejectedMoves = _optionalIntValue(json['rejectedMoves']) ??
+        moves.where((move) => !move.bridgeable).length;
+    final explainedRejectedMoves =
+        _optionalIntValue(json['explainedRejectedMoves']) ??
+            moves
+                .where((move) => !move.bridgeable && move.reason.isNotEmpty)
+                .length;
+    final totalMoves = _optionalIntValue(json['totalMoves']) ?? moves.length;
+    return PsdkRuntimeBridgeParity(
+      status: _optionalStringValue(json['status']) ??
+          (rejectedMoves == 0 ? 'complete' : 'explained'),
+      reason: _optionalStringValue(json['reason']) ??
+          'Runtime bridge diagnostics imported from JSON.',
+      totalMoves: totalMoves,
+      bridgeableMoves: bridgeableMoves,
+      rejectedMoves: rejectedMoves,
+      explainedRejectedMoves: explainedRejectedMoves,
+      unexplainedRejectedMoves:
+          _optionalIntValue(json['unexplainedRejectedMoves']) ??
+              (rejectedMoves - explainedRejectedMoves),
+      moves: List<PsdkRuntimeBridgeMoveEntry>.unmodifiable(moves),
+    );
+  }
 
   final String status;
   final String reason;
+  final int totalMoves;
+  final int bridgeableMoves;
+  final int rejectedMoves;
+  final int explainedRejectedMoves;
+  final int unexplainedRejectedMoves;
+  final List<PsdkRuntimeBridgeMoveEntry> moves;
 
   Map<String, Object?> toJson() {
     return <String, Object?>{
       'status': status,
       'reason': reason,
+      'totalMoves': totalMoves,
+      'bridgeableMoves': bridgeableMoves,
+      'rejectedMoves': rejectedMoves,
+      'explainedRejectedMoves': explainedRejectedMoves,
+      'unexplainedRejectedMoves': unexplainedRejectedMoves,
+      'moves': moves.map((move) => move.toJson()).toList(),
     };
   }
 }
@@ -304,16 +467,71 @@ Future<PsdkFightParityAudit> buildPsdkFightParityAudit({
   required Directory movesDirectory,
   required Directory psdkBattleDirectory,
   List<PsdkMoveRegistryManifestEntry> manifest = psdkMoveRegistryManifest,
+  PsdkRuntimeBridgeParity runtimeBridge =
+      const PsdkRuntimeBridgeParity.notMeasured(),
 }) async {
   final moves = await loadPsdkStudioMoveCoverageEntries(movesDirectory);
   final effects = await loadPsdkEffectParityEntries(psdkBattleDirectory);
-  return PsdkFightParityAudit.fromEntries(
+  final audit = PsdkFightParityAudit.fromEntries(
     sourceDescription:
         'moves=${movesDirectory.path}; effects=${psdkBattleDirectory.path}',
     moves: moves,
     manifest: manifest,
     effects: effects,
   );
+  return PsdkFightParityAudit(
+    sourceDescription: audit.sourceDescription,
+    attackMetrics: audit.attackMetrics,
+    methodMetrics: audit.methodMetrics,
+    effectMetrics: audit.effectMetrics,
+    attackEntries: audit.attackEntries,
+    methodEntries: audit.methodEntries,
+    effectEntries: audit.effectEntries,
+    runtimeBridge: runtimeBridge,
+  );
+}
+
+final class PsdkRuntimeBridgeMoveEntry {
+  const PsdkRuntimeBridgeMoveEntry({
+    required this.moveId,
+    required this.bridgeable,
+    required this.reason,
+    this.battleEngineMethod,
+    this.psdkRegistryStatus,
+    this.unsupportedReasons = const <String>[],
+  });
+
+  factory PsdkRuntimeBridgeMoveEntry.fromJson(Map<String, Object?> json) {
+    return PsdkRuntimeBridgeMoveEntry(
+      moveId: _requiredStringValue(json['moveId'], 'moveId'),
+      bridgeable: _requiredBoolValue(json['bridgeable'], 'bridgeable'),
+      reason: _optionalStringValue(json['reason']) ?? '',
+      battleEngineMethod: _optionalStringValue(json['battleEngineMethod']),
+      psdkRegistryStatus: _optionalStringValue(json['psdkRegistryStatus']),
+      unsupportedReasons:
+          (json['unsupportedReasons'] as List<Object?>? ?? const <Object?>[])
+              .map((value) => value.toString())
+              .toList(growable: false),
+    );
+  }
+
+  final String moveId;
+  final bool bridgeable;
+  final String reason;
+  final String? battleEngineMethod;
+  final String? psdkRegistryStatus;
+  final List<String> unsupportedReasons;
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'moveId': moveId,
+      'bridgeable': bridgeable,
+      'reason': reason,
+      if (battleEngineMethod != null) 'battleEngineMethod': battleEngineMethod,
+      if (psdkRegistryStatus != null) 'psdkRegistryStatus': psdkRegistryStatus,
+      'unsupportedReasons': unsupportedReasons,
+    };
+  }
 }
 
 Future<List<PsdkEffectParityEntry>> loadPsdkEffectParityEntries(
@@ -346,6 +564,7 @@ Future<List<PsdkEffectParityEntry>> loadPsdkEffectParityEntries(
           effectName: parsedClass.name,
           family: _effectFamily(relativePath),
           status: _statusForEffect(parsedClass.name),
+          rubyPath: relativePath,
         ),
       );
     }
@@ -494,6 +713,146 @@ String _md(String value) {
       .replaceAll('\r', ' ')
       .replaceAll('\n', ' ')
       .trim();
+}
+
+Map<String, PsdkMoveRegistryManifestEntry> _manifestByMethod(
+  List<PsdkMoveRegistryManifestEntry> manifest,
+) {
+  return <String, PsdkMoveRegistryManifestEntry>{
+    for (final entry in manifest) entry.battleEngineMethod: entry,
+    for (final entry in psdkStudioOnlyBattleMethods)
+      entry.battleEngineMethod: entry,
+  };
+}
+
+Map<String, Object?> _methodEntryJson(PsdkMoveRegistryManifestEntry entry) {
+  return <String, Object?>{
+    'battleEngineMethod': entry.battleEngineMethod,
+    'rubyClass': entry.rubyClass,
+    'rubyPath': entry.rubyPath,
+    'dartBehavior': entry.dartBehavior,
+    'status': entry.status.name,
+    'dependencies':
+        entry.dependencies.map((dependency) => dependency.name).toList(),
+  };
+}
+
+String _coverageReasonForMove({
+  required PsdkStudioMoveCoverageEntry move,
+  required PsdkMoveRegistryManifestEntry? manifestEntry,
+  required String coverage,
+}) {
+  if (manifestEntry == null) {
+    return 'unknown_method';
+  }
+  if (manifestEntry.status == PsdkPortStatus.missing) {
+    return 'method_missing';
+  }
+  if (manifestEntry.status == PsdkPortStatus.partial) {
+    return 'method_partial';
+  }
+  if (coverage == 'fait') {
+    return 'strict_ported';
+  }
+  return 'ported_method_metadata_outside_strict_slice';
+}
+
+void _writePartialAttacksByMethod(
+  StringBuffer buffer,
+  List<PsdkAttackParityEntry> entries,
+) {
+  final counts = <String, int>{};
+  for (final entry in entries.where((entry) => entry.coverage == 'partiel')) {
+    counts[entry.battleEngineMethod] =
+        (counts[entry.battleEngineMethod] ?? 0) + 1;
+  }
+  buffer
+    ..writeln()
+    ..writeln('### Partial Attacks by Method')
+    ..writeln()
+    ..writeln('| Battle method | Partial attacks |')
+    ..writeln('| --- | ---: |');
+  for (final method in counts.keys.toList()..sort()) {
+    buffer.writeln('| ${_md(method)} | ${counts[method]} |');
+  }
+}
+
+void _writePartialMethodsByDependency(
+  StringBuffer buffer,
+  List<PsdkMoveRegistryManifestEntry> entries,
+) {
+  final counts = <String, int>{};
+  for (final entry in entries.where(
+    (entry) => entry.status == PsdkPortStatus.partial,
+  )) {
+    final dependencies = entry.dependencies.isEmpty
+        ? const <String>['no_dependency_declared']
+        : entry.dependencies.map((dependency) => dependency.name);
+    for (final dependency in dependencies) {
+      counts[dependency] = (counts[dependency] ?? 0) + 1;
+    }
+  }
+  buffer
+    ..writeln()
+    ..writeln('### Partial Methods by Dependency')
+    ..writeln()
+    ..writeln('| Dependency | Partial methods |')
+    ..writeln('| --- | ---: |');
+  final sorted = counts.keys.toList()
+    ..sort((left, right) {
+      final byCount = counts[right]!.compareTo(counts[left]!);
+      return byCount == 0 ? left.compareTo(right) : byCount;
+    });
+  for (final dependency in sorted) {
+    buffer.writeln('| ${_md(dependency)} | ${counts[dependency]} |');
+  }
+}
+
+void _writeMissingEffectsByFamily(
+  StringBuffer buffer,
+  List<PsdkEffectParityEntry> entries,
+) {
+  final counts = <String, int>{};
+  for (final entry in entries.where(
+    (entry) => entry.status == PsdkPortStatus.missing,
+  )) {
+    counts[entry.family] = (counts[entry.family] ?? 0) + 1;
+  }
+  buffer
+    ..writeln()
+    ..writeln('### Missing Effects by Family')
+    ..writeln()
+    ..writeln('| Family | Missing effects |')
+    ..writeln('| --- | ---: |');
+  for (final family in counts.keys.toList()..sort()) {
+    buffer.writeln('| ${_md(family)} | ${counts[family]} |');
+  }
+}
+
+String _requiredStringValue(Object? value, String field) {
+  final result = _optionalStringValue(value);
+  if (result == null || result.isEmpty) {
+    throw FormatException('Missing required runtime bridge field "$field".');
+  }
+  return result;
+}
+
+String? _optionalStringValue(Object? value) {
+  if (value == null) return null;
+  if (value is String) return value;
+  return value.toString();
+}
+
+int? _optionalIntValue(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value);
+  return null;
+}
+
+bool _requiredBoolValue(Object? value, String field) {
+  if (value is bool) return value;
+  throw FormatException('Missing required runtime bridge bool "$field".');
 }
 
 final class _ParsedRubyClass {

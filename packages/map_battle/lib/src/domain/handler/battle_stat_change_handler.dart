@@ -3,6 +3,7 @@ import '../../psdk/domain/psdk_battle_state.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
 import '../effect/battle_effect_hooks.dart';
 import '../effect/battle_effect_scope.dart';
+import '../move/battle_move_data.dart';
 import 'battle_handler_context.dart';
 import 'battle_handler_result.dart';
 
@@ -14,6 +15,7 @@ final class BattleStatChangeHandler {
     required PsdkBattleSlotRef target,
     required String stat,
     required int stages,
+    BattleMoveDefinition? move,
   }) {
     if (stages == 0) {
       return BattleHandlerResult(
@@ -24,12 +26,26 @@ final class BattleStatChangeHandler {
       );
     }
 
+    if (_substitutePreventsStatChange(
+      context: context,
+      target: target,
+      move: move,
+    )) {
+      return BattleHandlerResult(
+        state: context.state,
+        rng: context.rng,
+        applied: false,
+        reason: 'substitute',
+      );
+    }
+
     var effectiveStages = stages;
     final hookPrevention = _statPreventionReason(
       context: context,
       target: target,
       stat: stat,
       stages: effectiveStages,
+      move: move,
     );
     if (hookPrevention != null) {
       return BattleHandlerResult(
@@ -45,6 +61,7 @@ final class BattleStatChangeHandler {
       target: target,
       stat: stat,
       stages: effectiveStages,
+      move: move,
     );
     if (effectiveStages == 0) {
       return BattleHandlerResult(
@@ -123,6 +140,7 @@ String? _statPreventionReason({
   required PsdkBattleSlotRef target,
   required String stat,
   required int stages,
+  required BattleMoveDefinition? move,
 }) {
   for (final owner in _orderedSlots(context.state)) {
     final reason =
@@ -136,6 +154,7 @@ String? _statPreventionReason({
                 target: target,
                 stat: stat,
                 stages: stages,
+                move: move,
               ),
             );
     if (reason != null) {
@@ -150,6 +169,7 @@ int _resolveStatChangeHooks({
   required PsdkBattleSlotRef target,
   required String stat,
   required int stages,
+  required BattleMoveDefinition? move,
 }) {
   var effectiveStages = stages;
   for (final owner in _orderedSlots(context.state)) {
@@ -163,6 +183,7 @@ int _resolveStatChangeHooks({
             target: target,
             stat: stat,
             stages: effectiveStages,
+            move: move,
           ),
         );
   }
@@ -232,4 +253,18 @@ bool _bankHasEffect(PsdkBattleState state, int bank, String effectId) {
       return false;
     }),
   );
+}
+
+bool _substitutePreventsStatChange({
+  required BattleHandlerContext context,
+  required PsdkBattleSlotRef target,
+  required BattleMoveDefinition? move,
+}) {
+  if (move == null ||
+      context.user == target ||
+      !context.state.battlerAt(target).effects.contains('substitute')) {
+    return false;
+  }
+  final user = context.state.battlerAt(context.user);
+  return !move.flags.sound && user.abilityId != 'infiltrator';
 }

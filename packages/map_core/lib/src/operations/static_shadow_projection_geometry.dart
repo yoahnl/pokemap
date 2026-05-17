@@ -10,7 +10,7 @@ const defaultStaticShadowProjectionNearWidthMultiplier = 0.92;
 const defaultStaticShadowProjectionFarWidthMultiplier = 1.18;
 const defaultProjectedStaticShadowFillBandCount = 7;
 const defaultProjectedStaticShadowNearOpacityScale = 1.0;
-const defaultProjectedStaticShadowFarOpacityScale = 0.34;
+const defaultProjectedStaticShadowFarOpacityScale = 0.52;
 
 const defaultStaticShadowProjectionSpec = StaticShadowProjectionSpec._(
   directionX: defaultStaticShadowProjectionDirectionX,

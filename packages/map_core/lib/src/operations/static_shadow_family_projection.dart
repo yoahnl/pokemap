@@ -1,21 +1,21 @@
 import '../models/shadow.dart';
 import 'static_shadow_projection_geometry.dart';
 
-const _compactPropLengthRatio = 0.0704;
-const _compactPropNearWidthMultiplier = 0.3312;
-const _compactPropFarWidthMultiplier = 0.2832;
+const _compactPropLengthRatio = 0.1120;
+const _compactPropNearWidthMultiplier = 0.5200;
+const _compactPropFarWidthMultiplier = 0.4300;
 
-const _tallPropLengthRatio = 0.0704;
-const _tallPropNearWidthMultiplier = 0.2208;
-const _tallPropFarWidthMultiplier = 0.1770;
+const _tallPropLengthRatio = 0.1280;
+const _tallPropNearWidthMultiplier = 0.5400;
+const _tallPropFarWidthMultiplier = 0.4000;
 
-const _buildingLengthRatio = 0.0832;
-const _buildingNearWidthMultiplier = 0.4416;
-const _buildingFarWidthMultiplier = 0.3422;
+const _buildingLengthRatio = 0.1120;
+const _buildingNearWidthMultiplier = 0.6400;
+const _buildingFarWidthMultiplier = 0.5400;
 
-const _foliageLengthRatio = 0.0960;
-const _foliageNearWidthMultiplier = 0.5060;
-const _foliageFarWidthMultiplier = 0.4720;
+const _foliageLengthRatio = 0.1300;
+const _foliageNearWidthMultiplier = 0.7000;
+const _foliageFarWidthMultiplier = 0.6400;
 
 StaticShadowFamily resolveStaticShadowFamily({
   StaticShadowFamily? elementFamily,

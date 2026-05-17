@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:map_battle/src/data/psdk_fight_parity_audit.dart';
@@ -13,6 +14,7 @@ Future<void> main(List<String> args) async {
   final audit = await buildPsdkFightParityAudit(
     movesDirectory: Directory(options.movesDirectory),
     psdkBattleDirectory: Directory(options.psdkBattleDirectory),
+    runtimeBridge: await _loadRuntimeBridge(options.runtimeBridgePath),
   );
 
   if (options.jsonOutputPath case final jsonPath?) {
@@ -69,6 +71,8 @@ Options:
   --effects <dir>    Pokemon SDK "5 Battle" directory.
   --json <file>      Write machine-readable JSON audit.
   --markdown <file>  Write human-readable Markdown audit.
+  --runtime-bridge <file>
+                     Import runtime bridge diagnostics JSON.
   --gate             Enforce Lot 02 non-regression thresholds.
   --final-gate       Enforce the final 100% parity acceptance gate.
   --goldens <dir>    Golden fixture directory for --final-gate.
@@ -86,6 +90,7 @@ final class _AuditCliOptions {
     required this.psdkBattleDirectory,
     this.jsonOutputPath,
     this.markdownOutputPath,
+    this.runtimeBridgePath,
     required this.goldenFixturesDirectory,
     this.runGate = false,
     this.runFinalGate = false,
@@ -98,6 +103,7 @@ final class _AuditCliOptions {
     var goldenFixturesDirectory = 'test/fixtures/psdk_golden';
     String? jsonOutputPath;
     String? markdownOutputPath;
+    String? runtimeBridgePath;
     var runGate = false;
     var runFinalGate = false;
     var showHelp = false;
@@ -115,6 +121,8 @@ final class _AuditCliOptions {
           jsonOutputPath = _requiredValue(args, ++index, arg);
         case '--markdown':
           markdownOutputPath = _requiredValue(args, ++index, arg);
+        case '--runtime-bridge':
+          runtimeBridgePath = _requiredValue(args, ++index, arg);
         case '--gate':
           runGate = true;
         case '--final-gate':
@@ -131,6 +139,7 @@ final class _AuditCliOptions {
       psdkBattleDirectory: psdkBattleDirectory,
       jsonOutputPath: jsonOutputPath,
       markdownOutputPath: markdownOutputPath,
+      runtimeBridgePath: runtimeBridgePath,
       goldenFixturesDirectory: goldenFixturesDirectory,
       runGate: runGate,
       runFinalGate: runFinalGate,
@@ -142,6 +151,7 @@ final class _AuditCliOptions {
   final String psdkBattleDirectory;
   final String? jsonOutputPath;
   final String? markdownOutputPath;
+  final String? runtimeBridgePath;
   final String goldenFixturesDirectory;
   final bool runGate;
   final bool runFinalGate;
@@ -159,6 +169,17 @@ Future<void> _writeTextFile(String path, String content) async {
   final file = File(path);
   await file.parent.create(recursive: true);
   await file.writeAsString(content);
+}
+
+Future<PsdkRuntimeBridgeParity> _loadRuntimeBridge(String? path) async {
+  if (path == null) {
+    return const PsdkRuntimeBridgeParity.notMeasured();
+  }
+  final decoded = jsonDecode(await File(path).readAsString());
+  if (decoded is! Map) {
+    throw FormatException('Runtime bridge diagnostics JSON must be an object.');
+  }
+  return PsdkRuntimeBridgeParity.fromJson(decoded.cast<String, Object?>());
 }
 
 Future<int> _countGoldenFixtures(Directory directory) async {

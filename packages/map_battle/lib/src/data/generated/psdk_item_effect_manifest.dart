@@ -6,8 +6,10 @@
 final psdkItemEffectManifest = _buildPsdkItemEffectManifest();
 
 enum PsdkItemPortStatus {
+  ported,
   partial,
   missing,
+  outOfScope,
 }
 
 final class PsdkItemEffectManifestEntry {

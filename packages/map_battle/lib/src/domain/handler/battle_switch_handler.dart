@@ -9,6 +9,9 @@ import '../effect/ability/ability_effect.dart';
 import '../effect/battle_effect_hooks.dart';
 import '../effect/battle_effect.dart';
 import '../effect/battle_effect_scope.dart';
+import '../effect/field/delayed_move_effect.dart';
+import '../effect/field/healing_wish_effect.dart';
+import '../effect/field/wish_effect.dart';
 import '../effect/side/hazard_effects.dart';
 import '../move/battle_move_data.dart';
 import '../move/battle_move_type_processor.dart';
@@ -33,6 +36,16 @@ final class BattleSwitchHandler {
       ),
       rng: context.rng,
     );
+  }
+
+  bool hasAvailableReplacement({
+    required PsdkBattleState state,
+    required PsdkBattleSlotRef target,
+  }) {
+    final active = state.battlerAt(target);
+    return state.partyForBank(target.bank).any(
+          (candidate) => !candidate.isFainted && candidate.id != active.id,
+        );
   }
 
   BattleHandlerResult resolveSwitchPrevention({
@@ -122,8 +135,16 @@ final class BattleSwitchHandler {
       active: active,
       fallback: target.position,
     );
+    final slotPersistentEffects = _slotPersistentEffects(active);
+    final healingSacrifice = _healingSacrificeEffect(active);
+    final batonPassEffects = active.effects.contains('baton_pass')
+        ? active.effects.batonPassTransferEffects(
+            source: target,
+            target: target,
+          )
+        : const PsdkBattleEffectStack.empty();
     final outgoing = _switchOutSnapshot(active);
-    final incoming = replacement
+    var incoming = replacement
         .copyWith(
           switching: false,
           hasJustShifted: false,
@@ -132,6 +153,20 @@ final class BattleSwitchHandler {
         )
         .withAbilityEffect(target)
         .withItemEffect(target);
+    if (slotPersistentEffects.isNotEmpty) {
+      incoming = incoming.copyWith(
+        effects: incoming.effects.addEffects(slotPersistentEffects),
+      );
+    }
+    if (batonPassEffects.effects.isNotEmpty) {
+      incoming = incoming.copyWith(
+        statStages: active.statStages,
+        effects: incoming.effects.addEffects(batonPassEffects.effects),
+      );
+    }
+    if (healingSacrifice != null) {
+      incoming = _applyHealingSacrifice(incoming, healingSacrifice);
+    }
 
     final nextParty = <PsdkBattleCombatant>[...party];
     nextParty[activePartyIndex] = outgoing;
@@ -418,6 +453,39 @@ PsdkBattleCombatant _switchOutSnapshot(PsdkBattleCombatant active) {
     transformState: const PsdkBattleTransformState(),
     temporaryTypes: const <String>[],
     type3: null,
+  );
+}
+
+List<BattleEffect> _slotPersistentEffects(PsdkBattleCombatant active) {
+  return active.effects.effects
+      .where((effect) => effect is DelayedMoveEffect || effect is WishEffect)
+      .toList(growable: false);
+}
+
+HealingWishEffect? _healingSacrificeEffect(PsdkBattleCombatant active) {
+  for (final effect in active.effects.effects) {
+    if (effect is HealingWishEffect) {
+      return effect;
+    }
+  }
+  return null;
+}
+
+PsdkBattleCombatant _applyHealingSacrifice(
+  PsdkBattleCombatant incoming,
+  HealingWishEffect effect,
+) {
+  final restoredMoves = effect.restorePp
+      ? <PsdkBattleMoveData>[
+          for (final move in incoming.moves) move.copyWith(currentPp: move.pp),
+        ]
+      : incoming.moves;
+  return incoming.copyWith(
+    currentHp: incoming.maxHp,
+    clearMajorStatus: true,
+    sleepTurns: 0,
+    toxicCounter: 0,
+    moves: restoredMoves,
   );
 }
 

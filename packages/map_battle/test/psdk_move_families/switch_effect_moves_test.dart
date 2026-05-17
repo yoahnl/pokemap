@@ -29,6 +29,33 @@ void main() {
       );
     });
 
+    test('s_baton_pass fails when the user has no replacement', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          includePlayerReserve: false,
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'baton_pass',
+              battleEngineMethod: 's_baton_pass',
+              target: PsdkBattleMoveTarget.user,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final player = result.state.battlerAt(psdkPlayerSlot);
+
+      expect(player.switching, isFalse);
+      expect(player.effects.contains('baton_pass'), isFalse);
+      expect(
+        result.timeline.events
+            .whereType<PsdkBattleMoveFailedEvent>()
+            .where((event) => event.moveId == 'baton_pass'),
+        hasLength(1),
+      );
+    });
+
     test('s_u_turn damages the target then marks the user for switch', () {
       final engine = PsdkBattleEngine(
         setup: _setup(
@@ -76,6 +103,32 @@ void main() {
       expect(
         result.timeline.events.whereType<PsdkBattleDamageEvent>(),
         isEmpty,
+      );
+      expect(result.state.battlerAt(psdkPlayerSlot).switching, isFalse);
+    });
+
+    test('s_u_turn damages but does not switch without a replacement', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          includePlayerReserve: false,
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'u_turn',
+              battleEngineMethod: 's_u_turn',
+              target: PsdkBattleMoveTarget.adjacentFoe,
+              category: PsdkBattleMoveCategory.physical,
+              power: 70,
+              accuracy: 100,
+            ),
+          ],
+        ),
+      );
+
+      final result = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(
+        result.timeline.events.whereType<PsdkBattleDamageEvent>(),
+        hasLength(1),
       );
       expect(result.state.battlerAt(psdkPlayerSlot).switching, isFalse);
     });
@@ -303,6 +356,8 @@ PsdkBattleSetup _setup({
   PsdkBattleStatStages? opponentStatStages,
   String? playerAbilityId,
   String? opponentAbilityId,
+  bool includePlayerReserve = true,
+  bool includeOpponentReserve = true,
 }) {
   return PsdkBattleSetup.singles(
     player: _combatant(
@@ -324,6 +379,36 @@ PsdkBattleSetup _setup({
         ),
       ],
     ),
+    playerReserves: includePlayerReserve
+        ? <PsdkBattleCombatantSetup>[
+            _combatant(
+              id: 'player-reserve',
+              speed: 50,
+              moves: <PsdkBattleMoveData>[
+                _move(
+                  id: 'splash',
+                  battleEngineMethod: 's_splash',
+                  target: PsdkBattleMoveTarget.none,
+                ),
+              ],
+            ),
+          ]
+        : const <PsdkBattleCombatantSetup>[],
+    opponentReserves: includeOpponentReserve
+        ? <PsdkBattleCombatantSetup>[
+            _combatant(
+              id: 'opponent-reserve',
+              speed: 50,
+              moves: <PsdkBattleMoveData>[
+                _move(
+                  id: 'splash',
+                  battleEngineMethod: 's_splash',
+                  target: PsdkBattleMoveTarget.none,
+                ),
+              ],
+            ),
+          ]
+        : const <PsdkBattleCombatantSetup>[],
     rngSeeds: const PsdkBattleRngSeeds(
       moveDamage: 1,
       moveCritical: 99999,

@@ -606,7 +606,6 @@ void main() {
     });
 
     for (final entry in <({String method, String moveId, String effectId})>[
-      (method: 's_wish', moveId: 'wish', effectId: 'wish'),
       (method: 's_tailwind', moveId: 'tailwind', effectId: 'tailwind'),
       (method: 's_safe_guard', moveId: 'safeguard', effectId: 'safeguard'),
       (method: 's_mist', moveId: 'mist', effectId: 'mist'),
@@ -630,6 +629,27 @@ void main() {
         expect(effect.scope, isA<BankBattleEffectScope>());
       });
     }
+
+    test('s_wish installs a delayed slot heal marker', () {
+      final result = _runMove(
+        playerMove: _move(
+          id: 'wish',
+          category: PsdkBattleMoveCategory.status,
+          power: 0,
+          accuracy: 0,
+          battleEngineMethod: 's_wish',
+          target: PsdkBattleMoveTarget.user,
+        ),
+      );
+
+      final effect = _effect(
+        result.state.battlerAt(psdkPlayerSlot),
+        'wish',
+      );
+      expect(effect, isA<WishEffect>());
+      expect(effect.scope, isA<BattlerBattleEffectScope>());
+      expect(effect.remainingTurns, 1);
+    });
 
     test('s_toxic_thread applies poison and speed drop without damage', () {
       final result = _runMove(
@@ -2296,12 +2316,6 @@ void main() {
           moveId: 'frustration',
           category: PsdkBattleMoveCategory.physical,
           power: 40,
-        ),
-        (
-          method: 's_healing_wish',
-          moveId: 'healing_wish',
-          category: PsdkBattleMoveCategory.status,
-          power: 0,
         ),
         (
           method: 's_metronome',

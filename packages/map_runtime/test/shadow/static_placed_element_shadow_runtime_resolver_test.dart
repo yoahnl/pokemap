@@ -368,8 +368,10 @@ void main() {
 
       expect(instruction, isNotNull);
       _expectInstructionMatchesBuildingContactLedge(instruction!, input);
-      expect(instruction.height, lessThan(18));
-      expect(instruction.width, lessThan(100));
+      expect(instruction.height, greaterThan(13));
+      expect(instruction.height, lessThan(15));
+      expect(instruction.width, greaterThan(118));
+      expect(instruction.width, lessThan(121));
     });
 
     test('building contact ledge uses resolved footprint width', () {
@@ -844,34 +846,24 @@ void _expectBuildingContactLedgeShape(
 List<ShadowRuntimePoint> _expectedBuildingContactLedgePoints(
   StaticPlacedElementShadowRuntimeInput input,
 ) {
-  final baseGeometry = _expectedBaseGeometry(input);
-  final centerX = baseGeometry.centerX;
-  final nearY = baseGeometry.centerY - baseGeometry.height * 0.30;
-  final farY = baseGeometry.centerY +
-      _expectedBuildingContactLedgeDepth(
-        input.metrics,
-      );
-  final nearHalfWidth = baseGeometry.width * 0.55;
-  final farHalfWidth = baseGeometry.width * 0.48;
-  final skewX = _expectedBuildingContactLedgeSkew(input.metrics);
-  return [
-    ShadowRuntimePoint(
-      worldX: centerX - nearHalfWidth,
-      worldY: nearY,
+  final metrics = input.metrics;
+  final geometry = resolveBuildingStaticShadowContactLedgeGeometry(
+    baseGeometry: _expectedBaseGeometry(input),
+    metrics: StaticShadowVisualMetrics(
+      left: metrics.worldLeft,
+      top: metrics.worldTop,
+      visualWidth: metrics.visualWidth,
+      visualHeight: metrics.visualHeight,
     ),
-    ShadowRuntimePoint(
-      worldX: centerX + nearHalfWidth,
-      worldY: nearY,
-    ),
-    ShadowRuntimePoint(
-      worldX: centerX + skewX + farHalfWidth,
-      worldY: farY,
-    ),
-    ShadowRuntimePoint(
-      worldX: centerX + skewX - farHalfWidth,
-      worldY: farY,
-    ),
-  ];
+  );
+  return geometry.points
+      .map(
+        (point) => ShadowRuntimePoint(
+          worldX: point.x,
+          worldY: point.y,
+        ),
+      )
+      .toList();
 }
 
 ResolvedStaticShadowGeometry _expectedBaseGeometry(
@@ -903,28 +895,6 @@ ResolvedStaticShadowGeometry _expectedBaseGeometry(
     ),
     overrideFootprint: input.overrideFootprint,
   );
-}
-
-double _expectedBuildingContactLedgeDepth(
-  StaticPlacedElementShadowRuntimeMetrics metrics,
-) {
-  return _clampDouble(metrics.visualHeight * 0.035, 4, 14);
-}
-
-double _expectedBuildingContactLedgeSkew(
-  StaticPlacedElementShadowRuntimeMetrics metrics,
-) {
-  return _clampDouble(metrics.visualWidth * 0.025, 0, 8);
-}
-
-double _clampDouble(double value, double min, double max) {
-  if (value < min) {
-    return min;
-  }
-  if (value > max) {
-    return max;
-  }
-  return value;
 }
 
 _RuntimeTestBounds _boundsFromPoints(List<ShadowRuntimePoint> points) {

@@ -38,7 +38,7 @@ void main() {
       );
       expect(
         result.project.elements[0].shadow!.footprint!.footprintWidthRatio,
-        0.18,
+        0.28,
       );
       expect(
         result.project.elements[1].shadow!.shadowProfileId,
@@ -50,7 +50,7 @@ void main() {
       );
       expect(
         result.project.elements[1].shadow!.footprint!.footprintWidthRatio,
-        0.82,
+        0.60,
       );
     });
 
@@ -81,7 +81,7 @@ void main() {
       expect(result.project.elements.single.shadow!.footprint, isNotNull);
       expect(
         result.project.elements.single.shadow!.footprint!.footprintWidthRatio,
-        0.72,
+        0.58,
       );
       expect(
         result.project.elements.single.shadow!.shadowProfileId,
@@ -426,6 +426,34 @@ void main() {
       expect(result.project.elements[1].recommendedLayerId, 'decor_layer');
       expect(result.project.elements[0].shadow, isNotNull);
       expect(result.project.elements[1].shadow, isNotNull);
+    });
+
+    test('editor wrapper stays in parity with core backfill operation', () {
+      final project = _project(
+        elements: [
+          _element(id: 'lamp', name: 'Lamp', width: 1, height: 4),
+          _element(
+            id: 'house',
+            name: 'House',
+            width: 4,
+            height: 3,
+            shadow: ProjectElementShadowConfig(
+              castsShadow: true,
+              shadowProfileId: 'default-ground-wide-ellipse',
+            ),
+          ),
+          _element(id: 'small', name: 'Small', width: 2, height: 2),
+        ],
+        shadowCatalog: _defaultCatalog(),
+      );
+
+      final editorResult = applyElementAutoShadowSuggestionsToProject(project);
+      final coreResult = applyElementAutoShadowPolicyToProject(project);
+
+      expect(editorResult.project, coreResult.project);
+      expect(editorResult.entries, coreResult.entries);
+      expect(
+          editorResult.addedDefaultProfiles, coreResult.addedDefaultProfiles);
     });
   });
 }

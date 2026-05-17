@@ -273,6 +273,25 @@ void main() {
       expect(turn.state.battlerAt(psdkOpponentSlot).switching, isTrue);
     });
 
+    test('s_roar does not force switch when the target has no replacement', () {
+      final engine = PsdkBattleEngine(
+        setup: _setup(
+          includeOpponentReserve: false,
+          playerMoves: <PsdkBattleMoveData>[
+            _move(
+              id: 'roar',
+              battleEngineMethod: 's_roar',
+              target: PsdkBattleMoveTarget.adjacentFoe,
+            ),
+          ],
+        ),
+      );
+
+      final turn = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+
+      expect(turn.state.battlerAt(psdkOpponentSlot).switching, isFalse);
+    });
+
     test('s_dragon_tail damages then marks the target for forced switch', () {
       final engine = PsdkBattleEngine(
         setup: _setup(
@@ -299,6 +318,7 @@ void main() {
 
 PsdkBattleSetup _setup({
   required List<PsdkBattleMoveData> playerMoves,
+  bool includeOpponentReserve = true,
 }) {
   return PsdkBattleSetup.singles(
     player: _combatant(
@@ -317,6 +337,21 @@ PsdkBattleSetup _setup({
         ),
       ],
     ),
+    opponentReserves: includeOpponentReserve
+        ? <PsdkBattleCombatantSetup>[
+            _combatant(
+              id: 'opponent-reserve',
+              speed: 50,
+              moves: <PsdkBattleMoveData>[
+                _move(
+                  id: 'splash',
+                  battleEngineMethod: 's_splash',
+                  target: PsdkBattleMoveTarget.none,
+                ),
+              ],
+            ),
+          ]
+        : const <PsdkBattleCombatantSetup>[],
     rngSeeds: const PsdkBattleRngSeeds(
       moveDamage: 1,
       moveCritical: 99999,

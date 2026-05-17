@@ -68,6 +68,7 @@ export 'src/operations/surface_catalog_diagnostics_presentation.dart';
 export 'src/operations/static_shadow_geometry.dart';
 export 'src/operations/static_shadow_family_projection.dart';
 export 'src/operations/static_shadow_projection_geometry.dart';
+export 'src/operations/static_shadow_contact_ledge_geometry.dart';
 export 'src/operations/element_auto_shadow_policy.dart';
 export 'src/operations/surface_atlas_json_codec.dart';
 export 'src/operations/surface_animation_frame_json_codec.dart';

@@ -89,6 +89,29 @@ class PsdkBattleMovePpSpentEvent extends PsdkBattleEvent {
       };
 }
 
+class PsdkBattleMoveCalledEvent extends PsdkBattleEvent {
+  const PsdkBattleMoveCalledEvent({
+    required this.user,
+    required this.callerMoveId,
+    required this.calledMoveId,
+    this.target,
+  }) : super(kind: 'move_called');
+
+  final PsdkBattleSlotRef user;
+  final String callerMoveId;
+  final String calledMoveId;
+  final PsdkBattleSlotRef? target;
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+        'kind': kind,
+        'user': user.toJson(),
+        'callerMoveId': callerMoveId,
+        'calledMoveId': calledMoveId,
+        if (target != null) 'target': target!.toJson(),
+      };
+}
+
 class PsdkBattleMoveFailedEvent extends PsdkBattleEvent {
   const PsdkBattleMoveFailedEvent({
     required this.user,

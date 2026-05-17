@@ -73,9 +73,11 @@ void main() {
       expect(suggestion.kind, ElementAutoShadowSuggestionKind.tallThin);
       expect(suggestion.config.shadowProfileId, 'default-ground-contact-blob');
       expect(suggestion.config.family, StaticShadowFamily.tallProp);
-      expect(suggestion.config.footprint!.footprintWidthRatio, 0.18);
-      expect(suggestion.config.footprint!.footprintHeightRatio, 0.07);
-      expect(suggestion.config.opacity, 0.28);
+      expect(suggestion.config.footprint!.footprintWidthRatio, 0.28);
+      expect(suggestion.config.footprint!.footprintHeightRatio, 0.05);
+      expect(suggestion.config.scaleX, 0.80);
+      expect(suggestion.config.scaleY, 0.55);
+      expect(suggestion.config.opacity, 0.30);
     });
 
     test('classifies large buildings as buildingLarge', () {
@@ -87,11 +89,12 @@ void main() {
       expect(suggestion.kind, ElementAutoShadowSuggestionKind.buildingLarge);
       expect(suggestion.config.shadowProfileId, 'default-ground-wide-ellipse');
       expect(suggestion.config.family, StaticShadowFamily.building);
-      expect(suggestion.config.footprint!.anchorYRatio, 0.92);
-      expect(suggestion.config.footprint!.footprintWidthRatio, 0.82);
-      expect(suggestion.config.footprint!.footprintHeightRatio, 0.12);
-      expect(suggestion.config.scaleY, 0.85);
-      expect(suggestion.config.opacity, 0.30);
+      expect(suggestion.config.footprint!.anchorYRatio, 0.98);
+      expect(suggestion.config.footprint!.footprintWidthRatio, 0.60);
+      expect(suggestion.config.footprint!.footprintHeightRatio, 0.06);
+      expect(suggestion.config.scaleX, 0.72);
+      expect(suggestion.config.scaleY, 0.48);
+      expect(suggestion.config.opacity, 0.32);
     });
 
     test('wide low needs enough surface to receive an automatic shadow', () {
@@ -108,12 +111,12 @@ void main() {
       expect(suggestion.kind, ElementAutoShadowSuggestionKind.wideLow);
       expect(suggestion.config.shadowProfileId, 'default-ground-wide-ellipse');
       expect(suggestion.config.family, StaticShadowFamily.compactProp);
-      expect(suggestion.config.footprint!.anchorYRatio, 0.95);
-      expect(suggestion.config.footprint!.footprintWidthRatio, 0.72);
-      expect(suggestion.config.footprint!.footprintHeightRatio, 0.10);
-      expect(suggestion.config.scaleX, 0.92);
-      expect(suggestion.config.scaleY, 0.75);
-      expect(suggestion.config.opacity, 0.27);
+      expect(suggestion.config.footprint!.anchorYRatio, 0.98);
+      expect(suggestion.config.footprint!.footprintWidthRatio, 0.58);
+      expect(suggestion.config.footprint!.footprintHeightRatio, 0.06);
+      expect(suggestion.config.scaleX, 0.74);
+      expect(suggestion.config.scaleY, 0.50);
+      expect(suggestion.config.opacity, 0.28);
     });
 
     test('small square returns null under artistic V0 policy', () {

@@ -243,6 +243,7 @@ export 'src/domain/timeline/battle_timeline_event.dart'
         BattleMoveDeclaredTimelineEvent,
         BattleMoveFailedTimelineEvent,
         BattleMoveImmuneTimelineEvent,
+        BattleMoveCalledTimelineEvent,
         BattleMoveMissedTimelineEvent,
         BattleMoveProcedureStage,
         BattleMoveProcedureTraceEvent,

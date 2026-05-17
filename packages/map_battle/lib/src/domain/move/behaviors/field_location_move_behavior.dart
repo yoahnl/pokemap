@@ -2,7 +2,11 @@ import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_field.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
+import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
+import '../../effect/battle_effect.dart';
+import '../../effect/battle_effect_scope.dart';
+import '../../effect/field/pledge_field_effects.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_damage_calculator.dart';
 import '../battle_move_data.dart';
@@ -151,11 +155,39 @@ final class FieldLocationMoveBehavior implements BattleMoveBehavior {
       return prepared.toResolution();
     }
 
-    return _resolvePreparedDamage(
+    final pledgeCombo = _kind == _FieldLocationMoveKind.pledge
+        ? _pledgeCombo(context: context, state: prepared.state)
+        : null;
+    final damageMove = pledgeCombo == null ? move : _copyMove(move, power: 150);
+    final resolved = _resolvePreparedDamage(
       context: context,
       prepared: prepared,
-      move: move,
+      move: damageMove,
       targetSlot: prepared.psdkTargets.single,
+    );
+    if (pledgeCombo == null || !resolved.successful) {
+      return resolved;
+    }
+
+    final state = resolved.state.updateBattler(
+      context.user,
+      (battler) => battler.copyWith(
+        effects: battler.effects.addEffect(pledgeCombo.effect),
+      ),
+    );
+    return BattleMoveBehaviorResolution(
+      state: state,
+      rng: resolved.rng,
+      events: <PsdkBattleEvent>[
+        ...resolved.events,
+        PsdkBattleEffectEvent.added(
+          turn: context.turn,
+          target: context.user,
+          effectId: pledgeCombo.effect.id,
+          remainingTurns: pledgeCombo.effect.remainingTurns,
+          reason: 'pledge_combo',
+        ),
+      ],
     );
   }
 
@@ -193,6 +225,7 @@ final class FieldLocationMoveBehavior implements BattleMoveBehavior {
       turn: context.turn,
       amount: damageResult.damage,
       moveCategory: move.category,
+      move: move,
     );
     final secondary = const BattleMoveSecondaryEffectResolver().resolve(
       state: applied.state,
@@ -212,6 +245,36 @@ final class FieldLocationMoveBehavior implements BattleMoveBehavior {
         ...secondary.events,
       ],
     );
+  }
+
+  _PledgeCombo? _pledgeCombo({
+    required BattleMoveBehaviorContext context,
+    required PsdkBattleState state,
+  }) {
+    for (final allySlot in state.alliesOf(context.user)) {
+      final ally = state.battlerAt(allySlot);
+      PsdkBattleMoveData? allyMove;
+      for (final entry in ally.moveHistory.attempts.reversed) {
+        if (entry.turn != context.turn) {
+          continue;
+        }
+        final move = _moveFromCombatant(ally, entry.moveId);
+        if (move?.battleEngineMethod == 's_pledge') {
+          allyMove = move;
+          break;
+        }
+      }
+      if (allyMove == null) {
+        continue;
+      }
+      return _pledgeEffectFor(
+        userBank: context.user.bank,
+        targetBank: context.target.bank,
+        firstType: context.move.type,
+        secondType: allyMove.type,
+      );
+    }
+    return null;
   }
 
   BattleMoveDefinition _naturePowerMove(
@@ -360,4 +423,49 @@ BattleMoveDefinition _copyMove(
     stageMods: stageMods ?? move.stageMods,
     statuses: statuses ?? move.statuses,
   );
+}
+
+final class _PledgeCombo {
+  const _PledgeCombo({required this.effect});
+
+  final BattleEffect effect;
+}
+
+_PledgeCombo? _pledgeEffectFor({
+  required int userBank,
+  required int targetBank,
+  required String firstType,
+  required String secondType,
+}) {
+  final types = <String>{firstType.toLowerCase(), secondType.toLowerCase()};
+  if (types.contains('fire') && types.contains('water')) {
+    return _PledgeCombo(
+      effect: RainbowPledgeEffect(scope: BankBattleEffectScope(userBank)),
+    );
+  }
+  if (types.contains('fire') && types.contains('grass')) {
+    return _PledgeCombo(
+      effect: SeaOfFirePledgeEffect(scope: BankBattleEffectScope(targetBank)),
+    );
+  }
+  if (types.contains('grass') && types.contains('water')) {
+    return _PledgeCombo(
+      effect: SwampPledgeEffect(scope: BankBattleEffectScope(targetBank)),
+    );
+  }
+  return null;
+}
+
+PsdkBattleMoveData? _moveFromCombatant(
+  PsdkBattleCombatant combatant,
+  String moveId,
+) {
+  final normalized = moveId.toLowerCase();
+  for (final move in combatant.moves) {
+    if (move.id.toLowerCase() == normalized ||
+        move.dbSymbol.toLowerCase() == normalized) {
+      return move;
+    }
+  }
+  return null;
 }

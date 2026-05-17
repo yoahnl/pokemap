@@ -24,4 +24,17 @@ class RuntimeBattleMoveBridgeDiagnostics {
   bool get runtimeBridgeable => bridgeable;
   bool get psdkRegistered => psdkRegistryStatus != null;
   bool get psdkPartial => psdkRegistryStatus == 'partial';
+
+  Map<String, Object?> toJson() {
+    return <String, Object?>{
+      'moveId': moveId,
+      'bridgeable': bridgeable,
+      'reason': reason,
+      'engineSupportLevel': engineSupportLevel.name,
+      'unsupportedReasons': unsupportedReasons,
+      if (battleEngineMethod != null) 'battleEngineMethod': battleEngineMethod,
+      if (psdkRegistryStatus != null) 'psdkRegistryStatus': psdkRegistryStatus,
+      if (debugDetails != null) 'debugDetails': debugDetails,
+    };
+  }
 }

@@ -3,6 +3,11 @@
 Required top-level fields:
 
 - `scenarioId`: stable snake-case identifier.
+- `tags`: stable fixture tags used by the final parity gate. Current tags are
+  `move_method`, `effect_family`, `ability`, `item`, `status`, `field`,
+  `doubles`, `runtime_bridge`, and focused behavior tags such as `damage`.
+- `psdkSourcePaths`: one or more source files under
+  `pokemonsdk-development/scripts/5 Battle` that justify the expected behavior.
 - `sourcePsdkVersion`: source Pokemon SDK version, branch, or local snapshot.
 - `initialBattle`: deterministic singles setup consumed by `PsdkBattleSetup`.
 - `actions`: ordered player actions to submit to the Dart engine.
@@ -10,6 +15,8 @@ Required top-level fields:
   action.
 - `expectedTimeline`: expected event kinds and optional event payload checks for
   the last submitted action.
+- `expectedAuditDeltas`: expected contribution to audit axes when the fixture's
+  represented behavior is fully strict.
 - `notes`: short audit notes explaining why the scenario exists.
 
 `initialBattle` contains:
@@ -51,3 +58,9 @@ Actions currently support:
 - `eventKinds`: exact ordered list of emitted event kinds.
 - `damageEvents`: optional list of `{ "moveId", "damage", "remainingHp" }`
   checks, in emitted order.
+
+`expectedAuditDeltas` contains:
+
+- `strictAttacks`: number of strict attack entries represented by the fixture.
+- `portedMethods`: number of PSDK move methods represented by the fixture.
+- `portedEffects`: number of PSDK effect classes represented by the fixture.

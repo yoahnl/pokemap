@@ -158,41 +158,41 @@ void main() {
       );
     });
 
-    test('compactProp V1 calibration is short and tapered', () {
+    test('compactProp Shadow-54 calibration is readable and tapered', () {
       final spec = resolveStaticShadowFamilyProjectionSpec(
         family: StaticShadowFamily.compactProp,
       );
 
-      expect(spec.lengthRatio, closeTo(0.0704, 0.0000001));
-      expect(spec.nearWidthMultiplier, closeTo(0.3312, 0.0000001));
-      expect(spec.farWidthMultiplier, closeTo(0.2832, 0.0000001));
+      expect(spec.lengthRatio, closeTo(0.1120, 0.0000001));
+      expect(spec.nearWidthMultiplier, closeTo(0.5200, 0.0000001));
+      expect(spec.farWidthMultiplier, closeTo(0.4300, 0.0000001));
       expect(spec.farWidthMultiplier, lessThan(spec.nearWidthMultiplier));
     });
 
-    test('tallProp V1 calibration is very narrow and short', () {
+    test('tallProp Shadow-54 calibration stays narrow but visible', () {
       final spec = resolveStaticShadowFamilyProjectionSpec(
         family: StaticShadowFamily.tallProp,
       );
 
-      expect(spec.lengthRatio, closeTo(0.0704, 0.0000001));
-      expect(spec.nearWidthMultiplier, closeTo(0.2208, 0.0000001));
-      expect(spec.farWidthMultiplier, closeTo(0.1770, 0.0000001));
+      expect(spec.lengthRatio, closeTo(0.1280, 0.0000001));
+      expect(spec.nearWidthMultiplier, closeTo(0.5400, 0.0000001));
+      expect(spec.farWidthMultiplier, closeTo(0.4000, 0.0000001));
       expect(spec.farWidthMultiplier, lessThan(spec.nearWidthMultiplier));
     });
 
-    test('building V1 calibration avoids broad slabs', () {
+    test('building Shadow-54 calibration keeps a grounded block projection',
+        () {
       final spec = resolveStaticShadowFamilyProjectionSpec(
         family: StaticShadowFamily.building,
       );
 
-      expect(spec.lengthRatio, closeTo(0.0832, 0.0000001));
-      expect(spec.nearWidthMultiplier, closeTo(0.4416, 0.0000001));
-      expect(spec.farWidthMultiplier, closeTo(0.3422, 0.0000001));
+      expect(spec.lengthRatio, closeTo(0.1120, 0.0000001));
+      expect(spec.nearWidthMultiplier, closeTo(0.6400, 0.0000001));
+      expect(spec.farWidthMultiplier, closeTo(0.5400, 0.0000001));
       expect(spec.farWidthMultiplier, lessThan(spec.nearWidthMultiplier));
     });
 
-    test('foliage V1 calibration is restrained but broader than tall props',
-        () {
+    test('foliage Shadow-54 calibration is broader than tall props', () {
       final spec = resolveStaticShadowFamilyProjectionSpec(
         family: StaticShadowFamily.foliage,
       );
@@ -200,9 +200,9 @@ void main() {
         family: StaticShadowFamily.tallProp,
       );
 
-      expect(spec.lengthRatio, closeTo(0.0960, 0.0000001));
-      expect(spec.nearWidthMultiplier, closeTo(0.5060, 0.0000001));
-      expect(spec.farWidthMultiplier, closeTo(0.4720, 0.0000001));
+      expect(spec.lengthRatio, closeTo(0.1300, 0.0000001));
+      expect(spec.nearWidthMultiplier, closeTo(0.7000, 0.0000001));
+      expect(spec.farWidthMultiplier, closeTo(0.6400, 0.0000001));
       expect(spec.nearWidthMultiplier, greaterThan(tall.nearWidthMultiplier));
     });
 
@@ -270,7 +270,23 @@ void main() {
       expect(_polygonArea(compact), lessThan(_polygonArea(generic)));
     });
 
-    test('building V1 projected geometry stays compact for a Selbrume house',
+    test('Selbrume lamp projected geometry is narrow but readable', () {
+      final geometry = _projectedCase(
+        family: StaticShadowFamily.tallProp,
+        visualWidth: 96,
+        visualHeight: 160,
+        footprintWidthRatio: 0.28 * 0.80,
+        footprintHeightRatio: 0.05 * 0.55,
+      );
+
+      expect(_projectedLength(geometry), greaterThan(20));
+      expect(_maxWidth(geometry), greaterThan(10));
+      expect(_maxWidth(geometry), lessThan(16));
+      expect(_polygonArea(geometry), greaterThan(180));
+    });
+
+    test(
+        'building Shadow-54 projected geometry stays compact for a Selbrume house',
         () {
       final geometry = _projectedCase(
         family: StaticShadowFamily.building,
@@ -280,14 +296,18 @@ void main() {
         footprintHeightRatio: 0.06 * 0.48,
       );
 
-      expect(_projectedLength(geometry), lessThan(20));
-      expect(_maxWidth(geometry), lessThan(40));
-      expect(_polygonArea(geometry), lessThan(700));
+      expect(_projectedLength(geometry), greaterThan(24));
+      expect(_projectedLength(geometry), lessThan(27));
+      expect(_maxWidth(geometry), greaterThan(50));
+      expect(_maxWidth(geometry), lessThan(56));
+      expect(_polygonArea(geometry), greaterThan(1100));
+      expect(_polygonArea(geometry), lessThan(1400));
     });
 
-    test('building V1 projected area is far smaller than legacy Selbrume slab',
+    test(
+        'building Shadow-54 projected area is far smaller than legacy Selbrume slab',
         () {
-      final v1 = _projectedCase(
+      final calibrated = _projectedCase(
         family: StaticShadowFamily.building,
         visualWidth: 192,
         visualHeight: 224,
@@ -309,7 +329,10 @@ void main() {
         ),
       );
 
-      expect(_polygonArea(v1), lessThan(_polygonArea(legacy) * 0.30));
+      expect(
+        _polygonArea(calibrated),
+        lessThan(_polygonArea(legacy) * 0.30),
+      );
     });
   });
 }

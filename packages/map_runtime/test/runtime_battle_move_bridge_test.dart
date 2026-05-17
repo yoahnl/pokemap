@@ -70,13 +70,13 @@ void main() {
       expect(diagnostic.reason, equals('bridgeable'));
       expect(diagnostic.runtimeBridgeable, isTrue);
       expect(diagnostic.psdkRegistered, isTrue);
-      expect(diagnostic.psdkPartial, isTrue);
+      expect(diagnostic.psdkPartial, isFalse);
       expect(
         diagnostic.engineSupportLevel,
         equals(PokemonMoveEngineSupportLevel.structuredSupported),
       );
       expect(diagnostic.battleEngineMethod, equals('s_basic'));
-      expect(diagnostic.psdkRegistryStatus, equals('partial'));
+      expect(diagnostic.psdkRegistryStatus, equals('ported'));
     });
 
     test('inspectMove reports Transform as bridgeable with PSDK metadata', () {
@@ -152,6 +152,14 @@ void main() {
       expect(
         diagnostic.debugDetails,
         contains('bridgeLimit=unsupported_effect_kind:self_switch'),
+      );
+      expect(
+        diagnostic.toJson(),
+        containsPair('reason', 'unsupported_effect_kind:self_switch'),
+      );
+      expect(
+        diagnostic.toJson(),
+        containsPair('psdkRegistryStatus', 'partial'),
       );
     });
 

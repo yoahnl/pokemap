@@ -179,19 +179,25 @@ List<EditorStaticShadowPreviewInstruction>
       elementFootprint: element.shadow?.footprint,
       overrideFootprint: placed.shadowOverride?.footprint,
     );
-    final projectedGeometry = resolveProjectedStaticShadowGeometry(
-      baseGeometry: geometry,
-      metrics: metrics,
-      projectionSpec: resolveStaticShadowFamilyProjectionSpec(
-        family: resolveStaticShadowFamily(
-          elementFamily: element.shadow?.family,
-          overrideFamily: placed.shadowOverride?.family,
-        ),
-        baseProjectionSpec: _projectionSpecForEditorLightPreview(
-          resolvedLightPreviewPreset,
-        ),
-      ),
+    final family = resolveStaticShadowFamily(
+      elementFamily: element.shadow?.family,
+      overrideFamily: placed.shadowOverride?.family,
     );
+    final projectedGeometry = family == StaticShadowFamily.building
+        ? resolveBuildingStaticShadowContactLedgeGeometry(
+            baseGeometry: geometry,
+            metrics: metrics,
+          )
+        : resolveProjectedStaticShadowGeometry(
+            baseGeometry: geometry,
+            metrics: metrics,
+            projectionSpec: resolveStaticShadowFamilyProjectionSpec(
+              family: family,
+              baseProjectionSpec: _projectionSpecForEditorLightPreview(
+                resolvedLightPreviewPreset,
+              ),
+            ),
+          );
     final points = _editorPreviewPointsFromProjection(projectedGeometry);
     final bounds = _boundsFromEditorPreviewPoints(points);
 

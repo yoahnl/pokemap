@@ -374,7 +374,7 @@ void main() {
       );
     });
 
-    test('element family changes preview projected silhouette', () {
+    test('building family emits a contact ledge preview matching core', () {
       final footprint = StaticShadowFootprintConfig(
         footprintWidthRatio: 0.25,
         footprintHeightRatio: 0.08,
@@ -406,11 +406,16 @@ void main() {
         tileHeight: 16,
       ).single;
 
-      expect(tallProp.width, lessThan(building.width));
+      _expectBuildingInstructionMatchesCoreContactLedge(
+        instruction: building,
+        shadowConfig: _resolvedConfig(),
+        metrics: _defaultMetrics(),
+        elementFootprint: footprint,
+      );
       expect(tallProp.polygonPoints, isNot(building.polygonPoints));
     });
 
-    test('override family wins over element family in preview', () {
+    test('override building family wins over element family in preview', () {
       final footprint = StaticShadowFootprintConfig(
         footprintWidthRatio: 0.25,
         footprintHeightRatio: 0.08,
@@ -447,8 +452,50 @@ void main() {
         tileHeight: 16,
       ).single;
 
-      expect(overrideBuilding.width, closeTo(building.width, 0.001));
-      expect(overrideBuilding.height, closeTo(building.height, 0.001));
+      _expectBuildingInstructionMatchesCoreContactLedge(
+        instruction: overrideBuilding,
+        shadowConfig: _resolvedConfig(),
+        metrics: _defaultMetrics(),
+        elementFootprint: footprint,
+      );
+      expect(overrideBuilding.polygonPoints, building.polygonPoints);
+    });
+
+    test(
+        'building contact ledge ignores light direction but keeps opacity preview',
+        () {
+      final manifest = _manifest(
+        elementShadow: ProjectElementShadowConfig(
+          castsShadow: true,
+          shadowProfileId: 'base_shadow',
+          family: StaticShadowFamily.building,
+          footprint: StaticShadowFootprintConfig(
+            footprintWidthRatio: 0.25,
+            footprintHeightRatio: 0.08,
+          ),
+        ),
+      );
+      final neutral = buildEditorStaticShadowPreviewInstructions(
+        manifest: manifest,
+        map: _map(),
+        tileWidth: 16,
+        tileHeight: 16,
+        lightPreviewPreset: editorShadowLightPreviewPresetById('neutral'),
+      ).single;
+      final morning = buildEditorStaticShadowPreviewInstructions(
+        manifest: manifest,
+        map: _map(),
+        tileWidth: 16,
+        tileHeight: 16,
+        lightPreviewPreset: editorShadowLightPreviewPresetById('morning'),
+      ).single;
+
+      expect(morning.polygonPoints, neutral.polygonPoints);
+      expect(morning.left, closeTo(neutral.left, 0.001));
+      expect(morning.top, closeTo(neutral.top, 0.001));
+      expect(morning.width, closeTo(neutral.width, 0.001));
+      expect(morning.height, closeTo(neutral.height, 0.001));
+      expect(morning.opacity, closeTo(0.315, 0.001));
     });
 
     test('custom profile overrides source profile and null profile inherits it',
@@ -654,6 +701,42 @@ void _expectProjectedInstructionMatchesCore({
         instruction.polygonPoints[i].x, closeTo(projected.points[i].x, 0.001));
     expect(
         instruction.polygonPoints[i].y, closeTo(projected.points[i].y, 0.001));
+  }
+}
+
+void _expectBuildingInstructionMatchesCoreContactLedge({
+  required EditorStaticShadowPreviewInstruction instruction,
+  required ResolvedShadowConfig shadowConfig,
+  required StaticShadowVisualMetrics metrics,
+  StaticShadowFootprintConfig? elementFootprint,
+  StaticShadowFootprintConfig? overrideFootprint,
+  double opacity = 0.35,
+}) {
+  final baseGeometry = resolveStaticShadowGeometry(
+    metrics: metrics,
+    shadowConfig: shadowConfig,
+    elementFootprint: elementFootprint,
+    overrideFootprint: overrideFootprint,
+  );
+  final ledge = resolveBuildingStaticShadowContactLedgeGeometry(
+    baseGeometry: baseGeometry,
+    metrics: metrics,
+  );
+  final bounds = _testBounds(ledge.points);
+
+  expect(
+    instruction.shape,
+    EditorStaticShadowPreviewShapeKind.projectedPolygon,
+  );
+  expect(instruction.opacity, closeTo(opacity, 0.001));
+  expect(instruction.left, closeTo(bounds.left, 0.001));
+  expect(instruction.top, closeTo(bounds.top, 0.001));
+  expect(instruction.width, closeTo(bounds.width, 0.001));
+  expect(instruction.height, closeTo(bounds.height, 0.001));
+  expect(instruction.polygonPoints, hasLength(ledge.points.length));
+  for (var i = 0; i < ledge.points.length; i += 1) {
+    expect(instruction.polygonPoints[i].x, closeTo(ledge.points[i].x, 0.001));
+    expect(instruction.polygonPoints[i].y, closeTo(ledge.points[i].y, 0.001));
   }
 }
 

@@ -113,6 +113,173 @@ void main() {
       expect(failures, hasLength(1));
       expect(failures.single.reason, 'future_sight_already_active');
     });
+
+    test('Future Sight stays on the target slot through replacement', () {
+      final engine = PsdkBattleEngine(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            speed: 100,
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'future_sight',
+                type: 'psychic',
+                category: PsdkBattleMoveCategory.special,
+                power: 120,
+                accuracy: 100,
+                battleEngineMethod: 's_future_sight',
+              ),
+            ],
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            speed: 1,
+            moves: <PsdkBattleMoveData>[_move(id: 'opponent_wait')],
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 1,
+            generic: 1,
+          ),
+        ),
+      );
+      final first = engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
+      final opponentReserve = PsdkBattleCombatant.fromSetup(
+        _combatant(
+          id: 'opponent-reserve',
+          speed: 1,
+          moves: <PsdkBattleMoveData>[_move(id: 'reserve_wait')],
+        ),
+      );
+
+      final switched = const BattleSwitchHandler().switchCombatant(
+        context: BattleHandlerContext(
+          state: first.state.copyWith(
+            parties: <int, List<PsdkBattleCombatant>>{
+              0: first.state.partyForBank(0),
+              1: <PsdkBattleCombatant>[
+                first.state.battlerAt(psdkOpponentSlot),
+                opponentReserve,
+              ],
+            },
+          ),
+          rng: BattleRngStreams.fromSeeds(
+            moveDamageSeed: 1,
+            moveCriticalSeed: 99999,
+            moveAccuracySeed: 1,
+            genericSeed: 1,
+          ),
+          turn: 2,
+          user: psdkOpponentSlot,
+        ),
+        target: psdkOpponentSlot,
+        partyIndex: 1,
+      );
+
+      expect(
+        switched.state.battlerAt(psdkOpponentSlot).effects.contains(
+              'future_sight',
+            ),
+        isTrue,
+      );
+    });
+
+    test('Wish heals the replacement occupying the original slot', () {
+      final engine = BattleEngine.fromPsdk(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            speed: 100,
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'wish',
+                battleEngineMethod: 's_wish',
+                target: PsdkBattleMoveTarget.user,
+              ),
+            ],
+          ),
+          playerReserves: <PsdkBattleCombatantSetup>[
+            _combatant(
+              id: 'player-reserve',
+              speed: 100,
+              currentHp: 20,
+              moves: <PsdkBattleMoveData>[_move(id: 'reserve_wait')],
+            ),
+          ],
+          opponent: _combatant(
+            id: 'opponent',
+            speed: 1,
+            moves: <PsdkBattleMoveData>[_move(id: 'opponent_wait')],
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 1,
+            generic: 1,
+          ),
+        ),
+      );
+
+      engine.submit(const BattleDecision.fight(moveSlot: 0));
+      final healed = engine.submit(
+        const BattleDecision.switchPokemon(partyIndex: 1),
+      );
+
+      expect(healed.state.battlerAt(psdkPlayerSlot).id, 'player-reserve');
+      expect(healed.state.battlerAt(psdkPlayerSlot).currentHp, 70);
+      expect(_healEvents(healed, moveId: 'wish'), hasLength(1));
+    });
+
+    test('Healing Wish restores the next replacement HP and status', () {
+      final engine = BattleEngine.fromPsdk(
+        setup: PsdkBattleSetup.singles(
+          player: _combatant(
+            id: 'player',
+            speed: 100,
+            moves: <PsdkBattleMoveData>[
+              _move(
+                id: 'healing_wish',
+                battleEngineMethod: 's_healing_wish',
+                target: PsdkBattleMoveTarget.user,
+              ),
+            ],
+          ),
+          playerReserves: <PsdkBattleCombatantSetup>[
+            _combatant(
+              id: 'player-reserve',
+              speed: 100,
+              currentHp: 20,
+              majorStatus: PsdkBattleMajorStatus.burn,
+              moves: <PsdkBattleMoveData>[_move(id: 'reserve_wait')],
+            ),
+          ],
+          opponent: _combatant(
+            id: 'opponent',
+            speed: 1,
+            moves: <PsdkBattleMoveData>[_move(id: 'opponent_wait')],
+          ),
+          rngSeeds: const PsdkBattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 1,
+            generic: 1,
+          ),
+        ),
+      );
+
+      final sacrifice = engine.submit(const BattleDecision.fight(moveSlot: 0));
+      expect(sacrifice.state.battlerAt(psdkPlayerSlot).currentHp, 0);
+
+      final switched = engine.submit(
+        const BattleDecision.switchPokemon(partyIndex: 1),
+      );
+      final replacement = switched.state.battlerAt(psdkPlayerSlot);
+
+      expect(replacement.id, 'player-reserve');
+      expect(replacement.currentHp, replacement.maxHp);
+      expect(replacement.majorStatus, isNull);
+    });
   });
 }
 
@@ -120,6 +287,8 @@ PsdkBattleCombatantSetup _combatant({
   required String id,
   required int speed,
   required List<PsdkBattleMoveData> moves,
+  int currentHp = 100,
+  PsdkBattleMajorStatus? majorStatus,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
@@ -127,7 +296,7 @@ PsdkBattleCombatantSetup _combatant({
     displayName: id,
     level: 20,
     maxHp: 100,
-    currentHp: 100,
+    currentHp: currentHp,
     types: const PsdkBattleTypes(primary: 'normal'),
     stats: PsdkBattleStats(
       attack: 50,
@@ -136,6 +305,7 @@ PsdkBattleCombatantSetup _combatant({
       specialDefense: 50,
       speed: speed,
     ),
+    majorStatus: majorStatus,
     moves: moves,
   );
 }
@@ -147,6 +317,7 @@ PsdkBattleMoveData _move({
   int power = 0,
   int accuracy = 0,
   String battleEngineMethod = 's_splash',
+  PsdkBattleMoveTarget? target,
 }) {
   return PsdkBattleMoveData(
     id: id,
@@ -160,9 +331,10 @@ PsdkBattleMoveData _move({
     priority: 0,
     criticalRate: 1,
     battleEngineMethod: battleEngineMethod,
-    target: category == PsdkBattleMoveCategory.status
-        ? PsdkBattleMoveTarget.user
-        : PsdkBattleMoveTarget.adjacentFoe,
+    target: target ??
+        (category == PsdkBattleMoveCategory.status
+            ? PsdkBattleMoveTarget.user
+            : PsdkBattleMoveTarget.adjacentFoe),
   );
 }
 
@@ -172,6 +344,16 @@ List<PsdkBattleDamageEvent> _damageEvents(
 }) {
   return result.timeline.events
       .whereType<PsdkBattleDamageEvent>()
+      .where((event) => event.moveId == moveId)
+      .toList();
+}
+
+List<PsdkBattleHealEvent> _healEvents(
+  BattleEngineTurnResult result, {
+  required String moveId,
+}) {
+  return result.timeline.psdkTimeline.events
+      .whereType<PsdkBattleHealEvent>()
       .where((event) => event.moveId == moveId)
       .toList();
 }
