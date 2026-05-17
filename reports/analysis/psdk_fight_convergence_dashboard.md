@@ -1,6 +1,6 @@
 # PSDK Fight Convergence Dashboard
 
-Generated: 2026-05-17T15:36:31.541601Z
+Generated: 2026-05-17T15:46:23.482358Z
 
 ## Final Gate Axes
 
@@ -8,13 +8,13 @@ Generated: 2026-05-17T15:36:31.541601Z
 | --- | ---: | ---: | ---: |
 | Attacks | 300 / 728 | 41.2% | 428 |
 | Methods | 102 / 330 | 30.9% | 228 |
-| Effects | 0 / 482 | 0.0% | 482 |
+| Effects | 3 / 482 | 0.6% | 479 |
 
 ## Effects By Family
 
 | Family | Ported | Partial | Missing | Remaining |
 | --- | ---: | ---: | ---: | ---: |
-| ability | 0 | 3 | 251 | 254 |
+| ability | 3 | 0 | 251 | 251 |
 | field | 0 | 0 | 15 | 15 |
 | item | 0 | 0 | 87 | 87 |
 | mechanics | 0 | 0 | 4 | 4 |
@@ -30,4 +30,4 @@ Generated: 2026-05-17T15:36:31.541601Z
 
 ## Next Recommendation
 
-Next recommended lot: close effect family `ability` (254 remaining effects).
+Next recommended lot: close effect family `ability` (251 remaining effects).

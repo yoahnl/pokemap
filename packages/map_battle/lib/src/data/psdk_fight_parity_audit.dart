@@ -654,9 +654,13 @@ String _effectFamily(String rubyPath) {
 }
 
 PsdkPortStatus _statusForEffect(String effectName) {
+  const portedEffects = <String>{
+    'ArenaTrap',
+    'MagnetPull',
+    'ShadowTag',
+  };
   const partialEffects = <String>{
     'AquaRing',
-    'ArenaTrap',
     'Attract',
     'BatonPass',
     'Bind',
@@ -670,10 +674,8 @@ PsdkPortStatus _statusForEffect(String effectName) {
     'Imprison',
     'Ingrain',
     'LeechSeed',
-    'MagnetPull',
     'Protect',
     'SaltCure',
-    'ShadowTag',
     'SmackDown',
     'SyrupBomb',
     'Taunt',
@@ -681,9 +683,13 @@ PsdkPortStatus _statusForEffect(String effectName) {
     'ThroatChop',
     'Torment',
   };
-  return partialEffects.contains(effectName)
-      ? PsdkPortStatus.partial
-      : PsdkPortStatus.missing;
+  if (portedEffects.contains(effectName)) {
+    return PsdkPortStatus.ported;
+  }
+  if (partialEffects.contains(effectName)) {
+    return PsdkPortStatus.partial;
+  }
+  return PsdkPortStatus.missing;
 }
 
 Directory? _childDir(Directory root, String childName) {

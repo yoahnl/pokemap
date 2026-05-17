@@ -8939,14 +8939,14 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 0,
-      "partial": 25,
+      "ported": 3,
+      "partial": 22,
       "missing": 457
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 0,
-        "partial": 3,
+        "ported": 3,
+        "partial": 0,
         "missing": 251
       },
       "move": {
@@ -9057,7 +9057,7 @@
       {
         "effectName": "ArenaTrap",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb"
       },
       {
@@ -10371,7 +10371,7 @@
       {
         "effectName": "MagnetPull",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb"
       },
       {
@@ -11073,7 +11073,7 @@
       {
         "effectName": "ShadowTag",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb"
       },
       {

@@ -30,6 +30,19 @@ void main() {
       final registry = AbilityEffectRegistry();
 
       for (final abilityId in <String>[
+        'shadow_tag',
+        'arena_trap',
+        'magnet_pull',
+      ]) {
+        final entry = byId[abilityId];
+
+        expect(entry, isNotNull, reason: abilityId);
+        expect(entry!.status, PsdkAbilityPortStatus.ported);
+        expect(entry.dartEffect, isNotNull, reason: abilityId);
+        expect(registry.create(abilityId), isNotNull, reason: abilityId);
+      }
+
+      for (final abilityId in <String>[
         'air_lock',
         'blaze',
         'cloud_nine',
@@ -60,9 +73,6 @@ void main() {
         'rough_skin',
         'sap_sipper',
         'sand_stream',
-        'shadow_tag',
-        'arena_trap',
-        'magnet_pull',
         'sharpness',
         'skill_link',
         'snow_warning',

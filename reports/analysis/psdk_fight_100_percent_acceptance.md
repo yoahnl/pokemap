@@ -35,7 +35,7 @@ The gate currently fails, as expected:
 
 - attacks complete: `300 / 728`
 - methods complete: `102 / 330`
-- effects complete: `0 / 482`
+- effects complete: `3 / 482`
 - runtime bridge: `28` sampled runtime moves, `20` bridgeable,
   `8` rejected with diagnostics, `0` unexplained rejections
 

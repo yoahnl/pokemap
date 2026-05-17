@@ -52,7 +52,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'arena_trap',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'ShadowTagEffect.arenaTrap',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -739,7 +739,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'magnet_pull',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'ShadowTagEffect.magnetPull',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -1197,7 +1197,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'shadow_tag',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'ShadowTagEffect',
   ),
   PsdkAbilityEffectManifestEntry(
