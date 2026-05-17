@@ -67,6 +67,7 @@ import '../domain/effect/move/attract_effect.dart';
 import '../domain/effect/move/bind_effect.dart';
 import '../domain/effect/move/cant_switch_effect.dart';
 import '../domain/effect/move/disable_effect.dart';
+import '../domain/effect/move/embargo_effect.dart';
 import '../domain/effect/move/encore_effect.dart';
 import '../domain/effect/move/endure_effect.dart';
 import '../domain/effect/move/force_next_move_base_effect.dart';
@@ -4112,6 +4113,8 @@ BattleEffect _targetMarkerEffect({
   final scope = BattlerBattleEffectScope(target);
   final remainingTurns = _markerTurnCount(method);
   return switch (effectId) {
+    'embargo' =>
+      EmbargoEffect(scope: scope, remainingTurns: remainingTurns ?? 5),
     'taunt' => TauntEffect(scope: scope, remainingTurns: remainingTurns ?? 3),
     'torment' =>
       TormentEffect(scope: scope, remainingTurns: remainingTurns ?? 3),

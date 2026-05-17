@@ -62,6 +62,8 @@ export '../domain/effect/move/endure_effect.dart';
 export '../domain/effect/move/flinch_effect.dart';
 export '../domain/effect/move/ingrain_effect.dart';
 export '../domain/effect/move/leech_seed_effect.dart';
+export '../domain/effect/move/nightmare_effect.dart';
+export '../domain/effect/move/perish_song_effect.dart';
 export '../domain/effect/move/powder_effect.dart';
 export '../domain/effect/move/protect_effect.dart';
 export '../domain/effect/move/salt_cure_effect.dart';

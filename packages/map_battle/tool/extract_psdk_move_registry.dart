@@ -1130,12 +1130,9 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     dartBehavior: 'SwitchEffectMoveBehavior.batonPass',
     status: _PsdkPortStatus.partial,
   ),
-  // Transform copies target battle-visible form, stats, ability, stages and
-  // moves. It stays partial until switch-out cleanup, Imposter and Illusion
-  // initialization hooks are fully ported.
   's_transform': _KnownDartBehavior(
     dartBehavior: 'TransformMoveBehavior',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   // Hit-then-cure moves execute their local power/cure rules. They stay
   // partial until status cure process hooks and Substitute-style effect
@@ -1433,11 +1430,6 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
     _PsdkMoveDependency.terrain,
     _PsdkMoveDependency.grounded,
     _PsdkMoveDependency.actionOrder,
-  },
-  's_transform': {
-    _PsdkMoveDependency.handlerSwitch,
-    _PsdkMoveDependency.effects,
-    _PsdkMoveDependency.ability,
   },
   's_2turns': {
     _PsdkMoveDependency.effects,
@@ -2074,7 +2066,7 @@ Future<List<_MoveRegistryRow>> _extractRows(Directory root) async {
           rubyPath: _relativePath(root, file),
           dartBehavior: known?.dartBehavior ?? 'TODO',
           status: known?.status ?? _PsdkPortStatus.missing,
-          dependencies: _dependenciesFor(method),
+          dependencies: _dependenciesFor(method, known),
         ),
       );
     }
@@ -2343,12 +2335,90 @@ String _renderDartDependencies(Set<_PsdkMoveDependency> dependencies) {
   return 'const <PsdkMoveDependency>[$values]';
 }
 
-Set<_PsdkMoveDependency> _dependenciesFor(String method) {
+Set<_PsdkMoveDependency> _dependenciesFor(
+  String method,
+  _KnownDartBehavior? known,
+) {
   final dependencies = _manualDependencies[method];
   if (dependencies == null) {
-    return const <_PsdkMoveDependency>{};
+    return _phaseCFinalSweepDependencies(known);
   }
   return Set<_PsdkMoveDependency>.unmodifiable(dependencies);
+}
+
+Set<_PsdkMoveDependency> _phaseCFinalSweepDependencies(
+  _KnownDartBehavior? known,
+) {
+  if (known?.status != _PsdkPortStatus.partial) {
+    return const <_PsdkMoveDependency>{};
+  }
+
+  final behavior = known!.dartBehavior;
+  if (behavior.startsWith('CopyCallMoveBehavior.')) {
+    return const <_PsdkMoveDependency>{
+      _PsdkMoveDependency.history,
+      _PsdkMoveDependency.actionOrder,
+      _PsdkMoveDependency.effects,
+    };
+  }
+  if (behavior.startsWith('ItemDependentMoveBehavior.')) {
+    return const <_PsdkMoveDependency>{
+      _PsdkMoveDependency.item,
+      _PsdkMoveDependency.ability,
+      _PsdkMoveDependency.effects,
+    };
+  }
+  if (behavior.startsWith('CounterDamageMoveBehavior.')) {
+    return const <_PsdkMoveDependency>{
+      _PsdkMoveDependency.handlerDamage,
+      _PsdkMoveDependency.history,
+      _PsdkMoveDependency.effects,
+    };
+  }
+  if (behavior.startsWith('FieldLocationMoveBehavior.') ||
+      behavior.contains('partialFieldMarker')) {
+    return const <_PsdkMoveDependency>{
+      _PsdkMoveDependency.field,
+      _PsdkMoveDependency.effects,
+    };
+  }
+  if (behavior.startsWith('MultiHitMoveBehavior.')) {
+    return const <_PsdkMoveDependency>{
+      _PsdkMoveDependency.targetingMulti,
+      _PsdkMoveDependency.history,
+      _PsdkMoveDependency.accuracy,
+      _PsdkMoveDependency.ability,
+      _PsdkMoveDependency.item,
+    };
+  }
+  if (behavior.contains('partialAbilityChanging')) {
+    return const <_PsdkMoveDependency>{
+      _PsdkMoveDependency.ability,
+      _PsdkMoveDependency.effects,
+    };
+  }
+  if (behavior.contains('partialUserBankMarker') ||
+      behavior.contains('partialTargetMarker')) {
+    return const <_PsdkMoveDependency>{_PsdkMoveDependency.effects};
+  }
+  if (behavior.contains('secondaryOnly')) {
+    return const <_PsdkMoveDependency>{
+      _PsdkMoveDependency.effects,
+      _PsdkMoveDependency.handlerStatus,
+      _PsdkMoveDependency.handlerStat,
+      _PsdkMoveDependency.ability,
+    };
+  }
+  if (behavior.contains('partialBasic')) {
+    return const <_PsdkMoveDependency>{
+      _PsdkMoveDependency.handlerDamage,
+      _PsdkMoveDependency.effects,
+      _PsdkMoveDependency.ability,
+      _PsdkMoveDependency.item,
+    };
+  }
+
+  return const <_PsdkMoveDependency>{_PsdkMoveDependency.effects};
 }
 
 List<_MoveRegistryRow> _dedupeByMethod(List<_MoveRegistryRow> rows) {

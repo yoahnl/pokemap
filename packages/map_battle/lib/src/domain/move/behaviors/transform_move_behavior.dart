@@ -1,10 +1,5 @@
-import '../../../psdk/domain/psdk_battle_combatant.dart';
-import '../../../psdk/domain/psdk_battle_move.dart';
-import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
-import '../../battler/battle_transform_state.dart';
-import '../../effect/battle_effect.dart';
-import '../../effect/battle_effect_scope.dart';
+import '../../battler/battle_transform_service.dart';
 import '../battle_move_behavior.dart';
 import '../battle_move_prevention.dart';
 import 'battle_move_behavior_support.dart';
@@ -18,6 +13,9 @@ final class TransformMoveBehavior
     implements BattleMoveBehavior, BattleMoveUserPreventionBehavior {
   const TransformMoveBehavior();
 
+  static const PsdkBattleTransformService _transformService =
+      PsdkBattleTransformService();
+
   @override
   String get battleEngineMethod => 's_transform';
 
@@ -26,7 +24,7 @@ final class TransformMoveBehavior
     BattleMoveBehaviorContext context,
   ) {
     final user = context.state.battlerAt(context.user);
-    if (!user.transformState.isTransformed) {
+    if (_transformService.canTransform(user)) {
       return null;
     }
     return const BattleMoveUserPreventionResult(
@@ -43,7 +41,7 @@ final class TransformMoveBehavior
 
     final targetSlot = prepared.psdkTargets.single;
     final target = prepared.state.battlerAt(targetSlot);
-    if (!_canCopy(target)) {
+    if (!_transformService.canCopy(target)) {
       return BattleMoveBehaviorResolution(
         state: prepared.state,
         rng: prepared.rng,
@@ -61,7 +59,7 @@ final class TransformMoveBehavior
     }
 
     final user = prepared.state.battlerAt(context.user);
-    final transformed = _transformUser(
+    final transformed = _transformService.transform(
       user: user,
       target: target,
       userSlot: context.user,
@@ -72,52 +70,5 @@ final class TransformMoveBehavior
       rng: prepared.rng,
       events: prepared.events,
     );
-  }
-
-  bool _canCopy(PsdkBattleCombatant target) {
-    return !target.effects.contains('substitute');
-  }
-
-  PsdkBattleCombatant _transformUser({
-    required PsdkBattleCombatant user,
-    required PsdkBattleCombatant target,
-    required PsdkBattleSlotRef userSlot,
-  }) {
-    return user.copyWith(
-      speciesId: target.speciesId,
-      displayName: target.displayName,
-      types: target.types,
-      stats: target.stats,
-      abilityId: target.abilityId,
-      statStages: target.statStages,
-      currentWeightKg: target.currentWeightKg,
-      moves: _transformMoves(target.moves),
-      transformState: PsdkBattleTransformState(
-        transformedFromSpeciesId:
-            user.transformState.transformedFromSpeciesId ?? user.speciesId,
-        illusionSpeciesId: user.transformState.illusionSpeciesId,
-        illusionDisplayName: user.transformState.illusionDisplayName,
-      ),
-      effects: user.effects.addEffect(
-        GenericBattleEffect(
-          id: 'transform',
-          scope: BattlerBattleEffectScope(userSlot),
-        ),
-      ),
-    );
-  }
-
-  List<PsdkBattleMoveData> _transformMoves(List<PsdkBattleMoveData> moves) {
-    if (moves.isEmpty) {
-      return const <PsdkBattleMoveData>[];
-    }
-    return moves
-        .map(
-          (move) => move.copyWith(
-            pp: 5,
-            currentPp: 5,
-          ),
-        )
-        .toList(growable: false);
   }
 }

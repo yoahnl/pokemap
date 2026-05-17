@@ -1,3 +1,4 @@
+import '../../../psdk/domain/psdk_battle_state.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../move/battle_move_prevention.dart';
 import '../battle_effect.dart';
@@ -26,12 +27,11 @@ final class TormentEffect extends BattleEffect {
   BattleEffectUserMovePreventionResult? onUserMovePrevention(
     BattleEffectUserMovePreventionContext context,
   ) {
-    if (!_appliesTo(context.user) || context.move.id == 'struggle') {
-      return null;
-    }
-    final lastSuccessful =
-        context.state.battlerAt(context.user).moveHistory.lastSuccessfulMoveId;
-    if (lastSuccessful != context.move.id) {
+    if (!_prevents(
+      state: context.state,
+      user: context.user,
+      moveId: context.move.id,
+    )) {
       return null;
     }
 
@@ -41,6 +41,36 @@ final class TormentEffect extends BattleEffect {
       prevented: true,
       reason: BattleMoveFailureReason.unusableByUser,
     );
+  }
+
+  @override
+  BattleMoveSelectionPreventionResult? onMoveSelectionPrevention(
+    BattleMoveSelectionPreventionContext context,
+  ) {
+    if (!_prevents(
+      state: context.state,
+      user: context.user,
+      moveId: context.move.id,
+    )) {
+      return null;
+    }
+
+    return const BattleMoveSelectionPreventionResult(
+      reason: BattleMoveFailureReason.unusableByUser,
+    );
+  }
+
+  bool _prevents({
+    required PsdkBattleState state,
+    required PsdkBattleSlotRef user,
+    required String moveId,
+  }) {
+    if (!_appliesTo(user) || moveId == 'struggle') {
+      return false;
+    }
+    final lastSuccessful =
+        state.battlerAt(user).moveHistory.lastSuccessfulMoveId;
+    return lastSuccessful == moveId;
   }
 
   bool _appliesTo(PsdkBattleSlotRef user) {

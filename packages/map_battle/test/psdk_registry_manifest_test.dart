@@ -157,6 +157,92 @@ void main() {
       }
     });
 
+    test('effect parity mirrors ported ability and partial item manifests',
+        () async {
+      final effectEntries = await loadPsdkEffectParityEntries(
+        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+      );
+      final byFamilyAndName = {
+        for (final entry in effectEntries)
+          '${entry.family}:${entry.effectName}': entry,
+      };
+
+      expect(
+        [
+          for (final effectName in <String>[
+            'ArenaTrap',
+            'Imposter',
+            'MagnetPull',
+            'ShadowTag',
+          ])
+            byFamilyAndName['ability:$effectName']?.status,
+        ],
+        everyElement(PsdkPortStatus.ported),
+      );
+      expect(
+        byFamilyAndName['item:Leftovers']?.status,
+        PsdkPortStatus.partial,
+      );
+      expect(
+        byFamilyAndName['item:AirBalloon']?.status,
+        PsdkPortStatus.partial,
+      );
+    });
+
+    test('effect parity promotes exact major status lifecycle effects',
+        () async {
+      final effectEntries = await loadPsdkEffectParityEntries(
+        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+      );
+      final byFamilyAndName = {
+        for (final entry in effectEntries)
+          '${entry.family}:${entry.effectName}': entry,
+      };
+
+      for (final effectName in <String>[
+        'Asleep',
+        'Burn',
+        'Frozen',
+        'Paralysis',
+        'Poison',
+        'Toxic',
+      ]) {
+        expect(
+          byFamilyAndName['status:$effectName']?.status,
+          PsdkPortStatus.ported,
+          reason: effectName,
+        );
+      }
+      expect(byFamilyAndName['status:Status']?.status, PsdkPortStatus.missing);
+    });
+
+    test('effect parity promotes selection lock move effects', () async {
+      final effectEntries = await loadPsdkEffectParityEntries(
+        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+      );
+      final byFamilyAndName = {
+        for (final entry in effectEntries)
+          '${entry.family}:${entry.effectName}': entry,
+      };
+
+      for (final effectName in <String>[
+        'Disable',
+        'Embargo',
+        'Encore',
+        'HealBlock',
+        'Imprison',
+        'Taunt',
+        'ThroatChop',
+        'Torment',
+      ]) {
+        expect(
+          byFamilyAndName['move:$effectName']?.status,
+          PsdkPortStatus.ported,
+          reason: effectName,
+        );
+      }
+    });
+
     test('tracks the fixed-damage and multi-hit slices', () {
       final byMethod = {
         for (final entry in psdkMoveRegistryManifest)
@@ -1909,19 +1995,12 @@ void main() {
           PsdkMoveDependency.effects,
         ]),
       );
-      expect(byMethod['s_transform']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_transform']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_transform']!.dartBehavior,
         'TransformMoveBehavior',
       );
-      expect(
-        byMethod['s_transform']!.dependencies,
-        containsAll(<PsdkMoveDependency>[
-          PsdkMoveDependency.handlerSwitch,
-          PsdkMoveDependency.effects,
-          PsdkMoveDependency.ability,
-        ]),
-      );
+      expect(byMethod['s_transform']!.dependencies, isEmpty);
     });
 
     test('records PSDK dependencies that block partial move promotion', () {
@@ -1957,6 +2036,16 @@ void main() {
         ]),
       );
       expect(byMethod['s_basic']!.dependencies, isEmpty);
+    });
+
+    test('partial move methods have explicit remaining blockers', () {
+      final partialWithoutBlockers = psdkMoveRegistryManifest
+          .where((entry) => entry.status == PsdkPortStatus.partial)
+          .where((entry) => entry.dependencies.isEmpty)
+          .map((entry) => entry.battleEngineMethod)
+          .toList(growable: false);
+
+      expect(partialWithoutBlockers, isEmpty);
     });
 
     test('does not contain duplicate battleEngineMethod entries', () {
