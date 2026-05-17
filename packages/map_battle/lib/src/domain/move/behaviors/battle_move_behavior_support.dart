@@ -10,6 +10,7 @@ import '../../handler/battle_handler_context.dart';
 import '../../rng/battle_rng_streams.dart';
 import '../../timeline/battle_timeline_builder.dart';
 import '../battle_move_behavior.dart';
+import '../battle_move_data.dart';
 import '../battle_move_execution.dart';
 import '../battle_move_immunity_resolver.dart';
 import '../battle_move_prevention.dart';
@@ -63,6 +64,7 @@ BattleDirectDamageResult applyDirectDamage({
   required int turn,
   required int amount,
   PsdkBattleMoveCategory? moveCategory,
+  BattleMoveDefinition? move,
 }) {
   final result = const BattleDamageHandler().applyDamage(
     context: BattleHandlerContext(
@@ -75,13 +77,17 @@ BattleDirectDamageResult applyDirectDamage({
     moveId: moveId,
     rawDamage: amount,
     moveCategory: moveCategory,
+    move: move,
   );
-  final damageEvents = result.events.whereType<PsdkBattleDamageEvent>();
+  final damageEvents = result.events
+      .whereType<PsdkBattleDamageEvent>()
+      .where((event) => event.moveId == moveId);
   return BattleDirectDamageResult(
     state: result.state,
     rng: result.rng,
     damage: result.amount,
     target: result.state.battlerAt(target),
+    events: result.events,
     event: damageEvents.isEmpty ? null : damageEvents.single,
   );
 }
@@ -175,6 +181,7 @@ final class BattleDirectDamageResult {
     required this.rng,
     required this.damage,
     required this.target,
+    this.events = const <PsdkBattleEvent>[],
     this.event,
   });
 
@@ -182,6 +189,7 @@ final class BattleDirectDamageResult {
   final BattleRngStreams rng;
   final int damage;
   final PsdkBattleCombatant target;
+  final List<PsdkBattleEvent> events;
   final PsdkBattleDamageEvent? event;
 }
 

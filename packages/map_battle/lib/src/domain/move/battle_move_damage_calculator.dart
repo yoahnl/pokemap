@@ -3,6 +3,7 @@ import '../../psdk/domain/psdk_battle_field.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
 import '../battler/battle_grounding_resolver.dart';
 import '../effect/ability/ability_effect.dart';
+import '../effect/item/item_effect.dart';
 import '../rng/battle_rng_streams.dart';
 import 'battle_move_critical_resolver.dart';
 import 'battle_move_data.dart';
@@ -90,7 +91,13 @@ final class BattleMoveDamageCalculator {
       moveType,
     );
     final typedDamage = (stabDamage * typeEffectivenessMultiplier).floor();
-    final damage = typedDamage < 1 ? 1 : typedDamage;
+    final heldItemDamage = _applyHeldItemFinalDamageModifiers(
+      typedDamage,
+      context,
+      moveType,
+      typeEffectivenessMultiplier,
+    );
+    final damage = heldItemDamage < 1 ? 1 : heldItemDamage;
 
     return BattleMoveDamageResult(
       rng: rng,
@@ -108,6 +115,7 @@ int _effectivePower(BattleMoveDamageContext context) {
   final moveType = _effectiveMoveType(context);
   power = _terrainAdjustedPower(power, context, moveType);
   power = _abilityAdjustedPower(power, context, moveType);
+  power = _itemAdjustedPower(power, context, moveType);
   if (context.user.effects.contains('charge') && moveType == 'electric') {
     power *= 2;
   }
@@ -137,6 +145,32 @@ int _abilityAdjustedPower(
   var multiplier = 1.0;
   for (final effect in context.user.abilityEffects) {
     multiplier *= effect.damageBasePowerMultiplier(abilityContext);
+  }
+  if (multiplier == 1.0) {
+    return power;
+  }
+  final adjusted = (power * multiplier).floor();
+  return adjusted < 1 ? 1 : adjusted;
+}
+
+int _itemAdjustedPower(
+  int power,
+  BattleMoveDamageContext context,
+  String moveType,
+) {
+  if (power <= 0) {
+    return power;
+  }
+  final itemContext = BattleItemDamageModifierContext(
+    user: context.user,
+    target: context.target,
+    move: context.move,
+    moveType: moveType,
+    typeEffectivenessMultiplier: 1,
+  );
+  var multiplier = 1.0;
+  for (final effect in context.user.activeItemEffects) {
+    multiplier *= effect.damageBasePowerMultiplier(itemContext);
   }
   if (multiplier == 1.0) {
     return power;
@@ -271,6 +305,33 @@ double _applyLocalEffectivenessModifiers(
   return multiplier;
 }
 
+int _applyHeldItemFinalDamageModifiers(
+  int damage,
+  BattleMoveDamageContext context,
+  String moveType,
+  double typeEffectivenessMultiplier,
+) {
+  if (damage <= 0) {
+    return damage;
+  }
+  final itemContext = BattleItemDamageModifierContext(
+    user: context.user,
+    target: context.target,
+    move: context.move,
+    moveType: moveType,
+    typeEffectivenessMultiplier: typeEffectivenessMultiplier,
+  );
+  var multiplier = 1.0;
+  for (final effect in context.user.activeItemEffects) {
+    multiplier *= effect.damageFinalMultiplier(itemContext);
+  }
+  if (multiplier == 1.0) {
+    return damage;
+  }
+  final adjusted = (damage * multiplier).floor();
+  return adjusted < 1 ? 1 : adjusted;
+}
+
 final class BattleMoveDamageContext {
   const BattleMoveDamageContext({
     required this.user,
@@ -362,13 +423,21 @@ final class BattleMoveDamageResult {
 int _offensiveStat(BattleMoveDamageContext context) {
   return switch (context.move.category) {
     PsdkBattleMoveCategory.physical => _physicalAttack(context),
-    PsdkBattleMoveCategory.special => context.user.stats.specialAttack,
+    PsdkBattleMoveCategory.special => _itemAdjustedStat(
+        context.user.stats.specialAttack,
+        context.user,
+        'specialAttack',
+      ),
     PsdkBattleMoveCategory.status => context.user.stats.attack,
   };
 }
 
 int _physicalAttack(BattleMoveDamageContext context) {
-  final attack = context.user.stats.attack;
+  final attack = _itemAdjustedStat(
+    context.user.stats.attack,
+    context.user,
+    'attack',
+  );
   if (context.user.majorStatus != PsdkBattleMajorStatus.burn ||
       context.user.abilityId == 'guts' ||
       context.move.battleEngineMethod == 's_facade') {
@@ -380,11 +449,35 @@ int _physicalAttack(BattleMoveDamageContext context) {
 
 int _defensiveStat(BattleMoveDamageContext context) {
   final value = switch (context.move.category) {
-    PsdkBattleMoveCategory.physical => context.target.stats.defense,
-    PsdkBattleMoveCategory.special => context.target.stats.specialDefense,
+    PsdkBattleMoveCategory.physical => _itemAdjustedStat(
+        context.target.stats.defense,
+        context.target,
+        'defense',
+      ),
+    PsdkBattleMoveCategory.special => _itemAdjustedStat(
+        context.target.stats.specialDefense,
+        context.target,
+        'specialDefense',
+      ),
     PsdkBattleMoveCategory.status => context.target.stats.defense,
   };
   return value < 1 ? 1 : value;
+}
+
+int _itemAdjustedStat(
+  int value,
+  PsdkBattleCombatant battler,
+  String stat,
+) {
+  var multiplier = 1.0;
+  for (final effect in battler.activeItemEffects) {
+    multiplier *= effect.statMultiplier(battler, stat);
+  }
+  if (multiplier == 1.0) {
+    return value;
+  }
+  final adjusted = (value * multiplier).floor();
+  return adjusted < 1 ? 1 : adjusted;
 }
 
 int _positiveStat(int value) {

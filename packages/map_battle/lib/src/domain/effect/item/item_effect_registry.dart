@@ -7,6 +7,7 @@ import '../battle_effect_scope.dart';
 import 'air_balloon_effect.dart';
 import 'berry_item_effect.dart';
 import 'black_sludge_effect.dart';
+import 'held_item_modifier_effect.dart';
 import 'iron_ball_effect.dart';
 import 'leftovers_effect.dart';
 import 'loaded_dice_effect.dart';
@@ -55,6 +56,7 @@ final class ItemEffectRegistry {
           moveDbSymbols: const <String>['hail', 'snowscape'],
         ),
     ..._berryFactories,
+    ..._heldItemModifierFactories,
   };
 
   final Map<String, ItemEffectFactory> _factories;
@@ -210,4 +212,185 @@ final Map<String, ItemEffectFactory> _berryFactories =
         scope: scope,
         stat: 'random',
       ),
+};
+
+final Map<String, ItemEffectFactory> _heldItemModifierFactories =
+    <String, ItemEffectFactory>{
+  for (final entry in _typeBoostingItems.entries)
+    entry.key: ({required scope}) => HeldItemModifierEffect(
+          itemId: entry.key,
+          scope: scope,
+          basePowerMultiplier: 1.2,
+          damageCondition: (context) => context.moveType == entry.value,
+        ),
+  'muscle_band': ({required scope}) => HeldItemModifierEffect(
+        itemId: 'muscle_band',
+        scope: scope,
+        basePowerMultiplier: 1.1,
+        damageCondition: (context) =>
+            context.move.category == PsdkBattleMoveCategory.physical,
+      ),
+  'wise_glasses': ({required scope}) => HeldItemModifierEffect(
+        itemId: 'wise_glasses',
+        scope: scope,
+        basePowerMultiplier: 1.1,
+        damageCondition: (context) =>
+            context.move.category == PsdkBattleMoveCategory.special,
+      ),
+  'punching_glove': ({required scope}) => HeldItemModifierEffect(
+        itemId: 'punching_glove',
+        scope: scope,
+        basePowerMultiplier: 1.1,
+        damageCondition: (context) => context.move.flags.punch,
+      ),
+  'expert_belt': ({required scope}) => HeldItemModifierEffect(
+        itemId: 'expert_belt',
+        scope: scope,
+        finalDamageMultiplier: 1.2,
+        damageCondition: (context) => context.typeEffectivenessMultiplier > 1,
+      ),
+  'life_orb': ({required scope}) => LifeOrbEffect(scope: scope),
+  for (final entry in _gemTypes.entries)
+    entry.key: ({required scope}) => GemItemEffect(
+          itemId: entry.key,
+          scope: scope,
+          moveType: entry.value,
+        ),
+  'choice_band': ({required scope}) => HeldItemModifierEffect(
+        itemId: 'choice_band',
+        scope: scope,
+        statMultipliers: <String, double>{'attack': 1.5},
+      ),
+  'choice_specs': ({required scope}) => HeldItemModifierEffect(
+        itemId: 'choice_specs',
+        scope: scope,
+        statMultipliers: <String, double>{'specialAttack': 1.5},
+      ),
+  'choice_scarf': ({required scope}) => HeldItemModifierEffect(
+        itemId: 'choice_scarf',
+        scope: scope,
+        statMultipliers: <String, double>{'speed': 1.5},
+      ),
+  'assault_vest': ({required scope}) => HeldItemModifierEffect(
+        itemId: 'assault_vest',
+        scope: scope,
+        statMultipliers: <String, double>{'specialDefense': 1.5},
+      ),
+  'deep_sea_tooth': ({required scope}) => HeldItemModifierEffect(
+        itemId: 'deep_sea_tooth',
+        scope: scope,
+        statMultipliers: const <String, double>{'specialAttack': 2},
+        statCondition: (battler) => battler.speciesId == 'clamperl',
+      ),
+  'deep_sea_scale': ({required scope}) => HeldItemModifierEffect(
+        itemId: 'deep_sea_scale',
+        scope: scope,
+        statMultipliers: const <String, double>{'specialDefense': 2},
+        statCondition: (battler) => battler.speciesId == 'clamperl',
+      ),
+  'light_ball': ({required scope}) => HeldItemModifierEffect(
+        itemId: 'light_ball',
+        scope: scope,
+        statMultipliers: const <String, double>{
+          'attack': 2,
+          'specialAttack': 2,
+        },
+        statCondition: (battler) => battler.speciesId == 'pikachu',
+      ),
+  'thick_club': ({required scope}) => HeldItemModifierEffect(
+        itemId: 'thick_club',
+        scope: scope,
+        statMultipliers: const <String, double>{'attack': 2},
+        statCondition: (battler) =>
+            battler.speciesId == 'cubone' || battler.speciesId == 'marowak',
+      ),
+  'metal_powder': ({required scope}) => HeldItemModifierEffect(
+        itemId: 'metal_powder',
+        scope: scope,
+        statMultipliers: const <String, double>{'defense': 2},
+        statCondition: (battler) =>
+            battler.speciesId == 'ditto' &&
+            !battler.transformState.isTransformed,
+      ),
+  'quick_powder': ({required scope}) => HeldItemModifierEffect(
+        itemId: 'quick_powder',
+        scope: scope,
+        statMultipliers: const <String, double>{'speed': 2},
+        statCondition: (battler) => battler.speciesId == 'ditto',
+      ),
+  for (final itemId in const <String>[
+    'power_band',
+    'power_belt',
+    'power_bracer',
+    'power_lens',
+    'power_weight',
+    'macho_brace',
+  ])
+    itemId: ({required scope}) => HeldItemModifierEffect(
+          itemId: itemId,
+          scope: scope,
+          statMultipliers: const <String, double>{'speed': 0.5},
+        ),
+};
+
+const _typeBoostingItems = <String, String>{
+  'sea_incense': 'water',
+  'odd_incense': 'psychic',
+  'rock_incense': 'rock',
+  'wave_incense': 'water',
+  'rose_incense': 'grass',
+  'silk_scarf': 'normal',
+  'charcoal': 'fire',
+  'mystic_water': 'water',
+  'magnet': 'electric',
+  'miracle_seed': 'grass',
+  'never_melt_ice': 'ice',
+  'black_belt': 'fighting',
+  'sharp_beak': 'flying',
+  'soft_sand': 'ground',
+  'twisted_spoon': 'psychic',
+  'silver_powder': 'bug',
+  'hard_stone': 'rock',
+  'spell_tag': 'ghost',
+  'dragon_fang': 'dragon',
+  'black_glasses': 'dark',
+  'metal_coat': 'steel',
+  'flame_plate': 'fire',
+  'splash_plate': 'water',
+  'zap_plate': 'electric',
+  'meadow_plate': 'grass',
+  'icicle_plate': 'ice',
+  'fist_plate': 'fighting',
+  'toxic_plate': 'poison',
+  'earth_plate': 'ground',
+  'sky_plate': 'flying',
+  'mind_plate': 'psychic',
+  'insect_plate': 'bug',
+  'stone_plate': 'rock',
+  'spooky_plate': 'ghost',
+  'draco_plate': 'dragon',
+  'dread_plate': 'dark',
+  'iron_plate': 'steel',
+  'pixie_plate': 'fairy',
+};
+
+const _gemTypes = <String, String>{
+  'normal_gem': 'normal',
+  'fire_gem': 'fire',
+  'water_gem': 'water',
+  'electric_gem': 'electric',
+  'grass_gem': 'grass',
+  'ice_gem': 'ice',
+  'fighting_gem': 'fighting',
+  'poison_gem': 'poison',
+  'ground_gem': 'ground',
+  'flying_gem': 'flying',
+  'psychic_gem': 'psychic',
+  'bug_gem': 'bug',
+  'rock_gem': 'rock',
+  'ghost_gem': 'ghost',
+  'dragon_gem': 'dragon',
+  'dark_gem': 'dark',
+  'steel_gem': 'steel',
+  'fairy_gem': 'fairy',
 };

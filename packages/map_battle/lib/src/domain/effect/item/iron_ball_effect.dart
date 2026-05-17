@@ -15,4 +15,9 @@ final class IronBallEffect extends BattleItemEffect {
 
   @override
   bool? groundedOverride(PsdkBattleCombatant battler) => true;
+
+  @override
+  double statMultiplier(PsdkBattleCombatant battler, String stat) {
+    return stat == 'speed' ? 0.5 : 1;
+  }
 }

@@ -26,6 +26,34 @@ abstract class BattleItemEffect extends BattleEffect {
   int? weatherDuration(String dbSymbol) => null;
 
   int? terrainDuration(String dbSymbol) => null;
+
+  double damageBasePowerMultiplier(BattleItemDamageModifierContext context) {
+    return 1;
+  }
+
+  double damageFinalMultiplier(BattleItemDamageModifierContext context) {
+    return 1;
+  }
+
+  double statMultiplier(PsdkBattleCombatant battler, String stat) {
+    return 1;
+  }
+}
+
+final class BattleItemDamageModifierContext {
+  const BattleItemDamageModifierContext({
+    required this.user,
+    required this.target,
+    required this.move,
+    required this.moveType,
+    required this.typeEffectivenessMultiplier,
+  });
+
+  final PsdkBattleCombatant user;
+  final PsdkBattleCombatant target;
+  final BattleMoveDefinition move;
+  final String moveType;
+  final double typeEffectivenessMultiplier;
 }
 
 extension BattleItemEffectList on PsdkBattleCombatant {

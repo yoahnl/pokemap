@@ -893,7 +893,16 @@ final class BattleItemTimelineEvent extends BattleTimelineEvent {
   }
 
   @override
-  PsdkBattleEvent? toPsdkEvent() => null;
+  PsdkBattleEvent? toPsdkEvent() {
+    if (kind != 'item_consumed') {
+      return null;
+    }
+    return PsdkBattleItemEvent.consumed(
+      turn: turn,
+      user: _toPsdkSlot(user),
+      itemId: itemId,
+    );
+  }
 }
 
 final class BattleAbilityTriggeredTimelineEvent extends BattleTimelineEvent {

@@ -1685,6 +1685,22 @@ ported.
 **Definition of done:**
 - Common item modifiers are hook-based.
 
+**Status 2026-05-17:** done for the first hook-based damage/stat/speed item
+modifier slice. Added a shared `HeldItemModifierEffect` plus explicit
+`GemItemEffect` and `LifeOrbEffect`, then wired the damage calculator and
+action speed mapper through item hooks. Covered type boosters
+(`charcoal`, plates/incenses/scarves/fangs/coats/etc.), category boosters
+(`muscle_band`, `wise_glasses`, `punching_glove`), `expert_belt`, all gems,
+`life_orb`, Choice Band/Specs/Scarf numeric modifiers, `assault_vest`,
+species stat items (`deep_sea_tooth`, `deep_sea_scale`, `light_ball`,
+`thick_club`, `metal_powder`, `quick_powder`), half-speed EV items and
+`macho_brace`, plus Iron Ball speed halving. Timeline item consumption now
+round-trips through `PsdkBattleItemEvent` so gems are observable by tests.
+Known partial branches stay explicit: Choice move locking is Lot 55, Eviolite
+still waits on evolution-family data, Life Orb's exact post-action/Sheer Force
+timing remains partial, and gem animation/timing parity is still outside this
+engine slice.
+
 ### Lot 55 - Choice Items and Move Locks
 
 **Goal:** port Choice Band/Specs/Scarf move-lock behavior.

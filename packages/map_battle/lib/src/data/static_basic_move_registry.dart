@@ -820,6 +820,7 @@ BattleMoveBehaviorResolution _resolveBasic(BattleMoveBehaviorContext context) {
     turn: context.turn,
     amount: damage,
     moveCategory: context.move.category,
+    move: context.move,
   );
   final secondary = const BattleMoveSecondaryEffectResolver().resolve(
     state: applied.state,
@@ -835,7 +836,7 @@ BattleMoveBehaviorResolution _resolveBasic(BattleMoveBehaviorContext context) {
     rng: secondary.rng,
     events: <PsdkBattleEvent>[
       ...common.events,
-      if (applied.event != null) applied.event!,
+      ...applied.events,
       ...secondary.events,
     ],
   );

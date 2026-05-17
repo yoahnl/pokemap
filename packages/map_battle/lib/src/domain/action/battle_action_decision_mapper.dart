@@ -5,6 +5,7 @@ import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_field.dart';
 import '../battler/battle_grounding_resolver.dart';
 import '../decision/battle_decision.dart';
+import '../effect/item/item_effect.dart';
 import '../effect/move/two_turn_charge_effect.dart';
 import 'battle_action.dart';
 
@@ -131,13 +132,22 @@ PsdkBattleMoveData _copyMoveWithPriority(
 }
 
 int _actionSpeed(PsdkBattleCombatant battler) {
-  final speed = battler.stats.speed < 1 ? 1 : battler.stats.speed;
+  final speed = _itemAdjustedSpeed(battler);
   if (battler.majorStatus != PsdkBattleMajorStatus.paralysis ||
       battler.abilityId == 'quick_feet') {
     return speed;
   }
   final paralyzedSpeed = (speed * 0.25).floor();
   return paralyzedSpeed < 1 ? 1 : paralyzedSpeed;
+}
+
+int _itemAdjustedSpeed(PsdkBattleCombatant battler) {
+  var multiplier = 1.0;
+  for (final effect in battler.activeItemEffects) {
+    multiplier *= effect.statMultiplier(battler, 'speed');
+  }
+  final adjusted = (battler.stats.speed * multiplier).floor();
+  return adjusted < 1 ? 1 : adjusted;
 }
 
 PsdkBattleSlotRef _targetFor({
