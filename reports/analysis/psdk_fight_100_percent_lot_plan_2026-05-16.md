@@ -1482,6 +1482,17 @@ ability fallback.
 **Definition of done:**
 - High-impact damage abilities move to partial/ported based on edge coverage.
 
+**Status 2026-05-17:** done for the first high-impact damage modifier wave.
+Added the shared damage-calculator hook for user ability base-power
+multipliers, then ported PSDK type boosters (`blaze`, `overgrow`, `torrent`,
+`swarm`, `dragon_s_maw`, `steelworker`, `transistor`, `rocky_payload`),
+`technician`, and move-shape boosters (`iron_fist`, `tough_claws`,
+`sharpness`, `punk_rock`) plus contact punishers (`rough_skin`, `iron_barbs`).
+Manifest statuses now mark these abilities as
+partial with explicit Dart effect bindings. Tests cover matching/non-matching
+types, starter low-HP gates, Technician's 60-power threshold, and flag-based
+move shapes/contact damage.
+
 ### Lot 49 - Ability Immunities and Prevention
 
 **Goal:** port ability-based immunities and action/status prevention.

@@ -317,6 +317,238 @@ void main() {
       );
     });
 
+    test('type boosting abilities follow PSDK type and HP gates', () {
+      const cases = <({
+        String abilityId,
+        String moveType,
+        bool lowHpGate,
+      })>[
+        (abilityId: 'blaze', moveType: 'fire', lowHpGate: true),
+        (abilityId: 'overgrow', moveType: 'grass', lowHpGate: true),
+        (abilityId: 'torrent', moveType: 'water', lowHpGate: true),
+        (abilityId: 'swarm', moveType: 'bug', lowHpGate: true),
+        (abilityId: 'dragon_s_maw', moveType: 'dragon', lowHpGate: false),
+        (abilityId: 'steelworker', moveType: 'steel', lowHpGate: false),
+        (abilityId: 'transistor', moveType: 'electric', lowHpGate: false),
+        (abilityId: 'rocky_payload', moveType: 'rock', lowHpGate: false),
+      ];
+
+      for (final entry in cases) {
+        final matching = _runMove(
+          playerAbilityId: entry.abilityId,
+          playerCurrentHp: entry.lowHpGate ? 33 : 100,
+          playerMove: _move(
+            id: '${entry.abilityId}_matching',
+            type: entry.moveType,
+            power: 60,
+          ),
+        );
+        final matchingNormal = _runMove(
+          playerCurrentHp: entry.lowHpGate ? 33 : 100,
+          playerMove: _move(
+            id: '${entry.abilityId}_matching',
+            type: entry.moveType,
+            power: 60,
+          ),
+        );
+        final mismatching = _runMove(
+          playerAbilityId: entry.abilityId,
+          playerCurrentHp: entry.lowHpGate ? 33 : 100,
+          playerMove: _move(
+            id: '${entry.abilityId}_mismatch',
+            type: 'normal',
+            power: 60,
+          ),
+        );
+        final mismatchingNormal = _runMove(
+          playerCurrentHp: entry.lowHpGate ? 33 : 100,
+          playerMove: _move(
+            id: '${entry.abilityId}_mismatch',
+            type: 'normal',
+            power: 60,
+          ),
+        );
+
+        expect(
+          _damageEvents(matching, moveId: '${entry.abilityId}_matching')
+              .single
+              .damage,
+          greaterThan(
+            _damageEvents(matchingNormal, moveId: '${entry.abilityId}_matching')
+                .single
+                .damage,
+          ),
+          reason: entry.abilityId,
+        );
+        expect(
+          _damageEvents(mismatching, moveId: '${entry.abilityId}_mismatch')
+              .single
+              .damage,
+          _damageEvents(mismatchingNormal,
+                  moveId: '${entry.abilityId}_mismatch')
+              .single
+              .damage,
+          reason: entry.abilityId,
+        );
+      }
+    });
+
+    test('starter type boosts stay inactive above the PSDK low HP gate', () {
+      final normal = _runMove(
+        playerMove: _move(id: 'ember', type: 'fire', power: 60),
+      );
+      final blaze = _runMove(
+        playerAbilityId: 'blaze',
+        playerCurrentHp: 34,
+        playerMove: _move(id: 'ember', type: 'fire', power: 60),
+      );
+
+      expect(
+        _damageEvents(blaze, moveId: 'ember').single.damage,
+        _damageEvents(normal, moveId: 'ember').single.damage,
+      );
+    });
+
+    test('Technician boosts only moves with base power at most sixty', () {
+      final boosted = _runMove(
+        playerAbilityId: 'technician',
+        playerMove: _move(id: 'mach_punch', power: 60),
+      );
+      final boostedNormal = _runMove(
+        playerMove: _move(id: 'mach_punch', power: 60),
+      );
+      final tooStrong = _runMove(
+        playerAbilityId: 'technician',
+        playerMove: _move(id: 'slash', power: 70),
+      );
+      final tooStrongNormal = _runMove(
+        playerMove: _move(id: 'slash', power: 70),
+      );
+
+      expect(
+        _damageEvents(boosted, moveId: 'mach_punch').single.damage,
+        greaterThan(
+            _damageEvents(boostedNormal, moveId: 'mach_punch').single.damage),
+      );
+      expect(
+        _damageEvents(tooStrong, moveId: 'slash').single.damage,
+        _damageEvents(tooStrongNormal, moveId: 'slash').single.damage,
+      );
+    });
+
+    test('flag-based damage abilities boost matching PSDK move shapes', () {
+      const cases = <({
+        String abilityId,
+        BattleMoveFlags matchingFlags,
+        PsdkBattleMoveCategory category,
+      })>[
+        (
+          abilityId: 'iron_fist',
+          matchingFlags: BattleMoveFlags(punch: true),
+          category: PsdkBattleMoveCategory.physical,
+        ),
+        (
+          abilityId: 'tough_claws',
+          matchingFlags: BattleMoveFlags(contact: true),
+          category: PsdkBattleMoveCategory.physical,
+        ),
+        (
+          abilityId: 'sharpness',
+          matchingFlags: BattleMoveFlags(slicing: true),
+          category: PsdkBattleMoveCategory.physical,
+        ),
+        (
+          abilityId: 'punk_rock',
+          matchingFlags: BattleMoveFlags(sound: true),
+          category: PsdkBattleMoveCategory.special,
+        ),
+      ];
+
+      for (final entry in cases) {
+        final boosted = _calculatedDamage(
+          abilityId: entry.abilityId,
+          flags: entry.matchingFlags,
+          category: entry.category,
+        );
+        final normal = _calculatedDamage(
+          flags: entry.matchingFlags,
+          category: entry.category,
+        );
+        final nonMatching = _calculatedDamage(
+          abilityId: entry.abilityId,
+          category: entry.category,
+        );
+        final nonMatchingNormal = _calculatedDamage(category: entry.category);
+
+        expect(boosted, greaterThan(normal), reason: entry.abilityId);
+        expect(nonMatching, nonMatchingNormal, reason: entry.abilityId);
+      }
+    });
+
+    test('Rough Skin and Iron Barbs punish opposing contact damage', () {
+      for (final abilityId in <String>['rough_skin', 'iron_barbs']) {
+        final state = PsdkBattleState.fromSetup(
+          BattleEngineSetup.singles(
+            player: _combatant(
+              id: 'player',
+              move: _move(id: 'scratch', power: 40),
+            ),
+            opponent: _combatant(
+              id: 'opponent',
+              abilityId: abilityId,
+              move: _move(id: 'opponent_wait', power: 0),
+            ),
+            rngSeeds: const BattleRngSeeds(
+              moveDamage: 1,
+              moveCritical: 99999,
+              moveAccuracy: 3,
+              generic: 4,
+            ).psdkSeeds,
+          ).psdkSetup,
+        );
+
+        final result = const BattleDamageHandler().applyDamage(
+          context: BattleHandlerContext(
+            state: state,
+            rng: BattleRngStreams.fromSeeds(
+              moveDamageSeed: 1,
+              moveCriticalSeed: 2,
+              moveAccuracySeed: 3,
+              genericSeed: 4,
+            ),
+            turn: 1,
+            user: psdkPlayerSlot,
+          ),
+          target: psdkOpponentSlot,
+          moveId: 'scratch',
+          rawDamage: 20,
+          move: BattleMoveDefinition(
+            id: 'scratch',
+            dbSymbol: 'scratch',
+            name: 'scratch',
+            type: 'normal',
+            category: PsdkBattleMoveCategory.physical,
+            power: 40,
+            accuracy: 100,
+            pp: 35,
+            priority: 0,
+            battleEngineMethod: 's_basic',
+            target: PsdkBattleMoveTarget.adjacentFoe,
+            flags: const BattleMoveFlags(contact: true),
+          ),
+        );
+        final damages =
+            result.events.whereType<PsdkBattleDamageEvent>().toList();
+
+        expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 80);
+        expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 88);
+        expect(damages.map((event) => event.moveId), <String>[
+          'scratch',
+          'effect:$abilityId',
+        ]);
+      }
+    });
+
     test('Levitate makes a non-grounded target immune to Ground moves', () {
       final result = _runMove(
         opponentAbilityId: 'levitate',
@@ -563,4 +795,55 @@ BattleRngStreams _rng() {
     moveAccuracySeed: 3,
     genericSeed: 4,
   );
+}
+
+int _calculatedDamage({
+  String? abilityId,
+  BattleMoveFlags flags = const BattleMoveFlags(),
+  PsdkBattleMoveCategory category = PsdkBattleMoveCategory.physical,
+}) {
+  final state = PsdkBattleState.fromSetup(
+    BattleEngineSetup.singles(
+      player: _combatant(
+        id: 'player',
+        abilityId: abilityId,
+        move: _move(id: 'shape_test', power: 60, category: category),
+      ),
+      opponent: _combatant(
+        id: 'opponent',
+        move: _move(id: 'opponent_wait', power: 0),
+      ),
+      rngSeeds: const BattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 4,
+      ).psdkSeeds,
+    ).psdkSetup,
+  );
+
+  return const BattleMoveDamageCalculator()
+      .calculate(
+        BattleMoveDamageContext(
+          user: state.battlerAt(psdkPlayerSlot),
+          target: state.battlerAt(psdkOpponentSlot),
+          move: BattleMoveDefinition(
+            id: 'shape_test',
+            dbSymbol: 'shape_test',
+            name: 'shape_test',
+            type: 'normal',
+            category: category,
+            power: 60,
+            accuracy: 100,
+            pp: 35,
+            priority: 0,
+            criticalRate: 1,
+            battleEngineMethod: 's_basic',
+            target: PsdkBattleMoveTarget.adjacentFoe,
+            flags: flags,
+          ),
+          rng: _rng(),
+        ),
+      )
+      .damage;
 }

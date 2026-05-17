@@ -41,6 +41,8 @@ abstract class BattleAbilityEffect extends BattleEffect {
 
   double basePowerMultiplier(BattleAbilityMoveContext context) => 1;
 
+  double damageBasePowerMultiplier(BattleAbilityDamageContext context) => 1;
+
   bool preventsRecoil(BattleAbilityMoveContext context) => false;
 
   bool? groundedOverride(PsdkBattleCombatant battler) => null;
@@ -76,6 +78,20 @@ final class BattleAbilityStatusContext {
   final PsdkBattleCombatant target;
   final PsdkBattleCombatant? launcher;
   final BattleMoveDefinition? move;
+}
+
+final class BattleAbilityDamageContext {
+  const BattleAbilityDamageContext({
+    required this.user,
+    required this.target,
+    required this.move,
+    required this.moveType,
+  });
+
+  final PsdkBattleCombatant user;
+  final PsdkBattleCombatant target;
+  final BattleMoveDefinition move;
+  final String moveType;
 }
 
 extension BattleAbilityEffectList on PsdkBattleCombatant {

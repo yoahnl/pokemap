@@ -2,6 +2,7 @@ import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_field.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
 import '../battler/battle_grounding_resolver.dart';
+import '../effect/ability/ability_effect.dart';
 import '../rng/battle_rng_streams.dart';
 import 'battle_move_critical_resolver.dart';
 import 'battle_move_data.dart';
@@ -106,6 +107,7 @@ int _effectivePower(BattleMoveDamageContext context) {
   var power = context.overrides?.power ?? context.move.power;
   final moveType = _effectiveMoveType(context);
   power = _terrainAdjustedPower(power, context, moveType);
+  power = _abilityAdjustedPower(power, context, moveType);
   if (context.user.effects.contains('charge') && moveType == 'electric') {
     power *= 2;
   }
@@ -116,6 +118,31 @@ int _effectivePower(BattleMoveDamageContext context) {
     power ~/= 2;
   }
   return power;
+}
+
+int _abilityAdjustedPower(
+  int power,
+  BattleMoveDamageContext context,
+  String moveType,
+) {
+  if (power <= 0) {
+    return power;
+  }
+  final abilityContext = BattleAbilityDamageContext(
+    user: context.user,
+    target: context.target,
+    move: context.move,
+    moveType: moveType,
+  );
+  var multiplier = 1.0;
+  for (final effect in context.user.abilityEffects) {
+    multiplier *= effect.damageBasePowerMultiplier(abilityContext);
+  }
+  if (multiplier == 1.0) {
+    return power;
+  }
+  final adjusted = (power * multiplier).floor();
+  return adjusted < 1 ? 1 : adjusted;
 }
 
 int _terrainAdjustedPower(

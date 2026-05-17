@@ -6,8 +6,10 @@ import '../battle_effect.dart';
 import '../battle_effect_scope.dart';
 import 'air_lock_effect.dart';
 import 'cloud_nine_effect.dart';
+import 'contact_punish_ability_effect.dart';
 import 'damp_effect.dart';
 import 'levitate_effect.dart';
+import 'move_shape_power_ability_effect.dart';
 import 'no_guard_effect.dart';
 import 'reckless_effect.dart';
 import 'rock_head_effect.dart';
@@ -15,6 +17,7 @@ import 'shadow_tag_effect.dart';
 import 'skill_link_effect.dart';
 import 'soundproof_effect.dart';
 import 'status_immunity_effect.dart';
+import 'type_boosting_ability_effect.dart';
 
 typedef AbilityEffectFactory = BattleEffect Function({
   required BattleEffectScope scope,
@@ -30,6 +33,88 @@ final class AbilityEffectRegistry {
     'air_lock': ({required scope}) => AirLockEffect(scope: scope),
     'cloud_nine': ({required scope}) => CloudNineEffect(scope: scope),
     'damp': ({required scope}) => DampEffect(scope: scope),
+    'rough_skin': ({required scope}) => ContactPunishAbilityEffect(
+          abilityId: 'rough_skin',
+          scope: scope,
+        ),
+    'iron_barbs': ({required scope}) => ContactPunishAbilityEffect(
+          abilityId: 'iron_barbs',
+          scope: scope,
+        ),
+    'blaze': ({required scope}) => TypeBoostingAbilityEffect(
+          abilityId: 'blaze',
+          scope: scope,
+          boostedType: 'fire',
+          requiresLowHp: true,
+        ),
+    'overgrow': ({required scope}) => TypeBoostingAbilityEffect(
+          abilityId: 'overgrow',
+          scope: scope,
+          boostedType: 'grass',
+          requiresLowHp: true,
+        ),
+    'torrent': ({required scope}) => TypeBoostingAbilityEffect(
+          abilityId: 'torrent',
+          scope: scope,
+          boostedType: 'water',
+          requiresLowHp: true,
+        ),
+    'swarm': ({required scope}) => TypeBoostingAbilityEffect(
+          abilityId: 'swarm',
+          scope: scope,
+          boostedType: 'bug',
+          requiresLowHp: true,
+        ),
+    'dragon_s_maw': ({required scope}) => TypeBoostingAbilityEffect(
+          abilityId: 'dragon_s_maw',
+          scope: scope,
+          boostedType: 'dragon',
+        ),
+    'steelworker': ({required scope}) => TypeBoostingAbilityEffect(
+          abilityId: 'steelworker',
+          scope: scope,
+          boostedType: 'steel',
+        ),
+    'transistor': ({required scope}) => TypeBoostingAbilityEffect(
+          abilityId: 'transistor',
+          scope: scope,
+          boostedType: 'electric',
+        ),
+    'rocky_payload': ({required scope}) => TypeBoostingAbilityEffect(
+          abilityId: 'rocky_payload',
+          scope: scope,
+          boostedType: 'rock',
+        ),
+    'technician': ({required scope}) => MoveShapePowerAbilityEffect(
+          abilityId: 'technician',
+          scope: scope,
+          shape: AbilityMovePowerShape.technician,
+          multiplier: 1.5,
+        ),
+    'iron_fist': ({required scope}) => MoveShapePowerAbilityEffect(
+          abilityId: 'iron_fist',
+          scope: scope,
+          shape: AbilityMovePowerShape.punch,
+          multiplier: 1.2,
+        ),
+    'tough_claws': ({required scope}) => MoveShapePowerAbilityEffect(
+          abilityId: 'tough_claws',
+          scope: scope,
+          shape: AbilityMovePowerShape.contact,
+          multiplier: 1.3,
+        ),
+    'sharpness': ({required scope}) => MoveShapePowerAbilityEffect(
+          abilityId: 'sharpness',
+          scope: scope,
+          shape: AbilityMovePowerShape.slicing,
+          multiplier: 1.5,
+        ),
+    'punk_rock': ({required scope}) => MoveShapePowerAbilityEffect(
+          abilityId: 'punk_rock',
+          scope: scope,
+          shape: AbilityMovePowerShape.sound,
+          multiplier: 1.3,
+        ),
     'levitate': ({required scope}) => LevitateEffect(scope: scope),
     'no_guard': ({required scope}) => NoGuardEffect(scope: scope),
     'reckless': ({required scope}) => RecklessEffect(scope: scope),
