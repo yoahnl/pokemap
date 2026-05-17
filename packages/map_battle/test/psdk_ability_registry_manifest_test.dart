@@ -110,5 +110,17 @@ void main() {
       expect(effect!.id, 'ability:totally_unknown_ability');
       expect(effect.scope, isA<LocalBattleEffectScope>());
     });
+
+    test('registry coverage keeps manifest evidence and factories aligned', () {
+      final coverage = AbilityEffectRegistry().manifestCoverage();
+
+      expect(coverage.totalManifestAbilities, 276);
+      expect(coverage.factoryIdsOutsideManifest, isEmpty);
+      expect(coverage.declaredEffectsWithoutFactory, isEmpty);
+      expect(coverage.concreteFactoryAbilityIds, contains('imposter'));
+      expect(coverage.concreteFactoryAbilityIds, contains('shadow_tag'));
+      expect(coverage.manifestAbilityIds, contains('zero_to_hero'));
+      expect(coverage.missingAbilityIds, contains('zero_to_hero'));
+    });
   });
 }
