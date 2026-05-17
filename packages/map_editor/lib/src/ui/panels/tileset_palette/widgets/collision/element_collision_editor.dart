@@ -32,6 +32,7 @@ class _ElementCollisionProfileSummaryCard extends StatelessWidget {
       profile: profile,
       fallbackPadding: draftPadding,
     );
+    final truthSummary = summarizeElementCollisionTruth(profile);
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     final label = CupertinoColors.label.resolveFrom(context);
     return Container(
@@ -71,14 +72,13 @@ class _ElementCollisionProfileSummaryCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
+          _CollisionTruthInline(summary: truthSummary),
+          const SizedBox(height: 6),
           Text(
             snapshot.usesManualPrimaryShape
-                ? 'Forme principale auteur active. Le polygone définit la base métier, les retouches la corrigent, et le runtime lit uniquement la forme finale en cellules.'
-                : 'Base padding automatique active. Le polygone peut remplacer cette base pour définir une vraie forme principale de bâtiment.',
-            style: TextStyle(
-              color: secondary,
-              fontSize: 10,
-            ),
+                ? 'Forme principale auteur active. Le polygone définit la base coarse ; les retouches la corrigent.'
+                : 'Base padding automatique active. Le polygone peut remplacer cette base coarse pour définir une silhouette de bâtiment.',
+            style: TextStyle(color: secondary, fontSize: 10),
           ),
           const SizedBox(height: 8),
           Wrap(
@@ -170,6 +170,7 @@ class _ElementCollisionProfileEditorState
       profile: widget.profile,
       fallbackPadding: widget.draftPadding,
     );
+    final truthSummary = summarizeElementCollisionTruth(widget.profile);
     final padding = snapshot.padding;
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
@@ -217,12 +218,14 @@ class _ElementCollisionProfileEditorState
           ),
           const SizedBox(height: 2),
           Text(
-            'Base = padding. Final = base + ajouts - suppressions.',
+            'Édition grille / forme coarse. Si un masque fin existe, le gameplay l’utilise d’abord.',
             style: TextStyle(
               color: secondary,
               fontSize: 10,
             ),
           ),
+          const SizedBox(height: 4),
+          _CollisionTruthInline(summary: truthSummary),
           const SizedBox(height: 6),
           Wrap(
             spacing: 8,
@@ -468,6 +471,55 @@ class _CollisionLegendChip extends StatelessWidget {
           fontSize: 10,
           fontWeight: FontWeight.w600,
         ),
+      ),
+    );
+  }
+}
+
+class _CollisionTruthInline extends StatelessWidget {
+  const _CollisionTruthInline({required this.summary});
+
+  final ElementCollisionTruthSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+    final accent = switch (summary.mode) {
+      ElementCollisionTruthMode.fineMask => Colors.redAccent,
+      ElementCollisionTruthMode.legacyCells => Colors.orangeAccent,
+      ElementCollisionTruthMode.empty => Colors.greenAccent,
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(color: accent.withValues(alpha: 0.36)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            summary.title,
+            style: TextStyle(
+              color: CupertinoColors.label.resolveFrom(context),
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '${summary.description} ${summary.detail}',
+            style: TextStyle(color: secondary, fontSize: 10),
+          ),
+          for (final note in summary.notes) ...[
+            const SizedBox(height: 2),
+            Text(
+              note,
+              style: TextStyle(color: secondary, fontSize: 10),
+            ),
+          ],
+        ],
       ),
     );
   }

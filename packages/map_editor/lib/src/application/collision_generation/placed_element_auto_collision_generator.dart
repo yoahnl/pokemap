@@ -17,8 +17,8 @@ import 'placed_element_mask_heuristics_v1.dart';
 /// 3. **collision** et **occlusion** dérivés par [PlacedElementMaskHeuristicsV1]
 ///    (pas de copie « opaque = bloquant ») ;
 /// 4. encodage `packed_bits_v1` pour chaque masque.
-///
-/// [ElementCollisionProfile.cells] reste vide : legacy réservé migration JSON hors runtime.
+/// 5. projection legacy/debug de [ElementCollisionProfile.collisionMask] vers
+///    [ElementCollisionProfile.cells].
 class PlacedElementAutoCollisionGenerator {
   const PlacedElementAutoCollisionGenerator({
     ElementVisualOccupancyAnalyzer? visualOccupancyAnalyzer,
@@ -126,6 +126,13 @@ class PlacedElementAutoCollisionGenerator {
         solidPixels: derived.occlusion,
       ),
     );
+    final cells = ElementCollisionMaskCodec.cellsFromPixelMask(
+      mask: collisionMask,
+      tileWidth: tileWidth,
+      tileHeight: tileHeight,
+      sourceWidthInTiles: source.width,
+      sourceHeightInTiles: source.height,
+    );
 
     return ElementCollisionProfile(
       source: ElementCollisionProfileSource.generated,
@@ -133,7 +140,7 @@ class PlacedElementAutoCollisionGenerator {
       collisionMask: collisionMask,
       occlusionMask: occlusionMask,
       padding: padding,
-      cells: const [],
+      cells: cells,
     );
   }
 }

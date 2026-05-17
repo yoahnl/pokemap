@@ -160,17 +160,18 @@ void main() {
 }
 
 ProjectManifest _projectManifest() {
-  return const ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog(), 
+  return ProjectManifest(
+    surfaceCatalog: ProjectSurfaceCatalog(),
     name: 'Test',
-    maps: [],
-    tilesets: [
+    maps: const [],
+    tilesets: const [
       ProjectTilesetEntry(
         id: 'tileset_main',
         name: 'Main',
         relativePath: 'tilesets/main.png',
       ),
     ],
-    elementCategories: [
+    elementCategories: const [
       ProjectElementCategory(
         id: 'buildings',
         name: 'Buildings',

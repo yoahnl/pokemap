@@ -8,6 +8,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart' show Colors;
 import 'package:map_core/map_core.dart';
 
+import '../../application/models/element_collision_truth_summary.dart';
 import '../shared/cupertino_editor_widgets.dart';
 
 /// Mode de la surface d’édition : **aperçu** (lecture seule) ou peinture sur
@@ -26,6 +27,11 @@ enum MaskSurfaceMode {
 
   /// Pinceau / gomme sur [ElementCollisionProfile.occlusionMask].
   occlusionPaint,
+}
+
+enum _MaskStrokeOperation {
+  paint,
+  erase,
 }
 
 /// Éditeur **pixel-level** pour les masques d’un [ProjectElementEntry] :
@@ -66,8 +72,12 @@ class ElementCollisionTripleMaskEditor extends StatefulWidget {
 
 class _ElementCollisionTripleMaskEditorState
     extends State<ElementCollisionTripleMaskEditor> {
-  MaskSurfaceMode _mode = MaskSurfaceMode.preview;
+  MaskSurfaceMode _mode = MaskSurfaceMode.collisionPaint;
+  late _MaskStrokeOperation _strokeOperation;
+  late int _brushSizePx;
+  int _zoomPercent = 100;
   bool _showPixelGrid = false;
+  math.Point<int>? _hoverPixel;
 
   late List<bool> _collisionBits;
   late List<bool> _occlusionBits;
@@ -82,6 +92,8 @@ class _ElementCollisionTripleMaskEditorState
     super.initState();
     _collisionBits = _initialCollisionBits();
     _occlusionBits = _initialOcclusionBits();
+    _strokeOperation = _initialStrokeOperation();
+    _brushSizePx = _defaultBrushSizePx();
     _scheduleVisualLoad();
   }
 
@@ -97,6 +109,7 @@ class _ElementCollisionTripleMaskEditorState
         _occlusionBits = _initialOcclusionBits();
         _visualBits = null;
         _loadingVisual = false;
+        _hoverPixel = null;
       });
       _scheduleVisualLoad();
     }
@@ -119,8 +132,12 @@ class _ElementCollisionTripleMaskEditorState
     setState(() {
       _loadingVisual = true;
     });
-    final bd = await widget.image.toByteData(format: ui.ImageByteFormat.rawRgba);
-    if (!mounted || bd == null) {
+    final bd =
+        await widget.image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    if (!mounted) {
+      return;
+    }
+    if (bd == null) {
       setState(() {
         _loadingVisual = false;
         _visualBits = List<bool>.filled(_wPx * _hPx, false);
@@ -207,6 +224,34 @@ class _ElementCollisionTripleMaskEditorState
     return List<bool>.filled(_wPx * _hPx, false);
   }
 
+  _MaskStrokeOperation _initialStrokeOperation() {
+    final hasFineCollision = widget.profile?.collisionMask != null;
+    final hasLegacyGridCollision =
+        widget.profile?.cells.isNotEmpty == true && !hasFineCollision;
+    return hasLegacyGridCollision
+        ? _MaskStrokeOperation.erase
+        : _MaskStrokeOperation.paint;
+  }
+
+  int _defaultBrushSizePx() {
+    final tileEdge = math.min(widget.tileWidth, widget.tileHeight);
+    return math.max(1, tileEdge ~/ 2);
+  }
+
+  List<int> _brushSizeOptions() {
+    final tileEdge = math.max(1, math.min(widget.tileWidth, widget.tileHeight));
+    final values = <int>{
+      1,
+      math.max(1, tileEdge ~/ 4),
+      math.max(1, tileEdge ~/ 2),
+      tileEdge,
+    }.where((value) => value >= 1 && value <= tileEdge).toList()
+      ..sort();
+    return values;
+  }
+
+  double get _zoomScale => _zoomPercent / 100.0;
+
   ElementCollisionPixelMask _maskFromBits(List<bool> bits) {
     return ElementCollisionPixelMask(
       widthPx: _wPx,
@@ -246,10 +291,44 @@ class _ElementCollisionTripleMaskEditorState
     );
   }
 
-  void _applyStroke(Offset local, Size boxSize, double boxHeight, {required bool erase}) {
+  void _applyStroke(Offset local, Size boxSize, double boxHeight,
+      {required bool erase}) {
     if (_mode == MaskSurfaceMode.preview) {
       return;
     }
+    final pixel = _maskPixelFromLocal(local, boxSize, boxHeight);
+    if (pixel == null) {
+      return;
+    }
+    final next = _mode == MaskSurfaceMode.collisionPaint
+        ? _collisionBits
+        : _occlusionBits;
+    _paintBrushFootprint(
+      next,
+      centerX: pixel.x,
+      centerY: pixel.y,
+      erase: erase,
+    );
+    setState(() => _hoverPixel = pixel);
+    _emitProfile();
+  }
+
+  void _updateHoverPreview(Offset local, Size boxSize, double boxHeight) {
+    if (_mode == MaskSurfaceMode.preview) {
+      return;
+    }
+    final next = _maskPixelFromLocal(local, boxSize, boxHeight);
+    if (next == _hoverPixel) {
+      return;
+    }
+    setState(() => _hoverPixel = next);
+  }
+
+  math.Point<int>? _maskPixelFromLocal(
+    Offset local,
+    Size boxSize,
+    double boxHeight,
+  ) {
     final targetRect = fitCollisionPreviewRect(
       size: Size(boxSize.width, boxHeight),
       source: widget.source,
@@ -257,17 +336,35 @@ class _ElementCollisionTripleMaskEditorState
       tileHeight: widget.tileHeight,
     );
     if (!targetRect.contains(local)) {
-      return;
+      return null;
     }
     final lx = local.dx - targetRect.left;
     final ly = local.dy - targetRect.top;
     final px = (lx / targetRect.width * _wPx).floor().clamp(0, _wPx - 1);
     final py = (ly / targetRect.height * _hPx).floor().clamp(0, _hPx - 1);
-    final idx = py * _wPx + px;
-    final next = _mode == MaskSurfaceMode.collisionPaint ? _collisionBits : _occlusionBits;
-    next[idx] = !erase;
-    setState(() {});
-    _emitProfile();
+    return math.Point<int>(px, py);
+  }
+
+  void _paintBrushFootprint(
+    List<bool> bits, {
+    required int centerX,
+    required int centerY,
+    required bool erase,
+  }) {
+    final size = _brushSizePx.clamp(1, math.max(_wPx, _hPx));
+    final left = centerX - size ~/ 2;
+    final top = centerY - size ~/ 2;
+    for (var y = top; y < top + size; y++) {
+      if (y < 0 || y >= _hPx) {
+        continue;
+      }
+      for (var x = left; x < left + size; x++) {
+        if (x < 0 || x >= _wPx) {
+          continue;
+        }
+        bits[y * _wPx + x] = !erase;
+      }
+    }
   }
 
   @override
@@ -275,6 +372,11 @@ class _ElementCollisionTripleMaskEditorState
     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
     final label = CupertinoColors.label.resolveFrom(context);
     final padding = widget.profile?.padding ?? widget.draftPadding;
+    final truthSummary = summarizeElementCollisionTruth(widget.profile);
+    final brushPreviewLabel =
+        _mode == MaskSurfaceMode.preview || _hoverPixel == null
+            ? null
+            : 'Aperçu pinceau ${_brushSizePx}px';
 
     return Container(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
@@ -301,9 +403,14 @@ class _ElementCollisionTripleMaskEditorState
           ),
           const SizedBox(height: 6),
           Text(
-            'La collision ne doit pas recopier bêtement l’ombre : éditez la zone '
-            'qui bloque vraiment. L’occlusion définit ce qui peut vous couvrir '
-            'quand vous passez derrière (rendu), sans bloquer le déplacement.',
+            '${truthSummary.title}. ${truthSummary.description} ${truthSummary.detail}',
+            style: TextStyle(color: secondary, fontSize: 10),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Masque collision : bloque le déplacement du joueur. '
+            'Masque occlusion : rendu devant/derrière, ne bloque pas. '
+            'Masque visuel : aide d’analyse / aperçu, ne bloque pas.',
             style: TextStyle(color: secondary, fontSize: 10),
           ),
           const SizedBox(height: 8),
@@ -316,11 +423,13 @@ class _ElementCollisionTripleMaskEditorState
               ),
               1: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 6, vertical: 5),
-                child: Text('Collision', style: TextStyle(fontSize: 11)),
+                child:
+                    Text('Peindre collision', style: TextStyle(fontSize: 11)),
               ),
               2: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 6, vertical: 5),
-                child: Text('Occlusion', style: TextStyle(fontSize: 11)),
+                child:
+                    Text('Peindre occlusion', style: TextStyle(fontSize: 11)),
               ),
             },
             onValueChanged: (int? v) {
@@ -329,6 +438,87 @@ class _ElementCollisionTripleMaskEditorState
               }
             },
           ),
+          if (_mode != MaskSurfaceMode.preview) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 10,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                CupertinoSlidingSegmentedControl<_MaskStrokeOperation>(
+                  groupValue: _strokeOperation,
+                  children: const {
+                    _MaskStrokeOperation.paint: Padding(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      child: Text('Peindre', style: TextStyle(fontSize: 11)),
+                    ),
+                    _MaskStrokeOperation.erase: Padding(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      child: Text('Effacer', style: TextStyle(fontSize: 11)),
+                    ),
+                  },
+                  onValueChanged: (next) {
+                    if (next != null) {
+                      setState(() => _strokeOperation = next);
+                    }
+                  },
+                ),
+                Text(
+                  'Taille pinceau',
+                  style: TextStyle(color: secondary, fontSize: 10),
+                ),
+                CupertinoSlidingSegmentedControl<int>(
+                  groupValue: _brushSizePx,
+                  children: {
+                    for (final option in _brushSizeOptions())
+                      option: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 5,
+                        ),
+                        child: Text(
+                          '${option}px',
+                          style: const TextStyle(fontSize: 11),
+                        ),
+                      ),
+                  },
+                  onValueChanged: (next) {
+                    if (next != null) {
+                      setState(() => _brushSizePx = next);
+                    }
+                  },
+                ),
+                Text(
+                  'Zoom',
+                  style: TextStyle(color: secondary, fontSize: 10),
+                ),
+                CupertinoSlidingSegmentedControl<int>(
+                  groupValue: _zoomPercent,
+                  children: const {
+                    100: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      child: Text('100%', style: TextStyle(fontSize: 11)),
+                    ),
+                    200: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      child: Text('200%', style: TextStyle(fontSize: 11)),
+                    ),
+                    400: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      child: Text('400%', style: TextStyle(fontSize: 11)),
+                    ),
+                  },
+                  onValueChanged: (next) {
+                    if (next != null) {
+                      setState(() => _zoomPercent = next);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 6),
           Row(
             children: [
@@ -362,55 +552,103 @@ class _ElementCollisionTripleMaskEditorState
           const SizedBox(height: 6),
           LayoutBuilder(
             builder: (context, constraints) {
-              final boxHeight = math
+              final baseWidth = math.max(1.0, constraints.maxWidth);
+              final baseHeight = math
                   .min(240, constraints.maxWidth * 0.72)
                   .toDouble()
                   .clamp(140.0, 260.0);
-              return Listener(
-                onPointerDown: (e) {
-                  _applyStroke(
-                    e.localPosition,
-                    constraints.biggest,
-                    boxHeight,
-                    erase: false,
-                  );
-                },
-                onPointerMove: (e) {
-                  if (_mode == MaskSurfaceMode.preview) {
-                    return;
-                  }
-                  // Bouton principal = peindre, secondaire = effacer (style tablette).
-                  final erase = e.buttons == 2;
-                  _applyStroke(
-                    e.localPosition,
-                    constraints.biggest,
-                    boxHeight,
-                    erase: erase,
-                  );
-                },
+              final fittedBaseRect = fitCollisionPreviewRect(
+                size: Size(baseWidth, baseHeight),
+                source: widget.source,
+                tileWidth: widget.tileWidth,
+                tileHeight: widget.tileHeight,
+              );
+              final canvasSize = Size(
+                fittedBaseRect.width * _zoomScale,
+                fittedBaseRect.height * _zoomScale,
+              );
+              final scrollContentWidth = math.max(baseWidth, canvasSize.width);
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
                 child: SizedBox(
-                  height: boxHeight,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
-                        color: CupertinoColors.separator.resolveFrom(context),
-                      ),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(5),
-                      child: CustomPaint(
-                        painter: _TripleMaskPixelPainter(
-                          image: widget.image,
-                          source: widget.source,
-                          tileWidth: widget.tileWidth,
-                          tileHeight: widget.tileHeight,
-                          padding: padding,
-                          visualBits: _visualBits,
-                          collisionBits: _collisionBits,
-                          occlusionBits: _occlusionBits,
-                          mode: _mode,
-                          showPixelGrid: _showPixelGrid,
+                  width: scrollContentWidth,
+                  child: Align(
+                    alignment: Alignment.center,
+                    child: MouseRegion(
+                      onExit: (_) {
+                        if (_hoverPixel != null) {
+                          setState(() => _hoverPixel = null);
+                        }
+                      },
+                      child: Listener(
+                        behavior: HitTestBehavior.opaque,
+                        onPointerHover: (e) {
+                          _updateHoverPreview(
+                            e.localPosition,
+                            canvasSize,
+                            canvasSize.height,
+                          );
+                        },
+                        onPointerDown: (e) {
+                          _applyStroke(
+                            e.localPosition,
+                            canvasSize,
+                            canvasSize.height,
+                            erase:
+                                _strokeOperation == _MaskStrokeOperation.erase,
+                          );
+                        },
+                        onPointerMove: (e) {
+                          if (_mode == MaskSurfaceMode.preview) {
+                            return;
+                          }
+                          // Le bouton secondaire reste une gomme rapide, même si
+                          // l'outil visible est sur "Peindre".
+                          final erase =
+                              _strokeOperation == _MaskStrokeOperation.erase ||
+                                  e.buttons == 2;
+                          _applyStroke(
+                            e.localPosition,
+                            canvasSize,
+                            canvasSize.height,
+                            erase: erase,
+                          );
+                        },
+                        child: SizedBox(
+                          width: canvasSize.width,
+                          height: canvasSize.height,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: CupertinoColors.separator
+                                    .resolveFrom(context),
+                              ),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(5),
+                              child: Semantics(
+                                label: brushPreviewLabel,
+                                child: CustomPaint(
+                                  painter: _TripleMaskPixelPainter(
+                                    image: widget.image,
+                                    source: widget.source,
+                                    tileWidth: widget.tileWidth,
+                                    tileHeight: widget.tileHeight,
+                                    padding: padding,
+                                    visualBits: _visualBits,
+                                    collisionBits: _collisionBits,
+                                    occlusionBits: _occlusionBits,
+                                    mode: _mode,
+                                    showPixelGrid: _showPixelGrid,
+                                    hoverPixel: _hoverPixel,
+                                    brushSizePx: _brushSizePx,
+                                    strokeOperation: _strokeOperation,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -451,8 +689,15 @@ class _ElementCollisionTripleMaskEditorState
           Text(
             _mode == MaskSurfaceMode.preview
                 ? 'Mode aperçu : édition désactivée.'
-                : 'Mode ${_mode == MaskSurfaceMode.collisionPaint ? 'collision' : 'occlusion'} : '
-                    'cliquez / tracez pour peindre. Clic droit ou périphérique secondaire = gomme.',
+                : widget.profile?.collisionMask == null &&
+                        widget.profile?.cells.isNotEmpty == true &&
+                        _strokeOperation == _MaskStrokeOperation.erase
+                    ? 'Profil grille détecté : Effacer est sélectionné pour creuser un masque fin depuis la grille existante.'
+                    : _strokeOperation == _MaskStrokeOperation.erase
+                        ? 'Mode ${_mode == MaskSurfaceMode.collisionPaint ? 'collision' : 'occlusion'} : '
+                            'cliquez / tracez pour effacer.'
+                        : 'Mode ${_mode == MaskSurfaceMode.collisionPaint ? 'collision' : 'occlusion'} : '
+                            'cliquez / tracez pour peindre. Le bouton Effacer gomme la zone.',
             style: TextStyle(color: secondary, fontSize: 10),
           ),
         ],
@@ -528,6 +773,9 @@ class _TripleMaskPixelPainter extends CustomPainter {
     required this.occlusionBits,
     required this.mode,
     required this.showPixelGrid,
+    required this.hoverPixel,
+    required this.brushSizePx,
+    required this.strokeOperation,
   });
 
   final ui.Image image;
@@ -540,6 +788,9 @@ class _TripleMaskPixelPainter extends CustomPainter {
   final List<bool> occlusionBits;
   final MaskSurfaceMode mode;
   final bool showPixelGrid;
+  final math.Point<int>? hoverPixel;
+  final int brushSizePx;
+  final _MaskStrokeOperation strokeOperation;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -587,7 +838,8 @@ class _TripleMaskPixelPainter extends CustomPainter {
       math.max(activeLeft, activeRight),
       math.max(activeTop, activeBottom),
     );
-    _paintPaddingBands(canvas, targetRect, leftPad, rightPad, topPad, bottomPad);
+    _paintPaddingBands(
+        canvas, targetRect, leftPad, rightPad, topPad, bottomPad);
 
     if (activeRect.width > 0 && activeRect.height > 0) {
       canvas.drawRect(
@@ -680,19 +932,84 @@ class _TripleMaskPixelPainter extends CustomPainter {
         ..strokeWidth = 0.5;
       for (var x = 0; x <= wPx; x += 4) {
         final dx = targetRect.left + x * scaleX;
-        canvas.drawLine(Offset(dx, targetRect.top), Offset(dx, targetRect.bottom), grid);
+        canvas.drawLine(
+            Offset(dx, targetRect.top), Offset(dx, targetRect.bottom), grid);
       }
       for (var y = 0; y <= hPx; y += 4) {
         final dy = targetRect.top + y * scaleY;
-        canvas.drawLine(Offset(targetRect.left, dy), Offset(targetRect.right, dy), grid);
+        canvas.drawLine(
+            Offset(targetRect.left, dy), Offset(targetRect.right, dy), grid);
       }
     }
+
+    if (hoverPixel != null && mode != MaskSurfaceMode.preview) {
+      _paintBrushPreview(
+        canvas,
+        targetRect,
+        wPx: wPx,
+        hPx: hPx,
+        scaleX: scaleX,
+        scaleY: scaleY,
+      );
+    }
+  }
+
+  void _paintBrushPreview(
+    Canvas canvas,
+    Rect targetRect, {
+    required int wPx,
+    required int hPx,
+    required double scaleX,
+    required double scaleY,
+  }) {
+    final center = hoverPixel!;
+    final size = brushSizePx.clamp(1, math.max(wPx, hPx));
+    final left = (center.x - size ~/ 2).clamp(0, wPx);
+    final top = (center.y - size ~/ 2).clamp(0, hPx);
+    final right = (center.x - size ~/ 2 + size).clamp(0, wPx);
+    final bottom = (center.y - size ~/ 2 + size).clamp(0, hPx);
+    if (right <= left || bottom <= top) {
+      return;
+    }
+    final rect = Rect.fromLTRB(
+      targetRect.left + left * scaleX,
+      targetRect.top + top * scaleY,
+      targetRect.left + right * scaleX,
+      targetRect.top + bottom * scaleY,
+    );
+    final isErase = strokeOperation == _MaskStrokeOperation.erase;
+    final baseColor = switch (mode) {
+      MaskSurfaceMode.collisionPaint =>
+        isErase ? const Color(0xFF4CAF50) : const Color(0xFFFFEB3B),
+      MaskSurfaceMode.occlusionPaint => const Color(0xFFB388FF),
+      MaskSurfaceMode.preview => const Color(0xFFFFFFFF),
+    };
+    canvas.drawRect(
+      rect.inflate(2),
+      Paint()
+        ..color = Colors.black.withValues(alpha: 0.34)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3,
+    );
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..color = baseColor.withValues(alpha: isErase ? 0.20 : 0.24)
+        ..style = PaintingStyle.fill,
+    );
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..color = baseColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
   }
 
   void _paintCheckerboard(Canvas canvas, Rect r) {
     const sq = 10.0;
-    final light = const Color(0xFFECEFF1);
-    final dark = const Color(0xFFD0D5D8);
+    const light = Color(0xFFECEFF1);
+    const dark = Color(0xFFD0D5D8);
     var row = 0;
     for (var y = r.top; y < r.bottom; y += sq) {
       var col = 0;
@@ -777,6 +1094,9 @@ class _TripleMaskPixelPainter extends CustomPainter {
         !_nullableBoolListEq(oldDelegate.visualBits, visualBits) ||
         oldDelegate.mode != mode ||
         oldDelegate.showPixelGrid != showPixelGrid ||
+        oldDelegate.hoverPixel != hoverPixel ||
+        oldDelegate.brushSizePx != brushSizePx ||
+        oldDelegate.strokeOperation != strokeOperation ||
         oldDelegate.padding != padding;
   }
 

@@ -37,13 +37,57 @@ class FileProjectRepository implements ProjectRepository {
       final json = migrateProjectManifestJson(
         jsonDecode(content) as Map<String, dynamic>,
       );
-      final manifest = ProjectManifest.fromJson(json);
+      final manifest = _normalizeProjectElementCollisionProfiles(
+        ProjectManifest.fromJson(json),
+      );
       ProjectValidator.validate(manifest);
       return manifest;
     } catch (e) {
       throw ProjectLoadException('Failed to load project: $e');
     }
   }
+}
+
+ProjectManifest _normalizeProjectElementCollisionProfiles(
+  ProjectManifest manifest,
+) {
+  return manifest.copyWith(
+    elements: [
+      for (final element in manifest.elements)
+        _normalizeProjectElementCollisionProfile(element, manifest.settings),
+    ],
+  );
+}
+
+ProjectElementEntry _normalizeProjectElementCollisionProfile(
+  ProjectElementEntry element,
+  ProjectSettings settings,
+) {
+  final profile = element.collisionProfile;
+  if (profile == null) {
+    return element;
+  }
+
+  return element.copyWith(
+    collisionProfile: normalizeElementCollisionProfile(
+      profile,
+      tileSize: _collisionProfileTileSize(settings, profile),
+    ),
+  );
+}
+
+int _collisionProfileTileSize(
+  ProjectSettings settings,
+  ElementCollisionProfile profile,
+) {
+  if (profile.collisionMask != null &&
+      settings.tileWidth != settings.tileHeight) {
+    throw ValidationException(
+      'Cannot normalize collision masks for non-square project tiles: '
+      '${settings.tileWidth}x${settings.tileHeight}',
+    );
+  }
+  return settings.tileWidth;
 }
 
 class FileMapRepository implements MapRepository {

@@ -79,8 +79,10 @@ import 'dialogue_overlay_component.dart';
 import 'map_layers_component.dart';
 import 'overworld_actor_component.dart';
 import 'player_component.dart';
+import 'placed_element_occlusion_patch_component.dart';
 import 'runtime_battle_gender_overrides.dart';
 import 'runtime_trainer_battle_overrides.dart';
+import 'static_placed_element_occlusion_patch_resolution.dart';
 import 'warp_transition_overlay_component.dart';
 
 const double _kViewportTilesX = 15.0;
@@ -606,6 +608,28 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
 
   @visibleForTesting
   bool debugIsMapLoaded(String mapId) => _loadedMapsById.containsKey(mapId);
+
+  @visibleForTesting
+  void debugUnmountLoadedMapForTest(String mapId) {
+    _unmountLoadedMap(mapId);
+  }
+
+  @visibleForTesting
+  void debugRepositionLoadedMapForTest({
+    required String mapId,
+    required int originCellX,
+    required int originCellY,
+  }) {
+    final loaded = _loadedMapsById[mapId];
+    if (loaded == null) {
+      return;
+    }
+    _repositionLoadedMap(
+      loaded,
+      originCellX: originCellX,
+      originCellY: originCellY,
+    );
+  }
 
   @visibleForTesting
   Vector2 debugWorldTopLeftForSpawnCell(GridPos cell) {
@@ -5058,6 +5082,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
           originCellY: activeLoaded.originCellY,
           backgroundLayers: activeLoaded.backgroundLayers,
           foregroundLayers: activeLoaded.foregroundLayers,
+          occlusionPatches: activeLoaded.occlusionPatches,
           npcActors: activeLoaded.npcActors,
           npcActorByEntityId: activeLoaded.npcActorByEntityId,
         );
@@ -6497,6 +6522,9 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     }
     loaded.backgroundLayers.removeFromParent();
     loaded.foregroundLayers.removeFromParent();
+    for (final patch in loaded.occlusionPatches) {
+      patch.removeFromParent();
+    }
     for (final actor in loaded.npcActors) {
       actor.removeFromParent();
       _npcActors.remove(actor);
@@ -6538,6 +6566,26 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     );
     foregroundLayers.priority = 100000;
     await world.add(foregroundLayers);
+
+    final occlusionPatches = <PlacedElementOcclusionPatchComponent>[];
+    final occlusionInstructions =
+        resolveStaticPlacedElementOcclusionPatchInstructions(
+      bundle: bundle,
+      originCellX: originCellX,
+      originCellY: originCellY,
+    );
+    for (final instruction in occlusionInstructions) {
+      final tilesetImage = tileImagesById[instruction.tilesetId];
+      if (tilesetImage == null) {
+        continue;
+      }
+      final patch = PlacedElementOcclusionPatchComponent(
+        instruction: instruction,
+        tilesetImage: tilesetImage,
+      );
+      occlusionPatches.add(patch);
+      await world.add(patch);
+    }
 
     final npcActors = <OverworldActorComponent>[];
     final npcActorByEntityId = <String, OverworldActorComponent>{};
@@ -6589,6 +6637,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       originCellY: originCellY,
       backgroundLayers: backgroundLayers,
       foregroundLayers: foregroundLayers,
+      occlusionPatches: occlusionPatches,
       npcActors: npcActors,
       npcActorByEntityId: npcActorByEntityId,
     );
@@ -6699,12 +6748,20 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
     required int originCellX,
     required int originCellY,
   }) {
+    final oldOriginPx = _originPixels(
+      originCellX: loaded.originCellX,
+      originCellY: loaded.originCellY,
+    );
     final originPx = _originPixels(
       originCellX: originCellX,
       originCellY: originCellY,
     );
+    final originDelta = originPx - oldOriginPx;
     loaded.backgroundLayers.position = originPx.clone();
     loaded.foregroundLayers.position = originPx.clone();
+    for (final patch in loaded.occlusionPatches) {
+      patch.translateByMapOriginDelta(originDelta);
+    }
     for (final entity in loaded.bundle.map.entities) {
       if (entity.kind != MapEntityKind.npc) {
         continue;
@@ -6726,6 +6783,7 @@ class PlayableMapGame extends FlameGame with KeyboardEvents {
       originCellY: originCellY,
       backgroundLayers: loaded.backgroundLayers,
       foregroundLayers: loaded.foregroundLayers,
+      occlusionPatches: loaded.occlusionPatches,
       npcActors: loaded.npcActors,
       npcActorByEntityId: loaded.npcActorByEntityId,
     );
@@ -7678,6 +7736,7 @@ class _LoadedPlayableMap {
     required this.originCellY,
     required this.backgroundLayers,
     required this.foregroundLayers,
+    required this.occlusionPatches,
     required this.npcActors,
     required this.npcActorByEntityId,
   });
@@ -7687,6 +7746,7 @@ class _LoadedPlayableMap {
   final int originCellY;
   final MapLayersComponent backgroundLayers;
   final MapLayersComponent foregroundLayers;
+  final List<PlacedElementOcclusionPatchComponent> occlusionPatches;
   final List<OverworldActorComponent> npcActors;
   final Map<String, OverworldActorComponent> npcActorByEntityId;
 }

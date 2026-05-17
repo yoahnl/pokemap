@@ -150,11 +150,13 @@ class PlacedElementMaskHeuristicsV1 {
 
     final threshold =
         math.max(1, (maxCount * shadowDensityRatioVsMaxRow).ceil());
-    final maxShadowRows =
-        math.max(1, ((bbox.maxY - bbox.minY + 1) * shadowBandMaxFraction).ceil());
+    final maxShadowRows = math.max(
+        1, ((bbox.maxY - bbox.minY + 1) * shadowBandMaxFraction).ceil());
 
     var consecutive = 0;
-    for (var y = bbox.maxY; y >= bbox.minY && consecutive < maxShadowRows; y--) {
+    for (var y = bbox.maxY;
+        y >= bbox.minY && consecutive < maxShadowRows;
+        y--) {
       if (rowCounts[y] <= threshold && rowCounts[y] < maxCount) {
         shadowRows[y] = true;
         consecutive++;

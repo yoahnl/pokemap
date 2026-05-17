@@ -23,6 +23,7 @@ import 'package:map_editor/src/ui/panels/tileset_palette/widgets/shadow/element_
 import 'package:map_editor/src/ui/shared/cupertino_editor_widgets.dart';
 import 'package:map_editor/src/ui/shared/editor_paint_palette.dart';
 
+import '../../application/models/element_collision_truth_summary.dart';
 import '../../application/services/element_collision_authoring_service.dart';
 import '../../features/editor/state/editor_notifier.dart';
 import '../../features/editor/state/editor_selectors.dart';

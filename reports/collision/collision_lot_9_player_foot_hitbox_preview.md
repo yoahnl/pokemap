@@ -1,3 +1,718 @@
+# Collision Lot 9 — Player Foot Hitbox Preview in Editor V0
+
+## 1. Résumé exécutif
+
+Collision-9 ajoute une prévisualisation pédagogique de la hitbox de déplacement du joueur dans l’éditeur de collision.
+
+Résultat :
+
+- l’éditeur affiche une section `Hitbox joueur` près de la source de collision active ajoutée en Collision-8 ;
+- la section explique que le déplacement utilise une petite zone aux pieds du personnage ;
+- la section affiche les dimensions réelles issues de `PlayerCollisionConventionsV1` : `12 × 8 px` ;
+- une mini-preview dessine le sprite joueur conceptuel et le rectangle de contact en bas ;
+- aucune logique gameplay, runtime, normalizer, sérialisation ou génération automatique n’est modifiée.
+
+## 2. Git status initial
+
+Commande :
+
+```bash
+git status --short --untracked-files=all
+```
+
+Sortie exacte :
+
+```text
+```
+
+Interprétation : le worktree Collision-9 était propre au début du lot.
+
+## 3. Rapports précédents relus
+
+Rapports relus :
+
+- `reports/collision/collision_lot_7_gameplay_legacy_fallback_hardening.md`
+- `reports/collision/collision_lot_8_ui_truth_labels.md`
+
+Décisions reprises :
+
+- Collision-7 confirme que `GameplayWorldState` consomme `collisionMask` en priorité, utilise `cells` comme fallback, et ne migre pas les profils.
+- Collision-8 affiche déjà la source de collision active : collision fine, collision par grille, absence de collision, occlusion non bloquante.
+- Collision-9 ne change pas ce contrat ; il ajoute uniquement l’explication de la zone joueur qui touche cette collision.
+
+## 4. Audit ciblé hitbox joueur
+
+Commandes :
+
+```bash
+sed -n '1,220p' packages/map_core/lib/src/collision/player_collision_conventions_v1.dart
+sed -n '1,220p' packages/map_core/lib/src/collision/pixel_rect.dart
+rg -n "PlayerCollisionConventionsV1|playerCollision|foot|hitbox|PixelRect|collisionPreview|collisionProfile|truthSummary|Collision fine|Collision par grille" packages/map_core/lib packages/map_editor/lib packages/map_editor/test
+rg -n "collision/player_collision_conventions_v1|collision/pixel_rect|PlayerCollisionConventionsV1|PixelRect" packages/map_core/lib/map_core.dart packages/map_core/lib/src
+```
+
+Constats vérifiés :
+
+- `PlayerCollisionConventionsV1.defaultSpriteWidthPx = 32`.
+- `PlayerCollisionConventionsV1.defaultSpriteHeightPx = 32`.
+- `PlayerCollisionConventionsV1.playerHitboxWidthPx = 12`.
+- `PlayerCollisionConventionsV1.playerHitboxHeightPx = 8`.
+- `PlayerCollisionConventionsV1.playerCollisionRectFromSpriteTopLeft(...)` calcule le rectangle de collision depuis le coin haut-gauche du sprite.
+- Pour le sprite V1 `32×32`, le rectangle obtenu est `left=10`, `top=24`, `width=12`, `height=8`.
+- `packages/map_core/lib/map_core.dart` exporte déjà `pixel_rect.dart` et `player_collision_conventions_v1.dart`; aucun export `map_core` n’est nécessaire.
+- Le point d’insertion le moins risqué est `element_collision_editor_sheet.dart`, juste sous la bannière `Source utilisée par le gameplay` ajoutée en Collision-8.
+
+## 5. Design UX retenu
+
+Design retenu :
+
+- créer un read-model editor-only `PlayerCollisionHitboxPreview` dans `packages/map_editor/lib/src/application/models/player_collision_hitbox_preview.dart` ;
+- construire ce read-model via `buildPlayerCollisionHitboxPreview(...)` en appelant `PlayerCollisionConventionsV1.playerCollisionRectFromSpriteTopLeft(...)` ;
+- afficher une carte `_PlayerFootHitboxPreviewCard` dans la sheet ;
+- dessiner une mini-preview par `CustomPainter`, sans asset et sans Flame ;
+- ne pas ajouter de simulation de déplacement.
+
+Le read-model accepte aussi une taille de sprite custom pour prouver le centrage, mais l’UI de Collision-9 utilise les valeurs V1 par défaut.
+
+## 6. Contrat affiché à l’utilisateur
+
+Libellés ajoutés :
+
+- `Hitbox joueur`
+- `Le déplacement utilise une petite zone aux pieds du personnage. Ce rectangle touche réellement les collisions.`
+- `12 × 8 px`
+- `Zone de contact centrée en bas du sprite`
+
+Contrat affiché :
+
+- ce n’est pas tout le sprite joueur qui sert aux collisions de déplacement ;
+- la zone utile est un rectangle aux pieds ;
+- cette zone mesure `12 × 8 px` dans les conventions V1 ;
+- la preview est pédagogique et ne lance aucune simulation.
+
+## 7. Fichiers créés
+
+- `packages/map_editor/lib/src/application/models/player_collision_hitbox_preview.dart`
+- `packages/map_editor/test/player_collision_hitbox_preview_test.dart`
+- `reports/collision/collision_lot_9_player_foot_hitbox_preview.md`
+
+## 8. Fichiers modifiés
+
+- `packages/map_editor/lib/src/ui/panels/element_collision_editor_sheet.dart`
+
+## 9. Fichiers explicitement non modifiés
+
+- `packages/map_core/lib/src/collision/player_collision_conventions_v1.dart`
+- `packages/map_core/lib/src/collision/pixel_rect.dart`
+- `packages/map_core/lib/map_core.dart`
+- `packages/map_gameplay/**`
+- `packages/map_runtime/**`
+- `packages/map_battle/**`
+- `examples/**`
+- `packages/map_editor/lib/src/infrastructure/repositories/file_repositories.dart`
+- `packages/map_editor/lib/src/application/collision_generation/**`
+- fichiers generated
+
+## 10. Tests ajoutés / modifiés
+
+Fichier créé :
+
+- `packages/map_editor/test/player_collision_hitbox_preview_test.dart`
+
+Tests ajoutés :
+
+- `uses PlayerCollisionConventionsV1 defaults`
+- `explains the foot hitbox without saying the full sprite blocks`
+- `centers hitbox for custom sprite size`
+
+Aucun test existant n’a été modifié.
+
+## 11. Commandes lancées
+
+Inventaire / audit :
+
+```bash
+git status --short --untracked-files=all
+find . -path './.git' -prune -o -name AGENTS.md -print
+sed -n '1,220p' reports/collision/collision_lot_8_ui_truth_labels.md
+sed -n '1,220p' reports/collision/collision_lot_7_gameplay_legacy_fallback_hardening.md
+sed -n '1,220p' packages/map_core/lib/src/collision/player_collision_conventions_v1.dart
+sed -n '1,220p' packages/map_core/lib/src/collision/pixel_rect.dart
+sed -n '1,150p' packages/map_core/lib/map_core.dart
+rg -n "PlayerCollisionConventionsV1|playerCollision|foot|hitbox|PixelRect|collisionPreview|collisionProfile|truthSummary|Collision fine|Collision par grille" packages/map_core/lib packages/map_editor/lib packages/map_editor/test
+rg -n "collision/player_collision_conventions_v1|collision/pixel_rect|PlayerCollisionConventionsV1|PixelRect" packages/map_core/lib/map_core.dart packages/map_core/lib/src
+git diff --name-only
+git diff --stat
+```
+
+Tests / TDD :
+
+```bash
+cd packages/map_editor
+flutter test --no-pub --reporter compact test/element_collision_truth_summary_test.dart
+flutter test --no-pub --reporter expanded test/player_collision_hitbox_preview_test.dart
+flutter test --no-pub --reporter compact test/player_collision_hitbox_preview_test.dart test/element_collision_truth_summary_test.dart
+flutter test --no-pub --reporter compact test/element_collision_authoring_service_test.dart test/element_collision_shape_rasterizer_service_test.dart test/project_element_collision_persistence_test.dart test/project_element_collision_file_repository_roundtrip_test.dart
+flutter test --no-pub --reporter compact test/player_collision_hitbox_preview_test.dart test/element_collision_truth_summary_test.dart test/element_collision_authoring_service_test.dart test/element_collision_shape_rasterizer_service_test.dart test/project_element_collision_persistence_test.dart test/project_element_collision_file_repository_roundtrip_test.dart
+flutter test --no-pub --reporter compact
+```
+
+Analyse / format :
+
+```bash
+dart format packages/map_editor/lib/src/application/models/player_collision_hitbox_preview.dart packages/map_editor/test/player_collision_hitbox_preview_test.dart packages/map_editor/lib/src/ui/panels/element_collision_editor_sheet.dart
+cd packages/map_editor
+flutter analyze lib/src/application/models/player_collision_hitbox_preview.dart lib/src/ui/panels/element_collision_editor_sheet.dart test/player_collision_hitbox_preview_test.dart
+```
+
+## 12. Résultats des tests ciblés
+
+Baseline avant modification :
+
+```bash
+cd packages/map_editor
+flutter test --no-pub --reporter compact test/element_collision_truth_summary_test.dart
+```
+
+Sortie utile :
+
+```text
+00:01 +5: All tests passed!
+```
+
+RED TDD avant implémentation :
+
+```bash
+cd packages/map_editor
+flutter test --no-pub --reporter expanded test/player_collision_hitbox_preview_test.dart
+```
+
+Sortie utile :
+
+```text
+test/player_collision_hitbox_preview_test.dart:3:8: Error: Error when reading 'lib/src/application/models/player_collision_hitbox_preview.dart': No such file or directory
+Method not found: 'buildPlayerCollisionHitboxPreview'.
+00:00 +0 -1: Some tests failed.
+```
+
+Test du read-model après implémentation :
+
+```bash
+cd packages/map_editor
+flutter test --no-pub --reporter expanded test/player_collision_hitbox_preview_test.dart
+```
+
+Sortie utile :
+
+```text
+00:00 +3: All tests passed!
+```
+
+Tests read-model Collision-9 + résumé Collision-8 :
+
+```bash
+cd packages/map_editor
+flutter test --no-pub --reporter compact test/player_collision_hitbox_preview_test.dart test/element_collision_truth_summary_test.dart
+```
+
+Sortie utile :
+
+```text
+00:01 +8: All tests passed!
+```
+
+Tests ciblés collision editor :
+
+```bash
+cd packages/map_editor
+flutter test --no-pub --reporter compact test/element_collision_authoring_service_test.dart test/element_collision_shape_rasterizer_service_test.dart test/project_element_collision_persistence_test.dart test/project_element_collision_file_repository_roundtrip_test.dart
+```
+
+Sortie utile :
+
+```text
+00:02 +36: All tests passed!
+```
+
+Vérification ciblée finale groupée :
+
+```bash
+cd packages/map_editor
+flutter test --no-pub --reporter compact test/player_collision_hitbox_preview_test.dart test/element_collision_truth_summary_test.dart test/element_collision_authoring_service_test.dart test/element_collision_shape_rasterizer_service_test.dart test/project_element_collision_persistence_test.dart test/project_element_collision_file_repository_roundtrip_test.dart
+```
+
+Sortie utile :
+
+```text
+00:02 +44: All tests passed!
+```
+
+Suite complète `map_editor` :
+
+```bash
+cd packages/map_editor
+flutter test --no-pub --reporter compact
+```
+
+Sortie utile :
+
+```text
+01:45 +1431 -42: Some tests failed.
+```
+
+Échecs visibles dans la sortie capturée :
+
+- plusieurs tests UI/catalogues hors Collision-9 ne compilent pas à cause de `ProjectManifest(surfaceCatalog: ProjectSurfaceCatalog())` utilisé dans une expression `const` alors que `ProjectSurfaceCatalog()` n’est pas const ;
+- `test/environment_studio/tile_layer_environment_erase_mode_test.dart` échoue avec `EnvironmentMaskEditMode.erase` alors que le test attend `null` ;
+- `test/update_pokedex_species_learnset_use_case_test.dart` échoue avec une entrée `protect` absente du catalogue local de moves.
+
+Décision : ces échecs sont hors périmètre Collision-9 et ne sont pas modifiés dans ce lot.
+
+## 13. Analyse statique / format
+
+Format :
+
+```bash
+dart format packages/map_editor/lib/src/application/models/player_collision_hitbox_preview.dart packages/map_editor/test/player_collision_hitbox_preview_test.dart packages/map_editor/lib/src/ui/panels/element_collision_editor_sheet.dart
+```
+
+Sortie utile :
+
+```text
+Formatted packages/map_editor/lib/src/application/models/player_collision_hitbox_preview.dart
+Formatted 3 files (1 changed) in 0.02 seconds.
+```
+
+Analyse ciblée :
+
+```bash
+cd packages/map_editor
+flutter analyze lib/src/application/models/player_collision_hitbox_preview.dart lib/src/ui/panels/element_collision_editor_sheet.dart test/player_collision_hitbox_preview_test.dart
+```
+
+Sortie utile :
+
+```text
+Analyzing 3 items...
+No issues found! (ran in 2.1s)
+```
+
+## 14. Vérification du périmètre
+
+Commande :
+
+```bash
+git diff --name-only
+```
+
+Sortie avant création du rapport :
+
+```text
+packages/map_editor/lib/src/ui/panels/element_collision_editor_sheet.dart
+```
+
+Fichiers untracked créés par Collision-9 avant rapport :
+
+```text
+packages/map_editor/lib/src/application/models/player_collision_hitbox_preview.dart
+packages/map_editor/test/player_collision_hitbox_preview_test.dart
+```
+
+Contrôle :
+
+- Aucun fichier `packages/map_core/**` modifié.
+- Aucun fichier `packages/map_gameplay/**` modifié.
+- Aucun fichier `packages/map_runtime/**` modifié.
+- Aucun fichier `packages/map_battle/**` modifié.
+- Aucun fichier generated modifié.
+- Aucun fichier `FileProjectRepository` modifié.
+
+## 15. Git status final
+
+Commande :
+
+```bash
+git status --short --untracked-files=all
+```
+
+Sortie exacte :
+
+```text
+ M packages/map_editor/lib/src/ui/panels/element_collision_editor_sheet.dart
+?? packages/map_editor/lib/src/application/models/player_collision_hitbox_preview.dart
+?? packages/map_editor/test/player_collision_hitbox_preview_test.dart
+?? reports/collision/collision_lot_9_player_foot_hitbox_preview.md
+```
+
+## 16. git diff --stat
+
+Commande :
+
+```bash
+git diff --stat
+```
+
+Sortie avant création du rapport :
+
+```text
+ .../ui/panels/element_collision_editor_sheet.dart  | 142 ++++++++++++++++++++-
+ 1 file changed, 141 insertions(+), 1 deletion(-)
+```
+
+Note : `git diff --stat` ne liste pas les fichiers untracked ; ils sont listés dans le `git status` final.
+
+## 17. Risques / réserves
+
+Risque : la preview est pédagogique et non interactive.
+
+Impact : elle explique la hitbox joueur réelle, mais elle ne teste pas un déplacement contre la collision de l’élément dans l’éditeur.
+
+Décision Collision-9 : rester hors simulation, conformément au lot.
+
+Non vérifié.
+
+**Sujet :**
+Test widget de la carte `_PlayerFootHitboxPreviewCard`.
+
+**Raison :**
+La carte est un widget privé de la sheet ; le lot couvre le contrat par read-model testé et analyse statique, sans monter toute la sheet.
+
+**Impact :**
+Les textes et dimensions sont couverts par tests unitaires, mais la présence visuelle exacte dans l’arbre widget n’a pas de test dédié.
+
+**Comment vérifier dans Collision-10 :**
+Ajouter un test widget ciblé sur l’ouverture de la sheet collision ou extraire la carte si l’éditeur gagne une couche de tests UI dédiée aux previews pédagogiques.
+
+## 18. Préparation de Collision-10
+
+Collision-10 peut maintenant combiner :
+
+- source active de collision affichée par Collision-8 ;
+- hitbox joueur affichée par Collision-9 ;
+- bâtiment test / golden slice pour vérifier que l’auteur comprend à la fois la silhouette collisionnelle et la zone de contact du joueur.
+
+## 19. Auto-review finale
+
+- Ai-je limité le lot à `map_editor` ? Oui.
+- Ai-je évité `map_gameplay` ? Oui.
+- Ai-je évité `map_runtime` ? Oui.
+- Ai-je évité `FileProjectRepository` ? Oui.
+- Ai-je évité le normalizer ? Oui.
+- Ai-je évité `build_runner` et generated ? Oui.
+- Ai-je utilisé les conventions joueur existantes ? Oui, via `PlayerCollisionConventionsV1`.
+- Ai-je évité de hardcoder des valeurs fausses ? Oui, les dimensions viennent de `map_core`.
+- Ai-je expliqué que seule la zone aux pieds sert au déplacement ? Oui.
+- Ai-je évité de modifier la hitbox réelle ? Oui.
+- Ai-je ajouté des tests ciblés ? Oui, trois tests du read-model.
+- Ai-je gardé une UX compréhensible pour non-développeur ? Oui, la carte parle de `Hitbox joueur`, `zone aux pieds`, `déplacement` et `zone de contact`.
+
+## 20. Contenu complet des fichiers créés/modifiés
+
+### `packages/map_editor/lib/src/application/models/player_collision_hitbox_preview.dart`
+
+```dart
+import 'package:map_core/map_core.dart';
+
+final class PlayerCollisionHitboxPreview {
+  const PlayerCollisionHitboxPreview({
+    required this.spriteWidthPx,
+    required this.spriteHeightPx,
+    required this.hitboxLeftPx,
+    required this.hitboxTopPx,
+    required this.hitboxWidthPx,
+    required this.hitboxHeightPx,
+    required this.title,
+    required this.description,
+    required this.dimensionsLabel,
+    required this.positionLabel,
+  });
+
+  final int spriteWidthPx;
+  final int spriteHeightPx;
+  final int hitboxLeftPx;
+  final int hitboxTopPx;
+  final int hitboxWidthPx;
+  final int hitboxHeightPx;
+  final String title;
+  final String description;
+  final String dimensionsLabel;
+  final String positionLabel;
+}
+
+PlayerCollisionHitboxPreview buildPlayerCollisionHitboxPreview({
+  int spriteWidthPx = PlayerCollisionConventionsV1.defaultSpriteWidthPx,
+  int spriteHeightPx = PlayerCollisionConventionsV1.defaultSpriteHeightPx,
+}) {
+  final hitbox =
+      PlayerCollisionConventionsV1.playerCollisionRectFromSpriteTopLeft(
+    spriteTopLeftPx: const PixelPosition(leftPx: 0, topPx: 0),
+    spriteWidthPx: spriteWidthPx,
+    spriteHeightPx: spriteHeightPx,
+  );
+
+  return PlayerCollisionHitboxPreview(
+    spriteWidthPx: spriteWidthPx,
+    spriteHeightPx: spriteHeightPx,
+    hitboxLeftPx: hitbox.leftPx,
+    hitboxTopPx: hitbox.topPx,
+    hitboxWidthPx: hitbox.widthPx,
+    hitboxHeightPx: hitbox.heightPx,
+    title: 'Hitbox joueur',
+    description:
+        'Le déplacement utilise une petite zone aux pieds du personnage. '
+        'Ce rectangle touche réellement les collisions.',
+    dimensionsLabel: '${hitbox.widthPx} × ${hitbox.heightPx} px',
+    positionLabel: 'Zone de contact centrée en bas du sprite',
+  );
+}
+
+```
+
+### `packages/map_editor/test/player_collision_hitbox_preview_test.dart`
+
+```dart
+import 'package:flutter_test/flutter_test.dart';
+import 'package:map_core/map_core.dart';
+import 'package:map_editor/src/application/models/player_collision_hitbox_preview.dart';
+
+void main() {
+  group('buildPlayerCollisionHitboxPreview', () {
+    test('uses PlayerCollisionConventionsV1 defaults', () {
+      final preview = buildPlayerCollisionHitboxPreview();
+
+      expect(
+        preview.spriteWidthPx,
+        PlayerCollisionConventionsV1.defaultSpriteWidthPx,
+      );
+      expect(
+        preview.spriteHeightPx,
+        PlayerCollisionConventionsV1.defaultSpriteHeightPx,
+      );
+      expect(
+        preview.hitboxWidthPx,
+        PlayerCollisionConventionsV1.playerHitboxWidthPx,
+      );
+      expect(
+        preview.hitboxHeightPx,
+        PlayerCollisionConventionsV1.playerHitboxHeightPx,
+      );
+      expect(preview.hitboxLeftPx, 10);
+      expect(preview.hitboxTopPx, 24);
+    });
+
+    test('explains the foot hitbox without saying the full sprite blocks', () {
+      final preview = buildPlayerCollisionHitboxPreview();
+
+      expect(preview.title, 'Hitbox joueur');
+      expect(preview.description, contains('zone aux pieds'));
+      expect(preview.description, contains('déplacement'));
+      expect(preview.description, isNot(contains('tout le sprite bloque')));
+      expect(preview.dimensionsLabel, '12 × 8 px');
+      expect(preview.positionLabel, contains('centrée en bas'));
+    });
+
+    test('centers hitbox for custom sprite size', () {
+      final preview = buildPlayerCollisionHitboxPreview(
+        spriteWidthPx: 48,
+        spriteHeightPx: 40,
+      );
+
+      expect(preview.spriteWidthPx, 48);
+      expect(preview.spriteHeightPx, 40);
+      expect(preview.hitboxLeftPx, 18);
+      expect(preview.hitboxTopPx, 32);
+      expect(preview.hitboxWidthPx, 12);
+      expect(preview.hitboxHeightPx, 8);
+    });
+  });
+}
+
+```
+
+### Diff complet du fichier modifié `packages/map_editor/lib/src/ui/panels/element_collision_editor_sheet.dart`
+
+```diff
+diff --git a/packages/map_editor/lib/src/ui/panels/element_collision_editor_sheet.dart b/packages/map_editor/lib/src/ui/panels/element_collision_editor_sheet.dart
+index 79e3bd29..25607385 100644
+--- a/packages/map_editor/lib/src/ui/panels/element_collision_editor_sheet.dart
++++ b/packages/map_editor/lib/src/ui/panels/element_collision_editor_sheet.dart
+@@ -7,8 +7,9 @@ import 'package:flutter/material.dart' show Colors;
+ import 'package:macos_ui/macos_ui.dart';
+ import 'package:map_core/map_core.dart';
+ 
+-import '../../application/services/element_collision_authoring_service.dart';
+ import '../../application/models/element_collision_truth_summary.dart';
++import '../../application/models/player_collision_hitbox_preview.dart';
++import '../../application/services/element_collision_authoring_service.dart';
+ import '../../ui/shared/cupertino_editor_widgets.dart';
+ 
+ const ElementCollisionAuthoringService _authoringService =
+@@ -88,6 +89,7 @@ class _ElementCollisionEditorSheetState
+   Widget build(BuildContext context) {
+     final snapshot = _describe();
+     final truthSummary = summarizeElementCollisionTruth(_draftProfile);
++    final playerHitboxPreview = buildPlayerCollisionHitboxPreview();
+     final pendingPolygonPreviewCells = _buildPendingPolygonPreviewCells();
+     final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
+     final label = CupertinoColors.label.resolveFrom(context);
+@@ -189,6 +191,8 @@ class _ElementCollisionEditorSheetState
+                 ),
+                 const SizedBox(height: 14),
+                 _CollisionTruthBanner(summary: truthSummary),
++                const SizedBox(height: 10),
++                _PlayerFootHitboxPreviewCard(preview: playerHitboxPreview),
+                 const SizedBox(height: 14),
+                 Expanded(
+                   child: Row(
+@@ -929,6 +933,142 @@ class _CollisionTruthBanner extends StatelessWidget {
+   }
+ }
+ 
++class _PlayerFootHitboxPreviewCard extends StatelessWidget {
++  const _PlayerFootHitboxPreviewCard({required this.preview});
++
++  final PlayerCollisionHitboxPreview preview;
++
++  @override
++  Widget build(BuildContext context) {
++    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
++    final label = CupertinoColors.label.resolveFrom(context);
++    return Container(
++      padding: const EdgeInsets.all(12),
++      decoration: BoxDecoration(
++        color: Colors.blueAccent.withValues(alpha: 0.08),
++        borderRadius: BorderRadius.circular(12),
++        border: Border.all(
++          color: Colors.blueAccent.withValues(alpha: 0.30),
++        ),
++      ),
++      child: Row(
++        crossAxisAlignment: CrossAxisAlignment.center,
++        children: [
++          SizedBox(
++            width: 70,
++            height: 70,
++            child: CustomPaint(
++              painter: _PlayerFootHitboxPreviewPainter(preview),
++            ),
++          ),
++          const SizedBox(width: 12),
++          Expanded(
++            child: Column(
++              crossAxisAlignment: CrossAxisAlignment.start,
++              mainAxisSize: MainAxisSize.min,
++              children: [
++                Text(
++                  preview.title,
++                  style: TextStyle(
++                    color: label,
++                    fontSize: 13,
++                    fontWeight: FontWeight.w700,
++                  ),
++                ),
++                const SizedBox(height: 3),
++                Text(
++                  preview.description,
++                  style: TextStyle(color: secondary, fontSize: 11),
++                ),
++                const SizedBox(height: 5),
++                Wrap(
++                  spacing: 8,
++                  runSpacing: 6,
++                  children: [
++                    _LegendChip(
++                      label: preview.dimensionsLabel,
++                      color: Colors.blueAccent,
++                    ),
++                    _LegendChip(
++                      label: preview.positionLabel,
++                      color: Colors.lightBlueAccent,
++                    ),
++                  ],
++                ),
++              ],
++            ),
++          ),
++        ],
++      ),
++    );
++  }
++}
++
++class _PlayerFootHitboxPreviewPainter extends CustomPainter {
++  const _PlayerFootHitboxPreviewPainter(this.preview);
++
++  final PlayerCollisionHitboxPreview preview;
++
++  @override
++  void paint(Canvas canvas, Size size) {
++    final scale = math.min(
++      size.width / preview.spriteWidthPx,
++      size.height / preview.spriteHeightPx,
++    );
++    final spriteWidth = preview.spriteWidthPx * scale;
++    final spriteHeight = preview.spriteHeightPx * scale;
++    final spriteRect = Rect.fromLTWH(
++      (size.width - spriteWidth) / 2,
++      (size.height - spriteHeight) / 2,
++      spriteWidth,
++      spriteHeight,
++    );
++    final hitboxRect = Rect.fromLTWH(
++      spriteRect.left + preview.hitboxLeftPx * scale,
++      spriteRect.top + preview.hitboxTopPx * scale,
++      preview.hitboxWidthPx * scale,
++      preview.hitboxHeightPx * scale,
++    );
++
++    final spritePaint = Paint()
++      ..color = Colors.white.withValues(alpha: 0.08)
++      ..style = PaintingStyle.fill;
++    final spriteStroke = Paint()
++      ..color = Colors.white.withValues(alpha: 0.32)
++      ..style = PaintingStyle.stroke
++      ..strokeWidth = 1;
++    final hitboxPaint = Paint()
++      ..color = Colors.blueAccent.withValues(alpha: 0.38)
++      ..style = PaintingStyle.fill;
++    final hitboxStroke = Paint()
++      ..color = Colors.lightBlueAccent
++      ..style = PaintingStyle.stroke
++      ..strokeWidth = 1.5;
++
++    canvas.drawRRect(
++      RRect.fromRectAndRadius(spriteRect, const Radius.circular(8)),
++      spritePaint,
++    );
++    canvas.drawRRect(
++      RRect.fromRectAndRadius(spriteRect, const Radius.circular(8)),
++      spriteStroke,
++    );
++    canvas.drawRRect(
++      RRect.fromRectAndRadius(hitboxRect, const Radius.circular(3)),
++      hitboxPaint,
++    );
++    canvas.drawRRect(
++      RRect.fromRectAndRadius(hitboxRect, const Radius.circular(3)),
++      hitboxStroke,
++    );
++  }
++
++  @override
++  bool shouldRepaint(covariant _PlayerFootHitboxPreviewPainter oldDelegate) {
++    return oldDelegate.preview != preview;
++  }
++}
++
+ class ElementCollisionPaddingEditor extends StatelessWidget {
+   const ElementCollisionPaddingEditor({
+     super.key,
+
+```
+
+### Contenu complet du fichier modifié `packages/map_editor/lib/src/ui/panels/element_collision_editor_sheet.dart`
+
+```dart
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -11,15 +726,9 @@ import '../../application/models/element_collision_truth_summary.dart';
 import '../../application/models/player_collision_hitbox_preview.dart';
 import '../../application/services/element_collision_authoring_service.dart';
 import '../../ui/shared/cupertino_editor_widgets.dart';
-import '../../ui/widgets/element_collision_triple_mask_editor.dart';
 
 const ElementCollisionAuthoringService _authoringService =
     ElementCollisionAuthoringService();
-
-enum _ElementCollisionAuthoringMode {
-  grid,
-  fineMask,
-}
 
 Future<ElementCollisionProfile?> showElementCollisionEditorSheet({
   required BuildContext context,
@@ -80,7 +789,6 @@ class _ElementCollisionEditorSheetState
   bool _showBase = true;
   bool _showFinal = true;
   bool _showOverrides = true;
-  late _ElementCollisionAuthoringMode _authoringMode;
   final List<Offset> _pendingPolygon = <Offset>[];
   Offset? _lastBrushPoint;
   Offset? _hoverGridPoint;
@@ -90,9 +798,6 @@ class _ElementCollisionEditorSheetState
     super.initState();
     _draftProfile = widget.initialProfile;
     _draftPadding = widget.initialProfile?.padding ?? widget.fallbackPadding;
-    _authoringMode = widget.initialProfile?.collisionMask != null
-        ? _ElementCollisionAuthoringMode.fineMask
-        : _ElementCollisionAuthoringMode.grid;
   }
 
   @override
@@ -143,310 +848,246 @@ class _ElementCollisionEditorSheetState
                   onSave: () => Navigator.of(context).pop(_buildSavedProfile()),
                 ),
                 const SizedBox(height: 14),
-                if (_authoringMode == _ElementCollisionAuthoringMode.grid) ...[
-                  _EditorToolbar(
-                    tool: _tool,
-                    pendingPolygonCount: _pendingPolygon.length,
-                    onToolChanged: (tool) {
-                      setState(() {
-                        _tool = tool;
-                        _lastBrushPoint = null;
-                        _hoverGridPoint = null;
-                        if (!_isPolygonTool(tool)) {
-                          _pendingPolygon.clear();
-                        }
-                      });
-                    },
-                    onClosePolygon: _pendingPolygon.length >= 3
-                        ? _closeAndApplyPendingPolygon
-                        : null,
-                    onClearPolygon: _pendingPolygon.isNotEmpty
-                        ? () => setState(() {
-                              _pendingPolygon.clear();
-                              _hoverGridPoint = null;
-                            })
-                        : null,
-                    onResetOverrides: () {
-                      setState(() {
-                        final next = _authoringService.resetOverrides(
-                          source: widget.source,
-                          tileWidth: widget.tileWidth,
-                          tileHeight: widget.tileHeight,
-                          current: _draftProfile,
-                          fallbackPadding: _draftPadding,
-                        );
-                        _draftProfile = _preserveDraftMasks(next);
-                        _draftPadding = _draftProfile?.padding ?? _draftPadding;
-                      });
-                    },
-                    onRestoreBase: () {
-                      setState(() {
-                        final next = _authoringService.usePaddingAsPrimaryBase(
-                          source: widget.source,
-                          tileWidth: widget.tileWidth,
-                          tileHeight: widget.tileHeight,
-                          padding: _draftPadding,
-                        );
-                        _draftProfile = _preserveDraftMasks(next);
-                      });
-                    },
-                    onClearAll: () {
-                      setState(() {
-                        _draftProfile = _authoringService.clearAllCollision(
-                          source: widget.source,
-                          tileWidth: widget.tileWidth,
-                          tileHeight: widget.tileHeight,
-                          current: _draftProfile,
-                          fallbackPadding: _draftPadding,
-                        );
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                ],
-                _CollisionTruthBanner(summary: truthSummary),
-                const SizedBox(height: 10),
-                _PlayerFootHitboxPreviewCard(preview: playerHitboxPreview),
-                const SizedBox(height: 8),
-                _CollisionAuthoringModeSelector(
-                  mode: _authoringMode,
-                  onChanged: (mode) {
+                _EditorToolbar(
+                  tool: _tool,
+                  pendingPolygonCount: _pendingPolygon.length,
+                  onToolChanged: (tool) {
                     setState(() {
-                      _authoringMode = mode;
+                      _tool = tool;
                       _lastBrushPoint = null;
                       _hoverGridPoint = null;
-                      _pendingPolygon.clear();
+                      if (!_isPolygonTool(tool)) {
+                        _pendingPolygon.clear();
+                      }
+                    });
+                  },
+                  onClosePolygon: _pendingPolygon.length >= 3
+                      ? _closeAndApplyPendingPolygon
+                      : null,
+                  onClearPolygon: _pendingPolygon.isNotEmpty
+                      ? () => setState(() {
+                            _pendingPolygon.clear();
+                            _hoverGridPoint = null;
+                          })
+                      : null,
+                  onResetOverrides: () {
+                    setState(() {
+                      _draftProfile = _authoringService.resetOverrides(
+                        source: widget.source,
+                        tileWidth: widget.tileWidth,
+                        tileHeight: widget.tileHeight,
+                        current: _draftProfile,
+                        fallbackPadding: _draftPadding,
+                      );
+                      _draftPadding = _draftProfile?.padding ?? _draftPadding;
+                    });
+                  },
+                  onRestoreBase: () {
+                    setState(() {
+                      _draftProfile = _authoringService.usePaddingAsPrimaryBase(
+                        source: widget.source,
+                        tileWidth: widget.tileWidth,
+                        tileHeight: widget.tileHeight,
+                        padding: _draftPadding,
+                      );
+                    });
+                  },
+                  onClearAll: () {
+                    setState(() {
+                      _draftProfile = _authoringService.clearAllCollision(
+                        source: widget.source,
+                        tileWidth: widget.tileWidth,
+                        tileHeight: widget.tileHeight,
+                        current: _draftProfile,
+                        fallbackPadding: _draftPadding,
+                      );
                     });
                   },
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 14),
+                _CollisionTruthBanner(summary: truthSummary),
+                const SizedBox(height: 10),
+                _PlayerFootHitboxPreviewCard(preview: playerHitboxPreview),
+                const SizedBox(height: 14),
                 Expanded(
-                  child: _authoringMode ==
-                          _ElementCollisionAuthoringMode.fineMask
-                      ? CupertinoScrollbar(
-                          child: SingleChildScrollView(
-                            child: ElementCollisionTripleMaskEditor(
-                              image: widget.image,
-                              source: widget.source,
-                              tileWidth: widget.tileWidth,
-                              tileHeight: widget.tileHeight,
-                              profile: _draftProfile,
-                              draftPadding: _draftPadding,
-                              onProfileChanged: (next) {
-                                setState(() {
-                                  _draftProfile = next;
-                                  _draftPadding =
-                                      next?.padding ?? _draftPadding;
-                                });
-                              },
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: EditorChrome.largeIslandSurfaceColor(
+                              context,
+                              tint: Colors.white.withValues(alpha: 0.02),
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: CupertinoColors.separator
+                                  .resolveFrom(context),
                             ),
                           ),
-                        )
-                      : Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Expanded(
-                              child: Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: EditorChrome.largeIslandSurfaceColor(
-                                    context,
-                                    tint: Colors.white.withValues(alpha: 0.02),
-                                  ),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: CupertinoColors.separator
-                                        .resolveFrom(context),
-                                  ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Text(
-                                          'Forme de collision',
-                                          style: TextStyle(
-                                            color: label,
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w700,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Flexible(
-                                          child: Text(
-                                            _tool.helpLabel,
-                                            textAlign: TextAlign.right,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              color: secondary,
-                                              fontSize: 11,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    'Forme de collision',
+                                    style: TextStyle(
+                                      color: label,
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w700,
                                     ),
-                                    const SizedBox(height: 12),
-                                    Expanded(
-                                      child: LayoutBuilder(
-                                        builder: (context, canvasConstraints) {
-                                          final canvasSize = Size(
-                                            canvasConstraints.maxWidth,
-                                            canvasConstraints.maxHeight,
-                                          );
-                                          return MouseRegion(
-                                            cursor: _tool ==
-                                                    _ElementCollisionEditorTool
-                                                        .preview
-                                                ? SystemMouseCursors.basic
-                                                : SystemMouseCursors.precise,
-                                            onHover: (event) {
-                                              final next = _localToGridPoint(
-                                                event.localPosition,
-                                                canvasSize,
-                                              );
-                                              if (next == _hoverGridPoint) {
-                                                return;
-                                              }
-                                              setState(
-                                                  () => _hoverGridPoint = next);
-                                            },
-                                            onExit: (_) {
-                                              if (_hoverGridPoint != null) {
-                                                setState(() =>
-                                                    _hoverGridPoint = null);
-                                              }
-                                            },
-                                            child: GestureDetector(
-                                              behavior: HitTestBehavior.opaque,
-                                              onTapUp: (details) =>
-                                                  _handleCanvasTap(
-                                                      details.localPosition,
-                                                      canvasSize),
-                                              onDoubleTapDown: (details) =>
-                                                  _handleCanvasDoubleTap(
-                                                details.localPosition,
-                                                canvasSize,
-                                              ),
-                                              onPanStart: (details) =>
-                                                  _handleCanvasPanStart(
-                                                details.localPosition,
-                                                canvasSize,
-                                              ),
-                                              onPanUpdate: (details) =>
-                                                  _handleCanvasPanUpdate(
-                                                details.localPosition,
-                                                canvasSize,
-                                              ),
-                                              onPanEnd: (_) =>
-                                                  _lastBrushPoint = null,
-                                              child: DecoratedBox(
-                                                decoration: BoxDecoration(
-                                                  borderRadius:
-                                                      BorderRadius.circular(14),
-                                                  color: Colors.black
-                                                      .withValues(alpha: 0.14),
-                                                  border: Border.all(
-                                                    color: CupertinoColors
-                                                        .separator
-                                                        .resolveFrom(context),
-                                                  ),
-                                                ),
-                                                child: CustomPaint(
-                                                  painter:
-                                                      _ElementCollisionCanvasPainter(
-                                                    image: widget.image,
-                                                    source: widget.source,
-                                                    tileWidth: widget.tileWidth,
-                                                    tileHeight:
-                                                        widget.tileHeight,
-                                                    snapshot: snapshot,
-                                                    showGrid: _showGrid,
-                                                    showBase: _showBase,
-                                                    showFinal: _showFinal,
-                                                    showOverrides:
-                                                        _showOverrides,
-                                                    pendingPolygon:
-                                                        _pendingPolygon,
-                                                    pendingPolygonPreviewCells:
-                                                        pendingPolygonPreviewCells,
-                                                    hoverGridPoint:
-                                                        _hoverGridPoint,
-                                                    highlightPolygonClosure:
-                                                        _shouldHighlightPolygonClosure,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
+                                  ),
+                                  const Spacer(),
+                                  Text(
+                                    _tool.helpLabel,
+                                    style: TextStyle(
+                                      color: secondary,
+                                      fontSize: 11,
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
-                            ),
-                            const SizedBox(width: 14),
-                            SizedBox(
-                              width: 320,
-                              child: CupertinoScrollbar(
-                                child: SingleChildScrollView(
-                                  child: _EditorSidebar(
-                                    source: widget.source,
-                                    snapshot: snapshot,
-                                    truthSummary: truthSummary,
-                                    showGrid: _showGrid,
-                                    showBase: _showBase,
-                                    showFinal: _showFinal,
-                                    showOverrides: _showOverrides,
-                                    pendingPolygonPreviewCount:
-                                        pendingPolygonPreviewCells.length,
-                                    onShowGridChanged: (value) =>
-                                        setState(() => _showGrid = value),
-                                    onShowBaseChanged: (value) =>
-                                        setState(() => _showBase = value),
-                                    onShowFinalChanged: (value) =>
-                                        setState(() => _showFinal = value),
-                                    onShowOverridesChanged: (value) =>
-                                        setState(() => _showOverrides = value),
-                                    paddingEditor:
-                                        ElementCollisionPaddingEditor(
-                                      padding: _draftPadding,
-                                      usesManualPrimaryShape:
-                                          snapshot.usesManualPrimaryShape,
-                                      maxHorizontal: math.max(
-                                          0,
-                                          widget.source.width *
-                                                  widget.tileWidth -
-                                              1),
-                                      maxVertical: math.max(
-                                          0,
-                                          widget.source.height *
-                                                  widget.tileHeight -
-                                              1),
-                                      onChanged: (next) {
-                                        setState(() {
-                                          _draftPadding = next;
-                                          final recalculated = _authoringService
-                                              .recalculateFromPadding(
-                                            source: widget.source,
-                                            tileWidth: widget.tileWidth,
-                                            tileHeight: widget.tileHeight,
-                                            padding: next,
-                                            current: _draftProfile,
-                                          );
-                                          _draftProfile =
-                                              _preserveDraftMasks(recalculated);
-                                        });
+                              const SizedBox(height: 12),
+                              Expanded(
+                                child: LayoutBuilder(
+                                  builder: (context, canvasConstraints) {
+                                    final canvasSize = Size(
+                                      canvasConstraints.maxWidth,
+                                      canvasConstraints.maxHeight,
+                                    );
+                                    return MouseRegion(
+                                      cursor: _tool ==
+                                              _ElementCollisionEditorTool
+                                                  .preview
+                                          ? SystemMouseCursors.basic
+                                          : SystemMouseCursors.precise,
+                                      onHover: (event) {
+                                        final next = _localToGridPoint(
+                                          event.localPosition,
+                                          canvasSize,
+                                        );
+                                        if (next == _hoverGridPoint) {
+                                          return;
+                                        }
+                                        setState(() => _hoverGridPoint = next);
                                       },
-                                    ),
-                                  ),
+                                      onExit: (_) {
+                                        if (_hoverGridPoint != null) {
+                                          setState(
+                                              () => _hoverGridPoint = null);
+                                        }
+                                      },
+                                      child: GestureDetector(
+                                        behavior: HitTestBehavior.opaque,
+                                        onTapUp: (details) => _handleCanvasTap(
+                                            details.localPosition, canvasSize),
+                                        onDoubleTapDown: (details) =>
+                                            _handleCanvasDoubleTap(
+                                          details.localPosition,
+                                          canvasSize,
+                                        ),
+                                        onPanStart: (details) =>
+                                            _handleCanvasPanStart(
+                                          details.localPosition,
+                                          canvasSize,
+                                        ),
+                                        onPanUpdate: (details) =>
+                                            _handleCanvasPanUpdate(
+                                          details.localPosition,
+                                          canvasSize,
+                                        ),
+                                        onPanEnd: (_) => _lastBrushPoint = null,
+                                        child: DecoratedBox(
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(14),
+                                            color: Colors.black
+                                                .withValues(alpha: 0.14),
+                                            border: Border.all(
+                                              color: CupertinoColors.separator
+                                                  .resolveFrom(context),
+                                            ),
+                                          ),
+                                          child: CustomPaint(
+                                            painter:
+                                                _ElementCollisionCanvasPainter(
+                                              image: widget.image,
+                                              source: widget.source,
+                                              tileWidth: widget.tileWidth,
+                                              tileHeight: widget.tileHeight,
+                                              snapshot: snapshot,
+                                              showGrid: _showGrid,
+                                              showBase: _showBase,
+                                              showFinal: _showFinal,
+                                              showOverrides: _showOverrides,
+                                              pendingPolygon: _pendingPolygon,
+                                              pendingPolygonPreviewCells:
+                                                  pendingPolygonPreviewCells,
+                                              hoverGridPoint: _hoverGridPoint,
+                                              highlightPolygonClosure:
+                                                  _shouldHighlightPolygonClosure,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
+                      ),
+                      const SizedBox(width: 14),
+                      SizedBox(
+                        width: 320,
+                        child: _EditorSidebar(
+                          source: widget.source,
+                          snapshot: snapshot,
+                          truthSummary: truthSummary,
+                          showGrid: _showGrid,
+                          showBase: _showBase,
+                          showFinal: _showFinal,
+                          showOverrides: _showOverrides,
+                          pendingPolygonPreviewCount:
+                              pendingPolygonPreviewCells.length,
+                          onShowGridChanged: (value) =>
+                              setState(() => _showGrid = value),
+                          onShowBaseChanged: (value) =>
+                              setState(() => _showBase = value),
+                          onShowFinalChanged: (value) =>
+                              setState(() => _showFinal = value),
+                          onShowOverridesChanged: (value) =>
+                              setState(() => _showOverrides = value),
+                          paddingEditor: ElementCollisionPaddingEditor(
+                            padding: _draftPadding,
+                            usesManualPrimaryShape:
+                                snapshot.usesManualPrimaryShape,
+                            maxHorizontal: math.max(
+                                0, widget.source.width * widget.tileWidth - 1),
+                            maxVertical: math.max(0,
+                                widget.source.height * widget.tileHeight - 1),
+                            onChanged: (next) {
+                              setState(() {
+                                _draftPadding = next;
+                                _draftProfile =
+                                    _authoringService.recalculateFromPadding(
+                                  source: widget.source,
+                                  tileWidth: widget.tileWidth,
+                                  tileHeight: widget.tileHeight,
+                                  padding: next,
+                                  current: _draftProfile,
+                                );
+                              });
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -482,7 +1123,7 @@ class _ElementCollisionEditorSheetState
 
   ElementCollisionProfile _buildSavedProfile() {
     final snapshot = _describe();
-    final rebuilt = _authoringService.rebuild(
+    return _authoringService.rebuild(
       source: widget.source,
       tileWidth: widget.tileWidth,
       tileHeight: widget.tileHeight,
@@ -491,24 +1132,6 @@ class _ElementCollisionEditorSheetState
       shapeCells: snapshot.shapeCells,
       manualAddedCells: snapshot.manualAddedCells,
       manualRemovedCells: snapshot.manualRemovedCells,
-    );
-    return _preserveDraftMasks(rebuilt);
-  }
-
-  ElementCollisionProfile _preserveDraftMasks(ElementCollisionProfile next) {
-    final current = _draftProfile;
-    if (current == null) {
-      return next;
-    }
-    if (current.visualMask == null &&
-        current.collisionMask == null &&
-        current.occlusionMask == null) {
-      return next;
-    }
-    return next.copyWith(
-      visualMask: current.visualMask,
-      collisionMask: current.collisionMask,
-      occlusionMask: current.occlusionMask,
     );
   }
 
@@ -521,7 +1144,7 @@ class _ElementCollisionEditorSheetState
       return;
     }
     setState(() {
-      final next = _authoringService.applyPolygon(
+      _draftProfile = _authoringService.applyPolygon(
         source: widget.source,
         tileWidth: widget.tileWidth,
         tileHeight: widget.tileHeight,
@@ -530,7 +1153,6 @@ class _ElementCollisionEditorSheetState
         current: _draftProfile,
         fallbackPadding: _draftPadding,
       );
-      _draftProfile = _preserveDraftMasks(next);
       _pendingPolygon.clear();
       _hoverGridPoint = null;
     });
@@ -561,7 +1183,7 @@ class _ElementCollisionEditorSheetState
       return;
     }
     setState(() {
-      final next = _authoringService.applyBrushStroke(
+      _draftProfile = _authoringService.applyBrushStroke(
         source: widget.source,
         tileWidth: widget.tileWidth,
         tileHeight: widget.tileHeight,
@@ -570,7 +1192,6 @@ class _ElementCollisionEditorSheetState
         current: _draftProfile,
         fallbackPadding: _draftPadding,
       );
-      _draftProfile = _preserveDraftMasks(next);
     });
   }
 
@@ -600,7 +1221,7 @@ class _ElementCollisionEditorSheetState
       return;
     }
     setState(() {
-      final next = _authoringService.applyBrushStroke(
+      _draftProfile = _authoringService.applyBrushStroke(
         source: widget.source,
         tileWidth: widget.tileWidth,
         tileHeight: widget.tileHeight,
@@ -609,7 +1230,6 @@ class _ElementCollisionEditorSheetState
         current: _draftProfile,
         fallbackPadding: _draftPadding,
       );
-      _draftProfile = _preserveDraftMasks(next);
     });
   }
 
@@ -631,7 +1251,7 @@ class _ElementCollisionEditorSheetState
       return;
     }
     setState(() {
-      final next = _authoringService.applyBrushStroke(
+      _draftProfile = _authoringService.applyBrushStroke(
         source: widget.source,
         tileWidth: widget.tileWidth,
         tileHeight: widget.tileHeight,
@@ -640,7 +1260,6 @@ class _ElementCollisionEditorSheetState
         current: _draftProfile,
         fallbackPadding: _draftPadding,
       );
-      _draftProfile = _preserveDraftMasks(next);
       _lastBrushPoint = gridPoint;
     });
   }
@@ -958,59 +1577,6 @@ class _EditorSidebar extends StatelessWidget {
               color: secondary,
               fontSize: 11,
             ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _CollisionAuthoringModeSelector extends StatelessWidget {
-  const _CollisionAuthoringModeSelector({
-    required this.mode,
-    required this.onChanged,
-  });
-
-  final _ElementCollisionAuthoringMode mode;
-  final ValueChanged<_ElementCollisionAuthoringMode> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final secondary = CupertinoColors.secondaryLabel.resolveFrom(context);
-    return Row(
-      children: [
-        CupertinoSlidingSegmentedControl<_ElementCollisionAuthoringMode>(
-          groupValue: mode,
-          children: const {
-            _ElementCollisionAuthoringMode.grid: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              child: Text(
-                'Collision par grille',
-                style: TextStyle(fontSize: 11),
-              ),
-            ),
-            _ElementCollisionAuthoringMode.fineMask: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              child: Text(
-                'Masque fin',
-                style: TextStyle(fontSize: 11),
-              ),
-            ),
-          },
-          onValueChanged: (next) {
-            if (next != null) {
-              onChanged(next);
-            }
-          },
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            mode == _ElementCollisionAuthoringMode.fineMask
-                ? 'Masque pixel fin : priorité gameplay.'
-                : 'Grille : fallback et retouches coarse.',
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: secondary, fontSize: 11),
           ),
         ),
       ],
@@ -1921,3 +2487,5 @@ enum _ElementCollisionEditorTool {
   final String helpLabel;
   final ElementCollisionAuthoringOperation? operation;
 }
+
+```

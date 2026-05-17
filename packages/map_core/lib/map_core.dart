@@ -84,6 +84,7 @@ export 'src/operations/surface_studio_read_model.dart';
 export 'src/operations/tall_grass_authoring_view.dart';
 export 'src/operations/path_animation_rules.dart';
 export 'src/operations/element_collision_mask_codec.dart';
+export 'src/operations/element_collision_profile_normalizer.dart';
 export 'src/collision/pixel_rect.dart';
 export 'src/collision/player_collision_conventions_v1.dart';
 export 'src/operations/map_layers.dart';
