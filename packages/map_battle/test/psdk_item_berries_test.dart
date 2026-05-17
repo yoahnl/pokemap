@@ -155,6 +155,138 @@ void main() {
         hasLength(1),
       );
     });
+
+    test('type-resisting berries reduce matching damage and consume once', () {
+      final baseline = _runPlayerMove(
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+        playerMove: _move(id: 'ember', type: 'fire', power: 80),
+      );
+      final occa = _runPlayerMove(
+        opponentHeldItemId: 'occa_berry',
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+        playerMove: _move(id: 'ember', type: 'fire', power: 80),
+      );
+      final neutral = _runPlayerMove(
+        opponentHeldItemId: 'occa_berry',
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        playerMove: _move(id: 'ember', type: 'fire', power: 80),
+      );
+      final neutralBaseline = _runPlayerMove(
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        playerMove: _move(id: 'ember', type: 'fire', power: 80),
+      );
+      final chilan = _runPlayerMove(
+        opponentHeldItemId: 'chilan_berry',
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        playerMove: _move(id: 'tackle', type: 'normal', power: 80),
+      );
+      final chilanBaseline = _runPlayerMove(
+        opponentTypes: const PsdkBattleTypes(primary: 'normal'),
+        playerMove: _move(id: 'tackle', type: 'normal', power: 80),
+      );
+
+      expect(_damage(occa, moveId: 'ember'),
+          lessThan(_damage(baseline, moveId: 'ember')));
+      expect(occa.state.battlerAt(psdkOpponentSlot).heldItemId, isNull);
+      expect(
+          occa.state.battlerAt(psdkOpponentSlot).consumedItemId, 'occa_berry');
+      expect(_itemEventsFromTurn(occa).single.itemId, 'occa_berry');
+      expect(_damage(neutral, moveId: 'ember'),
+          _damage(neutralBaseline, moveId: 'ember'));
+      expect(
+          neutral.state.battlerAt(psdkOpponentSlot).heldItemId, 'occa_berry');
+      expect(_damage(chilan, moveId: 'tackle'),
+          lessThan(_damage(chilanBaseline, moveId: 'tackle')));
+      expect(chilan.state.battlerAt(psdkOpponentSlot).consumedItemId,
+          'chilan_berry');
+    });
+
+    test('Enigma Berry heals after a super-effective hit and consumes', () {
+      final result = _runPlayerMove(
+        opponentHeldItemId: 'enigma_berry',
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+        playerMove: _move(id: 'flamethrower', type: 'fire', power: 120),
+        opponentCurrentHp: 160,
+        opponentMaxHp: 200,
+      );
+
+      final opponent = result.state.battlerAt(psdkOpponentSlot);
+      expect(opponent.heldItemId, isNull);
+      expect(opponent.consumedItemId, 'enigma_berry');
+      expect(
+          _healEventsFromTurn(result, moveId: 'item:enigma_berry')
+              .single
+              .amount,
+          50);
+      expect(_itemEventsFromTurn(result).single.itemId, 'enigma_berry');
+    });
+
+    test('Jaboca and Rowap punish matching incoming categories', () {
+      final jaboca = _runPlayerMove(
+        opponentHeldItemId: 'jaboca_berry',
+        playerMove: _move(id: 'slash', type: 'normal', power: 80),
+      );
+      final rowap = _runPlayerMove(
+        opponentHeldItemId: 'rowap_berry',
+        playerMove: _move(
+          id: 'swift',
+          type: 'normal',
+          power: 80,
+          category: PsdkBattleMoveCategory.special,
+        ),
+      );
+      final wrongCategory = _runPlayerMove(
+        opponentHeldItemId: 'jaboca_berry',
+        playerMove: _move(
+          id: 'swift',
+          type: 'normal',
+          power: 80,
+          category: PsdkBattleMoveCategory.special,
+        ),
+      );
+
+      expect(jaboca.state.battlerAt(psdkPlayerSlot).currentHp, 88);
+      expect(jaboca.state.battlerAt(psdkOpponentSlot).consumedItemId,
+          'jaboca_berry');
+      expect(rowap.state.battlerAt(psdkPlayerSlot).currentHp, 88);
+      expect(rowap.state.battlerAt(psdkOpponentSlot).consumedItemId,
+          'rowap_berry');
+      expect(wrongCategory.state.battlerAt(psdkPlayerSlot).currentHp, 100);
+      expect(
+          wrongCategory.state.battlerAt(psdkOpponentSlot).heldItemId, isNull);
+      expect(wrongCategory.state.battlerAt(psdkOpponentSlot).consumedItemId,
+          'jaboca_berry');
+    });
+
+    test('Kee and Maranga raise defense stats after matching hits', () {
+      final kee = _runPlayerMove(
+        opponentHeldItemId: 'kee_berry',
+        playerMove: _move(id: 'slash', type: 'normal', power: 80),
+      );
+      final maranga = _runPlayerMove(
+        opponentHeldItemId: 'maranga_berry',
+        playerMove: _move(
+          id: 'swift',
+          type: 'normal',
+          power: 80,
+          category: PsdkBattleMoveCategory.special,
+        ),
+      );
+
+      expect(kee.state.battlerAt(psdkOpponentSlot).consumedItemId, 'kee_berry');
+      expect(
+          kee.state.battlerAt(psdkOpponentSlot).statStages.valueOf('defense'),
+          1);
+      expect(maranga.state.battlerAt(psdkOpponentSlot).consumedItemId,
+          'maranga_berry');
+      expect(
+        maranga.state
+            .battlerAt(psdkOpponentSlot)
+            .statStages
+            .valueOf('specialDefense'),
+        1,
+      );
+    });
   });
 }
 
@@ -182,6 +314,33 @@ BattleHandlerResult _damagePlayer({
     rawDamage: rawDamage,
     move: BattleMoveDefinition.fromPsdk(_move(id: 'tackle', power: 40)),
   );
+}
+
+PsdkBattleTurnResult _runPlayerMove({
+  required PsdkBattleMoveData playerMove,
+  String? opponentHeldItemId,
+  PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
+  int opponentCurrentHp = 100,
+  int opponentMaxHp = 100,
+}) {
+  final engine = PsdkBattleEngine(
+    setup: BattleEngineSetup.singles(
+      player: _combatant(
+        id: 'player',
+        move: playerMove,
+      ),
+      opponent: _combatant(
+        id: 'opponent',
+        heldItemId: opponentHeldItemId,
+        types: opponentTypes,
+        currentHp: opponentCurrentHp,
+        maxHp: opponentMaxHp,
+        move: _move(id: 'opponent_wait', type: 'normal', power: 0),
+      ),
+      rngSeeds: _seeds.psdkSeeds,
+    ).psdkSetup,
+  );
+  return engine.submit(const PsdkBattleDecision.fight(moveSlot: 0));
 }
 
 BattleHandlerResult _tickEndTurn({
@@ -245,6 +404,8 @@ PsdkBattleCombatantSetup _combatant({
   required String id,
   required PsdkBattleMoveData move,
   String? heldItemId,
+  PsdkBattleTypes types = const PsdkBattleTypes(primary: 'normal'),
+  int maxHp = 100,
   int currentHp = 100,
 }) {
   return PsdkBattleCombatantSetup(
@@ -252,9 +413,9 @@ PsdkBattleCombatantSetup _combatant({
     speciesId: id,
     displayName: id,
     level: 20,
-    maxHp: 100,
+    maxHp: maxHp,
     currentHp: currentHp,
-    types: const PsdkBattleTypes(primary: 'normal'),
+    types: types,
     stats: const PsdkBattleStats(
       attack: 50,
       defense: 50,
@@ -269,16 +430,19 @@ PsdkBattleCombatantSetup _combatant({
 
 PsdkBattleMoveData _move({
   required String id,
+  String type = 'normal',
   required int power,
+  PsdkBattleMoveCategory? category,
 }) {
   return PsdkBattleMoveData(
     id: id,
     dbSymbol: id,
     name: id,
-    type: 'normal',
-    category: power > 0
-        ? PsdkBattleMoveCategory.physical
-        : PsdkBattleMoveCategory.status,
+    type: type,
+    category: category ??
+        (power > 0
+            ? PsdkBattleMoveCategory.physical
+            : PsdkBattleMoveCategory.status),
     power: power,
     accuracy: 100,
     pp: 35,
@@ -316,5 +480,28 @@ List<PsdkBattleStatusCureEvent> _statusCureEvents(
 List<PsdkBattleStatStageEvent> _statEvents(BattleHandlerResult result) {
   return result.events
       .whereType<PsdkBattleStatStageEvent>()
+      .toList(growable: false);
+}
+
+int _damage(PsdkBattleTurnResult result, {required String moveId}) {
+  return result.timeline.events
+      .whereType<PsdkBattleDamageEvent>()
+      .where((event) => event.moveId == moveId)
+      .fold<int>(0, (total, event) => total + event.damage);
+}
+
+List<PsdkBattleHealEvent> _healEventsFromTurn(
+  PsdkBattleTurnResult result, {
+  required String moveId,
+}) {
+  return result.timeline.events
+      .whereType<PsdkBattleHealEvent>()
+      .where((event) => event.moveId == moveId)
+      .toList(growable: false);
+}
+
+List<PsdkBattleItemEvent> _itemEventsFromTurn(PsdkBattleTurnResult result) {
+  return result.timeline.events
+      .whereType<PsdkBattleItemEvent>()
       .toList(growable: false);
 }

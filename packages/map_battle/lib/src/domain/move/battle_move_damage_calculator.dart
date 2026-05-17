@@ -403,6 +403,9 @@ int _applyHeldItemFinalDamageModifiers(
   for (final effect in context.user.activeItemEffects) {
     multiplier *= effect.damageFinalMultiplier(itemContext);
   }
+  for (final effect in context.target.activeItemEffects) {
+    multiplier *= effect.damageFinalMultiplier(itemContext);
+  }
   if (multiplier == 1.0) {
     return damage;
   }

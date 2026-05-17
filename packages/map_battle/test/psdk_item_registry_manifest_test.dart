@@ -263,6 +263,45 @@ void main() {
       }
     });
 
+    test('Lot 120 berry consumption effects are promoted item-by-item', () {
+      final byId = {
+        for (final entry in psdkItemEffectManifest) entry.itemId: entry,
+      };
+      final registry = ItemEffectRegistry();
+
+      for (final itemId in <String>[
+        'babiri_berry',
+        'charti_berry',
+        'chilan_berry',
+        'chople_berry',
+        'coba_berry',
+        'colbur_berry',
+        'enigma_berry',
+        'haban_berry',
+        'jaboca_berry',
+        'kasib_berry',
+        'kebia_berry',
+        'kee_berry',
+        'maranga_berry',
+        'occa_berry',
+        'passho_berry',
+        'payapa_berry',
+        'rindo_berry',
+        'roseli_berry',
+        'rowap_berry',
+        'shuca_berry',
+        'tanga_berry',
+        'wacan_berry',
+        'yache_berry',
+      ]) {
+        expect(byId[itemId]!.status, PsdkItemPortStatus.ported, reason: itemId);
+        expect(registry.statusOf(itemId), PsdkItemPortStatus.ported,
+            reason: itemId);
+        expect(registry.create(itemId, owner: psdkPlayerSlot), isNotNull,
+            reason: itemId);
+      }
+    });
+
     test('item lifecycle snapshots distinguish held, consumed, and removed',
         () {
       final held = BattleItemLifecycleSnapshot.fromBattler(

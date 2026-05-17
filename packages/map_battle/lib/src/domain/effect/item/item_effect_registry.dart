@@ -245,6 +245,35 @@ final Map<String, ItemEffectFactory> _berryFactories =
         scope: scope,
         stat: 'random',
       ),
+  for (final entry in _typeResistingBerryTypes.entries)
+    entry.key: ({required scope}) => TypeResistingBerryEffect(
+          itemId: entry.key,
+          scope: scope,
+          resistedType: entry.value,
+        ),
+  'enigma_berry': ({required scope}) => EnigmaBerryEffect(scope: scope),
+  'jaboca_berry': ({required scope}) => RetaliateBerryEffect(
+        itemId: 'jaboca_berry',
+        scope: scope,
+        triggerCategory: PsdkBattleMoveCategory.physical,
+      ),
+  'rowap_berry': ({required scope}) => RetaliateBerryEffect(
+        itemId: 'rowap_berry',
+        scope: scope,
+        triggerCategory: PsdkBattleMoveCategory.special,
+      ),
+  'kee_berry': ({required scope}) => HitStatBerryEffect(
+        itemId: 'kee_berry',
+        scope: scope,
+        triggerCategory: PsdkBattleMoveCategory.physical,
+        stat: 'defense',
+      ),
+  'maranga_berry': ({required scope}) => HitStatBerryEffect(
+        itemId: 'maranga_berry',
+        scope: scope,
+        triggerCategory: PsdkBattleMoveCategory.special,
+        stat: 'specialDefense',
+      ),
 };
 
 final Map<String, ItemEffectFactory> _heldItemModifierFactories =
@@ -503,6 +532,27 @@ const _gemTypes = <String, String>{
   'dark_gem': 'dark',
   'steel_gem': 'steel',
   'fairy_gem': 'fairy',
+};
+
+const _typeResistingBerryTypes = <String, String>{
+  'occa_berry': 'fire',
+  'passho_berry': 'water',
+  'wacan_berry': 'electric',
+  'rindo_berry': 'grass',
+  'yache_berry': 'ice',
+  'chople_berry': 'fighting',
+  'kebia_berry': 'poison',
+  'shuca_berry': 'ground',
+  'coba_berry': 'flying',
+  'payapa_berry': 'psychic',
+  'tanga_berry': 'bug',
+  'charti_berry': 'rock',
+  'kasib_berry': 'ghost',
+  'haban_berry': 'dragon',
+  'colbur_berry': 'dark',
+  'babiri_berry': 'steel',
+  'chilan_berry': 'normal',
+  'roseli_berry': 'fairy',
 };
 
 const _evioliteEligibleSpecies = <String>{
