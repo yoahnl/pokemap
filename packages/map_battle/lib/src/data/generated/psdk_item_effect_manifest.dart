@@ -37,15 +37,27 @@ List<PsdkItemEffectManifestEntry> _buildPsdkItemEffectManifest() {
       PsdkItemEffectManifestEntry(
         itemId: itemId,
         rubyPath: rubyPath,
-        status: dartEffect == null
-            ? PsdkItemPortStatus.missing
-            : PsdkItemPortStatus.partial,
+        status: _itemStatus(itemId, dartEffect),
         dartEffect: dartEffect,
       ),
     );
   }
   return List<PsdkItemEffectManifestEntry>.unmodifiable(entries);
 }
+
+PsdkItemPortStatus _itemStatus(String itemId, String? dartEffect) {
+  if (_portedItemEffects.contains(itemId)) {
+    return PsdkItemPortStatus.ported;
+  }
+  return dartEffect == null
+      ? PsdkItemPortStatus.missing
+      : PsdkItemPortStatus.partial;
+}
+
+const _portedItemEffects = <String>{
+  'black_sludge',
+  'leftovers',
+};
 
 const _dartItemEffects = <String, String>{
   'air_balloon': 'AirBalloonEffect',

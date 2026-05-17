@@ -6,8 +6,8 @@ Total effect classes: 482
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 101 |
-| `partial` | 48 |
+| `ported` | 103 |
+| `partial` | 46 |
 | `missing` | 333 |
 
 | Effect | Ruby base | Family | Hooks | Hook families | Ruby path | Dart target | Status | Notes |
@@ -56,7 +56,7 @@ Total effect classes: 482
 | `BigPecks` | `Ability` | `ability` | `on_stat_decrease_prevention` | `stat_change` | `06 Effects/04 Ability Effects/100 Big Pecks.rb` | `lib/src/domain/effect/ability/big_pecks_effect.dart` | `missing` | `-` |
 | `BigRoot` | `Item` | `item` | `on_pre_drain` | `drain` | `06 Effects/05 Item Effects/100 Big Root.rb` | `lib/src/domain/effect/item/big_root_effect.dart` | `partial` | `-` |
 | `Bind` | `PokemonTiedEffectBase` | `move` | `on_delete`, `on_end_turn_event`, `on_switch_event`, `on_switch_prevention` | `end_turn`, `lifecycle`, `switch` | `06 Effects/02 Move Effects/001 Bind.rb` | `lib/src/domain/effect/move/bind_effect.dart` | `ported` | Object-backed BindEffect prevents regular switch attempts, applies residual end-turn damage, honors Magic Guard, Grip Claw and Binding Band, stops when the origin fainted, and is Rapid Spin-cleanable. |
-| `BlackSludge` | `Item` | `item` | `on_end_turn_event` | `end_turn` | `06 Effects/05 Item Effects/100 Black Sludge.rb` | `lib/src/domain/effect/item/black_sludge_effect.dart` | `partial` | `-` |
+| `BlackSludge` | `Item` | `item` | `on_end_turn_event` | `end_turn` | `06 Effects/05 Item Effects/100 Black Sludge.rb` | `lib/src/domain/effect/item/black_sludge_effect.dart` | `ported` | `-` |
 | `BlueOrb` | `RedOrb` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 PrimalOrbs.rb` | `lib/src/domain/effect/item/blue_orb_effect.dart` | `missing` | `-` |
 | `BoostingMoveType` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 BoostingMoveType.rb` | `lib/src/domain/effect/ability/boosting_move_type_effect.dart` | `ported` | `-` |
 | `Bulletproof` | `Ability` | `ability` | `on_move_ability_immunity` | `ability_immunity` | `06 Effects/04 Ability Effects/100 Bulletproof.rb` | `lib/src/domain/effect/ability/bulletproof_effect.dart` | `missing` | `-` |
@@ -224,7 +224,7 @@ Total effect classes: 482
 | `LaxIncense` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Lax Incense.rb` | `lib/src/domain/effect/item/lax_incense_effect.dart` | `missing` | `-` |
 | `LeafGuard` | `Ability` | `ability` | `on_status_prevention` | `status_prevention` | `06 Effects/04 Ability Effects/100 Leaf Guard.rb` | `lib/src/domain/effect/ability/leaf_guard_effect.dart` | `missing` | `-` |
 | `LeechSeed` | `PositionTiedEffectBase` | `move` | `-` | `-` | `06 Effects/02 Move Effects/001 LeechSeed.rb` | `lib/src/domain/effect/move/leech_seed_effect.dart` | `ported` | Object-backed LeechSeedEffect drains at end turn, checks Grass/Substitute duplicate immunity in the move behavior, skips Magic Guard, punishes the source through Liquid Ooze, honors Big Root and transfers through Baton Pass. |
-| `Leftovers` | `Item` | `item` | `on_end_turn_event` | `end_turn` | `06 Effects/05 Item Effects/100 Leftovers.rb` | `lib/src/domain/effect/item/leftovers_effect.dart` | `partial` | `-` |
+| `Leftovers` | `Item` | `item` | `on_end_turn_event` | `end_turn` | `06 Effects/05 Item Effects/100 Leftovers.rb` | `lib/src/domain/effect/item/leftovers_effect.dart` | `ported` | `-` |
 | `LeppaBerry` | `Berry` | `item` | `on_end_turn_event` | `end_turn` | `06 Effects/05 Item Effects/100 Leppa Berry.rb` | `lib/src/domain/effect/item/leppa_berry_effect.dart` | `missing` | `-` |
 | `Libero` | `Ability` | `ability` | `on_pre_accuracy_check` | `accuracy` | `06 Effects/04 Ability Effects/100 Libero - Protean.rb` | `lib/src/domain/effect/ability/libero_effect.dart` | `missing` | `-` |
 | `LifeOrb` | `Item` | `item` | `on_end_turn_event`, `on_post_action_event`, `on_post_damage` | `action_order`, `end_turn`, `post_damage` | `06 Effects/05 Item Effects/100 Life Orb.rb` | `lib/src/domain/effect/item/life_orb_effect.dart` | `partial` | `-` |

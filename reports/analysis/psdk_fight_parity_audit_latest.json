@@ -9295,8 +9295,8 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 101,
-      "partial": 48,
+      "ported": 103,
+      "partial": 46,
       "missing": 333
     },
     "byFamilyAndStatus": {
@@ -9311,8 +9311,8 @@
         "missing": 49
       },
       "item": {
-        "ported": 0,
-        "partial": 37,
+        "ported": 2,
+        "partial": 35,
         "missing": 50
       },
       "status": {
@@ -9599,7 +9599,7 @@
       {
         "effectName": "BlackSludge",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Black Sludge.rb"
       },
       {
@@ -10607,7 +10607,7 @@
       {
         "effectName": "Leftovers",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Leftovers.rb"
       },
       {

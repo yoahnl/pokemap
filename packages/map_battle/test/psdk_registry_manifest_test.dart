@@ -157,8 +157,7 @@ void main() {
       }
     });
 
-    test('effect parity mirrors ported ability and partial item manifests',
-        () async {
+    test('effect parity mirrors ported ability and item manifests', () async {
       final effectEntries = await loadPsdkEffectParityEntries(
         Directory('../../pokemonsdk-development/scripts/5 Battle'),
       );
@@ -181,7 +180,11 @@ void main() {
       );
       expect(
         byFamilyAndName['item:Leftovers']?.status,
-        PsdkPortStatus.partial,
+        PsdkPortStatus.ported,
+      );
+      expect(
+        byFamilyAndName['item:BlackSludge']?.status,
+        PsdkPortStatus.ported,
       );
       expect(
         byFamilyAndName['item:AirBalloon']?.status,
