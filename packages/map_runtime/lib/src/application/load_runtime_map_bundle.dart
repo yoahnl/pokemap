@@ -39,9 +39,8 @@ Future<ProjectManifest> loadProjectManifestFromFile(String manifestPath) async {
     final manifest = _normalizeProjectElementCollisionProfiles(
       ProjectManifest.fromJson(migrated),
     );
-    final normalized = applyElementAutoShadowPolicyToProject(manifest).project;
-    ProjectValidator.validate(normalized);
-    return normalized;
+    ProjectValidator.validate(manifest);
+    return manifest;
   } catch (e) {
     throw ProjectLoadException('Failed to load project: $e');
   }

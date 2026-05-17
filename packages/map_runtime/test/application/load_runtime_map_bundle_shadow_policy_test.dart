@@ -7,36 +7,10 @@ import 'package:map_runtime/src/application/load_runtime_map_bundle.dart';
 import 'package:path/path.dart' as p;
 
 void main() {
-  group('loadProjectManifestFromFile shadow policy', () {
-    test('clears recognized obsolete auto shadows in memory', () async {
+  group('loadProjectManifestFromFile authored shadow manifest', () {
+    test('keeps missing shadow configs absent at runtime load', () async {
       final root =
-          await Directory.systemTemp.createTemp('runtime_shadow_policy_');
-      addTearDown(() => root.delete(recursive: true));
-      final manifestPath = p.join(root.path, 'project.json');
-      await File(manifestPath).writeAsString(
-        jsonEncode(
-          _project(
-            elements: [
-              _element(
-                id: 'small',
-                width: 2,
-                height: 2,
-                shadow: _oldAutoSmallSquareShadow(),
-              ),
-            ],
-            shadowCatalog: _defaultCatalog(),
-          ).toJson(),
-        ),
-      );
-
-      final manifest = await loadProjectManifestFromFile(manifestPath);
-
-      expect(manifest.elements.single.shadow, isNull);
-    });
-
-    test('applies eligible missing auto shadows in memory', () async {
-      final root =
-          await Directory.systemTemp.createTemp('runtime_shadow_policy_');
+          await Directory.systemTemp.createTemp('runtime_shadow_manifest_');
       addTearDown(() => root.delete(recursive: true));
       final manifestPath = p.join(root.path, 'project.json');
       await File(manifestPath).writeAsString(
@@ -52,11 +26,34 @@ void main() {
 
       final manifest = await loadProjectManifestFromFile(manifestPath);
 
-      expect(manifest.elements.single.shadow, isNotNull);
-      expect(
-        manifest.elements.single.shadow!.shadowProfileId,
-        'default-ground-contact-blob',
+      expect(manifest.elements.single.shadow, isNull);
+    });
+
+    test('preserves recognized old auto shadows as authored data', () async {
+      final oldAutoShadow = _oldAutoSmallSquareShadow();
+      final root =
+          await Directory.systemTemp.createTemp('runtime_shadow_manifest_');
+      addTearDown(() => root.delete(recursive: true));
+      final manifestPath = p.join(root.path, 'project.json');
+      await File(manifestPath).writeAsString(
+        jsonEncode(
+          _project(
+            elements: [
+              _element(
+                id: 'small',
+                width: 2,
+                height: 2,
+                shadow: oldAutoShadow,
+              ),
+            ],
+            shadowCatalog: _defaultCatalog(),
+          ).toJson(),
+        ),
       );
+
+      final manifest = await loadProjectManifestFromFile(manifestPath);
+
+      expect(manifest.elements.single.shadow, oldAutoShadow);
     });
 
     test('preserves manual and disabled shadows', () async {
@@ -66,7 +63,7 @@ void main() {
       );
       final disabled = ProjectElementShadowConfig(castsShadow: false);
       final root =
-          await Directory.systemTemp.createTemp('runtime_shadow_policy_');
+          await Directory.systemTemp.createTemp('runtime_shadow_manifest_');
       addTearDown(() => root.delete(recursive: true));
       final manifestPath = p.join(root.path, 'project.json');
       await File(manifestPath).writeAsString(
@@ -104,7 +101,7 @@ ProjectManifest _project({
   required ProjectShadowCatalog shadowCatalog,
 }) {
   return ProjectManifest(
-    name: 'Runtime shadow policy test',
+    name: 'Runtime shadow manifest test',
     maps: const <ProjectMapEntry>[],
     tilesets: const <ProjectTilesetEntry>[
       ProjectTilesetEntry(
