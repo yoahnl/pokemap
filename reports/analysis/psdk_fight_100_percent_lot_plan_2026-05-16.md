@@ -1941,6 +1941,19 @@ with 65 / 330 methods ported.
 **Definition of done:**
 - Runtime bag battle behavior can delegate to `map_battle`.
 
+**Status 2026-05-17:** done for the battle-medicine slice. Added
+`BattleDecision.item`, `PsdkBattleItemAction`, HP-heal and status-cure item
+effects, and a focused `BattleItemActionHandler`. The turn runner now executes
+both normal `item` and `highPriorityItem` PSDK action buckets through the
+existing ordering model, so high-priority bag medicine resolves before regular
+moves while ordinary item actions keep their lower PSDK bucket. Successful item
+applications emit an item-consumption timeline event plus the concrete heal or
+status-cure event, and illegal targets fail atomically without mutating the
+turn. Capture balls and broad bag inventory ownership remain out of this lot;
+the runtime can delegate already-authorized Potion/medicine effects to
+`map_battle`. This action-topology lot does not change strict move-method
+coverage, which remains 267 / 728 attacks with 65 / 330 methods ported.
+
 ### Lot 62 - Mega and Form/Gimmick Actions
 
 **Goal:** decide and implement PSDK Mega/action gimmick parity if it belongs to project scope.

@@ -1,3 +1,4 @@
+import '../action/battle_action.dart';
 import '../battle/battle_context.dart';
 import '../move/battle_move_data.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
@@ -19,6 +20,13 @@ sealed class BattleDecision {
   const factory BattleDecision.switchPokemon({
     required int partyIndex,
   }) = BattleSwitchDecision;
+
+  const factory BattleDecision.item({
+    required String itemId,
+    required PsdkBattleSlotRef target,
+    required PsdkBattleItemActionEffect effect,
+    bool highPriority,
+  }) = BattleItemDecision;
 }
 
 final class BattleFightDecision extends BattleDecision {
@@ -37,6 +45,20 @@ final class BattleSwitchDecision extends BattleDecision {
   });
 
   final int partyIndex;
+}
+
+final class BattleItemDecision extends BattleDecision {
+  const BattleItemDecision({
+    required this.itemId,
+    required this.target,
+    required this.effect,
+    this.highPriority = false,
+  });
+
+  final String itemId;
+  final PsdkBattleSlotRef target;
+  final PsdkBattleItemActionEffect effect;
+  final bool highPriority;
 }
 
 enum BattleEngineDecisionRequestKind {
@@ -152,6 +174,7 @@ final class BattleEngineDecisionRequest {
         fightChoices.any((choice) => choice.moveSlot == moveSlot),
       BattleSwitchDecision(:final partyIndex) =>
         switchChoices.any((choice) => choice.partyIndex == partyIndex),
+      BattleItemDecision() => false,
     };
   }
 }

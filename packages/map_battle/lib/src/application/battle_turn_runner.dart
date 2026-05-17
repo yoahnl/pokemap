@@ -3,6 +3,7 @@ import '../domain/battle/battle_outcome.dart';
 import '../domain/battle/battle_slot.dart';
 import '../domain/action/battle_action.dart';
 import '../domain/action/battle_action_decision_mapper.dart';
+import '../domain/action/battle_item_action_handler.dart';
 import '../domain/action/battle_action_queue.dart';
 import '../domain/decision/battle_decision.dart';
 import '../domain/effect/ability/ability_effect.dart';
@@ -94,6 +95,15 @@ final class BattleTurnRunner {
     try {
       for (var actionIndex = 0; actionIndex < actions.length; actionIndex++) {
         final action = actions[actionIndex];
+        if (action is PsdkBattleItemAction) {
+          final item = _resolveItemAction(action);
+          _context.applyStateAndRng(
+            nextState: item.state,
+            nextRng: item.rng,
+          );
+          timeline.addPsdkAll(item.events);
+          continue;
+        }
         if (action is PsdkBattleSwitchAction) {
           final switched = _resolveSwitchAction(action);
           _context.applyStateAndRng(
@@ -423,6 +433,18 @@ final class BattleTurnRunner {
       ),
       target: action.user,
       partyIndex: action.partyIndex,
+    );
+  }
+
+  BattleHandlerResult _resolveItemAction(PsdkBattleItemAction action) {
+    return const BattleItemActionHandler().useItem(
+      context: BattleHandlerContext(
+        state: _context.state,
+        rng: _context.rng,
+        turn: _context.turnNumber,
+        user: action.user,
+      ),
+      action: action,
     );
   }
 

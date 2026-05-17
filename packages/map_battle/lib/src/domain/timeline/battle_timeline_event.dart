@@ -162,6 +162,7 @@ sealed class BattleTimelineEvent {
       return BattleItemTimelineEvent.consumed(
         turn: event.turn,
         user: _fromPsdkSlot(event.user),
+        target: event.target == null ? null : _fromPsdkSlot(event.target!),
         itemId: event.itemId,
       );
     }

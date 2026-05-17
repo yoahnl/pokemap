@@ -47,6 +47,62 @@ final class PsdkBattleSwitchAction extends PsdkBattleAction {
   final int partyIndex;
 }
 
+sealed class PsdkBattleItemActionEffect {
+  const PsdkBattleItemActionEffect();
+}
+
+final class PsdkBattleHpHealItemEffect extends PsdkBattleItemActionEffect {
+  const PsdkBattleHpHealItemEffect.flat(this.amount)
+      : restoreToFull = false,
+        assert(amount != null && amount > 0,
+            'HP-heal item amount must stay positive.');
+
+  const PsdkBattleHpHealItemEffect.full()
+      : amount = null,
+        restoreToFull = true;
+
+  final int? amount;
+  final bool restoreToFull;
+}
+
+final class PsdkBattleStatusCureItemEffect extends PsdkBattleItemActionEffect {
+  const PsdkBattleStatusCureItemEffect.only(
+    Set<PsdkBattleMajorStatus> statuses,
+  )   : statuses = statuses,
+        cureAny = false;
+
+  const PsdkBattleStatusCureItemEffect.any()
+      : statuses = const <PsdkBattleMajorStatus>{},
+        cureAny = true;
+
+  final Set<PsdkBattleMajorStatus> statuses;
+  final bool cureAny;
+
+  bool cures(PsdkBattleMajorStatus status) {
+    return cureAny || statuses.contains(status);
+  }
+}
+
+final class PsdkBattleItemAction extends PsdkBattleAction {
+  const PsdkBattleItemAction({
+    required PsdkBattleSlotRef user,
+    required this.itemId,
+    required this.target,
+    required this.effect,
+    this.highPriority = false,
+  }) : super(
+          kind: highPriority
+              ? PsdkBattleActionKind.highPriorityItem
+              : PsdkBattleActionKind.item,
+          user: user,
+        );
+
+  final String itemId;
+  final PsdkBattleSlotRef target;
+  final PsdkBattleItemActionEffect effect;
+  final bool highPriority;
+}
+
 final class PsdkBattleNoAction extends PsdkBattleAction {
   const PsdkBattleNoAction({
     required PsdkBattleSlotRef user,

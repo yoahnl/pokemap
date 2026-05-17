@@ -28,6 +28,19 @@ final class PsdkBattleActionDecisionMapper {
           user: user,
           partyIndex: partyIndex,
         ),
+      BattleItemDecision(
+        :final itemId,
+        :final target,
+        :final effect,
+        :final highPriority,
+      ) =>
+        PsdkBattleItemAction(
+          user: user,
+          itemId: itemId,
+          target: target,
+          effect: effect,
+          highPriority: highPriority,
+        ),
     };
   }
 
