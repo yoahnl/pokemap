@@ -1513,7 +1513,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Memento',
     rubyPath: '10 Move/2 Definitions/300 Memento.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_memento',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -1859,7 +1859,7 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     rubyClass: 'Present',
     rubyPath: '10 Move/2 Definitions/300 Present.rb',
     dartBehavior: 'StaticBasicMoveRegistry.s_present',
-    status: PsdkPortStatus.partial,
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(

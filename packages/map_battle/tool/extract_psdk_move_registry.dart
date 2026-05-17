@@ -141,7 +141,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_present': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_present',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_recycle': _KnownDartBehavior(
     dartBehavior: 'ItemDependentMoveBehavior.recycle',
@@ -606,7 +606,7 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_memento': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_memento',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_minimize': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_minimize)',

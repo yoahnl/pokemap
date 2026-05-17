@@ -3,8 +3,8 @@ import 'psdk_fight_parity_audit.dart';
 
 /// Non-regression gate based on the latest 2026-05-16 parity audit.
 const psdkLot02ParityGate = PsdkParityGatePolicy(
-  minimumStrictAttacks: 288,
-  minimumStrictMethods: 87,
+  minimumStrictAttacks: 290,
+  minimumStrictMethods: 89,
   minimumKnownOrPartialEffects: 25,
   maximumUnknownMethods: 0,
 );

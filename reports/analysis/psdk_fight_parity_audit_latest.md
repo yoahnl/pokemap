@@ -9,8 +9,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Metric | Count |
 | --- | ---: |
 | Studio attacks total | 728 |
-| Studio attacks `fait` | 288 |
-| Studio attacks `partiel` | 440 |
+| Studio attacks `fait` | 290 |
+| Studio attacks `partiel` | 438 |
 | Studio attacks `pas_fait` | 0 |
 | Unknown methods | 0 |
 | Unique battle engine methods | 258 |
@@ -116,7 +116,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_magnitude | 1 |
 | s_malicious_moonsault | 1 |
 | s_me_first | 1 |
-| s_memento | 1 |
 | s_metronome | 1 |
 | s_mimic | 1 |
 | s_mind_reader | 1 |
@@ -141,7 +140,6 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_pollen_puff | 1 |
 | s_powder | 1 |
 | s_power_swap | 1 |
-| s_present | 1 |
 | s_protect | 3 |
 | s_psych_up | 1 |
 | s_psycho_shift | 1 |
@@ -222,8 +220,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 87 |
-| `partial` | 243 |
+| `ported` | 89 |
+| `partial` | 241 |
 | `missing` | 0 |
 | Total manifest methods | 330 |
 
@@ -231,7 +229,7 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Dependency | Partial methods |
 | --- | ---: |
-| no_dependency_declared | 153 |
+| no_dependency_declared | 151 |
 | effects | 66 |
 | ability | 49 |
 | handlerDamage | 26 |

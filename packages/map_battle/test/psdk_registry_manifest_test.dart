@@ -469,10 +469,15 @@ void main() {
         byMethod['s_magnitude']!.dartBehavior,
         'StaticBasicMoveRegistry.s_magnitude',
       );
-      expect(byMethod['s_present']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_present']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_present']!.dartBehavior,
         'StaticBasicMoveRegistry.s_present',
+      );
+      expect(byMethod['s_memento']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_memento']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_memento',
       );
       expect(byMethod['s_glaive_rush']!.status, PsdkPortStatus.partial);
       expect(
@@ -934,10 +939,6 @@ void main() {
           method: 's_magnet_rise',
           behavior:
               'StaticBasicMoveRegistry.partialTargetMarker(s_magnet_rise)',
-        ),
-        (
-          method: 's_memento',
-          behavior: 'StaticBasicMoveRegistry.s_memento',
         ),
         (
           method: 's_metronome',

@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 288,
-    "partiel": 440,
+    "fait": 290,
+    "partiel": 438,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -3043,9 +3043,9 @@
       {
         "moveId": "memento",
         "battleEngineMethod": "s_memento",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/memento.json"
       },
       {
@@ -3723,9 +3723,9 @@
       {
         "moveId": "present",
         "battleEngineMethod": "s_present",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/present.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 87,
-      "partial": 243,
+      "ported": 89,
+      "partial": 241,
       "missing": 0
     },
     "entries": [
@@ -7348,7 +7348,7 @@
         "rubyClass": "Memento",
         "rubyPath": "10 Move/2 Definitions/300 Memento.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_memento",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -7694,7 +7694,7 @@
         "rubyClass": "Present",
         "rubyPath": "10 Move/2 Definitions/300 Present.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_present",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
