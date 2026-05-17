@@ -272,12 +272,24 @@ bool _isGrassyReducedMove(String dbSymbol) {
 }
 
 String _effectiveMoveType(BattleMoveDamageContext context) {
-  final moveType = context.move.type.toLowerCase();
+  var moveType = context.move.type.toLowerCase();
   if (context.user.effects.contains('electrify')) {
-    return 'electric';
+    moveType = 'electric';
+  } else if (_hasBattleEffect(context, 'ion_deluge') && moveType == 'normal') {
+    moveType = 'electric';
   }
-  if (_hasBattleEffect(context, 'ion_deluge') && moveType == 'normal') {
-    return 'electric';
+  for (final effect in context.user.abilityEffects) {
+    final overridden = effect.moveTypeOverride(
+      BattleAbilityMoveTypeContext(
+        user: context.user,
+        target: context.target,
+        move: context.move,
+        currentType: moveType,
+      ),
+    );
+    if (overridden != null) {
+      moveType = overridden;
+    }
   }
   return moveType;
 }

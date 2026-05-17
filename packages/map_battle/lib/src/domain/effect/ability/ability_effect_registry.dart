@@ -13,6 +13,7 @@ import 'damage_modifier_ability_effect.dart';
 import 'damp_effect.dart';
 import 'levitate_effect.dart';
 import 'move_shape_power_ability_effect.dart';
+import 'move_type_change_ability_effect.dart';
 import 'no_guard_effect.dart';
 import 'reckless_effect.dart';
 import 'residual_ability_effect.dart';
@@ -178,6 +179,44 @@ final class AbilityEffectRegistry {
           abilityId: 'rocky_payload',
           scope: scope,
           boostedType: 'rock',
+        ),
+    'aerilate': ({required scope}) => MoveTypeChangeAbilityEffect(
+          abilityId: 'aerilate',
+          scope: scope,
+          mode: AbilityMoveTypeChangeMode.normalToType,
+          convertedType: 'flying',
+          powerMultiplier: 1.3,
+        ),
+    'galvanize': ({required scope}) => MoveTypeChangeAbilityEffect(
+          abilityId: 'galvanize',
+          scope: scope,
+          mode: AbilityMoveTypeChangeMode.normalToType,
+          convertedType: 'electric',
+          powerMultiplier: 1.3,
+        ),
+    'pixilate': ({required scope}) => MoveTypeChangeAbilityEffect(
+          abilityId: 'pixilate',
+          scope: scope,
+          mode: AbilityMoveTypeChangeMode.normalToType,
+          convertedType: 'fairy',
+          powerMultiplier: 1.3,
+        ),
+    'refrigerate': ({required scope}) => MoveTypeChangeAbilityEffect(
+          abilityId: 'refrigerate',
+          scope: scope,
+          mode: AbilityMoveTypeChangeMode.normalToType,
+          convertedType: 'ice',
+          powerMultiplier: 1.3,
+        ),
+    'normalize': ({required scope}) => MoveTypeChangeAbilityEffect(
+          abilityId: 'normalize',
+          scope: scope,
+          mode: AbilityMoveTypeChangeMode.anyToNormal,
+        ),
+    'liquid_voice': ({required scope}) => MoveTypeChangeAbilityEffect(
+          abilityId: 'liquid_voice',
+          scope: scope,
+          mode: AbilityMoveTypeChangeMode.soundToWater,
         ),
     'technician': ({required scope}) => MoveShapePowerAbilityEffect(
           abilityId: 'technician',

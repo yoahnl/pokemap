@@ -9295,15 +9295,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 173,
+      "ported": 176,
       "partial": 19,
-      "missing": 290
+      "missing": 287
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 52,
+        "ported": 55,
         "partial": 2,
-        "missing": 200
+        "missing": 197
       },
       "move": {
         "ported": 69,
@@ -9796,7 +9796,7 @@
       {
         "effectName": "ChangingMoveType",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/051 ChangingMoveType.rb",
         "hookFamilies": [
           "move_type_change"
@@ -11239,7 +11239,7 @@
       {
         "effectName": "LiquidVoice",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Liquid Voice.rb",
         "hookFamilies": [
           "move_type_change"
@@ -11612,7 +11612,7 @@
       {
         "effectName": "Normalize",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Normalize.rb",
         "hookFamilies": [
           "move_type_change"

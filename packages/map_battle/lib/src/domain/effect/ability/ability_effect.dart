@@ -39,6 +39,8 @@ abstract class BattleAbilityEffect extends BattleEffect {
     return false;
   }
 
+  String? moveTypeOverride(BattleAbilityMoveTypeContext context) => null;
+
   double basePowerMultiplier(BattleAbilityMoveContext context) => 1;
 
   double damageBasePowerMultiplier(BattleAbilityDamageContext context) => 1;
@@ -86,6 +88,20 @@ final class BattleAbilityStatusContext {
   final PsdkBattleCombatant target;
   final PsdkBattleCombatant? launcher;
   final BattleMoveDefinition? move;
+}
+
+final class BattleAbilityMoveTypeContext {
+  const BattleAbilityMoveTypeContext({
+    required this.user,
+    required this.target,
+    required this.move,
+    required this.currentType,
+  });
+
+  final PsdkBattleCombatant user;
+  final PsdkBattleCombatant target;
+  final BattleMoveDefinition move;
+  final String currentType;
 }
 
 final class BattleAbilityDamageContext {
