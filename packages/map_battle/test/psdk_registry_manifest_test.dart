@@ -189,6 +189,42 @@ void main() {
       );
     });
 
+    test('effect parity promotes Lot 98 ability damage type accuracy batch',
+        () async {
+      final effectEntries = await loadPsdkEffectParityEntries(
+        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+      );
+      final byFamilyAndName = {
+        for (final entry in effectEntries)
+          '${entry.family}:${entry.effectName}': entry,
+      };
+
+      for (final effectName in <String>[
+        'BoostingMoveType',
+        'EarthEater',
+        'FlashFire',
+        'IronFist',
+        'LightningRod',
+        'MotorDrive',
+        'PunkRock',
+        'Reckless',
+        'RoughSkin',
+        'SapSipper',
+        'Sharpness',
+        'StormDrain',
+        'Technician',
+        'ToughClaws',
+        'VoltAbsorb',
+        'WaterAbsorb',
+      ]) {
+        expect(
+          byFamilyAndName['ability:$effectName']?.status,
+          PsdkPortStatus.ported,
+          reason: effectName,
+        );
+      }
+    });
+
     test('effect parity promotes exact major status lifecycle effects',
         () async {
       final effectEntries = await loadPsdkEffectParityEntries(
