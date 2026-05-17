@@ -20,7 +20,7 @@ void main() {
       );
     });
 
-    test('wide low needs enough surface', () {
+    test('wide low returns null under safe default policy', () {
       expect(
         buildElementAutoShadowSuggestion(
           element: _element(id: 'small-wide', width: 3, height: 2),
@@ -28,16 +28,17 @@ void main() {
         ),
         isNull,
       );
-      final suggestion = buildElementAutoShadowSuggestion(
-        element: _element(id: 'wide', width: 4, height: 2),
-        shadowCatalog: _defaultCatalog(),
-      );
 
-      expect(suggestion!.kind, ElementAutoShadowSuggestionKind.wideLow);
-      expect(suggestion.config.shadowProfileId, 'default-ground-wide-ellipse');
+      expect(
+        buildElementAutoShadowSuggestion(
+          element: _element(id: 'wide', width: 4, height: 2),
+          shadowCatalog: _defaultCatalog(),
+        ),
+        isNull,
+      );
     });
 
-    test('tall thin and building elements receive suggestions', () {
+    test('tall thin returns null while building receives suggestion', () {
       final tall = buildElementAutoShadowSuggestion(
         element: _element(id: 'lamp', width: 1, height: 4),
         shadowCatalog: _defaultCatalog(),
@@ -47,52 +48,36 @@ void main() {
         shadowCatalog: _defaultCatalog(),
       );
 
-      expect(tall!.kind, ElementAutoShadowSuggestionKind.tallThin);
-      expect(tall.config.family, StaticShadowFamily.tallProp);
+      expect(tall, isNull);
       expect(building!.kind, ElementAutoShadowSuggestionKind.buildingLarge);
       expect(building.config.family, StaticShadowFamily.building);
     });
 
-    test('Selbrume lamp proportions receive calibrated tall thin config', () {
+    test('Selbrume lamp proportions receive no automatic shadow', () {
       final suggestion = buildElementAutoShadowSuggestion(
         element: _element(id: 'lampadaire', width: 3, height: 5),
         shadowCatalog: _defaultCatalog(),
       );
 
-      expect(suggestion!.kind, ElementAutoShadowSuggestionKind.tallThin);
-      _expectConfig(
-        suggestion.config,
-        profileId: 'default-ground-contact-blob',
-        scaleX: 0.80,
-        scaleY: 0.55,
-        opacity: 0.30,
-        family: StaticShadowFamily.tallProp,
-        anchorXRatio: 0.5,
-        anchorYRatio: 1.0,
-        footprintWidthRatio: 0.28,
-        footprintHeightRatio: 0.05,
-      );
+      expect(suggestion, isNull);
     });
 
-    test('Selbrume wide barriers stay wide low instead of building', () {
+    test('Selbrume wide barriers receive no automatic shadow', () {
       final suggestion = buildElementAutoShadowSuggestion(
         element: _element(id: 'barriere_pierre', width: 13, height: 6),
         shadowCatalog: _defaultCatalog(),
       );
 
-      expect(suggestion!.kind, ElementAutoShadowSuggestionKind.wideLow);
-      _expectConfig(
-        suggestion.config,
-        profileId: 'default-ground-wide-ellipse',
-        scaleX: 0.74,
-        scaleY: 0.50,
-        opacity: 0.28,
-        family: StaticShadowFamily.compactProp,
-        anchorXRatio: 0.5,
-        anchorYRatio: 0.98,
-        footprintWidthRatio: 0.58,
-        footprintHeightRatio: 0.06,
+      expect(suggestion, isNull);
+    });
+
+    test('panneau-like small wide props receive no automatic shadow', () {
+      final suggestion = buildElementAutoShadowSuggestion(
+        element: _element(id: 'panneau', width: 3, height: 3),
+        shadowCatalog: _defaultCatalog(),
       );
+
+      expect(suggestion, isNull);
     });
 
     test('Selbrume houses receive calibrated building config', () {
@@ -165,11 +150,11 @@ void main() {
       expect(result.project.elements.single.shadow, isNull);
     });
 
-    test('backfill applies eligible missing shadows', () {
+    test('backfill applies eligible missing building shadows', () {
       final result = applyElementAutoShadowPolicyToProject(
         _project(
           elements: [
-            _element(id: 'lamp', width: 1, height: 4),
+            _element(id: 'house', width: 4, height: 3),
           ],
           shadowCatalog: const ProjectShadowCatalog.empty(),
         ),
@@ -181,7 +166,7 @@ void main() {
       expect(result.changedCount, 1);
       expect(
         result.project.elements.single.shadow!.shadowProfileId,
-        'default-ground-contact-blob',
+        'default-ground-wide-ellipse',
       );
     });
 
@@ -217,7 +202,8 @@ void main() {
       expect(result.project.elements[1].shadow, disabled);
     });
 
-    test('backfill replaces broad legacy Selbrume shadow without family', () {
+    test('backfill clears broad legacy Selbrume shadow without safe suggestion',
+        () {
       final result = applyElementAutoShadowPolicyToProject(
         _project(
           elements: [
@@ -232,24 +218,14 @@ void main() {
         ),
       );
 
-      expect(result.appliedCount, 1);
+      expect(result.appliedCount, 0);
+      expect(result.clearedCount, 1);
       expect(result.changedCount, 1);
       expect(
         result.entries.single.status,
-        ElementAutoShadowBackfillStatus.appliedGeneric,
+        ElementAutoShadowBackfillStatus.clearedAutoNoSuggestion,
       );
-      _expectConfig(
-        result.project.elements.single.shadow!,
-        profileId: 'default-ground-contact-blob',
-        scaleX: 0.80,
-        scaleY: 0.55,
-        opacity: 0.30,
-        family: StaticShadowFamily.tallProp,
-        anchorXRatio: 0.5,
-        anchorYRatio: 1.0,
-        footprintWidthRatio: 0.28,
-        footprintHeightRatio: 0.05,
-      );
+      expect(result.project.elements.single.shadow, isNull);
     });
 
     test('backfill replaces broad legacy Selbrume building shadow', () {
@@ -289,7 +265,8 @@ void main() {
       );
     });
 
-    test('backfill upgrades Shadow-53 auto shadows to Shadow-54 tuning', () {
+    test('backfill clears unsafe Shadow-53 auto shadows but keeps building',
+        () {
       final result = applyElementAutoShadowPolicyToProject(
         _project(
           elements: [
@@ -316,15 +293,20 @@ void main() {
         ),
       );
 
-      expect(result.appliedCount, 3);
+      expect(result.appliedCount, 1);
+      expect(result.clearedCount, 2);
       expect(result.changedCount, 3);
       expect(
         result.entries.map((entry) => entry.status),
-        everyElement(ElementAutoShadowBackfillStatus.appliedGeneric),
+        [
+          ElementAutoShadowBackfillStatus.clearedAutoNoSuggestion,
+          ElementAutoShadowBackfillStatus.appliedGeneric,
+          ElementAutoShadowBackfillStatus.clearedAutoNoSuggestion,
+        ],
       );
-      expect(result.project.elements[0].shadow!.opacity, 0.30);
+      expect(result.project.elements[0].shadow, isNull);
       expect(result.project.elements[1].shadow!.opacity, 0.32);
-      expect(result.project.elements[2].shadow!.opacity, 0.28);
+      expect(result.project.elements[2].shadow, isNull);
     });
   });
 }

@@ -5,7 +5,7 @@ import 'package:map_editor/src/application/shadow/element_auto_shadow_suggestion
 
 void main() {
   group('applyElementAutoShadowSuggestionsToProject', () {
-    test('applies suggestions to elements without shadow configs', () {
+    test('applies suggestions only to safe building elements', () {
       final project = _project(
         elements: [
           _element(id: 'lamp', name: 'Lamp', width: 1, height: 4),
@@ -16,30 +16,19 @@ void main() {
 
       final result = applyElementAutoShadowSuggestionsToProject(project);
 
-      expect(result.appliedCount, 2);
-      expect(result.skippedCount, 0);
+      expect(result.appliedCount, 1);
+      expect(result.skippedCount, 1);
       expect(result.hasChanges, isTrue);
       expect(result.addedDefaultProfiles, isFalse);
       expect(result.entries.map((entry) => entry.status), [
-        ElementAutoShadowBackfillStatus.appliedMissing,
+        ElementAutoShadowBackfillStatus.skippedNoSuggestion,
         ElementAutoShadowBackfillStatus.appliedMissing,
       ]);
       expect(result.entries.map((entry) => entry.suggestionKind), [
-        ElementAutoShadowSuggestionKind.tallThin,
+        null,
         ElementAutoShadowSuggestionKind.buildingLarge,
       ]);
-      expect(
-        result.project.elements[0].shadow!.shadowProfileId,
-        'default-ground-contact-blob',
-      );
-      expect(
-        result.project.elements[0].shadow!.family,
-        StaticShadowFamily.tallProp,
-      );
-      expect(
-        result.project.elements[0].shadow!.footprint!.footprintWidthRatio,
-        0.28,
-      );
+      expect(result.project.elements[0].shadow, isNull);
       expect(
         result.project.elements[1].shadow!.shadowProfileId,
         'default-ground-wide-ellipse',
@@ -54,7 +43,7 @@ void main() {
       );
     });
 
-    test('replaces generic pre-footprint active shadows', () {
+    test('clears unsafe generic pre-footprint active shadows', () {
       final project = _project(
         elements: [
           _element(
@@ -73,20 +62,13 @@ void main() {
 
       final result = applyElementAutoShadowSuggestionsToProject(project);
 
-      expect(result.appliedCount, 1);
+      expect(result.appliedCount, 0);
+      expect(result.clearedCount, 1);
       expect(
         result.entries.single.status,
-        ElementAutoShadowBackfillStatus.appliedGeneric,
+        ElementAutoShadowBackfillStatus.clearedAutoNoSuggestion,
       );
-      expect(result.project.elements.single.shadow!.footprint, isNotNull);
-      expect(
-        result.project.elements.single.shadow!.footprint!.footprintWidthRatio,
-        0.58,
-      );
-      expect(
-        result.project.elements.single.shadow!.shadowProfileId,
-        'default-ground-wide-ellipse',
-      );
+      expect(result.project.elements.single.shadow, isNull);
     });
 
     test('preserves disabled shadows', () {
@@ -308,7 +290,7 @@ void main() {
       expect(result.project.elements.single.shadow, customShadow);
     });
 
-    test('replaces generic shadows with missing profile ids', () {
+    test('clears unsafe generic shadows with missing profile ids', () {
       final project = _project(
         elements: [
           _element(
@@ -327,22 +309,20 @@ void main() {
 
       final result = applyElementAutoShadowSuggestionsToProject(project);
 
-      expect(result.appliedCount, 1);
+      expect(result.appliedCount, 0);
+      expect(result.clearedCount, 1);
       expect(
         result.entries.single.status,
-        ElementAutoShadowBackfillStatus.appliedGeneric,
+        ElementAutoShadowBackfillStatus.clearedAutoNoSuggestion,
       );
-      expect(
-        result.project.elements.single.shadow!.shadowProfileId,
-        'default-ground-contact-blob',
-      );
+      expect(result.project.elements.single.shadow, isNull);
     });
 
     test('adds default profiles when the catalog has no compatible profile',
         () {
       final project = _project(
         elements: [
-          _element(id: 'lamp', name: 'Lamp', width: 1, height: 4),
+          _element(id: 'house', name: 'House', width: 4, height: 3),
         ],
         shadowCatalog: const ProjectShadowCatalog.empty(),
       );
@@ -360,7 +340,7 @@ void main() {
       ]);
       expect(
         result.project.elements.single.shadow!.shadowProfileId,
-        'default-ground-contact-blob',
+        'default-ground-wide-ellipse',
       );
     });
 
@@ -424,7 +404,7 @@ void main() {
       expect(result.project.elements[0].tags, ['nature', 'tall']);
       expect(result.project.elements[0].sortOrder, 7);
       expect(result.project.elements[1].recommendedLayerId, 'decor_layer');
-      expect(result.project.elements[0].shadow, isNotNull);
+      expect(result.project.elements[0].shadow, isNull);
       expect(result.project.elements[1].shadow, isNotNull);
     });
 

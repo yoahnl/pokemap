@@ -264,11 +264,10 @@ bool _autoShadowKindIsArtisticallySafe(
   required double height,
 }) {
   switch (kind) {
-    case ElementAutoShadowSuggestionKind.tallThin:
     case ElementAutoShadowSuggestionKind.buildingLarge:
       return true;
+    case ElementAutoShadowSuggestionKind.tallThin:
     case ElementAutoShadowSuggestionKind.wideLow:
-      return width >= 4 || width * height >= 10;
     case ElementAutoShadowSuggestionKind.smallSquare:
     case ElementAutoShadowSuggestionKind.defaultProp:
       return false;
