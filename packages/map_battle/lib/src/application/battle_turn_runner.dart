@@ -12,6 +12,7 @@ import '../domain/handler/battle_end_turn_handler.dart';
 import '../domain/handler/battle_handler_context.dart';
 import '../domain/handler/battle_handler_result.dart';
 import '../domain/handler/battle_status_change_handler.dart';
+import '../domain/handler/battle_switch_handler.dart';
 import '../domain/move/battle_move_behavior.dart';
 import '../domain/move/battle_move_data.dart';
 import '../domain/move/battle_move_history_recorder.dart';
@@ -93,10 +94,25 @@ final class BattleTurnRunner {
     try {
       for (var actionIndex = 0; actionIndex < actions.length; actionIndex++) {
         final action = actions[actionIndex];
+        if (action is PsdkBattleSwitchAction) {
+          final switched = _resolveSwitchAction(action);
+          _context.applyStateAndRng(
+            nextState: switched.state,
+            nextRng: switched.rng,
+          );
+          timeline.addPsdkAll(switched.events);
+          final outcome = _context.resolveOutcome();
+          if (outcome != null) {
+            _context.finish(outcome);
+            timeline.add(BattleEndedTimelineEvent(outcome: outcome));
+            break;
+          }
+          continue;
+        }
         if (action is! PsdkBattleFightAction) {
           throw UnsupportedError(
-            'PSDK ${action.kind.name} actions need party/item topology before '
-            'they can execute.',
+            'PSDK ${action.kind.name} actions need item/shift/flee topology '
+            'before they can execute.',
           );
         }
         if (!_context.canBattleContinue) {
@@ -395,6 +411,19 @@ final class BattleTurnRunner {
       );
     }
     return result;
+  }
+
+  BattleHandlerResult _resolveSwitchAction(PsdkBattleSwitchAction action) {
+    return const BattleSwitchHandler().switchCombatant(
+      context: BattleHandlerContext(
+        state: _context.state,
+        rng: _context.rng,
+        turn: _context.turnNumber,
+        user: action.user,
+      ),
+      target: action.user,
+      partyIndex: action.partyIndex,
+    );
   }
 
   BattleStatusUserPreventionResult? _resolveStatusUserPrevention({

@@ -15,11 +15,17 @@ final class BattleEngineSetup {
     required PsdkBattleCombatantSetup opponent,
     required PsdkBattleRngSeeds rngSeeds,
     PsdkBattleFieldState field = const PsdkBattleFieldState(),
+    List<PsdkBattleCombatantSetup> playerReserves =
+        const <PsdkBattleCombatantSetup>[],
+    List<PsdkBattleCombatantSetup> opponentReserves =
+        const <PsdkBattleCombatantSetup>[],
   }) : _psdkSetup = PsdkBattleSetup.singles(
           player: player,
           opponent: opponent,
           rngSeeds: rngSeeds,
           field: field,
+          playerReserves: playerReserves,
+          opponentReserves: opponentReserves,
         );
 
   BattleEngineSetup.fromPsdk(PsdkBattleSetup setup) : _psdkSetup = setup {

@@ -1904,6 +1904,20 @@ ported.
 **Definition of done:**
 - Switch action is PSDK-compatible enough for trainer battles.
 
+**Status 2026-05-17:** done. Added bank party topology to
+`PsdkBattleSetup`, `BattleEngineSetup`, and `PsdkBattleState`, exposed legal
+reserve replacements in `BattleEngineDecisionRequest`, and executed
+`PsdkBattleSwitchAction` inside the turn runner before regular moves through
+the existing PSDK action ordering bucket. `BattleSwitchHandler` now validates
+party indexes, rejects active/fainted replacements, preserves outgoing HP while
+clearing switch-out volatile state, hydrates the incoming ability/item effects,
+then runs switch-in hazards and ability hooks. The regression suite covers
+legal switch choices, switch-before-move targeting, illegal switch rollback, and
+entry hazard plus Intimidate switch-in hooks. Pursuit-style pre-switch damage is
+still intentionally left for a later specialized attack/effect lot. This lot
+does not change strict move-method coverage, which remains 267 / 728 attacks
+with 65 / 330 methods ported.
+
 ### Lot 61 - Battle Item and High Priority Item Actions
 
 **Goal:** port PSDK item actions used during battle.

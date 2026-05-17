@@ -4,6 +4,7 @@ import '../../psdk/domain/psdk_battle_slots.dart';
 import '../../psdk/domain/psdk_battle_state.dart';
 import '../../psdk/domain/psdk_battle_timeline.dart';
 import '../battler/battle_grounding_resolver.dart';
+import '../battler/battle_transform_state.dart';
 import '../effect/ability/ability_effect.dart';
 import '../effect/battle_effect_hooks.dart';
 import '../effect/battle_effect.dart';
@@ -76,6 +77,110 @@ final class BattleSwitchHandler {
     return BattleHandlerResult(
       state: context.state,
       rng: context.rng,
+    );
+  }
+
+  BattleHandlerResult switchCombatant({
+    required BattleHandlerContext context,
+    required PsdkBattleSlotRef target,
+    required int partyIndex,
+  }) {
+    final party = context.state.partyForBank(target.bank);
+    if (partyIndex < 0 || partyIndex >= party.length) {
+      throw RangeError.range(partyIndex, 0, party.length - 1, 'partyIndex');
+    }
+
+    final active = context.state.battlerAt(target);
+    final replacement = party[partyIndex];
+    if (replacement.id == active.id) {
+      return BattleHandlerResult(
+        state: context.state,
+        rng: context.rng,
+        applied: false,
+        reason: 'already_active',
+      );
+    }
+    if (replacement.isFainted) {
+      return BattleHandlerResult(
+        state: context.state,
+        rng: context.rng,
+        applied: false,
+        reason: 'replacement_fainted',
+      );
+    }
+
+    final prevention = resolveSwitchPrevention(
+      context: context,
+      target: target,
+    );
+    if (!prevention.applied) {
+      return prevention;
+    }
+
+    final activePartyIndex = _activePartyIndex(
+      party: party,
+      active: active,
+      fallback: target.position,
+    );
+    final outgoing = _switchOutSnapshot(active);
+    final incoming = replacement
+        .copyWith(
+          switching: false,
+          hasJustShifted: false,
+          lastBattleTurn: context.turn,
+          lastSentTurn: context.turn,
+        )
+        .withAbilityEffect(target)
+        .withItemEffect(target);
+
+    final nextParty = <PsdkBattleCombatant>[...party];
+    nextParty[activePartyIndex] = outgoing;
+    nextParty[partyIndex] = incoming;
+
+    var state = context.state.copyWith(
+      combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+        ...context.state.combatants,
+        target: incoming,
+      },
+      parties: <int, List<PsdkBattleCombatant>>{
+        ...context.state.parties,
+        target.bank: nextParty,
+      },
+    );
+    var rng = context.rng;
+    final events = <PsdkBattleEvent>[];
+
+    final hazards = applyEntryHazards(
+      context: BattleHandlerContext(
+        state: state,
+        rng: rng,
+        turn: context.turn,
+        user: target,
+      ),
+      target: target,
+    );
+    state = hazards.state;
+    rng = hazards.rng;
+    events.addAll(hazards.events);
+
+    final switchEvents = dispatchSwitchEvents(
+      context: BattleHandlerContext(
+        state: state,
+        rng: rng,
+        turn: context.turn,
+        user: target,
+      ),
+      who: target,
+      replacement: target,
+    );
+    state = switchEvents.state;
+    rng = switchEvents.rng;
+    events.addAll(switchEvents.events);
+
+    return BattleHandlerResult(
+      state: state,
+      rng: rng,
+      events: events,
     );
   }
 
@@ -287,6 +392,33 @@ final class BattleSwitchHandler {
       reason: changed ? null : 'no_switch_events',
     );
   }
+}
+
+int _activePartyIndex({
+  required List<PsdkBattleCombatant> party,
+  required PsdkBattleCombatant active,
+  required int fallback,
+}) {
+  final index = party.indexWhere((battler) => battler.id == active.id);
+  if (index >= 0) {
+    return index;
+  }
+  if (fallback >= 0 && fallback < party.length) {
+    return fallback;
+  }
+  return 0;
+}
+
+PsdkBattleCombatant _switchOutSnapshot(PsdkBattleCombatant active) {
+  return active.copyWith(
+    statStages: PsdkBattleStatStages.neutral(),
+    effects: const PsdkBattleEffectStack.empty(),
+    switching: false,
+    hasJustShifted: false,
+    transformState: const PsdkBattleTransformState(),
+    temporaryTypes: const <String>[],
+    type3: null,
+  );
 }
 
 int _compareSlots(PsdkBattleSlotRef left, PsdkBattleSlotRef right) {

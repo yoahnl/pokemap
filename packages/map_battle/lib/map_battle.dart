@@ -204,6 +204,7 @@ export 'src/domain/decision/battle_decision.dart'
         BattleEngineDecisionRequestKind,
         BattleFightDecision,
         BattleMoveDecisionOption,
+        BattleSwitchDecisionOption,
         BattleSwitchDecision;
 export 'src/domain/timeline/battle_timeline.dart' show BattleTimeline;
 export 'src/domain/timeline/battle_timeline_builder.dart'

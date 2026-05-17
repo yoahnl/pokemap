@@ -9,29 +9,40 @@ import '../../domain/effect/ability/ability_effect.dart';
 class PsdkBattleState {
   PsdkBattleState({
     required Map<PsdkBattleSlotRef, PsdkBattleCombatant> combatants,
+    Map<int, List<PsdkBattleCombatant>>? parties,
     this.field = const PsdkBattleFieldState(),
     this.outcome,
-  }) : _combatants = Map<PsdkBattleSlotRef, PsdkBattleCombatant>.unmodifiable(
+  })  : _combatants = Map<PsdkBattleSlotRef, PsdkBattleCombatant>.unmodifiable(
           _hydrateCombatantAbilityEffects(combatants),
+        ),
+        _parties = _hydrateParties(
+          combatants: combatants,
+          parties: parties,
         );
 
   factory PsdkBattleState.fromSetup(PsdkBattleSetup setup) {
+    final combatants = <PsdkBattleSlotRef, PsdkBattleCombatant>{
+      psdkPlayerSlot: PsdkBattleCombatant.fromSetup(setup.player),
+      psdkOpponentSlot: PsdkBattleCombatant.fromSetup(setup.opponent),
+    };
     return PsdkBattleState(
-      combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
-        psdkPlayerSlot:
-            PsdkBattleCombatant.fromSetup(setup.player).withAbilityEffect(
-          psdkPlayerSlot,
-        ),
-        psdkOpponentSlot:
-            PsdkBattleCombatant.fromSetup(setup.opponent).withAbilityEffect(
-          psdkOpponentSlot,
-        ),
+      combatants: combatants,
+      parties: <int, List<PsdkBattleCombatant>>{
+        psdkPlayerSlot.bank: <PsdkBattleCombatant>[
+          for (final setup in setup.partyForBank(psdkPlayerSlot.bank))
+            PsdkBattleCombatant.fromSetup(setup),
+        ],
+        psdkOpponentSlot.bank: <PsdkBattleCombatant>[
+          for (final setup in setup.partyForBank(psdkOpponentSlot.bank))
+            PsdkBattleCombatant.fromSetup(setup),
+        ],
       },
       field: setup.field,
     );
   }
 
   final Map<PsdkBattleSlotRef, PsdkBattleCombatant> _combatants;
+  final Map<int, List<PsdkBattleCombatant>> _parties;
   final PsdkBattleFieldState field;
   final PsdkBattleOutcome? outcome;
 
@@ -41,6 +52,22 @@ class PsdkBattleState {
   /// rewrite state snapshots between turns.
   Map<PsdkBattleSlotRef, PsdkBattleCombatant> get combatants =>
       Map<PsdkBattleSlotRef, PsdkBattleCombatant>.unmodifiable(_combatants);
+
+  Map<int, List<PsdkBattleCombatant>> get parties =>
+      Map<int, List<PsdkBattleCombatant>>.unmodifiable(
+        _parties.map(
+          (bank, party) => MapEntry(
+            bank,
+            List<PsdkBattleCombatant>.unmodifiable(party),
+          ),
+        ),
+      );
+
+  List<PsdkBattleCombatant> partyForBank(int bank) {
+    return List<PsdkBattleCombatant>.unmodifiable(
+      _parties[bank] ?? const <PsdkBattleCombatant>[],
+    );
+  }
 
   PsdkBattleCombatant battlerAt(PsdkBattleSlotRef slot) {
     final combatant = _combatants[slot];
@@ -73,11 +100,13 @@ class PsdkBattleState {
 
   PsdkBattleState copyWith({
     Map<PsdkBattleSlotRef, PsdkBattleCombatant>? combatants,
+    Map<int, List<PsdkBattleCombatant>>? parties,
     PsdkBattleFieldState? field,
     PsdkBattleOutcome? outcome,
   }) {
     return PsdkBattleState(
       combatants: combatants ?? this.combatants,
+      parties: parties ?? this.parties,
       field: field ?? this.field,
       outcome: outcome ?? this.outcome,
     );
@@ -135,6 +164,41 @@ class PsdkBattleState {
   bool isWeatherEffectActive(PsdkBattleWeatherId id) {
     return !weatherEffectsSuppressed && field.isWeatherActive(id);
   }
+}
+
+Map<int, List<PsdkBattleCombatant>> _hydrateParties({
+  required Map<PsdkBattleSlotRef, PsdkBattleCombatant> combatants,
+  required Map<int, List<PsdkBattleCombatant>>? parties,
+}) {
+  final source = parties ?? _partiesFromCombatants(combatants);
+  return Map<int, List<PsdkBattleCombatant>>.unmodifiable(
+    source.map(
+      (bank, party) => MapEntry(
+        bank,
+        List<PsdkBattleCombatant>.unmodifiable(
+          party.map((battler) => battler.withItemEffect(_ownerFor(bank))),
+        ),
+      ),
+    ),
+  );
+}
+
+Map<int, List<PsdkBattleCombatant>> _partiesFromCombatants(
+  Map<PsdkBattleSlotRef, PsdkBattleCombatant> combatants,
+) {
+  final parties = <int, List<PsdkBattleCombatant>>{};
+  final entries = combatants.entries.toList()
+    ..sort((a, b) => _compareSlots(a.key, b.key));
+  for (final entry in entries) {
+    parties.putIfAbsent(entry.key.bank, () => <PsdkBattleCombatant>[]).add(
+          entry.value,
+        );
+  }
+  return parties;
+}
+
+PsdkBattleSlotRef _ownerFor(int bank) {
+  return PsdkBattleSlotRef(bank: bank, position: 0);
 }
 
 bool _isAdjacent(PsdkBattleSlotRef user, PsdkBattleSlotRef target) {

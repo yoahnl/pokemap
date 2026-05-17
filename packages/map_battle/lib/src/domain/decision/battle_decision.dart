@@ -62,13 +62,34 @@ final class BattleMoveDecisionOption {
   final PsdkBattleMoveTarget target;
 }
 
+/// One legal party replacement in a clean battle request.
+final class BattleSwitchDecisionOption {
+  const BattleSwitchDecisionOption({
+    required this.partyIndex,
+    required this.speciesId,
+    required this.displayName,
+    required this.currentHp,
+    required this.maxHp,
+  });
+
+  final int partyIndex;
+  final String speciesId;
+  final String displayName;
+  final int currentHp;
+  final int maxHp;
+}
+
 /// Current player-facing request produced by [BattleEngine].
 final class BattleEngineDecisionRequest {
   BattleEngineDecisionRequest._({
     required this.kind,
     required this.actor,
     required List<BattleMoveDecisionOption> fightChoices,
-  }) : fightChoices = List<BattleMoveDecisionOption>.unmodifiable(fightChoices);
+    required List<BattleSwitchDecisionOption> switchChoices,
+  })  : fightChoices =
+            List<BattleMoveDecisionOption>.unmodifiable(fightChoices),
+        switchChoices =
+            List<BattleSwitchDecisionOption>.unmodifiable(switchChoices);
 
   factory BattleEngineDecisionRequest.fromContext(BattleContext context) {
     if (!context.canBattleContinue) {
@@ -76,6 +97,7 @@ final class BattleEngineDecisionRequest {
         kind: BattleEngineDecisionRequestKind.finished,
         actor: psdkPlayerSlot,
         fightChoices: const <BattleMoveDecisionOption>[],
+        switchChoices: const <BattleSwitchDecisionOption>[],
       );
     }
 
@@ -96,25 +118,30 @@ final class BattleEngineDecisionRequest {
             target: battler.moves[i].target,
           ),
     ];
+    final switchChoices = _switchChoicesFor(context, psdkPlayerSlot);
 
     return BattleEngineDecisionRequest._(
-      kind: fightChoices.isEmpty
+      kind: fightChoices.isEmpty && switchChoices.isEmpty
           ? BattleEngineDecisionRequestKind.noLegalChoice
           : BattleEngineDecisionRequestKind.turnChoice,
       actor: psdkPlayerSlot,
       fightChoices: fightChoices,
+      switchChoices: switchChoices,
     );
   }
 
   final BattleEngineDecisionRequestKind kind;
   final PsdkBattleSlotRef actor;
   final List<BattleMoveDecisionOption> fightChoices;
+  final List<BattleSwitchDecisionOption> switchChoices;
 
   List<BattleDecision> get allowedDecisions {
     return List<BattleDecision>.unmodifiable(
       <BattleDecision>[
         for (final choice in fightChoices)
           BattleDecision.fight(moveSlot: choice.moveSlot),
+        for (final choice in switchChoices)
+          BattleDecision.switchPokemon(partyIndex: choice.partyIndex),
       ],
     );
   }
@@ -123,9 +150,29 @@ final class BattleEngineDecisionRequest {
     return switch (decision) {
       BattleFightDecision(:final moveSlot) =>
         fightChoices.any((choice) => choice.moveSlot == moveSlot),
-      BattleSwitchDecision() => false,
+      BattleSwitchDecision(:final partyIndex) =>
+        switchChoices.any((choice) => choice.partyIndex == partyIndex),
     };
   }
+}
+
+List<BattleSwitchDecisionOption> _switchChoicesFor(
+  BattleContext context,
+  PsdkBattleSlotRef user,
+) {
+  final party = context.state.partyForBank(user.bank);
+  final active = context.state.battlerAt(user);
+  return <BattleSwitchDecisionOption>[
+    for (var index = 0; index < party.length; index += 1)
+      if (!party[index].isFainted && party[index].id != active.id)
+        BattleSwitchDecisionOption(
+          partyIndex: index,
+          speciesId: party[index].speciesId,
+          displayName: party[index].displayName,
+          currentHp: party[index].currentHp,
+          maxHp: party[index].maxHp,
+        ),
+  ];
 }
 
 bool _isSelectableByMovePrevention({
