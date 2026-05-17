@@ -125,6 +125,168 @@ void main() {
       expect(ordered.first.user.toJson(), psdkPlayerSlot.toJson());
       expect((playerAction as PsdkBattleFightAction).speed, 120);
     });
+
+    test('Assault Vest boosts special defense and blocks status moves', () {
+      final physical = _currentChoices(
+        playerHeldItemId: 'assault_vest',
+        playerMoves: <PsdkBattleMoveData>[
+          _move(id: 'tackle', type: 'normal', power: 40),
+          _move(
+            id: 'growl',
+            type: 'normal',
+            power: 0,
+            category: PsdkBattleMoveCategory.status,
+            battleEngineMethod: 's_status',
+          ),
+        ],
+      );
+      final baseline = _runMove(
+        playerMove: _move(
+          id: 'water_gun',
+          type: 'water',
+          power: 70,
+          category: PsdkBattleMoveCategory.special,
+        ),
+        opponentHeldItemId: null,
+        opponentSpeciesId: 'clamperl',
+      );
+      final vested = _runMove(
+        playerMove: _move(
+          id: 'water_gun',
+          type: 'water',
+          power: 70,
+          category: PsdkBattleMoveCategory.special,
+        ),
+        opponentHeldItemId: 'assault_vest',
+        opponentSpeciesId: 'clamperl',
+      );
+
+      expect(physical, <String>['tackle']);
+      expect(
+        _damage(vested, moveId: 'water_gun'),
+        lessThan(_damage(baseline, moveId: 'water_gun')),
+      );
+    });
+
+    test('Expert Belt boosts only super-effective damage', () {
+      final neutral = _runMove(
+        playerHeldItemId: 'expert_belt',
+        playerMove: _move(id: 'ember', type: 'fire', power: 60),
+      );
+      final superEffectiveBaseline = _runMove(
+        playerMove: _move(id: 'ember', type: 'fire', power: 60),
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+      );
+      final superEffective = _runMove(
+        playerHeldItemId: 'expert_belt',
+        playerMove: _move(id: 'ember', type: 'fire', power: 60),
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+      );
+
+      expect(
+        _damage(neutral, moveId: 'ember'),
+        _damage(
+          _runMove(playerMove: _move(id: 'ember', type: 'fire', power: 60)),
+          moveId: 'ember',
+        ),
+      );
+      expect(
+        _damage(superEffective, moveId: 'ember'),
+        greaterThan(_damage(superEffectiveBaseline, moveId: 'ember')),
+      );
+    });
+
+    test('species passive items match PSDK stat modifier targets', () {
+      final clamperlTooth = _runMove(
+        playerHeldItemId: 'deep_sea_tooth',
+        playerSpeciesId: 'clamperl',
+        playerMove: _move(
+          id: 'water_gun',
+          type: 'water',
+          power: 60,
+          category: PsdkBattleMoveCategory.special,
+        ),
+      );
+      final nonClamperlTooth = _runMove(
+        playerHeldItemId: 'deep_sea_tooth',
+        playerSpeciesId: 'squirtle',
+        playerMove: _move(
+          id: 'water_gun',
+          type: 'water',
+          power: 60,
+          category: PsdkBattleMoveCategory.special,
+        ),
+      );
+      final clamperlScale = _runMove(
+        playerMove: _move(
+          id: 'water_gun',
+          type: 'water',
+          power: 60,
+          category: PsdkBattleMoveCategory.special,
+        ),
+        opponentHeldItemId: 'deep_sea_scale',
+        opponentSpeciesId: 'clamperl',
+      );
+      final clamperlScaleBaseline = _runMove(
+        playerMove: _move(
+          id: 'water_gun',
+          type: 'water',
+          power: 60,
+          category: PsdkBattleMoveCategory.special,
+        ),
+        opponentSpeciesId: 'clamperl',
+      );
+      final cuboneClub = _runMove(
+        playerHeldItemId: 'thick_club',
+        playerSpeciesId: 'cubone',
+        playerMove: _move(id: 'bone_club', type: 'ground', power: 65),
+      );
+      final nonCuboneClub = _runMove(
+        playerHeldItemId: 'thick_club',
+        playerSpeciesId: 'pikachu',
+        playerMove: _move(id: 'bone_club', type: 'ground', power: 65),
+      );
+      final dittoPowder = _runMove(
+        playerMove: _move(id: 'tackle', type: 'normal', power: 60),
+        opponentHeldItemId: 'metal_powder',
+        opponentSpeciesId: 'ditto',
+      );
+      final nonDittoPowder = _runMove(
+        playerMove: _move(id: 'tackle', type: 'normal', power: 60),
+        opponentHeldItemId: 'metal_powder',
+        opponentSpeciesId: 'mew',
+      );
+      final quickPowderState = _state(
+        playerHeldItemId: 'quick_powder',
+        playerSpeciesId: 'ditto',
+        playerSpeed: 60,
+        opponentSpeed: 100,
+      );
+      const mapper = PsdkBattleActionDecisionMapper();
+      final quickAction = mapper.map(
+        state: quickPowderState,
+        user: psdkPlayerSlot,
+        decision: const BattleFightDecision(moveSlot: 0),
+      );
+
+      expect(
+        _damage(clamperlTooth, moveId: 'water_gun'),
+        greaterThan(_damage(nonClamperlTooth, moveId: 'water_gun')),
+      );
+      expect(
+        _damage(clamperlScale, moveId: 'water_gun'),
+        lessThan(_damage(clamperlScaleBaseline, moveId: 'water_gun')),
+      );
+      expect(
+        _damage(cuboneClub, moveId: 'bone_club'),
+        greaterThan(_damage(nonCuboneClub, moveId: 'bone_club')),
+      );
+      expect(
+        _damage(dittoPowder, moveId: 'tackle'),
+        lessThan(_damage(nonDittoPowder, moveId: 'tackle')),
+      );
+      expect((quickAction as PsdkBattleFightAction).speed, 120);
+    });
   });
 }
 
@@ -138,17 +300,25 @@ const _seeds = BattleRngSeeds(
 PsdkBattleTurnResult _runMove({
   required PsdkBattleMoveData playerMove,
   String? playerHeldItemId,
+  String playerSpeciesId = 'player',
+  String? opponentHeldItemId,
+  String opponentSpeciesId = 'opponent',
+  PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
 }) {
   final engine = PsdkBattleEngine(
     setup: BattleEngineSetup.singles(
       player: _combatant(
         id: 'player',
+        speciesId: playerSpeciesId,
         heldItemId: playerHeldItemId,
         speed: 100,
         move: playerMove,
       ),
       opponent: _combatant(
         id: 'opponent',
+        speciesId: opponentSpeciesId,
+        heldItemId: opponentHeldItemId,
+        types: opponentTypes,
         speed: 1,
         currentHp: 200,
         move: _move(
@@ -167,6 +337,7 @@ PsdkBattleTurnResult _runMove({
 
 PsdkBattleState _state({
   String? playerHeldItemId,
+  String playerSpeciesId = 'player',
   int playerSpeed = 100,
   int opponentSpeed = 50,
 }) {
@@ -174,6 +345,7 @@ PsdkBattleState _state({
     BattleEngineSetup.singles(
       player: _combatant(
         id: 'player',
+        speciesId: playerSpeciesId,
         heldItemId: playerHeldItemId,
         speed: playerSpeed,
         move: _move(id: 'tackle', type: 'normal', power: 40),
@@ -191,18 +363,20 @@ PsdkBattleState _state({
 PsdkBattleCombatantSetup _combatant({
   required String id,
   required PsdkBattleMoveData move,
+  String? speciesId,
   String? heldItemId,
+  PsdkBattleTypes types = const PsdkBattleTypes(primary: 'normal'),
   int currentHp = 100,
   int speed = 50,
 }) {
   return PsdkBattleCombatantSetup(
     id: id,
-    speciesId: id,
+    speciesId: speciesId ?? id,
     displayName: id,
     level: 20,
     maxHp: 100,
     currentHp: currentHp,
-    types: const PsdkBattleTypes(primary: 'normal'),
+    types: types,
     stats: PsdkBattleStats(
       attack: 50,
       defense: 50,
@@ -213,6 +387,42 @@ PsdkBattleCombatantSetup _combatant({
     heldItemId: heldItemId,
     moves: <PsdkBattleMoveData>[move],
   );
+}
+
+List<String> _currentChoices({
+  required String playerHeldItemId,
+  required List<PsdkBattleMoveData> playerMoves,
+}) {
+  final engine = BattleEngine(
+    setup: BattleEngineSetup.singles(
+      player: PsdkBattleCombatantSetup(
+        id: 'player',
+        speciesId: 'player',
+        displayName: 'player',
+        level: 20,
+        maxHp: 100,
+        currentHp: 100,
+        types: const PsdkBattleTypes(primary: 'normal'),
+        stats: const PsdkBattleStats(
+          attack: 50,
+          defense: 50,
+          specialAttack: 50,
+          specialDefense: 50,
+          speed: 100,
+        ),
+        heldItemId: playerHeldItemId,
+        moves: playerMoves,
+      ),
+      opponent: _combatant(
+        id: 'opponent',
+        move: _move(id: 'opponent_wait', type: 'normal', power: 0),
+      ),
+      rngSeeds: _seeds.psdkSeeds,
+    ),
+  );
+  return engine.currentRequest.fightChoices
+      .map((choice) => choice.moveId)
+      .toList(growable: false);
 }
 
 PsdkBattleMoveData _move({

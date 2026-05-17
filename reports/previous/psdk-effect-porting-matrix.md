@@ -6,8 +6,8 @@ Total effect classes: 482
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 103 |
-| `partial` | 46 |
+| `ported` | 115 |
+| `partial` | 34 |
 | `missing` | 333 |
 
 | Effect | Ruby base | Family | Hooks | Hook families | Ruby path | Dart target | Status | Notes |
@@ -30,7 +30,7 @@ Total effect classes: 482
 | `AromaVeil` | `MentalImmunityBase` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Mental Immunity.rb` | `lib/src/domain/effect/ability/aroma_veil_effect.dart` | `missing` | `-` |
 | `AsOne` | `Moxie` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/101 AsOne.rb` | `lib/src/domain/effect/ability/as_one_effect.dart` | `missing` | `-` |
 | `Asleep` | `Status` | `status` | `on_move_prevention_user`, `on_status_prevention` | `move_prevention`, `status_prevention` | `06 Effects/03 Status Effects/104 Asleep.rb` | `lib/src/domain/effect/status/asleep_effect.dart` | `ported` | `-` |
-| `AssaultVest` | `ChoiceItemMultiplier` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb` | `lib/src/domain/effect/item/assault_vest_effect.dart` | `partial` | `-` |
+| `AssaultVest` | `ChoiceItemMultiplier` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb` | `lib/src/domain/effect/item/assault_vest_effect.dart` | `ported` | `-` |
 | `AttackMultiplier` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 ItemAttackMultiplier.rb` | `lib/src/domain/effect/item/attack_multiplier_effect.dart` | `missing` | `-` |
 | `Attract` | `PokemonTiedEffectBase` | `move` | `on_delete`, `on_move_prevention_user` | `lifecycle`, `move_prevention` | `06 Effects/02 Move Effects/001 Attract.rb` | `lib/src/domain/effect/move/attract_effect.dart` | `partial` | Object-backed AttractEffect performs the PSDK 50% user-prevention roll against the attracting battler; gender immunity, Destiny Knot mirroring and delete messages remain future work. |
 | `Auras` | `Ability` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/100 Auras.rb` | `lib/src/domain/effect/ability/auras_effect.dart` | `missing` | `-` |
@@ -74,10 +74,10 @@ Total effect classes: 482
 | `Chesto` | `StatusBerry` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 StatusBerry.rb` | `lib/src/domain/effect/item/chesto_effect.dart` | `partial` | `-` |
 | `ChillDrive` | `Drives` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 Drives.rb` | `lib/src/domain/effect/item/chill_drive_effect.dart` | `missing` | `-` |
 | `Chlorophyll` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Chlorophyll.rb` | `lib/src/domain/effect/ability/chlorophyll_effect.dart` | `missing` | `-` |
-| `ChoiceBand` | `ChoiceItemMultiplier` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb` | `lib/src/domain/effect/item/choice_band_effect.dart` | `partial` | `-` |
-| `ChoiceItemMultiplier` | `Item` | `item` | `on_move_disabled_check`, `on_move_prevention_user` | `move_prevention` | `06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb` | `lib/src/domain/effect/item/choice_item_multiplier_effect.dart` | `partial` | `-` |
-| `ChoiceScarf` | `ChoiceItemMultiplier` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb` | `lib/src/domain/effect/item/choice_scarf_effect.dart` | `partial` | `-` |
-| `ChoiceSpecs` | `ChoiceItemMultiplier` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb` | `lib/src/domain/effect/item/choice_specs_effect.dart` | `partial` | `-` |
+| `ChoiceBand` | `ChoiceItemMultiplier` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb` | `lib/src/domain/effect/item/choice_band_effect.dart` | `ported` | `-` |
+| `ChoiceItemMultiplier` | `Item` | `item` | `on_move_disabled_check`, `on_move_prevention_user` | `move_prevention` | `06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb` | `lib/src/domain/effect/item/choice_item_multiplier_effect.dart` | `ported` | `-` |
+| `ChoiceScarf` | `ChoiceItemMultiplier` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb` | `lib/src/domain/effect/item/choice_scarf_effect.dart` | `ported` | `-` |
+| `ChoiceSpecs` | `ChoiceItemMultiplier` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb` | `lib/src/domain/effect/item/choice_specs_effect.dart` | `ported` | `-` |
 | `ClearBody` | `Ability` | `ability` | `on_stat_decrease_prevention` | `stat_change` | `06 Effects/04 Ability Effects/100 Clear Body.rb` | `lib/src/domain/effect/ability/clear_body_effect.dart` | `missing` | `-` |
 | `ColorChange` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 Color Change.rb` | `lib/src/domain/effect/ability/color_change_effect.dart` | `missing` | `-` |
 | `Comatose` | `Ability` | `ability` | `on_status_prevention` | `status_prevention` | `06 Effects/04 Ability Effects/100 Comatose.rb` | `lib/src/domain/effect/ability/comatose_effect.dart` | `missing` | `-` |
@@ -100,8 +100,8 @@ Total effect classes: 482
 | `CuteCharm` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 Cute Charm.rb` | `lib/src/domain/effect/ability/cute_charm_effect.dart` | `missing` | `-` |
 | `Dancer` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Dancer.rb` | `lib/src/domain/effect/ability/dancer_effect.dart` | `missing` | `-` |
 | `DauntlessShield` | `Ability` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/100 Dauntless Shield.rb` | `lib/src/domain/effect/ability/dauntless_shield_effect.dart` | `missing` | `-` |
-| `DeepSeaScale` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Deep Sea Scale.rb` | `lib/src/domain/effect/item/deep_sea_scale_effect.dart` | `partial` | `-` |
-| `DeepSeaTooth` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Deep Sea Tooth.rb` | `lib/src/domain/effect/item/deep_sea_tooth_effect.dart` | `partial` | `-` |
+| `DeepSeaScale` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Deep Sea Scale.rb` | `lib/src/domain/effect/item/deep_sea_scale_effect.dart` | `ported` | `-` |
+| `DeepSeaTooth` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Deep Sea Tooth.rb` | `lib/src/domain/effect/item/deep_sea_tooth_effect.dart` | `ported` | `-` |
 | `Defeatist` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Defeatist.rb` | `lib/src/domain/effect/ability/defeatist_effect.dart` | `missing` | `-` |
 | `DefenseMultiplier` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/050 ItemDefenseMultiplier.rb` | `lib/src/domain/effect/item/defense_multiplier_effect.dart` | `missing` | `-` |
 | `Defiant` | `Ability` | `ability` | `on_stat_change_post` | `stat_change` | `06 Effects/04 Ability Effects/100 Defiant.rb` | `lib/src/domain/effect/ability/defiant_effect.dart` | `missing` | `-` |
@@ -134,7 +134,7 @@ Total effect classes: 482
 | `Endure` | `PokemonTiedEffectBase` | `move` | `on_damage_prevention`, `on_post_damage` | `damage_prevention`, `post_damage` | `06 Effects/02 Move Effects/001 Protect.rb` | `lib/src/domain/effect/move/endure_effect.dart` | `missing` | `-` |
 | `EnigmaBerry` | `Berry` | `item` | `on_post_damage` | `post_damage` | `06 Effects/05 Item Effects/100 Enigma Berry.rb` | `lib/src/domain/effect/item/enigma_berry_effect.dart` | `missing` | `-` |
 | `Eviolite` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Eviolite.rb` | `lib/src/domain/effect/item/eviolite_effect.dart` | `missing` | `-` |
-| `ExpertBelt` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Expert Belt.rb` | `lib/src/domain/effect/item/expert_belt_effect.dart` | `partial` | `-` |
+| `ExpertBelt` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Expert Belt.rb` | `lib/src/domain/effect/item/expert_belt_effect.dart` | `ported` | `-` |
 | `FairyLock` | `EffectBase` | `move` | `on_switch_prevention` | `switch` | `06 Effects/02 Move Effects/001 FairyLock.rb` | `lib/src/domain/effect/move/fairy_lock_effect.dart` | `missing` | `-` |
 | `FieldTerrain` | `EffectBase` | `field` | `-` | `-` | `06 Effects/07 Field Terrain Effects/001 FieldTerrainBase.rb` | `lib/src/domain/effect/field/field_terrain_effect.dart` | `missing` | `-` |
 | `FlameBody` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 Flame Body.rb` | `lib/src/domain/effect/ability/flame_body_effect.dart` | `missing` | `-` |
@@ -228,7 +228,7 @@ Total effect classes: 482
 | `LeppaBerry` | `Berry` | `item` | `on_end_turn_event` | `end_turn` | `06 Effects/05 Item Effects/100 Leppa Berry.rb` | `lib/src/domain/effect/item/leppa_berry_effect.dart` | `missing` | `-` |
 | `Libero` | `Ability` | `ability` | `on_pre_accuracy_check` | `accuracy` | `06 Effects/04 Ability Effects/100 Libero - Protean.rb` | `lib/src/domain/effect/ability/libero_effect.dart` | `missing` | `-` |
 | `LifeOrb` | `Item` | `item` | `on_end_turn_event`, `on_post_action_event`, `on_post_damage` | `action_order`, `end_turn`, `post_damage` | `06 Effects/05 Item Effects/100 Life Orb.rb` | `lib/src/domain/effect/item/life_orb_effect.dart` | `partial` | `-` |
-| `LightBall` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 LightBall.rb` | `lib/src/domain/effect/item/light_ball_effect.dart` | `partial` | `-` |
+| `LightBall` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 LightBall.rb` | `lib/src/domain/effect/item/light_ball_effect.dart` | `ported` | `-` |
 | `LightScreen` | `PositionTiedEffectBase` | `move` | `on_delete` | `lifecycle` | `06 Effects/02 Move Effects/001 LightScreen Reflect.rb` | `lib/src/domain/effect/move/light_screen_effect.dart` | `ported` | StaticBasicMoveRegistry.s_reflect installs Light Screen, supports Light Clay duration, duplicate failure and special damage reduction with Infiltrator bypass. |
 | `LightningRod` | `Ability` | `ability` | `on_damage_prevention` | `damage_prevention` | `06 Effects/04 Ability Effects/100 Lightning Rod - Storm Drain.rb` | `lib/src/domain/effect/ability/lightning_rod_effect.dart` | `ported` | `-` |
 | `Limber` | `NonVolatileStatusImmunityBase` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb` | `lib/src/domain/effect/ability/limber_effect.dart` | `ported` | `-` |
@@ -254,7 +254,7 @@ Total effect classes: 482
 | `MegaLauncher` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Mega Launcher.rb` | `lib/src/domain/effect/ability/mega_launcher_effect.dart` | `missing` | `-` |
 | `MentalHerb` | `Item` | `item` | `on_post_action_event` | `action_order` | `06 Effects/05 Item Effects/100 MentalHerb.rb` | `lib/src/domain/effect/item/mental_herb_effect.dart` | `missing` | `-` |
 | `MentalImmunityBase` | `Ability` | `ability` | `on_move_ability_immunity` | `ability_immunity` | `06 Effects/04 Ability Effects/100 Mental Immunity.rb` | `lib/src/domain/effect/ability/mental_immunity_base_effect.dart` | `missing` | `-` |
-| `MetalPowder` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Metal Powder.rb` | `lib/src/domain/effect/item/metal_powder_effect.dart` | `partial` | `-` |
+| `MetalPowder` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Metal Powder.rb` | `lib/src/domain/effect/item/metal_powder_effect.dart` | `ported` | `-` |
 | `Metronome` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Metronome.rb` | `lib/src/domain/effect/item/metronome_effect.dart` | `missing` | `-` |
 | `MicleBerry` | `Berry` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Micle Berry.rb` | `lib/src/domain/effect/item/micle_berry_effect.dart` | `missing` | `-` |
 | `Mimicry` | `Ability` | `ability` | `on_post_fterrain_change`, `on_switch_event` | `switch`, `terrain_change` | `06 Effects/04 Ability Effects/100 Mimicry.rb` | `lib/src/domain/effect/ability/mimicry_effect.dart` | `missing` | `-` |
@@ -325,7 +325,7 @@ Total effect classes: 482
 | `QueenlyMajesty` | `Ability` | `ability` | `on_move_prevention_target` | `move_prevention` | `06 Effects/04 Ability Effects/100 Queenly Majesty - Dazzling.rb` | `lib/src/domain/effect/ability/queenly_majesty_effect.dart` | `missing` | `-` |
 | `QuickFeet` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Quick Feet.rb` | `lib/src/domain/effect/ability/quick_feet_effect.dart` | `missing` | `-` |
 | `QuickGuard` | `Protect` | `move` | `on_move_prevention_target` | `move_prevention` | `06 Effects/02 Move Effects/001 Protect.rb` | `lib/src/domain/effect/move/quick_guard_effect.dart` | `ported` | Object-backed QuickGuardEffect blocks positive-priority protectable moves against the protected bank. |
-| `QuickPowder` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Quick Powder.rb` | `lib/src/domain/effect/item/quick_powder_effect.dart` | `partial` | `-` |
+| `QuickPowder` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Quick Powder.rb` | `lib/src/domain/effect/item/quick_powder_effect.dart` | `ported` | `-` |
 | `Rage` | `PokemonTiedEffectBase` | `move` | `on_post_damage` | `post_damage` | `06 Effects/02 Move Effects/001 Rage.rb` | `lib/src/domain/effect/move/rage_effect.dart` | `ported` | StaticBasicMoveRegistry.s_rage installs the marker after a hit and BattleDamageHandler raises Attack when the marked battler takes opposing damage. |
 | `Rain` | `Weather` | `field` | `on_end_turn_event` | `end_turn` | `06 Effects/06 Weather Effects/100 Rain.rb` | `lib/src/domain/effect/field/rain_effect.dart` | `missing` | `-` |
 | `RainDish` | `Ability` | `ability` | `on_end_turn_event` | `end_turn` | `06 Effects/04 Ability Effects/100 Rain Dish.rb` | `lib/src/domain/effect/ability/rain_dish_effect.dart` | `ported` | `-` |
@@ -442,7 +442,7 @@ Total effect classes: 482
 | `Teravolt` | `MoldBreaker` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Mold Breaker.rb` | `lib/src/domain/effect/ability/teravolt_effect.dart` | `missing` | `-` |
 | `TerrainSeeds` | `Item` | `item` | `on_post_fterrain_change`, `on_switch_event` | `switch`, `terrain_change` | `06 Effects/05 Item Effects/050 TerrainSeeds.rb` | `lib/src/domain/effect/item/terrain_seeds_effect.dart` | `missing` | `-` |
 | `ThermalExchange` | `Ability` | `ability` | `on_post_action_event`, `on_post_damage`, `on_status_prevention` | `action_order`, `post_damage`, `status_prevention` | `06 Effects/04 Ability Effects/100 ThermalExchange.rb` | `lib/src/domain/effect/ability/thermal_exchange_effect.dart` | `missing` | `-` |
-| `ThickClub` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Thick Club.rb` | `lib/src/domain/effect/item/thick_club_effect.dart` | `partial` | `-` |
+| `ThickClub` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Thick Club.rb` | `lib/src/domain/effect/item/thick_club_effect.dart` | `ported` | `-` |
 | `ThickFat` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Thick Fat.rb` | `lib/src/domain/effect/ability/thick_fat_effect.dart` | `missing` | `-` |
 | `ThroatChop` | `PokemonTiedEffectBase` | `move` | `on_move_disabled_check`, `on_move_prevention_user` | `move_prevention` | `06 Effects/02 Move Effects/001 ThroatChop.rb` | `lib/src/domain/effect/move/throat_chop_effect.dart` | `ported` | Object-backed ThroatChopEffect blocks execution and selection of sound-flagged moves for the PSDK three-turn lifecycle. |
 | `ThroatSpray` | `Item` | `item` | `on_post_action_event` | `action_order` | `06 Effects/05 Item Effects/100 Throat Spray.rb` | `lib/src/domain/effect/item/throat_spray_effect.dart` | `missing` | `-` |

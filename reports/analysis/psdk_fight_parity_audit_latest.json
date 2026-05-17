@@ -9295,8 +9295,8 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 103,
-      "partial": 46,
+      "ported": 115,
+      "partial": 34,
       "missing": 333
     },
     "byFamilyAndStatus": {
@@ -9311,8 +9311,8 @@
         "missing": 49
       },
       "item": {
-        "ported": 2,
-        "partial": 35,
+        "ported": 14,
+        "partial": 23,
         "missing": 50
       },
       "status": {
@@ -9443,7 +9443,7 @@
       {
         "effectName": "AssaultVest",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb"
       },
       {
@@ -9707,25 +9707,25 @@
       {
         "effectName": "ChoiceBand",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb"
       },
       {
         "effectName": "ChoiceItemMultiplier",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb"
       },
       {
         "effectName": "ChoiceScarf",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb"
       },
       {
         "effectName": "ChoiceSpecs",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 ChoiceItemMultiplier.rb"
       },
       {
@@ -9863,13 +9863,13 @@
       {
         "effectName": "DeepSeaScale",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Deep Sea Scale.rb"
       },
       {
         "effectName": "DeepSeaTooth",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Deep Sea Tooth.rb"
       },
       {
@@ -10067,7 +10067,7 @@
       {
         "effectName": "ExpertBelt",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Expert Belt.rb"
       },
       {
@@ -10631,7 +10631,7 @@
       {
         "effectName": "LightBall",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 LightBall.rb"
       },
       {
@@ -10787,7 +10787,7 @@
       {
         "effectName": "MetalPowder",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Metal Powder.rb"
       },
       {
@@ -11213,7 +11213,7 @@
       {
         "effectName": "QuickPowder",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Quick Powder.rb"
       },
       {
@@ -11915,7 +11915,7 @@
       {
         "effectName": "ThickClub",
         "family": "item",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Thick Club.rb"
       },
       {

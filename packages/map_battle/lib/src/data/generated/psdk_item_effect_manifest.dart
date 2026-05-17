@@ -55,8 +55,19 @@ PsdkItemPortStatus _itemStatus(String itemId, String? dartEffect) {
 }
 
 const _portedItemEffects = <String>{
+  'assault_vest',
   'black_sludge',
+  'choice_band',
+  'choice_scarf',
+  'choice_specs',
+  'deep_sea_scale',
+  'deep_sea_tooth',
+  'expert_belt',
   'leftovers',
+  'light_ball',
+  'metal_powder',
+  'quick_powder',
+  'thick_club',
 };
 
 const _dartItemEffects = <String, String>{
@@ -64,7 +75,7 @@ const _dartItemEffects = <String, String>{
   'aguav_berry': 'BerryItemEffect.hpHeal.partialNoNatureConfusion',
   'apicot_berry': 'BerryItemEffect.statPinch',
   'aspear_berry': 'BerryItemEffect.statusCure',
-  'assault_vest': 'HeldItemModifierEffect.specialDefense',
+  'assault_vest': 'AssaultVestEffect',
   'berry_juice': 'BerryItemEffect.hpHeal',
   'big_root': 'BigRootEffect',
   'binding_band': 'BindingBandEffect',
@@ -110,7 +121,7 @@ const _dartItemEffects = <String, String>{
   'liechi_berry': 'BerryItemEffect.statPinch',
   'leftovers': 'LeftoversEffect',
   'life_orb': 'LifeOrbEffect.partialNoPostActionBatching',
-  'light_ball': 'HeldItemModifierEffect.speciesStat.partialFlingOnlyStatus',
+  'light_ball': 'HeldItemModifierEffect.speciesStat',
   'loaded_dice': 'LoadedDiceEffect',
   'lum_berry': 'BerryItemEffect.statusCure.partialNoVolatileConfusion',
   'macho_brace': 'HeldItemModifierEffect.speed',
