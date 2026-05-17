@@ -193,6 +193,47 @@ void main() {
       }
     });
 
+    test('Lot 118 assigns remaining items to convergence batches', () {
+      final remaining = psdkItemEffectManifest
+          .where((entry) => entry.status != PsdkItemPortStatus.ported)
+          .toList(growable: false);
+      final byId = {
+        for (final entry in psdkItemEffectManifest) entry.itemId: entry,
+      };
+      final counts = <PsdkItemEffectBatch, int>{
+        for (final batch in PsdkItemEffectBatch.values) batch: 0,
+      };
+
+      for (final entry in remaining) {
+        counts[entry.batch] = counts[entry.batch]! + 1;
+      }
+
+      expect(
+        counts.values.fold<int>(0, (total, count) => total + count),
+        remaining.length,
+      );
+      for (final batch in PsdkItemEffectBatch.values) {
+        expect(counts[batch], greaterThan(0), reason: batch.name);
+      }
+      expect(byId['babiri_berry']!.batch, PsdkItemEffectBatch.berries);
+      expect(
+        byId['adamant_orb']!.batch,
+        PsdkItemEffectBatch.damageTypeStatModifiers,
+      );
+      expect(
+        byId['eject_button']!.batch,
+        PsdkItemEffectBatch.focusEjectChoiceOrb,
+      );
+      expect(
+        byId['electric_seed']!.batch,
+        PsdkItemEffectBatch.weatherTerrainField,
+      );
+      expect(
+        byId['mental_herb']!.batch,
+        PsdkItemEffectBatch.heldItemLifecycleConsumption,
+      );
+    });
+
     test('item lifecycle snapshots distinguish held, consumed, and removed',
         () {
       final held = BattleItemLifecycleSnapshot.fromBattler(

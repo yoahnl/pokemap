@@ -12,17 +12,41 @@ enum PsdkItemPortStatus {
   outOfScope,
 }
 
+enum PsdkItemEffectBatch {
+  damageTypeStatModifiers,
+  berries,
+  focusEjectChoiceOrb,
+  weatherTerrainField,
+  heldItemLifecycleConsumption,
+}
+
+extension PsdkItemEffectBatchLabel on PsdkItemEffectBatch {
+  String get label {
+    return switch (this) {
+      PsdkItemEffectBatch.damageTypeStatModifiers =>
+        'damage/type/stat modifiers',
+      PsdkItemEffectBatch.berries => 'berries',
+      PsdkItemEffectBatch.focusEjectChoiceOrb => 'focus/eject/choice/orb',
+      PsdkItemEffectBatch.weatherTerrainField => 'weather/terrain/field',
+      PsdkItemEffectBatch.heldItemLifecycleConsumption =>
+        'held-item lifecycle and consumption',
+    };
+  }
+}
+
 final class PsdkItemEffectManifestEntry {
   const PsdkItemEffectManifestEntry({
     required this.itemId,
     required this.rubyPath,
     required this.status,
+    required this.batch,
     this.dartEffect,
   });
 
   final String itemId;
   final String rubyPath;
   final PsdkItemPortStatus status;
+  final PsdkItemEffectBatch batch;
   final String? dartEffect;
 }
 
@@ -38,11 +62,64 @@ List<PsdkItemEffectManifestEntry> _buildPsdkItemEffectManifest() {
         itemId: itemId,
         rubyPath: rubyPath,
         status: _itemStatus(itemId, dartEffect),
+        batch: psdkItemEffectBatchFor(itemId: itemId, rubyPath: rubyPath),
         dartEffect: dartEffect,
       ),
     );
   }
   return List<PsdkItemEffectManifestEntry>.unmodifiable(entries);
+}
+
+PsdkItemEffectBatch psdkItemEffectBatchFor({
+  required String itemId,
+  required String rubyPath,
+}) {
+  final normalizedId = itemId.trim().toLowerCase();
+  if (normalizedId.endsWith('_berry')) {
+    return PsdkItemEffectBatch.berries;
+  }
+  return psdkItemEffectBatchForPath(rubyPath);
+}
+
+PsdkItemEffectBatch psdkItemEffectBatchForPath(String rubyPath) {
+  final normalizedPath = rubyPath.toLowerCase();
+  if (normalizedPath.contains('berry')) {
+    return PsdkItemEffectBatch.berries;
+  }
+  if (normalizedPath.contains('itembasepowermultiplier') ||
+      normalizedPath.contains('halfspeeditems') ||
+      normalizedPath.contains('gems') ||
+      normalizedPath.contains('drives') ||
+      normalizedPath.contains('expert belt') ||
+      normalizedPath.contains('eviolite') ||
+      normalizedPath.contains('deep sea') ||
+      normalizedPath.contains('lightball') ||
+      normalizedPath.contains('metal powder') ||
+      normalizedPath.contains('quick powder') ||
+      normalizedPath.contains('thick club') ||
+      normalizedPath.contains('lax incense') ||
+      normalizedPath.contains('wide lens') ||
+      normalizedPath.contains('zoom lens') ||
+      normalizedPath.contains('poisonbarb')) {
+    return PsdkItemEffectBatch.damageTypeStatModifiers;
+  }
+  if (normalizedPath.contains('choiceitemmultiplier') ||
+      normalizedPath.contains('focus ') ||
+      normalizedPath.contains('focus_') ||
+      normalizedPath.contains('eject') ||
+      normalizedPath.contains(' orb') ||
+      normalizedPath.contains('primalorbs') ||
+      normalizedPath.contains('life orb') ||
+      normalizedPath.contains('red card')) {
+    return PsdkItemEffectBatch.focusEjectChoiceOrb;
+  }
+  if (normalizedPath.contains('weathermove') ||
+      normalizedPath.contains('terrainmove') ||
+      normalizedPath.contains('terrainseeds') ||
+      normalizedPath.contains('safetygoggles')) {
+    return PsdkItemEffectBatch.weatherTerrainField;
+  }
+  return PsdkItemEffectBatch.heldItemLifecycleConsumption;
 }
 
 PsdkItemPortStatus _itemStatus(String itemId, String? dartEffect) {
