@@ -196,6 +196,195 @@ void main() {
       );
     });
 
+    test('legendary species items boost only their PSDK species and types', () {
+      final dialgaDragon = _runMove(
+        playerHeldItemId: 'adamant_orb',
+        playerSpeciesId: 'dialga',
+        playerMove: _move(id: 'dragon_breath', type: 'dragon', power: 60),
+      );
+      final dialgaSteel = _runMove(
+        playerHeldItemId: 'adamant_orb',
+        playerSpeciesId: 'dialga',
+        playerMove: _move(id: 'metal_claw', type: 'steel', power: 60),
+      );
+      final palkiaWater = _runMove(
+        playerHeldItemId: 'lustrous_orb',
+        playerSpeciesId: 'palkia',
+        playerMove: _move(id: 'water_pulse', type: 'water', power: 60),
+      );
+      final giratinaGhost = _runMove(
+        playerHeldItemId: 'griseous_orb',
+        playerSpeciesId: 'giratina',
+        playerMove: _move(id: 'shadow_ball', type: 'ghost', power: 60),
+        opponentTypes: const PsdkBattleTypes(primary: 'psychic'),
+      );
+      final latiasPsychic = _runMove(
+        playerHeldItemId: 'soul_dew',
+        playerSpeciesId: 'latias',
+        playerMove: _move(
+          id: 'confusion',
+          type: 'psychic',
+          power: 60,
+          category: PsdkBattleMoveCategory.special,
+        ),
+      );
+      final latiosDragon = _runMove(
+        playerHeldItemId: 'soul_dew',
+        playerSpeciesId: 'latios',
+        playerMove: _move(
+          id: 'dragon_pulse',
+          type: 'dragon',
+          power: 60,
+          category: PsdkBattleMoveCategory.special,
+        ),
+      );
+      final wrongSpecies = _runMove(
+        playerHeldItemId: 'adamant_orb',
+        playerSpeciesId: 'palkia',
+        playerMove: _move(id: 'dragon_breath', type: 'dragon', power: 60),
+      );
+      final wrongType = _runMove(
+        playerHeldItemId: 'adamant_orb',
+        playerSpeciesId: 'dialga',
+        playerMove: _move(id: 'tackle', type: 'normal', power: 60),
+      );
+      final baselineDragon = _runMove(
+        playerSpeciesId: 'dialga',
+        playerMove: _move(id: 'dragon_breath', type: 'dragon', power: 60),
+      );
+      final baselineNormal = _runMove(
+        playerSpeciesId: 'dialga',
+        playerMove: _move(id: 'tackle', type: 'normal', power: 60),
+      );
+
+      expect(
+        _damage(dialgaDragon, moveId: 'dragon_breath'),
+        greaterThan(_damage(baselineDragon, moveId: 'dragon_breath')),
+      );
+      expect(_damage(dialgaSteel, moveId: 'metal_claw'), greaterThan(0));
+      expect(_damage(palkiaWater, moveId: 'water_pulse'), greaterThan(0));
+      expect(_damage(giratinaGhost, moveId: 'shadow_ball'), greaterThan(0));
+      expect(_damage(latiasPsychic, moveId: 'confusion'), greaterThan(0));
+      expect(_damage(latiosDragon, moveId: 'dragon_pulse'), greaterThan(0));
+      expect(
+        _damage(wrongSpecies, moveId: 'dragon_breath'),
+        _damage(baselineDragon, moveId: 'dragon_breath'),
+      );
+      expect(
+        _damage(wrongType, moveId: 'tackle'),
+        _damage(baselineNormal, moveId: 'tackle'),
+      );
+    });
+
+    test('Drives change Genesect Techno Blast type only', () {
+      final burnDrive = _runMove(
+        playerHeldItemId: 'burn_drive',
+        playerSpeciesId: 'genesect',
+        playerMove: _move(
+          id: 'techno_blast',
+          type: 'normal',
+          power: 60,
+          category: PsdkBattleMoveCategory.special,
+          battleEngineMethod: 's_techno_blast',
+        ),
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+      );
+      final baseline = _runMove(
+        playerSpeciesId: 'genesect',
+        playerMove: _move(
+          id: 'techno_blast',
+          type: 'normal',
+          power: 60,
+          category: PsdkBattleMoveCategory.special,
+          battleEngineMethod: 's_techno_blast',
+        ),
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+      );
+      final wrongMove = _runMove(
+        playerHeldItemId: 'burn_drive',
+        playerSpeciesId: 'genesect',
+        playerMove: _move(
+          id: 'swift',
+          type: 'normal',
+          power: 60,
+          category: PsdkBattleMoveCategory.special,
+        ),
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+      );
+      final wrongMoveBaseline = _runMove(
+        playerSpeciesId: 'genesect',
+        playerMove: _move(
+          id: 'swift',
+          type: 'normal',
+          power: 60,
+          category: PsdkBattleMoveCategory.special,
+        ),
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+      );
+
+      expect(
+        _damage(burnDrive, moveId: 'techno_blast'),
+        greaterThan(_damage(baseline, moveId: 'techno_blast')),
+      );
+      expect(
+        _damage(wrongMove, moveId: 'swift'),
+        _damage(wrongMoveBaseline, moveId: 'swift'),
+      );
+    });
+
+    test('Eviolite boosts both defensive stats for evolvable species', () {
+      final physicalBaseline = _runMove(
+        playerMove: _move(id: 'tackle', type: 'normal', power: 60),
+        opponentSpeciesId: 'chansey',
+      );
+      final physicalEviolite = _runMove(
+        playerMove: _move(id: 'tackle', type: 'normal', power: 60),
+        opponentHeldItemId: 'eviolite',
+        opponentSpeciesId: 'chansey',
+      );
+      final specialBaseline = _runMove(
+        playerMove: _move(
+          id: 'swift',
+          type: 'normal',
+          power: 60,
+          category: PsdkBattleMoveCategory.special,
+        ),
+        opponentSpeciesId: 'chansey',
+      );
+      final specialEviolite = _runMove(
+        playerMove: _move(
+          id: 'swift',
+          type: 'normal',
+          power: 60,
+          category: PsdkBattleMoveCategory.special,
+        ),
+        opponentHeldItemId: 'eviolite',
+        opponentSpeciesId: 'chansey',
+      );
+      final nonEvolvable = _runMove(
+        playerMove: _move(id: 'tackle', type: 'normal', power: 60),
+        opponentHeldItemId: 'eviolite',
+        opponentSpeciesId: 'mew',
+      );
+      final nonEvolvableBaseline = _runMove(
+        playerMove: _move(id: 'tackle', type: 'normal', power: 60),
+        opponentSpeciesId: 'mew',
+      );
+
+      expect(
+        _damage(physicalEviolite, moveId: 'tackle'),
+        lessThan(_damage(physicalBaseline, moveId: 'tackle')),
+      );
+      expect(
+        _damage(specialEviolite, moveId: 'swift'),
+        lessThan(_damage(specialBaseline, moveId: 'swift')),
+      );
+      expect(
+        _damage(nonEvolvable, moveId: 'tackle'),
+        _damage(nonEvolvableBaseline, moveId: 'tackle'),
+      );
+    });
+
     test('species passive items match PSDK stat modifier targets', () {
       final clamperlTooth = _runMove(
         playerHeldItemId: 'deep_sea_tooth',

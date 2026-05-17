@@ -9295,9 +9295,9 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 176,
+      "ported": 183,
       "partial": 19,
-      "missing": 287
+      "missing": 280
     },
     "byFamilyAndStatus": {
       "ability": {
@@ -9311,9 +9311,9 @@
         "missing": 39
       },
       "item": {
-        "ported": 27,
+        "ported": 34,
         "partial": 10,
-        "missing": 50
+        "missing": 43
       },
       "status": {
         "ported": 6,
@@ -9743,7 +9743,7 @@
       {
         "effectName": "BurnDrive",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 Drives.rb",
         "hookFamilies": []
       },
@@ -9826,7 +9826,7 @@
       {
         "effectName": "ChillDrive",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 Drives.rb",
         "hookFamilies": []
       },
@@ -10164,7 +10164,7 @@
       {
         "effectName": "Drives",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 Drives.rb",
         "hookFamilies": [
           "move_type_change"
@@ -10371,7 +10371,7 @@
       {
         "effectName": "Eviolite",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Eviolite.rb",
         "hookFamilies": []
       },
@@ -11130,7 +11130,7 @@
       {
         "effectName": "LaxIncense",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Lax Incense.rb",
         "hookFamilies": []
       },
@@ -12403,7 +12403,7 @@
       {
         "effectName": "ShockDrive",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/050 Drives.rb",
         "hookFamilies": []
       },
@@ -13358,7 +13358,7 @@
       {
         "effectName": "WideLens",
         "family": "item",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/05 Item Effects/100 Wide Lens.rb",
         "hookFamilies": []
       },

@@ -291,6 +291,19 @@ String _effectiveMoveType(BattleMoveDamageContext context) {
       moveType = overridden;
     }
   }
+  for (final effect in context.user.activeItemEffects) {
+    final overridden = effect.moveTypeOverride(
+      BattleItemMoveTypeContext(
+        user: context.user,
+        target: context.target,
+        move: context.move,
+        currentType: moveType,
+      ),
+    );
+    if (overridden != null) {
+      moveType = overridden;
+    }
+  }
   return moveType;
 }
 

@@ -74,6 +74,61 @@ final class HeldItemModifierEffect extends BattleItemEffect {
   }
 }
 
+final class DriveItemEffect extends BattleItemEffect {
+  const DriveItemEffect({
+    required String itemId,
+    required BattleEffectScope scope,
+    required this.moveType,
+  }) : super(itemId: itemId, scope: scope);
+
+  final String moveType;
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return this;
+  }
+
+  @override
+  String? moveTypeOverride(BattleItemMoveTypeContext context) {
+    if (context.user.heldItemId != itemId ||
+        context.user.itemConsumed ||
+        context.user.itemEffectsSuppressed ||
+        context.user.speciesId != 'genesect' ||
+        context.move.battleEngineMethod != 's_techno_blast') {
+      return null;
+    }
+    return moveType;
+  }
+}
+
+final class AccuracyModifierItemEffect extends BattleItemEffect {
+  const AccuracyModifierItemEffect({
+    required String itemId,
+    required BattleEffectScope scope,
+    required this.multiplier,
+    required this.appliesToTarget,
+  }) : super(itemId: itemId, scope: scope);
+
+  final double multiplier;
+  final bool appliesToTarget;
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return this;
+  }
+
+  @override
+  double accuracyMultiplier(BattleItemAccuracyContext context) {
+    final holder = appliesToTarget ? context.target : context.user;
+    if (holder.heldItemId != itemId ||
+        holder.itemConsumed ||
+        holder.itemEffectsSuppressed) {
+      return 1;
+    }
+    return multiplier;
+  }
+}
+
 final class ChoiceItemEffect extends BattleItemEffect {
   const ChoiceItemEffect({
     required String itemId,

@@ -234,6 +234,35 @@ void main() {
       );
     });
 
+    test('Lot 119 damage, type, stat, and accuracy item modifiers are promoted',
+        () {
+      final byId = {
+        for (final entry in psdkItemEffectManifest) entry.itemId: entry,
+      };
+      final registry = ItemEffectRegistry();
+
+      for (final itemId in <String>[
+        'adamant_orb',
+        'lustrous_orb',
+        'griseous_orb',
+        'soul_dew',
+        'eviolite',
+        'wide_lens',
+        'lax_incense',
+        'bright_powder',
+        'douse_drive',
+        'shock_drive',
+        'burn_drive',
+        'chill_drive',
+      ]) {
+        expect(byId[itemId]!.status, PsdkItemPortStatus.ported, reason: itemId);
+        expect(registry.statusOf(itemId), PsdkItemPortStatus.ported,
+            reason: itemId);
+        expect(registry.create(itemId, owner: psdkPlayerSlot), isNotNull,
+            reason: itemId);
+      }
+    });
+
     test('item lifecycle snapshots distinguish held, consumed, and removed',
         () {
       final held = BattleItemLifecycleSnapshot.fromBattler(
