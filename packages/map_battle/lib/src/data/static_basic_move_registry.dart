@@ -74,7 +74,9 @@ import '../domain/effect/move/force_next_move_base_effect.dart';
 import '../domain/effect/move/heal_block_effect.dart';
 import '../domain/effect/move/imprison_effect.dart';
 import '../domain/effect/move/leech_seed_effect.dart';
+import '../domain/effect/move/magic_coat_effect.dart';
 import '../domain/effect/move/protect_effect.dart';
+import '../domain/effect/move/snatch_effect.dart';
 import '../domain/effect/move/substitute_effect.dart';
 import '../domain/effect/move/taunt_effect.dart';
 import '../domain/effect/move/torment_effect.dart';
@@ -4118,6 +4120,9 @@ BattleEffect _targetMarkerEffect({
     'taunt' => TauntEffect(scope: scope, remainingTurns: remainingTurns ?? 3),
     'torment' =>
       TormentEffect(scope: scope, remainingTurns: remainingTurns ?? 3),
+    'magic_coat' =>
+      MagicCoatEffect(scope: scope, remainingTurns: remainingTurns ?? 0),
+    'snatch' => SnatchEffect(scope: scope, remainingTurns: remainingTurns ?? 0),
     _ => GenericBattleEffect(
         id: effectId,
         scope: scope,
@@ -4992,8 +4997,9 @@ BattleMoveBehaviorResolution _resolveProtect(
             ),
           ),
         )
-      : ProtectEffect(
-          scope: BattlerBattleEffectScope(
+      : _protectSlotEffectFor(
+          context.move,
+          BattlerBattleEffectScope(
             PsdkBattleSlotRef(
               bank: protectedSlot.bank,
               position: protectedSlot.position,
@@ -5012,6 +5018,21 @@ BattleMoveBehaviorResolution _resolveProtect(
     rng: common.rng,
     events: common.events,
   );
+}
+
+BattleEffect _protectSlotEffectFor(
+  BattleMoveDefinition move,
+  BattlerBattleEffectScope scope,
+) {
+  return switch (_normalizedId(move.dbSymbol)) {
+    'baneful_bunker' => BanefulBunkerEffect(scope: scope),
+    'burning_bulwark' => BurningBulwarkEffect(scope: scope),
+    'king_s_shield' => KingsShieldEffect(scope: scope),
+    'obstruct' => ObstructEffect(scope: scope),
+    'silk_trap' => SilkTrapEffect(scope: scope),
+    'spiky_shield' => SpikyShieldEffect(scope: scope),
+    _ => ProtectEffect(scope: scope),
+  };
 }
 
 BattleEffect? _protectBankGuardEffectFor(
@@ -5202,12 +5223,15 @@ bool _isProtectFamilyMoveId(String moveId) {
 
 const _protectFamilyMoveIds = <String>{
   'baneful_bunker',
+  'burning_bulwark',
   'detect',
   'endure',
   'king_s_shield',
   'mat_block',
+  'obstruct',
   'protect',
   'quick_guard',
+  'silk_trap',
   'spiky_shield',
   'wide_guard',
 };

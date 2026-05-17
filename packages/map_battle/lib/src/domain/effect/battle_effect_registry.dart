@@ -1,6 +1,7 @@
 import 'battle_effect.dart';
 import 'battle_effect_scope.dart';
 import 'field/wish_effect.dart';
+import 'mechanics/mechanics_effects.dart';
 import 'move/aqua_ring_effect.dart';
 import 'move/attract_effect.dart';
 import 'move/baton_pass_effect.dart';
@@ -20,10 +21,12 @@ import 'move/ingrain_effect.dart';
 import 'move/leech_seed_effect.dart';
 import 'move/nightmare_effect.dart';
 import 'move/perish_song_effect.dart';
+import 'move/magic_coat_effect.dart';
 import 'move/powder_effect.dart';
 import 'move/protect_effect.dart';
 import 'move/salt_cure_effect.dart';
 import 'move/smack_down_effect.dart';
+import 'move/snatch_effect.dart';
 import 'move/substitute_effect.dart';
 import 'move/syrup_bomb_effect.dart';
 import 'move/taunt_effect.dart';
@@ -79,10 +82,23 @@ final class BattleEffectRegistry {
         ),
       'nightmare' => const NightmareEffect(scope: LocalBattleEffectScope()),
       'perish_song' => const PerishSongEffect(scope: LocalBattleEffectScope()),
+      'magic_coat' => const MagicCoatEffect(scope: LocalBattleEffectScope()),
       'powder' => const PowderEffect(scope: LocalBattleEffectScope()),
       'protect' => const ProtectEffect(scope: LocalBattleEffectScope()),
+      'baneful_bunker' =>
+        const BanefulBunkerEffect(scope: LocalBattleEffectScope()),
+      'burning_bulwark' =>
+        const BurningBulwarkEffect(scope: LocalBattleEffectScope()),
+      'king_s_shield' =>
+        const KingsShieldEffect(scope: LocalBattleEffectScope()),
+      'obstruct' => const ObstructEffect(scope: LocalBattleEffectScope()),
+      'silk_trap' => const SilkTrapEffect(scope: LocalBattleEffectScope()),
+      'spiky_shield' =>
+        const SpikyShieldEffect(scope: LocalBattleEffectScope()),
       'salt_cure' => const SaltCureEffect(scope: LocalBattleEffectScope()),
       'smack_down' => const SmackDownEffect(scope: LocalBattleEffectScope()),
+      'snatch' => const SnatchEffect(scope: LocalBattleEffectScope()),
+      'snatched' => const SnatchedEffect(scope: LocalBattleEffectScope()),
       'substitute' => const SubstituteEffect(
           scope: LocalBattleEffectScope(),
           remainingHp: 1,
@@ -102,6 +118,12 @@ final class BattleEffectRegistry {
           healAmount: 1,
           remainingTurns: 2,
         ),
+      'effect_base' => const PsdkEffectBaseEffect(),
+      'effects_handler' => const PsdkEffectsHandlerEffect(),
+      'pokemon_tied_effect_base' =>
+        const PsdkPokemonTiedEffectBaseEffect(scope: LocalBattleEffectScope()),
+      'position_tied_effect_base' =>
+        const PsdkPositionTiedEffectBaseEffect(scope: LocalBattleEffectScope()),
       final value => GenericBattleEffect(id: value),
     };
   }

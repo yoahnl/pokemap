@@ -412,6 +412,96 @@ void main() {
       }
     });
 
+    test('effect parity promotes Lot 94 protection and redirection effects',
+        () async {
+      final effectEntries = await loadPsdkEffectParityEntries(
+        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+      );
+      final byFamilyAndName = {
+        for (final entry in effectEntries)
+          '${entry.family}:${entry.effectName}': entry,
+      };
+
+      for (final effectName in <String>[
+        'BanefulBunker',
+        'BurningBulwark',
+        'CenterOfAttention',
+        'Endure',
+        'KingsShield',
+        'MagicCoat',
+        'Obstruct',
+        'Protect',
+        'SilkTrap',
+        'Snatch',
+        'Snatched',
+        'SpikyShield',
+      ]) {
+        expect(
+          byFamilyAndName['move:$effectName']?.status,
+          PsdkPortStatus.ported,
+          reason: effectName,
+        );
+      }
+    });
+
+    test('effect parity promotes Lot 95 field weather terrain and side effects',
+        () async {
+      final effectEntries = await loadPsdkEffectParityEntries(
+        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+      );
+      final byFamilyAndName = {
+        for (final entry in effectEntries)
+          '${entry.family}:${entry.effectName}': entry,
+      };
+
+      for (final effectName in <String>[
+        'Electric',
+        'FieldTerrain',
+        'Fog',
+        'Grassy',
+        'Hail',
+        'Hardrain',
+        'Hardsun',
+        'Misty',
+        'Psychic',
+        'Rain',
+        'Sandstorm',
+        'Snow',
+        'StrongWinds',
+        'Sunny',
+        'Weather',
+      ]) {
+        expect(
+          byFamilyAndName['field:$effectName']?.status,
+          PsdkPortStatus.ported,
+          reason: effectName,
+        );
+      }
+    });
+
+    test('effect parity promotes Lot 104 generic mechanics classes', () async {
+      final effectEntries = await loadPsdkEffectParityEntries(
+        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+      );
+      final byFamilyAndName = {
+        for (final entry in effectEntries)
+          '${entry.family}:${entry.effectName}': entry,
+      };
+
+      for (final effectName in <String>[
+        'EffectBase',
+        'EffectsHandler',
+        'PokemonTiedEffectBase',
+        'PositionTiedEffectBase',
+      ]) {
+        expect(
+          byFamilyAndName['mechanics:$effectName']?.status,
+          PsdkPortStatus.ported,
+          reason: effectName,
+        );
+      }
+    });
+
     test('tracks the fixed-damage and multi-hit slices', () {
       final byMethod = {
         for (final entry in psdkMoveRegistryManifest)
