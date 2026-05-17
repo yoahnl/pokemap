@@ -25,7 +25,7 @@ final class BattleTargetResolver {
         <PsdkBattleSlotRef>[user],
       PsdkBattleMoveTarget.adjacentFoe => _requestedOrFirst(
           requested: requestedSlot,
-          candidates: state.foesOf(user),
+          candidates: state.adjacentFoesOf(user),
           fallback: psdkSinglesFoeOf(user),
         ),
       PsdkBattleMoveTarget.anyFoe => _requestedOrFirst(
@@ -38,16 +38,15 @@ final class BattleTargetResolver {
         ),
       PsdkBattleMoveTarget.adjacentAllyOrSelf => _requestedOrFirst(
           requested: requestedSlot,
-          candidates: <PsdkBattleSlotRef>[user, ...state.alliesOf(user)],
+          candidates: <PsdkBattleSlotRef>[
+            user,
+            ...state.adjacentAlliesOf(user),
+          ],
           fallback: user,
         ),
-      PsdkBattleMoveTarget.allAdjacent => state
-          .aliveSlots()
-          .where((slot) => slot != user)
-          .toList(growable: false),
-      PsdkBattleMoveTarget.allAdjacentFoes ||
-      PsdkBattleMoveTarget.allFoes =>
-        state.foesOf(user),
+      PsdkBattleMoveTarget.allAdjacent => state.adjacentSlotsOf(user),
+      PsdkBattleMoveTarget.allAdjacentFoes => state.adjacentFoesOf(user),
+      PsdkBattleMoveTarget.allFoes => state.foesOf(user),
       PsdkBattleMoveTarget.allBattlers => state.aliveSlots(),
       PsdkBattleMoveTarget.allAllies => state.alliesOf(user),
       PsdkBattleMoveTarget.bank ||
@@ -55,8 +54,8 @@ final class BattleTargetResolver {
       PsdkBattleMoveTarget.foeSide ||
       PsdkBattleMoveTarget.none =>
         const <PsdkBattleSlotRef>[],
-      PsdkBattleMoveTarget.randomFoe => _requestedOrFirst(
-          requested: requestedSlot,
+      PsdkBattleMoveTarget.randomFoe => _randomOne(
+          execution: execution,
           candidates: state.foesOf(user),
           fallback: psdkSinglesFoeOf(user),
         ),
@@ -71,6 +70,24 @@ final class BattleTargetResolver {
             BattlePositionRef(bank: slot.bank, position: slot.position))
         .toList(growable: false);
   }
+}
+
+List<PsdkBattleSlotRef> _randomOne({
+  required BattleMoveProcedureExecution execution,
+  required List<PsdkBattleSlotRef> candidates,
+  PsdkBattleSlotRef? fallback,
+}) {
+  final resolvedCandidates = candidates.isEmpty && fallback != null
+      ? <PsdkBattleSlotRef>[fallback]
+      : candidates;
+  if (resolvedCandidates.isEmpty) {
+    return const <PsdkBattleSlotRef>[];
+  }
+  final roll = execution.context.rng.generic.nextIntInclusive(
+    min: 0,
+    max: resolvedCandidates.length - 1,
+  );
+  return <PsdkBattleSlotRef>[resolvedCandidates[roll.value]];
 }
 
 List<PsdkBattleSlotRef> _requestedOrFirst({

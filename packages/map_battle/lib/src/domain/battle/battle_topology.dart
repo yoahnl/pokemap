@@ -132,13 +132,27 @@ final class BattleTopology {
     );
   }
 
+  Iterable<BattleBattler> adjacentAlliesOf(BattleBattler battler) {
+    return alliesOf(battler).where(
+      (other) => _isAdjacentPosition(battler, other),
+    );
+  }
+
   Iterable<BattleBattler> foesOf(BattleBattler battler) {
     return aliveBattlers.where((other) => other.bank != battler.bank);
   }
 
   Iterable<BattleBattler> adjacentFoesOf(BattleBattler battler) {
     return foesOf(battler).where(
-      (other) => (other.position - battler.position).abs() <= 1,
+      (other) => _isAdjacentPosition(battler, other),
+    );
+  }
+
+  Iterable<BattleBattler> adjacentBattlersOf(BattleBattler battler) {
+    return aliveBattlers.where(
+      (other) =>
+          other.instanceId != battler.instanceId &&
+          _isAdjacentPosition(battler, other),
     );
   }
 
@@ -157,6 +171,10 @@ final class BattleTopology {
     }
     bank.placeBattler(battler: battler, position: slot.position);
   }
+}
+
+bool _isAdjacentPosition(BattleBattler user, BattleBattler target) {
+  return (target.position - user.position).abs() <= 1;
 }
 
 BattleBank _bankFromPsdkSetup({

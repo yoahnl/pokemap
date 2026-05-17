@@ -98,6 +98,12 @@ class PsdkBattleState {
     );
   }
 
+  List<PsdkBattleSlotRef> adjacentFoesOf(PsdkBattleSlotRef user) {
+    return List<PsdkBattleSlotRef>.unmodifiable(
+      foesOf(user).where((slot) => _isAdjacent(user, slot)),
+    );
+  }
+
   List<PsdkBattleSlotRef> alliesOf(PsdkBattleSlotRef user) {
     return List<PsdkBattleSlotRef>.unmodifiable(
       aliveSlots().where((slot) => slot.bank == user.bank && slot != user),
@@ -106,9 +112,13 @@ class PsdkBattleState {
 
   List<PsdkBattleSlotRef> adjacentAlliesOf(PsdkBattleSlotRef user) {
     return List<PsdkBattleSlotRef>.unmodifiable(
-      alliesOf(user).where(
-        (slot) => (slot.position - user.position).abs() <= 1,
-      ),
+      alliesOf(user).where((slot) => _isAdjacent(user, slot)),
+    );
+  }
+
+  List<PsdkBattleSlotRef> adjacentSlotsOf(PsdkBattleSlotRef user) {
+    return List<PsdkBattleSlotRef>.unmodifiable(
+      aliveSlots().where((slot) => slot != user && _isAdjacent(user, slot)),
     );
   }
 
@@ -125,6 +135,10 @@ class PsdkBattleState {
   bool isWeatherEffectActive(PsdkBattleWeatherId id) {
     return !weatherEffectsSuppressed && field.isWeatherActive(id);
   }
+}
+
+bool _isAdjacent(PsdkBattleSlotRef user, PsdkBattleSlotRef target) {
+  return (target.position - user.position).abs() <= 1;
 }
 
 int _compareSlots(PsdkBattleSlotRef left, PsdkBattleSlotRef right) {

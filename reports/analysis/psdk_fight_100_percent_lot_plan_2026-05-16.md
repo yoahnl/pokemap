@@ -1800,6 +1800,18 @@ multi-target PSDK branches outside the current singles engine path.
 **Definition of done:**
 - Methods blocked by `targetingMulti` can start being promoted.
 
+**Status 2026-05-17:** done for the topology-complete target resolver slice.
+`PsdkBattleState` now exposes adjacent foe/allied/all-slot views with the same
+bank/position distance rule used by Pokemon SDK (`abs(position delta) <= 1`),
+and `BattleTargetResolver` routes adjacent single/spread targets through those
+views instead of treating every living foe as adjacent. `randomFoe` now selects
+from alive foes through the generic RNG stream, so seeded target selection is
+deterministic instead of always falling back to the first foe. The new doubles/
+multi-slot regression test covers singles preservation, distant-slot filtering,
+`adjacentFoe` versus `anyFoe`, and seeded random target choice. Remaining
+targeting parity work is intentionally left for Lot 59: redirection and
+doubles-wide protection effects.
+
 ### Lot 58 - Side and Slot Conditions
 
 **Goal:** model PSDK side/slot/position-tied effects fully.
