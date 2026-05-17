@@ -146,6 +146,9 @@ int _abilityAdjustedPower(
   for (final effect in context.user.abilityEffects) {
     multiplier *= effect.damageBasePowerMultiplier(abilityContext);
   }
+  for (final effect in context.target.abilityEffects) {
+    multiplier *= effect.incomingDamageBasePowerMultiplier(abilityContext);
+  }
   if (multiplier == 1.0) {
     return power;
   }
