@@ -1615,6 +1615,17 @@ modifier pass. Manifest and registry coverage were updated with focused tests.
 **Definition of done:**
 - Item parity becomes measurable.
 
+**Status 2026-05-17:** done for the item registry measurement foundation.
+Added `psdk_item_effect_manifest.dart` with 181 tracked held-item entries:
+175 item registrations extracted from Pokemon SDK's `05 Item Effects` scripts
+plus six local cross-cutting held-item checks already modeled by the Dart lane
+(`loaded_dice`, `terrain_extender`, `damp_rock`, `heat_rock`, `smooth_rock`,
+and `icy_rock`). `ItemEffectRegistry` now exposes `registeredItemIds` from the
+manifest, and the existing Dart item effects are marked `partial`: Air Balloon,
+Black Sludge, Iron Ball, Leftovers, Loaded Dice, Shed Shell, Terrain Extender
+and the four weather rocks. Unknown items remain explicit/inert: they are absent
+from the manifest-backed registered ids and hydrate to no effect.
+
 ### Lot 53 - Berries: Healing and Cure
 
 **Goal:** port berry healing, status cure, pinch, and confusion branches.

@@ -1,5 +1,6 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
+import '../../../data/generated/psdk_item_effect_manifest.dart';
 import '../battle_effect.dart';
 import '../battle_effect_scope.dart';
 import 'air_balloon_effect.dart';
@@ -54,6 +55,12 @@ final class ItemEffectRegistry {
   };
 
   final Map<String, ItemEffectFactory> _factories;
+
+  Set<String> get registeredItemIds {
+    return <String>{
+      for (final entry in psdkItemEffectManifest) entry.itemId,
+    };
+  }
 
   BattleEffect? create(String? itemId, {required PsdkBattleSlotRef owner}) {
     final normalized = _normalizeItemId(itemId);
