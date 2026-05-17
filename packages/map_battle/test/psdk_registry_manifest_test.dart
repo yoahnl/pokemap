@@ -225,6 +225,33 @@ void main() {
       }
     });
 
+    test('effect parity promotes Lot 99 ability status selection batch',
+        () async {
+      final effectEntries = await loadPsdkEffectParityEntries(
+        Directory('../../pokemonsdk-development/scripts/5 Battle'),
+      );
+      final byFamilyAndName = {
+        for (final entry in effectEntries)
+          '${entry.family}:${entry.effectName}': entry,
+      };
+
+      for (final effectName in <String>[
+        'Immunity',
+        'Insomnia',
+        'Limber',
+        'MagmaArmor',
+        'NonVolatileStatusImmunityBase',
+        'Soundproof',
+        'WaterVeil',
+      ]) {
+        expect(
+          byFamilyAndName['ability:$effectName']?.status,
+          PsdkPortStatus.ported,
+          reason: effectName,
+        );
+      }
+    });
+
     test('effect parity promotes exact major status lifecycle effects',
         () async {
       final effectEntries = await loadPsdkEffectParityEntries(

@@ -9295,14 +9295,14 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 83,
-      "partial": 66,
+      "ported": 90,
+      "partial": 59,
       "missing": 333
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 20,
-        "partial": 20,
+        "ported": 27,
+        "partial": 13,
         "missing": 214
       },
       "move": {
@@ -10451,7 +10451,7 @@
       {
         "effectName": "Immunity",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb"
       },
       {
@@ -10487,7 +10487,7 @@
       {
         "effectName": "Insomnia",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb"
       },
       {
@@ -10649,7 +10649,7 @@
       {
         "effectName": "Limber",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb"
       },
       {
@@ -10721,7 +10721,7 @@
       {
         "effectName": "MagmaArmor",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb"
       },
       {
@@ -10925,7 +10925,7 @@
       {
         "effectName": "NonVolatileStatusImmunityBase",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb"
       },
       {
@@ -11591,7 +11591,7 @@
       {
         "effectName": "Soundproof",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Soundproof.rb"
       },
       {
@@ -12119,7 +12119,7 @@
       {
         "effectName": "WaterVeil",
         "family": "ability",
-        "status": "partial",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb"
       },
       {

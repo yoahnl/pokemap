@@ -241,7 +241,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'damp',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/10 Move/2 Definitions/300 SelfDestruct.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'DampEffect',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -604,7 +604,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'immunity',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'StatusImmunityEffect',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -630,7 +630,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'insomnia',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'StatusImmunityEffect',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -702,7 +702,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'limber',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'StatusImmunityEffect',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -733,7 +733,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'magma_armor',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'StatusImmunityEffect',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -1292,7 +1292,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'soundproof',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Soundproof.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'SoundproofEffect',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -1613,7 +1613,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'vital_spirit',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'StatusImmunityEffect',
   ),
   PsdkAbilityEffectManifestEntry(
@@ -1652,7 +1652,7 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'water_veil',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb',
-    status: PsdkAbilityPortStatus.partial,
+    status: PsdkAbilityPortStatus.ported,
     dartEffect: 'StatusImmunityEffect',
   ),
   PsdkAbilityEffectManifestEntry(
