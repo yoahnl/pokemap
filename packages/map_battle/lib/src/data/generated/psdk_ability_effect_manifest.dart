@@ -333,7 +333,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'earth_eater',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 TypeAbsorb.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'TypeImmunityAbilityEffect.earthEater',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'effect_spore',
@@ -393,7 +394,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'flash_fire',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Flash Fire.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'TypeImmunityAbilityEffect.flashFire',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'flower_gift',
@@ -686,7 +688,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'lightning_rod',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Lightning Rod - Storm Drain.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'TypeImmunityAbilityEffect.lightningRod',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'limber',
@@ -791,7 +794,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'motor_drive',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Motor Drive.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'TypeImmunityAbilityEffect.motorDrive',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'moxie',
@@ -1146,7 +1150,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'sap_sipper',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Sap Sipper.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'TypeImmunityAbilityEffect.sapSipper',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'schooling',
@@ -1349,7 +1354,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'storm_drain',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Lightning Rod - Storm Drain.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'TypeImmunityAbilityEffect.stormDrain',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'strong_jaw',
@@ -1601,7 +1607,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'volt_absorb',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 TypeAbsorb.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'TypeImmunityAbilityEffect.voltAbsorb',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'wandering_spirit',
@@ -1613,7 +1620,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'water_absorb',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 TypeAbsorb.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'TypeImmunityAbilityEffect.waterAbsorb',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'water_bubble',

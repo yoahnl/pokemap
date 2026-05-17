@@ -549,6 +549,145 @@ void main() {
       }
     });
 
+    test('type immunity abilities prevent matching damaging moves', () {
+      const cases = <({String abilityId, String moveType})>[
+        (abilityId: 'water_absorb', moveType: 'water'),
+        (abilityId: 'volt_absorb', moveType: 'electric'),
+        (abilityId: 'earth_eater', moveType: 'ground'),
+        (abilityId: 'flash_fire', moveType: 'fire'),
+        (abilityId: 'motor_drive', moveType: 'electric'),
+        (abilityId: 'lightning_rod', moveType: 'electric'),
+        (abilityId: 'storm_drain', moveType: 'water'),
+        (abilityId: 'sap_sipper', moveType: 'grass'),
+      ];
+
+      for (final entry in cases) {
+        final blocked = _runMove(
+          opponentAbilityId: entry.abilityId,
+          playerMove: _move(
+            id: '${entry.abilityId}_blocked',
+            type: entry.moveType,
+            power: 60,
+          ),
+        );
+        final neutral = _runMove(
+          opponentAbilityId: entry.abilityId,
+          playerMove: _move(
+            id: '${entry.abilityId}_neutral',
+            type: 'normal',
+            power: 60,
+          ),
+        );
+
+        expect(
+          _damageEvents(blocked, moveId: '${entry.abilityId}_blocked'),
+          isEmpty,
+          reason: entry.abilityId,
+        );
+        expect(
+          _eventsFor(blocked, moveId: '${entry.abilityId}_blocked')
+              .whereType<PsdkBattleMoveFailedEvent>()
+              .single
+              .reason,
+          BattleMoveFailureReason.immunity.jsonName,
+          reason: entry.abilityId,
+        );
+        expect(
+          _damageEvents(neutral, moveId: '${entry.abilityId}_neutral'),
+          hasLength(1),
+          reason: entry.abilityId,
+        );
+      }
+    });
+
+    test('type absorb damage prevention heals instead of taking damage', () {
+      final result = _applyDirectAbilityDamage(
+        opponentAbilityId: 'water_absorb',
+        opponentCurrentHp: 50,
+        moveType: 'water',
+      );
+      final heals = result.events.whereType<PsdkBattleHealEvent>().toList();
+
+      expect(result.applied, isTrue);
+      expect(result.reason, BattleMoveFailureReason.immunity.jsonName);
+      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 75);
+      expect(heals, hasLength(1));
+      expect(heals.single.amount, 25);
+      expect(heals.single.moveId, 'effect:water_absorb');
+    });
+
+    test('stat absorb damage prevention raises the matching stat', () {
+      const cases = <({String abilityId, String moveType, String stat})>[
+        (abilityId: 'motor_drive', moveType: 'electric', stat: 'speed'),
+        (
+          abilityId: 'lightning_rod',
+          moveType: 'electric',
+          stat: 'special_attack'
+        ),
+        (abilityId: 'storm_drain', moveType: 'water', stat: 'special_attack'),
+        (abilityId: 'sap_sipper', moveType: 'grass', stat: 'attack'),
+      ];
+
+      for (final entry in cases) {
+        final result = _applyDirectAbilityDamage(
+          opponentAbilityId: entry.abilityId,
+          moveType: entry.moveType,
+        );
+
+        expect(result.reason, BattleMoveFailureReason.immunity.jsonName);
+        expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 100);
+        expect(
+          result.state
+              .battlerAt(psdkOpponentSlot)
+              .statStages
+              .valueOf(entry.stat),
+          1,
+          reason: entry.abilityId,
+        );
+        expect(
+          result.events.whereType<PsdkBattleStatStageEvent>().single.stat,
+          entry.stat,
+          reason: entry.abilityId,
+        );
+      }
+    });
+
+    test('Flash Fire prevents burn status in addition to Fire damage', () {
+      final result = const BattleStatusChangeHandler().applyMajorStatus(
+        context: BattleHandlerContext(
+          state: PsdkBattleState.fromSetup(
+            BattleEngineSetup.singles(
+              player: _combatant(
+                id: 'player',
+                abilityId: 'flash_fire',
+                move: _move(id: 'tackle', power: 40),
+              ),
+              opponent: _combatant(
+                id: 'opponent',
+                move: _move(id: 'will_o_wisp', power: 0),
+              ),
+              rngSeeds: const BattleRngSeeds(
+                moveDamage: 1,
+                moveCritical: 99999,
+                moveAccuracy: 3,
+                generic: 4,
+              ).psdkSeeds,
+            ).psdkSetup,
+          ),
+          rng: _rng(),
+          turn: 1,
+          user: psdkOpponentSlot,
+        ),
+        target: psdkPlayerSlot,
+        moveId: 'will_o_wisp',
+        status: PsdkBattleMajorStatus.burn,
+      );
+
+      expect(result.applied, isFalse);
+      expect(result.reason, 'status_immune');
+      expect(result.state.battlerAt(psdkPlayerSlot).majorStatus, isNull);
+    });
+
     test('Levitate makes a non-grounded target immune to Ground moves', () {
       final result = _runMove(
         opponentAbilityId: 'levitate',
@@ -846,4 +985,56 @@ int _calculatedDamage({
         ),
       )
       .damage;
+}
+
+BattleHandlerResult _applyDirectAbilityDamage({
+  required String opponentAbilityId,
+  required String moveType,
+  int opponentCurrentHp = 100,
+}) {
+  final state = PsdkBattleState.fromSetup(
+    BattleEngineSetup.singles(
+      player: _combatant(
+        id: 'player',
+        move: _move(id: 'typed_hit', type: moveType, power: 60),
+      ),
+      opponent: _combatant(
+        id: 'opponent',
+        currentHp: opponentCurrentHp,
+        abilityId: opponentAbilityId,
+        move: _move(id: 'opponent_wait', power: 0),
+      ),
+      rngSeeds: const BattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 4,
+      ).psdkSeeds,
+    ).psdkSetup,
+  );
+
+  return const BattleDamageHandler().applyDamage(
+    context: BattleHandlerContext(
+      state: state,
+      rng: _rng(),
+      turn: 1,
+      user: psdkPlayerSlot,
+    ),
+    target: psdkOpponentSlot,
+    moveId: 'typed_hit',
+    rawDamage: 30,
+    move: BattleMoveDefinition(
+      id: 'typed_hit',
+      dbSymbol: 'typed_hit',
+      name: 'typed_hit',
+      type: moveType,
+      category: PsdkBattleMoveCategory.special,
+      power: 60,
+      accuracy: 100,
+      pp: 35,
+      priority: 0,
+      battleEngineMethod: 's_basic',
+      target: PsdkBattleMoveTarget.adjacentFoe,
+    ),
+  );
 }

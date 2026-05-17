@@ -18,6 +18,7 @@ import 'skill_link_effect.dart';
 import 'soundproof_effect.dart';
 import 'status_immunity_effect.dart';
 import 'type_boosting_ability_effect.dart';
+import 'type_immunity_ability_effect.dart';
 
 typedef AbilityEffectFactory = BattleEffect Function({
   required BattleEffectScope scope,
@@ -40,6 +41,55 @@ final class AbilityEffectRegistry {
     'iron_barbs': ({required scope}) => ContactPunishAbilityEffect(
           abilityId: 'iron_barbs',
           scope: scope,
+        ),
+    'water_absorb': ({required scope}) => TypeImmunityAbilityEffect(
+          abilityId: 'water_absorb',
+          scope: scope,
+          blockedType: 'water',
+          reward: TypeImmunityReward.healQuarter,
+        ),
+    'volt_absorb': ({required scope}) => TypeImmunityAbilityEffect(
+          abilityId: 'volt_absorb',
+          scope: scope,
+          blockedType: 'electric',
+          reward: TypeImmunityReward.healQuarter,
+        ),
+    'earth_eater': ({required scope}) => TypeImmunityAbilityEffect(
+          abilityId: 'earth_eater',
+          scope: scope,
+          blockedType: 'ground',
+          reward: TypeImmunityReward.healQuarter,
+        ),
+    'flash_fire': ({required scope}) => TypeImmunityAbilityEffect(
+          abilityId: 'flash_fire',
+          scope: scope,
+          blockedType: 'fire',
+          reward: TypeImmunityReward.flashFire,
+        ),
+    'motor_drive': ({required scope}) => TypeImmunityAbilityEffect(
+          abilityId: 'motor_drive',
+          scope: scope,
+          blockedType: 'electric',
+          reward: TypeImmunityReward.speed,
+        ),
+    'lightning_rod': ({required scope}) => TypeImmunityAbilityEffect(
+          abilityId: 'lightning_rod',
+          scope: scope,
+          blockedType: 'electric',
+          reward: TypeImmunityReward.specialAttack,
+        ),
+    'storm_drain': ({required scope}) => TypeImmunityAbilityEffect(
+          abilityId: 'storm_drain',
+          scope: scope,
+          blockedType: 'water',
+          reward: TypeImmunityReward.specialAttack,
+        ),
+    'sap_sipper': ({required scope}) => TypeImmunityAbilityEffect(
+          abilityId: 'sap_sipper',
+          scope: scope,
+          blockedType: 'grass',
+          reward: TypeImmunityReward.attack,
+          excludedMoveIds: const <String>{'aromatherapy'},
         ),
     'blaze': ({required scope}) => TypeBoostingAbilityEffect(
           abilityId: 'blaze',

@@ -1517,6 +1517,17 @@ move shapes/contact damage.
 **Definition of done:**
 - Immunity/prevention ability family has real parity coverage.
 
+**Status 2026-05-17:** done for the primary type-immunity/prevention wave.
+Added a shared type-immunity ability effect and wired `water_absorb`,
+`volt_absorb`, `earth_eater`, `flash_fire`, `motor_drive`, `lightning_rod`,
+`storm_drain`, and `sap_sipper`. The move-prevention path now blocks matching
+typed moves, while the damage-prevention path applies PSDK-style rewards where
+local state supports them: quarter-HP healing for absorb abilities and +1 stat
+stage for Motor Drive, Lightning Rod, Storm Drain, and Sap Sipper. `Flash Fire`
+also prevents burn status. Manifest entries and registry coverage were updated
+with dedicated tests for matching/mismatching types, direct damage prevention,
+stat rewards, and burn prevention.
+
 ### Lot 50 - Ability Weather, Terrain, and Switch Effects
 
 **Goal:** port weather/terrain/switch-trigger abilities.
