@@ -9,8 +9,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | Metric | Count |
 | --- | ---: |
 | Studio attacks total | 728 |
-| Studio attacks `fait` | 305 |
-| Studio attacks `partiel` | 423 |
+| Studio attacks `fait` | 307 |
+| Studio attacks `partiel` | 421 |
 | Studio attacks `pas_fait` | 0 |
 | Unknown methods | 0 |
 | Unique battle engine methods | 258 |
@@ -54,9 +54,7 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 | s_encore | 1 |
 | s_entrainment | 1 |
 | s_explosion | 2 |
-| s_fake_out | 1 |
 | s_false_swipe | 2 |
-| s_feint | 1 |
 | s_fell_stinger | 1 |
 | s_final_gambit | 1 |
 | s_flame_burst | 1 |
@@ -207,8 +205,8 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 105 |
-| `partial` | 225 |
+| `ported` | 107 |
+| `partial` | 223 |
 | `missing` | 0 |
 | Total manifest methods | 330 |
 
@@ -216,23 +214,23 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Dependency | Partial methods |
 | --- | ---: |
-| no_dependency_declared | 140 |
-| effects | 63 |
+| no_dependency_declared | 133 |
+| effects | 66 |
 | ability | 48 |
 | handlerDamage | 26 |
 | handlerStatus | 18 |
 | handlerStat | 15 |
 | item | 15 |
-| targetingMulti | 13 |
+| targetingMulti | 14 |
 | history | 9 |
 | handlerSwitch | 8 |
 | endTurn | 6 |
 | faintProcess | 6 |
+| actionOrder | 5 |
+| field | 4 |
 | terrain | 4 |
 | accuracy | 3 |
-| field | 3 |
 | grounded | 3 |
-| actionOrder | 2 |
 | handlerItem | 1 |
 | weather | 1 |
 

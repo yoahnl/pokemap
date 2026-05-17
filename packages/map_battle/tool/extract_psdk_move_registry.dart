@@ -658,11 +658,11 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
   ),
   's_fake_out': _KnownDartBehavior(
     dartBehavior: 'ActionGatedMoveBehavior.fakeOut',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_feint': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_feint',
-    status: _PsdkPortStatus.partial,
+    status: _PsdkPortStatus.ported,
   ),
   's_fell_stinger': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_fell_stinger',
@@ -1453,6 +1453,9 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
     _PsdkMoveDependency.effects,
     _PsdkMoveDependency.ability,
   },
+  's_after_you': {
+    _PsdkMoveDependency.actionOrder,
+  },
   's_bind': {},
   's_brick_break': {
     _PsdkMoveDependency.effects,
@@ -1477,15 +1480,27 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
     _PsdkMoveDependency.effects,
     _PsdkMoveDependency.ability,
   },
+  's_electrify': {
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.actionOrder,
+  },
   's_hurricane': {
     _PsdkMoveDependency.weather,
     _PsdkMoveDependency.accuracy,
     _PsdkMoveDependency.handlerStatus,
   },
+  's_helping_hand': {
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.targetingMulti,
+  },
   's_ice_ball': {
     _PsdkMoveDependency.effects,
     _PsdkMoveDependency.history,
     _PsdkMoveDependency.accuracy,
+  },
+  's_ion_deluge': {
+    _PsdkMoveDependency.effects,
+    _PsdkMoveDependency.field,
   },
   's_outrage': {
     _PsdkMoveDependency.effects,
@@ -1501,6 +1516,9 @@ const _manualDependencies = <String, Set<_PsdkMoveDependency>>{
   's_pluck': {
     _PsdkMoveDependency.item,
     _PsdkMoveDependency.ability,
+  },
+  's_quash': {
+    _PsdkMoveDependency.actionOrder,
   },
   's_psychic_noise': {
     _PsdkMoveDependency.effects,

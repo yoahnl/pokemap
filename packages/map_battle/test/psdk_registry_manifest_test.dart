@@ -559,7 +559,7 @@ void main() {
         byMethod['s_raging_bull']!.dartBehavior,
         'StaticBasicMoveRegistry.s_raging_bull',
       );
-      expect(byMethod['s_feint']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_feint']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_feint']!.dartBehavior,
         'StaticBasicMoveRegistry.s_feint',
@@ -660,7 +660,7 @@ void main() {
         byMethod['s_sucker_punch']!.dartBehavior,
         'ActionGatedMoveBehavior.suckerPunch',
       );
-      expect(byMethod['s_fake_out']!.status, PsdkPortStatus.partial);
+      expect(byMethod['s_fake_out']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_fake_out']!.dartBehavior,
         'ActionGatedMoveBehavior.fakeOut',
@@ -1230,6 +1230,39 @@ void main() {
         containsAll(<PsdkMoveDependency>[
           PsdkMoveDependency.effects,
           PsdkMoveDependency.actionOrder,
+          PsdkMoveDependency.field,
+        ]),
+      );
+      expect(
+        byMethod['s_after_you']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.actionOrder,
+        ]),
+      );
+      expect(
+        byMethod['s_quash']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.actionOrder,
+        ]),
+      );
+      expect(
+        byMethod['s_helping_hand']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.targetingMulti,
+        ]),
+      );
+      expect(
+        byMethod['s_electrify']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.effects,
+          PsdkMoveDependency.actionOrder,
+        ]),
+      );
+      expect(
+        byMethod['s_ion_deluge']!.dependencies,
+        containsAll(<PsdkMoveDependency>[
+          PsdkMoveDependency.effects,
           PsdkMoveDependency.field,
         ]),
       );

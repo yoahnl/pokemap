@@ -3,8 +3,8 @@
   "attacks": {
     "totalAttacks": 728,
     "uniqueBattleEngineMethods": 258,
-    "fait": 305,
-    "partiel": 423,
+    "fait": 307,
+    "partiel": 421,
     "pasFait": 0,
     "unknownMethods": 0,
     "entries": [
@@ -1531,9 +1531,9 @@
       {
         "moveId": "fake_out",
         "battleEngineMethod": "s_fake_out",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/fake_out.json"
       },
       {
@@ -1563,9 +1563,9 @@
       {
         "moveId": "feint",
         "battleEngineMethod": "s_feint",
-        "coverage": "partiel",
-        "psdkStatus": "partial",
-        "reason": "method_partial",
+        "coverage": "fait",
+        "psdkStatus": "ported",
+        "reason": "strict_ported",
         "sourceFile": "../../pokémon_sdk_test_project/Data/Studio/moves/feint.json"
       },
       {
@@ -5837,8 +5837,8 @@
   "methods": {
     "totalMethods": 330,
     "byStatus": {
-      "ported": 105,
-      "partial": 225,
+      "ported": 107,
+      "partial": 223,
       "missing": 0
     },
     "entries": [
@@ -5936,7 +5936,9 @@
         "rubyPath": "10 Move/2 Definitions/300 After you.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_after_you)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "actionOrder"
+        ]
       },
       {
         "battleEngineMethod": "s_alluring_voice",
@@ -6430,7 +6432,10 @@
         "rubyPath": "10 Move/2 Definitions/300 Electrify.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_electrify)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects",
+          "actionOrder"
+        ]
       },
       {
         "battleEngineMethod": "s_electro_ball",
@@ -6532,7 +6537,7 @@
         "rubyClass": "FakeOut",
         "rubyPath": "10 Move/2 Definitions/300 FakeOut.rb",
         "dartBehavior": "ActionGatedMoveBehavior.fakeOut",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -6550,7 +6555,7 @@
         "rubyClass": "Feint",
         "rubyPath": "10 Move/2 Definitions/300 Feint.rb",
         "dartBehavior": "StaticBasicMoveRegistry.s_feint",
-        "status": "partial",
+        "status": "ported",
         "dependencies": []
       },
       {
@@ -7018,7 +7023,10 @@
         "rubyPath": "10 Move/2 Definitions/300 HelpingHand.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialUserBankMarker(s_helping_hand)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects",
+          "targetingMulti"
+        ]
       },
       {
         "battleEngineMethod": "s_hex",
@@ -7131,7 +7139,10 @@
         "rubyPath": "10 Move/2 Definitions/300 Ion Deluge.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialFieldMarker(s_ion_deluge)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "effects",
+          "field"
+        ]
       },
       {
         "battleEngineMethod": "s_ivy_cudgel",
@@ -7788,7 +7799,9 @@
         "rubyPath": "10 Move/2 Definitions/300 Quash.rb",
         "dartBehavior": "StaticBasicMoveRegistry.partialTargetMarker(s_quash)",
         "status": "partial",
-        "dependencies": []
+        "dependencies": [
+          "actionOrder"
+        ]
       },
       {
         "battleEngineMethod": "s_rage",

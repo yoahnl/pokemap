@@ -33,8 +33,8 @@ dart run tool/psdk_fight_parity_audit.dart --final-gate --goldens test/fixtures/
 
 The gate currently fails, as expected:
 
-- attacks complete: `305 / 728`
-- methods complete: `105 / 330`
+- attacks complete: `307 / 728`
+- methods complete: `107 / 330`
 - effects complete: `3 / 482`
 - runtime bridge: `28` sampled runtime moves, `20` bridgeable,
   `8` rejected with diagnostics, `0` unexplained rejections
