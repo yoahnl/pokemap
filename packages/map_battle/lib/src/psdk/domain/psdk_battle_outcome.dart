@@ -1,6 +1,7 @@
 enum PsdkBattleOutcomeKind {
   victory,
   defeat,
+  fled,
 }
 
 class PsdkBattleOutcome {

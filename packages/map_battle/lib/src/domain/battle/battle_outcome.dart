@@ -8,6 +8,7 @@ import '../../psdk/domain/psdk_battle_outcome.dart';
 enum BattleEngineOutcomeKind {
   victory,
   defeat,
+  fled,
 }
 
 /// Public terminal outcome for [BattleEngine].
@@ -22,6 +23,7 @@ final class BattleEngineOutcome {
       kind: switch (outcome.kind) {
         PsdkBattleOutcomeKind.victory => BattleEngineOutcomeKind.victory,
         PsdkBattleOutcomeKind.defeat => BattleEngineOutcomeKind.defeat,
+        PsdkBattleOutcomeKind.fled => BattleEngineOutcomeKind.fled,
       },
       psdkOutcome: outcome,
     );
@@ -33,6 +35,7 @@ final class BattleEngineOutcome {
   bool get isFinished => true;
   bool get isVictory => kind == BattleEngineOutcomeKind.victory;
   bool get isDefeat => kind == BattleEngineOutcomeKind.defeat;
+  bool get isFled => kind == BattleEngineOutcomeKind.fled;
 
   /// Bridge retained for the existing PSDK facade while it delegates to the
   /// clean runner. Product code should prefer [kind].

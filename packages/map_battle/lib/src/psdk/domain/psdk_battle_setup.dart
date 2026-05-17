@@ -14,6 +14,7 @@ class PsdkBattleSetup {
     required PsdkBattleCombatantSetup opponent,
     required this.rngSeeds,
     this.field = const PsdkBattleFieldState(),
+    this.canFlee = false,
     List<PsdkBattleCombatantSetup> playerReserves =
         const <PsdkBattleCombatantSetup>[],
     List<PsdkBattleCombatantSetup> opponentReserves =
@@ -41,6 +42,7 @@ class PsdkBattleSetup {
   final Map<int, List<PsdkBattleCombatantSetup>> parties;
   final PsdkBattleRngSeeds rngSeeds;
   final PsdkBattleFieldState field;
+  final bool canFlee;
   final bool isSingles;
 
   PsdkBattleCombatantSetup get player => combatants[psdkPlayerSlot]!;

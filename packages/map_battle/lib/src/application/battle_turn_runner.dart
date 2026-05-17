@@ -5,6 +5,7 @@ import '../domain/action/battle_action.dart';
 import '../domain/action/battle_action_decision_mapper.dart';
 import '../domain/action/battle_item_action_handler.dart';
 import '../domain/action/battle_mega_action_handler.dart';
+import '../domain/action/battle_shift_action_handler.dart';
 import '../domain/action/battle_action_queue.dart';
 import '../domain/decision/battle_decision.dart';
 import '../domain/effect/ability/ability_effect.dart';
@@ -23,6 +24,7 @@ import '../domain/timeline/battle_timeline.dart';
 import '../domain/timeline/battle_timeline_builder.dart';
 import '../domain/timeline/battle_timeline_event.dart';
 import '../psdk/application/psdk_battle_move_behavior.dart';
+import '../psdk/domain/psdk_battle_outcome.dart';
 import '../psdk/domain/psdk_battle_slots.dart';
 
 /// Result of submitting one decision to [BattleTurnRunner].
@@ -112,6 +114,25 @@ final class BattleTurnRunner {
             nextRng: mega.rng,
           );
           timeline.addPsdkAll(mega.events);
+          continue;
+        }
+        if (action is PsdkBattleFleeAction) {
+          final fled = _resolveFleeAction(action, timeline);
+          if (fled) {
+            break;
+          }
+          continue;
+        }
+        if (action is PsdkBattleShiftAction) {
+          final shifted = _resolveShiftAction(action);
+          _context.applyStateAndRng(
+            nextState: shifted.state,
+            nextRng: shifted.rng,
+          );
+          timeline.addPsdkAll(shifted.events);
+          continue;
+        }
+        if (action is PsdkBattleNoAction) {
           continue;
         }
         if (action is PsdkBattleSwitchAction) {
@@ -460,6 +481,40 @@ final class BattleTurnRunner {
 
   BattleHandlerResult _resolveMegaAction(PsdkBattleMegaAction action) {
     return const BattleMegaActionHandler().megaEvolve(
+      context: BattleHandlerContext(
+        state: _context.state,
+        rng: _context.rng,
+        turn: _context.turnNumber,
+        user: action.user,
+      ),
+      action: action,
+    );
+  }
+
+  bool _resolveFleeAction(
+    PsdkBattleFleeAction action,
+    BattleTimelineBuilder timeline,
+  ) {
+    final succeeded = _context.setup.canFlee;
+    timeline.add(
+      BattleFleeAttemptTimelineEvent(
+        turn: _context.turnNumber,
+        actor: _fromPsdkSlot(action.user),
+        succeeded: succeeded,
+      ),
+    );
+    if (!succeeded) {
+      return false;
+    }
+
+    const outcome = PsdkBattleOutcome(kind: PsdkBattleOutcomeKind.fled);
+    _context.finish(outcome);
+    timeline.add(BattleEndedTimelineEvent(outcome: outcome));
+    return true;
+  }
+
+  BattleHandlerResult _resolveShiftAction(PsdkBattleShiftAction action) {
+    return const BattleShiftActionHandler().shift(
       context: BattleHandlerContext(
         state: _context.state,
         rng: _context.rng,

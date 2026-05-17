@@ -15,6 +15,7 @@ final class BattleEngineSetup {
     required PsdkBattleCombatantSetup opponent,
     required PsdkBattleRngSeeds rngSeeds,
     PsdkBattleFieldState field = const PsdkBattleFieldState(),
+    bool canFlee = false,
     List<PsdkBattleCombatantSetup> playerReserves =
         const <PsdkBattleCombatantSetup>[],
     List<PsdkBattleCombatantSetup> opponentReserves =
@@ -24,6 +25,7 @@ final class BattleEngineSetup {
           opponent: opponent,
           rngSeeds: rngSeeds,
           field: field,
+          canFlee: canFlee,
           playerReserves: playerReserves,
           opponentReserves: opponentReserves,
         );

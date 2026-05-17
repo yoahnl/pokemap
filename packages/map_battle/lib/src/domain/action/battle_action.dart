@@ -48,6 +48,21 @@ final class PsdkBattleSwitchAction extends PsdkBattleAction {
   final int partyIndex;
 }
 
+final class PsdkBattleFleeAction extends PsdkBattleAction {
+  const PsdkBattleFleeAction({
+    required PsdkBattleSlotRef user,
+  }) : super(kind: PsdkBattleActionKind.flee, user: user);
+}
+
+final class PsdkBattleShiftAction extends PsdkBattleAction {
+  const PsdkBattleShiftAction({
+    required PsdkBattleSlotRef user,
+    required this.target,
+  }) : super(kind: PsdkBattleActionKind.shift, user: user);
+
+  final PsdkBattleSlotRef target;
+}
+
 final class PsdkBattleMegaEvolution {
   const PsdkBattleMegaEvolution({
     required this.requiredSpeciesId,

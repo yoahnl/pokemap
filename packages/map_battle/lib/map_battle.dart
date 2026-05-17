@@ -96,6 +96,7 @@ export 'src/domain/action/battle_action.dart'
     show
         PsdkBattleAction,
         PsdkBattleActionKind,
+        PsdkBattleFleeAction,
         PsdkBattleFightAction,
         PsdkBattleHpHealItemEffect,
         PsdkBattleItemAction,
@@ -103,6 +104,7 @@ export 'src/domain/action/battle_action.dart'
         PsdkBattleMegaAction,
         PsdkBattleMegaEvolution,
         PsdkBattleNoAction,
+        PsdkBattleShiftAction,
         PsdkBattleStatusCureItemEffect,
         PsdkBattleSwitchAction;
 export 'src/domain/action/battle_action_decision_mapper.dart'
@@ -208,10 +210,13 @@ export 'src/domain/decision/battle_decision.dart'
         BattleDecision,
         BattleEngineDecisionRequest,
         BattleEngineDecisionRequestKind,
+        BattleFleeDecision,
         BattleFightDecision,
         BattleItemDecision,
         BattleMegaDecision,
         BattleMoveDecisionOption,
+        BattleNoActionDecision,
+        BattleShiftDecision,
         BattleSwitchDecisionOption,
         BattleSwitchDecision;
 export 'src/domain/timeline/battle_timeline.dart' show BattleTimeline;

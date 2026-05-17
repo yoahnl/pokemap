@@ -2013,6 +2013,19 @@ with 65 / 330 methods ported.
 **Definition of done:**
 - PSDK action grammar has no unclassified local gaps.
 
+**Status 2026-05-17:** done for the local action-grammar scope. Added
+`BattleDecision.flee`, `BattleDecision.noAction`, `BattleDecision.shift`,
+`PsdkBattleFleeAction`, and `PsdkBattleShiftAction`, plus a focused shift
+handler for adjacent same-bank active slots. Clean setup now exposes
+`canFlee`, successful flee produces `PsdkBattleOutcomeKind.fled`, trainer
+flee attempts remain non-terminal, and no-action consumes the submitted action
+without spending PP or resolving player move effects. Safari commands are
+explicitly documented as out of scope in
+`reports/analysis/psdk_fight_misc_action_scope.md` because they need capture
+and Safari-zone runtime contracts outside the current clean battle lane. This
+action-topology lot does not change strict move-method coverage, which remains
+267 / 728 attacks with 65 / 330 methods ported.
+
 ### Lot 64 - Pokemon SDK AI: Move Scoring
 
 **Goal:** port PSDK move-choice heuristics.

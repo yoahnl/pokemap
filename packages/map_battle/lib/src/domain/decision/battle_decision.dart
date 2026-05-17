@@ -31,6 +31,14 @@ sealed class BattleDecision {
   const factory BattleDecision.mega({
     required PsdkBattleMegaEvolution form,
   }) = BattleMegaDecision;
+
+  const factory BattleDecision.flee() = BattleFleeDecision;
+
+  const factory BattleDecision.shift({
+    required PsdkBattleSlotRef target,
+  }) = BattleShiftDecision;
+
+  const factory BattleDecision.noAction() = BattleNoActionDecision;
 }
 
 final class BattleFightDecision extends BattleDecision {
@@ -71,6 +79,22 @@ final class BattleMegaDecision extends BattleDecision {
   });
 
   final PsdkBattleMegaEvolution form;
+}
+
+final class BattleFleeDecision extends BattleDecision {
+  const BattleFleeDecision();
+}
+
+final class BattleShiftDecision extends BattleDecision {
+  const BattleShiftDecision({
+    required this.target,
+  });
+
+  final PsdkBattleSlotRef target;
+}
+
+final class BattleNoActionDecision extends BattleDecision {
+  const BattleNoActionDecision();
 }
 
 enum BattleEngineDecisionRequestKind {
@@ -188,6 +212,9 @@ final class BattleEngineDecisionRequest {
         switchChoices.any((choice) => choice.partyIndex == partyIndex),
       BattleItemDecision() => false,
       BattleMegaDecision() => false,
+      BattleFleeDecision() => false,
+      BattleShiftDecision() => false,
+      BattleNoActionDecision() => false,
     };
   }
 }
