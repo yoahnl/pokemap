@@ -976,48 +976,127 @@ void main() {
     });
 
     test('non-volatile status immunity abilities prevent matching status', () {
-      final result = const BattleStatusChangeHandler().applyMajorStatus(
-        context: BattleHandlerContext(
-          state: PsdkBattleState.fromSetup(
-            BattleEngineSetup.singles(
-              player: _combatant(
-                id: 'player',
-                abilityId: 'water_veil',
-                move: _move(id: 'tackle', power: 40),
-              ),
-              opponent: _combatant(
-                id: 'opponent',
-                move: _move(id: 'tackle', power: 40),
-              ),
-              rngSeeds: const BattleRngSeeds(
+      const cases = <({String abilityId, PsdkBattleMajorStatus status})>[
+        (abilityId: 'immunity', status: PsdkBattleMajorStatus.poison),
+        (abilityId: 'immunity', status: PsdkBattleMajorStatus.toxic),
+        (abilityId: 'insomnia', status: PsdkBattleMajorStatus.sleep),
+        (abilityId: 'vital_spirit', status: PsdkBattleMajorStatus.sleep),
+        (abilityId: 'limber', status: PsdkBattleMajorStatus.paralysis),
+        (abilityId: 'magma_armor', status: PsdkBattleMajorStatus.freeze),
+        (abilityId: 'water_veil', status: PsdkBattleMajorStatus.burn),
+      ];
+
+      for (final entry in cases) {
+        final result = const BattleStatusChangeHandler().applyMajorStatus(
+          context: BattleHandlerContext(
+            state: PsdkBattleState.fromSetup(
+              BattleEngineSetup.singles(
+                player: _combatant(
+                  id: 'player',
+                  abilityId: entry.abilityId,
+                  move: _move(id: 'tackle', power: 40),
+                ),
+                opponent: _combatant(
+                  id: 'opponent',
+                  move: _move(id: 'tackle', power: 40),
+                ),
+                rngSeeds: const BattleRngSeeds(
+                  moveDamage: 1,
+                  moveCritical: 99999,
+                  moveAccuracy: 3,
+                  generic: 4,
+                ).psdkSeeds,
+              ).psdkSetup,
+            ),
+            rng: BattleRngStreams.fromSeedSnapshot(
+              const BattleRngSeeds(
                 moveDamage: 1,
                 moveCritical: 99999,
                 moveAccuracy: 3,
                 generic: 4,
-              ).psdkSeeds,
-            ).psdkSetup,
-          ),
-          rng: BattleRngStreams.fromSeedSnapshot(
-            const BattleRngSeeds(
-              moveDamage: 1,
-              moveCritical: 99999,
-              moveAccuracy: 3,
-              generic: 4,
+              ),
             ),
+            turn: 1,
+            user: psdkOpponentSlot,
           ),
-          turn: 1,
-          user: psdkOpponentSlot,
-        ),
-        target: psdkPlayerSlot,
-        moveId: 'will_o_wisp',
-        status: PsdkBattleMajorStatus.burn,
+          target: psdkPlayerSlot,
+          moveId: 'status_probe',
+          status: entry.status,
+        );
+
+        expect(result.applied, isFalse, reason: entry.abilityId);
+        expect(result.reason, 'status_immune', reason: entry.abilityId);
+        expect(
+          result.state.battlerAt(psdkPlayerSlot).majorStatus,
+          isNull,
+          reason: entry.abilityId,
+        );
+      }
+    });
+
+    test(
+        'non-volatile status immunity abilities cure matching status on switch-in',
+        () {
+      final result = _dispatchAbilitySwitchIn(
+        playerAbilityId: 'water_veil',
+        playerMajorStatus: PsdkBattleMajorStatus.burn,
       );
 
-      expect(result.applied, isFalse);
-      expect(result.reason, 'status_immune');
+      expect(result.applied, isTrue);
+      expect(result.state.battlerAt(psdkPlayerSlot).majorStatus, isNull);
       expect(
-        result.state.battlerAt(psdkPlayerSlot).majorStatus,
-        isNull,
+          result.events.whereType<PsdkBattleStatusCureEvent>(), hasLength(1));
+      expect(
+        result.events.whereType<PsdkBattleStatusCureEvent>().single.moveId,
+        'effect:water_veil',
+      );
+    });
+
+    test('non-volatile status immunity abilities cure bypassed status hooks',
+        () {
+      final state = PsdkBattleState.fromSetup(
+        BattleEngineSetup.singles(
+          player: _combatant(
+            id: 'player',
+            abilityId: 'limber',
+            majorStatus: PsdkBattleMajorStatus.paralysis,
+            move: _move(id: 'tackle', power: 40),
+          ),
+          opponent: _combatant(
+            id: 'opponent',
+            move: _move(id: 'tackle', power: 40),
+          ),
+          rngSeeds: const BattleRngSeeds(
+            moveDamage: 1,
+            moveCritical: 99999,
+            moveAccuracy: 3,
+            generic: 4,
+          ).psdkSeeds,
+        ).psdkSetup,
+      );
+      final effect = state.battlerAt(psdkPlayerSlot).abilityEffects.single;
+
+      final result = effect.onPostStatusChange(
+        BattleEffectStatusChangeContext(
+          state: state,
+          rng: _rng(),
+          turn: 1,
+          owner: psdkPlayerSlot,
+          user: psdkOpponentSlot,
+          target: psdkPlayerSlot,
+          status: PsdkBattleMajorStatus.paralysis,
+          cured: false,
+          moveId: 'bypass_probe',
+        ),
+      );
+
+      expect(result, isNotNull);
+      expect(result!.state.battlerAt(psdkPlayerSlot).majorStatus, isNull);
+      expect(
+          result.events.whereType<PsdkBattleStatusCureEvent>(), hasLength(1));
+      expect(
+        result.events.whereType<PsdkBattleStatusCureEvent>().single.moveId,
+        'effect:limber',
       );
     });
   });
@@ -1105,6 +1184,7 @@ BattleHandlerResult _switchPreventionFor({
 BattleHandlerResult _dispatchAbilitySwitchIn({
   required String playerAbilityId,
   String? playerHeldItemId,
+  PsdkBattleMajorStatus? playerMajorStatus,
   String? opponentAbilityId,
   String opponentSpeciesId = 'opponent',
   String opponentDisplayName = 'opponent',
@@ -1123,6 +1203,7 @@ BattleHandlerResult _dispatchAbilitySwitchIn({
         id: 'player',
         abilityId: playerAbilityId,
         heldItemId: playerHeldItemId,
+        majorStatus: playerMajorStatus,
         move: _move(id: 'tackle', power: 40),
       ),
       opponent: _combatant(
@@ -1208,6 +1289,7 @@ PsdkBattleCombatantSetup _combatant({
   PsdkBattleStats? stats,
   PsdkBattleStatStages? statStages,
   PsdkBattleTransformState transformState = const PsdkBattleTransformState(),
+  PsdkBattleMajorStatus? majorStatus,
   double currentWeightKg = 1,
   List<PsdkBattleMoveData>? moves,
   required PsdkBattleMoveData move,
@@ -1232,6 +1314,7 @@ PsdkBattleCombatantSetup _combatant({
     heldItemId: heldItemId,
     statStages: statStages,
     transformState: transformState,
+    majorStatus: majorStatus,
     baseWeightKg: currentWeightKg,
     currentWeightKg: currentWeightKg,
     moves: moves ?? <PsdkBattleMoveData>[move],

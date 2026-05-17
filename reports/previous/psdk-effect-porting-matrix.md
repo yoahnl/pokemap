@@ -6,8 +6,8 @@ Total effect classes: 482
 
 | Status | Count |
 | --- | ---: |
-| `ported` | 83 |
-| `partial` | 66 |
+| `ported` | 90 |
+| `partial` | 59 |
 | `missing` | 333 |
 
 | Effect | Ruby base | Family | Hooks | Hook families | Ruby path | Dart target | Status | Notes |
@@ -198,13 +198,13 @@ Total effect classes: 482
 | `IceBody` | `Ability` | `ability` | `on_end_turn_event` | `end_turn` | `06 Effects/04 Ability Effects/100 Ice Body.rb` | `lib/src/domain/effect/ability/ice_body_effect.dart` | `missing` | `-` |
 | `IceFace` | `Ability` | `ability` | `on_damage_prevention`, `on_post_damage_death`, `on_post_weather_change`, `on_switch_event` | `damage_prevention`, `post_damage`, `switch`, `weather_change` | `06 Effects/04 Ability Effects/100 Ice Face.rb` | `lib/src/domain/effect/ability/ice_face_effect.dart` | `missing` | `-` |
 | `IceScales` | `Ability` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Ice Scales.rb` | `lib/src/domain/effect/ability/ice_scales_effect.dart` | `missing` | `-` |
-| `Immunity` | `NonVolatileStatusImmunityBase` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb` | `lib/src/domain/effect/ability/immunity_effect.dart` | `partial` | `-` |
+| `Immunity` | `NonVolatileStatusImmunityBase` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb` | `lib/src/domain/effect/ability/immunity_effect.dart` | `ported` | `-` |
 | `Imposter` | `Ability` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/100 Imposter.rb` | `lib/src/domain/effect/ability/imposter_effect.dart` | `ported` | `-` |
 | `Imprison` | `PokemonTiedEffectBase` | `move` | `on_move_disabled_check`, `on_move_prevention_user` | `move_prevention` | `06 Effects/02 Move Effects/001 Imprison.rb` | `lib/src/domain/effect/move/imprison_effect.dart` | `ported` | Object-backed ImprisonEffect blocks execution and selection of shared imprisoned move ids while allowing the owner and Struggle. |
 | `Ingrain` | `CantSwitch` | `move` | `on_end_turn_event`, `on_switch_prevention` | `end_turn`, `switch` | `06 Effects/02 Move Effects/001 Ingrain.rb` | `lib/src/domain/effect/move/ingrain_effect.dart` | `ported` | Object-backed IngrainEffect heals at end turn, honors Big Root through item hooks, grounds the user, prevents regular switch-out and transfers through Baton Pass. |
 | `InnardsOut` | `Ability` | `ability` | `on_post_damage`, `on_post_damage_death` | `post_damage` | `06 Effects/04 Ability Effects/100 Innards Out.rb` | `lib/src/domain/effect/ability/innards_out_effect.dart` | `missing` | `-` |
 | `InnerFocus` | `Ability` | `ability` | `on_status_prevention` | `status_prevention` | `06 Effects/04 Ability Effects/100 Inner Focus.rb` | `lib/src/domain/effect/ability/inner_focus_effect.dart` | `missing` | `-` |
-| `Insomnia` | `NonVolatileStatusImmunityBase` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb` | `lib/src/domain/effect/ability/insomnia_effect.dart` | `partial` | `-` |
+| `Insomnia` | `NonVolatileStatusImmunityBase` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb` | `lib/src/domain/effect/ability/insomnia_effect.dart` | `ported` | `-` |
 | `Instruct` | `PokemonTiedEffectBase` | `move` | `on_post_action_event` | `action_order` | `06 Effects/02 Move Effects/001 Instruct.rb` | `lib/src/domain/effect/move/instruct_effect.dart` | `missing` | `-` |
 | `Intimidate` | `Ability` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/100 Intimidate.rb` | `lib/src/domain/effect/ability/intimidate_effect.dart` | `partial` | `-` |
 | `IntrepidSword` | `Ability` | `ability` | `on_switch_event` | `switch` | `06 Effects/04 Ability Effects/100 Intrepid Sword.rb` | `lib/src/domain/effect/ability/intrepid_sword_effect.dart` | `missing` | `-` |
@@ -231,7 +231,7 @@ Total effect classes: 482
 | `LightBall` | `Item` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 LightBall.rb` | `lib/src/domain/effect/item/light_ball_effect.dart` | `partial` | `-` |
 | `LightScreen` | `PositionTiedEffectBase` | `move` | `on_delete` | `lifecycle` | `06 Effects/02 Move Effects/001 LightScreen Reflect.rb` | `lib/src/domain/effect/move/light_screen_effect.dart` | `ported` | StaticBasicMoveRegistry.s_reflect installs Light Screen, supports Light Clay duration, duplicate failure and special damage reduction with Infiltrator bypass. |
 | `LightningRod` | `Ability` | `ability` | `on_damage_prevention` | `damage_prevention` | `06 Effects/04 Ability Effects/100 Lightning Rod - Storm Drain.rb` | `lib/src/domain/effect/ability/lightning_rod_effect.dart` | `ported` | `-` |
-| `Limber` | `NonVolatileStatusImmunityBase` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb` | `lib/src/domain/effect/ability/limber_effect.dart` | `partial` | `-` |
+| `Limber` | `NonVolatileStatusImmunityBase` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb` | `lib/src/domain/effect/ability/limber_effect.dart` | `ported` | `-` |
 | `LingeringAroma` | `Mummy` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/100 Mummy.rb` | `lib/src/domain/effect/ability/lingering_aroma_effect.dart` | `missing` | `-` |
 | `LiquidOoze` | `Ability` | `ability` | `on_drain_prevention` | `drain` | `06 Effects/04 Ability Effects/100 Liquid Ooze.rb` | `lib/src/domain/effect/ability/liquid_ooze_effect.dart` | `missing` | `-` |
 | `LiquidVoice` | `Ability` | `ability` | `on_move_type_change` | `move_type_change` | `06 Effects/04 Ability Effects/100 Liquid Voice.rb` | `lib/src/domain/effect/ability/liquid_voice_effect.dart` | `missing` | `-` |
@@ -243,7 +243,7 @@ Total effect classes: 482
 | `MagicCoat` | `PokemonTiedEffectBase` | `move` | `-` | `-` | `06 Effects/02 Move Effects/001 MagicCoat.rb` | `lib/src/domain/effect/move/magic_coat_effect.dart` | `missing` | `-` |
 | `MagicRoom` | `EffectBase` | `move` | `on_delete`, `on_held_item_use_prevention` | `item_change`, `lifecycle` | `06 Effects/02 Move Effects/001 MagicRoom.rb` | `lib/src/domain/effect/move/magic_room_effect.dart` | `ported` | StaticBasicMoveRegistry field marker installs Magic Room and held-item effect resolution suppresses item hooks while it is active. |
 | `Magician` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 Pickpocket - Magician.rb` | `lib/src/domain/effect/ability/magician_effect.dart` | `missing` | `-` |
-| `MagmaArmor` | `NonVolatileStatusImmunityBase` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb` | `lib/src/domain/effect/ability/magma_armor_effect.dart` | `partial` | `-` |
+| `MagmaArmor` | `NonVolatileStatusImmunityBase` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb` | `lib/src/domain/effect/ability/magma_armor_effect.dart` | `ported` | `-` |
 | `MagnetPull` | `ShadowTag` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 PreventingSwitchAbilities.rb` | `lib/src/domain/effect/ability/magnet_pull_effect.dart` | `ported` | Object-backed ShadowTagEffect.magnetPull prevents opposing Steel non-Ghost switch attempts through the switch-prevention hook; force-switch move exceptions and messaging remain future work. |
 | `MagnetRise` | `PokemonTiedEffectBase` | `move` | `on_delete_message` | `lifecycle` | `06 Effects/02 Move Effects/001 MagnetRise.rb` | `lib/src/domain/effect/move/magnet_rise_effect.dart` | `ported` | StaticBasicMoveRegistry.s_magnet_rise installs the five-turn marker and grounding resolution treats the holder as airborne unless forced grounded. |
 | `MarangaBerry` | `KeeBerry` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Kee Berry - Maranga Berry.rb` | `lib/src/domain/effect/item/maranga_berry_effect.dart` | `missing` | `-` |
@@ -277,7 +277,7 @@ Total effect classes: 482
 | `NeutralizingGas` | `Ability` | `ability` | `on_post_damage_death`, `on_pre_ability_change`, `on_switch_event` | `ability_change`, `post_damage`, `switch` | `06 Effects/04 Ability Effects/100 NeutralizingGas.rb` | `lib/src/domain/effect/ability/neutralizing_gas_effect.dart` | `missing` | `-` |
 | `Nightmare` | `PokemonTiedEffectBase` | `move` | `on_end_turn_event` | `end_turn` | `06 Effects/02 Move Effects/001 Nightmare.rb` | `lib/src/domain/effect/move/nightmare_effect.dart` | `ported` | Object-backed NightmareEffect applies PSDK one-quarter end-turn damage to sleeping or Comatose targets, honors Magic Guard and clears when the target is no longer asleep. |
 | `NoRetreat` | `CantSwitch` | `move` | `-` | `-` | `06 Effects/02 Move Effects/001 NoRetreat.rb` | `lib/src/domain/effect/move/no_retreat_effect.dart` | `missing` | `-` |
-| `NonVolatileStatusImmunityBase` | `Ability` | `ability` | `on_post_action_event`, `on_status_prevention`, `on_switch_event` | `action_order`, `status_prevention`, `switch` | `06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb` | `lib/src/domain/effect/ability/non_volatile_status_immunity_base_effect.dart` | `partial` | `-` |
+| `NonVolatileStatusImmunityBase` | `Ability` | `ability` | `on_post_action_event`, `on_status_prevention`, `on_switch_event` | `action_order`, `status_prevention`, `switch` | `06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb` | `lib/src/domain/effect/ability/non_volatile_status_immunity_base_effect.dart` | `ported` | `-` |
 | `Normalize` | `Ability` | `ability` | `on_move_type_change` | `move_type_change` | `06 Effects/04 Ability Effects/100 Normalize.rb` | `lib/src/domain/effect/ability/normalize_effect.dart` | `missing` | `-` |
 | `Oblivious` | `MentalImmunityBase` | `ability` | `on_post_action_event` | `action_order` | `06 Effects/04 Ability Effects/100 Mental Immunity.rb` | `lib/src/domain/effect/ability/oblivious_effect.dart` | `missing` | `-` |
 | `Obstruct` | `KingsShield` | `move` | `-` | `-` | `06 Effects/02 Move Effects/001 Protect.rb` | `lib/src/domain/effect/move/obstruct_effect.dart` | `missing` | `-` |
@@ -388,7 +388,7 @@ Total effect classes: 482
 | `Snowball` | `LuminousMoss` | `item` | `-` | `-` | `06 Effects/05 Item Effects/100 Luminous Moss - Snowball.rb` | `lib/src/domain/effect/item/snowball_effect.dart` | `missing` | `-` |
 | `SolarPower` | `Ability` | `ability` | `on_end_turn_event` | `end_turn` | `06 Effects/04 Ability Effects/100 Solar Power.rb` | `lib/src/domain/effect/ability/solar_power_effect.dart` | `missing` | `-` |
 | `SoulHeart` | `Ability` | `ability` | `on_post_damage_death` | `post_damage` | `06 Effects/04 Ability Effects/100 Soul-Heart.rb` | `lib/src/domain/effect/ability/soul_heart_effect.dart` | `missing` | `-` |
-| `Soundproof` | `Ability` | `ability` | `on_move_ability_immunity` | `ability_immunity` | `06 Effects/04 Ability Effects/100 Soundproof.rb` | `lib/src/domain/effect/ability/soundproof_effect.dart` | `partial` | `-` |
+| `Soundproof` | `Ability` | `ability` | `on_move_ability_immunity` | `ability_immunity` | `06 Effects/04 Ability Effects/100 Soundproof.rb` | `lib/src/domain/effect/ability/soundproof_effect.dart` | `ported` | `-` |
 | `SpeedBoost` | `Ability` | `ability` | `on_end_turn_event`, `on_switch_event` | `end_turn`, `switch` | `06 Effects/04 Ability Effects/100 Speed Boost.rb` | `lib/src/domain/effect/ability/speed_boost_effect.dart` | `partial` | `-` |
 | `Spikes` | `PositionTiedEffectBase` | `move` | `on_delete`, `on_switch_event` | `lifecycle`, `switch` | `06 Effects/02 Move Effects/001 Spikes.rb` | `lib/src/domain/effect/move/spikes_effect.dart` | `ported` | StaticBasicMoveRegistry.s_spike installs and empowers Spikes layers; BattleSwitchHandler applies grounded entry damage. |
 | `SpikyShield` | `Protect` | `move` | `-` | `-` | `06 Effects/02 Move Effects/001 Protect.rb` | `lib/src/domain/effect/move/spiky_shield_effect.dart` | `missing` | `-` |
@@ -476,7 +476,7 @@ Total effect classes: 482
 | `WaterBubble` | `Ability` | `ability` | `on_status_prevention` | `status_prevention` | `06 Effects/04 Ability Effects/100 Water Bubble.rb` | `lib/src/domain/effect/ability/water_bubble_effect.dart` | `missing` | `-` |
 | `WaterCompaction` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 Water Compaction.rb` | `lib/src/domain/effect/ability/water_compaction_effect.dart` | `missing` | `-` |
 | `WaterSport` | `MudSport` | `move` | `on_delete` | `lifecycle` | `06 Effects/02 Move Effects/001 MudSport.rb` | `lib/src/domain/effect/move/water_sport_effect.dart` | `ported` | StaticBasicMoveRegistry.s_thing_sport installs Water Sport and damage calculation halves Fire move power while active. |
-| `WaterVeil` | `NonVolatileStatusImmunityBase` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb` | `lib/src/domain/effect/ability/water_veil_effect.dart` | `partial` | `-` |
+| `WaterVeil` | `NonVolatileStatusImmunityBase` | `ability` | `-` | `-` | `06 Effects/04 Ability Effects/050 NonVolatileStatusImmunity.rb` | `lib/src/domain/effect/ability/water_veil_effect.dart` | `ported` | `-` |
 | `WeakArmor` | `Ability` | `ability` | `on_post_damage` | `post_damage` | `06 Effects/04 Ability Effects/100 Weak Armor.rb` | `lib/src/domain/effect/ability/weak_armor_effect.dart` | `missing` | `-` |
 | `WeaknessPolicy` | `Item` | `item` | `on_post_damage` | `post_damage` | `06 Effects/05 Item Effects/100 Weakness Policy.rb` | `lib/src/domain/effect/item/weakness_policy_effect.dart` | `missing` | `-` |
 | `Weather` | `EffectBase` | `field` | `-` | `-` | `06 Effects/06 Weather Effects/001 WeatherBase.rb` | `lib/src/domain/effect/field/weather_effect.dart` | `missing` | `-` |

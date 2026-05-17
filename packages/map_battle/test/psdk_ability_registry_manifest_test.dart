@@ -31,13 +31,18 @@ void main() {
 
       for (final abilityId in <String>[
         'blaze',
+        'damp',
         'dragon_s_maw',
         'earth_eater',
         'flash_fire',
+        'immunity',
         'iron_barbs',
         'iron_fist',
+        'insomnia',
         'levitate',
         'lightning_rod',
+        'limber',
+        'magma_armor',
         'motor_drive',
         'no_guard',
         'overgrow',
@@ -52,6 +57,7 @@ void main() {
         'arena_trap',
         'skill_link',
         'magnet_pull',
+        'soundproof',
         'steelworker',
         'storm_drain',
         'swarm',
@@ -59,7 +65,9 @@ void main() {
         'torrent',
         'tough_claws',
         'transistor',
+        'vital_spirit',
         'volt_absorb',
+        'water_veil',
         'water_absorb',
       ]) {
         final entry = byId[abilityId];
@@ -73,7 +81,6 @@ void main() {
       for (final abilityId in <String>[
         'air_lock',
         'cloud_nine',
-        'damp',
         'drizzle',
         'drought',
         'dry_skin',
@@ -85,14 +92,7 @@ void main() {
         'rain_dish',
         'sand_stream',
         'snow_warning',
-        'soundproof',
         'speed_boost',
-        'immunity',
-        'insomnia',
-        'vital_spirit',
-        'limber',
-        'magma_armor',
-        'water_veil',
       ]) {
         final entry = byId[abilityId];
 
@@ -157,6 +157,29 @@ void main() {
         'skill_link',
         'rough_skin',
         'iron_barbs',
+      ]) {
+        expect(
+          byId[abilityId]?.status,
+          PsdkAbilityPortStatus.ported,
+          reason: abilityId,
+        );
+      }
+    });
+
+    test('Lot 99 status and selection guard abilities are strict', () {
+      final byId = {
+        for (final entry in psdkAbilityEffectManifest) entry.abilityId: entry,
+      };
+
+      for (final abilityId in <String>[
+        'damp',
+        'soundproof',
+        'immunity',
+        'insomnia',
+        'vital_spirit',
+        'limber',
+        'magma_armor',
+        'water_veil',
       ]) {
         expect(
           byId[abilityId]?.status,
