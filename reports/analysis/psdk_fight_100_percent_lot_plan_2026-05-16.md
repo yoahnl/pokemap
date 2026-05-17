@@ -2089,6 +2089,19 @@ coverage, which remains 267 / 728 attacks with 65 / 330 methods ported.
 **Definition of done:**
 - The project has a mechanical, testable definition of "100% PSDK battle parity" and the suite enforces it.
 
+**Status 2026-05-17:** done as the first mechanical acceptance gate and AI
+action-selection slice. `PsdkBattleAi` can now prefer configured healing/status
+items, switch to a reserve with clearly better pressure, flee when allowed and
+no useful pressure remains, or fall back to move scoring/no-action. The audit
+CLI now exposes `--final-gate`, backed by `PsdkFinalParityGatePolicy`, with
+explicit checks for strict attacks, ported methods, ported effects, zero unknown
+methods, measured runtime bridge diagnostics, and golden fixture coverage.
+`reports/analysis/psdk_fight_100_percent_acceptance.md` documents the command
+and current expected failures. This gate intentionally fails today because the
+project is not yet at literal 100% PSDK parity: current measured coverage
+remains 267 / 728 strict attacks, 65 / 330 ported methods, and 0 / 482 ported
+effects.
+
 ---
 
 ## Recommended Batch Strategy

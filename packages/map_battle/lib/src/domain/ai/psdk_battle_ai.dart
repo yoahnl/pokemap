@@ -2,6 +2,7 @@ import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 import '../../psdk/domain/psdk_battle_state.dart';
+import '../action/battle_action.dart';
 import '../decision/battle_decision.dart';
 import '../move/battle_move_data.dart';
 import '../move/battle_move_prevention.dart';
@@ -11,10 +12,18 @@ import 'psdk_move_score.dart';
 final class PsdkBattleAi {
   const PsdkBattleAi({
     this.level = 3,
+    this.canSwitch = false,
+    this.canUseItem = false,
+    this.canFlee = false,
+    this.itemOptions = const <PsdkBattleAiItemOption>[],
     BattleMoveTypeProcessor typeProcessor = const BattleMoveTypeProcessor(),
   }) : _typeProcessor = typeProcessor;
 
   final int level;
+  final bool canSwitch;
+  final bool canUseItem;
+  final bool canFlee;
+  final List<PsdkBattleAiItemOption> itemOptions;
   final BattleMoveTypeProcessor _typeProcessor;
 
   List<PsdkMoveScore> scoreMoves({
@@ -79,6 +88,171 @@ final class PsdkBattleAi {
   }
 
   BattleDecision chooseDecision({
+    required PsdkBattleState state,
+    required PsdkBattleSlotRef user,
+    required PsdkBattleSlotRef target,
+  }) {
+    final itemDecision =
+        canUseItem ? _chooseItemDecision(state: state, user: user) : null;
+    if (itemDecision != null) {
+      return itemDecision;
+    }
+
+    final activeChoice = chooseMoveOrNull(
+      state: state,
+      user: user,
+      target: target,
+    );
+    final switchDecision = canSwitch
+        ? _chooseSwitchDecision(
+            state: state,
+            user: user,
+            target: target,
+            activeChoice: activeChoice,
+          )
+        : null;
+    if (switchDecision != null) {
+      return switchDecision;
+    }
+
+    if (canFlee && _shouldFlee(activeChoice)) {
+      return const BattleDecision.flee();
+    }
+
+    if (activeChoice == null) {
+      return const BattleDecision.noAction();
+    }
+    return BattleDecision.fight(moveSlot: activeChoice.moveSlot);
+  }
+
+  BattleItemDecision? _chooseItemDecision({
+    required PsdkBattleState state,
+    required PsdkBattleSlotRef user,
+  }) {
+    final battler = state.battlerAt(user);
+    PsdkBattleAiItemOption? bestOption;
+    var bestScore = 0.0;
+    for (final option in itemOptions) {
+      final score = _itemScore(option: option, battler: battler);
+      if (score > bestScore) {
+        bestOption = option;
+        bestScore = score;
+      }
+    }
+    if (bestOption == null || bestScore <= 0) {
+      return null;
+    }
+    return BattleItemDecision(
+      itemId: bestOption.itemId,
+      target: bestOption.target ?? user,
+      effect: bestOption.effect,
+    );
+  }
+
+  BattleSwitchDecision? _chooseSwitchDecision({
+    required PsdkBattleState state,
+    required PsdkBattleSlotRef user,
+    required PsdkBattleSlotRef target,
+    required PsdkBattleAiMoveChoice? activeChoice,
+  }) {
+    final active = state.battlerAt(user);
+    final activeScore = activeChoice?.score.value ?? 0.0;
+    final party = state.partyForBank(user.bank);
+    PsdkMoveScore? bestReserveScore;
+    int? bestPartyIndex;
+
+    for (var partyIndex = 0; partyIndex < party.length; partyIndex += 1) {
+      final candidate = party[partyIndex];
+      if (candidate.id == active.id || candidate.isFainted) {
+        continue;
+      }
+      final candidateScore = _bestMoveScoreForBattler(
+        state: state,
+        user: user,
+        target: target,
+        battler: candidate,
+      );
+      if (candidateScore == null || candidateScore.value <= 0) {
+        continue;
+      }
+      if (bestReserveScore == null ||
+          candidateScore.value > bestReserveScore.value) {
+        bestReserveScore = candidateScore;
+        bestPartyIndex = partyIndex;
+      }
+    }
+
+    if (bestReserveScore == null || bestPartyIndex == null) {
+      return null;
+    }
+    final clearGain = bestReserveScore.value - activeScore;
+    if (activeScore > 0 && clearGain < 25) {
+      return null;
+    }
+    return BattleSwitchDecision(partyIndex: bestPartyIndex);
+  }
+
+  bool _shouldFlee(PsdkBattleAiMoveChoice? activeChoice) {
+    return activeChoice == null || activeChoice.score.value <= 0;
+  }
+
+  PsdkMoveScore? _bestMoveScoreForBattler({
+    required PsdkBattleState state,
+    required PsdkBattleSlotRef user,
+    required PsdkBattleSlotRef target,
+    required PsdkBattleCombatant battler,
+  }) {
+    final targetBattler = state.battlerAt(target);
+    PsdkMoveScore? best;
+    for (var i = 0; i < battler.moves.length; i += 1) {
+      final score = _scoreMove(
+        state: state,
+        user: user,
+        target: target,
+        userBattler: battler,
+        targetBattler: targetBattler,
+        moveSlot: i,
+        move: battler.moves[i],
+      );
+      if (!score.isUsable) {
+        continue;
+      }
+      if (best == null || score.value > best.value) {
+        best = score;
+      }
+    }
+    return best;
+  }
+
+  double _itemScore({
+    required PsdkBattleAiItemOption option,
+    required PsdkBattleCombatant battler,
+  }) {
+    final effect = option.effect;
+    if (effect is PsdkBattleHpHealItemEffect) {
+      final missingHp = battler.maxHp - battler.currentHp;
+      if (missingHp <= 0) {
+        return 0;
+      }
+      if (effect.restoreToFull) {
+        return missingHp.toDouble();
+      }
+      final amount = effect.amount ?? 0;
+      final hpRatio =
+          battler.maxHp <= 0 ? 0.0 : battler.currentHp / battler.maxHp;
+      if (hpRatio > 0.5 && missingHp < amount) {
+        return 0;
+      }
+      return missingHp.clamp(0, amount).toDouble();
+    }
+    if (effect is PsdkBattleStatusCureItemEffect) {
+      final status = battler.majorStatus;
+      return status != null && effect.cures(status) ? 45.0 : 0.0;
+    }
+    return 0;
+  }
+
+  BattleDecision chooseFightDecision({
     required PsdkBattleState state,
     required PsdkBattleSlotRef user,
     required PsdkBattleSlotRef target,
@@ -279,3 +453,34 @@ bool _targetsUser(PsdkBattleMoveTarget target) {
 }
 
 int _positive(int value) => value <= 0 ? 1 : value;
+
+final class PsdkBattleAiItemOption {
+  const PsdkBattleAiItemOption({
+    required this.itemId,
+    required PsdkBattleItemActionEffect effect,
+    this.target,
+  })  : _effect = effect,
+        _hpHealAmount = null;
+
+  const PsdkBattleAiItemOption.hpHeal({
+    required String itemId,
+    required int amount,
+    PsdkBattleSlotRef? target,
+  })  : itemId = itemId,
+        target = target,
+        _effect = null,
+        _hpHealAmount = amount;
+
+  final String itemId;
+  final PsdkBattleSlotRef? target;
+  final PsdkBattleItemActionEffect? _effect;
+  final int? _hpHealAmount;
+
+  PsdkBattleItemActionEffect get effect {
+    final explicit = _effect;
+    if (explicit != null) {
+      return explicit;
+    }
+    return PsdkBattleHpHealItemEffect.flat(_hpHealAmount!);
+  }
+}

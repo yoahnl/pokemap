@@ -31,6 +31,21 @@ Future<void> main(List<String> args) async {
     }
     stdout.writeln(gateResult.message);
   }
+  if (options.runFinalGate) {
+    final goldenFixtureCount = await _countGoldenFixtures(
+      Directory(options.goldenFixturesDirectory),
+    );
+    final gateResult = psdkFinalParityGate.evaluate(
+      audit,
+      goldenFixtureCount: goldenFixtureCount,
+    );
+    if (!gateResult.passed) {
+      stderr.writeln(gateResult.message);
+      exitCode = 1;
+      return;
+    }
+    stdout.writeln(gateResult.message);
+  }
 
   if (options.jsonOutputPath == null && options.markdownOutputPath == null) {
     stdout.write(audit.toMarkdown());
@@ -55,11 +70,14 @@ Options:
   --json <file>      Write machine-readable JSON audit.
   --markdown <file>  Write human-readable Markdown audit.
   --gate             Enforce Lot 02 non-regression thresholds.
+  --final-gate       Enforce the final 100% parity acceptance gate.
+  --goldens <dir>    Golden fixture directory for --final-gate.
   --help             Show this help.
 
 Defaults:
   --moves ../../pokémon_sdk_test_project/Data/Studio/moves
   --effects ../../pokemonsdk-development/scripts/5 Battle
+  --goldens test/fixtures/psdk_golden
 ''';
 
 final class _AuditCliOptions {
@@ -68,16 +86,20 @@ final class _AuditCliOptions {
     required this.psdkBattleDirectory,
     this.jsonOutputPath,
     this.markdownOutputPath,
+    required this.goldenFixturesDirectory,
     this.runGate = false,
+    this.runFinalGate = false,
     this.showHelp = false,
   });
 
   factory _AuditCliOptions.parse(List<String> args) {
     var movesDirectory = '../../pokémon_sdk_test_project/Data/Studio/moves';
     var psdkBattleDirectory = '../../pokemonsdk-development/scripts/5 Battle';
+    var goldenFixturesDirectory = 'test/fixtures/psdk_golden';
     String? jsonOutputPath;
     String? markdownOutputPath;
     var runGate = false;
+    var runFinalGate = false;
     var showHelp = false;
 
     for (var index = 0; index < args.length; index++) {
@@ -95,6 +117,10 @@ final class _AuditCliOptions {
           markdownOutputPath = _requiredValue(args, ++index, arg);
         case '--gate':
           runGate = true;
+        case '--final-gate':
+          runFinalGate = true;
+        case '--goldens':
+          goldenFixturesDirectory = _requiredValue(args, ++index, arg);
         default:
           throw FormatException('Unknown option: $arg\n\n$_usage');
       }
@@ -105,7 +131,9 @@ final class _AuditCliOptions {
       psdkBattleDirectory: psdkBattleDirectory,
       jsonOutputPath: jsonOutputPath,
       markdownOutputPath: markdownOutputPath,
+      goldenFixturesDirectory: goldenFixturesDirectory,
       runGate: runGate,
+      runFinalGate: runFinalGate,
       showHelp: showHelp,
     );
   }
@@ -114,7 +142,9 @@ final class _AuditCliOptions {
   final String psdkBattleDirectory;
   final String? jsonOutputPath;
   final String? markdownOutputPath;
+  final String goldenFixturesDirectory;
   final bool runGate;
+  final bool runFinalGate;
   final bool showHelp;
 }
 
@@ -129,4 +159,17 @@ Future<void> _writeTextFile(String path, String content) async {
   final file = File(path);
   await file.parent.create(recursive: true);
   await file.writeAsString(content);
+}
+
+Future<int> _countGoldenFixtures(Directory directory) async {
+  if (!await directory.exists()) {
+    return 0;
+  }
+  var count = 0;
+  await for (final entity in directory.list(recursive: true)) {
+    if (entity is File && entity.path.endsWith('.json')) {
+      count += 1;
+    }
+  }
+  return count;
 }
