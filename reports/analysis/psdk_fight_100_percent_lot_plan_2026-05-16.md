@@ -1584,6 +1584,16 @@ variants plus Intimidate.
 **Definition of done:**
 - Ability effect matrix missing count drops materially.
 
+**Status 2026-05-17:** done for the first residual/end-turn ability wave.
+`rough_skin` and `iron_barbs` were already covered before this lot, so this
+pass focused on the missing residual abilities. Added `SpeedBoostEffect`,
+`RainDishEffect`, and `DrySkinEffect`: Speed Boost raises Speed at end turn
+through the shared stat-change handler; Rain Dish heals 1/16 HP while rain
+weather effects are active; Dry Skin absorbs Water damage with 1/4 HP healing,
+heals 1/8 HP in rain, and takes 1/8 HP damage in sun. Dry Skin remains partial
+because its PSDK incoming Fire base-power multiplier needs a target-side damage
+modifier pass. Manifest and registry coverage were updated with focused tests.
+
 ### Lot 52 - Item Registry Completeness Foundation
 
 **Goal:** hydrate all known held item effects into a measurable registry.

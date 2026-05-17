@@ -239,6 +239,78 @@ void main() {
       expect(result.events.whereType<PsdkBattleStatStageEvent>(), isEmpty);
     });
 
+    test('Speed Boost raises Speed at end turn', () {
+      final result = _resolveAbilityEndTurn(playerAbilityId: 'speed_boost');
+
+      expect(result.applied, isTrue);
+      expect(
+        result.state.battlerAt(psdkPlayerSlot).statStages.valueOf('speed'),
+        1,
+      );
+      expect(
+        result.events.whereType<PsdkBattleStatStageEvent>().single.stat,
+        'speed',
+      );
+    });
+
+    test('Rain Dish heals one sixteenth in rain', () {
+      final result = _resolveAbilityEndTurn(
+        playerAbilityId: 'rain_dish',
+        playerCurrentHp: 80,
+        field: const PsdkBattleFieldState(
+          weather: PsdkBattleWeatherState(
+            id: PsdkBattleWeatherId.rain,
+            remainingTurns: 5,
+          ),
+        ),
+      );
+
+      expect(result.applied, isTrue);
+      expect(result.state.battlerAt(psdkPlayerSlot).currentHp, 86);
+      expect(result.events.whereType<PsdkBattleHealEvent>().single.amount, 6);
+    });
+
+    test('Dry Skin heals in rain and is hurt in sun at end turn', () {
+      final rain = _resolveAbilityEndTurn(
+        playerAbilityId: 'dry_skin',
+        playerCurrentHp: 80,
+        field: const PsdkBattleFieldState(
+          weather: PsdkBattleWeatherState(
+            id: PsdkBattleWeatherId.rain,
+            remainingTurns: 5,
+          ),
+        ),
+      );
+      final sun = _resolveAbilityEndTurn(
+        playerAbilityId: 'dry_skin',
+        playerCurrentHp: 80,
+        field: const PsdkBattleFieldState(
+          weather: PsdkBattleWeatherState(
+            id: PsdkBattleWeatherId.sunny,
+            remainingTurns: 5,
+          ),
+        ),
+      );
+
+      expect(rain.state.battlerAt(psdkPlayerSlot).currentHp, 92);
+      expect(rain.events.whereType<PsdkBattleHealEvent>().single.amount, 12);
+      expect(sun.state.battlerAt(psdkPlayerSlot).currentHp, 68);
+      expect(sun.events.whereType<PsdkBattleDamageEvent>().single.damage, 12);
+    });
+
+    test('Dry Skin absorbs Water damage and heals a quarter HP', () {
+      final result = _applyDirectAbilityDamage(
+        opponentAbilityId: 'dry_skin',
+        moveType: 'water',
+        opponentCurrentHp: 80,
+      );
+
+      expect(result.reason, BattleMoveFailureReason.immunity.jsonName);
+      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 100);
+      expect(_damageEventsForHandler(result), isEmpty);
+      expect(result.events.whereType<PsdkBattleHealEvent>().single.amount, 20);
+    });
+
     test('No Guard on either battler bypasses the accuracy roll', () {
       final result = _runMove(
         playerAbilityId: 'no_guard',
@@ -994,6 +1066,43 @@ BattleHandlerResult _dispatchAbilitySwitchIn({
   );
 }
 
+BattleHandlerResult _resolveAbilityEndTurn({
+  required String playerAbilityId,
+  int playerCurrentHp = 100,
+  PsdkBattleFieldState field = const PsdkBattleFieldState(),
+}) {
+  final state = PsdkBattleState.fromSetup(
+    BattleEngineSetup.singles(
+      player: _combatant(
+        id: 'player',
+        abilityId: playerAbilityId,
+        currentHp: playerCurrentHp,
+        move: _move(id: 'tackle', power: 40),
+      ),
+      opponent: _combatant(
+        id: 'opponent',
+        move: _move(id: 'opponent_wait', power: 0),
+      ),
+      rngSeeds: const BattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 4,
+      ).psdkSeeds,
+      field: field,
+    ).psdkSetup,
+  );
+
+  return const BattleEndTurnHandler().resolveEndTurn(
+    BattleHandlerContext(
+      state: state,
+      rng: _rng(),
+      turn: 1,
+      user: psdkPlayerSlot,
+    ),
+  );
+}
+
 PsdkBattleCombatantSetup _combatant({
   required String id,
   String? abilityId,
@@ -1067,6 +1176,14 @@ List<PsdkBattleDamageEvent> _damageEvents(
       .whereType<PsdkBattleDamageEvent>()
       .where((event) => event.moveId == moveId)
       .toList(growable: false);
+}
+
+List<PsdkBattleDamageEvent> _damageEventsForHandler(
+  BattleHandlerResult result,
+) {
+  return result.events.whereType<PsdkBattleDamageEvent>().toList(
+        growable: false,
+      );
 }
 
 BattleRngStreams _rng() {

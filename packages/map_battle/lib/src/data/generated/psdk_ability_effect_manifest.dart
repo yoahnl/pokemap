@@ -329,7 +329,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'dry_skin',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Dry Skin.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'DrySkinEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'earth_eater',
@@ -1051,7 +1052,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'rain_dish',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Rain Dish.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'RainDishEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'rattled',
@@ -1296,7 +1298,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'speed_boost',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Speed Boost.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.partial,
+    dartEffect: 'SpeedBoostEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'stakeout',

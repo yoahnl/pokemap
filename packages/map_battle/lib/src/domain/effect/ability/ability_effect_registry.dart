@@ -13,6 +13,7 @@ import 'levitate_effect.dart';
 import 'move_shape_power_ability_effect.dart';
 import 'no_guard_effect.dart';
 import 'reckless_effect.dart';
+import 'residual_ability_effect.dart';
 import 'rock_head_effect.dart';
 import 'shadow_tag_effect.dart';
 import 'skill_link_effect.dart';
@@ -223,6 +224,9 @@ final class AbilityEffectRegistry {
             PsdkBattleMajorStatus.burn,
           },
         ),
+    'speed_boost': ({required scope}) => SpeedBoostEffect(scope: scope),
+    'rain_dish': ({required scope}) => RainDishEffect(scope: scope),
+    'dry_skin': ({required scope}) => DrySkinEffect(scope: scope),
     'drizzle': ({required scope}) => SwitchWeatherAbilityEffect(
           abilityId: 'drizzle',
           scope: scope,
