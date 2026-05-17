@@ -374,6 +374,52 @@ void main() {
       expect(sun.events.whereType<PsdkBattleDamageEvent>().single.damage, 12);
     });
 
+    test('Shed Skin can cure its own major status at end turn', () {
+      final cured = _resolveAbilityEndTurn(
+        playerAbilityId: 'shed_skin',
+        playerMajorStatus: PsdkBattleMajorStatus.burn,
+        rngSeeds: const BattleRngSeeds(
+          moveDamage: 1,
+          moveCritical: 99999,
+          moveAccuracy: 3,
+          generic: 0,
+        ),
+      );
+      final missed = _resolveAbilityEndTurn(
+        playerAbilityId: 'shed_skin',
+        playerMajorStatus: PsdkBattleMajorStatus.burn,
+        rngSeeds: const BattleRngSeeds(
+          moveDamage: 1,
+          moveCritical: 99999,
+          moveAccuracy: 3,
+          generic: 1,
+        ),
+      );
+
+      expect(cured.state.battlerAt(psdkPlayerSlot).majorStatus, isNull);
+      expect(
+        cured.events.whereType<PsdkBattleStatusCureEvent>().single.moveId,
+        'ability:shed_skin',
+      );
+      expect(
+        missed.state.battlerAt(psdkPlayerSlot).majorStatus,
+        PsdkBattleMajorStatus.burn,
+      );
+    });
+
+    test('Bad Dreams damages sleeping foes at end turn', () {
+      final result = _resolveAbilityEndTurn(
+        playerAbilityId: 'bad_dreams',
+        opponentMajorStatus: PsdkBattleMajorStatus.sleep,
+      );
+
+      expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 88);
+      expect(
+        result.events.whereType<PsdkBattleDamageEvent>().single.moveId,
+        'ability:bad_dreams',
+      );
+    });
+
     test('Dry Skin absorbs Water damage and heals a quarter HP', () {
       final result = _applyDirectAbilityDamage(
         opponentAbilityId: 'dry_skin',
@@ -1455,7 +1501,16 @@ BattleHandlerResult _dispatchAbilitySwitchIn({
 BattleHandlerResult _resolveAbilityEndTurn({
   required String playerAbilityId,
   int playerCurrentHp = 100,
+  PsdkBattleMajorStatus? playerMajorStatus,
+  int opponentCurrentHp = 100,
+  PsdkBattleMajorStatus? opponentMajorStatus,
   PsdkBattleFieldState field = const PsdkBattleFieldState(),
+  BattleRngSeeds rngSeeds = const BattleRngSeeds(
+    moveDamage: 1,
+    moveCritical: 99999,
+    moveAccuracy: 3,
+    generic: 4,
+  ),
 }) {
   final state = PsdkBattleState.fromSetup(
     BattleEngineSetup.singles(
@@ -1463,18 +1518,16 @@ BattleHandlerResult _resolveAbilityEndTurn({
         id: 'player',
         abilityId: playerAbilityId,
         currentHp: playerCurrentHp,
+        majorStatus: playerMajorStatus,
         move: _move(id: 'tackle', power: 40),
       ),
       opponent: _combatant(
         id: 'opponent',
+        currentHp: opponentCurrentHp,
+        majorStatus: opponentMajorStatus,
         move: _move(id: 'opponent_wait', power: 0),
       ),
-      rngSeeds: const BattleRngSeeds(
-        moveDamage: 1,
-        moveCritical: 99999,
-        moveAccuracy: 3,
-        generic: 4,
-      ).psdkSeeds,
+      rngSeeds: rngSeeds.psdkSeeds,
       field: field,
     ).psdkSetup,
   );
@@ -1482,7 +1535,7 @@ BattleHandlerResult _resolveAbilityEndTurn({
   return const BattleEndTurnHandler().resolveEndTurn(
     BattleHandlerContext(
       state: state,
-      rng: _rng(),
+      rng: BattleRngStreams.fromSeedSnapshot(rngSeeds),
       turn: 1,
       user: psdkPlayerSlot,
     ),
