@@ -7,7 +7,7 @@ void main() {
     test('tracks PSDK item registrations and local held-item checks', () {
       final ids = psdkItemEffectManifest.map((entry) => entry.itemId);
 
-      expect(psdkItemEffectManifest.length, 181);
+      expect(psdkItemEffectManifest.length, 183);
       expect(ids.toSet(), hasLength(psdkItemEffectManifest.length));
       expect(
         ids,
@@ -33,11 +33,14 @@ void main() {
       for (final itemId in <String>[
         'air_balloon',
         'black_sludge',
+        'big_root',
+        'binding_band',
         'chesto_berry',
         'choice_band',
         'choice_scarf',
         'choice_specs',
         'charcoal',
+        'grip_claw',
         'liechi_berry',
         'iron_ball',
         'leftovers',

@@ -52,6 +52,8 @@ const _dartItemEffects = <String, String>{
   'aspear_berry': 'BerryItemEffect.statusCure',
   'assault_vest': 'HeldItemModifierEffect.specialDefense',
   'berry_juice': 'BerryItemEffect.hpHeal',
+  'big_root': 'BigRootEffect',
+  'binding_band': 'BindingBandEffect',
   'black_belt': 'HeldItemModifierEffect.typeBoost',
   'black_glasses': 'HeldItemModifierEffect.typeBoost',
   'black_sludge': 'BlackSludgeEffect',
@@ -82,6 +84,7 @@ const _dartItemEffects = <String, String>{
   'ganlon_berry': 'BerryItemEffect.statPinch',
   'ghost_gem': 'GemItemEffect',
   'grass_gem': 'GemItemEffect',
+  'grip_claw': 'GripClawEffect',
   'hard_stone': 'HeldItemModifierEffect.typeBoost',
   'heat_rock': 'WeatherRockEffect.heatRock',
   'iapapa_berry': 'BerryItemEffect.hpHeal.partialNoNatureConfusion',
@@ -164,6 +167,7 @@ babiri_berry|pokemonsdk-development/scripts/5 Battle/06 Effects/05 Item Effects/
 berry_juice|pokemonsdk-development/scripts/5 Battle/06 Effects/05 Item Effects/050 HpTriggered Healing Berries.rb
 berserk_gene|pokemonsdk-development/scripts/5 Battle/06 Effects/05 Item Effects/100 Berserk Gene.rb
 big_root|pokemonsdk-development/scripts/5 Battle/06 Effects/05 Item Effects/100 Big Root.rb
+binding_band|pokemonsdk-development/scripts/5 Battle/06 Effects/02 Move Effects/001 Bind.rb
 black_belt|pokemonsdk-development/scripts/5 Battle/06 Effects/05 Item Effects/050 ItemBasePowerMultiplier.rb
 black_glasses|pokemonsdk-development/scripts/5 Battle/06 Effects/05 Item Effects/050 ItemBasePowerMultiplier.rb
 black_sludge|pokemonsdk-development/scripts/5 Battle/06 Effects/05 Item Effects/100 Black Sludge.rb
@@ -213,6 +217,7 @@ focus_sash|pokemonsdk-development/scripts/5 Battle/06 Effects/05 Item Effects/10
 ganlon_berry|pokemonsdk-development/scripts/5 Battle/06 Effects/05 Item Effects/050 HpTriggered Stat Berries.rb
 ghost_gem|pokemonsdk-development/scripts/5 Battle/06 Effects/05 Item Effects/050 Gems.rb
 grass_gem|pokemonsdk-development/scripts/5 Battle/06 Effects/05 Item Effects/050 Gems.rb
+grip_claw|pokemonsdk-development/scripts/5 Battle/10 Move/2 Definitions/300 Bind.rb
 grassy_seed|pokemonsdk-development/scripts/5 Battle/06 Effects/05 Item Effects/050 TerrainSeeds.rb
 griseous_orb|pokemonsdk-development/scripts/5 Battle/06 Effects/05 Item Effects/050 ItemBasePowerMultiplier.rb
 ground_gem|pokemonsdk-development/scripts/5 Battle/06 Effects/05 Item Effects/050 Gems.rb

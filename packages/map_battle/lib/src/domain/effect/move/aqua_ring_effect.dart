@@ -1,9 +1,11 @@
+import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../handler/battle_handler_context.dart';
 import '../../handler/battle_heal_handler.dart';
 import '../battle_effect.dart';
 import '../battle_effect_hooks.dart';
 import '../battle_effect_scope.dart';
+import '../item/item_effect.dart';
 
 final class AquaRingEffect extends BattleEffect {
   const AquaRingEffect({
@@ -35,9 +37,7 @@ final class AquaRingEffect extends BattleEffect {
     if (healAmount < 1) {
       healAmount = 1;
     }
-    if (battler.heldItemId == 'big_root') {
-      healAmount += (healAmount * 30) ~/ 100;
-    }
+    healAmount = _itemAdjustedHealAmount(battler, healAmount);
 
     final result = const BattleHealHandler().heal(
       context: BattleHandlerContext(
@@ -67,4 +67,20 @@ final class AquaRingEffect extends BattleEffect {
       ],
     );
   }
+}
+
+int _itemAdjustedHealAmount(PsdkBattleCombatant battler, int healAmount) {
+  var multiplier = 1.0;
+  for (final effect in battler.activeItemEffects) {
+    multiplier *= effect.drainHealMultiplier(
+      BattleItemDrainModifierContext(
+        user: battler,
+        target: battler,
+        move: null,
+        baseHealAmount: healAmount,
+      ),
+    );
+  }
+  final adjusted = (healAmount * multiplier).floor();
+  return adjusted < 1 ? 1 : adjusted;
 }

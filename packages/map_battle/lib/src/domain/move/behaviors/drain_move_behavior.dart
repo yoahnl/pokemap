@@ -2,8 +2,10 @@ import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../battle/battle_slot.dart';
+import '../../effect/item/item_effect.dart';
 import '../../timeline/battle_timeline_event.dart';
 import '../battle_move_behavior.dart';
+import '../battle_move_data.dart';
 import '../battle_move_damage_calculator.dart';
 import '../battle_move_execution.dart';
 import '../battle_move_prevention.dart';
@@ -79,6 +81,8 @@ final class DrainMoveBehavior implements BattleMoveBehavior {
       damage: damage.damage,
       dbSymbol: context.move.dbSymbol,
       user: user,
+      target: target,
+      move: context.move,
     );
     var stateAfterDrain = damage.state;
     var rngAfterDrain = damage.rng;
@@ -175,16 +179,39 @@ int _drainHealAmount({
   required int damage,
   required String dbSymbol,
   required PsdkBattleCombatant user,
+  required PsdkBattleCombatant target,
+  required BattleMoveDefinition move,
 }) {
   final drainFactor =
       dbSymbol == 'draining_kiss' || dbSymbol == 'oblivion_wing' ? 4 / 3 : 2;
-  final multiplier = _hasBigRoot(user) ? 1.3 : 1.0;
+  final multiplier = _drainHealMultiplier(
+    user: user,
+    target: target,
+    move: move,
+    baseHealAmount: (damage / drainFactor).floor(),
+  );
   final healed = (damage * multiplier / drainFactor).floor();
   return healed < 1 ? 1 : healed;
 }
 
-bool _hasBigRoot(PsdkBattleCombatant user) {
-  return user.heldItemId == 'big_root' && !user.itemConsumed;
+double _drainHealMultiplier({
+  required PsdkBattleCombatant user,
+  required PsdkBattleCombatant target,
+  required BattleMoveDefinition move,
+  required int baseHealAmount,
+}) {
+  var multiplier = 1.0;
+  for (final effect in user.activeItemEffects) {
+    multiplier *= effect.drainHealMultiplier(
+      BattleItemDrainModifierContext(
+        user: user,
+        target: target,
+        move: move,
+        baseHealAmount: baseHealAmount,
+      ),
+    );
+  }
+  return multiplier;
 }
 
 bool _hasLiquidOoze(PsdkBattleCombatant target) {

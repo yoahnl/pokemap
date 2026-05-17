@@ -59,6 +59,7 @@ import '../domain/handler/battle_terrain_change_handler.dart';
 import '../domain/effect/battle_effect.dart';
 import '../domain/effect/battle_effect_scope.dart';
 import '../domain/effect/field/delayed_move_effect.dart';
+import '../domain/effect/item/item_effect.dart';
 import '../domain/effect/move/attract_effect.dart';
 import '../domain/effect/move/bind_effect.dart';
 import '../domain/effect/move/cant_switch_effect.dart';
@@ -3057,7 +3058,11 @@ BattleMoveBehaviorResolution _resolveBind(
 
   final user = basic.state.battlerAt(context.user);
   final roll = basic.rng.generic.nextIntInclusive(min: 4, max: 5);
-  final remainingTurns = user.heldItemId == 'grip_claw' ? 7 : roll.value;
+  final remainingTurns = _bindDuration(
+    user: user,
+    target: target,
+    rolledTurns: roll.value,
+  );
   return BattleMoveBehaviorResolution(
     state: basic.state.updateBattler(
       targetSlot,
@@ -3074,6 +3079,26 @@ BattleMoveBehaviorResolution _resolveBind(
     rng: basic.rng.copyWith(generic: roll.next),
     events: basic.events,
   );
+}
+
+int _bindDuration({
+  required PsdkBattleCombatant user,
+  required PsdkBattleCombatant target,
+  required int rolledTurns,
+}) {
+  for (final effect in user.activeItemEffects) {
+    final duration = effect.bindDuration(
+      BattleItemBindDurationContext(
+        user: user,
+        target: target,
+        rolledTurns: rolledTurns,
+      ),
+    );
+    if (duration != null) {
+      return duration;
+    }
+  }
+  return rolledTurns;
 }
 
 BattleMoveBehaviorResolution _resolveCantFlee(

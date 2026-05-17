@@ -6,6 +6,7 @@ import '../../handler/battle_handler_context.dart';
 import '../battle_effect.dart';
 import '../battle_effect_hooks.dart';
 import '../battle_effect_scope.dart';
+import '../item/item_effect.dart';
 
 final class BindEffect extends BattleEffect {
   const BindEffect({
@@ -54,7 +55,10 @@ final class BindEffect extends BattleEffect {
       return _tickCounter(context);
     }
 
-    final hpFactor = originBattler.heldItemId == 'binding_band' ? 6 : 8;
+    final hpFactor = _bindResidualDamageDivisor(
+      origin: originBattler,
+      target: targetBattler,
+    );
     final damage =
         (targetBattler.maxHp ~/ hpFactor).clamp(1, targetBattler.currentHp);
     final damaged = const BattleDamageHandler().applyDamage(
@@ -115,4 +119,24 @@ final class BindEffect extends BattleEffect {
       rng: context.rng,
     );
   }
+}
+
+int _bindResidualDamageDivisor({
+  required PsdkBattleCombatant origin,
+  required PsdkBattleCombatant target,
+}) {
+  const defaultDivisor = 8;
+  for (final effect in origin.activeItemEffects) {
+    final divisor = effect.bindResidualDamageDivisor(
+      BattleItemBindResidualContext(
+        origin: origin,
+        target: target,
+        defaultDivisor: defaultDivisor,
+      ),
+    );
+    if (divisor != null) {
+      return divisor;
+    }
+  }
+  return defaultDivisor;
 }

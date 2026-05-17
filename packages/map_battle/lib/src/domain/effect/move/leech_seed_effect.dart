@@ -1,3 +1,4 @@
+import '../../../psdk/domain/psdk_battle_combatant.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../handler/battle_damage_handler.dart';
@@ -6,6 +7,7 @@ import '../../handler/battle_heal_handler.dart';
 import '../battle_effect.dart';
 import '../battle_effect_hooks.dart';
 import '../battle_effect_scope.dart';
+import '../item/item_effect.dart';
 
 final class LeechSeedEffect extends BattleEffect {
   const LeechSeedEffect({
@@ -59,10 +61,11 @@ final class LeechSeedEffect extends BattleEffect {
       return null;
     }
 
-    var healAmount = damaged.amount;
-    if (sourceBattler.heldItemId == 'big_root') {
-      healAmount += (healAmount * 30) ~/ 100;
-    }
+    final healAmount = _itemAdjustedHealAmount(
+      sourceBattler: sourceBattler,
+      targetBattler: targetBattler,
+      healAmount: damaged.amount,
+    );
 
     if (targetBattler.abilityId == 'liquid_ooze') {
       if (sourceBattler.abilityId == 'magic_guard') {
@@ -124,4 +127,24 @@ final class LeechSeedEffect extends BattleEffect {
       events: events,
     );
   }
+}
+
+int _itemAdjustedHealAmount({
+  required PsdkBattleCombatant sourceBattler,
+  required PsdkBattleCombatant targetBattler,
+  required int healAmount,
+}) {
+  var multiplier = 1.0;
+  for (final effect in sourceBattler.activeItemEffects) {
+    multiplier *= effect.drainHealMultiplier(
+      BattleItemDrainModifierContext(
+        user: sourceBattler,
+        target: targetBattler,
+        move: null,
+        baseHealAmount: healAmount,
+      ),
+    );
+  }
+  final adjusted = (healAmount * multiplier).floor();
+  return adjusted < 1 ? 1 : adjusted;
 }

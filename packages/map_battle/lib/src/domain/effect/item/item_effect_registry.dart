@@ -11,6 +11,7 @@ import 'held_item_modifier_effect.dart';
 import 'iron_ball_effect.dart';
 import 'leftovers_effect.dart';
 import 'loaded_dice_effect.dart';
+import 'move_modifier_item_effect.dart';
 import 'shed_shell_effect.dart';
 import 'terrain_extender_effect.dart';
 import 'weather_rock_effect.dart';
@@ -28,6 +29,9 @@ final class ItemEffectRegistry {
       <String, ItemEffectFactory>{
     'air_balloon': ({required scope}) => AirBalloonEffect(scope: scope),
     'black_sludge': ({required scope}) => BlackSludgeEffect(scope: scope),
+    'big_root': ({required scope}) => BigRootEffect(scope: scope),
+    'binding_band': ({required scope}) => BindingBandEffect(scope: scope),
+    'grip_claw': ({required scope}) => GripClawEffect(scope: scope),
     'iron_ball': ({required scope}) => IronBallEffect(scope: scope),
     'leftovers': ({required scope}) => LeftoversEffect(scope: scope),
     'loaded_dice': ({required scope}) => LoadedDiceEffect(scope: scope),

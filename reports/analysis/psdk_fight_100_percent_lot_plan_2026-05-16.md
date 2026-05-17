@@ -1762,6 +1762,18 @@ prevention branch.
 **Definition of done:**
 - Item-dependent move branches from earlier lots can be promoted.
 
+**Status 2026-05-17:** done for the first hook-based duration and move
+modifier item slice. Weather rocks and Terrain Extender were already routed
+through `activeItemEffects`; this lot moves the remaining direct held-item
+branches behind item hooks for `big_root`, `binding_band`, and `grip_claw`.
+`BigRootEffect` now controls drain/heal multipliers for drain moves, Leech
+Seed, Aqua Ring, and Ingrain while respecting item suppression. `BindingBand`
+controls bind residual damage, and `GripClaw` controls bind duration through
+the same item-effect suppression path. The item manifest now records
+`big_root`, `binding_band`, and `grip_claw` as locally hydrated partial effects.
+Remaining exact-parity gaps are visual/timing details and any future party/
+multi-target PSDK branches outside the current singles engine path.
+
 ---
 
 ## Phase 5 - Targeting, Actions, AI, and Final 100%

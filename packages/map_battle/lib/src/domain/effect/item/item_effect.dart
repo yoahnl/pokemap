@@ -27,6 +27,16 @@ abstract class BattleItemEffect extends BattleEffect {
 
   int? terrainDuration(String dbSymbol) => null;
 
+  double drainHealMultiplier(BattleItemDrainModifierContext context) {
+    return 1;
+  }
+
+  int? bindDuration(BattleItemBindDurationContext context) => null;
+
+  int? bindResidualDamageDivisor(BattleItemBindResidualContext context) {
+    return null;
+  }
+
   double damageBasePowerMultiplier(BattleItemDamageModifierContext context) {
     return 1;
   }
@@ -54,6 +64,44 @@ final class BattleItemDamageModifierContext {
   final BattleMoveDefinition move;
   final String moveType;
   final double typeEffectivenessMultiplier;
+}
+
+final class BattleItemDrainModifierContext {
+  const BattleItemDrainModifierContext({
+    required this.user,
+    required this.target,
+    required this.move,
+    required this.baseHealAmount,
+  });
+
+  final PsdkBattleCombatant user;
+  final PsdkBattleCombatant target;
+  final BattleMoveDefinition? move;
+  final int baseHealAmount;
+}
+
+final class BattleItemBindDurationContext {
+  const BattleItemBindDurationContext({
+    required this.user,
+    required this.target,
+    required this.rolledTurns,
+  });
+
+  final PsdkBattleCombatant user;
+  final PsdkBattleCombatant target;
+  final int rolledTurns;
+}
+
+final class BattleItemBindResidualContext {
+  const BattleItemBindResidualContext({
+    required this.origin,
+    required this.target,
+    required this.defaultDivisor,
+  });
+
+  final PsdkBattleCombatant origin;
+  final PsdkBattleCombatant target;
+  final int defaultDivisor;
 }
 
 extension BattleItemEffectList on PsdkBattleCombatant {
