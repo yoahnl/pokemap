@@ -36,6 +36,7 @@ void main() {
         'chesto_berry',
         'choice_band',
         'choice_scarf',
+        'choice_specs',
         'charcoal',
         'liechi_berry',
         'iron_ball',

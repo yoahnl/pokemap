@@ -256,17 +256,17 @@ final Map<String, ItemEffectFactory> _heldItemModifierFactories =
           scope: scope,
           moveType: entry.value,
         ),
-  'choice_band': ({required scope}) => HeldItemModifierEffect(
+  'choice_band': ({required scope}) => ChoiceItemEffect(
         itemId: 'choice_band',
         scope: scope,
         statMultipliers: <String, double>{'attack': 1.5},
       ),
-  'choice_specs': ({required scope}) => HeldItemModifierEffect(
+  'choice_specs': ({required scope}) => ChoiceItemEffect(
         itemId: 'choice_specs',
         scope: scope,
         statMultipliers: <String, double>{'specialAttack': 1.5},
       ),
-  'choice_scarf': ({required scope}) => HeldItemModifierEffect(
+  'choice_scarf': ({required scope}) => ChoiceItemEffect(
         itemId: 'choice_scarf',
         scope: scope,
         statMultipliers: <String, double>{'speed': 1.5},

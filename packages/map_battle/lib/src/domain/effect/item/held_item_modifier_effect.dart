@@ -3,6 +3,8 @@ import '../../../psdk/domain/psdk_battle_timeline.dart';
 import '../../handler/battle_damage_handler.dart';
 import '../../handler/battle_handler_context.dart';
 import '../../handler/battle_item_change_handler.dart';
+import '../../move/battle_move_data.dart';
+import '../../move/battle_move_prevention.dart';
 import '../battle_effect.dart';
 import '../battle_effect_hooks.dart';
 import '../battle_effect_scope.dart';
@@ -62,6 +64,82 @@ final class HeldItemModifierEffect extends BattleItemEffect {
       return 1;
     }
     return statMultipliers[stat] ?? 1;
+  }
+
+  bool _canApplyTo(PsdkBattleCombatant battler) {
+    return battler.heldItemId == itemId &&
+        !battler.itemConsumed &&
+        !battler.itemEffectsSuppressed;
+  }
+}
+
+final class ChoiceItemEffect extends BattleItemEffect {
+  const ChoiceItemEffect({
+    required String itemId,
+    required BattleEffectScope scope,
+    required this.statMultipliers,
+  }) : super(itemId: itemId, scope: scope);
+
+  final Map<String, double> statMultipliers;
+
+  @override
+  BattleEffect copyWithRemainingTurns(int remainingTurns) {
+    return this;
+  }
+
+  @override
+  BattleEffectUserMovePreventionResult? onUserMovePrevention(
+    BattleEffectUserMovePreventionContext context,
+  ) {
+    final user = context.state.battlerAt(context.user);
+    if (_canUseMove(user, context.move)) {
+      return null;
+    }
+    return BattleEffectUserMovePreventionResult(
+      state: context.state,
+      rng: context.rng,
+      prevented: true,
+      reason: BattleMoveFailureReason.unusableByUser,
+    );
+  }
+
+  @override
+  BattleMoveSelectionPreventionResult? onMoveSelectionPrevention(
+    BattleMoveSelectionPreventionContext context,
+  ) {
+    final user = context.state.battlerAt(context.user);
+    if (_canUseMove(user, context.move)) {
+      return null;
+    }
+    return const BattleMoveSelectionPreventionResult(
+      reason: BattleMoveFailureReason.unusableByUser,
+    );
+  }
+
+  @override
+  double statMultiplier(PsdkBattleCombatant battler, String stat) {
+    if (!_canApplyTo(battler)) {
+      return 1;
+    }
+    return statMultipliers[stat] ?? 1;
+  }
+
+  bool _canUseMove(PsdkBattleCombatant user, BattleMoveDefinition move) {
+    if (!_canApplyTo(user)) {
+      return true;
+    }
+    if (_isStruggle(move.id) || _isStruggle(move.dbSymbol)) {
+      return true;
+    }
+    final lastMove = _lastNonStruggleAttempt(user);
+    if (lastMove == null) {
+      return true;
+    }
+    final lastSentTurn = user.lastSentTurn;
+    if (lastSentTurn != null && lastMove.turn < lastSentTurn) {
+      return true;
+    }
+    return _sameMove(lastMove.moveId, move);
   }
 
   bool _canApplyTo(PsdkBattleCombatant battler) {
@@ -140,6 +218,31 @@ final class GemItemEffect extends BattleItemEffect {
         context.move.power > 0 &&
         context.move.battleEngineMethod != 's_pledge';
   }
+}
+
+PsdkBattleMoveHistoryEntry? _lastNonStruggleAttempt(
+  PsdkBattleCombatant battler,
+) {
+  for (final entry in battler.moveHistory.attempts.reversed) {
+    if (!_isStruggle(entry.moveId)) {
+      return entry;
+    }
+  }
+  return null;
+}
+
+bool _sameMove(String lockedMoveId, BattleMoveDefinition move) {
+  final locked = _normalizedMoveId(lockedMoveId);
+  return locked == _normalizedMoveId(move.id) ||
+      locked == _normalizedMoveId(move.dbSymbol);
+}
+
+bool _isStruggle(String moveId) {
+  return _normalizedMoveId(moveId) == 'struggle';
+}
+
+String _normalizedMoveId(String moveId) {
+  return moveId.trim().toLowerCase().replaceAll('-', '_');
 }
 
 final class LifeOrbEffect extends BattleItemEffect {

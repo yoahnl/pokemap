@@ -1724,6 +1724,19 @@ engine slice.
 **Definition of done:**
 - Choice item family strict.
 
+**Status 2026-05-17:** done for Choice Band/Specs/Scarf move locking.
+`ChoiceItemEffect` now mirrors PSDK's `ChoiceItemMultiplier` lock rule from
+`move_history`: the first attempted non-`struggle` move after the battler was
+sent locks subsequent selections, `struggle` remains legal, and an older
+attempt is ignored once `lastSentTurn` proves the battler has switched out and
+returned. The same hook blocks illegal runtime attempts when callers bypass the
+decision request. Item removal/trick-style item changes clear the lock because
+the item effect is rehydrated through `BattleItemChangeHandler`. Interaction
+coverage includes Disable leaving a Choice-locked battler with no legal move.
+Assault Vest is still intentionally partial here: Lot 54 covers its special
+defense modifier, while its status-move restriction remains a later item
+prevention branch.
+
 ### Lot 56 - Weather/Terrain Duration Items and Misc Held Items
 
 **Goal:** port rocks, Terrain Extender, Big Root, Binding Band, Grip Claw and similar branch-enabling items.
