@@ -11871,12 +11871,12 @@
     ]
   },
   "runtimeBridge": {
-    "status": "not_measured",
-    "reason": "Runtime bridge diagnostics live in packages/map_runtime and are opened by Lot 04.",
-    "totalMoves": 0,
-    "bridgeableMoves": 0,
-    "rejectedMoves": 0,
-    "explainedRejectedMoves": 0,
+    "status": "explained",
+    "reason": "Imported from reports/previous/phase-a-battle-coverage.md. Covers authored bootstrap, golden-slice, player, trainer, and wild runtime move rows; every rejected row has a bridge diagnostic reason.",
+    "totalMoves": 28,
+    "bridgeableMoves": 20,
+    "rejectedMoves": 8,
+    "explainedRejectedMoves": 8,
     "unexplainedRejectedMoves": 0,
     "moves": []
   }

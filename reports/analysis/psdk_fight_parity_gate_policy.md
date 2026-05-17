@@ -69,6 +69,8 @@ Do not lower thresholds unless intentionally reverting a lot. If a revert is nec
 
 ## Non-Goals
 
-This gate does not measure runtime bridge parity yet. Runtime bridge diagnostics are planned by Lot 04.
+The non-regression gate is still count-focused and does not require runtime
+bridge parity. Runtime bridge diagnostics are measured by the audit snapshot
+and enforced by the final acceptance gate.
 
 This gate does not prove 100% Pokemon SDK parity. It is a guardrail to keep future work from sliding backward.

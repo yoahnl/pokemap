@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:map_battle/src/data/generated/psdk_move_registry_manifest.dart';
 import 'package:map_battle/src/data/psdk_attack_coverage_report.dart';
@@ -194,6 +195,36 @@ void main() {
       expect(audit.toMarkdown(), contains('| Total moves | 2 |'));
       expect(
           audit.toMarkdown(), contains('| Unexplained rejected moves | 0 |'));
+    });
+
+    test('CLI imports the default runtime bridge diagnostics when present',
+        () async {
+      final outputFile = File(
+        '${Directory.systemTemp.path}/psdk-fight-audit-runtime-'
+        '${DateTime.now().microsecondsSinceEpoch}.json',
+      );
+      addTearDown(() async {
+        if (await outputFile.exists()) {
+          await outputFile.delete();
+        }
+      });
+
+      final result = await Process.run(
+        Platform.resolvedExecutable,
+        <String>[
+          'run',
+          'tool/psdk_fight_parity_audit.dart',
+          '--json',
+          outputFile.path,
+        ],
+      );
+
+      expect(result.exitCode, 0, reason: '${result.stderr}');
+      final json =
+          jsonDecode(await outputFile.readAsString()) as Map<String, Object?>;
+      final runtimeBridge = json['runtimeBridge']! as Map<String, Object?>;
+      expect(runtimeBridge['status'], 'explained');
+      expect(runtimeBridge['unexplainedRejectedMoves'], 0);
     });
   });
 }

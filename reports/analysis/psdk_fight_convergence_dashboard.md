@@ -1,6 +1,6 @@
 # PSDK Fight Convergence Dashboard
 
-Generated: 2026-05-17T15:31:46.121715Z
+Generated: 2026-05-17T15:36:31.541601Z
 
 ## Final Gate Axes
 
@@ -25,9 +25,9 @@ Generated: 2026-05-17T15:31:46.121715Z
 
 | Metric | Value |
 | --- | --- |
-| Status | `not_measured` |
-| Reason | Runtime bridge diagnostics live in packages/map_runtime and are opened by Lot 04. |
+| Status | `explained` |
+| Reason | Imported from reports/previous/phase-a-battle-coverage.md. Covers authored bootstrap, golden-slice, player, trainer, and wild runtime move rows; every rejected row has a bridge diagnostic reason. |
 
 ## Next Recommendation
 
-Next recommended lot: measure runtime bridge diagnostics.
+Next recommended lot: close effect family `ability` (254 remaining effects).

@@ -73,6 +73,8 @@ Options:
   --markdown <file>  Write human-readable Markdown audit.
   --runtime-bridge <file>
                      Import runtime bridge diagnostics JSON.
+                     Defaults to ../../reports/analysis/
+                     psdk_runtime_bridge_diagnostics_latest.json when present.
   --gate             Enforce Lot 02 non-regression thresholds.
   --final-gate       Enforce the final 100% parity acceptance gate.
   --goldens <dir>    Golden fixture directory for --final-gate.
@@ -172,15 +174,20 @@ Future<void> _writeTextFile(String path, String content) async {
 }
 
 Future<PsdkRuntimeBridgeParity> _loadRuntimeBridge(String? path) async {
-  if (path == null) {
+  final diagnosticsPath = path ?? _defaultRuntimeBridgePath;
+  final diagnosticsFile = File(diagnosticsPath);
+  if (!await diagnosticsFile.exists()) {
     return const PsdkRuntimeBridgeParity.notMeasured();
   }
-  final decoded = jsonDecode(await File(path).readAsString());
+  final decoded = jsonDecode(await diagnosticsFile.readAsString());
   if (decoded is! Map) {
     throw FormatException('Runtime bridge diagnostics JSON must be an object.');
   }
   return PsdkRuntimeBridgeParity.fromJson(decoded.cast<String, Object?>());
 }
+
+const _defaultRuntimeBridgePath =
+    '../../reports/analysis/psdk_runtime_bridge_diagnostics_latest.json';
 
 Future<int> _countGoldenFixtures(Directory directory) async {
   if (!await directory.exists()) {

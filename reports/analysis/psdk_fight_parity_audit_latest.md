@@ -274,5 +274,10 @@ Important: `partiel` is executable coverage, not strict PSDK parity.
 
 | Metric | Value |
 | --- | --- |
-| Status | `not_measured` |
-| Reason | Runtime bridge diagnostics live in packages/map_runtime and are opened by Lot 04. |
+| Status | `explained` |
+| Reason | Imported from reports/previous/phase-a-battle-coverage.md. Covers authored bootstrap, golden-slice, player, trainer, and wild runtime move rows; every rejected row has a bridge diagnostic reason. |
+| Total moves | 28 |
+| Bridgeable moves | 20 |
+| Rejected moves | 8 |
+| Explained rejected moves | 8 |
+| Unexplained rejected moves | 0 |

@@ -33,9 +33,10 @@ dart run tool/psdk_fight_parity_audit.dart --final-gate --goldens test/fixtures/
 
 The gate currently fails, as expected:
 
-- attacks complete: `267 / 728`
-- methods complete: `65 / 330`
+- attacks complete: `300 / 728`
+- methods complete: `102 / 330`
 - effects complete: `0 / 482`
-- runtime bridge status: `not_measured`
+- runtime bridge: `28` sampled runtime moves, `20` bridgeable,
+  `8` rejected with diagnostics, `0` unexplained rejections
 
 This is not a regression. It is the remaining migration work made explicit.
