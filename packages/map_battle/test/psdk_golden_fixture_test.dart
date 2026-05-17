@@ -37,6 +37,32 @@ void main() {
       );
     });
 
+    test('loads and replays every tracked golden fixture', () async {
+      final files = Directory('test/fixtures/psdk_golden')
+          .listSync()
+          .whereType<File>()
+          .where((file) => file.path.endsWith('.json'))
+          .toList()
+        ..sort((left, right) => left.path.compareTo(right.path));
+
+      expect(files, hasLength(greaterThanOrEqualTo(2)));
+
+      for (final file in files) {
+        final fixture = await PsdkGoldenFixture.load(file);
+        final engine = PsdkBattleEngine(setup: fixture.toPsdkSetup());
+        PsdkBattleTurnResult? result;
+        for (final action in fixture.actions) {
+          expect(action.actor, PsdkGoldenActor.player, reason: file.path);
+          result = engine.submit(PsdkBattleDecision.fight(
+            moveSlot: action.moveSlot,
+          ));
+        }
+
+        expect(result, isNotNull, reason: file.path);
+        expect(fixture.compare(result!), isEmpty, reason: file.path);
+      }
+    });
+
     test('rejects fixtures with missing required fields', () {
       expect(
         () => PsdkGoldenFixture.fromJson(<String, Object?>{

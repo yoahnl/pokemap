@@ -432,8 +432,10 @@ final class BattleTurnRunner {
       rethrow;
     }
 
-    final endTurn = _resolveEndTurn();
-    timeline.addPsdkAll(endTurn.events);
+    if (_context.canBattleContinue) {
+      final endTurn = _resolveEndTurn();
+      timeline.addPsdkAll(endTurn.events);
+    }
     final publicState = BattlePublicState.fromContext(_context);
     return BattleEngineTurnResult(
       state: publicState,

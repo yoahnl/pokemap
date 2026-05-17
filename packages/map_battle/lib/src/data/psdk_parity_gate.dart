@@ -13,7 +13,7 @@ const psdkFinalParityGate = PsdkFinalParityGatePolicy(
   requiredTotalAttacks: 728,
   requiredTotalMethods: 330,
   requiredTotalEffects: 482,
-  minimumGoldenFixtures: 1,
+  minimumGoldenFixtures: 2,
 );
 
 final class PsdkParityGatePolicy {
