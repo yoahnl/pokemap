@@ -20,6 +20,7 @@ import 'rock_head_effect.dart';
 import 'shadow_tag_effect.dart';
 import 'skill_link_effect.dart';
 import 'soundproof_effect.dart';
+import 'stat_drop_prevention_ability_effect.dart';
 import 'status_immunity_effect.dart';
 import 'switch_trigger_ability_effect.dart';
 import 'type_boosting_ability_effect.dart';
@@ -102,6 +103,38 @@ final class AbilityEffectRegistry {
         ),
     'sturdy': ({required scope}) => SturdyEffect(scope: scope),
     'wonder_guard': ({required scope}) => WonderGuardEffect(scope: scope),
+    'big_pecks': ({required scope}) => StatDropPreventionAbilityEffect(
+          abilityId: 'big_pecks',
+          scope: scope,
+          preventedStats: const <String>{'defense'},
+        ),
+    'hyper_cutter': ({required scope}) => StatDropPreventionAbilityEffect(
+          abilityId: 'hyper_cutter',
+          scope: scope,
+          preventedStats: const <String>{'attack'},
+        ),
+    'keen_eye': ({required scope}) => StatDropPreventionAbilityEffect(
+          abilityId: 'keen_eye',
+          scope: scope,
+          preventedStats: const <String>{'accuracy'},
+        ),
+    'mind_s_eye': ({required scope}) => StatDropPreventionAbilityEffect(
+          abilityId: 'mind_s_eye',
+          scope: scope,
+          preventedStats: const <String>{'accuracy'},
+        ),
+    'clear_body': ({required scope}) => StatDropPreventionAbilityEffect(
+          abilityId: 'clear_body',
+          scope: scope,
+        ),
+    'full_metal_body': ({required scope}) => StatDropPreventionAbilityEffect(
+          abilityId: 'full_metal_body',
+          scope: scope,
+        ),
+    'white_smoke': ({required scope}) => StatDropPreventionAbilityEffect(
+          abilityId: 'white_smoke',
+          scope: scope,
+        ),
     'blaze': ({required scope}) => TypeBoostingAbilityEffect(
           abilityId: 'blaze',
           scope: scope,
