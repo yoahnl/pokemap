@@ -7,6 +7,7 @@ import '../battler/battle_grounding_resolver.dart';
 import '../effect/ability/ability_effect.dart';
 import '../effect/battle_effect_hooks.dart';
 import '../effect/battle_effect_scope.dart';
+import '../effect/item/item_effect.dart';
 import '../timeline/battle_timeline_event.dart';
 import 'battle_move_execution.dart';
 import 'battle_move_prevention.dart';
@@ -196,6 +197,19 @@ String _effectiveMoveType(
   for (final effect in user.abilityEffects) {
     final overridden = effect.moveTypeOverride(
       BattleAbilityMoveTypeContext(
+        user: user,
+        target: target,
+        move: execution.move,
+        currentType: moveType,
+      ),
+    );
+    if (overridden != null) {
+      moveType = overridden;
+    }
+  }
+  for (final effect in user.activeItemEffects) {
+    final overridden = effect.moveTypeOverride(
+      BattleItemMoveTypeContext(
         user: user,
         target: target,
         move: execution.move,

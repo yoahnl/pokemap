@@ -127,6 +127,10 @@ abstract class BattleItemEffect extends BattleEffect {
     return 1;
   }
 
+  String? moveTypeOverride(BattleItemMoveTypeContext context) => null;
+
+  double accuracyMultiplier(BattleItemAccuracyContext context) => 1;
+
   double statMultiplier(PsdkBattleCombatant battler, String stat) {
     return 1;
   }
@@ -146,6 +150,32 @@ final class BattleItemDamageModifierContext {
   final BattleMoveDefinition move;
   final String moveType;
   final double typeEffectivenessMultiplier;
+}
+
+final class BattleItemMoveTypeContext {
+  const BattleItemMoveTypeContext({
+    required this.user,
+    required this.target,
+    required this.move,
+    required this.currentType,
+  });
+
+  final PsdkBattleCombatant user;
+  final PsdkBattleCombatant target;
+  final BattleMoveDefinition move;
+  final String currentType;
+}
+
+final class BattleItemAccuracyContext {
+  const BattleItemAccuracyContext({
+    required this.user,
+    required this.target,
+    required this.move,
+  });
+
+  final PsdkBattleCombatant user;
+  final PsdkBattleCombatant target;
+  final BattleMoveDefinition move;
 }
 
 final class BattleItemDrainModifierContext {

@@ -1,5 +1,6 @@
 import '../battle/battle_slot.dart';
 import '../effect/ability/ability_effect.dart';
+import '../effect/item/item_effect.dart';
 import '../rng/battle_rng_streams.dart';
 import '../../psdk/domain/psdk_battle_field.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
@@ -27,7 +28,7 @@ final class BattleAccuracyResolver {
     for (final target in targets) {
       final roll = rng.moveAccuracy.nextPercent();
       rng = rng.copyWith(moveAccuracy: roll.next);
-      if (roll.value <= execution.move.accuracy) {
+      if (roll.value <= _effectiveAccuracy(execution, target)) {
         hitTargets.add(target);
       } else {
         missedTargets.add(target);
@@ -75,6 +76,30 @@ final class BattleAccuracyResolver {
     final state = execution.context.state;
     return state.isWeatherEffectActive(PsdkBattleWeatherId.hail) ||
         state.isWeatherEffectActive(PsdkBattleWeatherId.snow);
+  }
+
+  int _effectiveAccuracy(
+    BattleMoveProcedureExecution execution,
+    BattlePositionRef targetRef,
+  ) {
+    final user = execution.context.state.battlerAt(execution.psdkUser);
+    final target = execution.context.state.battlerAt(
+      PsdkBattleSlotRef(bank: targetRef.bank, position: targetRef.position),
+    );
+    final context = BattleItemAccuracyContext(
+      user: user,
+      target: target,
+      move: execution.move,
+    );
+    var multiplier = 1.0;
+    for (final effect in user.activeItemEffects) {
+      multiplier *= effect.accuracyMultiplier(context);
+    }
+    for (final effect in target.activeItemEffects) {
+      multiplier *= effect.accuracyMultiplier(context);
+    }
+    final adjusted = (execution.move.accuracy * multiplier).floor();
+    return adjusted.clamp(1, 100).toInt();
   }
 }
 
