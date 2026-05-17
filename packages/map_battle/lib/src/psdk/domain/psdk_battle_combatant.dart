@@ -215,6 +215,7 @@ final class PsdkBattleEffectIds {
   static const String leechSeed = 'leech_seed';
   static const String mudSport = 'mud_sport';
   static const String protect = 'protect';
+  static const String preventTargetsMove = 'prevent_targets_move';
   static const String twoTurnCharge = 'two_turn_charge';
   static const String waterSport = 'water_sport';
 }

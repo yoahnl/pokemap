@@ -1012,8 +1012,8 @@ void main() {
         sourceDescription: 's_protect test moves',
       );
 
-      expect(report, contains('| fait | 3 |'));
-      expect(report, contains('| partiel | 2 |'));
+      expect(report, contains('| fait | 4 |'));
+      expect(report, contains('| partiel | 1 |'));
       expect(report, contains('| fait | protect | s_protect | ported |'));
       expect(report, contains('| fait | detect | s_protect | ported |'));
       expect(report, contains('| fait | endure | s_protect | ported |'));
@@ -1023,7 +1023,7 @@ void main() {
       );
       expect(
         report,
-        contains('| partiel | wide_guard | s_protect | ported |'),
+        contains('| fait | wide_guard | s_protect | ported |'),
       );
     });
 

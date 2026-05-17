@@ -75,6 +75,7 @@ import '../domain/effect/move/substitute_effect.dart';
 import '../domain/effect/move/taunt_effect.dart';
 import '../domain/effect/move/torment_effect.dart';
 import '../domain/effect/move/two_turn_charge_effect.dart';
+import '../domain/effect/side/doubles_guard_effects.dart';
 import '../domain/effect/side/hazard_effects.dart';
 import '../psdk/domain/psdk_battle_field.dart';
 import '../psdk/domain/psdk_battle_combatant.dart';
@@ -452,6 +453,14 @@ BattleMoveRegistry createStaticBasicMoveRegistry() {
       battleEngineMethod: 's_follow_me',
       resolve: _resolveFollowMe,
     ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_ally_switch',
+      resolve: _resolveAllySwitch,
+    ),
+    CallbackBattleMoveBehavior(
+      battleEngineMethod: 's_crafty_shield',
+      resolve: _resolveCraftyShield,
+    ),
     const StatusStatMoveBehavior.status(),
     const StatusStatMoveBehavior.stat(),
     const StatusStatMoveBehavior.selfStat(),
@@ -648,7 +657,6 @@ const _partialBasicDescendantMethods = <String>[
 
 const _partialTargetMarkerMethods = <String, String>{
   's_after_you': 'after_you',
-  's_ally_switch': 'ally_switch',
   's_autotomize': 'autotomize',
   's_charge': 'charge',
   's_conversion': 'conversion',
@@ -718,7 +726,6 @@ const _partialAbilityChangingMethods = <String, String>{
 };
 
 const _partialUserBankMarkerMethods = <String, String>{
-  's_crafty_shield': 'crafty_shield',
   's_flower_shield': 'flower_shield',
   's_gear_up': 'gear_up',
   's_dragon_cheer': 'dragon_cheer',
@@ -4689,6 +4696,14 @@ bool _keepsEffectAfterHazardCleanup(
 
 BattleMoveBehaviorResolution _resolveProtect(
     BattleMoveBehaviorContext context) {
+  final bankGuard = _protectBankGuardEffectFor(
+    context.move,
+    context.user.bank,
+  );
+  if (bankGuard != null) {
+    return _resolveBankGuard(context, bankGuard);
+  }
+
   if (context.isLastActionOfTurn) {
     return BattleMoveBehaviorResolution(
       state: context.state,
@@ -4745,6 +4760,116 @@ BattleMoveBehaviorResolution _resolveProtect(
     state: nextState,
     rng: common.rng,
     events: common.events,
+  );
+}
+
+BattleEffect? _protectBankGuardEffectFor(
+  BattleMoveDefinition move,
+  int bank,
+) {
+  final scope = BankBattleEffectScope(bank);
+  return switch (_normalizedId(move.dbSymbol)) {
+    'wide_guard' => WideGuardEffect(scope: scope),
+    'quick_guard' => QuickGuardEffect(scope: scope),
+    'mat_block' => MatBlockEffect(scope: scope),
+    _ => null,
+  };
+}
+
+BattleMoveBehaviorResolution _resolveBankGuard(
+  BattleMoveBehaviorContext context,
+  BattleEffect effect,
+) {
+  final prepared = prepareBattleMove(
+    BattleMoveBehaviorContext(
+      state: context.state,
+      rng: context.rng,
+      turn: context.turn,
+      user: context.user,
+      target: context.user,
+      move: context.move.copyWith(target: PsdkBattleMoveTarget.userSide),
+      moveSlot: context.moveSlot,
+      isLastActionOfTurn: context.isLastActionOfTurn,
+      moveProcedureHooks: context.moveProcedureHooks,
+      announcedMoveFor: context.announcedMoveFor,
+    ),
+  );
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+  final userBattler = prepared.state.battlerAt(context.user);
+  return BattleMoveBehaviorResolution(
+    state: prepared.state.replaceBattler(
+      context.user,
+      userBattler.copyWith(
+        effects: userBattler.effects.addEffect(effect),
+      ),
+    ),
+    rng: prepared.rng,
+    events: prepared.events,
+  );
+}
+
+BattleMoveBehaviorResolution _resolveCraftyShield(
+  BattleMoveBehaviorContext context,
+) {
+  return _resolveBankGuard(
+    context,
+    CraftyShieldEffect(scope: BankBattleEffectScope(context.user.bank)),
+  );
+}
+
+BattleMoveBehaviorResolution _resolveAllySwitch(
+  BattleMoveBehaviorContext context,
+) {
+  final allies = context.state.adjacentAlliesOf(context.user);
+  if (allies.length != 1) {
+    return BattleMoveBehaviorResolution(
+      state: context.state,
+      rng: context.rng,
+      events: <PsdkBattleEvent>[
+        PsdkBattleMoveFailedEvent(
+          user: context.user,
+          target: context.target,
+          moveId: context.move.id,
+          reason: BattleMoveFailureReason.unusableByUser.jsonName,
+        ),
+      ],
+      successful: false,
+    );
+  }
+
+  final prepared = prepareBattleMove(
+    BattleMoveBehaviorContext(
+      state: context.state,
+      rng: context.rng,
+      turn: context.turn,
+      user: context.user,
+      target: context.user,
+      move: context.move.copyWith(target: PsdkBattleMoveTarget.self),
+      moveSlot: context.moveSlot,
+      isLastActionOfTurn: context.isLastActionOfTurn,
+      moveProcedureHooks: context.moveProcedureHooks,
+      announcedMoveFor: context.announcedMoveFor,
+    ),
+  );
+  if (!prepared.shouldExecuteBehavior) {
+    return prepared.toResolution();
+  }
+
+  final ally = allies.single;
+  final userBattler = prepared.state.battlerAt(context.user);
+  final allyBattler = prepared.state.battlerAt(ally);
+  return BattleMoveBehaviorResolution(
+    state: prepared.state.copyWith(
+      combatants: <PsdkBattleSlotRef, PsdkBattleCombatant>{
+        ...prepared.state.combatants,
+        context.user: allyBattler,
+        ally: userBattler,
+      },
+    ),
+    rng: prepared.rng,
+    events: prepared.events,
   );
 }
 

@@ -4,6 +4,8 @@ import '../../psdk/domain/psdk_battle_move.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 import '../battle/battle_slot.dart';
 import '../battler/battle_grounding_resolver.dart';
+import '../effect/battle_effect_hooks.dart';
+import '../effect/battle_effect_scope.dart';
 import '../timeline/battle_timeline_event.dart';
 import 'battle_move_execution.dart';
 import 'battle_move_prevention.dart';
@@ -146,11 +148,33 @@ final class BattleMoveImmunityResolver {
     final target = execution.context.state.battlerAt(
       _psdkSlotFromBattlePosition(targetRef),
     );
-    return target.effects.targetMovePreventionReason(
+    final localReason = target.effects.targetMovePreventionReason(
       user: execution.actualUser,
       target: targetRef,
       move: execution.move,
     );
+    if (localReason != null) {
+      return localReason;
+    }
+
+    final context = BattleEffectMoveContext(
+      user: execution.actualUser,
+      target: targetRef,
+      move: execution.move,
+    );
+    for (final owner in execution.context.state.combatants.values) {
+      for (final effect in owner.effects.effects) {
+        final scope = effect.scope;
+        if (scope is! BankBattleEffectScope || scope.bank != targetRef.bank) {
+          continue;
+        }
+        final reason = effect.onMovePreventionTarget(context);
+        if (reason != null) {
+          return reason;
+        }
+      }
+    }
+    return null;
   }
 }
 

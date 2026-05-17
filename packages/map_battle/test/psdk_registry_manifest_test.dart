@@ -777,11 +777,6 @@ void main() {
           behavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_after_you)',
         ),
         (
-          method: 's_ally_switch',
-          behavior:
-              'StaticBasicMoveRegistry.partialTargetMarker(s_ally_switch)',
-        ),
-        (
           method: 's_assist',
           behavior: 'CopyCallMoveBehavior.assist',
         ),
@@ -808,11 +803,6 @@ void main() {
         (
           method: 's_corrosive_gas',
           behavior: 'StaticBasicMoveRegistry.s_corrosive_gas',
-        ),
-        (
-          method: 's_crafty_shield',
-          behavior:
-              'StaticBasicMoveRegistry.partialUserBankMarker(s_crafty_shield)',
         ),
         (
           method: 's_destiny_bond',
@@ -1039,6 +1029,16 @@ void main() {
         expect(byMethod[entry.method]!.status, PsdkPortStatus.partial);
         expect(byMethod[entry.method]!.dartBehavior, entry.behavior);
       }
+      expect(byMethod['s_ally_switch']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_ally_switch']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_ally_switch',
+      );
+      expect(byMethod['s_crafty_shield']!.status, PsdkPortStatus.ported);
+      expect(
+        byMethod['s_crafty_shield']!.dartBehavior,
+        'StaticBasicMoveRegistry.s_crafty_shield',
+      );
       expect(byMethod['s_lucky_chant']!.status, PsdkPortStatus.ported);
       expect(
         byMethod['s_lucky_chant']!.dartBehavior,

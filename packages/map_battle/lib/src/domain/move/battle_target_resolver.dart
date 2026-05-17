@@ -1,6 +1,8 @@
+import '../../psdk/domain/psdk_battle_combatant.dart';
 import '../../psdk/domain/psdk_battle_move.dart';
 import '../../psdk/domain/psdk_battle_slots.dart';
 import '../battle/battle_slot.dart';
+import 'battle_move_data.dart';
 import 'battle_move_execution.dart';
 
 final class BattleTargetResolver {
@@ -23,14 +25,24 @@ final class BattleTargetResolver {
       PsdkBattleMoveTarget.self ||
       PsdkBattleMoveTarget.user =>
         <PsdkBattleSlotRef>[user],
-      PsdkBattleMoveTarget.adjacentFoe => _requestedOrFirst(
-          requested: requestedSlot,
+      PsdkBattleMoveTarget.adjacentFoe => _redirectedOrOriginal(
+          execution: execution,
+          user: user,
           candidates: state.adjacentFoesOf(user),
-          fallback: psdkSinglesFoeOf(user),
+          targets: _requestedOrFirst(
+            requested: requestedSlot,
+            candidates: state.adjacentFoesOf(user),
+            fallback: psdkSinglesFoeOf(user),
+          ),
         ),
-      PsdkBattleMoveTarget.anyFoe => _requestedOrFirst(
-          requested: requestedSlot,
+      PsdkBattleMoveTarget.anyFoe => _redirectedOrOriginal(
+          execution: execution,
+          user: user,
           candidates: state.foesOf(user),
+          targets: _requestedOrFirst(
+            requested: requestedSlot,
+            candidates: state.foesOf(user),
+          ),
         ),
       PsdkBattleMoveTarget.adjacentAlly => _requestedOrFirst(
           requested: requestedSlot,
@@ -54,10 +66,15 @@ final class BattleTargetResolver {
       PsdkBattleMoveTarget.foeSide ||
       PsdkBattleMoveTarget.none =>
         const <PsdkBattleSlotRef>[],
-      PsdkBattleMoveTarget.randomFoe => _randomOne(
+      PsdkBattleMoveTarget.randomFoe => _redirectedOrOriginal(
           execution: execution,
+          user: user,
           candidates: state.foesOf(user),
-          fallback: psdkSinglesFoeOf(user),
+          targets: _randomOne(
+            execution: execution,
+            candidates: state.foesOf(user),
+            fallback: psdkSinglesFoeOf(user),
+          ),
         ),
     };
 
@@ -70,6 +87,34 @@ final class BattleTargetResolver {
             BattlePositionRef(bank: slot.bank, position: slot.position))
         .toList(growable: false);
   }
+}
+
+List<PsdkBattleSlotRef> _redirectedOrOriginal({
+  required BattleMoveProcedureExecution execution,
+  required PsdkBattleSlotRef user,
+  required List<PsdkBattleSlotRef> candidates,
+  required List<PsdkBattleSlotRef> targets,
+}) {
+  if (targets.isEmpty || !_canRedirect(execution.move)) {
+    return targets;
+  }
+  for (final candidate in candidates) {
+    final battler = execution.context.state.combatants[candidate];
+    if (battler == null || battler.isFainted) {
+      continue;
+    }
+    if (candidate.bank == user.bank ||
+        !battler.effects.contains(PsdkBattleEffectIds.centerOfAttention) ||
+        battler.effects.contains(PsdkBattleEffectIds.preventTargetsMove)) {
+      continue;
+    }
+    return <PsdkBattleSlotRef>[candidate];
+  }
+  return targets;
+}
+
+bool _canRedirect(BattleMoveDefinition move) {
+  return move.id != 'snipe_shot' && move.dbSymbol != 'snipe_shot';
 }
 
 List<PsdkBattleSlotRef> _randomOne({

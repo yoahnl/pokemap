@@ -115,8 +115,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_ally_switch',
     rubyClass: 'AllySwitch',
     rubyPath: '10 Move/2 Definitions/300 AllySwitch.rb',
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_ally_switch)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_ally_switch',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(
@@ -453,9 +453,8 @@ const psdkMoveRegistryManifest = <PsdkMoveRegistryManifestEntry>[
     battleEngineMethod: 's_crafty_shield',
     rubyClass: 'CraftyShield',
     rubyPath: '10 Move/2 Definitions/300 CraftyShield.rb',
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialUserBankMarker(s_crafty_shield)',
-    status: PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_crafty_shield',
+    status: PsdkPortStatus.ported,
     dependencies: const <PsdkMoveDependency>[],
   ),
   PsdkMoveRegistryManifestEntry(

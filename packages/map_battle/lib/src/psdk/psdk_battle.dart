@@ -67,6 +67,7 @@ export '../domain/effect/move/syrup_bomb_effect.dart';
 export '../domain/effect/move/tar_shot_effect.dart';
 export '../domain/effect/move/throat_chop_effect.dart';
 export '../domain/effect/move/two_turn_charge_effect.dart';
+export '../domain/effect/side/doubles_guard_effects.dart';
 export '../domain/effect/side/hazard_effects.dart';
 export '../domain/effect/side/side_condition_stack.dart';
 export '../domain/effect/slot/slot_condition_stack.dart';

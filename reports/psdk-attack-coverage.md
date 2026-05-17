@@ -21,14 +21,14 @@ Coverage semantics:
 - `s_recoil` is counted as `fait` only for plain recoil damage moves; status riders, special self-crash, and multi-target variants remain `partiel`.
 - `s_absorb` is counted as `fait` only for plain single-target drain moves; multi-target and unusual target variants remain `partiel`.
 - Heal/recovery methods are counted as `fait` only for status-only self recovery moves; Heal Pulse, Substitute/Mega Launcher branches and mixed riders remain `partiel`.
-- `s_protect` is counted as `fait` only for Protect, Detect and Endure; contact-punish, side-guard and Mat Block variants remain `partiel`.
+- `s_protect` is counted as `fait` for Protect, Detect, Endure, Wide Guard, Quick Guard and Mat Block; contact-punish variants remain `partiel`.
 
 | Metric | Count |
 | --- | ---: |
 | total_attacks | 728 |
 | unique_battle_engine_methods | 258 |
-| fait | 262 |
-| partiel | 466 |
+| fait | 267 |
+| partiel | 461 |
 | pas_fait | 0 |
 | unknown_methods | 0 |
 
@@ -51,7 +51,7 @@ Coverage semantics:
 | partiel | air_slash | s_basic | ported | StaticBasicMoveRegistry.s_basic | flying | special | 75 | 95 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/air_slash.json |
 | partiel | all_out_pummeling | s_basic | ported | StaticBasicMoveRegistry.s_basic | fighting | physical | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/all_out_pummeling.json |
 | partiel | all_out_pummeling2 | s_basic | ported | StaticBasicMoveRegistry.s_basic | fighting | special | 0 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/all_out_pummeling2.json |
-| partiel | ally_switch | s_ally_switch | partial | StaticBasicMoveRegistry.partialTargetMarker(s_ally_switch) | psychic | status | 0 | 0 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/ally_switch.json |
+| fait | ally_switch | s_ally_switch | ported | StaticBasicMoveRegistry.s_ally_switch | psychic | status | 0 | 0 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/ally_switch.json |
 | fait | amnesia | s_self_stat | ported | StatusStatMoveBehavior.selfStat | psychic | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/amnesia.json |
 | fait | anchor_shot | s_cantflee | ported | StaticBasicMoveRegistry.s_cantflee | steel | physical | 80 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/anchor_shot.json |
 | partiel | ancient_power | s_self_stat | ported | StatusStatMoveBehavior.selfStat | rock | special | 60 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/ancient_power.json |
@@ -151,7 +151,7 @@ Coverage semantics:
 | partiel | counter | s_counter | partial | CounterDamageMoveBehavior.counter | fighting | physical | 0 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/counter.json |
 | partiel | covet | s_thief | partial | ItemDependentMoveBehavior.thief | normal | physical | 60 | 100 | 25 | ../../pokémon_sdk_test_project/Data/Studio/moves/covet.json |
 | fait | crabhammer | s_basic | ported | StaticBasicMoveRegistry.s_basic | water | physical | 100 | 90 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/crabhammer.json |
-| partiel | crafty_shield | s_crafty_shield | partial | StaticBasicMoveRegistry.partialUserBankMarker(s_crafty_shield) | fairy | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/crafty_shield.json |
+| fait | crafty_shield | s_crafty_shield | ported | StaticBasicMoveRegistry.s_crafty_shield | fairy | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/crafty_shield.json |
 | fait | cross_chop | s_basic | ported | StaticBasicMoveRegistry.s_basic | fighting | physical | 100 | 80 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/cross_chop.json |
 | partiel | cross_poison | s_basic | ported | StaticBasicMoveRegistry.s_basic | poison | physical | 70 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/cross_poison.json |
 | partiel | crunch | s_basic | ported | StaticBasicMoveRegistry.s_basic | dark | physical | 80 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/crunch.json |
@@ -177,7 +177,7 @@ Coverage semantics:
 | partiel | discharge | s_basic | ported | StaticBasicMoveRegistry.s_basic | electric | special | 80 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/discharge.json |
 | fait | dive | s_2turns | ported | StaticBasicMoveRegistry.s_2turns | water | physical | 80 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/dive.json |
 | partiel | dizzy_punch | s_basic | ported | StaticBasicMoveRegistry.s_basic | normal | physical | 70 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/dizzy_punch.json |
-| partiel | doom_desire | s_future_sight | partial | StaticBasicMoveRegistry.partialTargetMarker(s_future_sight) | steel | special | 140 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/doom_desire.json |
+| partiel | doom_desire | s_future_sight | partial | StaticBasicMoveRegistry.delayedMove(s_future_sight) | steel | special | 140 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/doom_desire.json |
 | fait | double_edge | s_recoil | ported | RecoilMoveBehavior.psdkRecoil | normal | physical | 120 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/double_edge.json |
 | fait | double_hit | s_2hits | ported | MultiHitMoveBehavior.fixed(2) | normal | physical | 35 | 90 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/double_hit.json |
 | fait | double_kick | s_2hits | ported | MultiHitMoveBehavior.fixed(2) | fighting | physical | 30 | 100 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/double_kick.json |
@@ -258,7 +258,7 @@ Coverage semantics:
 | partiel | flying_press | s_flying_press | partial | StaticBasicMoveRegistry.partialBasic(s_flying_press) | fighting | physical | 100 | 95 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/flying_press.json |
 | partiel | focus_blast | s_basic | ported | StaticBasicMoveRegistry.s_basic | fighting | special | 120 | 70 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/focus_blast.json |
 | partiel | focus_energy | s_focus_energy | partial | StaticBasicMoveRegistry.partialTargetMarker(s_focus_energy) | normal | status | 0 | 0 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/focus_energy.json |
-| partiel | focus_punch | s_focus_punch | partial | StaticBasicMoveRegistry.partialBasic(s_focus_punch) | fighting | physical | 150 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/focus_punch.json |
+| partiel | focus_punch | s_focus_punch | partial | ActionGatedMoveBehavior.focusPunch | fighting | physical | 150 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/focus_punch.json |
 | partiel | follow_me | s_follow_me | partial | StaticBasicMoveRegistry.s_follow_me | normal | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/follow_me.json |
 | partiel | force_palm | s_basic | ported | StaticBasicMoveRegistry.s_basic | fighting | physical | 60 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/force_palm.json |
 | partiel | foresight | s_foresight | partial | StaticBasicMoveRegistry.s_foresight | normal | status | 0 | 0 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/foresight.json |
@@ -274,7 +274,7 @@ Coverage semantics:
 | fait | fury_swipes | s_multi_hit | ported | MultiHitMoveBehavior.psdkRandom | normal | physical | 18 | 80 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/fury_swipes.json |
 | partiel | fusion_bolt | s_fusion_bolt | partial | StaticBasicMoveRegistry.s_fusion_bolt | electric | physical | 100 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/fusion_bolt.json |
 | partiel | fusion_flare | s_fusion_flare | partial | StaticBasicMoveRegistry.s_fusion_flare | fire | special | 100 | 100 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/fusion_flare.json |
-| partiel | future_sight | s_future_sight | partial | StaticBasicMoveRegistry.partialTargetMarker(s_future_sight) | psychic | special | 120 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/future_sight.json |
+| partiel | future_sight | s_future_sight | partial | StaticBasicMoveRegistry.delayedMove(s_future_sight) | psychic | special | 120 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/future_sight.json |
 | partiel | gastro_acid | s_gastro_acid | partial | StaticBasicMoveRegistry.partialTargetMarker(s_gastro_acid) | poison | status | 0 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/gastro_acid.json |
 | fait | gear_grind | s_2hits | ported | MultiHitMoveBehavior.fixed(2) | steel | physical | 50 | 85 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/gear_grind.json |
 | partiel | gear_up | s_gear_up | partial | StaticBasicMoveRegistry.partialUserBankMarker(s_gear_up) | steel | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/gear_up.json |
@@ -405,7 +405,7 @@ Coverage semantics:
 | partiel | magnetic_flux | s_magnetic_flux | partial | StaticBasicMoveRegistry.partialUserBankMarker(s_magnetic_flux) | electric | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/magnetic_flux.json |
 | partiel | magnitude | s_magnitude | partial | StaticBasicMoveRegistry.s_magnitude | ground | physical | 0 | 100 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/magnitude.json |
 | partiel | malicious_moonsault | s_malicious_moonsault | partial | StaticBasicMoveRegistry.partialBasic(s_malicious_moonsault) | dark | physical | 180 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/malicious_moonsault.json |
-| partiel | mat_block | s_protect | ported | StaticBasicMoveRegistry.s_protect | fighting | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/mat_block.json |
+| fait | mat_block | s_protect | ported | StaticBasicMoveRegistry.s_protect | fighting | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/mat_block.json |
 | partiel | me_first | s_me_first | partial | CopyCallMoveBehavior.meFirst | normal | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/me_first.json |
 | fait | mean_look | s_cantflee | ported | StaticBasicMoveRegistry.s_cantflee | normal | status | 0 | 0 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/mean_look.json |
 | fait | meditate | s_self_stat | ported | StatusStatMoveBehavior.selfStat | psychic | status | 0 | 0 | 40 | ../../pokémon_sdk_test_project/Data/Studio/moves/meditate.json |
@@ -518,7 +518,7 @@ Coverage semantics:
 | partiel | pursuit | s_pursuit | partial | StaticBasicMoveRegistry.s_pursuit | dark | physical | 40 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/pursuit.json |
 | partiel | quash | s_quash | partial | StaticBasicMoveRegistry.partialTargetMarker(s_quash) | dark | status | 0 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/quash.json |
 | fait | quick_attack | s_basic | ported | StaticBasicMoveRegistry.s_basic | normal | physical | 40 | 100 | 30 | ../../pokémon_sdk_test_project/Data/Studio/moves/quick_attack.json |
-| partiel | quick_guard | s_protect | ported | StaticBasicMoveRegistry.s_protect | fighting | status | 0 | 0 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/quick_guard.json |
+| fait | quick_guard | s_protect | ported | StaticBasicMoveRegistry.s_protect | fighting | status | 0 | 0 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/quick_guard.json |
 | fait | quiver_dance | s_self_stat | ported | StatusStatMoveBehavior.selfStat | bug | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/quiver_dance.json |
 | partiel | rage | s_rage | partial | StaticBasicMoveRegistry.s_rage | normal | physical | 20 | 100 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/rage.json |
 | partiel | rage_powder | s_follow_me | partial | StaticBasicMoveRegistry.s_follow_me | bug | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/rage_powder.json |
@@ -554,7 +554,7 @@ Coverage semantics:
 | partiel | rollout | s_rollout | partial | ConsecutivePowerMoveBehavior.rollout | rock | physical | 30 | 90 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/rollout.json |
 | partiel | roost | s_roost | partial | HealMoveBehavior.roost | flying | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/roost.json |
 | partiel | rototiller | s_rototiller | partial | StaticBasicMoveRegistry.partialUserBankMarker(s_rototiller) | ground | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/rototiller.json |
-| partiel | round | s_round | partial | StaticBasicMoveRegistry.partialBasic(s_round) | normal | special | 60 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/round.json |
+| partiel | round | s_round | partial | ConsecutivePowerMoveBehavior.round | normal | special | 60 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/round.json |
 | partiel | s10_000_000_volt_thunderbolt | s_z_move | partial | StaticBasicMoveRegistry.s_z_move | electric | special | 195 | 0 | 1 | ../../pokémon_sdk_test_project/Data/Studio/moves/s10_000_000_volt_thunderbolt.json |
 | partiel | sacred_fire | s_basic | ported | StaticBasicMoveRegistry.s_basic | fire | physical | 100 | 95 | 5 | ../../pokémon_sdk_test_project/Data/Studio/moves/sacred_fire.json |
 | partiel | sacred_sword | s_sacred_sword | partial | CustomStatSourceMoveBehavior.sacredSword | fighting | physical | 90 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/sacred_sword.json |
@@ -745,7 +745,7 @@ Coverage semantics:
 | fait | weather_ball | s_weather_ball | ported | WeatherPowerMoveBehavior.weatherBall | normal | special | 50 | 100 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/weather_ball.json |
 | fait | whirlpool | s_bind | ported | StaticBasicMoveRegistry.s_bind | water | special | 35 | 85 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/whirlpool.json |
 | partiel | whirlwind | s_roar | partial | StaticBasicMoveRegistry.forceSwitch(s_roar) | normal | status | 0 | 0 | 20 | ../../pokémon_sdk_test_project/Data/Studio/moves/whirlwind.json |
-| partiel | wide_guard | s_protect | ported | StaticBasicMoveRegistry.s_protect | rock | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/wide_guard.json |
+| fait | wide_guard | s_protect | ported | StaticBasicMoveRegistry.s_protect | rock | status | 0 | 0 | 10 | ../../pokémon_sdk_test_project/Data/Studio/moves/wide_guard.json |
 | fait | wild_charge | s_recoil | ported | RecoilMoveBehavior.psdkRecoil | electric | physical | 90 | 100 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/wild_charge.json |
 | fait | will_o_wisp | s_status | ported | StatusStatMoveBehavior.status | fire | status | 0 | 85 | 15 | ../../pokémon_sdk_test_project/Data/Studio/moves/will_o_wisp.json |
 | fait | wing_attack | s_basic | ported | StaticBasicMoveRegistry.s_basic | flying | physical | 60 | 100 | 35 | ../../pokémon_sdk_test_project/Data/Studio/moves/wing_attack.json |

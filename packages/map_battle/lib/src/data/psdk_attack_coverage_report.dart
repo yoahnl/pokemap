@@ -334,7 +334,8 @@ final class PsdkStudioMoveCoverageEntry {
     final normalizedTarget = target.trim().toLowerCase();
     if (normalizedTarget.isNotEmpty &&
         normalizedTarget != 'user' &&
-        normalizedTarget != 'self') {
+        normalizedTarget != 'self' &&
+        normalizedTarget != 'all_ally') {
       return false;
     }
     return battleStageModCount == 0 &&
@@ -479,8 +480,8 @@ String generatePsdkAttackCoverageReport({
       'mixed riders remain `partiel`.',
     )
     ..writeln(
-      '- `s_protect` is counted as `fait` only for Protect, Detect and '
-      'Endure; contact-punish, side-guard and Mat Block variants remain '
+      '- `s_protect` is counted as `fait` for Protect, Detect, Endure, '
+      'Wide Guard, Quick Guard and Mat Block; contact-punish variants remain '
       '`partiel`.',
     )
     ..writeln()
@@ -846,7 +847,10 @@ const _strictSelfRecoveryTargets = <String>{
 const _strictProtectBaseMoves = <String>{
   'detect',
   'endure',
+  'mat_block',
   'protect',
+  'quick_guard',
+  'wide_guard',
 };
 
 const _strictMajorStatusTargets = <String>{

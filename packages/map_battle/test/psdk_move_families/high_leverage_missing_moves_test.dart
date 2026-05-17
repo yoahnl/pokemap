@@ -1271,7 +1271,6 @@ void main() {
 
     for (final entry in <({String method, String moveId})>[
       (method: 's_after_you', moveId: 'after_you'),
-      (method: 's_ally_switch', moveId: 'ally_switch'),
       (method: 's_magic_coat', moveId: 'magic_coat'),
     ]) {
       test('${entry.method} executes as a turn-scoped battler marker slice',

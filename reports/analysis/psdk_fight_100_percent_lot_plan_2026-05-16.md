@@ -1871,6 +1871,15 @@ effects, starting with redirection/guard behavior in Lot 59.
 **Definition of done:**
 - Core doubles utility moves are strict.
 
+**Status 2026-05-17:** done. Added bank-scoped doubles guard effects for
+Wide Guard, Quick Guard, Crafty Shield and Mat Block, wired same-bank target
+prevention through the shared immunity precheck, routed Follow Me /
+center-of-attention redirection inside `BattleTargetResolver`, and replaced the
+old Ally Switch marker with the real adjacent ally slot swap. The registry and
+coverage manifests now mark `s_ally_switch` and `s_crafty_shield` as `ported`,
+and strict attack coverage moved to 267 / 728 attacks with 65 / 330 methods
+ported.
+
 ### Lot 60 - Voluntary Switch Action Parity
 
 **Goal:** finish PSDK switch action behavior.

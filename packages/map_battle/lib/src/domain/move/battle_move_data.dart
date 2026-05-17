@@ -106,6 +106,46 @@ final class BattleMoveDefinition {
   List<PsdkBattleMoveStatus> get statuses =>
       List<PsdkBattleMoveStatus>.unmodifiable(_statuses);
 
+  BattleMoveDefinition copyWith({
+    String? id,
+    String? dbSymbol,
+    String? name,
+    String? type,
+    PsdkBattleMoveCategory? category,
+    int? power,
+    int? accuracy,
+    int? pp,
+    int? currentPp,
+    int? priority,
+    int? criticalRate,
+    int? effectChance,
+    String? battleEngineMethod,
+    PsdkBattleMoveTarget? target,
+    BattleMoveFlags? flags,
+    List<BattleStageMod>? stageMods,
+    List<PsdkBattleMoveStatus>? statuses,
+  }) {
+    return BattleMoveDefinition(
+      id: id ?? this.id,
+      dbSymbol: dbSymbol ?? this.dbSymbol,
+      name: name ?? this.name,
+      type: type ?? this.type,
+      category: category ?? this.category,
+      power: power ?? this.power,
+      accuracy: accuracy ?? this.accuracy,
+      pp: pp ?? this.pp,
+      currentPp: currentPp ?? this.currentPp,
+      priority: priority ?? this.priority,
+      criticalRate: criticalRate ?? this.criticalRate,
+      effectChance: effectChance ?? this.effectChance,
+      battleEngineMethod: battleEngineMethod ?? this.battleEngineMethod,
+      target: target ?? this.target,
+      flags: flags ?? this.flags,
+      stageMods: stageMods ?? this.stageMods,
+      statuses: statuses ?? this.statuses,
+    );
+  }
+
   PsdkBattleMoveData get psdkMove {
     return PsdkBattleMoveData(
       id: id,

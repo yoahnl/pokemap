@@ -21,8 +21,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_ally_switch': _KnownDartBehavior(
-    dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_ally_switch)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_ally_switch',
+    status: _PsdkPortStatus.ported,
   ),
   's_autotomize': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.partialTargetMarker(s_autotomize)',
@@ -492,9 +492,8 @@ const _knownDartBehaviors = <String, _KnownDartBehavior>{
     status: _PsdkPortStatus.partial,
   ),
   's_crafty_shield': _KnownDartBehavior(
-    dartBehavior:
-        'StaticBasicMoveRegistry.partialUserBankMarker(s_crafty_shield)',
-    status: _PsdkPortStatus.partial,
+    dartBehavior: 'StaticBasicMoveRegistry.s_crafty_shield',
+    status: _PsdkPortStatus.ported,
   ),
   's_defog': _KnownDartBehavior(
     dartBehavior: 'StaticBasicMoveRegistry.s_defog',
