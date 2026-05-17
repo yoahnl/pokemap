@@ -1027,6 +1027,93 @@ void main() {
       expect(result.state.battlerAt(psdkOpponentSlot).currentHp, 100);
     });
 
+    test('Overcoat blocks powder moves through the ability immunity hook', () {
+      final effect = _abilityEffectForOpponent('overcoat');
+
+      final blocked = effect.onMovePreventionTarget(
+        BattleEffectMoveContext(
+          user: const BattlePositionRef(bank: 0, position: 0),
+          target: const BattlePositionRef(bank: 1, position: 0),
+          move: _definition(
+            id: 'sleep_powder',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+            flags: const BattleMoveFlags(powder: true),
+          ),
+        ),
+      );
+      final neutral = effect.onMovePreventionTarget(
+        BattleEffectMoveContext(
+          user: const BattlePositionRef(bank: 0, position: 0),
+          target: const BattlePositionRef(bank: 1, position: 0),
+          move: _definition(
+            id: 'growl',
+            category: PsdkBattleMoveCategory.status,
+            power: 0,
+          ),
+        ),
+      );
+
+      expect(blocked, BattleMoveFailureReason.immunity);
+      expect(neutral, isNull);
+    });
+
+    test('Wonder Guard blocks only non-super-effective damaging moves', () {
+      final blocked = _applyDirectAbilityDamage(
+        opponentAbilityId: 'wonder_guard',
+        moveType: 'normal',
+      );
+      final allowed = _applyDirectAbilityDamage(
+        opponentAbilityId: 'wonder_guard',
+        moveType: 'fire',
+        opponentTypes: const PsdkBattleTypes(primary: 'grass'),
+      );
+
+      expect(blocked.applied, isTrue);
+      expect(blocked.reason, BattleMoveFailureReason.immunity.jsonName);
+      expect(_damageEventsForHandler(blocked), isEmpty);
+      expect(allowed.applied, isTrue);
+      expect(_damageEventsForHandler(allowed), hasLength(1));
+    });
+
+    test('Sturdy blocks OHKO moves and leaves full HP targets at one HP', () {
+      final effect = _abilityEffectForOpponent('sturdy');
+
+      final ohko = effect.onMovePreventionTarget(
+        BattleEffectMoveContext(
+          user: const BattlePositionRef(bank: 0, position: 0),
+          target: const BattlePositionRef(bank: 1, position: 0),
+          move: _definition(
+            id: 'fissure',
+            power: 1,
+            battleEngineMethod: 's_ohko',
+          ),
+        ),
+      );
+      final regular = effect.onMovePreventionTarget(
+        BattleEffectMoveContext(
+          user: const BattlePositionRef(bank: 0, position: 0),
+          target: const BattlePositionRef(bank: 1, position: 0),
+          move: _definition(id: 'tackle', power: 40),
+        ),
+      );
+      final lethal = _applyDirectAbilityDamage(
+        opponentAbilityId: 'sturdy',
+        rawDamage: 120,
+      );
+      final damaged = _applyDirectAbilityDamage(
+        opponentAbilityId: 'sturdy',
+        opponentCurrentHp: 99,
+        rawDamage: 120,
+      );
+
+      expect(ohko, BattleMoveFailureReason.immunity);
+      expect(regular, isNull);
+      expect(lethal.state.battlerAt(psdkOpponentSlot).currentHp, 1);
+      expect(_damageEventsForHandler(lethal).single.damage, 99);
+      expect(damaged.state.battlerAt(psdkOpponentSlot).currentHp, 0);
+    });
+
     test('Air Lock prevents new weather from being applied', () {
       final result = _runMove(
         opponentAbilityId: 'air_lock',
@@ -1516,8 +1603,10 @@ int _calculatedDamage({
 
 BattleHandlerResult _applyDirectAbilityDamage({
   required String opponentAbilityId,
-  required String moveType,
+  String moveType = 'normal',
   int opponentCurrentHp = 100,
+  int rawDamage = 30,
+  PsdkBattleTypes opponentTypes = const PsdkBattleTypes(primary: 'normal'),
 }) {
   final state = PsdkBattleState.fromSetup(
     BattleEngineSetup.singles(
@@ -1528,6 +1617,7 @@ BattleHandlerResult _applyDirectAbilityDamage({
       opponent: _combatant(
         id: 'opponent',
         currentHp: opponentCurrentHp,
+        types: opponentTypes,
         abilityId: opponentAbilityId,
         move: _move(id: 'opponent_wait', power: 0),
       ),
@@ -1549,7 +1639,7 @@ BattleHandlerResult _applyDirectAbilityDamage({
     ),
     target: psdkOpponentSlot,
     moveId: 'typed_hit',
-    rawDamage: 30,
+    rawDamage: rawDamage,
     move: BattleMoveDefinition(
       id: 'typed_hit',
       dbSymbol: 'typed_hit',
@@ -1563,5 +1653,54 @@ BattleHandlerResult _applyDirectAbilityDamage({
       battleEngineMethod: 's_basic',
       target: PsdkBattleMoveTarget.adjacentFoe,
     ),
+  );
+}
+
+BattleEffect _abilityEffectForOpponent(String abilityId) {
+  final state = PsdkBattleState.fromSetup(
+    BattleEngineSetup.singles(
+      player: _combatant(
+        id: 'player',
+        move: _move(id: 'tackle', power: 40),
+      ),
+      opponent: _combatant(
+        id: 'opponent',
+        abilityId: abilityId,
+        move: _move(id: 'opponent_wait', power: 0),
+      ),
+      rngSeeds: const BattleRngSeeds(
+        moveDamage: 1,
+        moveCritical: 99999,
+        moveAccuracy: 3,
+        generic: 4,
+      ).psdkSeeds,
+    ).psdkSetup,
+  );
+  final effects = state.battlerAt(psdkOpponentSlot).abilityEffects.toList();
+  expect(effects, isNotEmpty, reason: abilityId);
+  return effects.single;
+}
+
+BattleMoveDefinition _definition({
+  required String id,
+  String type = 'normal',
+  PsdkBattleMoveCategory category = PsdkBattleMoveCategory.physical,
+  required int power,
+  String battleEngineMethod = 's_basic',
+  BattleMoveFlags flags = const BattleMoveFlags(),
+}) {
+  return BattleMoveDefinition(
+    id: id,
+    dbSymbol: id,
+    name: id,
+    type: type,
+    category: category,
+    power: power,
+    accuracy: 100,
+    pp: 35,
+    priority: 0,
+    battleEngineMethod: battleEngineMethod,
+    target: PsdkBattleMoveTarget.adjacentFoe,
+    flags: flags,
   );
 }

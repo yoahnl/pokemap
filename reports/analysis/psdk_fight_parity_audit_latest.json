@@ -9295,15 +9295,15 @@
   "effects": {
     "totalEffects": 482,
     "byStatus": {
-      "ported": 162,
+      "ported": 165,
       "partial": 19,
-      "missing": 301
+      "missing": 298
     },
     "byFamilyAndStatus": {
       "ability": {
-        "ported": 41,
+        "ported": 44,
         "partial": 2,
-        "missing": 211
+        "missing": 208
       },
       "move": {
         "ported": 69,
@@ -11682,7 +11682,7 @@
       {
         "effectName": "Overcoat",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Overcoat.rb",
         "hookFamilies": [
           "ability_immunity"
@@ -12735,7 +12735,7 @@
       {
         "effectName": "Sturdy",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Sturdy.rb",
         "hookFamilies": [
           "ability_immunity",
@@ -13395,7 +13395,7 @@
       {
         "effectName": "WonderGuard",
         "family": "ability",
-        "status": "missing",
+        "status": "ported",
         "rubyPath": "06 Effects/04 Ability Effects/100 Wonder Guard.rb",
         "hookFamilies": [
           "ability_immunity"

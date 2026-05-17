@@ -5,6 +5,7 @@ import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../data/generated/psdk_ability_effect_manifest.dart';
 import '../battle_effect.dart';
 import '../battle_effect_scope.dart';
+import 'ability_immunity_effect.dart';
 import 'air_lock_effect.dart';
 import 'cloud_nine_effect.dart';
 import 'contact_punish_ability_effect.dart';
@@ -95,6 +96,12 @@ final class AbilityEffectRegistry {
           reward: TypeImmunityReward.attack,
           excludedMoveIds: const <String>{'aromatherapy'},
         ),
+    'overcoat': ({required scope}) => PowderMoveImmunityAbilityEffect(
+          abilityId: 'overcoat',
+          scope: scope,
+        ),
+    'sturdy': ({required scope}) => SturdyEffect(scope: scope),
+    'wonder_guard': ({required scope}) => WonderGuardEffect(scope: scope),
     'blaze': ({required scope}) => TypeBoostingAbilityEffect(
           abilityId: 'blaze',
           scope: scope,

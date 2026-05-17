@@ -878,7 +878,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'overcoat',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Overcoat.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'PowderMoveImmunityAbilityEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'overgrow',
@@ -1385,7 +1386,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'sturdy',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Sturdy.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'SturdyEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'suction_cups',
@@ -1701,7 +1703,8 @@ const psdkAbilityEffectManifest = <PsdkAbilityEffectManifestEntry>[
     abilityId: 'wonder_guard',
     rubyPath:
         'pokemonsdk-development/scripts/5 Battle/06 Effects/04 Ability Effects/100 Wonder Guard.rb',
-    status: PsdkAbilityPortStatus.missing,
+    status: PsdkAbilityPortStatus.ported,
+    dartEffect: 'WonderGuardEffect',
   ),
   PsdkAbilityEffectManifestEntry(
     abilityId: 'wonder_skin',
