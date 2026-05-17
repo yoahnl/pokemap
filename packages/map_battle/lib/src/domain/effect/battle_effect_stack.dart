@@ -503,6 +503,7 @@ final class BattleEffectObjectStack {
           target: context.target,
           status: context.status,
           cured: context.cured,
+          moveId: context.moveId,
           move: context.move,
         ),
       );

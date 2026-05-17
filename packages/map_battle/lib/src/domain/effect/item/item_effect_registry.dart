@@ -1,9 +1,11 @@
 import '../../../psdk/domain/psdk_battle_combatant.dart';
+import '../../../psdk/domain/psdk_battle_move.dart';
 import '../../../psdk/domain/psdk_battle_slots.dart';
 import '../../../data/generated/psdk_item_effect_manifest.dart';
 import '../battle_effect.dart';
 import '../battle_effect_scope.dart';
 import 'air_balloon_effect.dart';
+import 'berry_item_effect.dart';
 import 'black_sludge_effect.dart';
 import 'iron_ball_effect.dart';
 import 'leftovers_effect.dart';
@@ -52,6 +54,7 @@ final class ItemEffectRegistry {
           scope: scope,
           moveDbSymbols: const <String>['hail', 'snowscape'],
         ),
+    ..._berryFactories,
   };
 
   final Map<String, ItemEffectFactory> _factories;
@@ -96,3 +99,115 @@ String? _normalizeItemId(String? itemId) {
   final normalized = itemId.trim().toLowerCase();
   return normalized.isEmpty ? null : normalized;
 }
+
+final Map<String, ItemEffectFactory> _berryFactories =
+    <String, ItemEffectFactory>{
+  'oran_berry': ({required scope}) => BerryItemEffect.hpHeal(
+        itemId: 'oran_berry',
+        scope: scope,
+        healAmount: (battler) => battler.abilityId == 'ripen' ? 20 : 10,
+      ),
+  'sitrus_berry': ({required scope}) => BerryItemEffect.hpHeal(
+        itemId: 'sitrus_berry',
+        scope: scope,
+        healAmount: (battler) =>
+            ((battler.maxHp * (battler.abilityId == 'ripen' ? 2 : 1)) ~/ 4)
+                .clamp(1, battler.maxHp)
+                .toInt(),
+      ),
+  'berry_juice': ({required scope}) => BerryItemEffect.hpHeal(
+        itemId: 'berry_juice',
+        scope: scope,
+        healAmount: (battler) => battler.abilityId == 'ripen' ? 40 : 20,
+      ),
+  for (final itemId in const <String>[
+    'figy_berry',
+    'wiki_berry',
+    'mago_berry',
+    'aguav_berry',
+    'iapapa_berry',
+  ])
+    itemId: ({required scope}) => BerryItemEffect.hpHeal(
+          itemId: itemId,
+          scope: scope,
+          hpThreshold: (battler) =>
+              battler.abilityId == 'gluttony' ? 0.5 : 0.25,
+          healAmount: (battler) =>
+              ((battler.maxHp * (battler.abilityId == 'ripen' ? 2 : 1)) ~/ 3)
+                  .clamp(1, battler.maxHp)
+                  .toInt(),
+          mayConfuseFromNature: true,
+        ),
+  'aspear_berry': ({required scope}) => BerryItemEffect.statusCure(
+        itemId: 'aspear_berry',
+        scope: scope,
+        statuses: const <PsdkBattleMajorStatus>{PsdkBattleMajorStatus.freeze},
+      ),
+  'rawst_berry': ({required scope}) => BerryItemEffect.statusCure(
+        itemId: 'rawst_berry',
+        scope: scope,
+        statuses: const <PsdkBattleMajorStatus>{PsdkBattleMajorStatus.burn},
+      ),
+  'pecha_berry': ({required scope}) => BerryItemEffect.statusCure(
+        itemId: 'pecha_berry',
+        scope: scope,
+        statuses: const <PsdkBattleMajorStatus>{
+          PsdkBattleMajorStatus.poison,
+          PsdkBattleMajorStatus.toxic,
+        },
+      ),
+  'chesto_berry': ({required scope}) => BerryItemEffect.statusCure(
+        itemId: 'chesto_berry',
+        scope: scope,
+        statuses: const <PsdkBattleMajorStatus>{PsdkBattleMajorStatus.sleep},
+      ),
+  'cheri_berry': ({required scope}) => BerryItemEffect.statusCure(
+        itemId: 'cheri_berry',
+        scope: scope,
+        statuses: const <PsdkBattleMajorStatus>{
+          PsdkBattleMajorStatus.paralysis,
+        },
+      ),
+  'lum_berry': ({required scope}) => BerryItemEffect.statusCure(
+        itemId: 'lum_berry',
+        scope: scope,
+        statuses: const <PsdkBattleMajorStatus>{
+          PsdkBattleMajorStatus.paralysis,
+          PsdkBattleMajorStatus.burn,
+          PsdkBattleMajorStatus.poison,
+          PsdkBattleMajorStatus.toxic,
+          PsdkBattleMajorStatus.sleep,
+          PsdkBattleMajorStatus.freeze,
+        },
+      ),
+  'liechi_berry': ({required scope}) => BerryItemEffect.statPinch(
+        itemId: 'liechi_berry',
+        scope: scope,
+        stat: 'attack',
+      ),
+  'ganlon_berry': ({required scope}) => BerryItemEffect.statPinch(
+        itemId: 'ganlon_berry',
+        scope: scope,
+        stat: 'defense',
+      ),
+  'salac_berry': ({required scope}) => BerryItemEffect.statPinch(
+        itemId: 'salac_berry',
+        scope: scope,
+        stat: 'speed',
+      ),
+  'petaya_berry': ({required scope}) => BerryItemEffect.statPinch(
+        itemId: 'petaya_berry',
+        scope: scope,
+        stat: 'specialAttack',
+      ),
+  'apicot_berry': ({required scope}) => BerryItemEffect.statPinch(
+        itemId: 'apicot_berry',
+        scope: scope,
+        stat: 'specialDefense',
+      ),
+  'starf_berry': ({required scope}) => BerryItemEffect.statPinch(
+        itemId: 'starf_berry',
+        scope: scope,
+        stat: 'random',
+      ),
+};

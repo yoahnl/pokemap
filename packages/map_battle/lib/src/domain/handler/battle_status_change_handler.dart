@@ -95,6 +95,7 @@ final class BattleStatusChangeHandler {
       target: target,
       status: status,
       cured: false,
+      moveId: moveId,
     );
 
     return BattleHandlerResult(
@@ -165,6 +166,7 @@ final class BattleStatusChangeHandler {
       target: target,
       status: status,
       cured: true,
+      moveId: moveId,
     );
 
     return BattleHandlerResult(
@@ -325,6 +327,7 @@ BattleEffectStatusChangeResult _dispatchPostStatusChange({
   required PsdkBattleSlotRef target,
   required PsdkBattleMajorStatus status,
   required bool cured,
+  required String moveId,
 }) {
   var nextState = context.state;
   var nextRng = context.rng;
@@ -341,6 +344,7 @@ BattleEffectStatusChangeResult _dispatchPostStatusChange({
             target: target,
             status: status,
             cured: cured,
+            moveId: moveId,
           ),
         );
     nextState = result.state;

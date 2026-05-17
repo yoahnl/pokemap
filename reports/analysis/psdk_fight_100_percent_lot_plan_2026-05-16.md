@@ -1647,6 +1647,21 @@ from the manifest-backed registered ids and hydrate to no effect.
 **Definition of done:**
 - Berry item family is usable and measured.
 
+**Status 2026-05-17:** done for the first usable berry family port.
+Added `BerryItemEffect` and registry hydration for PSDK HP-triggered healing
+berries (`oran_berry`, `sitrus_berry`, `berry_juice`, Figy/Wiki/Mago/Aguav/
+Iapapa), major-status cure berries (`aspear_berry`, `rawst_berry`,
+`pecha_berry`, `chesto_berry`, `cheri_berry`, `lum_berry`), and fixed/stat
+pinch berries (`liechi_berry`, `ganlon_berry`, `salac_berry`, `petaya_berry`,
+`apicot_berry`, `starf_berry`). The Dart effect supports post-damage and
+end-turn HP threshold triggers, one-shot item consumption, major-status cure
+from the post-status hook, Gluttony/Ripen thresholds and stat boost scaling,
+and Starf's random stat choice. Manifest measurement now marks those berry ids
+as `partial`. The remaining partial branches are explicit: nature/flavor-based
+confusion for Figy-style berries, volatile confusion cure for Lum/Persim, and
+cross-battle blockers such as Unnerve/Cheek Pouch once those ability hooks are
+ported.
+
 ### Lot 54 - Held Item Damage, Stat, and Speed Modifiers
 
 **Goal:** port common held item modifiers.

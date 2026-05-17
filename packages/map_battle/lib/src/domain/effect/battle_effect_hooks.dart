@@ -368,6 +368,7 @@ final class BattleEffectStatusChangeContext {
     required this.target,
     required this.status,
     required this.cured,
+    this.moveId,
     this.move,
   });
 
@@ -379,6 +380,7 @@ final class BattleEffectStatusChangeContext {
   final PsdkBattleSlotRef target;
   final PsdkBattleMajorStatus status;
   final bool cured;
+  final String? moveId;
   final BattleMoveDefinition? move;
 }
 
